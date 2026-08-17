@@ -1,0 +1,14 @@
+# Wayfinder scratch — working research lives here until it is promoted to docs/research/
+.scratch/
+
+# Elixir
+/_build/
+/cover/
+/deps/
+/doc/
+/.fetch
+erl_crash.dump
+*.ez
+*.beam
+/config/*.secret.exs
+.elixir_ls/
