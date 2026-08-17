@@ -1,5 +1,11 @@
-# Wayfinder scratch — working research lives here until it is promoted to docs/research/
-.scratch/
+# Wayfinder working area.
+#
+# .scratch/research/ IS tracked — it is the evidence base every ticket cites.
+# .scratch/tickets/  is NOT: those bodies were published as GitHub issues, which
+# are canonical. Keeping a second copy here would let the two drift.
+.scratch/*
+!.scratch/research/
+!.scratch/issue-map.json
 
 # Elixir
 /_build/
