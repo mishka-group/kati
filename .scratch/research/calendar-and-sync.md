@@ -122,8 +122,22 @@ component, not an afterthought:
 **Snooze** is not a calendar concept — it is a notification concept. Requirement: notification
 action buttons that re-arm the alarm for +5/+15/+60 min without opening the app. Screen 51
 already draws exactly this for meals: *"a 19:15 'Dinner in 15 minutes' with inline **Eaten /
-Skip / Snooze** actions"* (`design-index.md:148`). `mob_notify` supports notification actions
-(`mob-framework.md:1208` "Actions"), so this is reachable.
+Skip / Snooze** actions"* (`design-index.md:148`).
+
+> **CORRECTED 2026-08-17.** This section previously claimed *"`mob_notify` supports notification
+> actions (`mob-framework.md:1208` 'Actions'), so this is reachable."* That is **false** — it cited
+> the section heading and inverted its verdict. `mob-framework.md:1208-1213` reads: *"### Actions —
+> **None.** No `UNNotificationAction` / `UNNotificationCategory` registration anywhere in the iOS
+> NIF; no `addAction` in the Android receiver,"* confirmed against Mob's own surface matrix
+> (<https://mob.hexdocs.pm/mobile_surface_matrix.html>), which lists *"Missing: notification
+> actions/grouping, critical flags"*.
+>
+> **Inline notification actions do not exist on either platform.** Snooze, "Eaten / Skip", and
+> "Mark watched" are all unreachable without patching the host `MobBridge.kt` (a permanent merge
+> cost — see K-05). This is load-bearing for K-32's scheduler design and for screen 51, and it
+> makes screen 51 a candidate for K-43's retirement ritual. Related: there is exactly **one**
+> hardcoded notification channel (`MobNotifyHub.CHANNEL_ID = "mob_notifications"`), so per-kind
+> channels ("new episodes" vs "release dates") need the same bridge patch.
 
 **Undo** is drawn as a system-wide promise: screen 27's fifth band is *"Undo — every
 destructive action"* (`design-index.md:226`) and screen 15 *"Doubles as the undo trail"*
