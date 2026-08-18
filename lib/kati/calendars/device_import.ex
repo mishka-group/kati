@@ -31,7 +31,6 @@ defmodule Kati.Calendars.DeviceImport do
   """
 
   require Ash.Query
-  require Logger
 
   # Deliberately NOT aliasing Kati.Calendars.Calendar: it would shadow Elixir's
   # Calendar, and Calendar.strftime/2 is used below.
@@ -156,7 +155,7 @@ defmodule Kati.Calendars.DeviceImport do
   defp status_for(0), do: :tentative
   defp status_for(_), do: nil
 
-  defp timing(begin_ms, end_ms, true, _tz) do
+  defp timing(begin_ms, _end_ms, true, _tz) do
     date = begin_ms |> DateTime.from_unix!(:millisecond) |> DateTime.to_date()
     # All-day events are date-valued. Storing a midnight instant is what makes
     # them shift a day when the user flies.

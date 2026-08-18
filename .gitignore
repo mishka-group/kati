@@ -46,3 +46,10 @@ ios/DerivedData/
 
 # ── macOS ───────────────────────────────────────────────────────────────
 .DS_Store
+
+# Left behind by `mix mob.release --android`, which stages the OTP tree here
+# for gradle to bundle. Every later DEBUG apk then bakes in that 43MB
+# snapshot, and MobBridge.extractOtpIfNeeded unpacks it over <filesDir>/otp
+# on the next clean install — silently replacing freshly deployed BEAMs with
+# whatever was compiled at release time. bin/deploy_native.sh deletes it.
+android/app/src/main/assets/otp.zip

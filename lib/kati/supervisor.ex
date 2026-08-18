@@ -27,30 +27,53 @@ defmodule Kati.Supervisor do
 
   @impl true
   def init(:ok) do
-    children = [
-      # Anything Kati spawns for one-off work. Kept here so a crashing task
-      # cannot take a screen with it.
-      {Task.Supervisor, name: Kati.TaskSupervisor},
+    children =
+      blocked_app_trees() ++
+        [
+          # Anything Kati spawns for one-off work. Kept here so a crashing task
+          # cannot take a screen with it.
+          {Task.Supervisor, name: Kati.TaskSupervisor},
 
-      # The root screen. Mob registers it as :mob_screen so the C layer's
-      # back handler can find it; supervising it is what turns "frozen app"
-      # into "back at Home".
-      %{
-        id: :mob_screen,
-        start: {Mob.Screen, :start_root, [Kati.Screens.Home]},
-        restart: :permanent,
-        shutdown: 5_000,
-        type: :worker
-      }
+          # The root screen. Mob registers it as :mob_screen so the C layer's
+          # back handler can find it; supervising it is what turns "frozen app"
+          # into "back at Home".
+          %{
+            id: :mob_screen,
+            start: {Mob.Screen, :start_root, [Kati.Screens.Home]},
+            restart: :permanent,
+            shutdown: 5_000,
+            type: :worker
+          }
 
-      # Arriving with their own tickets, each of which must live here rather
-      # than in a screen because it outlives any single screen:
-      #   Kati.Notifications.Scheduler  (#59) — owns the whole pending set
-      #   Kati.Jobs.Runner              (#59) — the on-device scheduler
-      #   Kati.Sync.Engine              (#54) — outbox, retries, backoff
-      #   Kati.Net.Throttle             (#58) — per-source rate limits
-    ]
+          # Arriving with their own tickets, each of which must live here rather
+          # than in a screen because it outlives any single screen:
+          #   Kati.Notifications.Scheduler  (#59) — owns the whole pending set
+          #   Kati.Jobs.Runner              (#59) — the on-device scheduler
+          #   Kati.Sync.Engine              (#54) — outbox, retries, backoff
+          #   Kati.Net.Throttle             (#58) — per-source rate limits
+        ]
 
     Supervisor.init(children, strategy: :one_for_one, max_restarts: 5, max_seconds: 10)
+  end
+
+  # Supervision trees that `application_controller` refuses to start on a
+  # device, started here instead so their processes genuinely exist.
+  #
+  # `:reactor` is the live case. Ash depends on it, it supervises a
+  # `PartitionSupervisor` of task supervisors plus a concurrency tracker, and
+  # its own `applications` list names `:igniter` — which needs `:inets`,
+  # which the Android OTP runtime does not ship. `Application.start(:reactor)`
+  # therefore fails with `{:not_started, :igniter}` no matter what is loaded.
+  #
+  # Calling the app's own `start/2` runs upstream's child list rather than a
+  # copy of it, so this cannot drift when Reactor changes. The only thing
+  # missing afterwards is the bookkeeping entry in `application_controller`;
+  # every process Ash reaches for is running.
+  defp blocked_app_trees do
+    Enum.map(Kati.App.blocked_apps(), fn app ->
+      {mod, args} = Application.spec(app, :mod)
+
+      %{id: {:blocked_app, app}, start: {mod, :start, [:normal, args]}, type: :supervisor}
+    end)
   end
 end

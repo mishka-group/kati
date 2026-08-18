@@ -60,24 +60,17 @@ defmodule Kati.Screens.Home do
 
   @doc "Today in Solar Hijri, e.g. یکشنبه ۲۵ مرداد ۱۴۰۵. Display only — storage stays Gregorian."
   def today_fa do
-    Kati.Calendar.Shamsi.format(Date.utc_today(), :long)
+    Kati.Calendar.Shamsi.format(Kati.Time.today(), :long)
   end
 
   @doc false
   def today do
-    now = DateTime.utc_now()
-
-    day =
-      Enum.at(
-        ~w(Monday Tuesday Wednesday Thursday Friday Saturday Sunday),
-        Date.day_of_week(now) - 1
-      )
-
-    month =
-      Enum.at(
-        ~w(January February March April May June July August September October November December),
-        now.month - 1
-      )
+    # Device zone, not UTC. The greeting is the visible half of this: at
+    # 00:30 in Amsterdam a UTC clock reads 22:30 and says "Good evening" on
+    # a screen that also names the wrong day.
+    now = Kati.Time.now()
+    day = Kati.Time.day_name(now)
+    month = Kati.Time.month_name(now.month)
 
     greeting =
       cond do

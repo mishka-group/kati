@@ -25,4 +25,35 @@ if [ "$before" -lt "$NEED_MB" ]; then
   echo "   /data free: $(free_mb) MB after clearing $PKG data + caches"
 fi
 
-exec mix mob.deploy --native --android "$@"
+# `mix mob.release --android` stages the OTP tree at
+# android/app/src/main/assets/otp.zip for gradle to bundle, and leaves it
+# there. Gradle then packs it into the DEBUG apk too, and
+# MobBridge.extractOtpIfNeeded() unpacks it over <filesDir>/otp on the next
+# clean install — overwriting the BEAMs this script just pushed with
+# whatever was compiled when the release ran. The app then runs old code
+# with a current source tree, which is indistinguishable from a bug in it.
+# The dev path pushes the runtime over adb and never needs this asset.
+STRAY_OTP="android/app/src/main/assets/otp.zip"
+if [ -f "$STRAY_OTP" ]; then
+  echo "── removing $STRAY_OTP (a release leftover that would shadow this deploy) ──"
+  rm -f "$STRAY_OTP"
+fi
+
+# Stop the app before pushing. A running app with distribution up makes
+# `mix mob.deploy` HOT-LOAD the new modules into the live BEAM and skip
+# writing them to disk, so the next launch runs the old code and every
+# symptom you are chasing is a stale binary.
+"$ADB" shell am force-stop "$PKG" >/dev/null 2>&1 || true
+
+mix mob.deploy --native --android "$@"
+
+# Then push the BEAMs again, alone.
+#
+# The --native pass re-pushes the whole OTP tree, and the copy it pushes
+# carries its own older `kati/*.beam` — so a --native deploy can REPLACE the
+# app modules it just built with stale ones. Verified by pulling
+# Elixir.Kati.App.beam off the device and finding a function that had been
+# compiled in minutes earlier was missing again.
+echo "── re-pushing BEAMs (a --native push can overwrite them with stale copies) ──"
+"$ADB" shell am force-stop "$PKG" >/dev/null 2>&1 || true
+exec mix mob.deploy --android

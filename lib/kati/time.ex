@@ -98,6 +98,34 @@ defmodule Kati.Time do
   @spec in_zone(DateTime.t(), String.t()) :: DateTime.t()
   def in_zone(%DateTime{} = dt, zone), do: DateTime.shift_zone!(dt, zone)
 
+  @doc """
+  Now, in the device's zone.
+
+  Every screen that renders a date must start here. `DateTime.utc_now/0`
+  is a different day from the user's for part of every night — Amsterdam
+  in summer is UTC+2, so between midnight and 02:00 a UTC-derived header
+  names yesterday. A calendar that says the wrong day at midnight is
+  wrong in the way users notice first.
+  """
+  @spec now() :: DateTime.t()
+  def now, do: DateTime.utc_now() |> in_zone(device_zone())
+
+  @doc "Today's date in the device's zone. See `now/0` for why not `Date.utc_today/0`."
+  @spec today() :: Date.t()
+  def today, do: now() |> DateTime.to_date()
+
+  @day_names ~w(Monday Tuesday Wednesday Thursday Friday Saturday Sunday)
+  @month_names ~w(January February March April May June July August September October
+                  November December)
+
+  @doc "English day name. Localised rendering is #{"#"}61's job; this is the fallback."
+  @spec day_name(Date.t()) :: String.t()
+  def day_name(date), do: Enum.at(@day_names, Date.day_of_week(date) - 1)
+
+  @doc "English month name."
+  @spec month_name(1..12) :: String.t()
+  def month_name(month), do: Enum.at(@month_names, month - 1)
+
   @doc "The IANA release the compiled database was built from, for bug reports."
   @spec iana_version() :: String.t()
   def iana_version, do: Tz.iana_version()

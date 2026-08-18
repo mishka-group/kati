@@ -37,12 +37,16 @@ defmodule Kati.Screens.Calendar do
   end
 
   defp header do
+    today = Kati.Time.today()
+    month = String.upcase("#{Kati.Time.month_name(today.month)} #{today.year}")
+    heading = "#{Kati.Time.day_name(today)} #{today.day}"
+
     ~MOB"""
     <Column padding_left={21} padding_right={21} fill_width={true}>
-      <Text text="AUGUST 2026" text_size={11} text_color={:muted} letter_spacing={0.14} />
+      <Text text={month} text_size={11} text_color={:muted} letter_spacing={0.14} />
       <Spacer size={5} />
       <Text
-        text="Tuesday 18"
+        text={heading}
         text_size={34}
         text_color={:on_surface}
         font_weight="bold"
@@ -53,16 +57,21 @@ defmodule Kati.Screens.Calendar do
   end
 
   # Seven cells, chunked by a declared count — Row does not wrap.
+  #
+  # The window is the design's: today is the fourth cell, so three days of
+  # history stay reachable and the next three are visible. Built from the
+  # device's date, not a fixed week — the drawing shows one week of 2026 and
+  # rendering that literally would be wrong every other day of the app's life.
   defp day_strip do
-    days = [
-      {"SAT", "15", false},
-      {"SUN", "16", false},
-      {"MON", "17", false},
-      {"TUE", "18", true},
-      {"WED", "19", false},
-      {"THU", "20", false},
-      {"FRI", "21", false}
-    ]
+    today = Kati.Time.today()
+
+    days =
+      for offset <- -3..3 do
+        date = Date.add(today, offset)
+
+        {String.upcase(Kati.Time.day_name(date) |> String.slice(0, 3)), "#{date.day}",
+         offset == 0}
+      end
 
     ~MOB"""
     <Scroll axis="horizontal">
