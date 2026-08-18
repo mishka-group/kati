@@ -45,8 +45,20 @@ defmodule Kati.App do
     Mob.DNS.configure_pure_beam()
 
     {:ok, _} = Application.ensure_all_started(:ecto_sqlite3)
+    # Ash has no application callback module, so nothing strictly needs
+    # starting — but :ecto, :telemetry and :spark do, and ensure_all_started
+    # pulls them in transitively. Recorded as the working variant by #30.
+    {:ok, _} = Application.ensure_all_started(:ash)
     {:ok, _} = Kati.Repo.start_link()
 
+    # DEPLOYING A MIGRATION REQUIRES `mix mob.deploy --native`.
+    #
+    # The fast path (`mix mob.deploy`) pushes BEAM files only; it does not sync
+    # priv/. A new migration therefore never reaches the device, `Ecto.Migrator`
+    # finds nothing new, and the app logs "Migrations already up" and carries on
+    # against a stale schema. Measured on device (#30): after a fast deploy the
+    # device had 1 of 2 migration files and the new column silently did not
+    # exist. Only `--native` runs the "Copying priv/ (full)" step.
     Ecto.Migrator.with_repo(Kati.Repo, fn repo ->
       Ecto.Migrator.run(repo, priv_path("repo/migrations"), :up, all: true)
     end)
@@ -66,17 +78,33 @@ defmodule Kati.App do
   # Runtime configuration. Every entry here would otherwise be set in
   # config/config.exs and silently ignored on device.
   defp configure_runtime do
+    # `:ash` declares `extra_applications: [:mnesia]`, so mnesia starts on the
+    # phone whether Kati wants it or not. Without a writable dir it tries to
+    # create schema files next to the executable and fails at boot.
+    Application.put_env(:mnesia, :dir, String.to_charlist(Mob.data_dir()))
+
     # Wires the Repo into Mob.ScreenState so screens declaring `vsn:` get
-    # automatic state persistence across process death and app kill.
+    # automatic state persistence. Silently a no-op when unset.
     Application.put_env(:mob, :repo, Kati.Repo)
+
+    # Ash's async execution spawns tasks that outlive the calling process. On a
+    # single-connection SQLite repo on a phone that buys nothing and risks
+    # contention against a pool of one.
+    Application.put_env(:ash, :disable_async?, true)
+    Application.put_env(:kati, :ash_domains, [Kati.Spike])
   end
 
-  # The distribution cookie is a shared secret for a listening socket. A
-  # literal in source is the same secret on every developer's machine and in
-  # every build artefact that ever leaks. Dev-only, and overridable.
+  # `:mob_secret` is mob_dev's default and `mix mob.connect` hardcodes it at
+  # mob.connect.ex:114, so a custom value silently breaks `mob.connect`,
+  # `mob.push` and `mob.verify_strip` — which is how this was found.
+  #
+  # That is acceptable because the cookie is not protecting anything: the
+  # `@dev?` gate above means distribution is absent from release builds
+  # entirely, and mob_beam additionally drops -name/-setcookie when
+  # MOB_RELEASE is defined. The risk was ever shipping a listening socket to
+  # users, not the value of a dev-only cookie. Still overridable.
   defp dev_cookie do
-    System.get_env("MOB_DIST_COOKIE", "kati_dev_only")
-    |> String.to_atom()
+    System.get_env("MOB_DIST_COOKIE", "mob_secret") |> String.to_atom()
   end
 
   @doc """

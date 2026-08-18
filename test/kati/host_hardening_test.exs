@@ -100,8 +100,13 @@ defmodule Kati.HostHardeningTest do
       assert source =~ "@dev?"
       assert source =~ "if @dev? do"
 
-      refute source =~ ":mob_secret",
-             "the stock template shipped a hardcoded distribution cookie"
+      # The cookie value itself is deliberately mob_dev's default — mob.connect
+      # hardcodes it — because the @dev? gate is what actually keeps a
+      # listening socket out of release builds. What matters is the gate.
+      assert source =~ "MOB_DIST_COOKIE", "the cookie should stay overridable"
+
+      [_, gated] = Regex.run(~r/if @dev\? do\n(.*?)\n    end/s, source)
+      assert gated =~ "Mob.Dist.ensure_started", "distribution must be inside the dev gate"
     end
 
     test "iOS does not declare a background mode it never uses" do

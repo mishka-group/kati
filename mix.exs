@@ -4,7 +4,7 @@ defmodule Kati.MixProject do
   def project do
     [
       app: :kati,
-      version: "0.1.0",
+      version: "0.1.2",
       elixir: "~> 1.19",
       start_permanent: false,
       deps: deps(),
@@ -26,6 +26,11 @@ defmodule Kati.MixProject do
       {:mob, "== 0.7.20"},
       {:mob_dev, "== 0.6.23", only: :dev, runtime: false},
       {:ecto_sqlite3, "~> 0.24"},
+      # Ash is the data layer for the whole system. Pinned exactly: Kati appears
+      # to be the first public user of AshSqlite on a device BEAM, so a silent
+      # minor bump is not something to discover on a user's phone.
+      {:ash, "== 3.31.3"},
+      {:ash_sqlite, "== 0.2.17"},
       # Mozilla's CA trust store. Android has no bundle at any path OTP knows,
       # so this is copied into priv/ and loaded at boot — see Kati.App.
       {:castore, "~> 1.0"},
