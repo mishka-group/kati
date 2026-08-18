@@ -1,0 +1,37 @@
+# Upstream pins for the vendored native shell.
+# Regenerate the baseline and this file with: bin/mob_bridge_diff.sh --refresh
+#
+# The NDK pin is not cosmetic: bumping it requires rebuilding the OTP tarballs,
+# because libbeam.a embeds libc++ symbols under a clang-version-specific inline
+# namespace (NDK 27 / clang 18 -> ne180000, NDK 25 / clang 14 -> ne140000).
+
+mob_new=0.4.20
+mob=0.7.20
+mob_dev=0.6.23
+ndk=27.2.12479018
+zig=0.15.2
+erts=17.0
+generated=2026-08-18
+
+# sha256 of each PRISTINE baseline file under native/baseline/0.4.20/.
+# These describe upstream, not Kati's edited copies. A mismatch means the
+# baseline was tampered with, which silently corrupts the three-way merge.
+0c49da40c630c87de0cd4a365d02e065b2d0f1bc3e2103769a53cf9aed21f025  android/app/src/main/java/com/example/kati/MobBridge.kt
+d09795aedcbde2c2a8f7d6fcc707df628bba9ad8f023a32c857585a1e018bf27  android/app/src/main/java/com/example/kati/MainActivity.kt
+0f116c4bb3fa9e31a15e6c46a72f4850cfa616b7e361939083da0dddd76115b3  android/app/src/main/java/com/example/kati/MobNode.kt
+fdf50275f92b79c3d9d5defa1813ac2b559d36e91d9b9c4f9d62dca495268313  android/app/src/main/java/com/example/kati/MobScannerActivity.kt
+91342fdaf60f6ab61dd3c613b07761095f31c1feb9081483e81b7130a48dc993  android/app/src/main/java/com/example/kati/MobFirebaseService.kt
+d31a41616efb2255b135e7033a925b4b77923f1b643417e56bdbda877673db03  android/app/src/main/java/com/example/kati/BeamForegroundService.kt
+bc4ce0bddfda83b6b62f59df4198ded61932790cf28fadb71aaa8aa548550a18  android/app/src/main/AndroidManifest.xml
+79c27043d7b2ebe0ce74248d8f7c4ba500cc4ed85d8f586d115feca700c85586  android/app/build.gradle
+2b02485ff58bb077bcf94c433669da1d78fec814d097cdaadf6adca261baa458  android/build.gradle
+4b919cfffaed71637d1ee9c89f21f4247273e14eb8433afdcd0672eba906b41f  android/settings.gradle
+09b6c2b77952a6c23f720425f00a908e73326d103f9455110c97d00533415688  android/gradle.properties
+3389f08acce75ad90e8434f9bd6fb4156c6cc495192181a1d93b02da888ce380  android/app/src/main/jni/build.zig
+3537410d0db7eb4fd9820edb40e59ccd0296fba30f51980eb032e50f44a7f80b  android/app/src/main/jni/CMakeLists.txt
+0e1ae385edb508fd264b940d7787535c13e0c3780309ad040b80ce8887a8876e  android/app/src/main/jni/beam_jni.c
+f761e37fb947cbb83f36c0f969785b4ad820d1d6b0b3a8d230593c0015f812fc  ios/beam_main.m
+4e1b90ec3ae49d22fd61d663b8e42a6121e840d4d4c0f229d17c2c122ed2856d  ios/AppDelegate.m
+b5957532034396a7d614d2132706d38b5792b4ce8af06d2e01d1d95921bb63c1  ios/Info.plist
+b9e8e903876c9c0725b2b6fb47df5235b1b57f7ad8e3bebeda04b887fe3573c8  ios/build.zig
+de21b4fc5f6165913965eb9fd085625e77d7061966c16a978db267628650a9f1  ios/build_device.zig

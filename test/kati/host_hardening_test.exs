@@ -17,6 +17,13 @@ defmodule Kati.HostHardeningTest do
   @gradle Path.join(@root, "android/app/build.gradle")
   @plist Path.join(@root, "ios/Info.plist")
 
+  # Deletion fences deliberately NAME what was removed, so raw string matching
+  # would find "RECORD_AUDIO" in a comment that exists precisely to prove it is
+  # gone. Strip comments before asserting on real declarations.
+  defp without_xml_comments(path) do
+    File.read!(path) |> String.replace(~r/<!--.*?-->/s, "")
+  end
+
   describe "CA trust store" do
     test "priv/cacerts.pem exists and holds real certificates" do
       pem = Path.join(@root, "priv/cacerts.pem")
@@ -69,8 +76,10 @@ defmodule Kati.HostHardeningTest do
     test "requests only what Kati actually uses" do
       granted =
         @manifest
-        |> File.read!()
-        |> then(&Regex.scan(~r/android\.permission\.([A-Z_]+)/, &1))
+        |> without_xml_comments()
+        |> then(
+          &Regex.scan(~r/<uses-permission[^>]*android:name="android\.permission\.([A-Z_]+)"/, &1)
+        )
         |> Enum.map(&List.last/1)
         |> Enum.uniq()
         |> MapSet.new()
@@ -96,14 +105,19 @@ defmodule Kati.HostHardeningTest do
     end
 
     test "iOS does not declare a background mode it never uses" do
-      refute File.read!(@plist) =~ "UIBackgroundModes",
+      refute without_xml_comments(@plist) =~ "<key>UIBackgroundModes</key>",
              "UIBackgroundModes:[audio] in a tracker that plays nothing risks App Store rejection"
     end
 
     test "only 64-bit ABIs are built" do
       # Scoped to the abiFilters line: "armeabi-v7a" also appears in the
       # OTP-release path variables, which are unrelated to what ships.
-      [_, abis] = Regex.run(~r/abiFilters\s+(.+)/, File.read!(@gradle))
+      abis =
+        @gradle
+        |> File.read!()
+        |> String.split("\n")
+        |> Enum.reject(&String.starts_with?(String.trim(&1), "//"))
+        |> Enum.find(&(&1 =~ "abiFilters"))
 
       refute abis =~ "armeabi-v7a", "32-bit ABI would double the OTP payload"
       assert abis =~ "arm64-v8a", "real devices need arm64"
@@ -114,8 +128,8 @@ defmodule Kati.HostHardeningTest do
   describe "drift ledger" do
     test "every Kati edit to the vendored bridge is fenced" do
       bridge = File.read!(@bridge)
-      starts = bridge |> String.split("KATI PATCH START") |> length() |> Kernel.-(1)
-      ends = bridge |> String.split("KATI PATCH END") |> length() |> Kernel.-(1)
+      starts = bridge |> String.split("KATI-BEGIN") |> length() |> Kernel.-(1)
+      ends = bridge |> String.split("KATI-END") |> length() |> Kernel.-(1)
 
       assert starts == ends, "unbalanced patch fences: #{starts} starts, #{ends} ends"
       assert starts > 0, "expected fenced Kati edits in the vendored bridge"

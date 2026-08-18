@@ -1,0 +1,26 @@
+# App-owned native files vendored from the mob_new templates.
+# One path per line, relative to the repo root. Blank lines and # comments ignored.
+#
+# Only files GENERATED INTO THE APP belong here. The iOS renderer
+# (MobRootView.swift, mob_nif.m) lives inside the mob hex package at deps/mob/ios/
+# and is NOT app-owned — changing it means forking the dependency or sending an
+# upstream patch, which is a different mechanic entirely. See native/README.md.
+android/app/src/main/java/com/example/kati/MobBridge.kt
+android/app/src/main/java/com/example/kati/MainActivity.kt
+android/app/src/main/java/com/example/kati/MobNode.kt
+android/app/src/main/java/com/example/kati/MobScannerActivity.kt
+android/app/src/main/java/com/example/kati/MobFirebaseService.kt
+android/app/src/main/java/com/example/kati/BeamForegroundService.kt
+android/app/src/main/AndroidManifest.xml
+android/app/build.gradle
+android/build.gradle
+android/settings.gradle
+android/gradle.properties
+android/app/src/main/jni/build.zig
+android/app/src/main/jni/CMakeLists.txt
+android/app/src/main/jni/beam_jni.c
+ios/beam_main.m
+ios/AppDelegate.m
+ios/Info.plist
+ios/build.zig
+ios/build_device.zig
