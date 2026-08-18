@@ -8,7 +8,7 @@
   screens: [],
   notification_handlers: [],
   lifecycle: [],
-  composites: [],
+  styles: [],
   default_style: nil,
-  styles: []
+  composites: []
 }
