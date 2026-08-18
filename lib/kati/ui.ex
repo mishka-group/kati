@@ -143,14 +143,15 @@ defmodule Kati.UI do
   defp auto_width(label), do: 30 + String.length(label) * 8
 
   @doc "One day in the calendar's 7-day strip."
-  def day_cell(dow, num, today?) do
+  def day_cell(dow, num, today?, on_tap \\ nil) do
     bg = if today?, do: Kati.Theme.ink(), else: 0x00FFFFFF
     fg = if today?, do: 0xFFFBFAF8, else: 0xFF1A1917
     sub = if today?, do: 0xFFBFB8AC, else: 0xFF7C766D
+    tap = on_tap || {self(), :noop}
 
     ~MOB"""
     <Column padding_right={7}>
-      <Box width={44} height={62} background={bg} corner_radius={20} align="center">
+      <Box width={44} height={62} background={bg} corner_radius={20} align="center" on_tap={tap}>
         <Column align="center">
           <Text text={dow} text_size={10} text_color={sub} />
           <Spacer size={4} />

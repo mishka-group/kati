@@ -77,7 +77,9 @@ defmodule Kati.Screens.Calendar do
     <Scroll axis="horizontal">
       <Row>
         <Spacer size={21} />
-        {Enum.map(days, fn {d, n, today?} -> Kati.UI.day_cell(d, n, today?) end)}
+        {Enum.map(days, fn {d, n, today?} ->
+          Kati.UI.day_cell(d, n, today?, {self(), :open_day})
+        end)}
       </Row>
     </Scroll>
     """
@@ -147,4 +149,13 @@ defmodule Kati.Screens.Calendar do
     </Column>
     """
   end
+
+  @impl true
+  def handle_tap(:open_day, socket) do
+    # Screen 09. Pushed rather than swapped: it is a detail of the Calendar
+    # root and back must return here, not re-enter the root fresh.
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Day)}
+  end
+
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end

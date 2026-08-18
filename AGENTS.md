@@ -43,6 +43,15 @@ verified on device by killing `:mob_screen` and watching it come back.
 - Inside `~MOB`, `@name` means an **assign**, not a module attribute. Bind module
   attributes to a local first.
 
+- **A `Box` fills width unless `width` is a number; a `Column` does not.**
+  `MobBridge.kt:2673` reads `width` with `floatProp`, so `width={:wrap}` is
+  not "wrap" — it is *no width*, and the Box takes the whole row. A gutter
+  written that way swallowed its Row and every sibling card rendered at zero
+  width, with nothing in logcat. Use a `Column` when you want content sizing.
+- **Fixed widths break at 235% Dynamic Type.** Screen 41 requires the densest
+  card to reflow without truncation. A `width={54}` time gutter wrapped
+  "02:19" onto two lines; content-sized, it holds one line at every scale.
+
 ## Deploying
 
 - **`mix mob.deploy` does not sync `priv/`.** A migration change deployed by the
