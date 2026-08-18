@@ -183,17 +183,8 @@ defmodule Kati.Screens.Home do
     """
   end
 
-  # Root-level taps beyond the shell's own. The shell handles root_* and fab.
-  def handle_info({:tap, :open_search}, socket), do: {:noreply, socket}
-  def handle_info({:tap, :open_inbox}, socket), do: {:noreply, socket}
-
-  def handle_info({:tap, tag} = msg, socket) do
-    case Atom.to_string(tag) do
-      "root_" <> _ -> super(msg, socket)
-      "fab" -> super(msg, socket)
-      _ -> {:noreply, socket}
-    end
-  end
-
-  def handle_info(msg, socket), do: super(msg, socket)
+  @impl Kati.Screens.Root
+  def handle_tap(:open_search, socket), do: {:noreply, socket}
+  def handle_tap(:open_inbox, socket), do: {:noreply, socket}
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end

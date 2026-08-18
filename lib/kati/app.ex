@@ -69,7 +69,10 @@ defmodule Kati.App do
     # crashes on its first query with nothing on screen to say so.
     Kati.Runtime.assert!(~w(schema_migrations spike_things))
 
-    Mob.Screen.start_root(Kati.Screens.Home)
+    # The root screen starts UNDER Kati.Supervisor, not here. Mob's
+    # start_root/3 is a bare GenServer.start_link, so an unsupervised screen
+    # that crashes stays dead and the app simply looks frozen.
+    {:ok, _} = Kati.Supervisor.start_link()
 
     if @dev? do
       Mob.Dist.ensure_started(
