@@ -51,7 +51,12 @@ defmodule Kati.Runtime do
     [
       {:mnesia, :dir, String.to_charlist(Mob.data_dir())},
       {:mob, :repo, Kati.Repo},
-      {:ash, :disable_async?, true}
+      {:ash, :disable_async?, true},
+      # Without this, Calendar falls back to UTCOnlyTimeZoneDatabase and every
+      # zone lookup fails — silently for display, catastrophically for
+      # recurrence. `tz` compiles IANA data in at build time, so there is no
+      # writable directory and no network involved.
+      {:elixir, :time_zone_database, Tz.TimeZoneDatabase}
     ]
   end
 

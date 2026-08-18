@@ -28,6 +28,9 @@ class KatiBootReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED -> {
+                // KATI-BEGIN(K-15 device-timezone-refresh) mob_new=0.4.20
+                KatiDeviceZone.publish(context)
+                // KATI-END(K-15 device-timezone-refresh)
                 Log.i("KatiNotify", "re-arming alarms after ${intent.action}")
                 KatiNotificationStore.rearmAll(context)
             }

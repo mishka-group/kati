@@ -42,6 +42,12 @@ class MainActivity : ComponentActivity() {
         init { System.loadLibrary("kati") }
     }
 
+    // KATI-BEGIN(K-15 device-timezone-publish) mob_new=0.4.20
+    // Publish before the BEAM starts so Kati.Time can read a zone id on its
+    // very first call rather than falling back to UTC for one boot.
+    private fun publishDeviceZone() = KatiDeviceZone.publish(this)
+    // KATI-END(K-15 device-timezone-publish)
+
     external fun nativeSetActivity(activity: Activity)
     external fun nativeStartBeam()
 
@@ -120,6 +126,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        publishDeviceZone()
         // Edge-to-edge: lets the content draw behind the (transparent) status
         // and navigation bars instead of being letterboxed by opaque system
         // bars. Must be called BEFORE super.onCreate() per AndroidX docs.

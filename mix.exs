@@ -31,6 +31,11 @@ defmodule Kati.MixProject do
       # minor bump is not something to discover on a user's phone.
       {:ash, "== 3.31.3"},
       {:ash_sqlite, "== 0.2.17"},
+      # Timezone database. `tz` compiles IANA data into modules at BUILD time;
+      # `tzdata` downloads at runtime into a writable directory, which a
+      # device-first app with no server must refuse. The periodic updaters are
+      # opt-in child specs Kati simply never adds.
+      {:tz, "~> 0.28"},
       # Mozilla's CA trust store. Android has no bundle at any path OTP knows,
       # so this is copied into priv/ and loaded at boot — see Kati.App.
       {:castore, "~> 1.0"},
