@@ -76,8 +76,10 @@ defmodule Kati.Shell do
     active = assigns.root
     mode = Map.get(assigns, :mode, :light)
 
+    direction = Kati.Locale.direction_prop()
+
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background}>
+    <Box fill_width={true} fill_height={true} background={:background} layout_direction={direction}>
       {assigns.content}
       {scrim(mode)}
       {pill(active, mode)}

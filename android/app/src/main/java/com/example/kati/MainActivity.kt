@@ -31,6 +31,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+// KATI-BEGIN(K-12 rtl-imports) mob_new=0.4.20
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+// KATI-END(K-12 rtl-imports)
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.FileProvider
 import java.io.File
@@ -217,7 +222,25 @@ class MainActivity : ComponentActivity() {
                     },
                     label = "nav"
                 ) { s ->
-                    s.node?.let { RenderNode(it, modifier = Modifier.fillMaxSize().safeDrawingPadding()) }
+                    // KATI-BEGIN(K-12 rtl-root) mob_new=0.4.20
+                    // Mob has no RTL support: nothing in deps/mob/lib or the
+                    // bridge sets LocalLayoutDirection, so Persian text renders
+                    // correctly shaped but always left-aligned.
+                    //
+                    // The direction comes from a `layout_direction` prop on the
+                    // ROOT node rather than from Locale.getDefault(), because
+                    // Kati's language is an in-app setting: a Persian user on an
+                    // English phone must still get RTL, and the two must never
+                    // disagree.
+                    s.node?.let { root ->
+                        val rtl = (root.props["layout_direction"] as? String) == "rtl"
+                        val direction = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+
+                        CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                            RenderNode(root, modifier = Modifier.fillMaxSize().safeDrawingPadding())
+                        }
+                    }
+                    // KATI-END(K-12 rtl-root)
                 }
             }
         }

@@ -116,6 +116,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+// KATI-BEGIN(K-12 auto-mirrored-imports) mob_new=0.4.20
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+// KATI-END(K-12 auto-mirrored-imports)
 // KATI-BEGIN(K-07 root-icons-imports) mob_new=0.4.20
 // Icons.Filled members from material-icons-extended need explicit
 // imports; the stock file imports only the 29 it maps.
@@ -2977,15 +2983,29 @@ private fun MobIcon(node: MobNode, modifier: Modifier) {
 private fun materialIconFor(logical: String): androidx.compose.ui.graphics.vector.ImageVector =
     when (logical) {
         "settings"        -> Icons.Filled.Settings
-        "back"            -> Icons.Filled.ArrowBack
-        "forward"         -> Icons.Filled.ArrowForward
+        // KATI-BEGIN(K-12 auto-mirrored-icons) mob_new=0.4.20
+        // Directional glyphs must mirror in RTL. Icons.AutoMirrored does it
+        // from LocalLayoutDirection; Icons.Filled does not, so a back chevron
+        // kept pointing the wrong way in fa. The design's group N calls this
+        // out explicitly: the back chevron becomes arrow_forward in Persian.
+        //
+        // NOT mirrored, deliberately: play/skip transport controls, clock
+        // faces, artwork and chart axes — the design lists these as locked.
+        "back"            -> Icons.AutoMirrored.Filled.ArrowBack
+        "forward"         -> Icons.AutoMirrored.Filled.ArrowForward
+        // KATI-END(K-12 auto-mirrored-icons)
         "close"           -> Icons.Filled.Close
         "add"             -> Icons.Filled.Add
         "remove"          -> Icons.Filled.Remove
         "edit"            -> Icons.Filled.Edit
         "check"           -> Icons.Filled.Check
-        "chevron_right"   -> Icons.Filled.ChevronRight
-        "chevron_left"    -> Icons.Filled.ChevronLeft
+        // KATI-BEGIN(K-12 auto-mirrored-chevrons) mob_new=0.4.20
+        "chevron_right"   -> Icons.AutoMirrored.Filled.KeyboardArrowRight
+        "chevron_left"    -> Icons.AutoMirrored.Filled.KeyboardArrowLeft
+        // Absolute variants for the cases that must NOT mirror.
+        "chevron_absolute_right" -> Icons.Filled.ChevronRight
+        "chevron_absolute_left"  -> Icons.Filled.ChevronLeft
+        // KATI-END(K-12 auto-mirrored-chevrons)
         "chevron_up"      -> Icons.Filled.KeyboardArrowUp
         "chevron_down"    -> Icons.Filled.ExpandMore
         "info"            -> Icons.Filled.Info
@@ -3870,6 +3890,17 @@ private fun textAlignProp(props: Map<String, Any?>): TextAlign? =
     when (props["text_align"] as? String) {
         "center" -> TextAlign.Center
         "right"  -> TextAlign.End
+        // KATI-BEGIN(K-12 absolute-text-align) mob_new=0.4.20
+        // Direction-relative values, and ABSOLUTE ones for the things the
+        // design says must not mirror: artwork captions, clock faces,
+        // play/skip controls, chart axes. Without absolute values there is no
+        // way to say "left even in RTL".
+        "start"          -> TextAlign.Start
+        "end"            -> TextAlign.End
+        "absolute_left"  -> TextAlign.Left
+        "absolute_right" -> TextAlign.Right
+        "justify"        -> TextAlign.Justify
+        // KATI-END(K-12 absolute-text-align)
         else     -> null
     }
 
