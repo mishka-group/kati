@@ -44,6 +44,8 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Column padding_left={21} padding_right={21} fill_width={true}>
       <Text text={date_line} text_size={11} text_color={:muted} letter_spacing={0.14} />
+      <Spacer size={3} />
+      <Text text={Kati.Screens.Home.today_fa()} text_size={11} text_color={:muted} />
       <Spacer size={5} />
       <Text
         text={part_of_day}
@@ -54,6 +56,11 @@ defmodule Kati.Screens.Home do
       />
     </Column>
     """
+  end
+
+  @doc "Today in Solar Hijri, e.g. یکشنبه ۲۵ مرداد ۱۴۰۵. Display only — storage stays Gregorian."
+  def today_fa do
+    Kati.Calendar.Shamsi.format(Date.utc_today(), :long)
   end
 
   @doc false

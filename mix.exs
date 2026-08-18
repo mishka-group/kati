@@ -36,6 +36,19 @@ defmodule Kati.MixProject do
       # device-first app with no server must refuse. The periodic updaters are
       # opt-in child specs Kati simply never adds.
       {:tz, "~> 0.28"},
+      # Localization. `ex_cldr` over Localize 1.0: all three of Localize's
+      # runtime-data assumptions are false on Mob (Application.app_dir raises,
+      # its supervisor never boots, config/*.exs never reaches the device).
+      {:ex_cldr, "~> 2.47"},
+      {:ex_cldr_numbers, "~> 2.38"},
+      {:ex_cldr_dates_times, "~> 2.25"},
+      {:ex_cldr_calendars, "~> 2.4"},
+      {:ex_cldr_messages, "~> 2.0"},
+      {:gettext, "~> 1.0"},
+      # Dev only: used once by `mix kati.gen.nowruz` to generate the lookup
+      # table. Its runtime conversion is 476us, which is 7.9ms for a month grid
+      # before formatting; the generated table is 1.26us.
+      {:ex_cldr_calendars_persian, "~> 1.1", only: :dev, runtime: false},
       # Mozilla's CA trust store. Android has no bundle at any path OTP knows,
       # so this is copied into priv/ and loaded at boot — see Kati.App.
       {:castore, "~> 1.0"},
