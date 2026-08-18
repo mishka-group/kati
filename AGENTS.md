@@ -58,7 +58,8 @@ verified on device by killing `:mob_screen` and watching it come back.
   runtime lives. A subsequent `mix mob.deploy` then pushes BEAMs to a device with
   no runtime, and the BEAM starts and dies before the first Elixir step **with no
   error in logcat**. Only `--native` pushes the runtime back.
-- The emulator fills up. When `/data` is short of space the APK install fails
+- Use **`bin/deploy_native.sh`** instead of `mix mob.deploy --native` — it reclaims
+  disk first. The emulator fills up. When `/data` is short of space the APK install fails
   **silently**, the deploy reports "not installed (ABI mismatch…)", and the app
   disappears. `adb shell df /data` first; `pm trim-caches` reclaims some.
 
