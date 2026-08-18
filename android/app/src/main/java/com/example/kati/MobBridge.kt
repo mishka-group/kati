@@ -517,6 +517,11 @@ object MobBridge {
                 arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES, android.Manifest.permission.READ_MEDIA_VIDEO)
             else arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
             "location"      -> arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            // KATI-BEGIN(K-26 calendar-permission) mob_new=0.4.20
+            // Not in the stock map, so Mob.Permissions.request(:calendar) fell
+            // through to the else arm and reported "denied" without ever asking.
+            "calendar"      -> arrayOf(android.Manifest.permission.READ_CALENDAR)
+            // KATI-END(K-26 calendar-permission)
             "notifications" -> if (android.os.Build.VERSION.SDK_INT >= 33)
                 arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)
             else { nativeDeliverAtom3(pid, "permission", "notifications", "granted"); return }

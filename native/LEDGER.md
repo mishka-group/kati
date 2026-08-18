@@ -39,6 +39,10 @@ the baseline is refreshed, the fence goes and the row moves to *Retired*.
 | `K-12 auto-mirrored-icons` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `back`/`forward` use `Icons.AutoMirrored`, which follows `LocalLayoutDirection`. `Icons.Filled` does not, so a back arrow kept pointing the wrong way in `fa`. | Kati-specific. |
 | `K-12 auto-mirrored-chevrons` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Chevrons mirror, plus `chevron_absolute_*` for the cases the design locks (play/skip, clock faces, chart axes). | Kati-specific. |
 | `K-12 auto-mirrored-imports` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Imports for the above. | Pairs with the two rows above. |
+| `K-26 calendar-reader` | `android/app/src/main/java/com/example/kati/KatiCalendarReader.kt` | Kati-owned Kotlin reading `CalendarContract.Instances` into `filesDir` as JSON. Mob has no calendar API, and there is no Elixir→Kotlin call path without adding a NIF to a table that lives in the mob package. Publishes rather than being pulled. | Kati-specific. |
+| `K-26 calendar-permission` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Adds a `calendar` case to `request_permission`. Without it `Mob.Permissions.request(:calendar)` hit the else arm and reported **denied without ever asking**. | Arguably upstream — add to #76. |
+| `K-26 read-calendar` | `android/app/src/main/AndroidManifest.xml` | `READ_CALENDAR`. Read-only; write-back is #54's decision and needs `WRITE_CALENDAR`. | Kati-specific. |
+| `K-26 calendar-publish` | `android/app/src/main/java/com/example/kati/MainActivity.kt` | Publishes calendars on start. | Pairs with the reader. |
 
 ## Retired patches
 

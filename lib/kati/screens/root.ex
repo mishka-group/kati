@@ -36,9 +36,10 @@ defmodule Kati.Screens.Root do
   Restart remains the backstop for a crash outside a tap.
   """
 
+  @callback load(term()) :: term()
   @callback handle_tap(atom(), term()) :: {:noreply, term()}
   @callback handle_kati(atom(), term(), term()) :: {:noreply, term()}
-  @optional_callbacks handle_tap: 2, handle_kati: 3
+  @optional_callbacks load: 1, handle_tap: 2, handle_kati: 3
 
   defmacro __using__(opts) do
     root = Keyword.fetch!(opts, :root)
@@ -52,8 +53,21 @@ defmodule Kati.Screens.Root do
 
       def mount(_params, _session, socket) do
         Mob.Theme.set(Kati.Theme.light())
-        {:ok, Mob.Socket.assign(socket, :root, @root)}
+
+        socket
+        |> Mob.Socket.assign(:root, @root)
+        |> load()
+        |> then(&{:ok, &1})
       end
+
+      @doc """
+      Screen-specific data loading, run on mount.
+
+      A hook rather than an overridable `mount/3` so a screen cannot forget to
+      set `:root` or the theme — those are the shell's business, not the
+      screen's.
+      """
+      def load(socket), do: socket
 
       def render(assigns) do
         Kati.Shell.render(%{root: @root, mode: :light, content: content(assigns)})
@@ -88,7 +102,7 @@ defmodule Kati.Screens.Root do
       def handle_tap(_tag, socket), do: {:noreply, socket}
       def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
 
-      defoverridable handle_tap: 2, handle_kati: 3
+      defoverridable handle_tap: 2, handle_kati: 3, load: 1
     end
   end
 

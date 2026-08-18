@@ -74,6 +74,20 @@ defmodule Kati.App do
     # that crashes stays dead and the app simply looks frozen.
     {:ok, _} = Kati.Supervisor.start_link()
 
+    # Ingest whatever KatiCalendarReader published. Before the permission is
+    # granted this is a no-op returning {:ok, :no_data} — the normal state, not
+    # an error, so it must not be allowed to stop the app booting.
+    case Kati.Calendars.DeviceImport.run() do
+      {:ok, %{calendars: c, events: e}} ->
+        :mob_nif.log("Kati: imported #{c} calendars, #{e} events")
+
+      {:ok, :no_data} ->
+        :mob_nif.log("Kati: no device calendars published yet")
+
+      {:error, reason} ->
+        :mob_nif.log("Kati: calendar import failed: #{inspect(reason)}")
+    end
+
     if @dev? do
       Mob.Dist.ensure_started(
         node: :"kati_android@127.0.0.1",

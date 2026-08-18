@@ -11,9 +11,14 @@ defmodule Kati.Screens.Calendar do
   """
   use Kati.Screens.Root, root: :calendar
 
+  @impl Kati.Screens.Root
+  def load(socket) do
+    Mob.Socket.assign(socket, :events, Kati.Calendars.Today.rows())
+  end
+
   alias Kati.UI
 
-  defp content(_assigns) do
+  defp content(assigns) do
     ~MOB"""
     <Scroll background={:background}>
       <Column background={:background} fill_width={true}>
@@ -24,7 +29,7 @@ defmodule Kati.Screens.Calendar do
         <Spacer size={17} />
         {filters()}
         <Spacer size={22} />
-        {day()}
+        {day(assigns)}
         <Spacer size={150} />
       </Column>
     </Scroll>
@@ -83,21 +88,45 @@ defmodule Kati.Screens.Calendar do
     """
   end
 
-  defp day do
+  defp day(assigns) do
     ~MOB"""
     <Column padding_left={21} padding_right={21} fill_width={true}>
       {UI.section_title("ALL DAY")}
       {UI.card(all_day_band())}
       <Spacer size={22} />
       {UI.section_title("TODAY")}
-      {UI.timeline_row("08:00", "Morning pages", "Habit · done", false)}
-      {UI.timeline_row("09:30", "Standup", "Personal · 15 min", false)}
-      {UI.timeline_row("13:00", "Lunch — Leftover dal", "Meals · 480 kcal", false)}
-      {UI.timeline_row("19:00", "Dinner — Sheet-pan chicken", "Meals · 620 kcal", false)}
-      {UI.timeline_row("20:00", "Severance S2 E6", "Airs tonight · Apple TV+", true)}
-      {UI.timeline_row("23:00", "Wind down", "Habit · not done", false)}
+      {Kati.Screens.Calendar.rows(assigns)}
     </Column>
     """
+  end
+
+  @doc false
+  def rows(assigns) do
+    case assigns[:events] do
+      [] -> Kati.Screens.Calendar.empty_state()
+      nil -> Kati.Screens.Calendar.empty_state()
+      events -> Enum.map(events, &Kati.Screens.Calendar.event_row/1)
+    end
+  end
+
+  @doc false
+  def empty_state do
+    ~MOB"""
+    <Column fill_width={true} padding_top={13}>
+      <Text text="Nothing scheduled" text_size={14} text_color={:on_surface} />
+      <Spacer size={4} />
+      <Text
+        text="Device calendars appear here once you grant access."
+        text_size={12}
+        text_color={:muted}
+      />
+    </Column>
+    """
+  end
+
+  @doc false
+  def event_row(e) do
+    UI.timeline_row(e.time, e.title, e.meta, e.now?)
   end
 
   defp all_day_band do

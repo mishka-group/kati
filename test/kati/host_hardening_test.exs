@@ -84,9 +84,23 @@ defmodule Kati.HostHardeningTest do
         |> Enum.uniq()
         |> MapSet.new()
 
+      # Every entry needs a reason. A permission with no justification here is
+      # one the Play data-safety form cannot answer for.
       expected =
-        MapSet.new(~w(INTERNET POST_NOTIFICATIONS SCHEDULE_EXACT_ALARM
-                      RECEIVE_BOOT_COMPLETED VIBRATE))
+        MapSet.new([
+          # every data source is an HTTP API
+          "INTERNET",
+          # release and air-date reminders
+          "POST_NOTIFICATIONS",
+          # an air time is a specific minute, not "sometime this evening"
+          "SCHEDULE_EXACT_ALARM",
+          # a reboot clears every scheduled alarm
+          "RECEIVE_BOOT_COMPLETED",
+          # haptics on interaction
+          "VIBRATE",
+          # mirrors the device's calendars, read-only (#53)
+          "READ_CALENDAR"
+        ])
 
       assert MapSet.equal?(granted, expected),
              "unexpected: #{inspect(MapSet.difference(granted, expected) |> MapSet.to_list())}, " <>

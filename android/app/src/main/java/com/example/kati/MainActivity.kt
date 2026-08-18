@@ -132,6 +132,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         publishDeviceZone()
+        // KATI-BEGIN(K-26 calendar-publish) mob_new=0.4.20
+        KatiCalendarReader.publish(this)
+        // KATI-END(K-26 calendar-publish)
         // Edge-to-edge: lets the content draw behind the (transparent) status
         // and navigation bars instead of being letterboxed by opaque system
         // bars. Must be called BEFORE super.onCreate() per AndroidX docs.

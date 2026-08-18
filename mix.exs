@@ -36,6 +36,7 @@ defmodule Kati.MixProject do
       # device-first app with no server must refuse. The periodic updaters are
       # opt-in child specs Kati simply never adds.
       {:tz, "~> 0.28"},
+      {:jason, "~> 1.4"},
       # Localization. `ex_cldr` over Localize 1.0: all three of Localize's
       # runtime-data assumptions are false on Mob (Application.app_dir raises,
       # its supervisor never boots, config/*.exs never reaches the device).
