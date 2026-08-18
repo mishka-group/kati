@@ -54,6 +54,13 @@ verified on device by killing `:mob_screen` and watching it come back.
   Force-stop first if you need it persisted.
 - If the screen goes **black** after a rebuild, force-stop and relaunch before
   debugging your code. The Elixir side is usually healthy; it is a surface issue.
+- **Never `adb install` by hand.** It wipes `filesDir`, which is where the OTP
+  runtime lives. A subsequent `mix mob.deploy` then pushes BEAMs to a device with
+  no runtime, and the BEAM starts and dies before the first Elixir step **with no
+  error in logcat**. Only `--native` pushes the runtime back.
+- The emulator fills up. When `/data` is short of space the APK install fails
+  **silently**, the deploy reports "not installed (ABI mismatch…)", and the app
+  disappears. `adb shell df /data` first; `pm trim-caches` reclaims some.
 
 ## Vendored native code
 
