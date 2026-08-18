@@ -100,4 +100,135 @@ defmodule Kati.UI do
     </Column>
     """
   end
+
+  @doc """
+  A filter chip.
+
+  Three states, not two. `:disabled` is the design's own way of showing a
+  section that exists but is not built yet — screens 03 and 57 draw Books and
+  Music greyed rather than hiding them, which is also how #60 scoped v1 to
+  Screen. Hiding them would misrepresent the app's shape; grey states the
+  intent.
+  """
+  def chip(label, state) do
+    {bg, fg} =
+      case state do
+        :selected -> {Kati.Theme.ink(), 0xFFFBFAF8}
+        :disabled -> {0x00FFFFFF, 0xFFB5AEA3}
+        _ -> {Kati.Theme.card(:light), 0xFF5C574F}
+      end
+
+    ~MOB"""
+    <Column padding_right={9}>
+      <Box
+        background={bg}
+        corner_radius={22}
+        padding_left={15}
+        padding_right={15}
+        padding_top={9}
+        padding_bottom={9}
+        width={auto_width(label)}
+      >
+        <Column align="center">
+          <Text text={label} text_size={12} text_color={fg} />
+        </Column>
+      </Box>
+    </Column>
+    """
+  end
+
+  # A Box needs an explicit width or it fills its parent, and nothing measures
+  # text, so chip widths are derived from character count. Crude, and honest
+  # about being crude: the alternative is a Row that swallows the whole line.
+  defp auto_width(label), do: 30 + String.length(label) * 8
+
+  @doc "One day in the calendar's 7-day strip."
+  def day_cell(dow, num, today?) do
+    bg = if today?, do: Kati.Theme.ink(), else: 0x00FFFFFF
+    fg = if today?, do: 0xFFFBFAF8, else: 0xFF1A1917
+    sub = if today?, do: 0xFFBFB8AC, else: 0xFF7C766D
+
+    ~MOB"""
+    <Column padding_right={7}>
+      <Box width={44} height={62} background={bg} corner_radius={20} align="center">
+        <Column align="center">
+          <Text text={dow} text_size={10} text_color={sub} />
+          <Spacer size={4} />
+          <Text text={num} text_size={15} text_color={fg} />
+        </Column>
+      </Box>
+    </Column>
+    """
+  end
+
+  @doc "A headline statistic with its label."
+  def stat(value, label) do
+    ~MOB"""
+    <Column padding_right={26}>
+      <Text text={value} text_size={22} text_color={:on_surface} letter_spacing={-0.5} />
+      <Spacer size={3} />
+      <Text text={label} text_size={11} text_color={:muted} />
+    </Column>
+    """
+  end
+
+  @doc "A labelled horizontal bar. Width is declared, never measured."
+  def bar(label, width, tone) do
+    ~MOB"""
+    <Column padding_bottom={11} fill_width={true}>
+      <Row align="center">
+        <Box width={92} height={22} align="leading">
+          <Column>
+            <Text text={label} text_size={12} text_color={:on_surface} />
+          </Column>
+        </Box>
+        <Box width={width} height={9} background={tone} corner_radius={5} />
+      </Row>
+    </Column>
+    """
+  end
+
+  @doc """
+  The design's pixel field: 104 cells at 2px radius, the shared visual for
+  anything that accumulates over time.
+
+  Chunked into declared rows because `Row` does not wrap and no geometry comes
+  back from `render/1`.
+  """
+  def pixel_field(intensities, per_row) do
+    rows = Enum.chunk_every(intensities, per_row)
+
+    ~MOB"""
+    <Column>
+      {Enum.map(rows, fn row -> Kati.UI.pixel_row(row) end)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def pixel_row(row) do
+    ~MOB"""
+    <Row>
+      {Enum.map(row, fn i -> Kati.UI.pixel(i) end)}
+    </Row>
+    """
+  end
+
+  @doc false
+  def pixel(intensity) do
+    tone =
+      case intensity do
+        0 -> 0xFFE4DFD6
+        1 -> 0xFFD8CDB8
+        2 -> 0xFFC7A97E
+        3 -> 0xFFB08E55
+        _ -> 0xFF8A6B3A
+      end
+
+    ~MOB"""
+    <Column padding_right={3} padding_bottom={3}>
+      <Box width={15} height={15} background={tone} corner_radius={2} />
+    </Column>
+    """
+  end
 end
