@@ -25,7 +25,9 @@ def ertsVsn = new File(mobOtpRelease).listFiles()
 
 android {
     namespace 'com.example.kati'
-    compileSdk 34
+    // KATI-BEGIN(K-02 api36) mob_new=0.4.20
+    // was: compileSdk 34 / targetSdk 34
+    compileSdk 36
 
     // Pin NDK to match the one that built the bundled OTP runtime.
     // libbeam.a embeds C++ stdlib symbols using a specific libc++ ABI
@@ -37,7 +39,8 @@ android {
     defaultConfig {
         applicationId "com.example.kati"
         minSdk 28
-        targetSdk 34
+        targetSdk 36
+        // KATI-END(K-02 api36)
         versionCode 1
         versionName "1.0"
 

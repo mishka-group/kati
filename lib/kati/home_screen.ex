@@ -34,6 +34,14 @@ defmodule Kati.HomeScreen do
         {row("Rows", assigns.spike.count)}
         {row("First read", assigns.spike.first_read)}
         {row("Second read", assigns.spike.second_read)}
+        <Spacer size={16} />
+        <Text text="Persian rendering" text_size={:sm} text_color={:muted} />
+        <Spacer size={6} />
+        <Text text="سلام، من کتی هستم" text_size={:lg} text_color={:on_surface} />
+        <Spacer size={6} />
+        <Text text="۱۴۰۵/۰۵/۲۷ — ۸٫۹۹ پوند" text_size={:sm} text_color={:on_surface} />
+        <Spacer size={6} />
+        <Text text="فیلم‌ها و سریال‌ها، تقویم، کتاب‌ها" text_size={:sm} text_color={:on_surface} />
       </Column>
     </Scroll>
     """
