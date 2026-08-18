@@ -34,8 +34,6 @@ defmodule Kati.Time do
   fallback, never a crash.
   """
 
-  require Logger
-
   @zone_file "device_tz"
   @fallback "Etc/UTC"
 
