@@ -23,6 +23,7 @@ the baseline is refreshed, the fence goes and the row moves to *Retired*.
 | `K-01 abi-filters` | `android/app/build.gradle` | `arm64-v8a` + `x86_64`, dropping `armeabi-v7a`. 32-bit doubles the OTP payload for a dead install base; x86_64 is needed for the emulator on an Intel host. | Kati-specific. Permanent. |
 | `K-01 no-audio-background` | `ios/Info.plist` | Removes `UIBackgroundModes: [audio]`. Kati plays no audio, and declaring an unused background mode risks rejection under App Review 2.5.4. | Reported — #76. Arguably an upstream template bug for any non-audio app. |
 | `K-05 vendored-header` | every tracked file | A provenance header naming the generator version and pointing at the upgrade procedure, so nobody edits a vendored file believing it is Kati's. | Kati-specific. Permanent. |
+| `K-40 sqlite-feature-flags` | `android/app/src/main/jni/build.zig` | Mirrors exqlite's SQLite feature flags, which Mob's build drops by compiling the amalgamation with only `-DSQLITE_THREADSAFE=1`. Without them the device gets a feature-stripped SQLite while host tests get the full one — `fts5` is absent, and `MATH_FUNCTIONS`/`STAT4` change results and planning. | Reported — #76. Arguably an upstream bug: Mob should honour the flags of the NIF it is compiling. |
 
 ## Retired patches
 

@@ -266,6 +266,35 @@ pub fn build(b: *std.Build) void {
         "-fdata-sections",
         "-fPIC",
         "-DSQLITE_THREADSAFE=1",
+        // KATI-BEGIN(K-40 sqlite-feature-flags) mob_new=0.4.20
+        // Mob compiles the SQLite amalgamation itself with only THREADSAFE,
+        // silently dropping every feature flag exqlite's own Makefile sets
+        // (deps/exqlite/Makefile:100-119). The result is a feature-stripped
+        // SQLite on device while host tests get the full one — measured:
+        // `create virtual table ... using fts5(...)` returns
+        // "no such module: fts5" on device and works on the host.
+        //
+        // These mirror exqlite's list. FTS5 backs cross-domain search (#67);
+        // MATH_FUNCTIONS and STAT4 affect query results and planning, so a
+        // divergence there is a correctness problem, not just a missing
+        // feature.
+        "-DHAVE_USLEEP=1",
+        "-DALLOW_COVERING_INDEX_SCAN=1",
+        "-DENABLE_FTS3_PARENTHESIS=1",
+        "-DENABLE_SOUNDEX=1",
+        "-DENABLE_STAT4=1",
+        "-DENABLE_UPDATE_DELETE_LIMIT=1",
+        "-DSQLITE_ENABLE_FTS3=1",
+        "-DSQLITE_ENABLE_FTS4=1",
+        "-DSQLITE_ENABLE_FTS5=1",
+        "-DSQLITE_ENABLE_MATH_FUNCTIONS=1",
+        "-DSQLITE_ENABLE_RTREE=1",
+        "-DSQLITE_ENABLE_DBSTAT_VTAB=1",
+        "-DSQLITE_OMIT_DEPRECATED=1",
+        // Deliberately NOT mirrored: ENABLE_LOAD_EXTENSION (loading arbitrary
+        // native code at runtime is a liability in a shipped app, and iOS
+        // forbids it), GEOPOLY and RBU (unused, and both add binary weight).
+        // KATI-END(K-40 sqlite-feature-flags)
         b.fmt("--sysroot={s}", .{ndk_sysroot}),
         "-isystem",
         b.fmt("{s}/usr/include", .{ndk_sysroot}),
