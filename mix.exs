@@ -54,6 +54,25 @@ defmodule Kati.MixProject do
       {:castore, "~> 1.0"},
       # Code quality — Credo + ex_slop (catches AI-generated patterns
       # like blanket rescue, narrator docs, redundant Enum chains, etc).
+      # Mishka Chelekom is a DEV-ONLY CLI that generates component source into
+      # lib/kati/components/. It is not a runtime dependency and never ships.
+      #
+      # A `path:` dep, not hex or git: priv/mob is excluded from the hex package
+      # so a hex dep cannot generate Mob components at all, and mishka's own
+      # mix.exs carries `path:` deps on ../igniter_js and ../igniter_css, so a
+      # `github:` dep cannot resolve either. The owner maintains the library, so
+      # a sibling checkout is the intended workflow rather than a workaround.
+      {:mishka_chelekom, path: "../mishka_chelekom", only: :dev, runtime: false},
+      # Only so igniter_js/igniter_css can build their NIFs from source, which
+      # mishka_chelekom requires and which have no published precompiled
+      # artifacts for the version it pins. Dev-only; never reaches the device.
+      {:rustler, ">= 0.0.0", only: :dev},
+      # Direct path deps ONLY so rustler is visible in the same tree when these
+      # force-build their NIFs. They are transitive deps of mishka_chelekom,
+      # which declares rustler dev-only — and a dependency's dev deps are not
+      # installed for the consumer, so igniter_js could not see it.
+      {:igniter_js, path: "../igniter_js", only: :dev, override: true},
+      {:igniter_css, path: "../igniter_css", only: :dev, override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false}
     ]
