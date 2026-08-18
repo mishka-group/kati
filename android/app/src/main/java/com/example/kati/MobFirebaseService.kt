@@ -1,0 +1,39 @@
+package com.example.kati
+
+import com.google.firebase.messaging.FirebaseMessagingService
+import com.google.firebase.messaging.RemoteMessage
+import org.json.JSONObject
+
+// Receives FCM messages and token refreshes.
+// Token refreshes are cached and delivered to Elixir the next time a screen
+// calls Mob.Notify.register_push/0.
+// Foreground data pushes are forwarded immediately to the registered screen.
+class MobFirebaseService : FirebaseMessagingService() {
+
+    override fun onNewToken(token: String) {
+        pendingToken = token
+    }
+
+    // Called when a data message arrives while the app is in the foreground,
+    // or when any data-only message arrives regardless of app state.
+    // If the FCM payload includes mob_notification_json, that JSON is forwarded
+    // directly; otherwise a JSON object is built from the notification fields.
+    override fun onMessageReceived(message: RemoteMessage) {
+        val pid = MobBridge.notifyPid
+        if (pid == 0L) return
+        val json = message.data["mob_notification_json"] ?: run {
+            val notif = message.notification ?: return
+            JSONObject().apply {
+                put("title", notif.title ?: "")
+                put("body", notif.body ?: "")
+                put("source", "push")
+                put("data", JSONObject())
+            }.toString()
+        }
+        MobBridge.nativeDeliverNotification(pid, json)
+    }
+
+    companion object {
+        @Volatile var pendingToken: String? = null
+    }
+}

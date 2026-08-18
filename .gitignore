@@ -1,13 +1,12 @@
-# Wayfinder working area.
-#
+# ── Wayfinder ───────────────────────────────────────────────────────────
 # .scratch/research/ IS tracked — it is the evidence base every ticket cites.
-# .scratch/tickets/  is NOT: those bodies were published as GitHub issues, which
-# are canonical. Keeping a second copy here would let the two drift.
+# .scratch/tickets/  is NOT: those bodies were published as GitHub issues,
+# which are canonical. A second copy here would drift.
 .scratch/*
 !.scratch/research/
 !.scratch/issue-map.json
 
-# Elixir
+# ── Elixir ──────────────────────────────────────────────────────────────
 /_build/
 /cover/
 /deps/
@@ -18,4 +17,32 @@ erl_crash.dump
 *.beam
 /config/*.secret.exs
 .elixir_ls/
+
+# Regenerated from castore on every compile by the `kati.certs` alias.
+# Tracking it would pin Kati to whatever Mozilla trusted the day it landed.
+/priv/cacerts.pem
+
+# ── Mob ─────────────────────────────────────────────────────────────────
+# Machine-local absolute paths, written by `mix mob.install`.
+mob.exs
+android/local.properties
+
+# ── Android build output ────────────────────────────────────────────────
+android/.gradle/
+android/build/
+android/app/build/
+android/app/.cxx/
+android/app/src/main/jni/.zig-cache/
+android/app/src/main/jniLibs/
+zig-out/
+*.apk
+*.aab
+*.keystore
+
+# ── iOS build output ────────────────────────────────────────────────────
+ios/build/
+ios/DerivedData/
+*.xcuserstate
+
+# ── macOS ───────────────────────────────────────────────────────────────
 .DS_Store

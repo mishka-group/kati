@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.kati">
+
+    <!-- Kati asks for exactly what it uses. Every permission here is a line on
+         the Play data-safety form and a reason for a user to distrust the app,
+         so the stock template's camera, microphone, location, media-library,
+         Bluetooth and USB requests are deliberately absent: Kati is a local
+         tracker that talks to a handful of JSON APIs. Calendar permissions
+         arrive with the CalendarContract work, not before. -->
+
+    <!-- Third-party metadata APIs (TMDB, TVmaze, AniList) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Release and air-date reminders -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:minSdkVersion="31" />
+    <!-- Backed by KatiBootReceiver below. AlarmManager drops every pending
+         alarm on reboot, so without the receiver this permission was requested
+         and never used, and reminders vanished silently after a restart. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Haptic feedback on interaction -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
+
+    <application
+        android:label="Kati"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:extractNativeLibs="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/AppTheme">
+
+        <!-- Main activity -->
+        <activity android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|fontScale|density">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- Full-screen QR / barcode scanner.
+             Theme override is required: MobScannerActivity extends
+             AppCompatActivity (CameraX + ML Kit need it), and that
+             throws IllegalStateException at setContentView when the
+             activity's theme isn't AppCompat-derived. AppTheme is
+             Theme.NoTitleBar to keep the main Compose surface clean,
+             so the scanner activity declares its own AppCompat theme. -->
+        <activity android:name=".MobScannerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- Scheduled local notification delivery -->
+        <receiver android:name=".NotificationReceiver"
+            android:exported="false" />
+
+        <!-- Restores scheduled notifications after events that clear
+             AlarmManager. All four actions are on the implicit-broadcast
+             exception list, so a manifest-declared receiver still runs on
+             API 26+. -->
+        <receiver android:name=".KatiBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Background keep-alive foreground service (Mob.Background) -->
+        <service android:name=".BeamForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- FCM token refresh (remote push notifications) -->
+        <service android:name=".MobFirebaseService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- FileProvider for camera temp files (photo / video capture) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
+
+    </application>
+</manifest>

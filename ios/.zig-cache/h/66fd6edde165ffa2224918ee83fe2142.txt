@@ -1,0 +1,2 @@
+0
+1234 441977671 1787059699000000000 c857b4a24e2769102bac6539defea6ca 0 /Users/shahryar/Documents/Programming/Elixir/kati/deps/mob/ios/MobNode.m

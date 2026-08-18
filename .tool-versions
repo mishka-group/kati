@@ -1,0 +1,6 @@
+# Aligned to Mob's device OTP runtime tarball (otp-5c9c69fc), which ships
+# erts-17.0 (OTP 29). mob_dev's elixir_skew check compares MINOR versions.
+# zig is the Android/iOS cross-compiler mob_dev shells out to.
+erlang 29.0.2
+elixir 1.20.2-otp-29
+zig 0.15.2
