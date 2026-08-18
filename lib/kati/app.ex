@@ -20,7 +20,7 @@ defmodule Kati.App do
 
   @impl Mob.App
   def navigation(_platform) do
-    stack(:main, root: Kati.HomeScreen)
+    stack(:main, root: Kati.Screens.Home)
   end
 
   @impl Mob.App
@@ -69,7 +69,7 @@ defmodule Kati.App do
     # crashes on its first query with nothing on screen to say so.
     Kati.Runtime.assert!(~w(schema_migrations spike_things))
 
-    Mob.Screen.start_root(Kati.HomeScreen)
+    Mob.Screen.start_root(Kati.Screens.Home)
 
     if @dev? do
       Mob.Dist.ensure_started(

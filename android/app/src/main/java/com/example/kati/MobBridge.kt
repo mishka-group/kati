@@ -116,6 +116,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+// KATI-BEGIN(K-07 root-icons-imports) mob_new=0.4.20
+// Icons.Filled members from material-icons-extended need explicit
+// imports; the stock file imports only the 29 it maps.
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.BarChart
+// KATI-END(K-07 root-icons-imports)
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
@@ -2998,6 +3005,17 @@ private fun materialIconFor(logical: String): androidx.compose.ui.graphics.vecto
         "home"            -> Icons.Filled.Home
         "expand_more"     -> Icons.Filled.ExpandMore
         "expand_less"     -> Icons.Filled.ExpandLess
+        // KATI-BEGIN(K-07 root-icons) mob_new=0.4.20
+        // The stock map has 29 logical names and none for Kati's four roots,
+        // so Calendar/Library/Stats would all fall through to QuestionMark.
+        // This is a minimal slice of #34's work — enough for the shell to be
+        // legible; the design's full Material Symbols coverage (673 icon spans,
+        // plus the FILL axis for active tabs) is that ticket's job.
+        "calendar"        -> Icons.Filled.CalendarMonth
+        "library"         -> Icons.Filled.VideoLibrary
+        "stats"           -> Icons.Filled.BarChart
+        "plus"            -> Icons.Filled.Add
+        // KATI-END(K-07 root-icons)
         else              -> Icons.Filled.QuestionMark
     }
 
@@ -3775,6 +3793,24 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
             else m.border(borderWidth.dp, borderColor)
     }
 
+    // KATI-BEGIN(K-06 clip-before-padding) mob_new=0.4.20
+    // Clip BEFORE padding. Compose applies modifiers outside-in, so
+    // `.padding().clip()` clips to the already-shrunk CONTENT box rather than
+    // the node: the rounded mask's left edge lands exactly on the text, and any
+    // glyph with negative left side bearing gets shaved. Measured: in a
+    // corner_radius card the leading "N" of "Nothing" and "w" of "whole" were
+    // visibly cut, while an otherwise identical card without corner_radius
+    // rendered them perfectly.
+    //
+    // The stock comment claimed the opposite of what the order does ("so the
+    // rounded mask covers the entire padded area, not just the inner content").
+    // Background is already drawn with `shape`, so moving the clip earlier
+    // keeps corners rounded and stops the mask biting into content.
+    //
+    // High impact for Kati: the design uses the rounded-card recipe 262 times.
+    if (shape != null) m = m.clip(shape)
+    // KATI-END(K-06 clip-before-padding)
+
     val uniform = intProp(props, "padding")
     val top     = intProp(props, "padding_top")
     val right   = intProp(props, "padding_right")
@@ -3791,10 +3827,6 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
         uniform != null -> m.padding(uniform.dp)
         else            -> m
     }
-
-    // Clip children to shape after padding so the rounded mask covers the
-    // entire padded area, not just the inner content.
-    if (shape != null) m = m.clip(shape)
 
     if (boolProp(props, "fill_width") == true) m = m.fillMaxWidth()
     // fill_height: true stretches the node to the parent's vertical bounds.
