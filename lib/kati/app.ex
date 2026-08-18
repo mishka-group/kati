@@ -6,7 +6,8 @@ defmodule Kati.App do
   `config/*.exs` is a **build-time** artifact that never ships: the device
   boots `start_clean` with no `-config` in argv and an empty `.app` env, so
   every `config :foo, ...` line is invisible on a phone. Anything the app
-  needs at runtime is set here with `Application.put_env/3`.
+  needs at runtime is set by `Kati.Runtime`, which is the only module that
+  writes application environment.
   """
 
   use Mob.App
@@ -24,7 +25,7 @@ defmodule Kati.App do
 
   @impl Mob.App
   def on_start do
-    configure_runtime()
+    Kati.Runtime.configure()
 
     # Android's system trust store lives behind a Java API that BEAM's
     # `:public_key` cannot reach, so `:public_key.cacerts_load/0` finds no
@@ -63,6 +64,11 @@ defmodule Kati.App do
       Ecto.Migrator.run(repo, priv_path("repo/migrations"), :up, all: true)
     end)
 
+    # Loud before silent: every condition here otherwise fails invisibly — a
+    # missing table renders as a frozen screen, because the screen GenServer
+    # crashes on its first query with nothing on screen to say so.
+    Kati.Runtime.assert!(~w(schema_migrations spike_things))
+
     Mob.Screen.start_root(Kati.HomeScreen)
 
     if @dev? do
@@ -73,25 +79,6 @@ defmodule Kati.App do
     end
 
     :ok
-  end
-
-  # Runtime configuration. Every entry here would otherwise be set in
-  # config/config.exs and silently ignored on device.
-  defp configure_runtime do
-    # `:ash` declares `extra_applications: [:mnesia]`, so mnesia starts on the
-    # phone whether Kati wants it or not. Without a writable dir it tries to
-    # create schema files next to the executable and fails at boot.
-    Application.put_env(:mnesia, :dir, String.to_charlist(Mob.data_dir()))
-
-    # Wires the Repo into Mob.ScreenState so screens declaring `vsn:` get
-    # automatic state persistence. Silently a no-op when unset.
-    Application.put_env(:mob, :repo, Kati.Repo)
-
-    # Ash's async execution spawns tasks that outlive the calling process. On a
-    # single-connection SQLite repo on a phone that buys nothing and risks
-    # contention against a pool of one.
-    Application.put_env(:ash, :disable_async?, true)
-    Application.put_env(:kati, :ash_domains, [Kati.Spike])
   end
 
   # `:mob_secret` is mob_dev's default and `mix mob.connect` hardcodes it at
