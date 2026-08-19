@@ -9,6 +9,23 @@ defmodule Kati.PrivTest do
   """
   use ExUnit.Case, async: true
 
+  # The deploy tooling exports MOB_BEAMS_DIR — a DEVICE path — and it leaks
+  # into a shell that later runs the suite. `Kati.Priv.path/1` then resolves
+  # assets to /data/user/0/... on the host and every probe reports MISSING.
+  # The tests are about the bundle, not about whoever's shell ran them.
+  setup do
+    case System.fetch_env("MOB_BEAMS_DIR") do
+      {:ok, value} ->
+        System.delete_env("MOB_BEAMS_DIR")
+        on_exit(fn -> System.put_env("MOB_BEAMS_DIR", value) end)
+
+      :error ->
+        :ok
+    end
+
+    :ok
+  end
+
   describe "probe/0" do
     test "reports a healthy bundle and reads every asset back" do
       assert %{ok?: true, lines: lines} = Kati.Priv.probe()
