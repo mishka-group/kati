@@ -79,14 +79,26 @@ def open_gallery():
     adb("shell", "input", "tap", str(BELL[0]), str(BELL[1]))
     time.sleep(3)
 
-    # Prove we are in the gallery before anyone starts scrolling it.
-    if not any(t == "All screens" for t, _, _ in dump()):
+    # Prove we are in the gallery, and SAY SO if we are not. The earlier
+    # version re-tapped once and carried on regardless, so a run that never
+    # opened the gallery reported every single row as "never appeared" — 31
+    # screens blamed on a scroll limit when nothing had been scrolled at all.
+    for _ in range(3):
+        if any(t == "All screens" for t, _, _ in dump()):
+            return True
         adb("shell", "input", "tap", str(BELL[0]), str(BELL[1]))
         time.sleep(3)
 
+    return False
 
-def find_row(label, scrolls=8):
-    """Scroll the gallery until `label` is on screen; return its tap point."""
+
+def find_row(label, scrolls=22):
+    """Scroll the gallery until `label` is on screen; return its tap point.
+
+    22 attempts, not 8. One swipe moves about five rows and the list is 62
+    long, so eight was enough to reach row 44 and no further — every screen
+    past it reported "never appeared" as though it did not exist.
+    """
     for _ in range(scrolls):
         for text, x, y in dump():
             # Rows sit inside the list; the header is near the top.
@@ -145,9 +157,8 @@ def main():
         if not (lo <= int(number) <= hi):
             continue
 
-        open_gallery()
-        if not foreground():
-            holes.append((number, "app not in foreground"))
+        if not open_gallery():
+            holes.append((number, "never reached the gallery"))
             continue
 
         point = find_row(label)
