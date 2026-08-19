@@ -35,12 +35,25 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 
 | # | screen | state | notes |
 |---|---|---|---|
-| 01 | Home | ~ | dock ✓, fonts ✓. Body still Kati's own: needs the 44px header buttons, the search bar's `tune`, the hero poster stack, the two continue-watching cards with progress bars, the three section tiles, the rest-of-today card |
+| 01 | Home | ~ | Built to the drawing. **Open bug: the hero renders far too tall** — something inside it takes height it should not. Debug backgrounds did not repaint under `mob.watch` even after a root switch, so it is still unmeasured. Bisect it first: give the inner Row an explicit height, or drop children one at a time, and force a real remount (kill + relaunch, not a tab tap). |
 | 02 | Schedule | ~ | header must read `Schedule` + `Sunday 16 August · 5 items`, with `Today` leading the day strip |
 | 03 | Library | — | |
 | 09 | A heavy day | ~ | lanes, `+1 MORE` and the gutter are right; poster stacks, all-day band and merged money events outstanding |
 | 04–08, 10–54 | | — | |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
+
+## Bridge props that exist now
+
+`shadow="dx dy blur spread #AARRGGBB | …"` (CSS order, real spread),
+`max_lines`, `offset_x`/`offset_y`, `font_family` in
+`sans|mono|fa|symbols|symbols_filled`. Padding is clamped at zero.
+
+## The loop
+
+`mix mob.watch` compiles and hot-pushes on save — seconds, no APK. Caveat
+found the hard way: a hot-pushed module does **not** repaint on its own, and a
+tab tap was not enough to force it either. When a change does not appear,
+force-stop and relaunch before concluding the code is wrong.
 
 ## Rules learned while matching
 
