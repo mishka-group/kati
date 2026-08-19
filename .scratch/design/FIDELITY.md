@@ -42,7 +42,8 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 | 04 | Series detail | ✓ | 330pt artwork with the gradient lifting paper back over it, floating chrome at 60pt, Season 2 card, action row, S1/S2/S3 selector, episode rows in all three states (watched / unwatched / not aired). Data from `Kati.Library.Sample.series/0`. |
 | 05 | New releases inbox | ✓ | Back pill + Mark all, cream watcher card, Out now rows with poster/dot/Watch, dated Coming up card. `Kati.Library.Sample.inbox/0`. |
 | 06 | Add a title | ✓ | Focused field with the 2px ink ring and orange caret, chips, results in both add/added states, by-hand CTA. Its own close button, not the pushed back pill. Should become a native sheet (#45). |
-| 07–08, 10–54 | | — | |
+| 07 | Your year (Stats) | ✓ | 20/20 text, 12/12 icons. Cream hero, change pill, 26-week contribution grid, count cards, breakdown bars, More numbers list. |
+| 08, 10–54 | | — | |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
 
 ## Missing data is not a reason for a blank screen
@@ -79,6 +80,20 @@ script in the K-08 artwork commit. `Kati.Library.Sample.poster/1` resolves a
 slug to a path through `Kati.Priv.path/1`, which #72 proved survives a release
 build. `<Image src content_mode="fill">` crops like a poster; without
 `content_mode` Coil letterboxes and the card grows margins the design has not.
+
+## Measured, not eyeballed
+
+The dock was measured against the drawing rather than judged: bar left 17.9dp
+(design 18), right 318.1 (318.4), height 64.0 (64), FAB 329.5–393.1
+(329.4–393.4), bottom gap 30.5 (30). It matches. The first measurement said
+otherwise because it caught the FAB's white `+` glyph as bar pixels — measure
+the longest CONTIGUOUS run at the bar's vertical centre, not min/max.
+
+**Open question the measuring surfaced:** content appears to start ~42dp lower
+than the drawing (Home's eyebrow at ~106dp against the design's 64). Likely a
+status-bar inset applied on top of `padding_top={64}`. Measure a known element
+on several screens before changing anything — if it is real it shifts every
+screen and must be fixed once, in the frame, not per screen.
 
 ## Still to check on every screen
 
