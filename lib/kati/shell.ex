@@ -111,6 +111,13 @@ defmodule Kati.Shell do
   # as a separate overlay pinned above the bar — which is what this did first —
   # the FAB lands in the wrong place at every width, because in the design it is
   # not above the bar, it is the last item in the row.
+  # The bar's contents are centred BOTH ways, and the vertical half is not
+  # optional: a Box defaults to top alignment, and the icon row wraps to its
+  # 46dp content inside a 64dp bar — so without `align="center"` the icons ride
+  # 9dp high and the active disc very nearly clips the bar's top edge. It looks
+  # exactly like "the icons are not centred", and no horizontal measurement
+  # catches it, which is how it survived a round of measuring.
+  #
   # The bar carries NO inner padding, despite the drawing's `padding:0 9px`.
   #
   # Measured against the reference: with 9dp each side the four icon centres
@@ -134,8 +141,8 @@ defmodule Kati.Shell do
         padding_right={18}
         padding_bottom={30}
       >
-        <Box weight={1.0} height={64} background={fill} corner_radius={32}>
-          <Row fill_width={true} vertical_align="center">
+        <Box weight={1.0} height={64} background={fill} corner_radius={32} align="center">
+          <Row fill_width={true} fill_height={true} vertical_align="center">
             {Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)}
           </Row>
         </Box>
