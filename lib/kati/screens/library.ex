@@ -115,11 +115,11 @@ defmodule Kati.Screens.Library do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.Library.quick_tile("playlist_play", "Up next", "12")}
+        {Kati.Screens.Library.quick_tile("playlist_play", "Up next", "12", :open_up_next)}
         <Spacer size={9} />
-        {Kati.Screens.Library.quick_tile("explore", "Discover", nil)}
+        {Kati.Screens.Library.quick_tile("explore", "Discover", nil, :open_discover)}
         <Spacer size={9} />
-        {Kati.Screens.Library.quick_tile("bookmarks", "Lists", "7")}
+        {Kati.Screens.Library.quick_tile("bookmarks", "Lists", "7", :open_lists)}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -127,9 +127,11 @@ defmodule Kati.Screens.Library do
   end
 
   @doc false
-  def quick_tile(icon, label, count) do
+  def quick_tile(icon, label, count, tag) do
+    tap = {self(), tag}
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Column
         fill_width={true}
         background={Kati.Theme.card(:light)}
@@ -282,6 +284,9 @@ defmodule Kati.Screens.Library do
   def progress_rest(rest), do: ~MOB"<Spacer weight={rest} />"
 
   @impl true
+  def handle_tap(:open_up_next, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNext)}
+  def handle_tap(:open_discover, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Discover)}
+  def handle_tap(:open_lists, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
   def handle_tap(:open_series, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
   def handle_tap(:open_film, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
   def handle_tap(_tag, socket), do: {:noreply, socket}

@@ -44,7 +44,7 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 | 06 | Add a title | ✓ | Focused field with the 2px ink ring and orange caret, chips, results in both add/added states, by-hand CTA. Its own close button, not the pushed back pill. Should become a native sheet (#45). |
 | 07 | Your year (Stats) | ✓ | 20/20 text, 12/12 icons. Cream hero, change pill, 26-week contribution grid, count cards, breakdown bars, More numbers list. |
 | 08 | Film detail | ✓ | Gradient over the artwork makes the title readable, rating card correct height with real star glyphs, note on cream, where-to-watch rows, three centred action buttons. |
-| 10–54 | | — | |
+| 10–62 | all remaining | built | All 53 written against their drawings and checker-complete (51 at N/N; 14 and 45 carry the star-glyph exception). All compile. Verified on device so far: 24 Settings. The rest need navigation wiring and a look. |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
 
 ## Missing data is not a reason for a blank screen

@@ -344,11 +344,11 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Column fill_width={true}>
     <Row fill_width={true} align="top">
-      {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", 0xFFB08E55)}
+      {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", 0xFFB08E55, :open_meals)}
       <Spacer size={9} />
-      {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", 0xFF4E9A73)}
+      {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", 0xFF4E9A73, :open_habits)}
       <Spacer size={9} />
-      {Kati.Screens.Home.tile("tune", "Settings", nil, nil)}
+      {Kati.Screens.Home.tile("tune", "Settings", nil, nil, :open_settings)}
     </Row>
     <Spacer size={26} />
     </Column>
@@ -356,12 +356,13 @@ defmodule Kati.Screens.Home do
   end
 
   @doc false
-  def tile(icon, title, meta, dot) do
+  def tile(icon, title, meta, dot, tag) do
     card = Theme.card(:light)
     shadow = Theme.shadow_card_soft()
+    tap = {self(), tag}
 
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Box
         fill_width={true}
         background={card}
@@ -495,6 +496,18 @@ defmodule Kati.Screens.Home do
   @impl true
   def handle_tap(tag, socket) when tag in [:open_inbox, :notifications],
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
+
+  def handle_tap(:open_settings, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
+
+  def handle_tap(:open_meals, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
+
+  def handle_tap(:open_habits, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+
+  def handle_tap(:open_search, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end
