@@ -318,34 +318,78 @@ defmodule Kati.Screens.Day do
     title = Map.get(event, :title) || collapsed_title(event)
     meta = Map.get(event, :meta) || collapsed_meta(event)
 
+    # A done or todo row sits on #F4F1EC with no shadow — the design sinks
+    # anything already dealt with, so the live rows are the ones that lift.
+    settled? = Map.get(event, :done) == true or Map.get(event, :todo) == true
+    background = if settled?, do: 0xFFF4F1EC, else: Kati.Theme.card(:light)
+    shadow = if settled?, do: nil, else: Kati.Theme.shadow_card_soft()
+
     ~MOB"""
     <Box weight={weight}>
-      <Box background={:surface} corner_radius={20} padding={16} fill_width={true}>
-        <Row fill_width={true} align="center">
-          <Column weight={1.0}>
-            <Text text={title} text_size={15} text_color={:on_surface} max_lines={2} />
-            <Spacer size={3} />
-            <Text text={meta} text_size={12} text_color={:muted} max_lines={1} />
-          </Column>
-          {Kati.Screens.Day.state_icon(event)}
-        </Row>
-      </Box>
+      <Row
+        fill_width={true}
+        background={background}
+        corner_radius={16}
+        shadow={shadow}
+        padding_left={13}
+        padding_right={13}
+        padding_top={11}
+        padding_bottom={11}
+        align="center"
+      >
+        {Kati.Screens.Day.kind_rail(event)}
+        {Kati.Screens.Day.leading_state(event)}
+        <Column weight={1.0}>
+          <Text text={title} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={2} />
+          <Spacer size={3} />
+          <Text text={meta} font_family="mono" text_size={10} text_color={:muted} max_lines={1} />
+        </Column>
+        {Kati.Screens.Day.state_icon(event)}
+      </Row>
     </Box>
     """
   end
+
+  # The 3dp rail that says what KIND of thing this is, before the title says
+  # what it is. Green for a habit, bronze for money, ink for everything else.
+  @doc false
+  def kind_rail(event) do
+    colour =
+      case Map.get(event, :kind) do
+        :habit -> 0xFF4E9A73
+        :money -> 0xFFB08E55
+        :air_date -> 0xFFE8823C
+        _ -> Kati.Theme.ink()
+      end
+
+    ~MOB"""
+    <Row align="center">
+      <Box width={3} height={34} corner_radius={2} background={colour} />
+      <Spacer size={11} />
+    </Row>
+    """
+  end
+
+  # A todo's circle leads the row — it is a thing to tick, and the drawing puts
+  # the affordance where the eye starts. A done check trails, because it is a
+  # statement rather than an invitation.
+  @doc false
+  def leading_state(%{todo: true}) do
+    ~MOB"""
+    <Row align="center">
+      {Kati.UI.symbol("radio_button_unchecked", size: 19, color: 0xFFB3ACA2)}
+      <Spacer size={11} />
+    </Row>
+    """
+  end
+
+  def leading_state(_), do: ~MOB"<Spacer size={0} />"
 
   # In a Row, so it sits AFTER the text. As a sibling of the Column inside the
   # Box it stacked on top of it instead — the green check landed across the
   # middle of "Morning run".
   @doc false
-  def state_icon(%{todo: true}) do
-    ~MOB"""
-    <Row align="center">
-      <Spacer size={11} />
-      {Kati.UI.symbol("radio_button_unchecked", size: 19, color: 0xFFB3ACA2)}
-    </Row>
-    """
-  end
+  def state_icon(%{todo: true}), do: ~MOB"<Spacer size={0} />"
 
   def state_icon(%{done: true}) do
     ~MOB"""
