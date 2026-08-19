@@ -458,4 +458,10 @@ defmodule Kati.Screens.Home do
 
     {"#{day} · #{now.day} #{month}", greeting}
   end
+
+  @impl true
+  def handle_tap(tag, socket) when tag in [:open_inbox, :notifications],
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
+
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end

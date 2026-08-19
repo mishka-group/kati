@@ -78,4 +78,44 @@ defmodule Kati.Library.Sample do
       ]
     }
   end
+
+  @doc """
+  The new-releases inbox, screen 05: three titles out now and three coming up.
+
+  The dot colour carries the reason a row is here — a new episode, a premiere,
+  or something about to leave a service — which is the design's way of saying
+  three different things in one list without three different layouts.
+  """
+  @spec inbox() :: map()
+  def inbox do
+    %{
+      watching: 24,
+      last_checked: "last checked 18:02 · every 6h",
+      out_now: [
+        %{
+          title: "The Long Hollow",
+          line: "S2 E6 — Ash and After",
+          meta: "48 min · LUMEN+ · aired 20:00",
+          dot: 0xFFE8823C
+        },
+        %{
+          title: "Blue Hour",
+          line: "Premiere",
+          meta: "1h 52m · CINEMA · out today",
+          dot: 0xFF4E9A73
+        },
+        %{
+          title: "Paper Cities",
+          line: "S1 E2 — The Cartographer",
+          meta: "44 min · LUMEN+ · aired 19:00",
+          dot: 0xFFE8823C
+        }
+      ],
+      coming_up: [
+        %{month: "AUG", day: "20", title: "The Long Hollow", line: "S2 E7 — Homecoming", meta: "Thu, 20:00"},
+        %{month: "AUG", day: "23", title: "Salt & Iron", line: "S1 E4", meta: "Sun, 21:00"},
+        %{month: "SEP", day: "02", title: "Ember & Ash", line: "Leaves Lumen+", meta: "Tue"}
+      ]
+    }
+  end
 end
