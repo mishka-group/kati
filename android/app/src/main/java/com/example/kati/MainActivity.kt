@@ -27,6 +27,12 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
+// KATI-BEGIN(K-09 bottom-inset-only-imports) mob_new=0.4.20
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+// KATI-END(K-09 bottom-inset-only-imports)
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
@@ -240,7 +246,32 @@ class MainActivity : ComponentActivity() {
                         val direction = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
                         CompositionLocalProvider(LocalLayoutDirection provides direction) {
-                            RenderNode(root, modifier = Modifier.fillMaxSize().safeDrawingPadding())
+                            // KATI-BEGIN(K-09 bottom-inset-only) mob_new=0.4.20
+                            // Bottom inset only, not safeDrawingPadding().
+                            //
+                            // The design's frames are 402x874 with `padding:64px 21px 132px`
+                            // and they draw their OWN status bar inside that 64px. So the
+                            // drawing measures from the physical top of the screen, and
+                            // insetting the whole root pushed every screen down by the
+                            // status bar's height — measured at ~42dp, which put Home's
+                            // eyebrow at 106dp where the drawing has it at 64.
+                            //
+                            // The bottom is different and keeps its inset: the drawing is an
+                            // iOS frame with a home indicator, while this device has a
+                            // gesture bar the dock would otherwise sit under. Losing 30dp of
+                            // paper at the bottom is invisible; a tab bar you cannot press
+                            // is not.
+                            RenderNode(
+                                root,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(
+                                        bottom = WindowInsets.safeDrawing
+                                            .asPaddingValues()
+                                            .calculateBottomPadding()
+                                    )
+                            )
+                            // KATI-END(K-09 bottom-inset-only)
                         }
                     }
                     // KATI-END(K-12 rtl-root)

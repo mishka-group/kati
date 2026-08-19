@@ -89,11 +89,18 @@ The dock was measured against the drawing rather than judged: bar left 17.9dp
 otherwise because it caught the FAB's white `+` glyph as bar pixels — measure
 the longest CONTIGUOUS run at the bar's vertical centre, not min/max.
 
-**Open question the measuring surfaced:** content appears to start ~42dp lower
-than the drawing (Home's eyebrow at ~106dp against the design's 64). Likely a
-status-bar inset applied on top of `padding_top={64}`. Measure a known element
-on several screens before changing anything — if it is real it shifts every
-screen and must be fixed once, in the frame, not per screen.
+**Fixed:** every screen sat ~42dp low because `MainActivity` applied
+`safeDrawingPadding()` to the root, adding the status-bar inset on top of each
+screen's own `padding_top={64}`. The design's frames draw their own status bar
+inside that 64, so the drawing measures from the physical top. Now bottom-only
+(K-09): the dock still clears the gesture bar, because losing 30dp of paper is
+invisible and a tab bar you cannot press is not.
+
+**Residual, not yet chased:** Home's search bar lands at 150.5dp where the
+drawing computes to ~138. About 12dp accumulated over two lines of text —
+Compose's default line metrics run taller than the browser's. It is a text
+metric question, not a frame one, so do not fix it with negative padding;
+either set explicit `line_height` on headline text or accept it and record it.
 
 ## Still to check on every screen
 

@@ -50,6 +50,8 @@ the baseline is refreshed, the fence goes and the row moves to *Retired*.
 | `K-08 box-shadow-import` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `androidx.compose.ui.draw.drawBehind`. | Pairs with the two rows above. |
 | `K-08 text-max-lines` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `max_lines` + ellipsis on Text. The design truncates in 40+ places; the prop was previously accepted and ignored, so long titles reflowed the grid they were meant to fit. | Arguably upstream — add to #76. |
 | `K-08 non-negative-padding` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Clamps padding at zero. Compose throws `IllegalArgumentException("Padding must be non-negative")` from inside the render pass and the activity dies — the app vanishes to the launcher with nothing in the Elixir log. One node's bad number should not be fatal. | Arguably upstream — add to #76. |
+| `K-09 bottom-inset-only` | `android/app/src/main/java/com/example/kati/MainActivity.kt` | Replaces `safeDrawingPadding()` with a **bottom-only** inset. The design's frames draw their own status bar inside their 64px top padding, so insetting the root pushed every screen down by the status bar height — measured ~42dp, putting Home's eyebrow at 106dp against the drawing's 64. The bottom keeps its inset so the dock clears the gesture bar. | Kati-specific: it follows from this design's frames. |
+| `K-09 bottom-inset-only-imports` | `android/app/src/main/java/com/example/kati/MainActivity.kt` | WindowInsets / safeDrawing / asPaddingValues / padding. | Pairs with the row above. |
 
 ## Retired patches
 
