@@ -91,25 +91,33 @@ defmodule Kati.Screens.Pushed do
     tap = {self(), :back}
     assigns = %{label: label, tap: tap, chrome: Kati.Theme.chrome_fill(:light)}
 
+    # A Row, not a Box, and this was wrong on ~30 screens.
+    #
+    # `width={:wrap}` is not a thing: the bridge fills width whenever `width`
+    # is not a NUMBER (MobBridge.kt:2673). So the pill spanned the entire
+    # screen, clipped at the right edge, and painted its 90%-opaque fill over
+    # whatever trailing control the screen drew — which is why those discs
+    # looked pale grey rather than ink. A Row hugs its content.
+    #
+    # The outer Row keeps the pill left and leaves the rest of the width free,
+    # so a screen's own trailing disc is untouched.
     ~MOB"""
-    <Box padding_left={21} padding_top={54}>
-      <Box
+    <Row fill_width={true} padding_left={21} padding_right={21} padding_top={64}>
+      <Row
+        height={44}
         background={@chrome}
-        corner_radius={999}
-        padding_left={14}
+        corner_radius={22}
+        padding_left={13}
         padding_right={16}
-        padding_top={9}
-        padding_bottom={9}
-        width={:wrap}
+        align="center"
         on_tap={@tap}
       >
-        <Row align="center">
-          {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
-          <Spacer size={6} />
-          <Text text={@label} text_size={14} text_color={:on_surface} />
-        </Row>
-      </Box>
-    </Box>
+        {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
+        <Spacer size={6} />
+        <Text text={@label} text_size={14} text_color={:on_surface} />
+      </Row>
+      <Spacer weight={1.0} />
+    </Row>
     """
   end
 end

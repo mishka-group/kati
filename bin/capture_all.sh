@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Walk Kati.Screens.Gallery and photograph every screen.
 #
-# The gallery pushes, so BACK always returns to it — the loop never has to
-# find its way home. Rows are a fixed pitch, and the list scrolls in whole
-# rows, so a row index maps to a tap without hunting.
+# It re-opens the gallery from a cold start before EVERY tap, rather than
+# pressing BACK between screens. That is slower and it is the only thing that
+# works: a pushed screen that does not handle the hardware back button lets it
+# fall through to the activity, which EXITS THE APP — after which every
+# subsequent tap lands on the launcher and the captures are of other people's
+# apps. 37 of 62 were photographed that way before this was noticed.
 set -u
 ADB="${ADB:-adb}"
 PKG=com.example.kati
@@ -22,24 +25,16 @@ open_gallery() {
   sleep 3
 }
 
-open_gallery
-page=0
-
 for i in $(seq "${FROM:-10}" "${TO:-62}"); do
-  idx=$((i - 1))                    # zero-based row
+  idx=$((i - 1))
   want_page=$((idx / PER_PAGE))
   slot=$((idx % PER_PAGE))
 
-  if [ "$want_page" -ne "$page" ]; then
-    # Re-open and scroll from the top: scrolling is more reliable forwards
-    # than trying to track position across pushes.
-    open_gallery
-    for _ in $(seq 1 "$want_page"); do
-      "$ADB" shell input swipe 540 1700 540 $((1700 - PER_PAGE * PITCH)) 500
-      sleep 1
-    done
-    page=$want_page
-  fi
+  open_gallery
+  for _ in $(seq 1 "$want_page"); do
+    "$ADB" shell input swipe 540 1700 540 $((1700 - PER_PAGE * PITCH)) 500
+    sleep 1
+  done
 
   y=$((FIRST_Y + slot * PITCH))
   "$ADB" shell input tap 500 "$y"
@@ -47,6 +42,4 @@ for i in $(seq "${FROM:-10}" "${TO:-62}"); do
   printf -v n "%02d" "$i"
   "$ADB" exec-out screencap -p > "$OUT/$n.png"
   echo "captured $n"
-  "$ADB" shell input keyevent KEYCODE_BACK
-  sleep 2
 done
