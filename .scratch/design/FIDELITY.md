@@ -38,13 +38,13 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 | 01 | Home | ✓ | Hero height fixed — the Open inbox pill was a `Box` with no width, so it filled the card. Remaining: the drawing's own copy still stands in for the hero, Continue watching and section counts until the Screen domain exists. |
 | 02 | Schedule | ✓ | Header, mono subtitle, both discs, month row with `unfold_more` + Today pill, seven flex:1 cells at radius 16, chips, and the 44pt time column beside each event card. Events are real. Outstanding: the all-day/merged rows and the done-state `#F4F1EC` card. |
 | 03 | Library | ✓ | Segmented control on its #E4E0D9 trough, three quick tiles with mono counts, count chips, 3-across 112x158 poster grid with the progress bar burnt into the bottom edge. Books and Music greyed, which is #60's decision as well as the drawing. Data from `Kati.Library.Sample` until the Screen domain lands. |
-| 09 | A heavy day | ~ | lanes, `+1 MORE` and the gutter are right; poster stacks, all-day band and merged money events outstanding |
+| 09 | A heavy day | ✓ | 24/24 text, 7/7 icons. All-day band with artwork, sequential cards, `3 at once` clash label with call_split, two lanes + `+1 MORE`, collapsed group, done/todo state icons, merged money row. `Kati.Calendar.SampleDay`. Known: the `density_medium` disc overlaps the pushed back pill. |
 | 04 | Series detail | ✓ | 330pt artwork with the gradient lifting paper back over it, floating chrome at 60pt, Season 2 card, action row, S1/S2/S3 selector, episode rows in all three states (watched / unwatched / not aired). Data from `Kati.Library.Sample.series/0`. |
 | 05 | New releases inbox | ✓ | Back pill + Mark all, cream watcher card, Out now rows with poster/dot/Watch, dated Coming up card. `Kati.Library.Sample.inbox/0`. |
 | 06 | Add a title | ✓ | Focused field with the 2px ink ring and orange caret, chips, results in both add/added states, by-hand CTA. Its own close button, not the pushed back pill. Should become a native sheet (#45). |
 | 07 | Your year (Stats) | ✓ | 20/20 text, 12/12 icons. Cream hero, change pill, 26-week contribution grid, count cards, breakdown bars, More numbers list. |
 | 08 | Film detail | ✓ | Gradient over the artwork makes the title readable, rating card correct height with real star glyphs, note on cream, where-to-watch rows, three centred action buttons. |
-| 09–54 | | — | |
+| 10–54 | | — | |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
 
 ## Missing data is not a reason for a blank screen

@@ -94,7 +94,7 @@ defmodule Kati.Screens.Pushed do
         on_tap={@tap}
       >
         <Row align="center">
-          <Text text="‹" text_size={17} text_color={:on_surface} />
+          {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
           <Spacer size={6} />
           <Text text={@label} text_size={14} text_color={:on_surface} />
         </Row>

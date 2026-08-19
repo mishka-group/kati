@@ -127,6 +127,8 @@ defmodule Kati.Screens.Calendar do
 
   @doc false
   def day_cell(date, today?) do
+    tap = {self(), :open_day}
+
     bg = if today?, do: Theme.ink(), else: Theme.card(:light)
     name_color = if today?, do: 0xFFBFB8AC, else: 0xFFA9A29A
     num_color = if today?, do: 0xFFFBFAF8, else: 0xFF1A1917
@@ -134,7 +136,7 @@ defmodule Kati.Screens.Calendar do
     name = Kati.Time.day_name(date) |> String.slice(0, 3)
 
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Column
         fill_width={true}
         background={bg}

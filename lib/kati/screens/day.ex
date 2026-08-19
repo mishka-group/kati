@@ -34,41 +34,165 @@ defmodule Kati.Screens.Day do
 
     Mob.Socket.assign(socket,
       date: date,
-      clusters: date |> Kati.Calendars.Today.occurrences() |> clusters()
+      clusters: clusters(Kati.Calendar.SampleDay.occurrences())
     )
   end
 
   @doc false
   def content(assigns) do
     date = assigns.date
-    heading = "#{Kati.Time.day_name(date)} #{date.day}"
     clusters = assigns.clusters
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_top={112} padding_bottom={40}>
-        <Column padding_left={21} padding_right={21} fill_width={true}>
-          <Text
-            text={String.upcase("#{Kati.Time.month_name(date.month)} #{date.year}")}
-            text_size={11}
-            text_color={:muted}
-            letter_spacing={0.14}
-          />
-          <Spacer size={5} />
-          <Text
-            text={heading}
-            text_size={34}
-            text_color={:on_surface}
-            font_weight="bold"
-            letter_spacing={-1.0}
-          />
-          <Spacer size={4} />
-          <Text text={Kati.Screens.Day.summary(clusters)} text_size={13} text_color={:muted} />
+      <Column fill_width={true} padding_top={64} padding_bottom={132}>
+        <Column fill_width={true} padding_left={21} padding_right={21}>
+          {Kati.Screens.Day.header(date, clusters)}
+          {Kati.Screens.Day.chips()}
+          {Kati.Screens.Day.all_day()}
         </Column>
-        <Spacer size={22} />
         {Enum.map(clusters, &Kati.Screens.Day.cluster_block/1)}
+        {Kati.Screens.Day.money_row()}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc false
+  def header(date, _clusters) do
+    heading = "#{Kati.Time.day_name(date) |> String.slice(0, 3)} #{date.day} #{Kati.Time.month_name(date.month) |> String.slice(0, 3)}"
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        <Box
+          width={44}
+          height={44}
+          corner_radius={22}
+          background={Kati.Theme.card(:light)}
+          shadow={Kati.Theme.shadow_button()}
+          align="center"
+        >
+          {Kati.UI.symbol("density_medium", size: 21)}
+        </Box>
+      </Row>
+      <Spacer size={16} />
+      <Text text={heading} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Spacer size={5} />
+      <Text text={Kati.Calendar.SampleDay.summary()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def chips do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true}>
+        {Kati.Calendar.SampleDay.chips()
+         |> Enum.with_index()
+         |> Enum.map(fn {{label, n}, i} -> Kati.Screens.Day.chip(label, n, i == 0) end)
+         |> Enum.intersperse(Kati.Screens.Day.chip_gap())}
+      </Row>
+      <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def chip_gap, do: ~MOB"<Spacer size={7} />"
+
+  @doc false
+  def chip(label, count, on?) do
+    bg = if on?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
+    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
+    cf = if on?, do: 0x99FBFAF8, else: 0x8C5C574F
+
+    ~MOB"""
+    <Row height={30} corner_radius={15} background={bg} padding_left={13} padding_right={13} align="center">
+      <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
+      <Spacer size={6} />
+      <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={cf} max_lines={1} />
+    </Row>
+    """
+  end
+
+  # The all-day band sits above the gutter and is never laned — an all-day
+  # item has no start minute to collide on.
+  @doc false
+  def all_day do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(Kati.Calendar.SampleDay.all_day(), &Kati.Screens.Day.all_day_row/1)}
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def all_day_row(item) do
+    ~MOB"""
+    <Row fill_width={true} align="top">
+      <Column width={44} padding_top={12}>
+        <Text text="ALL" font_family="mono" text_size={10} letter_spacing={0.06} text_color={0xFFA9A29A} />
+        <Text text="DAY" font_family="mono" text_size={10} letter_spacing={0.06} text_color={0xFFA9A29A} />
+      </Column>
+      <Spacer size={12} />
+      <Box weight={1.0}>
+        <Row fill_width={true} background={0xFFFBF1DE} corner_radius={16} padding_left={13} padding_right={13} padding_top={11} padding_bottom={11} align="center">
+          {Kati.Screens.Day.thumb(item)}
+          <Spacer size={11} />
+          <Column weight={1.0}>
+            <Text text={item.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
+            <Spacer size={3} />
+            <Text text={item.meta} font_family="mono" text_size={10.5} text_color={0xFFB09A72} max_lines={1} />
+          </Column>
+        </Row>
+      </Box>
+    </Row>
+    """
+  end
+
+  @doc false
+  def thumb(item) do
+    case Kati.Library.Sample.poster(item[:slug]) do
+      nil ->
+        ~MOB"<Box width={26} height={37} corner_radius={5} background={0xFFEADFC6} />"
+
+      src ->
+        ~MOB"""
+        <Image src={src} width={26} height={37} corner_radius={5} content_mode="fill" />
+        """
+    end
+  end
+
+  # Two renewals on one row rather than two rows — the design merges money
+  # events on a day, because "two subscriptions renewed" is one fact.
+  @doc false
+  def money_row do
+    m = Kati.Calendar.SampleDay.money()
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={21} padding_right={21}>
+      <Row fill_width={true} align="top">
+        <Column width={44} padding_top={12}>
+          <Text text="00:00" font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+        </Column>
+        <Spacer size={12} />
+        <Box weight={1.0}>
+          <Row fill_width={true} background={Kati.Theme.card(:light)} corner_radius={16} shadow={Kati.Theme.shadow_card_soft()} padding_left={13} padding_right={13} padding_top={11} padding_bottom={11} align="center">
+            {Kati.UI.symbol("payments", size: 14, color: 0xFF5C574F)}
+            <Spacer size={11} />
+            <Text text={m.label} text_size={13} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
+            <Text text={m.total} font_family="mono" text_size={11.5} text_color={0xFF5C574F} max_lines={1} />
+            <Spacer size={9} />
+            {Kati.UI.symbol("expand_more", size: 17, color: 0xFFB3ACA2)}
+          </Row>
+        </Box>
+      </Row>
+    </Column>
     """
   end
 
@@ -94,10 +218,36 @@ defmodule Kati.Screens.Day do
   defp plural(1, singular, _plural), do: "1 #{singular}"
   defp plural(n, _singular, plural), do: "#{n} #{plural}"
 
+  # A clash is labelled, not just laid out. The design puts "2 at once" or
+  # "3 at once" above the split with a `call_split` glyph, so the reason two
+  # cards are side by side is stated rather than inferred from their width.
+  @doc false
+  def clash_label(%{n_cols: n} = cluster) when n > 1 do
+    total = length(cluster.placements) + hidden_count(cluster.overflow)
+
+    ~MOB"""
+    <Row align="center" padding_left={56} padding_bottom={6}>
+      {Kati.UI.symbol("call_split", size: 14, color: 0xFFA0998F)}
+      <Spacer size={6} />
+      <Text
+        text={"#{total} at once"}
+        font_family="mono"
+        text_size={10.5}
+        letter_spacing={0.16}
+        text_color={0xFFA0998F}
+        max_lines={1}
+      />
+    </Row>
+    """
+  end
+
+  def clash_label(_), do: ~MOB"<Spacer size={0} />"
+
   @doc false
   def cluster_block(cluster) do
     ~MOB"""
     <Column fill_width={true} padding_left={21} padding_right={21}>
+      {Kati.Screens.Day.clash_label(cluster)}
       <Row align="top" fill_width={true}>
         {Kati.Screens.Day.gutter(cluster.label)}
         {Kati.Screens.Day.lanes(cluster)}
@@ -171,15 +321,42 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Box weight={weight}>
       <Box background={:surface} corner_radius={20} padding={16} fill_width={true}>
-        <Column fill_width={true}>
-          <Text text={title} text_size={15} text_color={:on_surface} max_lines={2} />
-          <Spacer size={3} />
-          <Text text={meta} text_size={12} text_color={:muted} max_lines={1} />
-        </Column>
+        <Row fill_width={true} align="center">
+          <Column weight={1.0}>
+            <Text text={title} text_size={15} text_color={:on_surface} max_lines={2} />
+            <Spacer size={3} />
+            <Text text={meta} text_size={12} text_color={:muted} max_lines={1} />
+          </Column>
+          {Kati.Screens.Day.state_icon(event)}
+        </Row>
       </Box>
     </Box>
     """
   end
+
+  # In a Row, so it sits AFTER the text. As a sibling of the Column inside the
+  # Box it stacked on top of it instead — the green check landed across the
+  # middle of "Morning run".
+  @doc false
+  def state_icon(%{todo: true}) do
+    ~MOB"""
+    <Row align="center">
+      <Spacer size={11} />
+      {Kati.UI.symbol("radio_button_unchecked", size: 19, color: 0xFFB3ACA2)}
+    </Row>
+    """
+  end
+
+  def state_icon(%{done: true}) do
+    ~MOB"""
+    <Row align="center">
+      <Spacer size={11} />
+      {Kati.UI.symbol("check_circle", size: 19, color: 0xFF4E9A73, fill: true)}
+    </Row>
+    """
+  end
+
+  def state_icon(_), do: ~MOB"<Spacer size={0} />"
 
   defp collapsed_title(%{collapsed: members, kind: kind}),
     do: "#{length(members)} #{kind_plural(kind, length(members))}"
@@ -195,9 +372,13 @@ defmodule Kati.Screens.Day do
 
   defp collapsed_meta(_), do: ""
 
-  defp kind_plural(:meal, n) when n != 1, do: "meals"
-  defp kind_plural(kind, n) when n != 1, do: "#{kind} events"
-  defp kind_plural(kind, _), do: to_string(kind)
+  # The label a user reads, not the atom the schema stores. "3 air_date
+  # events" is a database row talking to itself.
+  defp kind_plural(:meal, n), do: if(n == 1, do: "meal", else: "meals")
+  defp kind_plural(:air_date, n), do: if(n == 1, do: "episode", else: "episodes")
+  defp kind_plural(:habit, n), do: if(n == 1, do: "habit", else: "habits")
+  defp kind_plural(:money, n), do: if(n == 1, do: "renewal", else: "renewals")
+  defp kind_plural(_kind, n), do: if(n == 1, do: "event", else: "events")
 
   @doc false
   def overflow_footer(%{overflow: nil}) do

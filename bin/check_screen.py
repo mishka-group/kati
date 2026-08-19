@@ -19,6 +19,11 @@ N = sys.argv[1].zfill(2)
 SOURCES = [pathlib.Path(p) for p in sys.argv[2:]]
 
 design = pathlib.Path(f".scratch/design/screens/{N}.html").read_text(encoding="utf-8")
+
+# The export follows each frame with an explanatory caption in a
+# `max-width:380px` block. It is commentary about the screen, not content in
+# it, and counting it makes a finished screen look incomplete forever.
+design = re.split(r'<div[^>]*max-width:380px', design)[0]
 source = "\n".join(p.read_text(encoding="utf-8") for p in SOURCES)
 
 icons = set(re.findall(r"Material Symbols Rounded[^>]*>([a-z0-9_]+)</span>", design))
