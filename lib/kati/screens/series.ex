@@ -90,8 +90,8 @@ defmodule Kati.Screens.Series do
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
-      <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} vertical_align="center">
-        <Row height={42} corner_radius={21} background={fill} padding_left={13} padding_right={16} vertical_align="center" on_tap={back}>
+      <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
+        <Row height={42} corner_radius={21} background={fill} padding_left={13} padding_right={16} align="center" on_tap={back}>
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
           <Spacer size={7} />
           <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
@@ -116,7 +116,7 @@ defmodule Kati.Screens.Series do
       shadow={Kati.Theme.shadow_card()}
       padding={17}
     >
-      <Row fill_width={true} vertical_align="center">
+      <Row fill_width={true} align="center">
         <Text text={s.season} text_size={15} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} />
         <Spacer weight={1.0} />
         <Text
@@ -135,7 +135,7 @@ defmodule Kati.Screens.Series do
         </Row>
       </Box>
       <Spacer size={14} />
-      <Row fill_width={true} vertical_align="center">
+      <Row fill_width={true} align="center">
         <Box width={6} height={6} corner_radius={3} background={0xFFE8823C} />
         <Spacer size={8} />
         <Text text={"Next episode airs #{s.next_air}"} text_size={12.5} text_color={0xFF5C574F} max_lines={1} />
@@ -150,12 +150,14 @@ defmodule Kati.Screens.Series do
   def actions do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center">
+      <Row fill_width={true} align="center">
         <Box weight={1.0}>
-          <Row fill_width={true} height={50} corner_radius={25} background={Kati.Theme.ink()} vertical_align="center" horizontal_align="center">
+          <Row fill_width={true} height={50} corner_radius={25} background={Kati.Theme.ink()} align="center">
+            <Spacer weight={1.0} />
             {Kati.UI.symbol("check", size: 19, color: 0xFFFBFAF8)}
             <Spacer size={8} />
             <Text text="Mark next watched" text_size={14} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+            <Spacer weight={1.0} />
           </Row>
         </Box>
         <Spacer size={10} />
@@ -188,7 +190,7 @@ defmodule Kati.Screens.Series do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={26} />
-      <Row fill_width={true} vertical_align="center" padding_left={2} padding_right={2}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={0xFFE8823C} />
         <Spacer size={9} />
         <Text text="EPISODES" font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
@@ -232,7 +234,7 @@ defmodule Kati.Screens.Series do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={bg} corner_radius={17} padding_left={15} padding_right={15} padding_top={13} padding_bottom={13} vertical_align="center">
+      <Row fill_width={true} background={bg} corner_radius={17} padding_left={15} padding_right={15} padding_top={13} padding_bottom={13} align="center">
         <Column width={22}>
           <Text text={"#{ep.n}"} font_family="mono" text_size={12} text_color={0xFFB3ACA2} max_lines={1} />
         </Column>

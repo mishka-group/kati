@@ -42,7 +42,7 @@ defmodule Kati.Screens.Stats do
   def header(year) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center">
+      <Row fill_width={true} align="center">
         <Column weight={1.0}>
           <Text text="Your year" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
@@ -75,13 +75,13 @@ defmodule Kati.Screens.Stats do
         shadow={Kati.Theme.shadow_hero()}
         padding={19}
       >
-        <Row fill_width={true} vertical_align="bottom">
+        <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
             <Text text={String.upcase("Time watched")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
             <Spacer size={7} />
             <Text text={year.time} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
           </Column>
-          <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={9} padding_right={11} vertical_align="center">
+          <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={9} padding_right={11} align="center">
             {Kati.UI.symbol("arrow_drop_up", size: 14, color: 0xFF3E8460, fill: true)}
             <Spacer size={5} />
             <Text text={year.change} font_family="mono" text_size={11.5} font_weight="medium" text_color={0xFF3E8460} />
@@ -142,7 +142,7 @@ defmodule Kati.Screens.Stats do
   def counts(year) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="top">
+      <Row fill_width={true} align="top">
         {year.counts |> Enum.map(fn {n, l} -> Kati.Screens.Stats.count_card(n, l) end) |> Enum.intersperse(Kati.Screens.Stats.count_gap())}
       </Row>
       <Spacer size={26} />
@@ -191,7 +191,7 @@ defmodule Kati.Screens.Stats do
   def bar({name, fraction, value, color}) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center">
+      <Row fill_width={true} align="center">
         <Column width={88}>
           <Text text={name} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
         </Column>
@@ -239,7 +239,7 @@ defmodule Kati.Screens.Stats do
   def number_row(row, rule?) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center" padding_top={13} padding_bottom={13}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
           {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
         </Box>

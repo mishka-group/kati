@@ -57,7 +57,7 @@ defmodule Kati.Screens.Home do
 
     ~MOB"""
     <Column fill_width={true}>
-    <Row fill_width={true} vertical_align="top">
+    <Row fill_width={true} align="top">
       <Column weight={1.0}>
         <Text
           text={String.upcase(date_line)}
@@ -138,7 +138,7 @@ defmodule Kati.Screens.Home do
       padding_right={18}
       on_tap={tap}
     >
-      <Row fill_width={true} fill_height={true} vertical_align="center">
+      <Row fill_width={true} fill_height={true} align="center">
         {UI.symbol("search", size: 20, color: 0xFFA9A29A)}
         <Spacer size={11} />
         <Text
@@ -175,7 +175,7 @@ defmodule Kati.Screens.Home do
       padding_bottom={17}
     >
       <Column fill_width={true}>
-        <Row fill_width={true} vertical_align="top">
+        <Row fill_width={true} align="top">
           <Column weight={1.0}>
             <Text
               text="3 new episodes are waiting"
@@ -197,14 +197,14 @@ defmodule Kati.Screens.Home do
           {Kati.Screens.Home.poster_stack()}
         </Row>
         <Spacer size={17} />
-        <Row vertical_align="center">
+        <Row align="center">
           <Row
             height={40}
             corner_radius={20}
             background={ink}
             padding_left={18}
             padding_right={18}
-            vertical_align="center"
+            align="center"
             on_tap={tap}
           >
             <Text text="Open inbox" text_size={13.5} font_weight="semibold" text_color={0xFFFBFAF8} />
@@ -261,7 +261,7 @@ defmodule Kati.Screens.Home do
   def continue_watching do
     ~MOB"""
     <Column fill_width={true}>
-    <Row fill_width={true} vertical_align="top">
+    <Row fill_width={true} align="top">
       {Kati.Screens.Home.watch_card("The Long Hollow", "S2 · E6 · 18m left", 0.62)}
       <Spacer size={13} />
       {Kati.Screens.Home.watch_card("Salt & Iron", "S1 · E3 · 41m left", 0.24)}
@@ -310,7 +310,7 @@ defmodule Kati.Screens.Home do
   def sections do
     ~MOB"""
     <Column fill_width={true}>
-    <Row fill_width={true} vertical_align="top">
+    <Row fill_width={true} align="top">
       {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", 0xFFB08E55)}
       <Spacer size={9} />
       {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", 0xFF4E9A73)}
@@ -340,7 +340,7 @@ defmodule Kati.Screens.Home do
         padding_bottom={13}
       >
         <Column fill_width={true}>
-          <Row fill_width={true} vertical_align="center">
+          <Row fill_width={true} align="center">
             {UI.symbol(icon, size: 19)}
             <Spacer weight={1.0} />
             {Kati.Screens.Home.dot(dot)}
@@ -412,7 +412,7 @@ defmodule Kati.Screens.Home do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center" padding_top={14} padding_bottom={14}>
+      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Box width={40}>
           <Text text={row.time} font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
         </Box>

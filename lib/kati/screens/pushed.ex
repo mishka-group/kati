@@ -93,7 +93,7 @@ defmodule Kati.Screens.Pushed do
         width={:wrap}
         on_tap={@tap}
       >
-        <Row vertical_align="center">
+        <Row align="center">
           <Text text="‹" text_size={17} text_color={:on_surface} />
           <Spacer size={6} />
           <Text text={@label} text_size={14} text_color={:on_surface} />

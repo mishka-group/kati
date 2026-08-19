@@ -221,6 +221,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+// KATI-BEGIN(K-10 em-import) mob_new=0.4.20
+import androidx.compose.ui.unit.em
+// KATI-END(K-10 em-import)
 import coil.compose.AsyncImage
 import org.json.JSONObject
 import androidx.camera.core.CameraSelector
@@ -2753,6 +2756,15 @@ private fun MobText(node: MobNode, modifier: Modifier) {
     Text(
         text          = text,
         modifier      = textModifier,
+        // KATI-BEGIN(K-10 no-font-padding) mob_new=0.4.20
+        // Compose adds font padding above and below every line, so a text box
+        // measures taller than the same text in the browser the design was
+        // drawn in. It accumulates: Home's search bar sat 12dp low after two
+        // lines of header. Off, so a line box is the line.
+        style         = androidx.compose.ui.text.TextStyle(
+            platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
+        ),
+        // KATI-END(K-10 no-font-padding)
         maxLines      = maxLines,
         overflow      = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         color         = color,
@@ -2761,7 +2773,13 @@ private fun MobText(node: MobNode, modifier: Modifier) {
         fontStyle     = fontStyle,
         textAlign     = textAlign,
         lineHeight    = resolvedLineHeight,
-        letterSpacing = letterSpacing?.sp ?: TextUnit.Unspecified,
+        // KATI-BEGIN(K-10 letter-spacing-em) mob_new=0.4.20
+        // `.em`, not `.sp`. The design states tracking in em — `.14em`, `-.03em`
+        // — and applying those as sp made every one of 43 call sites roughly
+        // 35x too tight, which reads as "the type is subtly wrong everywhere"
+        // and never as a spacing bug.
+        letterSpacing = letterSpacing?.em ?: TextUnit.Unspecified,
+        // KATI-END(K-10 letter-spacing-em)
         fontFamily    = fontFamily,
     )
 }
@@ -3951,6 +3969,12 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
 private fun fontWeightProp(props: Map<String, Any?>): FontWeight? =
     when (props["font_weight"] as? String) {
         "bold"     -> FontWeight.Bold
+        // KATI-BEGIN(K-10 extrabold) mob_new=0.4.20
+        // kati_sans_800 ships and the design uses 800 for every hero figure,
+        // but the map had no arm for it — so `font_weight="extrabold"` fell to
+        // null and those titles rendered at 400.
+        "extrabold" -> FontWeight.ExtraBold
+        // KATI-END(K-10 extrabold)
         "semibold" -> FontWeight.SemiBold
         "medium"   -> FontWeight.Medium
         "light"    -> FontWeight.Light

@@ -98,7 +98,7 @@ defmodule Kati.Screens.Day do
   def cluster_block(cluster) do
     ~MOB"""
     <Column fill_width={true} padding_left={21} padding_right={21}>
-      <Row vertical_align="top" fill_width={true}>
+      <Row align="top" fill_width={true}>
         {Kati.Screens.Day.gutter(cluster.label)}
         {Kati.Screens.Day.lanes(cluster)}
       </Row>
@@ -146,7 +146,7 @@ defmodule Kati.Screens.Day do
       |> Enum.intersperse(gap())
 
     ~MOB"""
-    <Row fill_width={true} vertical_align="top">
+    <Row fill_width={true} align="top">
       {children}
     </Row>
     """

@@ -51,7 +51,7 @@ defmodule Kati.Screens.Calendar do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="top">
+      <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text text="Schedule" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
@@ -91,12 +91,12 @@ defmodule Kati.Screens.Calendar do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center" padding_left={2} padding_right={2}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Text text={label} text_size={20} font_weight="bold" letter_spacing={-0.025} text_color={:on_surface} />
         <Spacer size={6} />
         {Kati.UI.symbol("unfold_more", size: 19, color: 0xFF8A8479)}
         <Spacer weight={1.0} />
-        <Row height={30} corner_radius={15} background={0xFFE4E0D9} padding_left={13} padding_right={13} vertical_align="center">
+        <Row height={30} corner_radius={15} background={0xFFE4E0D9} padding_left={13} padding_right={13} align="center">
           <Text text="Today" text_size={12} font_weight="semibold" text_color={:on_surface} />
         </Row>
       </Row>
@@ -114,7 +114,7 @@ defmodule Kati.Screens.Calendar do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="top">
+      <Row fill_width={true} align="top">
         {days |> Enum.map(fn d -> Kati.Screens.Calendar.day_cell(d, d == today) end) |> Enum.intersperse(Kati.Screens.Calendar.cell_gap())}
       </Row>
       <Spacer size={12} />
@@ -174,7 +174,7 @@ defmodule Kati.Screens.Calendar do
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} vertical_align="center">
+    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center">
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
       <Spacer size={7} />
     </Row>
@@ -205,7 +205,7 @@ defmodule Kati.Screens.Calendar do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="top">
+      <Row fill_width={true} align="top">
         <Column width={44} padding_top={15}>
           <Text text={row.time} font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
@@ -220,7 +220,7 @@ defmodule Kati.Screens.Calendar do
             padding_right={15}
             padding_top={14}
             padding_bottom={14}
-            vertical_align="center"
+            align="center"
           >
             <Box width={3} height={34} corner_radius={2} background={rule} />
             <Spacer size={12} />

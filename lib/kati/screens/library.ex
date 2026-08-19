@@ -41,7 +41,7 @@ defmodule Kati.Screens.Library do
   def header do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center">
+      <Row fill_width={true} align="center">
         <Column weight={1.0}>
           <Text text="Library" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
@@ -79,7 +79,7 @@ defmodule Kati.Screens.Library do
   def segments do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={18} padding={4} vertical_align="center">
+      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={18} padding={4} align="center">
         {Kati.Screens.Library.segment("movie", "Screen", true)}
         <Spacer size={4} />
         {Kati.Screens.Library.segment("menu_book", "Books", false)}
@@ -99,10 +99,12 @@ defmodule Kati.Screens.Library do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row fill_width={true} height={38} corner_radius={14} background={bg} vertical_align="center" horizontal_align="center">
+      <Row fill_width={true} height={38} corner_radius={14} background={bg} align="center">
+        <Spacer weight={1.0} />
         {Kati.UI.symbol(icon, size: 17, color: fg)}
         <Spacer size={6} />
         <Text text={label} text_size={13} font_weight={weight} text_color={fg} max_lines={1} />
+        <Spacer weight={1.0} />
       </Row>
     </Box>
     """
@@ -112,7 +114,7 @@ defmodule Kati.Screens.Library do
   def quick_tiles do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="top">
+      <Row fill_width={true} align="top">
         {Kati.Screens.Library.quick_tile("playlist_play", "Up next", "12")}
         <Spacer size={9} />
         {Kati.Screens.Library.quick_tile("explore", "Discover", nil)}
@@ -138,7 +140,7 @@ defmodule Kati.Screens.Library do
         padding_top={12}
         padding_bottom={12}
       >
-        <Row fill_width={true} vertical_align="center">
+        <Row fill_width={true} align="center">
           {Kati.UI.symbol(icon, size: 19)}
           <Spacer weight={1.0} />
           {Kati.Screens.Library.tile_count(count)}
@@ -184,7 +186,7 @@ defmodule Kati.Screens.Library do
     count_fg = if on?, do: 0xA6FBFAF8, else: 0xA65C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} vertical_align="center">
+    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center">
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
       <Spacer size={6} />
       <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={count_fg} max_lines={1} />
@@ -211,7 +213,7 @@ defmodule Kati.Screens.Library do
   def grid_row(row) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="top">
+      <Row fill_width={true} align="top">
         {row |> Enum.map(&Kati.Screens.Library.poster/1) |> Enum.intersperse(Kati.Screens.Library.grid_gap())}
       </Row>
       <Spacer size={18} />

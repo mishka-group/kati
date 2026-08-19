@@ -136,13 +136,13 @@ defmodule Kati.Shell do
     <Box fill_width={true} fill_height={true} align="bottom">
       <Row
         fill_width={true}
-        vertical_align="center"
+        align="center"
         padding_left={18}
         padding_right={18}
         padding_bottom={30}
       >
         <Box weight={1.0} height={64} background={fill} corner_radius={32} align="center">
-          <Row fill_width={true} fill_height={true} vertical_align="center">
+          <Row fill_width={true} fill_height={true} align="center">
             {Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)}
           </Row>
         </Box>

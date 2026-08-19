@@ -60,7 +60,7 @@ defmodule Kati.Screens.AddTitle do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center">
+      <Row fill_width={true} align="center">
         <Text text="Add a title" text_size={26} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
         <Spacer weight={1.0} />
         <Box
@@ -97,7 +97,7 @@ defmodule Kati.Screens.AddTitle do
         shadow={Kati.Theme.shadow_search()}
         padding_left={18}
         padding_right={18}
-        vertical_align="center"
+        align="center"
       >
         {Kati.UI.symbol("search", size: 20)}
         <Spacer size={11} />
@@ -132,7 +132,7 @@ defmodule Kati.Screens.AddTitle do
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} vertical_align="center">
+    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center">
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
       <Spacer size={7} />
     </Row>
@@ -162,7 +162,7 @@ defmodule Kati.Screens.AddTitle do
         padding_right={13}
         padding_top={11}
         padding_bottom={11}
-        vertical_align="center"
+        align="center"
       >
         {Kati.Screens.AddTitle.thumb(r)}
         <Spacer size={13} />
@@ -220,12 +220,13 @@ defmodule Kati.Screens.AddTitle do
       border_color={0xFFD8D2C8}
       padding_top={14}
       padding_bottom={14}
-      vertical_align="center"
-      horizontal_align="center"
+      align="center"
     >
+      <Spacer weight={1.0} />
       {Kati.UI.symbol("edit_note", size: 18, color: 0xFF8A8479)}
       <Spacer size={7} />
       <Text text="Can’t find it? Add it by hand" text_size={13} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+      <Spacer weight={1.0} />
     </Row>
     """
   end

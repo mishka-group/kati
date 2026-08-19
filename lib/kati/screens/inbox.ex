@@ -45,9 +45,9 @@ defmodule Kati.Screens.Inbox do
   def mark_all do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center" padding_top={0}>
+      <Row fill_width={true} align="center" padding_top={0}>
         <Spacer weight={1.0} />
-        <Row height={36} corner_radius={18} background={0xFFE4E0D9} padding_left={14} padding_right={14} vertical_align="center">
+        <Row height={36} corner_radius={18} background={0xFFE4E0D9} padding_left={14} padding_right={14} align="center">
           <Text text="Mark all" text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
         </Row>
       </Row>
@@ -82,7 +82,7 @@ defmodule Kati.Screens.Inbox do
         padding_right={17}
         padding_top={15}
         padding_bottom={15}
-        vertical_align="center"
+        align="center"
       >
         {Kati.UI.symbol("auto_awesome", size: 22, color: 0xFFC98A3E)}
         <Spacer size={12} />
@@ -122,12 +122,12 @@ defmodule Kati.Screens.Inbox do
         padding_right={13}
         padding_top={11}
         padding_bottom={11}
-        vertical_align="center"
+        align="center"
       >
         {Kati.Screens.Inbox.thumb(row)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Row fill_width={true} vertical_align="center">
+          <Row fill_width={true} align="center">
             <Box width={6} height={6} corner_radius={3} background={row.dot} />
             <Spacer size={7} />
             <Text text={row.title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
@@ -138,7 +138,7 @@ defmodule Kati.Screens.Inbox do
           <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
         </Column>
         <Spacer size={11} />
-        <Row height={32} corner_radius={16} background={Kati.Theme.ink()} padding_left={14} padding_right={14} vertical_align="center">
+        <Row height={32} corner_radius={16} background={Kati.Theme.ink()} padding_left={14} padding_right={14} align="center">
           <Text text="Watch" text_size={12.5} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
         </Row>
       </Row>
@@ -183,7 +183,7 @@ defmodule Kati.Screens.Inbox do
   def upcoming_row(row, rule?) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center" padding_top={14} padding_bottom={14}>
+      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Column width={42} align="center">
           <Text text={row.month} font_family="mono" text_size={10} letter_spacing={0.1} text_color={0xFFA9A29A} text_align="center" />
           <Text text={row.day} text_size={17} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} text_align="center" />

@@ -50,7 +50,7 @@ defmodule Kati.Screens.Film do
       {Kati.Screens.Film.hero_art(f)}
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
-          <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={9} padding_right={11} vertical_align="center">
+          <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={9} padding_right={11} align="center">
             {Kati.UI.symbol("check_circle", size: 15, color: 0xFF3E8460, fill: true)}
             <Spacer size={6} />
             <Text text={f.watched} text_size={11.5} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
@@ -85,8 +85,8 @@ defmodule Kati.Screens.Film do
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
-      <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} vertical_align="center">
-        <Row height={42} corner_radius={21} background={fill} padding_left={13} padding_right={16} vertical_align="center" on_tap={back}>
+      <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
+        <Row height={42} corner_radius={21} background={fill} padding_left={13} padding_right={16} align="center" on_tap={back}>
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
           <Spacer size={7} />
           <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
@@ -109,7 +109,7 @@ defmodule Kati.Screens.Film do
       corner_radius={22}
       shadow={Kati.Theme.shadow_card()}
       padding={17}
-      vertical_align="center"
+      align="center"
     >
       <Column weight={1.0}>
         <Text text={String.upcase("Your rating")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
@@ -131,7 +131,7 @@ defmodule Kati.Screens.Film do
     <Column fill_width={true}>
       <Spacer size={12} />
       <Column fill_width={true} background={0xFFFBF1DE} corner_radius={22} padding={17}>
-        <Row fill_width={true} vertical_align="center">
+        <Row fill_width={true} align="center">
           <Text text={String.upcase(f.note_date)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
           <Spacer weight={1.0} />
           {Kati.UI.symbol("edit", size: 17, color: 0xFFC98A3E)}
@@ -168,7 +168,7 @@ defmodule Kati.Screens.Film do
   def where_row(row, rule?) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} vertical_align="center" padding_top={13} padding_bottom={13}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Box width={32} height={32} corner_radius={10} background={0xFFEFECE7} align="center">
           <Text text={row.badge} text_size={13} font_weight="bold" text_color={0xFF5C574F} />
         </Box>
@@ -190,7 +190,7 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={14} />
-      <Row fill_width={true} vertical_align="top">
+      <Row fill_width={true} align="top">
         {f.actions |> Enum.map(fn {icon, label} -> Kati.Screens.Film.action(icon, label) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
       </Row>
     </Column>
