@@ -167,8 +167,8 @@ defmodule Kati.Library.Sample do
       seen: "2 times",
       note_date: "Note · 12 Aug",
       note:
-        "Saw it at the Rex with Jo. The last twenty minutes are the whole film — " <>
-          "everything before is the setup you only understand afterwards.",
+        "Saw it at the Rex with Jo. The last twenty minutes are the whole film " <>
+          "— worth a rewatch on a proper screen.",
       where: [
         %{badge: "L", name: "Lumen+", price: "included"},
         %{badge: "K", name: "Kino store", price: "£9.99"}

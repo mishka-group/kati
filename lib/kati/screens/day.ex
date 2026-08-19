@@ -227,14 +227,14 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Row align="center" padding_left={56} padding_bottom={6}>
-      {Kati.UI.symbol("call_split", size: 14, color: 0xFFA0998F)}
+      {Kati.UI.symbol("call_split", size: 14, color: 0xFFE8823C)}
       <Spacer size={6} />
       <Text
         text={"#{total} at once"}
         font_family="mono"
         text_size={10.5}
         letter_spacing={0.16}
-        text_color={0xFFA0998F}
+        text_color={0xFFC08A4C}
         max_lines={1}
       />
     </Row>
@@ -393,20 +393,25 @@ defmodule Kati.Screens.Day do
   def overflow_footer(%{overflow: tile}) do
     label = "+#{length(tile.event.overflow)} MORE"
 
+    # A Row, not a Box with `width={:wrap}` — that prop does nothing, the
+    # bridge fills width whenever `width` is not a NUMBER, and this tile was
+    # rendering as a full-width cream bar instead of a small chip. Same
+    # mistake as the back pill, two files apart.
     ~MOB"""
     <Row fill_width={true}>
       <Spacer size={54} />
-      <Box
+      <Row
         background={Kati.Theme.cream(:light)}
         corner_radius={999}
         padding_left={14}
         padding_right={14}
         padding_top={7}
         padding_bottom={7}
-        width={:wrap}
+        align="center"
       >
         <Text text={label} text_size={11} text_color={:on_surface} letter_spacing={0.1} />
-      </Box>
+      </Row>
+      <Spacer weight={1.0} />
     </Row>
     """
   end
