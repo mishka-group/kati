@@ -50,4 +50,32 @@ defmodule Kati.Library.Sample do
       {"Finished", Enum.count(@titles, &(&1.progress == 1.0))}
     ]
   end
+
+  @doc """
+  One series, as screen 04 draws it: the header line, the season's progress,
+  the next airing, and seven episodes with three distinct states — watched,
+  unwatched, and the one that has not aired.
+  """
+  @spec series() :: map()
+  def series do
+    %{
+      title: "The Long Hollow",
+      meta: "2024 · DRAMA · LUMEN+ · 3 SEASONS",
+      season: "Season 2",
+      seasons: ["S1", "S2", "S3"],
+      current_season: "S2",
+      watched: 5,
+      total: 7,
+      next_air: "Thu 20 Aug, 20:00",
+      episodes: [
+        %{n: 1, title: "The Weight of Water", sub: "48 min · 2 Jul", watched: true},
+        %{n: 2, title: "Hollow Ground", sub: "51 min · 9 Jul", watched: true},
+        %{n: 3, title: "What the Tide Left", sub: "47 min · 16 Jul", watched: true},
+        %{n: 4, title: "Salt in the Wound", sub: "52 min · 23 Jul", watched: true},
+        %{n: 5, title: "The Longest Night", sub: "49 min · 30 Jul", watched: true},
+        %{n: 6, title: "Ash and After", sub: "50 min · 6 Aug", watched: false},
+        %{n: 7, title: "Homecoming", sub: "Airs Thu 20 Aug", watched: false, aired: false}
+      ]
+    }
+  end
 end

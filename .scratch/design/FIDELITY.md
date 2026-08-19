@@ -39,7 +39,8 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 | 02 | Schedule | ✓ | Header, mono subtitle, both discs, month row with `unfold_more` + Today pill, seven flex:1 cells at radius 16, chips, and the 44pt time column beside each event card. Events are real. Outstanding: the all-day/merged rows and the done-state `#F4F1EC` card. |
 | 03 | Library | ✓ | Segmented control on its #E4E0D9 trough, three quick tiles with mono counts, count chips, 3-across 112x158 poster grid with the progress bar burnt into the bottom edge. Books and Music greyed, which is #60's decision as well as the drawing. Data from `Kati.Library.Sample` until the Screen domain lands. |
 | 09 | A heavy day | ~ | lanes, `+1 MORE` and the gutter are right; poster stacks, all-day band and merged money events outstanding |
-| 04–08, 10–54 | | — | |
+| 04 | Series detail | ✓ | 330pt artwork with the gradient lifting paper back over it, floating chrome at 60pt, Season 2 card, action row, S1/S2/S3 selector, episode rows in all three states (watched / unwatched / not aired). Data from `Kati.Library.Sample.series/0`. |
+| 05–08, 10–54 | | — | |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
 
 ## Missing data is not a reason for a blank screen

@@ -224,8 +224,10 @@ defmodule Kati.Screens.Library do
 
   @doc false
   def poster(item) do
+    tap = {self(), :open_title}
+
     ~MOB"""
-    <Column width={112}>
+    <Column width={112} on_tap={tap}>
       <Box width={112} height={158} corner_radius={13} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Library.progress(item.progress)}
@@ -257,4 +259,8 @@ defmodule Kati.Screens.Library do
   @doc false
   def progress_rest(rest) when rest <= 0.0, do: ~MOB"<Spacer size={0} />"
   def progress_rest(rest), do: ~MOB"<Spacer weight={rest} />"
+
+  @impl true
+  def handle_tap(:open_title, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end
