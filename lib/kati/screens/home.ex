@@ -198,13 +198,19 @@ defmodule Kati.Screens.Home do
         </Row>
         <Spacer size={17} />
         <Row vertical_align="center">
-          <Box height={40} corner_radius={20} background={ink} padding_left={18} padding_right={18} on_tap={tap}>
-            <Row fill_height={true} vertical_align="center">
-              <Text text="Open inbox" text_size={13.5} font_weight="semibold" text_color={0xFFFBFAF8} />
-              <Spacer size={7} />
-              {UI.symbol("arrow_forward", size: 17, color: 0xFFFBFAF8)}
-            </Row>
-          </Box>
+          <Row
+            height={40}
+            corner_radius={20}
+            background={ink}
+            padding_left={18}
+            padding_right={18}
+            vertical_align="center"
+            on_tap={tap}
+          >
+            <Text text="Open inbox" text_size={13.5} font_weight="semibold" text_color={0xFFFBFAF8} />
+            <Spacer size={7} />
+            {UI.symbol("arrow_forward", size: 17, color: 0xFFFBFAF8)}
+          </Row>
           <Spacer size={10} />
           <Text text="last check 18:02" font_family="mono" text_size={11} text_color={0xFFB09A72} />
         </Row>
