@@ -1,0 +1,187 @@
+defmodule Kati.Screens.Gallery do
+  @moduledoc """
+  Every screen in the app, in one list, each one tappable.
+
+  Two jobs, and the second is why it exists at all.
+
+  **For the owner**: a way to see all 62 pages without hunting for the tap that
+  reaches each one — "let me see all different type of each page".
+
+  **For verification**: a screen nobody can reach cannot be checked against its
+  drawing. 53 screens landed at once with no way in, and wiring every real
+  entry point first would have meant weeks before any of them could be looked
+  at. This makes all of them reachable in one move, so each can be compared
+  now and wired into its proper place after.
+
+  It is not a substitute for real navigation. The Settings rows must still
+  push their own screens, Library's posters must still open a title. This is
+  scaffolding, and `@doc false` so it never reads as part of the app.
+  """
+  use Kati.Screens.Pushed, back: "Home"
+
+  alias Kati.UI
+
+  # Ordered by the design's own numbering, which is how the owner refers to
+  # them and how `.scratch/design/screens/NN.html` is named.
+  @screens [
+    {"01", "Home", Kati.Screens.Home, :root},
+    {"02", "Schedule", Kati.Screens.Calendar, :root},
+    {"03", "Library", Kati.Screens.Library, :root},
+    {"04", "Series detail", Kati.Screens.Series, :push},
+    {"05", "New releases", Kati.Screens.Inbox, :push},
+    {"06", "Add a title", Kati.Screens.AddTitle, :push},
+    {"07", "Your year", Kati.Screens.Stats, :root},
+    {"08", "Film detail", Kati.Screens.Film, :push},
+    {"09", "A heavy day", Kati.Screens.Day, :push},
+    {"10", "Up next", Kati.Screens.UpNext, :push},
+    {"11", "Discover", Kati.Screens.Discover, :push},
+    {"12", "Lists", Kati.Screens.Lists, :push},
+    {"13", "What fits?", Kati.Screens.WhatFits, :push},
+    {"14", "Series metadata", Kati.Screens.SeriesMeta, :push},
+    {"15", "Activity", Kati.Screens.Activity, :push},
+    {"16", "Month grid", Kati.Screens.MonthGrid, :push},
+    {"17", "Week", Kati.Screens.Week, :push},
+    {"18", "Quick add", Kati.Screens.QuickAdd, :push},
+    {"19", "Search", Kati.Screens.Search, :push},
+    {"20", "Books", Kati.Screens.Books, :push},
+    {"21", "Music", Kati.Screens.Music, :push},
+    {"22", "Habits", Kati.Screens.Habits, :push},
+    {"23", "Subscriptions", Kati.Screens.Subscriptions, :push},
+    {"24", "Settings", Kati.Screens.Settings, :push},
+    {"25", "Release watcher", Kati.Screens.ReleaseWatcher, :push},
+    {"26", "Pick sections", Kati.Screens.PickSections, :push},
+    {"27", "States", Kati.Screens.States, :push},
+    {"28", "Home, dark", Kati.Screens.HomeDark, :push},
+    {"29", "Lock screen", Kati.Screens.Lock, :push},
+    {"30", "Agenda", Kati.Screens.Agenda, :push},
+    {"31", "Event detail", Kati.Screens.EventDetail, :push},
+    {"32", "Calendars", Kati.Screens.Calendars, :push},
+    {"33", "Rating", Kati.Screens.Rating, :push},
+    {"34", "Season", Kati.Screens.Season, :push},
+    {"35", "Series settings", Kati.Screens.SeriesSettings, :push},
+    {"36", "Auto-detect", Kati.Screens.AutoDetect, :push},
+    {"37", "Import", Kati.Screens.Import, :push},
+    {"38", "Onboarding", Kati.Screens.Onboarding, :push},
+    {"39", "Widgets", Kati.Screens.Widgets, :push},
+    {"40", "Account", Kati.Screens.Account, :push},
+    {"41", "Accessibility", Kati.Screens.Accessibility, :push},
+    {"42", "Health", Kati.Screens.Health, :push},
+    {"43", "Meals today", Kati.Screens.MealsToday, :push},
+    {"44", "Meal plan", Kati.Screens.MealPlan, :push},
+    {"45", "Meal", Kati.Screens.Meal, :push},
+    {"46", "Meal swap", Kati.Screens.MealSwap, :push},
+    {"47", "Nutrition", Kati.Screens.Nutrition, :push},
+    {"48", "Shopping", Kati.Screens.Shopping, :push},
+    {"49", "Plans", Kati.Screens.Plans, :push},
+    {"50", "Share a plan", Kati.Screens.PlanShare, :push},
+    {"51", "Meal reminders", Kati.Screens.MealReminders, :push},
+    {"52", "Meals on the calendar", Kati.Screens.MealsDay, :push},
+    {"53", "Language pick", Kati.Screens.LanguagePick, :push},
+    {"54", "Language", Kati.Screens.Language, :push},
+    {"55", "خانه", Kati.Screens.HomeFa, :push},
+    {"56", "برنامه", Kati.Screens.ScheduleFa, :push},
+    {"57", "کتابخانه", Kati.Screens.LibraryFa, :push},
+    {"58", "سریال", Kati.Screens.SeriesFa, :push},
+    {"59", "امروز", Kati.Screens.TodayFa, :push},
+    {"60", "وعده‌ها", Kati.Screens.MealsMatrixFa, :push},
+    {"61", "آمار", Kati.Screens.StatsFa, :push},
+    {"62", "تنظیمات", Kati.Screens.SettingsFa, :push}
+  ]
+
+  @doc false
+  def screens, do: @screens
+
+  @doc false
+  def content(_assigns) do
+    # Bound to a local: inside ~MOB an `@name` means an ASSIGN, so `@screens`
+    # would be read as `assigns.screens` and fail.
+    count = length(@screens)
+
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={Kati.Screens.Pushed.content_top()} padding_bottom={40}>
+        <Text text="All screens" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+        <Spacer size={5} />
+        <Text
+          text={"#{count} pages · tap to open"}
+          font_family="mono"
+          text_size={11}
+          text_color={0xFFA9A29A}
+        />
+        <Spacer size={20} />
+        {UI.eyebrow("Every page")}
+        {Kati.Screens.Gallery.rows()}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc false
+  def rows do
+    screens = @screens
+    last = length(screens) - 1
+
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Kati.Theme.card(:light)}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card()}
+      padding_left={15}
+      padding_right={15}
+      padding_top={4}
+      padding_bottom={4}
+    >
+      {screens |> Enum.with_index() |> Enum.map(fn {s, i} -> Kati.Screens.Gallery.row(s, i < last) end)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def row({number, name, module, kind}, rule?) do
+    tap = {self(), String.to_atom("open_" <> number)}
+    tint = if kind == :root, do: 0xFFE8823C, else: 0xFFC4BDB3
+
+    ~MOB"""
+    <Column fill_width={true} on_tap={tap}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
+        <Column width={30}>
+          <Text text={number} font_family="mono" text_size={12} text_color={0xFFB3ACA2} />
+        </Column>
+        <Spacer size={12} />
+        <Column weight={1.0}>
+          <Text text={name} text_size={14} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Spacer size={3} />
+          <Text
+            text={module |> Module.split() |> List.last()}
+            font_family="mono"
+            text_size={10.5}
+            text_color={0xFFB3ACA2}
+            max_lines={1}
+          />
+        </Column>
+        <Spacer size={10} />
+        {UI.symbol("chevron_right", size: 18, color: tint)}
+      </Row>
+      {Kati.Screens.Gallery.hairline(rule?)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def hairline(false), do: ~MOB"<Spacer size={0} />"
+  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  @impl true
+  def handle_tap(tag, socket) do
+    number = tag |> Atom.to_string() |> String.replace_prefix("open_", "")
+
+    case Enum.find(@screens, fn {n, _, _, _} -> n == number end) do
+      # A root is swapped rather than pushed: pushing Home over the gallery
+      # would leave the dock showing Home while the back stack says otherwise.
+      {_, _, module, :root} -> {:noreply, Mob.Socket.reset_to(socket, module)}
+      {_, _, module, :push} -> {:noreply, Mob.Socket.push_screen(socket, module)}
+      nil -> {:noreply, socket}
+    end
+  end
+end

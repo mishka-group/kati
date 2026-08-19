@@ -60,6 +60,16 @@ defmodule Kati.Screens.Pushed do
     end
   end
 
+  @doc """
+  How far down a pushed screen's content must start.
+
+  The pill floats at 54 and is 42 tall, so anything a screen draws at the
+  design's usual 64 lands underneath it. Screens that open with a title use
+  this instead — measured, not guessed: 54 + 42 + 14 of breathing room.
+  """
+  @spec content_top() :: pos_integer()
+  def content_top, do: 110
+
   @doc "The pushed-screen frame: a back pill over the content, no tab bar."
   def chrome(back_label, content) do
     direction = Kati.Locale.direction_prop()

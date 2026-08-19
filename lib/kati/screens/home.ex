@@ -494,8 +494,13 @@ defmodule Kati.Screens.Home do
   end
 
   @impl true
-  def handle_tap(tag, socket) when tag in [:open_inbox, :notifications],
+  def handle_tap(:open_inbox, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
+
+  # The bell opens the gallery for now. Every page needs to be reachable
+  # before any of it can be checked, and this is the one tap that does it.
+  def handle_tap(:notifications, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Gallery)}
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
