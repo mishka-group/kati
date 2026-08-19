@@ -1,0 +1,258 @@
+defmodule Kati.Screens.UpNext do
+  @moduledoc """
+  Screen 10 — Up next, pushed under Library.
+
+  Built to `.scratch/design/screens/10.html`. One landscape hero card for the
+  thing you are closest to finishing, then a plain list of everything else that
+  is ready, then a third section for the shows that have gone quiet.
+
+  Three details from the drawing carry the whole idea and are therefore exact:
+
+    * The hero's progress bar is **burnt into the bottom edge** of the still at
+      3pt, not floated under it, so "62% through" is a property of the picture
+      rather than a widget beside it.
+    * The cold section's eyebrow dash is `#C4BDB3`, not `#E8823C`. Orange means
+      new or now; a thread you dropped four months ago is the opposite, so
+      `Kati.UI.Eyebrow.quiet/1` draws it grey.
+    * The cold row sits on `#F4F1EC` with **no shadow** and offers `Drop`. It is
+      the same row as the ready ones, unlifted — the design's way of saying this
+      is still yours but is no longer being pushed at you.
+
+  The frame ends at 40pt rather than 132: this screen is pushed, so there is no
+  dock to clear.
+
+  The back pill is `Kati.Screens.Pushed`'s, floating at the top left; the `tune`
+  disc opposite it is this screen's own, which is the same split screen 05 uses
+  for its `Mark all` button.
+  """
+  use Kati.Screens.Pushed, back: "Library"
+
+  alias Kati.Screens.UpNext.Sample
+  alias Kati.UI
+
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, :queue, Sample.queue())
+
+  @doc false
+  def content(assigns) do
+    q = assigns.queue
+
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        {Kati.Screens.UpNext.tune_row()}
+        {Kati.Screens.UpNext.header(q)}
+        {Kati.Screens.UpNext.hero(q)}
+        {UI.eyebrow(q.ready_label)}
+        {Kati.Screens.UpNext.ready(q)}
+        {Kati.UI.Eyebrow.quiet(q.cold_label)}
+        {Kati.Screens.UpNext.cold(q)}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  # The back pill is drawn floating by Kati.Screens.Pushed. This row reserves
+  # the height the drawing gives that pill and carries the tune disc opposite
+  # it, exactly as screen 05 does with Mark all.
+  @doc false
+  def tune_row do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} height={44} align="center">
+        <Spacer weight={1.0} />
+        <Box
+          width={44}
+          height={44}
+          corner_radius={22}
+          background={Kati.Theme.card(:light)}
+          shadow={Kati.Theme.shadow_button()}
+          align="center"
+        >
+          {Kati.UI.symbol("tune", size: 21)}
+        </Box>
+      </Row>
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def header(q) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text text="Up next" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Spacer size={5} />
+      <Text text={q.subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  # A 12pt white mount around a 170pt still. The three overlays are separate
+  # full-height Boxes rather than one: each needs its own bottom alignment, and
+  # a Box stacks its children, so the gradient, the caption row and the progress
+  # bar can all sit at the bottom edge without fighting for the same slot.
+  @doc false
+  def hero(q) do
+    h = q.hero
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Kati.Theme.card(:light)}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={12}
+      >
+        <Box fill_width={true} height={170} corner_radius={15} background={0xFFE4E0D9}>
+          {Kati.Screens.UpNext.hero_art()}
+          <Box fill_width={true} fill_height={true} align="bottom">
+            <Box fill_width={true} height={70} gradient="to_top #C7141210 #00141210" />
+          </Box>
+          <Box fill_width={true} fill_height={true} align="bottom">
+            <Row fill_width={true} align="bottom" padding_left={14} padding_right={12} padding_bottom={12}>
+              <Column weight={1.0}>
+                <Text text={h.title} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={0xFFFBFAF8} max_lines={1} />
+                <Spacer size={4} />
+                <Text text={h.meta} font_family="mono" text_size={10.5} text_color={0xBFFBFAF8} max_lines={1} />
+              </Column>
+              <Spacer size={8} />
+              <Box width={44} height={44} corner_radius={22} background={0xFFFBFAF8} align="center">
+                {Kati.UI.symbol("play_arrow", size: 24, fill: true)}
+              </Box>
+            </Row>
+          </Box>
+          <Box fill_width={true} fill_height={true} align="bottom">
+            {Kati.Screens.UpNext.progress(h.progress)}
+          </Box>
+        </Box>
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def hero_art do
+    case Sample.hero_art() do
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      src ->
+        ~MOB"""
+        <Image src={src} fill_width={true} height={170} content_mode="fill" />
+        """
+    end
+  end
+
+  @doc false
+  def progress(fraction) do
+    ~MOB"""
+    <Box fill_width={true} height={3} background={0x40FBFAF8}>
+      <Row fill_width={true}>
+        <Box weight={fraction} height={3} background={0xFFE8823C} />
+        <Spacer weight={1.0 - fraction} />
+      </Row>
+    </Box>
+    """
+  end
+
+  @doc false
+  def ready(q) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(q.ready, fn row -> Kati.Screens.UpNext.ready_row(row) end)}
+      <Spacer size={13} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def ready_row(row) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row
+        fill_width={true}
+        background={Kati.Theme.card(:light)}
+        corner_radius={18}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_left={13}
+        padding_right={13}
+        padding_top={10}
+        padding_bottom={10}
+        align="center"
+      >
+        {Kati.Screens.UpNext.thumb(row)}
+        <Spacer size={12} />
+        <Column weight={1.0}>
+          <Text text={row.title} text_size={13.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Spacer size={4} />
+          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+        </Column>
+        <Spacer size={12} />
+        <Box width={34} height={34} corner_radius={17} background={0xFFEFECE7} align="center">
+          {Kati.UI.symbol("play_arrow", size: 19, fill: true)}
+        </Box>
+      </Row>
+      <Spacer size={9} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def thumb(row) do
+    case Sample.poster(row.seed) do
+      nil ->
+        ~MOB"<Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9} />"
+
+      src ->
+        ~MOB"""
+        <Image src={src} width={40} height={56} corner_radius={8} content_mode="fill" />
+        """
+    end
+  end
+
+  # Flat paper, not an elevated card. The drawing drops the shadow here and
+  # tones the poster back; the row is still legible, it just stops asking.
+  @doc false
+  def cold(q) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(q.cold, fn row -> Kati.Screens.UpNext.cold_row(row) end)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def cold_row(row) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row
+        fill_width={true}
+        background={0xFFF4F1EC}
+        corner_radius={18}
+        padding_left={13}
+        padding_right={13}
+        padding_top={10}
+        padding_bottom={10}
+        align="center"
+      >
+        {Kati.Screens.UpNext.thumb(row)}
+        <Spacer size={12} />
+        <Column weight={1.0}>
+          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={0xFF8A8479} max_lines={1} />
+          <Spacer size={4} />
+          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+        </Column>
+        <Spacer size={12} />
+        <Row height={30} corner_radius={15} background={0xFFE4E0D9} padding_left={12} padding_right={12} align="center">
+          <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+        </Row>
+      </Row>
+      <Spacer size={9} />
+    </Column>
+    """
+  end
+end

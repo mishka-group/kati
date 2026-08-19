@@ -1,0 +1,443 @@
+defmodule Kati.Screens.StatsFa do
+  @moduledoc """
+  Screen 61 — آمار, the Persian mirror of the stats root.
+
+  Built to `.scratch/design/screens/61.html`. A **root**, so the dock is here
+  and the frame's bottom inset is 132.
+
+  ## Charts are where RTL is usually dropped
+
+  The design's caption says so, and this screen is the proof: the time axis
+  reads right-to-left, the bars fill from the right, and the contribution field
+  starts its year in the top-**right** corner. None of that is decoration.
+  Every one of the three is a consequence of one decision — the container is
+  RTL and the sequences start where the reader starts — rather than three
+  special cases. So `week/0` and `days/0` in `Kati.Fa.SampleYear` are already
+  Saturday-first, and each bar's fill is simply the first child of its track.
+
+  ## Why the shell is wrapped rather than used directly
+
+  `Kati.Shell.render/1` takes its direction from `Kati.Locale`, which is right
+  for the four English roots and wrong here: this screen's copy is Persian, so
+  it is right-to-left whether or not the app's locale happens to be `:fa`.
+  `MainActivity` reads `layout_direction` from the **root node only**, so
+  wrapping the shell in one `Box` that declares it makes this screen RTL
+  without touching `Kati.Shell` or the roots that share it. The dock itself
+  still comes from the shell — there is only one dock.
+
+  Root switching and the FAB are re-stated here rather than inherited from
+  `Kati.Screens.Root`, whose `render/1` is not overridable. They behave
+  identically; `Kati.Shell.screen_for/1` remains the single routing table.
+  """
+  use Mob.Screen
+  import Mob.Sigil
+
+  alias Kati.Fa.SampleYear
+  alias Kati.Theme
+
+  # 26 cells per row, one per week, which is what the card's own "۲۶ هفته"
+  # label claims. 26*8 + 25*4 = 308, inside the 322 the cream card's padding
+  # leaves — and 104 cells divide into exactly four rows.
+  @per_row 26
+
+  def mount(_params, _session, socket) do
+    Mob.Theme.set(Kati.Theme.light())
+    {:ok, Mob.Socket.assign(socket, :year, SampleYear.year())}
+  end
+
+  def render(assigns) do
+    shell = Kati.Shell.render(%{root: :stats, mode: :light, content: content(assigns)})
+
+    ~MOB"""
+    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+      {shell}
+    </Box>
+    """
+  end
+
+  @doc false
+  def content(assigns) do
+    year = assigns.year
+
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+        {Kati.Screens.StatsFa.header(year)}
+        {Kati.Screens.StatsFa.hero(year)}
+        {Kati.Screens.StatsFa.counts(year)}
+        {Kati.Screens.StatsFa.eyebrow(year.breakdown_label)}
+        {Kati.Screens.StatsFa.breakdown(year)}
+        {Kati.Screens.StatsFa.quiet_eyebrow(year.week_label)}
+        {Kati.Screens.StatsFa.week(year)}
+        {Kati.Screens.StatsFa.note(year)}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc false
+  def header(year) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="top">
+        <Column weight={1.0}>
+          <Text
+            text={year.title}
+            font_family="fa"
+            text_size={27}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
+          <Spacer size={5} />
+          <Text text={year.range} font_family="fa" text_size={11.5} text_color={0xFFA9A29A} max_lines={1} />
+        </Column>
+        <Box
+          width={44}
+          height={44}
+          corner_radius={22}
+          background={Theme.card(:light)}
+          shadow={Theme.shadow_button()}
+          align="center"
+        >
+          {Kati.UI.symbol("ios_share", size: 21)}
+        </Box>
+      </Row>
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def hero(year) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Theme.cream(:light)}
+        corner_radius={24}
+        shadow={Theme.shadow_card_soft()}
+        padding={19}
+      >
+        <Row fill_width={true} align="bottom">
+          <Column weight={1.0}>
+            <Text
+              text={year.time_label}
+              font_family="fa"
+              text_size={11}
+              font_weight="semibold"
+              text_color={0xFFB09A72}
+              max_lines={1}
+            />
+            <Spacer size={7} />
+            <Row align="bottom">
+              <Text
+                text={year.hours}
+                font_family="mono"
+                text_size={32}
+                font_weight="medium"
+                letter_spacing={-0.03}
+                text_color={:on_surface}
+                max_lines={1}
+              />
+              <Spacer size={5} />
+              <Text
+                text={year.hours_unit}
+                font_family="fa"
+                text_size={15}
+                font_weight="semibold"
+                text_color={0xFFB09A72}
+                max_lines={1}
+              />
+            </Row>
+          </Column>
+          <Column padding_bottom={5}>
+            <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={11} padding_right={11} align="center">
+              {Kati.UI.symbol("arrow_drop_up", size: 14, color: 0xFF3E8460, fill: true)}
+              <Spacer size={5} />
+              <Text text={year.change} font_family="mono" text_size={11.5} text_color={0xFF3E8460} max_lines={1} />
+            </Row>
+          </Column>
+        </Row>
+        <Spacer size={18} />
+        {Kati.Screens.StatsFa.field()}
+        <Spacer size={12} />
+        <Row fill_width={true} align="center">
+          <Text text={year.weeks} font_family="fa" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+          <Spacer weight={1.0} />
+          <Text text={year.streak} font_family="fa" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+        </Row>
+      </Column>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  # The year starts in the top-right corner because the rows are RTL, not
+  # because the list is reversed — reversing it would run the year backwards.
+  @doc false
+  def field do
+    rows = Enum.chunk_every(SampleYear.contributions(), @per_row)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(rows, fn row -> Kati.Screens.StatsFa.field_row(row) end)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def field_row(row) do
+    ~MOB"""
+    <Column>
+      <Row>
+        {row
+         |> Enum.map(&Kati.Screens.StatsFa.cell/1)
+         |> Enum.intersperse(Kati.Screens.StatsFa.cell_gap())}
+      </Row>
+      <Spacer size={4} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def cell_gap, do: ~MOB"<Spacer size={4} />"
+
+  @doc false
+  def cell(level) do
+    color = SampleYear.intensity(level)
+
+    ~MOB"<Box width={8} height={8} corner_radius={2} background={color} />"
+  end
+
+  @doc false
+  def counts(year) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="top">
+        {year.counts
+         |> Enum.map(fn {number, label} -> Kati.Screens.StatsFa.count_card(number, label) end)
+         |> Enum.intersperse(Kati.Screens.StatsFa.count_gap())}
+      </Row>
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def count_gap, do: ~MOB"<Spacer size={12} />"
+
+  @doc false
+  def count_card(number, label) do
+    ~MOB"""
+    <Box weight={1.0}>
+      <Column
+        fill_width={true}
+        background={Theme.card(:light)}
+        corner_radius={20}
+        shadow={Theme.shadow_card_soft()}
+        padding={15}
+      >
+        <Text
+          text={number}
+          font_family="mono"
+          text_size={25}
+          font_weight="medium"
+          letter_spacing={-0.03}
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer size={5} />
+        <Text
+          text={label}
+          font_family="fa"
+          text_size={11}
+          font_weight="semibold"
+          text_color={0xFFA9A29A}
+          max_lines={1}
+        />
+      </Column>
+    </Box>
+    """
+  end
+
+  @doc """
+  The section label, in Persian.
+
+  `Kati.UI.eyebrow/2` is DM Mono, uppercased and letter-spaced. The drawing's
+  Persian labels are Vazirmatn at 11 semibold with `letter-spacing:0` — Persian
+  has no case, and tracking it apart breaks the joins between letters.
+  """
+  def eyebrow(label), do: dash_label(label, Theme.accent())
+
+  @doc "The same label with the muted dash the design gives a section you do not act on."
+  def quiet_eyebrow(label), do: dash_label(label, 0xFFC4BDB3)
+
+  defp dash_label(label, dash) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
+        <Box width={13} height={2} corner_radius={1} background={dash} />
+        <Spacer size={9} />
+        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={0xFFA0998F} />
+      </Row>
+      <Spacer size={11} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def breakdown(year) do
+    last = length(year.breakdown) - 1
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Theme.card(:light)}
+        corner_radius={20}
+        shadow={Theme.shadow_card_soft()}
+        padding={17}
+      >
+        {year.breakdown
+         |> Enum.with_index()
+         |> Enum.map(fn {bar, i} -> Kati.Screens.StatsFa.bar(bar, i < last) end)}
+      </Column>
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  # The fill is the track's FIRST child, so it grows from the leading edge —
+  # which under RTL is the right. That is the design's `float:right`, and it
+  # needs no mirroring logic of its own.
+  @doc false
+  def bar({name, share, value, color}, gap?) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center">
+        <Column width={76}>
+          <Text
+            text={name}
+            font_family="fa"
+            text_size={12.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
+        </Column>
+        <Spacer size={12} />
+        <Box weight={1.0}>
+          <Box fill_width={true} height={8} corner_radius={4} background={0xFFEFECE7}>
+            <Row fill_width={true}>
+              <Box weight={share} height={8} corner_radius={4} background={color} />
+              <Spacer weight={1.0 - share} />
+            </Row>
+          </Box>
+        </Box>
+        <Spacer size={12} />
+        <Column width={30}>
+          <Text
+            text={value}
+            font_family="mono"
+            text_size={11}
+            text_color={0xFFA9A29A}
+            text_align="absolute_left"
+            max_lines={1}
+          />
+        </Column>
+      </Row>
+      {Kati.Screens.StatsFa.bar_gap(gap?)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def bar_gap(false), do: ~MOB"<Spacer size={0} />"
+  def bar_gap(true), do: ~MOB"<Spacer size={13} />"
+
+  @doc false
+  def week(year) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Theme.card(:light)}
+        corner_radius={20}
+        shadow={Theme.shadow_card_soft()}
+        padding={17}
+      >
+        <Row fill_width={true} height={56} align="bottom">
+          {year.week
+           |> Enum.map(fn {height, on?} -> Kati.Screens.StatsFa.week_bar(height, on?) end)
+           |> Enum.intersperse(Kati.Screens.StatsFa.week_gap())}
+        </Row>
+        <Spacer size={10} />
+        <Row fill_width={true} align="center">
+          {Enum.map(year.days, fn day -> Kati.Screens.StatsFa.week_label(day) end)}
+        </Row>
+      </Column>
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def week_gap, do: ~MOB"<Spacer size={6} />"
+
+  @doc false
+  def week_bar(height, on?) do
+    color = if on?, do: Theme.ink(), else: 0xFFE4E0D9
+
+    ~MOB"<Box weight={1.0} height={height} corner_radius={5} background={color} />"
+  end
+
+  @doc false
+  def week_label(day) do
+    ~MOB"""
+    <Box weight={1.0}>
+      <Text
+        text={day}
+        font_family="fa"
+        text_size={10.5}
+        text_color={0xFFB3ACA2}
+        text_align="center"
+        max_lines={1}
+      />
+    </Box>
+    """
+  end
+
+  # A dashed 1.5pt rule in the drawing; solid here, because `Modifier.border`
+  # through this bridge takes a width and a colour and no dash pattern.
+  @doc false
+  def note(year) do
+    ~MOB"""
+    <Row fill_width={true} corner_radius={18} border_color={0x291A1917} border_width={1.5} padding={15} align="top">
+      {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+      <Spacer size={11} />
+      <Text text={year.note} font_family="fa" text_size={12.5} line_height={1.7} text_color={0xFF5C574F} weight={1.0} />
+    </Row>
+    """
+  end
+
+  def handle_info({:tap, :fab}, socket) do
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+  end
+
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "root_stats" ->
+        {:noreply, socket}
+
+      "root_" <> id ->
+        target = String.to_existing_atom(id)
+        {:noreply, Mob.Socket.reset_to(socket, Kati.Shell.screen_for(target))}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_info(_message, socket), do: {:noreply, socket}
+end

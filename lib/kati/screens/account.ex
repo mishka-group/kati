@@ -1,0 +1,303 @@
+defmodule Kati.Screens.Account do
+  @moduledoc """
+  Screen 40 — Account & permissions, pushed under Settings.
+
+  Built to `.scratch/design/screens/40.html`. The account card is deliberately
+  small: a relay address, the fact that no email was shared, and two buttons.
+  Below it the devices that sync, then every permission with the sentence
+  saying what it is for, then privacy — the cream card claiming there is no
+  server to read any of it, and the two rows that make that checkable.
+
+  Three trailing controls, and which one a row gets is the row's meaning:
+
+    * a **switch** for something already granted and now on or off;
+    * an **Allow** pill for something never requested, so an off switch cannot
+      be mistaken for a refusal;
+    * a **chevron** for something that leads elsewhere.
+
+  The switch is drawn from boxes rather than taken from
+  `Kati.Components.MishkaSwitch` — Compose's `Switch` brings Material's own
+  52x32 metrics, and the drawing specifies 46x28 with a 22pt thumb.
+
+  No dock, so the frame's bottom inset is 40 rather than 132.
+  """
+  use Kati.Screens.Pushed, back: "Settings"
+
+  alias Kati.Account.Sample
+  alias Kati.UI
+
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, :account, Sample.account())
+
+  @doc false
+  def content(assigns) do
+    a = assigns.account
+
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        {Kati.Screens.Account.header()}
+        {Kati.Screens.Account.title()}
+        {Kati.Screens.Account.identity(a)}
+        {UI.eyebrow("Devices")}
+        {Kati.Screens.Account.list(a.devices, 22)}
+        {UI.eyebrow("Permissions")}
+        {Kati.Screens.Account.list(a.permissions, 22)}
+        {Kati.Screens.Account.quiet_eyebrow("Privacy")}
+        {Kati.Screens.Account.privacy(a)}
+        {Kati.Screens.Account.list(a.data, 0)}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  # 44pt reserves the row the back pill floats in — the pill is drawn by
+  # Kati.Screens.Pushed — so the overflow disc sits opposite it.
+  @doc false
+  def header do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} height={44} align="center">
+        <Spacer weight={1.0} />
+        <Box
+          width={44}
+          height={44}
+          corner_radius={22}
+          background={Kati.Theme.card(:light)}
+          shadow={Kati.Theme.shadow_button()}
+          align="center"
+        >
+          {Kati.UI.symbol("more_horiz", size: 21)}
+        </Box>
+      </Row>
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def title do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text text="Account" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Spacer size={5} />
+      <Text text="sync & access" font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc "The muted eyebrow: the design's `#C4BDB3` dash instead of the accent."
+  def quiet_eyebrow(label) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
+        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Spacer size={9} />
+        <Text
+          text={String.upcase(label)}
+          font_family="mono"
+          text_size={10.5}
+          letter_spacing={0.16}
+          text_color={0xFFA0998F}
+          max_lines={1}
+        />
+      </Row>
+      <Spacer size={11} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def identity(a) do
+    i = a.identity
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Kati.Theme.card(:light)}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={22}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          {Kati.Screens.Account.avatar(i)}
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={14} />
+        <Text
+          text={i.name}
+          text_size={18}
+          font_weight="bold"
+          letter_spacing={-0.025}
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={5} />
+        <Text
+          text={i.relay}
+          font_family="mono"
+          text_size={10.5}
+          text_color={0xFFA9A29A}
+          text_align="center"
+          max_lines={1}
+        />
+        <Spacer size={16} />
+        <Row fill_width={true} align="center">
+          {i.actions
+           |> Enum.map(fn label -> Kati.Screens.Account.action(label) end)
+           |> Enum.intersperse(Kati.Screens.Account.action_gap())}
+        </Row>
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def avatar(i) do
+    case Kati.Design.Images.poster(i.seed) do
+      nil ->
+        ~MOB"<Box width={64} height={64} corner_radius={32} background={0xFFE4E0D9} />"
+
+      src ->
+        ~MOB"""
+        <Image src={src} width={64} height={64} corner_radius={32} content_mode="fill" />
+        """
+    end
+  end
+
+  @doc false
+  def action_gap, do: ~MOB"<Spacer size={9} />"
+
+  @doc false
+  def action(label) do
+    ~MOB"""
+    <Box weight={1.0} height={42} corner_radius={21} background={0xFFEFECE7} align="center">
+      <Text text={label} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+    </Box>
+    """
+  end
+
+  # One card recipe for all three lists — the drawing uses the same 4/15 card
+  # and the same 13pt rows for devices, permissions and the privacy pair.
+  @doc false
+  def list(rows, gap) do
+    last = length(rows) - 1
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Kati.Theme.card(:light)}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_left={15}
+        padding_right={15}
+        padding_top={4}
+        padding_bottom={4}
+      >
+        {rows
+         |> Enum.with_index()
+         |> Enum.map(fn {row, i} -> Kati.Screens.Account.row(row, i < last) end)}
+      </Column>
+      <Spacer size={gap} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def row(row, rule?) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
+        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
+          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
+        </Box>
+        <Spacer size={13} />
+        <Column weight={1.0}>
+          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Spacer size={3} />
+          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+        </Column>
+        <Spacer size={13} />
+        {Kati.Screens.Account.trailing(row)}
+      </Row>
+      {Kati.Screens.Account.hairline(rule?)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def trailing(row) do
+    cond do
+      Map.has_key?(row, :pill) -> Kati.Screens.Account.pill(row.pill)
+      Map.has_key?(row, :toggle) -> Kati.Screens.Account.toggle(row.toggle)
+      true -> Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
+    end
+  end
+
+  @doc false
+  def pill(label) do
+    ~MOB"""
+    <Row height={30} corner_radius={15} background={0xFFEFECE7} padding_left={12} padding_right={12} align="center">
+      <Text text={label} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+    </Row>
+    """
+  end
+
+  @doc """
+  The design's own switch, drawn rather than delegated.
+
+  46x28 with a 22pt thumb and a 3pt inset. The 40pt inner row produces that
+  inset without mixing `padding` and an explicit `width` on one node, which in
+  this bridge inflates the node instead of insetting it.
+  """
+  def toggle(on?) do
+    track = if on?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
+
+    ~MOB"""
+    <Box width={46} height={28} corner_radius={14} background={track} align="center">
+      <Row width={40} align="center">
+        {Kati.Screens.Account.thumb_lead(on?)}
+        <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow="0 1 3 0 #4D1A1917" />
+        {Kati.Screens.Account.thumb_trail(on?)}
+      </Row>
+    </Box>
+    """
+  end
+
+  @doc false
+  def thumb_lead(true), do: ~MOB"<Spacer weight={1.0} />"
+  def thumb_lead(false), do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  def thumb_trail(true), do: ~MOB"<Spacer size={0} />"
+  def thumb_trail(false), do: ~MOB"<Spacer weight={1.0} />"
+
+  @doc false
+  def privacy(a) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} background={0xFFFBF1DE} corner_radius={20} padding={16} align="top">
+        {Kati.UI.symbol("lock", size: 18, color: 0xFFC98A3E)}
+        <Spacer size={11} />
+        <Text
+          text={a.privacy_note}
+          text_size={12.5}
+          line_height={1.55}
+          text_color={0xFF4A4238}
+          weight={1.0}
+        />
+      </Row>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def hairline(false), do: ~MOB"<Spacer size={0} />"
+  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+end

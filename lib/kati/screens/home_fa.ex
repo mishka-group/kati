@@ -1,0 +1,463 @@
+defmodule Kati.Screens.HomeFa do
+  @moduledoc """
+  Screen 55 — Home in Persian.
+
+  Built to `.scratch/design/screens/55.html`. The same page as screen 01 and
+  the same numbers — the `64px 21px 132px` frame, 44pt header discs, the 52pt
+  search bar at radius 26, the cream card at radius 24, two continue-watching
+  cards, three section tiles, and the rest-of-today card with its
+  `rgba(26,25,23,.07)` hairline — laid out start-to-end in a root that
+  declares `rtl`, so every one of them mirrors without being rewritten.
+
+  ## What mirroring does not do on its own
+
+  Three things in this page are decisions rather than consequences:
+
+    * **The type changes face.** The date line is Vazirmatn 11.5/500 where 01
+      sets DM Mono 11 in caps; the eyebrows are Vazirmatn 11/600 with no
+      tracking where 01 sets mono at .16em. Persian has no case to raise and
+      the mono face has no Persian, so uppercasing a translated eyebrow would
+      have produced nothing legible. See `Kati.Screens.Fa`.
+    * **The arrow turns round.** The primary button's glyph is `arrow_back` —
+      the drawing names it — because forward in Persian points left.
+    * **The poster stack overlaps leftward.** The drawing pulls each poster
+      with `margin-right:-16px`, the mirror of 01's `margin-left`. Negative
+      padding is fatal in Compose, so the stack is a fixed 106pt box with each
+      poster offset 30 — and `Modifier.offset` is direction-aware, so the same
+      arithmetic that stacks rightward in English stacks leftward here.
+
+  The header disc, the hero button and the notification bell reach the English
+  inbox: 05 has no Persian mirror in the export yet, and a dead button reads as
+  a bug where an untranslated screen reads as unfinished, which is the truth.
+  """
+  use Mob.Screen
+  import Mob.Sigil
+
+  alias Kati.Screens.Fa
+  alias Kati.Screens.HomeFa.Sample
+  alias Kati.Theme
+  alias Kati.UI
+
+  def mount(_params, _session, socket) do
+    Mob.Theme.set(Kati.Theme.light())
+
+    socket
+    |> Mob.Socket.assign(:moment, Sample.moment())
+    |> Mob.Socket.assign(:inbox, Sample.inbox())
+    |> then(&{:ok, &1})
+  end
+
+  def render(assigns) do
+    Fa.frame(:home, Kati.Screens.HomeFa.content(assigns.moment, assigns.inbox))
+  end
+
+  @doc false
+  def content(moment, inbox) do
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+        {Kati.Screens.HomeFa.header(moment)}
+        {Kati.Screens.HomeFa.search()}
+        {Fa.eyebrow("تازه‌های این هفته")}
+        {Kati.Screens.HomeFa.hero(inbox)}
+        {Fa.eyebrow("ادامه تماشا")}
+        {Kati.Screens.HomeFa.continue()}
+        {Fa.eyebrow("بخش‌ها")}
+        {Kati.Screens.HomeFa.sections()}
+        {Fa.eyebrow("باقی امروز")}
+        {Kati.Screens.HomeFa.rest_of_today()}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc false
+  def header(moment) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="top">
+        <Column weight={1.0}>
+          <Text
+            text={moment.date}
+            font_family="fa"
+            font_weight="medium"
+            text_size={11.5}
+            text_color={0xFFA9A29A}
+            max_lines={1}
+          />
+          <Spacer size={7} />
+          <Text
+            text={moment.greeting}
+            font_family="fa"
+            font_weight="bold"
+            text_size={27}
+            text_color={:on_surface}
+          />
+        </Column>
+        {Fa.disc("notifications", :open_inbox)}
+        <Spacer size={9} />
+        {Fa.disc("calendar_month", :open_calendar)}
+      </Row>
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def search do
+    tap = {self(), :open_search}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Box
+        fill_width={true}
+        height={52}
+        background={0xFFFBFAF8}
+        corner_radius={26}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_left={18}
+        padding_right={18}
+        on_tap={tap}
+      >
+        <Row fill_width={true} fill_height={true} align="center">
+          {UI.symbol("search", size: 20, color: 0xFFA9A29A)}
+          <Spacer size={11} />
+          <Text
+            text="جست‌وجوی فیلم، سریال، رویداد…"
+            font_family="fa"
+            text_size={14}
+            text_color={0xFFA9A29A}
+            weight={1.0}
+            max_lines={1}
+          />
+          <Spacer size={11} />
+          {UI.symbol("tune", size: 19)}
+        </Row>
+      </Box>
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def hero(inbox) do
+    tap = {self(), :open_inbox}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Box
+        fill_width={true}
+        background={0xFFFBF1DE}
+        corner_radius={24}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={19}
+      >
+        <Column fill_width={true}>
+          <Row fill_width={true} align="top">
+            <Column weight={1.0}>
+              <Text
+                text={inbox.headline}
+                font_family="fa"
+                font_weight="bold"
+                text_size={20}
+                line_height={1.45}
+                text_color={:on_surface}
+              />
+              <Spacer size={8} />
+              <Text
+                text={inbox.line}
+                font_family="fa"
+                text_size={12.5}
+                line_height={1.6}
+                text_color={0xFF8A7B60}
+              />
+            </Column>
+            <Spacer size={14} />
+            {Kati.Screens.HomeFa.poster_stack(inbox.seeds)}
+          </Row>
+          <Spacer size={17} />
+          <Row align="center">
+            <Row
+              height={40}
+              corner_radius={20}
+              background={Kati.Theme.ink()}
+              padding_left={18}
+              padding_right={18}
+              align="center"
+              on_tap={tap}
+            >
+              <Text
+                text={inbox.action}
+                font_family="fa"
+                font_weight="semibold"
+                text_size={13}
+                text_color={0xFFFBFAF8}
+                max_lines={1}
+              />
+              <Spacer size={7} />
+              {UI.symbol("arrow_back", size: 17, color: 0xFFFBFAF8)}
+            </Row>
+            <Spacer size={10} />
+            <Text text={inbox.checked} font_family="fa" text_size={11} text_color={0xFFB09A72} max_lines={1} />
+          </Row>
+        </Column>
+      </Box>
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  # 46*3 - 16*2 = 106 wide, whichever way the page reads.
+  @doc false
+  def poster_stack(seeds) do
+    ~MOB"""
+    <Box width={106} height={64}>
+      {seeds |> Enum.with_index() |> Enum.map(fn {seed, i} -> Kati.Screens.HomeFa.poster(seed, i) end)}
+    </Box>
+    """
+  end
+
+  @doc false
+  def poster(seed, index) do
+    offset = index * 30
+    src = Kati.Design.Images.poster(seed)
+
+    ~MOB"""
+    <Box
+      width={46}
+      height={64}
+      offset_x={offset}
+      corner_radius={9}
+      background={0xFFEADFC6}
+      border_width={2}
+      border_color={0xFFFBF1DE}
+      shadow={Kati.Theme.shadow_poster()}
+    >
+      {Kati.Screens.HomeFa.poster_image(src)}
+    </Box>
+    """
+  end
+
+  @doc false
+  def poster_image(nil), do: ~MOB"<Spacer size={0} />"
+
+  def poster_image(src) do
+    ~MOB"""
+    <Image src={src} width={42} height={60} corner_radius={7} content_mode="fill" />
+    """
+  end
+
+  @doc false
+  def continue do
+    [first, second] = Sample.continue()
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="top">
+        {Kati.Screens.HomeFa.watch_card(first)}
+        <Spacer size={13} />
+        {Kati.Screens.HomeFa.watch_card(second)}
+      </Row>
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def watch_card(item) do
+    progress = item.progress
+
+    ~MOB"""
+    <Box weight={1.0}>
+      <Box
+        fill_width={true}
+        background={0xFFFBFAF8}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={11}
+      >
+        <Column fill_width={true}>
+          <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9}>
+            {Kati.Screens.HomeFa.still(item.seed)}
+          </Box>
+          <Spacer size={11} />
+          <Text
+            text={item.title}
+            font_family="fa"
+            font_weight="bold"
+            text_size={14}
+            text_color={:on_surface}
+            max_lines={1}
+          />
+          <Spacer size={3} />
+          <Text text={item.meta} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Spacer size={10} />
+          <Box fill_width={true} height={4} corner_radius={2} background={0xFFE7E3DC}>
+            <Row fill_width={true}>
+              <Box weight={progress} height={4} corner_radius={2} background={Kati.Theme.ink()} />
+              <Spacer weight={1.0 - progress} />
+            </Row>
+          </Box>
+        </Column>
+      </Box>
+    </Box>
+    """
+  end
+
+  # The 520x384 crop, which is the photograph these cards draw — not the
+  # poster of the same title scaled sideways.
+  @doc false
+  def still(seed) do
+    case Kati.Design.Images.path(seed, {520, 384}) do
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      src ->
+        ~MOB"""
+        <Image src={src} fill_width={true} height={112} corner_radius={12} content_mode="fill" />
+        """
+    end
+  end
+
+  @doc false
+  def sections do
+    [meals, habits, settings] = Sample.sections()
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="top">
+        {Kati.Screens.HomeFa.tile(meals)}
+        <Spacer size={9} />
+        {Kati.Screens.HomeFa.tile(habits)}
+        <Spacer size={9} />
+        {Kati.Screens.HomeFa.tile(settings)}
+      </Row>
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def tile(section) do
+    ~MOB"""
+    <Box weight={1.0}>
+      <Box
+        fill_width={true}
+        background={0xFFFBFAF8}
+        corner_radius={18}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_left={12}
+        padding_right={12}
+        padding_top={13}
+        padding_bottom={13}
+      >
+        <Column fill_width={true}>
+          <Row fill_width={true} align="center">
+            {UI.symbol(section.icon, size: 19)}
+            <Spacer weight={1.0} />
+            {Kati.Screens.HomeFa.dot(section.dot)}
+          </Row>
+          <Spacer size={10} />
+          <Text
+            text={section.label}
+            font_family="fa"
+            font_weight="bold"
+            text_size={12.5}
+            text_color={:on_surface}
+            max_lines={1}
+          />
+          {Kati.Screens.HomeFa.tile_meta(section.meta)}
+        </Column>
+      </Box>
+    </Box>
+    """
+  end
+
+  @doc false
+  def dot(nil), do: ~MOB"<Spacer size={0} />"
+  def dot(color), do: ~MOB"<Box width={6} height={6} corner_radius={3} background={color} />"
+
+  @doc false
+  def tile_meta(nil), do: ~MOB"<Spacer size={0} />"
+
+  def tile_meta(meta) do
+    ~MOB"""
+    <Column>
+      <Spacer size={3} />
+      <Text text={meta} font_family="fa" text_size={10} text_color={0xFFA9A29A} max_lines={1} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def rest_of_today do
+    rows = Sample.rest_of_today()
+    last = length(rows) - 1
+
+    ~MOB"""
+    <Box
+      fill_width={true}
+      background={0xFFFBFAF8}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={15}
+      padding_right={15}
+      padding_top={5}
+      padding_bottom={5}
+    >
+      <Column fill_width={true}>
+        {rows
+         |> Enum.with_index()
+         |> Enum.map(fn {row, i} -> Kati.Screens.HomeFa.timeline_row(row, i < last) end)}
+      </Column>
+    </Box>
+    """
+  end
+
+  @doc false
+  def timeline_row(row, rule?) do
+    rule = if row.now?, do: Theme.accent(), else: 0xFFC4BDB3
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
+        <Box width={42}>
+          <Text text={row.time} font_family="fa" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+        </Box>
+        <Spacer size={14} />
+        <Box width={3} height={34} corner_radius={2} background={rule} />
+        <Spacer size={14} />
+        <Column weight={1.0}>
+          <Text
+            text={row.title}
+            font_family="fa"
+            font_weight="semibold"
+            text_size={13.5}
+            text_color={:on_surface}
+            max_lines={1}
+          />
+          <Spacer size={3} />
+          <Text text={row.meta} font_family="fa" text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+        </Column>
+      </Row>
+      {Kati.Screens.HomeFa.hairline(rule?)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def hairline(false), do: ~MOB"<Spacer size={0} />"
+  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  def handle_info({:tap, :open_inbox}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
+
+  def handle_info({:tap, :open_search}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
+  def handle_info({:tap, :open_calendar}, socket),
+    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.ScheduleFa)}
+
+  def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :home, socket)
+  def handle_info(_message, socket), do: {:noreply, socket}
+end

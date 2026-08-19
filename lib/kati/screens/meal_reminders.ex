@@ -1,0 +1,243 @@
+defmodule Kati.Screens.MealReminders do
+  @moduledoc """
+  Screen 51 — meal reminders, pushed under Meals.
+
+  Built to `.scratch/design/screens/51.html`. Both halves of the reminder are
+  drawn as the notifications they actually become rather than as settings that
+  describe them: a 20:00 preview that lists what to prep, and a 15-minute
+  warning carrying **Eaten / Skip / Snooze** so it can be answered from the
+  lock screen. Drawing the buttons inside the preview is what makes the
+  footnote — "no need to open the app" — checkable rather than claimed.
+
+  The evening card is cream and the meal card is white, and the previews inside
+  them are grounded to match: `rgba(255,255,255,.6)` over cream, paper over
+  card. The label colours follow, `#B09A72` on cream and `#A0998F` on paper,
+  which is the palette's rule that cream warms rather than tints.
+
+  **Manners** is the counterweight and belongs on this screen rather than in
+  Settings. Meals is the one section allowed to push by default; the price is
+  quiet hours, calendar awareness, a stop after two skips, and a silent mode
+  that behaves like the release watcher's Home card.
+
+  The option list nested inside the cream card and the Manners list are both
+  `Kati.UI.SettingsList` — the same card and row every Settings screen uses,
+  so an option under a reminder reads as an option rather than as a second kind
+  of thing. Only the row padding differs, 12 inside the card and 13 outside it,
+  which is the drawing's own difference.
+
+  No dock, so the frame's bottom inset is 40 rather than 132.
+  """
+  use Kati.Screens.Pushed, back: "Meals"
+
+  alias Kati.Meals.SampleReminders
+  alias Kati.UI
+  alias Kati.UI.SettingsList
+
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, :reminders, SampleReminders.reminders())
+
+  @doc false
+  def content(assigns) do
+    r = assigns.reminders
+
+    ~MOB"""
+    <Scroll>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        {SettingsList.chrome("more_horiz")}
+        {SettingsList.title("Reminders", r.subtitle)}
+        {UI.eyebrow("The day before")}
+        {Kati.Screens.MealReminders.day_before(r.day_before)}
+        {UI.eyebrow("On the day")}
+        {Kati.Screens.MealReminders.on_the_day(r.on_the_day)}
+        {SettingsList.eyebrow_muted("Manners")}
+        {Kati.Screens.MealReminders.manners(r.manners)}
+        {Kati.Screens.MealReminders.note(r.note)}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc false
+  def day_before(d) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={0xFFFBF1DE}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={18}
+      >
+        {Kati.Screens.MealReminders.card_head(d, 0xFFC98A3E, 0xFFB09A72)}
+        <Spacer size={15} />
+        {Kati.Screens.MealReminders.preview(d.notification, 0x99FFFFFF, 0xFFB09A72, 0xFF8A7B60)}
+        <Spacer size={14} />
+        {Kati.Screens.MealReminders.options(d.options)}
+      </Column>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def on_the_day(o) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Kati.Theme.card(:light)}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={18}
+      >
+        {Kati.Screens.MealReminders.card_head(o, Kati.Theme.ink(), 0xFFA9A29A)}
+        <Spacer size={15} />
+        {Kati.Screens.MealReminders.preview(o.notification, 0xFFEFECE7, 0xFFA0998F, 0xFF8A8479)}
+        <Spacer size={13} />
+        <Row fill_width={true} align="center">
+          {Kati.UI.symbol("touch_app", size: 15, color: 0xFFB3ACA2)}
+          <Spacer size={8} />
+          <Text text={o.foot} text_size={11.5} text_color={0xFF8A8479} weight={1.0} />
+        </Row>
+      </Column>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  # The cadence line is already upper case in the drawing's own copy — there is
+  # no text-transform on it — so it is not upcased here.
+  @doc false
+  def card_head(card, icon_color, cadence_color) do
+    ~MOB"""
+    <Row fill_width={true} align="center">
+      {Kati.UI.symbol(card.icon, size: 23, color: icon_color)}
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Text text={card.title} text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Spacer size={4} />
+        <Text text={card.cadence} font_family="mono" text_size={10.5} text_color={cadence_color} max_lines={1} />
+      </Column>
+      <Spacer size={13} />
+      {Kati.UI.SettingsList.switch(card.on)}
+    </Row>
+    """
+  end
+
+  @doc """
+  A notification, drawn where it will arrive.
+
+  The app icon is the design's own mark — an ink square with an accent dot —
+  rather than a bitmap, so it stays crisp at 20pt and needs no asset.
+  """
+  def preview(n, ground, label_color, body_color) do
+    ~MOB"""
+    <Column fill_width={true} background={ground} corner_radius={16} padding={14}>
+      <Row fill_width={true} align="center">
+        <Box width={20} height={20} corner_radius={6} background={Kati.Theme.ink()} align="center">
+          <Box width={6} height={6} corner_radius={3} background={Kati.Theme.accent()} />
+        </Box>
+        <Spacer size={9} />
+        <Text
+          text={n.from}
+          font_family="mono"
+          text_size={9.5}
+          letter_spacing={0.1}
+          text_color={label_color}
+          max_lines={1}
+        />
+      </Row>
+      <Spacer size={9} />
+      <Text text={n.title} text_size={13.5} font_weight="bold" text_color={:on_surface} />
+      <Spacer size={5} />
+      <Text text={n.body} text_size={12.5} line_height={1.45} text_color={body_color} />
+      {Kati.Screens.MealReminders.preview_actions(n)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def preview_actions(%{actions: actions}) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row fill_width={true} align="center">
+        {actions
+         |> Enum.with_index()
+         |> Enum.map(fn {label, i} -> Kati.Screens.MealReminders.preview_action(label, i == 0) end)
+         |> Enum.intersperse(Kati.Screens.MealReminders.action_gap())}
+      </Row>
+    </Column>
+    """
+  end
+
+  def preview_actions(_notification), do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  def action_gap, do: ~MOB"<Spacer size={7} />"
+
+  @doc false
+  def preview_action(label, primary?) do
+    bg = if primary?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
+    fg = if primary?, do: 0xFFFBFAF8, else: 0xFF5C574F
+
+    ~MOB"""
+    <Box weight={1.0}>
+      <Box fill_width={true} height={30} corner_radius={15} background={bg} align="center">
+        <Text text={label} text_size={11.5} font_weight="semibold" text_color={fg} max_lines={1} />
+      </Box>
+    </Box>
+    """
+  end
+
+  @doc false
+  def options(rows), do: SettingsList.card(Kati.Screens.MealReminders.switch_rows(rows, 12))
+
+  @doc false
+  def manners(rows) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.card(Kati.Screens.MealReminders.switch_rows(rows, 13))}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def switch_rows(rows, pad) do
+    last = length(rows) - 1
+
+    rows
+    |> Enum.with_index()
+    |> Enum.map(fn {row, i} ->
+      SettingsList.row(
+        SettingsList.icon_tile(row.icon),
+        SettingsList.body(row.title, row.sub),
+        SettingsList.switch(row.on),
+        padding: pad,
+        rule: i < last
+      )
+    end)
+  end
+
+  # Not SettingsList.note/2: that one pads 16 and sets its glyph at 18, and
+  # this drawing says 15 and 17. FIDELITY's rule is that a number in the export
+  # is a number here, so the frame is redrawn rather than approximated.
+  @doc false
+  def note(text) do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      corner_radius={18}
+      border_color={0x291A1917}
+      border_width={1.5}
+      padding={15}
+      align="top"
+    >
+      {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+      <Spacer size={11} />
+      <Text text={text} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
+    </Row>
+    """
+  end
+end
