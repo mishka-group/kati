@@ -17,7 +17,7 @@ defmodule Kati.Calendar.SampleDay do
   @spec all_day() :: [map()]
   def all_day do
     [
-      %{title: "Vellum — in cinemas", meta: "release · wishlisted", slug: "blue_hour"}
+      %{title: "Vellum — in cinemas", meta: "release · wishlisted", seed: "bluehour58"}
     ]
   end
 

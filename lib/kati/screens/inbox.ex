@@ -149,7 +149,7 @@ defmodule Kati.Screens.Inbox do
 
   @doc false
   def thumb(row) do
-    case Kati.Library.Sample.poster(row[:slug]) do
+    case Kati.Library.Sample.poster(row[:seed]) do
       nil -> ~MOB"<Box width={44} height={62} corner_radius={9} background={0xFFE4E0D9} />"
       src -> ~MOB"""
         <Image src={src} width={44} height={62} corner_radius={9} content_mode="fill" />

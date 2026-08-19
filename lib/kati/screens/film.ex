@@ -70,7 +70,7 @@ defmodule Kati.Screens.Film do
 
   @doc false
   def hero_art(f) do
-    case Sample.poster(f.slug) do
+    case Sample.poster(f.seed) do
       nil ->
         ~MOB"<Spacer size={0} />"
 

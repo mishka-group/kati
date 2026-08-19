@@ -16,16 +16,20 @@ defmodule Kati.Library.Sample do
   data is how a demo quietly becomes a lie.
   """
 
+  # The design's own titles and its own photographs. Each `seed` is the
+  # picsum seed the export uses for that title — `hollow71` is The Long
+  # Hollow — so the app shows the exact picture the drawing shows rather than
+  # something that merely occupies the same rectangle.
   @titles [
-    %{title: "The Long Hollow", slug: "long_hollow", progress: 0.62, kind: :series},
-    %{title: "Salt & Iron", slug: "salt_iron", progress: 0.24, kind: :series},
-    %{title: "Blue Hour", slug: "blue_hour", progress: 0.0, kind: :film},
-    %{title: "Nightjar", slug: "nightjar", progress: 1.0, kind: :series},
-    %{title: "The Quiet Coast", slug: "quiet_coast", progress: 0.41, kind: :series},
-    %{title: "Ember & Ash", slug: "ember_ash", progress: 0.0, kind: :film},
-    %{title: "Winterlight", slug: "winterlight", progress: 1.0, kind: :film},
-    %{title: "Paper Cities", slug: "paper_cities", progress: 0.08, kind: :series},
-    %{title: "The Fen", slug: "the_fen", progress: 0.0, kind: :series}
+    %{title: "The Long Hollow", seed: "hollow71", progress: 0.62, kind: :series},
+    %{title: "Salt & Iron", seed: "saltiron33", progress: 0.24, kind: :series},
+    %{title: "Blue Hour", seed: "bluehour58", progress: 0.0, kind: :film},
+    %{title: "Ashfall", seed: "ashfall42", progress: 0.41, kind: :series},
+    %{title: "Marram", seed: "marram15", progress: 1.0, kind: :series},
+    %{title: "Harbour", seed: "harbour86", progress: 0.0, kind: :film},
+    %{title: "Nightbirds", seed: "nightbirds24", progress: 1.0, kind: :film},
+    %{title: "Vellum", seed: "vellum97", progress: 0.08, kind: :film},
+    %{title: "The Cartographer", seed: "cartog60", progress: 0.0, kind: :series}
   ]
 
   @doc """
@@ -37,17 +41,11 @@ defmodule Kati.Library.Sample do
   compared with a drawing full of posters.
   """
   @spec poster(String.t()) :: String.t() | nil
-  def poster(slug) do
-    path = Kati.Priv.path("sample/posters/#{slug}.jpg")
-    if File.exists?(path), do: path, else: nil
-  end
+  def poster(seed), do: Kati.Design.Images.poster(seed)
 
   @doc "Wide artwork for a series header."
   @spec art(String.t()) :: String.t() | nil
-  def art(slug) do
-    path = Kati.Priv.path("sample/art/#{slug}.jpg")
-    if File.exists?(path), do: path, else: nil
-  end
+  def art(seed), do: Kati.Design.Images.hero(seed)
 
   @doc "Every title, in the order the grid draws them."
   @spec titles() :: [map()]
@@ -80,7 +78,7 @@ defmodule Kati.Library.Sample do
   @spec series() :: map()
   def series do
     %{
-      title: "The Long Hollow", slug: "long_hollow",
+      title: "The Long Hollow", seed: "hollow71",
       meta: "2024 · DRAMA · LUMEN+ · 3 SEASONS",
       season: "Season 2",
       seasons: ["S1", "S2", "S3"],
@@ -114,19 +112,19 @@ defmodule Kati.Library.Sample do
       last_checked: "last checked 18:02 · every 6h",
       out_now: [
         %{
-          title: "The Long Hollow", slug: "long_hollow",
+          title: "The Long Hollow", seed: "hollow71",
           line: "S2 E6 — Ash and After",
           meta: "48 min · LUMEN+ · aired 20:00",
           dot: 0xFFE8823C
         },
         %{
-          title: "Blue Hour", slug: "blue_hour",
+          title: "Blue Hour", seed: "bluehour58",
           line: "Premiere",
           meta: "1h 52m · CINEMA · out today",
           dot: 0xFF4E9A73
         },
         %{
-          title: "Paper Cities", slug: "paper_cities",
+          title: "Paper Cities", seed: "cartog60",
           line: "S1 E2 — The Cartographer",
           meta: "44 min · LUMEN+ · aired 19:00",
           dot: 0xFFE8823C
@@ -150,10 +148,10 @@ defmodule Kati.Library.Sample do
   @spec search_results() :: [map()]
   def search_results do
     [
-      %{title: "The Quiet Coast", slug: "quiet_coast", meta: "2023 · SERIES · 2 SEASONS", note: "Drama · Lumen+", added: false},
-      %{title: "Quiet Earth", slug: "quiet_earth", meta: "2019 · FILM · 1h 48m", note: "Science fiction", added: false},
-      %{title: "A Quiet Place to Land", slug: "quiet_place", meta: "2021 · FILM · 2h 04m", note: "Drama · Cinema", added: true},
-      %{title: "Quietus", slug: "quietus", meta: "2024 · SERIES · 1 SEASON", note: "Thriller · Northlight", added: false}
+      %{title: "The Quiet Coast", seed: "quieterplace8", meta: "2023 · SERIES · 2 SEASONS", note: "Drama · Lumen+", added: false},
+      %{title: "Quiet Earth", seed: "quietones12", meta: "2019 · FILM · 1h 48m", note: "Science fiction", added: false},
+      %{title: "A Quiet Place to Land", seed: "quieterplace8", meta: "2021 · FILM · 2h 04m", note: "Drama · Cinema", added: true},
+      %{title: "Quietus", seed: "quietus39", meta: "2024 · SERIES · 1 SEASON", note: "Thriller · Northlight", added: false}
     ]
   end
 
@@ -162,7 +160,7 @@ defmodule Kati.Library.Sample do
   def film do
     %{
       title: "Blue Hour",
-      slug: "blue_hour",
+      seed: "bluehour58",
       meta: "2025 · 1H 52M · DRAMA",
       watched: "Watched 12 Aug",
       stars: 4,

@@ -157,7 +157,7 @@ defmodule Kati.Screens.Day do
 
   @doc false
   def thumb(item) do
-    case Kati.Library.Sample.poster(item[:slug]) do
+    case Kati.Library.Sample.poster(item[:seed]) do
       nil ->
         ~MOB"<Box width={26} height={37} corner_radius={5} background={0xFFEADFC6} />"
 

@@ -76,7 +76,7 @@ defmodule Kati.Screens.Series do
 
   @doc false
   def hero_art do
-    case Kati.Library.Sample.art("long_hollow_wide") do
+    case Kati.Library.Sample.art("hollow71") do
       nil -> ~MOB"<Spacer size={0} />"
       src -> ~MOB"""
         <Image src={src} fill_width={true} height={330} content_mode="fill" />

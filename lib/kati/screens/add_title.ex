@@ -183,7 +183,7 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   def thumb(r) do
-    case Kati.Library.Sample.poster(r[:slug]) do
+    case Kati.Library.Sample.poster(r[:seed]) do
       nil -> ~MOB"<Box width={44} height={62} corner_radius={9} background={0xFFE4E0D9} />"
       src -> ~MOB"""
         <Image src={src} width={44} height={62} corner_radius={9} content_mode="fill" />

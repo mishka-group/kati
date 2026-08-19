@@ -249,7 +249,7 @@ defmodule Kati.Screens.Library do
   # develops margins the design does not have.
   @doc false
   def artwork(item) do
-    case Kati.Library.Sample.poster(item[:slug]) do
+    case Kati.Library.Sample.poster(item[:seed]) do
       nil ->
         ~MOB"<Spacer size={0} />"
 
