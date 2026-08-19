@@ -110,6 +110,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontFamily
+// KATI-BEGIN(K-14 bundled-fonts-import) mob_new=0.4.20
+import androidx.compose.ui.text.font.Font
+// KATI-END(K-14 bundled-fonts-import)
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -3927,11 +3930,65 @@ private fun jsonValueToKotlin(v: Any?): Any? = when (v) {
     else -> v
 }
 
-private fun fontFamilyProp(props: Map<String, Any?>): FontFamily? {
-    val name = props["font"] as? String ?: return null
-    return try { FontFamily(Typeface.create(name, Typeface.NORMAL)) }
-    catch (_: Exception) { null }
+// KATI-BEGIN(K-14 bundled-fonts) mob_new=0.4.20
+// The design is drawn in Plus Jakarta Sans, DM Mono, Vazirmatn and Material
+// Symbols Rounded. A stock Mob app renders every one of them as Roboto,
+// because the original of this function asked Typeface.create for a FAMILY
+// NAME the device has never heard of and silently fell back — and because
+// nothing passed a `font` prop at all, so it returned null before even
+// trying. Kati's whole visual identity is those four faces, so they ship.
+//
+// All static instances, deliberately. Compose can drive a variable font's
+// axes through FontVariation, but that is an API bet paid for in build-deploy
+// cycles; instancing wght 400..800 with fontTools costs nothing at runtime and
+// cannot behave differently on one device. The icon font is instanced twice,
+// FILL 0 and FILL 1, which is the only axis value the design ever uses (33
+// occurrences, all `'FILL' 1`) and covers the active tab.
+//
+// Sizes: the icon font is a 143-glyph subset of a 15 MB original, 47 KB per
+// instance. `mix kati.gen.icons` regenerates the name->codepoint map from the
+// design and prints the pyftsubset command when the set changes.
+private val katiSans by lazy {
+    FontFamily(
+        Font(R.font.kati_sans_400, FontWeight.Normal),
+        Font(R.font.kati_sans_500, FontWeight.Medium),
+        Font(R.font.kati_sans_600, FontWeight.SemiBold),
+        Font(R.font.kati_sans_700, FontWeight.Bold),
+        Font(R.font.kati_sans_800, FontWeight.ExtraBold),
+    )
 }
+
+private val katiFa by lazy {
+    FontFamily(
+        Font(R.font.kati_fa_400, FontWeight.Normal),
+        Font(R.font.kati_fa_500, FontWeight.Medium),
+        Font(R.font.kati_fa_600, FontWeight.SemiBold),
+        Font(R.font.kati_fa_700, FontWeight.Bold),
+        Font(R.font.kati_fa_800, FontWeight.ExtraBold),
+    )
+}
+
+private val katiMono by lazy { FontFamily(Font(R.font.kati_mono)) }
+private val katiSymbols by lazy { FontFamily(Font(R.font.kati_symbols)) }
+private val katiSymbolsFilled by lazy { FontFamily(Font(R.font.kati_symbols_filled)) }
+
+private fun fontFamilyProp(props: Map<String, Any?>): FontFamily? =
+    // Both spellings. The template reads `font`; ~MOB markup naturally says
+    // `font_family`, and a prop that is silently ignored is the single most
+    // expensive kind of mistake in this codebase — it renders, it just renders
+    // wrong, and nothing anywhere says so.
+    when (val name = (props["font_family"] ?: props["font"]) as? String) {
+        // No prop means body text, and body text is Plus Jakarta Sans. This is
+        // the case that matters: it is every unstyled Text in the app.
+        null, "sans" -> katiSans
+        "mono", "monospace" -> katiMono
+        "fa" -> katiFa
+        "symbols" -> katiSymbols
+        "symbols_filled" -> katiSymbolsFilled
+        else -> try { FontFamily(Typeface.create(name, Typeface.NORMAL)) }
+                catch (_: Exception) { katiSans }
+    }
+// KATI-END(K-14 bundled-fonts)
 
 // ── Tab bar helpers ───────────────────────────────────────────────────────────
 

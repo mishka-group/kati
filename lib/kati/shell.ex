@@ -42,11 +42,14 @@ defmodule Kati.Shell do
 
   import Mob.Sigil
 
+  # The design's icon names, not Compose's. Screen 01's bar is
+  # home / calendar_month / grid_view / bar_chart_4_bars — and the Material
+  # Icons set the template ships with has neither of the last two.
   @roots [
     %{id: :home, label: "Home", icon: "home", screen: Kati.Screens.Home},
-    %{id: :calendar, label: "Calendar", icon: "calendar", screen: Kati.Screens.Calendar},
-    %{id: :library, label: "Library", icon: "library", screen: Kati.Screens.Library},
-    %{id: :stats, label: "Stats", icon: "stats", screen: Kati.Screens.Stats}
+    %{id: :calendar, label: "Calendar", icon: "calendar_month", screen: Kati.Screens.Calendar},
+    %{id: :library, label: "Library", icon: "grid_view", screen: Kati.Screens.Library},
+    %{id: :stats, label: "Stats", icon: "bar_chart_4_bars", screen: Kati.Screens.Stats}
   ]
 
   def roots, do: @roots
@@ -82,8 +85,7 @@ defmodule Kati.Shell do
     <Box fill_width={true} fill_height={true} background={:background} layout_direction={direction}>
       {assigns.content}
       {scrim(mode)}
-      {pill(active, mode)}
-      {fab()}
+      {dock(active, mode)}
     </Box>
     """
   end
@@ -102,16 +104,37 @@ defmodule Kati.Shell do
     """
   end
 
-  defp pill(active, mode) do
+  # The bar and the FAB are ONE row, not a bar with something floating over it.
+  #
+  # Screen 01: `padding:0 18px 30px; display:flex; align-items:center; gap:11px`,
+  # a `flex:1` bar 64 tall with radius 32, then a 64x64 circle beside it. Drawn
+  # as a separate overlay pinned above the bar — which is what this did first —
+  # the FAB lands in the wrong place at every width, because in the design it is
+  # not above the bar, it is the last item in the row.
+  defp dock(active, mode) do
+    ink = Kati.Theme.ink()
     fill = Kati.Theme.chrome_fill(mode)
+    add = {self(), :fab}
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="bottom">
-      <Column padding_bottom={30}>
-        <Row background={fill} corner_radius={32} padding={7} align="center">
-          {Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)}
-        </Row>
-      </Column>
+      <Row
+        fill_width={true}
+        vertical_align="center"
+        padding_left={18}
+        padding_right={18}
+        padding_bottom={30}
+      >
+        <Box weight={1.0} height={64} background={fill} corner_radius={32}>
+          <Row fill_width={true} vertical_align="center" padding_left={9} padding_right={9}>
+            {Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)}
+          </Row>
+        </Box>
+        <Spacer size={11} />
+        <Box width={64} height={64} background={ink} corner_radius={32} align="center" on_tap={add}>
+          {Kati.UI.symbol("add", size: 27, color: 0xFFFBFAF8)}
+        </Box>
+      </Row>
     </Box>
     """
   end
@@ -119,34 +142,20 @@ defmodule Kati.Shell do
   @doc false
   def tab(root, active, mode) do
     on? = root.id == active
-    # Orange only ever means new/now, so an active tab is INK, never accent.
-    tint = if on?, do: Kati.Theme.ink(), else: 0xFF9A948B
-    bg = if on?, do: Kati.Theme.cream(mode), else: 0x00FFFFFF
+    # Inactive icons are #B3ACA2; the active one is ink inside an #EFECE7 disc —
+    # the paper colour, so the disc reads as a hole punched in the bar rather
+    # than a highlight. Orange means new/now and never appears here.
+    tint = if on?, do: Kati.Theme.ink(), else: 0xFFB3ACA2
+    disc = if on?, do: Kati.Theme.paper(mode), else: 0x00FFFFFF
     tap = {self(), String.to_atom("root_#{root.id}")}
 
+    # weight 1 per item is space-around: four equal segments, content centred.
+    # No labels — screen 01's bar is icons only.
     ~MOB"""
-    <Box width={74} height={52} background={bg} corner_radius={22} align="center" on_tap={tap}>
-      <Column align="center">
-        <Icon name={root.icon} text_size={22} text_color={tint} text={root.label} />
-        <Spacer size={3} />
-        <Text text={root.label} text_size={10} text_color={tint} />
-      </Column>
-    </Box>
-    """
-  end
-
-  # 64x64, detached, sitting above the pill on the trailing edge.
-  defp fab do
-    ink = Kati.Theme.ink()
-    tap = {self(), :fab}
-
-    ~MOB"""
-    <Box fill_width={true} fill_height={true} align="bottom_trailing">
-      <Column padding_bottom={104} padding_right={21}>
-        <Box width={64} height={64} background={ink} corner_radius={32} align="center" on_tap={tap}>
-          <Icon name="plus" text_size={26} text_color={0xFFFBFAF8} text="Add" />
-        </Box>
-      </Column>
+    <Box weight={1.0} align="center" on_tap={tap}>
+      <Box width={46} height={46} background={disc} corner_radius={23} align="center">
+        {Kati.UI.symbol(root.icon, size: 22, color: tint, fill: on?)}
+      </Box>
     </Box>
     """
   end

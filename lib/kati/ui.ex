@@ -19,6 +19,29 @@ defmodule Kati.UI do
 
   import Mob.Sigil
 
+  @doc """
+  A Material Symbol, by the name the design uses.
+
+  The design's icons are Material Symbols Rounded — a ligature font — and Kati
+  ships a 143-glyph subset of it. `Kati.Icons.glyph!/1` raises for a name that
+  is not in the subset, because the alternative is an empty box on screen that
+  reads as a layout bug rather than a missing asset.
+
+  `fill: true` selects the FILL 1 instance. The design uses it for exactly one
+  thing — the active tab — and never for a partial value.
+  """
+  @spec symbol(String.t(), keyword()) :: term()
+  def symbol(name, opts \\ []) do
+    glyph = Kati.Icons.glyph!(name)
+    size = Keyword.get(opts, :size, 22)
+    color = Keyword.get(opts, :color, Kati.Theme.ink())
+    family = if Keyword.get(opts, :fill, false), do: "symbols_filled", else: "symbols"
+
+    ~MOB"""
+    <Text text={glyph} font_family={family} text_size={size} text_color={color} max_lines={1} />
+    """
+  end
+
   @doc "The elevated card: the design's most repeated recipe (262 uses)."
   def card(children, opts \\ []) do
     pad = Keyword.get(opts, :padding, 21)
@@ -69,7 +92,7 @@ defmodule Kati.UI do
     <Row align="top" fill_width={true}>
       <Box width={54} height={44} align="top">
         <Column>
-          <Text text={time} text_size={11} text_color={:muted} font_family="monospace" />
+          <Text text={time} text_size={11} text_color={:muted} font_family="mono" />
         </Column>
       </Box>
       <Box width={16} height={44} align="top">

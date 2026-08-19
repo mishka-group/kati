@@ -122,7 +122,7 @@ defmodule Kati.Screens.Day do
     # scale and the lanes give up exactly the width the larger text needs.
     ~MOB"""
     <Column padding_top={16} padding_right={12}>
-      <Text text={label} text_size={12} text_color={:muted} font_family="monospace" max_lines={1} />
+      <Text text={label} text_size={12} text_color={:muted} font_family="mono" max_lines={1} />
     </Column>
     """
   end
