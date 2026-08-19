@@ -143,10 +143,12 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"""
     <Row
       fill_width={true}
+      height={76}
       background={Kati.Theme.ink()}
       corner_radius={22}
       shadow="0 14 28 -14 #E61A1917"
-      padding={17}
+      padding_left={17}
+      padding_right={17}
       align="center"
     >
       <Box width={42} height={42} corner_radius={14} background={0x1FF5F2EE} align="center">
@@ -170,10 +172,12 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"""
     <Row
       fill_width={true}
+      height={76}
       background={Kati.Theme.card(:light)}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
-      padding={17}
+      padding_left={17}
+      padding_right={17}
       align="center"
     >
       <Box width={42} height={42} corner_radius={14} background={0xFFEFECE7} align="center">
