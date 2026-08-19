@@ -56,6 +56,7 @@ the baseline is refreshed, the fence goes and the row moves to *Retired*.
 | `K-10 em-import` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `androidx.compose.ui.unit.em`. | Pairs with the row above. |
 | `K-10 extrabold` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Adds the `extrabold` arm to `fontWeightProp`. `kati_sans_800` ships and the design uses 800 for every hero figure, but with no arm the prop fell to null and those titles rendered at 400. | Arguably upstream — add to #76. |
 | `K-10 no-font-padding` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `PlatformTextStyle(includeFontPadding = false)`. Compose pads above and below every line, so a text box measures taller than the same text in the browser the design was drawn in, and it accumulates — Home's search bar sat 12dp low after two header lines. | Arguably upstream — add to #76. |
+| `K-11 gradient` / `K-11 gradient-parser` / `K-11 gradient-import` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | A CSS-shaped `gradient` prop — `gradient="to_top #FFEFECE7 4% #00EFECE7"` — drawn with `Brush.verticalGradient`. The design uses these to make text readable over artwork (a 190pt band lifting paper back over a photograph) and for the fade under the dock. Kati painted a flat opaque rectangle instead, which does not fade — it guillotines, visibly slicing Home's Sections tiles in half and leaving hero titles as near-black text on a dark photo. | Kati-specific for now; a gradient prop is a plausible upstream contribution. |
 
 ## Retired patches
 

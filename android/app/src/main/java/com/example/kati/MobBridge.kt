@@ -101,6 +101,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 // KATI-BEGIN(K-08 box-shadow-import) mob_new=0.4.20
 import androidx.compose.ui.draw.drawBehind
+// KATI-BEGIN(K-11 gradient-import) mob_new=0.4.20
+import androidx.compose.ui.graphics.Brush
+// KATI-END(K-11 gradient-import)
 // KATI-END(K-08 box-shadow-import)
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -3885,6 +3888,16 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
         m = if (shape != null) m.background(bg, shape) else m.background(bg)
     }
 
+    // KATI-BEGIN(K-11 gradient) mob_new=0.4.20
+    // After the background, so a node can carry both: the artwork heroes paint
+    // a fallback colour and then the fade over it.
+    if (props["gradient"] is String) {
+        m = m.drawBehind {
+            gradientBrush(props, size.height)?.let { brush -> drawRect(brush = brush) }
+        }
+    }
+    // KATI-END(K-11 gradient)
+
     // Border (opt-in: requires both border_color and border_width). Drawn on
     // the same shape as the background so rounded boxes get a proper outline.
     val borderColor = longColorProp(props, "border_color")
@@ -4017,6 +4030,54 @@ private fun jsonValueToKotlin(v: Any?): Any? = when (v) {
     JSONObject.NULL -> null
     else -> v
 }
+
+// KATI-BEGIN(K-11 gradient-parser) mob_new=0.4.20
+// CSS-shaped linear gradients: `gradient="to_top #FFEFECE7 4% #00EFECE7"`.
+//
+// The design uses these to make text readable over artwork — a 190pt band
+// lifting paper back over the bottom of a photograph — and for the fade under
+// the dock. Painting a flat opaque rectangle instead, which is what Kati did,
+// does not fade: it guillotines whatever it covers.
+//
+// Direction first (`to_top` or `to_bottom`), then colour/stop pairs. A stop is
+// optional and defaults to an even distribution.
+private fun gradientBrush(props: Map<String, Any?>, height: Float): Brush? {
+    val raw = props["gradient"] as? String ?: return null
+    val parts = raw.trim().split(Regex("\\s+"))
+    if (parts.size < 3) return null
+
+    val toTop = parts[0] == "to_top"
+    val stops = mutableListOf<Pair<Float, Int>>()
+    var i = 1
+    var index = 0
+    val colourCount = parts.drop(1).count { it.startsWith("#") }
+
+    while (i < parts.size) {
+        val token = parts[i]
+        if (!token.startsWith("#")) { i++; continue }
+        val colour = try { android.graphics.Color.parseColor(token) } catch (_: Exception) { i++; continue }
+        val next = parts.getOrNull(i + 1)
+        val stop = if (next != null && next.endsWith("%")) {
+            i += 2
+            (next.dropLast(1).toFloatOrNull() ?: 0f) / 100f
+        } else {
+            i += 1
+            if (colourCount <= 1) 0f else index.toFloat() / (colourCount - 1)
+        }
+        stops += stop to colour
+        index++
+    }
+
+    if (stops.size < 2) return null
+
+    // `to_top` means the FIRST colour sits at the bottom edge, so the stops are
+    // mirrored — Compose's verticalGradient runs top to bottom.
+    val ordered = if (toTop) stops.map { (s, c) -> (1f - s) to c }.sortedBy { it.first } else stops
+    val colorStops = ordered.map { (s, c) -> s to Color(c) }.toTypedArray()
+
+    return Brush.verticalGradient(colorStops = colorStops, startY = 0f, endY = height)
+}
+// KATI-END(K-11 gradient-parser)
 
 // KATI-BEGIN(K-08 box-shadow-parser) mob_new=0.4.20
 private data class KatiShadow(

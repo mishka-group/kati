@@ -43,6 +43,23 @@ defmodule Kati.UI do
   end
 
   @doc """
+  A fade from paper up to nothing.
+
+  The design uses this twice over: a 120pt band under the dock so content
+  dissolves rather than stopping, and a 190pt band over the bottom of a hero
+  photograph so the title has something to sit on.
+
+  It replaced a flat opaque rectangle, which does not fade — it guillotines.
+  On Home it was cutting the Sections tiles in half.
+  """
+  @spec paper_fade(pos_integer()) :: term()
+  def paper_fade(height) do
+    ~MOB"""
+    <Box fill_width={true} height={height} gradient="to_top #FFEFECE7 4% #00EFECE7" />
+    """
+  end
+
+  @doc """
   A section label: a 13x2 accent dash, then mono caps.
 
   The design uses it eleven times on Home alone, always

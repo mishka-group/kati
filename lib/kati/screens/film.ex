@@ -49,6 +49,9 @@ defmodule Kati.Screens.Film do
     <Box fill_width={true} height={330} background={0xFFDCD7CF}>
       {Kati.Screens.Film.hero_art(f)}
       <Box fill_width={true} fill_height={true} align="bottom">
+        {Kati.UI.paper_fade(190)}
+      </Box>
+      <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
           <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={9} padding_right={11} align="center">
             {Kati.UI.symbol("check_circle", size: 15, color: 0xFF3E8460, fill: true)}
@@ -100,6 +103,11 @@ defmodule Kati.Screens.Film do
     """
   end
 
+  # Two hugging children with a weighted Spacer between them, not a weighted
+  # column beside a plain one. The previous version put a width-less Box in the
+  # trailing Column: a Box fills width unless `width` is a NUMBER, so it took
+  # everything and starved the weight={1.0} column to zero — the card rendered
+  # 333dp tall against the drawing's 84 and the stars did not appear at all.
   @doc false
   def rating_card(f) do
     ~MOB"""
@@ -111,19 +119,36 @@ defmodule Kati.Screens.Film do
       padding={17}
       align="center"
     >
-      <Column weight={1.0}>
+      <Column>
         <Text text={String.upcase("Your rating")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
         <Spacer size={7} />
-        <Text text={f.rating} text_size={22} letter_spacing={0.1} text_color={0xFFE8823C} max_lines={1} />
+        {Kati.Screens.Film.stars(f.stars)}
       </Column>
+      <Spacer weight={1.0} />
       <Column>
-        <Text text={String.upcase("Seen")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} text_align="right" />
+        <Text text={String.upcase("Seen")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
         <Spacer size={8} />
-        <Text text={f.seen} text_size={16} font_weight="bold" text_color={:on_surface} text_align="right" max_lines={1} />
+        <Text text={f.seen} text_size={16} font_weight="bold" text_color={:on_surface} max_lines={1} />
       </Column>
     </Row>
     """
   end
+
+  # Material Symbols, not U+2605. Plus Jakarta Sans has no star glyph, so the
+  # text version rendered as nothing at all — an empty card rather than a
+  # missing-glyph box, which is why it read as a layout bug.
+  @doc false
+  def stars(filled) do
+    ~MOB"""
+    <Row align="center">
+      {Enum.map(1..5, fn i -> Kati.Screens.Film.star(i <= filled) end)}
+    </Row>
+    """
+  end
+
+  @doc false
+  def star(true), do: Kati.UI.symbol("star", size: 19, color: 0xFFE8823C, fill: true)
+  def star(false), do: Kati.UI.symbol("star", size: 19, color: 0xFFDCD5C9)
 
   @doc false
   def note(f) do
@@ -200,11 +225,15 @@ defmodule Kati.Screens.Film do
   @doc false
   def action_gap, do: ~MOB"<Spacer size={10} />"
 
+  # A Box for the frame and a Column for the stack, not a Column doing both.
+  # `Column` takes no horizontal alignment in this bridge, so its children pin
+  # to the left edge — the icons and labels sat against the button's left side.
+  # A Box centres its content in both axes when given `align`.
   @doc false
   def action(icon, label) do
     ~MOB"""
     <Box weight={1.0}>
-      <Column
+      <Box
         fill_width={true}
         height={52}
         corner_radius={20}
@@ -212,10 +241,16 @@ defmodule Kati.Screens.Film do
         shadow={Kati.Theme.shadow_card_soft()}
         align="center"
       >
-        {Kati.UI.symbol(icon, size: 19)}
-        <Spacer size={3} />
-        <Text text={label} text_size={10.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
-      </Column>
+        <Column>
+          <Row align="center">
+            <Spacer weight={1.0} />
+            {Kati.UI.symbol(icon, size: 19)}
+            <Spacer weight={1.0} />
+          </Row>
+          <Spacer size={3} />
+          <Text text={label} text_size={10.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} text_align="center" />
+        </Column>
+      </Box>
     </Box>
     """
   end

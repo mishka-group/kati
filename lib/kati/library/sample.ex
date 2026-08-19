@@ -165,7 +165,7 @@ defmodule Kati.Library.Sample do
       slug: "blue_hour",
       meta: "2025 · 1H 52M · DRAMA",
       watched: "Watched 12 Aug",
-      rating: "★★★★☆",
+      stars: 4,
       seen: "2 times",
       note_date: "Note · 12 Aug",
       note:

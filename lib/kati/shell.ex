@@ -94,12 +94,12 @@ defmodule Kati.Shell do
   # chrome so text does not collide with the pill as it scrolls under. Mob has no
   # gradient node, so this is a flat scrim at the paper colour: visually weaker
   # than the design, and recorded as such rather than pretended.
-  defp scrim(mode) do
-    fill = Kati.Theme.paper(mode)
-
+  # A fade, not a lid. The flat opaque Box this replaces cut straight through
+  # whatever it covered — visibly slicing Home's Sections tiles in half.
+  defp scrim(_mode) do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="bottom">
-      <Box fill_width={true} height={112} background={fill} />
+      {Kati.UI.paper_fade(120)}
     </Box>
     """
   end

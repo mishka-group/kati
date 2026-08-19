@@ -54,6 +54,9 @@ defmodule Kati.Screens.Series do
     <Box fill_width={true} height={330} background={0xFFDCD7CF}>
       {Kati.Screens.Series.hero_art()}
       <Box fill_width={true} fill_height={true} align="bottom">
+        {Kati.UI.paper_fade(190)}
+      </Box>
+      <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
           <Text
             text={s.title}

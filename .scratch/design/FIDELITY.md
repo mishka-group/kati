@@ -43,7 +43,8 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 | 05 | New releases inbox | ✓ | Back pill + Mark all, cream watcher card, Out now rows with poster/dot/Watch, dated Coming up card. `Kati.Library.Sample.inbox/0`. |
 | 06 | Add a title | ✓ | Focused field with the 2px ink ring and orange caret, chips, results in both add/added states, by-hand CTA. Its own close button, not the pushed back pill. Should become a native sheet (#45). |
 | 07 | Your year (Stats) | ✓ | 20/20 text, 12/12 icons. Cream hero, change pill, 26-week contribution grid, count cards, breakdown bars, More numbers list. |
-| 08, 10–54 | | — | |
+| 08 | Film detail | ✓ | Gradient over the artwork makes the title readable, rating card correct height with real star glyphs, note on cream, where-to-watch rows, three centred action buttons. |
+| 09–54 | | — | |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
 
 ## Missing data is not a reason for a blank screen
@@ -53,6 +54,11 @@ will supply later, so the screen can be compared with its drawing and every
 state in the design gets exercised. `Kati.Library.Sample` is the pattern:
 clearly named, documented as a stand-in, and read through the same list-of-maps
 shape the real domain will return, so swapping it out is a one-line change.
+
+## Fixed (was: open defects on 08)
+
+The gradient, the rating card and the action buttons are all done — see the
+K-11 commit. What follows is kept because the reasoning still applies.
 
 ## Open defects found by LOOKING (screen 08)
 
