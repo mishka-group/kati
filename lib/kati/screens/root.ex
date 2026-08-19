@@ -76,6 +76,13 @@ defmodule Kati.Screens.Root do
       # Root switching. `Mob.Socket.switch_tab/2` is inert for a hand-rolled
       # shell — Mob.Screen discards the action at screen.ex:611-613 — so the
       # shell navigates itself with reset_to/3.
+      # The FAB opens the add sheet from every root — screen 06's note calls it
+      # "one sheet reached from the + button", so it belongs here rather than
+      # in four copies.
+      def handle_info({:tap, :fab}, socket) do
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+      end
+
       def handle_info({:tap, tag}, socket) do
         case Atom.to_string(tag) do
           "root_" <> id ->

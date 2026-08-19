@@ -124,7 +124,7 @@ defmodule Kati.Screens.Inbox do
         padding_bottom={11}
         vertical_align="center"
       >
-        <Box width={44} height={62} corner_radius={9} background={0xFFE4E0D9} />
+        {Kati.Screens.Inbox.thumb(row)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Row fill_width={true} vertical_align="center">
@@ -145,6 +145,16 @@ defmodule Kati.Screens.Inbox do
       <Spacer size={9} />
     </Column>
     """
+  end
+
+  @doc false
+  def thumb(row) do
+    case Kati.Library.Sample.poster(row[:slug]) do
+      nil -> ~MOB"<Box width={44} height={62} corner_radius={9} background={0xFFE4E0D9} />"
+      src -> ~MOB"""
+        <Image src={src} width={44} height={62} corner_radius={9} content_mode="fill" />
+        """
+    end
   end
 
   @doc false

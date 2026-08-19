@@ -17,16 +17,37 @@ defmodule Kati.Library.Sample do
   """
 
   @titles [
-    %{title: "The Long Hollow", progress: 0.62, kind: :series},
-    %{title: "Salt & Iron", progress: 0.24, kind: :series},
-    %{title: "Blue Hour", progress: 0.0, kind: :film},
-    %{title: "Nightjar", progress: 1.0, kind: :series},
-    %{title: "The Quiet Coast", progress: 0.41, kind: :series},
-    %{title: "Ember & Ash", progress: 0.0, kind: :film},
-    %{title: "Winterlight", progress: 1.0, kind: :film},
-    %{title: "Paper Cities", progress: 0.08, kind: :series},
-    %{title: "The Fen", progress: 0.0, kind: :series}
+    %{title: "The Long Hollow", slug: "long_hollow", progress: 0.62, kind: :series},
+    %{title: "Salt & Iron", slug: "salt_iron", progress: 0.24, kind: :series},
+    %{title: "Blue Hour", slug: "blue_hour", progress: 0.0, kind: :film},
+    %{title: "Nightjar", slug: "nightjar", progress: 1.0, kind: :series},
+    %{title: "The Quiet Coast", slug: "quiet_coast", progress: 0.41, kind: :series},
+    %{title: "Ember & Ash", slug: "ember_ash", progress: 0.0, kind: :film},
+    %{title: "Winterlight", slug: "winterlight", progress: 1.0, kind: :film},
+    %{title: "Paper Cities", slug: "paper_cities", progress: 0.08, kind: :series},
+    %{title: "The Fen", slug: "the_fen", progress: 0.0, kind: :series}
   ]
+
+  @doc """
+  Absolute path to a sample poster, or `nil` when there is none.
+
+  The artwork lives in `priv/sample/`, which #72 proved survives a release
+  build, so the same lookup works in dev and on a shipped device. Real artwork
+  rather than grey rectangles, because a screen full of placeholders cannot be
+  compared with a drawing full of posters.
+  """
+  @spec poster(String.t()) :: String.t() | nil
+  def poster(slug) do
+    path = Kati.Priv.path("sample/posters/#{slug}.jpg")
+    if File.exists?(path), do: path, else: nil
+  end
+
+  @doc "Wide artwork for a series header."
+  @spec art(String.t()) :: String.t() | nil
+  def art(slug) do
+    path = Kati.Priv.path("sample/art/#{slug}.jpg")
+    if File.exists?(path), do: path, else: nil
+  end
 
   @doc "Every title, in the order the grid draws them."
   @spec titles() :: [map()]
@@ -59,7 +80,7 @@ defmodule Kati.Library.Sample do
   @spec series() :: map()
   def series do
     %{
-      title: "The Long Hollow",
+      title: "The Long Hollow", slug: "long_hollow",
       meta: "2024 · DRAMA · LUMEN+ · 3 SEASONS",
       season: "Season 2",
       seasons: ["S1", "S2", "S3"],
@@ -93,19 +114,19 @@ defmodule Kati.Library.Sample do
       last_checked: "last checked 18:02 · every 6h",
       out_now: [
         %{
-          title: "The Long Hollow",
+          title: "The Long Hollow", slug: "long_hollow",
           line: "S2 E6 — Ash and After",
           meta: "48 min · LUMEN+ · aired 20:00",
           dot: 0xFFE8823C
         },
         %{
-          title: "Blue Hour",
+          title: "Blue Hour", slug: "blue_hour",
           line: "Premiere",
           meta: "1h 52m · CINEMA · out today",
           dot: 0xFF4E9A73
         },
         %{
-          title: "Paper Cities",
+          title: "Paper Cities", slug: "paper_cities",
           line: "S1 E2 — The Cartographer",
           meta: "44 min · LUMEN+ · aired 19:00",
           dot: 0xFFE8823C
@@ -117,5 +138,22 @@ defmodule Kati.Library.Sample do
         %{month: "SEP", day: "02", title: "Ember & Ash", line: "Leaves Lumen+", meta: "Tue"}
       ]
     }
+  end
+
+  @doc """
+  Search results for screen 06, mid-query on "quiet".
+
+  Two states are drawn and both appear here: a title not in the library yet
+  (ink `add` button) and one already added (muted `check`), because the design
+  distinguishes them and a list of four identical rows would not exercise it.
+  """
+  @spec search_results() :: [map()]
+  def search_results do
+    [
+      %{title: "The Quiet Coast", slug: "quiet_coast", meta: "2023 · SERIES · 2 SEASONS", note: "Drama · Lumen+", added: false},
+      %{title: "Quiet Earth", slug: "quiet_earth", meta: "2019 · FILM · 1h 48m", note: "Science fiction", added: false},
+      %{title: "A Quiet Place to Land", slug: "quiet_place", meta: "2021 · FILM · 2h 04m", note: "Drama · Cinema", added: true},
+      %{title: "Quietus", slug: "quietus", meta: "2024 · SERIES · 1 SEASON", note: "Thriller · Northlight", added: false}
+    ]
   end
 end

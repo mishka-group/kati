@@ -229,6 +229,7 @@ defmodule Kati.Screens.Library do
     ~MOB"""
     <Column width={112} on_tap={tap}>
       <Box width={112} height={158} corner_radius={13} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+        {Kati.Screens.Library.artwork(item)}
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Library.progress(item.progress)}
         </Box>
@@ -237,6 +238,22 @@ defmodule Kati.Screens.Library do
       <Text text={item.title} text_size={12.5} font_weight="bold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
     </Column>
     """
+  end
+
+  # Real artwork, not a grey rectangle. `content_mode="fill"` crops to the
+  # frame the way a poster does; without it Coil letterboxes and the card
+  # develops margins the design does not have.
+  @doc false
+  def artwork(item) do
+    case Kati.Library.Sample.poster(item[:slug]) do
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      src ->
+        ~MOB"""
+        <Image src={src} width={112} height={158} corner_radius={13} content_mode="fill" />
+        """
+    end
   end
 
   # Burnt into the poster's bottom edge, not floated under it: a 4pt track at

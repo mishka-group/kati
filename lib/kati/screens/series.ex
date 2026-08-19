@@ -52,6 +52,7 @@ defmodule Kati.Screens.Series do
   def artwork(s) do
     ~MOB"""
     <Box fill_width={true} height={330} background={0xFFDCD7CF}>
+      {Kati.Screens.Series.hero_art()}
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
           <Text
@@ -68,6 +69,16 @@ defmodule Kati.Screens.Series do
       </Box>
     </Box>
     """
+  end
+
+  @doc false
+  def hero_art do
+    case Kati.Library.Sample.art("long_hollow_wide") do
+      nil -> ~MOB"<Spacer size={0} />"
+      src -> ~MOB"""
+        <Image src={src} fill_width={true} height={330} content_mode="fill" />
+        """
+    end
   end
 
   # The floating chrome. `arrow_back_ios_new` rather than a chevron, because
