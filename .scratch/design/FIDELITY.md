@@ -54,6 +54,23 @@ state in the design gets exercised. `Kati.Library.Sample` is the pattern:
 clearly named, documented as a stand-in, and read through the same list-of-maps
 shape the real domain will return, so swapping it out is a one-line change.
 
+## Open defects found by LOOKING (screen 08)
+
+1. **No gradient over the artwork.** The drawing puts a 190pt
+   `linear-gradient(to top, rgba(239,236,231,1) 4%, transparent)` over the
+   bottom of the 330pt image, so the title sits on paper. Without it "Blue
+   Hour" is near-black text on a dark blue photograph and cannot be read, and
+   the green watched pill nearly vanishes. Screens 04 and 08 both need it, and
+   Home's bottom scrim is the same problem — so it belongs in the bridge as a
+   `gradient` prop, next to `shadow`, not as a per-screen hack.
+2. **The rating card renders ~267dp tall and nearly empty.** "YOUR RATING" and
+   the stars do not appear; only SEEN / 2 times shows, pushed to the bottom
+   right. Suspect two causes: `text_align="right"` makes a Text `fillMaxWidth`
+   in this bridge, which distorts the Row, and Plus Jakarta Sans may not carry
+   U+2605 so the stars render as nothing. Use the Material Symbols `star`
+   glyph, which is definitely in the subset.
+3. The title/meta sit at the artwork's bottom edge with no readable ground.
+
 ## The plan
 
 **All 62 pages first**, with dummy data, inventing any page the app needs that
