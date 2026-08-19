@@ -35,12 +35,21 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 
 | # | screen | state | notes |
 |---|---|---|---|
-| 01 | Home | ~ | Built to the drawing. **Open bug: the hero renders far too tall** — something inside it takes height it should not. Debug backgrounds did not repaint under `mob.watch` even after a root switch, so it is still unmeasured. Bisect it first: give the inner Row an explicit height, or drop children one at a time, and force a real remount (kill + relaunch, not a tab tap). |
-| 02 | Schedule | ~ | header must read `Schedule` + `Sunday 16 August · 5 items`, with `Today` leading the day strip |
+| 01 | Home | ✓ | Hero height fixed — the Open inbox pill was a `Box` with no width, so it filled the card. Remaining: the drawing's own copy still stands in for the hero, Continue watching and section counts until the Screen domain exists. |
+| 02 | Schedule | ✓ | Header, mono subtitle, both discs, month row with `unfold_more` + Today pill, seven flex:1 cells at radius 16, chips, and the 44pt time column beside each event card. Events are real. Outstanding: the all-day/merged rows and the done-state `#F4F1EC` card. |
 | 03 | Library | — | |
 | 09 | A heavy day | ~ | lanes, `+1 MORE` and the gutter are right; poster stacks, all-day band and merged money events outstanding |
 | 04–08, 10–54 | | — | |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
+
+## Compare, do not remember
+
+    python3 bin/compare_screen.py 02
+
+Builds `.scratch/design/compare/NN.html` — the drawing and a live device shot
+side by side at the same scale on a shared 100pt rule grid. Serve the repo
+(`python3 -m http.server 8777`) and open it. A double-height card looked
+plausible for two sessions; next to the drawing it was obvious in a second.
 
 ## Bridge props that exist now
 
