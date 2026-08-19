@@ -37,10 +37,18 @@ eyebrow       DM Mono 10.5px / .16em / uppercase, preceded by a 13x2 accent dash
 |---|---|---|---|
 | 01 | Home | ✓ | Hero height fixed — the Open inbox pill was a `Box` with no width, so it filled the card. Remaining: the drawing's own copy still stands in for the hero, Continue watching and section counts until the Screen domain exists. |
 | 02 | Schedule | ✓ | Header, mono subtitle, both discs, month row with `unfold_more` + Today pill, seven flex:1 cells at radius 16, chips, and the 44pt time column beside each event card. Events are real. Outstanding: the all-day/merged rows and the done-state `#F4F1EC` card. |
-| 03 | Library | — | |
+| 03 | Library | ✓ | Segmented control on its #E4E0D9 trough, three quick tiles with mono counts, count chips, 3-across 112x158 poster grid with the progress bar burnt into the bottom edge. Books and Music greyed, which is #60's decision as well as the drawing. Data from `Kati.Library.Sample` until the Screen domain lands. |
 | 09 | A heavy day | ~ | lanes, `+1 MORE` and the gutter are right; poster stacks, all-day band and merged money events outstanding |
 | 04–08, 10–54 | | — | |
 | 55–62 | Persian mirrors | — | same screens, `fa`, Vazirmatn, Saturday-first, RTL container |
+
+## Missing data is not a reason for a blank screen
+
+Where a domain does not exist yet, a `Sample` module supplies the shape it
+will supply later, so the screen can be compared with its drawing and every
+state in the design gets exercised. `Kati.Library.Sample` is the pattern:
+clearly named, documented as a stand-in, and read through the same list-of-maps
+shape the real domain will return, so swapping it out is a one-line change.
 
 ## Compare, do not remember
 
