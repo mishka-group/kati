@@ -60,11 +60,29 @@ def foreground():
 
 
 def open_gallery():
+    """Cold start, scroll Home to the top, then tap the bell.
+
+    Scrolling first is not defensive padding: a relaunched Home comes back
+    where it was left, and if it is scrolled the bell is off-screen. Every tap
+    then lands on a card and every subsequent "gallery scroll" scrolls HOME —
+    which is what stalled a 34-screen run at the first row, with the process
+    alive and producing nothing.
+    """
     adb("shell", "am", "force-stop", PKG)
     adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
     time.sleep(14)
+
+    for _ in range(3):
+        adb("shell", "input", "swipe", "540", "700", "540", "1900", "220")
+        time.sleep(0.4)
+
     adb("shell", "input", "tap", str(BELL[0]), str(BELL[1]))
     time.sleep(3)
+
+    # Prove we are in the gallery before anyone starts scrolling it.
+    if not any(t == "All screens" for t, _, _ in dump()):
+        adb("shell", "input", "tap", str(BELL[0]), str(BELL[1]))
+        time.sleep(3)
 
 
 def find_row(label, scrolls=8):
