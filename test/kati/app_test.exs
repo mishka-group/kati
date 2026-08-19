@@ -1,5 +1,9 @@
 defmodule Kati.AppTest do
-  use ExUnit.Case, async: true
+  # NOT async: these mutate `MOB_BEAMS_DIR`, which is process-global. Run
+  # concurrently with anything else that reads or clears it — as the priv
+  # probe tests do — and they race: one test's setup deletes the variable
+  # another is mid-assertion on. It failed roughly one run in three.
+  use ExUnit.Case, async: false
 
   describe "priv_path/1" do
     test "uses MOB_BEAMS_DIR when the device sets it" do

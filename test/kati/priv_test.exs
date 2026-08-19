@@ -7,7 +7,11 @@ defmodule Kati.PrivTest do
   in this area is silent at build time and fatal at runtime on a user's
   phone, so each rule that was verified by hand there is held here instead.
   """
-  use ExUnit.Case, async: true
+  # NOT async: these mutate `MOB_BEAMS_DIR`, which is process-global. Run
+  # concurrently with anything else that reads or clears it — as the priv
+  # probe tests do — and they race: one test's setup deletes the variable
+  # another is mid-assertion on. It failed roughly one run in three.
+  use ExUnit.Case, async: false
 
   # The deploy tooling exports MOB_BEAMS_DIR — a DEVICE path — and it leaks
   # into a shell that later runs the suite. `Kati.Priv.path/1` then resolves
