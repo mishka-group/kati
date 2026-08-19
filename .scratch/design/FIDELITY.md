@@ -77,6 +77,17 @@ K-11 commit. What follows is kept because the reasoning still applies.
    glyph, which is definitely in the subset.
 3. The title/meta sit at the artwork's bottom edge with no readable ground.
 
+## Not a bug: hardware BACK
+
+I recorded "BACK quits the app instead of popping" as a defect. It is not.
+`Mob.Screen.handle_info({:mob, :back}, …)` (screen.ex:444) pops the nav stack
+and only calls `exit_app()` when the history is empty — correct behaviour.
+
+The capture harness pressed BACK once per screen, so the stack unwound to Home
+after a few screens and the next BACK properly quit. The app was right and the
+harness was wrong. Worth writing down, because "the framework is broken" is a
+comfortable conclusion and it was the wrong one.
+
 ## The plan
 
 **All 62 pages first**, with dummy data, inventing any page the app needs that
