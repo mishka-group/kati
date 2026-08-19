@@ -4,6 +4,9 @@
 # which are canonical. A second copy here would drift.
 .scratch/*
 !.scratch/research/
+# .scratch/design/ is tracked too: it is the split of the owner's Claude Design
+# export, and every fidelity decision is checked against it.
+!.scratch/design/
 !.scratch/issue-map.json
 
 # ── Elixir ──────────────────────────────────────────────────────────────

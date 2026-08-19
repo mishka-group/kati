@@ -1,0 +1,77 @@
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="position:relative;height:100%;background:#EFECE7;overflow:hidden">
+          <div style="height:100%;overflow:auto">
+
+            <div style="position:relative;width:100%;height:330px;background:#DCD7CF">
+              <image-slot id="alm-series-hero" shape="rect" src="https://picsum.photos/seed/hollow71/900/740" placeholder="Series still / poster"></image-slot>
+              <div style="position:absolute;left:0;right:0;bottom:0;height:190px;background:linear-gradient(to top,rgba(239,236,231,1) 4%,rgba(239,236,231,.72) 42%,rgba(239,236,231,0));pointer-events:none"></div>
+              <div style="position:absolute;top:60px;left:21px;right:21px;display:flex;justify-content:space-between;pointer-events:none">
+                <div style="height:42px;border-radius:21px;background:rgba(251,250,248,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 6px 16px -8px rgba(26,25,23,.6);display:flex;align-items:center;gap:6px;padding:0 16px 0 12px;flex-shrink:0"><span style="font-family:'Material Symbols Rounded';font-size:17px;color:#1A1917">arrow_back_ios_new</span><div style="font-size:13.5px;font-weight:600;letter-spacing:-.01em;color:#1A1917">Library</div></div>
+                <div style="width:42px;height:42px;border-radius:21px;background:rgba(251,250,248,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px -8px rgba(26,25,23,.6)"><span style="font-family:'Material Symbols Rounded';font-size:21px;color:#1A1917">more_horiz</span></div>
+              </div>
+              <div style="position:absolute;left:21px;right:21px;bottom:6px;pointer-events:none">
+                <div style="font-size:30px;font-weight:800;letter-spacing:-.035em;color:#1A1917;line-height:1.05">The Long Hollow</div>
+                <div style="font-family:'DM Mono',monospace;font-size:11.5px;color:#6E6860;margin-top:9px">2024 &middot; DRAMA &middot; LUMEN+ &middot; 3 SEASONS</div>
+              </div>
+            </div>
+
+            <div style="padding:16px 21px 40px">
+
+              <div style="background:#FBFAF8;border-radius:22px;padding:17px;box-shadow:0 1px 2px rgba(26,25,23,.04),0 14px 26px -18px rgba(26,25,23,.7)">
+                <div style="display:flex;align-items:baseline;justify-content:space-between">
+                  <div style="font-size:15px;font-weight:700;letter-spacing:-.02em;color:#1A1917">Season 2</div>
+                  <div style="font-family:'DM Mono',monospace;font-size:11.5px;color:#8A8479">{{ progressLabel }}</div>
+                </div>
+                <div style="height:6px;border-radius:3px;background:#E7E3DC;margin-top:12px"><div style="height:6px;width:{{ progressPct }};border-radius:3px;background:#1A1917"></div></div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+                  <div style="width:6px;height:6px;border-radius:3px;background:{{ nextDot }}"></div>
+                  <div style="font-size:12.5px;color:#5C574F">{{ nextAirPrefix }} <strong style="font-weight:600;color:#1A1917">{{ nextAirDate }}</strong></div>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:14px">
+                <div onClick="{{ markNext }}" style="flex:1;height:50px;border-radius:25px;background:#1A1917;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 12px 24px -12px rgba(26,25,23,.85);cursor:pointer">
+                  <span style="font-family:'Material Symbols Rounded';font-size:19px;color:#FBFAF8">check</span>
+                  <div style="font-size:14px;font-weight:700;color:#FBFAF8">{{ markLabel }}</div>
+                </div>
+                <div style="width:50px;height:50px;border-radius:25px;background:#FBFAF8;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(26,25,23,.05),0 10px 20px -14px rgba(26,25,23,.7)"><span style="font-family:'Material Symbols Rounded';font-size:21px;color:#1A1917">bookmark</span></div>
+                <div style="width:50px;height:50px;border-radius:25px;background:#FBFAF8;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(26,25,23,.05),0 10px 20px -14px rgba(26,25,23,.7)"><span style="font-family:'Material Symbols Rounded';font-size:21px;color:#1A1917">star</span></div>
+              </div>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;margin:26px 2px 12px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="width:13px;height:2px;border-radius:1px;background:#E8823C"></div>
+                  <div style="font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#A0998F">Episodes</div>
+                </div>
+                <div style="display:flex;gap:5px">
+                  <div style="width:30px;height:28px;border-radius:10px;background:#E4E0D9;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11.5px;color:#6E6860">S1</div>
+                  <div style="width:30px;height:28px;border-radius:10px;background:#1A1917;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11.5px;color:#FBFAF8">S2</div>
+                  <div style="width:30px;height:28px;border-radius:10px;background:#E4E0D9;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11.5px;color:#6E6860">S3</div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ episodes }}" as="ep" hint-placeholder-count="7">
+                  <div onClick="{{ ep.toggle }}" style="display:flex;align-items:center;gap:13px;padding:13px 15px;background:{{ ep.rowBg }};border-radius:17px;cursor:pointer;box-shadow:{{ ep.rowShadow }}">
+                    <div style="font-family:'DM Mono',monospace;font-size:12px;color:#B3ACA2;width:22px">{{ ep.n }}</div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:14px;font-weight:600;letter-spacing:-.01em;color:{{ ep.titleColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ep.title }}</div>
+                      <div style="font-family:'DM Mono',monospace;font-size:10.5px;color:#B3ACA2;margin-top:4px">{{ ep.sub }}</div>
+                    </div>
+                    <div style="width:27px;height:27px;border-radius:14px;flex-shrink:0;border:{{ ep.checkBorder }};background:{{ ep.checkBg }};display:flex;align-items:center;justify-content:center">
+                      <span style="font-family:'Material Symbols Rounded';font-size:16px;color:{{ ep.checkColor }}">check</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </x-import>
+      <div style="font-size:13px;line-height:1.5;color:#5C574F;margin-top:16px;max-width:380px;text-wrap:pretty">Tap any row to mark it watched &mdash; the season bar, the button label and the next-up count all follow. Spoiler-safe titles are a tweak.</div>
+    </div>
+
+    <!-- ══ 05 INBOX ══ -->
+    <div style="width:402px">
+      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6E6860;margin-bottom:14px">05 &mdash; New releases inbox</div>
