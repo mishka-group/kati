@@ -156,4 +156,26 @@ defmodule Kati.Library.Sample do
       %{title: "Quietus", slug: "quietus", meta: "2024 · SERIES · 1 SEASON", note: "Thriller · Northlight", added: false}
     ]
   end
+
+  @doc "One film, as screen 08 draws it."
+  @spec film() :: map()
+  def film do
+    %{
+      title: "Blue Hour",
+      slug: "blue_hour",
+      meta: "2025 · 1H 52M · DRAMA",
+      watched: "Watched 12 Aug",
+      rating: "★★★★☆",
+      seen: "2 times",
+      note_date: "Note · 12 Aug",
+      note:
+        "Saw it at the Rex with Jo. The last twenty minutes are the whole film — " <>
+          "everything before is the setup you only understand afterwards.",
+      where: [
+        %{badge: "L", name: "Lumen+", price: "included"},
+        %{badge: "K", name: "Kino store", price: "£9.99"}
+      ],
+      actions: [{"replay", "Log rewatch"}, {"event", "Schedule"}, {"ios_share", "Share"}]
+    }
+  end
 end

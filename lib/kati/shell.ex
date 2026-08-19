@@ -111,6 +111,15 @@ defmodule Kati.Shell do
   # as a separate overlay pinned above the bar — which is what this did first —
   # the FAB lands in the wrong place at every width, because in the design it is
   # not above the bar, it is the last item in the row.
+  # The bar carries NO inner padding, despite the drawing's `padding:0 9px`.
+  #
+  # Measured against the reference: with 9dp each side the four icon centres
+  # land at 14.9 / 38.4 / 61.8 / 85.4% of the bar, compressed inward, because
+  # the padding is subtracted before the four weighted slots are distributed.
+  # Without it they sit at 12.5 / 37.5 / 62.5 / 87.5%, which is what the
+  # drawing shows. CSS `space-around` distributes within the content box and
+  # then the browser's own optical rounding differs; the number that matters
+  # is where the icons end up, and this is the version that matches.
   defp dock(active, mode) do
     ink = Kati.Theme.ink()
     fill = Kati.Theme.chrome_fill(mode)
@@ -126,7 +135,7 @@ defmodule Kati.Shell do
         padding_bottom={30}
       >
         <Box weight={1.0} height={64} background={fill} corner_radius={32}>
-          <Row fill_width={true} vertical_align="center" padding_left={9} padding_right={9}>
+          <Row fill_width={true} vertical_align="center">
             {Enum.map(Kati.Shell.roots(), fn root -> Kati.Shell.tab(root, active, mode) end)}
           </Row>
         </Box>

@@ -224,7 +224,9 @@ defmodule Kati.Screens.Library do
 
   @doc false
   def poster(item) do
-    tap = {self(), :open_title}
+    # A film opens the film screen and a series the series screen — the design
+    # draws them as two different screens, so the grid has to know which.
+    tap = {self(), if(item.kind == :film, do: :open_film, else: :open_series)}
 
     ~MOB"""
     <Column width={112} on_tap={tap}>
@@ -278,6 +280,7 @@ defmodule Kati.Screens.Library do
   def progress_rest(rest), do: ~MOB"<Spacer weight={rest} />"
 
   @impl true
-  def handle_tap(:open_title, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
+  def handle_tap(:open_series, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
+  def handle_tap(:open_film, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end
