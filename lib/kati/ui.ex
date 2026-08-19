@@ -42,6 +42,49 @@ defmodule Kati.UI do
     """
   end
 
+  @doc """
+  A section label: a 13x2 accent dash, then mono caps.
+
+  The design uses it eleven times on Home alone, always
+  `DM Mono 10.5px / .16em / uppercase / #A0998F` after a `#E8823C` dash — the
+  one place orange appears without meaning "new" or "now", because it is
+  punctuation rather than status.
+
+  `:trailing` adds a right-aligned label, which the design uses for "See all".
+  """
+  @spec eyebrow(String.t(), keyword()) :: term()
+  def eyebrow(label, opts \\ []) do
+    trailing = Keyword.get(opts, :trailing)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} vertical_align="center" padding_left={2} padding_right={2}>
+        <Box width={13} height={2} corner_radius={1} background={0xFFE8823C} />
+        <Spacer size={9} />
+        <Text
+          text={String.upcase(label)}
+          font_family="mono"
+          text_size={10.5}
+          letter_spacing={0.16}
+          text_color={0xFFA0998F}
+        />
+        <Spacer weight={1.0} />
+        {Kati.UI.eyebrow_trailing(trailing)}
+      </Row>
+      <Spacer size={11} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def eyebrow_trailing(nil), do: ~MOB"<Spacer size={0} />"
+
+  def eyebrow_trailing(label) do
+    ~MOB"""
+    <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFF8A8479} />
+    """
+  end
+
   @doc "The elevated card: the design's most repeated recipe (262 uses)."
   def card(children, opts \\ []) do
     pad = Keyword.get(opts, :padding, 21)

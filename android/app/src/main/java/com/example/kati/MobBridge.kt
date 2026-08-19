@@ -99,6 +99,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+// KATI-BEGIN(K-08 box-shadow-import) mob_new=0.4.20
+import androidx.compose.ui.draw.drawBehind
+// KATI-END(K-08 box-shadow-import)
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
@@ -2739,9 +2742,19 @@ private fun MobText(node: MobNode, modifier: Modifier) {
         tappableModifier.fillMaxWidth()
     } else tappableModifier
 
+    // KATI-BEGIN(K-08 text-max-lines) mob_new=0.4.20
+    // The design truncates with an ellipsis in 40+ places — every card title
+    // carries `white-space:nowrap;overflow:hidden;text-overflow:ellipsis`.
+    // Without this the prop was accepted and ignored, and long titles reflowed
+    // the grid they were supposed to fit inside.
+    val maxLines = (intProp(node.props, "max_lines") ?: Int.MAX_VALUE).coerceAtLeast(1)
+    // KATI-END(K-08 text-max-lines)
+
     Text(
         text          = text,
         modifier      = textModifier,
+        maxLines      = maxLines,
+        overflow      = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         color         = color,
         fontSize      = fontSize,
         fontWeight    = fontWeight,
@@ -3803,6 +3816,48 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
     val cornerRadius = floatProp(props, "corner_radius") ?: 0f
     val shape = if (cornerRadius > 0f) RoundedCornerShape(cornerRadius.dp) else null
 
+    // KATI-BEGIN(K-08 box-shadow) mob_new=0.4.20
+    // CSS box-shadow, including SPREAD.
+    //
+    // The design's dominant card recipe is
+    //   0 1px 2px rgba(26,25,23,.04), 0 12px 24px -18px rgba(26,25,23,.6)
+    // and it is used 262 times. The defining part is the -18px spread on the
+    // second layer: it pulls the large soft shadow in so the card looks lifted
+    // off warm paper rather than outlined. Compose's `Modifier.shadow` takes a
+    // single elevation and has NO spread at all, so it cannot draw this — which
+    // is why #33 chose drawBehind + Paint.setShadowLayer instead.
+    //
+    // Prop format mirrors CSS, layers separated by `|`:
+    //   shadow="0 1 2 0 #0A1A1917 | 0 12 24 -18 #991A1917"
+    //           dx dy blur spread #AARRGGBB
+    shadowLayers(props)?.let { layers ->
+        m = m.drawBehind {
+            drawIntoCanvas { canvas ->
+                val r = cornerRadius.dp.toPx()
+                layers.forEach { l ->
+                    val paint = android.graphics.Paint().apply {
+                        isAntiAlias = true
+                        // The shape itself is transparent; only the shadow it
+                        // casts is drawn, which is what lets layers stack
+                        // without each one painting over the last.
+                        color = android.graphics.Color.TRANSPARENT
+                        setShadowLayer(
+                            maxOf(l.blur.dp.toPx(), 0.01f),
+                            l.dx.dp.toPx(),
+                            l.dy.dp.toPx(),
+                            l.color
+                        )
+                    }
+                    val sp = l.spread.dp.toPx()
+                    canvas.nativeCanvas.drawRoundRect(
+                        -sp, -sp, size.width + sp, size.height + sp, r, r, paint
+                    )
+                }
+            }
+        }
+    }
+    // KATI-END(K-08 box-shadow)
+
     // Background must come before padding so it fills the full area (including
     // padding space). If background were applied after padding, it would only
     // draw behind the inner content area — making empty boxes invisible.
@@ -3845,14 +3900,23 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
     val bottom  = intProp(props, "padding_bottom")
     val left    = intProp(props, "padding_left")
     val hasEdge = top != null || right != null || bottom != null || left != null
+    // KATI-BEGIN(K-08 non-negative-padding) mob_new=0.4.20
+    // Clamp at zero. Compose throws IllegalArgumentException("Padding must be
+    // non-negative") from inside the render pass, which takes down the whole
+    // activity — the app vanishes to the launcher with no Elixir error. A
+    // negative padding is a mistake in one node's markup; it should not be
+    // fatal to the process. (CSS negative margin is not padding anyway: it
+    // also shrinks the layout box. Use offset_x/offset_y for overlap.)
+    fun pad(v: Int?): Int = (v ?: uniform ?: 0).coerceAtLeast(0)
+    // KATI-END(K-08 non-negative-padding)
     m = when {
         hasEdge  -> m.padding(
-            top    = (top    ?: uniform ?: 0).dp,
-            end    = (right  ?: uniform ?: 0).dp,
-            bottom = (bottom ?: uniform ?: 0).dp,
-            start  = (left   ?: uniform ?: 0).dp,
+            top    = pad(top).dp,
+            end    = pad(right).dp,
+            bottom = pad(bottom).dp,
+            start  = pad(left).dp,
         )
-        uniform != null -> m.padding(uniform.dp)
+        uniform != null -> m.padding(uniform.dp.coerceAtLeast(0.dp))
         else            -> m
     }
 
@@ -3929,6 +3993,32 @@ private fun jsonValueToKotlin(v: Any?): Any? = when (v) {
     JSONObject.NULL -> null
     else -> v
 }
+
+// KATI-BEGIN(K-08 box-shadow-parser) mob_new=0.4.20
+private data class KatiShadow(
+    val dx: Float, val dy: Float, val blur: Float, val spread: Float, val color: Int
+)
+
+// "0 12 24 -18 #991A1917 | 0 1 2 0 #0A1A1917" -> layers, painter's order.
+// A malformed layer is dropped rather than throwing: a wrong shadow is a
+// cosmetic defect, a crash in the render loop is a dead screen.
+private fun shadowLayers(props: Map<String, Any?>): List<KatiShadow>? {
+    val raw = props["shadow"] as? String ?: return null
+
+    val layers = raw.split("|").mapNotNull { part ->
+        val f = part.trim().split(Regex("\\s+"))
+        if (f.size != 5) return@mapNotNull null
+        try {
+            KatiShadow(
+                f[0].toFloat(), f[1].toFloat(), f[2].toFloat(), f[3].toFloat(),
+                android.graphics.Color.parseColor(f[4])
+            )
+        } catch (_: Exception) { null }
+    }
+
+    return layers.ifEmpty { null }
+}
+// KATI-END(K-08 box-shadow-parser)
 
 // KATI-BEGIN(K-14 bundled-fonts) mob_new=0.4.20
 // The design is drawn in Plus Jakarta Sans, DM Mono, Vazirmatn and Material

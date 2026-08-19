@@ -128,4 +128,20 @@ defmodule Kati.Theme do
   def gap_sm, do: 9
   def gap_md, do: 13
   def bottom_inset, do: 132
+
+  @doc """
+  The design's shadow recipes, in the `shadow` prop's CSS-like format:
+  `dx dy blur spread #AARRGGBB`, layers separated by `|`.
+
+  `card/0` is the one used 262 times. Its second layer's **-18 spread** is what
+  makes it read as lifted off warm paper rather than outlined, and it is
+  exactly what `Modifier.shadow` cannot express.
+  """
+  def shadow_card, do: "0 1 2 0 #0A1A1917 | 0 12 24 -18 #991A1917"
+  def shadow_card_soft, do: "0 1 2 0 #0A1A1917 | 0 12 24 -18 #B31A1917"
+  def shadow_button, do: "0 1 2 0 #0D1A1917 | 0 8 16 -12 #801A1917"
+  def shadow_search, do: "0 1 2 0 #0A1A1917 | 0 8 18 -14 #801A1917"
+  def shadow_hero, do: "0 1 2 0 #0A1A1917 | 0 14 28 -20 #80785018"
+  def shadow_poster, do: "0 4 10 -4 #73503714"
+  def shadow_dock, do: "0 1 2 0 #0D1A1917 | 0 14 30 -16 #B31A1917"
 end
