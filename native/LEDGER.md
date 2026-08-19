@@ -43,6 +43,8 @@ the baseline is refreshed, the fence goes and the row moves to *Retired*.
 | `K-26 calendar-permission` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Adds a `calendar` case to `request_permission`. Without it `Mob.Permissions.request(:calendar)` hit the else arm and reported **denied without ever asking**. | Arguably upstream — add to #76. |
 | `K-26 read-calendar` | `android/app/src/main/AndroidManifest.xml` | `READ_CALENDAR`. Read-only; write-back is #54's decision and needs `WRITE_CALENDAR`. | Kati-specific. |
 | `K-26 calendar-publish` | `android/app/src/main/java/com/example/kati/MainActivity.kt` | Publishes calendars on start. | Pairs with the reader. |
+| `K-14 bundled-fonts` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Replaces `fontFamilyProp`. The stock version asks `Typeface.create` for a family name the device does not have and falls back silently, and it reads `props["font"]` while the markup says `font_family` — so the design's four faces rendered as Roboto and nothing said why. Registers Plus Jakarta Sans, DM Mono, Vazirmatn and the Material Symbols subset, and accepts both prop spellings. | Kati-specific: the fonts are Kati's. The `font_family`/`font` mismatch is arguably upstream — add to #76. |
+| `K-14 bundled-fonts-import` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `androidx.compose.ui.text.font.Font`, needed to build a FontFamily from `R.font`. | Pairs with the row above. |
 
 ## Retired patches
 
