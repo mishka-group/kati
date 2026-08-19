@@ -238,10 +238,14 @@ defmodule Kati.Screens.Home do
     """
   end
 
+  # The design's own three, in the order it stacks them.
+  @hero_seeds ~w(ashfall42 marram15 harbour86)
+
   @doc false
   def poster(index) do
     shadow = Theme.shadow_poster()
     offset = index * 30
+    src = Kati.Design.Images.poster(Enum.at(@hero_seeds, index))
 
     ~MOB"""
     <Box
@@ -253,7 +257,18 @@ defmodule Kati.Screens.Home do
       border_width={2}
       border_color={0xFFFBF1DE}
       shadow={shadow}
-    />
+    >
+      {Kati.Screens.Home.poster_image(src)}
+    </Box>
+    """
+  end
+
+  @doc false
+  def poster_image(nil), do: ~MOB"<Spacer size={0} />"
+
+  def poster_image(src) do
+    ~MOB"""
+    <Image src={src} width={42} height={60} corner_radius={7} content_mode="fill" />
     """
   end
 
@@ -262,9 +277,9 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Column fill_width={true}>
     <Row fill_width={true} align="top">
-      {Kati.Screens.Home.watch_card("The Long Hollow", "S2 · E6 · 18m left", 0.62)}
+      {Kati.Screens.Home.watch_card("The Long Hollow", "S2 · E6 · 18m left", 0.62, "hollow71")}
       <Spacer size={13} />
-      {Kati.Screens.Home.watch_card("Salt & Iron", "S1 · E3 · 41m left", 0.24)}
+      {Kati.Screens.Home.watch_card("Salt & Iron", "S1 · E3 · 41m left", 0.24, "saltiron33")}
     </Row>
     <Spacer size={26} />
     </Column>
@@ -272,7 +287,7 @@ defmodule Kati.Screens.Home do
   end
 
   @doc false
-  def watch_card(title, meta, progress) do
+  def watch_card(title, meta, progress, seed) do
     card = Theme.card(:light)
     shadow = Theme.shadow_card()
     ink = Theme.ink()
@@ -281,7 +296,9 @@ defmodule Kati.Screens.Home do
     <Box weight={1.0}>
       <Box fill_width={true} background={card} corner_radius={20} shadow={shadow} padding={11}>
         <Column fill_width={true}>
-          <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9} />
+          <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9}>
+            {Kati.Screens.Home.still(seed)}
+          </Box>
           <Spacer size={11} />
           <Text
             text={title}
@@ -304,6 +321,22 @@ defmodule Kati.Screens.Home do
       </Box>
     </Box>
     """
+  end
+
+  # The 520x384 crop, which is what the design draws in these cards — a
+  # different photograph from the 400x600 poster of the same title, not the
+  # same image scaled.
+  @doc false
+  def still(seed) do
+    case Kati.Design.Images.path(seed, {520, 384}) do
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      src ->
+        ~MOB"""
+        <Image src={src} fill_width={true} height={112} corner_radius={12} content_mode="fill" />
+        """
+    end
   end
 
   @doc false
