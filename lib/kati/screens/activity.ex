@@ -136,17 +136,20 @@ defmodule Kati.Screens.Activity do
   @doc """
   One dated group as a single card of rows.
 
-  `stamp_size` and `stamp_spacing` are the only difference between Today and
-  Earlier this month in the drawing, which is why they are parameters here
-  rather than two near-identical functions.
+  `stamp_width`, `stamp_size` and `stamp_spacing` are the only difference
+  between Today and Earlier this month, which is why they are parameters here
+  rather than two near-identical functions. The width joined them because a
+  date does not fit a clock's gutter: `12 AUG` in 38 renders `12 A…`.
   """
-  def entries(rows, stamp_size, stamp_spacing) do
+  def entries(rows, stamp_width, stamp_size, stamp_spacing) do
     last = length(rows) - 1
 
     children =
       rows
       |> Enum.with_index()
-      |> Enum.map(fn {row, i} -> entry_row(row, stamp_size, stamp_spacing, i < last) end)
+      |> Enum.map(fn {row, i} ->
+        entry_row(row, stamp_width, stamp_size, stamp_spacing, i < last)
+      end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -172,11 +175,11 @@ defmodule Kati.Screens.Activity do
   # two text runs have to sit side by side inside it. The trailing weighted
   # Spacer is what makes the unweighted Texts ellipsize instead of overflowing.
   @doc false
-  def entry_row(row, stamp_size, stamp_spacing, rule?) do
+  def entry_row(row, stamp_width, stamp_size, stamp_spacing, rule?) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={12} padding_bottom={12}>
-        <Column width={38}>
+        <Column width={stamp_width}>
           <Text
             text={row.stamp}
             font_family="mono"
