@@ -127,8 +127,32 @@ defmodule Kati.Screens.Settings do
       SettingsList.body(row.title, row.sub),
       Kati.Screens.Settings.control(row.control),
       padding: pad,
-      rule: rule?
+      rule: rule?,
+      on_tap: Kati.Screens.Settings.tap_for(row.title)
     )
+  end
+
+  # Which rows lead somewhere. A row with no destination gets no tap, so it
+  # does not pretend to be a link.
+  @destinations %{
+    "Release watcher" => Kati.Screens.ReleaseWatcher,
+    "Calendars" => Kati.Screens.Calendars,
+    "Auto-detect" => Kati.Screens.AutoDetect,
+    "Import" => Kati.Screens.Import,
+    "Widgets" => Kati.Screens.Widgets,
+    "Account" => Kati.Screens.Account,
+    "Accessibility" => Kati.Screens.Accessibility,
+    "Language" => Kati.Screens.Language,
+    "Text size" => Kati.Screens.Accessibility,
+    "States" => Kati.Screens.States
+  }
+
+  @doc false
+  def destinations, do: @destinations
+
+  @doc false
+  def tap_for(title) do
+    if Map.has_key?(@destinations, title), do: {self(), String.to_atom("go_" <> title)}
   end
 
   @doc false
@@ -181,5 +205,19 @@ defmodule Kati.Screens.Settings do
       <Text text={label} text_size={11} font_weight="semibold" text_color={0xFFA0998F} max_lines={1} />
     </Row>
     """
+  end
+
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "go_" <> title ->
+        case Map.fetch(@destinations, title) do
+          {:ok, module} -> {:noreply, Mob.Socket.push_screen(socket, module)}
+          :error -> {:noreply, socket}
+        end
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 end

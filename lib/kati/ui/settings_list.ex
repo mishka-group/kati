@@ -177,9 +177,12 @@ defmodule Kati.UI.SettingsList do
   def row(leading, body, trailing, opts \\ []) do
     pad = Keyword.get(opts, :padding, 13)
     rule? = Keyword.get(opts, :rule, true)
+    # A row that names a screen should open it. Without a tap the whole
+    # settings tree is a picture of a settings tree.
+    tap = Keyword.get(opts, :on_tap)
 
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={pad} padding_bottom={pad}>
         {leading}
         <Spacer size={13} />
