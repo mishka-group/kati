@@ -88,6 +88,25 @@ after a few screens and the next BACK properly quit. The app was right and the
 harness was wrong. Worth writing down, because "the framework is broken" is a
 comfortable conclusion and it was the wrong one.
 
+## Interactive, and proved by tapping
+
+- **03 Library** — chips filter the grid (Watching → the 4 in-progress titles),
+  the Screen/Books/Music switcher changes shelf. Books and Music switch to an
+  EMPTY shelf, which is #60's decision shown honestly.
+- **02 Schedule** — chips filter, and a day cell selects ITS OWN day: tapping
+  Wed 19 re-queries and shows that day's 12 events, header and all. Every cell
+  used to push the same screen, so the strip looked interactive and was not.
+
+The pattern: state in `load/1` via `Mob.Socket.assign`, the tap tag carrying
+its own value (`filter_Watching`, `day_2026-08-20`), one `handle_tap` clause
+parsing it with `Atom.to_string/1`. Adding an option is then a data change
+rather than a new code clause.
+
+**A trap that will keep biting**: `bin/deploy_native.sh` runs `pm clear`, which
+wipes Kati's database AND revokes READ_CALENDAR. A screen then shows "0 items"
+and looks broken when it is empty for an entirely different reason. Re-grant
+and relaunch before concluding anything about calendar data.
+
 ## The plan
 
 **All 62 pages first**, with dummy data, inventing any page the app needs that
