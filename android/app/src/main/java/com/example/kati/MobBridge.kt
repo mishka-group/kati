@@ -230,6 +230,33 @@ import androidx.compose.ui.unit.sp
 // KATI-BEGIN(K-10 em-import) mob_new=0.4.20
 import androidx.compose.ui.unit.em
 // KATI-END(K-10 em-import)
+// KATI-BEGIN(K-18 anchored-node) mob_new=0.4.20
+// Imports for the `anchored` node type (MobAnchored, below).
+//
+// WHY these and not fewer: the panel has to draw in its OWN window
+// (androidx.compose.ui.window.Popup) because no in-flow arrangement survives
+// this app's containers — a `box` with a corner_radius clips and a vertical
+// `scroll` clips its main axis, and a panel placed outside either measures
+// (0,0,0,0): invisible AND untappable. Positioning that window needs the
+// density, the layout direction and the safe-area insets as raw numbers
+// (WindowInsets/safeDrawing, LocalDensity, LocalLayoutDirection), the screen
+// size to cap the panel against (LocalConfiguration, plus widthIn/heightIn),
+// and the Popup* pixel types the position provider is defined in.
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+// KATI-END(K-18 anchored-node)
 import coil.compose.AsyncImage
 import org.json.JSONObject
 import androidx.camera.core.CameraSelector
@@ -2662,9 +2689,21 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // button installs its own onClick via the Button composable. Mirrors iOS,
     // where most node types pick up onTapGesture via .ifLet(node.onTap).
     val tapHandle = intProp(node.props, "on_tap")
-    val tapModifier = if (tapHandle != null && node.type != "button") {
+    // KATI-BEGIN(K-18 anchored-node) mob_new=0.4.20
+    // `anchored` must be excluded here as well as `button`.
+    //
+    // WHY: on an anchored node `on_tap` is not "tap me" — it is the DISMISS
+    // handler, the report of a tap that landed OUTSIDE the panel's window.
+    // Kati.Components.Anchored deliberately ships `on_dismiss` down the wire as
+    // `on_tap` because that is the only tap-shaped prop Mob.Renderer registers,
+    // and MobAnchored reads it itself. Left in the generic branch, a clickable
+    // would wrap the whole node and swallow taps meant for the trigger inside
+    // it — the popover would open and then be impossible to operate.
+    // was: if (tapHandle != null && node.type != "button")
+    val tapModifier = if (tapHandle != null && node.type != "button" && node.type != "anchored") {
         modifier.clickable { MobBridge.nativeSendTap(tapHandle) }
     } else modifier
+    // KATI-END(K-18 anchored-node)
     val m = tapModifier.then(nodeModifier(node.props))
     when (node.type) {
         "column" -> Column(modifier = m) {
@@ -2768,8 +2807,340 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         "native_view"    -> MobNativeViewRegistry.render(node)
         "canvas"         -> MobCanvas(node, m)
         "gpu_view"       -> MobGpuView(node, m)
+        // KATI-BEGIN(K-18 anchored-node) mob_new=0.4.20
+        // WHY: `when` here has no else arm, so an unhandled node type renders
+        // as NOTHING — silently, with no log and no crash. Three vendored
+        // components (MishkaPopover, MishkaTooltip, MishkaPreviewCard) build
+        // `%{type: :anchored}` nodes and every one of them drew a blank until
+        // this arm existed.
+        "anchored"       -> MobAnchored(node, m)
+        // KATI-END(K-18 anchored-node)
     }
 }
+
+// KATI-BEGIN(K-18 anchored-node) mob_new=0.4.20
+// ── anchored ─────────────────────────────────────────────────────────────────
+//
+// WHY this exists: Kati.Components.MishkaPopover, MishkaTooltip and
+// MishkaPreviewCard build `%{type: :anchored, ...}` nodes, and this bridge had
+// no arm for them, so all three rendered as nothing at all.
+//
+// Exactly two children: [0] the ANCHOR (a popover's trigger), [1] the PANEL.
+// The anchor renders in flow; the panel renders in its OWN window via
+// androidx.compose.ui.window.Popup, so it OVERLAYS the page instead of taking a
+// place in it. That is what the web does — its three headless engines set
+// `position: fixed` and write viewport-space left/top — and it is the only
+// arrangement no ancestor can defeat: a Box with corner_radius clips
+// (nodeModifier, `m.clip(shape)`) and a vertical Scroll clips its main axis. An
+// in-flow overlay inside either measures (0,0,0,0): invisible AND untappable,
+// which is worse than the accordion it was meant to replace.
+//
+// Props (all read off THIS node, never off a child):
+//
+//   side              "top" | "right" | "bottom" | "left"    default "bottom"
+//   align             "start" | "center" | "end"             default "center"
+//   side_offset       dp gap between anchor and panel        default 0
+//   align_offset      dp nudge along the align axis          default 0
+//   panel_offset_x/y  dp raw nudge, applied last             default 0
+//   flip              turn to the opposite side when the
+//                     requested one has no room              default true
+//   clamp             keep the panel inside the window       default true
+//   edge_padding      dp kept clear of the window edges      default 8
+//   panel_max_width   dp cap on the panel                    default screen - 2*edge
+//   panel_max_height  dp cap on the panel                    default screen - 2*edge
+//   focusable         let the panel take keyboard focus      default false
+//
+// NOT read: offset_x / offset_y. RenderNode wraps any node carrying those in a
+// Box(Modifier.offset), which would move the ANCHOR, not the panel — hence the
+// separate panel_offset_* names. Do not add them.
+@Composable
+private fun MobAnchored(node: MobNode, modifier: Modifier) {
+    val anchor = node.children.getOrNull(0)
+    val panel = node.children.getOrNull(1)
+
+    // Closed (trigger alone) and pinned-open-with-no-trigger both degrade to a
+    // plain Box, so the node keeps its place in the layout either way.
+    if (panel == null) {
+        Box(modifier = modifier) { anchor?.let { RenderNode(it) } }
+        return
+    }
+    if (anchor == null) {
+        Box(modifier = modifier) { RenderNode(panel) }
+        return
+    }
+
+    val density = LocalDensity.current
+    val cfg = LocalConfiguration.current
+    // The window spans the display under edge-to-edge, so a bare 8dp pad would
+    // let a panel land under the status bar. safeDrawing is added per edge; it
+    // is zero on the axes that have no bar.
+    val insets = WindowInsets.safeDrawing
+    val ld = LocalLayoutDirection.current
+    val edgeDp = floatProp(node.props, "edge_padding") ?: 8f
+    val edgePx = with(density) { edgeDp.dp.roundToPx() }
+    val displaySizePx = rememberRealDisplaySizePx()
+
+    val provider =
+        remember(node.props, density, insets, ld, cfg, displaySizePx) {
+            MobAnchoredPositionProvider(
+                side = node.props["side"] as? String ?: "bottom",
+                align = node.props["align"] as? String ?: "center",
+                sideOffset =
+                    with(density) { (floatProp(node.props, "side_offset") ?: 0f).dp.roundToPx() },
+                alignOffset =
+                    with(density) { (floatProp(node.props, "align_offset") ?: 0f).dp.roundToPx() },
+                nudgeX =
+                    with(density) { (floatProp(node.props, "panel_offset_x") ?: 0f).dp.roundToPx() },
+                nudgeY =
+                    with(density) { (floatProp(node.props, "panel_offset_y") ?: 0f).dp.roundToPx() },
+                padLeft = edgePx + insets.getLeft(density, ld),
+                padTop = edgePx + insets.getTop(density),
+                padRight = edgePx + insets.getRight(density, ld),
+                padBottom = edgePx + insets.getBottom(density),
+                flip = boolProp(node.props, "flip") ?: true,
+                clamp = boolProp(node.props, "clamp") ?: true,
+                // The DISPLAY, not windowSize. windowSize comes from
+                // getWindowVisibleDisplayFrame, which under edge-to-edge is
+                // smaller than what is actually drawn — a trigger sitting over
+                // the gesture bar counted as off-screen and its panel stopped
+                // being clamped, landing at x=-65dp.
+                //
+                // Configuration was the first attempt at "the display" and is
+                // still short of it below API 35, where screenHeightDp excludes
+                // the status and navigation bars — 851dp of a 923dp screen on a
+                // Pixel 6. A trigger at 858dp then reads as off-screen and the
+                // same -65dp escape comes back, on that API and no other, which
+                // is why it survived: an API 36 emulator clamps correctly and an
+                // API 34 one does not. getRealMetrics is the actual panel size
+                // on every API this app supports (minSdk 28).
+                screenWidth = displaySizePx.width,
+                screenHeight = displaySizePx.height,
+            )
+        }
+
+    // A Popup measures its content against the whole window, so a panel that
+    // sets fill_width (MishkaPopover.panel/2 does by default) would be screen
+    // wide and a long paragraph would never wrap short. Cap it here rather than
+    // making every component carry a width.
+    val maxW = (floatProp(node.props, "panel_max_width") ?: (cfg.screenWidthDp - 2f * edgeDp)).dp
+    val maxH = (floatProp(node.props, "panel_max_height") ?: (cfg.screenHeightDp - 2f * edgeDp)).dp
+
+    Box(modifier = modifier) {
+        RenderNode(anchor)
+        // `on_tap` on an anchored node means DISMISS, not "tap the anchor" —
+        // RenderNodeInner skips its usual clickable branch for this type. The
+        // BEAM still owns open/closed: the window does not close itself, it
+        // reports the outside tap and the screen flips the assign, so the
+        // trigger's open state can never disagree with the panel that is drawn.
+        // Without a handler an outside tap does nothing.
+        val dismiss = intProp(node.props, "on_tap")
+
+        Popup(
+            popupPositionProvider = provider,
+            onDismissRequest = dismiss?.let { { MobBridge.nativeSendTap(it) } },
+            properties =
+                PopupProperties(
+                    // focusable is what lets the window see a tap that lands
+                    // outside it at all; without it dismissOnClickOutside can
+                    // never fire.
+                    focusable = boolProp(node.props, "focusable") ?: (dismiss != null),
+                    dismissOnBackPress = false,
+                    dismissOnClickOutside = dismiss != null,
+                    // FALSE, deliberately. With clipping on, the window manager
+                    // pins the popup inside the display whatever position it is
+                    // given — so a panel whose anchor had scrolled far above the
+                    // viewport (measured: anchor at y=-3658dp) was dragged back
+                    // to y=94dp and sat there, following the user down the page.
+                    // The position provider does the clamping instead, and only
+                    // while the anchor is actually on screen.
+                    clippingEnabled = false,
+                ),
+        ) {
+            Box(modifier = Modifier.widthIn(max = maxW).heightIn(max = maxH)) { RenderNode(panel) }
+        }
+    }
+}
+
+/**
+ * The physical panel size in pixels, system bars included.
+ *
+ * Neither of the obvious answers is this. `Configuration.screenWidthDp/HeightDp` drops
+ * the status and navigation bars below API 35 but keeps them from 35 on, so the same
+ * code reads two different screens depending on the device's API level. And
+ * `getWindowVisibleDisplayFrame` is the visible frame, which under edge-to-edge is
+ * smaller than what is actually drawn. Anchored positioning needs the real surface: a
+ * trigger drawn over the gesture bar is on screen, and its panel has to be clamped.
+ */
+@Composable
+private fun rememberRealDisplaySizePx(): IntSize {
+    val context = LocalContext.current
+    return remember(context) {
+        val metrics = android.util.DisplayMetrics()
+        @Suppress("DEPRECATION")
+        (context.getSystemService(android.content.Context.WINDOW_SERVICE) as android.view.WindowManager)
+            .defaultDisplay
+            .getRealMetrics(metrics)
+        IntSize(metrics.widthPixels, metrics.heightPixels)
+    }
+}
+
+// The web's positionPopup(), transliterated. All three headless engines carry a
+// byte-identical copy: a main-axis-only flip when BOTH halves hold, then an
+// unconditional clamp on both axes. `align` is never flipped, and there is no
+// shift-along-align fallback.
+//
+// anchorBounds arrives as parentLayoutCoordinates.positionInWindow() + size;
+// windowSize is getWindowVisibleDisplayFrame. The returned IntOffset becomes
+// params.x/params.y with gravity = START|TOP.
+private class MobAnchoredPositionProvider(
+    private val side: String,
+    private val align: String,
+    private val sideOffset: Int,
+    private val alignOffset: Int,
+    private val nudgeX: Int,
+    private val nudgeY: Int,
+    private val padLeft: Int,
+    private val padTop: Int,
+    private val padRight: Int,
+    private val padBottom: Int,
+    private val flip: Boolean,
+    private val clamp: Boolean,
+    private val screenWidth: Int,
+    private val screenHeight: Int,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val vw = windowSize.width
+        val vh = windowSize.height
+        val pw = popupContentSize.width
+        val ph = popupContentSize.height
+        val rtl = layoutDirection == LayoutDirection.Rtl
+
+        // Mirror once, up front, the way the web does with isRTL; everything
+        // after this is absolute arithmetic. (Kati runs RTL for real — see
+        // K-12 rtl-root — so this branch is not theoretical here.)
+        var s =
+            if (!rtl) {
+                side
+            } else {
+                when (side) {
+                    "left" -> "right"
+                    "right" -> "left"
+                    else -> side
+                }
+            }
+        val vertical = s == "top" || s == "bottom"
+        val al =
+            if (!rtl || !vertical) {
+                align
+            } else {
+                when (align) {
+                    "start" -> "end"
+                    "end" -> "start"
+                    else -> align
+                }
+            }
+        val alOff = if (rtl && vertical) -alignOffset else alignOffset
+
+        if (flip) {
+            s =
+                when (s) {
+                    "bottom" ->
+                        if (anchorBounds.bottom + sideOffset + ph > vh - padBottom &&
+                            anchorBounds.top - sideOffset - ph > padTop
+                        ) {
+                            "top"
+                        } else {
+                            s
+                        }
+                    "top" ->
+                        if (anchorBounds.top - sideOffset - ph < padTop &&
+                            anchorBounds.bottom + sideOffset + ph < vh - padBottom
+                        ) {
+                            "bottom"
+                        } else {
+                            s
+                        }
+                    "right" ->
+                        if (anchorBounds.right + sideOffset + pw > vw - padRight &&
+                            anchorBounds.left - sideOffset - pw > padLeft
+                        ) {
+                            "left"
+                        } else {
+                            s
+                        }
+                    "left" ->
+                        if (anchorBounds.left - sideOffset - pw < padLeft &&
+                            anchorBounds.right + sideOffset + pw < vw - padRight
+                        ) {
+                            "right"
+                        } else {
+                            s
+                        }
+                    else -> s
+                }
+        }
+
+        var x: Int
+        var y: Int
+        if (s == "top" || s == "bottom") {
+            y =
+                if (s == "bottom") {
+                    anchorBounds.bottom + sideOffset
+                } else {
+                    anchorBounds.top - ph - sideOffset
+                }
+            // Note the sign asymmetry on "end": a positive align_offset pushes
+            // the panel INWARD, exactly as the web engines do.
+            x =
+                when (al) {
+                    "start" -> anchorBounds.left + alOff
+                    "end" -> anchorBounds.right - pw - alOff
+                    else -> anchorBounds.left + (anchorBounds.width - pw) / 2 + alOff
+                }
+        } else {
+            x =
+                if (s == "right") {
+                    anchorBounds.right + sideOffset
+                } else {
+                    anchorBounds.left - pw - sideOffset
+                }
+            y =
+                when (al) {
+                    "start" -> anchorBounds.top + alOff
+                    "end" -> anchorBounds.bottom - ph - alOff
+                    else -> anchorBounds.top + (anchorBounds.height - ph) / 2 + alOff
+                }
+        }
+
+        x += nudgeX
+        y += nudgeY
+
+        // Clamp only while the ANCHOR is on screen. Clamping unconditionally is
+        // what made an open panel park itself at the top of the window and
+        // follow the user down the page after its trigger had scrolled away —
+        // measured: trigger at y=-3658dp, panel pinned at y=94dp and visible.
+        // Off-screen anchor, off-screen panel; clippingEnabled then hides it,
+        // which is what the web does when its reference scrolls out of view.
+        val anchorOnScreen =
+            anchorBounds.bottom > 0 && anchorBounds.top < screenHeight &&
+                anchorBounds.right > 0 && anchorBounds.left < screenWidth
+
+        if (clamp && anchorOnScreen) {
+            // If the panel is wider than the room, the upper bound collapses to
+            // the lower one and it pins flush at the leading edge — the edge
+            // carrying the title. Same as the web's Math.min(Math.max(...)).
+            x = x.coerceIn(padLeft, maxOf(padLeft, vw - pw - padRight))
+            y = y.coerceIn(padTop, maxOf(padTop, vh - ph - padBottom))
+        }
+        return IntOffset(x, y)
+    }
+}
+// KATI-END(K-18 anchored-node)
 
 @Composable
 private fun MobText(node: MobNode, modifier: Modifier) {
