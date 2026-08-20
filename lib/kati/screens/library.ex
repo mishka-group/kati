@@ -24,16 +24,21 @@ defmodule Kati.Screens.Library do
   alias Kati.Library.Sample
   alias Kati.Theme
 
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, filter: "All", shelf: "Screen")
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    filter = assigns.filter
+    shelf = assigns.shelf
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
         {Kati.Screens.Library.header()}
-        {Kati.Screens.Library.segments()}
+        {Kati.Screens.Library.segments(shelf)}
         {Kati.Screens.Library.quick_tiles()}
-        {Kati.Screens.Library.chips()}
-        {Kati.Screens.Library.grid()}
+        {Kati.Screens.Library.chips(filter)}
+        {Kati.Screens.Library.grid(filter, shelf)}
       </Column>
     </Scroll>
     """
@@ -78,15 +83,15 @@ defmodule Kati.Screens.Library do
   end
 
   @doc false
-  def segments do
+  def segments(active) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} background={0xFFE4E0D9} corner_radius={18} padding={4} align="center">
-        {Kati.Screens.Library.segment("movie", "Screen", true)}
+        {Kati.Screens.Library.segment("movie", "Screen", active == "Screen")}
         <Spacer size={4} />
-        {Kati.Screens.Library.segment("menu_book", "Books", false)}
+        {Kati.Screens.Library.segment("menu_book", "Books", active == "Books")}
         <Spacer size={4} />
-        {Kati.Screens.Library.segment("graphic_eq", "Music", false)}
+        {Kati.Screens.Library.segment("graphic_eq", "Music", active == "Music")}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -95,13 +100,14 @@ defmodule Kati.Screens.Library do
 
   @doc false
   def segment(icon, label, on?) do
+    tap = {self(), String.to_atom("shelf_" <> label)}
     bg = if on?, do: Theme.card(:light), else: 0x00FFFFFF
     fg = if on?, do: Theme.ink(), else: 0xFFAFA89E
     weight = if on?, do: "bold", else: "semibold"
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row fill_width={true} height={38} corner_radius={14} background={bg} align="center">
+      <Row fill_width={true} height={38} corner_radius={14} background={bg} align="center" on_tap={tap}>
         <Spacer weight={1.0} />
         {Kati.UI.symbol(icon, size: 17, color: fg)}
         <Spacer size={6} />
@@ -166,14 +172,16 @@ defmodule Kati.Screens.Library do
   end
 
   @doc false
-  def chips do
+  def chips(active) do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
         <Row>
           {Kati.Library.Sample.chips()
            |> Enum.with_index()
-           |> Enum.map(fn {{label, count}, i} -> Kati.Screens.Library.chip(label, count, i == 0) end)}
+           |> Enum.map(fn {{label, count}, _i} ->
+             Kati.Screens.Library.chip(label, count, label == active)
+           end)}
         </Row>
       </Scroll>
       <Spacer size={20} />
@@ -183,6 +191,9 @@ defmodule Kati.Screens.Library do
 
   @doc false
   def chip(label, count, on?) do
+    # The tag carries the label, so one handler serves every chip and adding a
+    # filter needs no new clause.
+    tap = {self(), String.to_atom("filter_" <> label)}
     bg = if on?, do: Theme.ink(), else: Theme.card(:light)
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
     # The design puts the count at .65 opacity of the label colour rather than
@@ -190,7 +201,7 @@ defmodule Kati.Screens.Library do
     count_fg = if on?, do: 0xA6FBFAF8, else: 0xA65C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center">
+    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center" on_tap={tap}>
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
       <Spacer size={6} />
       <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={count_fg} max_lines={1} />
@@ -202,8 +213,8 @@ defmodule Kati.Screens.Library do
   # Three across, because that is the design's wrap. The width each tile gets is
   # left to the weights in poster/1 — see the moduledoc.
   @doc false
-  def grid do
-    rows = Sample.titles() |> Enum.chunk_every(3)
+  def grid(filter, shelf) do
+    rows = filter |> Kati.Screens.Library.visible(shelf) |> Enum.chunk_every(3)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -212,8 +223,33 @@ defmodule Kati.Screens.Library do
     """
   end
 
+  @doc """
+  The titles a filter and a shelf leave visible.
+
+  Books and Music are drawn but empty: #60 settled that v1 ships one media
+  domain, and the design greys them. Selecting them shows that emptiness
+  honestly rather than pretending the shelf is full of films.
+  """
+  @spec visible(String.t(), String.t()) :: [map()]
+  def visible(_filter, shelf) when shelf != "Screen", do: []
+
+  def visible(filter, _shelf) do
+    Enum.filter(Sample.titles(), fn t ->
+      case filter do
+        "Watching" -> t.progress > 0.0 and t.progress < 1.0
+        "Not started" -> t.progress == 0.0
+        "Finished" -> t.progress == 1.0
+        _ -> true
+      end
+    end)
+  end
+
+  # A short last row must still be padded to three. Weights divide whatever is
+  # there, so a row holding one poster gives it the full width and the grid
+  # ends with one enormous tile — which is what "4 titles" looked like.
   @doc false
   def grid_row(row) do
+    row = row ++ List.duplicate(nil, 3 - length(row))
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -228,6 +264,8 @@ defmodule Kati.Screens.Library do
   def grid_gap, do: ~MOB"<Spacer size={12} />"
 
   @doc false
+  def poster(nil), do: ~MOB"<Box weight={1.0} />"
+
   def poster(item) do
     # A film opens the film screen and a series the series screen — the design
     # draws them as two different screens, so the grid has to know which.
@@ -293,5 +331,13 @@ defmodule Kati.Screens.Library do
   def handle_tap(:open_lists, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
   def handle_tap(:open_series, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
   def handle_tap(:open_film, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  # One clause for every chip and every segment: the tag carries the label, so
+  # a new filter is a data change rather than a code change.
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      "shelf_" <> label -> {:noreply, Mob.Socket.assign(socket, :shelf, label)}
+      _ -> {:noreply, socket}
+    end
+  end
 end
