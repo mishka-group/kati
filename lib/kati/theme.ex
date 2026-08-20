@@ -43,6 +43,9 @@ defmodule Kati.Theme do
   # Replaces the card shadow entirely in dark — inset 0 0 0 1px rgba(245,242,238,.06)
   @hairline_dark 0x0FF5F2EE
 
+  # ── Type ─────────────────────────────────────────────────────────────────
+  @fa_line_height 1.2
+
   @doc "The light theme — Kati's default surface."
   def light do
     Mob.Theme.build(
@@ -122,6 +125,38 @@ defmodule Kati.Theme do
   """
   def chrome_fill(:light), do: 0xE6FBFAF8
   def chrome_fill(:dark), do: 0xE61E1D1B
+
+  @doc """
+  The line-height multiplier Persian text needs in order to match Latin.
+
+  `line_height` is a **multiplier of `text_size`**, not a dp value — the bridge
+  computes `line_height * text_size` (`MobBridge.kt:2737`). It is also ignored
+  unless `text_size` is set on the same `Text`, so a Persian `Text` that leans
+  on the default size gets no line height at all and nothing on screen says so.
+
+  Nothing sets a default for either font, so with `line_height` unset each one
+  falls back to its own metrics — and Vazirmatn's are not Plus Jakarta's. An
+  `fa` `Text` and a `sans` `Text` at the same `text_size` therefore do not
+  produce the same line box, which is why a fixed-height `Row` measured against
+  the Latin screen breaks on its Persian twin: nothing in the markup changed,
+  only the font, and the row is suddenly the wrong height.
+
+  1.2 is a **declared** number, not a measured one. No geometry comes back from
+  `render/1`, so nothing on this side can verify it — it has to be looked at on
+  the device. When it is wrong it is wrong in one place rather than in every
+  `fa` `Text` in the app, which is the whole reason it is a constant.
+
+  There is no per-font default to hook into, so `fa` screens apply it
+  explicitly:
+
+      <Text text={title} font_family="fa" text_size={17}
+            line_height={Kati.Theme.fa_line_height()} />
+
+  A drawing that specifies its own Persian line height still wins — pass that
+  value instead. This is the default for the far more common case where the
+  drawing says nothing at all.
+  """
+  def fa_line_height, do: @fa_line_height
 
   @doc "Design spacing, in dp. Gutters 21, gaps 9 and 13, bottom inset 132."
   def gutter, do: 21

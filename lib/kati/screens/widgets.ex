@@ -109,7 +109,14 @@ defmodule Kati.Screens.Widgets do
     """
   end
 
-  # Three squares. (360 - 22) / 3 = 112.67, so 113 is the drawing's own tile.
+  # Three squares. The drawing writes them `flex:1; aspect-ratio:1`, and 113
+  # was only ever what that resolved to on the 402dp frame: (360 - 22) / 3 =
+  # 112.67. On a 411dp device the weights make each tile 115.67 wide while the
+  # declared height stayed 113, so the "squares" were 3dp out and the up-next
+  # tile's content — 13 + label + 42 + 7 + title + 2 + episode + 13 — had
+  # already outgrown the box it was pinned to. The tiles carry
+  # `aspect_ratio={1.0}` instead: the height follows the width the weight
+  # actually hands out, at any frame. See `up_next_tile/1`.
   @doc false
   def sizes(w) do
     ~MOB"""
@@ -126,12 +133,18 @@ defmodule Kati.Screens.Widgets do
     """
   end
 
+  # `aspect_ratio` rather than a declared height, and the height has to stay
+  # bounded somehow: `fill_height` on the inner Column and the `Spacer
+  # weight={1.0}` below it are what produce the drawing's
+  # `justify-content:space-between`, and both collapse to nothing the moment
+  # the tile wraps its content. The modifier chain is weight → aspect_ratio,
+  # so the square is measured off the width the Row actually granted.
   @doc false
   def up_next_tile(tile) do
     ~MOB"""
     <Box
       weight={1.0}
-      height={113}
+      aspect_ratio={1.0}
       corner_radius={20}
       background={Kati.Theme.card(:light)}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -176,7 +189,7 @@ defmodule Kati.Screens.Widgets do
     ~MOB"""
     <Box
       weight={1.0}
-      height={113}
+      aspect_ratio={1.0}
       corner_radius={20}
       background={background}
       shadow={Kati.Theme.shadow_card_soft()}

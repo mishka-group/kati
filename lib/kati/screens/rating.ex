@@ -21,21 +21,36 @@ defmodule Kati.Screens.Rating do
   subset — so `bin/check_screen.py` finds those three lines in this comment
   rather than in a `<Text>`, and that is the whole of the difference.
 
-  The half star keeps the drawing's own construction: a grey star with an
-  orange one laid over it in a box half as wide. `corner_radius` is what
-  applies `Modifier.clip` in this bridge (`MobBridge.kt:2992`), so the clip
-  box carries a hairline radius purely to switch clipping on, and the orange
-  glyph must not carry `max_lines` — Compose ellipsises an overflowing line,
-  and an ellipsised star is no star at all.
+  ## The half star is outlined, not halved — the font has no half
 
-  Clipping the glyph and **measuring** it are two different things, and that
-  is what kept the fifth star blank. Compose coerces a child's own width into
-  its parent's constraints, so a 26dp glyph inside a 13dp box was laid out at
-  13dp: one unbreakable character too wide for its line, ellipsised away to
-  nothing. `star/1` therefore hands the orange glyph a horizontally scrollable
-  viewport, which is the one node in this bridge that measures its content
-  unbounded — the glyph lays out whole and the 13dp viewport shows its left
-  half, which is the effect the drawing draws.
+  **The gap, stated:** Kati's icon subset carries `star` and nothing called
+  `star_half`, and `Kati.Icons.glyph!/1` raises for a name the font does not
+  have, so there is no half glyph to ask for. Closing this properly means
+  adding `star_half` to the design's icon set, running `mix kati.gen.icons`,
+  and re-running the pyftsubset step over the variable font — `lib/kati/icons.ex`
+  and `priv/`, not this screen. Until then the half slot is the same `star`
+  glyph at **FILL 0**: an outlined star in the accent, beside four filled ones
+  and the printed 4.5. A fifth *filled* star would read as five, and rounding
+  a rating up silently is the one thing a screen that exists to record ratings
+  must not do.
+
+  Cropping half a glyph — the drawing's own construction, a grey star with an
+  orange one over it in a box half as wide — is not reachable from Elixir in
+  this bridge. Every `Text` is built with `TextOverflow.Ellipsis` always on
+  (`MobBridge.kt:2772`), and Compose coerces a child into its parent's
+  constraints, so a 26sp glyph in a 13dp box is not cropped to half a star: it
+  is *measured* at 13dp, becomes one unbreakable character too wide for its
+  line, and is ellipsised away to nothing. `corner_radius` switches
+  `Modifier.clip` on (`MobBridge.kt:3925`) but clip only governs painting, not
+  measurement. The previous version fed the orange glyph through a horizontal
+  `Scroll` — the one node here that measures its content unbounded — and still
+  painted nothing on the device, which is what retired the construction: an
+  effect no one can verify from this side of the bridge does not belong in a
+  screen.
+
+  The fifth star is therefore the same `Kati.UI.symbol/2` call as the other
+  four, same size and family, so it shares their line box by construction
+  rather than by a stacked `Box` whose height has to be guessed at.
 
   ## The caret sits on the next line
 
@@ -243,14 +258,11 @@ defmodule Kati.Screens.Rating do
   @doc false
   def scale_star(false, _color), do: ~MOB"<Spacer size={0} />"
 
-  def scale_star(true, color) do
-    ~MOB"""
-    <Row align="center">
-      <Spacer size={1} />
-      {Kati.UI.symbol("star", size: 11, color: color, fill: true)}
-    </Row>
-    """
-  end
+  # No gap and no wrapping Row: the drawing's badge is a single text run, `5★`,
+  # and the 1dp Spacer that used to sit between them read as "5 ★". The pill's
+  # own Row is already align="center", so the glyph centres against the numeral
+  # without a second one.
+  def scale_star(true, color), do: Kati.UI.symbol("star", size: 11, color: color, fill: true)
 
   @doc false
   def stars(value) do
@@ -280,41 +292,12 @@ defmodule Kati.Screens.Rating do
   def star(:full), do: Kati.UI.symbol("star", size: 26, color: 0xFFE8823C, fill: true)
   def star(:empty), do: Kati.UI.symbol("star", size: 26, color: 0xFFE0DAD1, fill: true)
 
-  # Half the orange star, laid over a whole grey one. Three sizes here and not
-  # one of them is cosmetic:
-  #
-  #   * the 0.5 radius is what turns clipping on in this bridge;
-  #   * the `Scroll` is what stops the 13dp clip box also *measuring* the glyph
-  #     down to 13dp, which ellipsised it away — see the moduledoc;
-  #   * 32 is the glyph's line box at 26sp, not the 26 of its advance. A box cut
-  #     to the advance is one rounded pixel from ellipsising the grey star too,
-  #     on whichever density rounds against it.
-  #
-  # Neither box states a height, deliberately: hugging leaves both at the same
-  # line box as the four plain `Text` stars beside them, which is what puts the
-  # fifth star on their line rather than a few points above it.
-  def star(:half) do
-    ~MOB"""
-    <Box width={32}>
-      {Kati.Screens.Rating.star_glyph(0xFFE0DAD1)}
-      <Box width={13} corner_radius={0.5}>
-        <Scroll axis="horizontal">
-          {Kati.Screens.Rating.star_glyph(0xFFE8823C)}
-        </Scroll>
-      </Box>
-    </Box>
-    """
-  end
-
-  # Deliberately without max_lines — see the moduledoc.
-  @doc false
-  def star_glyph(color) do
-    glyph = Kati.Icons.glyph!("star")
-
-    ~MOB"""
-    <Text text={glyph} font_family="symbols_filled" text_size={26} text_color={color} />
-    """
-  end
+  # The accent star at FILL 0 — outlined rather than half-filled, because the
+  # subset carries no `star_half` and this bridge cannot crop a glyph. Both
+  # halves of that are argued in the moduledoc; what matters here is that it is
+  # one `Text` of the same size and family as its four neighbours, so the fifth
+  # star sits in their line box instead of a stacked `Box`'s idea of it.
+  def star(:half), do: Kati.UI.symbol("star", size: 26, color: 0xFFE8823C)
 
   # The one card on cream. Screen 08 does the same for its note, and for the
   # same reason: the user's own words are not metadata, so the palette warms up

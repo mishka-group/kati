@@ -35,10 +35,19 @@ defmodule Kati.Screens.StatsFa do
   alias Kati.Fa.SampleYear
   alias Kati.Theme
 
-  # 26 cells per row, one per week, which is what the card's own "۲۶ هفته"
-  # label claims. 26*8 + 25*4 = 308, inside the 322 the cream card's padding
-  # leaves — and 104 cells divide into exactly four rows.
-  @per_row 26
+  # 27 cells per row — the most the cream card actually holds on the device,
+  # rather than the 26 the drawing's 402dp frame allowed. A cell is 8 with a
+  # 4pt gap, so n cells measure 12n - 4; the card leaves
+  # 411 - 42 gutters - 38 padding = 331, where 27 measures 320 and 28 would
+  # measure 332 and clip. At 26 the field measured 308 and left 23 of the card
+  # blank down the trailing edge.
+  #
+  # The old value claimed the card's own "۲۶ هفته" as its justification. That
+  # label is a figure in the card's footer beside the streak, not a description
+  # of the grid, so it does not move with this. 104 cells now run three rows of
+  # 27 and a short one of 23 instead of four clean rows — which is what the
+  # drawing's `flex-wrap` does anyway.
+  @per_row 27
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.light())
@@ -187,16 +196,22 @@ defmodule Kati.Screens.StatsFa do
   @doc false
   def field do
     rows = Enum.chunk_every(SampleYear.contributions(), @per_row)
+    last = length(rows) - 1
 
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(rows, fn row -> Kati.Screens.StatsFa.field_row(row) end)}
+      {rows
+       |> Enum.with_index()
+       |> Enum.map(fn {row, i} -> Kati.Screens.StatsFa.field_row(row, i < last) end)}
     </Column>
     """
   end
 
+  # The 4pt gap goes *between* rows, so the last row does not carry one. It did,
+  # and it stacked onto the 12pt Spacer `hero/1` sets under the field, making
+  # the space below the grid 16 where the drawing asks for 12.
   @doc false
-  def field_row(row) do
+  def field_row(row, gap?) do
     ~MOB"""
     <Column>
       <Row>
@@ -204,10 +219,14 @@ defmodule Kati.Screens.StatsFa do
          |> Enum.map(&Kati.Screens.StatsFa.cell/1)
          |> Enum.intersperse(Kati.Screens.StatsFa.cell_gap())}
       </Row>
-      <Spacer size={4} />
+      {Kati.Screens.StatsFa.field_gap(gap?)}
     </Column>
     """
   end
+
+  @doc false
+  def field_gap(false), do: ~MOB"<Spacer size={0} />"
+  def field_gap(true), do: ~MOB"<Spacer size={4} />"
 
   @doc false
   def cell_gap, do: ~MOB"<Spacer size={4} />"

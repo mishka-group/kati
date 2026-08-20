@@ -63,12 +63,19 @@ defmodule Kati.Screens.Lock.Sample do
   @doc """
   The large widget: the year as a pixel field, with its two footnotes.
 
-  78 cells, chunked into three rows of 26. The drawing's `flex-wrap` packs 33
-  to a line and leaves a ragged twelve on the third, but 33 cells at 7pt with
-  3pt gaps measure 327 inside a 328pt card — one point of slack, which is not
-  slack. Three clean rows of 26 divide the same 78 exactly, cost nothing in
-  meaning, and cannot clip; `Kati.Screens.Stats` chunks its contribution grid
-  the same way and for the same reason.
+  78 cells, chunked 32 to a row. A cell is 7pt with a 3pt gap, so n cells
+  measure `10n - 3`. The card's 16pt padding inside screen 29's 21pt gutters
+  leaves 328 on the 402dp frame the screen was drawn at and 337 on the device;
+  32 cells measure 317, clear of both with room left over.
+
+  This was 26, on an argument that only ever held at the drawing's own width:
+  33 cells measure 327, and 327 inside 328 is one point of slack, which is not
+  slack. But 328 is the *frame's* number. On the device the same 327 has ten
+  points to spare, so the objection was to the frame rather than to the count.
+  What 26 really had going for it was that it divides 78 into three clean rows
+  — and it paid for that by leaving 80 of the card's 337 points empty. 32 gives
+  two rows of 32 and a short row of 14, which is the ragged last line the
+  drawing's own `flex-wrap` produces anyway.
   """
   @spec year() :: map()
   def year do
@@ -76,7 +83,7 @@ defmodule Kati.Screens.Lock.Sample do
       eyebrow: "THIS YEAR",
       watched: "312h watched",
       streak: "11-night streak",
-      rows: Enum.chunk_every(cells(), 26)
+      rows: Enum.chunk_every(cells(), 32)
     }
   end
 

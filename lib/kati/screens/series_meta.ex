@@ -279,8 +279,13 @@ defmodule Kati.Screens.SeriesMeta do
     """
   end
 
-  # Four across at 81pt: 81*4 + 12*3 = 360, the content width inside the 21pt
-  # gutters, which is what the drawing's `flex:1` resolves to at this frame.
+  # Four across on weights rather than four declared 81s. The drawing says
+  # `flex:1`, and 81 was only ever what that resolved to on the 402dp frame it
+  # was drawn at: 81*4 + 12*3 = 360, the content width inside the 21pt gutters
+  # *there*. On a 411dp device the column is 369 and the same four cells still
+  # measured 360, leaving a 9dp gutter on the trailing edge that belonged to
+  # nothing. The 12pt gaps are fixed so they come off the top; the weights
+  # divide whatever is actually left.
   @doc false
   def cast(s) do
     ~MOB"""
@@ -298,8 +303,8 @@ defmodule Kati.Screens.SeriesMeta do
   @doc false
   def cast_member(c) do
     ~MOB"""
-    <Column width={81}>
-      <Box width={81} height={81} corner_radius={41} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+    <Column weight={1.0}>
+      <Box fill_width={true} height={81} corner_radius={41} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.SeriesMeta.portrait(c.seed)}
       </Box>
       <Spacer size={8} />
@@ -310,6 +315,11 @@ defmodule Kati.Screens.SeriesMeta do
     """
   end
 
+  # The portrait tracks the cell, not the old 81. A Box aligns its child
+  # top-START, so an 81pt image inside a cell that now measures 83 would leave
+  # the placeholder's #E4E0D9 showing as a sliver down the trailing edge.
+  # `content_mode="fill"` is ContentScale.Crop, so the face is cropped to the
+  # frame rather than stretched into it.
   @doc false
   def portrait(seed) do
     case Sample.face(seed) do
@@ -318,7 +328,7 @@ defmodule Kati.Screens.SeriesMeta do
 
       src ->
         ~MOB"""
-        <Image src={src} width={81} height={81} corner_radius={41} content_mode="fill" />
+        <Image src={src} fill_width={true} height={81} corner_radius={41} content_mode="fill" />
         """
     end
   end

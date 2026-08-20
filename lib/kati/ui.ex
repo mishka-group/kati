@@ -15,6 +15,16 @@ defmodule Kati.UI do
     * There is no wrapping primitive, and no geometry is reported back to
       `render/1`, so anything grid-shaped is chunked by a **declared** column
       count rather than measured.
+    * A `Text` carries exactly ONE style. The bridge has no `AnnotatedString`
+      and no spans, so a paragraph with a bold word inside it cannot be drawn
+      the way it is drawn — see `rich_text/1`.
+    * A `nil` prop is not an absent prop. `Mob.Renderer` does not strip nils
+      and `:json.encode/1` turns the atom `nil` into the **string** `"nil"`
+      (`renderer.ex:239`), so it arrives as a value rather than as nothing.
+      Numeric and colour props coerce that string back to unset and are safe;
+      props matched as strings are not — `font_family={nil}` is read as the
+      name of a font and falls through to a system typeface. Helpers here
+      therefore always pass a real `font_family`.
   """
 
   import Mob.Sigil
@@ -138,6 +148,124 @@ defmodule Kati.UI do
   end
 
   @doc """
+  A paragraph of mixed styling, kept inside ONE wrapping line box.
+
+  Screens 14, 17, 23 and 33 each set a bold or muted span inside a running
+  paragraph. The obvious translation — a `Row` of `Text` nodes, one per run —
+  is wrong, and wrong in a way that looks like a bug: a `Row` does not wrap, so
+  every run becomes its own unbreakable box and the emphasised words orphan
+  onto a line of their own. A single `Text` is the only node that wraps, so
+  this stays a single `Text`.
+
+  ## What the bridge can do, and what it cannot
+
+  `MobText` (`MobBridge.kt:2725`) reads `text` as a plain `String` and hands it
+  to Compose's `Text(String, …)` overload with one `color`, one `fontWeight`,
+  one `fontFamily`. There is no `AnnotatedString`, no `SpanStyle` and no
+  `buildAnnotatedString` anywhere in the bridge — the only occurrence of the
+  word "span" is in a comment about icon coverage.
+
+  **Per-run styling is therefore not rendered.** This function concatenates the
+  runs and applies ONE style to all of them. The paragraph then wraps and
+  measures correctly, and the emphasis is silently dropped. That trade is
+  deliberate — a bold that came out regular reads as plain typography, while an
+  orphaned word reads as a broken layout — but it is an approximation, not the
+  thing the design asks for.
+
+  ### The bridge change that would make it real
+
+  Give `MobText` a `runs` prop. The wire already carries lists of maps (Canvas
+  `draw` ops travel that way, `MobBridge.kt:3347`), so nothing new is needed
+  underneath. When `runs` is present, build the value with
+
+      buildAnnotatedString {
+        runs.forEach { r ->
+          withStyle(SpanStyle(fontWeight = …, color = …)) { append(r["text"]) }
+        }
+      }
+
+  and pass it to the `Text(AnnotatedString, …)` overload, keeping the flat
+  `text` prop as the path for every existing call site. Only this function's
+  body would change; its callers would not.
+
+  ## Runs, and which style wins
+
+  A run is `{text, style}`. `style` is a keyword list of `Text` props, or one of
+  the shorthands `:bold`, `:semibold`, `:muted`, or `nil` for no change.
+
+      body = [text_size: 13, text_color: :muted, line_height: 1.5]
+
+      Kati.UI.rich_text([
+        {"You have watched ", body},
+        {"14 episodes", :bold},
+        {" this week.", body}
+      ])
+
+  The style handed to the `Text` is the one from the run marked `base: true`;
+  with no such mark it is the style of the LONGEST run, ties going to the run
+  written first. For the shape these four screens use — a long body with a
+  short emphasis inside it — that resolves to the body, which is the answer you
+  want. Mark a run `base: true` when the copy is short enough that editing it
+  could flip the choice.
+
+  `text_size` falls back to 14 and `text_color` to `:on_surface` rather than
+  being left unset, because an unset size does not fail — it renders at
+  Compose's own default, which is the expensive kind of wrong.
+  """
+  @spec rich_text([{String.t(), keyword() | atom()}]) :: term()
+  def rich_text(runs) when is_list(runs) do
+    normalised = Enum.map(runs, fn {text, style} -> {text, run_style(style)} end)
+    text = Enum.map_join(normalised, "", fn {t, _style} -> t end)
+    base = base_run_style(normalised)
+
+    size = Keyword.get(base, :text_size, 14)
+    color = Keyword.get(base, :text_color, :on_surface)
+    weight = Keyword.get(base, :font_weight)
+    line_height = Keyword.get(base, :line_height)
+    tracking = Keyword.get(base, :letter_spacing)
+    align = Keyword.get(base, :text_align)
+
+    # Every other optional prop below coerces a stray "nil" back to unset, but
+    # font_family is matched as a string, so a nil would be taken for the name
+    # of a font and resolve to a system typeface instead of Plus Jakarta.
+    family = Keyword.get(base, :font_family, "sans")
+
+    ~MOB"""
+    <Text
+      text={text}
+      text_size={size}
+      text_color={color}
+      font_weight={weight}
+      font_family={family}
+      line_height={line_height}
+      letter_spacing={tracking}
+      text_align={align}
+    />
+    """
+  end
+
+  # Shorthands for the two things the four screens actually ask for; anything
+  # else is spelled out as Text props.
+  defp run_style(nil), do: []
+  defp run_style(:bold), do: [font_weight: "bold"]
+  defp run_style(:semibold), do: [font_weight: "semibold"]
+  defp run_style(:muted), do: [text_color: :muted]
+  defp run_style(style) when is_list(style), do: style
+
+  defp base_run_style([]), do: []
+
+  defp base_run_style(runs) do
+    marked = Enum.find(runs, fn {_text, style} -> Keyword.get(style, :base, false) end)
+
+    # sort_by is stable, so runs of equal length keep the order they were
+    # written in and the choice does not wobble between renders.
+    {_text, style} =
+      marked || hd(Enum.sort_by(runs, fn {text, _style} -> -String.length(text) end))
+
+    Keyword.delete(style, :base)
+  end
+
+  @doc """
   A poster tile at the design's 2:3 ratio.
 
   Real artwork arrives with the media tickets; until then this is a toned
@@ -193,6 +321,82 @@ defmodule Kati.UI do
         </Column>
       </Box>
     </Column>
+    """
+  end
+
+  @doc """
+  One row of a grid, divided evenly across whatever width the device has.
+
+  The grids here were measured off the drawing's 402dp frame — `section_tile/3`
+  is a hard 158dp — so on a 411dp device the row ends early and leaves a dead
+  gutter down one side. A weight divides the space that is actually present, so
+  a weighted row fits every device rather than one.
+
+  Each cell is wrapped in a `weight={1.0}` column, with a fixed gap between
+  them. The gap is a sized `Box`, not a `Spacer`: a `Spacer` sizes BOTH axes
+  from `size`, so a 13dp gap would also put a 13dp floor under the row.
+
+  ## Short rows have to be padded
+
+  A weight divides what is present, so a final row holding a single cell hands
+  that cell the entire width and it renders three times the size of its
+  neighbours in the row above. Pass `:columns` — the grid's declared column
+  count — and the missing cells are filled with empty weighted columns that
+  hold the geometry open.
+
+      titles
+      |> Enum.chunk_every(3)
+      |> Enum.map(&Kati.UI.even_row(&1, columns: 3))
+
+  Cells inside are top-aligned, so one tall cell does not drag its neighbours
+  down. Cells should size themselves vertically and leave width alone — a cell
+  carrying its own fixed `width` defeats the whole point.
+
+  A weight needs a bounded parent to divide, so this belongs in a `Column` or a
+  vertical `Scroll`. Inside a horizontal `Scroll` the available width is
+  unbounded and there is nothing to share out.
+
+  ## Options
+
+    * `:columns` — the grid's column count. Defaults to the number of cells
+      given, which means no padding and is only correct for a full row.
+    * `:gap` — dp between cells. Defaults to the design's 13.
+  """
+  @spec even_row([term()], keyword()) :: term()
+  def even_row(cells, opts \\ []) do
+    gap = Keyword.get(opts, :gap, Kati.Theme.gap_md())
+    columns = max(Keyword.get(opts, :columns, length(cells)), length(cells))
+    blank = ~MOB"<Spacer size={0} />"
+
+    children =
+      (cells ++ List.duplicate(blank, columns - length(cells)))
+      |> Enum.map(&even_cell/1)
+      |> Enum.intersperse(even_gap(gap))
+
+    ~MOB"""
+    <Row fill_width={true} align="top">
+      {children}
+    </Row>
+    """
+  end
+
+  # The weight is read off the CHILD's own props by the parent Row
+  # (`MobBridge.kt:2675`), so it has to live on a wrapper — it cannot be
+  # applied to a cell node that has already been rendered.
+  defp even_cell(node) do
+    ~MOB"""
+    <Column weight={1.0} fill_width={true}>
+      {node}
+    </Column>
+    """
+  end
+
+  # Height is declared so this reserves space on one axis only. 1dp rather than
+  # 0 so it is unambiguously a laid-out node, and 1dp can never be the tallest
+  # thing in a row of cells.
+  defp even_gap(width) do
+    ~MOB"""
+    <Box width={width} height={1} />
     """
   end
 
@@ -319,33 +523,50 @@ defmodule Kati.UI do
   end
 
   @doc """
-  A big number and a small suffix sitting on the same baseline.
+  A big number and its small unit, sitting on one optical baseline.
 
   `align="bottom"` is not baseline alignment. It bottoms out the two text
-  *boxes*, and a text box carries descender space in proportion to its size, so
-  a small suffix beside a big number lands 3-9dp below the number's baseline —
-  far enough to read as a bug rather than as typography. The bridge has no
-  baseline mode (`align` is top/center/bottom only) and no metrics come back
-  from `render/1`, so the correction cannot be computed: it is declared.
+  *boxes* (`MobBridge.kt:4208`), and a text box carries descender space in
+  proportion to its size, so a small unit beside a big number lands 3-4dp below
+  the number's baseline at the sizes the design uses, and further as the gap
+  between the two sizes widens — far enough to read as a bug rather than as
+  typography. The bridge has no baseline mode (`align` is top/center/bottom
+  only) and no metrics come back from `render/1`, so the correction cannot be
+  computed: it is declared.
 
-  `drop` is how far the small text has to be lifted, in dp, applied as bottom
-  padding. `(big_size - small_size) / 5` is a decent first guess, but it is a
-  design number rather than a formula — pass what the drawing shows.
+  `lift` is how far the unit has to be raised, in dp. It is applied as bottom
+  padding on a `Column` wrapped around the unit, because the unit arrives here
+  as a finished node — there is no way to add a prop to it after the fact.
+  `(number_size - unit_size) / 5` is a decent first guess, but it is a design
+  number rather than a formula — pass what the drawing shows. The far side
+  reads padding with `intProp`, so a fractional lift is truncated rather than
+  honoured.
 
-  Both texts are already-rendered nodes, so the caller keeps control of size,
-  weight and colour.
+  Both arguments are already-rendered nodes, so the caller keeps control of
+  size, weight and colour.
+
+  ## Naming
+
+  This is the former `baseline_row/3` renamed, not a second helper beside it:
+  there was already one doing exactly this, and its name claimed the one thing
+  the bridge does not have. `baseline_row/3` still delegates here so a call
+  written from memory does not raise.
   """
-  @spec baseline_row(term(), term(), number()) :: term()
-  def baseline_row(big, small, drop) do
+  @spec number_with_unit(term(), term(), number()) :: term()
+  def number_with_unit(number, unit, lift) do
     ~MOB"""
     <Row align="bottom">
-      {big}
-      <Column padding_bottom={drop}>
-        {small}
+      {number}
+      <Column padding_bottom={lift}>
+        {unit}
       </Column>
     </Row>
     """
   end
+
+  @doc false
+  @deprecated "Renamed — use Kati.UI.number_with_unit/3"
+  def baseline_row(number, unit, lift), do: number_with_unit(number, unit, lift)
 
   @doc "A labelled horizontal bar. Width is declared, never measured."
   def bar(label, width, tone) do
