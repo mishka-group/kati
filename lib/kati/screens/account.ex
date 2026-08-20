@@ -15,9 +15,12 @@ defmodule Kati.Screens.Account do
       be mistaken for a refusal;
     * a **chevron** for something that leads elsewhere.
 
-  The switch is drawn from boxes rather than taken from
-  `Kati.Components.MishkaSwitch` — Compose's `Switch` brings Material's own
-  52x32 metrics, and the drawing specifies 46x28 with a 22pt thumb.
+  The switch **is** `Kati.Components.MishkaSwitch`, in `render: :box`. It was
+  drawn from boxes here for as long as the component had only one rendering —
+  Compose's `Switch`, at Material's own fixed 52x32 with a growing handle,
+  against a drawing that specifies 46x28 and a 22pt thumb. `render: :box`
+  draws the same two boxes from the same numbers, so the shape moved into the
+  component and the pixels did not move at all. See `toggle/1`.
 
   No dock, so the frame's bottom inset is 40 rather than 132.
 
@@ -42,6 +45,7 @@ defmodule Kati.Screens.Account do
   alias Kati.Components.MishkaAvatar
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaSwitch
   alias Kati.Components.MishkaThemeIcon
   alias Kati.UI
 
@@ -419,33 +423,40 @@ defmodule Kati.Screens.Account do
   end
 
   @doc """
-  The design's own switch, drawn rather than delegated.
+  The design's own switch, as `Kati.Components.MishkaSwitch` in `render: :box`.
 
-  46x28 with a 22pt thumb and a 3pt inset. The 40pt inner row produces that
-  inset without mixing `padding` and an explicit `width` on one node, which in
-  this bridge inflates the node instead of insetting it.
+  46x28 with a 22pt thumb and a 3pt inset — the drawing's numbers, passed
+  rather than rebuilt. `thumb_offset/4` owns the placement and resolves to
+  -9 off and +9 on, which is the 3..25 / 21..43 span the 40pt inner Row and its
+  weighted Spacers used to produce.
+
+  The moduledoc used to explain, correctly, why the component was no help here.
+  `render: :box` is the answer to it: it draws a track `Box` carrying a thumb
+  `Box` and takes the metrics as props, so Material's fixed 52x32 is no longer
+  the only shape the component can produce. Both notes are corrected rather
+  than deleted, because the reason `render: :toggle` is still the default is
+  the same reason they were written.
+
+  No `on_toggle`: `row/4` puts the tap on the whole row, so the switch is
+  drawing only — see the comment there.
   """
   def toggle(on?) do
-    track = if on?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
-
-    ~MOB"""
-    <Box width={46} height={28} corner_radius={14} background={track} align="center">
-      <Row width={40} align="center">
-        {Kati.Screens.Account.thumb_lead(on?)}
-        <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow="0 1 3 0 #4D1A1917" />
-        {Kati.Screens.Account.thumb_trail(on?)}
-      </Row>
-    </Box>
-    """
+    MishkaSwitch.switch(
+      render: :box,
+      checked: on?,
+      track_width: 46,
+      track_height: 28,
+      track_radius: 14,
+      thumb_size: 22,
+      thumb_radius: 11,
+      thumb_inset: 3,
+      track_on_color: Kati.Theme.ink(),
+      track_off_color: 0xFFDCD7CF,
+      thumb_on_color: 0xFFFBFAF8,
+      thumb_off_color: 0xFFFBFAF8,
+      thumb_shadow: "0 1 3 0 #4D1A1917"
+    )
   end
-
-  @doc false
-  def thumb_lead(true), do: ~MOB"<Spacer weight={1.0} />"
-  def thumb_lead(false), do: ~MOB"<Spacer size={0} />"
-
-  @doc false
-  def thumb_trail(true), do: ~MOB"<Spacer size={0} />"
-  def thumb_trail(false), do: ~MOB"<Spacer weight={1.0} />"
 
   @doc false
   def privacy(a) do

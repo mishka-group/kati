@@ -197,13 +197,32 @@ defmodule Kati.Screens.Health do
   `Kati.UI.SettingsList.status_pill/3` makes for the settings rows' status
   badges, and for the same reason.
 
-  The content goes in as **children** rather than as `label`, because a pill has
-  no leading slot and the tick has to come first. That costs the label the
-  pill's own typography props — `text_size`, `font_weight` and `color` stay on
-  the `Text` here rather than being handed over — and wraps the three nodes in
-  the component's content `Row`, one level deeper than the markup put them. A
-  leading slot on MishkaPill would remove both; it is the one thing this needs
-  that the component does not have.
+  The content goes in as **children** rather than as `label`, so the tick can
+  come first. That costs the label the pill's own typography props —
+  `text_size`, `font_weight` and `color` stay on the `Text` here rather than
+  being handed over — and wraps the three nodes in the component's content
+  `Row`, one level deeper than the markup put them.
+
+  ## The `leading` slot arrived and does not unblock this
+
+  MishkaPill now has `leading` / `leading_gap`, which is what this used to ask
+  for, and it still cannot take the label: **the pill's label carries no
+  `font_family`**. `label/3` builds its `Text` from `text`, `text_size`,
+  `text_color` and `max_lines`, then merges only `font_weight`,
+  `letter_spacing` and `line_height`; `font_family` is in none of those and is
+  not a documented pill prop, so `font_family: "mono"` passed alongside `label`
+  reaches the tree as nothing at all — an unknown prop, dropped without a word.
+  The label would render in the default face instead of DM Mono, and this
+  screen's pixels may not move.
+
+  Passing the tick as `leading` while keeping the `Text` as a child *is*
+  pixel-safe — it splits one hugging `Row` into two nested hugging `Row`s with
+  the same 5pt gap — but it buys nothing: the children wrapper survives, so
+  neither of the two costs above goes away, and the tree gains a node. So the
+  call stays as it is.
+
+  `font_family` on the label is what would take this over, and it is the one
+  prop between here and a pill that owns its own typography.
 
   ## `padding: 0` is load-bearing
 
@@ -278,6 +297,28 @@ defmodule Kati.Screens.Health do
   # does not clip children, so the segments stay square and the ink one
   # overhangs the track's 4.5pt corner by a hair. Giving each segment its own
   # radius would be worse — it would open visible notches between them.
+  #
+  # NOT `Kati.Components.MishkaMeter`, and the name is the trap. This looks like
+  # a meter — a value drawn as a proportion of a track — and it is not one. A
+  # meter reads ONE measurement inside a range; `render={:box}` accordingly
+  # emits one fill `Box` in one `color` plus a remainder. This bar has three
+  # fills in three colours that sum to the whole track, and there is no prop
+  # anywhere in `MishkaProgress`/`MishkaMeter` that takes more than one: no
+  # `segments`, no list-valued `color`. Screens 36 and 55's single-fill bars DO
+  # adopt it; this one cannot, and neither can screen 43's copy of it.
+  #
+  # Nor can a segment be a meter on its own. A weighted share needs `weight` on
+  # the node the parent `Row` measures, and the drawn bar's outer track takes
+  # only `width` / `fill_width` — `bar/3`'s `:box` arm reads `height`,
+  # `corner_radius`, `color`, `track_color`, `id` and `width`, and forwards no
+  # `weight` at all. Three cumulative fixed-`width` meters stacked in a Box
+  # would draw this shape, but the track here is `fill_width` and no width is
+  # known here to do that arithmetic with.
+  #
+  # Upstream, then: a stacked/segmented mode on the drawn bar — one track, a
+  # list of `{share, colour}` — is the thing that would take this over, and it
+  # is the same component two screens want. `weight` passthrough on the drawn
+  # track would be the smaller, more general fix.
   @doc false
   def macro_bar(macros) do
     segments = Enum.map(macros, fn {_name, share, tone} -> macro_segment(share, tone) end)

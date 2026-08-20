@@ -19,6 +19,7 @@ defmodule Kati.Screens.Series do
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaProgress
   alias Kati.Library.Sample
   alias Kati.Theme
 
@@ -166,12 +167,7 @@ defmodule Kati.Screens.Series do
         />
       </Row>
       <Spacer size={12} />
-      <Box fill_width={true} height={6} corner_radius={3} background={0xFFE7E3DC}>
-        <Row fill_width={true}>
-          <Box weight={pct} height={6} corner_radius={3} background={Kati.Theme.ink()} />
-          <Spacer weight={1.0 - pct} />
-        </Row>
-      </Box>
+      {Kati.Screens.Series.season_bar(pct)}
       <Spacer size={14} />
       <Row fill_width={true} align="center">
         <Box width={6} height={6} corner_radius={3} background={0xFFE8823C} />
@@ -183,6 +179,44 @@ defmodule Kati.Screens.Series do
     <Spacer size={14} />
     </Column>
     """
+  end
+
+  @doc """
+  The season rail — 6pt, radius 3, ink on `#E7E3DC` — as Chelekom's headless
+  Progress in its drawn mode.
+
+  It was two weighted Boxes because `<Progress>` is Material's
+  `LinearProgressIndicator`: it fills its parent, paints its own track in
+  `ProgressIndicatorDefaults.linearTrackColor`, and carries the material3
+  version of the day's thickness and caps. None of the drawing's three numbers
+  were reachable through it. `render: :box` draws the same track-Box-with-a-
+  fill-Box this file hand-rolled, with the arithmetic in one place.
+
+  ## Why this one, and not just any bar
+
+  The end this screen actually reaches is **100%**: the sample's S1 is 5 of 5,
+  and every tap on a watched episode can put any season there. The hand-rolled
+  shape emitted `<Spacer weight={1.0 - pct} />` unguarded, so a finished season
+  handed Compose a literal `weight: 0.0` — `"invalid weight 0.0; must be
+  greater than zero"`, which is a crash, not a warning. `0%` is equally
+  ordinary (a season with nothing watched) and produced the same zero on the
+  fill. The component omits the node at either end rather than weighting it
+  zero, which draws the same nothing without the throw.
+
+  `max: 1` because `pct` is already a fraction; `render/1` keeps owning the
+  `watched / total` division so the number reaching the bar is unchanged.
+  """
+  @spec season_bar(float()) :: map()
+  def season_bar(pct) do
+    MishkaProgress.progress(
+      render: :box,
+      value: pct,
+      max: 1,
+      height: 6,
+      corner_radius: 3,
+      color: Theme.ink(),
+      track_color: 0xFFE7E3DC
+    )
   end
 
   @doc false

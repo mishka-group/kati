@@ -23,6 +23,7 @@ defmodule Kati.Screens.Library do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
+  alias Kati.Components.MishkaProgress
   alias Kati.Library.Sample
   alias Kati.Theme
 
@@ -408,30 +409,36 @@ defmodule Kati.Screens.Library do
     end
   end
 
-  # Burnt into the poster's bottom edge, not floated under it: a 4pt track at
-  # 22% ink with an accent fill. Orange here is "how far in you are", which is
-  # the design's one non-status use of it.
-  @doc false
-  def progress(fraction) when fraction <= 0.0 do
-    ~MOB"""
-    <Box fill_width={true} height={4} background={0x381A1917} />
-    """
-  end
+  @doc """
+  Burnt into the poster's bottom edge, not floated under it: a 4pt square track
+  at 22% ink with an `#E8823C` fill. Orange here is "how far in you are", which
+  is the design's one non-status use of it.
 
+  Chelekom's headless Progress in `render: :box`. The native mode is Material's
+  `LinearProgressIndicator`, and the two things this rail is made of are the
+  two it does not expose: the track colour is `ProgressIndicatorDefaults`'
+  `linearTrackColor` with no prop to reach it, and the caps belong to whichever
+  material3 is pinned. So the shelf hand-rolled the two Boxes; `render: :box`
+  draws exactly those, with the fraction arithmetic in one place.
+
+  Both ends are ordinary on this grid — `tile_meta/1` has clauses for
+  `not started` and `finished`, and the sample shelf reaches both (three tiles
+  at 0.0, two at 1.0). The hand-rolled version needed a whole extra clause for the
+  first and a guarded `progress_rest/1` for the second, because `1.0 -
+  fraction` is a zero `weight` at 100% and Compose throws on it. The component
+  omits whichever node would carry the zero, which draws the same nothing.
+  """
+  @spec progress(float()) :: map()
   def progress(fraction) do
-    ~MOB"""
-    <Box fill_width={true} height={4} background={0x381A1917}>
-      <Row fill_width={true}>
-        <Box weight={fraction} height={4} background={0xFFE8823C} />
-        {Kati.Screens.Library.progress_rest(1.0 - fraction)}
-      </Row>
-    </Box>
-    """
+    MishkaProgress.progress(
+      render: :box,
+      value: fraction,
+      max: 1,
+      height: 4,
+      color: 0xFFE8823C,
+      track_color: 0x381A1917
+    )
   end
-
-  @doc false
-  def progress_rest(rest) when rest <= 0.0, do: ~MOB"<Spacer size={0} />"
-  def progress_rest(rest), do: ~MOB"<Spacer weight={rest} />"
 
   @impl true
   def handle_tap(:open_search, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}

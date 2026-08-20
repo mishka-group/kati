@@ -23,6 +23,7 @@ defmodule Kati.Screens.Home do
   """
   use Kati.Screens.Root, root: :home
 
+  alias Kati.Components.MishkaProgress
   alias Kati.Components.MishkaSeparator
   alias Kati.Theme
   alias Kati.UI
@@ -329,7 +330,6 @@ defmodule Kati.Screens.Home do
   def watch_card(title, meta, progress, seed) do
     card = Theme.card(:light)
     shadow = Theme.shadow_card()
-    ink = Theme.ink()
 
     ~MOB"""
     <Box weight={1.0}>
@@ -350,16 +350,42 @@ defmodule Kati.Screens.Home do
           <Spacer size={3} />
           <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
           <Spacer size={10} />
-          <Box fill_width={true} height={4} corner_radius={2} background={0xFFE7E3DC}>
-            <Row fill_width={true}>
-              <Box weight={progress} height={4} corner_radius={2} background={ink} />
-              <Spacer weight={1.0 - progress} />
-            </Row>
-          </Box>
+          {Kati.Screens.Home.watch_bar(progress)}
         </Column>
       </Box>
     </Box>
     """
+  end
+
+  @doc """
+  The continue-watching rail — 4pt, radius 2, ink on `#E7E3DC`, the design's
+  `height:4px;border-radius:2px` twice over in screen 01.
+
+  Chelekom's headless Progress in `render: :box`. Under the native mode this is
+  Material's `LinearProgressIndicator`: it fills its parent, draws its own
+  track in a colour that is not a prop, and carries whatever thickness and caps
+  the pinned material3 draws that year — so none of the three numbers above
+  were expressible, and the card hand-rolled two weighted Boxes instead.
+
+  A finished episode is 100% and an unstarted one 0%; both made the
+  hand-rolled shape hand Compose a literal `weight: 0.0` — the crash, not a
+  warning. The component omits the node at either end.
+
+  This screen already trusts the same shape elsewhere: `hairline/1` is
+  `MishkaSeparator.separator(render: :box)`, which is the identical
+  track-Box-with-a-trailing-`Spacer`, and it draws as a 1pt rule.
+  """
+  @spec watch_bar(float()) :: map()
+  def watch_bar(progress) do
+    MishkaProgress.progress(
+      render: :box,
+      value: progress,
+      max: 1,
+      height: 4,
+      corner_radius: 2,
+      color: Theme.ink(),
+      track_color: 0xFFE7E3DC
+    )
   end
 
   # The 520x384 crop, which is what the design draws in these cards — a

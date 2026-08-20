@@ -307,6 +307,13 @@ defmodule Kati.Screens.MealsToday do
   # children, so the segments stay square inside a rounded track and the ink
   # one overhangs the 4.5pt corner by a hair — the same compromise screen 42
   # records, and preferable to per-segment radii, which open visible notches.
+  #
+  # Still hand-rolled for the reason `Kati.Screens.Health.macro_bar/1` sets out
+  # at length: `Kati.Components.MishkaMeter` draws ONE fill in ONE colour over a
+  # track, and this is three fills in three colours filling the track between
+  # them. Its `render={:box}` mode has no segmented form and forwards no
+  # `weight`, so neither the bar nor any single segment of it can be a meter.
+  # 42 and 43 draw the same bar and want the same upstream change.
   @doc false
   def segment(share, tone) do
     ~MOB"""

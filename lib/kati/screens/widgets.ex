@@ -33,6 +33,7 @@ defmodule Kati.Screens.Widgets do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaSwitch
   alias Kati.Components.MishkaThemeIcon
   alias Kati.UI
   alias Kati.Widgets.Sample
@@ -421,36 +422,40 @@ defmodule Kati.Screens.Widgets do
   end
 
   @doc """
-  The design's own switch, drawn rather than delegated.
+  The design's own switch, as `Kati.Components.MishkaSwitch` in `render: :box`.
 
-  `Kati.Components.MishkaSwitch` wraps Compose's `Switch`, which brings
-  Material's metrics with it — a 52x32 track and a thumb that grows when on.
-  The drawing specifies 46x28 with a 22pt thumb and a 3pt inset, and this
-  screen is a fidelity screen, so the shape is built from boxes. The 40pt
-  inner row is what produces the 3pt inset on both sides without mixing
-  `padding` and an explicit `width` on the same node.
+  It used to say the component could not draw this and the shape had to be
+  hand-built. That was true of `render: :toggle`, which is Compose's Material
+  `Switch` at Material's own 52x32 metrics with a handle that grows from 16 to
+  24 on the way on — no prop at any layer reshapes it. It is **not** true of
+  `render: :box`, which draws a track `Box` carrying a thumb `Box` and takes
+  the drawing's own numbers: 46x28, radius 14, a 22pt thumb at a 3pt inset.
+
+  `thumb_offset/4` places the thumb, so the arithmetic is not repeated here.
+  It resolves to -9 off and +9 on, which is the 3..25 / 21..43 span the 40pt
+  inner Row and its weighted Spacers used to produce — same pixels, one node
+  shallower, and no `weight` in the tree at all.
+
+  No `on_toggle`: the tap stays on the row (`shortcut_tap/2`), because 46x28 is
+  under the 44pt touch minimum this screen's neighbours honour.
   """
   def toggle(on?) do
-    track = if on?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
-
-    ~MOB"""
-    <Box width={46} height={28} corner_radius={14} background={track} align="center">
-      <Row width={40} align="center">
-        {Kati.Screens.Widgets.thumb_lead(on?)}
-        <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow="0 1 3 0 #4D1A1917" />
-        {Kati.Screens.Widgets.thumb_trail(on?)}
-      </Row>
-    </Box>
-    """
+    MishkaSwitch.switch(
+      render: :box,
+      checked: on?,
+      track_width: 46,
+      track_height: 28,
+      track_radius: 14,
+      thumb_size: 22,
+      thumb_radius: 11,
+      thumb_inset: 3,
+      track_on_color: Kati.Theme.ink(),
+      track_off_color: 0xFFDCD7CF,
+      thumb_on_color: 0xFFFBFAF8,
+      thumb_off_color: 0xFFFBFAF8,
+      thumb_shadow: "0 1 3 0 #4D1A1917"
+    )
   end
-
-  @doc false
-  def thumb_lead(true), do: ~MOB"<Spacer weight={1.0} />"
-  def thumb_lead(false), do: ~MOB"<Spacer size={0} />"
-
-  @doc false
-  def thumb_trail(true), do: ~MOB"<Spacer size={0} />"
-  def thumb_trail(false), do: ~MOB"<Spacer weight={1.0} />"
 
   @doc false
   def share(w) do

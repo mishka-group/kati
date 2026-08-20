@@ -26,6 +26,7 @@ defmodule Kati.Screens.Books do
   alias Kati.Books.Sample
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
+  alias Kati.Components.MishkaProgress
   alias Kati.Theme
 
   @doc false
@@ -224,19 +225,34 @@ defmodule Kati.Screens.Books do
     end
   end
 
-  # The hero's rail is ink on #E7E3DC, not accent — this is "how far through
-  # the book you are", stated plainly, and the orange is saved for the covers
-  # where it has to be legible at 4pt.
-  @doc false
+  @doc """
+  The **Reading now** hero's rail — 5pt, radius 3, ink on `#E7E3DC`.
+
+  Ink, not accent: this is "how far through the book you are", stated plainly,
+  and the orange is saved for the covers where it has to be legible at 4pt.
+
+  Drawn by Chelekom's headless Progress in `render: :box`. The native mode is
+  Material's `LinearProgressIndicator`, which fills its parent, paints its own
+  track colour and owns its own thickness — so a 5pt ink rail on a named track
+  at radius 3 was not expressible at any combination of its props, and this
+  file hand-rolled the two Boxes instead. `render: :box` *is* those two Boxes.
+
+  A finished book is 100% (the shelf draws three), which under the hand-rolled
+  shape made the remainder `<Spacer weight={0.0} />` — the weight Compose
+  throws on. The component drops the remainder at 1.0 and the fill at 0.0
+  rather than emitting a zero.
+  """
+  @spec reading_bar(float()) :: map()
   def reading_bar(fraction) do
-    ~MOB"""
-    <Box fill_width={true} height={5} corner_radius={3} background={0xFFE7E3DC}>
-      <Row fill_width={true}>
-        <Box weight={fraction} height={5} corner_radius={3} background={Kati.Theme.ink()} />
-        <Spacer weight={1.0 - fraction} />
-      </Row>
-    </Box>
-    """
+    MishkaProgress.progress(
+      render: :box,
+      value: fraction,
+      max: 1,
+      height: 5,
+      corner_radius: 3,
+      color: Theme.ink(),
+      track_color: 0xFFE7E3DC
+    )
   end
 
   @doc false
@@ -386,32 +402,33 @@ defmodule Kati.Screens.Books do
     end
   end
 
-  # Burnt into the jacket's bottom edge: a 4pt rail at 22% ink with an accent
-  # fill. The rail is drawn even at 0% — see the moduledoc.
-  @doc false
+  @doc """
+  The rail burnt into the jacket's bottom edge: 4pt, square, an `#E8823C` fill
+  on a 22%-ink track. The track is drawn even at 0% — see the moduledoc.
+
+  Chelekom's headless Progress in `render: :box`. The native mode could not
+  draw this at all: `<Progress>` is Material's `LinearProgressIndicator`, whose
+  track colour is `ProgressIndicatorDefaults.linearTrackColor` and is not a
+  prop, so a rail on 22% ink was unreachable — as were the square corners,
+  since 1.3 rounds that widget's caps.
+
+  Both ends are on the shelf at once: screen 20 draws two covers at 100%
+  (*Field Notes*, *Low Water*) and two at 0% (*Marram Grass*, *The Warden*).
+  This file used to guard them by hand with a pair of `<Spacer size={0} />`
+  clauses; the component omits the node instead, which is the same nothing and
+  keeps a zero `weight` off the wire on the `1.0 - fraction` side too.
+  """
+  @spec progress(float()) :: map()
   def progress(fraction) do
-    ~MOB"""
-    <Box fill_width={true} height={4} background={0x381A1917}>
-      <Row fill_width={true}>
-        {Kati.Screens.Books.progress_fill(fraction)}
-        {Kati.Screens.Books.progress_rest(1.0 - fraction)}
-      </Row>
-    </Box>
-    """
+    MishkaProgress.progress(
+      render: :box,
+      value: fraction,
+      max: 1,
+      height: 4,
+      color: 0xFFE8823C,
+      track_color: 0x381A1917
+    )
   end
-
-  @doc false
-  def progress_fill(fraction) when fraction <= 0.0, do: ~MOB"<Spacer size={0} />"
-
-  def progress_fill(fraction) do
-    ~MOB"""
-    <Box weight={fraction} height={4} background={0xFFE8823C} />
-    """
-  end
-
-  @doc false
-  def progress_rest(rest) when rest <= 0.0, do: ~MOB"<Spacer size={0} />"
-  def progress_rest(rest), do: ~MOB"<Spacer weight={rest} />"
 
   @impl true
   def handle_tap(:open_screen, socket),

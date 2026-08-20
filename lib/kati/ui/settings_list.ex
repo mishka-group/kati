@@ -17,28 +17,32 @@ defmodule Kati.UI.SettingsList do
 
   ## What is a component and what is not
 
-  `icon_tile/1` and `disc/1` are `Kati.Components.MishkaThemeIcon`, `hairline/1`
-  is `Kati.Components.MishkaSeparator` (with `render: :box` — see its docs for
-  why that word is load-bearing), and both pills are
-  `Kati.Components.MishkaPill`. Each of those became possible only once the
-  component stopped hardcoding a number the drawing specifies; each call's own
-  doc records which number, and why its node is the node the markup built.
+  `icon_tile/1` and `disc/1` are `Kati.Components.MishkaThemeIcon`; `hairline/1`
+  is `Kati.Components.MishkaSeparator` and `switch/1` is
+  `Kati.Components.MishkaSwitch`, both with `render: :box` — see each
+  component's docs for why that word is load-bearing; and both pills and
+  `note/2` are `Kati.Components.MishkaPill`. Each of those became possible only
+  once the component stopped hardcoding something the drawing specifies — a
+  number, a primitive, or an alignment — and each call's own doc records which,
+  and why its node is the node the markup built.
 
-  ## Two departures from the drawing, both bridge limits
+  ## One departure from the drawing, and it is the bridge's
 
-    * **The switch is hand-built.** `Kati.Components.MishkaSwitch` wraps Mob's
-      `Toggle`, which paints Compose's own Material `Switch` at Material's own
-      metrics. The design draws a 46x28 track at radius 14 with a 22pt thumb
-      and an ink "on" state; no prop reshapes a `Switch` into that, and the
-      port's own docs note the colour props are ignored on iOS anyway. This is
-      not a component that is missing props: `material3` fixes the track at
-      52x32 with 24/16pt handles and a 2dp outline, and parameterises only the
-      colours. A prop cannot reach those numbers, so the switch stays markup
-      until the bridge grows a non-Material toggle.
     * **Dashed borders are solid.** `Modifier.border` takes a width and a
       colour and no `PathEffect`, so `note/2` draws its 1.5pt hairline solid at
       the design's own `rgba(26,25,23,.16)`. The frame reads as a footnote
       either way; the stitching does not survive.
+
+  There used to be a second, and this paragraph replaces it rather than
+  softening it, because the old one now reads as an instruction not to try.
+  It said the switch had to stay hand-built: that `Kati.Components.MishkaSwitch`
+  wraps Mob's `Toggle`, that `Toggle` is Compose's Material `Switch` at
+  Material's own 52x32 metrics, and that no prop at any layer reaches a 46x28
+  track with a 22pt thumb. Every sentence of that was true of the native
+  rendering and still is. It stopped being the whole story when the component
+  grew `render: :box`, which draws the control out of a track `Box` and a thumb
+  `Box` and so has no metrics of its own to fight. `switch/1` is a component
+  call now; its doc carries the proof that the pixels did not move.
 
   Nothing here carries copy. Every string and every icon name is passed in, so
   a screen's own file still holds every literal its drawing contains.
@@ -366,30 +370,103 @@ defmodule Kati.UI.SettingsList do
   @doc """
   The 46x28 track with its 22pt thumb.
 
-  Two clauses rather than one with a conditional child, because the thumb sits
-  against the opposite edge in each state and a `Spacer` cannot be conditional
-  inside `~MOB`.
-  """
-  def switch(true) do
-    ~MOB"""
-    <Box width={46} height={28} corner_radius={14} background={0xFF1A1917}>
-      <Row fill_width={true} fill_height={true} align="center" padding_left={3} padding_right={3}>
-        <Spacer weight={1.0} />
-        <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow="0 1 3 0 #4D1A1917" />
-      </Row>
-    </Box>
-    """
-  end
+  `Kati.Components.MishkaSwitch` in its drawn mode, which builds the control out
+  of a track `Box` carrying a thumb `Box` rather than wrapping Compose's
+  Material `Switch`. That mode is the entire reason this is a component call
+  and not markup, and the moduledoc's old note about it is gone for the same
+  reason: `material3` does fix a `Switch` at a 52x32 track with 24/16pt handles
+  and a 2dp outline and does parameterise only the colours, so no prop reaches
+  46x28 at radius 14 with a 22pt thumb in both states — but a drawn switch has
+  no metrics of its own to reach past. Every number below is this drawing's.
 
-  def switch(false) do
-    ~MOB"""
-    <Box width={46} height={28} corner_radius={14} background={0xFFDCD7CF}>
-      <Row fill_width={true} fill_height={true} align="center" padding_left={3} padding_right={3}>
-        <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow="0 1 3 0 #4D1A1917" />
-        <Spacer weight={1.0} />
-      </Row>
-    </Box>
-    """
+  `render: :box` is as load-bearing here as it is on `hairline/1`. Left off,
+  the default `:toggle` paints the Material widget and the control grows 6pt in
+  each direction.
+
+  ## The inset is geometry; the offset is not this file's to compute
+
+  The drawing puts `padding:3px` around a 22pt thumb inside a 28pt track, which
+  is the same 3 twice over — `(28 - 22) / 2` — and that is `thumb_inset`. It is
+  what the component would have defaulted to; it is stated because the drawing
+  states it.
+
+  From there `Kati.Components.MishkaSwitch.thumb_offset/4` places the thumb and
+  this file does not repeat the subtraction. `46 / 2 - 3 - 22 / 2` is 9, so the
+  thumb sits 9pt either side of the track's centre. That formula already has an
+  owner and a doctest; a second copy here is a second thing to get wrong.
+
+  ## Why the pixels do not move
+
+  What this replaces was a track `Box` holding a `Row` that filled both axes,
+  padded 3 on each side and pushed the thumb to one end with a
+  `Spacer weight={1.0}` on the other. The component builds the same track `Box`
+  holding the thumb *directly*, centred, and displaced by `offset_x`.
+
+  The track's props are the old ones key for key — `width: 46`, `height: 28`,
+  `corner_radius: 14`, and `0xFF1A1917` on / `0xFFDCD7CF` off — plus
+  `align: :center` and `fill_width: false`. Neither addition moves anything.
+  `fill_width` is only ever tested for `== true` in `nodeModifier`, and the box
+  arm's `hasWidth || hugs` was already true from `width: 46`; and the old
+  track's one child filled both axes, so its `contentAlignment` had nothing
+  left to align.
+
+  The thumb's props are the old ones too — 22 square, `corner_radius: 11`,
+  `0xFFFBFAF8`, the same `"0 1 3 0 #4D1A1917"` — plus that inert
+  `fill_width: false` and `offset_x`. `offset_x` is read by `RenderNode`, not
+  by `nodeModifier`: it wraps the thumb in a bare `Box(Modifier.offset(...))`
+  that wraps content at 22x22, so the track still measures a 22pt child and
+  still measures 46 itself. The offset shifts placement, not measurement.
+
+  Which lands the thumb in the same two places:
+
+    * **old, off** — content runs 3..43, thumb first: **3..25**.
+    * **old, on** — the `Spacer` takes 40 - 22 = 18, thumb after it: **21..43**.
+    * **new** — centred at (46 - 22) / 2 = 12, then -9 or +9: **3..25** or
+      **21..43**.
+
+  Vertically both put the thumb at (28 - 22) / 2 = 3 — the old `Row` by
+  `align="center"`, the new track by `align: :center` on a stacking `Box`.
+
+  ## What is passed, and what deliberately is not
+
+  Both thumb colours are the same `#FBFAF8`: the design's thumb does not change
+  colour, only the track does. They are stated rather than defaulted because
+  the component's default is `:on_primary`, a theme token, and this paper white
+  is not it.
+
+  Nothing is passed for `disabled`, and there are no disabled colours to read
+  off the old markup because it had no third state. The drawing gives none
+  either: screen 32's Birthdays row is **off**, not disabled, and greys its
+  *label* — `body_muted/1` — while its control paints the ordinary off track.
+  The component defaults `disabled_track_color` / `disabled_thumb_color` to the
+  enabled colours anyway, so a `disabled: true` here would still paint this.
+
+  `on_toggle` is unset for the same kind of reason: this takes a boolean and
+  nothing else, and every caller passes state its screen already owns. It is
+  the prop to reach for when these rows go live — the drawn control reports
+  `{:tap, tag}` and the screen flips its own value — and wiring it would add a
+  `clickable` to the track, which is a hit region rather than a pixel.
+
+  The guard preserves the old contract exactly. `switch(true)` and
+  `switch(false)` were the only two heads, so anything else raised; it still
+  raises, rather than quietly reading `nil` as off.
+  """
+  def switch(on?) when is_boolean(on?) do
+    Kati.Components.MishkaSwitch.switch(
+      render: :box,
+      checked: on?,
+      track_width: 46,
+      track_height: 28,
+      track_radius: 14,
+      thumb_size: 22,
+      thumb_radius: 11,
+      thumb_inset: 3,
+      track_on_color: 0xFF1A1917,
+      track_off_color: 0xFFDCD7CF,
+      thumb_on_color: 0xFFFBFAF8,
+      thumb_off_color: 0xFFFBFAF8,
+      thumb_shadow: "0 1 3 0 #4D1A1917"
+    )
   end
 
   @doc """
@@ -505,21 +582,98 @@ defmodule Kati.UI.SettingsList do
   Solid, not dashed — see the moduledoc. The alpha and the 1.5pt width are the
   drawing's own, so the weight of the line is right even though its rhythm is
   not.
+
+  `Kati.Components.MishkaPill`, which could not hold this until now. Two things
+  stopped it and both are fixed:
+
+    * the pill's content `Row` centred on the cross axis with nothing that
+      could say otherwise, so an 18pt icon meant to sit on the *first line* of
+      a three-line note floated to the middle of the block.
+      `content_align: :top` says otherwise, and reaches both rows that can hold
+      content.
+    * children were wrapped in a `Row` that hugged, so the paragraph's
+      `weight={1.0}` was dividing the leftover of a row with no leftover and
+      the text measured at its own natural width instead of the frame's.
+      `content_fill_width: true` fills the content row and marks the children
+      wrapper `weight={1}`, which is what gives the paragraph a width to take.
+      Alignment could never have fixed that one: it is the cross axis and
+      weight is the main one.
+
+  The icon goes in `leading` rather than in as a second child, because that is
+  what it is — content *before* the label — with `leading_gap` standing where
+  the markup wrote `<Spacer size={11} />`.
+
+  ## `background: :transparent` is not decoration
+
+  The pill always writes a `background` and defaults it to `:surface_raised`.
+  This frame has none: the drawing is a border over the page and nothing else,
+  and `:surface_raised` is `#FBFAF8`, which would read as a card. The prop
+  cannot simply be left off — `background: nil` is not absent, it serialises as
+  the **string** `"nil"`, which is the exact hazard the component's own
+  `overrides/2` note describes — so the absence is stated instead, as the
+  palette's `:transparent`. `Mob.Renderer` resolves that to `0x00000000`, and a
+  fill at alpha 0 under `SrcOver` leaves every pixel underneath it alone.
+
+  ## Why the pixels do not move
+
+  The root changes from a `Row` to a `Box` carrying the same five props —
+  `padding: 16`, `corner_radius: 18`, `border_color`, `border_width: 1.5`,
+  `fill_width: true` — plus the fill that is not a fill. `nodeModifier` is one
+  function for every node type, so clip, border and padding build the identical
+  chain, and both containers wrap their content's height. The old `Row`'s
+  `align="top"` moves down to the content row, where it means the same thing
+  about the same three things.
+
+  The children gain two wrappers and an empty third sibling, and the widths
+  still fall out identically, because Compose measures a row's un-weighted
+  children first and hands the weighted ones what is left:
+
+    * **old** — `[icon, Spacer 11, Text weight={1.0}]`: the icon and the spacer
+      measure first, the text takes `inner - icon - 11`.
+    * **new** — `[Row[icon, Spacer 11], Row(weight 1)[Text], Row[]]`: the
+      leading row measures `icon + 11` and the empty remove row measures 0, so
+      the weighted wrapper takes `inner - icon - 11` and, holding one child,
+      hands all of it to the text.
+
+  Vertically the leading row is exactly the icon's height — its `Spacer` sizes
+  both axes but 11 is shorter than an 18pt glyph's line, and a `MobSpacer`
+  paints nothing regardless — and it is top-aligned inside a content row whose
+  height is the paragraph's. Same block, same first line, same frame.
+
+  ## What the pill still cannot do here
+
+  The paragraph goes in as **children**, not as `label`, and so carries its own
+  `text_size`, `line_height` and colour rather than handing them over. That is
+  not a preference. `label/3` pins `max_lines: 1` on purpose — a one-line token
+  is what a pill *is*, and the failure mode without it is a stack of single
+  letters — and a note wraps to three lines. Until the pill takes a `max_lines`
+  of its own, a multi-line pill has to restate its own typography, which is
+  what `note_text/1` does.
   """
   def note(icon, text) do
+    Kati.Components.MishkaPill.pill(
+      %{
+        background: :transparent,
+        corner_radius: 18,
+        border_color: 0x291A1917,
+        border_width: 1.5,
+        padding: 16,
+        fill_width: true,
+        content_align: :top,
+        content_fill_width: true,
+        leading: Kati.UI.symbol(icon, size: 18, color: 0xFF8A8479),
+        leading_gap: 11
+      },
+      [note_text(text)]
+    )
+  end
+
+  # The paragraph the pill cannot typeset for us: `label` is pinned to one
+  # line, so the note's own type comes in as content. Passed as a one-element
+  # list, which the pill drops straight into its children wrapper.
+  defp note_text(text) do
     ~MOB"""
-    <Row
-      fill_width={true}
-      corner_radius={18}
-      border_color={0x291A1917}
-      border_width={1.5}
-      padding={16}
-      align="top"
-    >
-      {Kati.UI.symbol(icon, size: 18, color: 0xFF8A8479)}
-      <Spacer size={11} />
-      <Text text={text} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
-    </Row>
+    <Text text={text} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
     """
   end
 end

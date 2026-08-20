@@ -33,6 +33,7 @@ defmodule Kati.Screens.HomeFa do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaProgress
   alias Kati.Screens.Fa
   alias Kati.Screens.HomeFa.Sample
   alias Kati.Theme
@@ -270,9 +271,58 @@ defmodule Kati.Screens.HomeFa do
     """
   end
 
-  @doc false
+  @doc """
+  One continue-watching card, with its 4pt elapsed bar drawn by
+  `Kati.Components.MishkaProgress` in `render={:box}` mode.
+
+  ## Why the pixels do not move
+
+  Both trees serialise to the same nodes and the same props: a `fill_width`
+  track `Box` at `height: 4`, `corner_radius: 2`, `background: 0xFFE7E3DC`; a
+  `fill_width` `Row`; a fill `Box` carrying `weight: 0.62`, the same height and
+  radius and the ink; and `<Spacer weight={0.38} />`. The component adds one
+  node the markup did not have — a trailing `<Spacer size={4} />` inside the
+  track, the iOS height workaround its moduledoc explains — which carries no
+  background and sits inside a Box already pinned to
+  `fillMaxWidth().height(4.dp)`, so it draws nothing and moves nothing.
+
+  `max: 1` keeps the float exact: `fraction/1` divides by a span of 1 and hands
+  back the same `0.62`, where `value: progress * 100` would round-trip to
+  `0.6200000000000001`.
+
+  ## Under `rtl` it fills from the right, and that is the component's doing
+
+  The drawn bar has **no hardcoded leading edge**. Its fill-width shape is a
+  Compose `Row`, which lays children out start-to-end, and `Kati.Screens.Fa`'s
+  frame provides `LocalLayoutDirection = Rtl` from the root
+  (`MainActivity.kt:245`), so the fill starts at the right and the remainder
+  `Spacer` takes the left. That is the same thing the hand-rolled `Row` did.
+  Nothing here reverses the array to fake it, and nothing needed to: the
+  fixed-`width` shape is direction-aware too, because the bridge's
+  `boxAlignProp` falls through to `Alignment.TopStart` — the resolving
+  alignment, not `TopLeft`.
+
+  ## Both ends
+
+  `0.0` and `1.0` are the two values the hand-rolled markup could not survive:
+  they wrote `weight={0.0}` onto the fill and onto the remainder respectively,
+  and Compose throws on a zero weight rather than warning. The component omits
+  whichever node would carry the zero, so both ends draw — an empty track and a
+  full one. Today's samples are `0.62` and `0.24`.
+  """
   def watch_card(item) do
     progress = item.progress
+
+    bar =
+      MishkaProgress.progress(
+        value: progress,
+        max: 1,
+        render: :box,
+        height: 4,
+        corner_radius: 2,
+        track_color: 0xFFE7E3DC,
+        color: Kati.Theme.ink()
+      )
 
     ~MOB"""
     <Box weight={1.0}>
@@ -299,12 +349,7 @@ defmodule Kati.Screens.HomeFa do
           <Spacer size={3} />
           <Text text={item.meta} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
           <Spacer size={10} />
-          <Box fill_width={true} height={4} corner_radius={2} background={0xFFE7E3DC}>
-            <Row fill_width={true}>
-              <Box weight={progress} height={4} corner_radius={2} background={Kati.Theme.ink()} />
-              <Spacer weight={1.0 - progress} />
-            </Row>
-          </Box>
+          {bar}
         </Column>
       </Box>
     </Box>

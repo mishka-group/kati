@@ -21,9 +21,14 @@ defmodule Kati.Screens.Accessibility do
   ## The switches are live
 
   Six guarantees, six real switches: a tap on a row flips that row's state in
-  `:spec`, so the thumb slides and the track swaps between ink and `#DCD7CF`.
-  The drawn state is the sample's own, so the resting screen is unchanged —
-  five on, **Increase contrast** off.
+  `:spec`, so the thumb moves and the track swaps between ink and `#DCD7CF`.
+  It **snaps** rather than slides — a node tree is a still frame and Mob has no
+  animation primitive, so the thumb is at one offset in this render and the
+  other in the next. That was true of the hand-drawn switch this screen used to
+  carry and it is true of `Kati.Components.MishkaSwitch`'s drawn mode; only the
+  native Material `Switch` tweens, and it does so at metrics this drawing does
+  not use. The resting state is the sample's own, so the resting screen is
+  unchanged — five on, **Increase contrast** off.
 
   **Increase contrast** is the one that does more than flip itself, because it
   is the only row whose subtitle names a visible effect: *"Hairlines darken,
@@ -36,6 +41,7 @@ defmodule Kati.Screens.Accessibility do
 
   alias Kati.Accessibility.Sample
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaSwitch
   alias Kati.Components.MishkaThemeIcon
   alias Kati.UI
 
@@ -353,16 +359,29 @@ defmodule Kati.Screens.Accessibility do
   end
 
   @doc """
-  The design's own switch, drawn rather than delegated.
+  The design's own switch, as `Kati.Components.MishkaSwitch` in `render: :box`.
 
-  46x28 with a 22pt thumb and a 3pt inset. The 40pt inner row produces that
-  inset without mixing `padding` and an explicit `width` on one node, which in
-  this bridge inflates the node instead of insetting it.
+  46x28 with a 22pt thumb and a 3pt inset — the drawing's numbers, passed
+  rather than rebuilt. `thumb_offset/4` owns the placement and resolves to
+  -9 off and +9 on, which is the 3..25 / 21..43 span the 40pt inner Row and
+  its weighted Spacers used to produce.
 
-  `Kati.Components.MishkaSwitch` is the component for this and it cannot be
-  used: it wraps Mob's `Toggle`, which is Compose's Material `Switch` at
-  Material's own 52x32 metrics with a thumb that grows when on. No prop
-  reshapes it to 46x28 with a fixed 22pt thumb.
+  This doc used to say the component "cannot be used", because it wrapped
+  Mob's `Toggle` — Compose's Material `Switch`, fixed at 52x32 with a handle
+  that grows from 16 to 24. That is still true of `render: :toggle`, and it is
+  why the default stays there; it stopped being true of this screen when
+  `render: :box` landed, and the claim is retracted rather than left standing.
+
+  ### The one thing the drawn mode costs, on the screen that can least afford it
+
+  A native `Switch` carries a role, an on/off state and a toggle action into
+  TalkBack. A pair of boxes carries none of it, and this is the accessibility
+  screen. The trade is taken anyway, and narrowly: the row — not the switch —
+  is what `row/4` makes tappable, and the row is a `Column` holding the
+  guarantee's title and subtitle as real `Text` nodes, so what a screen reader
+  lands on and announces is unchanged either way. What is lost is the *state*
+  announcement, which the drawn track cannot carry and which the native switch
+  could only have carried at 52x32 — a different drawing.
 
   The switch draws state; `row/4` carries the tap. Flipping one moves the
   thumb and swaps the track — every row's guaranteed consequence — and for
@@ -376,26 +395,22 @@ defmodule Kati.Screens.Accessibility do
   card rendered at a made-up size is not.
   """
   def toggle(on?) do
-    track = if on?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
-
-    ~MOB"""
-    <Box width={46} height={28} corner_radius={14} background={track} align="center">
-      <Row width={40} align="center">
-        {Kati.Screens.Accessibility.thumb_lead(on?)}
-        <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow="0 1 3 0 #4D1A1917" />
-        {Kati.Screens.Accessibility.thumb_trail(on?)}
-      </Row>
-    </Box>
-    """
+    MishkaSwitch.switch(
+      render: :box,
+      checked: on?,
+      track_width: 46,
+      track_height: 28,
+      track_radius: 14,
+      thumb_size: 22,
+      thumb_radius: 11,
+      thumb_inset: 3,
+      track_on_color: Kati.Theme.ink(),
+      track_off_color: 0xFFDCD7CF,
+      thumb_on_color: 0xFFFBFAF8,
+      thumb_off_color: 0xFFFBFAF8,
+      thumb_shadow: "0 1 3 0 #4D1A1917"
+    )
   end
-
-  @doc false
-  def thumb_lead(true), do: ~MOB"<Spacer weight={1.0} />"
-  def thumb_lead(false), do: ~MOB"<Spacer size={0} />"
-
-  @doc false
-  def thumb_trail(true), do: ~MOB"<Spacer size={0} />"
-  def thumb_trail(false), do: ~MOB"<Spacer weight={1.0} />"
 
   @doc false
   def voiceover(spec) do

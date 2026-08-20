@@ -19,6 +19,7 @@ defmodule Kati.Screens.AutoDetect do
   """
   use Kati.Screens.Pushed, back: "Settings"
 
+  alias Kati.Components.MishkaProgress
   alias Kati.Components.MishkaToggle
   alias Kati.Settings.DetectSample, as: Sample
   alias Kati.UI
@@ -87,19 +88,56 @@ defmodule Kati.Screens.AutoDetect do
   end
 
   @doc """
-  The Now playing card, with the elapsed bar drawn from two weighted cells.
+  The Now playing card, with the elapsed bar drawn by
+  `Kati.Components.MishkaProgress` in its `render={:box}` mode.
 
-  `Kati.Components.MishkaProgress` is the component for a progress bar and it
-  cannot draw this one. It renders Mob's `<Progress>`, which the bridge maps to
-  Compose's `LinearProgressIndicator`, and that widget exposes exactly one
-  colour — the indicator's. The drawing needs three things it has no prop for:
-  a `#E7E3DC` track (the Material default track colour is whatever the theme's
-  `surfaceVariant` resolves to, and `MobProgress` never reads a `track_color`
-  at all), a 5pt thickness on both the track and the fill, and a 3pt radius on
-  both. Two weighted boxes inside a rounded track give all three, so they stay.
+  The three things this bar needs were all things `<Progress>` has no prop for
+  — a `#E7E3DC` track (`MobProgress` passes `color` and nothing else, so the
+  groove stays whatever `ProgressIndicatorDefaults.linearTrackColor` resolves
+  to), a 5pt thickness on the track *and* the fill, and a 3pt radius on both.
+  `render={:box}` draws the same two weighted cells this file used to write by
+  hand, from the same numbers, so the component is now the one that owns them.
+
+  ## Why the pixels do not move
+
+  Serialising both trees and diffing them key by key, every node and every prop
+  matches — the track `Box` (`fill_width`, `height: 5`, `corner_radius: 3`,
+  `background: 0xFFE7E3DC`), the `fill_width` `Row` inside it, the fill `Box`
+  (`weight: 0.74`, `height: 5`, `corner_radius: 3`, `background:` ink) and the
+  remainder `<Spacer weight={0.26} />`. One node differs: the component appends
+  a `<Spacer size={5} />` as a second child of the track. It is the iOS
+  workaround its moduledoc documents — `MobBox` drops a childless Box's height
+  — and on this bridge it is a 4-prop-less, background-less 5x5 Spacer laid at
+  the track's `Alignment.TopStart` inside a Box that already carries
+  `fillMaxWidth().height(5.dp)`, so it paints nothing and cannot resize
+  anything.
+
+  `max: 1` rather than `value: progress * 100`: `fraction/1` is then
+  `(v - 0) / 1`, which returns the identical float. Scaling by 100 and back
+  does not — `0.62 * 100 / 100` is `0.6200000000000001`.
+
+  ## Both ends were checked
+
+  The hand-rolled version was one sample value away from killing the activity:
+  at `progress: 0.0` it emitted `<Box weight={0.0}>` and at `1.0` a
+  `<Spacer weight={0.0} />`, and Compose throws on either — *"invalid weight
+  0.0; must be greater than zero"*. The component omits the node instead: at
+  `0.0` there is no fill and the remainder carries `weight: 1.0`; at `1.0`
+  there is no remainder and the fill carries `weight: 1.0`. Neither end emits a
+  zero. Today's sample is `0.74`, so this is a latent crash removed rather than
+  a live one fixed.
   """
   def now_playing(n) do
-    rest = 1.0 - n.progress
+    bar =
+      MishkaProgress.progress(
+        value: n.progress,
+        max: 1,
+        render: :box,
+        height: 5,
+        corner_radius: 3,
+        track_color: 0xFFE7E3DC,
+        color: Kati.Theme.ink()
+      )
 
     ~MOB"""
     <Column fill_width={true}>
@@ -122,12 +160,7 @@ defmodule Kati.Screens.AutoDetect do
           {SettingsList.status_pill(n.status, 0xFF3E8460, 0x294E9A73)}
         </Row>
         <Spacer size={14} />
-        <Box fill_width={true} height={5} corner_radius={3} background={0xFFE7E3DC}>
-          <Row fill_width={true}>
-            <Box weight={n.progress} height={5} corner_radius={3} background={Kati.Theme.ink()} />
-            <Spacer weight={rest} />
-          </Row>
-        </Box>
+        {bar}
         <Spacer size={9} />
         <Row fill_width={true} align="center">
           <Text text={n.elapsed} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
