@@ -521,7 +521,25 @@ defmodule Kati.UI do
       disabled_text_color: 0xFFB5AEA3,
       corner_radius: 16,
       height: 32,
-      width: chip_content_width(label, count_text),
+      # No `width`. The chip MEASURES itself now.
+      #
+      # It used to declare `chip_content_width/2` — 7dp per glyph — because a
+      # Box force-filled its parent unless given a number, so a hugging chip
+      # was impossible and an approximation was the only way to get one. Fence
+      # K-17 made `fill_width={false}` work, and MishkaChip's root passes it,
+      # so the component sizes itself from its own text and padding.
+      #
+      # Dropping it changed NOTHING on device — 62 of 62 frames identical, pill
+      # runs byte for byte. That is worth recording, because the reason given
+      # for dropping it was wrong: the sub-pixel text shift seen when this
+      # chip became a component came from the structural change (a hand-rolled
+      # Row becoming the component's Box + Row), not from centring inside a
+      # declared width. The approximation and the measurement simply agree at
+      # this text size.
+      #
+      # It stays retired because measuring is correct and approximating is not
+      # — 7dp per glyph errs wide on "iOS" and narrow on "Watchlist", and the
+      # next label that disagrees would be a bug nobody could see coming.
       # padding_y MUST be given. The component pads before it sizes, so the
       # default `:space_sm` on the vertical axis would make a `height: 32` chip
       # measure 32 plus two paddings.
@@ -554,54 +572,6 @@ defmodule Kati.UI do
     """
   end
 
-  # Nothing measures text on the Elixir side, so the pill is sized from the
-  # character count. This counts the CONTENT only: the bridge applies padding
-  # before width, so folding the 15dp sides in here would double them.
-  #
-  # ## It is no longer a workaround, and that is the reason to be careful
-  #
-  # It was written because a Box with no numeric `width` filled its parent, so a
-  # chip that did not declare one became a full-width bar. That is fixed: fence
-  # K-17 makes the box branch honour `fill_width={false}`, MishkaChip passes it,
-  # and dropping `width:` from the call above would give a chip that hugs its
-  # label properly measured — which is what this has been approximating at 7dp
-  # per glyph.
-  #
-  # It stays anyway, because a real measurement is a DIFFERENT width from an
-  # approximated one: 7dp errs wide on "iOS" and narrow on "Watchlist", and
-  # every chip on every captured frame was captured at this width. Removing it
-  # is a one-line change that moves pixels on ~20 screens, so it belongs to a
-  # deliberate re-baseline of `.scratch/design/audit_v3/`, not to an adoption
-  # pass whose whole contract is that nothing moves.
-  #
-  # It is not fighting the component either way: `width` lands on the same Box
-  # and is applied after padding, exactly as the hand-rolled markup applied it.
-  defp chip_content_width(label, nil), do: text_width(label)
-  defp chip_content_width(label, count), do: text_width(label) + 6 + text_width(count)
-
-  # ~7dp per glyph at text_size 12; erring wide, since a clipped label reads as
-  # broken while a loose one only reads as a loose chip.
-  defp text_width(text), do: String.length(text) * 7
-
-  @doc "One day in the calendar's 7-day strip."
-  def day_cell(dow, num, today?, on_tap \\ nil) do
-    bg = if today?, do: Kati.Theme.ink(), else: 0x00FFFFFF
-    fg = if today?, do: 0xFFFBFAF8, else: 0xFF1A1917
-    sub = if today?, do: 0xFFBFB8AC, else: 0xFF7C766D
-    tap = on_tap || {self(), :noop}
-
-    ~MOB"""
-    <Column padding_right={7}>
-      <Box width={44} height={62} background={bg} corner_radius={20} align="center" on_tap={tap}>
-        <Column align="center">
-          <Text text={dow} text_size={10} text_color={sub} />
-          <Spacer size={4} />
-          <Text text={num} text_size={15} text_color={fg} />
-        </Column>
-      </Box>
-    </Column>
-    """
-  end
 
   @doc "A headline statistic with its label."
   def stat(value, label) do
