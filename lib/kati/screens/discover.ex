@@ -48,6 +48,7 @@ defmodule Kati.Screens.Discover do
   use Kati.Screens.Pushed, back: "Library"
 
   alias Kati.Components.MishkaAvatar
+  alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaScrollArea
   alias Kati.Components.MishkaSeparator
   alias Kati.Screens.Discover.Sample
@@ -176,35 +177,65 @@ defmodule Kati.Screens.Discover do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={7} />"
 
-  @doc false
-  def chip(c, on?) do
-    # The tag carries the label, so one handler serves every chip and a new
-    # chip is a data change rather than a code change.
-    tap = {self(), String.to_atom("filter_" <> c.label)}
-    bg = if on?, do: Theme.ink(), else: Theme.card(:light)
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
+  @doc """
+  One feed chip — Mishka's Chip.
 
-    ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center" on_tap={tap}>
-      <Text text={c.label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      {Kati.Screens.Discover.chip_count(c.count, on?)}
-    </Row>
-    """
+  A chip is a label that carries a selected state and toggles it, which is this
+  row exactly, so the only thing that ever kept it hand-rolled was that the
+  component decided its own metrics and its own *unselected* colours. Both are
+  props now, so the drawing's numbers — 32 tall, 16 of radius, 14 of side
+  padding, a 12.5pt semibold label — are stated rather than approximated, and
+  the unlit fill (`card`) and ink (`#5C574F`) are passed the same way the lit
+  ones always were.
+
+  Nothing moves. `padding_x: 14` with `padding_y: 0` reproduces the Row's
+  14/0, and since the bridge pads before it sizes, `height: 32` is still 32 on
+  screen. The chip is a hugging `Box` where this was a `Row` (K-17 makes
+  `fill_width={false}` real), and a Box that hugs its content and centres it
+  cannot move that content: the inner Row is exactly the width it is given.
+
+  The count is still its own node rather than a string, so it keeps mono at
+  10.5 in its own tone; `trailing_gap: 6` is the `Spacer` that used to sit
+  inside it. A chip with **no** count now emits no trailing node at all,
+  where it used to carry a `<Spacer size={0}>` — a zero-sized Spacer draws
+  nothing, so the row is unchanged.
+  """
+  @spec chip(map(), boolean()) :: map()
+  def chip(c, on?) do
+    MishkaChip.chip(
+      label: c.label,
+      checked: on?,
+      # The tag carries the label, so one handler serves every chip and a new
+      # chip is a data change rather than a code change.
+      on_toggle: String.to_atom("filter_" <> c.label),
+      color: Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F,
+      height: 32,
+      corner_radius: 16,
+      padding_x: 14,
+      padding_y: 0,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      trailing_gap: 6,
+      trailing: Kati.Screens.Discover.chip_count(c.count, on?)
+    )
   end
 
   # The count rides at .6 of the label's own colour rather than a token of its
-  # own, so it stays a shade of the chip it sits on in either state.
+  # own, so it stays a shade of the chip it sits on in either state. `nil` is
+  # no trailing slot rather than an empty one — the chip then builds the same
+  # single-Text body it built before the slot existed.
   @doc false
-  def chip_count(nil, _selected), do: ~MOB"<Spacer size={0} />"
+  def chip_count(nil, _selected), do: nil
 
   def chip_count(count, selected) do
     fg = if selected, do: 0x99FBFAF8, else: 0x995C574F
 
     ~MOB"""
-    <Row align="center">
-      <Spacer size={6} />
-      <Text text={count} font_family="mono" text_size={10.5} text_color={fg} max_lines={1} />
-    </Row>
+    <Text text={count} font_family="mono" text_size={10.5} text_color={fg} max_lines={1} />
     """
   end
 
@@ -456,11 +487,15 @@ defmodule Kati.Screens.Discover do
     end
   end
 
-  # Mishka's Separator, at the design's own colour and thickness — see
-  # `Kati.Screens.Film.hairline/1` for why the pixels are unchanged.
+  # Mishka's Separator, at the design's own colour and thickness. `render:
+  # :box` is not optional — the default `:divider` is Material 3's antialiased
+  # drawLine and softens the bottom pixel row of every rule on this screen. See
+  # `Kati.Screens.Film.hairline/1` for the measurement.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @impl true
   def handle_tap(tag, socket) do

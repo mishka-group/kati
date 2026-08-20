@@ -32,6 +32,7 @@ defmodule Kati.Screens.Shopping do
   """
   use Kati.Screens.Pushed, back: "Meals"
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Meals.SampleShopping
   alias Kati.UI.SettingsList
 
@@ -115,6 +116,17 @@ defmodule Kati.Screens.Shopping do
   # A Row, not a Box: a chip hugs its label, and a Box would fill the line.
   # The chosen chip carries no shadow in the drawing — ink on paper needs no
   # lift — so the shadow is part of the unchosen recipe only.
+  #
+  # And NOT `Kati.Components.MishkaChip`, for that same shadow. Everything else
+  # these three need is now on the chip: `height: 32` with `padding_y: 0`,
+  # `padding_x: 14`, `corner_radius: 16`, `text_size: 12.5`, `font_weight:
+  # :semibold`, `max_lines: 1`, and the newly separated `unchecked_color` /
+  # `unchecked_text_color` so the two idle chips can be `#FBFAF8` on `#5C574F`
+  # instead of the theme's `:surface_raised` on `:on_surface`. `chip/1` builds
+  # its Box and then puts `width`, `height`, `align` and `on_tap` on it — there
+  # is no `shadow` among them, and no slot that reaches the root node — so an
+  # adopted chip would silently drop the lift from the two unchosen ones.
+  # Screen 46's filter row is blocked on exactly the same prop.
   @doc false
   def filter(label, true) do
     ~MOB"""
@@ -257,17 +269,35 @@ defmodule Kati.Screens.Shopping do
         </Box>
       </Box>
       <Spacer size={10} />
-      <Box
-        width={50}
-        height={50}
-        corner_radius={25}
-        background={Kati.Theme.card(:light)}
-        shadow={Kati.Theme.shadow_card_soft()}
-        align="center"
-      >
-        {Kati.UI.symbol("add", size: 21)}
-      </Box>
+      {Kati.Screens.Shopping.add_button()}
     </Row>
     """
+  end
+
+  # `Kati.Components.MishkaActionIcon` — an icon-only button on a raised
+  # surface, which is what this is. It could not be one until the component
+  # took a `shadow`: a floating disc is defined by its shadow, and `#FBFAF8` on
+  # `#EFECE7` paper without one barely reads as a disc at all. The recipe is
+  # the drawing's card-soft one, handed to the container as a string; the
+  # component does not interpret it.
+  #
+  # `shape: :circle` computes 50 / 2 = 25.0, the radius written here before,
+  # and `variant: :filled` paints `background` and stops. The glyph is a child
+  # rather than `icon:`, because Kati's icons are Material Symbols through
+  # `Kati.UI.symbol/2` — a `Text` in the `symbols` family — and a child is
+  # wrapped in a `<Row>` that hugs it, inside a Box that already centred it.
+  # No handler is passed, so none is wired, exactly as before.
+  @doc false
+  def add_button do
+    MishkaActionIcon.action_icon(
+      [
+        size: 50,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_card_soft()
+      ],
+      [Kati.UI.symbol("add", size: 21)]
+    )
   end
 end

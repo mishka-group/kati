@@ -196,7 +196,29 @@ defmodule Kati.Screens.PickSections do
     """
   end
 
-  @doc false
+  @doc """
+  The 22pt orange check on a chosen tile.
+
+  Not `Kati.Components.MishkaActionIcon`, though it is otherwise exactly what
+  that component is — a round box holding one glyph, and the port now takes the
+  `size`, `shape: :circle`, `variant: :filled` and `background` this needs.
+
+  What it cannot carry is `offset_x` / `offset_y`. The moduledoc above explains
+  why they are load-bearing: the drawing positions the badge absolutely at
+  `top:14; right:14`, there is no fill-height reference frame inside a
+  wrap-height tile to align an overlay against, so the badge rides in the icon's
+  row and is nudged the last 2pt out with an offset that moves what is drawn
+  without moving what was measured. `MobBridge.RenderNode` reads those two props
+  off the node itself, and the port emits no key it was not given, so a badge
+  built by the component lands 2pt in and 2pt down from where the design puts it
+  and the tile's whole top row shifts with it.
+
+  `offset_x` / `offset_y` are ordinary Mob box props — they are in the 0.4.20
+  baseline under `native/baseline/`, not a Kati fence — so this is the same
+  shape of gap `shadow` and `border_color` were, and the same one-line fix:
+  another pair of keys in the component's `container/2`, put only when given, so
+  that no existing icon's node changes.
+  """
   def badge(false), do: ~MOB"<Spacer size={0} />"
 
   def badge(true) do

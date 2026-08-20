@@ -28,6 +28,7 @@ defmodule Kati.Screens.Meal do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaNumberField
   alias Kati.Components.MishkaSeparator
   alias Kati.Meals.SampleRecipe, as: Sample
@@ -114,7 +115,6 @@ defmodule Kati.Screens.Meal do
   @doc false
   def chrome do
     back = {self(), :back}
-    more = {self(), :more}
     fill = Kati.Theme.card(:light)
 
     ~MOB"""
@@ -126,12 +126,36 @@ defmodule Kati.Screens.Meal do
           <Text text="Meals" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
         </Row>
         <Spacer weight={1.0} />
-        <Box width={44} height={44} corner_radius={22} background={fill} shadow={Kati.Theme.shadow_button()} align="center" on_tap={more}>
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.Meal.more_button()}
       </Row>
     </Box>
     """
+  end
+
+  # `Kati.Components.MishkaActionIcon`: an icon-only button on a raised
+  # surface, which is exactly what this is. It could not be one until the
+  # component took a `shadow` — a floating disc IS its shadow, and the comment
+  # above is the whole argument for why this one is opaque card rather than
+  # glass, which a flat `variant: :filled` would have thrown away.
+  #
+  # `shape: :circle` is an exact `size / 2`, so 44 gives the 22 written here
+  # before. The glyph goes in as a child rather than as `icon:` because Kati's
+  # icons are Material Symbols through `Kati.UI.symbol/2` — a `Text` in the
+  # `symbols` family — not the component's own `:lg` Text. A child is wrapped
+  # in a `<Row>` that hugs it, inside a Box that already centred it.
+  @doc false
+  def more_button do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: :more
+      ],
+      [Kati.UI.symbol("more_horiz", size: 21)]
+    )
   end
 
   @doc false
@@ -312,8 +336,6 @@ defmodule Kati.Screens.Meal do
   @doc false
   def actions do
     eat = {self(), :mark_eaten}
-    swap = {self(), :swap}
-    save = {self(), :save}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -338,30 +360,35 @@ defmodule Kati.Screens.Meal do
           </Box>
         </Box>
         <Spacer size={10} />
-        {Kati.Screens.Meal.disc("swap_horiz", swap)}
+        {Kati.Screens.Meal.disc("swap_horiz", :swap)}
         <Spacer size={10} />
-        {Kati.Screens.Meal.disc("bookmark", save)}
+        {Kati.Screens.Meal.disc("bookmark", :save)}
       </Row>
       <Spacer size={24} />
     </Column>
     """
   end
 
+  # The two 50pt discs beside `Mark eaten` are `MishkaActionIcon` for the same
+  # reason the chrome's is: an icon-only button whose lift off the paper is the
+  # thing that makes it read as a button at all. `shadow` is the card-soft
+  # recipe the drawing gives them, passed through untouched — the component
+  # does not interpret it, it hands the string to the container.
+  #
+  # `shape: :circle` computes 50 / 2 = 25.0, the radius that was written here.
   @doc false
-  def disc(icon, tap) do
-    ~MOB"""
-    <Box
-      width={50}
-      height={50}
-      corner_radius={25}
-      background={Kati.Theme.card(:light)}
-      shadow={Kati.Theme.shadow_card_soft()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+  def disc(icon, tag) do
+    MishkaActionIcon.action_icon(
+      [
+        size: 50,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_card_soft(),
+        on_tap: tag
+      ],
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -532,18 +559,30 @@ defmodule Kati.Screens.Meal do
   @doc false
   def star, do: Kati.UI.symbol("star", size: 12, color: 0xFF8A8479, fill: true)
 
-  # `Kati.Components.MishkaSeparator`, not a hand-drawn Box. Its plain rule is
-  # `<Divider color thickness />`, and `MobDivider` renders Material3's
-  # `HorizontalDivider`, which is literally `Box().fillMaxWidth().height(t.dp)
-  # .background(color)` — the same three modifiers `nodeModifier/1` builds for
-  # `<Box fill_width={true} height={1} background={…} />`, in the same order.
-  # So the pixels are identical and the rule now says what it is.
+  # `Kati.Components.MishkaSeparator` with `render: :box` — and the `render` is
+  # the whole point, because the note that used to sit here was wrong.
+  #
+  # `MobDivider` is not `Box().fillMaxWidth().height(t.dp).background(color)`.
+  # It renders Material3's `HorizontalDivider`, which is a `Canvas` of height
+  # `t` with an ANTIALIASED `drawLine` down its middle. At this device's 2.6875x
+  # a 1dp rule is handed a 3px canvas and a 2.6875px stroke, so the last pixel
+  # row lands at ~69% coverage — a full-width row 4-5/255 lighter than the two
+  # above it. The design specifies a 1px hairline and Material cannot draw one.
+  #
+  # `render: :box` swaps the primitive back to the filled rect this screen drew
+  # by hand before the component arrived: `<Box fill_width={true} height={1}
+  # background={…}>` — the same three modifiers `nodeModifier/1` builds, in the
+  # same order — so every pixel row carries the full colour again. The `Spacer`
+  # the component nests inside it is a 1x1 iOS height workaround that the
+  # background covers on Android.
   #
   # The colour stays the drawing's `rgba(26,25,23,.07)`; the component's own
   # `:border` default would repaint every hairline in the theme's token.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

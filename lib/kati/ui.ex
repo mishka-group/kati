@@ -9,9 +9,19 @@ defmodule Kati.UI do
 
   ## Sizing rules that govern every helper here
 
-    * A `Box` **always** fills its parent's width unless it carries an explicit
-      `width` (`MobBridge.kt:2662`). `fill_width: false` does not opt out.
-    * `Row` and `Column` hug their content.
+    * A `Box` fills its parent's width unless it carries an explicit `width`
+      **or explicitly asks to hug**. `fill_width={false}` used to be inert — the
+      box branch consulted `width` alone, and `fill_width` was only ever tested
+      for `== true` — so a box with neither was force-filled whatever it asked
+      for. Fence K-17 in `MobBridge.kt` reads it: the branch is now
+      `hasWidth || hugs`. A declared `width` still wins, so nothing that already
+      sized itself changed, and the vendored components that define their
+      silhouette by hugging (chip, pill, segmented control, toggle, …) draw as
+      pills rather than as full-width bars.
+    * `Row` and `Column` hug their content. A `Row` given no `align` centres its
+      children vertically — `rowAlignProp` names only top and bottom, and
+      centre is the fallback — so `align="center"` on a Row is the default
+      spelled out, not a change.
     * There is no wrapping primitive, and no geometry is reported back to
       `render/1`, so anything grid-shaped is chunked by a **declared** column
       count rather than measured.
@@ -434,6 +444,40 @@ defmodule Kati.UI do
   15dp plus the gap on the right — and makes chips abut whenever the gap is
   interpreted as part of the background. The gap belongs to whoever is arranging
   the chips, so callers intersperse a `<Spacer width={9} />` between them.
+
+  ## Built on `Kati.Components.MishkaChip`
+
+  The pill was hand-rolled until the component stopped hardcoding its own
+  dimensions and its own unchecked/disabled colours. It no longer does: `height`,
+  `width`, `padding_x`/`padding_y`, `corner_radius`, `text_size`, `max_lines`,
+  the `trailing` slot and all six state colours are props, so the design's chip
+  is now expressible and this is a call rather than markup.
+
+  **Nothing moved.** The component builds the same node this wrote by hand:
+
+      Box(background, corner_radius: 16, height: 32, width, align: center,
+          padding_left: 15, padding_right: 15)
+        Row(center)
+          Text(label, 12, ink, max_lines: 1)
+          <trailing>
+
+  with three differences that are all no-ops against this bridge:
+
+    * the Box also carries `fill_width: false`. `nodeModifier` only ever tests
+      `fill_width == true`, and the box branch is `hasWidth || hugs`, so a box
+      that already declares a `width` takes the same arm either way
+      (`MobBridge.kt`, fence K-17).
+    * the four padding edges are written out — `padding_top`/`padding_bottom` of
+      `0` where this wrote nothing. The bridge's `hasEdge` arm resolves a missing
+      edge to `uniform ?: 0`, so an absent top and a top of `0` are the same
+      `Modifier.padding` call.
+    * with no `:count` the Box holds the `Text` directly instead of a `Row`
+      holding the `Text` and a zero-sized `Spacer`. A `Row` hugs, and a `Spacer`
+      of `size={0}` measures 0x0 and paints nothing, so the wrapper was already
+      the same box as the text it contained.
+
+  With a `:count` the tree is identical node for node: `chip_count/2` is handed
+  in as the `trailing` slot, and MishkaChip places a node slot as given.
   """
   @spec chip(String.t(), keyword() | atom()) :: term()
   def chip(label, opts \\ [])
@@ -447,33 +491,54 @@ defmodule Kati.UI do
   def chip(label, opts) when is_list(opts) do
     count = Keyword.get(opts, :count)
     count_text = if count, do: to_string(count), else: nil
+    selected? = Keyword.get(opts, :selected, false)
+    disabled? = Keyword.get(opts, :disabled, false)
 
-    {bg, fg, count_fg} =
+    # The pill and the label are the component's to resolve — it checks
+    # disabled BEFORE checked in both `background/3` and `text_color/3`, which
+    # is the precedence the three states had here. The count is not: it lives in
+    # the trailing slot as a finished node, carrying its own colour, so its
+    # third value stays on this side.
+    count_fg =
       cond do
-        Keyword.get(opts, :disabled, false) -> {0x00FFFFFF, 0xFFB5AEA3, 0xFFB5AEA3}
-        Keyword.get(opts, :selected, false) -> {Kati.Theme.ink(), 0xFFFBFAF8, 0xFFBFB8AC}
-        true -> {Kati.Theme.card(:light), 0xFF5C574F, 0xFFA0998F}
+        disabled? -> 0xFFB5AEA3
+        selected? -> 0xFFBFB8AC
+        true -> 0xFFA0998F
       end
 
-    width = chip_content_width(label, count_text)
-
-    ~MOB"""
-    <Box
-      background={bg}
-      corner_radius={16}
-      height={32}
-      width={width}
-      padding_left={15}
-      padding_right={15}
-      align="center"
-    >
-      <Row align="center">
-        <Text text={label} text_size={12} text_color={fg} max_lines={1} />
-        {Kati.UI.chip_count(count_text, count_fg)}
-      </Row>
-    </Box>
-    """
+    Kati.Components.MishkaChip.chip(
+      label: label,
+      checked: selected?,
+      disabled: disabled?,
+      color: Kati.Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Kati.Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F,
+      # One value for both disabled states, which is what this design asks for:
+      # a section that is not built yet reads the same whether or not it is the
+      # current filter.
+      disabled_color: 0x00FFFFFF,
+      disabled_text_color: 0xFFB5AEA3,
+      corner_radius: 16,
+      height: 32,
+      width: chip_content_width(label, count_text),
+      # padding_y MUST be given. The component pads before it sizes, so the
+      # default `:space_sm` on the vertical axis would make a `height: 32` chip
+      # measure 32 plus two paddings.
+      padding_x: 15,
+      padding_y: 0,
+      text_size: 12,
+      max_lines: 1,
+      trailing: chip_trailing(count_text, count_fg)
+    )
   end
+
+  # `nil` is the component's "no trailing slot", which is not what
+  # `chip_count/2` returns for a missing count — that clause predates the slot
+  # and answers a zero-sized Spacer, because the old markup always had a Row to
+  # put something in.
+  defp chip_trailing(nil, _color), do: nil
+  defp chip_trailing(text, color), do: chip_count(text, color)
 
   @doc false
   def chip_count(nil, _color), do: ~MOB"<Spacer size={0} />"
@@ -489,11 +554,28 @@ defmodule Kati.UI do
     """
   end
 
-  # A Box that is not given a NUMBER for `width` fills its parent, and nothing
-  # measures text on the Elixir side, so the pill is sized from the character
-  # count. Crude, and honest about being crude — the alternative is a Row that
-  # swallows the whole line. This counts the CONTENT only: the bridge applies
-  # padding before width, so folding the 15dp sides in here would double them.
+  # Nothing measures text on the Elixir side, so the pill is sized from the
+  # character count. This counts the CONTENT only: the bridge applies padding
+  # before width, so folding the 15dp sides in here would double them.
+  #
+  # ## It is no longer a workaround, and that is the reason to be careful
+  #
+  # It was written because a Box with no numeric `width` filled its parent, so a
+  # chip that did not declare one became a full-width bar. That is fixed: fence
+  # K-17 makes the box branch honour `fill_width={false}`, MishkaChip passes it,
+  # and dropping `width:` from the call above would give a chip that hugs its
+  # label properly measured — which is what this has been approximating at 7dp
+  # per glyph.
+  #
+  # It stays anyway, because a real measurement is a DIFFERENT width from an
+  # approximated one: 7dp errs wide on "iOS" and narrow on "Watchlist", and
+  # every chip on every captured frame was captured at this width. Removing it
+  # is a one-line change that moves pixels on ~20 screens, so it belongs to a
+  # deliberate re-baseline of `.scratch/design/audit_v3/`, not to an adoption
+  # pass whose whole contract is that nothing moves.
+  #
+  # It is not fighting the component either way: `width` lands on the same Box
+  # and is applied after padding, exactly as the hand-rolled markup applied it.
   defp chip_content_width(label, nil), do: text_width(label)
   defp chip_content_width(label, count), do: text_width(label) + 6 + text_width(count)
 

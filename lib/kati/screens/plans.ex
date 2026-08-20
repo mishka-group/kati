@@ -33,6 +33,8 @@ defmodule Kati.Screens.Plans do
   """
   use Kati.Screens.Pushed, back: "Meals"
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaPill
   alias Kati.Meals.SampleProfiles
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -91,9 +93,7 @@ defmodule Kati.Screens.Plans do
             <Text text={active.targets} text_size={12.5} text_color={0xFF8A837B} max_lines={1} />
           </Column>
           <Spacer size={12} />
-          <Box width={36} height={36} corner_radius={18} background={0x1FF5F2EE} align="center">
-            {Kati.UI.symbol("more_horiz", size: 19, color: 0xFFF5F2EE)}
-          </Box>
+          {Kati.Screens.Plans.overflow()}
         </Row>
         <Spacer size={16} />
         {Kati.Screens.Plans.progress(active.progress)}
@@ -107,6 +107,26 @@ defmodule Kati.Screens.Plans do
       <Spacer size={20} />
     </Column>
     """
+  end
+
+  # `Kati.Components.MishkaActionIcon` — an icon-only button, here on ink
+  # rather than on paper. No `shadow`: this one sits inside the card, and the
+  # drawing gives it none; `variant: :filled` on its own is the `background` +
+  # `corner_radius` box it replaces, and `shape: :circle` computes 36 / 2 =
+  # 18.0, the radius written before.
+  #
+  # `0x1FF5F2EE` is `rgba(245,242,238,.12)` — a white-ish veil ON the ink card,
+  # not a grey — so it stays an ARGB int rather than a token. The glyph is a
+  # child rather than `icon:`, because Kati's icons are Material Symbols
+  # through `Kati.UI.symbol/2`; a child is wrapped in a `<Row>` that hugs it,
+  # inside a Box that already centred it. It carries no handler and passing no
+  # `on_tap` wires none.
+  @doc false
+  def overflow do
+    MishkaActionIcon.action_icon(
+      [size: 36, shape: :circle, variant: :filled, background: 0x1FF5F2EE],
+      [UI.symbol("more_horiz", size: 19, color: 0xFFF5F2EE)]
+    )
   end
 
   # Orange, and allowed to be: this bar is how far through *now* is.
@@ -159,13 +179,46 @@ defmodule Kati.Screens.Plans do
           <Text text={row.meta} font_family="mono" text_size={10} text_color={0xFFC4BDB3} max_lines={1} />
         </Column>
         <Spacer size={13} />
-        <Row height={32} corner_radius={16} background={0xFFEFECE7} padding_left={13} padding_right={13} align="center">
-          <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
-        </Row>
+        {Kati.Screens.Plans.activate(row.action)}
       </Row>
       <Spacer size={10} />
     </Column>
     """
+  end
+
+  # `Kati.Components.MishkaPill`: a compact label, no selected state, no tap —
+  # which is the port's own dividing line ("a Chip is selected, a Pill is
+  # removed"). This one is drawn but not yet wired, so it is a label in the
+  # tree as well as in the drawing.
+  #
+  # The same pixels, one wrapper deeper. The hugging `Row` that carried the
+  # `#EFECE7` fill, the 16 radius, 13 of horizontal padding and a 32 height
+  # becomes the pill's root `Box fill_width={false}` carrying all four, around
+  # a `Row` holding the `Text` and the empty `Row` the unused remove slot
+  # leaves behind — a 0x0 node that adds nothing to the line.
+  #
+  # All four padding edges are named, so the component's `:space_sm` default
+  # never reads: `nodeModifier/1` consults the uniform value only for an edge
+  # that is missing. The vertical zeros pin the outer height at 32, since the
+  # bridge pads before it sizes. `align: :center` stands in for the Row's
+  # `align="center"`; horizontally the content box is exactly the Text's width,
+  # so only its vertical half has anything to do.
+  @doc false
+  def activate(label) do
+    MishkaPill.pill(
+      label: label,
+      background: 0xFFEFECE7,
+      color: :on_surface,
+      corner_radius: 16,
+      height: 32,
+      padding_left: 13,
+      padding_right: 13,
+      padding_top: 0,
+      padding_bottom: 0,
+      text_size: 11.5,
+      font_weight: :semibold,
+      align: :center
+    )
   end
 
   @doc false

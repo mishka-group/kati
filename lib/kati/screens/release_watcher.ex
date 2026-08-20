@@ -130,9 +130,22 @@ defmodule Kati.Screens.ReleaseWatcher do
     )
   end
 
-  # Four segments on an #E4E0D9 trough, each taking a weight so they divide the
-  # frame evenly — screen 03's control is the same object at a different width.
-  @doc false
+  @doc """
+  Four segments on an `#E4E0D9` trough, each taking a weight so they divide the
+  frame evenly — screen 03's control is the same object at a different width.
+
+  Not `Kati.Components.MishkaSegmentedControl`, for the one reason
+  `Kati.Screens.ViewSwitcher`'s moduledoc sets out in full: since
+  `segment_weight` landed the port can do every other thing this strip does —
+  the weights, the 34pt segments, the radii, the two label colours and weights,
+  the lift under the selected tile — but it emits its four segments back to back
+  with **no gap between them and no prop that adds one**, where this drawing puts
+  4pt. Padding cannot stand in, because the bridge applies `background` before
+  `padding` and a segment's padding therefore widens its own fill; and a
+  `<Spacer>` cannot be interspersed by hand, because `expand/3` drops every child
+  that is not an option. Without the gaps the track is 12 narrower and all four
+  boundaries move, so the markup stays.
+  """
   def cadence(w) do
     tiles =
       w.cadences

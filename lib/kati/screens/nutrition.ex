@@ -43,6 +43,7 @@ defmodule Kati.Screens.Nutrition do
   """
   use Kati.Screens.Pushed, back: "Meals"
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Meals.SampleNutrition, as: Sample
   alias Kati.Theme
   alias Kati.UI
@@ -177,8 +178,6 @@ defmodule Kati.Screens.Nutrition do
 
   @doc false
   def header do
-    share = {self(), :share}
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -188,23 +187,63 @@ defmodule Kati.Screens.Nutrition do
           <Text text={Kati.Meals.SampleNutrition.plan_line()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
         <Spacer size={9} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={share}
-        >
-          {Kati.UI.symbol("ios_share", size: 21)}
-        </Box>
+        {Kati.Screens.Nutrition.share_button()}
       </Row>
       <Spacer size={20} />
     </Column>
     """
   end
 
+  # `Kati.Components.MishkaActionIcon` — an icon-only button on a raised
+  # surface, which is what this is. It could not be one until the component
+  # took a `shadow`: a floating disc is defined by its shadow, and `#FBFAF8` on
+  # `#EFECE7` paper without one barely reads as a disc.
+  #
+  # `shape: :circle` computes 44 / 2 = 22.0, the radius written here before;
+  # `variant: :filled` paints `background` and stops. The glyph goes in as a
+  # child rather than as `icon:`, because Kati's icons are Material Symbols
+  # through `Kati.UI.symbol/2` — a `Text` in the `symbols` family — not the
+  # component's own `:lg` Text. A child is wrapped in a `<Row>` that hugs it,
+  # inside a Box that already centred it, so the glyph does not move.
+  @doc false
+  def share_button do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: :share
+      ],
+      [UI.symbol("ios_share", size: 21)]
+    )
+  end
+
+  # NOT `Kati.Components.MishkaSegmentedControl`, and the reason is one number.
+  #
+  # The control can now build everything else this strip is: the trough is
+  # `background`, `corner_radius: 16` and `track_padding: 4`; a segment is
+  # `segment_radius: 12`, `segment_height: 34`, `segment_weight: 1.0` and
+  # `padding: 0`; the chosen one takes `color`, `text_color`, `selected_weight`
+  # and `selected_shadow`, the others `label_color` and `font_weight`. Screen
+  # 44's strip is that call, and is pixel-identical to what it replaced.
+  #
+  # What it cannot do is **put 4pt between the segments**. The drawing's track
+  # is `display:flex;gap:4px` and the reason is visual rather than tidy: the
+  # chosen segment is a white pill on a `#E4E0D9` trough, and with the three
+  # abutting, the trough disappears between them and the pill reads as a lid on
+  # the strip rather than as one of three. The component lays its segments out
+  # in a bare `<Row>` with no gap and no way to intersperse one — `expand/3`
+  # and `segmented_control/2` keep only children matching
+  # `:mishka_segmented_control_option` and drop everything else, so a `<Spacer>`
+  # written between the options never reaches the tree.
+  #
+  # That is the whole gap: a `segment_gap` (or a `gap` on the segments' Row —
+  # `gap` is already a spacing prop the renderer resolves) would make this call
+  # identical to 44's. Screen 44 differs only in that its own markup has never
+  # drawn the gap its drawing also asks for, which is why the component fits
+  # there today and not here.
   @doc false
   def segments(active) do
     tabs =

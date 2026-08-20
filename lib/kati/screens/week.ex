@@ -261,16 +261,28 @@ defmodule Kati.Screens.Week do
 
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  # `MishkaSeparator` rather than a hand-rolled Box. A horizontal rule with no
-  # label is the whole of what that component draws, and it draws it as
-  # `<Divider>` — which on this bridge is Compose's `HorizontalDivider`, i.e.
-  # `Box(fillMaxWidth().height(thickness.dp).background(color))`. That is
-  # literally the Box that used to be written here, so the rule is the same
-  # 1dp band of the same 7%-ink at the same width.
+  # `MishkaSeparator` rather than a hand-rolled Box, and `render: :box` rather
+  # than the component's `:divider` default.
+  #
+  # `:divider` is NOT the Box this used to be. The comment that stood here said
+  # it was — that Compose's `HorizontalDivider` is
+  # `Box(fillMaxWidth().height(t).background(color))` — and that is wrong:
+  # Material3 draws it as `Canvas { drawLine(strokeWidth = t.toPx()) }`, an
+  # ANTIALIASED stroke. At this device's 2.6875x a 1dp rule gets a 3px canvas
+  # and a 2.6875px stroke centred in it, so the bottom pixel row lands at ~69%
+  # coverage — a full-width row 4-5/255 lighter than the two above it. The
+  # adoption softened the hairline by one pixel row and nothing said so.
+  #
+  # `render: :box` is the component's filled-rect primitive: `<Box fill_width
+  # height={thickness} background={color}>`, which is the node that was written
+  # here by hand before the adoption, so the rule goes back to three full-colour
+  # rows. (Its `<Spacer size={1} />` child is an iOS height workaround — on
+  # Android the Box's own `height` pins it and the background covers it.)
   #
   # `color` is passed rather than left to the component's `:border` default:
   # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @doc false
   def hint do

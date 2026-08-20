@@ -40,6 +40,7 @@ defmodule Kati.Screens.Account do
 
   alias Kati.Account.Sample
   alias Kati.Components.MishkaAvatar
+  alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.UI
@@ -77,20 +78,54 @@ defmodule Kati.Screens.Account do
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.Account.disc("more_horiz")}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The 44pt floating disc opposite the back pill.
+
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon" — which is what a disc is, and which it could not be until the container
+  took a `shadow`. A disc is *defined* by floating: `variant: :filled` paints
+  `#FBFAF8` and stops, and on this screen's paper that reads as a pale patch
+  rather than as a button sitting above it.
+
+  ## Why the pixels do not move
+
+  With children and no `id`, `theme_icon/2` returns
+
+      %{type: :box,
+        props: %{width: 44, height: 44, align: :center, corner_radius: 22,
+                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button()},
+        children: [glyph]}
+
+  — the same seven keys with the same seven values the hand-rolled `<Box>`
+  carried. `align: :center` and `align="center"` reach the bridge as the same
+  string, since `align` is in none of the renderer's token whitelists and
+  `:json.encode/1` writes an atom as its own name.
+
+  Nothing else in the component runs: `:filled` has no gradient layer,
+  `skin(:filled, …)` proposes no border so `put_some/3` omits `border_color` and
+  `border_width` entirely rather than writing nils, and the id markers are
+  skipped without an `id`. The glyph goes in as a child because the `icon`
+  shorthand builds a `Text` with no `font_family`, which would typeset the
+  ligature `"more_horiz"` as the word.
+  """
+  def disc(icon) do
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: Kati.Theme.card(:light),
+        size: 44,
+        radius: 22,
+        shadow: Kati.Theme.shadow_button()
+      },
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -326,13 +361,61 @@ defmodule Kati.Screens.Account do
     end
   end
 
-  @doc false
+  @doc """
+  The **Allow** button a never-asked permission carries instead of a switch.
+
+  `Kati.Components.MishkaPill`, now that the pill takes a `height`, per-edge
+  padding and a numeric `text_size` — 30 tall, 15 of radius, 12 of side padding
+  and an 11.5pt semibold label are the five numbers the drawing gives, and none
+  of them was expressible before. It is the same recipe as
+  `Kati.UI.SettingsList.action_pill/1`, which is the point: the drawing draws
+  one paper button and this screen should not draw a second one.
+
+  ## `padding: 0` is load-bearing
+
+  The pill pads before it sizes, and its `padding` default is `:space_sm`. Left
+  alone that token is the fallback for the two edges this does not name, so a
+  `height: 30` pill would measure 30 plus two paddings. `padding: 0` makes the
+  vertical fallback zero; the bridge's `hasEdge` arm then resolves top and
+  bottom to `uniform ?: 0`, which is the same `Modifier.padding` call the
+  hand-rolled `Row` produced by writing no vertical padding at all.
+
+  ## Why the pixels do not move
+
+  The container changes from a `Row` to a `Box`, and both build the same
+  modifier chain — `nodeModifier` is one function for every node type, so the
+  background, the radius, the padding and the height are applied identically.
+  What differs is how the container hugs and where its content sits:
+
+    * a `Row` hugs its width; a `Box` hugs only when told, and MishkaPill's root
+      passes `fill_width={false}`, which fence K-17 now honours in the bridge's
+      box branch (`hugs = boolProp(props, "fill_width") == false`). Same width;
+    * the `Row` centred its child with `verticalAlignment`; the `Box` centres it
+      with `align: :center`. Same 30pt box, same centred label;
+    * the label gains two wrappers — MishkaPill's body `Row`, and the empty
+      `<Row />` that stands in for the ✕ when `with_remove` is false. Both hug,
+      the empty one measures 0x0, and a `Row` given no `align` already defaults
+      to `Alignment.CenterVertically` (`rowAlignProp`), so neither shifts
+      anything.
+
+  `max_lines: 1` is the component's own and matches what this passed: a Compose
+  `Text` squeezed narrower than its content wraps character by character, so a
+  pill that does not quite fit its row would render as a stack of letters.
+  """
   def pill(label) do
-    ~MOB"""
-    <Row height={30} corner_radius={15} background={0xFFEFECE7} padding_left={12} padding_right={12} align="center">
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      label: label,
+      background: 0xFFEFECE7,
+      color: :on_surface,
+      corner_radius: 15,
+      height: 30,
+      padding: 0,
+      padding_left: 12,
+      padding_right: 12,
+      text_size: 11.5,
+      font_weight: :semibold,
+      align: :center
+    )
   end
 
   @doc """
@@ -384,16 +467,40 @@ defmodule Kati.Screens.Account do
     """
   end
 
-  # `Kati.Components.MishkaSeparator` is what a 1px rule between rows is, so
-  # the rule is its. Its plain variant is a `<Divider>`, and the bridge's
-  # `MobDivider` renders Compose's `HorizontalDivider(thickness, color)` —
-  # defined as `Box(modifier.fillMaxWidth().height(thickness).background(color))`,
-  # the same three modifiers this wrote by hand. The drawing's 7% ink survives
-  # because `color` is an ARGB int: it is in the renderer's `@color_props`
-  # whitelist, and an integer reaches `colorProp` untouched.
-  @doc false
+  @doc """
+  The `rgba(26,25,23,.07)` rule between two rows.
+
+  `Kati.Components.MishkaSeparator` is what a 1px rule between rows is, so the
+  rule is its — with `render: :box`, which is the word that makes it match.
+
+  ## Why `render: :box`
+
+  The component's default `:divider` maps to Material3's `HorizontalDivider`,
+  which is **not** `Box(fillMaxWidth().height(t).background(c))` as this file
+  previously claimed but an antialiased `drawLine`. At this device's 2.6875x a
+  1dp rule gets a 3px canvas and a 2.6875px stroke centred in it, so the last
+  pixel row lands at ~69% coverage — a full-width row 4-5/255 lighter than the
+  two above it. The drawing paints a flat 7% hairline, and no `color` or
+  `thickness` recovers that, because the softness lives in the primitive.
+
+  `render: :box` builds
+
+      <Box fill_width={true} height={1} background={0x121A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  — the same three modifiers this file wrote by hand before adopting the
+  component. The `Spacer` is an iOS workaround for `MobBox` dropping a Box's
+  `height` when it has no `width`; on Android the Box's own `height` pins the
+  rule and `MobSpacer` paints nothing.
+
+  The 7% survives because `color` is an ARGB int: it is in the renderer's
+  `@color_props` whitelist and an integer reaches `colorProp` untouched.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @doc "The list a tap leaves behind, with the tapped row flipped."
   @spec flip([map()], String.t()) :: [map()]

@@ -13,7 +13,10 @@ defmodule Kati.Screens.Film do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Library.Sample
   alias Kati.UI
 
@@ -54,11 +57,7 @@ defmodule Kati.Screens.Film do
       </Box>
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
-          <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={11} padding_right={11} align="center">
-            {Kati.UI.symbol("check_circle", size: 15, color: 0xFF3E8460, fill: true)}
-            <Spacer size={6} />
-            <Text text={f.watched} text_size={11.5} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
-          </Row>
+          {Kati.Screens.Film.watched_pill(f.watched)}
           <Spacer size={11} />
           <Text text={f.title} text_size={30} font_weight="extrabold" letter_spacing={-0.035} line_height={1.05} text_color={:on_surface} />
           <Spacer size={9} />
@@ -67,6 +66,50 @@ defmodule Kati.Screens.Film do
       </Box>
     </Box>
     """
+  end
+
+  @doc """
+  The watched pill over the artwork — Mishka's Pill.
+
+  A pill and not a chip: nothing here is selected or selectable, it is a
+  statement about the film, which is exactly the label-on-a-lozenge a pill is.
+  The tick and the label ride in as `content`, because a pill's `label` prop
+  builds its own Text and this one needs a glyph beside it.
+
+  The pixels are the Row's. `padding: 0` with `padding_left`/`padding_right` at
+  11 gives the bridge the same 11/0 edges, and padding is applied before size,
+  so `height: 26` measures 26 as it did. The pill's root is a `Box` that passes
+  `fill_width={false}` and so hugs (K-17) where the Row hugged; inside it a
+  `Row` holds the content — itself wrapped in a hugging `Row` — beside the
+  empty, zero-wide `Row` that stands in for the absent ✕. Every one of those
+  hugs and every one centres vertically by default, so the tick, the 6pt gap
+  and the label land at the offsets they already had.
+  """
+  @spec watched_pill(String.t()) :: map()
+  def watched_pill(label) do
+    MishkaPill.pill(
+      [
+        background: 0x294E9A73,
+        corner_radius: 13,
+        height: 26,
+        padding: 0,
+        padding_left: 11,
+        padding_right: 11,
+        align: :center
+      ],
+      Kati.Screens.Film.watched_content(label)
+    )
+  end
+
+  @doc false
+  def watched_content(label) do
+    [
+      Kati.UI.symbol("check_circle", size: 15, color: 0xFF3E8460, fill: true),
+      ~MOB"<Spacer size={6} />",
+      ~MOB"""
+      <Text text={label} text_size={11.5} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
+      """
+    ]
   end
 
   @doc false
@@ -94,18 +137,79 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        <Row height={42} corner_radius={21} background={fill} shadow={lift} padding_left={12} padding_right={16} align="center" on_tap={back}>
-          {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
-          <Spacer size={6} />
-          <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
-        </Row>
+        {Kati.Screens.Film.back_pill(back, fill, lift)}
         <Spacer weight={1.0} />
-        <Box width={42} height={42} corner_radius={21} background={fill} shadow={lift} align="center">
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.Film.more_disc(fill, lift)}
       </Row>
     </Box>
     """
+  end
+
+  @doc """
+  The floating back pill — Mishka's Pill.
+
+  Icon plus label on a lifted lozenge is a pill with `content`; the tap is the
+  pill's own `on_tap`, which takes the already-wired `{pid, tag}` untouched.
+
+  Same pixels. `padding: 0` alongside `padding_left: 12` and
+  `padding_right: 16` reproduces the Row's asymmetric 12/16 with 0 top and
+  bottom — the bridge resolves an unstated edge against the uniform, and the
+  uniform is 0 — and because it pads before it sizes, `height: 42` is still 42.
+  `shadow` rides the root Box, which is the node that carries the fill, the
+  radius and the tap, so the lift is cast around the same 21pt silhouette. The
+  three extra `Row`s the pill builds (its body, the content wrapper, and the
+  empty one where a ✕ would sit) all hug and all centre vertically by default,
+  so the chevron, the 6pt gap and `Library` sit where they sat.
+  """
+  @spec back_pill(term(), non_neg_integer(), String.t()) :: map()
+  def back_pill(back, fill, lift) do
+    MishkaPill.pill(
+      [
+        background: fill,
+        shadow: lift,
+        corner_radius: 21,
+        height: 42,
+        padding: 0,
+        padding_left: 12,
+        padding_right: 16,
+        align: :center,
+        on_tap: back
+      ],
+      Kati.Screens.Film.back_content()
+    )
+  end
+
+  @doc false
+  def back_content do
+    [
+      Kati.UI.symbol("arrow_back_ios_new", size: 17),
+      ~MOB"<Spacer size={6} />",
+      ~MOB"""
+      <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
+      """
+    ]
+  end
+
+  @doc """
+  The floating overflow disc — Mishka's Action Icon, now that a disc can float.
+
+  This screen's chrome sits over a photograph, so both controls carry the
+  design's `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)`; without it the disc
+  reads as a flat sticker on the still. `action_icon/2` had no shadow prop and
+  so could not draw it, which is the only reason this was a bare Box.
+
+  Nothing moves: `shape: :circle` is an exact `size / 2`, so 42 rounds at 21 as
+  the literal did, the fill and the shadow pass straight through, and the glyph
+  is the same `Kati.UI.symbol/2` Text inside a Row that hugs it — a hugging
+  Row's only child, centred in a Box of the declared size, lands where the bare
+  centred Text did.
+  """
+  @spec more_disc(non_neg_integer(), String.t()) :: map()
+  def more_disc(fill, lift) do
+    MishkaActionIcon.action_icon(
+      [size: 42, shape: :circle, variant: :filled, background: fill, shadow: lift],
+      [Kati.UI.symbol("more_horiz", size: 21)]
+    )
   end
 
   # Two hugging children with a weighted Spacer between them, not a weighted
@@ -209,9 +313,7 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={32} height={32} corner_radius={10} background={0xFFEFECE7} align="center">
-          <Text text={row.badge} font_family="mono" text_size={13} font_weight="medium" text_color={:on_surface} />
-        </Box>
+        {Kati.Screens.Film.where_badge(row.badge)}
         <Spacer size={13} />
         <Text text={row.name} text_size={13.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
         <Text text={row.price} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
@@ -221,16 +323,60 @@ defmodule Kati.Screens.Film do
     """
   end
 
-  # Mishka's Separator, at the design's own colour and thickness.
-  #
-  # The pixels are the hand-rolled Box's exactly: `separator/1` emits
-  # `<Divider color thickness>`, and `MobDivider` is Material 3's
-  # `HorizontalDivider`, which is `Box(modifier.fillMaxWidth().height(thickness)
-  # .background(color))` — the same full-width 1dp rectangle in the same colour
-  # that `<Box fill_width height={1} background>` produced.
+  @doc """
+  A service's two-letter badge — Mishka's Theme Icon.
+
+  "A themed container around exactly one icon" is the whole of what this Box
+  was, so the component is a rename rather than a rewrite. With no `id` to tag
+  and the mark passed as a child, `theme_icon/2` emits one Box whose props map
+  is the hand-rolled one key for key — `width: 32, height: 32, align: :center,
+  corner_radius: 10, background: #EFECE7` — around the same mono Text.
+  `variant: :filled` with a raw `color` puts the design's own value in the fill
+  rather than a theme token, and the Text keeps the colour and weight it was
+  written with, because a caller-supplied icon always does.
+  """
+  @spec where_badge(String.t()) :: map()
+  def where_badge(badge) do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: 0xFFEFECE7, size: 32, radius: 10],
+      [Kati.Screens.Film.where_mark(badge)]
+    )
+  end
+
   @doc false
+  def where_mark(badge) do
+    ~MOB"""
+    <Text text={badge} font_family="mono" text_size={13} font_weight="medium" text_color={:on_surface} />
+    """
+  end
+
+  @doc """
+  The rule between two `where` rows — Mishka's Separator at the design's own
+  colour and thickness, drawn as a **box**.
+
+  `render: :box` is load-bearing, and it was missing. This comment used to
+  claim a `<Divider>` is `Box(fillMaxWidth().height(t).background(c))`; it is
+  not. `MobDivider` is Material 3's `HorizontalDivider`, which is a `Canvas`
+  that `drawLine`s an **antialiased stroke**. At this device's 2.6875x a 1dp
+  rule is handed a 3px-tall canvas and a 2.6875px stroke centred in it, so the
+  bottom pixel row lands at ~69% coverage: one full-width row 4-5/255 lighter
+  than the `1px solid rgba(26,25,23,.07)` the drawing asks for, and no
+  combination of `color` and `thickness` can fix it because the softness is in
+  the primitive.
+
+  `render: :box` puts back the primitive the hand-rolled markup used —
+  `<Box fill_width={true} height={1} background={…}>`, a filled rect with no
+  antialiased edge, so every pixel row carries the full colour. It carries a
+  1dp `<Spacer>` that is an iOS height workaround rather than a design: on
+  Android the Box's own `height` pins the rule and the background covers the
+  Spacer, so the node draws exactly the rectangle this screen drew before it
+  adopted the component.
+  """
+  @spec hairline(boolean()) :: map()
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @doc false
   def actions(f) do

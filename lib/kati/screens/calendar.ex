@@ -17,7 +17,10 @@ defmodule Kati.Screens.Calendar do
   """
   use Kati.Screens.Root, root: :calendar
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme
 
 
@@ -140,23 +143,32 @@ defmodule Kati.Screens.Calendar do
     """
   end
 
+  # Chelekom's headless Action Icon, which is what a header disc is — a compact
+  # icon-only button. It could not draw this one until `shadow` landed: without
+  # it `variant: :filled` paints a flat patch of card white on paper that is
+  # nearly the same value, and the disc stopped reading as a button at all. The
+  # lift IS the control here, and it is the design's own `shadow_button()`.
+  #
+  # `shape: :circle` computes `size / 2` = 22.0 for the radius the Box stated as
+  # 22; `floatProp` reads both as 22.0f. The glyph goes in as a CHILD so
+  # `Kati.UI.symbol/2` still supplies the Material Symbol at the drawn 21 rather
+  # than the component's own `:lg` text glyph. The only structural difference is
+  # the `<Row>` the component wraps children in, which hugs its single `<Text>`
+  # and is centred by the same `Alignment.Center` — centring a hugging Row that
+  # holds one glyph lands the glyph where centring the glyph did.
   @doc false
   def disc(icon, tag) do
-    tap = {self(), tag}
-
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={Kati.Theme.card(:light)}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: tag
+      ],
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -203,11 +215,18 @@ defmodule Kati.Screens.Calendar do
 
   # The hairline the drawing puts under the day strip, at its own 8% ink —
   # Chelekom's headless Separator rather than a Box pretending to be a line.
-  # It expands to `<Divider color thickness />`, which the bridge draws as
-  # Compose's `HorizontalDivider`: `Box(fillMaxWidth().height(1.dp)
-  # .background(color))`, the hand-rolled Box exactly.
+  #
+  # `render: :box` is load-bearing, and the comment that used to sit here was
+  # wrong about why. The default `:divider` is NOT the hand-rolled Box: the
+  # bridge maps it to Material3's `HorizontalDivider`, which is a Canvas
+  # drawing an ANTIALIASED `drawLine`, not a filled rect. At this device's
+  # 2.6875x a 1dp rule gets a 3px canvas and a 2.6875px stroke, so the last
+  # pixel row lands at ~69% coverage — a hairline 4-5/255 lighter than the
+  # design's, running the full width under the day strip. `render: :box`
+  # swaps the primitive back to `<Box fill_width height={1} background />`,
+  # so every pixel row carries the full 8% ink again.
   @doc false
-  def rule, do: MishkaSeparator.separator(color: 0x141A1917, thickness: 1)
+  def rule, do: MishkaSeparator.separator(color: 0x141A1917, thickness: 1, render: :box)
 
   @doc false
   def cell_gap, do: ~MOB"<Spacer size={2} />"
@@ -259,17 +278,61 @@ defmodule Kati.Screens.Calendar do
     """
   end
 
+  # Chelekom's headless Chip. A filter chip is exactly what the component is —
+  # `checked` is the whole state, and until this round every visual below it was
+  # a theme token the component picked for itself, which is why the drawn chip
+  # could not be built out of it.
+  #
+  # The node it builds is the node this hand-rolled one built, with one
+  # substitution:
+  #
+  #   was  <Row height={32} corner_radius={16} background padding_left={15}
+  #             padding_right={15} align="center" on_tap>
+  #          <Text 12.5 semibold max_lines={1} />
+  #        </Row>
+  #
+  #   now  <Box fill_width={false} height={32} corner_radius={16} background
+  #             padding_left={15} padding_right={15} padding_top={0}
+  #             padding_bottom={0} align="center" on_tap>
+  #          <Text 12.5 semibold max_lines={1} />
+  #        </Box>
+  #
+  # Row → Box moves nothing here, and the two reasons are in the bridge:
+  #
+  #   * `rowAlignProp` returns `CenterVertically` for align="center", and
+  #     `boxAlignProp` returns `Alignment.Center` — a 2D centre. The extra axis
+  #     is a no-op because the box HUGS: `fill_width={false}` (fence K-17) makes
+  #     `boxModifier` skip `fillMaxWidth`, so the box is 15 + label + 15 wide
+  #     and there is no leftover width to centre the label in. Vertically both
+  #     put the label's box on the same midline of the same 32.
+  #   * `padding_top={0}`/`padding_bottom={0}` versus the Row's absent pair are
+  #     the same number: `nodeModifier` reads `pad(v) = v ?: uniform ?: 0`, so
+  #     an unset edge with no uniform `padding` is already 0. `hasEdge` was
+  #     true for the Row too, so the same `Modifier.padding(0, 15, 0, 15)`
+  #     chain is built either way, and `height={32}` measures the same box
+  #     after it.
+  #
+  # Everything else is passed in rather than defaulted, so no theme token is
+  # consulted: the ink/paper fills, the two label inks, the 16 radius, 12.5
+  # semibold and the single line are all the drawing's own numbers.
   @doc false
   def chip(label, on?) do
-    tap = {self(), String.to_atom("filter_" <> label)}
-    bg = if on?, do: Theme.ink(), else: Theme.card(:light)
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
-
-    ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center" on_tap={tap}>
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-    </Row>
-    """
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      on_toggle: String.to_atom("filter_" <> label),
+      height: 32,
+      padding_x: 15,
+      padding_y: 0,
+      corner_radius: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      color: Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F
+    )
   end
 
   # `gap:7px` belongs BETWEEN the chips. Carried as a trailing Spacer inside
@@ -371,9 +434,7 @@ defmodule Kati.Screens.Calendar do
       padding_bottom={13}
       align="center"
     >
-      <Box width={26} height={26} corner_radius={8} background={0xFFE4E0D9} align="center">
-        {Kati.UI.symbol("payments", size: 15, color: 0xFF5C574F)}
-      </Box>
+      {Kati.Screens.Calendar.payments_tile()}
       <Spacer size={12} />
       <Box weight={1.0}>
         <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
@@ -382,6 +443,28 @@ defmodule Kati.Screens.Calendar do
       <Text text={row.meta} font_family="mono" text_size={12} font_weight="medium" text_color={0xFF5C574F} max_lines={1} />
     </Row>
     """
+  end
+
+  # Chelekom's headless Theme Icon — "a themed container around exactly one
+  # icon", which is the whole of what this is. It is the better fit than Action
+  # Icon here for the reason the two components differ: an Action Icon is a
+  # BUTTON, and this tile is not tappable — the card around it is.
+  #
+  # It also builds a tighter node. Action Icon wraps caller-supplied children in
+  # a `<Row>`; Theme Icon puts them straight into its Box whenever `id` is nil
+  # (`markers(nil, …)` returns the children untouched), so the tree is the Box
+  # and the glyph, exactly as hand-rolled — no wrapper to reason about at all.
+  #
+  # `variant: :filled` is what makes `color` the container's fill; the glyph
+  # colour the variant derives from it is never used, because a caller-supplied
+  # child carries its own ink and `Kati.UI.symbol/2` gives it the drawn
+  # #5C574F. `size` and `radius` take raw dp as readily as tokens.
+  @doc false
+  def payments_tile do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: 0xFFE4E0D9, size: 26, radius: 8],
+      [Kati.UI.symbol("payments", size: 15, color: 0xFF5C574F)]
+    )
   end
 
   # The two cards that carry a 3pt rule down their leading edge. `align-self:
@@ -477,12 +560,23 @@ defmodule Kati.Screens.Calendar do
         <Text text={row.meta} font_family="mono" text_size={11} text_color={0xFF8A8479} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      <Box width={28} height={28} corner_radius={14} background={0xFFEFECE7} align="center">
-        {Kati.Screens.Calendar.chevron(open?)}
-      </Box>
+      {Kati.Screens.Calendar.chevron_tile(open?)}
     </Row>
     """
     |> then(fn card -> Kati.Screens.Calendar.with_members(card, row, open?) end)
+  end
+
+  # The same Theme Icon as `payments_tile/0`, and the same reasoning: the disc
+  # is not the tap target — the whole air-date card is, so a button component
+  # would be claiming an affordance that is not there. The chevron inside it
+  # goes in as a child because at 180deg it is a rotated Box rather than a
+  # glyph, which no `icon` shorthand can express.
+  @doc false
+  def chevron_tile(open?) do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: 0xFFEFECE7, size: 28, radius: 14],
+      [Kati.Screens.Calendar.chevron(open?)]
+    )
   end
 
   @doc false

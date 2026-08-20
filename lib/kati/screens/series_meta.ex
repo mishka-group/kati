@@ -41,7 +41,10 @@ defmodule Kati.Screens.SeriesMeta do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.SeriesMeta.Sample
   alias Kati.UI
 
@@ -126,27 +129,84 @@ defmodule Kati.Screens.SeriesMeta do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        <Row
-          height={44}
-          corner_radius={22}
-          background={fill}
-          shadow={Kati.Theme.shadow_button()}
-          padding_left={12}
-          padding_right={16}
-          align="center"
-          on_tap={back}
-        >
-          {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
-          <Spacer size={6} />
-          <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
-        </Row>
+        {Kati.Screens.SeriesMeta.back_pill(back, fill)}
         <Spacer weight={1.0} />
-        <Box width={44} height={44} corner_radius={22} background={fill} shadow={Kati.Theme.shadow_button()} align="center">
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.SeriesMeta.more_disc(fill)}
       </Row>
     </Box>
     """
+  end
+
+  @doc """
+  The floating back pill — Mishka's Pill.
+
+  Icon plus label on a lifted lozenge is a pill with `content`; the tap is the
+  pill's own `on_tap`, which takes the already-wired `{pid, tag}` untouched.
+
+  Same pixels. `padding: 0` alongside `padding_left: 12` and
+  `padding_right: 16` reproduces the Row's asymmetric 12/16 with 0 top and
+  bottom — the bridge resolves an unstated edge against the uniform, and the
+  uniform is 0 — and because it pads before it sizes, `height: 44` is still 44.
+  `shadow` rides the root Box, the node that also carries the fill, the radius
+  and the tap, so the lift is cast around the same 22pt silhouette. The three
+  `Row`s the pill builds (its body, the content wrapper, and the empty one
+  where a ✕ would sit) all hug and all centre vertically by default, so the
+  chevron, the 6pt gap and `Library` sit exactly where they sat.
+  """
+  @spec back_pill(term(), non_neg_integer()) :: map()
+  def back_pill(back, fill) do
+    MishkaPill.pill(
+      [
+        background: fill,
+        shadow: Kati.Theme.shadow_button(),
+        corner_radius: 22,
+        height: 44,
+        padding: 0,
+        padding_left: 12,
+        padding_right: 16,
+        align: :center,
+        on_tap: back
+      ],
+      Kati.Screens.SeriesMeta.back_content()
+    )
+  end
+
+  @doc false
+  def back_content do
+    [
+      Kati.UI.symbol("arrow_back_ios_new", size: 17),
+      ~MOB"<Spacer size={6} />",
+      ~MOB"""
+      <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
+      """
+    ]
+  end
+
+  @doc """
+  The floating overflow disc — Mishka's Action Icon, now that a disc can float.
+
+  A floating disc is defined by its shadow: `Kati.Theme.shadow_button()` is
+  what separates this control from a flat patch of card colour on the still
+  behind it, and `action_icon/2` had no way to say it until now.
+
+  Nothing moves. `shape: :circle` is an exact `size / 2`, so 44 rounds at 22 as
+  the literal did; the fill and the shadow pass straight through; and the glyph
+  is the same `Kati.UI.symbol/2` Text, now inside a Row that hugs it — a
+  hugging Row's only child, centred in a Box of the declared size, lands where
+  the bare centred Text did.
+  """
+  @spec more_disc(non_neg_integer()) :: map()
+  def more_disc(fill) do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: fill,
+        shadow: Kati.Theme.shadow_button()
+      ],
+      [Kati.UI.symbol("more_horiz", size: 21)]
+    )
   end
 
   @doc false
@@ -366,9 +426,7 @@ defmodule Kati.Screens.SeriesMeta do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={32} height={32} corner_radius={10} background={0xFFEFECE7} align="center">
-          <Text text={row.badge} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
-        </Box>
+        {Kati.Screens.SeriesMeta.where_badge(row.badge)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.name} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
@@ -383,6 +441,33 @@ defmodule Kati.Screens.SeriesMeta do
     """
   end
 
+  @doc """
+  A service's two-letter badge — Mishka's Theme Icon.
+
+  "A themed container around exactly one icon" is the whole of what this Box
+  was, so the component is a rename rather than a rewrite. With no `id` to tag
+  and the mark passed as a child, `theme_icon/2` emits one Box whose props map
+  is the hand-rolled one key for key — `width: 32, height: 32, align: :center,
+  corner_radius: 10, background: #EFECE7` — around the same mono Text.
+  `variant: :filled` with a raw `color` puts the design's own value in the fill
+  rather than a theme token, and the Text keeps the colour it was written with,
+  because a caller-supplied icon always does.
+  """
+  @spec where_badge(String.t()) :: map()
+  def where_badge(badge) do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: 0xFFEFECE7, size: 32, radius: 10],
+      [Kati.Screens.SeriesMeta.where_mark(badge)]
+    )
+  end
+
+  @doc false
+  def where_mark(badge) do
+    ~MOB"""
+    <Text text={badge} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
+    """
+  end
+
   @doc false
   def price(nil), do: ~MOB"<Spacer size={0} />"
 
@@ -392,11 +477,15 @@ defmodule Kati.Screens.SeriesMeta do
     """
   end
 
-  # Mishka's Separator, at the design's own colour and thickness — see
-  # `Kati.Screens.Film.hairline/1` for why the pixels are unchanged.
+  # Mishka's Separator, at the design's own colour and thickness. `render:
+  # :box` is not optional — the default `:divider` is Material 3's antialiased
+  # drawLine and softens the bottom pixel row of every rule in the where-card.
+  # See `Kati.Screens.Film.hairline/1` for the measurement.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   # Three then two, which is where the browser breaks these five labels at a
   # 360pt content width. The add-tag slot carries its own flag rather than
@@ -432,37 +521,62 @@ defmodule Kati.Screens.SeriesMeta do
   @doc false
   def tag_gap, do: ~MOB"<Spacer size={7} />"
 
-  @doc false
+  @doc """
+  One tag — Mishka's Pill, in both of its two shapes.
+
+  A pill, not a chip: a user tag is not selected and does not toggle, and the
+  trailing slot the design gives it is nothing at all. (The web pill's ✕ is
+  what a *removable* tag would use; this drawing does not draw one, so
+  `with_remove` stays off and its slot stays an empty, zero-wide `Row`.)
+
+  Both shapes are the same node with different props, which is the point of
+  adopting it: the add-tag is a 1.5pt outline over nothing, the user tags are
+  card fill under the design's soft card shadow, and `border_color` /
+  `border_width` / `background` / `shadow` say so directly.
+
+  Nothing moves. `padding: 0` with the two side edges set gives the bridge the
+  same 12/0 and 13/0 the Rows carried — an unstated edge resolves against the
+  uniform, and the uniform is 0 — and since padding is applied before size,
+  `height: 30` still measures 30. The add-tag passes `background: :transparent`
+  where the Row simply had no fill; a fully transparent rounded rect paints
+  nothing, so the outline is still the only mark. The pill's root `Box` hugs
+  (`fill_width={false}`, K-17) as the Row did, and its inner `Row`s hug and
+  centre by default, so a single centred label lands where it already was.
+  """
+  @spec tag(String.t(), boolean()) :: map()
   def tag(label, true) do
-    ~MOB"""
-    <Row
-      height={30}
-      corner_radius={15}
-      border_color={0x2E1A1917}
-      border_width={1.5}
-      padding_left={12}
-      padding_right={12}
-      align="center"
-    >
-      <Text text={label} text_size={12} font_weight="semibold" text_color={0xFFA0998F} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      label: label,
+      background: :transparent,
+      color: 0xFFA0998F,
+      border_color: 0x2E1A1917,
+      border_width: 1.5,
+      corner_radius: 15,
+      height: 30,
+      padding: 0,
+      padding_left: 12,
+      padding_right: 12,
+      align: :center,
+      text_size: 12,
+      font_weight: :semibold
+    )
   end
 
   def tag(label, false) do
-    ~MOB"""
-    <Row
-      height={30}
-      corner_radius={15}
-      background={Kati.Theme.card(:light)}
-      shadow={Kati.Theme.shadow_card_soft()}
-      padding_left={13}
-      padding_right={13}
-      align="center"
-    >
-      <Text text={label} text_size={12} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      label: label,
+      background: Kati.Theme.card(:light),
+      color: 0xFF5C574F,
+      shadow: Kati.Theme.shadow_card_soft(),
+      corner_radius: 15,
+      height: 30,
+      padding: 0,
+      padding_left: 13,
+      padding_right: 13,
+      align: :center,
+      text_size: 12,
+      font_weight: :semibold
+    )
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}

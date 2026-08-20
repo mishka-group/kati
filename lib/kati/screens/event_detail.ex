@@ -37,24 +37,44 @@ defmodule Kati.Screens.EventDetail do
       whose whole job is to own those numbers would have to be overridden on
       every one of them.
 
-  ## The one shared component this screen uses
+  ## The shared components this screen uses
 
-  The invitee face is `Kati.Components.MishkaAvatar` — see `avatar/1`. It is the
-  only place on this screen where a headless component draws exactly what the
-  design draws, because the design asks an avatar for nothing but a size, a
-  shape and a fallback fill, which is the whole of the component's API.
+  This paragraph used to record the opposite. The section chips, the `close`
+  disc and the "Add someone" ring were hand-rolled because the vendored
+  components took no `height`, no `font_weight`, no per-axis padding, no
+  `border_*` and no `shadow`. All five props landed upstream, so all three are
+  now the component that names them:
 
-  The section chips, the `close` disc and the "Add someone" ring were all
-  checked against `MishkaChip`, `MishkaCloseButton` and `MishkaActionIcon` and
-  left hand-rolled: those three want a `height`, a `font_weight`, per-axis
-  padding, a `border_*` and a `shadow`, and no vendored component takes any of
-  them.
+    * `close_disc/1` — `Kati.Components.MishkaCloseButton`, filled, with the
+      `shadow` that is what makes a disc float rather than sit flat.
+    * `save_pill/0`, `action/2` — `Kati.Components.MishkaPill`.
+    * `section_chip/2` — `Kati.Components.MishkaChip`, whose `checked` carries
+      the one-of-two state exactly.
+    * `tile/1`, `add_ring/0` — `Kati.Components.MishkaThemeIcon`, filled and
+      `:subtle` respectively.
+    * `hairline/1` — `Kati.Components.MishkaSeparator` at `render: :box`.
+    * `avatar/1` — `Kati.Components.MishkaAvatar`.
+
+  What stays hand-rolled, and why:
+
+    * **the timezone switch**, still. `Kati.Components.MishkaSwitch` wraps
+      Compose's Material `Switch`, whose metrics are fixed in material3 (52x32
+      track, 24/16 handles, a 2dp outline) with only the colours parameterised.
+      No prop reshapes it into the design's 46x28 with a 22pt thumb.
+    * **`delete/0`**, the outlined destructive bar. It is a full-width button,
+      not a token, and putting it through a pill would buy a `Box` and cost two
+      wrapper nodes.
   """
   use Mob.Screen
   import Mob.Sigil
 
   alias Kati.Calendar.SampleEvent
   alias Kati.Components.MishkaAvatar
+  alias Kati.Components.MishkaChip
+  alias Kati.Components.MishkaCloseButton
+  alias Kati.Components.MishkaPill
+  alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Design.Images
   alias Kati.Theme
   alias Kati.UI
@@ -92,27 +112,67 @@ defmodule Kati.Screens.EventDetail do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Theme.card(:light)}
-          shadow={Theme.shadow_button()}
-          align="center"
-          on_tap={close}
-        >
-          {UI.symbol("close", size: 21)}
-        </Box>
+        {Kati.Screens.EventDetail.close_disc(close)}
         <Spacer weight={1.0} />
         <Text text="Edit event" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer weight={1.0} />
-        <Row height={38} corner_radius={19} background={Theme.ink()} padding_left={16} padding_right={16} align="center">
-          <Text text="Save" text_size={13} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
-        </Row>
+        {Kati.Screens.EventDetail.save_pill()}
       </Row>
       <Spacer size={22} />
     </Column>
     """
+  end
+
+  @doc """
+  The dismissal disc — `Kati.Components.MishkaCloseButton`, the same call
+  screen 33's sheet makes.
+
+  `variant: :filled` alone paints a flat patch; the `shadow` is what makes it a
+  floating disc, and this design's is `Theme.shadow_button()`. That prop is new
+  this round and is the reason this stopped being a hand-rolled Box.
+
+  The glyph is a child rather than `icon:` — the shorthand's `Text` carries no
+  `font_family`, so the component's default ✕ would fall to Plus Jakarta Sans,
+  which has no U+2716.
+  """
+  def close_disc(tap) do
+    MishkaCloseButton.close_button(
+      %{
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: tap
+      },
+      [UI.symbol("close", size: 21)]
+    )
+  end
+
+  @doc """
+  The Save pill. Inert by design — the drawing's Save is drawn, and this screen
+  has no commit to make until an event is a real record — so no `on_tap`, which
+  a pill omits entirely rather than sending as a null.
+
+  `padding: 0` is not decoration: a pill always writes a `padding` key
+  defaulting to `:space_sm`, and `MobBridge.kt` resolves an unspecified edge
+  against that uniform (`pad(v) = (v ?: uniform ?: 0)`), so the two horizontal
+  edges alone would leave the pill padded top and bottom as well.
+  """
+  def save_pill do
+    MishkaPill.pill(
+      label: "Save",
+      background: Theme.ink(),
+      color: 0xFFFBFAF8,
+      height: 38,
+      corner_radius: 19,
+      padding: 0,
+      padding_left: 16,
+      padding_right: 16,
+      text_size: 13,
+      font_weight: :bold,
+      align: :center
+    )
   end
 
   @doc false
@@ -155,19 +215,48 @@ defmodule Kati.Screens.EventDetail do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={6} />"
 
-  # The tag carries the label, so a third section is a change to the event and
-  # not to this file.
-  @doc false
+  @doc """
+  A section: `Kati.Components.MishkaChip`, which is what this actually is.
+
+  A chip is *selected*, and an event lives in exactly one section, so `checked`
+  carries the whole of the state and the four colour props carry both halves of
+  the drawing — ink on `#FBFAF8` when picked, `#8A8479` on `#EFECE7` when not.
+  Until this round `unchecked_color` and `unchecked_text_color` were hardcoded
+  and the chip could not draw the resting half at all.
+
+  The tag carries the label, so a third section is a change to the event and
+  not to this file.
+
+  ## Why the pixels do not move
+
+  The chip builds a `Box` where this wrote a `Row`, and the two hug alike:
+  `MobBridge.kt`'s box branch hugs on `fill_width == false` (fence K-17, which
+  the chip passes), and a `Row` never fills unless told. `height: 26` lands
+  after the padding in both, `padding_x`/`padding_y` write all four edges so no
+  uniform leaks in, and the single `Text` fills the content box, so
+  `align: :center` on the Box and `align="center"` on the Row centre the same
+  rectangle. `font_weight: :semibold` reaches the bridge as the string
+  `"semibold"` — `Mob.Renderer` writes an atom as its own name.
+  """
   def section_chip(label, on?) do
     tap = {self(), String.to_atom("section_" <> label)}
-    background = if on?, do: Theme.ink(), else: 0xFFEFECE7
-    color = if on?, do: 0xFFFBFAF8, else: 0xFF8A8479
 
-    ~MOB"""
-    <Row height={26} corner_radius={13} background={background} padding_left={11} padding_right={11} align="center" on_tap={tap}>
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={color} max_lines={1} />
-    </Row>
-    """
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      color: Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: 0xFFEFECE7,
+      unchecked_text_color: 0xFF8A8479,
+      height: 26,
+      corner_radius: 13,
+      padding_x: 11,
+      padding_y: 0,
+      text_size: 11.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      on_toggle: tap
+    )
   end
 
   @doc false
@@ -202,9 +291,7 @@ defmodule Kati.Screens.EventDetail do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13} on_tap={tap}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.EventDetail.tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
@@ -217,6 +304,32 @@ defmodule Kati.Screens.EventDetail do
       {Kati.Screens.EventDetail.hairline(rule?)}
     </Column>
     """
+  end
+
+  @doc """
+  The 30x30 paper tile a field row leads with — `Kati.Components.MishkaThemeIcon`,
+  documented as "a themed container around exactly one icon", which is exactly
+  what this is.
+
+  `variant: :filled` with an explicit `color`, **not** `variant: :white`: the
+  white variant paints the theme's `:surface`, which here is `#FBFAF8`, the
+  card. The tile is paper, and the two are three values apart.
+
+  The glyph is a child rather than the `icon:` shorthand, whose `Text` carries
+  no `font_family` — a Material Symbols ligature would be typeset as the word.
+
+  With children and no `id`, the component returns
+  `%{type: :box, props: %{width: 30, height: 30, align: :center,
+  corner_radius: 9, background: 0xFFEFECE7}, children: [glyph]}` — node for node
+  what this wrote by hand. Nothing else in it runs: the gradient layer is empty
+  for `:filled`, the id markers are skipped without an `id`, and the glyph
+  shorthand is skipped when children are given.
+  """
+  def tile(name) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+    )
   end
 
   @doc """
@@ -252,9 +365,28 @@ defmodule Kati.Screens.EventDetail do
 
   def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
 
-  @doc false
+  @doc """
+  The rule between two rows — `Kati.Components.MishkaSeparator`, and it must be
+  `render: :box`.
+
+  The component's default is `:divider`, which the Android bridge maps to
+  Material3's `HorizontalDivider`: an **antialiased stroke**, not a filled rect.
+  At this device's 2.6875x a 1dp rule gets a 3px canvas and a 2.6875px stroke,
+  so the last pixel row lands at ~69% coverage and the hairline is 4-5/255
+  lighter on one row than the design's. `render: :box` swaps the primitive for a
+  background-filled `Box` — three full rows of `rgba(26,25,23,.07)`, which is
+  what this drew by hand.
+
+  The one difference in the tree is the `<Spacer size={1}/>` the `:box` rule
+  carries. It is an iOS workaround (`MobBox` drops a Box's height unless the Box
+  also has a width), and on Android it is a 1x1dp child with no background
+  inside a `Box` already pinned to `fill_width` and `height: 1`. It measures
+  nothing new and paints nothing at all.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  def hairline(true),
+    do: MishkaSeparator.separator(render: :box, color: 0x121A1917, thickness: 1)
 
   # On cream, and with no shadow: the design's warm card is where the app
   # speaks in its own voice rather than listing a field.
@@ -285,21 +417,32 @@ defmodule Kati.Screens.EventDetail do
   @doc false
   def action_gap, do: ~MOB"<Spacer size={8} />"
 
-  @doc false
-  def action(label, :primary) do
-    ~MOB"""
-    <Row height={34} corner_radius={17} background={Kati.Theme.ink()} padding_left={13} padding_right={13} align="center">
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
-    </Row>
-    """
-  end
+  @doc """
+  One clash button — `Kati.Components.MishkaPill`, not `MishkaChip`.
 
-  def action(label, :quiet) do
-    ~MOB"""
-    <Row height={34} corner_radius={17} background={0x99FFFFFF} padding_left={13} padding_right={13} align="center">
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={0xFF8A7B60} max_lines={1} />
-    </Row>
-    """
+  The distinction matters here for a reason the moduledoc already gives: the
+  drawing fills **two** of the three and leaves one quiet, which is not a
+  selection. A chip's `checked` would say it was, and a reader of this file
+  would then look for the handler that changes it. A pill has no state to
+  mis-state; the tone picks the two colours and nothing else.
+  """
+  def action(label, :primary), do: action_pill(label, Kati.Theme.ink(), 0xFFFBFAF8)
+  def action(label, :quiet), do: action_pill(label, 0x99FFFFFF, 0xFF8A7B60)
+
+  defp action_pill(label, background, color) do
+    MishkaPill.pill(
+      label: label,
+      background: background,
+      color: color,
+      height: 34,
+      corner_radius: 17,
+      padding: 0,
+      padding_left: 13,
+      padding_right: 13,
+      text_size: 11.5,
+      font_weight: :semibold,
+      align: :center
+    )
   end
 
   # Kati.UI.eyebrow's dash is always the accent; this one is #C4BDB3, which is
@@ -361,7 +504,7 @@ defmodule Kati.Screens.EventDetail do
         <Spacer size={13} />
         {Kati.Screens.EventDetail.reply(person.state)}
       </Row>
-      <Box fill_width={true} height={1} background={0x121A1917} />
+      {Kati.Screens.EventDetail.hairline(true)}
     </Column>
     """
   end
@@ -393,24 +536,36 @@ defmodule Kati.Screens.EventDetail do
   def reply(:accepted), do: Kati.UI.symbol("check_circle", size: 18, color: 0xFF4E9A73, fill: true)
   def reply(:waiting), do: Kati.UI.symbol("schedule", size: 18, color: 0xFFC4BDB3)
 
-  @doc false
+  @doc """
+  The add affordance. Its ring is `Kati.Components.MishkaThemeIcon` at
+  `variant: :subtle` — the variant that paints **nothing** — with the border
+  overridden onto it.
+
+  `:subtle`'s skin carries `background: nil`, which the component leaves off the
+  node rather than sending as a null, so the container is the empty box the
+  drawing has. `border_color` is documented as replacing the variant's choice
+  "or drawing one where it has none", which is this case; `border_width` is read
+  with `floatProp`, so the design's 1.5 survives.
+
+  Solid, not dashed: the bridge's border is `Modifier.border`, which takes a
+  width and a colour and no `PathEffect`.
+  """
   def add_someone do
     ~MOB"""
     <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
-      <Box
-        width={34}
-        height={34}
-        corner_radius={17}
-        border_color={0x331A1917}
-        border_width={1.5}
-        align="center"
-      >
-        {Kati.UI.symbol("add", size: 16, color: 0xFF8A8479)}
-      </Box>
+      {Kati.Screens.EventDetail.add_ring()}
       <Spacer size={13} />
       <Text text="Add someone" text_size={13} font_weight="semibold" text_color={0xFF8A8479} weight={1.0} max_lines={1} />
     </Row>
     """
+  end
+
+  @doc false
+  def add_ring do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :subtle, size: 34, radius: 17, border_color: 0x331A1917, border_width: 1.5},
+      [Kati.UI.symbol("add", size: 16, color: 0xFF8A8479)]
+    )
   end
 
   # Outlined in red rather than filled: destructive, and one tap away from

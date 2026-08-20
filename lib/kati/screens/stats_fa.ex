@@ -33,6 +33,7 @@ defmodule Kati.Screens.StatsFa do
   import Mob.Sigil
 
   alias Kati.Fa.SampleYear
+  alias Kati.Screens.Fa
   alias Kati.Theme
 
   # 27 cells per row — the most the cream card actually holds on the device,
@@ -101,16 +102,7 @@ defmodule Kati.Screens.StatsFa do
           <Spacer size={5} />
           <Text text={year.range} font_family="fa" text_size={11.5} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Theme.card(:light)}
-          shadow={Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("ios_share", size: 21)}
-        </Box>
+        {Fa.disc("ios_share")}
       </Row>
       <Spacer size={20} />
     </Column>

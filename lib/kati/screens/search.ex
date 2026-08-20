@@ -49,6 +49,7 @@ defmodule Kati.Screens.Search do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
   alias Kati.Screens.Search.Sample
   alias Kati.UI
@@ -188,23 +189,67 @@ defmodule Kati.Screens.Search do
   @doc "The drawing's 7pt flex gap, between chips and between chip rows."
   def gap, do: ~MOB"<Spacer size={7} />"
 
-  # The count is the label's own colour at .6 alpha, not a second token — the
-  # design tints it down rather than colouring it differently, so a chip reads
-  # as one object with a quiet number after it.
-  @doc false
+  @doc """
+  One counted filter chip — `Kati.Components.MishkaChip`, count in the
+  **trailing slot**.
+
+  The count is the label's own colour at .6 alpha, not a second token — the
+  design tints it down rather than colouring it differently, so a chip reads
+  as one object with a quiet number after it. That is also why the count goes
+  in as a *node* rather than as a string: `trailing` renders a string in the
+  chip's own ink and size, and this one is mono at 10.5 in a colour of its
+  own.
+
+  Two of the port's props are new this round and both are load-bearing here.
+  `trailing`/`trailing_gap` is the slot itself — before it a chip was a Box
+  around exactly one Text, so a chip with a number after its name could not be
+  built at all. The rest (`height`, `padding_x`/`padding_y`, `corner_radius`,
+  `text_size`, `font_weight`, `max_lines`, `unchecked_color`,
+  `unchecked_text_color`) are what let it be 32 tall on Kati's greys instead of
+  the port's old hardcoded look.
+
+  **Why the pixels do not move.** The chip was a `Row` holding label, gap and
+  count; the port builds a `Box` holding a `Row` holding label, gap and count.
+  The outer node hugs either way — a `Row` by nature, the `Box` by
+  `fill_width={false}`, which the bridge reads since fence K-17 — and both run
+  background → rounded clip → `padding(0, 14, 0, 14)` → `height(32)`, so the
+  chip is 32 tall and `14 + label + 6 + count + 14` wide in both trees.
+
+  The extra `Row` does not move the two runs either. Before, each Text was
+  centred in the 32pt Row, putting both centres at 16. Now the inner `Row`
+  centres the 10.5 count against the 12.5 label — this bridge's default
+  vertical alignment for a `Row` is `CenterVertically`, so the port omitting
+  `align` on it changes nothing — and the `Box` centres that group in the 32:
+  `(32 - h) / 2 + h / 2` is 16 again.
+  """
   def chip(label, count, on?) do
     # The tag carries the label, so one handler serves every chip.
-    tap = {self(), String.to_atom("filter_" <> label)}
-    background = if on?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
-    color = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
     count_color = if on?, do: 0x99FBFAF8, else: 0x995C574F
 
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      on_toggle: {self(), String.to_atom("filter_" <> label)},
+      color: Kati.Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Kati.Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F,
+      height: 32,
+      padding_x: 14,
+      padding_y: 0,
+      corner_radius: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      trailing: Kati.Screens.Search.chip_count(count, count_color),
+      trailing_gap: 6
+    )
+  end
+
+  @doc false
+  def chip_count(count, color) do
     ~MOB"""
-    <Row height={32} corner_radius={16} background={background} padding_left={14} padding_right={14} align="center" on_tap={tap}>
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={color} max_lines={1} />
-      <Spacer size={6} />
-      <Text text={to_string(count)} font_family="mono" text_size={10.5} text_color={count_color} max_lines={1} />
-    </Row>
+    <Text text={to_string(count)} font_family="mono" text_size={10.5} text_color={color} max_lines={1} />
     """
   end
 
@@ -373,16 +418,28 @@ defmodule Kati.Screens.Search do
 
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  # `MishkaSeparator` rather than a hand-rolled Box. A horizontal rule with no
-  # label is the whole of what that component draws, and it draws it as
-  # `<Divider>` — which on this bridge is Compose's `HorizontalDivider`, i.e.
-  # `Box(fillMaxWidth().height(thickness.dp).background(color))`. That is
-  # literally the Box that used to be written here, so the rule is the same
-  # 1dp band of the same 7%-ink at the same width.
+  # `MishkaSeparator` rather than a hand-rolled Box, and `render: :box` rather
+  # than the component's `:divider` default.
+  #
+  # `:divider` is NOT the Box this used to be. The comment that stood here said
+  # it was — that Compose's `HorizontalDivider` is
+  # `Box(fillMaxWidth().height(t).background(color))` — and that is wrong:
+  # Material3 draws it as `Canvas { drawLine(strokeWidth = t.toPx()) }`, an
+  # ANTIALIASED stroke. At this device's 2.6875x a 1dp rule gets a 3px canvas
+  # and a 2.6875px stroke centred in it, so the bottom pixel row lands at ~69%
+  # coverage — a full-width row 4-5/255 lighter than the two above it. The
+  # adoption softened the hairline by one pixel row and nothing said so.
+  #
+  # `render: :box` is the component's filled-rect primitive: `<Box fill_width
+  # height={thickness} background={color}>`, which is the node that was written
+  # here by hand before the adoption, so the rule goes back to three full-colour
+  # rows. (Its `<Spacer size={1} />` child is an iOS height workaround — on
+  # Android the Box's own `height` pins it and the background covers it.)
   #
   # `color` is passed rather than left to the component's `:border` default:
   # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   # The note card carries no shadow in the drawing — cream is the ground for
   # the user's own words, and lifting it would make it compete with the hits.

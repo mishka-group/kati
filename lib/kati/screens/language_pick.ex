@@ -207,7 +207,7 @@ defmodule Kati.Screens.LanguagePick do
         <Text text={option.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
       </Column>
       <Spacer size={14} />
-      <Box width={24} height={24} corner_radius={12} border_width={1.5} border_color={0x291A1917} />
+      {Kati.Screens.LanguagePick.unchosen_mark()}
     </Row>
     """
   end
@@ -221,10 +221,8 @@ defmodule Kati.Screens.LanguagePick do
   is why they are two arguments rather than a `chosen` flag: the tile has no
   opinion about which row it is in.
 
-  Only the *chosen* disc can be a theme icon. The unchosen row ends in an
-  empty 1.5pt ring, and `theme_icon/2` paints a border only under
-  `variant: :outline`, which gives up the fill and hard-codes the width at 1 —
-  so that clause stays a hand-rolled `Box`.
+  Both *discs* are theme icons now too — see `unchosen_mark/0`, which used to
+  be the one shape on this screen the component could not draw.
   """
   def badge_tile(option, fill, color) do
     Kati.Components.MishkaThemeIcon.theme_icon(
@@ -239,6 +237,44 @@ defmodule Kati.Screens.LanguagePick do
       %{variant: :filled, color: Kati.Theme.accent(), size: 24, radius: 12},
       [Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)]
     )
+  end
+
+  @doc """
+  The empty 24pt ring an unchosen language option ends with.
+
+  `Kati.Components.MishkaThemeIcon`, which it could not be until this round.
+  53.html draws it `width:24px;height:24px;border-radius:12px;border:1.5px
+  solid rgba(26,25,23,.16)` — a border with no fill and a fractional width —
+  and `theme_icon/2` used to paint a border only under `variant: :outline`,
+  which forfeits the fill *and* hard-codes the width at 1. `border_color` and
+  `border_width` are now caller overrides on any variant, so `:subtle` (no
+  background, no border of its own) plus the two overrides is the drawing.
+
+  ## Why the pixels do not move
+
+  `:subtle`'s skin is `%{background: nil, icon: color, border: nil}`, and
+  `put_some/3` **drops** a nil rather than writing it — so no `background` key
+  reaches the node at all, which is what `background:transparent` means and is
+  not the same as a JSON `null` the bridge would try to read. With no `id`, no
+  `icon` and no `on_tap` the id markers, the glyph shorthand and the handler
+  are all skipped, and `:subtle` contributes an empty gradient layer, so the
+  node is `%{type: :box, props: %{width: 24, height: 24, align: :center,
+  corner_radius: 12, border_color: 0x291A1917, border_width: 1.5},
+  children: []}`.
+
+  That is the `Box` this wrote by hand plus `align: :center`, which cannot
+  move anything: the ring has no children to align. `border_width` rides
+  `floatProp`, so the 1.5 survives — an `intProp` would have truncated it to
+  1 and thinned every unchosen ring on the screen.
+  """
+  def unchosen_mark do
+    Kati.Components.MishkaThemeIcon.theme_icon(%{
+      variant: :subtle,
+      size: 24,
+      radius: 12,
+      border_color: 0x291A1917,
+      border_width: 1.5
+    })
   end
 
   # The Latin badge is DM Mono at 14 and the Persian one is Vazirmatn Bold at

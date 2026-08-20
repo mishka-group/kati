@@ -6,13 +6,36 @@ defmodule Kati.Screens.ViewSwitcher do
   padding, four `flex:1` segments 34 tall at radius 12, and the selected one
   lifted onto card white with its own shallow shadow.
 
-  Hand-rolled rather than `Kati.Components.MishkaSegmentedControl`, and the
-  reason is that `flex:1`. That port's own docs say its segments are
-  **content-sized** — it drops `weight` so the Android and iOS mappings agree —
-  which would bunch four labels of unequal length against the leading edge
-  instead of giving each an exact quarter of the strip. Everything else about
-  the port would have fitted; the one thing it cannot do is the thing this
-  control is.
+  ## Still hand-rolled, and the reason has moved
+
+  It used to be that `flex:1`. The port's segments were **content-sized** — it
+  dropped `weight` so the Android and iOS mappings would agree — and four labels
+  of unequal length bunched against the leading edge instead of each taking an
+  exact quarter. `segment_weight` closes that, and with it `segment_height`,
+  `padding`, `segment_radius`, `track_padding`, `selected_shadow`,
+  `selected_weight` and the four colours, every other number on this strip is
+  now a prop. Rendered side by side, one difference is left:
+
+      port:        Row[ seg seg seg seg ]
+      this screen: Row[ seg gap seg gap seg gap seg ]
+
+  **The port has no gap between segments, and no prop that adds one.** The
+  drawing puts 4pt between them. Padding cannot stand in: `MobBridge`'s
+  `nodeModifier` applies `background` *before* `padding`, so a segment's padding
+  is inside its fill — widening the selected tile's white rectangle rather than
+  separating it — and the prop is per-control anyway, so it would also inset the
+  two outer edges and make the track 6 wider. `track_padding` only moves the
+  whole strip in. And the segments cannot be interspersed by hand, because
+  `expand/3` filters its children to `:mishka_segmented_control_option` and drops
+  everything else, so a `<Spacer>` between two options never reaches the tree.
+
+  With no gap, all four segment boundaries land at different x, the track is
+  12pt narrower, and the selected tile — the only one with a fill — is drawn at
+  the wrong width. That is a change of appearance, so the markup stays.
+
+  What would close it upstream is one prop: a `segment_gap` the control
+  intersperses as a `<Spacer>` between segments, defaulting to `0` so no
+  existing strip moves.
 
   The labels stay with the screens rather than living here, so each screen
   file still contains every word its drawing contains.

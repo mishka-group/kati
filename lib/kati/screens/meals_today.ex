@@ -34,6 +34,8 @@ defmodule Kati.Screens.MealsToday do
   """
   use Kati.Screens.Pushed, back: "Health"
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaPill
   alias Kati.Meals.SampleToday, as: Sample
   alias Kati.Theme
   alias Kati.UI
@@ -61,27 +63,42 @@ defmodule Kati.Screens.MealsToday do
   # reserves its height and carries the week button opposite it.
   @doc false
   def header do
-    tap = {self(), :open_week}
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={tap}
-        >
-          {Kati.UI.symbol("calendar_view_week", size: 21)}
-        </Box>
+        {Kati.Screens.MealsToday.week_button()}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  # `Kati.Components.MishkaActionIcon` — an icon-only button on a raised
+  # surface, which is what this is. It could not be one until the component
+  # took a `shadow`: a floating disc is DEFINED by its shadow, and a
+  # `variant: :filled` without one is a flat patch of `#FBFAF8` on `#EFECE7`
+  # paper, which is nearly the same colour.
+  #
+  # `shape: :circle` is an exact `size / 2` — 44 gives the 22 written here
+  # before. The glyph is a child rather than `icon:` because Kati's icons are
+  # Material Symbols through `Kati.UI.symbol/2`, a `Text` in the `symbols`
+  # family, not the component's own `:lg` Text. A child is wrapped in a `<Row>`
+  # that hugs it, inside a Box that already centred it, so the glyph does not
+  # move.
+  @doc false
+  def week_button do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: :open_week
+      ],
+      [UI.symbol("calendar_view_week", size: 21)]
+    )
   end
 
   @doc false
@@ -451,25 +468,68 @@ defmodule Kati.Screens.MealsToday do
         <Spacer size={8} />
         {Kati.Screens.MealsToday.action("Swap", :paper, :swap)}
         <Spacer size={8} />
-        <Box width={34} height={34} corner_radius={17} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol("more_horiz", size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.MealsToday.overflow()}
       </Row>
     </Column>
     """
   end
 
+  # The third action is a disc rather than a label, so it is the icon-only
+  # button component. No `shadow` here — the drawing gives this one none, it
+  # sits inside the lifted card rather than on the paper — and `variant:
+  # :filled` on its own is exactly the `background` + `corner_radius` box it
+  # replaces. `shape: :circle` computes 34 / 2 = 17.0, the radius written
+  # before. It carries no handler, and passing no `on_tap` wires none.
+  @doc false
+  def overflow do
+    MishkaActionIcon.action_icon(
+      [size: 34, shape: :circle, variant: :filled, background: 0xFFEFECE7],
+      [UI.symbol("more_horiz", size: 17, color: 0xFF5C574F)]
+    )
+  end
+
+  # `Kati.Components.MishkaPill`: a compact label with a tap and no selected
+  # state, which is the port's own dividing line — "a Chip is selected, a Pill
+  # is removed… if you find yourself giving a pill a checked state, you want
+  # Chip". These never carry one, so they are pills.
+  #
+  # Pixel-for-pixel the same node, one wrapper deeper. Before: a hugging `Row`
+  # with the fill, the radius, 14 of horizontal padding and a 34 height, around
+  # one `Text`. Now: a `Box fill_width={false}` carrying that same fill, radius,
+  # padding and height, around a `Row` holding the `Text` and the empty `Row`
+  # the unused remove-slot leaves behind — which measures 0x0 and adds nothing
+  # to the line.
+  #
+  # The four padding edges are all named, so the component's `:space_sm`
+  # default is inert: `nodeModifier/1` reads the uniform value only for an edge
+  # that is missing. `padding_top`/`padding_bottom` of 0 are what the Row got
+  # by having no vertical padding at all, and 0 pins the outer height at 34,
+  # since the bridge pads before it sizes.
+  #
+  # `align: :center` replaces the Row's `align="center"`: a Box centres its
+  # content in both axes, and horizontally the content box is exactly the
+  # Text's width, so only the vertical half of that does anything — which is
+  # what `CenterVertically` was doing.
   @doc false
   def action(label, tone, tag) do
     background = if tone == :ink, do: Theme.ink(), else: 0xFFEFECE7
     color = if tone == :ink, do: 0xFFFBFAF8, else: 0xFF5C574F
-    tap = {self(), tag}
 
-    ~MOB"""
-    <Row height={34} corner_radius={17} background={background} padding_left={14} padding_right={14} align="center" on_tap={tap}>
-      <Text text={label} text_size={12} font_weight="semibold" text_color={color} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      label: label,
+      background: background,
+      color: color,
+      corner_radius: 17,
+      height: 34,
+      padding_left: 14,
+      padding_right: 14,
+      padding_top: 0,
+      padding_bottom: 0,
+      text_size: 12,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: tag
+    )
   end
 
   @doc false
@@ -514,15 +574,26 @@ defmodule Kati.Screens.MealsToday do
 
   # `rgba(255,255,255,.6)` on cream, which is a lighter cream rather than a
   # grey — so it stays a white at 60% alpha instead of being flattened.
+  #
+  # The same pill as `action/3`, and it does not call it only because its fill
+  # and ink are neither of that function's two tones.
   @doc false
   def prep_secondary(label) do
-    tap = {self(), :done_prepping}
-
-    ~MOB"""
-    <Row height={34} corner_radius={17} background={0x99FFFFFF} padding_left={14} padding_right={14} align="center" on_tap={tap}>
-      <Text text={label} text_size={12} font_weight="semibold" text_color={0xFF8A7B60} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      label: label,
+      background: 0x99FFFFFF,
+      color: 0xFF8A7B60,
+      corner_radius: 17,
+      height: 34,
+      padding_left: 14,
+      padding_right: 14,
+      padding_top: 0,
+      padding_bottom: 0,
+      text_size: 12,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: :done_prepping
+    )
   end
 
   @impl true

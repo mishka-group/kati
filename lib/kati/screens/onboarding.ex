@@ -34,6 +34,7 @@ defmodule Kati.Screens.Onboarding do
   import Mob.Sigil
 
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Onboarding.Sample
 
   def mount(_params, _session, socket) do
@@ -117,11 +118,30 @@ defmodule Kati.Screens.Onboarding do
 
   This is the one thing on the screen that is literally a separator — a
   thematic break between groups of content — so it is drawn by
-  `Kati.Components.MishkaSeparator` rather than by one more `Box`. The plain
-  variant is a `<Divider>`, and the bridge's `MobDivider` renders Compose's
-  `HorizontalDivider(thickness, color)`, which is defined as
-  `Box(modifier.fillMaxWidth().height(thickness).background(color))` — the same
-  three modifiers this wrote by hand, so nothing moves.
+  `Kati.Components.MishkaSeparator` rather than by one more `Box`.
+
+  ## `render: :box`, because a stroke is not a hairline
+
+  The component's default is `:divider`, and the bridge maps that to Material3's
+  `HorizontalDivider` — which is **not** the
+  `Box(fillMaxWidth().height(t).background(c))` this file previously claimed,
+  but an antialiased `drawLine`. At this device's 2.6875x a 1dp rule gets a 3px
+  canvas and a 2.6875px stroke centred in it, so the last pixel row lands at
+  ~69% coverage: one full-width row 4-5/255 lighter than the rest of the rule.
+  The drawing specifies a flat 1px line at 10% ink, and no `color` or
+  `thickness` reaches it, because the softness lives in the primitive.
+
+  `render: :box` swaps in a filled rect, whose every pixel row carries the whole
+  colour:
+
+      <Box fill_width={true} height={1} background={0x1A1A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  — which is exactly `Box(fillMaxWidth().height(1.dp).background(colour))`, the
+  three modifiers this screen wrote by hand before the component existed. The
+  `Spacer` is an iOS height workaround; on Android the Box's own `height` pins
+  the rule and `MobSpacer` paints nothing.
 
   The drawing's `rgba(26,25,23,.10)` survives because the colour goes in as an
   ARGB int: `color` is in the renderer's `@color_props` whitelist, so an
@@ -132,7 +152,7 @@ defmodule Kati.Screens.Onboarding do
   and this break carries none.
   """
   def divider do
-    rule = MishkaSeparator.separator(color: 0x1A1A1917, thickness: 1)
+    rule = MishkaSeparator.separator(color: 0x1A1A1917, thickness: 1, render: :box)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -190,9 +210,7 @@ defmodule Kati.Screens.Onboarding do
         <Text text={option.sub} text_size={11.5} text_color={0x99FBFAF8} max_lines={1} />
       </Column>
       <Spacer size={13} />
-      <Box width={22} height={22} corner_radius={11} background={Kati.Theme.accent()} align="center">
-        {Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)}
-      </Box>
+      {Kati.Screens.Onboarding.tick(22, 11, 14)}
     </Row>
     """
   end
@@ -216,6 +234,50 @@ defmodule Kati.Screens.Onboarding do
       </Column>
     </Row>
     """
+  end
+
+  @doc """
+  The accent tick that marks a chosen option or a chosen poster.
+
+  `Kati.Components.MishkaThemeIcon` is documented as "a themed container around
+  exactly one icon", and that is the whole of what this is: an accent disc with
+  a `check` glyph centred in it. The two callers differ only in their numbers —
+  22/11 with a 14pt tick beside a selected option, 24/12 with a 15pt tick over a
+  selected poster — so they are one function with three arguments rather than
+  two copies of one `Box`.
+
+  ## Why the pixels do not move
+
+  With children and no `id`, `theme_icon/2` returns
+
+      %{type: :box,
+        props: %{width: size, height: size, align: :center,
+                 corner_radius: radius, background: Kati.Theme.accent()},
+        children: [glyph]}
+
+  — node for node, key for key, what both call sites wrote by hand.
+  `align: :center` and `align="center"` reach the bridge as the same string:
+  `align` is in none of the renderer's token whitelists, so an unrecognised atom
+  passes through `resolve_token/3` and `:json.encode/1` writes an atom as its
+  own name.
+
+  Nothing else in the component runs. `:filled` contributes no gradient layer;
+  `skin(:filled, …)` proposes no border, so `put_some/3` leaves `border_color`
+  and `border_width` off the node rather than writing nils; no `shadow` and no
+  `id` were passed, so neither the shadow key nor the two id markers appear.
+
+  `variant: :filled` with an explicit `color` — the accent — and the glyph is
+  passed as a **child** rather than through the `icon` prop for two reasons: the
+  shorthand builds a `Text` with no `font_family`, so the Material Symbols
+  ligature `"check"` would be typeset as the word, and it sizes the glyph at
+  `round(size * 0.55)`, which is 12 on a 22pt disc and 13 on a 24pt one where
+  the drawing asks for 14 and 15.
+  """
+  def tick(size, radius, glyph) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Kati.Theme.accent(), size: size, radius: radius},
+      [Kati.UI.symbol("check", size: glyph, color: 0xFFFBFAF8)]
+    )
   end
 
   # Two across. 174*2 + 11 = 359, the content width between the 21pt gutters,
@@ -309,9 +371,7 @@ defmodule Kati.Screens.Onboarding do
           {Kati.Screens.Onboarding.art(p)}
           <Box fill_width={true} fill_height={true} align="top_trailing">
             <Column padding={9}>
-              <Box width={24} height={24} corner_radius={12} background={Kati.Theme.accent()} align="center">
-                {Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)}
-              </Box>
+              {Kati.Screens.Onboarding.tick(24, 12, 15)}
             </Column>
           </Box>
         </Box>

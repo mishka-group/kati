@@ -18,6 +18,7 @@ defmodule Kati.Screens.Series do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Library.Sample
   alias Kati.Theme
 
@@ -96,7 +97,6 @@ defmodule Kati.Screens.Series do
   @doc false
   def chrome do
     back = {self(), :back}
-    more = {self(), :open_settings}
     fill = 0xD1FBFAF8
     lift = "0 6 16 -8 #991A1917"
 
@@ -109,12 +109,38 @@ defmodule Kati.Screens.Series do
           <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
         </Row>
         <Spacer weight={1.0} />
-        <Box width={42} height={42} corner_radius={21} background={fill} shadow={lift} align="center" on_tap={more}>
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.Series.more_disc(fill, lift)}
       </Row>
     </Box>
     """
+  end
+
+  # The ⋯ half of the floating chrome, as Chelekom's headless Action Icon — the
+  # component's own example of what it is for. Both of the props that made it
+  # possible are non-theme values this screen invents: a 0xD1 translucent paper
+  # fill and a one-layer lift that is not in `Kati.Theme` at all, because this
+  # is chrome over artwork rather than a card on paper. `background` and
+  # `shadow` take them verbatim.
+  #
+  # `shape: :circle` computes `42 / 2` = 21.0 against the Box's stated 21.
+  #
+  # The back pill beside it stays hand-rolled: it is a Row of glyph + label,
+  # and an Action Icon is by definition icon-only — its children go into a Row
+  # inside a SQUARE `size x size` box, so a 42-tall pill 100-odd wide has no
+  # shape to be built out of.
+  @doc false
+  def more_disc(fill, lift) do
+    MishkaActionIcon.action_icon(
+      [
+        size: 42,
+        shape: :circle,
+        variant: :filled,
+        background: fill,
+        shadow: lift,
+        on_tap: :open_settings
+      ],
+      [Kati.UI.symbol("more_horiz", size: 21)]
+    )
   end
 
   @doc false
@@ -182,20 +208,28 @@ defmodule Kati.Screens.Series do
     """
   end
 
+  # Chelekom's headless Action Icon. `shadow` is the prop that made it usable:
+  # these two discs sit beside a 50pt ink button on paper, and with a flat fill
+  # they read as holes in the row rather than as buttons next to it. The lift is
+  # the design's own `shadow_card_soft()`.
+  #
+  # `shape: :circle` computes `50 / 2` = 25.0 where the Box stated 25;
+  # `floatProp` reads both as 25.0f. No handler is passed and none is wanted —
+  # bookmark and rate are not built — and the component omits the key entirely
+  # rather than sending a null, so no `clickable` is attached and the disc is as
+  # inert as the Box was.
   @doc false
   def action_disc(icon) do
-    ~MOB"""
-    <Box
-      width={50}
-      height={50}
-      corner_radius={25}
-      background={Kati.Theme.card(:light)}
-      shadow={Kati.Theme.shadow_card_soft()}
-      align="center"
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+    MishkaActionIcon.action_icon(
+      [
+        size: 50,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_card_soft()
+      ],
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -218,6 +252,23 @@ defmodule Kati.Screens.Series do
   @doc false
   def pill_gap, do: ~MOB"<Spacer size={5} />"
 
+  # NOT Chelekom's Chip, though this is a chip in every other respect — S1 / S2
+  # / S3, exactly one checked, tapping replaces the selection. It has the size,
+  # the radius, both fills and both inks now.
+  #
+  # What it lacks is one prop: **`font_family` on the label.** The component
+  # builds its own `<Text text text_size text_color />` and merges only
+  # `font_weight` and `max_lines` onto it, so a label can be sized, weighted and
+  # clipped but not set in another face. These pills are DM Mono at 11.5, and a
+  # season number in Plus Jakarta beside a mono episode list is a visible
+  # change, not a rounding error.
+  #
+  # `trailing` is the escape hatch on screen 03 — its count goes in as a node,
+  # which keeps its own family — but there is no such slot for the LABEL, which
+  # is the only content here. Upstream ask: `font_family`, alongside the
+  # `text_size` / `font_weight` / `max_lines` the label already takes. Kati sets
+  # mono on every count, clock time, season number and meta line in the design,
+  # so this is the prop that decides how many chips the component can draw.
   @doc false
   def season_pill(label, on?) do
     bg = if on?, do: Theme.ink(), else: 0xFFE4E0D9

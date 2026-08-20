@@ -43,6 +43,8 @@ defmodule Kati.Screens.Day do
 
   alias Kati.Calendar.Layout
   alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaChip
+  alias Kati.Components.MishkaThemeIcon
 
   # The drawing's gap BETWEEN LANES — `display:flex;gap:7px` on the split row.
   # Not to be confused with the 9pt `margin-bottom` that separates one lane row
@@ -119,16 +121,7 @@ defmodule Kati.Screens.Day do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("density_medium", size: 21)}
-        </Box>
+        {Kati.Screens.Day.density_disc()}
       </Row>
       <Spacer size={16} />
       <Text text={heading} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
@@ -181,21 +174,58 @@ defmodule Kati.Screens.Day do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={7} />"
 
-  @doc false
+  @doc """
+  One kind chip — Mishka's Chip, which is exactly what this is: a label that
+  carries a selected state and toggles the timeline when tapped.
+
+  It could not be one until the chip stopped hardcoding its own metrics and
+  its own unchecked colours. It now takes both, so the four numbers the drawing
+  gives this row — 30 tall, 15 of radius, 13 of side padding, a 12.5pt semibold
+  label — are passed rather than approximated, and the *unselected* fill
+  (`card`) and ink (`#5C574F`) are the chip's props instead of being the one
+  state the component decided for itself.
+
+  Nothing moves. `padding_x: 13` with `padding_y: 0` is the same 13/0 the Row
+  carried, and because padding is applied before height, `height: 30` is still
+  30 on screen. The chip is a `Box fill_width={false}` holding a `Row`, where
+  this was a `Row`: the Box hugs (K-17), the inner Row hugs its three children,
+  and a Box that hugs and centres content of its own size puts them at exactly
+  the offsets the Row did. The count keeps its own node — `trailing` takes a
+  node, not just a string — so it stays mono at 10.5 in its own tone rather
+  than inheriting the label's.
+  """
+  @spec chip(String.t(), non_neg_integer(), boolean()) :: map()
   def chip(label, count, on?) do
-    # The tag carries the label, so one handler serves every chip and a fourth
-    # kind is a change to `SampleDay.chips/0` alone.
-    tap = {self(), String.to_atom("filter_" <> label)}
-    bg = if on?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
-    cf = if on?, do: 0x99FBFAF8, else: 0x8C5C574F
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      # The tag carries the label, so one handler serves every chip and a
+      # fourth kind is a change to `SampleDay.chips/0` alone.
+      on_toggle: String.to_atom("filter_" <> label),
+      color: Kati.Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Kati.Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F,
+      height: 30,
+      corner_radius: 15,
+      padding_x: 13,
+      padding_y: 0,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      trailing_gap: 6,
+      trailing: Kati.Screens.Day.chip_count(count, on?)
+    )
+  end
+
+  # The count rides at .55/.6 of the label's own colour rather than a token of
+  # its own, so it stays a shade of the chip it sits on in either state.
+  @doc false
+  def chip_count(count, on?) do
+    fg = if on?, do: 0x99FBFAF8, else: 0x8C5C574F
 
     ~MOB"""
-    <Row height={30} corner_radius={15} background={bg} padding_left={13} padding_right={13} align="center" on_tap={tap}>
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      <Spacer size={6} />
-      <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={cf} max_lines={1} />
-    </Row>
+    <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={fg} max_lines={1} />
     """
   end
 
@@ -287,9 +317,7 @@ defmodule Kati.Screens.Day do
         <Spacer size={12} />
         <Box weight={1.0}>
           <Row fill_width={true} background={0xFFF4F1EC} corner_radius={16} padding_left={13} padding_right={13} padding_top={10} padding_bottom={10} align="center">
-            <Box width={24} height={24} corner_radius={7} background={0xFFE4E0D9} align="center">
-              {Kati.UI.symbol("payments", size: 14, color: 0xFF5C574F)}
-            </Box>
+            {Kati.Screens.Day.money_badge()}
             <Spacer size={11} />
             <Text text={m.label} text_size={13} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
             <Spacer size={11} />
@@ -302,6 +330,26 @@ defmodule Kati.Screens.Day do
       <Spacer size={9} />
     </Column>
     """
+  end
+
+  @doc """
+  The merged renewals row's leading badge — Mishka's Theme Icon.
+
+  "A themed container around exactly one icon" is the whole of what this Box
+  was, so the component is a rename rather than a rewrite: with no `id` to tag
+  and the glyph supplied as a child, `theme_icon/2` emits a single Box whose
+  props map is the hand-rolled one key for key — `width: 24, height: 24,
+  align: :center, corner_radius: 7, background: #E4E0D9` — holding the same
+  `Kati.UI.symbol/2` Text. `variant: :filled` with a raw `color` is what makes
+  the fill the design's own value rather than a theme token, and the glyph
+  keeps the colour it was given because a caller-supplied icon always does.
+  """
+  @spec money_badge() :: map()
+  def money_badge do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: 0xFFE4E0D9, size: 24, radius: 7],
+      [Kati.UI.symbol("payments", size: 14, color: 0xFF5C574F)]
+    )
   end
 
   @doc """
@@ -756,17 +804,44 @@ defmodule Kati.Screens.Day do
   end
 
   @doc """
+  The header's `density_medium` disc — Mishka's Action Icon, now that it can
+  float.
+
+  This one is 44pt and **lifted**, and a floating disc is defined by its
+  shadow: without one it reads as a flat patch of card colour on paper rather
+  than as a control sitting above it. `action_icon/2` had no way to say that,
+  which is why it stayed hand-rolled while the shadowless 26pt chevron below
+  was already the component. `shadow` closes it, and takes the design's
+  `Kati.Theme.shadow_button()` string untouched.
+
+  Same pixels as the Box it replaces: `shape: :circle` is an exact `size / 2`,
+  so 44 rounds at 22; the fill, the shadow and the centring are passed
+  straight through; and the glyph is the same `Kati.UI.symbol/2` Text, now
+  inside a Row that hugs it — a Row takes its content's size, and a hugging Row
+  centred in a Box lands where the bare Text did.
+  """
+  @spec density_disc() :: map()
+  def density_disc do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button()
+      ],
+      [Kati.UI.symbol("density_medium", size: 21)]
+    )
+  end
+
+  @doc """
   The grouped card's chevron disc — Mishka's Action Icon.
 
-  A round icon button is what `action_icon/2` is for, and this one is
-  shadowless, which is what makes it expressible: the component builds its box
-  from `size`, `shape` and `background` and exposes no shadow, so the lifted
-  44pt `density_medium` disc in the header is still drawn by hand.
-
-  The pixels are the same. `shape: :circle` resolves to an exact `size / 2`,
-  so 26 rounds at 13 as before; the fill is passed through; and the glyph is
-  the same `Kati.UI.symbol/2` Text, wrapped in a Row that hugs it, centred in
-  a Box of the same declared size.
+  A round icon button is what `action_icon/2` is for. The pixels are the same:
+  `shape: :circle` resolves to an exact `size / 2`, so 26 rounds at 13 as
+  before; the fill is passed through; and the glyph is the same
+  `Kati.UI.symbol/2` Text, wrapped in a Row that hugs it, centred in a Box of
+  the same declared size.
 
   It is only the disc, not the card's own chevron behaviour: the group does
   not open, here or in the drawing.

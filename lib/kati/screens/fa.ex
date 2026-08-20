@@ -41,28 +41,62 @@ defmodule Kati.Screens.Fa do
   ## What that costs the vendored components, and it is most of them
 
   Both rules above are `font_family`, and **not one of the 77 components in
-  `Kati.Components` accepts it** — checked by grep across the whole directory,
-  and `font_weight` appears in only six, `line_height` in none. Every one of
-  them that renders a label builds the `Text` itself and leaves the prop off,
-  and `MobBridge.kt:4222` is explicit about what that means: *"No prop means
-  body text, and body text is Plus Jakarta Sans. This is the case that matters:
-  it is every unstyled Text in the app."*
+  `Kati.Components` accepts it** — re-checked by grep across the whole
+  directory this round: `grep -rl font_family lib/kati/components/` returns
+  nothing at all. Every one of them that renders a label builds the `Text`
+  itself and leaves the prop off, and `MobBridge.kt:4222` is explicit about
+  what that means: *"No prop means body text, and body text is Plus Jakarta
+  Sans. This is the case that matters: it is every unstyled Text in the app."*
 
   `kati_sans_400.ttf` carries **zero** code points in U+0600-U+06FF — parsed
   out of its `cmap`, against 142 in `kati_fa_400.ttf`. So a Persian label
   handed to a Chelekom component is not degraded, it is *absent*: a row of
   blank boxes. That is the single reason the Persian screens adopt so little
   of the set. It is not an RTL failure — direction is a container attribute and
-  the components inherit it correctly — it is a typography failure, and one
-  prop upstream would close it for every component at once.
+  the components inherit it correctly — it is a typography failure.
 
-  The components these screens do adopt are the ones that render no text:
-  `MishkaAvatar` (`Kati.Screens.SettingsFa.avatar/1`), `MishkaActionIcon` with
-  a symbol child (`Kati.Screens.SeriesFa.more/0`) and `MishkaScrollArea`
-  (`Kati.Screens.LibraryFa.chips/1`).
+  ## The content slot is the way round it, where a component has one
+
+  A component that builds its own `Text` cannot draw Persian. A component that
+  takes the label as **children** can, because the caller builds the `Text` and
+  puts `font_family="fa"` on it. Four of them do:
+  `MishkaThemeIcon` (children are the icon), `MishkaActionIcon` (children
+  override `icon`), `MishkaPill` and `MishkaToggle` (children replace `label`).
+  Every adoption on these eight screens goes through that door.
+
+  The three that would matter most here have no such door — `MishkaChip`'s
+  `expand/3` discards its children outright, `MishkaSegmentedControl` says in
+  as many words that "the label is a prop rather than the slot's children
+  because the control paints it", and `MishkaNavLink` takes `label` and
+  `description` as strings. That is the single upstream ask from this pass, and
+  it is smaller than `font_family` on 77 components: give the three a content
+  slot their siblings already have.
+
+  ## What these screens adopt
+
+  Text-free, so the font rule never bites:
+
+    * `MishkaThemeIcon` — every icon tile and state ring: `tab/1` here,
+      `Kati.Screens.SettingsFa.leading/1`, `Kati.Screens.SeriesFa.check/1`,
+      `Kati.Screens.TodayFa`'s three meal-card rings.
+    * `MishkaActionIcon` — every header disc: `disc/2` here (so 55, 56, 57, 59,
+      60, 61 and 62 at once) and `Kati.Screens.SeriesFa.more/0` and its
+      bookmark.
+    * `MishkaAvatar` — `Kati.Screens.SettingsFa.avatar/1`.
+    * `MishkaSeparator` with `render: :box` — every hairline in a card:
+      `Kati.Screens.SettingsFa.hairline/1`, `Kati.Screens.MealsMatrixFa`'s row
+      rule and legend rule.
+    * `MishkaScrollArea` — `Kati.Screens.LibraryFa.chips/1`.
+
+  `MishkaThemeIcon` also carries the one *labelled* adoption on these screens,
+  `Kati.Screens.SettingsFa.leading/1`'s فا badge tile, and it carries it only
+  because the badge goes in as a child `Text` this file's own rules wrote.
   """
 
   import Mob.Sigil
+
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaThemeIcon
 
   # The four roots, in the order the bar draws them. `Kati.Screens.Stats` is
   # the English root standing in for drawing 61 (آمار) until it is built: a
@@ -130,6 +164,30 @@ defmodule Kati.Screens.Fa do
     """
   end
 
+  # The 46pt disc under a tab's glyph is `Kati.Components.MishkaThemeIcon` —
+  # "a themed container around exactly one icon" is the component's own first
+  # line, and this is that and nothing else.
+  #
+  # It is node-identical, not merely equivalent. Without an `id` the component
+  # emits no test markers (`markers(nil, …)` returns the icon untouched), so
+  # `theme_icon/2` builds
+  #
+  #     %{type: :box,
+  #       props: %{width: 46, height: 46, align: :center,
+  #                corner_radius: 23, background: disc},
+  #       children: [symbol]}
+  #
+  # against the sigil's `%{type: :box, props: %{width: 46, height: 46,
+  # corner_radius: 23, background: disc, align: "center"}, children: [symbol]}`.
+  # The one difference is `align`, and `:json.encode/1` renders the atom
+  # `:center` as the string `"center"` — which is what `boxAlignProp`
+  # (`MobBridge.kt:4298`) matches on, `props["align"] as? String`.
+  #
+  # The inactive disc's `0x00FFFFFF` survives: `put_some/3` drops `nil` and
+  # `false`, not a transparent colour, so the key is on the node either way.
+  # `variant: :filled` picks a glyph colour from the fill's luminance, and that
+  # value is discarded here — the child `Text` carries `Kati.UI.symbol/2`'s own
+  # tint, which is the whole reason the glyph is a child rather than `icon`.
   @doc false
   def tab(root, active) do
     on? = root.id == active
@@ -137,11 +195,15 @@ defmodule Kati.Screens.Fa do
     disc = if on?, do: 0xFFEFECE7, else: 0x00FFFFFF
     tap = {self(), String.to_atom("root_#{root.id}")}
 
+    glyph =
+      MishkaThemeIcon.theme_icon(
+        %{variant: :filled, color: disc, size: 46, radius: 23},
+        [Kati.UI.symbol(root.icon, size: 22, color: tint, fill: on?)]
+      )
+
     ~MOB"""
     <Box weight={1.0} align="center" on_tap={tap}>
-      <Box width={46} height={46} background={disc} corner_radius={23} align="center">
-        {Kati.UI.symbol(root.icon, size: 22, color: tint, fill: on?)}
-      </Box>
+      {glyph}
     </Box>
     """
   end
@@ -167,30 +229,39 @@ defmodule Kati.Screens.Fa do
   @doc """
   A 44pt header disc: card white, the button shadow, a 21pt symbol.
 
-  Not `Kati.Components.MishkaActionIcon`, which is otherwise exactly this — a
-  square tap target holding a glyph, with `:circle` resolving to `size / 2`.
-  It has no `shadow` prop, and neither does anything else in the vendored set:
-  grep finds the string in one file out of 77, as the word "shadowing" in a
-  comment. The shadow is what lifts this disc off the paper, so it is drawn
-  here. `Kati.Screens.SeriesFa.more/0` is the same disc **without** a shadow,
-  and it is the component.
-  """
-  def disc(icon, tag) do
-    tap = {self(), tag}
+  `Kati.Components.MishkaActionIcon`, which is exactly this — a square tap
+  target holding a glyph, with `:circle` resolving to an exact `size / 2`, so
+  44 rounds at 22.0 and `corner_radius` is a `floatProp` either way
+  (`MobBridge.kt:3887`).
 
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={0xFFFBFAF8}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+  **This is what `shadow` unblocked.** The prop was the whole reason this disc
+  was hand-drawn: a floating disc is *defined* by `Kati.Theme.shadow_button/0`,
+  and until this round no component in the vendored set took a shadow at all.
+  It now rides on the container — the node that already carries the fill, the
+  radius and the tap — so the drawn result is the node this function replaced
+  plus one bare `Row` around the glyph, which has no size, no background and no
+  padding of its own. That wrapper is not a new risk: `MishkaActionIcon` with a
+  symbol child is what `Kati.Screens.SeriesFa.more/0` has been rendering
+  against the captured frames since the last pass.
+
+  `tag` defaults to `nil`, and `Kati.Components.Event.handler/1` maps `nil` to
+  no handler at all rather than to a registered `{pid, nil}` — so `disc/1` is
+  the same disc with nothing wired, which is what screens 59, 60, 61 and 62
+  draw beside their back pills. Before this, each of those four spelled the
+  same seven props out inline.
+  """
+  def disc(icon, tag \\ nil) do
+    MishkaActionIcon.action_icon(
+      %{
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: 0xFFFBFAF8,
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: tag
+      },
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc """

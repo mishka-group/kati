@@ -90,6 +90,23 @@ defmodule Kati.Screens.Home do
   # CSS grows that ring OUTWARD from the 8px box (content-box), so the drawn
   # badge measures 12; Compose draws a border INWARD, so the box is stated as
   # 12 and the border eats back to the 8px the design shows.
+  #
+  # NOT Chelekom's Action Icon, though screens 02, 03, 06 and 07 all draw their
+  # header discs with it now that `shadow` exists. This one has TWO children,
+  # and the component puts caller-supplied children in a `<Row>`:
+  #
+  #     defp glyph(_props, content, _disabled?), do: ~MOB(<Row>{content}</Row>)
+  #
+  # A Row lays out along its axis; a Box stacks. The badge is an overlay — a
+  # `fill_width`/`fill_height` Box that pins a 12pt dot to `top_trailing` of the
+  # 44pt disc — so through a Row it would sit BESIDE the bell rather than over
+  # its corner, and its two fills would have a hugging Row to fill rather than
+  # the disc. The unread dot is the only thing on this screen that says there is
+  # anything to open, so that is not a subtle regression.
+  #
+  # What it lacks, precisely: a way to say "stack these children", or a badge /
+  # overlay slot of its own. `<Row>` is right for the icon-plus-nothing case it
+  # was written for and wrong for every decorated one.
   @doc false
   def disc(icon, badge?, tag) do
     tap = {self(), tag}
@@ -505,13 +522,20 @@ defmodule Kati.Screens.Home do
   end
 
   # Chelekom's headless Separator, given the design's own 7%-ink rule colour.
-  # It expands to `<Divider color thickness />`, which the bridge draws as
-  # `HorizontalDivider(thickness = 1.dp, color = …)` — Compose's own
-  # `Box(fillMaxWidth().height(1.dp).background(color))`, i.e. the hand-rolled
-  # Box this replaces, node for node.
+  #
+  # `render: :box` is load-bearing, and the comment that used to sit here was
+  # wrong about why. The default `:divider` is NOT the hand-rolled Box this
+  # replaced: the bridge maps it to Material3's `HorizontalDivider`, which is a
+  # Canvas drawing an ANTIALIASED `drawLine`, not a filled rect. At this
+  # device's 2.6875x a 1dp rule gets a 3px canvas and a 2.6875px stroke, so the
+  # last pixel row lands at ~69% coverage — a hairline 4-5/255 lighter than the
+  # design's on one full-width row. `render: :box` swaps the primitive back to
+  # `<Box fill_width height={1} background={color}>`, which is the node this
+  # screen drew by hand, so every pixel row carries the full colour again.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @doc "Today's date line and greeting, in the device's zone."
   def today do

@@ -52,6 +52,38 @@ defmodule Kati.Screens.Rating do
   four, same size and family, so it shares their line box by construction
   rather than by a stacked `Box` whose height has to be guessed at.
 
+  ## What is a component here, and what still is not
+
+  Five of this screen's parts are now the vendored Chelekom component that
+  names them, because five props landed upstream that they had been missing —
+  `shadow`, `border_color`/`border_width`, `height` and per-axis padding:
+
+    * `close_disc/1` — `Kati.Components.MishkaCloseButton`, filled, with
+      `Kati.Theme.shadow_button()`. A floating disc is *defined* by its shadow;
+      with no `shadow` prop the component could only draw a flat patch, which
+      is why this was a hand-rolled `Box` until now.
+    * `save_pill/0`, `tag/1`, `add_tag/0`, `rewatch/1` —
+      `Kati.Components.MishkaPill`.
+
+  **`MishkaChip` draws none of the four tags**, which is worth stating because
+  a filter chip is the obvious guess. It has no `shadow`, and every tag here is
+  a lifted `Kati.Theme.shadow_card_soft()` card; it has no `border_color` and no
+  `border_width`, and *+ tag* is a ring with no fill. Both gaps are the same
+  shape as the ones just closed on `MishkaPill`, and both belong upstream.
+
+  **`MishkaSegmentedControl` cannot draw `scale_toggle/0`**, for two reasons
+  that are independent of each other:
+
+    1. **No gap between segments.** The drawing sets the two segments 3pt apart
+       inside the track; the component lays its segments in a bare `Row` with
+       nothing between them and offers no spacing prop. Flush segments are
+       different pixels, not a different taste.
+    2. **A segment's content is a string.** `5★` is a numeral *plus a Material
+       Symbols glyph in the symbols face*, and an option carries only `id`,
+       `label` and `disabled` — no trailing slot, no per-segment
+       `font_family`. Handing the glyph in as the label would typeset it in
+       Plus Jakarta Sans, which does not have it.
+
   ## The caret sits on the next line
 
   The review body ends with the design's 2x16 orange text cursor. There is no
@@ -63,6 +95,8 @@ defmodule Kati.Screens.Rating do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaCloseButton
+  alias Kati.Components.MishkaPill
   alias Kati.Rating.Sample
   alias Kati.UI.SettingsList
 
@@ -98,35 +132,92 @@ defmodule Kati.Screens.Rating do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={close}
-        >
-          {Kati.UI.symbol("close", size: 21)}
-        </Box>
+        {Kati.Screens.Rating.close_disc(close)}
         <Spacer weight={1.0} />
         <Text text="Log a watch" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer weight={1.0} />
-        <Row
-          height={38}
-          corner_radius={19}
-          background={Kati.Theme.ink()}
-          padding_left={16}
-          padding_right={16}
-          align="center"
-          on_tap={save}
-        >
-          <Text text="Save" text_size={13} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
-        </Row>
+        {Kati.Screens.Rating.save_pill(save)}
       </Row>
       <Spacer size={22} />
     </Column>
     """
+  end
+
+  @doc """
+  The dismissal disc: `Kati.Components.MishkaCloseButton` at the drawing's own
+  numbers.
+
+  A close button is what this is, so it is spelled as one rather than as a
+  fourth hand-rolled 44pt Box. `variant: :filled` paints the fill and
+  **`shadow` is what makes it float** — a filled disc with no shadow is a flat
+  patch, and this design's disc is `Kati.Theme.shadow_button()`. Until this
+  round the component had no `shadow` prop at all, which is exactly why the
+  Box stayed hand-rolled.
+
+  The glyph goes in as a **child**, not through `icon:`. The `icon` shorthand
+  builds a `Text` with no `font_family`, so the ✕ it defaults to would be
+  typeset in Plus Jakarta Sans — which carries no U+2716 — and `"close"` would
+  be typeset as the word. `Kati.UI.symbol/2` keeps the Material Symbols face
+  and keeps `Kati.Icons.glyph!/1`'s raise for a name outside the subset.
+
+  ## Why the pixels do not move
+
+  The component builds
+  `%{type: :box, props: %{width: 44, height: 44, align: :center,
+  corner_radius: 22.0, background: …, shadow: …, on_tap: …}}` — every number
+  this wrote by hand. `align: :center` and `align="center"` reach the bridge as
+  the same string (`Mob.Renderer.encode_native_value/1` writes an atom as its
+  own name), and `corner_radius` is read with `floatProp`, so `22.0` and `22`
+  are one radius.
+
+  The one structural difference is that children are wrapped in a `Row`
+  (`MishkaActionIcon.glyph/3`). That `Row` is inert here: `MobBridge.kt`'s row
+  branch is `Row(modifier = m, verticalAlignment = rowAlignProp(props))` with
+  no `fillMaxWidth`, so a propless Row hugs its single child on both axes and
+  the enclosing Box centres the same rectangle it centred before.
+  """
+  def close_disc(tap) do
+    MishkaCloseButton.close_button(
+      %{
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: tap
+      },
+      [Kati.UI.symbol("close", size: 21)]
+    )
+  end
+
+  @doc """
+  The commit: `Kati.Components.MishkaPill` at the drawing's 38pt ink pill.
+
+  ## `padding: 0` is load-bearing
+
+  `MishkaPill` always writes a `padding` key, defaulting to `:space_sm`, and
+  the bridge resolves an unspecified edge **against that uniform** rather than
+  against zero (`MobBridge.kt`: `fun pad(v) = (v ?: uniform ?: 0)`). So
+  `padding_left`/`padding_right` alone would leave the drawing's 38pt pill
+  sitting inside two rows of `:space_sm`. Pinning `padding: 0` is what makes
+  the two horizontal edges the only padding the pill has, which is what the
+  hand-rolled Row had.
+  """
+  def save_pill(tap) do
+    MishkaPill.pill(
+      label: "Save",
+      background: Kati.Theme.ink(),
+      color: 0xFFFBFAF8,
+      height: 38,
+      corner_radius: 19,
+      padding: 0,
+      padding_left: 16,
+      padding_right: 16,
+      text_size: 13,
+      font_weight: :bold,
+      align: :center,
+      on_tap: tap
+    )
   end
 
   @doc false
@@ -149,16 +240,46 @@ defmodule Kati.Screens.Rating do
           <Spacer size={6} />
           <Text text={w.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
           <Spacer size={9} />
-          <Row height={24} corner_radius={12} background={0xFFEFECE7} padding_left={10} padding_right={10} align="center">
-            {Kati.UI.symbol("replay", size: 13, color: 0xFF8A8479)}
-            <Spacer size={5} />
-            <Text text={w.rewatch} text_size={11} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
-          </Row>
+          {Kati.Screens.Rating.rewatch(w.rewatch)}
         </Column>
       </Row>
       <Spacer size={22} />
     </Column>
     """
+  end
+
+  @doc """
+  The rewatch badge: `Kati.Components.MishkaPill` around a glyph and a count.
+
+  A pill's content slot takes nodes, so the `replay` glyph keeps the Material
+  Symbols face `Kati.UI.symbol/2` gives it — `label:` would have built a `Text`
+  with no `font_family` and typeset the ligature as the word.
+
+  The content lands in a bare `<Row>`, where the hand-rolled version wrote
+  `align="center"`. Those are the same row: `MobBridge.kt`'s `rowAlignProp/1`
+  answers `Alignment.CenterVertically` for everything that is not `"top"` or
+  `"bottom"` — including an absent `align` — so the 13pt glyph and the 11pt
+  count share a centre line either way.
+  """
+  def rewatch(label) do
+    text = ~MOB"""
+    <Text text={label} text_size={11} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+    """
+
+    gap = ~MOB"<Spacer size={5} />"
+
+    MishkaPill.pill(
+      %{
+        background: 0xFFEFECE7,
+        height: 24,
+        corner_radius: 12,
+        padding: 0,
+        padding_left: 10,
+        padding_right: 10,
+        align: :center
+      },
+      [Kati.UI.symbol("replay", size: 13, color: 0xFF8A8479), gap, text]
+    )
   end
 
   @doc false
@@ -407,44 +528,68 @@ defmodule Kati.Screens.Rating do
   @doc false
   def tag_gap, do: ~MOB"<Spacer size={7} />"
 
-  @doc false
+  @doc """
+  One tag: `Kati.Components.MishkaPill`, not `Kati.Components.MishkaChip`.
+
+  The port draws the line between them as *a chip is selected, a pill is
+  removed*, and these are neither — they are tokens already attached to the
+  watch. The deciding fact is narrower than that, though: **`MishkaChip` has no
+  `shadow` prop**, and every tag here is a lifted `Kati.Theme.shadow_card_soft()`
+  card. A chip cannot draw one, so a chip is not what this is.
+  """
   def tag(label) do
-    ~MOB"""
-    <Row
-      height={30}
-      corner_radius={15}
-      background={Kati.Theme.card(:light)}
-      shadow={Kati.Theme.shadow_card_soft()}
-      padding_left={13}
-      padding_right={13}
-      align="center"
-    >
-      <Text text={label} text_size={12} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      label: label,
+      background: Kati.Theme.card(:light),
+      color: 0xFF5C574F,
+      shadow: Kati.Theme.shadow_card_soft(),
+      height: 30,
+      corner_radius: 15,
+      padding: 0,
+      padding_left: 13,
+      padding_right: 13,
+      text_size: 12,
+      font_weight: :semibold,
+      align: :center
+    )
   end
 
-  # Solid, not dashed: `Modifier.border` takes a width and a colour and no
-  # PathEffect, so the stitching does not survive. The weight and the alpha are
-  # the drawing's own.
-  @doc false
+  @doc """
+  The add affordance: the same pill with a ring instead of a fill.
+
+  `background: :transparent` is the drawing's *no fill at all*, and it really is
+  nothing: `Mob.Renderer` resolves `:transparent` to `0x00000000`, and a fully
+  transparent `Modifier.background` paints no pixels. It has to be said out loud
+  because a pill always writes a `background` key, defaulting to
+  `:surface_raised`.
+
+  Solid, not dashed: `Modifier.border` takes a width and a colour and no
+  PathEffect, so the stitching does not survive. The weight and the alpha are
+  the drawing's own — and `border_width` is read with `floatProp`, so the 1.5
+  survives where an `intProp` would have truncated it to 1.
+
+  `MishkaChip` is out for the second time here: no `border_color`, no
+  `border_width`.
+  """
   def add_tag do
     tap = {self(), :add_tag}
 
-    ~MOB"""
-    <Row
-      height={30}
-      corner_radius={15}
-      border_width={1.5}
-      border_color={0x2E1A1917}
-      padding_left={12}
-      padding_right={12}
-      align="center"
-      on_tap={tap}
-    >
-      <Text text="+ tag" text_size={12} font_weight="semibold" text_color={0xFFA0998F} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      label: "+ tag",
+      background: :transparent,
+      color: 0xFFA0998F,
+      border_color: 0x2E1A1917,
+      border_width: 1.5,
+      height: 30,
+      corner_radius: 15,
+      padding: 0,
+      padding_left: 12,
+      padding_right: 12,
+      text_size: 12,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: tap
+    )
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}

@@ -92,26 +92,70 @@ defmodule Kati.Screens.Accessibility do
   # Kati.Screens.Pushed — so the overflow disc sits opposite it.
   @doc false
   def header(contrast?) do
-    shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_button(), contrast?)
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={shadow}
-          align="center"
-        >
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.Accessibility.disc("more_horiz", contrast?)}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The 44pt floating disc opposite the back pill, lifted unless contrast is on.
+
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon", which is what a disc is. It could not be one until the container took a
+  `shadow`, and on this screen that prop earns its place twice over: a disc is
+  *defined* by floating, **and** the lift is one of the two things **Increase
+  contrast** switches off, so the shadow has to be a value this function can
+  compute rather than a constant baked into a component.
+
+  ## The `nil` shadow stays absent, which is what `lift/2` wants
+
+  `lift/2` returns `nil` rather than a zeroed shadow string, and `theme_icon/2`
+  routes `shadow` through `put_some/3`, whose first clause drops a `nil`. So a
+  contrast-on disc carries **no `shadow` key at all**, where the hand-rolled
+  `<Box shadow={nil}>` carried the key with a nil value. Both draw nothing: the
+  bridge's `shadowLayers/1` opens with `props["shadow"] as? String ?: return
+  null`, and even when the serialised `"nil"` string reaches it, the split on
+  `|` yields one field where five are required, `mapNotNull` drops it and
+  `layers.ifEmpty { null }` returns null. The component's form is the cleaner of
+  the two and paints the same nothing.
+
+  ## Why the pixels do not move
+
+  With children and no `id`, `theme_icon/2` returns
+
+      %{type: :box,
+        props: %{width: 44, height: 44, align: :center, corner_radius: 22,
+                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button()},
+        children: [glyph]}
+
+  — key for key what the `<Box>` above it carried, minus the `shadow` key in the
+  contrast-on case as described. `align: :center` and `align="center"` reach the
+  bridge as the same string: `align` is in none of the renderer's token
+  whitelists, and `:json.encode/1` writes an atom as its own name.
+
+  Nothing else in the component runs: `:filled` has no gradient layer,
+  `skin(:filled, …)` proposes no border so both border keys are omitted rather
+  than nil, and the id markers are skipped without an `id`. The glyph is a child
+  rather than the `icon` prop because that shorthand builds a `Text` with no
+  `font_family`, and the ligature `"more_horiz"` would be typeset as the word.
+  """
+  def disc(icon, contrast?) do
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: Kati.Theme.card(:light),
+        size: 44,
+        radius: 22,
+        shadow: Kati.Screens.Accessibility.lift(Kati.Theme.shadow_button(), contrast?)
+      },
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -373,25 +417,49 @@ defmodule Kati.Screens.Accessibility do
     """
   end
 
-  # 0x12 is the drawing's 7% rule. 0x38 is the darkened one the Increase
-  # contrast row promises — the same ink, roughly tripled in weight, rather
-  # than a second colour.
-  #
-  # The rule itself is `Kati.Components.MishkaSeparator`, which is what a
-  # 1px hairline between rows IS. Its plain variant is a `<Divider>`, and the
-  # bridge's `MobDivider` renders Compose's `HorizontalDivider(thickness, color)`
-  # — which is defined as `Box(modifier.fillMaxWidth().height(thickness)
-  # .background(color))`, the same three modifiers this wrote by hand. Both
-  # colours are passed as ARGB ints, so the drawing's own alphas survive:
-  # `color` is in the renderer's `@color_props` whitelist and an integer is
-  # handed to `colorProp` untouched.
-  @doc false
+  @doc """
+  The rule between two guarantee rows, darkened once contrast is on.
+
+  `0x12` is the drawing's 7% rule. `0x38` is the darkened one the **Increase
+  contrast** row promises — the same ink, roughly tripled in weight, rather than
+  a second colour.
+
+  The rule itself is `Kati.Components.MishkaSeparator`, which is what a 1px
+  hairline between rows IS, and `render: :box` is what makes it draw one.
+
+  ## Why `render: :box`, and why it matters more on this screen than anywhere
+
+  The component's default `:divider` maps to Material3's `HorizontalDivider`,
+  which is **not** `Box(fillMaxWidth().height(t).background(c))` as this file
+  previously claimed but an antialiased `drawLine`. At this device's 2.6875x a
+  1dp rule is handed a 3px canvas and a 2.6875px stroke centred in it, so its
+  last pixel row lands at ~69% coverage: one full-width row 4-5/255 lighter than
+  the two above it.
+
+  On a screen whose fourth guarantee is about contrast, a hairline that quietly
+  loses a third of its weight on one row is the wrong bug to ship. `render:
+  :box` swaps the stroke for a filled rect, every pixel row of which carries the
+  whole colour:
+
+      <Box fill_width={true} height={1} background={0x121A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  — the same three modifiers this file wrote by hand before it adopted the
+  component. The `Spacer` is an iOS workaround for `MobBox` dropping a Box's
+  `height` when it has no `width`; on Android the Box's own `height` pins the
+  rule and `MobSpacer` is a bare sized `Spacer` with no background.
+
+  Both colours are passed as ARGB ints, so the drawing's own alphas survive:
+  `color` is in the renderer's `@color_props` whitelist and an integer is handed
+  to `colorProp` untouched.
+  """
   def hairline(false, _contrast?), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true, contrast?) do
     color = if contrast?, do: 0x381A1917, else: 0x121A1917
 
-    MishkaSeparator.separator(color: color, thickness: 1)
+    MishkaSeparator.separator(color: color, thickness: 1, render: :box)
   end
 
   @doc """

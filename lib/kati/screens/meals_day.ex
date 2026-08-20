@@ -89,30 +89,66 @@ defmodule Kati.Screens.MealsDay do
   # selected chip on this screen does.
   @doc false
   def header(density) do
-    tap = {self(), :density}
-    on? = density == :dense
-    background = if on?, do: Theme.ink(), else: Theme.card(:light)
-    color = if on?, do: 0xFFFBFAF8, else: Theme.ink()
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={background}
-          shadow={Theme.shadow_button()}
-          align="center"
-          on_tap={tap}
-        >
-          {UI.symbol("density_medium", size: 21, color: color)}
-        </Box>
+        {Kati.Screens.MealsDay.density_disc(density)}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The 44pt density control.
+
+  `Kati.Components.MishkaActionIcon` — "a compact icon-only button" — which is
+  exactly what this is: a square tap target holding one glyph, and the only
+  control on the screen's chrome row. It became buildable this round, because
+  the component now takes a `shadow`, and **a floating disc is defined by its
+  shadow**: 52.html gives this one
+  `0 1px 2px rgba(26,25,23,.05), 0 8px 16px -12px rgba(26,25,23,.5)`, which is
+  `Kati.Theme.shadow_button/0`. Without it the disc is a flat patch of card
+  white on paper rather than a button lifted off it.
+
+  ## Why the pixels do not move
+
+  `shape: :circle` resolves its radius as `size / 2` — 22.0, the number this
+  wrote by hand, and `corner_radius` is read through `floatProp`, so 22.0 and
+  22 are the same `22.dp`. With `variant: :filled` the fill is the caller's
+  `background` rather than `:transparent`, and `shadow` and `on_tap` are
+  merged onto the container only because they were passed — an omitted one is
+  absent from the map rather than a JSON `null`. So the container is
+  `%{width: 44, height: 44, align: :center, corner_radius: 22.0,
+  background: background, shadow: …, on_tap: …}` — key for key the `Box` this
+  used to write out.
+
+  The one structural difference is that content passed as children is wrapped
+  in a `<Row>`. That `Row` is layout-neutral here: it holds a single `Text`,
+  so it measures exactly the glyph, and the container's `align: :center` then
+  centres the `Row` where it used to centre the glyph.
+
+  Both states are one call rather than two clauses, because the disc's shape,
+  size and shadow never change — only which of the two colours is the fill and
+  which the glyph, which is the drawing's own inversion.
+  """
+  def density_disc(density) do
+    on? = density == :dense
+    background = if on?, do: Theme.ink(), else: Theme.card(:light)
+    color = if on?, do: 0xFFFBFAF8, else: Theme.ink()
+
+    Kati.Components.MishkaActionIcon.action_icon(
+      %{
+        variant: :filled,
+        shape: :circle,
+        size: 44,
+        background: background,
+        shadow: Theme.shadow_button(),
+        on_tap: {self(), :density}
+      },
+      [UI.symbol("density_medium", size: 21, color: color)]
+    )
   end
 
   @doc false
@@ -281,17 +317,7 @@ defmodule Kati.Screens.MealsDay do
     ~MOB"""
     <Row align="center">
       <Spacer size={11} />
-      <Box
-        width={24}
-        height={24}
-        corner_radius={12}
-        background={0xFF4E9A73}
-        border_color={0xFF4E9A73}
-        border_width={1.5}
-        align="center"
-      >
-        {Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)}
-      </Box>
+      {Kati.Screens.MealsDay.ring(:eaten)}
     </Row>
     """
   end
@@ -300,15 +326,70 @@ defmodule Kati.Screens.MealsDay do
     ~MOB"""
     <Row align="center">
       <Spacer size={11} />
-      <Box
-        width={24}
-        height={24}
-        corner_radius={12}
-        border_color={0x291A1917}
-        border_width={1.5}
-      />
+      {Kati.Screens.MealsDay.ring(:todo)}
     </Row>
     """
+  end
+
+  @doc """
+  The 24pt disc that says whether a meal has been logged.
+
+  Both states are `Kati.Components.MishkaThemeIcon` — "a themed container
+  around exactly one icon", and a 24pt disc holding a `check` is nothing else.
+  Neither could be built before this round: 52.html draws **both** rings with
+  a 1.5pt border, and `theme_icon/2` used to paint a border only under
+  `variant: :outline`, which forfeits the fill and hard-codes the width at 1.
+  `border_color` and `border_width` are now caller overrides on any variant,
+  so the fill and the hairline can be asked for together and the hairline can
+  be 1.5.
+
+  ## Why the pixels do not move
+
+  Neither call passes an `id`, an `icon` or an `on_tap`, so the id markers,
+  the glyph shorthand and the handler are all skipped, and `:filled` and
+  `:subtle` both contribute an empty gradient layer.
+
+  `:eaten` is `variant: :filled` with `color` and `border_color` set to the
+  same `#4E9A73` the drawing gives it (`border:1.5px solid #4E9A73;
+  background:#4E9A73`), so the container is `%{width: 24, height: 24,
+  align: :center, corner_radius: 12, background: 0xFF4E9A73,
+  border_color: 0xFF4E9A73, border_width: 1.5}` — key for key the `Box` this
+  wrote by hand — holding the same 14pt `check`.
+
+  `:todo` is `variant: :subtle`, whose skin is no background and no border, so
+  the only fill-related keys on the node are the two overrides:
+  `%{width: 24, height: 24, align: :center, corner_radius: 12,
+  border_color: 0x291A1917, border_width: 1.5}`. `put_some/3` drops a nil
+  background rather than writing one, which matters — the drawing says
+  `background:transparent`, and a `nil` would serialise as a JSON null for the
+  bridge to read. The `align: :center` the component adds is the one key the
+  hand-rolled node lacked, and it is a no-op on a box with no children: the
+  drawing puts a fully transparent `check` in this ring, which is a way of
+  reserving space in CSS rather than a mark anyone sees, so nothing is centred
+  here.
+  """
+  def ring(:eaten) do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: 0xFF4E9A73,
+        size: 24,
+        radius: 12,
+        border_color: 0xFF4E9A73,
+        border_width: 1.5
+      },
+      [Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)]
+    )
+  end
+
+  def ring(:todo) do
+    Kati.Components.MishkaThemeIcon.theme_icon(%{
+      variant: :subtle,
+      size: 24,
+      radius: 12,
+      border_color: 0x291A1917,
+      border_width: 1.5
+    })
   end
 
   # Kati.UI.eyebrow's dash is always the accent, and orange here would claim

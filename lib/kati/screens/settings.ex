@@ -94,15 +94,68 @@ defmodule Kati.Screens.Settings do
           <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
         <Spacer size={14} />
-        <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={10} padding_right={10} align="center">
-          {Kati.UI.symbol("cloud_done", size: 14, color: 0xFF3E8460)}
-          <Spacer size={5} />
-          <Text text={a.status} text_size={11} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
-        </Row>
+        {Kati.Screens.Settings.status(a.status)}
       </Row>
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc """
+  The green *Synced* token at the trailing end of the account card.
+
+  `Kati.Components.MishkaPill`, because that is what this is: a compact,
+  untappable label on a tinted ground — the port's own line for telling the two
+  apart is *"a Chip is selected, a Pill is removed"*, and this is neither, which
+  leaves the pill's plain body. It could not be one until the port took `height`,
+  per-edge padding and `corner_radius`; on its old hardcoded `:space_sm` and
+  `:radius_pill` it could only draw a differently shaped token.
+
+  The glyph and the label go in as **content** rather than as `label`, for the
+  reason `Kati.Screens.Subscriptions.badge/1` gives about the avatar: the
+  component's own `Text` carries one string, and this token is an icon *and* a
+  word in a shared colour. Content replaces that `Text` wholesale, so the
+  drawing's `cloud_done` at 14 and its semibold 11 survive untouched.
+
+  **The pixels are the same node.** The port builds
+
+      <Box background={0x294E9A73} corner_radius={13} padding={0}
+           fill_width={false} height={26} padding_left={10} padding_right={10}
+           align={:center}>
+        <Row><Row>{glyph, gap, label}</Row><Row /></Row>
+      </Box>
+
+  where this was a single `<Row height={26} corner_radius={13} background
+  padding_left={10} padding_right={10} align="center">` holding the same three
+  children. Both hug: a `Row` never fills, and a `Box` told `fill_width={false}`
+  hugs too (K-17). `padding` is `0` rather than left to the port's `:space_sm`
+  so the uniform and the two edges agree — the bridge's `pad/1` resolves an
+  unset edge to the uniform, so top and bottom come out `0`, which is what a
+  `Row` with only horizontal padding had. `height` is applied after padding on
+  both, so both measure 26 outside. The port's two wrapper `Row`s carry no
+  props: the outer one hugs, the empty trailing one is `with_remove: false` and
+  measures 0x0, and Compose's `Row` centres vertically unless told `top` or
+  `bottom` — the same default the hand-rolled `align="center"` was asking for.
+  """
+  def status(label) do
+    Kati.Components.MishkaPill.pill(
+      [
+        background: 0x294E9A73,
+        corner_radius: 13,
+        height: 26,
+        padding: 0,
+        padding_left: 10,
+        padding_right: 10,
+        align: :center
+      ],
+      [
+        Kati.UI.symbol("cloud_done", size: 14, color: 0xFF3E8460),
+        ~MOB"<Spacer size={5} />",
+        ~MOB"""
+        <Text text={label} text_size={11} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
+        """
+      ]
+    )
   end
 
   @doc """
@@ -216,10 +269,35 @@ defmodule Kati.Screens.Settings do
   def control({:segments, options, selected}),
     do: Kati.Screens.Settings.segments(options, selected)
 
-  # The theme picker, at a third of the size of screen 25's. Same trough-and-
-  # raised-tile idea, but it lives inside a row rather than spanning the frame,
-  # so its segments hug their labels instead of taking a weight.
-  @doc false
+  @doc """
+  The theme picker, at a third of the size of screen 25's.
+
+  Same trough-and-raised-tile idea, but it lives inside a row rather than
+  spanning the frame, so its segments hug their labels instead of taking a
+  weight.
+
+  Not `Kati.Components.MishkaSegmentedControl`, and this one is blocked twice
+  over:
+
+    * **No gap between segments.** The drawing puts 3pt between the three tiles;
+      the port emits them back to back and has no prop that inserts a `<Spacer>`,
+      nor any way to intersperse one by hand — `expand/3` drops every child that
+      is not an option. `padding` cannot stand in, because `MobBridge` applies
+      `background` before `padding`, so a segment's padding widens the raised
+      tile's own white rectangle instead of separating it from its neighbour.
+      `Kati.Screens.ViewSwitcher` records this at length.
+    * **The control always wraps itself in `<Column fill_width={true}>`.** That
+      wrapper is unconditional — it is there to carry the optional `label`
+      heading, and it stays when there is none. This strip is the trailing cell
+      of a settings row and must *hug* its three labels; a full-width Column
+      would take the row's whole leftover width and drag the trough with it.
+
+  The tiles themselves are within reach: `Kati.Components.MishkaChip` at
+  `height: 26, padding_y: 0, padding_x: 10, corner_radius: 9` is `segment/2`'s
+  box exactly — except that the selected one carries `0 1 2 0 #1F1A1917`, and
+  the chip has **no `shadow` prop**. Without the lift the raised tile stops
+  reading as raised, which is the whole of what "selected" says here.
+  """
   def segments(options, selected) do
     tiles =
       options

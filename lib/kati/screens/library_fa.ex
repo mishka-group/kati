@@ -148,26 +148,39 @@ defmodule Kati.Screens.LibraryFa do
   # own which segment is lit, and it is the socket. `shelf: 0` reproduces the
   # sample's `on?` exactly, so the frame is unchanged.
   #
-  # ## Not `Kati.Components.MishkaSegmentedControl`
+  # ## Still not `Kati.Components.MishkaSegmentedControl` — two of four gone
   #
   # The API is right — a track, one always-selected segment, `select/2`'s
-  # "tapping the selection is a no-op" rule is this control's rule — and the
-  # drawing is out of its reach on four counts:
+  # "tapping the selection is a no-op" rule is this control's rule — and it has
+  # closed half the distance:
   #
-  #   * **Persian labels.** Same blocker as the chips: the component builds
-  #     the segment's `Text` and takes no `font_family`, so نمایش draws blank.
-  #   * **Segments cannot share the row.** Its own moduledoc says segments are
-  #     content-sized because `weight` has no iOS mapping, and this control's
-  #     three segments split the width equally. Worse, the hug it relies on
-  #     does not happen on Android at all: it sets `fill_width={false}`, and
-  #     `MobBridge.kt:2716` decides a Box fills by asking whether `width` is
-  #     set — `fill_width` is only ever read for `true` (`:3985`). So on this
-  #     bridge the first segment takes the whole strip.
-  #   * **No icon.** Each segment here is a 17pt Material Symbol, a 6pt gap
-  #     and then the label. The component's segment is one `Text`.
-  #   * **No `height` and no `shadow`.** The segments are 38 tall and the lit
-  #     one carries `0 1 2 0 #0F1A1917`; the component sizes a segment by its
-  #     padding and has no shadow prop.
+  #   * **Gone: segments cannot share the row.** `segment_weight` puts a
+  #     Compose `weight` on each segment Box, and paired with
+  #     `fill_width: true` the three split the strip equally. The hug it falls
+  #     back to works too: fence K-17 makes `fill_width={false}` mean "hug"
+  #     (`MobBridge.kt:2734`), where the box branch used to consult `width`
+  #     alone.
+  #   * **Gone: no `height` and no `shadow`.** `segment_height: 38` sizes the
+  #     segment and `selected_shadow: "0 1 2 0 #0F1A1917"` lifts the lit one;
+  #     the track takes its own `shadow` and `height` as well.
+  #
+  # Two left, and the second is this screen's alone:
+  #
+  #   * **Persian labels.** Same blocker as the chips, and the same shape of
+  #     it: the component builds each segment's `Text` from `label` and takes
+  #     no `font_family`, so نمایش draws blank. Its moduledoc explains the
+  #     choice — "the label is a prop rather than the slot's children because
+  #     the control paints it" — which is exactly the door `MishkaPill` and
+  #     `MishkaToggle` leave open and this one does not.
+  #   * **No icon in a segment.** Each segment here is a 17pt Material Symbol,
+  #     a 6pt gap, then the label — and the symbol is tinted differently in the
+  #     two states (`#1A1917` lit, `#AFA89E` idle). `MishkaSegmentedControlOption`
+  #     takes `id`, `label` and `disabled`; there is nowhere for a glyph to go.
+  #     A leading slot on the option would close this and the label at once,
+  #     since a slot takes a `Text` as readily as a symbol.
+  #
+  # And one that is not the component's fault: the segments abut. There is no
+  # gap prop, and this trough puts 4 between them (`segment_gap/0` below).
   @doc false
   def segments(shelf) do
     ~MOB"""
@@ -345,30 +358,48 @@ defmodule Kati.Screens.LibraryFa do
   #
   # The tag carries the chip's INDEX, not its label — see the moduledoc.
   #
-  # ## Not `Kati.Components.MishkaChip`, and it is not close
+  # ## Still not `Kati.Components.MishkaChip` — two of the four blockers are
+  # gone, and the two that remain are one-line fixes upstream
   #
-  # A filter chip with a selected state is precisely what that component is
-  # for, and four separate things stop it drawing this one:
+  # Re-checked against the re-vendored component. A filter chip with a selected
+  # state is precisely what it is for, and it is now much closer:
   #
-  #   * **No `font_family`.** The chip builds its own `Text`, and no component
-  #     in the vendored set takes the prop. An unstyled `Text` is Plus Jakarta
-  #     Sans (`MobBridge.kt:4222`), whose cmap holds **zero** code points in
-  #     U+0600-U+06FF — so همه would draw as four blank boxes, not as a
-  #     fallback. That one is fatal on its own, and it is fatal for every
-  #     component here that renders text.
-  #   * **One `Text`, not two.** The drawing puts a count beside the label at
-  #     a different size and a different alpha (`۹` at 10 on .6 of the label's
-  #     colour). The chip has a single `label` prop.
-  #   * **No `height`, and `padding` only as one uniform value.** This chip is
-  #     32 tall with 14 of horizontal padding; the component hard-codes
-  #     `padding={:space_sm}` on all four edges and lets the label set the
-  #     height.
-  #   * **No `shadow`.** An unselected chip carries `shadow_card_soft`, which
-  #     is what lifts it off the paper. Grep finds the word `shadow` in
-  #     exactly one of the 77 components, and there it is the word
-  #     "shadowing" in a comment — **no component takes a shadow prop at
-  #     all**, so the whole raised-card language of this design is out of
-  #     their reach.
+  #   * **Gone: sizing.** `height: 32` with `padding_y: 0` and `padding_x: 14`
+  #     and `corner_radius: 16` and `text_size: 12.5` and
+  #     `font_weight: :semibold` are all real props now, and its own `pad/2`
+  #     emits four explicit edges as soon as either axis is overridden, so
+  #     nothing is double-padded.
+  #   * **Gone: one `Text`, not two.** The `trailing` slot takes "a string,
+  #     node, or list", and a node is placed as given — so the count goes in as
+  #     the same `<Text ... text_size={10} text_color={count_fg}>` this
+  #     function already builds, in its own size and its own alpha, with
+  #     `trailing_gap: 6` for the Spacer.
+  #
+  # What is left:
+  #
+  #   * **No `font_family`, and no content slot to route around it.** The chip
+  #     builds the *label's* `Text` from the `label` prop, and no component in
+  #     the vendored set takes the prop (`grep -rl font_family
+  #     lib/kati/components/` returns nothing). An unstyled `Text` is Plus
+  #     Jakarta Sans (`MobBridge.kt:4222`), whose cmap holds **zero** code
+  #     points in U+0600-U+06FF, so همه draws as four blank boxes rather than
+  #     falling back. And unlike its siblings there is no way round it:
+  #     `MishkaChip.expand/3` is `def expand(props, _children, _ctx)` and
+  #     `chip/1` takes no content list at all, where `MishkaPill.pill/2`,
+  #     `MishkaToggle.toggle/2`, `MishkaThemeIcon.theme_icon/2` and
+  #     `MishkaActionIcon.action_icon/2` every one of them let children replace
+  #     the thing they would otherwise build. That door is what makes
+  #     `Kati.Screens.SettingsFa.leading/1` a component and this not.
+  #   * **No `shadow`.** An unselected chip carries
+  #     `Kati.Theme.shadow_card_soft/0`, which is what lifts it off the paper.
+  #     `MishkaActionIcon`, `MishkaThemeIcon`, `MishkaPill`, `MishkaToggle` and
+  #     `MishkaSegmentedControl` all took a `shadow` prop this round;
+  #     `MishkaChip` did not. Its sibling `MishkaPill` already passes one
+  #     straight through to its root Box, which is the same root Box the chip
+  #     builds.
+  #
+  # Both are things `MishkaPill` already has. The chip is the component that
+  # should have them.
   @doc false
   def chip(label, count, index, on?) do
     tap = {self(), String.to_atom("filter_" <> Integer.to_string(index))}

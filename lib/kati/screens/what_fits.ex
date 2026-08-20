@@ -17,11 +17,24 @@ defmodule Kati.Screens.WhatFits do
   excluded, and offering to move it rather than hiding it, is why the screen is
   worth having; a filter that silently drops things is just a shorter list.
 
+  The four mood chips hug their labels, which is what a chip is, so they are
+  `Kati.Components.MishkaChip`.
+
   The five window buttons are `flex:1` in the drawing, so each is a
-  `Box weight={1.0}`; the four mood chips hug their labels, so they are Rows.
+  `Box weight={1.0}` around a `fill_width` box, and they stay hand-rolled.
+  They are chips by behaviour — one of them is selected — but `MishkaChip`
+  hardcodes `fill_width={false}` on its root and offers no way to override it:
+  its only sizing escape hatch is an exact `width`, which a `flex:1` row does
+  not know. A `fill_width` prop on the chip, defaulting to `false` so no
+  existing chip moves, is what this needs. `MishkaPill` has exactly that prop
+  and would draw them, but its own docs send anything with a checked state to
+  the chip, and a selected/unselected pair is precisely what these are.
   """
   use Kati.Screens.Pushed, back: "Library"
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaChip
+  alias Kati.Components.MishkaPill
   alias Kati.Screens.WhatFits.Sample
   alias Kati.Theme
   alias Kati.UI
@@ -56,20 +69,40 @@ defmodule Kati.Screens.WhatFits do
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.WhatFits.more_disc()}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The overflow disc — Mishka's Action Icon, now that it can float.
+
+  A floating disc is defined by its shadow. `action_icon/2` painted a fill and
+  stopped there, which reads as a flat patch of card colour rather than as a
+  control sitting above the paper, so this disc stayed hand-rolled; `shadow`
+  takes the design's `Kati.Theme.shadow_button()` string untouched and closes
+  that gap.
+
+  Same pixels. `shape: :circle` is an exact `size / 2`, so 44 rounds at 22 as
+  the literal did; the fill, the shadow and the centring pass straight
+  through; and the glyph is the same `Kati.UI.symbol/2` Text, now inside a Row
+  that hugs it — a hugging Row centred in a Box puts its one child where the
+  bare Text sat.
+  """
+  @spec more_disc() :: map()
+  def more_disc do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button()
+      ],
+      [Kati.UI.symbol("more_horiz", size: 21)]
+    )
   end
 
   @doc false
@@ -139,19 +172,41 @@ defmodule Kati.Screens.WhatFits do
     """
   end
 
-  # The chosen mood is `rgba(232,130,60,.18)` with a bronze label rather than
-  # solid ink: a mood is a preference, not a commitment, so the design gives it
-  # a tint where it gives the runtime a fill.
-  @doc false
-  def mood_chip(m) do
-    bg = if m.selected, do: 0x2EE8823C, else: 0x99FFFFFF
-    fg = if m.selected, do: 0xFF96723C, else: 0xFF8A7B60
+  @doc """
+  One mood chip — Mishka's Chip.
 
-    ~MOB"""
-    <Row height={28} corner_radius={14} background={bg} padding_left={11} padding_right={11} align="center">
-      <Text text={m.label} text_size={11.5} font_weight="semibold" text_color={fg} max_lines={1} />
-    </Row>
-    """
+  A mood is picked, not pressed, so this is a chip and not a button: `checked`
+  is the state and the four colours below are the two states' fills and inks.
+  It could only become one now that the component takes the *unchecked* pair as
+  props — a chip whose unselected state was a theme token could not draw
+  `rgba(255,255,255,.6)` on cream, which is this screen's whole idea of a well.
+
+  The chosen mood is `rgba(232,130,60,.18)` with a bronze label rather than
+  solid ink: a mood is a preference, not a commitment, so the design gives it a
+  tint where it gives the runtime a fill.
+
+  Nothing moves. `padding_x: 11, padding_y: 0` is the Row's own 11/0, and the
+  bridge pads before it sizes, so `height: 28` stays 28. The chip is a hugging
+  `Box` around a hugging `Row` where this was one `Row`, which places a single
+  centred Text at the identical offset.
+  """
+  @spec mood_chip(map()) :: map()
+  def mood_chip(m) do
+    MishkaChip.chip(
+      label: m.label,
+      checked: m.selected,
+      color: 0x2EE8823C,
+      text_color: 0xFF96723C,
+      unchecked_color: 0x99FFFFFF,
+      unchecked_text_color: 0xFF8A7B60,
+      height: 28,
+      corner_radius: 14,
+      padding_x: 11,
+      padding_y: 0,
+      text_size: 11.5,
+      font_weight: :semibold,
+      max_lines: 1
+    )
   end
 
   @doc false
@@ -217,11 +272,41 @@ defmodule Kati.Screens.WhatFits do
         <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      <Row height={30} corner_radius={15} background={0xFFE4E0D9} padding_left={12} padding_right={12} align="center">
-        <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
-      </Row>
+      {Kati.Screens.WhatFits.defer_pill(row.action)}
     </Row>
     """
+  end
+
+  @doc """
+  The `Tomorrow` affordance on the over-budget row — Mishka's Pill.
+
+  A pill, not a chip: it carries no selected state, it is the row's one offer.
+  It reads as a label on a tinted lozenge, which is what a pill is.
+
+  The pixels are the Row's. `padding: 0` with `padding_left`/`padding_right`
+  at 12 gives the bridge exactly the 12/0 edges it had, and since padding is
+  applied before height, `height: 30` measures 30 as it did. The pill is a
+  hugging `Box` (its root passes `fill_width={false}`) wrapping a `Row` that
+  holds the label and an empty `Row` where the ✕ would go; both hug, the empty
+  one is zero-wide, and `align: :center` puts the pair where the Row's own
+  `align="center"` put the Text. `max_lines: 1` is the pill's own default and
+  is what this Text already carried.
+  """
+  @spec defer_pill(String.t()) :: map()
+  def defer_pill(label) do
+    MishkaPill.pill(
+      label: label,
+      background: 0xFFE4E0D9,
+      color: 0xFF5C574F,
+      corner_radius: 15,
+      height: 30,
+      padding: 0,
+      padding_left: 12,
+      padding_right: 12,
+      align: :center,
+      text_size: 11.5,
+      font_weight: :semibold
+    )
   end
 
   @doc false

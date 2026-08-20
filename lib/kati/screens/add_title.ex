@@ -31,6 +31,7 @@ defmodule Kati.Screens.AddTitle do
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaChip
   alias Kati.Library.Sample
   alias Kati.Theme
   alias Kati.UI
@@ -105,28 +106,40 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   def header do
-    close = {self(), :back}
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Text text="Add a title" text_size={26} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={close}
-        >
-          {Kati.UI.symbol("close", size: 21)}
-        </Box>
+        {Kati.Screens.AddTitle.close_disc()}
       </Row>
       <Spacer size={20} />
     </Column>
     """
+  end
+
+  # The sheet's one dismissal, as Chelekom's headless Action Icon — the same
+  # component `add_button/2` already uses on this screen, now that `shadow`
+  # exists to carry `shadow_button()`. Without the lift a filled disc is card
+  # white on paper, and the drawing's close button reads as floating over the
+  # sheet rather than printed on it.
+  #
+  # `shape: :circle` resolves `44 / 2` = 22.0 against the Box's stated 22, which
+  # `floatProp` reads identically, and the glyph stays a CHILD so
+  # `Kati.UI.symbol/2` supplies the Material Symbol at the drawn 21.
+  @doc false
+  def close_disc do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: :back
+      ],
+      [UI.symbol("close", size: 21)]
+    )
   end
 
   # The focused field. `0 0 0 2px #1A1917` in the drawing is a ring, not a
@@ -178,19 +191,44 @@ defmodule Kati.Screens.AddTitle do
     """
   end
 
+  # Chelekom's headless Chip, which is what these are: three filter chips of
+  # which exactly one is checked. Everything the drawing specifies is passed in
+  # — the component's own defaults are theme tokens and would draw a different
+  # chip, which is why this could not be built out of it before this round.
+  #
+  # Identical to screen 02's filter chips down to the number, which is the
+  # design's own doing: both are `height:32 / radius:16 / padding:0 15 /
+  # 12.5 semibold`, ink when on and card white when off. The two screens still
+  # state it separately because they are separate drawings that happen to
+  # agree, not one control shared between them.
+  #
+  # The node swaps a `<Row>` for a `<Box fill_width={false}>` and gains an
+  # explicit `padding_top`/`padding_bottom` of 0. Neither moves a pixel:
+  # `boxAlignProp("center")` is `Alignment.Center` where `rowAlignProp` was
+  # `CenterVertically`, and the second axis is inert because K-17 lets the box
+  # hug — it is 15 + label + 15 wide, with no slack to centre in. The zero
+  # edges are what `nodeModifier`'s `pad(v) = v ?: uniform ?: 0` already
+  # substituted for the Row's absent ones.
   @doc false
   def chip(label, on?) do
     # The tag carries the label, so the day the sheet grows a Books chip is a
     # change to one list and `visible/2`, not to the handler.
-    tap = {self(), String.to_atom("filter_" <> label)}
-    bg = if on?, do: Theme.ink(), else: Theme.card(:light)
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
-
-    ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center" on_tap={tap}>
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-    </Row>
-    """
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      on_toggle: String.to_atom("filter_" <> label),
+      height: 32,
+      padding_x: 15,
+      padding_y: 0,
+      corner_radius: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      color: Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F
+    )
   end
 
   # `gap:7px` in the drawing is the space BETWEEN chips. Carried inside the

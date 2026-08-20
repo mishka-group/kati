@@ -174,7 +174,7 @@ defmodule Kati.Screens.Language do
         <Spacer size={13} />
         {Kati.Screens.Language.language_body(l)}
         <Spacer size={13} />
-        <Box width={24} height={24} corner_radius={12} border_width={1.5} border_color={0x291A1917} />
+        {Kati.Screens.Language.unselected_mark()}
       </Row>
       <Spacer size={10} />
     </Column>
@@ -230,16 +230,51 @@ defmodule Kati.Screens.Language do
   The 24pt ink disc that marks the language you are in.
 
   Also `MishkaThemeIcon`: radius 12 at size 24 is an exact circle, and the
-  component's own `:circle`-shaped siblings resolve theirs the same way. Only
-  the *filled* half of the pair can be a theme icon — the unselected row's
-  ring is an empty 1.5pt outline, and `theme_icon/2` paints a border only in
-  `variant: :outline`, which forfeits the fill and hard-codes the width at 1.
+  component's own `:circle`-shaped siblings resolve theirs the same way. Its
+  unfilled partner is `unselected_mark/0`, which is now the same component.
   """
   def selected_mark do
     Kati.Components.MishkaThemeIcon.theme_icon(
       %{variant: :filled, color: Kati.Theme.ink(), size: 24, radius: 12},
       [Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)]
     )
+  end
+
+  @doc """
+  The empty 24pt ring on a language you are **not** in.
+
+  `MishkaThemeIcon` as of this round. 54.html draws it
+  `width:24px;height:24px;border-radius:12px;border:1.5px solid
+  rgba(26,25,23,.16)` — a hairline with no fill, at a fractional width — and
+  the component used to reach a border only through `variant: :outline`,
+  which forfeits the fill and hard-codes the width at 1. `border_color` and
+  `border_width` are caller overrides on every variant now, so `:subtle`
+  (which paints neither a background nor a border of its own) carries exactly
+  the two the drawing specifies and nothing else.
+
+  ## Why the pixels do not move
+
+  `put_some/3` drops a nil, so `:subtle`'s absent background is absent from
+  the node rather than a JSON `null`; with no `id`, no `icon` and no `on_tap`
+  the id markers, the glyph shorthand and the handler are all skipped, and the
+  gradient layer is empty for anything but `:gradient`. The node is
+  `%{type: :box, props: %{width: 24, height: 24, align: :center,
+  corner_radius: 12, border_color: 0x291A1917, border_width: 1.5},
+  children: []}` — the `Box` written here by hand, plus an `align` that a
+  childless box has nothing to apply.
+
+  The 1.5 survives because the bridge reads `border_width` through
+  `floatProp`; `intProp` — which is what `padding` and `max_lines` get — would
+  have truncated it to 1.
+  """
+  def unselected_mark do
+    Kati.Components.MishkaThemeIcon.theme_icon(%{
+      variant: :subtle,
+      size: 24,
+      radius: 12,
+      border_color: 0x291A1917,
+      border_width: 1.5
+    })
   end
 
   @doc false

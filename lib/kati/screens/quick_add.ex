@@ -35,7 +35,10 @@ defmodule Kati.Screens.QuickAdd do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaCloseButton
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.QuickAdd.Sample
   alias Kati.UI
 
@@ -69,28 +72,49 @@ defmodule Kati.Screens.QuickAdd do
 
   @doc false
   def header do
-    close = {self(), :close}
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Text text="Quick add" text_size={26} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={close}
-        >
-          {Kati.UI.symbol("close", size: 21)}
-        </Box>
+        {Kati.Screens.QuickAdd.close_disc()}
       </Row>
       <Spacer size={22} />
     </Column>
     """
+  end
+
+  @doc """
+  The 44pt disc that dismisses the sheet — `Kati.Components.MishkaCloseButton`.
+
+  This screen has no back pill precisely because the drawing gives it this
+  disc instead (see the moduledoc), so the one control that closes it is worth
+  spelling the way the library spells closing. The close button is a thin
+  preset over `Kati.Components.MishkaActionIcon` — ✕ and `shape: :circle` baked
+  in — and children override the ✕, so the glyph stays the Material Symbol
+  `close` at the drawn 21 rather than the component's own character.
+
+  It could not be adopted before this round for one missing prop: `shadow`.
+  The drawing's disc is `Kati.Theme.shadow_button()` floating over paper, and
+  `variant: :filled` alone would have flattened it into a #FBFAF8 patch.
+
+  **The pixels are the same node**: `<Box width={44} height={44}
+  align={:center} corner_radius={22.0} background shadow on_tap>` is what this
+  markup said by hand, `size / 2` being the 22 it wrote out. The port's `<Row>`
+  around the children hugs the single glyph and is centred by the same Box, so
+  nothing measures differently.
+  """
+  def close_disc do
+    MishkaCloseButton.close_button(
+      [
+        size: 44,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), :close}
+      ],
+      [Kati.UI.symbol("close", size: 21)]
+    )
   end
 
   # `0 0 0 2px #1A1917` is a ring, not a shadow. A shadow at zero blur and zero
@@ -200,9 +224,7 @@ defmodule Kati.Screens.QuickAdd do
         padding={18}
       >
         <Row fill_width={true} align="center">
-          <Box width={34} height={34} corner_radius={11} background={Kati.Theme.ink()} align="center">
-            {Kati.UI.symbol("event", size: 18, color: 0xFFFBFAF8)}
-          </Box>
+          {Kati.Screens.QuickAdd.kind_tile()}
           <Spacer size={10} />
           <Column weight={1.0}>
             <Text text={draft.title} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} max_lines={1} />
@@ -224,16 +246,52 @@ defmodule Kati.Screens.QuickAdd do
     """
   end
 
+  @doc """
+  The ink tile that says what Kati filed the sentence as —
+  `Kati.Components.MishkaThemeIcon`.
+
+  "A themed container around exactly one glyph" is that component's own
+  description of itself and it is exactly this: 34pt, radius 11, ink fill, one
+  Material Symbol. It is not tappable and carries no shadow, so unlike the
+  header disc it needed nothing new to be adopted — `size` and `radius` have
+  always taken a raw dp number, and `variant: :filled` paints `color` as the
+  fill.
+
+  **The node is identical, prop for prop.** The port builds a bare
+  `%{type: :box}` with `%{width: 34, height: 34, align: :center,
+  corner_radius: 11, background: <ink>}` and the children it was handed — no
+  wrapper Row, because only an `id` (for test tags) makes it wrap, and this
+  has none. That is the same five props and the same single child the markup
+  wrote out here.
+
+  `icon_color` is not passed: the glyph is a child, and children are placed as
+  given, so `Kati.UI.symbol/2` still supplies the drawn 18 in the drawn
+  #FBFAF8. The component's own luminance guess never runs.
+  """
+  def kind_tile do
+    MishkaThemeIcon.theme_icon(
+      %{size: 34, radius: 11, variant: :filled, color: Kati.Theme.ink()},
+      [UI.symbol("event", size: 18, color: 0xFFFBFAF8)]
+    )
+  end
+
   @doc "The drawing's 7pt flex gap, used between chips and between chip rows."
   def gap, do: ~MOB"<Spacer size={7} />"
 
   # The cream card's `1px solid rgba(176,154,114,.3)` divider, drawn by
-  # `MishkaSeparator` rather than by hand. Its unlabelled horizontal rule is a
-  # `<Divider>`, which this bridge renders as Compose's `HorizontalDivider` —
-  # `Box(fillMaxWidth().height(thickness.dp).background(color))`, the same node
-  # that was written inline here, so the line keeps its 1dp and its 30% bronze.
+  # `MishkaSeparator` — with `render: :box`, not the component's `:divider`
+  # default.
+  #
+  # `:divider` is not the Box that was written inline here. The comment that
+  # stood in this spot said Compose's `HorizontalDivider` is
+  # `Box(fillMaxWidth().height(t).background(color))`; Material3 actually draws
+  # it as `Canvas { drawLine(strokeWidth = t.toPx()) }`, an antialiased stroke.
+  # At 2.6875x a 1dp rule gets a 3px canvas and a 2.6875px stroke, so its last
+  # pixel row lands at ~69% coverage and the hairline came out softer than the
+  # drawing's on one row. `render: :box` is the filled rect — the original node
+  # — so the line is back to a solid 1dp of 30% bronze.
   @doc false
-  def rule, do: MishkaSeparator.separator(color: 0x4DB09A72, thickness: 1)
+  def rule, do: MishkaSeparator.separator(color: 0x4DB09A72, thickness: 1, render: :box)
 
   @doc false
   def fact_row(chips) do
@@ -346,17 +404,39 @@ defmodule Kati.Screens.QuickAdd do
         <Text text={draft.cta} text_size={14} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
       </Box>
       <Spacer size={10} />
-      <Box
-        width={52}
-        height={52}
-        corner_radius={26}
-        background={Kati.Theme.card(:light)}
-        shadow={Kati.Theme.shadow_card_soft()}
-        align="center"
-      >
-        {Kati.UI.symbol("mic", size: 21)}
-      </Box>
+      {Kati.Screens.QuickAdd.mic()}
     </Row>
     """
+  end
+
+  @doc """
+  The 52pt microphone beside the commit button —
+  `Kati.Components.MishkaActionIcon`.
+
+  The same round icon target as `close_disc/0` and adopted for the same new
+  prop: this one wears `Kati.Theme.shadow_card_soft()` rather than the button
+  shadow, and without `shadow` the port could only have drawn it flat.
+
+  It is wired to nothing, and that is the drawing's position rather than an
+  omission — dictation is not built, and the export gives the microphone no
+  destination. `on_tap` is simply not passed, so the port leaves the key off
+  the node entirely; the disc renders exactly as the hand-rolled `Box` did,
+  which also carried no handler.
+
+  **The pixels are the same node**: `<Box width={52} height={52}
+  align={:center} corner_radius={26.0} background shadow>` plus the port's
+  `<Row>` around the glyph, which hugs it and is centred by that Box.
+  """
+  def mic do
+    MishkaActionIcon.action_icon(
+      [
+        size: 52,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_card_soft()
+      ],
+      [UI.symbol("mic", size: 21)]
+    )
   end
 end

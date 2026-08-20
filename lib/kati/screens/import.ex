@@ -29,6 +29,7 @@ defmodule Kati.Screens.Import do
 
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Components.MishkaToggle
   alias Kati.Import.Sample
   alias Kati.UI
 
@@ -360,14 +361,99 @@ defmodule Kati.Screens.Import do
   @doc false
   def choice_gap, do: ~MOB"<Spacer size={8} />"
 
-  @doc false
+  @doc """
+  One answer to the conflict: a 32pt pill, ink when it is the chosen one.
+
+  The sample is a selection, not a recommendation — `[{"Keep mine", true},
+  {"Take file", false}, {"Keep both", false}]`, one true — so this is the same
+  control screen 36 draws for its ambiguous match, and it is built the same way:
+  `Kati.Components.MishkaToggle`, whose moduledoc's own showcase builds a
+  segmented bar out of nothing but these props.
+
+  ## Why not the chip, and why not the segmented control
+
+  `Kati.Components.MishkaChip` is the closer name for a radio set and cannot be
+  used: its root `Box` hardcodes `fill_width={false}` with no prop to override,
+  so a chip always hugs its label. These three split the card's width by weight.
+
+  `Kati.Components.MishkaSegmentedControl` is the wrong drawing. It renders one
+  continuous track with the segments inside it; the design has no track, just
+  three pills with 8pt of cream showing between them. The control has
+  `track_padding` for the inset but nothing for a gap *between* segments, so its
+  segments butt together and no prop opens that 8pt.
+
+  ## The numbers
+
+  Padding is applied before height and the toggle's `padding` default is
+  `:space_sm`, so `height: 32` alone would measure 32 plus two paddings.
+  `padding: 0` pins the outer 32. `border_width: 0` removes the component's
+  default hairline — the bridge draws a border only when `borderColor != null &&
+  borderWidth > 0f`, so the `border_color: :border` it still writes paints
+  nothing.
+
+  ## Why the pixels do not move
+
+  The toggle exposes no `weight` — `@box_overrides` is `width height shadow` and
+  the four paddings — so the weight moves out to a wrapper `Box`, which is the
+  arrangement screen 36's `choice/2` already uses:
+
+      <Box weight={1.0}>
+        <Box fill_width={true} height={32} corner_radius={16}
+             background={bg} align={:center} padding={0}
+             border_color={:border} border_width={0}>
+          <Text text={label} text_size={11.5} font_weight={:semibold}
+                text_color={fg} max_lines={1} />
+        </Box>
+      </Box>
+
+  against the single `<Box weight={1.0} height={32} corner_radius={16}
+  background={bg} align="center">` it replaces.
+
+  That wrapper is layout-neutral in both axes. Horizontally it takes the same
+  weighted slot the old box took and then fills it — fence K-17's
+  `hugs = boolProp(props, "fill_width") == false` is false for an absent prop,
+  leaving `m.fillMaxWidth()` — and the toggle inside fills it in turn, because
+  the same test is false for `fill_width={true}`. Vertically it declares no
+  height, so it wraps its only child at 32, and the parent `Row`'s
+  `align="center"` centres a 32pt box exactly where it centred the old one. Its
+  `contentAlignment` is the default top-start, which cannot move a single child
+  that already fills the width and sets the height.
+
+  The rest is the same five props with the same five values, plus the three
+  no-ops above. `nodeModifier` is one function for every node type, so the
+  background, the radius and the height are applied by the same chain, and
+  `align: :center` reaches the bridge as the same string `align="center"` did —
+  `align` is in none of the renderer's token whitelists, so an unrecognised atom
+  passes through and `:json.encode/1` writes an atom as its own name.
+
+  The colour props map one for one onto the two branches: `color`/`text_color`
+  are the pressed pair (`#1A1917` / `#FBFAF8`), `background`/`label_color` the
+  idle pair (60% white on cream / `#8A7B60`), and `pressed` picks between them
+  exactly as the `if` did.
+  """
   def choice({label, primary?}) do
-    bg = if primary?, do: Kati.Theme.ink(), else: 0x99FFFFFF
-    fg = if primary?, do: 0xFFFBFAF8, else: 0xFF8A7B60
+    button =
+      MishkaToggle.toggle(
+        label: label,
+        pressed: primary?,
+        color: Kati.Theme.ink(),
+        text_color: 0xFFFBFAF8,
+        background: 0x99FFFFFF,
+        label_color: 0xFF8A7B60,
+        corner_radius: 16,
+        height: 32,
+        padding: 0,
+        border_width: 0,
+        fill_width: true,
+        align: :center,
+        text_size: 11.5,
+        font_weight: :semibold,
+        max_lines: 1
+      )
 
     ~MOB"""
-    <Box weight={1.0} height={32} corner_radius={16} background={bg} align="center">
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={fg} max_lines={1} />
+    <Box weight={1.0}>
+      {button}
     </Box>
     """
   end
@@ -385,15 +471,47 @@ defmodule Kati.Screens.Import do
     end
   end
 
-  # `Kati.Components.MishkaSeparator` is what a 1px rule between mapping rows
-  # is, so the rule is its. Its plain variant is a `<Divider>`, and the
-  # bridge's `MobDivider` renders Compose's `HorizontalDivider(thickness,
-  # color)` — defined as `Box(modifier.fillMaxWidth().height(thickness)
-  # .background(color))`, the same three modifiers this wrote by hand. The
-  # drawing's 7% ink survives because the colour is an ARGB int: `color` is in
-  # the renderer's `@color_props` whitelist and an integer reaches `colorProp`
-  # untouched.
-  @doc false
+  @doc """
+  The `rgba(26,25,23,.07)` rule between two mapping rows.
+
+  `Kati.Components.MishkaSeparator` is what a 1px rule between rows is, so the
+  rule is its — and `render: :box` is not optional.
+
+  ## Why `render: :box`
+
+  The component's default is `:divider`, which the bridge maps to Material3's
+  `HorizontalDivider`. That is not `Box(fillMaxWidth().height(t).background(c))`
+  as this file previously claimed: it is an antialiased `drawLine`. At this
+  device's 2.6875x a 1dp rule is handed a 3px canvas and a 2.6875px stroke
+  centred in it, so the bottom pixel row lands at ~69% coverage — one full-width
+  row 4-5/255 lighter than the two above it. The drawing specifies a 1px
+  hairline at a flat 7% ink, and no combination of `color` and `thickness`
+  reaches it, because the softness is in the primitive.
+
+  `render: :box` swaps the primitive for a filled rect, where every row carries
+  the full colour. The node becomes
+
+      <Box fill_width={true} height={1} background={0x121A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  — Compose's own `Box(fillMaxWidth().height(1.dp).background(colour))`, which
+  is the modifier chain this file wrote by hand before it adopted the component
+  at all. The `Spacer` is an iOS workaround (`MobBox` drops a Box's `height`
+  unless the Box also has a `width`); on Android the Box's `height` pins it and
+  `MobSpacer` is a bare `Spacer(modifier.size(1.dp))` with no background, so it
+  paints nothing.
+
+  The drawing's 7% ink survives either way because the colour is an ARGB int:
+  `color` is in the renderer's `@color_props` whitelist and an integer reaches
+  `colorProp` untouched.
+
+  `false` still answers a zero-sized `Spacer`: the last mapping row has no rule,
+  and a component whose whole job is to draw a line cannot be asked to draw
+  none.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 end

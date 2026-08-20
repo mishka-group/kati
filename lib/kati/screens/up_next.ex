@@ -28,6 +28,7 @@ defmodule Kati.Screens.UpNext do
   use Kati.Screens.Pushed, back: "Library"
 
   alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaPill
   alias Kati.Screens.UpNext.Sample
   alias Kati.UI
 
@@ -62,20 +63,41 @@ defmodule Kati.Screens.UpNext do
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("tune", size: 21)}
-        </Box>
+        {Kati.Screens.UpNext.tune_disc()}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The `tune` disc — Mishka's Action Icon, now that a disc can float.
+
+  This is the same component the two play discs below already use; what kept
+  it out of this one was the shadow. `action_icon/2` painted a fill and
+  stopped, and a filled circle with no lift reads as a patch of card colour on
+  paper rather than as a control above it — so the one disc on this screen the
+  design floats was the one that had to be drawn by hand. `shadow` takes the
+  design's `Kati.Theme.shadow_button()` string untouched.
+
+  Nothing moves: `shape: :circle` is an exact `size / 2`, so 44 rounds at 22
+  as the literal did, the fill and the shadow pass through, and the glyph is
+  the same `Kati.UI.symbol/2` Text inside a Row that hugs it and is centred in
+  a Box of the declared size — where a hugging Row's only child lands exactly
+  where a bare centred Text did.
+  """
+  @spec tune_disc() :: map()
+  def tune_disc do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button()
+      ],
+      [Kati.UI.symbol("tune", size: 21)]
+    )
   end
 
   @doc false
@@ -202,10 +224,8 @@ defmodule Kati.Screens.UpNext do
   The filled play disc — Mishka's Action Icon, which is what a round icon
   button is.
 
-  Both of this screen's discs are shadowless, which is what makes them
-  expressible: `action_icon/2` builds the box from `size`, `shape` and
-  `background` and has no shadow prop, so the lifted 44pt `tune` disc above
-  still has to be drawn by hand.
+  Both play discs are shadowless; the lifted `tune` disc above is the same
+  component with a `shadow`, which it did not have when these two adopted it.
 
   Nothing moves. `shape: :circle` is an exact `size / 2` radius — 22 at 44,
   17 at 34, the drawing's own numbers — the fill is passed straight through,
@@ -270,12 +290,43 @@ defmodule Kati.Screens.UpNext do
           <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        <Row height={30} corner_radius={15} background={0xFFE4E0D9} padding_left={12} padding_right={12} align="center">
-          <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
-        </Row>
+        {Kati.Screens.UpNext.drop_pill(row.action)}
       </Row>
     </Column>
     """
+  end
+
+  @doc """
+  The `Drop` affordance on a cold row — Mishka's Pill.
+
+  A pill, not a chip: there is no selected state here, only the one offer the
+  design makes on a thread that has gone quiet. A label on a tinted lozenge is
+  what a pill is.
+
+  The pixels are the Row's. `padding: 0` with `padding_left`/`padding_right`
+  at 12 hands the bridge the same 12/0 edges, and padding is applied before
+  size, so `height: 30` still measures 30. The pill's root is a `Box` that
+  passes `fill_width={false}` — so it hugs (K-17) exactly as the Row did —
+  wrapping a `Row` that holds the label beside an empty `Row` standing in for
+  the absent ✕; both hug, the empty one is zero-wide, and `align: :center`
+  centres the pair where `align="center"` centred the Text. `max_lines: 1` is
+  the pill's own default and is what this Text already carried.
+  """
+  @spec drop_pill(String.t()) :: map()
+  def drop_pill(label) do
+    MishkaPill.pill(
+      label: label,
+      background: 0xFFE4E0D9,
+      color: 0xFF5C574F,
+      corner_radius: 15,
+      height: 30,
+      padding: 0,
+      padding_left: 12,
+      padding_right: 12,
+      align: :center,
+      text_size: 11.5,
+      font_weight: :semibold
+    )
   end
 
   # The drawing tones the cold poster back with `opacity:.6`. There is no

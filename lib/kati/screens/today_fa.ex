@@ -43,8 +43,10 @@ defmodule Kati.Screens.TodayFa do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Design.Images
   alias Kati.Fa.SampleToday
+  alias Kati.Screens.Fa
   alias Kati.Theme
 
   def mount(_params, _session, socket) do
@@ -102,16 +104,7 @@ defmodule Kati.Screens.TodayFa do
           />
         </Row>
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Theme.card(:light)}
-          shadow={Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("calendar_view_week", size: 21)}
-        </Box>
+        {Fa.disc("calendar_view_week")}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -399,9 +392,7 @@ defmodule Kati.Screens.TodayFa do
           <Text text={meal.sub} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        <Box width={32} height={32} corner_radius={16} border_color={0x291A1917} border_width={1.5} align="center">
-          {Kati.UI.symbol("check", size: 19, color: 0x381A1917)}
-        </Box>
+        {Kati.Screens.TodayFa.ring(:next)}
       </Row>
       <Spacer size={13} />
       <Row fill_width={true} align="center" padding_left={15}>
@@ -438,9 +429,7 @@ defmodule Kati.Screens.TodayFa do
         <Text text={meal.sub} font_family="fa" text_size={11} text_color={0xFFC4BDB3} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      <Box width={27} height={27} corner_radius={16} border_color={0x291A1917} border_width={1.5} align="center">
-        {Kati.UI.symbol("close", size: 16, color: 0xFFC4BDB3)}
-      </Box>
+      {Kati.Screens.TodayFa.ring(:skipped)}
     </Row>
     """
   end
@@ -467,19 +456,65 @@ defmodule Kati.Screens.TodayFa do
         <Text text={meal.sub} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      <Box
-        width={27}
-        height={27}
-        corner_radius={16}
-        background={Theme.green()}
-        border_color={Theme.green()}
-        border_width={1.5}
-        align="center"
-      >
-        {Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)}
-      </Box>
+      {Kati.Screens.TodayFa.ring(:eaten)}
     </Row>
     """
+  end
+
+  @doc """
+  A meal's state ring, as `Kati.Components.MishkaThemeIcon`.
+
+  The three rings differ in size, fill and glyph and agree on everything else,
+  which is what makes them one function rather than three lumps of markup — and
+  the component is what let them become one, because `radius` takes a number.
+  A two-value `shape` enum could offer `:radius_md` or `size / 2` and neither
+  is 16 on a 27pt ring; the drawing asks for 16 on both of the small ones and
+  16 on the 32, so all three are written down rather than derived.
+
+  Node for node these are the boxes they replaced. Without an `id` the
+  component emits no markers, so `theme_icon/2` returns
+  `%{type: :box, props: %{width: …, height: …, align: :center, corner_radius:
+  …, border_color: …, border_width: 1.5}, children: [glyph]}` — the sigil's map
+  with `align` as an atom instead of a string, which `:json.encode/1` renders
+  as the same JSON string `boxAlignProp` matches on (`MobBridge.kt:4298`).
+
+  The two hollow rings take `variant: :subtle`, whose skin is `background:
+  nil`, and `put_some/3` drops a nil rather than writing it — so those nodes
+  carry no `background` key, exactly as the markup carried none. Only `:eaten`
+  is `:filled`, and its ring colour equals its fill, which is the design's way
+  of saying the ring has closed.
+
+  Each glyph goes in as a **child**: `Kati.UI.symbol/2` builds a `Text` in the
+  `symbols` face, and the component's `icon` shorthand would build a plain one
+  in Plus Jakarta Sans and retint it from the variant — which would take the
+  skipped ring's `#C4BDB3` and the next ring's 22%-alpha check with it.
+  """
+  def ring(:next) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :subtle, size: 32, radius: 16, border_color: 0x291A1917, border_width: 1.5},
+      [Kati.UI.symbol("check", size: 19, color: 0x381A1917)]
+    )
+  end
+
+  def ring(:skipped) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :subtle, size: 27, radius: 16, border_color: 0x291A1917, border_width: 1.5},
+      [Kati.UI.symbol("close", size: 16, color: 0xFFC4BDB3)]
+    )
+  end
+
+  def ring(:eaten) do
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: Theme.green(),
+        size: 27,
+        radius: 16,
+        border_color: Theme.green(),
+        border_width: 1.5
+      },
+      [Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)]
+    )
   end
 
   # The design's own photograph, not a tinted rectangle. A missing file leaves

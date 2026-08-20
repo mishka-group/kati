@@ -49,6 +49,8 @@ defmodule Kati.Screens.Activity do
   use Kati.Screens.Pushed, back: "Stats"
 
   alias Kati.Activity.Sample
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
   alias Kati.UI
 
@@ -132,23 +134,36 @@ defmodule Kati.Screens.Activity do
     """
   end
 
-  @doc false
-  def disc(icon, tag) do
-    tap = {self(), tag}
+  @doc """
+  A 44pt round tap target holding one glyph — `Kati.Components.MishkaActionIcon`.
 
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={Kati.Theme.card(:light)}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+  Hand-rolled until the port grew a `shadow`, and that prop is the whole reason
+  it can move now: a floating disc is *defined* by the lift under it, and
+  `variant: :filled` paints a fill and stops. Without the shadow the port drew
+  a flat #FBFAF8 patch on #EFECE7 paper — a 4%-different rectangle, which is
+  worse than not adopting.
+
+  **The pixels are the same node.** The port builds
+  `<Box width={44} height={44} align={:center} corner_radius={22.0}
+  background shadow on_tap>` — the same seven props this wrote by hand, with
+  `shape: :circle` resolving to an exact `size / 2` where the markup said 22,
+  and `align={:center}` where it said `align="center"` (both serialise to the
+  string the bridge matches on). The one structural difference is the `<Row>`
+  the port wraps children in; a `Row` with no props hugs its single child and
+  centres it vertically, so the glyph measures and lands exactly where it did.
+  """
+  def disc(icon, tag) do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), tag}
+      ],
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   # Four chips at 7pt gaps measure ~285 inside the 360 the gutters leave, so
@@ -173,27 +188,55 @@ defmodule Kati.Screens.Activity do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={7} />"
 
-  @doc false
+  @doc """
+  One filter chip — `Kati.Components.MishkaChip`.
+
+  A chip that carries a `checked` state and toggles is the whole of what that
+  component is, and this is the first round where it can be *this* chip: the
+  port used to hardcode its size, its radius, its type and both unchecked
+  colours, so a 32pt pill with a 12.5 semibold label on Kati's own two greys
+  could not be expressed. `height`, `padding_x`/`padding_y`, `corner_radius`,
+  `text_size`, `font_weight`, `max_lines`, `unchecked_color` and
+  `unchecked_text_color` are all props now, and this passes every one.
+
+  **Why the pixels do not move.** The chip was a `Row`; the port builds a
+  `Box`. Both hug — a `Row` by nature, the `Box` because the port sends
+  `fill_width={false}` and the bridge finally reads it (fence K-17) — and both
+  run the same modifier chain: background on the rounded shape, then
+  `padding(0, 14, 0, 14)`, then `height(32)`. Padding is applied before height
+  on either node, so the chip measures 32 tall and `14 + label + 14` wide
+  either way.
+
+  Two prop-level differences, both inert:
+
+    * `padding_y: 0` is written where the `Row` wrote nothing. The bridge
+      resolves a missing edge to the uniform padding and a missing uniform to
+      zero, so an absent top edge and an explicit `0` are the same number.
+    * `align` moves from the `Row` to the `Box`. On a `Row` this bridge's
+      default vertical alignment is already `CenterVertically`, so `align`
+      was a no-op there; on a hugging `Box` it centres the label in the 32,
+      which is the same position — `(32 - label height) / 2` from the top in
+      both.
+  """
   def filter_chip(label, on?) do
     # The tag carries the label, so one handler serves every chip and a fifth
     # verb is a change to `Kati.Activity.Sample.filters/0` alone.
-    tap = {self(), String.to_atom("filter_" <> label)}
-    bg = if on?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
-
-    ~MOB"""
-    <Row
-      height={32}
-      corner_radius={16}
-      background={bg}
-      padding_left={14}
-      padding_right={14}
-      align="center"
-      on_tap={tap}
-    >
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-    </Row>
-    """
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      on_toggle: {self(), String.to_atom("filter_" <> label)},
+      color: Kati.Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Kati.Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F,
+      height: 32,
+      padding_x: 14,
+      padding_y: 0,
+      corner_radius: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1
+    )
   end
 
   @doc """
@@ -358,16 +401,28 @@ defmodule Kati.Screens.Activity do
 
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  # `MishkaSeparator` rather than a hand-rolled Box. A horizontal rule with no
-  # label is the whole of what that component draws, and it draws it as
-  # `<Divider>` — which on this bridge is Compose's `HorizontalDivider`, i.e.
-  # `Box(fillMaxWidth().height(thickness.dp).background(color))`. That is
-  # literally the Box that used to be written here, so the rule is the same
-  # 1dp band of the same 7%-ink at the same width.
+  # `MishkaSeparator` rather than a hand-rolled Box, and `render: :box` rather
+  # than the component's `:divider` default.
+  #
+  # `:divider` is NOT the Box this used to be. The comment that stood here said
+  # it was — that Compose's `HorizontalDivider` is
+  # `Box(fillMaxWidth().height(t).background(color))` — and that is wrong:
+  # Material3 draws it as `Canvas { drawLine(strokeWidth = t.toPx()) }`, an
+  # ANTIALIASED stroke. At this device's 2.6875x a 1dp rule gets a 3px canvas
+  # and a 2.6875px stroke centred in it, so the bottom pixel row lands at ~69%
+  # coverage — a full-width row 4-5/255 lighter than the two above it. The
+  # adoption softened the hairline by one pixel row and nothing said so.
+  #
+  # `render: :box` is the component's filled-rect primitive: `<Box fill_width
+  # height={thickness} background={color}>`, which is the node that was written
+  # here by hand before the adoption, so the rule goes back to three full-colour
+  # rows. (Its `<Spacer size={1} />` child is an iOS height workaround — on
+  # Android the Box's own `height` pins it and the background covers it.)
   #
   # `color` is passed rather than left to the component's `:border` default:
   # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   # One clause for all four chips: the tag carries the label. The two discs
   # fall through deliberately — search and the filter sheet are screens this

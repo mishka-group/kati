@@ -17,13 +17,23 @@ defmodule Kati.Screens.SettingsFa do
   copy is Persian, so this screen is right-to-left whatever the app's locale
   says. Only `MainActivity` acts on the prop, and only on the root node.
 
-  ## The switch is drawn rather than delegated
+  ## The switch is drawn rather than delegated, and no prop can change that
 
   `Kati.Components.MishkaSwitch` wraps Compose's own `Switch`, which brings
   platform metrics and platform animation with it. The design specifies a
   46x28 track with a 22pt thumb on a 3pt inset, in two exact colours — screen
   41 reached the same conclusion. Fidelity wins over reuse for the one control
   the drawing measures.
+
+  This one is not waiting on an upstream prop. `MishkaToggle`'s own moduledoc
+  states the difference between the two components in exactly these terms:
+  *"`MishkaSwitch` bottoms out in Mob's `<Toggle>`, which is Compose's Material
+  `Switch`: its track (52x32), its handles (24 on, 16 off) and its 2dp outline
+  are constants inside material3… that one needs a different native node, not
+  a wider prop list."* Nor is `MishkaToggle` the substitute — it is a
+  square-cornered pressed button, and the three lookalikes are kept visually
+  distinct on purpose so a user can tell a setting from a filter from a
+  formatting button. A sliding track is what a settings row means.
 
   The numbers say it plainly. `SwitchTokens` in Material 3 1.2.0 — the version
   `compose-bom:2024.02.00` resolves — fixes `TrackWidth` at **52**,
@@ -51,8 +61,11 @@ defmodule Kati.Screens.SettingsFa do
   import Mob.Sigil
 
   alias Kati.Components.MishkaAvatar
+  alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Design.Images
   alias Kati.Fa.SampleSettings
+  alias Kati.Screens.Fa
   alias Kati.Theme
 
   def mount(_params, _session, socket) do
@@ -124,16 +137,7 @@ defmodule Kati.Screens.SettingsFa do
           />
         </Row>
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Theme.card(:light)}
-          shadow={Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("help", size: 21)}
-        </Box>
+        {Fa.disc("help")}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -360,6 +364,33 @@ defmodule Kati.Screens.SettingsFa do
   target and the row already reads as one object. A chevron row stays inert —
   its destination is not built yet, and a row that lights up and goes nowhere
   is a worse promise than a row that does nothing.
+
+  ## Not `Kati.Components.MishkaNavLink`, which is the component for this shape
+
+  A leading glyph, a title, a second line under it, a trailing chevron and a
+  tap is precisely what that component draws, and its `icon` and `trailing`
+  slots take "a glyph string, node, or list" — so the 30pt tile from
+  `leading/1` and the mirrored `chevron_left` would both go straight in as
+  nodes, the same door `leading/1` itself walks through.
+
+  Two things stop it, and the first is decisive:
+
+    * **`label` and `description` are strings the component turns into `Text`
+      itself.** Every title and sub-line here is Persian, and no component in
+      the vendored set takes `font_family`, so both lines would draw as blank
+      boxes in Plus Jakarta Sans. `icon` and `trailing` being slots while the
+      words are props is the exact asymmetry that makes this component reach
+      99% of the way and stop: give `label` the treatment `icon` already has
+      and this row is `MishkaNavLink`.
+    * **No type or metric props at all.** Its prop table carries `indent` and
+      nothing else dimensional — no `text_size`, no `font_weight`, no padding,
+      no colours. The drawing pins the title at 13.5/semibold on `#1A1917`, the
+      sub at 11.5 on `#8A8479`, and 13 of padding above and below; the
+      component's ink is `:primary` when `active` and the theme's otherwise.
+      Even with a label slot, the 13/13 padding would have to arrive as a prop.
+
+  The hairline under the row is `hairline/1`, which **is** the component — see
+  its own doc.
   """
   def row(row, rule?, si, ri) do
     tap = Kati.Screens.SettingsFa.tap_for(row, si, ri)
@@ -394,29 +425,62 @@ defmodule Kati.Screens.SettingsFa do
 
   def tap_for(_row, _si, _ri), do: nil
 
-  # The language row's tile carries two letters instead of a glyph — the design
-  # names the language in the language, which no icon can do.
-  #
-  # Not `Kati.Components.MishkaActionIcon` for the glyph tile below either,
-  # even though a small icon disc is what it draws: its radius comes from a
-  # three-value `shape` (`:rounded` -> the `:radius_md` token, `:circle` ->
-  # `size / 2`) with no way to name one, and this tile's is 9. The badge tile
-  # is further out of reach — its text is Persian.
-  @doc false
+  @doc """
+  A row's 30pt leading tile, as `Kati.Components.MishkaThemeIcon`.
+
+  The language row's tile carries two letters instead of a glyph — the design
+  names the language in the language, which no icon can do — and both clauses
+  are otherwise the same tile.
+
+  This was `MishkaActionIcon` territory and could not be reached: that
+  component's radius comes from a two-value `shape` (`:rounded` -> the
+  `:radius_md` token, `:circle` -> `size / 2`), and this tile's is 9.
+  `MishkaThemeIcon.radius/1` takes **a number** — `n when is_number(n) -> n` —
+  so 9 is simply sayable, and that is the whole of what unblocked it.
+
+  Node for node it is the map the sigil built. With no `id` the component adds
+  no markers, so `theme_icon/2` returns
+
+      %{type: :box,
+        props: %{width: 30, height: 30, align: :center,
+                 corner_radius: 9, background: 0xFFEFECE7},
+        children: [glyph]}
+
+  and the markup's map differs only in `align` being the string `"center"`
+  rather than the atom — which `:json.encode/1` renders as that same string,
+  and `boxAlignProp` reads with `props["align"] as? String`
+  (`MobBridge.kt:4298`).
+
+  ## This is the one component on the Persian screens that draws Persian
+
+  The فا badge is `font_family="fa"` at 12/bold in card white, and it survives
+  because it goes in as a **child**. Nothing in `Kati.Components` accepts
+  `font_family`, so any component that builds its own label is out of reach
+  here — but this one's `icon` is a shorthand, not the only door: `children`
+  wins whenever it is non-empty, and a child is a node the caller wrote. The
+  badge `Text` below is the same `Text` this function drew before, moved one
+  level out.
+
+  That is the pattern `MishkaChip`, `MishkaSegmentedControl` and
+  `MishkaNavLink` are missing, and it is why the chips on 57, the segments on
+  60 and the rows below are still hand-rolled.
+  """
   def leading(%{badge: badge}) do
-    ~MOB"""
-    <Box width={30} height={30} corner_radius={9} background={Kati.Theme.ink()} align="center">
-      <Text text={badge} font_family="fa" text_size={12} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
-    </Box>
+    label = ~MOB"""
+    <Text text={badge} font_family="fa" text_size={12} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
     """
+
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Kati.Theme.ink(), size: 30, radius: 9},
+      [label]
+    )
   end
 
   def leading(row) do
-    ~MOB"""
-    <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-      {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
-    </Box>
-    """
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
+      [Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)]
+    )
   end
 
   @doc false
@@ -447,14 +511,36 @@ defmodule Kati.Screens.SettingsFa do
   # A segmented control that reached here unsettled still draws: the first
   # option is raised, which is what `settle/1` would have written anyway.
   #
-  # Not `Kati.Components.MishkaSegmentedControl`, though this is the one
-  # segmented control in the Persian set whose segments *are* content-sized
-  # the way the component wants them. Three things still stop it: the labels
-  # are Persian and the component's segment `Text` takes no `font_family`, so
-  # روشن would draw blank; the segments abut where the drawing puts 3 between
-  # them, and there is no gap prop; and a segment's box is sized by one
-  # uniform `padding` where this one is 26 tall with 10 of horizontal padding
-  # and a 10.5pt semibold label.
+  # ## Still not `Kati.Components.MishkaSegmentedControl` — one blocker fewer,
+  # two left
+  #
+  # This is the one segmented control in the Persian set whose segments *are*
+  # content-sized the way the component wants them, and the **sizing blocker is
+  # gone**: `segment_height: 26` with `padding: 0` and `padding_left` /
+  # `padding_right: 10` and `text_size: 10.5` and `font_weight: :semibold` all
+  # exist now, and padding is resolved per edge against the uniform rather than
+  # added to it (`MobBridge.kt:3978`, `fun pad`), so `padding: 0` really does
+  # pin the 26.
+  #
+  # Two remain:
+  #
+  #   * **The labels are Persian.** روشن / تیره / خودکار, and the component
+  #     builds each segment's `Text` from the `label` prop with no
+  #     `font_family` — deliberately, its moduledoc says, "because the control
+  #     paints it". `kati_sans_400.ttf` has zero code points in U+0600-U+06FF,
+  #     so all three draw as blank boxes.
+  #   * **The segments abut.** The track is `<Row>{segments}</Row>` with
+  #     nothing between them; this drawing puts 3, screens 57 and 60 put 4.
+  #     `track_padding` is the trough's own inset, not a gap.
+  #
+  # `MishkaToggle` would draw one of these segments — it takes children that
+  # replace `label`, plus `height`, `corner_radius`, per-edge padding and
+  # `border_width: 0` — but a segmented control is not three toggles that
+  # happen to sit together: the invariant this trough has to keep is that
+  # exactly one segment is lit and tapping the lit one is a no-op, which is
+  # `MishkaSegmentedControl.select/2`'s whole reason to exist. Three
+  # independent pressed-buttons can be all-off or all-on, and nothing in the
+  # markup would say they cannot.
   def trailing({:segmented, [first | _] = options}), do: trailing({:segmented, options, first})
 
   def trailing({:segmented, options, selected}) do
@@ -550,28 +636,46 @@ defmodule Kati.Screens.SettingsFa do
   def thumb_trail(true), do: ~MOB"<Spacer size={0} />"
   def thumb_trail(false), do: ~MOB"<Spacer weight={1.0} />"
 
-  # ## Not `Kati.Components.MishkaSeparator`, and the reason is one row of
-  # pixels
-  #
-  # `separator(color: 0x121A1917, thickness: 1)` is this line, and the API fits
-  # exactly. What does not fit is what it draws: the port renders `<Divider>`,
-  # `MobBridge.kt:2962` hands that to Material 3's `HorizontalDivider`, and in
-  # 1.2.0 that composable is not a filled box —
-  #
-  #     Canvas(modifier.fillMaxWidth().height(thickness)) {
-  #       drawLine(color, strokeWidth = thickness.toPx(), …)
-  #     }
-  #
-  # `height(1.dp)` rounds to whole device pixels while `thickness.toPx()` does
-  # not, and the capture device runs at 2.6875x. The node is 3px tall and the
-  # antialiased stroke covers 2.6875 of them, so the bottom row lands at 69%
-  # coverage where `Box` + `background` fills all three. It is invisible at any
-  # density where 1dp is a whole number of pixels, which is why a unit test
-  # would never catch it — `Kati.Screens.Subscriptions.hairline/1` sets the
-  # same case out at length.
-  @doc false
+  @doc """
+  The 1pt rule between rows, as `Kati.Components.MishkaSeparator` — and only
+  with `render: :box`.
+
+  `separator(color: 0x121A1917, thickness: 1)` always fitted this line's API.
+  What did not fit was what it drew, and the new `render` prop is exactly that
+  fix. The default is still `:divider`, which renders `<Divider>`;
+  `MobBridge.kt:2962` hands that to Material 3 1.2.0's `HorizontalDivider`, and
+  that composable is not a filled box —
+
+      Canvas(modifier.fillMaxWidth().height(thickness)) {
+        drawLine(color, strokeWidth = thickness.toPx(), …)
+      }
+
+  `height(1.dp)` rounds to whole device pixels while `thickness.toPx()` does
+  not, and the capture device runs at 2.6875x. The node is 3px tall and the
+  antialiased stroke covers 2.6875 of them, so the bottom row lands at ~69%
+  coverage where `Box` + `background` fills all three. It is invisible at any
+  density where 1dp is a whole number of pixels, which is why a unit test would
+  never catch it — `Kati.Screens.Subscriptions.hairline/1` sets the same case
+  out at length. **A screen that adopts this component without `render: :box`
+  regresses its hairlines**, silently, on this device only.
+
+  With the prop, the built node is the markup's own `Box` plus one child:
+
+      <Box fill_width={true} height={1} background={0x121A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  The `Spacer` is the component's iOS workaround — `MobBox` drops a Box's
+  `height` unless the Box also has a `width`, so a childless full-width bar
+  measures 0pt tall there. On this bridge it costs nothing: the Box's `height`
+  pins the node at 1dp in `nodeModifier`, and a Spacer paints no background, so
+  the three pixel rows are the same three rows in the same colour.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  def hairline(true) do
+    MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+  end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

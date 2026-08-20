@@ -58,8 +58,10 @@ defmodule Kati.Screens.MealsMatrixFa do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Fa.SampleWeek
+  alias Kati.Screens.Fa
   alias Kati.Theme
 
   def mount(_params, _session, socket) do
@@ -119,16 +121,7 @@ defmodule Kati.Screens.MealsMatrixFa do
           />
         </Row>
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Theme.card(:light)}
-          shadow={Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("edit", size: 21)}
-        </Box>
+        {Fa.disc("edit")}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -162,16 +155,34 @@ defmodule Kati.Screens.MealsMatrixFa do
   # segments instead of riding inside them, which also keeps the trough's own
   # 4pt padding from being doubled at the leading edge.
   #
-  # Which is also the first reason this is not
-  # `Kati.Components.MishkaSegmentedControl`. Its segments are content-sized
-  # on purpose — its moduledoc says `weight` has no iOS mapping — and هفته /
-  # روز / خرید split the trough equally here. The hug it relies on is not even
-  # available on Android: it asks for it with `fill_width={false}`, and
-  # `MobBridge.kt:2716` decides a Box fills by asking whether `width` is set,
-  # while `fill_width` is read only for `true` (`:3985`). The labels are the
-  # harder blocker regardless — the component builds each segment's `Text` and
-  # takes no `font_family`, so all three would draw as blank boxes in Plus
-  # Jakarta Sans. `Kati.Screens.LibraryFa.segments/1` records the same case.
+  # ## Still not `Kati.Components.MishkaSegmentedControl` — re-checked, and two
+  # of the three old blockers are gone
+  #
+  # **Gone:** equal-width segments are now `segment_weight` paired with
+  # `fill_width={true}`, which puts a Compose `weight` on each segment Box, and
+  # the hug it used to rely on works anyway — fence K-17 makes
+  # `fill_width={false}` mean "hug" on this bridge (`MobBridge.kt:2734`), where
+  # before the box branch consulted `width` alone. **Gone:** the trough's 34pt
+  # height and the lit segment's `0 1 2 0 #0F1A1917` are `segment_height` and
+  # `selected_shadow`, both new this round.
+  #
+  # **Still fatal:** the label. The component's own moduledoc says why the
+  # segment cannot take one from the caller — "the label is a prop rather than
+  # the slot's children because the control paints it" — so the `Text` is the
+  # control's to build, and it builds it with `text_size`, `font_weight`,
+  # `letter_spacing`, `line_height` and `max_lines` but no `font_family`.
+  # هفته / روز / خرید would draw as blank boxes in Plus Jakarta Sans, whose
+  # cmap holds zero code points in U+0600-U+06FF. `MishkaPill` and
+  # `MishkaToggle` both let children replace `label`; an option slot that did
+  # the same would close this.
+  #
+  # **Still missing, and smaller:** there is no gap between segments. The
+  # control's track is `<Row>{segments}</Row>` with nothing interspersed, so
+  # they abut; this drawing puts 4 between them, screen 57 puts 4, screen 62
+  # puts 3. `track_padding` is the trough's inset, not this.
+  #
+  # `Kati.Screens.LibraryFa.segments/1` records the same case with one more
+  # blocker of its own.
   @doc false
   def segments(plan, view) do
     ~MOB"""
@@ -387,7 +398,7 @@ defmodule Kati.Screens.MealsMatrixFa do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={7} />
-      <Box fill_width={true} height={1} background={0x121A1917} />
+      {Kati.Screens.MealsMatrixFa.hairline(true)}
       <Spacer size={13} />
       <Row fill_width={true} align="center">
         {plan.legend
@@ -523,16 +534,40 @@ defmodule Kati.Screens.MealsMatrixFa do
     end
   end
 
-  # Not `Kati.Components.MishkaSeparator`, though the API is this line exactly:
-  # the port renders `<Divider>`, `MobBridge.kt:2962` hands that to Material 3
-  # 1.2.0's `HorizontalDivider`, and that composable is a `Canvas` drawing an
-  # antialiased `drawLine` — not a filled box. `height(1.dp)` rounds to 3 whole
-  # device pixels at the capture device's 2.6875x while the 2.6875px stroke
-  # does not, so the bottom row lands at 69% coverage. The legend's rule above
-  # is the same node and is left alone for the same reason.
-  @doc false
+  @doc """
+  The 1pt rule between meal rows, as `Kati.Components.MishkaSeparator`.
+
+  Now that `render` exists, and **only** with `render: :box`. The default is
+  still `:divider`, which renders Mob's `<Divider>`; `MobBridge.kt:2962` hands
+  that to Material 3 1.2.0's `HorizontalDivider`, and that composable is a
+  `Canvas` drawing an antialiased `drawLine`, not a filled box. `height(1.dp)`
+  rounds to 3 whole device pixels at the capture device's 2.6875x while the
+  2.6875px stroke does not, so the bottom row lands at ~69% coverage — a
+  full-width row 4-5/255 lighter than the two above it. A screen compared pixel
+  by pixel cannot take that, so the prop is not optional here.
+
+  With it, `separator/1` builds
+
+      <Box fill_width={true} height={1} background={0x121A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  against the markup's identical childless `Box`. The `Spacer` is the
+  component's iOS workaround — `MobBox` drops a Box's `height` unless the Box
+  also has a `width`, so a childless full-width bar measures 0pt tall there.
+  On this bridge it draws nothing: the Box's own `height` pins the node at 1dp
+  (`nodeModifier`), the Spacer is a 1x1dp child with no background, and the
+  Box's own background is painted behind it. Same three pixel rows, same
+  colour, every row full.
+
+  The legend's rule inside the matrix card is this same node and calls this
+  same function, which is what it was already doing by hand.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  def hairline(true) do
+    MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+  end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

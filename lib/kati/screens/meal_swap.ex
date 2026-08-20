@@ -32,6 +32,8 @@ defmodule Kati.Screens.MealSwap do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaPill
   alias Kati.Meals.SampleSwap, as: Sample
   alias Kati.Theme
 
@@ -65,22 +67,10 @@ defmodule Kati.Screens.MealSwap do
   # the frame rather than against what is left of it.
   @doc false
   def header do
-    close = {self(), :back}
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={close}
-        >
-          {Kati.UI.symbol("close", size: 21)}
-        </Box>
+        {Kati.Screens.MealSwap.close_button()}
         <Spacer weight={1.0} />
         <Text text={Kati.Meals.SampleSwap.heading()} text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer weight={1.0} />
@@ -89,6 +79,31 @@ defmodule Kati.Screens.MealSwap do
       <Spacer size={22} />
     </Column>
     """
+  end
+
+  # The screen's single dismissal, and `Kati.Components.MishkaActionIcon` is
+  # the name for it: an icon-only button on a raised surface. It could not be
+  # one until the component took a `shadow` — a floating disc is defined by its
+  # shadow, and `#FBFAF8` on `#EFECE7` without one is nearly no disc at all.
+  #
+  # `shape: :circle` computes 44 / 2 = 22.0, the radius written here before,
+  # and `variant: :filled` paints `background` and nothing more. The glyph is a
+  # child rather than `icon:` because Kati's icons are Material Symbols through
+  # `Kati.UI.symbol/2` — a `Text` in the `symbols` family — and a child is
+  # wrapped in a `<Row>` that hugs it, inside a Box that already centred it.
+  @doc false
+  def close_button do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: :back
+      ],
+      [Kati.UI.symbol("close", size: 21)]
+    )
   end
 
   @doc false
@@ -156,6 +171,27 @@ defmodule Kati.Screens.MealSwap do
     """
   end
 
+  # NOT `Kati.Components.MishkaChip`, and the reason is one prop.
+  #
+  # Everything else about these three now exists on the chip: `height: 32`,
+  # `padding_x: 14` with `padding_y: 0`, `corner_radius: 16`, `text_size: 12.5`,
+  # `font_weight: :semibold`, `max_lines: 1`, and — new this round, and the
+  # thing that used to block it — `unchecked_color` and `unchecked_text_color`,
+  # so the idle chip can be `#FBFAF8` on `#5C574F` rather than the theme's
+  # `:surface_raised` on `:on_surface`.
+  #
+  # What the chip has no way to draw is the **shadow the idle chip carries**.
+  # The drawing gives the unchosen two `0 1px 2px rgba(26,25,23,.04), 0 12px
+  # 24px -18px rgba(26,25,23,.7)` — `Kati.Theme.shadow_card_soft/0` — and gives
+  # the chosen one none, because ink on paper needs no lift. `chip/1` builds a
+  # Box and puts `width`, `height`, `align` and `on_tap` on it; there is no
+  # `shadow` among them and no slot to reach the root node through, so an
+  # adopted chip would drop the lift from two of the three and flatten the row.
+  # `MishkaPill` has `shadow` and `MishkaActionIcon` has `shadow`; the chip is
+  # the one member of the family without it.
+  #
+  # That is the whole gap. `shadow` on `MishkaChip`, passed to the root Box the
+  # way the pill passes it, and these become one call.
   @doc false
   def filter(label, on?) do
     background = if on?, do: Theme.ink(), else: Theme.card(:light)
@@ -221,6 +257,23 @@ defmodule Kati.Screens.MealSwap do
 
   # `BEST` is the drawing's own capitalisation — there is no text-transform on
   # it — so it is content rather than styling, and stays as written.
+  #
+  # The token itself is `Kati.Components.MishkaPill`, which is precisely what a
+  # pill is in this port: a compact label, no selected state, no tap. (The
+  # filter chips above it are the other thing — see the note on `filter/2`.)
+  #
+  # Same pixels, one wrapper deeper. The hugging `Row` that carried the ink
+  # fill, the 9 radius, 7 of horizontal padding and an 18 height becomes the
+  # pill's root `Box fill_width={false}` carrying all four, around a `Row`
+  # holding the `Text` and the empty `Row` its unused remove slot leaves — a
+  # 0x0 node that adds nothing to the line.
+  #
+  # All four padding edges are named, so the component's `:space_sm` default
+  # never reads: `nodeModifier/1` falls back to the uniform value only for a
+  # missing edge. The vertical zeros pin the outer height at 18, because the
+  # bridge pads before it sizes. `align: :center` stands in for the Row's
+  # `align="center"` — horizontally the content box is exactly the Text's
+  # width, so only the vertical half of it has anything to do.
   @doc false
   def badge(nil), do: ~MOB"<Spacer size={0} />"
 
@@ -228,11 +281,27 @@ defmodule Kati.Screens.MealSwap do
     ~MOB"""
     <Row align="center">
       <Spacer size={7} />
-      <Row height={18} corner_radius={9} background={Kati.Theme.ink()} padding_left={7} padding_right={7} align="center">
-        <Text text={label} text_size={9} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
-      </Row>
+      {Kati.Screens.MealSwap.badge_pill(label)}
     </Row>
     """
+  end
+
+  @doc false
+  def badge_pill(label) do
+    MishkaPill.pill(
+      label: label,
+      background: Theme.ink(),
+      color: 0xFFFBFAF8,
+      corner_radius: 9,
+      height: 18,
+      padding_left: 7,
+      padding_right: 7,
+      padding_top: 0,
+      padding_bottom: 0,
+      text_size: 9,
+      font_weight: :bold,
+      align: :center
+    )
   end
 
   @doc false

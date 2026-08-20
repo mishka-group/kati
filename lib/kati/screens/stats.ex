@@ -12,7 +12,9 @@ defmodule Kati.Screens.Stats do
   """
   use Kati.Screens.Root, root: :stats
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Stats.Sample
   alias Kati.UI
 
@@ -52,20 +54,36 @@ defmodule Kati.Screens.Stats do
           <Spacer size={5} />
           <Text text={year.range} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("ios_share", size: 21)}
-        </Box>
+        {Kati.Screens.Stats.share_disc()}
       </Row>
       <Spacer size={22} />
     </Column>
     """
+  end
+
+  # Chelekom's headless Action Icon. `shadow` is what made it usable for this:
+  # `variant: :filled` alone paints card white on paper, two values that barely
+  # separate, and the drawing's disc is legible only because it floats above
+  # them on `shadow_button()`.
+  #
+  # It carries no handler, and passing none is the right way to say so — the
+  # component omits the `on_tap` key entirely rather than sending a null, so
+  # `RenderNodeInner` attaches no `clickable` and the disc stays exactly as
+  # inert as the Box it replaces. Sharing a year is not built yet, and a disc
+  # that swallowed a tap silently would be worse than one that plainly does
+  # nothing.
+  @doc false
+  def share_disc do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button()
+      ],
+      [Kati.UI.symbol("ios_share", size: 21)]
+    )
   end
 
   @doc false
@@ -247,9 +265,7 @@ defmodule Kati.Screens.Stats do
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.Stats.row_tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
@@ -264,13 +280,43 @@ defmodule Kati.Screens.Stats do
     """
   end
 
-  # Chelekom's headless Separator with the design's 7%-ink rule. It expands to
-  # `<Divider />`, which the bridge draws as Compose's `HorizontalDivider` —
-  # `Box(fillMaxWidth().height(1.dp).background(color))`, which is what the
-  # hand-rolled Box was.
+  # Chelekom's headless Theme Icon — "a themed container around exactly one
+  # icon", which is exactly this tile. Not Action Icon: that one is a button,
+  # and the tap here belongs to the whole row (`number_row/2` wires `on_tap` on
+  # the Column), so a tile claiming its own would be describing an affordance
+  # the drawing does not have.
+  #
+  # Theme Icon also builds the tighter node of the two. With no `id`,
+  # `markers(nil, …)` returns caller-supplied children untouched, so the tree is
+  # a Box holding the glyph — the hand-rolled node with nothing added. Action
+  # Icon would have interposed a `<Row>`.
+  #
+  # `variant: :filled` makes `color` the fill; the glyph ink the variant derives
+  # from it is unused, because a child carries its own and `Kati.UI.symbol/2`
+  # supplies the drawn #5C574F at 17.
+  @doc false
+  def row_tile(icon) do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9],
+      [Kati.UI.symbol(icon, size: 17, color: 0xFF5C574F)]
+    )
+  end
+
+  # Chelekom's headless Separator, given the design's own 7%-ink rule colour.
+  #
+  # `render: :box` is load-bearing, and the comment that used to sit here was
+  # wrong about why. The default `:divider` is NOT the hand-rolled Box this
+  # replaced: the bridge maps it to Material3's `HorizontalDivider`, which is a
+  # Canvas drawing an ANTIALIASED `drawLine`, not a filled rect. At this
+  # device's 2.6875x a 1dp rule gets a 3px canvas and a 2.6875px stroke, so the
+  # last pixel row lands at ~69% coverage — a hairline 4-5/255 lighter than the
+  # design's on one full-width row. `render: :box` swaps the primitive back to
+  # `<Box fill_width height={1} background={color}>`, which is the node this
+  # screen drew by hand, so every pixel row carries the full colour again.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @doc """
   The last section of the drawing, which the screen was not drawing at all.

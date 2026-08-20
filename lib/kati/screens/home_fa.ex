@@ -457,13 +457,32 @@ defmodule Kati.Screens.HomeFa do
 
   `Kati.Components.MishkaSeparator` rather than a hand-rolled `Box`: a rule
   between rows is exactly what a separator is, and here it is the same pixels
-  one layer down. `separator/1` with no `label` and no `orientation` returns a
-  single `<Divider color thickness />`; `MobBridge.MobDivider` hands that to
-  Compose's `HorizontalDivider`, whose entire body is
-  `Box(modifier.fillMaxWidth().height(thickness).background(color))` — the Box
-  this used to write out, at the drawing's own 1dp and its own alpha. The
-  modifier it is handed is empty, because a `Divider` node carries no size or
-  decoration props of its own.
+  one layer down — **with `render: :box`**, which is the whole of the
+  correction below.
+
+  ## `render: :box`, because the drawing asks for a filled rect
+
+  55.html draws this rule as `border-bottom:1px solid rgba(26,25,23,.07)`. A
+  CSS border is a filled rectangle: every pixel row it covers is the full
+  colour. The separator's default `render: :divider` is not that. It emits
+  `<Divider color thickness />`, which `MobBridge` hands to Material3's
+  `HorizontalDivider` — a `Canvas` running an **antialiased `drawLine`**, not
+  a background-filled `Box`. At this device's 2.6875x a 1dp rule gets a 3px
+  canvas and a 2.6875px stroke, so the last pixel row lands at ~69% coverage:
+  a full-width row 4-5/255 lighter than the two above it.
+
+  So `:divider` was the one thing this adoption changed, and it changed it in
+  the wrong direction — away from the `Box` that stood here before. `:box`
+  puts that `Box` back: `separator(render: :box)` returns
+  `%{type: :box, props: %{fill_width: true, height: 1, background: 0x121A1917},
+  children: [%{type: :spacer, props: %{size: 1}}]}` — the node this file used
+  to write out, at the drawing's own 1dp and its own alpha, plus one `Spacer`.
+
+  That `Spacer` is an iOS workaround (`MobBox` drops a `height` on a childless
+  full-width box, `IOS_TODO.md` item 1) and costs nothing on Android: it is a
+  1x1 invisible child of a box whose own `height` already pins it and whose
+  `background` is painted underneath it, so it can neither grow the box nor be
+  seen inside it.
 
   Only the plain rule is adopted. The component's own docs record that the
   vertical and labelled variants are broken on iOS (`IOS_TODO.md` 11-13); this
@@ -476,7 +495,11 @@ defmodule Kati.Screens.HomeFa do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true) do
-    Kati.Components.MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+    Kati.Components.MishkaSeparator.separator(
+      color: 0x121A1917,
+      thickness: 1,
+      render: :box
+    )
   end
 
   def handle_info({:tap, :open_inbox}, socket),

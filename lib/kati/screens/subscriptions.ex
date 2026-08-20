@@ -86,27 +86,50 @@ defmodule Kati.Screens.Subscriptions do
   # this row reserves its height and carries the overflow disc opposite it.
   @doc false
   def back_row do
-    tap = {self(), :open_menu}
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          background={Kati.Theme.card(:light)}
-          corner_radius={22}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={tap}
-        >
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.Subscriptions.disc()}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The 44pt `more_horiz` disc that shares the back pill's row.
+
+  `Kati.Components.MishkaActionIcon`, which is what a round tap target holding
+  one glyph is. It could not be until the port grew a `shadow` prop: this disc
+  floats off paper on `Kati.Theme.shadow_button()`, and a disc without its
+  shadow is a flat patch rather than a control sitting above the page.
+
+  **The pixels are the same node.** The port builds
+
+      <Box width={44} height={44} align={:center} corner_radius={22.0}
+           background=… shadow=… on_tap=…><Row>{glyph}</Row></Box>
+
+  against the `<Box width={44} height={44} background corner_radius={22} shadow
+  align="center" on_tap>` this was, prop for prop: `shape: :circle` resolves to
+  an exact `size / 2` and 44 gives the drawing's 22, `variant: :filled` is what
+  lets `background` through (the port paints `:transparent` on the default
+  `:plain`), and `align={:center}` serialises to the same `"center"` string.
+  The added `Row` carries no props, so it takes no modifier and hugs its one
+  child — the glyph measures and centres exactly where it did.
+  """
+  def disc do
+    Kati.Components.MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), :open_menu}
+      ],
+      [Kati.UI.symbol("more_horiz", size: 21)]
+    )
   end
 
   @doc false
@@ -309,7 +332,28 @@ defmodule Kati.Screens.Subscriptions do
   def confirm(label, false), do: confirm_button(label, Kati.Theme.ink(), 0xFFFBFAF8)
   def confirm(label, true), do: confirm_button(label, 0xFFEFECE7, 0xFF5C574F)
 
-  @doc false
+  @doc """
+  The primary button of the suggestion card, sharing its row with `dismiss/1`.
+
+  This is the closest thing on the screen to `Kati.Components.MishkaChip`, and
+  the fit is closer than it looks: the two treatments `confirm/2` chooses between
+  are precisely a chip's checked and unchecked fills, and `checked: reminded?`
+  with `color` / `text_color` for the armed pair and `unchecked_color` /
+  `unchecked_text_color` for the loud one says exactly what the two clauses say.
+  Since the chip took `height`, `padding_x` / `padding_y`, `corner_radius`,
+  `text_size`, `font_weight` and `max_lines`, every number here is a prop too.
+
+  It still cannot be one. **The chip hardcodes `fill_width={false}`** — the
+  comment beside it says so, it is what makes the "content-sized" claim true —
+  and offers no prop to override it, where `Kati.Components.MishkaPill` does.
+  This button takes its width from the `weight={1.0}` on the Box around it, and
+  a chip inside that Box would hug its label and sit at the leading edge with
+  the trough of the row showing beside it. `width` is no way out either: the
+  width is whatever the row has left after the Dismiss chip, which is not a
+  number this screen knows.
+
+  So: a `fill_width` prop on the chip, defaulting to `false`, is what this needs.
+  """
   def confirm_button(label, background, foreground) do
     tap = {self(), :remind}
 
@@ -324,7 +368,31 @@ defmodule Kati.Screens.Subscriptions do
     """
   end
 
-  @doc false
+  @doc """
+  The secondary button beside `confirm_button/3` — `#EFECE7` on `#5C574F`.
+
+  Left hand-rolled, and this one is not blocked by a missing prop.
+  `Kati.Components.MishkaPill` would reproduce it exactly: a hugging `Box` at
+  `height: 40, padding: 0, padding_left: 15, padding_right: 15,
+  corner_radius: 20, align: :center` around one `Text`, with `on_tap` on the
+  body, which is this node plus the two prop-less `Row`s the pill wraps content
+  in. Nothing would move.
+
+  It is not adopted because of what it would *say*. The pill port's own opening
+  section exists to stop exactly this: *"a Chip is selected, a Pill is removed"* —
+  a pill is a token you can take out of a set, and its remove affordance is the
+  ✕ it draws, not its label. This is a one-shot action button whose whole content
+  is the verb. Calling it a pill because the box matches would spend the one
+  distinction that section is defending.
+
+  What the set actually lacks is a **Button**: there is no headless button among
+  the 73, only `mishka_close_button`, which is
+  `Kati.Components.MishkaActionIcon` with a fixed ✕. A button taking `label`,
+  `height`, `padding_x`, `corner_radius`, `background`, `color`, `text_size`,
+  `font_weight` and `fill_width` would take this, `confirm_button/3` above, and
+  screen 28's hero call-to-action, all three of which are currently three
+  hand-rolled copies of the same rounded row.
+  """
   def dismiss(label) do
     tap = {self(), :dismiss}
 
@@ -338,13 +406,13 @@ defmodule Kati.Screens.Subscriptions do
   @doc """
   The `rgba(26,25,23,.07)` rule between two services, absent after the last.
 
-  ## Not `Kati.Components.MishkaSeparator`, and the reason is one row of pixels
+  ## `Kati.Components.MishkaSeparator`, and only because of `render: :box`
 
-  A rule between rows is exactly what a separator is, and the port's API fits —
-  `separator(color: 0x121A1917)` at its default `thickness: 1` is this line.
-  What does not fit is what it draws. The port renders `<Divider>`, which
-  `MobBridge` hands to Material 3's `HorizontalDivider`, and in 1.2.0 that
-  composable is not a filled box:
+  A rule between rows is exactly what a separator is, and the port's API always
+  fitted — `separator(color: 0x121A1917)` at its default `thickness: 1` is this
+  line. What did not fit was what it *drew*. On its default `render: :divider`
+  the port emits `<Divider>`, which `MobBridge` hands to Material 3's
+  `HorizontalDivider`, and in 1.2.0 that composable is not a filled box:
 
       Canvas(modifier.fillMaxWidth().height(thickness)) {
         drawLine(color, strokeWidth = thickness.toPx(), …)
@@ -353,21 +421,34 @@ defmodule Kati.Screens.Subscriptions do
   `height(1.dp)` **rounds** to whole device pixels while `thickness.toPx()`
   does not, and the capture device runs at 2.6875x. So the node is 3px tall and
   the antialiased stroke covers 2.6875 of them: the last row lands at 69%
-  coverage instead of 100%. `Box` + `background` fills all three. On this
-  screen's `#FBFAF8` card that is about five levels of grey along the bottom
-  edge of every rule — under `bin/diff_frames.py`'s tolerance of 12, and still
-  a difference, and a difference is not what this rule is.
+  coverage instead of 100%. On this screen's `#FBFAF8` card that is about five
+  levels of grey along the bottom edge of every rule — under
+  `bin/diff_frames.py`'s tolerance of 12, and still a difference, and a
+  difference is not what this rule is. It vanishes at any density where 1dp is a
+  whole number of pixels, which is why it was invisible in a unit test.
 
-  It vanishes at any density where 1dp is a whole number of pixels, which is
-  why it is invisible in a unit test and would have shipped.
+  `render: :box` is the way out, and it is why the default is not taken here:
+  the port swaps the Material stroke for the background-filled `Box` it has
+  always used on its vertical axis, and a filled rect has no antialiased edge,
+  so all three device-pixel rows carry the full colour.
 
-  Upstream, a separator drawn as `Box(fill_width, height: thickness,
-  background: color)` is pixel-exact at every density, and is also the fix for
-  the iOS breakage the port's own moduledoc records, since `SwiftUI.Divider`
-  draws along its container's axis and comes out vertical there.
+  **The pixels are the same node.** `separator(color: 0x121A1917, render: :box)`
+  builds
+
+      <Box fill_width={true} height={1} background={0x121A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  where this was the same `Box` with no child. The `Spacer` is the port's iOS
+  height workaround (`MobBox` drops a childless Box's height there); on Android
+  `MobSpacer` is `Spacer(modifier.size(1.dp))` — no background, nothing drawn —
+  and the Box's own `height(1.dp)` is applied after padding and pins the box, so
+  a 1pt child cannot grow it. It adds an invisible node and no pixel.
   """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  def hairline(true),
+    do: Kati.Components.MishkaSeparator.separator(color: 0x121A1917, render: :box)
 
   # `:remind` toggles rather than latches, so the one control that arms it can
   # also cancel it. There is nowhere else on this screen to cancel from, and a

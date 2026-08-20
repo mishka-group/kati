@@ -21,9 +21,36 @@ defmodule Kati.Screens.Season do
   ring, drawn once, is the honest version of it.
 
   No dock — this is a pushed screen — so the frame closes at 40, not 132.
+
+  ## Components, and the strip that cannot be one
+
+    * `check/1` — `Kati.Components.MishkaThemeIcon`, `:filled` for the ink tick
+      and `:subtle` for the empty ring. `:subtle` paints nothing and takes the
+      drawing's hairline through `border_color` / `border_width`, both new this
+      round.
+    * `badge_pill/3` — `Kati.Components.MishkaPill`, which is exactly a compact
+      label in a coloured token.
+
+  **The order strip stays hand-rolled.** `Kati.Components.MishkaSegmentedControl`
+  now takes every colour, radius, height and shadow this drawing asks for —
+  including `selected_shadow`, which is the whole difference between the chosen
+  tile and its two neighbours — and still cannot draw it, for one reason:
+  **the drawing sets its three tiles 4pt apart** and the component lays its
+  segments in a bare `Row` with nothing between them and no spacing prop. Three
+  flush tiles are different pixels.
+
+  There is a second thing worth recording even though the gap above settles it:
+  the component's equal-width answer is `segment_weight`, which it merges onto
+  the *same* `Box` that carries `fill_width: false`. Since fence K-17 that
+  `false` makes the box hug, so a weight and a hug would be arguing on one node.
+  `order/2` keeps the two on separate boxes — an outer `Box weight={1.0}` around
+  an inner `Box fill_width={true}` — which is why it has a wrapper that looks
+  redundant and is not.
   """
   use Kati.Screens.Pushed, back: "Series"
 
+  alias Kati.Components.MishkaPill
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Season.Sample
   alias Kati.Theme
   alias Kati.UI
@@ -235,26 +262,72 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Row align="center">
       <Spacer size={7} />
-      <Row height={18} corner_radius={9} background={bg} padding_left={7} padding_right={7} align="center">
-        <Text text={badge.label} text_size={9.5} font_weight="bold" text_color={fg} max_lines={1} />
-      </Row>
+      {Kati.Screens.Season.badge_pill(badge.label, bg, fg)}
     </Row>
     """
   end
 
-  @doc false
+  @doc """
+  The `SPECIAL` tag itself: `Kati.Components.MishkaPill`.
+
+  A pill is a compact label in a coloured token, which is the whole of what this
+  is — no state, nothing to remove, so none of `MishkaChip`'s `checked` and none
+  of the pill's own `with_remove`.
+
+  `padding: 0` is load-bearing. A pill always writes a `padding` key defaulting
+  to `:space_sm`, and `MobBridge.kt` resolves an unspecified edge against that
+  uniform (`pad(v) = (v ?: uniform ?: 0)`), so `padding_left`/`padding_right`
+  alone would leave the drawing's 18pt badge padded top and bottom as well.
+  """
+  def badge_pill(label, background, color) do
+    MishkaPill.pill(
+      label: label,
+      background: background,
+      color: color,
+      height: 18,
+      corner_radius: 9,
+      padding: 0,
+      padding_left: 7,
+      padding_right: 7,
+      text_size: 9.5,
+      font_weight: :bold,
+      align: :center
+    )
+  end
+
+  @doc """
+  The watched tick and the empty ring, both `Kati.Components.MishkaThemeIcon` —
+  "a themed container around exactly one icon", and in the ring's case around
+  none.
+
+  `variant: :filled` with an explicit `color` paints the ink disc; `:subtle`
+  paints nothing at all (its skin's `background` is `nil`, which the component
+  leaves off the node rather than sending as a null) and takes the drawing's
+  ring through `border_color` / `border_width`. `border_width` is read with
+  `floatProp`, so the 1.5 survives.
+
+  ## Why the pixels do not move
+
+  `check(true)` returns `Box{width: 27, height: 27, align: :center,
+  corner_radius: 14, background: ink}` around the glyph — node for node what was
+  written by hand. `check(false)` adds one prop the hand-rolled version did not
+  carry, `align: :center`, on a box with no children: there is nothing to align.
+  """
   def check(true) do
-    ~MOB"""
-    <Box width={27} height={27} corner_radius={14} background={Kati.Theme.ink()} align="center">
-      {Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)}
-    </Box>
-    """
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Kati.Theme.ink(), size: 27, radius: 14},
+      [Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)]
+    )
   end
 
   def check(false) do
-    ~MOB"""
-    <Box width={27} height={27} corner_radius={14} border_width={1.5} border_color={0x291A1917} />
-    """
+    MishkaThemeIcon.theme_icon(%{
+      variant: :subtle,
+      size: 27,
+      radius: 14,
+      border_color: 0x291A1917,
+      border_width: 1.5
+    })
   end
 
   # Solid, not dashed: `Modifier.border` takes a width and a colour and no

@@ -16,9 +16,29 @@ defmodule Kati.Screens.Calendars do
   will be drawn in on screens 02 and 09.
 
   No dock — pushed screen — so the frame closes at 40, not 132.
+
+  ## Components, and the one that does not fit
+
+  Every row on this screen is `Kati.UI.SettingsList.row/4`, so the leading
+  tiles, the rules and the status pills are that module's business. What this
+  file owns is the two leadings the shared recipe has no clause for:
+
+    * `add_tile/0` — `Kati.Components.MishkaThemeIcon` at `variant: :subtle`,
+      the variant that paints nothing, with the drawing's ring passed as
+      `border_color` / `border_width`. Both of those are new this round; before
+      them the component could only draw a filled or tinted tile.
+    * `swatch/1` — **still a `Box`**. `Kati.Components.MishkaColorSwatch` is
+      the obvious candidate and cannot be used: it draws a hairline
+      unconditionally (`border_color: :border`, `border_width: 1` when
+      unselected, `:on_surface` at 2 when selected) with no prop to turn it
+      off, and the design's 12pt calendar swatch is a bare fill. A ring around
+      each one would change every calendar row. The prop it needs upstream is
+      a `border_color` that can be `nil` — the same escape `MishkaThemeIcon`
+      already has in the other direction.
   """
   use Kati.Screens.Pushed, back: "Settings"
 
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Settings.CalendarsSample, as: Sample
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -97,20 +117,36 @@ defmodule Kati.Screens.Calendars do
     )
   end
 
-  @doc false
+  @doc """
+  The empty slot: `Kati.Components.MishkaThemeIcon` at `variant: :subtle` — the
+  variant that paints nothing — with the drawing's ring overridden onto it.
+
+  `:subtle`'s skin carries `background: nil`, which the component leaves off the
+  node rather than sending as a null, so this really is an unfilled box.
+  `border_color` is documented as drawing a border where the variant has none,
+  which is the case here, and `border_width` is read with `floatProp`, so the
+  design's 1.5 survives where an `intProp` would truncate it to 1.
+
+  The glyph is a child rather than the `icon:` shorthand — the shorthand's
+  `Text` carries no `font_family`, so the `add` ligature would be typeset as the
+  word.
+
+  ## Why the pixels do not move
+
+  With children and no `id` the component returns
+  `%{type: :box, props: %{width: 30, height: 30, align: :center,
+  corner_radius: 9, border_color: 0x331A1917, border_width: 1.5},
+  children: [glyph]}` — node for node what this wrote by hand, with `align`
+  reaching the bridge as the same `"center"` either way.
+
+  Solid, not dashed: `Modifier.border` takes a width and a colour and no
+  `PathEffect`, so the stitching does not survive.
+  """
   def add_tile do
-    ~MOB"""
-    <Box
-      width={30}
-      height={30}
-      corner_radius={9}
-      border_color={0x331A1917}
-      border_width={1.5}
-      align="center"
-    >
-      {Kati.UI.symbol("add", size: 16, color: 0xFF8A8479)}
-    </Box>
-    """
+    MishkaThemeIcon.theme_icon(
+      %{variant: :subtle, size: 30, radius: 9, border_color: 0x331A1917, border_width: 1.5},
+      [Kati.UI.symbol("add", size: 16, color: 0xFF8A8479)]
+    )
   end
 
   @doc false

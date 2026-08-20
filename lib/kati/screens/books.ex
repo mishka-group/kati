@@ -24,6 +24,8 @@ defmodule Kati.Screens.Books do
   use Kati.Screens.Root, root: :library
 
   alias Kati.Books.Sample
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaChip
   alias Kati.Theme
 
   @doc false
@@ -65,23 +67,32 @@ defmodule Kati.Screens.Books do
     """
   end
 
-  @doc false
-  def disc(icon, tag) do
-    tap = {self(), tag}
+  @doc """
+  A 44pt round tap target holding one glyph — `Kati.Components.MishkaActionIcon`.
 
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={Kati.Theme.card(:light)}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+  The same disc screens 15 and 21 draw, and the same reason it could not be a
+  component until now: the port had no `shadow`, and a floating disc *is* its
+  shadow. `variant: :filled` on its own would have drawn a flat #FBFAF8
+  rectangle on #EFECE7 paper.
+
+  **The pixels are the same node**: `<Box width={44} height={44}
+  align={:center} corner_radius={22.0} background shadow on_tap>`, where
+  `shape: :circle` resolves `size / 2` to the 22 the markup wrote out. The
+  port's `<Row>` around its children hugs the single glyph and is centred by
+  the same Box, so the symbol does not move.
+  """
+  def disc(icon, tag) do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: {self(), tag}
+      ],
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -248,31 +259,58 @@ defmodule Kati.Screens.Books do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={7} />"
 
-  @doc false
+  @doc """
+  One shelf chip — `Kati.Components.MishkaChip`, count in the trailing slot.
+
+  Screen 19 draws the same chip and adopts the same component; this one has no
+  handler, because the drawing gives these chips no destination and a tap that
+  does nothing is worse than no tap. `on_toggle` is simply not passed, and the
+  port omits the key rather than sending a null — so the node carries no
+  `on_tap` at all, exactly as the hand-rolled `Row` did.
+
+  **Why the pixels do not move.** The chip was a `Row`; the port builds a `Box`
+  that hugs by `fill_width={false}` (read by the bridge since fence K-17), and
+  both run background → rounded clip → `padding(0, 14, 0, 14)` → `height(32)`.
+  The count moves from a nested `Row` of `[Spacer 6, Text]` into the slot's
+  `[Spacer 6, node]` — the same two nodes in the same order, one nesting level
+  along, and a `Row` on this bridge centres its children vertically by default,
+  so the 10.5 count still sits on the 12.5 label's centre line and the group is
+  centred in the 32.
+
+  A chip with **no** count used to carry a `<Spacer size={0} />` where the
+  number would go; now `trailing` is `nil` and the port emits no slot at all.
+  `Spacer(Modifier.size(0.dp))` measures 0x0, so the two are the same width.
+  """
   def chip(label, count, on?) do
-    bg = if on?, do: Theme.ink(), else: Theme.card(:light)
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
     # The drawing puts the count at .6 opacity of the label's own colour rather
     # than at a separate token, so it stays legible on both chip states.
     count_fg = if on?, do: 0x99FBFAF8, else: 0x995C574F
 
-    ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center">
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      {Kati.Screens.Books.chip_count(count, count_fg)}
-    </Row>
-    """
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      color: Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F,
+      height: 32,
+      padding_x: 14,
+      padding_y: 0,
+      corner_radius: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      trailing: Kati.Screens.Books.chip_count(count, count_fg),
+      trailing_gap: 6
+    )
   end
 
   @doc false
-  def chip_count(nil, _color), do: ~MOB"<Spacer size={0} />"
+  def chip_count(nil, _color), do: nil
 
   def chip_count(count, color) do
     ~MOB"""
-    <Row align="center">
-      <Spacer size={6} />
-      <Text text={count} font_family="mono" text_size={10.5} text_color={color} max_lines={1} />
-    </Row>
+    <Text text={count} font_family="mono" text_size={10.5} text_color={color} max_lines={1} />
     """
   end
 

@@ -30,6 +30,8 @@ defmodule Kati.Screens.MealPlan do
   """
   use Kati.Screens.Pushed, back: "Meals"
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaSegmentedControl
   alias Kati.Components.MishkaSeparator
   alias Kati.Meals.SamplePlan, as: Sample
   alias Kati.Theme
@@ -55,29 +57,45 @@ defmodule Kati.Screens.MealPlan do
 
   # `Kati.Screens.Pushed` floats the ‹ Meals pill over this content. This row
   # reserves its height and carries the edit button opposite it.
+  #
+  # The disc is `Kati.Components.MishkaActionIcon`, which is what it is: an
+  # icon-only button on a raised surface. It could not be one until the
+  # component took a `shadow`, because a floating disc IS its shadow — a
+  # `variant: :filled` without one is a flat patch of card on card, and this
+  # sits on `#EFECE7` paper.
+  #
+  # `shape: :circle` is an exact `size / 2`, so 44 gives the 22 written here
+  # before; `variant: :filled` paints `background` and nothing else. The glyph
+  # goes in as a child rather than as `icon:` because Kati's icons are Material
+  # Symbols through `Kati.UI.symbol/2` (a `Text` in the `symbols` family), not
+  # the component's own `:lg` Text. A child is wrapped in a `<Row>`, which hugs
+  # it, inside a Box that already centred it — so the glyph lands where it did.
   @doc false
   def header do
-    tap = {self(), :edit_plan}
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-          on_tap={tap}
-        >
-          {Kati.UI.symbol("edit", size: 21)}
-        </Box>
+        {Kati.Screens.MealPlan.edit_button()}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc false
+  def edit_button do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: :edit_plan
+      ],
+      [Kati.UI.symbol("edit", size: 21)]
+    )
   end
 
   @doc false
@@ -92,39 +110,77 @@ defmodule Kati.Screens.MealPlan do
     """
   end
 
+  # `Kati.Components.MishkaSegmentedControl`, not three hand-rolled Boxes in a
+  # Row. It is the control's own definition — a joined strip where exactly one
+  # option is always selected — and every value the strip is drawn from is now
+  # a prop rather than a hardcoded token.
+  #
+  # The node tree is the same one, one wrapper shorter. Before: a `Row` carried
+  # the trough (background, radius 16, padding 4) and each segment was a
+  # `Box weight={1.0}` wrapping a `Box fill_width height={34}`, the outer one
+  # existing only to hold the weight. The component's track is a `Box` holding a
+  # full-width `Row`, which measures the same — a Box with a background and
+  # padding, then a Row inside it, is what the single Row was doing in one node
+  # — and each segment is ONE box carrying both the weight and the height, since
+  # the bridge reads `weight` off the child's props and then applies the child's
+  # own modifiers after it (`RenderNodeInner`: `modifier.then(nodeModifier)`).
+  # `RowScope.weight` defaults to `fill = true`, so a weighted box is exactly
+  # its share wide, which is what the inner `fill_width={true}` produced.
+  #
+  # Three prop-level notes, all of them no-ops on screen:
+  #
+  #   * the idle fill is the component's `:transparent` (0x00000000) where this
+  #     screen wrote 0x00FFFFFF. Both are alpha 0.
+  #   * `padding: 0` replaces "no padding prop at all". `intProp` reads 0 and
+  #     the bridge applies `Modifier.padding(0.dp)`, which measures nothing.
+  #     It has to be said, because the component's default is `:space_sm`.
+  #   * the label was centred by a full-width Row with a weighted Spacer either
+  #     side; it is now centred by the segment Box's own `align: :center`, over
+  #     a content box of exactly the same width.
+  #
+  # The trough's own `align="center"` is gone with the Row, and does not need
+  # replacing: `rowAlignProp` defaults to `CenterVertically`, and all three
+  # segments are 34 tall anyway.
+  #
+  # No `on_change`: this strip has never been wired, and `Event.handler/2`
+  # returns nil for a missing handler, so no segment gains a tap it did not
+  # have.
   @doc false
   def segments do
-    [first | rest] = Sample.segments()
+    [first | _rest] = labels = Sample.segments()
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4} align="center">
-        {Kati.Screens.MealPlan.segment(first, true)}
-        {Enum.map(rest, fn label -> Kati.Screens.MealPlan.segment(label, false) end)}
-      </Row>
+      {Kati.Screens.MealPlan.strip(labels, first)}
       <Spacer size={18} />
     </Column>
     """
   end
 
   @doc false
-  def segment(label, on?) do
-    background = if on?, do: Theme.card(:light), else: 0x00FFFFFF
-    color = if on?, do: Theme.ink(), else: 0xFFAFA89E
-    weight = if on?, do: "bold", else: "semibold"
-    shadow = if on?, do: "0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917", else: nil
-
-    ~MOB"""
-    <Box weight={1.0}>
-      <Box fill_width={true} height={34} corner_radius={12} background={background} shadow={shadow} align="center">
-        <Row fill_width={true} align="center">
-          <Spacer weight={1.0} />
-          <Text text={label} text_size={12.5} font_weight={weight} text_color={color} max_lines={1} />
-          <Spacer weight={1.0} />
-        </Row>
-      </Box>
-    </Box>
-    """
+  def strip(labels, active) do
+    MishkaSegmentedControl.segmented_control(
+      [
+        value: active,
+        fill_width: true,
+        background: 0xFFE4E0D9,
+        corner_radius: 16,
+        track_padding: 4,
+        segment_radius: 12,
+        segment_height: 34,
+        segment_weight: 1.0,
+        padding: 0,
+        color: Theme.card(:light),
+        text_color: Theme.ink(),
+        label_color: 0xFFAFA89E,
+        text_size: 12.5,
+        font_weight: :semibold,
+        selected_weight: :bold,
+        max_lines: 1,
+        selected_shadow: "0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
+      ],
+      Enum.map(labels, fn label -> MishkaSegmentedControl.option(label, label) end)
+    )
   end
 
   @doc false
@@ -444,18 +500,30 @@ defmodule Kati.Screens.MealPlan do
     """
   end
 
-  # `Kati.Components.MishkaSeparator`, not a hand-drawn Box. Its plain rule is
-  # `<Divider color thickness />`, and `MobDivider` renders Material3's
-  # `HorizontalDivider`, which is literally `Box().fillMaxWidth().height(t.dp)
-  # .background(color)` — the same three modifiers `nodeModifier/1` builds for
-  # `<Box fill_width={true} height={1} background={…} />`, in the same order.
-  # So the pixels are identical and the rule now says what it is.
+  # `Kati.Components.MishkaSeparator` with `render: :box` — and the `render` is
+  # the whole point, because the note that used to sit here was wrong.
+  #
+  # `MobDivider` is not `Box().fillMaxWidth().height(t.dp).background(color)`.
+  # It renders Material3's `HorizontalDivider`, which is a `Canvas` of height
+  # `t` with an ANTIALIASED `drawLine` down its middle. At this device's 2.6875x
+  # a 1dp rule is handed a 3px canvas and a 2.6875px stroke, so the last pixel
+  # row lands at ~69% coverage — a full-width row 4-5/255 lighter than the two
+  # above it. The design specifies a 1px hairline and Material cannot draw one.
+  #
+  # `render: :box` swaps the primitive back to the filled rect this screen drew
+  # by hand before the component arrived: `<Box fill_width={true} height={1}
+  # background={…}>` — the same three modifiers `nodeModifier/1` builds, in the
+  # same order — so every pixel row carries the full colour again. The `Spacer`
+  # the component nests inside it is a 1x1 iOS height workaround that the
+  # background covers on Android.
   #
   # The colour stays the drawing's `rgba(26,25,23,.07)`; the component's own
   # `:border` default would repaint every hairline in the theme's token.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @impl true
   def handle_tap(:edit_plan, socket),

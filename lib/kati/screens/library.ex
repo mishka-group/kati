@@ -21,6 +21,8 @@ defmodule Kati.Screens.Library do
   """
   use Kati.Screens.Root, root: :library
 
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaChip
   alias Kati.Library.Sample
   alias Kati.Theme
 
@@ -63,23 +65,27 @@ defmodule Kati.Screens.Library do
     """
   end
 
+  # Chelekom's headless Action Icon. See screen 02's `disc/2` for why `shadow`
+  # is the prop that unblocked this: a filled disc with no lift is a flat patch
+  # of card white on paper, and the drawing's whole affordance is that it floats.
+  #
+  # `shape: :circle` gives `44 / 2` = 22.0 where the Box said 22 — `floatProp`
+  # reads both as 22.0f. The glyph is a child so `Kati.UI.symbol/2` keeps
+  # supplying the Material Symbol at 21; the component's `<Row>` wrapper hugs
+  # that single `<Text>` and is centred by the same `Alignment.Center`.
   @doc false
   def disc(icon, tag) do
-    tap = {self(), tag}
-
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={Kati.Theme.card(:light)}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Theme.card(:light),
+        shadow: Theme.shadow_button(),
+        on_tap: tag
+      ],
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -98,6 +104,27 @@ defmodule Kati.Screens.Library do
     """
   end
 
+  # NOT Chelekom's Segmented Control, and it is worth writing down why so the
+  # next pass does not re-derive it. The component is otherwise a close fit —
+  # `track_padding`, `segment_height`, `segment_radius`, `font_weight` +
+  # `selected_weight`, `segment_weight` for the `flex:1` cells, even a
+  # `selected_shadow` — but two things the drawing does are not expressible:
+  #
+  #   1. **Each segment carries an icon.** `option/3` builds
+  #      `%{props: %{id:, label:, disabled:}}` and `segment/3` renders it as a
+  #      Box holding one `<Text>` the control paints itself. The drawing puts a
+  #      17px Material Symbol before each 13px label with a 6px gap
+  #      (`03.html:16-28`). There is no leading slot, and the label is a prop
+  #      rather than children precisely because the control owns that Text.
+  #   2. **`gap:4px` between segments.** `track/3` emits `<Row>{segments}</Row>`
+  #      with nothing interspersed and there is no `segment_gap` prop; the
+  #      segments would abut. Nor can the gap be smuggled in as a child —
+  #      `segmented_control/2` filters children to
+  #      `match?(%{type: :mishka_segmented_control_option}, &1)` and drops the
+  #      rest, so an interspersed `<Spacer>` is discarded rather than laid out.
+  #
+  # Either alone would move pixels, so the strip stays hand-rolled. Both are
+  # upstream asks: a leading slot on an option, and a gap between segments.
   @doc false
   def segment(icon, label, on?) do
     tap = {self(), String.to_atom("shelf_" <> label)}
@@ -189,23 +216,74 @@ defmodule Kati.Screens.Library do
     """
   end
 
+  # Chelekom's headless Chip, count and all. The count is what made this chip
+  # need the component's `trailing` SLOT rather than its `trailing` string: the
+  # drawing sets it in DM Mono at 10.5, and the component paints a string
+  # trailing in the chip's own family and size. A slot takes a node as readily
+  # as a glyph, so `chip_count/2` supplies the exact `<Text>` this screen drew.
+  #
+  # The tree gains one level and loses nothing:
+  #
+  #   was  <Row height={32} corner_radius={16} background padding_left={14}
+  #             padding_right={14} align="center" on_tap>
+  #          <Text label 12.5 semibold /> <Spacer size={6} /> <Text count mono />
+  #        </Row>
+  #
+  #   now  <Box fill_width={false} height={32} … align="center" on_tap>
+  #          <Row align="center">
+  #            <Text label 12.5 semibold /> <Spacer size={6} /> <Text count mono />
+  #          </Row>
+  #        </Box>
+  #
+  # Width: the Box hugs (K-17 reads `fill_width={false}` now), so it measures
+  # 14 + Row + 14, and the Row hugs to label + 6 + count — the same total the
+  # padded Row measured on its own.
+  #
+  # Height: centring composes. The inner Row carries no height, so it hugs to
+  # its tallest child and centres both Texts on ITS midline; the Box then
+  # centres that Row inside the declared 32. Each label's box therefore lands
+  # on the same midline it landed on when the Row itself was 32 tall with
+  # `CenterVertically` — the intermediate container is transparent to the
+  # arithmetic precisely because it hugs.
+  #
+  # `align="center"` on the inner Row is also what the bridge would have done
+  # unasked: `rowAlignProp` DEFAULTS to `CenterVertically`, and only "top" and
+  # "bottom" move it.
   @doc false
   def chip(label, count, on?) do
-    # The tag carries the label, so one handler serves every chip and adding a
-    # filter needs no new clause.
-    tap = {self(), String.to_atom("filter_" <> label)}
-    bg = if on?, do: Theme.ink(), else: Theme.card(:light)
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
     # The design puts the count at .65 opacity of the label colour rather than
     # a separate token, so it stays legible on both chip states.
     count_fg = if on?, do: 0xA6FBFAF8, else: 0xA65C574F
 
+    MishkaChip.chip(
+      label: label,
+      checked: on?,
+      # The tag carries the label, so one handler serves every chip and adding
+      # a filter needs no new clause.
+      on_toggle: String.to_atom("filter_" <> label),
+      trailing: Kati.Screens.Library.chip_count(count, count_fg),
+      trailing_gap: 6,
+      height: 32,
+      padding_x: 14,
+      padding_y: 0,
+      corner_radius: 16,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1,
+      color: Theme.ink(),
+      text_color: 0xFFFBFAF8,
+      unchecked_color: Theme.card(:light),
+      unchecked_text_color: 0xFF5C574F
+    )
+  end
+
+  # The count, as its own node rather than as the chip's `trailing` string: a
+  # string would inherit the chip's `text_size` and its sans family, and the
+  # drawing sets this line in DM Mono at 10.5.
+  @doc false
+  def chip_count(count, color) do
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center" on_tap={tap}>
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      <Spacer size={6} />
-      <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={count_fg} max_lines={1} />
-    </Row>
+    <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={color} max_lines={1} />
     """
   end
 

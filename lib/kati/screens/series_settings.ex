@@ -21,9 +21,28 @@ defmodule Kati.Screens.SeriesSettings do
   meaning.
 
   No dock — this is a pushed screen — so the frame closes at 40, not 132.
+
+  ## Components, and the Status row that is not one
+
+  `danger_tile/1` is `Kati.Components.MishkaThemeIcon` — the same component
+  `Kati.UI.SettingsList.icon_tile/1` gives every other row here, differing only
+  in the colour it is handed, which is the point: the red is a decision this
+  file makes, and the container has no opinion about meaning.
+
+  **The three Status tiles stay hand-rolled**, and no vendored component is
+  close. They are not segments of a strip: each is a `Column` with a 21pt glyph
+  *above* a label, each carries its own shadow (the chosen one a heavier, tighter
+  `0 12px 24px -14px` than its two neighbours), and each takes `weight: 1.0` so
+  the three split the row. `MishkaSegmentedControl` lays a single `Text` per
+  segment with no icon slot and no vertical stack; `MishkaChip` and `MishkaPill`
+  both put their content in a `Row`, which would set the glyph *beside* the
+  label rather than over it, and neither takes a per-item layout weight. What
+  they would need is a content slot that is a `Column` — which is a different
+  component, not a prop.
   """
   use Kati.Screens.Pushed, back: "Series"
 
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.SeriesSettings.Sample
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -182,13 +201,30 @@ defmodule Kati.Screens.SeriesSettings do
   def control(:chevron), do: SettingsList.chevron()
   def control({:switch, on?}), do: SettingsList.switch(on?)
 
-  @doc "The 30x30 tile at 10% red — the one destructive affordance on the screen."
+  @doc """
+  The 30x30 tile at 10% red — the one destructive affordance on the screen.
+
+  `Kati.Components.MishkaThemeIcon`, the same component `Kati.UI.SettingsList`
+  gives every other row on this screen, differing only in the colour it is
+  handed. `variant: :filled` with an explicit ARGB, not `variant: :light`: the
+  light variant computes its own 19% tint from an opaque colour, and the design
+  says 10%, so the alpha is stated rather than derived.
+
+  The glyph is a child rather than the `icon:` shorthand, whose `Text` carries
+  no `font_family` — a Material Symbols ligature would be typeset as the word,
+  and `Kati.UI.symbol/2` also keeps `Kati.Icons.glyph!/1`'s raise for a name
+  outside the shipped subset.
+
+  With children and no `id` the component returns
+  `%{type: :box, props: %{width: 30, height: 30, align: :center,
+  corner_radius: 9, background: 0x1AB4553C}, children: [glyph]}` — node for node
+  what this wrote by hand.
+  """
   def danger_tile(name) do
-    ~MOB"""
-    <Box width={30} height={30} corner_radius={9} background={0x1AB4553C} align="center">
-      {Kati.UI.symbol(name, size: 17, color: 0xFFB4553C)}
-    </Box>
-    """
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0x1AB4553C, size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: 0xFFB4553C)]
+    )
   end
 
   @doc false

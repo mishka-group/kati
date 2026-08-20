@@ -36,6 +36,7 @@ defmodule Kati.Screens.Music do
   """
   use Kati.Screens.Root, root: :library
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Music.Sample
   alias Kati.UI
 
@@ -76,23 +77,31 @@ defmodule Kati.Screens.Music do
     """
   end
 
-  @doc false
-  def disc(icon, tag) do
-    tap = {self(), tag}
+  @doc """
+  A 44pt round tap target holding one glyph — `Kati.Components.MishkaActionIcon`.
 
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={Kati.Theme.card(:light)}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+  The shelf's header disc, identical to screens 15 and 20 and adopted for the
+  same reason: the port grew a `shadow` prop this round, and a disc floating
+  over paper is defined by that shadow rather than by its fill.
+
+  **The pixels are the same node**: `<Box width={44} height={44}
+  align={:center} corner_radius={22.0} background shadow on_tap>` — `shape:
+  :circle` is `size / 2`, which is the 22 the markup declared. The `<Row>` the
+  port puts around its children hugs the one glyph and is centred by the same
+  Box.
+  """
+  def disc(icon, tag) do
+    MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), tag}
+      ],
+      [UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false

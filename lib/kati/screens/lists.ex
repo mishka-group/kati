@@ -37,7 +37,9 @@ defmodule Kati.Screens.Lists do
   """
   use Kati.Screens.Pushed, back: "Library"
 
+  alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.Lists.Sample
   alias Kati.UI
 
@@ -188,11 +190,30 @@ defmodule Kati.Screens.Lists do
   def badge(nil), do: Kati.UI.symbol("chevron_right", size: 19, color: 0xFFC4BDB3)
 
   def badge(label) do
-    ~MOB"""
-    <Row height={22} corner_radius={11} background={0xFFFBF1DE} padding_left={9} padding_right={9} align="center">
-      <Text text={label} text_size={10} font_weight="semibold" text_color={0xFF96723C} max_lines={1} />
-    </Row>
-    """
+    # Mishka's Pill. A pill and not a chip: `RANKED` / `SHARED` is a fact about
+    # the list, with no selected state to carry and nothing to tap.
+    #
+    # The pixels are the Row's. `padding: 0` with `padding_left`/`padding_right`
+    # at 9 gives the bridge the same 9/0 edges, and padding is applied before
+    # size, so `height: 22` still measures 22. The pill's root is a `Box` that
+    # passes `fill_width={false}`, so it hugs (K-17) as the Row did, around a
+    # `Row` holding the label beside an empty `Row` where the ✕ would be —
+    # zero-wide, and both hug — with `align: :center` centring the pair exactly
+    # where `align="center"` centred the lone Text. `max_lines: 1` is the pill's
+    # own default and is what this Text already carried.
+    MishkaPill.pill(
+      label: label,
+      background: 0xFFFBF1DE,
+      color: 0xFF96723C,
+      corner_radius: 11,
+      height: 22,
+      padding: 0,
+      padding_left: 9,
+      padding_right: 9,
+      align: :center,
+      text_size: 10,
+      font_weight: :semibold
+    )
   end
 
   @doc false
@@ -222,9 +243,7 @@ defmodule Kati.Screens.Lists do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.Lists.kept_icon(row.icon)}
         <Spacer size={13} />
         <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
         <Spacer size={13} />
@@ -237,13 +256,36 @@ defmodule Kati.Screens.Lists do
     """
   end
 
-  # Mishka's Separator, at the design's own colour and thickness — see
-  # `Kati.Screens.Film.hairline/1` for why the pixels are unchanged: a
-  # `Divider` is Material 3's `HorizontalDivider`, which is exactly the
-  # full-width 1dp coloured rectangle the hand-rolled Box drew.
+  @doc """
+  A kept list's leading icon — Mishka's Theme Icon.
+
+  "A themed container around exactly one icon" is the whole of what this Box
+  was, so the component is a rename rather than a rewrite. With no `id` to tag
+  and the glyph passed as a child, `theme_icon/2` emits one Box whose props map
+  is the hand-rolled one key for key — `width: 30, height: 30, align: :center,
+  corner_radius: 9, background: #EFECE7` — around the same `Kati.UI.symbol/2`
+  Text. `variant: :filled` with a raw `color` is what puts the design's own
+  value in the fill rather than a theme token, and the glyph keeps the colour
+  it was handed, because a caller-supplied icon always does.
+  """
+  @spec kept_icon(String.t()) :: map()
+  def kept_icon(icon) do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9],
+      [Kati.UI.symbol(icon, size: 17, color: 0xFF5C574F)]
+    )
+  end
+
+  # Mishka's Separator, at the design's own colour and thickness. `render:
+  # :box` is not optional — the default `:divider` is Material 3's antialiased
+  # drawLine, NOT the full-width 1dp coloured rectangle this comment used to
+  # claim, and it softens the bottom pixel row of every rule in the kept card.
+  # See `Kati.Screens.Film.hairline/1` for the measurement.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   @impl true
   def handle_tap(:new_list, socket) do

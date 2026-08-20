@@ -36,6 +36,7 @@ defmodule Kati.Screens.Health do
   """
   use Kati.Screens.Pushed, back: "Home"
 
+  alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Health.Sample
   alias Kati.UI
@@ -79,23 +80,60 @@ defmodule Kati.Screens.Health do
     """
   end
 
-  @doc false
-  def disc(icon, tag) do
-    tap = {self(), tag}
+  @doc """
+  The 44pt floating disc the header hangs opposite the title.
 
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={Kati.Theme.card(:light)}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+  `Kati.Components.MishkaThemeIcon` is documented as "a themed container around
+  exactly one icon", which is exactly what a disc is — and it could not be one
+  until the container took a `shadow`. That is the whole of the difference here:
+  a disc is *defined* by floating. `variant: :filled` paints `#FBFAF8` and stops
+  there, which on this screen's warm paper reads as a pale patch rather than as
+  a button sitting above it.
+
+  ## Why the pixels do not move
+
+  With children and no `id`, `theme_icon/2` returns
+
+      %{type: :box,
+        props: %{width: 44, height: 44, align: :center, corner_radius: 22,
+                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button(),
+                 on_tap: {self(), tag}},
+        children: [glyph]}
+
+  — the same eight keys with the same eight values the hand-rolled `<Box>`
+  carried. `align: :center` and `align="center"` reach the bridge as the same
+  string: `align` is in none of the renderer's token whitelists, so an
+  unrecognised atom passes through and `:json.encode/1` writes an atom as its
+  own name.
+
+  The handler is unchanged too. `theme_icon/2` routes `on_tap` through
+  `Kati.Components.Event.handler/1`, whose second clause returns an already
+  wired `{pid, tag}` untouched — so the `{self(), tag}` this built by hand is
+  the same tuple the component registers. Passing the bare atom would give the
+  same result, because `handler/1` widens it with `self()` and a component
+  function runs inside the screen's own process; the tuple is kept because it is
+  what the markup said.
+
+  Nothing else in the component runs: `:filled` has no gradient layer,
+  `skin(:filled, …)` proposes no border so `put_some/3` omits `border_color` and
+  `border_width` entirely rather than writing nils, and the id markers are
+  skipped without an `id`. The glyph goes in as a child rather than through the
+  `icon` prop because that shorthand builds a `Text` with no `font_family` — the
+  ligature `"tune"` would be typeset as the word — and because a child keeps
+  `Kati.UI.symbol/2`'s default ink, which is the colour the drawing gives it.
+  """
+  def disc(icon, tag) do
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: Kati.Theme.card(:light),
+        size: 44,
+        radius: 22,
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), tag}
+      },
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -140,22 +178,95 @@ defmodule Kati.Screens.Health do
     """
   end
 
-  # Green at 16% on cream, the same pill screens 04 and 08 use for "done" —
-  # three of five meals logged is progress, not an alert.
-  #
-  # The drawing hangs it off the row's `flex-end` and then lifts it with
-  # `margin-bottom:5px`, so it rides just above the baseline of "1,480" rather
-  # than sitting on it. The caller wraps it in a Column with that 5 underneath;
-  # a bottom-aligned Row has no other way to say "5 short of the bottom".
-  @doc false
+  @doc """
+  The "3 of 5 logged" badge, green at 16% on cream.
+
+  The same pill screens 04 and 08 use for "done" — three of five meals logged is
+  progress, not an alert.
+
+  The drawing hangs it off the row's `flex-end` and then lifts it with
+  `margin-bottom:5px`, so it rides just above the baseline of "1,480" rather
+  than sitting on it. The caller wraps it in a Column with that 5 underneath; a
+  bottom-aligned Row has no other way to say "5 short of the bottom".
+
+  ## The container is `Kati.Components.MishkaPill`
+
+  A compact label on its own fill is what a pill *is*, and the pill can be this
+  one now that it takes a `height`, per-edge padding and a numeric `text_size`:
+  28 tall, radius 14, 11 of side padding. It is the same call
+  `Kati.UI.SettingsList.status_pill/3` makes for the settings rows' status
+  badges, and for the same reason.
+
+  The content goes in as **children** rather than as `label`, because a pill has
+  no leading slot and the tick has to come first. That costs the label the
+  pill's own typography props — `text_size`, `font_weight` and `color` stay on
+  the `Text` here rather than being handed over — and wraps the three nodes in
+  the component's content `Row`, one level deeper than the markup put them. A
+  leading slot on MishkaPill would remove both; it is the one thing this needs
+  that the component does not have.
+
+  ## `padding: 0` is load-bearing
+
+  The pill pads before it sizes and its `padding` default is `:space_sm`, so
+  that token would be the fallback for the two edges this does not name and a
+  `height: 28` pill would measure 28 plus two paddings. `padding: 0` makes the
+  vertical fallback zero; the bridge's `hasEdge` arm then resolves top and
+  bottom to `uniform ?: 0`, which is the same `Modifier.padding` call the
+  hand-rolled `Row` produced by writing no vertical padding at all.
+
+  ## Why the pixels do not move
+
+  The container changes from a `Row` to a `Box`, and `nodeModifier` is one
+  function for every node type — background, radius, padding and height are
+  applied by the same chain either way. What differs is how it hugs and where
+  its content sits:
+
+    * a `Row` hugs its width; a `Box` hugs only when told, and MishkaPill's root
+      passes `fill_width={false}`, which fence K-17 now honours
+      (`hugs = boolProp(props, "fill_width") == false` in the bridge's box
+      branch). Same width;
+    * the `Row` centred its children with `verticalAlignment`; the `Box` centres
+      its content with `align: :center`, and the component's own content `Row`
+      carries no `align` — which `rowAlignProp` resolves to
+      `Alignment.CenterVertically`, since top and bottom are the named cases and
+      centre is the default. So the tick lands centred against the label, and
+      that centred row lands centred in the 28pt pill;
+    * the empty `<Row />` that stands in for the ✕ when `with_remove` is false
+      measures 0x0 and adds nothing.
+  """
   def meals_pill(label) do
-    ~MOB"""
-    <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={11} padding_right={11} align="center">
-      {Kati.UI.symbol("check", size: 14, color: 0xFF3E8460)}
-      <Spacer size={5} />
-      <Text text={label} font_family="mono" text_size={11.5} font_weight="medium" text_color={0xFF3E8460} max_lines={1} />
-    </Row>
-    """
+    MishkaPill.pill(
+      %{
+        background: 0x294E9A73,
+        corner_radius: 14,
+        height: 28,
+        padding: 0,
+        padding_left: 11,
+        padding_right: 11,
+        align: :center
+      },
+      meals_content(label)
+    )
+  end
+
+  # One root node per sigil, so the tick, the gap and the label are three of
+  # them. They are handed over as a list, which the pill drops straight into its
+  # content Row — wrapping them in a Row here would only add a level.
+  defp meals_content(label) do
+    [
+      Kati.UI.symbol("check", size: 14, color: 0xFF3E8460),
+      ~MOB"<Spacer size={5} />",
+      ~MOB"""
+      <Text
+        text={label}
+        font_family="mono"
+        text_size={11.5}
+        font_weight="medium"
+        text_color={0xFF3E8460}
+        max_lines={1}
+      />
+      """
+    ]
   end
 
   # One 9pt track carrying three weighted segments and no gaps, built the way

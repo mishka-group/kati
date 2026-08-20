@@ -35,6 +35,23 @@ defmodule Kati.Screens.Lock do
   that, at 52 from the top rather than the usual 64. Tapping anywhere
   dismisses, since a lock screen with no way off it is a dead end on a device
   with a software back gesture.
+
+  ## Nothing here is a Chelekom component, and that is the finding
+
+  Every part of this screen was re-checked against the vendored set after the
+  chip/pill/action-icon props landed, and none of it fits. The reason is one
+  sentence: **the glass panels are not containers around content, they are the
+  content's own surface.** Each is a `Column` that draws its own fill, its
+  `rgba(255,255,255,.14)` inset ring and 14-16pt of padding, and then stacks an
+  eyebrow, a poster, two `Text` runs and sometimes a 7x7 pixel grid inside it.
+  `MishkaThemeIcon` and `MishkaActionIcon` are containers around exactly *one*
+  icon; `MishkaPill` and `MishkaChip` put their content in a `Row`, which would
+  set every widget's title beside its eyebrow rather than under it.
+
+  What that asks for upstream is a headless **card** — a container that takes a
+  fill, a radius, a border, a shadow and padding and then gets out of the way of
+  a `Column` of children. Kati draws that shape 262 times across the app and has
+  no component for it in any of them.
   """
   use Mob.Screen
   import Mob.Sigil

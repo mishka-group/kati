@@ -234,11 +234,19 @@ defmodule Kati.Screens.Inbox do
   def bell(true), do: Kati.UI.symbol("notifications_active", size: 19, color: 0xFFE8823C, fill: true)
   def bell(false), do: Kati.UI.symbol("notifications", size: 19, color: 0xFFC4BDB3)
 
-  # Chelekom's headless Separator carrying the design's 7%-ink rule. It expands
-  # to `<Divider />`, which the bridge draws as Compose's `HorizontalDivider` —
-  # `Box(fillMaxWidth().height(1.dp).background(color))`, the same node the
-  # hand-rolled Box produced.
+  # Chelekom's headless Separator, given the design's own 7%-ink rule colour.
+  #
+  # `render: :box` is load-bearing, and the comment that used to sit here was
+  # wrong about why. The default `:divider` is NOT the hand-rolled Box this
+  # replaced: the bridge maps it to Material3's `HorizontalDivider`, which is a
+  # Canvas drawing an ANTIALIASED `drawLine`, not a filled rect. At this
+  # device's 2.6875x a 1dp rule gets a 3px canvas and a 2.6875px stroke, so the
+  # last pixel row lands at ~69% coverage — a hairline 4-5/255 lighter than the
+  # design's on one full-width row. `render: :box` swaps the primitive back to
+  # `<Box fill_width height={1} background={color}>`, which is the node this
+  # screen drew by hand, so every pixel row carries the full colour again.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 end

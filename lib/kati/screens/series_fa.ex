@@ -56,6 +56,7 @@ defmodule Kati.Screens.SeriesFa do
   import Mob.Sigil
 
   alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.Fa
   alias Kati.Screens.SeriesFa.Sample
   alias Kati.UI
@@ -175,12 +176,13 @@ defmodule Kati.Screens.SeriesFa do
   @doc """
   The ⋯ disc, as `Kati.Components.MishkaActionIcon`.
 
-  A round icon disc on a raised fill is exactly what that component draws, and
-  this is the one disc in the Persian set it can draw: every other one — the
-  back pill's neighbours on 57, 59, 60, 61, 62 and the bookmark beside the
-  primary button below — carries `Kati.Theme.shadow_button/0` or
-  `shadow_card_soft/0`, and **no** component in the vendored set takes a
-  `shadow` prop. This disc carries none, so nothing is lost.
+  A round icon disc on a raised fill is exactly what that component draws. It
+  used to be the *only* disc in the Persian set it could draw — every other one
+  carries `Kati.Theme.shadow_button/0` or `shadow_card_soft/0`, and no
+  component in the vendored set took a `shadow` prop. It does now, so the back
+  pill's neighbours on 57, 59, 60, 61 and 62 are `Kati.Screens.Fa.disc/2` and
+  the bookmark below is `save/1`, both on this same component. This disc still
+  carries no shadow, so nothing about it changed.
 
   `:circle` resolves to an exact `size / 2`, so 42 still rounds at 21, and
   `variant: :filled` paints the drawing's own `rgba(251,250,248,.82)`.
@@ -292,8 +294,6 @@ defmodule Kati.Screens.SeriesFa do
   @doc false
   def actions(series) do
     mark = {self(), :mark_next}
-    save = {self(), :toggle_save}
-    saved = series.saved
 
     ~MOB"""
     <Row fill_width={true} align="center">
@@ -321,19 +321,44 @@ defmodule Kati.Screens.SeriesFa do
         </Row>
       </Box>
       <Spacer size={10} />
-      <Box
-        width={50}
-        height={50}
-        corner_radius={25}
-        background={0xFFFBFAF8}
-        shadow={Kati.Theme.shadow_card_soft()}
-        align="center"
-        on_tap={save}
-      >
-        {UI.symbol("bookmark", size: 21, fill: saved)}
-      </Box>
+      {Kati.Screens.SeriesFa.save(series.saved)}
     </Row>
     """
+  end
+
+  @doc """
+  The bookmark disc, as `Kati.Components.MishkaActionIcon`.
+
+  The same component `more/0` uses, reached for the same reason and unblocked
+  by the same new prop: this disc is a 50pt circle on card white carrying
+  `Kati.Theme.shadow_card_soft/0`, and the shadow was the one thing about it
+  the component could not say. `:circle` gives an exact 25.0 where the markup
+  said 25, and `corner_radius` is read with `floatProp` (`MobBridge.kt:3887`),
+  so the two are the same number.
+
+  Node for node the component builds `Box{width: 50, height: 50,
+  align: :center, corner_radius: 25.0, background: 0xFFFBFAF8, shadow: …,
+  on_tap: {pid, :toggle_save}}` around `Row{} > Text{glyph}`, against the
+  markup's identical Box around `Text{glyph}` — the difference is the bare
+  `Row`, which carries no width, no padding and no background, and which
+  `more/0` has been drawing against the captured frames since the last pass.
+
+  `saved` keeps filling the glyph, because the glyph is a **child**: the
+  component's own `icon` path would build a plain `Text` in Plus Jakarta Sans,
+  and a Material Symbol exists only in the `symbols` face.
+  """
+  def save(saved?) do
+    MishkaActionIcon.action_icon(
+      %{
+        size: 50,
+        shape: :circle,
+        variant: :filled,
+        background: 0xFFFBFAF8,
+        shadow: Kati.Theme.shadow_card_soft(),
+        on_tap: :toggle_save
+      },
+      [UI.symbol("bookmark", size: 21, fill: saved?)]
+    )
   end
 
   @doc false
@@ -365,13 +390,39 @@ defmodule Kati.Screens.SeriesFa do
   # `mount/3` reads *out of* those same flags — one place owns which pill is
   # lit once the pill is a control, and it starts where the sample put it.
   #
-  # Not `Kati.Components.MishkaChip`, and not `MishkaPill`. The pills' labels
-  # are ۱, ۲, ۳ — U+06F1..U+06F3, **Persian** digits, not ASCII — and neither
-  # component takes `font_family`, so each would draw a blank box in Plus
-  # Jakarta Sans (checked: `kati_sans_400.ttf` has zero code points in
-  # U+0600-U+06FF). Shape is the second wall: both hard-code
-  # `corner_radius={:radius_pill}` and one uniform `padding={:space_sm}`, where
-  # the drawing gives these a declared 32x28 on a radius of 10.
+  # ## Still not `Kati.Components.MishkaChip`, and the gap has narrowed to one
+  # thing
+  #
+  # Re-checked this round. The shape wall is **gone**: `MishkaChip` now takes
+  # `width`, `height`, `corner_radius`, `padding_x` / `padding_y`, `text_size`
+  # and `align`, so a declared 32x28 on a radius of 10 is sayable, and
+  # `padding_y: 0` keeps the 28 from becoming 44.
+  #
+  # What is left is the label, and it is the same wall it always was: these
+  # pills read ۱, ۲, ۳ — U+06F1..U+06F3, **Persian** digits, not ASCII — and
+  # `MishkaChip` builds its own `Text` out of `label`, with no `font_family` to
+  # put on it. `kati_sans_400.ttf` carries zero code points in U+0600-U+06FF,
+  # so each pill would draw a blank box rather than fall back.
+  #
+  # The fix is not `font_family` on the chip. It is the **content slot** its
+  # siblings already have: `MishkaPill.pill/2` and `MishkaToggle.toggle/2` both
+  # take children that replace `label`, and `MishkaThemeIcon` and
+  # `MishkaActionIcon` take children that replace `icon` — which is exactly why
+  # `check/1`, `save/1` and `more/0` above are components and this is not.
+  # `MishkaChip.expand/3` is `def expand(props, _children, _ctx)`: it discards
+  # them. One slot would close this, 57's chips and 62's theme segments at
+  # once, and it needs no new typography prop at all.
+  #
+  # Not `MishkaPill` either, and not because it cannot: it takes children, and
+  # `pill(%{width: 32, height: 28, corner_radius: 10, padding: 0, align:
+  # :center, background: bg, on_tap: tag}, [persian_text])` draws this pill.
+  # It is the wrong component. Its own moduledoc draws the line — "a Chip is
+  # selected, a Pill is removed… If you find yourself giving a pill a checked
+  # state, you want MishkaChip" — and these three pills are a selection: one is
+  # lit, tapping another moves the light, none of them can be dismissed.
+  # Reaching for the removable-token component to dodge a missing slot in the
+  # selectable one would hide the upstream signal in the one place it is worth
+  # reading.
   @doc false
   def season_pill(label, index, on?) do
     tap = {self(), String.to_atom("season_" <> Integer.to_string(index))}
@@ -487,38 +538,64 @@ defmodule Kati.Screens.SeriesFa do
     """
   end
 
-  @doc false
+  @doc """
+  The episode ring, as `Kati.Components.MishkaThemeIcon`.
+
+  Both states are one 27pt container, one 14pt radius, one 1.5pt ring and one
+  glyph — which is the component's own definition of itself, "a themed
+  container around exactly one icon". Two props that did not exist before this
+  round make it reachable: `radius` takes a **number**, so 14 is sayable where
+  a two-value `shape` enum could only offer `:radius_md` or `size / 2`; and
+  `border_color` / `border_width` override the variant's choice, which is the
+  whole of what distinguishes the empty ring from the filled one.
+
+  Given no `id` the component adds no wrapper — `markers(nil, …)` returns the
+  icon untouched — so `theme_icon/2` builds the *same map* the sigil did:
+
+      %{type: :box,
+        props: %{width: 27, height: 27, align: :center, corner_radius: 14,
+                 background: 0xFF1A1917, border_color: 0xFF1A1917,
+                 border_width: 1.5},
+        children: [check_glyph]}
+
+  `align` is the atom `:center` rather than the string, and `:json.encode/1`
+  renders an atom as a JSON string, which is what `boxAlignProp`
+  (`MobBridge.kt:4298`) reads.
+
+  The empty ring takes `variant: :subtle`, whose skin is `background: nil`, and
+  `put_some/3` drops a `nil` rather than writing it — so that node carries no
+  `background` key at all, exactly as the markup carried none. A `:filled`
+  variant with a transparent colour would have written one.
+  """
   def check(true) do
-    ~MOB"""
-    <Box
-      width={27}
-      height={27}
-      corner_radius={14}
-      background={Kati.Theme.ink()}
-      border_width={1.5}
-      border_color={0xFF1A1917}
-      align="center"
-    >
-      {Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)}
-    </Box>
-    """
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: Kati.Theme.ink(),
+        size: 27,
+        radius: 14,
+        border_color: 0xFF1A1917,
+        border_width: 1.5
+      },
+      [UI.symbol("check", size: 16, color: 0xFFFBFAF8)]
+    )
   end
 
   # The empty ring, with the drawing's own zero-alpha glyph inside it so the
-  # ring's inner box measures the same as the filled one.
+  # ring's inner box measures the same as the filled one. It stays a child, so
+  # the zero alpha is preserved verbatim — the component's `icon` shorthand
+  # would have retinted it from the variant.
   def check(false) do
-    ~MOB"""
-    <Box
-      width={27}
-      height={27}
-      corner_radius={14}
-      border_width={1.5}
-      border_color={0x291A1917}
-      align="center"
-    >
-      {Kati.UI.symbol("check", size: 16, color: 0x001A1917)}
-    </Box>
-    """
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :subtle,
+        size: 27,
+        radius: 14,
+        border_color: 0x291A1917,
+        border_width: 1.5
+      },
+      [UI.symbol("check", size: 16, color: 0x001A1917)]
+    )
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}

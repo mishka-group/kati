@@ -11,6 +11,20 @@ defmodule Kati.Screens.Agenda do
   A root, not a pushed screen: the drawing carries the dock with Calendar
   active.
 
+  ## The components this screen uses
+
+    * `disc/1` — `Kati.Components.MishkaActionIcon`, filled and circular. It
+      became one this round: an Action Icon had no `shadow` prop before, and a
+      filled disc without one is a flat patch rather than a button floating
+      over the paper.
+    * `hairline/1` — `Kati.Components.MishkaSeparator` at **`render: :box`**.
+      The default `:divider` is Material3's antialiased `drawLine`, whose last
+      pixel row lands at ~69% coverage on this device; the design asks for a
+      1px rule and `:box` is the only setting that draws one.
+
+  The switcher belongs to `Kati.Screens.ViewSwitcher`, and the footer's outline
+  is not a component — see below.
+
   ## Where this diverges from the drawing
 
   The footer's outline is `1.5px dashed`. The bridge's border draws a solid
@@ -22,6 +36,8 @@ defmodule Kati.Screens.Agenda do
   use Kati.Screens.Root, root: :calendar
 
   alias Kati.Calendar.SampleAgenda
+  alias Kati.Components.MishkaActionIcon
+  alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Theme
   alias Kati.UI
@@ -68,20 +84,45 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
-  @doc false
+  @doc """
+  A header disc: `Kati.Components.MishkaActionIcon`, filled and circular.
+
+  An icon-only button is what an Action Icon is for, and `shape: :circle`
+  resolves to an exact `size / 2` — the 22 that was written here by hand.
+
+  **`shadow` is the whole point.** `variant: :filled` paints a fill and stops
+  there, which reads as a flat patch of paper; the design's disc floats, and
+  `Kati.Theme.shadow_button()` is how far. That prop is new this round, and its
+  absence is why this stayed a hand-rolled `Box`.
+
+  The glyph goes in as a child: the component's `icon:` shorthand builds a
+  `Text` with no `font_family`, so `"search"` would be typeset as the word
+  rather than resolved through the Material Symbols ligature — and
+  `Kati.UI.symbol/2` keeps `Kati.Icons.glyph!/1`'s raise for a name outside the
+  shipped subset.
+
+  ## Why the pixels do not move
+
+  The node is `Box{width: 44, height: 44, align: :center, corner_radius: 22.0,
+  background: …, shadow: …}` — every number this wrote by hand. `align: :center`
+  and `align="center"` reach the bridge as the same string, and `corner_radius`
+  is read with `floatProp`, so `22.0` is `22`.
+
+  The one addition is the `Row` the component wraps children in, and it is
+  inert: `MobBridge.kt`'s row branch never fills, so a propless `Row` hugs its
+  single child on both axes and the Box centres the same rectangle.
+  """
   def disc(icon) do
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      corner_radius={22}
-      background={Kati.Theme.card(:light)}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+    MishkaActionIcon.action_icon(
+      %{
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button()
+      },
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -205,9 +246,26 @@ defmodule Kati.Screens.Agenda do
     end
   end
 
-  @doc false
+  @doc """
+  The rule between two agenda rows — `Kati.Components.MishkaSeparator`, and it
+  has to be `render: :box`.
+
+  The component's default is `:divider`, which the bridge maps to Material3's
+  `HorizontalDivider` — an antialiased `drawLine`, not a filled rect. At this
+  device's 2.6875x a 1dp rule is handed a 3px canvas and a 2.6875px stroke, so
+  the last pixel row lands at ~69% coverage: a full-width row 4-5/255 lighter
+  than the two above it. `render: :box` paints three full rows of
+  `rgba(26,25,23,.07)`, which is the hairline this drew by hand.
+
+  A `:box` rule carries one extra node, a `<Spacer size={1}/>` that exists for
+  iOS (`MobBox` drops a Box's height unless the Box also has a width). On
+  Android it is a 1x1dp child with no background inside a `Box` already pinned
+  to `fill_width` and `height: 1` — it measures nothing new and paints nothing.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  def hairline(true),
+    do: MishkaSeparator.separator(render: :box, color: 0x121A1917, thickness: 1)
 
   @doc false
   def footer(label) do

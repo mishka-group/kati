@@ -69,20 +69,61 @@ defmodule Kati.Screens.Widgets do
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
-        <Box
-          width={44}
-          height={44}
-          corner_radius={22}
-          background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
-          align="center"
-        >
-          {Kati.UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.Widgets.disc("more_horiz")}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  The 44pt floating disc the header hangs opposite the back pill.
+
+  `Kati.Components.MishkaThemeIcon` is documented as "a themed container around
+  exactly one icon", which is precisely what this is — and it could not be one
+  until the container took a `shadow`. That is the whole difference here: a disc
+  is *defined* by floating. `variant: :filled` paints `#FBFAF8` and stops, which
+  on this screen's `#F2EFEA` paper reads as a pale patch rather than as a button
+  above it, so before `shadow` existed this had to stay hand-rolled markup.
+
+  ## Why the pixels do not move
+
+  With children and no `id`, `theme_icon/2` returns
+
+      %{type: :box,
+        props: %{width: 44, height: 44, align: :center, corner_radius: 22,
+                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button()},
+        children: [glyph]}
+
+  — the same seven keys, with the same seven values, that the `<Box>` above it
+  carried. `align: :center` and `align="center"` reach the bridge as the same
+  string: `align` is in none of the renderer's token whitelists, so an
+  unrecognised atom passes through and `:json.encode/1` writes an atom as its
+  own name.
+
+  Nothing else in the component runs. `:filled` contributes no gradient layer;
+  `skin(:filled, …)` proposes no border, so `put_some/3` drops both
+  `border_color` and `border_width` rather than writing nils; the id markers are
+  skipped without an `id`; and the `icon` shorthand is skipped when children are
+  given — which is also why the glyph goes in as a child. That shorthand builds
+  a `Text` with no `font_family`, so the Material Symbols ligature
+  `"more_horiz"` would be typeset as the word instead of resolved to the glyph.
+
+  `Kati.UI.SettingsList.disc/1` is the same call with the colour spelled
+  `0xFFFBFAF8`; this one keeps `Kati.Theme.card(:light)`, which is that number,
+  because that is what the markup said.
+  """
+  def disc(icon) do
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: Kati.Theme.card(:light),
+        size: 44,
+        radius: 22,
+        shadow: Kati.Theme.shadow_button()
+      },
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   @doc false
@@ -441,18 +482,41 @@ defmodule Kati.Screens.Widgets do
     """
   end
 
-  # `Kati.Components.MishkaSeparator` is what a 1px rule between rows is, so
-  # the rule is its — here for the shortcut list and for the one inside the
-  # share card, which the drawing paints at the same 7% ink. Its plain variant
-  # is a `<Divider>`, and the bridge's `MobDivider` renders Compose's
-  # `HorizontalDivider(thickness, color)` — defined as
-  # `Box(modifier.fillMaxWidth().height(thickness).background(color))`, the
-  # same three modifiers this wrote by hand. The alpha survives because the
-  # colour is passed as an ARGB int: `color` is in the renderer's
-  # `@color_props` whitelist and an integer reaches `colorProp` untouched.
-  @doc false
+  @doc """
+  The 7% ink rule — between two shortcut rows, and inside the share card.
+
+  `Kati.Components.MishkaSeparator` is what a 1px rule between rows is, so the
+  rule is its, and `render: :box` is the word that makes that true here.
+
+  ## Why `render: :box`
+
+  The component's default `:divider` maps to Material3's `HorizontalDivider`,
+  which is not the `Box(fillMaxWidth().height(t).background(c))` this file used
+  to claim but an antialiased `drawLine`. At 2.6875x a 1dp rule is given a 3px
+  canvas and a 2.6875px stroke, so its bottom pixel row lands at ~69% coverage
+  — a full-width row 4-5/255 lighter than the two above it. The drawing paints a
+  flat 7% hairline, and no `color`/`thickness` pair recovers it, because the
+  softness is in the primitive rather than the values.
+
+  `render: :box` builds
+
+      <Box fill_width={true} height={1} background={0x121A1917}>
+        <Spacer size={1} />
+      </Box>
+
+  — the exact three modifiers this screen wrote by hand before it adopted the
+  component. The `Spacer` is an iOS workaround for `MobBox` dropping a Box's
+  `height` when it has no `width`; on Android the `height` pins the rule and
+  `MobSpacer` is a bare sized `Spacer` with no background, so it draws nothing.
+
+  The alpha survives because the colour is an ARGB int: `color` is in the
+  renderer's `@color_props` whitelist and an integer reaches `colorProp`
+  untouched.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+
+  def hairline(true),
+    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
 
   # The index rather than the title: these titles are spoken phrases wrapped in
   # typographic quotes, and the tag has to survive a round trip through

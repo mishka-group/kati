@@ -120,26 +120,44 @@ defmodule Kati.Screens.HomeDark do
     """
   end
 
-  # An inset ring, not a shadow. The drawing writes it `inset 0 0 0 1px
-  # rgba(245,242,238,.06)`; a border of that colour is the same pixel.
-  @doc false
-  def disc(icon, tag) do
-    tap = {self(), tag}
+  @doc """
+  A 44pt header disc — an inset ring, not a shadow.
 
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      corner_radius={22}
-      background={0xFF1E1D1B}
-      border_width={1}
-      border_color={0x0FF5F2EE}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21, color: 0xFFF5F2EE)}
-    </Box>
-    """
+  The drawing writes the lift as `inset 0 0 0 1px rgba(245,242,238,.06)`, and a
+  border of that colour is the same pixel. That is why this disc waited:
+  `Kati.Components.MishkaActionIcon` is exactly a round tap target holding one
+  glyph, but it painted a fill and stopped, with no way to say *outlined*. It
+  now takes `border_color` and `border_width`, which is the whole of what dark
+  mode uses instead of a shadow.
+
+  **The pixels are the same node.** The port builds
+
+      <Box width={44} height={44} align={:center} corner_radius={22.0}
+           background={0xFF1E1D1B} border_color={0x0FF5F2EE} border_width={1}
+           on_tap=…><Row>{glyph}</Row></Box>
+
+  which is this `Box` prop for prop: `shape: :circle` resolves to an exact
+  `size / 2` so 44 gives 22, `variant: :filled` is what lets `background`
+  through, and `align={:center}` serialises to the `"center"` string
+  `MobBridge.boxAlignProp` reads. The border needs both keys to draw anything —
+  the port omits `border_width` entirely unless `border_color` is set, which is
+  the same condition the bridge applies. The added `Row` carries no props, takes
+  no modifier and hugs its one child, so the glyph measures and centres as it
+  did.
+  """
+  def disc(icon, tag) do
+    Kati.Components.MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: 0xFF1E1D1B,
+        border_color: 0x0FF5F2EE,
+        border_width: 1,
+        on_tap: {self(), tag}
+      ],
+      [Kati.UI.symbol(icon, size: 21, color: 0xFFF5F2EE)]
+    )
   end
 
   @doc false
@@ -413,15 +431,24 @@ defmodule Kati.Screens.HomeDark do
   @doc """
   The rule between two timeline rows — paper at 7% on near-black, not ink.
 
-  Not `Kati.Components.MishkaSeparator`, for the reason
-  `Kati.Screens.Subscriptions.hairline/1` sets out at length: the port renders
-  `<Divider>`, Material 3 draws that as an antialiased `drawLine` inside a
-  rounded `height(thickness)` box, and at the capture device's 2.6875x a 1dp
-  stroke leaves the last of three device-pixel rows at 69% coverage where a
-  filled `Box` gives 100%. The API fits this line exactly; the pixels do not.
+  `Kati.Components.MishkaSeparator` at `render: :box`, for the reason
+  `Kati.Screens.Subscriptions.hairline/1` sets out at length: the port's default
+  `render: :divider` emits `<Divider>`, Material 3 draws that as an antialiased
+  `drawLine` inside a `height(thickness)` canvas, and at the capture device's
+  2.6875x a 1dp stroke leaves the last of three device-pixel rows at 69%
+  coverage where a filled `Box` gives 100%. The API always fitted this line;
+  until `render: :box` existed the pixels did not.
+
+  The node it builds is `<Box fill_width={true} height={1} background=…>` with a
+  `<Spacer size={1} />` inside — the port's iOS height workaround. On Android
+  `MobSpacer` is a background-less `Spacer(modifier.size(1.dp))` and the Box's
+  `height(1.dp)` pins the box, so the child draws nothing and measures nothing.
+  Same rule, one invisible node.
   """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x12F5F2EE} />"
+
+  def hairline(true),
+    do: Kati.Components.MishkaSeparator.separator(color: 0x12F5F2EE, render: :box)
 
   # A fade to the page colour, not to paper. `Kati.UI.paper_fade/1` is
   # `#EFECE7` and would draw a pale band across the bottom of a near-black page.
@@ -436,8 +463,6 @@ defmodule Kati.Screens.HomeDark do
 
   @doc false
   def dock do
-    fab = {self(), :fab}
-
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="bottom">
       <Row fill_width={true} align="center" padding_left={18} padding_right={18} padding_bottom={30}>
@@ -447,12 +472,46 @@ defmodule Kati.Screens.HomeDark do
           </Row>
         </Box>
         <Spacer size={11} />
-        <Box width={64} height={64} background={0xFFF5F2EE} corner_radius={32} shadow="0 12 26 -10 #CC1A1917" align="center" on_tap={fab}>
-          {Kati.UI.symbol("add", size: 27, color: 0xFF16150F)}
-        </Box>
+        {Kati.Screens.HomeDark.fab()}
       </Row>
     </Box>
     """
+  end
+
+  @doc """
+  The 64pt add button beside the dock, inverted to paper-on-ink.
+
+  `Kati.Components.MishkaActionIcon`. The port's own docs put it plainly — *"a
+  floating disc is defined by its shadow"* — and until it took a `shadow` prop
+  it could draw a flat paper patch here and nothing else. `0 12 26 -10
+  #CC1A1917` is what lifts the FAB off a near-black page, so it was the whole
+  difference between the component and this button.
+
+  **The pixels are the same node.** The port builds
+
+      <Box width={64} height={64} align={:center} corner_radius={32.0}
+           background={0xFFF5F2EE} shadow="0 12 26 -10 #CC1A1917"
+           on_tap=…><Row>{glyph}</Row></Box>
+
+  against the identical hand-rolled `Box`: `shape: :circle` is an exact
+  `size / 2`, so 64 gives the drawing's 32; `variant: :filled` lets the paper
+  fill through; `align={:center}` serialises to `"center"`; and the `shadow`
+  string is handed to the container untouched, so `MobBridge`'s `shadowLayers`
+  parses the same one layer. The extra `Row` has no props, hugs its one child
+  and adds nothing to measure.
+  """
+  def fab do
+    Kati.Components.MishkaActionIcon.action_icon(
+      [
+        size: 64,
+        shape: :circle,
+        variant: :filled,
+        background: 0xFFF5F2EE,
+        shadow: "0 12 26 -10 #CC1A1917",
+        on_tap: {self(), :fab}
+      ],
+      [Kati.UI.symbol("add", size: 27, color: 0xFF16150F)]
+    )
   end
 
   # The active disc is #0E0D0C — darker than the page, so it reads as a hole

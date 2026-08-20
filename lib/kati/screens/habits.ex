@@ -100,23 +100,44 @@ defmodule Kati.Screens.Habits do
     """
   end
 
-  @doc false
-  def disc(icon, tag) do
-    tap = {self(), tag}
+  @doc """
+  The 44pt floating disc opposite the title — here, the `+` that adds a habit.
 
-    ~MOB"""
-    <Box
-      width={44}
-      height={44}
-      background={Kati.Theme.card(:light)}
-      corner_radius={22}
-      shadow={Kati.Theme.shadow_button()}
-      align="center"
-      on_tap={tap}
-    >
-      {Kati.UI.symbol(icon, size: 21)}
-    </Box>
-    """
+  `Kati.Components.MishkaActionIcon`, which it could not be until the port grew
+  a `shadow` prop. `today_button/2` below adopted the same component and had to
+  record that this disc could not follow it, "because the port has no `shadow`
+  prop to put it back" — and a floating disc is *defined* by its shadow, so that
+  was the whole of the gap. It is closed.
+
+  **The pixels are the same node.** The port builds
+
+      <Box width={44} height={44} align={:center} corner_radius={22.0}
+           background=… shadow=… on_tap=…><Row>{glyph}</Row></Box>
+
+  where this was `<Box width={44} height={44} background corner_radius={22}
+  shadow align="center" on_tap>`. Prop for prop: `shape: :circle` resolves to an
+  exact `size / 2`, so 44 gives the drawing's own 22; `align={:center}` is an
+  atom the renderer serialises to the same `"center"` string the markup wrote,
+  and `MobBridge.boxAlignProp` reads it identically; `variant: :filled` is what
+  lets `background` through, since the port paints `:transparent` on the default
+  `:plain`; and `shadow` rides on the container untouched.
+
+  The one addition is the `Row` the port wraps children in. A `Row` carrying no
+  props takes no modifier and hugs its single child, so the glyph measures
+  exactly as before and the Box centres the same box it centred.
+  """
+  def disc(icon, tag) do
+    Kati.Components.MishkaActionIcon.action_icon(
+      [
+        size: 44,
+        shape: :circle,
+        variant: :filled,
+        background: Kati.Theme.card(:light),
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), tag}
+      ],
+      [Kati.UI.symbol(icon, size: 21)]
+    )
   end
 
   # Indexed, because every card's today button carries the same verb and only
@@ -199,10 +220,10 @@ defmodule Kati.Screens.Habits do
   **The pixels are the same node.** The port renders
   `<Box width height align={:center} corner_radius background on_tap>` around a
   `<Row>` holding the glyph, and a `Row` given no props hugs its one child, so
-  the check measures and centres where it did before. This is the one disc on
-  the screen that carries no shadow, which is why it is the one that could move:
-  `disc/2` above it wears `Kati.Theme.shadow_button()`, and the port has no
-  `shadow` prop to put it back — which is why `disc/2` is still hand-rolled.
+  the check measures and centres where it did before. This was for a while the
+  only disc on the screen that could move, because it is the only one carrying
+  no shadow and the port had no `shadow` prop to put one back; `disc/2` above
+  now takes the same route, because the port has one.
   """
   def today_button(ticked?, index) do
     background = if ticked?, do: 0xFF4E9A73, else: 0xFFEFECE7
