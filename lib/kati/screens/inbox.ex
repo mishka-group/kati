@@ -32,7 +32,7 @@ defmodule Kati.Screens.Inbox do
         {Kati.Screens.Inbox.watcher(inbox)}
         {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
         {Kati.Screens.Inbox.out_now(inbox)}
-        {Kati.Screens.Inbox.eyebrow("Coming up")}
+        {Kati.UI.eyebrow("Coming up", dash: 0xFFC4BDB3, gap: 12)}
         {Kati.Screens.Inbox.coming_up()}
       </Column>
     </Scroll>
@@ -55,29 +55,6 @@ defmodule Kati.Screens.Inbox do
         </Row>
       </Row>
       <Spacer size={16} />
-    </Column>
-    """
-  end
-
-  # Kati.UI.eyebrow/2 always draws the accent dash, and orange on this screen
-  # means "out now". The drawing gives Coming up a #C4BDB3 dash instead —
-  # nothing here has happened yet — so this section states its own.
-  @doc false
-  def eyebrow(label) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
-        <Spacer size={9} />
-        <Text
-          text={String.upcase(label)}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
-          text_color={0xFFA0998F}
-        />
-      </Row>
-      <Spacer size={12} />
     </Column>
     """
   end

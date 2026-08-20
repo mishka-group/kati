@@ -34,7 +34,7 @@ defmodule Kati.Screens.Stats do
         {UI.eyebrow("More numbers")}
         {Kati.Screens.Stats.more_numbers()}
         <Spacer size={26} />
-        {Kati.Screens.Stats.recent_eyebrow()}
+        {UI.eyebrow("Recently watched", dash: 0xFFC4BDB3, gap: 12)}
         {Kati.Screens.Stats.recently_watched()}
       </Column>
     </Scroll>
@@ -266,30 +266,6 @@ defmodule Kati.Screens.Stats do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
-
-  # Coming after four sections that have all happened, this one is a list, not
-  # an alert — so the drawing gives it a #C4BDB3 dash where every other eyebrow
-  # on the page takes the accent. Kati.UI.eyebrow/2 always draws the accent, so
-  # the section states its own.
-  @doc false
-  def recent_eyebrow do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
-        <Spacer size={9} />
-        <Text
-          text={String.upcase("Recently watched")}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
-          text_color={0xFFA0998F}
-        />
-      </Row>
-      <Spacer size={12} />
-    </Column>
-    """
-  end
 
   @doc """
   The last section of the drawing, which the screen was not drawing at all.

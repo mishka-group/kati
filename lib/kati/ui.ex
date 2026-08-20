@@ -95,10 +95,20 @@ defmodule Kati.UI do
   def eyebrow(label, opts \\ []) do
     trailing = Keyword.get(opts, :trailing)
 
+    # The dash is not always the accent, and hardcoding it made three screens
+    # write their own eyebrow to say so. Orange means new/now in this design —
+    # so "Coming up" (05) and "Recently watched" (07) take #C4BDB3 instead,
+    # because nothing in either section has happened yet.
+    dash = Keyword.get(opts, :dash, 0xFFE8823C)
+
+    # And the tail is not always 11: the drawings say 12 wherever the eyebrow
+    # opens a section rather than labelling a card.
+    gap = Keyword.get(opts, :gap, 11)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFE8823C} />
+        <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
@@ -110,7 +120,7 @@ defmodule Kati.UI do
         <Spacer weight={1.0} />
         {Kati.UI.eyebrow_trailing(trailing)}
       </Row>
-      <Spacer size={11} />
+      <Box fill_width={true} height={gap} />
     </Column>
     """
   end
@@ -553,11 +563,17 @@ defmodule Kati.UI do
   written from memory does not raise.
   """
   @spec number_with_unit(term(), term(), number()) :: term()
+  # `offset_y`, not `padding_bottom`, and the difference is not cosmetic: the
+  # bridge reads padding with `intProp`, which truncates a Double (3.4 -> 3),
+  # so a fractional lift silently lost its fraction. `offset_y` goes through
+  # `floatProp` and keeps it. It also shifts the PAINT rather than the layout,
+  # which is what a baseline nudge is — the row's height must not change
+  # because a unit moved up 3.4pt inside it.
   def number_with_unit(number, unit, lift) do
     ~MOB"""
     <Row align="bottom">
       {number}
-      <Column padding_bottom={lift}>
+      <Column offset_y={-lift}>
         {unit}
       </Column>
     </Row>

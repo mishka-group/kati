@@ -64,7 +64,7 @@ defmodule Kati.Screens.Fa do
     <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
       {content}
       <Box fill_width={true} fill_height={true} align="bottom">
-        {Kati.UI.paper_fade(120)}
+        {Kati.UI.paper_fade(120, 42)}
       </Box>
       {Kati.Screens.Fa.dock(active)}
     </Box>
