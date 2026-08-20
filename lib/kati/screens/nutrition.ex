@@ -93,16 +93,24 @@ defmodule Kati.Screens.Nutrition do
   def segments do
     [first | rest] = Sample.segments()
 
+    tabs =
+      [segment(first, true) | Enum.map(rest, fn label -> segment(label, false) end)]
+      |> Enum.intersperse(segment_gap())
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4} align="center">
-        {Kati.Screens.Nutrition.segment(first, true)}
-        {Enum.map(rest, fn label -> Kati.Screens.Nutrition.segment(label, false) end)}
+        {tabs}
       </Row>
       <Spacer size={18} />
     </Column>
     """
   end
+
+  # The selected tab's white pill has to read as one of three, not as a lid on
+  # a strip: without this the three abut and the trough disappears between them.
+  @doc false
+  def segment_gap, do: ~MOB"<Spacer size={4} />"
 
   @doc false
   def segment(label, on?) do

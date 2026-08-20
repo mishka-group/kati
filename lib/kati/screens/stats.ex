@@ -237,8 +237,10 @@ defmodule Kati.Screens.Stats do
 
   @doc false
   def number_row(row, rule?) do
+    tap = {self(), String.to_atom("go_" <> row.title)}
+
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
           {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
@@ -260,4 +262,28 @@ defmodule Kati.Screens.Stats do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  # The More numbers rows are the only route to these screens outside the
+  # gallery, which is scaffolding.
+  @destinations %{
+    "Activity log" => Kati.Screens.Activity,
+    "Habits" => Kati.Screens.Habits,
+    "Nutrition" => Kati.Screens.Health,
+    "Subscriptions" => Kati.Screens.Subscriptions,
+    "Recently watched" => Kati.Screens.UpNext
+  }
+
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "go_" <> title ->
+        case Map.fetch(@destinations, title) do
+          {:ok, module} -> {:noreply, Mob.Socket.push_screen(socket, module)}
+          :error -> {:noreply, socket}
+        end
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
 end

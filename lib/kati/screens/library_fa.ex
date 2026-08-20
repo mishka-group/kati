@@ -232,13 +232,19 @@ defmodule Kati.Screens.LibraryFa do
         <Row>
           {Sample.chips()
            |> Enum.with_index()
-           |> Enum.map(fn {{label, count}, i} -> Kati.Screens.LibraryFa.chip(label, count, i == 0) end)}
+           |> Enum.map(fn {{label, count}, i} -> Kati.Screens.LibraryFa.chip(label, count, i == 0) end)
+           |> Enum.intersperse(Kati.Screens.LibraryFa.chip_gap())}
         </Row>
       </Scroll>
       <Spacer size={20} />
     </Column>
     """
   end
+
+  # Between the pills, like grid_gap between the posters. Inside the chip it
+  # was padding, not a gap: the pills abutted and each label sat 3.5 off centre.
+  @doc false
+  def chip_gap, do: ~MOB"<Spacer size={7} />"
 
   # The count sits at .6 of the label's own colour rather than on a token of
   # its own, so it stays legible on the ink chip and on the white ones.
@@ -262,7 +268,6 @@ defmodule Kati.Screens.LibraryFa do
       <Text text={label} font_family="fa" font_weight="semibold" text_size={12.5} text_color={fg} max_lines={1} />
       <Spacer size={6} />
       <Text text={count} font_family="fa" text_size={10} text_color={count_fg} max_lines={1} />
-      <Spacer size={7} />
     </Row>
     """
   end

@@ -10,17 +10,20 @@ defmodule Kati.Screens.Activity do
 
   Three things the drawing is specific about and this file follows literally:
 
-    * **Two stamps, two gutters.** Today's rows carry a `21:12` clock at mono
-      11 in a 38pt column; Earlier this month's carry `12 AUG` at mono 10 with
-      `.06em` in 44. The drawing puts both in one gutter, but a date is wider
-      than a clock and 38 truncated it to `12 A…`; 44 is what screen 19's
-      calendar rows already give the same stamp. So the width travels with the
-      type as an argument to the row rather than being baked into it.
+    * **Two stamps, one gutter.** Today's rows carry a `21:12` clock at mono
+      11; Earlier this month's carry `12 AUG` at mono 10 with `.06em`. Both
+      sit in a 44pt column, which is what the drawing draws and what screen
+      19's calendar rows already give the same stamp. Sizing each card's
+      gutter to its own stamp is the tempting move and the wrong one — 38 both
+      truncated the date to `12 A…` and stepped the two cards' thumbnails out
+      of line with each other.
     * **The second eyebrow is grey.** "Earlier this month" gets a `#C4BDB3`
       dash, not the accent — see `Kati.UI.Eyebrow`. Last month is neither new
       nor now.
     * **The verb is a separate run.** `Watched`, `Rated`, `Dropped` are bold
-      ink inside a `#5C574F` line, and one `Text` carries one weight.
+      ink inside a `#5C574F` line, and one `Text` carries one weight. The 2
+      between the runs is the word space that split them, not a gap between
+      two things — at 4 the line read as two phrases.
 
   The rating row is written `Blue Hour ★★★★` in the export. U+2605 is not in
   Plus Jakarta Sans — screen 08 discovered that by rendering an empty rating
@@ -44,7 +47,7 @@ defmodule Kati.Screens.Activity do
         {Kati.Screens.Activity.header()}
         {Kati.Screens.Activity.filters()}
         {UI.eyebrow("Today")}
-        {Kati.Screens.Activity.entries(Sample.today(), 38, 11, 0.0)}
+        {Kati.Screens.Activity.entries(Sample.today(), 44, 11, 0.0)}
         {Kati.UI.Eyebrow.quiet("Earlier this month")}
         {Kati.Screens.Activity.entries(Sample.earlier(), 44, 10, 0.06)}
         {UI.eyebrow("Rewatch count")}
@@ -136,10 +139,11 @@ defmodule Kati.Screens.Activity do
   @doc """
   One dated group as a single card of rows.
 
-  `stamp_width`, `stamp_size` and `stamp_spacing` are the only difference
-  between Today and Earlier this month, which is why they are parameters here
-  rather than two near-identical functions. The width joined them because a
-  date does not fit a clock's gutter: `12 AUG` in 38 renders `12 A…`.
+  `stamp_size` and `stamp_spacing` are the only difference between Today and
+  Earlier this month, which is why they are parameters here rather than two
+  near-identical functions. `stamp_width` is 44 from both callers — it stays
+  an argument so the two calls state the shared gutter side by side, where a
+  disagreement is visible.
   """
   def entries(rows, stamp_width, stamp_size, stamp_spacing) do
     last = length(rows) - 1
@@ -195,7 +199,7 @@ defmodule Kati.Screens.Activity do
         <Box weight={1.0}>
           <Row fill_width={true} align="center">
             <Text text={row.lead} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
-            <Spacer size={4} />
+            <Spacer size={2} />
             <Text text={row.rest} text_size={12.5} text_color={0xFF5C574F} max_lines={1} />
             {Kati.Screens.Activity.stars(row[:stars])}
             <Spacer weight={1.0} />

@@ -213,13 +213,19 @@ defmodule Kati.Screens.ScheduleFa do
         <Row>
           {Sample.chips()
            |> Enum.with_index()
-           |> Enum.map(fn {label, i} -> Kati.Screens.ScheduleFa.chip(label, i == 0) end)}
+           |> Enum.map(fn {label, i} -> Kati.Screens.ScheduleFa.chip(label, i == 0) end)
+           |> Enum.intersperse(Kati.Screens.ScheduleFa.chip_gap())}
         </Row>
       </Scroll>
       <Spacer size={18} />
     </Column>
     """
   end
+
+  # The gap lives between the pills, like day_strip's cell_gap. Held inside the
+  # chip it padded the label instead, pushing every one 3.5 off centre.
+  @doc false
+  def chip_gap, do: ~MOB"<Spacer size={7} />"
 
   @doc false
   def chip(label, on?) do
@@ -238,7 +244,6 @@ defmodule Kati.Screens.ScheduleFa do
       align="center"
     >
       <Text text={label} font_family="fa" font_weight="semibold" text_size={12.5} text_color={fg} max_lines={1} />
-      <Spacer size={7} />
     </Row>
     """
   end

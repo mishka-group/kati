@@ -333,8 +333,10 @@ defmodule Kati.Screens.MealsToday do
     gutter_color = if meal.state == :next, do: Theme.ink(), else: 0xFFA9A29A
     gutter_weight = if meal.state == :next, do: "medium", else: "regular"
 
+    tap = {self(), :open_meal}
+
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={gutter_top}>
           <Text text={meal.time} font_family="mono" text_size={12} font_weight={gutter_weight} text_color={gutter_color} max_lines={1} />
@@ -522,4 +524,11 @@ defmodule Kati.Screens.MealsToday do
     </Row>
     """
   end
+
+  @impl true
+  def handle_tap(:open_meal, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
+  def handle_tap(:open_plan, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
+  def handle_tap(:open_shopping, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Shopping)}
+  def handle_tap(:open_nutrition, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Nutrition)}
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end
