@@ -30,6 +30,7 @@ defmodule Kati.Screens.Week do
   use Kati.Screens.Root, root: :calendar
 
   alias Kati.Calendar.SampleWeek
+  alias Kati.Components.MishkaSeparator
   alias Kati.Theme
   alias Kati.UI
 
@@ -260,7 +261,16 @@ defmodule Kati.Screens.Week do
 
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  # `MishkaSeparator` rather than a hand-rolled Box. A horizontal rule with no
+  # label is the whole of what that component draws, and it draws it as
+  # `<Divider>` — which on this bridge is Compose's `HorizontalDivider`, i.e.
+  # `Box(fillMaxWidth().height(thickness.dp).background(color))`. That is
+  # literally the Box that used to be written here, so the rule is the same
+  # 1dp band of the same 7%-ink at the same width.
+  #
+  # `color` is passed rather than left to the component's `:border` default:
+  # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   @doc false
   def hint do

@@ -147,9 +147,7 @@ defmodule Kati.Screens.Language do
         <Spacer size={13} />
         {Kati.Screens.Language.language_body(l)}
         <Spacer size={13} />
-        <Box width={24} height={24} corner_radius={12} background={Kati.Theme.ink()} align="center">
-          {Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)}
-        </Box>
+        {Kati.Screens.Language.selected_mark()}
       </Row>
       <Spacer size={10} />
     </Column>
@@ -183,21 +181,65 @@ defmodule Kati.Screens.Language do
     """
   end
 
+  @doc """
+  The 38pt paper tile every picker row leads with.
+
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon" — rather than a fourth hand-rolled `Box`, which is the same call
+  `Kati.UI.SettingsList.icon_tile/1` makes one size down. The three rows this
+  screen draws above the card all lead with this tile, so it is one function
+  and the "Add a language" row shares it.
+
+  ## Why the pixels do not move
+
+  With children, an explicit numeric `color`, no `id` and no `on_tap`,
+  `theme_icon/2` returns
+  `%{type: :box, props: %{width: 38, height: 38, align: :center,
+  corner_radius: 12, background: 0xFFEFECE7}, children: [child]}` — node for
+  node what this wrote by hand. `align: :center` and `align="center"` reach
+  the bridge as the same string. Nothing else in the component runs: the
+  `icon` shorthand is skipped when children are given, `:filled`'s gradient
+  layer is empty, and the id markers need an `id`.
+
+  The glyph is passed as a child rather than through the `icon` prop for the
+  reason `SettingsList` gives — the shorthand builds a `Text` with no
+  `font_family`, which would typeset a Material Symbols ligature as words and,
+  here, would lose Vazirmatn on `فا` entirely.
+  """
+  def tile(child) do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 38, radius: 12},
+      [child]
+    )
+  end
+
   @doc false
   def code_tile(%{script: :fa} = l) do
-    ~MOB"""
-    <Box width={38} height={38} corner_radius={12} background={0xFFEFECE7} align="center">
-      <Text text={l.code} font_family="fa" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
-    </Box>
-    """
+    Kati.Screens.Language.tile(~MOB"""
+    <Text text={l.code} font_family="fa" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
+    """)
   end
 
   def code_tile(l) do
-    ~MOB"""
-    <Box width={38} height={38} corner_radius={12} background={0xFFEFECE7} align="center">
-      <Text text={l.code} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
-    </Box>
-    """
+    Kati.Screens.Language.tile(~MOB"""
+    <Text text={l.code} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
+    """)
+  end
+
+  @doc """
+  The 24pt ink disc that marks the language you are in.
+
+  Also `MishkaThemeIcon`: radius 12 at size 24 is an exact circle, and the
+  component's own `:circle`-shaped siblings resolve theirs the same way. Only
+  the *filled* half of the pair can be a theme icon — the unselected row's
+  ring is an empty 1.5pt outline, and `theme_icon/2` paints a border only in
+  `variant: :outline`, which forfeits the fill and hard-codes the width at 1.
+  """
+  def selected_mark do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Kati.Theme.ink(), size: 24, radius: 12},
+      [Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)]
+    )
   end
 
   @doc false
@@ -238,9 +280,7 @@ defmodule Kati.Screens.Language do
       align="center"
       on_tap={tap}
     >
-      <Box width={38} height={38} corner_radius={12} background={0xFFEFECE7} align="center">
-        {Kati.UI.symbol("add", size: 18, color: 0xFF8A8479)}
-      </Box>
+      {Kati.Screens.Language.tile(Kati.UI.symbol("add", size: 18, color: 0xFF8A8479))}
       <Spacer size={13} />
       <Column weight={1.0}>
         <Text text={a.title} text_size={14} font_weight="bold" text_color={0xFF8A8479} max_lines={1} />

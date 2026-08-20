@@ -82,16 +82,39 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"<Box weight={1.0} height={4} corner_radius={2} background={color} />"
   end
 
-  @doc false
+  @doc """
+  The 56pt ink mark the question hangs off.
+
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon", which is the whole of what this is — for the same reason
+  `Kati.UI.SettingsList.icon_tile/1` uses it, and with the same guarantee.
+  Given children, an explicit numeric `color`, no `id` and no `on_tap`,
+  `theme_icon/2` returns
+  `%{type: :box, props: %{width: 56, height: 56, align: :center,
+  corner_radius: 18, background: 0xFF1A1917}, children: [glyph]}` — node for
+  node what this wrote by hand. `align: :center` and `align="center"` reach
+  the bridge as the same string; the `icon` shorthand, the `:filled` gradient
+  layer and the id markers are all skipped.
+
+  The glyph goes in as a child rather than through the `icon` prop: that
+  shorthand builds its own `Text` with no `font_family`, so the Material
+  Symbols ligature `translate` would be typeset as the word.
+  """
   def mark do
     ~MOB"""
     <Column fill_width={true}>
-      <Box width={56} height={56} corner_radius={18} background={Kati.Theme.ink()} align="center">
-        {Kati.UI.symbol("translate", size: 26, color: 0xFFFBFAF8)}
-      </Box>
+      {Kati.Screens.LanguagePick.mark_tile()}
       <Spacer size={20} />
     </Column>
     """
+  end
+
+  @doc false
+  def mark_tile do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Kati.Theme.ink(), size: 56, radius: 18},
+      [Kati.UI.symbol("translate", size: 26, color: 0xFFFBFAF8)]
+    )
   end
 
   @doc false
@@ -151,9 +174,7 @@ defmodule Kati.Screens.LanguagePick do
       padding_right={17}
       align="center"
     >
-      <Box width={42} height={42} corner_radius={14} background={0x1FF5F2EE} align="center">
-        {Kati.Screens.LanguagePick.badge(option, 0xFFF5F2EE)}
-      </Box>
+      {Kati.Screens.LanguagePick.badge_tile(option, 0x1FF5F2EE, 0xFFF5F2EE)}
       <Spacer size={14} />
       <Column weight={1.0}>
         {Kati.Screens.LanguagePick.name(option, 0xFFFBFAF8)}
@@ -161,9 +182,7 @@ defmodule Kati.Screens.LanguagePick do
         <Text text={option.meta} font_family="mono" text_size={10.5} text_color={0xFF8A837B} max_lines={1} />
       </Column>
       <Spacer size={14} />
-      <Box width={24} height={24} corner_radius={12} background={Kati.Theme.accent()} align="center">
-        {Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)}
-      </Box>
+      {Kati.Screens.LanguagePick.chosen_mark()}
     </Row>
     """
   end
@@ -180,9 +199,7 @@ defmodule Kati.Screens.LanguagePick do
       padding_right={17}
       align="center"
     >
-      <Box width={42} height={42} corner_radius={14} background={0xFFEFECE7} align="center">
-        {Kati.Screens.LanguagePick.badge(option, Kati.Theme.ink())}
-      </Box>
+      {Kati.Screens.LanguagePick.badge_tile(option, 0xFFEFECE7, Kati.Theme.ink())}
       <Spacer size={14} />
       <Column weight={1.0}>
         {Kati.Screens.LanguagePick.name(option, Kati.Theme.ink())}
@@ -193,6 +210,35 @@ defmodule Kati.Screens.LanguagePick do
       <Box width={24} height={24} corner_radius={12} border_width={1.5} border_color={0x291A1917} />
     </Row>
     """
+  end
+
+  @doc """
+  The 42pt tile a language option leads with, and the 24pt disc it ends with.
+
+  Both are `Kati.Components.MishkaThemeIcon` — see `mark_tile/0` for why the
+  node is unchanged. `fill` differs by state (`rgba(245,242,238,.12)` inside
+  the ink row, `#EFECE7` on paper) and so does the badge's own colour, which
+  is why they are two arguments rather than a `chosen` flag: the tile has no
+  opinion about which row it is in.
+
+  Only the *chosen* disc can be a theme icon. The unchosen row ends in an
+  empty 1.5pt ring, and `theme_icon/2` paints a border only under
+  `variant: :outline`, which gives up the fill and hard-codes the width at 1 —
+  so that clause stays a hand-rolled `Box`.
+  """
+  def badge_tile(option, fill, color) do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: fill, size: 42, radius: 14},
+      [Kati.Screens.LanguagePick.badge(option, color)]
+    )
+  end
+
+  @doc false
+  def chosen_mark do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Kati.Theme.accent(), size: 24, radius: 12},
+      [Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)]
+    )
   end
 
   # The Latin badge is DM Mono at 14 and the Persian one is Vazirmatn Bold at

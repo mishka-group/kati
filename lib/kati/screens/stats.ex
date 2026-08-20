@@ -12,6 +12,7 @@ defmodule Kati.Screens.Stats do
   """
   use Kati.Screens.Root, root: :stats
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Stats.Sample
   alias Kati.UI
 
@@ -263,9 +264,13 @@ defmodule Kati.Screens.Stats do
     """
   end
 
+  # Chelekom's headless Separator with the design's 7%-ink rule. It expands to
+  # `<Divider />`, which the bridge draws as Compose's `HorizontalDivider` —
+  # `Box(fillMaxWidth().height(1.dp).background(color))`, which is what the
+  # hand-rolled Box was.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   @doc """
   The last section of the drawing, which the screen was not drawing at all.

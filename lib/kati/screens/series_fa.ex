@@ -55,6 +55,7 @@ defmodule Kati.Screens.SeriesFa do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Screens.Fa
   alias Kati.Screens.SeriesFa.Sample
   alias Kati.UI
@@ -165,12 +166,37 @@ defmodule Kati.Screens.SeriesFa do
           />
         </Row>
         <Spacer weight={1.0} />
-        <Box width={42} height={42} corner_radius={21} background={0xD1FBFAF8} align="center">
-          {UI.symbol("more_horiz", size: 21)}
-        </Box>
+        {Kati.Screens.SeriesFa.more()}
       </Row>
     </Box>
     """
+  end
+
+  @doc """
+  The ⋯ disc, as `Kati.Components.MishkaActionIcon`.
+
+  A round icon disc on a raised fill is exactly what that component draws, and
+  this is the one disc in the Persian set it can draw: every other one — the
+  back pill's neighbours on 57, 59, 60, 61, 62 and the bookmark beside the
+  primary button below — carries `Kati.Theme.shadow_button/0` or
+  `shadow_card_soft/0`, and **no** component in the vendored set takes a
+  `shadow` prop. This disc carries none, so nothing is lost.
+
+  `:circle` resolves to an exact `size / 2`, so 42 still rounds at 21, and
+  `variant: :filled` paints the drawing's own `rgba(251,250,248,.82)`.
+
+  The glyph goes in as a **child**, not as `icon`: the component's `icon` path
+  builds a plain `Text`, which lands in Plus Jakarta Sans, and a Material
+  Symbol only exists in the `symbols` face. A child is wrapped in a bare `Row`
+  that hugs its single `Text` and is centred by the same `align: :center` box,
+  so the drawn result is the glyph in the middle of a 42pt circle — the node
+  this function replaced, plus one `Row` that has no size of its own.
+  """
+  def more do
+    MishkaActionIcon.action_icon(
+      %{size: 42, shape: :circle, variant: :filled, background: 0xD1FBFAF8},
+      [UI.symbol("more_horiz", size: 21)]
+    )
   end
 
   @doc false
@@ -218,6 +244,13 @@ defmodule Kati.Screens.SeriesFa do
     """
   end
 
+  # Not `Kati.Components.MishkaProgress`: it renders the native `Progress`
+  # widget, which is Material 3 1.2.0's `LinearProgressIndicator` — fixed at
+  # 240dp by 4dp by a `.size(...)` applied after the caller's modifier, with no
+  # track colour forwarded and a `Butt` stroke cap. This bar is the card's full
+  # width, 6 tall, `#E7E3DC` behind ink, and rounded at 3.
+  # `Kati.Screens.LibraryFa.progress/1` sets the case out in full.
+  #
   # A Compose weight must be greater than zero, so an empty season and a
   # finished one are their own clauses rather than a weight of 0.0 — the same
   # shape `Kati.Screens.LibraryFa.progress/1` has. The drawing's .71 goes down
@@ -331,6 +364,14 @@ defmodule Kati.Screens.SeriesFa do
   # The sample's own `on?` is ignored in favour of `series.current`, which
   # `mount/3` reads *out of* those same flags — one place owns which pill is
   # lit once the pill is a control, and it starts where the sample put it.
+  #
+  # Not `Kati.Components.MishkaChip`, and not `MishkaPill`. The pills' labels
+  # are ۱, ۲, ۳ — U+06F1..U+06F3, **Persian** digits, not ASCII — and neither
+  # component takes `font_family`, so each would draw a blank box in Plus
+  # Jakarta Sans (checked: `kati_sans_400.ttf` has zero code points in
+  # U+0600-U+06FF). Shape is the second wall: both hard-code
+  # `corner_radius={:radius_pill}` and one uniform `padding={:space_sm}`, where
+  # the drawing gives these a declared 32x28 on a radius of 10.
   @doc false
   def season_pill(label, index, on?) do
     tap = {self(), String.to_atom("season_" <> Integer.to_string(index))}

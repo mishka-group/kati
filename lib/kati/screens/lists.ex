@@ -37,6 +37,7 @@ defmodule Kati.Screens.Lists do
   """
   use Kati.Screens.Pushed, back: "Library"
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Screens.Lists.Sample
   alias Kati.UI
 
@@ -236,9 +237,13 @@ defmodule Kati.Screens.Lists do
     """
   end
 
+  # Mishka's Separator, at the design's own colour and thickness — see
+  # `Kati.Screens.Film.hairline/1` for why the pixels are unchanged: a
+  # `Divider` is Material 3's `HorizontalDivider`, which is exactly the
+  # full-width 1dp coloured rectangle the hand-rolled Box drew.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   @impl true
   def handle_tap(:new_list, socket) do

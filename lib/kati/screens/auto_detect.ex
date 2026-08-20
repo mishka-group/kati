@@ -85,7 +85,18 @@ defmodule Kati.Screens.AutoDetect do
     """
   end
 
-  @doc false
+  @doc """
+  The Now playing card, with the elapsed bar drawn from two weighted cells.
+
+  `Kati.Components.MishkaProgress` is the component for a progress bar and it
+  cannot draw this one. It renders Mob's `<Progress>`, which the bridge maps to
+  Compose's `LinearProgressIndicator`, and that widget exposes exactly one
+  colour — the indicator's. The drawing needs three things it has no prop for:
+  a `#E7E3DC` track (the Material default track colour is whatever the theme's
+  `surfaceVariant` resolves to, and `MobProgress` never reads a `track_color`
+  at all), a 5pt thickness on both the track and the fill, and a 3pt radius on
+  both. Two weighted boxes inside a rounded track give all three, so they stay.
+  """
   def now_playing(n) do
     rest = 1.0 - n.progress
 

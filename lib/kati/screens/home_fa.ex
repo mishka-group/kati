@@ -452,9 +452,32 @@ defmodule Kati.Screens.HomeFa do
     """
   end
 
-  @doc false
+  @doc """
+  The `rgba(26,25,23,.07)` rule between two rows of the rest-of-today card.
+
+  `Kati.Components.MishkaSeparator` rather than a hand-rolled `Box`: a rule
+  between rows is exactly what a separator is, and here it is the same pixels
+  one layer down. `separator/1` with no `label` and no `orientation` returns a
+  single `<Divider color thickness />`; `MobBridge.MobDivider` hands that to
+  Compose's `HorizontalDivider`, whose entire body is
+  `Box(modifier.fillMaxWidth().height(thickness).background(color))` — the Box
+  this used to write out, at the drawing's own 1dp and its own alpha. The
+  modifier it is handed is empty, because a `Divider` node carries no size or
+  decoration props of its own.
+
+  Only the plain rule is adopted. The component's own docs record that the
+  vertical and labelled variants are broken on iOS (`IOS_TODO.md` 11-13); this
+  screen needs neither.
+
+  Direction is not a question for it either way: a full-width horizontal rule
+  is the one shape that looks the same in both directions, so the `rtl` root
+  in `Kati.Screens.Fa.frame/2` passes straight through it.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  def hairline(true) do
+    Kati.Components.MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
+  end
 
   def handle_info({:tap, :open_inbox}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}

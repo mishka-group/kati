@@ -192,9 +192,7 @@ defmodule Kati.Screens.Subscriptions do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
-        <Box width={32} height={32} corner_radius={10} background={0xFFEFECE7} align="center">
-          <Text text={row.badge} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
-        </Box>
+        {Kati.Screens.Subscriptions.badge(row.badge)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.name} text_size={13.5} font_weight="semibold" text_color={name_color} max_lines={1} />
@@ -207,6 +205,33 @@ defmodule Kati.Screens.Subscriptions do
       {Kati.Screens.Subscriptions.hairline(rule?)}
     </Column>
     """
+  end
+
+  @doc """
+  The service's letter on its 32pt paper tile.
+
+  `Kati.Components.MishkaAvatar` with `shape: :rounded`, which is what this is:
+  an avatar whose fallback is the initial, for services that ship no logo. The
+  port's `:rounded` radius is a flat 10 at any size, which is the drawing's own
+  radius here — so `size: 32, shape: :rounded` reproduces the tile exactly and
+  nothing is passed twice.
+
+  The letter goes in as a **child** rather than as `initials`, and that is the
+  reason the pixels are unchanged: `initials` is drawn by the component's own
+  `Text`, which carries no `font_family`, and this badge is mono. A child
+  replaces that `Text` wholesale, so the drawing's `font_family="mono"` at 13
+  survives. An `initials_font_family` prop upstream would let this be one line
+  instead of two; until there is one, the child is what keeps the mono.
+  """
+  def badge(letter) do
+    glyph = ~MOB"""
+    <Text text={letter} font_family="mono" text_size={13} text_color={:on_surface} max_lines={1} />
+    """
+
+    Kati.Components.MishkaAvatar.avatar(
+      [size: 32, shape: :rounded, background: 0xFFEFECE7],
+      [glyph]
+    )
   end
 
   # A paused service has one value on the right, not two: it has no rate,
@@ -310,7 +335,37 @@ defmodule Kati.Screens.Subscriptions do
     """
   end
 
-  @doc false
+  @doc """
+  The `rgba(26,25,23,.07)` rule between two services, absent after the last.
+
+  ## Not `Kati.Components.MishkaSeparator`, and the reason is one row of pixels
+
+  A rule between rows is exactly what a separator is, and the port's API fits —
+  `separator(color: 0x121A1917)` at its default `thickness: 1` is this line.
+  What does not fit is what it draws. The port renders `<Divider>`, which
+  `MobBridge` hands to Material 3's `HorizontalDivider`, and in 1.2.0 that
+  composable is not a filled box:
+
+      Canvas(modifier.fillMaxWidth().height(thickness)) {
+        drawLine(color, strokeWidth = thickness.toPx(), …)
+      }
+
+  `height(1.dp)` **rounds** to whole device pixels while `thickness.toPx()`
+  does not, and the capture device runs at 2.6875x. So the node is 3px tall and
+  the antialiased stroke covers 2.6875 of them: the last row lands at 69%
+  coverage instead of 100%. `Box` + `background` fills all three. On this
+  screen's `#FBFAF8` card that is about five levels of grey along the bottom
+  edge of every rule — under `bin/diff_frames.py`'s tolerance of 12, and still
+  a difference, and a difference is not what this rule is.
+
+  It vanishes at any density where 1dp is a whole number of pixels, which is
+  why it is invisible in a unit test and would have shipped.
+
+  Upstream, a separator drawn as `Box(fill_width, height: thickness,
+  background: color)` is pixel-exact at every density, and is also the fix for
+  the iOS breakage the port's own moduledoc records, since `SwiftUI.Divider`
+  draws along its container's axis and comes out vertical there.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
 

@@ -35,6 +35,7 @@ defmodule Kati.Screens.QuickAdd do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Screens.QuickAdd.Sample
   alias Kati.UI
 
@@ -214,7 +215,7 @@ defmodule Kati.Screens.QuickAdd do
          |> Enum.map(fn row -> Kati.Screens.QuickAdd.fact_row(row) end)
          |> Enum.intersperse(Kati.Screens.QuickAdd.gap())}
         <Spacer size={14} />
-        <Box fill_width={true} height={1} background={0x4DB09A72} />
+        {Kati.Screens.QuickAdd.rule()}
         <Spacer size={14} />
         {Kati.Screens.QuickAdd.clash(draft)}
       </Column>
@@ -225,6 +226,14 @@ defmodule Kati.Screens.QuickAdd do
 
   @doc "The drawing's 7pt flex gap, used between chips and between chip rows."
   def gap, do: ~MOB"<Spacer size={7} />"
+
+  # The cream card's `1px solid rgba(176,154,114,.3)` divider, drawn by
+  # `MishkaSeparator` rather than by hand. Its unlabelled horizontal rule is a
+  # `<Divider>`, which this bridge renders as Compose's `HorizontalDivider` —
+  # `Box(fillMaxWidth().height(thickness.dp).background(color))`, the same node
+  # that was written inline here, so the line keeps its 1dp and its 30% bronze.
+  @doc false
+  def rule, do: MishkaSeparator.separator(color: 0x4DB09A72, thickness: 1)
 
   @doc false
   def fact_row(chips) do

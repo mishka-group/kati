@@ -46,6 +46,7 @@ defmodule Kati.Screens.LibraryFa do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaScrollArea
   alias Kati.Screens.Fa
   alias Kati.Screens.LibraryFa.Sample
   alias Kati.UI
@@ -146,6 +147,27 @@ defmodule Kati.Screens.LibraryFa do
   # here in favour of the assign: once the control is real, one place has to
   # own which segment is lit, and it is the socket. `shelf: 0` reproduces the
   # sample's `on?` exactly, so the frame is unchanged.
+  #
+  # ## Not `Kati.Components.MishkaSegmentedControl`
+  #
+  # The API is right — a track, one always-selected segment, `select/2`'s
+  # "tapping the selection is a no-op" rule is this control's rule — and the
+  # drawing is out of its reach on four counts:
+  #
+  #   * **Persian labels.** Same blocker as the chips: the component builds
+  #     the segment's `Text` and takes no `font_family`, so نمایش draws blank.
+  #   * **Segments cannot share the row.** Its own moduledoc says segments are
+  #     content-sized because `weight` has no iOS mapping, and this control's
+  #     three segments split the width equally. Worse, the hug it relies on
+  #     does not happen on Android at all: it sets `fill_width={false}`, and
+  #     `MobBridge.kt:2716` decides a Box fills by asking whether `width` is
+  #     set — `fill_width` is only ever read for `true` (`:3985`). So on this
+  #     bridge the first segment takes the whole strip.
+  #   * **No icon.** Each segment here is a 17pt Material Symbol, a 6pt gap
+  #     and then the label. The component's segment is one `Text`.
+  #   * **No `height` and no `shadow`.** The segments are 38 tall and the lit
+  #     one carries `0 1 2 0 #0F1A1917`; the component sizes a segment by its
+  #     padding and has no shadow prop.
   @doc false
   def segments(shelf) do
     ~MOB"""
@@ -279,20 +301,35 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
+  # The rail is `Kati.Components.MishkaScrollArea` rather than a bare `Scroll`:
+  # "a bounded region whose content scrolls sideways" is what the component
+  # says, and with no `height`, `background`, `padding` or `corner_radius`
+  # asked for it skips its wrapper Box entirely and expands to
+  # `<Scroll axis="horizontal">` holding the same one Row. The node the
+  # renderer receives is the node it received before — not merely equivalent,
+  # identical — so there is nothing for the frame to differ by.
+  #
+  # The chips inside it stay hand-rolled; `Kati.Components.MishkaChip` cannot
+  # draw them, for the reasons `chip/4` records.
   @doc false
   def chips(filter) do
+    rail =
+      ~MOB"""
+      <Row>
+        {Sample.chips()
+         |> Enum.with_index()
+         |> Enum.map(fn {{label, count}, i} ->
+           Kati.Screens.LibraryFa.chip(label, count, i, i == filter)
+         end)
+         |> Enum.intersperse(Kati.Screens.LibraryFa.chip_gap())}
+      </Row>
+      """
+
+    scroller = MishkaScrollArea.scroll_area([orientation: :horizontal], [rail])
+
     ~MOB"""
     <Column fill_width={true}>
-      <Scroll axis="horizontal">
-        <Row>
-          {Sample.chips()
-           |> Enum.with_index()
-           |> Enum.map(fn {{label, count}, i} ->
-             Kati.Screens.LibraryFa.chip(label, count, i, i == filter)
-           end)
-           |> Enum.intersperse(Kati.Screens.LibraryFa.chip_gap())}
-        </Row>
-      </Scroll>
+      {scroller}
       <Spacer size={20} />
     </Column>
     """
@@ -307,6 +344,31 @@ defmodule Kati.Screens.LibraryFa do
   # its own, so it stays legible on the ink chip and on the white ones.
   #
   # The tag carries the chip's INDEX, not its label — see the moduledoc.
+  #
+  # ## Not `Kati.Components.MishkaChip`, and it is not close
+  #
+  # A filter chip with a selected state is precisely what that component is
+  # for, and four separate things stop it drawing this one:
+  #
+  #   * **No `font_family`.** The chip builds its own `Text`, and no component
+  #     in the vendored set takes the prop. An unstyled `Text` is Plus Jakarta
+  #     Sans (`MobBridge.kt:4222`), whose cmap holds **zero** code points in
+  #     U+0600-U+06FF — so همه would draw as four blank boxes, not as a
+  #     fallback. That one is fatal on its own, and it is fatal for every
+  #     component here that renders text.
+  #   * **One `Text`, not two.** The drawing puts a count beside the label at
+  #     a different size and a different alpha (`۹` at 10 on .6 of the label's
+  #     colour). The chip has a single `label` prop.
+  #   * **No `height`, and `padding` only as one uniform value.** This chip is
+  #     32 tall with 14 of horizontal padding; the component hard-codes
+  #     `padding={:space_sm}` on all four edges and lets the label set the
+  #     height.
+  #   * **No `shadow`.** An unselected chip carries `shadow_card_soft`, which
+  #     is what lifts it off the paper. Grep finds the word `shadow` in
+  #     exactly one of the 77 components, and there it is the word
+  #     "shadowing" in a comment — **no component takes a shadow prop at
+  #     all**, so the whole raised-card language of this design is out of
+  #     their reach.
   @doc false
   def chip(label, count, index, on?) do
     tap = {self(), String.to_atom("filter_" <> Integer.to_string(index))}
@@ -423,6 +485,24 @@ defmodule Kati.Screens.LibraryFa do
   # band with nothing in it, which is how the grid stays one grid. A Compose
   # weight must be greater than zero, so the two ends are their own clauses
   # rather than a weight of 0.0.
+  #
+  # ## Not `Kati.Components.MishkaProgress`, and not `MishkaMeter` either
+  #
+  # Both render Mob's native `Progress`, which `MobBridge.kt:2980` hands to
+  # Material 3's `LinearProgressIndicator`. In 1.2.0 — the version
+  # `compose-bom:2024.02.00` resolves — that composable ends its modifier
+  # chain with `.size(LinearIndicatorWidth, LinearIndicatorHeight)`, i.e.
+  # **240dp by 4dp, fixed**. It is applied after the caller's modifier, so
+  # `MobProgress`'s own `fillMaxWidth()` and the `height` prop the port
+  # forwards are both overridden: the bar would come out 240dp wide inside a
+  # poster tile that is about 110dp wide, and 4 tall where this one is 4 by
+  # luck and screen 58's is 6.
+  #
+  # Two more, either of which would be enough: `MobProgress` never forwards a
+  # track colour, so the unfilled part would paint the theme's
+  # `linearTrackColor` rather than the drawing's `rgba(26,25,23,.22)`; and
+  # `LinearStrokeCap` is `Butt` with no radius, so screen 58's `corner_radius`
+  # of 3 has nowhere to go.
   @doc false
   def progress(fraction) when fraction <= 0.0 do
     ~MOB"<Box fill_width={true} height={4} background={0x381A1917} />"

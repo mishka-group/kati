@@ -37,6 +37,29 @@ defmodule Kati.Screens.Fa do
   Mono 10.5 at .16em, and the Persian one is **Vazirmatn 11 / 600 / no
   tracking** in all four drawings. `eyebrow/1` here is that recipe, not
   `Kati.UI.eyebrow/2` with a translated label.
+
+  ## What that costs the vendored components, and it is most of them
+
+  Both rules above are `font_family`, and **not one of the 77 components in
+  `Kati.Components` accepts it** — checked by grep across the whole directory,
+  and `font_weight` appears in only six, `line_height` in none. Every one of
+  them that renders a label builds the `Text` itself and leaves the prop off,
+  and `MobBridge.kt:4222` is explicit about what that means: *"No prop means
+  body text, and body text is Plus Jakarta Sans. This is the case that matters:
+  it is every unstyled Text in the app."*
+
+  `kati_sans_400.ttf` carries **zero** code points in U+0600-U+06FF — parsed
+  out of its `cmap`, against 142 in `kati_fa_400.ttf`. So a Persian label
+  handed to a Chelekom component is not degraded, it is *absent*: a row of
+  blank boxes. That is the single reason the Persian screens adopt so little
+  of the set. It is not an RTL failure — direction is a container attribute and
+  the components inherit it correctly — it is a typography failure, and one
+  prop upstream would close it for every component at once.
+
+  The components these screens do adopt are the ones that render no text:
+  `MishkaAvatar` (`Kati.Screens.SettingsFa.avatar/1`), `MishkaActionIcon` with
+  a symbol child (`Kati.Screens.SeriesFa.more/0`) and `MishkaScrollArea`
+  (`Kati.Screens.LibraryFa.chips/1`).
   """
 
   import Mob.Sigil
@@ -141,7 +164,17 @@ defmodule Kati.Screens.Fa do
     """
   end
 
-  @doc "A 44pt header disc: card white, the button shadow, a 21pt symbol."
+  @doc """
+  A 44pt header disc: card white, the button shadow, a 21pt symbol.
+
+  Not `Kati.Components.MishkaActionIcon`, which is otherwise exactly this — a
+  square tap target holding a glyph, with `:circle` resolving to `size / 2`.
+  It has no `shadow` prop, and neither does anything else in the vendored set:
+  grep finds the string in one file out of 77, as the word "shadowing" in a
+  comment. The shadow is what lifts this disc off the paper, so it is drawn
+  here. `Kati.Screens.SeriesFa.more/0` is the same disc **without** a shadow,
+  and it is the component.
+  """
   def disc(icon, tag) do
     tap = {self(), tag}
 

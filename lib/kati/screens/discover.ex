@@ -47,6 +47,9 @@ defmodule Kati.Screens.Discover do
   """
   use Kati.Screens.Pushed, back: "Library"
 
+  alias Kati.Components.MishkaAvatar
+  alias Kati.Components.MishkaScrollArea
+  alias Kati.Components.MishkaSeparator
   alias Kati.Screens.Discover.Sample
   alias Kati.Theme
   alias Kati.UI
@@ -144,17 +147,27 @@ defmodule Kati.Screens.Discover do
     """
   end
 
+  # Mishka's Scroll Area rather than a bare `<Scroll axis="horizontal">`: with
+  # `orientation: :horizontal` and no bound asked for, `scroll_area/2` emits
+  # that exact node — it only wraps the scroller in a Box when a height,
+  # background, padding or radius is passed, and none is. Same node, same
+  # pixels, and the chip rail now says what it is.
   @doc false
   def chips(f, active) do
+    rail =
+      ~MOB"""
+      <Row align="center">
+        {f.chips
+         |> Enum.map(fn c -> Kati.Screens.Discover.chip(c, c.label == active) end)
+         |> Enum.intersperse(Kati.Screens.Discover.chip_gap())}
+      </Row>
+      """
+
+    scroller = MishkaScrollArea.scroll_area([orientation: :horizontal], [rail])
+
     ~MOB"""
     <Column fill_width={true}>
-      <Scroll axis="horizontal">
-        <Row align="center">
-          {f.chips
-           |> Enum.map(fn c -> Kati.Screens.Discover.chip(c, c.label == active) end)
-           |> Enum.intersperse(Kati.Screens.Discover.chip_gap())}
-        </Row>
-      </Scroll>
+      {scroller}
       <Spacer size={22} />
     </Column>
     """
@@ -331,17 +344,20 @@ defmodule Kati.Screens.Discover do
     """
   end
 
+  # Mishka's Avatar. A circular face with a fallback under it is exactly what
+  # the component is, and it carries the seed-missing branch that used to be
+  # written out here: `:circle` resolves to an exact `size / 2` radius, so 38pt
+  # still rounds at 19.
+  #
+  # The pixels do not move in either state. With no image it draws the same
+  # 38x38 disc in the same `#E4E0D9`, plus an empty initials Text that renders
+  # nothing inside a box already sized to 38. With an image, the avatar stacks
+  # `[fallback, image]` — and the design's photographs are opaque JPEGs at the
+  # same 38x38 with the same radius, so the image covers the fallback exactly
+  # rather than tinting it.
   @doc false
   def face(seed) do
-    case Sample.image(seed) do
-      nil ->
-        ~MOB"<Box width={38} height={38} corner_radius={19} background={0xFFE4E0D9} />"
-
-      src ->
-        ~MOB"""
-        <Image src={src} width={38} height={38} corner_radius={19} content_mode="fill" />
-        """
-    end
+    MishkaAvatar.avatar(src: Sample.image(seed), size: 38, background: 0xFFE4E0D9)
   end
 
   @doc false
@@ -440,9 +456,11 @@ defmodule Kati.Screens.Discover do
     end
   end
 
+  # Mishka's Separator, at the design's own colour and thickness — see
+  # `Kati.Screens.Film.hairline/1` for why the pixels are unchanged.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   @impl true
   def handle_tap(tag, socket) do

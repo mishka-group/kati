@@ -2714,7 +2714,26 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         // "top_leading" / etc.) — defaults to TopStart for back-compat.
         "box" -> {
             val hasWidth = floatProp(node.props, "width") != null
-            val boxModifier = if (hasWidth) m else m.fillMaxWidth()
+            // KATI-BEGIN(K-17 box-hugs-when-told) mob_new=0.4.20
+            // `fill_width={false}` did NOTHING to a box. The branch consulted
+            // only `width`, so a box with no numeric width was force-filled
+            // whatever it asked for — `fill_width` was read in nodeModifier and
+            // only ever tested for `== true`.
+            //
+            // That is upstream Mob's behaviour, not a Kati edit (the same lines
+            // are in native/baseline/0.4.20), and it makes 18 of the vendored
+            // Mishka Chelekom components unusable: chip, pill, mark and so
+            // highlight, segmented-control segments, toggle, spoiler and
+            // overflow-list's +N pill all define their entire silhouette by
+            // hugging their content, and every one of them would draw as a
+            // full-width bar. MishkaChip's own comment says `fill_width={false}`
+            // fixes this on Android; against this bridge version it does not.
+            //
+            // A declared `width` still wins, so nothing that already sizes
+            // itself changes. Only a box that explicitly asks to hug now hugs.
+            val hugs = boolProp(node.props, "fill_width") == false
+            val boxModifier = if (hasWidth || hugs) m else m.fillMaxWidth()
+            // KATI-END(K-17 box-hugs-when-told)
             Box(modifier = boxModifier, contentAlignment = boxAlignProp(node.props)) {
                 node.children.forEach { RenderNode(it) }
             }

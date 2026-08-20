@@ -410,7 +410,16 @@ defmodule Kati.Screens.HomeDark do
     """
   end
 
-  @doc false
+  @doc """
+  The rule between two timeline rows — paper at 7% on near-black, not ink.
+
+  Not `Kati.Components.MishkaSeparator`, for the reason
+  `Kati.Screens.Subscriptions.hairline/1` sets out at length: the port renders
+  `<Divider>`, Material 3 draws that as an antialiased `drawLine` inside a
+  rounded `height(thickness)` box, and at the capture device's 2.6875x a 1dp
+  stroke leaves the last of three device-pixel rows at 69% coverage where a
+  filled `Box` gives 100%. The API fits this line exactly; the pixels do not.
+  """
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x12F5F2EE} />"
 

@@ -27,6 +27,7 @@ defmodule Kati.Screens.UpNext do
   """
   use Kati.Screens.Pushed, back: "Library"
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Screens.UpNext.Sample
   alias Kati.UI
 
@@ -119,9 +120,7 @@ defmodule Kati.Screens.UpNext do
                 <Text text={h.meta} font_family="mono" text_size={10.5} text_color={0xBFFBFAF8} max_lines={1} />
               </Column>
               <Spacer size={8} />
-              <Box width={44} height={44} corner_radius={22} background={0xFFFBFAF8} align="center">
-                {Kati.UI.symbol("play_arrow", size: 24, fill: true)}
-              </Box>
+              {Kati.Screens.UpNext.play_disc(44, 24, 0xFFFBFAF8)}
             </Row>
           </Box>
           <Box fill_width={true} fill_height={true} align="bottom">
@@ -192,13 +191,34 @@ defmodule Kati.Screens.UpNext do
           <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        <Box width={34} height={34} corner_radius={17} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol("play_arrow", size: 19, fill: true)}
-        </Box>
+        {Kati.Screens.UpNext.play_disc(34, 19, 0xFFEFECE7)}
       </Row>
       <Spacer size={9} />
     </Column>
     """
+  end
+
+  @doc """
+  The filled play disc — Mishka's Action Icon, which is what a round icon
+  button is.
+
+  Both of this screen's discs are shadowless, which is what makes them
+  expressible: `action_icon/2` builds the box from `size`, `shape` and
+  `background` and has no shadow prop, so the lifted 44pt `tune` disc above
+  still has to be drawn by hand.
+
+  Nothing moves. `shape: :circle` is an exact `size / 2` radius — 22 at 44,
+  17 at 34, the drawing's own numbers — the fill is passed straight through,
+  and the glyph is the same `Kati.UI.symbol/2` Text as before, wrapped in a
+  Row that hugs it (a Compose Row takes its content's size unless told to
+  fill), centred in a Box of the same declared size.
+  """
+  @spec play_disc(number(), number(), non_neg_integer()) :: map()
+  def play_disc(size, glyph, background) do
+    MishkaActionIcon.action_icon(
+      [size: size, shape: :circle, variant: :filled, background: background],
+      [Kati.UI.symbol("play_arrow", size: glyph, fill: true)]
+    )
   end
 
   @doc false

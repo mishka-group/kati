@@ -41,6 +41,7 @@ defmodule Kati.Screens.SeriesMeta do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Screens.SeriesMeta.Sample
   alias Kati.UI
 
@@ -391,9 +392,11 @@ defmodule Kati.Screens.SeriesMeta do
     """
   end
 
+  # Mishka's Separator, at the design's own colour and thickness — see
+  # `Kati.Screens.Film.hairline/1` for why the pixels are unchanged.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   # Three then two, which is where the browser breaks these five labels at a
   # 360pt content width. The add-tag slot carries its own flag rather than

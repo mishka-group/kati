@@ -36,6 +36,7 @@ defmodule Kati.Screens.Health do
   """
   use Kati.Screens.Pushed, back: "Home"
 
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Health.Sample
   alias Kati.UI
 
@@ -237,9 +238,7 @@ defmodule Kati.Screens.Health do
         align="center"
         on_tap={tap}
       >
-        <Box width={36} height={36} corner_radius={12} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol("restaurant", size: 19)}
-        </Box>
+        {Kati.Screens.Health.meal_tile()}
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text text={m.title} text_size={14.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
@@ -252,6 +251,34 @@ defmodule Kati.Screens.Health do
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc """
+  The 36x36 paper tile the next-meal row leads with, from
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon", which is what this is. Every number stays the drawing's: 36dp square,
+  radius 12, `#EFECE7` paper, `restaurant` at 19 in the theme's own ink.
+
+  `variant: :filled` with an explicit `color`, not `variant: :white` — the
+  white variant paints the theme's `:surface`, which here is `#FBFAF8`, the
+  card the tile sits on.
+
+  The glyph is a child rather than the `icon` prop: that shorthand builds a
+  `Text` with no `font_family`, so the ligature `"restaurant"` would be
+  typeset as the word rather than resolved to the Material Symbols glyph — and
+  the child keeps `Kati.UI.symbol/2`'s default colour, which is what the
+  drawing gives this one tile.
+
+  With children and no `id`, `theme_icon/2` returns
+  `%{type: :box, props: %{width: 36, height: 36, align: :center,
+  corner_radius: 12, background: 0xFFEFECE7}, children: [glyph]}` — node for
+  node what the row wrote by hand, so nothing moves.
+  """
+  def meal_tile do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 36, radius: 12},
+      [Kati.UI.symbol("restaurant", size: 19)]
+    )
   end
 
   # Two across. 174*2 + 12 = 360, which is what the gutters leave — so the

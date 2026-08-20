@@ -33,6 +33,7 @@ defmodule Kati.Screens.Onboarding do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Onboarding.Sample
 
   def mount(_params, _session, socket) do
@@ -111,12 +112,32 @@ defmodule Kati.Screens.Onboarding do
     ~MOB"<Box weight={1.0} height={4} corner_radius={2} background={color} />"
   end
 
-  @doc false
+  @doc """
+  The rule between two steps, 30pt of air on either side of it.
+
+  This is the one thing on the screen that is literally a separator — a
+  thematic break between groups of content — so it is drawn by
+  `Kati.Components.MishkaSeparator` rather than by one more `Box`. The plain
+  variant is a `<Divider>`, and the bridge's `MobDivider` renders Compose's
+  `HorizontalDivider(thickness, color)`, which is defined as
+  `Box(modifier.fillMaxWidth().height(thickness).background(color))` — the same
+  three modifiers this wrote by hand, so nothing moves.
+
+  The drawing's `rgba(26,25,23,.10)` survives because the colour goes in as an
+  ARGB int: `color` is in the renderer's `@color_props` whitelist, so an
+  integer passes through `resolve_token/3` untouched and reaches the bridge's
+  `colorProp` as a number.
+
+  No `label` — the labelled variant centres text between two weighted lines,
+  and this break carries none.
+  """
   def divider do
+    rule = MishkaSeparator.separator(color: 0x1A1A1917, thickness: 1)
+
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={30} />
-      <Box fill_width={true} height={1} background={0x1A1A1917} />
+      {rule}
       <Spacer size={30} />
     </Column>
     """

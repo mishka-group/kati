@@ -36,11 +36,25 @@ defmodule Kati.Screens.EventDetail do
       (46x28 track, 3pt inset, 22pt knob with its own shadow), and a component
       whose whole job is to own those numbers would have to be overridden on
       every one of them.
+
+  ## The one shared component this screen uses
+
+  The invitee face is `Kati.Components.MishkaAvatar` — see `avatar/1`. It is the
+  only place on this screen where a headless component draws exactly what the
+  design draws, because the design asks an avatar for nothing but a size, a
+  shape and a fallback fill, which is the whole of the component's API.
+
+  The section chips, the `close` disc and the "Add someone" ring were all
+  checked against `MishkaChip`, `MishkaCloseButton` and `MishkaActionIcon` and
+  left hand-rolled: those three want a `height`, a `font_weight`, per-axis
+  padding, a `border_*` and a `shadow`, and no vendored component takes any of
+  them.
   """
   use Mob.Screen
   import Mob.Sigil
 
   alias Kati.Calendar.SampleEvent
+  alias Kati.Components.MishkaAvatar
   alias Kati.Design.Images
   alias Kati.Theme
   alias Kati.UI
@@ -352,17 +366,27 @@ defmodule Kati.Screens.EventDetail do
     """
   end
 
-  @doc false
-  def avatar(person) do
-    case Images.poster(person.seed) do
-      nil ->
-        ~MOB"<Box width={34} height={34} corner_radius={17} background={0xFFE4E0D9} />"
+  @doc """
+  The invitee's face: `Kati.Components.MishkaAvatar` at the drawing's own numbers.
 
-      src ->
-        ~MOB"""
-        <Image src={src} width={34} height={34} corner_radius={17} content_mode="fill" />
-        """
-    end
+  The two hand-rolled clauses this replaces were the component's two branches
+  spelled out — a 34pt circle of `#E4E0D9` when there is no picture, the picture
+  clipped to the same circle when there is — so the swap is the same nodes with
+  the case moved inside `avatar/2`.
+
+  `shape: :circle` resolves to an exact `size / 2`, which is the 17 that was
+  written here by hand. When a `src` is present the component stacks the
+  fallback *under* the image rather than choosing between them, so `background`
+  carries the same `#E4E0D9` in both branches: it is what shows for the instant
+  before Coil has the bitmap, and is covered by an opaque poster afterwards.
+  """
+  def avatar(person) do
+    MishkaAvatar.avatar(
+      src: Images.poster(person.seed),
+      size: 34,
+      shape: :circle,
+      background: 0xFFE4E0D9
+    )
   end
 
   @doc false

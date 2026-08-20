@@ -134,9 +134,7 @@ defmodule Kati.Screens.MealReminders do
     ~MOB"""
     <Column fill_width={true} background={ground} corner_radius={16} padding={14}>
       <Row fill_width={true} align="center">
-        <Box width={20} height={20} corner_radius={6} background={Kati.Theme.ink()} align="center">
-          <Box width={6} height={6} corner_radius={3} background={Kati.Theme.accent()} />
-        </Box>
+        {Kati.Screens.MealReminders.app_icon()}
         <Spacer size={9} />
         <Text
           text={n.from}
@@ -154,6 +152,31 @@ defmodule Kati.Screens.MealReminders do
       {Kati.Screens.MealReminders.preview_actions(n)}
     </Column>
     """
+  end
+
+  @doc """
+  The app's own mark, as a notification's 20pt icon.
+
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon" — for the same reason `Kati.UI.SettingsList.icon_tile/1` uses it. The
+  one icon here is the design's accent dot rather than a glyph, and children
+  are explicitly "any node", so the shorthand is not involved either way.
+
+  ## Why the pixels do not move
+
+  With children, an explicit numeric `color`, no `id` and no `on_tap`,
+  `theme_icon/2` returns
+  `%{type: :box, props: %{width: 20, height: 20, align: :center,
+  corner_radius: 6, background: 0xFF1A1917}, children: [dot]}` — node for node
+  what this wrote by hand. `align: :center` and `align="center"` reach the
+  bridge as the same string, the gradient layer is empty for `:filled`, and
+  the id markers are skipped without an `id`.
+  """
+  def app_icon do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Kati.Theme.ink(), size: 20, radius: 6},
+      [~MOB"<Box width={6} height={6} corner_radius={3} background={Kati.Theme.accent()} />"]
+    )
   end
 
   @doc false

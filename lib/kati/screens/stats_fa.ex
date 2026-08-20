@@ -340,6 +340,16 @@ defmodule Kati.Screens.StatsFa do
   # The fill is the track's FIRST child, so it grows from the leading edge —
   # which under RTL is the right. That is the design's `float:right`, and it
   # needs no mirroring logic of its own.
+  #
+  # And it is why the two weighted cells stay: `Kati.Components.MishkaMeter` is
+  # what a scalar gauge in a known range should be, and it renders Mob's native
+  # `Progress`, which `MobBridge.kt:2980` hands to Material 3 1.2.0's
+  # `LinearProgressIndicator`. That composable ends its modifier chain with
+  # `.size(240.dp, 4.dp)`, applied after the caller's, so the bar would be
+  # 240 wide inside a weighted slot about 200 wide and 4 tall where the drawing
+  # says 8 — and `MobProgress` forwards no track colour, so the unfilled part
+  # would paint the theme's `linearTrackColor` rather than `#EFECE7`. Its
+  # `strokeCap` is `Butt`, so the 4pt radius has nowhere to go either.
   @doc false
   def bar({name, share, value, color}, gap?) do
     ~MOB"""

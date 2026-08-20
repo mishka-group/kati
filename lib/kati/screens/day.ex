@@ -42,6 +42,7 @@ defmodule Kati.Screens.Day do
   use Kati.Screens.Pushed, back: "Calendar"
 
   alias Kati.Calendar.Layout
+  alias Kati.Components.MishkaActionIcon
 
   # The drawing's gap BETWEEN LANES — `display:flex;gap:7px` on the split row.
   # Not to be confused with the 9pt `margin-bottom` that separates one lane row
@@ -748,12 +749,34 @@ defmodule Kati.Screens.Day do
           <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFF8A8479} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        <Box width={26} height={26} corner_radius={13} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.Day.chevron_disc()}
       </Row>
     </Box>
     """
+  end
+
+  @doc """
+  The grouped card's chevron disc — Mishka's Action Icon.
+
+  A round icon button is what `action_icon/2` is for, and this one is
+  shadowless, which is what makes it expressible: the component builds its box
+  from `size`, `shape` and `background` and exposes no shadow, so the lifted
+  44pt `density_medium` disc in the header is still drawn by hand.
+
+  The pixels are the same. `shape: :circle` resolves to an exact `size / 2`,
+  so 26 rounds at 13 as before; the fill is passed through; and the glyph is
+  the same `Kati.UI.symbol/2` Text, wrapped in a Row that hugs it, centred in
+  a Box of the same declared size.
+
+  It is only the disc, not the card's own chevron behaviour: the group does
+  not open, here or in the drawing.
+  """
+  @spec chevron_disc() :: map()
+  def chevron_disc do
+    MishkaActionIcon.action_icon(
+      [size: 26, shape: :circle, variant: :filled, background: 0xFFEFECE7],
+      [Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)]
+    )
   end
 
   @doc false

@@ -240,17 +240,39 @@ defmodule Kati.Screens.PlanShare do
     """
   end
 
-  @doc false
-  def avatar(seed) do
-    case Kati.Design.Images.poster(seed) do
-      nil ->
-        ~MOB"<Box width={34} height={34} corner_radius={17} background={0xFFE4E0D9} />"
+  @doc """
+  The 34pt circular face a **Shared with** row leads with.
 
-      src ->
-        ~MOB"""
-        <Image src={src} width={34} height={34} corner_radius={17} content_mode="fill" />
-        """
-    end
+  `Kati.Components.MishkaAvatar` rather than a hand-rolled `case`: this is an
+  image with a fallback, which is the whole of what that component is, and it
+  owns the one thing the `case` got slightly wrong — the fallback is *stacked
+  under* the image rather than swapped for it, so a row that is waiting on a
+  file still draws the drawing's `#E4E0D9` disc instead of bare paper.
+
+  ## Why the pixels do not move
+
+  `shape: :circle` resolves its radius as `size / 2` — 17.0, the number this
+  wrote by hand, and `corner_radius` goes through `floatProp` so nothing is
+  truncated. With a `src` the component returns a 34pt wrapper `Box` holding
+  `[fallback, image]`: the wrapper carries only `corner_radius`, which
+  `nodeModifier` turns into `Modifier.clip(RoundedCornerShape(17.dp))` over
+  children that are already 34pt circles, so the clip is a no-op; and the
+  image is the same node as before — 34x34, radius 17, `content_mode="fill"`
+  — painted last and therefore on top. Without a `src` the fallback stands
+  alone, at the same size, radius and `#E4E0D9` the old nil clause drew, plus
+  an empty `initials` `Text` that is centred inside a fixed 34pt box and so
+  measures nothing.
+
+  `background` has to be passed: the component's default is `:surface_raised`,
+  which in `Kati.Theme.light/0` is `#FBFAF8` — the card, not the placeholder.
+  """
+  def avatar(seed) do
+    Kati.Components.MishkaAvatar.avatar(
+      src: Kati.Design.Images.poster(seed),
+      size: 34,
+      shape: :circle,
+      background: 0xFFE4E0D9
+    )
   end
 
   @doc false

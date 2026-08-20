@@ -39,6 +39,9 @@ defmodule Kati.Screens.Account do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Account.Sample
+  alias Kati.Components.MishkaAvatar
+  alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.UI
 
   @impl true
@@ -171,17 +174,35 @@ defmodule Kati.Screens.Account do
     """
   end
 
-  @doc false
-  def avatar(i) do
-    case Kati.Design.Images.poster(i.seed) do
-      nil ->
-        ~MOB"<Box width={64} height={64} corner_radius={32} background={0xFFE4E0D9} />"
+  @doc """
+  The 64pt face, drawn by `Kati.Components.MishkaAvatar`.
 
-      src ->
-        ~MOB"""
-        <Image src={src} width={64} height={64} corner_radius={32} content_mode="fill" />
-        """
-    end
+  A circular image with a fill behind it for when there is no image is the
+  whole of what an avatar is, so the two clauses this used to carry collapse
+  into one call: the component takes `src` as `nil` and renders the fallback
+  alone, which is exactly what the missing-poster clause drew.
+
+  ## Why the pixels do not move
+
+  `shape: :circle` is an exact `size / 2` radius rather than a token, so 64
+  gives 32 — the drawing's own number. With a `src` the component stacks
+  `[fallback, image]` inside a 64x64 `Box`, and the image is the same
+  `width=64 height=64 corner_radius=32 content_mode="fill"` node this wrote by
+  hand, painted over a fallback of identical size and radius; the fallback's
+  `Text` carries no initials, so it contributes no glyph. Without a `src` the
+  fallback stands alone: a 64x64 `Box` at radius 32 filled `#E4E0D9`.
+
+  `initials` is deliberately not passed. The drawing shows a photograph and
+  nothing behind it, and a person's initials over their own face is a detail
+  the export does not contain.
+  """
+  def avatar(i) do
+    MishkaAvatar.avatar(
+      src: Kati.Design.Images.poster(i.seed),
+      size: 64,
+      shape: :circle,
+      background: 0xFFE4E0D9
+    )
   end
 
   @doc false
@@ -238,9 +259,7 @@ defmodule Kati.Screens.Account do
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.Account.icon_tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
@@ -253,6 +272,31 @@ defmodule Kati.Screens.Account do
       {Kati.Screens.Account.hairline(rule?)}
     </Column>
     """
+  end
+
+  @doc """
+  The 30x30 paper tile every row leads with, from
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon", which is what this is.
+
+  The same swap `Kati.UI.SettingsList.icon_tile/1` makes for the settings rows,
+  and every number is still the drawing's: 30dp square, radius 9, `#EFECE7`
+  paper, glyph at 17 in `#5C574F`. `variant: :filled` with an explicit `color`,
+  **not** `variant: :white` — the white variant paints the theme's `:surface`,
+  which here is `#FBFAF8`, the card the tile sits on.
+
+  The glyph goes in as a child rather than through the `icon` prop: that
+  shorthand builds its own `Text` with no `font_family`, so a Material Symbols
+  ligature like `"photo_library"` would be typeset as the word.
+
+  With children and no `id`, `theme_icon/2` returns the same `:box` node with
+  the same five props this wrote by hand, so nothing moves.
+  """
+  def icon_tile(name) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+    )
   end
 
   @doc false
@@ -340,9 +384,16 @@ defmodule Kati.Screens.Account do
     """
   end
 
+  # `Kati.Components.MishkaSeparator` is what a 1px rule between rows is, so
+  # the rule is its. Its plain variant is a `<Divider>`, and the bridge's
+  # `MobDivider` renders Compose's `HorizontalDivider(thickness, color)` —
+  # defined as `Box(modifier.fillMaxWidth().height(thickness).background(color))`,
+  # the same three modifiers this wrote by hand. The drawing's 7% ink survives
+  # because `color` is an ARGB int: it is in the renderer's `@color_props`
+  # whitelist, and an integer reaches `colorProp` untouched.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   @doc "The list a tap leaves behind, with the tapped row flipped."
   @spec flip([map()], String.t()) :: [map()]

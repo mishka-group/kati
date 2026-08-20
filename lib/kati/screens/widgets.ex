@@ -32,6 +32,8 @@ defmodule Kati.Screens.Widgets do
   """
   use Kati.Screens.Pushed, back: "Settings"
 
+  alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.UI
   alias Kati.Widgets.Sample
 
@@ -311,9 +313,7 @@ defmodule Kati.Screens.Widgets do
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.Widgets.icon_tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
@@ -326,6 +326,32 @@ defmodule Kati.Screens.Widgets do
       {Kati.Screens.Widgets.hairline(rule?)}
     </Column>
     """
+  end
+
+  @doc """
+  The 30x30 paper tile a shortcut row leads with, from
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon", which is what this is.
+
+  The same swap `Kati.UI.SettingsList.icon_tile/1` makes for the settings rows,
+  with the drawing's own numbers: 30dp square, radius 9, `#EFECE7` paper, glyph
+  at 17 in `#5C574F`. `variant: :filled` with an explicit `color`, not
+  `variant: :white` — the white variant paints the theme's `:surface`, which
+  here is `#FBFAF8`, the card the tile sits on.
+
+  The glyph is a child rather than the `icon` prop, because that shorthand
+  builds a `Text` with no `font_family` and a Material Symbols ligature —
+  `"mic"`, `"ios_share"` — would be typeset as the word instead of resolved to
+  the glyph.
+
+  With children and no `id`, `theme_icon/2` returns the same `:box` node
+  carrying the same five props this wrote by hand, so nothing moves.
+  """
+  def icon_tile(name) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+    )
   end
 
   # A switch when the row is a state, a chevron when it leads somewhere.
@@ -408,16 +434,25 @@ defmodule Kati.Screens.Widgets do
           <Text text={s.sub} text_size={11} text_color={0xFF8A8479} max_lines={1} />
         </Column>
       </Row>
-      <Box fill_width={true} height={1} background={0x121A1917} />
+      {Kati.Screens.Widgets.hairline(true)}
       <Spacer size={13} />
       <Text text={s.note} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} />
     </Column>
     """
   end
 
+  # `Kati.Components.MishkaSeparator` is what a 1px rule between rows is, so
+  # the rule is its — here for the shortcut list and for the one inside the
+  # share card, which the drawing paints at the same 7% ink. Its plain variant
+  # is a `<Divider>`, and the bridge's `MobDivider` renders Compose's
+  # `HorizontalDivider(thickness, color)` — defined as
+  # `Box(modifier.fillMaxWidth().height(thickness).background(color))`, the
+  # same three modifiers this wrote by hand. The alpha survives because the
+  # colour is passed as an ARGB int: `color` is in the renderer's
+  # `@color_props` whitelist and an integer reaches `colorProp` untouched.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   # The index rather than the title: these titles are spoken phrases wrapped in
   # typographic quotes, and the tag has to survive a round trip through

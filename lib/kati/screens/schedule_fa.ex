@@ -327,12 +327,25 @@ defmodule Kati.Screens.ScheduleFa do
     """
   end
 
+  # The payment row's 26pt glyph tile is `Kati.Components.MishkaThemeIcon` —
+  # "a themed container around exactly one icon", which is precisely what the
+  # drawing puts here — for the same reason `Kati.UI.SettingsList.icon_tile/1`
+  # is, and with the same guarantee. With children, an explicit numeric
+  # `color`, no `id` and no `on_tap`, `theme_icon/2` returns
+  # `%{type: :box, props: %{width: 26, height: 26, align: :center,
+  # corner_radius: 8, background: 0xFFE4E0D9}, children: [glyph]}` — node for
+  # node what this wrote by hand. `align: :center` and `align="center"` reach
+  # the bridge identically; the glyph shorthand, the gradient layer and the id
+  # markers are all skipped.
+  #
+  # It carries no direction assumption to worry about: the tile is square, its
+  # one child is centred, and the `rtl` root moves the whole tile as one child
+  # of the row.
   def lead({:badge, name}) do
-    ~MOB"""
-    <Box width={26} height={26} corner_radius={8} background={0xFFE4E0D9} align="center">
-      {Kati.UI.symbol(name, size: 15, color: 0xFF5C574F)}
-    </Box>
-    """
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFE4E0D9, size: 26, radius: 8},
+      [Kati.UI.symbol(name, size: 15, color: 0xFF5C574F)]
+    )
   end
 
   @doc false

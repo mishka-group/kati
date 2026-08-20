@@ -30,6 +30,7 @@ defmodule Kati.Screens.AddTitle do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaActionIcon
   alias Kati.Library.Sample
   alias Kati.Theme
   alias Kati.UI
@@ -260,6 +261,18 @@ defmodule Kati.Screens.AddTitle do
   # One clause rather than two, because the two states are one button and it
   # has to go both ways — an add that cannot be undone is a trap on a list of
   # near-identical search results, three of which are called "Quiet".
+  #
+  # Chelekom's headless Action Icon draws it: this is exactly what that
+  # component is for — a compact icon-only button — and the design's 34pt disc,
+  # its fill and its glyph are all passed in, which is what headless means.
+  #
+  # The geometry is unchanged. `shape: :circle` computes `size / 2` = 17.0,
+  # which is the 17 the Box stated; `variant: :filled` is what lets the fill be
+  # the design's rather than the theme's; and the glyph goes in as a CHILD, so
+  # `Kati.UI.symbol/2` still supplies the Material Symbol at the drawn 19 in the
+  # drawn colour instead of the component's own `:lg` text glyph. The only
+  # structural difference is the `<Row>` the component wraps children in, which
+  # hugs its single Text and is centred by the same Box — no measurement moves.
   @doc false
   def add_button(added?, title) do
     # Keyed on the title, not the row's position: the chips reorder nothing but
@@ -269,11 +282,10 @@ defmodule Kati.Screens.AddTitle do
     icon = if added?, do: "check", else: "add"
     ink = if added?, do: 0xFF8A8479, else: 0xFFFBFAF8
 
-    ~MOB"""
-    <Box width={34} height={34} corner_radius={17} background={bg} align="center" on_tap={tap}>
-      {Kati.UI.symbol(icon, size: 19, color: ink)}
-    </Box>
-    """
+    MishkaActionIcon.action_icon(
+      [size: 34, shape: :circle, variant: :filled, background: bg, on_tap: tap],
+      [UI.symbol(icon, size: 19, color: ink)]
+    )
   end
 
   # `1.5px dashed rgba(26,25,23,.16)` in the drawing. The bridge draws only

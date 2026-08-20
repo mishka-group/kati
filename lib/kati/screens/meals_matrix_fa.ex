@@ -161,6 +161,17 @@ defmodule Kati.Screens.MealsMatrixFa do
   # that wrapper took the whole trough. The gaps are interspersed between the
   # segments instead of riding inside them, which also keeps the trough's own
   # 4pt padding from being doubled at the leading edge.
+  #
+  # Which is also the first reason this is not
+  # `Kati.Components.MishkaSegmentedControl`. Its segments are content-sized
+  # on purpose — its moduledoc says `weight` has no iOS mapping — and هفته /
+  # روز / خرید split the trough equally here. The hug it relies on is not even
+  # available on Android: it asks for it with `fill_width={false}`, and
+  # `MobBridge.kt:2716` decides a Box fills by asking whether `width` is set,
+  # while `fill_width` is read only for `true` (`:3985`). The labels are the
+  # harder blocker regardless — the component builds each segment's `Text` and
+  # takes no `font_family`, so all three would draw as blank boxes in Plus
+  # Jakarta Sans. `Kati.Screens.LibraryFa.segments/1` records the same case.
   @doc false
   def segments(plan, view) do
     ~MOB"""
@@ -492,6 +503,13 @@ defmodule Kati.Screens.MealsMatrixFa do
     """
   end
 
+  # `Kati.Components.MishkaAvatar` is this shape — an image with a coloured
+  # fallback stacked under it — and `Kati.Screens.SettingsFa.avatar/1` adopts
+  # it for the 52pt circular face. It cannot draw this one: its radius comes
+  # from `shape`, and `:rounded` is a hard-coded **10** with no prop to name
+  # another. The drawing asks for 11 here, 13 and 11 on screen 59, 9 on the
+  # settings tiles. One dp on a 40pt thumbnail is a visible difference in the
+  # corner.
   @doc false
   def thumb(seed) do
     case Images.poster(seed) do
@@ -505,6 +523,13 @@ defmodule Kati.Screens.MealsMatrixFa do
     end
   end
 
+  # Not `Kati.Components.MishkaSeparator`, though the API is this line exactly:
+  # the port renders `<Divider>`, `MobBridge.kt:2962` hands that to Material 3
+  # 1.2.0's `HorizontalDivider`, and that composable is a `Canvas` drawing an
+  # antialiased `drawLine` — not a filled box. `height(1.dp)` rounds to 3 whole
+  # device pixels at the capture device's 2.6875x while the 2.6875px stroke
+  # does not, so the bottom row lands at 69% coverage. The legend's rule above
+  # is the same node and is left alone for the same reason.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"

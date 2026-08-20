@@ -238,13 +238,44 @@ defmodule Kati.UI.SettingsList do
     """
   end
 
-  @doc "The 30x30 paper tile every settings row leads with."
+  @doc """
+  The 30x30 paper tile every settings row leads with.
+
+  `Kati.Components.MishkaThemeIcon` is documented as "a themed container around
+  exactly one icon", which is precisely what this is, so the container is its
+  rather than one more hand-rolled `Box`. Every number stays the drawing's:
+  30dp square, radius 9, `#EFECE7` paper, glyph at 17 in `#5C574F`.
+
+  `variant: :filled` with an explicit `color`, **not** `variant: :white` — the
+  white variant paints the theme's `:surface`, which here is `#FBFAF8`, the
+  card. The tile is paper, and the two are three values apart.
+
+  ## Why the glyph is a child rather than the `icon` prop
+
+  The `icon` shorthand builds its own `Text` and that `Text` carries no
+  `font_family`, so a Material Symbols **ligature** — `"chevron_right"` — would
+  be typeset as the words rather than resolved to the glyph. Handing
+  `Kati.UI.symbol/2` in as a child keeps the symbols face, and keeps
+  `Kati.Icons.glyph!/1`'s raise for a name outside the shipped subset, which is
+  the entire reason that helper exists.
+
+  ## Why the pixels do not move
+
+  With children and no `id`, `theme_icon/2` returns
+  `%{type: :box, props: %{width: 30, height: 30, align: :center,
+  corner_radius: 9, background: 0xFFEFECE7}, children: [glyph]}` — node for
+  node what this wrote by hand. `align: :center` and `align="center"` reach the
+  bridge as the same string: `align` is in none of the renderer's token
+  whitelists, so an unrecognised atom passes through and `:json.encode/1`
+  writes an atom as its own name. Nothing else in the component runs — the
+  gradient layer is empty for `:filled`, the id markers are skipped without an
+  `id`, and the glyph shorthand is skipped when children are given.
+  """
   def icon_tile(name) do
-    ~MOB"""
-    <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-      {Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)}
-    </Box>
-    """
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+    )
   end
 
   @doc "The disclosure chevron, at the design's `#C4BDB3`."

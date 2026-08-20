@@ -25,6 +25,16 @@ defmodule Kati.Screens.SettingsFa do
   41 reached the same conclusion. Fidelity wins over reuse for the one control
   the drawing measures.
 
+  The numbers say it plainly. `SwitchTokens` in Material 3 1.2.0 — the version
+  `compose-bom:2024.02.00` resolves — fixes `TrackWidth` at **52**,
+  `TrackHeight` at **32**, and the handle at **24** selected / **16** idle.
+  Nothing on the `Switch` composable takes a size, so 46x28 with a 22pt thumb
+  is not reachable through it at all. Colour would not survive either:
+  `MobToggle` (`MobBridge.kt:2918`) reads only `color`, and builds
+  `SwitchDefaults.colors(checkedThumbColor = color)` from it — the port's
+  documented `track_color` prop is decoded in Elixir and then never read, so
+  this screen's `#DCD7CF` idle track has nowhere to go.
+
   ## The controls behave exactly as screen 24's do
 
   Every toggle row taps to flip, the پوسته segments tap to select, and the
@@ -40,6 +50,7 @@ defmodule Kati.Screens.SettingsFa do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaAvatar
   alias Kati.Design.Images
   alias Kati.Fa.SampleSettings
   alias Kati.Theme
@@ -198,17 +209,26 @@ defmodule Kati.Screens.SettingsFa do
     """
   end
 
+  # `Kati.Components.MishkaAvatar`, not a hand-drawn Image with a Box behind
+  # it: a circular face with a coloured fallback under it is what the component
+  # *is*, and it carries the seed-missing branch that used to be written out
+  # here. `:circle` resolves to an exact `size / 2`, so 52 still rounds at 26.
+  #
+  # The pixels do not move in either state. With no image it draws the same
+  # 52x52 disc in the same `#E4E0D9`, plus an empty initials `Text` that
+  # renders nothing inside a box already sized to 52. With an image it stacks
+  # `[fallback, image]`, and the design's photographs are opaque JPEGs at the
+  # same 52x52 with the same radius, so the image covers the fallback exactly
+  # rather than tinting it.
+  #
+  # It is also the one component on this screen that can carry Persian copy —
+  # because it carries none. Nothing in the vendored set accepts
+  # `font_family`, and an unstyled `Text` is Plus Jakarta Sans, which has zero
+  # code points in U+0600-U+06FF. The initials here are the empty string, so
+  # there is no glyph to lose.
   @doc false
   def avatar(seed) do
-    case Images.poster(seed) do
-      nil ->
-        ~MOB"<Box width={52} height={52} corner_radius={26} background={0xFFE4E0D9} />"
-
-      src ->
-        ~MOB"""
-        <Image src={src} width={52} height={52} corner_radius={26} content_mode="fill" />
-        """
-    end
+    MishkaAvatar.avatar(src: Images.poster(seed), size: 52, background: 0xFFE4E0D9)
   end
 
   # The one group whose switches are sections. کاهش حرکت is a toggle too, but
@@ -376,6 +396,12 @@ defmodule Kati.Screens.SettingsFa do
 
   # The language row's tile carries two letters instead of a glyph — the design
   # names the language in the language, which no icon can do.
+  #
+  # Not `Kati.Components.MishkaActionIcon` for the glyph tile below either,
+  # even though a small icon disc is what it draws: its radius comes from a
+  # three-value `shape` (`:rounded` -> the `:radius_md` token, `:circle` ->
+  # `size / 2`) with no way to name one, and this tile's is 9. The badge tile
+  # is further out of reach — its text is Persian.
   @doc false
   def leading(%{badge: badge}) do
     ~MOB"""
@@ -420,6 +446,15 @@ defmodule Kati.Screens.SettingsFa do
 
   # A segmented control that reached here unsettled still draws: the first
   # option is raised, which is what `settle/1` would have written anyway.
+  #
+  # Not `Kati.Components.MishkaSegmentedControl`, though this is the one
+  # segmented control in the Persian set whose segments *are* content-sized
+  # the way the component wants them. Three things still stop it: the labels
+  # are Persian and the component's segment `Text` takes no `font_family`, so
+  # روشن would draw blank; the segments abut where the drawing puts 3 between
+  # them, and there is no gap prop; and a segment's box is sized by one
+  # uniform `padding` where this one is 26 tall with 10 of horizontal padding
+  # and a 10.5pt semibold label.
   def trailing({:segmented, [first | _] = options}), do: trailing({:segmented, options, first})
 
   def trailing({:segmented, options, selected}) do
@@ -515,6 +550,25 @@ defmodule Kati.Screens.SettingsFa do
   def thumb_trail(true), do: ~MOB"<Spacer size={0} />"
   def thumb_trail(false), do: ~MOB"<Spacer weight={1.0} />"
 
+  # ## Not `Kati.Components.MishkaSeparator`, and the reason is one row of
+  # pixels
+  #
+  # `separator(color: 0x121A1917, thickness: 1)` is this line, and the API fits
+  # exactly. What does not fit is what it draws: the port renders `<Divider>`,
+  # `MobBridge.kt:2962` hands that to Material 3's `HorizontalDivider`, and in
+  # 1.2.0 that composable is not a filled box —
+  #
+  #     Canvas(modifier.fillMaxWidth().height(thickness)) {
+  #       drawLine(color, strokeWidth = thickness.toPx(), …)
+  #     }
+  #
+  # `height(1.dp)` rounds to whole device pixels while `thickness.toPx()` does
+  # not, and the capture device runs at 2.6875x. The node is 3px tall and the
+  # antialiased stroke covers 2.6875 of them, so the bottom row lands at 69%
+  # coverage where `Box` + `background` fills all three. It is invisible at any
+  # density where 1dp is a whole number of pixels, which is why a unit test
+  # would never catch it — `Kati.Screens.Subscriptions.hairline/1` sets the
+  # same case out at length.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"

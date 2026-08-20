@@ -105,17 +105,30 @@ defmodule Kati.Screens.Settings do
     """
   end
 
-  @doc false
-  def avatar(a) do
-    case Kati.Design.Images.poster(a.seed) do
-      nil ->
-        ~MOB"<Box width={52} height={52} corner_radius={26} background={0xFFE4E0D9} />"
+  @doc """
+  The 52pt round face at the head of the account card.
 
-      src ->
-        ~MOB"""
-        <Image src={src} width={52} height={52} corner_radius={26} content_mode="fill" />
-        """
-    end
+  `Kati.Components.MishkaAvatar` rather than a hand-rolled `Image`, because an
+  image with a coloured fallback behind it is precisely what that component is:
+  `shape: :circle` resolves to an exact `size / 2` radius, so 52 gives the
+  drawing's own 26, and the missing-poster case is the component's own fallback
+  rather than a second clause here.
+
+  The pixels do not move. With a poster the component stacks
+  `[fallback, image]` in a 52x52 box, and a 52pt `content_mode="fill"` image at
+  radius 26 covers the fallback exactly — the same node the screen drew before,
+  over a disc nothing can see. Without one it draws the fallback alone: the same
+  `#E4E0D9` disc, now carrying an empty `Text` that has no glyphs to draw.
+
+  What it adds is the moment in between. The disc is painted while the poster is
+  still being read off disk, where the old markup drew a hole.
+  """
+  def avatar(a) do
+    Kati.Components.MishkaAvatar.avatar(
+      src: Kati.Design.Images.poster(a.seed),
+      size: 52,
+      background: 0xFFE4E0D9
+    )
   end
 
   @doc "How many sections are switched on right now."

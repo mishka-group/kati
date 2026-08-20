@@ -13,6 +13,7 @@ defmodule Kati.Screens.Film do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Library.Sample
   alias Kati.UI
 
@@ -220,9 +221,16 @@ defmodule Kati.Screens.Film do
     """
   end
 
+  # Mishka's Separator, at the design's own colour and thickness.
+  #
+  # The pixels are the hand-rolled Box's exactly: `separator/1` emits
+  # `<Divider color thickness>`, and `MobDivider` is Material 3's
+  # `HorizontalDivider`, which is `Box(modifier.fillMaxWidth().height(thickness)
+  # .background(color))` — the same full-width 1dp rectangle in the same colour
+  # that `<Box fill_width height={1} background>` produced.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   @doc false
   def actions(f) do

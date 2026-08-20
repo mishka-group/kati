@@ -17,6 +17,7 @@ defmodule Kati.Screens.Calendar do
   """
   use Kati.Screens.Root, root: :calendar
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Theme
 
 
@@ -107,7 +108,7 @@ defmodule Kati.Screens.Calendar do
         {Kati.Screens.Calendar.header(date, rows)}
         {Kati.Screens.Calendar.month_row(date)}
         {Kati.Screens.Calendar.day_strip(date)}
-        <Box fill_width={true} height={1} background={0x141A1917} />
+        {Kati.Screens.Calendar.rule()}
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
         {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter))}
@@ -199,6 +200,14 @@ defmodule Kati.Screens.Calendar do
     </Column>
     """
   end
+
+  # The hairline the drawing puts under the day strip, at its own 8% ink —
+  # Chelekom's headless Separator rather than a Box pretending to be a line.
+  # It expands to `<Divider color thickness />`, which the bridge draws as
+  # Compose's `HorizontalDivider`: `Box(fillMaxWidth().height(1.dp)
+  # .background(color))`, the hand-rolled Box exactly.
+  @doc false
+  def rule, do: MishkaSeparator.separator(color: 0x141A1917, thickness: 1)
 
   @doc false
   def cell_gap, do: ~MOB"<Spacer size={2} />"

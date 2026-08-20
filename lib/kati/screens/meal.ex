@@ -28,6 +28,8 @@ defmodule Kati.Screens.Meal do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Components.MishkaNumberField
+  alias Kati.Components.MishkaSeparator
   alias Kati.Meals.SampleRecipe, as: Sample
   alias Kati.UI
 
@@ -157,7 +159,7 @@ defmodule Kati.Screens.Meal do
         <Spacer size={14} />
         {Kati.Screens.Meal.macro_tiles()}
         <Spacer size={12} />
-        <Box fill_width={true} height={1} background={0x121A1917} />
+        {Kati.Screens.Meal.hairline(true)}
         <Spacer size={12} />
         {Kati.Screens.Meal.minors()}
       </Column>
@@ -186,6 +188,13 @@ defmodule Kati.Screens.Meal do
 
   # `remove` is muted and `add` is inked: at 1.0× there is nothing to take away
   # yet, which the drawing says with colour rather than with a disabled state.
+  #
+  # Drawn by hand rather than as `Kati.Components.MishkaNumberField`: that
+  # component is a bordered strip — stepper, hairline, native TextField,
+  # hairline, stepper — and this is a 32pt filled pill with no border, no rules
+  # and no editable field, whose steppers are Material Symbols rather than the
+  # component's "−"/"+" Text glyphs. Only its arithmetic is shared; see
+  # `handle_info/2`.
   @doc false
   def stepper(meal) do
     down = {self(), :portion_down}
@@ -523,9 +532,18 @@ defmodule Kati.Screens.Meal do
   @doc false
   def star, do: Kati.UI.symbol("star", size: 12, color: 0xFF8A8479, fill: true)
 
+  # `Kati.Components.MishkaSeparator`, not a hand-drawn Box. Its plain rule is
+  # `<Divider color thickness />`, and `MobDivider` renders Material3's
+  # `HorizontalDivider`, which is literally `Box().fillMaxWidth().height(t.dp)
+  # .background(color)` — the same three modifiers `nodeModifier/1` builds for
+  # `<Box fill_width={true} height={1} background={…} />`, in the same order.
+  # So the pixels are identical and the rule now says what it is.
+  #
+  # The colour stays the drawing's `rgba(26,25,23,.07)`; the component's own
+  # `:border` default would repaint every hairline in the theme's token.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
@@ -535,10 +553,23 @@ defmodule Kati.Screens.Meal do
   # The stepper moves in quarters and stops at 0.5x, which is what the drawing
   # implies by muting `remove` at 1.0x rather than hiding it: there is a floor,
   # and it is below where the screen opens.
+  #
+  # The arithmetic is `Kati.Components.MishkaNumberField.step/3` rather than a
+  # hand-rolled `+ delta |> max |> min`, because that is precisely the function
+  # the component exposes for callers who draw their own stepper — it clamps
+  # into `[min, max]` and rounds to the step's own precision, so repeated
+  # quarters cannot drift into 1.7500000000000002 and print as `1.75×` one tap
+  # and `1.76×` the next. The pill above is still drawn by hand: see the note
+  # on `stepper/1`.
   def handle_info({:tap, step}, socket) when step in [:portion_up, :portion_down] do
     meal = socket.assigns.meal
-    delta = if step == :portion_up, do: 0.25, else: -0.25
-    factor = (Kati.Screens.Meal.portion_factor(meal.portion) + delta) |> max(0.5) |> min(4.0)
+    direction = if step == :portion_up, do: :up, else: :down
+
+    factor =
+      meal.portion
+      |> Kati.Screens.Meal.portion_factor()
+      |> MishkaNumberField.step(direction, step: 0.25, min: 0.5, max: 4.0)
+
     {:noreply, Mob.Socket.assign(socket, :meal, %{meal | portion: Kati.Screens.Meal.portion_label(factor)})}
   end
 

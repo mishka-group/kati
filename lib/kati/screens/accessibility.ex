@@ -35,6 +35,8 @@ defmodule Kati.Screens.Accessibility do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Accessibility.Sample
+  alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.UI
 
   @impl true
@@ -263,9 +265,7 @@ defmodule Kati.Screens.Accessibility do
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.Accessibility.icon_tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
@@ -281,11 +281,44 @@ defmodule Kati.Screens.Accessibility do
   end
 
   @doc """
+  The 30x30 paper tile a guarantee row leads with.
+
+  `Kati.Components.MishkaThemeIcon` is "a themed container around exactly one
+  icon", which is what this is, so the container is its rather than one more
+  hand-rolled `Box` — the same swap `Kati.UI.SettingsList.icon_tile/1` makes
+  for the settings rows, for the same reason and with the same numbers: 30dp
+  square, radius 9, `#EFECE7` paper, glyph at 17 in `#5C574F`.
+
+  The glyph is a child rather than the `icon` prop because the `icon` shorthand
+  builds a `Text` with no `font_family`, so the Material Symbols **ligature**
+  `"volume_up"` would be typeset as the word. `Kati.UI.symbol/2` keeps the
+  symbols face and keeps `Kati.Icons.glyph!/1`'s raise for a name outside the
+  shipped subset.
+
+  With children and no `id`, `theme_icon/2` returns
+  `%{type: :box, props: %{width: 30, height: 30, align: :center,
+  corner_radius: 9, background: 0xFFEFECE7}, children: [glyph]}` — node for
+  node what this row wrote by hand, so nothing moves. `align: :center` and
+  `align="center"` reach the bridge as the same string.
+  """
+  def icon_tile(name) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+    )
+  end
+
+  @doc """
   The design's own switch, drawn rather than delegated.
 
   46x28 with a 22pt thumb and a 3pt inset. The 40pt inner row produces that
   inset without mixing `padding` and an explicit `width` on one node, which in
   this bridge inflates the node instead of insetting it.
+
+  `Kati.Components.MishkaSwitch` is the component for this and it cannot be
+  used: it wraps Mob's `Toggle`, which is Compose's Material `Switch` at
+  Material's own 52x32 metrics with a thumb that grows when on. No prop
+  reshapes it to 46x28 with a fixed 22pt thumb.
 
   The switch draws state; `row/4` carries the tap. Flipping one moves the
   thumb and swaps the track — every row's guaranteed consequence — and for
@@ -343,13 +376,22 @@ defmodule Kati.Screens.Accessibility do
   # 0x12 is the drawing's 7% rule. 0x38 is the darkened one the Increase
   # contrast row promises — the same ink, roughly tripled in weight, rather
   # than a second colour.
+  #
+  # The rule itself is `Kati.Components.MishkaSeparator`, which is what a
+  # 1px hairline between rows IS. Its plain variant is a `<Divider>`, and the
+  # bridge's `MobDivider` renders Compose's `HorizontalDivider(thickness, color)`
+  # — which is defined as `Box(modifier.fillMaxWidth().height(thickness)
+  # .background(color))`, the same three modifiers this wrote by hand. Both
+  # colours are passed as ARGB ints, so the drawing's own alphas survive:
+  # `color` is in the renderer's `@color_props` whitelist and an integer is
+  # handed to `colorProp` untouched.
   @doc false
   def hairline(false, _contrast?), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true, contrast?) do
     color = if contrast?, do: 0x381A1917, else: 0x121A1917
 
-    ~MOB"<Box fill_width={true} height={1} background={color} />"
+    MishkaSeparator.separator(color: color, thickness: 1)
   end
 
   @doc """

@@ -258,6 +258,19 @@ defmodule Kati.Screens.TodayFa do
     """
   end
 
+  # ## Not `Kati.Components.MishkaMeter`
+  #
+  # A segmented value bar looks like the meter's job, and it is not: a meter is
+  # *one* fill along a track, and this is three abutting fills in three colours
+  # that together span the whole 9pt trough. There is no prop for a second
+  # segment, and stacking three meters would stack three tracks.
+  #
+  # It could not draw even one of them. `MishkaMeter` delegates to
+  # `MishkaProgress`, which renders Mob's native `Progress`; `MobBridge.kt:2980`
+  # hands that to Material 3 1.2.0's `LinearProgressIndicator`, whose modifier
+  # chain ends `.size(240.dp, 4.dp)` — after the caller's — so the bar is
+  # always 240 wide and 4 tall whatever the card's width and the design's 9 say.
+  # `Kati.Screens.LibraryFa.progress/1` records the rest of it.
   @doc false
   def macros(day) do
     ~MOB"""
@@ -472,6 +485,13 @@ defmodule Kati.Screens.TodayFa do
   # The design's own photograph, not a tinted rectangle. A missing file leaves
   # the drawing's #E4E0D9 well behind, which is what the export shows before
   # its image slots resolve.
+  #
+  # This is `Kati.Components.MishkaAvatar`'s shape — image over a coloured
+  # fallback — and `Kati.Screens.SettingsFa.avatar/1` adopts it for the round
+  # face. Not here: the avatar's radius comes from `shape`, and its `:rounded`
+  # is a hard-coded 10 with no prop to name one. Both call sites on this screen
+  # pass a radius the component cannot say (13 for the 52pt thumb, 11 for the
+  # 40pt one).
   @doc false
   def thumb(seed, size, radius) do
     case Images.poster(seed) do

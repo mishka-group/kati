@@ -179,28 +179,45 @@ defmodule Kati.Screens.Habits do
     """
   end
 
-  # Ticked today is the calendar's green with a white check; not yet is the
-  # paper colour with a #C4BDB3 one — present but unlit, so the target reads as
-  # something you can still press rather than something that failed.
-  @doc false
-  def today_button(true, index) do
-    tap = toggle_tap(index)
+  @doc """
+  The 34pt round tick at the end of a habit's title row.
 
-    ~MOB"""
-    <Box width={34} height={34} corner_radius={17} background={0xFF4E9A73} align="center" on_tap={tap}>
-      {Kati.UI.symbol("check", size: 19, color: 0xFFFBFAF8)}
-    </Box>
-    """
-  end
+  Ticked today is the calendar's green with a white check; not yet is the paper
+  colour with a `#C4BDB3` one — present but unlit, so the target reads as
+  something you can still press rather than something that failed.
 
-  def today_button(false, index) do
-    tap = toggle_tap(index)
+  `Kati.Components.MishkaActionIcon` rather than a hand-rolled `Box`, because a
+  round tap target holding one glyph is exactly what that component is. It also
+  collapses the two clauses this was: with the shape and the tap coming from the
+  component, the whole difference between ticked and not is two colours, and two
+  colours read better as two locals than as two copies of the same markup.
 
-    ~MOB"""
-    <Box width={34} height={34} corner_radius={17} background={0xFFEFECE7} align="center" on_tap={tap}>
-      {Kati.UI.symbol("check", size: 19, color: 0xFFC4BDB3)}
-    </Box>
-    """
+  `variant: :filled` is what lets `background` through — the port paints
+  `:transparent` on the default `:plain` — and `shape: :circle` resolves to an
+  exact `size / 2`, so 34 gives the drawing's own 17.
+
+  **The pixels are the same node.** The port renders
+  `<Box width height align={:center} corner_radius background on_tap>` around a
+  `<Row>` holding the glyph, and a `Row` given no props hugs its one child, so
+  the check measures and centres where it did before. This is the one disc on
+  the screen that carries no shadow, which is why it is the one that could move:
+  `disc/2` above it wears `Kati.Theme.shadow_button()`, and the port has no
+  `shadow` prop to put it back — which is why `disc/2` is still hand-rolled.
+  """
+  def today_button(ticked?, index) do
+    background = if ticked?, do: 0xFF4E9A73, else: 0xFFEFECE7
+    ink = if ticked?, do: 0xFFFBFAF8, else: 0xFFC4BDB3
+
+    Kati.Components.MishkaActionIcon.action_icon(
+      [
+        size: 34,
+        shape: :circle,
+        variant: :filled,
+        background: background,
+        on_tap: toggle_tap(index)
+      ],
+      [Kati.UI.symbol("check", size: 19, color: ink)]
+    )
   end
 
   defp toggle_tap(index), do: {self(), String.to_atom("toggle_today_" <> Integer.to_string(index))}

@@ -27,6 +27,8 @@ defmodule Kati.Screens.Import do
   """
   use Kati.Screens.Pushed, back: "Settings"
 
+  alias Kati.Components.MishkaSeparator
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Import.Sample
   alias Kati.UI
 
@@ -127,9 +129,7 @@ defmodule Kati.Screens.Import do
         padding={15}
         align="center"
       >
-        <Box width={38} height={38} corner_radius={11} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol("description", size: 20, color: 0xFF5C574F)}
-        </Box>
+        {Kati.Screens.Import.file_tile()}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={job.file} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
@@ -142,6 +142,32 @@ defmodule Kati.Screens.Import do
       <Spacer size={22} />
     </Column>
     """
+  end
+
+  @doc """
+  The 38x38 paper tile the file card leads with, from
+  `Kati.Components.MishkaThemeIcon` — "a themed container around exactly one
+  icon", which is what this is. Larger than the settings rows' 30 and rounded
+  to 11 rather than 9, both the drawing's own numbers, both props.
+
+  `variant: :filled` with an explicit `color`, not `variant: :white` — the
+  white variant paints the theme's `:surface`, which here is `#FBFAF8`, the
+  card the tile sits on.
+
+  The glyph is a child rather than the `icon` prop: that shorthand builds a
+  `Text` with no `font_family`, so the ligature `"description"` would be
+  typeset as the word rather than resolved to the Material Symbols glyph.
+
+  With children and no `id`, `theme_icon/2` returns
+  `%{type: :box, props: %{width: 38, height: 38, align: :center,
+  corner_radius: 11, background: 0xFFEFECE7}, children: [glyph]}` — node for
+  node what the card wrote by hand.
+  """
+  def file_tile do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: 0xFFEFECE7, size: 38, radius: 11},
+      [Kati.UI.symbol("description", size: 20, color: 0xFF5C574F)]
+    )
   end
 
   @doc false
@@ -359,7 +385,15 @@ defmodule Kati.Screens.Import do
     end
   end
 
+  # `Kati.Components.MishkaSeparator` is what a 1px rule between mapping rows
+  # is, so the rule is its. Its plain variant is a `<Divider>`, and the
+  # bridge's `MobDivider` renders Compose's `HorizontalDivider(thickness,
+  # color)` — defined as `Box(modifier.fillMaxWidth().height(thickness)
+  # .background(color))`, the same three modifiers this wrote by hand. The
+  # drawing's 7% ink survives because the colour is an ARGB int: `color` is in
+  # the renderer's `@color_props` whitelist and an integer reaches `colorProp`
+  # untouched.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 end

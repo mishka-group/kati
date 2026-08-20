@@ -30,6 +30,7 @@ defmodule Kati.Screens.MealPlan do
   """
   use Kati.Screens.Pushed, back: "Meals"
 
+  alias Kati.Components.MishkaSeparator
   alias Kati.Meals.SamplePlan, as: Sample
   alias Kati.Theme
   alias Kati.UI
@@ -251,7 +252,7 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={7} />
-      <Box fill_width={true} height={1} background={0x121A1917} />
+      {Kati.Screens.MealPlan.hairline(true)}
       <Spacer size={13} />
       <Row fill_width={true} align="center">
         {keys}
@@ -443,9 +444,18 @@ defmodule Kati.Screens.MealPlan do
     """
   end
 
+  # `Kati.Components.MishkaSeparator`, not a hand-drawn Box. Its plain rule is
+  # `<Divider color thickness />`, and `MobDivider` renders Material3's
+  # `HorizontalDivider`, which is literally `Box().fillMaxWidth().height(t.dp)
+  # .background(color)` — the same three modifiers `nodeModifier/1` builds for
+  # `<Box fill_width={true} height={1} background={…} />`, in the same order.
+  # So the pixels are identical and the rule now says what it is.
+  #
+  # The colour stays the drawing's `rgba(26,25,23,.07)`; the component's own
+  # `:border` default would repaint every hairline in the theme's token.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1)
 
   @impl true
   def handle_tap(:edit_plan, socket),
