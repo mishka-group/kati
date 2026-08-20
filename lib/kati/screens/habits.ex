@@ -26,20 +26,49 @@ defmodule Kati.Screens.Habits do
   rather than seven labels for exactly that reason.
 
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
+
+  ## Every number on this screen is derived from the habit list
+
+  The drawing prints three counts — the header's *"4 active · 12-day best"*, a
+  streak line per card, and the today tick — and the first two are functions of
+  the third. So `:habits` holds only what a tap can actually change:
+
+    * `today` — whether the round button is lit
+    * `base` — the streak *before* today, which a tap never moves
+
+  and `streak_days/1`, `streak_line/1` and `subtitle/1` compute the rest at
+  render. Storing the rendered `"12 days"` alongside the tick would let a tap
+  move one and not the other, and the screen would print a lit tick above a
+  broken streak. `load/1` splits the sample's rendered string into that number
+  once, at the seam, and nothing reads the string again.
+
+  At rest this reproduces the export exactly: `11 + 1 = 12 days`, `4 + 1 =
+  5 days`, `2 + 0 = 2 days`, `0 + 0 = broken`, and `4 active · 12-day best`.
+
+  **The seven squares are history, not today.** The third card is ticked on its
+  last square while its today button is dark, so the week strip is not a
+  rolling window ending at today and there is no square a tap may flip without
+  inventing a weekday mapping the drawing does not carry. A toggle therefore
+  moves the button, the streak line and the header — and leaves the week alone.
   """
   use Kati.Screens.Pushed, back: "Stats"
 
   alias Kati.Habits.Sample
   alias Kati.UI
 
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, :habits, Enum.map(Sample.habits(), &adopt/1))
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    habits = assigns.habits
+
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
         {Kati.Screens.Habits.back_gap()}
-        {Kati.Screens.Habits.header()}
-        {Kati.Screens.Habits.cards()}
+        {Kati.Screens.Habits.header(habits)}
+        {Kati.Screens.Habits.cards(habits)}
         {UI.eyebrow("Consistency · 13 weeks")}
         {Kati.Screens.Habits.consistency()}
       </Column>
@@ -53,14 +82,16 @@ defmodule Kati.Screens.Habits do
   def back_gap, do: ~MOB"<Spacer size={58} />"
 
   @doc false
-  def header do
+  def header(habits) do
+    subtitle = subtitle(habits)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text text="Habits" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={Kati.Habits.Sample.subtitle()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
         {Kati.Screens.Habits.disc("add", :new_habit)}
       </Row>
@@ -88,11 +119,15 @@ defmodule Kati.Screens.Habits do
     """
   end
 
+  # Indexed, because every card's today button carries the same verb and only
+  # its position tells them apart — the tag is `toggle_today_2`, not a shared
+  # `:toggle_today` that four cards would all answer to.
   @doc false
-  def cards do
+  def cards(habits) do
     children =
-      Sample.habits()
-      |> Enum.map(&card/1)
+      habits
+      |> Enum.with_index()
+      |> Enum.map(fn {habit, index} -> card(habit, index) end)
       |> Enum.intersperse(card_gap())
 
     ~MOB"""
@@ -107,7 +142,9 @@ defmodule Kati.Screens.Habits do
   def card_gap, do: ~MOB"<Spacer size={11} />"
 
   @doc false
-  def card(habit) do
+  def card(habit, index) do
+    streak = streak_line(habit)
+
     ~MOB"""
     <Column
       fill_width={true}
@@ -120,10 +157,10 @@ defmodule Kati.Screens.Habits do
         <Column weight={1.0}>
           <Text text={habit.name} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={habit.streak} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={streak} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.Habits.today_button(habit.today)}
+        {Kati.Screens.Habits.today_button(habit.today, index)}
       </Row>
       <Spacer size={13} />
       <Row fill_width={true} align="center">
@@ -146,8 +183,8 @@ defmodule Kati.Screens.Habits do
   # paper colour with a #C4BDB3 one — present but unlit, so the target reads as
   # something you can still press rather than something that failed.
   @doc false
-  def today_button(true) do
-    tap = {self(), :toggle_today}
+  def today_button(true, index) do
+    tap = toggle_tap(index)
 
     ~MOB"""
     <Box width={34} height={34} corner_radius={17} background={0xFF4E9A73} align="center" on_tap={tap}>
@@ -156,8 +193,8 @@ defmodule Kati.Screens.Habits do
     """
   end
 
-  def today_button(false) do
-    tap = {self(), :toggle_today}
+  def today_button(false, index) do
+    tap = toggle_tap(index)
 
     ~MOB"""
     <Box width={34} height={34} corner_radius={17} background={0xFFEFECE7} align="center" on_tap={tap}>
@@ -165,6 +202,8 @@ defmodule Kati.Screens.Habits do
     </Box>
     """
   end
+
+  defp toggle_tap(index), do: {self(), String.to_atom("toggle_today_" <> Integer.to_string(index))}
 
   @doc false
   def week(days) do
@@ -254,5 +293,118 @@ defmodule Kati.Screens.Habits do
     ~MOB"""
     <Box width={8} height={8} corner_radius={2} background={tone} />
     """
+  end
+
+  # ── What a tap changes ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_tap(:new_habit, socket) do
+    {:noreply, Mob.Socket.update(socket, :habits, &Kati.Screens.Habits.add_habit/1)}
+  end
+
+  # One clause for every card's today button: the tag carries the row, so a
+  # fifth habit is a data change rather than a code change.
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "toggle_today_" <> index ->
+        {:noreply, Mob.Socket.update(socket, :habits, &Kati.Screens.Habits.toggle_today(&1, index))}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Flip one habit's today tick.
+
+  `base` is deliberately untouched — the streak before today does not change
+  because you ticked today — so the card's line and the header's best both move
+  by exactly one and cannot disagree. An index that is not a row leaves the
+  list alone rather than raising into `Kati.Screens.Root.rescue_tap/3`.
+  """
+  @spec toggle_today([map()], String.t()) :: [map()]
+  def toggle_today(habits, index) do
+    case Integer.parse(index) do
+      {i, ""} -> List.update_at(habits, i, &%{&1 | today: not &1.today})
+      _ -> habits
+    end
+  end
+
+  @doc """
+  A new habit, at the top of the stack.
+
+  Newest first, for the reason `Kati.Screens.Lists.add_list/1` gives: the point
+  of pressing `+` is to see the thing you just made, and below four cards the
+  fifth is off the bottom of the phone — a control whose result is out of frame
+  reads as broken.
+
+  It carries the card the drawing already draws, in its emptiest state: no
+  streak, an unlit today button, and seven `:missed` squares. That is the
+  fourth card minus its two lapsed ticks, so nothing new is drawn. Its line
+  reads `broken` rather than a fresh third string, because `broken` and
+  `N days` are the only two the export has and inventing a third would put a
+  label on the screen the design never wrote. One tap on its today button
+  makes it `1 day`.
+  """
+  @spec add_habit([map()]) :: [map()]
+  def add_habit(habits) do
+    [%{name: "New habit", base: 0, today: false, days: List.duplicate(:missed, 7)} | habits]
+  end
+
+  # ── What the screen prints, all of it derived ─────────────────────────────
+
+  @doc "The streak a habit is on right now, today included if today is ticked."
+  @spec streak_days(map()) :: non_neg_integer()
+  def streak_days(%{base: base, today: true}), do: base + 1
+  def streak_days(%{base: base, today: false}), do: base
+
+  @doc "That number as the card's mono line — the export's only two forms."
+  @spec streak_line(map()) :: String.t()
+  def streak_line(habit) do
+    case streak_days(habit) do
+      0 -> "broken"
+      1 -> "1 day"
+      n -> Integer.to_string(n) <> " days"
+    end
+  end
+
+  @doc """
+  The header's mono line, counted off the list rather than written down.
+
+  `Kati.Habits.Sample.subtitle/0` is the same string as a constant, and that is
+  exactly what it cannot stay: pressing `+` moves the count and unticking the
+  first card moves the best, and a constant would keep printing `4 active ·
+  12-day best` over a screen showing neither.
+  """
+  @spec subtitle([map()]) :: String.t()
+  def subtitle(habits) do
+    best = habits |> Enum.map(&streak_days/1) |> Enum.max(fn -> 0 end)
+
+    Integer.to_string(length(habits)) <>
+      " active · " <> Integer.to_string(best) <> "-day best"
+  end
+
+  # The seam. `Kati.Habits.Sample` stores a habit's streak the way the drawing
+  # prints it, which is fine for a still picture and useless to a tap; this
+  # reads that string once, at mount, and the screen works in numbers from
+  # there. `Integer.parse/1` rather than `String.to_integer/1` because "broken"
+  # is one of the sample's own values and a raise here happens in `mount/3`,
+  # outside the tap rescue, where it would take the whole screen down.
+  defp adopt(habit) do
+    today = habit.today
+
+    %{
+      name: habit.name,
+      today: today,
+      days: habit.days,
+      base: parse_streak(habit.streak) - if(today, do: 1, else: 0)
+    }
+  end
+
+  defp parse_streak(line) do
+    case Integer.parse(line) do
+      {n, _rest} -> n
+      :error -> 0
+    end
   end
 end

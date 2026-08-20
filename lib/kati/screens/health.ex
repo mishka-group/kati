@@ -351,4 +351,32 @@ defmodule Kati.Screens.Health do
     </Row>
     """
   end
+
+  @doc """
+  The whole card is the tap target, so the chevron does not need its own.
+
+  `Kati.Screens.MealsToday` is screen 43, and it is pushed `back: "Health"` —
+  the two screens already name each other, so the row's *"Open Meals — dinner
+  19:30"* has one destination and it is not a choice.
+  """
+  @impl true
+  def handle_tap(:open_meals, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
+
+  # `:open_filters` — the header's `tune` disc — is deliberately inert.
+  #
+  # Screen 42 draws the disc and nothing behind it: there is no filter sheet in
+  # the export, no chip row on this screen, and nothing on it that filtering
+  # would narrow. The hero is today's single total, the meal row is the one
+  # next thing, and the grid is the six sections Health *has* — a list that
+  # would be a lie with any of them hidden, which is the argument the dashed
+  # tiles and the container note at the bottom exist to make.
+  #
+  # So there is no honest consequence to wire, and a sheet invented to give the
+  # disc something to do would put a screen in the app the design never drew.
+  # It stays a no-op until 42 gains a filter to apply. What this clause does buy
+  # is that it is a *quiet* no-op: without a catch-all, the tap raises
+  # `UndefinedFunctionError` inside `Kati.Screens.Root.rescue_tap/3` and logs an
+  # error on every press, which reads like a bug rather than an unbuilt control.
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end

@@ -10,7 +10,16 @@ defmodule Kati.MixProject do
       deps: deps(),
       aliases: aliases(),
       erlc_paths: ["src"],
-      erlc_options: [:debug_info]
+      erlc_options: [:debug_info],
+      # `mix test` walks test/ with `:test_pattern` and warns about every file
+      # that is neither loaded as a test nor explicitly ignored — its guess at
+      # a misnamed `foo_tests.exs`. test/support/screen_sweep.exs is neither:
+      # it is a plain module the two screen sweeps pull in with
+      # `Code.require_file/2`. Ignoring the folder is the answer Mix documents
+      # for exactly this; an `elixirc_paths` override for :test would be the
+      # other one, and it would compile support/ into the app for every mix
+      # task rather than only for the tests that ask for it.
+      test_ignore_filters: [&String.starts_with?(&1, "test/support/")]
     ]
   end
 

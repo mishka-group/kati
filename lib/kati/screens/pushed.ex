@@ -15,6 +15,21 @@ defmodule Kati.Screens.Pushed do
   Provides the same tap rescue as `Kati.Screens.Root` — Mob catches nothing,
   and a raise in a tap handler otherwise kills the screen process — plus a
   `back` tap wired to `Mob.Socket.pop_screen/1`.
+
+  ## This macro defines no `handle_tap/2`, and must not
+
+  A pushed screen that draws a tappable control and forgets `handle_tap/2` is
+  reported by `Kati.Screens.Root.rescue_tap/3` as a `DEAD TAP` error naming
+  the module and the tag. That report is the entire safety net for a class of
+  defect nothing else can see: the button's *resting* pixels are correct, so
+  the design comparison passes, the compiler is happy, and the build is green.
+
+  Adding `def handle_tap(_tag, socket), do: {:noreply, socket}` here would
+  silence it. It is a tempting one-liner — it removes an error from the log
+  and makes the behaviour look intentional — and it is precisely wrong: the
+  dead button stays dead, and the last thing that was telling anyone about it
+  stops. `Kati.Screens.Root` had exactly that default and it had been hiding
+  three broken screens. Do not bring it back on this side.
   """
 
   defmacro __using__(opts) do
@@ -46,6 +61,9 @@ defmodule Kati.Screens.Pushed do
         {:noreply, Mob.Socket.pop_screen(socket)}
       end
 
+      # Everything except `:back` is the screen's own control, so the screen
+      # owns the answer. Nothing is defined here to stand in for it — see the
+      # moduledoc on why a default no-op would be the worst possible fix.
       def handle_info({:tap, tag}, socket) do
         Kati.Screens.Root.rescue_tap(__MODULE__, tag, socket)
       end

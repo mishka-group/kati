@@ -317,4 +317,15 @@ defmodule Kati.Screens.MonthGrid do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  # ── What a tap changes ────────────────────────────────────────────────────
+
+  # The switcher this screen draws is its only control, and its three live
+  # segments (`view_Day`, `view_Week`, `view_Agenda`) are routed by the module
+  # that drew them. `Kati.Screens.ViewSwitcher.handle_tap/2` returns the socket
+  # untouched for anything that is not a `view_*` tag, so delegating the whole
+  # callback is safe and stays right if this screen grows a control of its own
+  # — those clauses go above this line.
+  @impl true
+  def handle_tap(tag, socket), do: Kati.Screens.ViewSwitcher.handle_tap(tag, socket)
 end

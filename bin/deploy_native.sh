@@ -23,6 +23,15 @@ if [ "$before" -lt "$NEED_MB" ]; then
   # by every --native deploy, so clearing it costs nothing but the push.
   "$ADB" shell pm clear "$PKG" >/dev/null 2>&1 || true
   echo "   /data free: $(free_mb) MB after clearing $PKG data + caches"
+
+  # `pm clear` also REVOKES runtime permissions, and the calendar screens then
+  # show "0 items" for a reason that has nothing to do with the calendar code.
+  # That has been misdiagnosed more than once, so put it back here rather than
+  # remembering to do it every time.
+  for perm in android.permission.READ_CALENDAR android.permission.WRITE_CALENDAR; do
+    "$ADB" shell pm grant "$PKG" "$perm" >/dev/null 2>&1 || true
+  done
+  echo "   re-granted calendar permissions (pm clear revokes them)"
 fi
 
 # `mix mob.release --android` stages the OTP tree at

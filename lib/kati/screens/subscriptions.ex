@@ -30,14 +30,44 @@ defmodule Kati.Screens.Subscriptions do
   oversight.
 
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
+
+  ## What the two buttons do, and what they deliberately do not
+
+  The suggestion card is the only thing on this screen that can move, and it
+  moves in exactly the two directions the drawing's own buttons name:
+
+    * **Dismiss** retires the suggestion — the card *and* the "Worth a look"
+      eyebrow above it, since an eyebrow labelling nothing is worse than no
+      eyebrow. Nothing takes their place.
+    * **Remind me 23 Aug** marks the offer as taken: the primary button changes
+      into the card's own secondary treatment (`#EFECE7` on `#5C574F` — the
+      Dismiss chip's two colours, already in this row). Tapping again cancels.
+
+  The label does not change and no tick appears, because the drawing has no
+  "reminder set" wording and inventing one would be inventing a screen. The
+  weight change is therefore the whole signal, and that is a real loss against
+  a drawing that never had to show this state.
+
+  **Nothing is actually scheduled.** `Kati.Notifications.Scheduler` is a
+  planned child of `Kati.Supervisor` (#59) and is not built, so `:remind`
+  records that you asked and nothing more. When the scheduler lands this is
+  where it gets called; until then the button must not claim otherwise.
+
+  Both states start off, so the resting screen is the drawing exactly.
   """
   use Kati.Screens.Pushed, back: "Stats"
 
   alias Kati.Subscriptions.Sample
   alias Kati.UI
 
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, suggestion: true, reminded: false)
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    shown? = assigns.suggestion
+    reminded? = assigns.reminded
+
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
@@ -46,8 +76,7 @@ defmodule Kati.Screens.Subscriptions do
         {Kati.Screens.Subscriptions.monthly()}
         {UI.eyebrow("Services")}
         {Kati.Screens.Subscriptions.services()}
-        {Kati.UI.Eyebrow.quiet("Worth a look")}
-        {Kati.Screens.Subscriptions.suggestion()}
+        {Kati.Screens.Subscriptions.suggestion(shown?, reminded?)}
       </Column>
     </Scroll>
     """
@@ -204,8 +233,24 @@ defmodule Kati.Screens.Subscriptions do
     """
   end
 
+  # The eyebrow lives in here rather than in `content/1` so that Dismiss takes
+  # the label away with the card it labels.
+  #
+  # A two-element LIST, not a wrapping Column. `content/1` interpolates it into
+  # the same slot the eyebrow and the card occupied separately, so the tree it
+  # produces at rest is the one this screen produced before the buttons worked —
+  # identical, not merely equivalent. A wrapper Column would almost certainly
+  # have laid out the same; "almost certainly" is not what the frame comparison
+  # is measured in.
   @doc false
-  def suggestion do
+  def suggestion(false, _reminded?), do: ~MOB"<Spacer size={0} />"
+
+  def suggestion(true, reminded?) do
+    [Kati.UI.Eyebrow.quiet("Worth a look"), Kati.Screens.Subscriptions.advice(reminded?)]
+  end
+
+  @doc false
+  def advice(reminded?) do
     s = Sample.suggestion()
 
     ~MOB"""
@@ -223,7 +268,7 @@ defmodule Kati.Screens.Subscriptions do
       </Row>
       <Spacer size={15} />
       <Row fill_width={true} align="center">
-        {Kati.Screens.Subscriptions.confirm(s.confirm)}
+        {Kati.Screens.Subscriptions.confirm(s.confirm, reminded?)}
         <Spacer size={9} />
         {Kati.Screens.Subscriptions.dismiss(s.dismiss)}
       </Row>
@@ -231,15 +276,23 @@ defmodule Kati.Screens.Subscriptions do
     """
   end
 
+  # Two clauses, not a pair of conditional colours, because these are the card's
+  # two drawn button treatments and not a spectrum: ink on paper for the primary,
+  # `#EFECE7` on `#5C574F` for the secondary. "Already asked for" is the primary
+  # wearing the secondary's clothes — no new colour enters the card.
   @doc false
-  def confirm(label) do
+  def confirm(label, false), do: confirm_button(label, Kati.Theme.ink(), 0xFFFBFAF8)
+  def confirm(label, true), do: confirm_button(label, 0xFFEFECE7, 0xFF5C574F)
+
+  @doc false
+  def confirm_button(label, background, foreground) do
     tap = {self(), :remind}
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row fill_width={true} height={40} corner_radius={20} background={Kati.Theme.ink()} align="center" on_tap={tap}>
+      <Row fill_width={true} height={40} corner_radius={20} background={background} align="center" on_tap={tap}>
         <Spacer weight={1.0} />
-        <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
+        <Text text={label} text_size={12.5} font_weight="semibold" text_color={foreground} max_lines={1} />
         <Spacer weight={1.0} />
       </Row>
     </Box>
@@ -260,4 +313,25 @@ defmodule Kati.Screens.Subscriptions do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  # `:remind` toggles rather than latches, so the one control that arms it can
+  # also cancel it. There is nowhere else on this screen to cancel from, and a
+  # button that can only be pressed once is a button that lies the second time.
+  @impl true
+  def handle_tap(:remind, socket) do
+    {:noreply, Mob.Socket.assign(socket, :reminded, not socket.assigns.reminded)}
+  end
+
+  def handle_tap(:dismiss, socket) do
+    {:noreply, Mob.Socket.assign(socket, :suggestion, false)}
+  end
+
+  # `:open_menu` — the `more_horiz` disc — lands here on purpose.
+  #
+  # 23.html contains exactly one `more_horiz` and no menu, sheet or popover
+  # anywhere in the export, so there is nothing to open that would not be
+  # invented. Left tappable rather than untapped: the drawing draws a control,
+  # and stripping `on_tap` would take its press feedback away too. It is inert
+  # and silent — the catch-all, not a raise — until a sheet is drawn.
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end
