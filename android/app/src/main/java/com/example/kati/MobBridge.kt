@@ -222,6 +222,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 // KATI-BEGIN(K-10 em-import) mob_new=0.4.20
@@ -3997,6 +4000,39 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
     // (e.g. camera preview + overlay canvas that need to match the
     // model's center-cropped square frame so coords align).
     floatProp(props, "aspect_ratio")?.let { r -> if (r > 0f) m = m.aspectRatio(r) }
+
+    // KATI-BEGIN(K-16 rotate-and-clip) mob_new=0.4.20
+    // Two marks the design makes WITHOUT their own Material Symbol, and which
+    // therefore can never enter the icon subset — the generator derives that
+    // set by scanning the drawings for symbol names, and these are not there.
+    //
+    // `rotate` — screen 02's air-date group draws its collapse chevron by
+    // rotating expand_more 180deg in CSS. With no rotation the group had no
+    // glyph to close itself with and shipped permanently open-or-shut. Costs
+    // one Compose modifier; the alternative was re-subsetting the font for a
+    // glyph that is another glyph upside down.
+    //
+    // `clip_width` — screen 33's half star is a gradient across ONE star
+    // glyph, hard-stopped at 50%. Compose cannot crop text: every Text is
+    // built with TextOverflow.Ellipsis, so a narrower Box ellipsises the glyph
+    // away rather than cutting it, and corner_radius clips painting only.
+    // Clipping the DRAW instead reproduces exactly what the CSS does — an
+    // empty star with a filled one clipped over it — so 4.5 stars reads as
+    // four and a half rather than as five.
+    //
+    // Both take the node as drawn and change only how it is painted, so
+    // neither affects measurement or the layout around it.
+    floatProp(props, "rotate")?.let { deg -> if (deg != 0f) m = m.rotate(deg) }
+
+    floatProp(props, "clip_width")?.let { f ->
+        if (f < 1f) {
+            val fraction = f.coerceAtLeast(0f)
+            m = m.drawWithContent {
+                clipRect(right = size.width * fraction) { this@drawWithContent.drawContent() }
+            }
+        }
+    }
+    // KATI-END(K-16 rotate-and-clip)
 
     // Per-node offset is NOT applied here. Compose's Modifier.offset on the
     // node's own modifier chain didn't displace siblings reliably when stacking

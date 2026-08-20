@@ -292,12 +292,31 @@ defmodule Kati.Screens.Rating do
   def star(:full), do: Kati.UI.symbol("star", size: 26, color: 0xFFE8823C, fill: true)
   def star(:empty), do: Kati.UI.symbol("star", size: 26, color: 0xFFE0DAD1, fill: true)
 
-  # The accent star at FILL 0 — outlined rather than half-filled, because the
-  # subset carries no `star_half` and this bridge cannot crop a glyph. Both
-  # halves of that are argued in the moduledoc; what matters here is that it is
-  # one `Text` of the same size and family as its four neighbours, so the fifth
-  # star sits in their line box instead of a stacked `Box`'s idea of it.
-  def star(:half), do: Kati.UI.symbol("star", size: 26, color: 0xFFE8823C)
+  # A real half star, drawn the way the design draws one: the empty star, with
+  # a filled star painted over it and CUT at 50%.
+  #
+  # This used to be an outlined accent star, because the icon subset carries no
+  # `star_half` and this bridge could not crop a glyph — a Box narrower than
+  # the text ellipsises it away, since every Text is built with
+  # TextOverflow.Ellipsis, and `corner_radius` clips painting only. Adding
+  # `star_half` to the subset would have meant re-subsetting from a source
+  # variable font that is not in this repo, for a glyph that is another glyph
+  # cut in half.
+  #
+  # Fence K-16 gave the bridge `clip_width` instead, which clips the DRAW and
+  # leaves measurement alone — so the two glyphs occupy one star's width, sit
+  # in the same line box as their four neighbours, and 4.5 reads as four and a
+  # half rather than as five.
+  def star(:half) do
+    ~MOB"""
+    <Box width={26} height={26}>
+      {Kati.UI.symbol("star", size: 26, color: 0xFFE0DAD1, fill: true)}
+      <Box width={26} height={26} clip_width={0.5}>
+        {Kati.UI.symbol("star", size: 26, color: 0xFFE8823C, fill: true)}
+      </Box>
+    </Box>
+    """
+  end
 
   # The one card on cream. Screen 08 does the same for its note, and for the
   # same reason: the user's own words are not metadata, so the palette warms up

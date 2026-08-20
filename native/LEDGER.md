@@ -57,6 +57,8 @@ the baseline is refreshed, the fence goes and the row moves to *Retired*.
 | `K-10 extrabold` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | Adds the `extrabold` arm to `fontWeightProp`. `kati_sans_800` ships and the design uses 800 for every hero figure, but with no arm the prop fell to null and those titles rendered at 400. | Arguably upstream — add to #76. |
 | `K-10 no-font-padding` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `PlatformTextStyle(includeFontPadding = false)`. Compose pads above and below every line, so a text box measures taller than the same text in the browser the design was drawn in, and it accumulates — Home's search bar sat 12dp low after two header lines. | Arguably upstream — add to #76. |
 | `K-11 gradient` / `K-11 gradient-parser` / `K-11 gradient-import` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | A CSS-shaped `gradient` prop — `gradient="to_top #FFEFECE7 4% #00EFECE7"` — drawn with `Brush.verticalGradient`. The design uses these to make text readable over artwork (a 190pt band lifting paper back over a photograph) and for the fade under the dock. Kati painted a flat opaque rectangle instead, which does not fade — it guillotines, visibly slicing Home's Sections tiles in half and leaving hero titles as near-black text on a dark photo. | Kati-specific for now; a gradient prop is a plausible upstream contribution. |
+| `K-15 zero-weight` | `android/app/src/main/java/com/example/kati/MobBridge.kt` | `Modifier.weight(0f)` throws `IllegalArgumentException: invalid weight 0.0; must be greater than zero`, uncaught on the main thread, so the activity dies. Every progress bar in Kati is two weighted cells — `weight={fraction}` beside `weight={1.0 - fraction}` — and 0% and 100% are ordinary data: a season with every episode watched, a book not started. Ten screens compute a weight from data this way (series, books, home, home_fa, auto_detect, library, health, meals_today, day, meals_matrix_fa), so the crash sat behind normal use rather than an edge case — screen 04 reached it the moment the season pills became real and S1 came back 5-of-5. A zero share of the remaining space means zero size along the axis, so that is what `RenderNodeInner` now renders: `height(0.dp)` in the column branch, `width(0.dp)` in the row branch. Clamping to a small positive weight instead would leave a sliver of ink visible at 0%. | Arguably upstream — add to #76. The renderer accepts any float and the crash names Compose, not the prop. |
+| `K-16 rotate-and-clip` | `MobBridge.kt` (`nodeModifier`) | Two marks the design makes WITHOUT a Material Symbol, so the icon generator — which derives its set by scanning the drawings for symbol names — can never find them. Screen 02's collapse chevron is `expand_more` rotated 180deg in CSS; screen 33's half star is a gradient hard-stopped across one `star`. Adding `star_half` and `expand_less` to the subset would have meant re-subsetting from a source variable font absent from this repo, to get one glyph that is another glyph upside down and one that is another glyph cut in half. `rotate` and `clip_width` do what the design does instead. `clip_width` clips the DRAW, not the box, because Compose cannot crop text — every Text carries TextOverflow.Ellipsis, so a narrower Box ellipsises the glyph away. Neither prop affects measurement. | Worth upstreaming: both are small, general, and Mob has no equivalent. |
 
 ## Retired patches
 
@@ -70,27 +72,3 @@ Tracked, baseline-captured, and currently untouched — listed so a future edit 
 `BeamForegroundService.kt`, `android/build.gradle`, `android/settings.gradle`,
 `android/gradle.properties`, `android/app/src/main/jni/CMakeLists.txt`, `ios/beam_main.m`,
 `ios/AppDelegate.m`, `ios/build.zig`, `ios/build_device.zig`.
-
-## K-15 zero-weight
-
-**File**: `android/app/src/main/java/com/example/kati/MobBridge.kt` (`RenderNodeInner`, row and column branches)
-**Against**: mob_new 0.4.20 / mob 0.7.20
-
-`Modifier.weight(0f)` throws `IllegalArgumentException: invalid weight 0.0;
-must be greater than zero`, uncaught on the main thread, killing the activity.
-
-Every progress bar in Kati is two weighted cells — `weight={fraction}` beside
-`weight={1.0 - fraction}` — and 0% and 100% are ordinary data: a season with
-every episode watched, a book not started. Ten screens compute a weight from
-data this way (series, books, home, home_fa, auto_detect, library, health,
-meals_today, day, meals_matrix_fa), so the crash sat behind normal use rather
-than behind an edge case. Screen 04 reached it the moment the season pills
-became real and S1 came back 5-of-5.
-
-A zero share of the remaining space means zero size along the axis, so that is
-what it now renders as — `width(0.dp)` in a row, `height(0.dp)` in a column.
-Clamping to a small positive weight instead would leave a sliver of ink
-visible at 0%.
-
-**Upstream**: worth reporting to Mob — the renderer accepts any float and the
-crash names Compose, not the prop.

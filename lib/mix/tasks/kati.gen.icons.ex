@@ -71,14 +71,32 @@ defmodule Mix.Tasks.Kati.Gen.Icons do
     end)
   end
 
+  # Deliberately EMPTY, and worth saying why so nobody refills it.
+  #
+  # Two glyphs looked like they belonged here: `star_half` for screen 33 and
+  # `expand_less` for screen 02's air-date group. Neither is in the drawings,
+  # because the design makes both marks WITHOUT a Material Symbol — the half
+  # star is a gradient hard-stopped across one `star`, and the collapse chevron
+  # is `expand_more` rotated 180deg in CSS.
+  #
+  # Adding them here would have meant re-subsetting the font from a source
+  # variable font that is not in this repo, to obtain one glyph that is another
+  # glyph upside down and one that is another glyph cut in half. Fence K-16
+  # gave the bridge `rotate` and `clip_width` instead, which is what the design
+  # itself uses, and the subset stays exactly the set the drawings name.
+  @extra []
+
   defp scan_design do
-    @screens
-    |> Path.join("*.html")
-    |> Path.wildcard()
-    |> Enum.flat_map(fn path ->
-      Regex.scan(~r/<span[^>]*Material Symbols Rounded[^>]*>([a-z0-9_]+)<\/span>/, File.read!(path))
-      |> Enum.map(fn [_, name] -> name end)
-    end)
+    scanned =
+      @screens
+      |> Path.join("*.html")
+      |> Path.wildcard()
+      |> Enum.flat_map(fn path ->
+        Regex.scan(~r/<span[^>]*Material Symbols Rounded[^>]*>([a-z0-9_]+)<\/span>/, File.read!(path))
+        |> Enum.map(fn [_, name] -> name end)
+      end)
+
+    (scanned ++ @extra)
     |> Enum.uniq()
     |> Enum.sort()
   end
