@@ -643,9 +643,15 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc false
-  def member_poster(path) do
+  # `src`, not `source`. An unknown prop is dropped without a word, so the
+  # first version of this rendered three rows of text with no artwork and
+  # nothing anywhere said why — the same silence that made a literal star
+  # draw as empty space.
+  def member_poster(nil), do: ~MOB"<Spacer size={0} />"
+
+  def member_poster(src) do
     ~MOB"""
-    <Image source={path} width={30} height={42} corner_radius={6} content_mode="fill" />
+    <Image src={src} width={30} height={42} corner_radius={6} content_mode="fill" />
     """
   end
 
