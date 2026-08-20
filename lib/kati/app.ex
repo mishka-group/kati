@@ -96,6 +96,12 @@ defmodule Kati.App do
     {:ok, _} = Kati.Supervisor.start_link()
     trace("supervisor")
 
+    # Before any screen renders: a `<MishkaChip />` in ~MOB markup expands only
+    # if its tag is in the composite registry, and an unregistered tag renders
+    # as NOTHING rather than raising.
+    Kati.Components.register_all()
+    trace("components")
+
     # Ingest whatever KatiCalendarReader published. Before the permission is
     # granted this is a no-op returning {:ok, :no_data} — the normal state, not
     # an error, so it must not be allowed to stop the app booting.
