@@ -28,6 +28,27 @@ defmodule Kati.Screens.MealsMatrixFa do
       columns. On a wider device the cells become slightly wide rectangles.
     * The open cell's `1.5px dashed` ring is drawn solid — `Modifier.border`
       through this bridge takes no dash pattern.
+
+  ## The segments, and why they narrow rather than replace
+
+  هفته / روز / خرید select **which days the matrix fills**, and the selection
+  is held as an *index* into `plan.segments` rather than as the Persian label,
+  so no control flow on this screen depends on matching a right-to-left string.
+  Index 0 — هفته — fills all seven, which is the drawing.
+
+  Two rules shaped this:
+
+    * **The grid does not move.** Every unfilled day keeps its slot and draws
+      nothing in it, so the seven weighted columns, the 66pt label column and
+      the day initials above stay exactly where the week view puts them. A
+      matrix that reflows to one fat 250pt cell when you ask for one day is a
+      different drawing, not the same one narrowed.
+    * **No new copy.** A mirror screen exists to be compared against its
+      drawing, so a segment may only re-read `Kati.Fa.SampleWeek` — it may not
+      invent Persian a designer never wrote. روز is the day the matrix already
+      calls today; خرید is the days after it, the ones you have still to shop
+      for. Nothing else on the screen is available to say, so nothing else is
+      said.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -41,11 +62,12 @@ defmodule Kati.Screens.MealsMatrixFa do
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.light())
-    {:ok, Mob.Socket.assign(socket, :plan, SampleWeek.plan())}
+    {:ok, Mob.Socket.assign(socket, plan: SampleWeek.plan(), view: 0)}
   end
 
   def render(assigns) do
     plan = assigns.plan
+    view = assigns.view
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
@@ -53,8 +75,8 @@ defmodule Kati.Screens.MealsMatrixFa do
         <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
           {Kati.Screens.MealsMatrixFa.header(plan)}
           {Kati.Screens.MealsMatrixFa.title(plan)}
-          {Kati.Screens.MealsMatrixFa.segments(plan)}
-          {Kati.Screens.MealsMatrixFa.matrix(plan)}
+          {Kati.Screens.MealsMatrixFa.segments(plan, view)}
+          {Kati.Screens.MealsMatrixFa.matrix(plan, view)}
           {Kati.Screens.MealsMatrixFa.note(plan)}
           {Kati.Screens.MealsMatrixFa.eyebrow(plan.day_label)}
           {Kati.Screens.MealsMatrixFa.meals(plan)}
@@ -138,13 +160,13 @@ defmodule Kati.Screens.MealsMatrixFa do
   # segments instead of riding inside them, which also keeps the trough's own
   # 4pt padding from being doubled at the leading edge.
   @doc false
-  def segments(plan) do
+  def segments(plan, view) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4} align="center">
         {plan.segments
          |> Enum.with_index()
-         |> Enum.map(fn {label, i} -> Kati.Screens.MealsMatrixFa.segment(label, i == 0) end)
+         |> Enum.map(fn {label, i} -> Kati.Screens.MealsMatrixFa.segment(label, i, i == view) end)
          |> Enum.intersperse(Kati.Screens.MealsMatrixFa.segment_gap())}
       </Row>
       <Spacer size={18} />
@@ -155,15 +177,19 @@ defmodule Kati.Screens.MealsMatrixFa do
   @doc false
   def segment_gap, do: ~MOB"<Spacer size={4} />"
 
+  # The tag carries the segment's INDEX, not its label: an index is ASCII and
+  # ordinal, where a Persian label would put a right-to-left string inside an
+  # atom that has to survive the tap registry and the accessibility id.
   @doc false
-  def segment(label, on?) do
+  def segment(label, index, on?) do
+    tap = {self(), String.to_atom("view_" <> Integer.to_string(index))}
     background = if on?, do: Theme.card(:light), else: 0x00FFFFFF
     color = if on?, do: Theme.ink(), else: 0xFFAFA89E
     weight = if on?, do: "bold", else: "semibold"
     shadow = if on?, do: "0 1 2 0 #0F1A1917", else: nil
 
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Box fill_width={true} height={34} corner_radius={12} background={background} shadow={shadow} align="center">
         <Text text={label} font_family="fa" text_size={12.5} font_weight={weight} text_color={color} max_lines={1} />
       </Box>
@@ -171,8 +197,28 @@ defmodule Kati.Screens.MealsMatrixFa do
     """
   end
 
+  @doc """
+  Which day columns a segment fills, as indices into `plan.days`.
+
+  Indices, because the segment is held as one — see the moduledoc. Every other
+  column still draws its slot, so this narrows what the matrix says without
+  moving anything it draws.
+  """
+  @spec columns(map(), non_neg_integer()) :: [non_neg_integer()]
+  def columns(plan, view) do
+    all = Enum.to_list(0..(length(plan.days) - 1))
+
+    case view do
+      1 -> [plan.today]
+      2 -> Enum.filter(all, fn i -> i > plan.today end)
+      _ -> all
+    end
+  end
+
   @doc false
-  def matrix(plan) do
+  def matrix(plan, view) do
+    cols = Kati.Screens.MealsMatrixFa.columns(plan, view)
+
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -186,7 +232,7 @@ defmodule Kati.Screens.MealsMatrixFa do
         padding_bottom={16}
       >
         {Kati.Screens.MealsMatrixFa.day_header(plan)}
-        {Enum.map(plan.rows, fn row -> Kati.Screens.MealsMatrixFa.matrix_row(row) end)}
+        {Enum.map(plan.rows, fn row -> Kati.Screens.MealsMatrixFa.matrix_row(row, cols) end)}
         {Kati.Screens.MealsMatrixFa.legend(plan)}
       </Column>
       <Spacer size={16} />
@@ -234,8 +280,8 @@ defmodule Kati.Screens.MealsMatrixFa do
   end
 
   @doc false
-  def matrix_row(row) do
-    cell = @cell
+  def matrix_row(row, cols) do
+    size = @cell
 
     ~MOB"""
     <Column fill_width={true}>
@@ -252,17 +298,32 @@ defmodule Kati.Screens.MealsMatrixFa do
           <Spacer size={2} />
           <Text text={row.time} font_family="mono" text_size={9.5} text_color={0xFFB3ACA2} max_lines={1} />
         </Column>
-        {Enum.map(row.cells, fn state -> Kati.Screens.MealsMatrixFa.cell(state, cell) end)}
+        {row.cells
+         |> Enum.with_index()
+         |> Enum.map(fn {state, i} -> Kati.Screens.MealsMatrixFa.cell(state, size, i in cols) end)}
       </Row>
       <Spacer size={6} />
     </Column>
     """
   end
 
+  # A day the segment does not cover keeps its slot and draws nothing in it —
+  # that is what holds the seven columns still while the matrix narrows.
+  @doc false
+  def cell(_state, size, false) do
+    ~MOB"""
+    <Box weight={1.0}>
+      <Row fill_width={true} align="center">
+        <Spacer size={3} />
+        <Box fill_width={true} height={size} />
+      </Row>
+    </Box>
+    """
+  end
+
   # The 3pt gutter rides inside each cell's slot rather than being interspersed,
   # so the seven weighted columns stay equal and line up with the header above.
-  @doc false
-  def cell(:today, size) do
+  def cell(:today, size, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
@@ -275,7 +336,7 @@ defmodule Kati.Screens.MealsMatrixFa do
     """
   end
 
-  def cell(:open, size) do
+  def cell(:open, size, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
@@ -286,7 +347,7 @@ defmodule Kati.Screens.MealsMatrixFa do
     """
   end
 
-  def cell(:free, size) do
+  def cell(:free, size, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
@@ -297,7 +358,7 @@ defmodule Kati.Screens.MealsMatrixFa do
     """
   end
 
-  def cell(_planned, size) do
+  def cell(_planned, size, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
@@ -449,5 +510,16 @@ defmodule Kati.Screens.MealsMatrixFa do
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "view_" <> index ->
+        {:noreply, Mob.Socket.assign(socket, :view, String.to_integer(index))}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 end

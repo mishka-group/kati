@@ -23,6 +23,27 @@ defmodule Kati.Screens.Discover do
   margins, so a fixed 112 stops ~9dp short and ragged. Weighting the three
   columns keeps the row exactly full at any width, which is what the drawing
   meant.
+
+  ## What the chips select
+
+  The chip row names the sections underneath it, so a chip keeps the section it
+  names and drops the others. **"For you" is the whole feed**, which is what the
+  drawing shows and therefore what the screen shows at rest — the default is
+  read off the sample's own `selected` flag rather than typed here, so the
+  resting screen cannot drift from the data.
+
+  "Awards" names a section this feed does not carry, so it empties the screen
+  rather than relabelling one of the others as awards. Screen 03 makes the same
+  trade with its Books and Music shelves: showing the emptiness honestly beats
+  a chip that lies about what is behind it.
+
+  ## Schedule
+
+  The button on a leaving row is that row's only control, so it has to change
+  when it is used. Scheduled swaps the ink pill for the toned one screen 10
+  gives a row that has stopped asking for anything, and says `Scheduled`.
+  Tapping it again undoes it — nothing here writes to a store yet, so the
+  screen owns the state and reversing it is the honest affordance.
   """
   use Kati.Screens.Pushed, back: "Library"
 
@@ -31,24 +52,60 @@ defmodule Kati.Screens.Discover do
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :feed, Sample.feed())
+  def load(socket) do
+    feed = Sample.feed()
+
+    Mob.Socket.assign(socket,
+      feed: feed,
+      chip: Kati.Screens.Discover.default_chip(feed),
+      scheduled: []
+    )
+  end
+
+  @doc """
+  The chip the data marks selected.
+
+  Read rather than typed: the resting screen is compared against the drawing,
+  and the drawing's selected chip lives in the sample. Taking it from there
+  means the two cannot disagree.
+  """
+  @spec default_chip(map()) :: String.t()
+  def default_chip(feed) do
+    Enum.find_value(feed.chips, "For you", fn c -> if c.selected, do: c.label end)
+  end
+
+  @doc """
+  Whether a section survives the selected chip.
+
+  See the moduledoc: "For you" is everything, "People" and "Leaving" narrow to
+  the section they name, and a chip naming a section this feed has none of
+  keeps nothing.
+  """
+  @spec shows?(atom(), String.t()) :: boolean()
+  def shows?(section, chip) do
+    case chip do
+      "For you" -> true
+      "People" -> section == :people
+      "Leaving" -> section == :leaving
+      _ -> false
+    end
+  end
 
   @doc false
   def content(assigns) do
     f = assigns.feed
+    chip = assigns.chip
+    scheduled = assigns.scheduled
 
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
         {Kati.Screens.Discover.pill_row()}
         {Kati.Screens.Discover.header(f)}
-        {Kati.Screens.Discover.chips(f)}
-        {UI.eyebrow(f.because)}
-        {Kati.Screens.Discover.rail(f)}
-        {UI.eyebrow("People you follow")}
-        {Kati.Screens.Discover.people(f)}
-        {Kati.UI.Eyebrow.quiet(f.leaving_label)}
-        {Kati.Screens.Discover.leaving(f)}
+        {Kati.Screens.Discover.chips(f, chip)}
+        {Kati.Screens.Discover.because_section(f, chip)}
+        {Kati.Screens.Discover.people_section(f, chip)}
+        {Kati.Screens.Discover.leaving_section(f, chip, scheduled)}
       </Column>
     </Scroll>
     """
@@ -88,12 +145,14 @@ defmodule Kati.Screens.Discover do
   end
 
   @doc false
-  def chips(f) do
+  def chips(f, active) do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
         <Row align="center">
-          {f.chips |> Enum.map(&Kati.Screens.Discover.chip/1) |> Enum.intersperse(Kati.Screens.Discover.chip_gap())}
+          {f.chips
+           |> Enum.map(fn c -> Kati.Screens.Discover.chip(c, c.label == active) end)
+           |> Enum.intersperse(Kati.Screens.Discover.chip_gap())}
         </Row>
       </Scroll>
       <Spacer size={22} />
@@ -105,14 +164,17 @@ defmodule Kati.Screens.Discover do
   def chip_gap, do: ~MOB"<Spacer size={7} />"
 
   @doc false
-  def chip(c) do
-    bg = if c.selected, do: Theme.ink(), else: Theme.card(:light)
-    fg = if c.selected, do: 0xFFFBFAF8, else: 0xFF5C574F
+  def chip(c, on?) do
+    # The tag carries the label, so one handler serves every chip and a new
+    # chip is a data change rather than a code change.
+    tap = {self(), String.to_atom("filter_" <> c.label)}
+    bg = if on?, do: Theme.ink(), else: Theme.card(:light)
+    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center">
+    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center" on_tap={tap}>
       <Text text={c.label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      {Kati.Screens.Discover.chip_count(c.count, c.selected)}
+      {Kati.Screens.Discover.chip_count(c.count, on?)}
     </Row>
     """
   end
@@ -131,6 +193,52 @@ defmodule Kati.Screens.Discover do
       <Text text={count} font_family="mono" text_size={10.5} text_color={fg} max_lines={1} />
     </Row>
     """
+  end
+
+  # Each section is its eyebrow plus its body, kept together so that dropping
+  # one drops its label with it — a heading over nothing is worse than no
+  # heading. The wrapper Column stacks and fills like the frame it sits in, so
+  # the visible section is drawn exactly where it was before.
+  @doc false
+  def because_section(f, chip) do
+    if shows?(:because, chip) do
+      ~MOB"""
+      <Column fill_width={true}>
+        {UI.eyebrow(f.because)}
+        {Kati.Screens.Discover.rail(f)}
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
+
+  @doc false
+  def people_section(f, chip) do
+    if shows?(:people, chip) do
+      ~MOB"""
+      <Column fill_width={true}>
+        {UI.eyebrow("People you follow")}
+        {Kati.Screens.Discover.people(f)}
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
+
+  @doc false
+  def leaving_section(f, chip, scheduled) do
+    if shows?(:leaving, chip) do
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.Eyebrow.quiet(f.leaving_label)}
+        {Kati.Screens.Discover.leaving(f, scheduled)}
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
   end
 
   @doc false
@@ -241,16 +349,16 @@ defmodule Kati.Screens.Discover do
   def person_mark(false), do: Kati.UI.symbol("check", size: 18, color: 0xFFC4BDB3)
 
   @doc false
-  def leaving(f) do
+  def leaving(f, scheduled) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(f.leaving, fn row -> Kati.Screens.Discover.leaving_row(row) end)}
+      {Enum.map(f.leaving, fn row -> Kati.Screens.Discover.leaving_row(row, row.title in scheduled) end)}
     </Column>
     """
   end
 
   @doc false
-  def leaving_row(row) do
+  def leaving_row(row, done?) do
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -272,12 +380,48 @@ defmodule Kati.Screens.Discover do
           <Text text={row.line} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        <Row height={30} corner_radius={15} background={Kati.Theme.ink()} padding_left={13} padding_right={13} align="center">
-          <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
-        </Row>
+        {Kati.Screens.Discover.leaving_action(row, done?)}
       </Row>
       <Spacer size={9} />
     </Column>
+    """
+  end
+
+  # The tag carries the title, so one handler serves every row.
+  @doc false
+  def leaving_action(row, false) do
+    tap = {self(), String.to_atom("schedule_" <> row.title)}
+
+    ~MOB"""
+    <Row
+      height={30}
+      corner_radius={15}
+      background={Kati.Theme.ink()}
+      padding_left={13}
+      padding_right={13}
+      align="center"
+      on_tap={tap}
+    >
+      <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
+    </Row>
+    """
+  end
+
+  def leaving_action(row, true) do
+    tap = {self(), String.to_atom("schedule_" <> row.title)}
+
+    ~MOB"""
+    <Row
+      height={30}
+      corner_radius={15}
+      background={0xFFE4E0D9}
+      padding_left={13}
+      padding_right={13}
+      align="center"
+      on_tap={tap}
+    >
+      <Text text="Scheduled" text_size={11.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+    </Row>
     """
   end
 
@@ -297,4 +441,27 @@ defmodule Kati.Screens.Discover do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :chip, label)}
+
+      "schedule_" <> title ->
+        {:noreply,
+         Mob.Socket.update(socket, :scheduled, fn done ->
+           Kati.Screens.Discover.toggle(done, title)
+         end)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc false
+  @spec toggle([String.t()], String.t()) :: [String.t()]
+  def toggle(list, title) do
+    if title in list, do: List.delete(list, title), else: [title | list]
+  end
 end

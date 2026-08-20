@@ -19,6 +19,21 @@ defmodule Kati.Screens.Lists do
   Each tile's 2pt `#FBFAF8` ring is padding on a card-coloured box rather than
   a border, so the artwork is clipped by the inner radius and the ring stays
   crisp at the overlap.
+
+  ## The one control
+
+  The drawing gives this screen no chips, no segments and no switches — the
+  only thing on it that can be pressed is the `add` disc, and on a screen
+  called Lists that means *make a list*. So it does: a new hand-made list
+  appears at the top of the made section, empty, and the header count goes up
+  with it. Nothing is drawn that the design does not draw — the new row is the
+  same made row, with no artwork in its stack and `0 titles` under its name,
+  which is what an empty list looks like.
+
+  The rows themselves are left untappable on purpose. Their chevrons point at a
+  list-detail screen the design never draws and the app does not have, and
+  `on_tap={nil}` — a row that does nothing and admits it — is better than a row
+  that swallows a press.
   """
   use Kati.Screens.Pushed, back: "Library"
 
@@ -52,6 +67,8 @@ defmodule Kati.Screens.Lists do
 
   @doc false
   def header(l) do
+    tap = {self(), :new_list}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -68,6 +85,7 @@ defmodule Kati.Screens.Lists do
           background={Kati.Theme.card(:light)}
           shadow={Kati.Theme.shadow_button()}
           align="center"
+          on_tap={tap}
         >
           {Kati.UI.symbol("add", size: 21)}
         </Box>
@@ -221,4 +239,39 @@ defmodule Kati.Screens.Lists do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  @impl true
+  def handle_tap(:new_list, socket) do
+    {:noreply, Mob.Socket.update(socket, :lists, &Kati.Screens.Lists.add_list/1)}
+  end
+
+  def handle_tap(_tag, socket), do: {:noreply, socket}
+
+  @doc """
+  A new hand-made list, at the top of the made section.
+
+  Newest first, because the point of pressing `+` is to see the thing you just
+  made: at the bottom of three cards it would be off the bottom of the phone on
+  a longer list, and a control whose result is out of frame reads as broken.
+
+  It carries no artwork and no badge, so it falls through to the same empty
+  stack and the same chevron the design already draws for an unbadged list.
+  """
+  @spec add_list(map()) :: map()
+  def add_list(l) do
+    row = %{title: "New list", count: "0 titles", badge: nil, seeds: []}
+
+    %{l | made: [row | l.made], subtitle: bump(l.subtitle)}
+  end
+
+  # "7 lists · 2 ranked" is a sentence, not a pair of numbers, and only its
+  # first number is a count of lists. Parsing the head and putting the rest
+  # back keeps the drawing's own copy — including the ranked tally, which
+  # adding an unranked list does not change.
+  defp bump(subtitle) do
+    case Integer.parse(subtitle) do
+      {n, rest} -> Integer.to_string(n + 1) <> rest
+      :error -> subtitle
+    end
+  end
 end

@@ -26,6 +26,22 @@ defmodule Kati.Screens.LibraryFa do
   the poster's name: the drawing wants فصل ۲ · ۵ از ۷ there, so it is data on
   the item rather than a computed string, since "۵ از ۷" and "تمام‌شده" and
   "فیلم · ۲۰۲۵" are three different sentences, not one template.
+
+  ## The segments and the chips are real
+
+  Both are held as an **index** into their own list rather than as the label
+  they draw, which is the same choice `Kati.Screens.MealsMatrixFa` makes and
+  for the same reason: the tag has to survive `String.to_atom/1`, the tap
+  registry and the accessibility id, and an index is ASCII and ordinal where a
+  Persian label is a right-to-left string. `shelf: 0` and `filter: 0` are
+  نمایش and همه — the pair the drawing shows — so the resting frame is the
+  drawing's, and no list is reordered to get there.
+
+  **The chip counts stay as they are drawn.** ۹ · ۴ · ۳ · ۲ describe a library
+  of nine, and `Sample.titles/0` holds the six the grid draws; recomputing
+  them from six would rewrite four numbers the frame is compared against. The
+  counts are copy, so they are left as copy — the chip filters the grid under
+  it, which is the consequence the reader can actually see.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -40,6 +56,8 @@ defmodule Kati.Screens.LibraryFa do
     socket
     |> Mob.Socket.assign(:header, Sample.header())
     |> Mob.Socket.assign(:titles, Sample.titles())
+    |> Mob.Socket.assign(:shelf, 0)
+    |> Mob.Socket.assign(:filter, 0)
     |> then(&{:ok, &1})
   end
 
@@ -50,19 +68,47 @@ defmodule Kati.Screens.LibraryFa do
   @doc false
   def content(assigns) do
     header = assigns.header
-    titles = assigns.titles
+    shelf = assigns.shelf
+    filter = assigns.filter
+    titles = Kati.Screens.LibraryFa.visible(assigns.titles, filter, shelf)
 
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
         {Kati.Screens.LibraryFa.header(header)}
-        {Kati.Screens.LibraryFa.segments()}
+        {Kati.Screens.LibraryFa.segments(shelf)}
         {Kati.Screens.LibraryFa.quick_tiles()}
-        {Kati.Screens.LibraryFa.chips()}
+        {Kati.Screens.LibraryFa.chips(filter)}
         {Kati.Screens.LibraryFa.grid(titles)}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The titles a chip and a segment leave visible.
+
+  کتاب‌ها and موسیقی are drawn but empty, exactly as screen 03's `visible/2`
+  leaves Books and Music empty: #60 settled that v1 ships one media domain,
+  the drawing greys the other two, and showing that emptiness is more honest
+  than pretending the shelf is full of films.
+
+  The chips read the same states the poster grid already draws — part-watched,
+  complete, and a wish-list title with an empty track — so نمایش + همه, the
+  pair the drawing rests on, returns every title unfiltered.
+  """
+  @spec visible([map()], non_neg_integer(), non_neg_integer()) :: [map()]
+  def visible(_titles, _filter, shelf) when shelf != 0, do: []
+
+  def visible(titles, filter, _shelf) do
+    Enum.filter(titles, fn t ->
+      case filter do
+        1 -> t.progress > 0.0 and t.progress < 1.0
+        2 -> t.progress >= 1.0
+        3 -> t.progress <= 0.0
+        _ -> true
+      end
+    end)
   end
 
   @doc false
@@ -96,18 +142,19 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
+  # The sample's own `on?` is the drawing's resting state, and it is ignored
+  # here in favour of the assign: once the control is real, one place has to
+  # own which segment is lit, and it is the socket. `shelf: 0` reproduces the
+  # sample's `on?` exactly, so the frame is unchanged.
   @doc false
-  def segments do
-    [screen, books, music] = Sample.segments()
-
+  def segments(shelf) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} background={0xFFE4E0D9} corner_radius={18} padding={4} align="center">
-        {Kati.Screens.LibraryFa.segment(screen)}
-        <Spacer size={4} />
-        {Kati.Screens.LibraryFa.segment(books)}
-        <Spacer size={4} />
-        {Kati.Screens.LibraryFa.segment(music)}
+        {Sample.segments()
+         |> Enum.with_index()
+         |> Enum.map(fn {seg, i} -> Kati.Screens.LibraryFa.segment(seg, i, i == shelf) end)
+         |> Enum.intersperse(Kati.Screens.LibraryFa.segment_gap())}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -115,9 +162,15 @@ defmodule Kati.Screens.LibraryFa do
   end
 
   @doc false
-  def segment(%{on?: true} = seg) do
+  def segment_gap, do: ~MOB"<Spacer size={4} />"
+
+  # The tag carries the segment's INDEX, not its label — see the moduledoc.
+  @doc false
+  def segment(seg, index, true) do
+    tap = {self(), String.to_atom("shelf_" <> Integer.to_string(index))}
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Row
         fill_width={true}
         height={38}
@@ -143,9 +196,11 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
-  def segment(seg) do
+  def segment(seg, index, false) do
+    tap = {self(), String.to_atom("shelf_" <> Integer.to_string(index))}
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Row fill_width={true} height={38} corner_radius={14} align="center">
         <Spacer weight={1.0} />
         {UI.symbol(seg.icon, size: 17, color: 0xFFAFA89E)}
@@ -225,14 +280,16 @@ defmodule Kati.Screens.LibraryFa do
   end
 
   @doc false
-  def chips do
+  def chips(filter) do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
         <Row>
           {Sample.chips()
            |> Enum.with_index()
-           |> Enum.map(fn {{label, count}, i} -> Kati.Screens.LibraryFa.chip(label, count, i == 0) end)
+           |> Enum.map(fn {{label, count}, i} ->
+             Kati.Screens.LibraryFa.chip(label, count, i, i == filter)
+           end)
            |> Enum.intersperse(Kati.Screens.LibraryFa.chip_gap())}
         </Row>
       </Scroll>
@@ -248,8 +305,11 @@ defmodule Kati.Screens.LibraryFa do
 
   # The count sits at .6 of the label's own colour rather than on a token of
   # its own, so it stays legible on the ink chip and on the white ones.
+  #
+  # The tag carries the chip's INDEX, not its label — see the moduledoc.
   @doc false
-  def chip(label, count, on?) do
+  def chip(label, count, index, on?) do
+    tap = {self(), String.to_atom("filter_" <> Integer.to_string(index))}
     bg = if on?, do: 0xFF1A1917, else: 0xFFFBFAF8
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
     count_fg = if on?, do: 0x99FBFAF8, else: 0x995C574F
@@ -264,6 +324,7 @@ defmodule Kati.Screens.LibraryFa do
       padding_left={14}
       padding_right={14}
       align="center"
+      on_tap={tap}
     >
       <Text text={label} font_family="fa" font_weight="semibold" text_size={12.5} text_color={fg} max_lines={1} />
       <Spacer size={6} />
@@ -283,8 +344,14 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
+  # A short last row must still be padded to three. The posters share the row
+  # by weight, so a row holding one poster gives it the whole width and a
+  # filtered grid ends in one enormous tile. The drawing's own six fill two
+  # rows exactly, so at rest nothing is padded.
   @doc false
   def grid_row(row) do
+    row = row ++ List.duplicate(nil, 3 - length(row))
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -301,6 +368,8 @@ defmodule Kati.Screens.LibraryFa do
   def grid_gap, do: ~MOB"<Spacer size={12} />"
 
   @doc false
+  def poster(nil), do: ~MOB"<Box weight={1.0} />"
+
   def poster(item) do
     tap = {self(), :open_series}
 
@@ -383,6 +452,22 @@ defmodule Kati.Screens.LibraryFa do
 
   def handle_info({:tap, :open_search}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
+  # One clause for every chip and every segment, because the tag carries the
+  # index: a fifth chip is a change to `Sample.chips/0` and nothing else.
+  # Anything left over is the dock's.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    case Atom.to_string(tag) do
+      "shelf_" <> index ->
+        {:noreply, Mob.Socket.assign(socket, :shelf, String.to_integer(index))}
+
+      "filter_" <> index ->
+        {:noreply, Mob.Socket.assign(socket, :filter, String.to_integer(index))}
+
+      _ ->
+        Fa.dock_tap(tag, :library, socket)
+    end
+  end
 
   def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :library, socket)
   def handle_info(_message, socket), do: {:noreply, socket}

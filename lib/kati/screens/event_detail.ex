@@ -12,6 +12,19 @@ defmodule Kati.Screens.EventDetail do
   The frame's bottom padding is **40, not 132**: there is no dock under this
   screen, so the 132 that clears the tab bar would just be dead paper.
 
+  ## What is live
+
+  The two section chips are a single choice — an event lives in one section —
+  so tapping Personal fills it and empties Work. The timezone row toggles its
+  switch, track colour and knob together, by tapping anywhere along the row.
+
+  The clash card's three buttons are deliberately left inert. Their fills are
+  not a selection: the drawing gives **two** of them ink and one the quiet
+  paper fill, which says "these two are suggestions and this one is accepting
+  the overlap" — a selected-one-of-three model cannot draw that resting state,
+  and shifting or shortening the event means editing times this screen has no
+  way to recompute honestly.
+
   ## Where this diverges from the drawing
 
     * The title's caret is a real 2x22 accent rule after the text rather than
@@ -128,13 +141,16 @@ defmodule Kati.Screens.EventDetail do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={6} />"
 
+  # The tag carries the label, so a third section is a change to the event and
+  # not to this file.
   @doc false
   def section_chip(label, on?) do
+    tap = {self(), String.to_atom("section_" <> label)}
     background = if on?, do: Theme.ink(), else: 0xFFEFECE7
     color = if on?, do: 0xFFFBFAF8, else: 0xFF8A8479
 
     ~MOB"""
-    <Row height={26} corner_radius={13} background={background} padding_left={11} padding_right={11} align="center">
+    <Row height={26} corner_radius={13} background={background} padding_left={11} padding_right={11} align="center" on_tap={tap}>
       <Text text={label} text_size={11.5} font_weight="semibold" text_color={color} max_lines={1} />
     </Row>
     """
@@ -167,9 +183,11 @@ defmodule Kati.Screens.EventDetail do
 
   @doc false
   def field_row(row, rule?) do
+    tap = Kati.Screens.EventDetail.field_tap(row)
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13} on_tap={tap}>
         <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
           {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
         </Box>
@@ -186,6 +204,22 @@ defmodule Kati.Screens.EventDetail do
     </Column>
     """
   end
+
+  @doc """
+  Which detail rows are tappable, and with what tag.
+
+  Only the switch row. The chevron rows name screens that do not exist yet, so
+  they get `nil` rather than a tap that lands nowhere, and the duration is a
+  reading of the two times above it rather than a control.
+
+  The tag carries the row's title, so the handler finds the row by name
+  instead of by an index that a reordered `fields/0` would silently break.
+  """
+  @spec field_tap(map()) :: {pid(), atom()} | nil
+  def field_tap(%{trailing: {:switch, _on?}, title: title}),
+    do: {self(), String.to_atom("switch_" <> title)}
+
+  def field_tap(_row), do: nil
 
   @doc false
   def trailing({:value, text}) do
@@ -378,5 +412,36 @@ defmodule Kati.Screens.EventDetail do
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  # One clause for every chip and every switch on the screen: the tag carries
+  # the label, so a third section or a second switch is a change to
+  # `Kati.Calendar.SampleEvent` rather than to this file.
+  def handle_info({:tap, tag}, socket) do
+    event = socket.assigns.event
+
+    case Atom.to_string(tag) do
+      # An event lives in one section, so picking one drops the other. The
+      # drawing shows exactly one chip filled, and a multi-select would be able
+      # to draw states the design never does.
+      "section_" <> label ->
+        sections = Enum.map(event.sections, fn {name, _on?} -> {name, name == label} end)
+        {:noreply, Mob.Socket.assign(socket, :event, %{event | sections: sections})}
+
+      "switch_" <> title ->
+        fields =
+          Enum.map(event.fields, fn field ->
+            case field do
+              %{title: ^title, trailing: {:switch, on?}} -> %{field | trailing: {:switch, not on?}}
+              other -> other
+            end
+          end)
+
+        {:noreply, Mob.Socket.assign(socket, :event, %{event | fields: fields})}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 end

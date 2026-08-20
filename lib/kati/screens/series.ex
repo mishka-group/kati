@@ -26,6 +26,13 @@ defmodule Kati.Screens.Series do
     {:ok, Mob.Socket.assign(socket, :series, Sample.series())}
   end
 
+  # The counter and the ring are DERIVED, never stored. Storing "5 of 7" beside
+  # a list of episodes means two places can disagree, and the first tap that
+  # marks an episode watched is the one that makes them.
+  defp recount(s) do
+    %{s | watched: Enum.count(s.episodes, & &1.watched), total: length(s.episodes)}
+  end
+
   def render(assigns) do
     s = assigns.series
     pct = s.watched / s.total
@@ -89,6 +96,7 @@ defmodule Kati.Screens.Series do
   @doc false
   def chrome do
     back = {self(), :back}
+    more = {self(), :open_settings}
     fill = 0xD1FBFAF8
 
     ~MOB"""
@@ -100,7 +108,7 @@ defmodule Kati.Screens.Series do
           <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
         </Row>
         <Spacer weight={1.0} />
-        <Box width={42} height={42} corner_radius={21} background={fill} align="center">
+        <Box width={42} height={42} corner_radius={21} background={fill} align="center" on_tap={more}>
           {Kati.UI.symbol("more_horiz", size: 21)}
         </Box>
       </Row>
@@ -212,9 +220,10 @@ defmodule Kati.Screens.Series do
   def season_pill(label, on?) do
     bg = if on?, do: Theme.ink(), else: 0xFFE4E0D9
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
+    tap = {self(), String.to_atom("season_" <> label)}
 
     ~MOB"""
-    <Box width={30} height={28} corner_radius={10} background={bg} align="center">
+    <Box width={30} height={28} corner_radius={10} background={bg} align="center" on_tap={tap}>
       <Text text={label} text_size={11.5} font_weight="bold" text_color={fg} max_lines={1} />
     </Box>
     """
@@ -234,10 +243,13 @@ defmodule Kati.Screens.Series do
     aired? = Map.get(ep, :aired, true)
     bg = if ep.watched, do: 0xFFF4F1EC, else: Theme.card(:light)
     title_color = if ep.watched or not aired?, do: 0xFF8A8479, else: Theme.ink()
+    # An episode that has not aired cannot be marked watched, so it gets no tap
+    # at all rather than a tap that silently does nothing.
+    tap = if aired?, do: {self(), String.to_atom("episode_#{ep.n}")}, else: nil
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={bg} corner_radius={17} padding_left={15} padding_right={15} padding_top={13} padding_bottom={13} align="center">
+      <Row fill_width={true} on_tap={tap} background={bg} corner_radius={17} padding_left={15} padding_right={15} padding_top={13} padding_bottom={13} align="center">
         <Column width={22}>
           <Text text={"#{ep.n}"} font_family="mono" text_size={12} text_color={0xFFB3ACA2} max_lines={1} />
         </Column>
@@ -276,5 +288,33 @@ defmodule Kati.Screens.Series do
   def check(false, false), do: ~MOB"<Spacer size={27} />"
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  def handle_info({:tap, :open_settings}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesSettings)}
+
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "season_" <> label ->
+        s = socket.assigns.series
+        episodes = Sample.season_episodes(label)
+        series = recount(%{s | current_season: label, season: "Season " <> String.trim_leading(label, "S"), episodes: episodes})
+        {:noreply, Mob.Socket.assign(socket, :series, series)}
+
+      "episode_" <> n ->
+        n = String.to_integer(n)
+        s = socket.assigns.series
+
+        episodes =
+          Enum.map(s.episodes, fn ep ->
+            if ep.n == n, do: %{ep | watched: not ep.watched}, else: ep
+          end)
+
+        {:noreply, Mob.Socket.assign(socket, :series, recount(%{s | episodes: episodes}))}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
 end

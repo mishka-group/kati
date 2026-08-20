@@ -12,6 +12,13 @@ defmodule Kati.Screens.AddTitle do
   and the result row are the parts to keep general; the chips are the part
   that will grow.
 
+  Two controls, and the drawing settles the default state of both:
+  `Everything` is the chip in ink and all four results are drawn under it, so
+  `filter: "Everything"` reproduces the frame exactly while `Films` and
+  `Series` narrow the list *and* the `4 RESULTS` eyebrow above it. The third
+  result is drawn already added — a grey check where the others carry an ink
+  `+` — so `added` is per-result state that the disc toggles both ways.
+
   **This should eventually be a native bottom sheet**, not a pushed screen:
   #45 settled that screens 06, 18 and 46 become Android sheets via a new
   `:sheet` node type. Until that lands it pushes, which is the same
@@ -27,13 +34,19 @@ defmodule Kati.Screens.AddTitle do
   alias Kati.Theme
   alias Kati.UI
 
+  # `results` is the whole answer to the query and never shrinks — the chip
+  # narrows the VIEW, so a title added under `Films` is still added when the
+  # user goes back to `Everything`.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.light())
-    {:ok, Mob.Socket.assign(socket, :results, Sample.search_results())}
+
+    {:ok, Mob.Socket.assign(socket, results: Sample.search_results(), filter: "Everything")}
   end
 
   def render(assigns) do
-    results = assigns.results
+    filter = assigns.filter
+    shown = visible(assigns.results, filter)
+    count = "#{length(shown)} results"
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
@@ -41,9 +54,9 @@ defmodule Kati.Screens.AddTitle do
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
         {Kati.Screens.AddTitle.header()}
         {Kati.Screens.AddTitle.field()}
-        {Kati.Screens.AddTitle.chips()}
-        {UI.eyebrow("#{length(results)} results")}
-        {Kati.Screens.AddTitle.results(results)}
+        {Kati.Screens.AddTitle.chips(filter)}
+        {UI.eyebrow(count)}
+        {Kati.Screens.AddTitle.results(shown)}
         {Kati.Screens.AddTitle.by_hand()}
       </Column>
     </Scroll>
@@ -52,7 +65,42 @@ defmodule Kati.Screens.AddTitle do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      # The toggle runs over the FULL list, not the filtered one: the row the
+      # user tapped is identified by its title, so which chip was on when they
+      # tapped it cannot matter.
+      "add_" <> title ->
+        results =
+          Enum.map(socket.assigns.results, fn r ->
+            if r.title == title, do: %{r | added: not r.added}, else: r
+          end)
+
+        {:noreply, Mob.Socket.assign(socket, :results, results)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  The results a chip leaves visible.
+
+  Read off the result's own `meta` — `2019 · FILM · 1h 48m` — rather than a
+  second `:kind` field, so the row and the chip are answering one question
+  from one source. The design's note says the type is inferred from what you
+  searched, and this is that inference in the one place it exists.
+  """
+  @spec visible([map()], String.t()) :: [map()]
+  def visible(results, "Films"), do: Enum.filter(results, &String.contains?(&1.meta, "FILM"))
+  def visible(results, "Series"), do: Enum.filter(results, &String.contains?(&1.meta, "SERIES"))
+  def visible(results, _filter), do: results
 
   @doc false
   def header do
@@ -113,13 +161,16 @@ defmodule Kati.Screens.AddTitle do
   end
 
   @doc false
-  def chips do
+  def chips(active) do
+    children =
+      Enum.map(["Everything", "Films", "Series"], fn label ->
+        Kati.Screens.AddTitle.chip(label, label == active)
+      end)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true}>
-        {["Everything", "Films", "Series"]
-         |> Enum.with_index()
-         |> Enum.map(fn {label, i} -> Kati.Screens.AddTitle.chip(label, i == 0) end)}
+        {children}
       </Row>
       <Spacer size={22} />
     </Column>
@@ -128,11 +179,14 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   def chip(label, on?) do
+    # The tag carries the label, so the day the sheet grows a Books chip is a
+    # change to one list and `visible/2`, not to the handler.
+    tap = {self(), String.to_atom("filter_" <> label)}
     bg = if on?, do: Theme.ink(), else: Theme.card(:light)
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center">
+    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center" on_tap={tap}>
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
       <Spacer size={7} />
     </Row>
@@ -174,7 +228,7 @@ defmodule Kati.Screens.AddTitle do
           <Text text={r.note} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
         </Column>
         <Spacer size={11} />
-        {Kati.Screens.AddTitle.add_button(r.added)}
+        {Kati.Screens.AddTitle.add_button(r.added, r.title)}
       </Row>
       <Spacer size={9} />
     </Column>
@@ -193,19 +247,22 @@ defmodule Kati.Screens.AddTitle do
 
   # Added is muted, not celebratory: the design keeps ink for the action still
   # available and greys the one already taken.
+  #
+  # One clause rather than two, because the two states are one button and it
+  # has to go both ways — an add that cannot be undone is a trap on a list of
+  # near-identical search results, three of which are called "Quiet".
   @doc false
-  def add_button(false) do
-    ~MOB"""
-    <Box width={34} height={34} corner_radius={17} background={Kati.Theme.ink()} align="center">
-      {Kati.UI.symbol("add", size: 19, color: 0xFFFBFAF8)}
-    </Box>
-    """
-  end
+  def add_button(added?, title) do
+    # Keyed on the title, not the row's position: the chips reorder nothing but
+    # they do renumber, and `add_1` would mean a different film under `Films`.
+    tap = {self(), String.to_atom("add_" <> title)}
+    bg = if added?, do: 0xFFE4E0D9, else: Kati.Theme.ink()
+    icon = if added?, do: "check", else: "add"
+    ink = if added?, do: 0xFF8A8479, else: 0xFFFBFAF8
 
-  def add_button(true) do
     ~MOB"""
-    <Box width={34} height={34} corner_radius={17} background={0xFFE4E0D9} align="center">
-      {Kati.UI.symbol("check", size: 19, color: 0xFF8A8479)}
+    <Box width={34} height={34} corner_radius={17} background={bg} align="center" on_tap={tap}>
+      {Kati.UI.symbol(icon, size: 19, color: ink)}
     </Box>
     """
   end

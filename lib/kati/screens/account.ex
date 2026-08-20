@@ -20,6 +20,21 @@ defmodule Kati.Screens.Account do
   52x32 metrics, and the drawing specifies 46x28 with a 22pt thumb.
 
   No dock, so the frame's bottom inset is 40 rather than 132.
+
+  ## The switches and the Allow pill are live
+
+  Tapping a permission row flips its switch; tapping the Allow row grants the
+  permission, which — by the rule above — means the pill *becomes* a switch,
+  on. Nothing is added: the drawing already contains both shapes, and the
+  screen just moves a row from one to the other.
+
+  The drawn state is the sample's own, so the resting screen is unchanged:
+  Notifications unasked, Calendars, Photos and Local network on, Microphone
+  and Share anonymous usage off.
+
+  Chevron rows carry no tap. A chevron means *leads elsewhere*, and there is
+  nowhere yet for a device or Delete everything to lead — the rule
+  `Kati.Screens.Series.episode/1` applies to an unaired episode.
   """
   use Kati.Screens.Pushed, back: "Settings"
 
@@ -40,12 +55,12 @@ defmodule Kati.Screens.Account do
         {Kati.Screens.Account.title()}
         {Kati.Screens.Account.identity(a)}
         {UI.eyebrow("Devices")}
-        {Kati.Screens.Account.list(a.devices, 22)}
+        {Kati.Screens.Account.list(a.devices, 22, "device_")}
         {UI.eyebrow("Permissions")}
-        {Kati.Screens.Account.list(a.permissions, 22)}
+        {Kati.Screens.Account.list(a.permissions, 22, "perm_")}
         {Kati.Screens.Account.quiet_eyebrow("Privacy")}
         {Kati.Screens.Account.privacy(a)}
-        {Kati.Screens.Account.list(a.data, 0)}
+        {Kati.Screens.Account.list(a.data, 0, "data_")}
       </Column>
     </Scroll>
     """
@@ -183,8 +198,12 @@ defmodule Kati.Screens.Account do
 
   # One card recipe for all three lists — the drawing uses the same 4/15 card
   # and the same 13pt rows for devices, permissions and the privacy pair.
+  #
+  # `prefix` names which list a tap came from, so one row recipe can serve
+  # three lists whose rows mean different things: "perm_2" and "data_0" reach
+  # different collections in `handle_tap/2`.
   @doc false
-  def list(rows, gap) do
+  def list(rows, gap, prefix) do
     last = length(rows) - 1
 
     ~MOB"""
@@ -201,17 +220,23 @@ defmodule Kati.Screens.Account do
       >
         {rows
          |> Enum.with_index()
-         |> Enum.map(fn {row, i} -> Kati.Screens.Account.row(row, i < last) end)}
+         |> Enum.map(fn {row, i} -> Kati.Screens.Account.row(row, i < last, prefix, i) end)}
       </Column>
       <Spacer size={gap} />
     </Column>
     """
   end
 
+  # The tap sits on the row rather than on the switch or the pill: 46x28 and
+  # the 30pt pill are both under the 44x44 screen 41 promises, and the row is
+  # 56 tall. Compose's `clickable` paints only on press, so the resting
+  # drawing is untouched.
   @doc false
-  def row(row, rule?) do
+  def row(row, rule?, prefix, i) do
+    tap = Kati.Screens.Account.row_tap(row, prefix, i)
+
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
           {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
@@ -236,6 +261,24 @@ defmodule Kati.Screens.Account do
       Map.has_key?(row, :pill) -> Kati.Screens.Account.pill(row.pill)
       Map.has_key?(row, :toggle) -> Kati.Screens.Account.toggle(row.toggle)
       true -> Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
+    end
+  end
+
+  @doc """
+  The tap a row carries, or `nil` when it carries none.
+
+  The same fact `trailing/1` reads decides this too, which is the point of the
+  three shapes: a pill and a switch are both things you do here, a chevron is
+  a door to a screen this build does not have. A tap that silently does
+  nothing would be worse than no tap at all.
+
+  The index rather than the title, following `Kati.Screens.Widgets`: the tag
+  has to survive a round trip through `String.to_atom/1`.
+  """
+  @spec row_tap(map(), String.t(), non_neg_integer()) :: {pid(), atom()} | nil
+  def row_tap(row, prefix, i) do
+    if Map.has_key?(row, :toggle) or Map.has_key?(row, :pill) do
+      {self(), String.to_atom(prefix <> Integer.to_string(i))}
     end
   end
 
@@ -300,4 +343,62 @@ defmodule Kati.Screens.Account do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  @doc "The list a tap leaves behind, with the tapped row flipped."
+  @spec flip([map()], String.t()) :: [map()]
+  def flip(rows, index) do
+    List.update_at(rows, String.to_integer(index), &Kati.Screens.Account.flipped/1)
+  end
+
+  @doc """
+  What one row becomes when it is tapped.
+
+  Granting a never-asked permission turns the pill into the switch the drawing
+  gives an already-granted one — the moduledoc's rule run forwards. The
+  subtitle loses its "Not yet asked" half and keeps the rest, because that is
+  the only clause that stopped being true; the surviving sentence is the
+  design's own, in the shape the Photos row already uses.
+
+  "Share anonymous usage" prints its state as its subtitle, so the word has to
+  follow the switch or the row contradicts itself.
+  """
+  @spec flipped(map()) :: map()
+  def flipped(%{pill: _} = row) do
+    row
+    |> Map.delete(:pill)
+    |> Map.put(:toggle, true)
+    |> Map.put(:sub, "Only when you turn one on")
+  end
+
+  def flipped(%{toggle: on?, sub: sub} = row) when sub in ["On", "Off"] do
+    next = not on?
+
+    %{row | toggle: next, sub: if(next, do: "On", else: "Off")}
+  end
+
+  def flipped(%{toggle: on?} = row), do: %{row | toggle: not on?}
+  def flipped(row), do: row
+
+  @doc """
+  One clause per list rather than per row: the tag carries the index.
+
+  A sixth permission is a line in `Kati.Account.Sample` and nothing here.
+  """
+  @impl true
+  def handle_tap(tag, socket) do
+    a = socket.assigns.account
+
+    case Atom.to_string(tag) do
+      "perm_" <> i ->
+        rows = Kati.Screens.Account.flip(a.permissions, i)
+        {:noreply, Mob.Socket.assign(socket, :account, %{a | permissions: rows})}
+
+      "data_" <> i ->
+        rows = Kati.Screens.Account.flip(a.data, i)
+        {:noreply, Mob.Socket.assign(socket, :account, %{a | data: rows})}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
 end

@@ -31,6 +31,17 @@ defmodule Kati.Screens.Activity do
   size and colour. The checker therefore reports that one line as missing; it
   is a glyph, not a word.
 
+  ## The chips filter the log, and a filter can empty a day
+
+  `All` is the resting state and shows every row, which is what `15.html`
+  draws. The other three name a verb, and the verb is what the row stores in
+  `lead`, so the chip filters on that and nothing else.
+
+  A filter that leaves a dated group with no rows takes the group's **eyebrow
+  with it** — `Rated` and `Added` have nothing in Earlier this month, and a
+  headed card with no rows inside it is a worse answer than no card. The
+  rewatch count is not part of the log and is never filtered.
+
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Stats"
@@ -38,23 +49,59 @@ defmodule Kati.Screens.Activity do
   alias Kati.Activity.Sample
   alias Kati.UI
 
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, filter: "All")
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    filter = assigns.filter
+    today = visible(Sample.today(), filter)
+    earlier = visible(Sample.earlier(), filter)
+
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
         {Kati.Screens.Activity.back_gap()}
         {Kati.Screens.Activity.header()}
-        {Kati.Screens.Activity.filters()}
-        {UI.eyebrow("Today")}
-        {Kati.Screens.Activity.entries(Sample.today(), 44, 11, 0.0)}
-        {Kati.UI.Eyebrow.quiet("Earlier this month")}
-        {Kati.Screens.Activity.entries(Sample.earlier(), 44, 10, 0.06)}
+        {Kati.Screens.Activity.filters(filter)}
+        {Kati.Screens.Activity.group(today, UI.eyebrow("Today"), 44, 11, 0.0)}
+        {Kati.Screens.Activity.group(earlier, Kati.UI.Eyebrow.quiet("Earlier this month"), 44, 10, 0.06)}
         {UI.eyebrow("Rewatch count")}
         {Kati.Screens.Activity.rewatch()}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The rows a chip leaves visible.
+
+  The chip names a verb and the row keeps its verb in `lead`, so the match is
+  on `lead` alone. It is a *contains*, not an equality, and that is the one
+  judgement here: `Watched` keeps `Rewatched` too, because a rewatch is a
+  watch — the rewatch count at the bottom of this screen already counts it as
+  one.
+  """
+  @spec visible([map()], String.t()) :: [map()]
+  def visible(rows, "All"), do: rows
+
+  def visible(rows, filter) do
+    verb = String.downcase(filter)
+    Enum.filter(rows, fn row -> String.contains?(String.downcase(row.lead), verb) end)
+  end
+
+  @doc """
+  One dated group — its eyebrow and its card — or nothing at all.
+
+  Returning a list rather than a wrapper `Column` is deliberate: the sigil
+  flattens an interpolated list into its parent, so an empty group leaves no
+  node behind and the groups that remain keep the exact spacing they had.
+  """
+  @spec group([map()], map(), pos_integer(), number(), number()) :: [map()]
+  def group([], _eyebrow, _stamp_width, _stamp_size, _stamp_spacing), do: []
+
+  def group(rows, eyebrow, stamp_width, stamp_size, stamp_spacing) do
+    [eyebrow, entries(rows, stamp_width, stamp_size, stamp_spacing)]
   end
 
   # `Kati.Screens.Pushed` floats the back pill over the content, so the content
@@ -104,11 +151,10 @@ defmodule Kati.Screens.Activity do
   # Four chips at 7pt gaps measure ~285 inside the 360 the gutters leave, so
   # unlike screen 03's counted chips these do not need a horizontal Scroll.
   @doc false
-  def filters do
+  def filters(active) do
     chips =
       Sample.filters()
-      |> Enum.with_index()
-      |> Enum.map(fn {label, i} -> filter_chip(label, i == 0) end)
+      |> Enum.map(fn label -> filter_chip(label, label == active) end)
       |> Enum.intersperse(chip_gap())
 
     ~MOB"""
@@ -126,11 +172,22 @@ defmodule Kati.Screens.Activity do
 
   @doc false
   def filter_chip(label, on?) do
+    # The tag carries the label, so one handler serves every chip and a fifth
+    # verb is a change to `Kati.Activity.Sample.filters/0` alone.
+    tap = {self(), String.to_atom("filter_" <> label)}
     bg = if on?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={14} padding_right={14} align="center">
+    <Row
+      height={32}
+      corner_radius={16}
+      background={bg}
+      padding_left={14}
+      padding_right={14}
+      align="center"
+      on_tap={tap}
+    >
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
     </Row>
     """
@@ -289,4 +346,15 @@ defmodule Kati.Screens.Activity do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  # One clause for all four chips: the tag carries the label. The two discs
+  # fall through deliberately — search and the filter sheet are screens this
+  # one does not own, and the drawing gives neither a destination.
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      _ -> {:noreply, socket}
+    end
+  end
 end

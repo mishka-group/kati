@@ -513,5 +513,48 @@ defmodule Kati.Screens.Meal do
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  def handle_info({:tap, :swap}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
+
+  # The stepper moves in quarters and stops at 0.5x, which is what the drawing
+  # implies by muting `remove` at 1.0x rather than hiding it: there is a floor,
+  # and it is below where the screen opens.
+  def handle_info({:tap, step}, socket) when step in [:portion_up, :portion_down] do
+    meal = socket.assigns.meal
+    delta = if step == :portion_up, do: 0.25, else: -0.25
+    factor = (Kati.Screens.Meal.portion_factor(meal.portion) + delta) |> max(0.5) |> min(4.0)
+    {:noreply, Mob.Socket.assign(socket, :meal, %{meal | portion: Kati.Screens.Meal.portion_label(factor)})}
+  end
+
+  def handle_info({:tap, :mark_eaten}, socket) do
+    meal = socket.assigns.meal
+    {:noreply, Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc false
+  @spec portion_factor(String.t()) :: float()
+  def portion_factor(label) do
+    case Float.parse(String.trim_trailing(label, "×")) do
+      {n, _} -> n
+      :error -> 1.0
+    end
+  end
+
+  @doc false
+  @spec portion_label(float()) :: String.t()
+  def portion_label(factor) do
+    # "1.0×", not "1×". The drawing prints one decimal on a whole portion, and
+    # the stepper must not be the thing that changes what the screen says at
+    # rest — screen 45 is compared against that frame.
+    text =
+      case :erlang.float_to_binary(factor, decimals: 2) do
+        <<head::binary-size(3), "0">> -> head
+        other -> other
+      end
+
+    text <> "×"
+  end
 end

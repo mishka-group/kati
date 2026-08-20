@@ -21,6 +21,24 @@ defmodule Kati.Screens.MealsDay do
     * An unlogged meal's ring is drawn empty. The design puts a `check` glyph
       inside it at `rgba(26,25,23,0)` — fully transparent — which is a way of
       reserving space in CSS, not a mark anyone sees.
+
+  ## The two controls
+
+  Both start in the state the drawing is in, so the resting screen is the
+  drawing:
+
+    * The **chips** filter the spine. `All` is selected, so every row shows —
+      which is what the drawing draws. The section chips read a row's *lane
+      colour*, because that is where this screen already stores what a row is:
+      bronze is a meal, orange is Screen, and everything else (the habit's
+      green, the appointment's ink) is Personal. Deriving the chip from the
+      rule keeps the filter and the stripe from ever disagreeing.
+    * The **density disc** — and the collapsed row's own chevron, which is the
+      same control drawn twice — folds the five meals out of the spine and
+      into the summary the `Collapse meals` eyebrow already labels. That is
+      the screen's whole argument made operable: the drawing shows both states
+      at once so the reader can compare them, and the disc lets you actually
+      switch between them.
   """
   use Kati.Screens.Pushed, back: "Calendar"
 
@@ -28,20 +46,33 @@ defmodule Kati.Screens.MealsDay do
   alias Kati.Theme
   alias Kati.UI
 
+  # The lane colours `Kati.Calendar.SampleMealDay` paints, read back as kinds.
+  @meal 0xFFB08E55
+  @screen 0xFFE8823C
+
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :day, SampleMealDay.day())
+  def load(socket) do
+    Mob.Socket.assign(socket,
+      day: SampleMealDay.day(),
+      filter: "All",
+      density: :comfortable
+    )
+  end
 
   @doc false
   def content(assigns) do
     day = assigns.day
+    filter = assigns.filter
+    density = assigns.density
+    rows = Kati.Screens.MealsDay.visible(day.rows, filter, density)
 
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
-        {Kati.Screens.MealsDay.header()}
+        {Kati.Screens.MealsDay.header(density)}
         {Kati.Screens.MealsDay.title(day)}
-        {Kati.Screens.MealsDay.chips(day)}
-        {Kati.Screens.MealsDay.timeline(day)}
+        {Kati.Screens.MealsDay.chips(day, filter)}
+        {Kati.Screens.MealsDay.timeline(rows)}
         {Kati.Screens.MealsDay.muted_eyebrow("Collapse meals")}
         {Kati.Screens.MealsDay.collapsed(day)}
         {Kati.Screens.MealsDay.note(day)}
@@ -52,8 +83,17 @@ defmodule Kati.Screens.MealsDay do
 
   # The back pill is drawn by Kati.Screens.Pushed over this content; this row
   # reserves its height and carries the density control opposite it.
+  #
+  # The glyph stays `density_medium` in both states — it is the drawing's, and
+  # the disc says which state it is in by filling with ink, the same way every
+  # selected chip on this screen does.
   @doc false
-  def header do
+  def header(density) do
+    tap = {self(), :density}
+    on? = density == :dense
+    background = if on?, do: Theme.ink(), else: Theme.card(:light)
+    color = if on?, do: 0xFFFBFAF8, else: Theme.ink()
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -62,11 +102,12 @@ defmodule Kati.Screens.MealsDay do
           width={44}
           height={44}
           corner_radius={22}
-          background={Theme.card(:light)}
+          background={background}
           shadow={Theme.shadow_button()}
           align="center"
+          on_tap={tap}
         >
-          {UI.symbol("density_medium", size: 21)}
+          {UI.symbol("density_medium", size: 21, color: color)}
         </Box>
       </Row>
       <Spacer size={16} />
@@ -94,13 +135,12 @@ defmodule Kati.Screens.MealsDay do
   end
 
   @doc false
-  def chips(day) do
+  def chips(day, active) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         {day.chips
-         |> Enum.with_index()
-         |> Enum.map(fn {{label, count}, i} -> Kati.Screens.MealsDay.chip(label, count, i == 0) end)
+         |> Enum.map(fn {label, count} -> Kati.Screens.MealsDay.chip(label, count, label == active) end)
          |> Enum.intersperse(Kati.Screens.MealsDay.chip_gap())}
       </Row>
       <Spacer size={18} />
@@ -113,6 +153,9 @@ defmodule Kati.Screens.MealsDay do
 
   @doc false
   def chip(label, count, on?) do
+    # The tag carries the label, so one clause serves every chip and a new
+    # section in the data needs no new code here.
+    tap = {self(), String.to_atom("filter_" <> label)}
     background = if on?, do: Theme.ink(), else: Theme.card(:light)
     color = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
     shadow = if on?, do: nil, else: Theme.shadow_card_soft()
@@ -126,6 +169,7 @@ defmodule Kati.Screens.MealsDay do
       padding_left={13}
       padding_right={13}
       align="center"
+      on_tap={tap}
     >
       <Text text={label} text_size={12} font_weight="semibold" text_color={color} max_lines={1} />
       {Kati.Screens.MealsDay.chip_count(count)}
@@ -148,13 +192,43 @@ defmodule Kati.Screens.MealsDay do
   end
 
   @doc false
-  def timeline(day) do
+  def timeline(rows) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(day.rows, fn row -> Kati.Screens.MealsDay.row(row) end)}
+      {Enum.map(rows, fn row -> Kati.Screens.MealsDay.row(row) end)}
       <Spacer size={14} />
     </Column>
     """
+  end
+
+  @doc """
+  Which section a spine row belongs to, read off its lane colour.
+
+  The stripe is already the row's kind made visible — bronze for a meal,
+  orange for Screen — so reading the chip back out of it means the filter and
+  the stripe cannot drift apart. A habit's green and an appointment's ink both
+  fall to `Personal`, which is the same bucket `Kati.Screens.Calendar.visible/2`
+  puts them in.
+  """
+  @spec kind(map()) :: String.t()
+  def kind(%{rule: @meal}), do: "Meals"
+  def kind(%{rule: @screen}), do: "Screen"
+  def kind(_row), do: "Personal"
+
+  @doc """
+  The spine rows a chip and the density control leave standing.
+
+  `All` at comfortable density is every row, which is the drawing. Dense drops
+  the meals, because the collapsed row beneath is already carrying them — that
+  is what `Collapse meals` means, and with `Meals` also selected the spine
+  empties entirely, which is honest: the five meals are all in the one row
+  below.
+  """
+  @spec visible([map()], String.t(), atom()) :: [map()]
+  def visible(rows, filter, density) do
+    rows
+    |> Enum.filter(fn row -> filter == "All" or Kati.Screens.MealsDay.kind(row) == filter end)
+    |> Enum.reject(fn row -> density == :dense and Kati.Screens.MealsDay.kind(row) == "Meals" end)
   end
 
   @doc false
@@ -259,9 +333,13 @@ defmodule Kati.Screens.MealsDay do
     """
   end
 
+  # The `expand_more` chevron is the density control's other face, so it sends
+  # the same tag. The glyph does not flip with the state: the drawing draws it
+  # pointing down, and the drawing is the resting screen.
   @doc false
   def collapsed(day) do
     collapsed = day.collapsed
+    tap = {self(), :density}
 
     ~MOB"""
     <Row
@@ -274,6 +352,7 @@ defmodule Kati.Screens.MealsDay do
       padding_top={13}
       padding_bottom={13}
       align="center"
+      on_tap={tap}
     >
       <Box width={3} height={36} corner_radius={2} background={collapsed.rule} />
       <Spacer size={12} />
@@ -300,5 +379,18 @@ defmodule Kati.Screens.MealsDay do
       </Row>
     </Column>
     """
+  end
+
+  @impl true
+  def handle_tap(:density, socket) do
+    next = if socket.assigns.density == :dense, do: :comfortable, else: :dense
+    {:noreply, Mob.Socket.assign(socket, :density, next)}
+  end
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      _ -> {:noreply, socket}
+    end
   end
 end

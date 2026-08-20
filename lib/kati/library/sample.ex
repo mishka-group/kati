@@ -99,6 +99,39 @@ defmodule Kati.Library.Sample do
   end
 
   @doc """
+  Episodes for a season the drawing never shows.
+
+  Screen 04 draws S2 and only S2, so `series/0` carries that list verbatim and
+  the captured frame is unaffected. But the S1/S2/S3 pills are a real control,
+  and a control that changes nothing is a lie told in pixels — so the other
+  two seasons need episodes to switch to.
+
+  These are dummy, and shaped like the drawing's own: a runtime and an air
+  date in the same mono sub-line, a whole finished season for S1, and S3 with
+  nothing aired yet because the header says the next episode is still coming.
+  """
+  @spec season_episodes(String.t()) :: [map()]
+  def season_episodes("S1") do
+    [
+      %{n: 1, title: "Low Water", sub: "46 min · 4 Jun", watched: true},
+      %{n: 2, title: "The Ferry Road", sub: "44 min · 11 Jun", watched: true},
+      %{n: 3, title: "Marram", sub: "49 min · 18 Jun", watched: true},
+      %{n: 4, title: "Every Quiet Thing", sub: "45 min · 25 Jun", watched: true},
+      %{n: 5, title: "The Long Hollow", sub: "58 min · 2 Jul", watched: true}
+    ]
+  end
+
+  def season_episodes("S3") do
+    [
+      %{n: 1, title: "Undertow", sub: "Airs Thu 27 Aug", watched: false, aired: false},
+      %{n: 2, title: "The Bell Buoy", sub: "Airs Thu 3 Sep", watched: false, aired: false},
+      %{n: 3, title: "Saltings", sub: "Airs Thu 10 Sep", watched: false, aired: false}
+    ]
+  end
+
+  def season_episodes(_s2), do: series().episodes
+
+  @doc """
   The new-releases inbox, screen 05: three titles out now and three coming up.
 
   The dot colour carries the reason a row is here — a new episode, a premiere,

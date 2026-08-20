@@ -17,6 +17,20 @@ defmodule Kati.Screens.Accessibility do
   is the muted variant.
 
   No dock, so the frame's bottom inset is 40 rather than 132.
+
+  ## The switches are live
+
+  Six guarantees, six real switches: a tap on a row flips that row's state in
+  `:spec`, so the thumb slides and the track swaps between ink and `#DCD7CF`.
+  The drawn state is the sample's own, so the resting screen is unchanged —
+  five on, **Increase contrast** off.
+
+  **Increase contrast** is the one that does more than flip itself, because it
+  is the only row whose subtitle names a visible effect: *"Hairlines darken,
+  shadows drop"*. Turning it on darkens this screen's rules and takes the lift
+  off its cards, which is the row keeping its own promise. Nothing else here
+  claims a consequence this screen can show — **Dynamic Type** in particular
+  is deliberately inert, see `toggle/1`.
   """
   use Kati.Screens.Pushed, back: "Settings"
 
@@ -29,16 +43,17 @@ defmodule Kati.Screens.Accessibility do
   @doc false
   def content(assigns) do
     spec = assigns.spec
+    contrast? = Kati.Screens.Accessibility.contrast?(spec)
 
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
-        {Kati.Screens.Accessibility.header()}
+        {Kati.Screens.Accessibility.header(contrast?)}
         {Kati.Screens.Accessibility.title(spec)}
-        {Kati.Screens.Accessibility.up_next(spec)}
+        {Kati.Screens.Accessibility.up_next(spec, contrast?)}
         {Kati.Screens.Accessibility.note(spec)}
         {UI.eyebrow("Built in")}
-        {Kati.Screens.Accessibility.built_in(spec)}
+        {Kati.Screens.Accessibility.built_in(spec, contrast?)}
         {Kati.Screens.Accessibility.quiet_eyebrow("VoiceOver reads")}
         {Kati.Screens.Accessibility.voiceover(spec)}
       </Column>
@@ -46,10 +61,37 @@ defmodule Kati.Screens.Accessibility do
     """
   end
 
+  @doc """
+  Whether **Increase contrast** is currently switched on.
+
+  Read off the row rather than kept in a second assign: the switch list is the
+  state, and a copy of it would be one more thing to keep in step. The title
+  is the design's own label, matched here rather than an index so reordering
+  the guarantees cannot silently move the effect to another row.
+  """
+  @spec contrast?(map()) :: boolean()
+  def contrast?(spec) do
+    Enum.any?(spec.built_in, fn row -> row.title == "Increase contrast" and row.toggle end)
+  end
+
+  @doc """
+  The shadow a card keeps, or none once contrast is on.
+
+  `nil` rather than a zeroed shadow string: the bridge's `shadowLayers/1`
+  reads `props["shadow"] as? String` and returns null for anything else, so a
+  nil prop is an absent shadow rather than a malformed one that gets parsed
+  and dropped layer by layer.
+  """
+  @spec lift(String.t(), boolean()) :: String.t() | nil
+  def lift(shadow, false), do: shadow
+  def lift(_shadow, true), do: nil
+
   # 44pt reserves the row the back pill floats in — the pill is drawn by
   # Kati.Screens.Pushed — so the overflow disc sits opposite it.
   @doc false
-  def header do
+  def header(contrast?) do
+    shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_button(), contrast?)
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
@@ -59,7 +101,7 @@ defmodule Kati.Screens.Accessibility do
           height={44}
           corner_radius={22}
           background={Kati.Theme.card(:light)}
-          shadow={Kati.Theme.shadow_button()}
+          shadow={shadow}
           align="center"
         >
           {Kati.UI.symbol("more_horiz", size: 21)}
@@ -106,8 +148,9 @@ defmodule Kati.Screens.Accessibility do
   # No max_lines anywhere in this card: the whole demonstration is that text
   # wraps and the card grows rather than the words being cut.
   @doc false
-  def up_next(spec) do
+  def up_next(spec, contrast?) do
     u = spec.up_next
+    shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_card_soft(), contrast?)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -115,7 +158,7 @@ defmodule Kati.Screens.Accessibility do
         fill_width={true}
         background={Kati.Theme.card(:light)}
         corner_radius={22}
-        shadow={Kati.Theme.shadow_card_soft()}
+        shadow={shadow}
         padding={18}
       >
         <Text
@@ -179,9 +222,10 @@ defmodule Kati.Screens.Accessibility do
   end
 
   @doc false
-  def built_in(spec) do
+  def built_in(spec, contrast?) do
     rows = spec.built_in
     last = length(rows) - 1
+    shadow = Kati.Screens.Accessibility.lift(Kati.Theme.shadow_card_soft(), contrast?)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -189,7 +233,7 @@ defmodule Kati.Screens.Accessibility do
         fill_width={true}
         background={Kati.Theme.card(:light)}
         corner_radius={20}
-        shadow={Kati.Theme.shadow_card_soft()}
+        shadow={shadow}
         padding_left={15}
         padding_right={15}
         padding_top={4}
@@ -197,17 +241,27 @@ defmodule Kati.Screens.Accessibility do
       >
         {rows
          |> Enum.with_index()
-         |> Enum.map(fn {row, i} -> Kati.Screens.Accessibility.row(row, i < last) end)}
+         |> Enum.map(fn {r, i} -> Kati.Screens.Accessibility.row(r, i, i < last, contrast?) end)}
       </Column>
       <Spacer size={22} />
     </Column>
     """
   end
 
+  # The tap sits on the row rather than on the 46x28 switch, and that is this
+  # screen keeping its own fourth promise: a switch alone is under 44x44, the
+  # row is 56 tall and full width. Nothing about the resting drawing changes —
+  # Compose's `clickable` paints only on press.
+  #
+  # The index rather than the title, following `Kati.Screens.Widgets`: the tag
+  # has to survive a round trip through `String.to_atom/1`, and an index is the
+  # one form that always does.
   @doc false
-  def row(row, rule?) do
+  def row(row, i, rule?, contrast?) do
+    tap = {self(), String.to_atom("switch_" <> Integer.to_string(i))}
+
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
           {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
@@ -221,7 +275,7 @@ defmodule Kati.Screens.Accessibility do
         <Spacer size={13} />
         {Kati.Screens.Accessibility.toggle(row.toggle)}
       </Row>
-      {Kati.Screens.Accessibility.hairline(rule?)}
+      {Kati.Screens.Accessibility.hairline(rule?, contrast?)}
     </Column>
     """
   end
@@ -232,6 +286,17 @@ defmodule Kati.Screens.Accessibility do
   46x28 with a 22pt thumb and a 3pt inset. The 40pt inner row produces that
   inset without mixing `padding` and an explicit `width` on one node, which in
   this bridge inflates the node instead of insetting it.
+
+  The switch draws state; `row/4` carries the tap. Flipping one moves the
+  thumb and swaps the track — every row's guaranteed consequence — and for
+  **Increase contrast** the screen's hairlines and shadows follow as well.
+
+  **Dynamic Type** is the one guarantee that stays a switch and nothing more.
+  Its honest consequence would be re-rendering the Up next card at ordinary
+  size, but the drawing gives no ordinary size to fall back to: 235% of a 30pt
+  title is not the 17pt title the rest of the app uses, so any scale factor
+  here would be invented rather than drawn. A switch that flips is honest; a
+  card rendered at a made-up size is not.
   """
   def toggle(on?) do
     track = if on?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
@@ -275,7 +340,39 @@ defmodule Kati.Screens.Accessibility do
     """
   end
 
+  # 0x12 is the drawing's 7% rule. 0x38 is the darkened one the Increase
+  # contrast row promises — the same ink, roughly tripled in weight, rather
+  # than a second colour.
   @doc false
-  def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(false, _contrast?), do: ~MOB"<Spacer size={0} />"
+
+  def hairline(true, contrast?) do
+    color = if contrast?, do: 0x381A1917, else: 0x121A1917
+
+    ~MOB"<Box fill_width={true} height={1} background={color} />"
+  end
+
+  @doc """
+  One clause for all six switches: the tag carries the row's index.
+
+  A seventh guarantee would be a line in `Kati.Accessibility.Sample` and
+  nothing here — the same rule `Kati.Screens.Library`'s chips follow.
+  """
+  @impl true
+  def handle_tap(tag, socket) do
+    spec = socket.assigns.spec
+
+    case Atom.to_string(tag) do
+      "switch_" <> i ->
+        rows =
+          List.update_at(spec.built_in, String.to_integer(i), fn row ->
+            %{row | toggle: not row.toggle}
+          end)
+
+        {:noreply, Mob.Socket.assign(socket, :spec, %{spec | built_in: rows})}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
 end

@@ -24,6 +24,21 @@ defmodule Kati.Screens.Nutrition do
       the insight sentence; a `Text` on this bridge carries one style, so the
       emphasis is lost and the sentence is intact.
 
+  ## The segments are the screen's one control
+
+  Week / Month / All is a *period*, and a period that does not change the
+  numbers under it is a lie the screen tells three times. So the segment owns
+  everything above the consistency field — the hero average, its bar chart and
+  day labels, the three count cards, and the four macro bars — and
+  `period_data/1` is where a period's figures live. `"Week"` returns
+  `Kati.Meals.SampleNutrition` unchanged, which is what the drawing shows and
+  therefore what the resting screen must still draw.
+
+  What the segment does **not** touch is deliberate: `Consistency · 12 weeks`
+  names its own window in its own eyebrow, and the insight is a standing
+  observation about Fridays. Neither is scoped to the segment, so neither moves
+  when it does.
+
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Meals"
@@ -32,18 +47,24 @@ defmodule Kati.Screens.Nutrition do
   alias Kati.Theme
   alias Kati.UI
 
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, period: "Week")
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    period = assigns.period
+    data = period_data(period)
+
     ~MOB"""
     <Scroll>
       <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
         {Kati.Screens.Nutrition.back_gap()}
         {Kati.Screens.Nutrition.header()}
-        {Kati.Screens.Nutrition.segments()}
-        {Kati.Screens.Nutrition.hero()}
-        {Kati.Screens.Nutrition.counts()}
+        {Kati.Screens.Nutrition.segments(period)}
+        {Kati.Screens.Nutrition.hero(data)}
+        {Kati.Screens.Nutrition.counts(data)}
         {UI.eyebrow("Macros vs target")}
-        {Kati.Screens.Nutrition.macros()}
+        {Kati.Screens.Nutrition.macros(data)}
         {Kati.Screens.Nutrition.muted_eyebrow("Consistency · 12 weeks")}
         {Kati.Screens.Nutrition.field()}
         {Kati.Screens.Nutrition.muted_eyebrow("What the data says")}
@@ -51,6 +72,101 @@ defmodule Kati.Screens.Nutrition do
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  Everything the period segment owns, for one period.
+
+  `"Week"` is the drawing: it hands back `Kati.Meals.SampleNutrition` untouched
+  so the resting screen is pixel-identical to `47.html`. The other two are the
+  same four shapes at a longer scale — a monthly average slightly over the
+  weekly one, four weekly bars instead of seven daily ones, counts that are the
+  week's multiplied out, and macro averages that drift the way a longer window
+  does.
+
+  The bar tones are the same three verdicts `bars/0` uses — ink on target,
+  `#D8D2C8` under, `#B4553C` over — so a red bar means the same thing in every
+  period.
+  """
+  @spec period_data(String.t()) :: %{
+          hero: map(),
+          bars: [{String.t(), pos_integer(), non_neg_integer()}],
+          counts: [{String.t(), String.t(), non_neg_integer()}],
+          macros: [map()]
+        }
+  def period_data("Month") do
+    %{
+      hero: %{
+        label: "Daily average",
+        average: "2,088",
+        unit: " kcal",
+        target_label: "Target",
+        target: "2,100"
+      },
+      bars: [
+        {"W1", 46, 0xFFD8D2C8},
+        {"W2", 52, 0xFF1A1917},
+        {"W3", 61, 0xFFB4553C},
+        {"W4", 50, 0xFF1A1917}
+      ],
+      counts: [
+        {"84%", "Adherence", 0xFF1A1917},
+        {"126", "Meals hit", 0xFF1A1917},
+        {"24", "Skipped", 0xFFB4553C}
+      ],
+      macros: [
+        %{name: "Protein", value: "149 / 168 g", fill: 0.89, tone: 0xFF1A1917},
+        %{name: "Carbs", value: "205 / 210 g", fill: 0.98, tone: 0xFFB08E55},
+        %{name: "Fat", value: "64 / 70 g", fill: 0.91, tone: 0xFFE4D2B0},
+        %{name: "Fibre", value: "27 / 35 g", fill: 0.77, tone: 0xFF7C766D}
+      ]
+    }
+  end
+
+  def period_data("All") do
+    %{
+      hero: %{
+        label: "Daily average",
+        average: "2,062",
+        unit: " kcal",
+        target_label: "Target",
+        target: "2,100"
+      },
+      bars: [
+        {"1", 38, 0xFFD8D2C8},
+        {"2", 44, 0xFFD8D2C8},
+        {"3", 49, 0xFF1A1917},
+        {"4", 52, 0xFF1A1917},
+        {"5", 47, 0xFFD8D2C8},
+        {"6", 51, 0xFF1A1917},
+        {"7", 58, 0xFF1A1917},
+        {"8", 62, 0xFFB4553C},
+        {"9", 55, 0xFF1A1917},
+        {"10", 43, 0xFFD8D2C8},
+        {"11", 50, 0xFF1A1917},
+        {"12", 46, 0xFFD8D2C8}
+      ],
+      counts: [
+        {"81%", "Adherence", 0xFF1A1917},
+        {"340", "Meals hit", 0xFF1A1917},
+        {"80", "Skipped", 0xFFB4553C}
+      ],
+      macros: [
+        %{name: "Protein", value: "146 / 168 g", fill: 0.87, tone: 0xFF1A1917},
+        %{name: "Carbs", value: "212 / 210 g", fill: 1.0, tone: 0xFFB08E55},
+        %{name: "Fat", value: "66 / 70 g", fill: 0.94, tone: 0xFFE4D2B0},
+        %{name: "Fibre", value: "24 / 35 g", fill: 0.69, tone: 0xFF7C766D}
+      ]
+    }
+  end
+
+  def period_data(_week) do
+    %{
+      hero: Sample.hero(),
+      bars: Sample.bars(),
+      counts: Sample.counts(),
+      macros: Sample.macros()
+    }
   end
 
   # `Kati.Screens.Pushed` floats the ‹ Meals pill over this content, and unlike
@@ -90,11 +206,10 @@ defmodule Kati.Screens.Nutrition do
   end
 
   @doc false
-  def segments do
-    [first | rest] = Sample.segments()
-
+  def segments(active) do
     tabs =
-      [segment(first, true) | Enum.map(rest, fn label -> segment(label, false) end)]
+      Sample.segments()
+      |> Enum.map(fn label -> segment(label, label == active) end)
       |> Enum.intersperse(segment_gap())
 
     ~MOB"""
@@ -114,6 +229,9 @@ defmodule Kati.Screens.Nutrition do
 
   @doc false
   def segment(label, on?) do
+    # The tag carries the period, so one handler serves all three and a fourth
+    # segment would be a change to `SampleNutrition.segments/0` alone.
+    tap = {self(), String.to_atom("period_" <> label)}
     background = if on?, do: Theme.card(:light), else: 0x00FFFFFF
     color = if on?, do: Theme.ink(), else: 0xFFAFA89E
     weight = if on?, do: "bold", else: "semibold"
@@ -121,7 +239,15 @@ defmodule Kati.Screens.Nutrition do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Box fill_width={true} height={34} corner_radius={12} background={background} shadow={shadow} align="center">
+      <Box
+        fill_width={true}
+        height={34}
+        corner_radius={12}
+        background={background}
+        shadow={shadow}
+        align="center"
+        on_tap={tap}
+      >
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
           <Text text={label} text_size={12.5} font_weight={weight} text_color={color} max_lines={1} />
@@ -133,8 +259,9 @@ defmodule Kati.Screens.Nutrition do
   end
 
   @doc false
-  def hero do
-    hero = Sample.hero()
+  def hero(data) do
+    hero = data.hero
+    bars = data.bars
 
     ~MOB"""
     <Column fill_width={true}>
@@ -170,9 +297,9 @@ defmodule Kati.Screens.Nutrition do
           </Column>
         </Row>
         <Spacer size={18} />
-        {Kati.Screens.Nutrition.chart()}
+        {Kati.Screens.Nutrition.chart(bars)}
         <Spacer size={9} />
-        {Kati.Screens.Nutrition.chart_labels()}
+        {Kati.Screens.Nutrition.chart_labels(bars)}
       </Column>
       <Spacer size={14} />
     </Column>
@@ -182,15 +309,15 @@ defmodule Kati.Screens.Nutrition do
   # A 64pt frame with the bars aligned to its bottom, which is what the
   # drawing's `justify-content:flex-end` inside a full-height column does.
   @doc false
-  def chart do
-    bars =
-      Sample.bars()
+  def chart(bars) do
+    columns =
+      bars
       |> Enum.map(fn {_letter, height, tone} -> bar(height, tone) end)
       |> Enum.intersperse(bar_gap())
 
     ~MOB"""
     <Row fill_width={true} height={64} align="bottom">
-      {bars}
+      {columns}
     </Row>
     """
   end
@@ -206,10 +333,12 @@ defmodule Kati.Screens.Nutrition do
   end
 
   @doc false
-  def chart_labels do
+  def chart_labels(bars) do
+    labels = Enum.map(bars, fn {letter, _height, _tone} -> chart_label(letter) end)
+
     ~MOB"""
     <Row fill_width={true} align="center">
-      {Enum.map(Kati.Meals.SampleNutrition.bars(), fn {letter, _height, _tone} -> Kati.Screens.Nutrition.chart_label(letter) end)}
+      {labels}
     </Row>
     """
   end
@@ -226,9 +355,9 @@ defmodule Kati.Screens.Nutrition do
   end
 
   @doc false
-  def counts do
+  def counts(data) do
     cards =
-      Sample.counts()
+      data.counts
       |> Enum.map(fn {value, label, tone} -> count_card(value, label, tone) end)
       |> Enum.intersperse(count_gap())
 
@@ -272,8 +401,8 @@ defmodule Kati.Screens.Nutrition do
   end
 
   @doc false
-  def macros do
-    rows = Sample.macros()
+  def macros(data) do
+    rows = data.macros
     last = length(rows) - 1
 
     ~MOB"""
@@ -461,5 +590,16 @@ defmodule Kati.Screens.Nutrition do
       />
     </Row>
     """
+  end
+
+  # One clause for all three segments: the tag carries the period, so the
+  # handler never learns their names. `:share` falls through deliberately —
+  # the disc is drawn and its sheet is not this screen's to open.
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "period_" <> label -> {:noreply, Mob.Socket.assign(socket, :period, label)}
+      _ -> {:noreply, socket}
+    end
   end
 end

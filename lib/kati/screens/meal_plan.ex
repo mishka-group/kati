@@ -443,4 +443,10 @@ defmodule Kati.Screens.MealPlan do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  @impl true
+  def handle_tap(:edit_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
+
+  def handle_tap(_tag, socket), do: {:noreply, socket}
 end

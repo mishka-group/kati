@@ -88,13 +88,18 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def month_row(date) do
     label = "#{Kati.Time.month_name(date.month)} #{date.year}"
+    # An unfold chevron beside a month name means one thing, and the design
+    # already drew screen 16 as the thing it means.
+    month_tap = {self(), :open_month}
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Text text={label} text_size={20} font_weight="bold" letter_spacing={-0.025} text_color={:on_surface} />
-        <Spacer size={6} />
-        {Kati.UI.symbol("unfold_more", size: 19, color: 0xFF8A8479)}
+        <Row align="center" on_tap={month_tap}>
+          <Text text={label} text_size={20} font_weight="bold" letter_spacing={-0.025} text_color={:on_surface} />
+          <Spacer size={6} />
+          {Kati.UI.symbol("unfold_more", size: 19, color: 0xFF8A8479)}
+        </Row>
         <Spacer weight={1.0} />
         <Row height={30} corner_radius={15} background={0xFFE4E0D9} padding_left={13} padding_right={13} align="center">
           <Text text="Today" text_size={12} font_weight="semibold" text_color={:on_surface} />
@@ -207,6 +212,7 @@ defmodule Kati.Screens.Calendar do
   def event_row(row) do
     # Orange only ever means new/now; everything else takes ink.
     rule = if row.now?, do: 0xFFE8823C, else: Theme.ink()
+    tap = {self(), String.to_atom("row_" <> Kati.Screens.Calendar.kind(row))}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -218,6 +224,7 @@ defmodule Kati.Screens.Calendar do
         <Box weight={1.0}>
           <Row
             fill_width={true}
+            on_tap={tap}
             background={Kati.Theme.card(:light)}
             corner_radius={18}
             shadow={Kati.Theme.shadow_card()}
@@ -263,9 +270,44 @@ defmodule Kati.Screens.Calendar do
     Enum.filter(rows, fn row -> Enum.any?(wanted, &String.contains?(row.meta, &1)) end)
   end
 
+  @doc """
+  Which screen a timeline row belongs to, read off the row's own meta.
+
+  `visible/2` already filters on the same strings, so the row's destination
+  and its chip are answering one question, not two that can drift apart.
+  """
+  @spec kind(map()) :: String.t()
+  def kind(%{meta: meta}) do
+    cond do
+      String.contains?(meta, "Meals") -> "meals"
+      String.contains?(meta, "Airs today") -> "screen"
+      String.contains?(meta, "Money") -> "money"
+      true -> "event"
+    end
+  end
+
+  @row_screens %{
+    "meals" => Kati.Screens.MealsDay,
+    "screen" => Kati.Screens.Film,
+    "money" => Kati.Screens.Subscriptions,
+    "event" => Kati.Screens.EventDetail
+  }
+
   @impl true
+  def handle_tap(:open_search, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
+  def handle_tap(:open_month, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MonthGrid)}
+
+  def handle_tap(:open_menu, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Agenda)}
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
+      "row_" <> kind ->
+        {:noreply, Mob.Socket.push_screen(socket, Map.fetch!(@row_screens, kind))}
+
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
 

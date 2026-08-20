@@ -25,6 +25,18 @@ defmodule Kati.Screens.Search do
   first and `section/2` here draws the muted ones. Orange still means
   new/now — here, *this is the hit*.
 
+  ## What the chips do
+
+  The four counted chips narrow the page to one group — Screen, Calendar or
+  Notes — and "All" puts all three back. The recent shelf is not narrowed with
+  them: it is a shortcut into a new search, not a result, and hiding the user's
+  own history because they filtered to Calendar would be an odd punishment.
+
+  A recent chip fills to show it is picked and stops there. Writing it into the
+  field would leave six hits for `hollow` sitting under a query that says
+  `dentist`, and until an index exists the screen cannot answer the new
+  question — so it does not pretend to have been asked.
+
   ## Not `Kati.Screens.Pushed`
 
   The drawing puts the back pill **in the flow**, at the top of the scroll,
@@ -40,13 +52,18 @@ defmodule Kati.Screens.Search do
   alias Kati.Screens.Search.Sample
   alias Kati.UI
 
+  # `filter` is "All" and `recent` is nil because that is the state the drawing
+  # is in: the All chip filled, all three groups on the page, and no recent
+  # search picked out of the shelf.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.light())
-    {:ok, Mob.Socket.assign(socket, :results, Sample.results())}
+    {:ok, Mob.Socket.assign(socket, results: Sample.results(), filter: "All", recent: nil)}
   end
 
   def render(assigns) do
     results = assigns.results
+    filter = assigns.filter
+    recent = assigns.recent
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
@@ -54,15 +71,10 @@ defmodule Kati.Screens.Search do
         <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
           {Kati.Screens.Search.back()}
           {Kati.Screens.Search.field(results)}
-          {Kati.Screens.Search.chips()}
-          {UI.eyebrow("Screen")}
-          {Kati.Screens.Search.titles(results)}
-          {Kati.Screens.Search.section("Calendar")}
-          {Kati.Screens.Search.calendar(results)}
-          {Kati.Screens.Search.section("Notes")}
-          {Kati.Screens.Search.note(results)}
+          {Kati.Screens.Search.chips(filter)}
+          {Kati.Screens.Search.groups(results, filter)}
           {Kati.Screens.Search.section("Recent")}
-          {Kati.Screens.Search.recent(results)}
+          {Kati.Screens.Search.recent(results, recent)}
         </Column>
       </Scroll>
     </Box>
@@ -70,6 +82,25 @@ defmodule Kati.Screens.Search do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  # One clause for every chip on the screen: the tag carries the label, so a
+  # fifth filter or a fifth recent search is a change to the sample, not here.
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      # A second tap on the same recent search puts it back — the shelf is a
+      # shortcut, not a mode, so there has to be a way out of it.
+      "recent_" <> label ->
+        picked = if socket.assigns.recent == label, do: nil, else: label
+        {:noreply, Mob.Socket.assign(socket, :recent, picked)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   # A Row, not a Box: the pill hugs "Home" and the drawing's asymmetric
@@ -134,13 +165,18 @@ defmodule Kati.Screens.Search do
     """
   end
 
+  # The sample's own `on?` is ignored and selection comes from the assign, so
+  # there is one place that knows which chip is lit. It starts on "All", which
+  # is the chip the sample marks and the chip the drawing fills.
   @doc false
-  def chips do
+  def chips(active) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         {Kati.Screens.Search.Sample.chips()
-         |> Enum.map(fn chip -> Kati.Screens.Search.chip(chip) end)
+         |> Enum.map(fn {label, count, _on?} ->
+           Kati.Screens.Search.chip(label, count, label == active)
+         end)
          |> Enum.intersperse(Kati.Screens.Search.gap())}
       </Row>
       <Spacer size={24} />
@@ -155,19 +191,66 @@ defmodule Kati.Screens.Search do
   # design tints it down rather than colouring it differently, so a chip reads
   # as one object with a quiet number after it.
   @doc false
-  def chip({label, count, on?}) do
+  def chip(label, count, on?) do
+    # The tag carries the label, so one handler serves every chip.
+    tap = {self(), String.to_atom("filter_" <> label)}
     background = if on?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
     color = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
     count_color = if on?, do: 0x99FBFAF8, else: 0x995C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={background} padding_left={14} padding_right={14} align="center">
+    <Row height={32} corner_radius={16} background={background} padding_left={14} padding_right={14} align="center" on_tap={tap}>
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={color} max_lines={1} />
       <Spacer size={6} />
       <Text text={to_string(count)} font_family="mono" text_size={10.5} text_color={count_color} max_lines={1} />
     </Row>
     """
   end
+
+  @doc """
+  The result groups a filter leaves standing, in the drawing's order.
+
+  "All" is every group, which is the page as drawn; any other chip is the one
+  group it names. The recent shelf is not in here — it is a shortcut, not a
+  result, and narrowing to Calendar should not hide the user's own history.
+
+  The accent dash goes to whichever group is **first**, not to Screen
+  specifically: the moduledoc's rule is positional, and orange means "this is
+  the hit". Filtering to Notes makes Notes the hit.
+  """
+  @spec groups(map(), String.t()) :: term()
+  def groups(results, filter) do
+    visible =
+      [{"Screen", :titles}, {"Calendar", :calendar}, {"Notes", :note}]
+      |> Enum.filter(fn {label, _key} -> filter == "All" or filter == label end)
+      |> Enum.with_index()
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(visible, fn {{label, key}, i} ->
+        Kati.Screens.Search.group(results, label, key, i == 0)
+      end)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def group(results, label, key, first?) do
+    heading = if first?, do: UI.eyebrow(label), else: Kati.Screens.Search.section(label)
+    body = Kati.Screens.Search.body(results, key)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {heading}
+      {body}
+    </Column>
+    """
+  end
+
+  @doc false
+  def body(results, :titles), do: Kati.Screens.Search.titles(results)
+  def body(results, :calendar), do: Kati.Screens.Search.calendar(results)
+  def body(results, :note), do: Kati.Screens.Search.note(results)
 
   # `Kati.UI.eyebrow/2` with the accent dash marks the first, strongest group;
   # every group after it takes the drawing's muted #C4BDB3 dash.
@@ -340,34 +423,43 @@ defmodule Kati.Screens.Search do
   end
 
   @doc false
-  def recent(results) do
+  def recent(results, picked) do
     ~MOB"""
     <Column fill_width={true}>
       {results.recent
-       |> Enum.map(fn row -> Kati.Screens.Search.recent_row(row) end)
+       |> Enum.map(fn row -> Kati.Screens.Search.recent_row(row, picked) end)
        |> Enum.intersperse(Kati.Screens.Search.gap())}
     </Column>
     """
   end
 
   @doc false
-  def recent_row(row) do
+  def recent_row(row, picked) do
     ~MOB"""
     <Row fill_width={true} align="center">
       {row
-       |> Enum.map(fn label -> Kati.Screens.Search.recent_chip(label) end)
+       |> Enum.map(fn label -> Kati.Screens.Search.recent_chip(label, label == picked) end)
        |> Enum.intersperse(Kati.Screens.Search.gap())}
     </Row>
     """
   end
 
+  # Picking a recent search fills the chip the way the filter chips fill —
+  # ink, paper text, the clock at .6 of it. It does not rewrite the query,
+  # because the hits below still describe "hollow" and a field that said
+  # "dentist" over them would be the screen lying about its own results.
   @doc false
-  def recent_chip(label) do
+  def recent_chip(label, on?) do
+    tap = {self(), String.to_atom("recent_" <> label)}
+    background = if on?, do: Kati.Theme.ink(), else: 0xFFF4F1EC
+    color = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
+    icon = if on?, do: 0x99FBFAF8, else: 0xFFA9A29A
+
     ~MOB"""
-    <Row height={30} corner_radius={15} background={0xFFF4F1EC} padding_left={12} padding_right={12} align="center">
-      {Kati.UI.symbol("history", size: 14, color: 0xFFA9A29A)}
+    <Row height={30} corner_radius={15} background={background} padding_left={12} padding_right={12} align="center" on_tap={tap}>
+      {Kati.UI.symbol("history", size: 14, color: icon)}
       <Spacer size={6} />
-      <Text text={label} text_size={12} text_color={0xFF5C574F} max_lines={1} />
+      <Text text={label} text_size={12} text_color={color} max_lines={1} />
     </Row>
     """
   end

@@ -21,6 +21,13 @@ defmodule Kati.Screens.Widgets do
       capitals in the drawing's own copy, not `text-transform`, so they are
       capitals in the data.
 
+  The three shortcut switches are live; the widget previews above them are
+  not, and that is deliberate. The eyebrow says **Sizes**, but the drawing
+  shows previews rather than a picker: none of the four is drawn selected and
+  the three squares carry three different fills, so a selected state would have
+  to be invented and the resting frame would move. They stay pictures of
+  widgets, which is what they are.
+
   No dock, so the frame's bottom inset is 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Settings"
@@ -290,7 +297,7 @@ defmodule Kati.Screens.Widgets do
       >
         {w.shortcuts
          |> Enum.with_index()
-         |> Enum.map(fn {row, i} -> Kati.Screens.Widgets.shortcut_row(row, i < last) end)}
+         |> Enum.map(fn {row, i} -> Kati.Screens.Widgets.shortcut_row(row, i, i < last) end)}
       </Column>
       <Spacer size={24} />
     </Column>
@@ -298,9 +305,11 @@ defmodule Kati.Screens.Widgets do
   end
 
   @doc false
-  def shortcut_row(row, rule?) do
+  def shortcut_row(row, i, rule?) do
+    tap = Kati.Screens.Widgets.shortcut_tap(row, i)
+
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
           {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
@@ -325,6 +334,22 @@ defmodule Kati.Screens.Widgets do
     case Map.get(row, :toggle) do
       nil -> Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
       on? -> Kati.Screens.Widgets.toggle(on?)
+    end
+  end
+
+  @doc """
+  The tap a shortcut row carries, or `nil` when it carries none.
+
+  The same fact `trailing/1` reads decides both: a row with a `toggle` is a
+  state and flips, a row with a chevron leads to a screen that does not exist
+  yet, so it gets no tap rather than one that silently does nothing — the rule
+  `Kati.Screens.Series.episode/1` applies to an unaired episode.
+  """
+  @spec shortcut_tap(map(), non_neg_integer()) :: {pid(), atom()} | nil
+  def shortcut_tap(row, i) do
+    case Map.get(row, :toggle) do
+      nil -> nil
+      _ -> {self(), String.to_atom("shortcut_" <> Integer.to_string(i))}
     end
   end
 
@@ -393,4 +418,25 @@ defmodule Kati.Screens.Widgets do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  # The index rather than the title: these titles are spoken phrases wrapped in
+  # typographic quotes, and the tag has to survive a round trip through
+  # `String.to_atom/1`.
+  @impl true
+  def handle_tap(tag, socket) do
+    w = socket.assigns.widgets
+
+    case Atom.to_string(tag) do
+      "shortcut_" <> i ->
+        rows =
+          List.update_at(w.shortcuts, String.to_integer(i), fn row ->
+            %{row | toggle: not row.toggle}
+          end)
+
+        {:noreply, Mob.Socket.assign(socket, :widgets, %{w | shortcuts: rows})}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
 end

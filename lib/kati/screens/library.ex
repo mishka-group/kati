@@ -326,6 +326,7 @@ defmodule Kati.Screens.Library do
   def progress_rest(rest), do: ~MOB"<Spacer weight={rest} />"
 
   @impl true
+  def handle_tap(:open_search, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
   def handle_tap(:open_up_next, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNext)}
   def handle_tap(:open_discover, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Discover)}
   def handle_tap(:open_lists, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
