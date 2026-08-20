@@ -339,6 +339,11 @@ defmodule Kati.Screens.ScheduleFa do
   # The evening's episode: padding 15 rather than 13/15, a deeper shadow
   # (`0 16px 30px -18px rgba(26,25,23,.75)`), the poster inline, and the gutter
   # figure in ink at 500 rather than muted.
+  #
+  # The accent rule is a declared 72 because that is the card's content height —
+  # title, meta and the pill beneath them — and a Row gives a child no way to
+  # inherit it. At 60 the rule stopped level with the middle of the pill, which
+  # reads as a rule that failed to draw rather than as one marking the card.
   @doc false
   def feature_row(feature) do
     ~MOB"""
@@ -363,7 +368,7 @@ defmodule Kati.Screens.ScheduleFa do
           padding={15}
           align="top"
         >
-          <Box width={3} height={60} corner_radius={2} background={0xFFE8823C} />
+          <Box width={3} height={72} corner_radius={2} background={0xFFE8823C} />
           <Spacer size={12} />
           {Kati.Screens.ScheduleFa.poster(feature.seed)}
           <Spacer size={12} />

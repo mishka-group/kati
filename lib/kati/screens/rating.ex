@@ -28,6 +28,15 @@ defmodule Kati.Screens.Rating do
   glyph must not carry `max_lines` — Compose ellipsises an overflowing line,
   and an ellipsised star is no star at all.
 
+  Clipping the glyph and **measuring** it are two different things, and that
+  is what kept the fifth star blank. Compose coerces a child's own width into
+  its parent's constraints, so a 26dp glyph inside a 13dp box was laid out at
+  13dp: one unbreakable character too wide for its line, ellipsised away to
+  nothing. `star/1` therefore hands the orange glyph a horizontally scrollable
+  viewport, which is the one node in this bridge that measures its content
+  unbounded — the glyph lays out whole and the 13dp viewport shows its left
+  half, which is the effect the drawing draws.
+
   ## The caret sits on the next line
 
   The review body ends with the design's 2x16 orange text cursor. There is no
@@ -271,14 +280,27 @@ defmodule Kati.Screens.Rating do
   def star(:full), do: Kati.UI.symbol("star", size: 26, color: 0xFFE8823C, fill: true)
   def star(:empty), do: Kati.UI.symbol("star", size: 26, color: 0xFFE0DAD1, fill: true)
 
-  # Half the orange star, laid over a whole grey one. The 0.5 radius is not
-  # cosmetic: it is what turns clipping on in this bridge.
+  # Half the orange star, laid over a whole grey one. Three sizes here and not
+  # one of them is cosmetic:
+  #
+  #   * the 0.5 radius is what turns clipping on in this bridge;
+  #   * the `Scroll` is what stops the 13dp clip box also *measuring* the glyph
+  #     down to 13dp, which ellipsised it away — see the moduledoc;
+  #   * 32 is the glyph's line box at 26sp, not the 26 of its advance. A box cut
+  #     to the advance is one rounded pixel from ellipsising the grey star too,
+  #     on whichever density rounds against it.
+  #
+  # Neither box states a height, deliberately: hugging leaves both at the same
+  # line box as the four plain `Text` stars beside them, which is what puts the
+  # fifth star on their line rather than a few points above it.
   def star(:half) do
     ~MOB"""
-    <Box width={26} height={26}>
+    <Box width={32}>
       {Kati.Screens.Rating.star_glyph(0xFFE0DAD1)}
-      <Box width={13} height={26} corner_radius={0.5}>
-        {Kati.Screens.Rating.star_glyph(0xFFE8823C)}
+      <Box width={13} corner_radius={0.5}>
+        <Scroll axis="horizontal">
+          {Kati.Screens.Rating.star_glyph(0xFFE8823C)}
+        </Scroll>
       </Box>
     </Box>
     """

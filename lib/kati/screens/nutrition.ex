@@ -15,10 +15,11 @@ defmodule Kati.Screens.Nutrition do
 
   ## Where this diverges from the drawing
 
-    * **The target tick is an offset child, not an absolute one.** The drawing
+    * **The target tick is a centred child, not an absolute one.** The drawing
       positions it `top:-3px; left:95%` over the 8pt track. There is no
-      absolute positioning here, so it is a weighted Row inside the track with
-      `offset_y={-3}` — the same 95% and the same 3pt overhang either side.
+      absolute positioning here, so the track is a 14pt frame with the bar and
+      the 14pt tick both centred inside it — the same 95% (a weighted Row) and
+      the same 3pt of overhang either side, as layout rather than as an offset.
     * **`4 of 5 skips` is not bold.** The drawing puts a `<strong>` run inside
       the insight sentence; a `Text` on this bridge carries one style, so the
       emphasis is lost and the sentence is intact.

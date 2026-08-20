@@ -10,10 +10,12 @@ defmodule Kati.Screens.Activity do
 
   Three things the drawing is specific about and this file follows literally:
 
-    * **Two stamps, one gutter.** Today's rows carry a `21:12` clock at mono
-      11; Earlier this month's carry `12 AUG` at mono 10 with `.06em`. Both in
-      the same 38pt column, so the stamp's type is an argument to the row
-      rather than a property baked into it.
+    * **Two stamps, two gutters.** Today's rows carry a `21:12` clock at mono
+      11 in a 38pt column; Earlier this month's carry `12 AUG` at mono 10 with
+      `.06em` in 44. The drawing puts both in one gutter, but a date is wider
+      than a clock and 38 truncated it to `12 A…`; 44 is what screen 19's
+      calendar rows already give the same stamp. So the width travels with the
+      type as an argument to the row rather than being baked into it.
     * **The second eyebrow is grey.** "Earlier this month" gets a `#C4BDB3`
       dash, not the accent — see `Kati.UI.Eyebrow`. Last month is neither new
       nor now.
@@ -42,9 +44,9 @@ defmodule Kati.Screens.Activity do
         {Kati.Screens.Activity.header()}
         {Kati.Screens.Activity.filters()}
         {UI.eyebrow("Today")}
-        {Kati.Screens.Activity.entries(Sample.today(), 11, 0.0)}
+        {Kati.Screens.Activity.entries(Sample.today(), 38, 11, 0.0)}
         {Kati.UI.Eyebrow.quiet("Earlier this month")}
-        {Kati.Screens.Activity.entries(Sample.earlier(), 10, 0.06)}
+        {Kati.Screens.Activity.entries(Sample.earlier(), 44, 10, 0.06)}
         {UI.eyebrow("Rewatch count")}
         {Kati.Screens.Activity.rewatch()}
       </Column>

@@ -191,10 +191,14 @@ defmodule Kati.Screens.Season do
     """
   end
 
+  # `weight`, not `fill_width`: this Row is a sibling of the watched tick inside
+  # the episode row, and a sibling that fills the width leaves the tick nothing
+  # to sit in — the disc was being measured past the right edge of every card.
+  # A weight takes what is left once the 27pt disc has had its share.
   @doc false
   def episode_body(ep, title_color, number_color) do
     ~MOB"""
-    <Row fill_width={true} align="center">
+    <Row weight={1.0} align="center">
       <Column width={22}>
         <Text text={ep.number} font_family="mono" text_size={12} text_color={number_color} max_lines={1} />
       </Column>

@@ -104,11 +104,16 @@ defmodule Kati.Screens.Meal do
     end
   end
 
+  # The card fill, not `chrome_fill/1`. The dock's 90%-opaque chrome reads as
+  # glass over a blurred backdrop; there is no backdrop blur here, so over a
+  # photograph it is simply see-through — the building behind the meal came
+  # through the overflow disc. Every other floating disc in the app
+  # (`Kati.Screens.Health.disc/2`, screen 47's share button) is opaque card.
   @doc false
   def chrome do
     back = {self(), :back}
     more = {self(), :more}
-    fill = Kati.Theme.chrome_fill(:light)
+    fill = Kati.Theme.card(:light)
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
