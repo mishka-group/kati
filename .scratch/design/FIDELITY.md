@@ -107,6 +107,20 @@ wipes Kati's database AND revokes READ_CALENDAR. A screen then shows "0 items"
 and looks broken when it is empty for an entirely different reason. Re-grant
 and relaunch before concluding anything about calendar data.
 
+## Scoreboard, second pass
+
+| | |
+|---|---|
+| Matches the drawing | **37** (was 32) |
+| Close | 15 (was 17) |
+| Wrong / blank / crashed | **0** (was 3) |
+
+Nothing is broken any more. What is left is deltas of a few dp, plus one real
+gap: there is no way to draw an inline bold run inside a wrapping paragraph,
+which orphans or flattens text on four screens (14, 17, 23, 33). That needs a
+`Kati.UI.rich_text/1` primitive taking a list of runs and laying them out in a
+single line box — splitting into Rows is what makes them orphan.
+
 ## The plan
 
 **All 62 pages first**, with dummy data, inventing any page the app needs that

@@ -158,7 +158,7 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Spacer width={62} />
+        <Box width={62} height={12} />
         {columns
          |> Enum.with_index()
          |> Enum.map(fn {letter, i} -> Kati.Screens.MealPlan.column_head(letter, i == last) end)}

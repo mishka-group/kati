@@ -89,7 +89,9 @@ defmodule Kati.Screens.Pushed do
   def back_pill(label) do
     import Mob.Sigil
     tap = {self(), :back}
-    assigns = %{label: label, tap: tap, chrome: Kati.Theme.chrome_fill(:light)}
+    # The card colour, not the 90%-opaque chrome fill: the drawings paint this
+    # pill solid and give it the same lift as every other floating control.
+    assigns = %{label: label, tap: tap, chrome: Kati.Theme.card(:light)}
 
     # A Row, not a Box, and this was wrong on ~30 screens.
     #
@@ -107,6 +109,7 @@ defmodule Kati.Screens.Pushed do
         height={44}
         background={@chrome}
         corner_radius={22}
+        shadow={Kati.Theme.shadow_button()}
         padding_left={13}
         padding_right={16}
         align="center"
@@ -114,7 +117,13 @@ defmodule Kati.Screens.Pushed do
       >
         {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
         <Spacer size={6} />
-        <Text text={@label} text_size={14} text_color={:on_surface} />
+        <Text
+          text={@label}
+          text_size={13.5}
+          font_weight="semibold"
+          letter_spacing={-0.01}
+          text_color={:on_surface}
+        />
       </Row>
       <Spacer weight={1.0} />
     </Row>

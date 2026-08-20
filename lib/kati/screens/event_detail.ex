@@ -197,23 +197,10 @@ defmodule Kati.Screens.EventDetail do
   # The knob is pushed to the trailing edge by a weighted Spacer inside a
   # fixed-width Row, which is what `justify-content:flex-end` is here. A Box
   # would have stacked the knob over the track instead of beside it.
-  def trailing({:switch, true}) do
-    ~MOB"""
-    <Row width={46} height={28} corner_radius={14} background={Kati.Theme.ink()} padding={3} align="center">
-      <Spacer weight={1.0} />
-      <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow={"0 1 3 0 #4D1A1917"} />
-    </Row>
-    """
-  end
-
-  def trailing({:switch, false}) do
-    ~MOB"""
-    <Row width={46} height={28} corner_radius={14} background={0xFFDCD7CF} padding={3} align="center">
-      <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow={"0 1 3 0 #4D1A1917"} />
-      <Spacer weight={1.0} />
-    </Row>
-    """
-  end
+  # The shared switch, not a hand-drawn one. Declaring width/height AND padding
+  # on the same Row inflated it to 52x34 and under-rounded the corners, because
+  # the bridge applies padding before width.
+  def trailing({:switch, on?}), do: Kati.UI.SettingsList.switch(on?)
 
   def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
 
