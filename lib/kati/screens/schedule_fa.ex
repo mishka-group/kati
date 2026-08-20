@@ -305,12 +305,18 @@ defmodule Kati.Screens.ScheduleFa do
   end
 
   # The drawing stretches the rule to the card (`align-self:stretch`). Nothing
-  # in this bridge stretches a child inside a wrap-height Row, so it is the
-  # card's own content height: 13.5 + 3 + 11.5 of text at the design's
-  # leading, which measures 36.
+  # in this bridge stretches a child inside a wrap-height Row, so it has to be
+  # the card's own content height as a number.
+  #
+  # 36 was that number by arithmetic and was wrong on the device: measured off
+  # the 08:00 row in `audit_snapshot/56.png`, the card is 67.7dp tall at 13pt
+  # of padding each side, so the content — 13.5 + 3 + 11.5 of Vazirmatn — is
+  # 41.7. Compose's line metrics run taller than the browser's (FIDELITY,
+  # "Measured, not eyeballed"), and at 36 the rule stopped ~3dp short at each
+  # end of a centred row.
   @doc false
   def lead({:rule, color}) do
-    ~MOB"<Box width={3} height={36} corner_radius={2} background={color} />"
+    ~MOB"<Box width={3} height={42} corner_radius={2} background={color} />"
   end
 
   def lead({:icon, name}) do
@@ -345,10 +351,12 @@ defmodule Kati.Screens.ScheduleFa do
   # (`0 16px 30px -18px rgba(26,25,23,.75)`), the poster inline, and the gutter
   # figure in ink at 500 rather than muted.
   #
-  # The accent rule is a declared 72 because that is the card's content height —
-  # title, meta and the pill beneath them — and a Row gives a child no way to
-  # inherit it. At 60 the rule stopped level with the middle of the pill, which
-  # reads as a rule that failed to draw rather than as one marking the card.
+  # The accent rule is a declared number because that is the card's content
+  # height — title, meta and the pill beneath them — and a Row gives a child no
+  # way to inherit it. Measured off `audit_snapshot/56.png`: the card runs
+  # y=1643..1923 (106.9dp) at 15pt padding, and the cream pill's bottom edge —
+  # the last thing in the text column — lands 77.3dp below the content top. 72
+  # left the rule a full 5dp short of the pill.
   @doc false
   def feature_row(feature) do
     ~MOB"""
@@ -373,7 +381,7 @@ defmodule Kati.Screens.ScheduleFa do
           padding={15}
           align="top"
         >
-          <Box width={3} height={72} corner_radius={2} background={0xFFE8823C} />
+          <Box width={3} height={77} corner_radius={2} background={0xFFE8823C} />
           <Spacer size={12} />
           {Kati.Screens.ScheduleFa.poster(feature.seed)}
           <Spacer size={12} />

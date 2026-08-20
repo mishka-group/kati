@@ -34,9 +34,11 @@ defmodule Kati.Screens.PickSections do
   The drawing positions it absolutely at `top:14; right:14`, inside the tile's
   16pt padding. There is no fill-height reference frame inside a wrap-height
   tile to align an overlay against, so the badge rides in the icon's row
-  instead — 16pt from the top edge rather than 14, and structurally sound
-  rather than gambling on what `fillMaxHeight` resolves to in a Box that is
-  sizing itself.
+  instead — laid out at the tile's own 16pt inset — and is then nudged the
+  remaining 2pt up and out with `offset_x` / `offset_y`. `MobBridge.RenderNode`
+  turns those into a `Modifier.offset`, which moves what is drawn without
+  moving what was measured, so the icon opposite it and the title below do not
+  shift: the badge lands at 14/14 and nothing else on the tile moves.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -199,7 +201,7 @@ defmodule Kati.Screens.PickSections do
 
   def badge(true) do
     ~MOB"""
-    <Box width={22} height={22} corner_radius={11} background={0xFFE8823C} align="center">
+    <Box width={22} height={22} offset_x={2} offset_y={-2} corner_radius={11} background={0xFFE8823C} align="center">
       {Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)}
     </Box>
     """

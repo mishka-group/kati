@@ -63,19 +63,18 @@ defmodule Kati.Screens.Lock.Sample do
   @doc """
   The large widget: the year as a pixel field, with its two footnotes.
 
-  78 cells, chunked 32 to a row. A cell is 7pt with a 3pt gap, so n cells
-  measure `10n - 3`. The card's 16pt padding inside screen 29's 21pt gutters
-  leaves 328 on the 402dp frame the screen was drawn at and 337 on the device;
-  32 cells measure 317, clear of both with room left over.
+  78 cells, chunked **33** to a row, because that is where the drawing's own
+  `flex-wrap` breaks. A cell is 7pt with a 3pt gap, so n cells measure
+  `10n - 3`. The card's 16pt padding inside screen 29's 21pt gutters leaves 328
+  on the 402pt frame the screen was drawn at, and 33 cells measure 327 — so the
+  export lays the field out as 33, 33, 12, and that ragged last line of twelve
+  is what the design *shows*.
 
-  This was 26, on an argument that only ever held at the drawing's own width:
-  33 cells measure 327, and 327 inside 328 is one point of slack, which is not
-  slack. But 328 is the *frame's* number. On the device the same 327 has ten
-  points to spare, so the objection was to the frame rather than to the count.
-  What 26 really had going for it was that it divides 78 into three clean rows
-  — and it paid for that by leaving 80 of the card's 337 points empty. 32 gives
-  two rows of 32 and a short row of 14, which is the ragged last line the
-  drawing's own `flex-wrap` produces anyway.
+  On the device the same card is 337 wide, so 327 has ten points to spare;
+  33 is not tight here, it is simply the drawing's number. Earlier counts (26,
+  then 32) were reasoned from how much room the device has rather than from
+  where the picture breaks, and both produced a visibly different last row —
+  32 gives 32, 32, 14. Match the picture.
   """
   @spec year() :: map()
   def year do
@@ -83,7 +82,7 @@ defmodule Kati.Screens.Lock.Sample do
       eyebrow: "THIS YEAR",
       watched: "312h watched",
       streak: "11-night streak",
-      rows: Enum.chunk_every(cells(), 32)
+      rows: Enum.chunk_every(cells(), 33)
     }
   end
 

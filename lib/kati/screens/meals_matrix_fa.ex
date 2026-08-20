@@ -21,13 +21,18 @@ defmodule Kati.Screens.MealsMatrixFa do
 
   ## Where this diverges from the drawing
 
-    * The cells are `aspect-ratio: 1` in CSS and `weight={1.0}` with a declared
-      **35pt height** here. Nothing measures geometry on this bridge, and 35 is
-      the drawing's own arithmetic: 360 content width, less 14 of card padding
-      each side, less the 66pt label column, less seven 3pt gaps, over seven
-      columns. On a wider device the cells become slightly wide rectangles.
     * The open cell's `1.5px dashed` ring is drawn solid — `Modifier.border`
       through this bridge takes no dash pattern.
+
+  ## The cells are square by construction, not by arithmetic
+
+  The drawing's cell is `aspect-ratio: 1`, and so is this one:
+  `fill_width` inside a weighted slot, then `aspect_ratio={1.0}`, which is the
+  chain `Kati.Screens.MonthGrid` uses for the same reason. A declared height
+  computed from the drawing's own 402pt frame — 360 less 28 of card padding,
+  less the 66pt label column, less seven 3pt gaps, over seven columns — comes
+  out at 35, and a capture on a 411dp device measured the cells 36.5 wide: the
+  arithmetic of one frame does not survive the trip, and the ratio does.
 
   ## The segments, and why they narrow rather than replace
 
@@ -56,9 +61,6 @@ defmodule Kati.Screens.MealsMatrixFa do
   alias Kati.Design.Images
   alias Kati.Fa.SampleWeek
   alias Kati.Theme
-
-  # The drawing's cell, from its own arithmetic. See the moduledoc.
-  @cell 35
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.light())
@@ -281,8 +283,6 @@ defmodule Kati.Screens.MealsMatrixFa do
 
   @doc false
   def matrix_row(row, cols) do
-    size = @cell
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -300,7 +300,7 @@ defmodule Kati.Screens.MealsMatrixFa do
         </Column>
         {row.cells
          |> Enum.with_index()
-         |> Enum.map(fn {state, i} -> Kati.Screens.MealsMatrixFa.cell(state, size, i in cols) end)}
+         |> Enum.map(fn {state, i} -> Kati.Screens.MealsMatrixFa.cell(state, i in cols) end)}
       </Row>
       <Spacer size={6} />
     </Column>
@@ -310,12 +310,12 @@ defmodule Kati.Screens.MealsMatrixFa do
   # A day the segment does not cover keeps its slot and draws nothing in it —
   # that is what holds the seven columns still while the matrix narrows.
   @doc false
-  def cell(_state, size, false) do
+  def cell(_state, false) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} height={size} />
+        <Box fill_width={true} aspect_ratio={1.0} />
       </Row>
     </Box>
     """
@@ -323,12 +323,12 @@ defmodule Kati.Screens.MealsMatrixFa do
 
   # The 3pt gutter rides inside each cell's slot rather than being interspersed,
   # so the seven weighted columns stay equal and line up with the header above.
-  def cell(:today, size, true) do
+  def cell(:today, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} height={size} corner_radius={9} background={Kati.Theme.ink()} align="center">
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={9} background={Kati.Theme.ink()} align="center">
           <Box width={7} height={7} corner_radius={4} background={Kati.Theme.accent()} />
         </Box>
       </Row>
@@ -336,34 +336,34 @@ defmodule Kati.Screens.MealsMatrixFa do
     """
   end
 
-  def cell(:open, size, true) do
+  def cell(:open, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} height={size} corner_radius={9} border_color={0x291A1917} border_width={1.5} />
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={9} border_color={0x291A1917} border_width={1.5} />
       </Row>
     </Box>
     """
   end
 
-  def cell(:free, size, true) do
+  def cell(:free, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} height={size} corner_radius={9} background={0xFFEFECE7} />
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={9} background={0xFFEFECE7} />
       </Row>
     </Box>
     """
   end
 
-  def cell(_planned, size, true) do
+  def cell(_planned, true) do
     ~MOB"""
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} height={size} corner_radius={9} background={0xFFEFECE7} align="center">
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={9} background={0xFFEFECE7} align="center">
           <Box width={7} height={7} corner_radius={4} background={0xFFC4BDB3} />
         </Box>
       </Row>

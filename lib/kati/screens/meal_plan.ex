@@ -14,11 +14,14 @@ defmodule Kati.Screens.MealPlan do
 
   ## Where this diverges from the drawing
 
-    * **The cells are a declared 35pt square.** They are `flex:1` with
+    * **The cells are a declared 37pt square.** They are `flex:1` with
       `aspect-ratio:1` in the drawing, and nothing measures geometry on this
-      bridge. The arithmetic is exact rather than guessed: 360 inside the
-      gutters, less the card's 14pt padding either side, less the 62pt label
-      column and seven 3pt gaps, is 249 across seven cells — 35.6 each.
+      bridge, so the height has to be declared. The arithmetic is done against
+      the device, not the 402pt frame, because the width is fluid and the
+      height is not: 411 less the 21pt gutters, less the card's 14pt padding
+      either side, less the 62pt label column and seven 3pt gaps, is 258 across
+      seven cells — 36.9 each. A capture measured 36.5 against a declared 35,
+      which read as a wide cell rather than a square one.
     * **The unplanned Sunday snack is a solid outline.** `1.5px dashed
       rgba(26,25,23,.16)` has no dashed equivalent here, so it is solid at the
       same weight and colour.
@@ -207,7 +210,7 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Row weight={1.0} align="center">
       <Spacer size={3} />
-      <Box weight={1.0} height={35} corner_radius={9} background={Kati.Screens.MealPlan.cell_fill(state)} border_width={Kati.Screens.MealPlan.cell_border(state)} border_color={0x291A1917} align="center">
+      <Box weight={1.0} height={37} corner_radius={9} background={Kati.Screens.MealPlan.cell_fill(state)} border_width={Kati.Screens.MealPlan.cell_border(state)} border_color={0x291A1917} align="center">
         {Kati.Screens.MealPlan.pip(state)}
       </Box>
     </Row>

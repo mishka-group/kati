@@ -276,10 +276,7 @@ defmodule Kati.Screens.Nutrition do
           <Column weight={1.0}>
             <Text text={String.upcase(hero.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
             <Spacer size={7} />
-            <Row align="bottom">
-              <Text text={hero.average} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
-              <Text text={hero.unit} text_size={15} font_weight="semibold" text_color={0xFFB09A72} max_lines={1} />
-            </Row>
+            {Kati.Screens.Nutrition.average_figure(hero)}
           </Column>
           <Spacer size={12} />
           <Column width={52}>
@@ -304,6 +301,24 @@ defmodule Kati.Screens.Nutrition do
       <Spacer size={14} />
     </Column>
     """
+  end
+
+  # `2,040` and ` kcal` are one inline run in the drawing, so they share a
+  # baseline. `align="bottom"` aligns the two text *boxes*, and a 34pt box
+  # carries more descent than a 15pt one, so the unit sank below the figure —
+  # a capture measured it 3.8pt low. The lift is that descent difference,
+  # 0.2 × (34 − 15) = 3.8, applied by `Kati.UI.number_with_unit/3`.
+  @doc false
+  def average_figure(hero) do
+    number = ~MOB"""
+    <Text text={hero.average} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
+    """
+
+    unit = ~MOB"""
+    <Text text={hero.unit} text_size={15} font_weight="semibold" text_color={0xFFB09A72} max_lines={1} />
+    """
+
+    UI.number_with_unit(number, unit, 3.8)
   end
 
   # A 64pt frame with the bars aligned to its bottom, which is what the

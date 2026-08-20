@@ -220,10 +220,13 @@ defmodule Kati.Screens.UpNext do
   def cold(q) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(q.cold, fn row -> Kati.Screens.UpNext.cold_row(row) end)}
+      {q.cold |> Enum.map(fn row -> Kati.Screens.UpNext.cold_row(row) end) |> Enum.intersperse(Kati.Screens.UpNext.cold_gap())}
     </Column>
     """
   end
+
+  @doc false
+  def cold_gap, do: ~MOB"<Box fill_width={true} height={9} />"
 
   @doc false
   def cold_row(row) do
@@ -239,7 +242,7 @@ defmodule Kati.Screens.UpNext do
         padding_bottom={10}
         align="center"
       >
-        {Kati.Screens.UpNext.thumb(row)}
+        {Kati.Screens.UpNext.cold_thumb(row)}
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={0xFF8A8479} max_lines={1} />
@@ -251,8 +254,27 @@ defmodule Kati.Screens.UpNext do
           <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
         </Row>
       </Row>
-      <Spacer size={9} />
     </Column>
     """
+  end
+
+  # The drawing tones the cold poster back with `opacity:.6`. There is no
+  # opacity prop on an Image node, so the same result is composited: 40% of the
+  # row's own paper (#F4F1EC) laid over the picture is, to the pixel, the
+  # picture at 60% against that paper.
+  @doc false
+  def cold_thumb(row) do
+    case Sample.poster(row.seed) do
+      nil ->
+        ~MOB"<Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9} />"
+
+      src ->
+        ~MOB"""
+        <Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9}>
+          <Image src={src} width={40} height={56} corner_radius={8} content_mode="fill" />
+          <Box width={40} height={56} corner_radius={8} background={0x66F4F1EC} />
+        </Box>
+        """
+    end
   end
 end

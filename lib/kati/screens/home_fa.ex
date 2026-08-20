@@ -208,6 +208,12 @@ defmodule Kati.Screens.HomeFa do
   end
 
   # 46*3 - 16*2 = 106 wide, whichever way the page reads.
+  #
+  # `align="center"` on the poster is load-bearing: `border_width` paints the
+  # 2pt frame over the box's own edge without insetting its child, and a Box
+  # aligns TOP-START, so the 42x60 still landed against the start edge and the
+  # cream frame measured 2pt at the top-start corner and 4pt at the bottom-end
+  # one. The drawing's frame is 2pt on all four sides.
   @doc false
   def poster_stack(seeds) do
     ~MOB"""
@@ -232,6 +238,7 @@ defmodule Kati.Screens.HomeFa do
       border_width={2}
       border_color={0xFFFBF1DE}
       shadow={Kati.Theme.shadow_poster()}
+      align="center"
     >
       {Kati.Screens.HomeFa.poster_image(src)}
     </Box>

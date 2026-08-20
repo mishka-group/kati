@@ -18,11 +18,17 @@ defmodule Kati.Screens.Onboarding do
   The design outlines the chosen poster with `outline: 2.5px solid #1A1917;
   outline-offset: 2px` — an outline, which in CSS costs no layout and simply
   overhangs the tile. Compose has no such thing: a border is part of the box.
-  Two 174pt tiles and an 11pt gap already use 359 of the 360pt between the
-  gutters, so a ring drawn *outside* would push the row past the content width
-  and squeeze both columns. It is therefore drawn on the tile's own edge with
-  the artwork inset inside it, which reads as the same selection ring and
-  keeps the grid on its arithmetic.
+  Two tiles and an 11pt gap already use the whole width between the gutters, so
+  a ring drawn *outside* would push the row past the content width and squeeze
+  both columns. It is therefore drawn on the tile's own edge with the artwork
+  inset 4pt inside it, which reads as the same selection ring and keeps the
+  grid on its arithmetic.
+
+  The cell itself is a weight, not the drawing's 174: the export's own width is
+  `calc(50% - 6px)`, and half of the 411dp device's content is 179, so a fixed
+  174 would leave the second column 10pt short of the right gutter. The height
+  is the export's own `aspect-ratio:2/3` rather than a number, so the tile
+  stays 2:3 at whatever width the weight grants.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -245,10 +251,15 @@ defmodule Kati.Screens.Onboarding do
   @doc false
   def poster_gap, do: ~MOB"<Spacer size={11} />"
 
+  # The cell takes a weight, not a width. 174 was the drawing's own number at
+  # 402pt; on the 411dp device the same two tiles plus the 11pt gap come to 359
+  # of the 369 between the gutters and the grid stops short of the right one.
+  # The tile's height is `aspect_ratio` — the export's own `aspect-ratio:2/3` —
+  # so it follows whatever width the weight hands out, at any frame width.
   @doc false
   def poster(p) do
     ~MOB"""
-    <Column width={174}>
+    <Column weight={1.0}>
       {Kati.Screens.Onboarding.poster_art(p)}
       <Spacer size={8} />
       <Text text={p.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
@@ -260,29 +271,30 @@ defmodule Kati.Screens.Onboarding do
   def poster_art(%{selected?: true} = p) do
     ~MOB"""
     <Box
-      width={174}
-      height={261}
+      fill_width={true}
+      aspect_ratio={0.6667}
       corner_radius={17}
       border_color={0xFF1A1917}
       border_width={2.5}
-      align="center"
     >
-      <Box
-        width={165}
-        height={252}
-        corner_radius={13}
-        background={0xFFE4E0D9}
-        shadow={Kati.Theme.shadow_card_soft()}
-      >
-        {Kati.Screens.Onboarding.art(p, 165, 252)}
-        <Box fill_width={true} fill_height={true} align="top_trailing">
-          <Column padding={9}>
-            <Box width={24} height={24} corner_radius={12} background={Kati.Theme.accent()} align="center">
-              {Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)}
-            </Box>
-          </Column>
+      <Column fill_width={true} fill_height={true} padding={4}>
+        <Box
+          fill_width={true}
+          fill_height={true}
+          corner_radius={13}
+          background={0xFFE4E0D9}
+          shadow={Kati.Theme.shadow_card_soft()}
+        >
+          {Kati.Screens.Onboarding.art(p)}
+          <Box fill_width={true} fill_height={true} align="top_trailing">
+            <Column padding={9}>
+              <Box width={24} height={24} corner_radius={12} background={Kati.Theme.accent()} align="center">
+                {Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)}
+              </Box>
+            </Column>
+          </Box>
         </Box>
-      </Box>
+      </Column>
     </Box>
     """
   end
@@ -290,26 +302,26 @@ defmodule Kati.Screens.Onboarding do
   def poster_art(p) do
     ~MOB"""
     <Box
-      width={174}
-      height={261}
+      fill_width={true}
+      aspect_ratio={0.6667}
       corner_radius={13}
       background={0xFFE4E0D9}
       shadow={Kati.Theme.shadow_card_soft()}
     >
-      {Kati.Screens.Onboarding.art(p, 174, 261)}
+      {Kati.Screens.Onboarding.art(p)}
     </Box>
     """
   end
 
   @doc false
-  def art(p, w, h) do
+  def art(p) do
     case Kati.Design.Images.poster(p.seed) do
       nil ->
         ~MOB"<Spacer size={0} />"
 
       src ->
         ~MOB"""
-        <Image src={src} width={w} height={h} corner_radius={13} content_mode="fill" />
+        <Image src={src} fill_width={true} fill_height={true} corner_radius={13} content_mode="fill" />
         """
     end
   end

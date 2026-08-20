@@ -10,7 +10,10 @@ defmodule Kati.Screens.Calendar do
   between similar and identical.
 
   The events are real — `Kati.Calendars.Today`, which is the device's own
-  calendar via `CalendarContract`.
+  calendar via `CalendarContract` — and on a device with nothing mirrored yet
+  TODAY falls back to `drawn_rows/0`, the five rows the drawing itself shows,
+  so the screen can still be compared with its frame. Any other day the user
+  taps shows its real emptiness.
   """
   use Kati.Screens.Root, root: :calendar
 
@@ -20,7 +23,68 @@ defmodule Kati.Screens.Calendar do
   @impl true
   def load(socket) do
     date = Kati.Time.today()
-    Mob.Socket.assign(socket, date: date, rows: Kati.Calendars.Today.rows(date), filter: "All")
+    Mob.Socket.assign(socket, date: date, rows: day_rows(date), filter: "All")
+  end
+
+  @doc """
+  The day's rows, each carrying the shape the drawing gives it.
+
+  `Kati.Calendars.Today` answers with the device's own events, and on a device
+  with nothing mirrored it answers with nothing — which drew a single grey
+  "Nothing scheduled today" card where the design draws five rows in five
+  different shapes, so the screen could not be compared with its frame at all.
+  FIDELITY's rule covers this: *missing data is not a reason for a blank
+  screen*. TODAY therefore falls back to the drawn day; any other date the
+  user taps still shows its real emptiness, so the empty state stays reachable
+  and no other day is dressed up with events that are not there.
+  """
+  @spec day_rows(Date.t()) :: [map()]
+  def day_rows(date) do
+    case Kati.Calendars.Today.rows(date) do
+      [] -> if date == Kati.Time.today(), do: drawn_rows(), else: []
+      rows -> Enum.map(rows, &Kati.Screens.Calendar.shaped/1)
+    end
+  end
+
+  @doc """
+  The five rows of `.scratch/design/screens/02.html`, in its own order.
+
+  Stand-in data, and marked as such — but the SHAPES are not stand-in: the
+  design draws a done habit, an appointment, a reminder, a renewal and an
+  airing group as five different cards, and every one of them is a state the
+  real timeline will need.
+  """
+  @spec drawn_rows() :: [map()]
+  def drawn_rows do
+    [
+      %{shape: :done, kind: "event", time: "08:00", title: "Morning run", meta: "Habit · 12-day streak"},
+      %{shape: :event, kind: "event", time: "11:00", title: "Dentist — Marlow Clinic", meta: "11:00 – 11:45"},
+      %{shape: :reminder, kind: "event", time: "15:00", title: "Renew passport", meta: "reminder"},
+      %{shape: :money, kind: "money", time: "18:00", title: "Lumen+ renews", meta: "£8.99"},
+      %{
+        shape: :airing,
+        kind: "screen",
+        time: "20:00",
+        title: "3 titles airing",
+        meta: "Lumen+ · Northlight · 20:00",
+        posters: ~w(hollow71 saltiron33 cartog60)
+      }
+    ]
+  end
+
+  @doc "A real event, given the drawn shape its kind calls for."
+  @spec shaped(map()) :: map()
+  def shaped(row) do
+    kind = Kati.Screens.Calendar.kind(row)
+
+    shape =
+      case kind do
+        "money" -> :money
+        "screen" -> :airing
+        _ -> if row.now?, do: :event, else: :done
+      end
+
+    row |> Map.put(:kind, kind) |> Map.put(:shape, shape) |> Map.put_new(:posters, [])
   end
 
   @doc false
@@ -168,8 +232,8 @@ defmodule Kati.Screens.Calendar do
       <Scroll axis="horizontal">
         <Row>
           {["All", "Screen", "Personal", "Money"]
-           |> Enum.with_index()
-           |> Enum.map(fn {label, _i} -> Kati.Screens.Calendar.chip(label, label == active) end)}
+           |> Enum.map(fn label -> Kati.Screens.Calendar.chip(label, label == active) end)
+           |> Enum.intersperse(Kati.Screens.Calendar.chip_gap())}
         </Row>
       </Scroll>
       <Spacer size={18} />
@@ -186,10 +250,15 @@ defmodule Kati.Screens.Calendar do
     ~MOB"""
     <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center" on_tap={tap}>
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      <Spacer size={7} />
     </Row>
     """
   end
+
+  # `gap:7px` belongs BETWEEN the chips. Carried as a trailing Spacer inside
+  # each one it made every chip 7 wider than the drawn `padding:0 15px` and
+  # left the row itself with no gap.
+  @doc false
+  def chip_gap, do: ~MOB"<Spacer size={7} />"
 
   @doc false
   def timeline([]) do
@@ -203,51 +272,243 @@ defmodule Kati.Screens.Calendar do
   def timeline(rows) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(rows, fn row -> Kati.Screens.Calendar.event_row(row) end)}
+      {rows
+       |> Enum.map(fn row -> Kati.Screens.Calendar.event_row(row) end)
+       |> Enum.intersperse(Kati.Screens.Calendar.row_gap())}
     </Column>
     """
   end
 
   @doc false
+  def row_gap, do: ~MOB"<Spacer size={11} />"
+
+  # Every row is a 44pt mono time column beside a card, and the CARD is what
+  # changes. The drawing gives five of them, and the difference between them is
+  # the whole point of the screen — a done habit is flat #F4F1EC with a green
+  # tick, a live appointment is card white with a shadow, a reminder has a
+  # hollow circle where the rule would be, a renewal carries a payments tile
+  # and its amount, and an air date is a group with the posters stacked in it.
+  @doc false
   def event_row(row) do
-    # Orange only ever means new/now; everything else takes ink.
-    rule = if row.now?, do: 0xFFE8823C, else: Theme.ink()
-    tap = {self(), String.to_atom("row_" <> Kati.Screens.Calendar.kind(row))}
+    top = if row.shape in [:reminder, :money], do: 14, else: 15
+    time_color = if row.shape == :airing, do: 0xFF1A1917, else: 0xFFA9A29A
+    time_weight = if row.shape == :airing, do: "medium", else: "regular"
 
     ~MOB"""
+    <Row fill_width={true} align="top">
+      <Column width={44} padding_top={top}>
+        <Text text={row.time} font_family="mono" text_size={12} font_weight={time_weight} text_color={time_color} max_lines={1} />
+      </Column>
+      <Spacer size={12} />
+      <Box weight={1.0}>
+        {Kati.Screens.Calendar.card(row)}
+      </Box>
+    </Row>
+    """
+  end
+
+  @doc false
+  def card(%{shape: :done} = row), do: Kati.Screens.Calendar.ruled(row, 0xFF4E9A73, :done)
+  def card(%{shape: :event} = row), do: Kati.Screens.Calendar.ruled(row, Kati.Theme.ink(), :event)
+  def card(%{shape: :airing} = row), do: Kati.Screens.Calendar.airing(row)
+
+  def card(%{shape: :reminder} = row) do
+    tap = Kati.Screens.Calendar.tap(row)
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      on_tap={tap}
+      background={0xFFF4F1EC}
+      corner_radius={18}
+      padding_left={15}
+      padding_right={15}
+      padding_top={13}
+      padding_bottom={13}
+      align="center"
+    >
+      {Kati.UI.symbol("radio_button_unchecked", size: 21, color: 0xFFB3ACA2)}
+      <Spacer size={12} />
+      <Box weight={1.0}>
+        <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+      </Box>
+      <Spacer size={12} />
+      <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+    </Row>
+    """
+  end
+
+  def card(%{shape: :money} = row) do
+    tap = Kati.Screens.Calendar.tap(row)
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      on_tap={tap}
+      background={0xFFF4F1EC}
+      corner_radius={18}
+      padding_left={15}
+      padding_right={15}
+      padding_top={13}
+      padding_bottom={13}
+      align="center"
+    >
+      <Box width={26} height={26} corner_radius={8} background={0xFFE4E0D9} align="center">
+        {Kati.UI.symbol("payments", size: 15, color: 0xFF5C574F)}
+      </Box>
+      <Spacer size={12} />
+      <Box weight={1.0}>
+        <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+      </Box>
+      <Spacer size={12} />
+      <Text text={row.meta} font_family="mono" text_size={12} font_weight="medium" text_color={0xFF5C574F} max_lines={1} />
+    </Row>
+    """
+  end
+
+  # The two cards that carry a 3pt rule down their leading edge. `align-self:
+  # stretch` in the drawing means the rule is as tall as the card's content,
+  # which here is a 14pt title line over a sub-line — 36 either way, stated
+  # once rather than left to a fill that would stretch the Row instead.
+  @doc false
+  def ruled(row, rule, state) do
+    tap = Kati.Screens.Calendar.tap(row)
+    done? = state == :done
+    bg = if done?, do: 0xFFF4F1EC, else: Kati.Theme.card(:light)
+    shadow = if done?, do: nil, else: Kati.Theme.shadow_card()
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      on_tap={tap}
+      background={bg}
+      corner_radius={18}
+      shadow={shadow}
+      padding_left={15}
+      padding_right={15}
+      padding_top={14}
+      padding_bottom={14}
+      align="center"
+    >
+      <Box width={3} height={36} corner_radius={2} background={rule} />
+      <Spacer size={12} />
+      <Column weight={1.0}>
+        <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+        {Kati.Screens.Calendar.sub_line(row, done?)}
+      </Column>
+      <Spacer size={12} />
+      {Kati.Screens.Calendar.trailing(done?)}
+    </Row>
+    """
+  end
+
+  # A done habit states its streak in body text 3 under the title; a live
+  # appointment states its window in mono, 4 under.
+  @doc false
+  def sub_line(row, true) do
+    ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        <Column width={44} padding_top={15}>
-          <Text text={row.time} font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
-        </Column>
-        <Spacer size={12} />
-        <Box weight={1.0}>
-          <Row
-            fill_width={true}
-            on_tap={tap}
-            background={Kati.Theme.card(:light)}
-            corner_radius={18}
-            shadow={Kati.Theme.shadow_card()}
-            padding_left={15}
-            padding_right={15}
-            padding_top={14}
-            padding_bottom={14}
-            align="center"
-          >
-            <Box width={3} height={34} corner_radius={2} background={rule} />
-            <Spacer size={12} />
-            <Column weight={1.0}>
-              <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
-              <Spacer size={3} />
-              <Text text={row.meta} text_size={12} text_color={0xFF8A8479} max_lines={1} />
-            </Column>
-          </Row>
-        </Box>
-      </Row>
-      <Spacer size={11} />
+      <Spacer size={3} />
+      <Text text={row.meta} text_size={12} text_color={0xFF8A8479} max_lines={1} />
     </Column>
     """
   end
+
+  def sub_line(row, false) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={4} />
+      <Text text={row.meta} font_family="mono" text_size={11} text_color={0xFF8A8479} max_lines={1} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def trailing(true), do: Kati.UI.symbol("check_circle", size: 21, color: 0xFF4E9A73, fill: true)
+  def trailing(false), do: Kati.UI.symbol("more_horiz", size: 19, color: 0xFFC4BDB3)
+
+  # The air-date group: the one card on this screen that opens. Its posters are
+  # stacked the way Home stacks the hero's — `margin-left:-12px` shrinks the box
+  # as well as shifting the child, so three 34-wide posters measure 78, and the
+  # offset is stated on a fixed-width Box because negative padding throws.
+  @doc false
+  def airing(row) do
+    tap = Kati.Screens.Calendar.tap(row)
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      on_tap={tap}
+      background={Kati.Theme.card(:light)}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card()}
+      padding={15}
+      align="center"
+    >
+      <Box width={3} height={48} corner_radius={2} background={0xFFE8823C} />
+      <Spacer size={12} />
+      {Kati.Screens.Calendar.poster_stack(row)}
+      <Spacer size={16} />
+      <Column weight={1.0}>
+        <Text text={row.title} text_size={14.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+        <Spacer size={4} />
+        <Text text={row.meta} font_family="mono" text_size={11} text_color={0xFF8A8479} max_lines={1} />
+      </Column>
+      <Spacer size={12} />
+      <Box width={28} height={28} corner_radius={14} background={0xFFEFECE7} align="center">
+        {Kati.UI.symbol("expand_more", size: 18, color: 0xFF5C574F)}
+      </Box>
+    </Row>
+    """
+  end
+
+  @doc false
+  def poster_stack(%{posters: []}), do: ~MOB"<Spacer size={0} />"
+
+  def poster_stack(%{posters: seeds}) do
+    ~MOB"""
+    <Box width={78} height={48}>
+      {seeds
+       |> Enum.with_index()
+       |> Enum.map(fn {seed, i} -> Kati.Screens.Calendar.mini_poster(seed, i) end)}
+    </Box>
+    """
+  end
+
+  def poster_stack(_row), do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  def mini_poster(seed, index) do
+    offset = index * 22
+    src = Kati.Design.Images.poster(seed)
+
+    ~MOB"""
+    <Box
+      width={34}
+      height={48}
+      offset_x={offset}
+      corner_radius={7}
+      background={0xFFE4E0D9}
+      border_width={2}
+      border_color={0xFFFBFAF8}
+      shadow={Kati.Theme.shadow_poster()}
+    >
+      {Kati.Screens.Calendar.mini_image(src)}
+    </Box>
+    """
+  end
+
+  @doc false
+  def mini_image(nil), do: ~MOB"<Spacer size={0} />"
+
+  def mini_image(src) do
+    ~MOB"""
+    <Image src={src} width={30} height={44} corner_radius={5} content_mode="fill" />
+    """
+  end
+
+  @doc false
+  def tap(row), do: {self(), String.to_atom("row_" <> row.kind)}
 
   @doc """
   Rows a filter leaves visible.
@@ -262,19 +523,23 @@ defmodule Kati.Screens.Calendar do
   def visible(rows, filter) do
     wanted =
       case filter do
-        "Screen" -> ["Airs today"]
-        "Money" -> ["Money"]
-        _ -> ["Calendar", "Habit", "Meals"]
+        "Screen" -> ["screen"]
+        "Money" -> ["money"]
+        _ -> ["event", "meals"]
       end
 
-    Enum.filter(rows, fn row -> Enum.any?(wanted, &String.contains?(row.meta, &1)) end)
+    Enum.filter(rows, fn row -> row.kind in wanted end)
   end
 
   @doc """
   Which screen a timeline row belongs to, read off the row's own meta.
 
-  `visible/2` already filters on the same strings, so the row's destination
-  and its chip are answering one question, not two that can drift apart.
+  Called once, by `shaped/1`, which stamps the answer onto the row as `:kind`.
+  Everything downstream — the chip filter in `visible/2`, the card shape, the
+  destination a tap pushes — then reads that one field, so the row's
+  destination and its chip cannot drift apart, and the drawn rows can state
+  their kind outright rather than having it inferred from a sub-line that
+  names no kind at all.
   """
   @spec kind(map()) :: String.t()
   def kind(%{meta: meta}) do
@@ -317,7 +582,7 @@ defmodule Kati.Screens.Calendar do
         {:noreply,
          Mob.Socket.assign(socket,
            date: date,
-           rows: Kati.Calendars.Today.rows(date)
+           rows: Kati.Screens.Calendar.day_rows(date)
          )}
 
       _ ->

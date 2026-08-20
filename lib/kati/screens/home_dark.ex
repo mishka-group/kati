@@ -254,10 +254,15 @@ defmodule Kati.Screens.HomeDark do
   # Three 46-wide posters overlapping leftward by 16 measure 106, not 138 —
   # `margin-left:-16px` shrinks the box as well as shifting the child, and
   # negative padding throws on Compose. Fixed 106 box, each poster offset 30.
+  #
+  # The drawing hangs the stack off a container with `padding-top:2px`, which
+  # only moves the posters — the row is 96 tall and driven by the text beside
+  # them — so it is reproduced as `offset_y` rather than as padding that would
+  # also grow the box.
   @doc false
   def poster_stack(inbox) do
     ~MOB"""
-    <Box width={106} height={64}>
+    <Box width={106} height={64} offset_y={2}>
       {inbox.posters
        |> Enum.with_index()
        |> Enum.map(fn {seed, i} -> Kati.Screens.HomeDark.poster(seed, i) end)}
@@ -428,7 +433,7 @@ defmodule Kati.Screens.HomeDark do
     <Box fill_width={true} fill_height={true} align="bottom">
       <Row fill_width={true} align="center" padding_left={18} padding_right={18} padding_bottom={30}>
         <Box weight={1.0} height={64} background={0xEB1E1D1B} corner_radius={32} shadow={Kati.Theme.shadow_dock()} align="center">
-          <Row fill_width={true} fill_height={true} align="center">
+          <Row fill_width={true} fill_height={true} align="center" padding_left={9} padding_right={9}>
             {Enum.map(Kati.Shell.roots(), fn root -> Kati.Screens.HomeDark.tab(root) end)}
           </Row>
         </Box>

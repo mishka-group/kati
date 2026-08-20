@@ -85,7 +85,7 @@ defmodule Kati.Screens.ReleaseWatcher do
           <Spacer size={4} />
           <Text text={b.meta} font_family="mono" text_size={10.5} text_color={0xFFB09A72} max_lines={1} />
         </Column>
-        <Spacer size={12} />
+        <Spacer size={13} />
         {SettingsList.switch(b.on)}
       </Row>
       <Spacer size={24} />

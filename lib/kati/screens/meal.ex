@@ -147,10 +147,7 @@ defmodule Kati.Screens.Meal do
           <Column weight={1.0}>
             <Text text={String.upcase("Per portion")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
             <Spacer size={6} />
-            <Row align="bottom">
-              <Text text={meal.calories} text_size={32} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
-              <Text text={meal.unit} text_size={15} font_weight="semibold" text_color={0xFFA9A29A} max_lines={1} />
-            </Row>
+            {Kati.Screens.Meal.portion_figure(meal)}
           </Column>
           <Spacer size={12} />
           {Kati.Screens.Meal.stepper(meal)}
@@ -167,6 +164,24 @@ defmodule Kati.Screens.Meal do
       <Spacer size={12} />
     </Column>
     """
+  end
+
+  # `620` and ` kcal` are one inline run in the drawing, so they share a
+  # baseline. `align="bottom"` aligns the two text *boxes*, and a 32pt box
+  # carries more descent than a 15pt one, so the unit sank below the figure —
+  # a capture measured it 3.4pt low. `Kati.UI.number_with_unit/3` exists for
+  # exactly this: the lift is the descent difference, 0.2 × (32 − 15) = 3.4.
+  @doc false
+  def portion_figure(meal) do
+    number = ~MOB"""
+    <Text text={meal.calories} text_size={32} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
+    """
+
+    unit = ~MOB"""
+    <Text text={meal.unit} text_size={15} font_weight="semibold" text_color={0xFFA9A29A} max_lines={1} />
+    """
+
+    UI.number_with_unit(number, unit, 3.4)
   end
 
   # `remove` is muted and `add` is inked: at 1.0× there is nothing to take away

@@ -402,12 +402,30 @@ defmodule Kati.Screens.Search do
           <Spacer size={4} />
           <Text text={inline} text_size={13} line_height={1.55} text_color={0xFF4A4238} max_lines={1} />
         </Row>
+        {Kati.Screens.Search.note_leading()}
         <Text text={rest} text_size={13} line_height={1.55} text_color={0xFF4A4238} />
       </Column>
       <Spacer size={24} />
     </Column>
     """
   end
+
+  @doc """
+  The half-leading `line_height` cannot supply, because it is trimmed away.
+
+  `line_height={1.55}` on 13pt text asks for a 20.15pt line box, and the bridge
+  does set it — but Compose's default `LineHeightStyle` trims the leading off
+  the top of the first line and the bottom of the last, so on a Text that holds
+  **one** line it changes nothing. The drawing's paragraph is one wrapping
+  block and gets its 20.15 between the lines; ours is a `Row` of runs and then
+  a `Text`, two separate one-line boxes, and a capture measured them 16.3
+  apart. This is the 3.9 that trimming removed, so the break sits where the
+  export puts it.
+
+  A second `Text` run inside the first line — the highlight — is why the two
+  cannot be one node: there is no inline span on this bridge.
+  """
+  def note_leading, do: ~MOB"<Box fill_width={true} height={4} />"
 
   @doc """
   Splits the quoted sentence where the drawing breaks it.

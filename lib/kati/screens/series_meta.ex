@@ -224,9 +224,8 @@ defmodule Kati.Screens.SeriesMeta do
     ~MOB"""
     <Column fill_width={true}>
       <Text text={s.synopsis} text_size={14} line_height={1.6} text_color={0xFF4A4238} />
-      <Spacer size={2} />
       <Row align="center">
-        <Text text={s.more} text_size={14} text_color={0xFFA0998F} max_lines={1} />
+        <Text text={s.more} text_size={14} line_height={1.6} text_color={0xFFA0998F} max_lines={1} />
       </Row>
     </Column>
     """
@@ -304,7 +303,7 @@ defmodule Kati.Screens.SeriesMeta do
   def cast_member(c) do
     ~MOB"""
     <Column weight={1.0}>
-      <Box fill_width={true} height={81} corner_radius={41} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box fill_width={true} aspect_ratio={1.0} corner_radius={999} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.SeriesMeta.portrait(c.seed)}
       </Box>
       <Spacer size={8} />
@@ -320,6 +319,12 @@ defmodule Kati.Screens.SeriesMeta do
   # the placeholder's #E4E0D9 showing as a sliver down the trailing edge.
   # `content_mode="fill"` is ContentScale.Crop, so the face is cropped to the
   # frame rather than stretched into it.
+  #
+  # `aspect_ratio={1.0}`, not `height={81}`: the drawing says
+  # `width:100%;aspect-ratio:1`, and 81 was only that ratio's answer on the
+  # 402pt frame. At 411dp the cell measures 83.25, so a fixed 81 drew an
+  # ellipse — wider than it was tall — under a radius that had also been
+  # hard-coded to half of the old number.
   @doc false
   def portrait(seed) do
     case Sample.face(seed) do
@@ -328,7 +333,7 @@ defmodule Kati.Screens.SeriesMeta do
 
       src ->
         ~MOB"""
-        <Image src={src} fill_width={true} height={81} corner_radius={41} content_mode="fill" />
+        <Image src={src} fill_width={true} aspect_ratio={1.0} corner_radius={999} content_mode="fill" />
         """
     end
   end
@@ -402,22 +407,22 @@ defmodule Kati.Screens.SeriesMeta do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(rows, fn row -> Kati.Screens.SeriesMeta.tag_row(row) end)}
+      {rows |> Enum.map(fn row -> Kati.Screens.SeriesMeta.tag_row(row) end) |> Enum.intersperse(Kati.Screens.SeriesMeta.tag_row_gap())}
     </Column>
     """
   end
 
   @doc false
+  def tag_row_gap, do: ~MOB"<Box fill_width={true} height={7} />"
+
+  @doc false
   def tag_row(row) do
     ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center">
-        {row
-         |> Enum.map(fn {label, add?} -> Kati.Screens.SeriesMeta.tag(label, add?) end)
-         |> Enum.intersperse(Kati.Screens.SeriesMeta.tag_gap())}
-      </Row>
-      <Spacer size={7} />
-    </Column>
+    <Row fill_width={true} align="center">
+      {row
+       |> Enum.map(fn {label, add?} -> Kati.Screens.SeriesMeta.tag(label, add?) end)
+       |> Enum.intersperse(Kati.Screens.SeriesMeta.tag_gap())}
+    </Row>
     """
   end
 

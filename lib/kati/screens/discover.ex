@@ -352,10 +352,13 @@ defmodule Kati.Screens.Discover do
   def leaving(f, scheduled) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(f.leaving, fn row -> Kati.Screens.Discover.leaving_row(row, row.title in scheduled) end)}
+      {f.leaving |> Enum.map(fn row -> Kati.Screens.Discover.leaving_row(row, row.title in scheduled) end) |> Enum.intersperse(Kati.Screens.Discover.leaving_gap())}
     </Column>
     """
   end
+
+  @doc false
+  def leaving_gap, do: ~MOB"<Box fill_width={true} height={9} />"
 
   @doc false
   def leaving_row(row, done?) do
@@ -382,7 +385,6 @@ defmodule Kati.Screens.Discover do
         <Spacer size={12} />
         {Kati.Screens.Discover.leaving_action(row, done?)}
       </Row>
-      <Spacer size={9} />
     </Column>
     """
   end

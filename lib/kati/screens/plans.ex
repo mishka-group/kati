@@ -21,6 +21,14 @@ defmodule Kati.Screens.Plans do
   active plan is the one card in the app set on ink, and a saved row leads with
   a 44pt photograph and ends in a 32pt Activate pill.
 
+  ## Where this diverges from the drawing
+
+    * **The footnote's frame is solid, not dashed.** `1.5px dashed
+      rgba(26,25,23,.16)` has no dashed equivalent on this bridge —
+      `Modifier.border` takes a width and a colour and no `PathEffect` — so the
+      weight and the alpha are the drawing's and the rhythm is lost, the same
+      trade `Kati.UI.SettingsList.note/2` records.
+
   No dock, so the frame's bottom inset is 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Meals"

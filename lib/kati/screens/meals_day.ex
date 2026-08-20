@@ -372,7 +372,7 @@ defmodule Kati.Screens.MealsDay do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={13} />
-      <Row fill_width={true} align="top" padding_left={2} padding_right={2}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         {UI.symbol("info", size: 15, color: 0xFFB3ACA2)}
         <Spacer size={8} />
         <Text text={day.note} text_size={11.5} line_height={1.45} text_color={0xFF8A8479} weight={1.0} />

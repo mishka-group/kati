@@ -70,3 +70,27 @@ Tracked, baseline-captured, and currently untouched — listed so a future edit 
 `BeamForegroundService.kt`, `android/build.gradle`, `android/settings.gradle`,
 `android/gradle.properties`, `android/app/src/main/jni/CMakeLists.txt`, `ios/beam_main.m`,
 `ios/AppDelegate.m`, `ios/build.zig`, `ios/build_device.zig`.
+
+## K-15 zero-weight
+
+**File**: `android/app/src/main/java/com/example/kati/MobBridge.kt` (`RenderNodeInner`, row and column branches)
+**Against**: mob_new 0.4.20 / mob 0.7.20
+
+`Modifier.weight(0f)` throws `IllegalArgumentException: invalid weight 0.0;
+must be greater than zero`, uncaught on the main thread, killing the activity.
+
+Every progress bar in Kati is two weighted cells — `weight={fraction}` beside
+`weight={1.0 - fraction}` — and 0% and 100% are ordinary data: a season with
+every episode watched, a book not started. Ten screens compute a weight from
+data this way (series, books, home, home_fa, auto_detect, library, health,
+meals_today, day, meals_matrix_fa), so the crash sat behind normal use rather
+than behind an edge case. Screen 04 reached it the moment the season pills
+became real and S1 came back 5-of-5.
+
+A zero share of the remaining space means zero size along the axis, so that is
+what it now renders as — `width(0.dp)` in a row, `height(0.dp)` in a column.
+Clamping to a small positive weight instead would leave a sliver of ink
+visible at 0%.
+
+**Upstream**: worth reporting to Mob — the renderer accepts any float and the
+crash names Compose, not the prop.

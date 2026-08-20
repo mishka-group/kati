@@ -27,9 +27,12 @@ defmodule Kati.Screens.Music do
   Album tiles take an equal share of the row, which is what the export actually
   writes: `flex:1` with `aspect-ratio:1`. The 112 that `112*3 + 12*2 = 360`
   produces is the arithmetic of the drawing's own 402pt frame, and a real
-  411dp device leaves ~370dp between the 21pt gutters, so a fixed 112 leaves
-  the rail ~9dp short. Nothing here measures, so the 112 *height* is still
-  declared and the square is only exact at the drawing's width.
+  411dp device leaves 369dp between the 21pt gutters, so a fixed 112 leaves
+  the rail 9dp short. The width has always been a weight; the *height* is now
+  `aspect_ratio={1.0}` rather than a declared 112, because a capture measured
+  the covers 115 wide and 112 tall — the drawing's squares, drawn oblong. The
+  modifier chain is weight → aspect_ratio, so the square is taken off the width
+  the Row actually granted, at any frame.
   """
   use Kati.Screens.Root, root: :library
 
@@ -196,13 +199,13 @@ defmodule Kati.Screens.Music do
     case Kati.Design.Images.poster(item.seed) do
       nil ->
         ~MOB"""
-        <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()} />
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()} />
         """
 
       src ->
         ~MOB"""
-        <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
-          <Image src={src} fill_width={true} height={112} corner_radius={12} content_mode="fill" />
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+          <Image src={src} fill_width={true} aspect_ratio={1.0} corner_radius={12} content_mode="fill" />
         </Box>
         """
     end

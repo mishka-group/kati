@@ -120,7 +120,10 @@ defmodule Kati.Screens.Health do
             </Row>
           </Column>
           <Spacer size={12} />
-          {Kati.Screens.Health.meals_pill(e.meals)}
+          <Column>
+            {Kati.Screens.Health.meals_pill(e.meals)}
+            <Spacer size={5} />
+          </Column>
         </Row>
         <Spacer size={16} />
         {Kati.Screens.Health.macro_bar(e.macros)}
@@ -138,6 +141,11 @@ defmodule Kati.Screens.Health do
 
   # Green at 16% on cream, the same pill screens 04 and 08 use for "done" —
   # three of five meals logged is progress, not an alert.
+  #
+  # The drawing hangs it off the row's `flex-end` and then lifts it with
+  # `margin-bottom:5px`, so it rides just above the baseline of "1,480" rather
+  # than sitting on it. The caller wraps it in a Column with that 5 underneath;
+  # a bottom-aligned Row has no other way to say "5 short of the bottom".
   @doc false
   def meals_pill(label) do
     ~MOB"""

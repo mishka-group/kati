@@ -235,7 +235,7 @@ defmodule Kati.Screens.MealsToday do
         padding_left={8}
         padding_right={8}
         padding_top={11}
-        padding_bottom={10}
+        padding_bottom={11}
         align="center"
       >
         <Column fill_width={true}>

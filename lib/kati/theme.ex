@@ -116,15 +116,27 @@ defmodule Kati.Theme do
   def red, do: @red
 
   @doc """
-  The floating chrome fill: the design's `rgba(251,250,248,.9)` as ARGB.
+  The floating chrome fill: the design's `rgba(251,250,248,.9)` **plus the blur
+  it assumes**, resolved into one flat alpha.
 
-  The design specifies `backdrop-filter: blur(20px)` behind this. Android has no
-  backdrop blur through Mob, so per #33 this ships as a flat 0.9-alpha fill over
-  the scrim. The intent — chrome that reads as floating and separate — survives;
-  the literal effect does not.
+  The design pairs that .9 with `backdrop-filter: blur(20px)`, and Mob has no
+  backdrop blur — `Modifier.blur` blurs a composable's OWN content, not what is
+  behind it, and a real backdrop blur needs a RenderEffect over a snapshot of
+  the layer underneath. #33 recorded that and shipped the drawn .9 flat.
+
+  Shipping the drawn alpha turned out to be the wrong half to keep. Behind the
+  blur, .9 white sits over an unreadable smear and the bar reads as solid
+  chrome; without it, .9 over SHARP text lets you read the words straight
+  through the dock — screen 01's capture shows "Meals", "Habits" and "Settings"
+  legible through the bar. Matching the number produced a bar the design does
+  not have.
+
+  So this matches the RESULT instead: 0.97, which is what .9-over-blur looks
+  like. The declaration is recorded above; if the bridge ever grows a backdrop
+  blur, this goes back to 0xE6 in the same commit that adds it.
   """
-  def chrome_fill(:light), do: 0xE6FBFAF8
-  def chrome_fill(:dark), do: 0xE61E1D1B
+  def chrome_fill(:light), do: 0xF7FBFAF8
+  def chrome_fill(:dark), do: 0xF71E1D1B
 
   @doc """
   The line-height multiplier Persian text needs in order to match Latin.

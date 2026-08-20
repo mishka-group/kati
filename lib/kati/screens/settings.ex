@@ -93,7 +93,7 @@ defmodule Kati.Screens.Settings do
           <Spacer size={4} />
           <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
-        <Spacer size={12} />
+        <Spacer size={14} />
         <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={10} padding_right={10} align="center">
           {Kati.UI.symbol("cloud_done", size: 14, color: 0xFF3E8460)}
           <Spacer size={5} />

@@ -4,7 +4,10 @@ defmodule Kati.Screens.Day do
 
   A time-gutter timeline: a mono time column on the left, one card per item
   on the right. Clashes split that right-hand side into lanes, capped at
-  two, with a `+n MORE` footer when a cluster needs more.
+  two, with a `+n MORE` tile in the trailing lane when a cluster needs more.
+  `Kati.Calendar.Layout` hands that tile back separately because it is not
+  part of the column grid; the drawing still puts it inside the split row, at
+  a fixed 44pt, so `lanes/1` appends it there rather than under the row.
 
   The lane widths are **weights, never pixels**. `Kati.Calendar.Layout`
   emits `{col, span, n_cols}` and each card carries `weight = span`, so
@@ -40,8 +43,15 @@ defmodule Kati.Screens.Day do
 
   alias Kati.Calendar.Layout
 
-  # The design's inter-card gap (design-index.md:344).
-  @lane_gap 9
+  # The drawing's gap BETWEEN LANES — `display:flex;gap:7px` on the split row.
+  # Not to be confused with the 9pt `margin-bottom` that separates one lane row
+  # from the next; that one is vertical and lives in `cluster_block/1`.
+  @lane_gap 7
+
+  # The minute the merged renewals row sits at. The drawing puts it at 18:00,
+  # between the 15:00 todo and the 20:00 group, so it has to be spliced into
+  # the cluster stream by time rather than appended after it.
+  @money_min 1080
 
   # `nil` is the whole day, and it is the state the screen opens in: the
   # drawing puts `Screen` in ink above a timeline that still holds a habit, a
@@ -71,17 +81,32 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_top={64} padding_bottom={132}>
+      <Column fill_width={true} padding_top={64} padding_bottom={40}>
         <Column fill_width={true} padding_left={21} padding_right={21}>
           {Kati.Screens.Day.header(date, clusters, filter)}
           {Kati.Screens.Day.chips(filter)}
           {Kati.Screens.Day.all_day(filter)}
         </Column>
-        {Enum.map(clusters, &Kati.Screens.Day.cluster_block/1)}
-        {Kati.Screens.Day.money_row(filter)}
+        {Kati.Screens.Day.timeline(clusters, filter)}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The lane rows and the merged renewals row, in clock order.
+
+  The renewals row is not a cluster — it is one line standing for two money
+  events the day view refuses to draw twice — but it still belongs at its own
+  minute. Appending it after the clusters put 18:00 below 23:15.
+  """
+  def timeline(clusters, filter) do
+    money = @money_min
+
+    rows = Enum.map(clusters, fn c -> {c.start_min, Kati.Screens.Day.cluster_block(c)} end)
+    rows = if money?(filter), do: [{money, Kati.Screens.Day.money_row()} | rows], else: rows
+
+    rows |> Enum.sort_by(&elem(&1, 0)) |> Enum.map(&elem(&1, 1))
   end
 
   @doc false
@@ -213,8 +238,8 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Row fill_width={true} align="top">
       <Column width={44} padding_top={12}>
-        <Text text="ALL" font_family="mono" text_size={10} letter_spacing={0.06} text_color={0xFFA9A29A} />
-        <Text text="DAY" font_family="mono" text_size={10} letter_spacing={0.06} text_color={0xFFA9A29A} />
+        <Text text="ALL" font_family="mono" text_size={10} letter_spacing={0.08} text_color={0xFFB3ACA2} />
+        <Text text="DAY" font_family="mono" text_size={10} letter_spacing={0.08} text_color={0xFFB3ACA2} />
       </Column>
       <Spacer size={12} />
       <Box weight={1.0}>
@@ -246,12 +271,8 @@ defmodule Kati.Screens.Day do
   end
 
   # Two renewals on one row rather than two rows — the design merges money
-  # events on a day, because "two subscriptions renewed" is one fact.
-  @doc false
-  def money_row(filter) do
-    if money?(filter), do: money_row(), else: ~MOB"<Spacer size={0} />"
-  end
-
+  # events on a day, because "two subscriptions renewed" is one fact. Whether
+  # it is drawn at all is `timeline/2`'s question, not this one's.
   @doc false
   def money_row do
     m = Kati.Calendar.SampleDay.money()
@@ -259,21 +280,25 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Column fill_width={true} padding_left={21} padding_right={21}>
       <Row fill_width={true} align="top">
-        <Column width={44} padding_top={12}>
-          <Text text="00:00" font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+        <Column width={44} padding_top={11}>
+          <Text text={m.at} font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
-          <Row fill_width={true} background={Kati.Theme.card(:light)} corner_radius={16} shadow={Kati.Theme.shadow_card_soft()} padding_left={13} padding_right={13} padding_top={11} padding_bottom={11} align="center">
-            {Kati.UI.symbol("payments", size: 14, color: 0xFF5C574F)}
+          <Row fill_width={true} background={0xFFF4F1EC} corner_radius={16} padding_left={13} padding_right={13} padding_top={10} padding_bottom={10} align="center">
+            <Box width={24} height={24} corner_radius={7} background={0xFFE4E0D9} align="center">
+              {Kati.UI.symbol("payments", size: 14, color: 0xFF5C574F)}
+            </Box>
             <Spacer size={11} />
             <Text text={m.label} text_size={13} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
+            <Spacer size={11} />
             <Text text={m.total} font_family="mono" text_size={11.5} text_color={0xFF5C574F} max_lines={1} />
-            <Spacer size={9} />
+            <Spacer size={11} />
             {Kati.UI.symbol("expand_more", size: 17, color: 0xFFB3ACA2)}
           </Row>
         </Box>
       </Row>
+      <Spacer size={9} />
     </Column>
     """
   end
@@ -387,14 +412,14 @@ defmodule Kati.Screens.Day do
     total = length(cluster.placements) + hidden_count(cluster.overflow)
 
     ~MOB"""
-    <Row align="center" padding_left={56} padding_bottom={6}>
+    <Row align="center" padding_left={56} padding_bottom={7}>
       {Kati.UI.symbol("call_split", size: 14, color: 0xFFE8823C)}
       <Spacer size={6} />
       <Text
-        text={"#{total} at once"}
+        text={String.upcase("#{total} at once")}
         font_family="mono"
-        text_size={10.5}
-        letter_spacing={0.16}
+        text_size={10}
+        letter_spacing={0.12}
         text_color={0xFFC08A4C}
         max_lines={1}
       />
@@ -410,32 +435,58 @@ defmodule Kati.Screens.Day do
     <Column fill_width={true} padding_left={21} padding_right={21}>
       {Kati.Screens.Day.clash_label(cluster)}
       <Row align="top" fill_width={true}>
-        {Kati.Screens.Day.gutter(cluster.label)}
+        {Kati.Screens.Day.gutter(cluster)}
         {Kati.Screens.Day.lanes(cluster)}
       </Row>
-      {Kati.Screens.Day.overflow_footer(cluster)}
-      <Spacer size={14} />
+      <Spacer size={9} />
     </Column>
     """
   end
 
-  @doc false
-  def gutter(label) do
-    # A Column, sized to its content, and neither detail is incidental.
-    #
-    # Fixed at 54dp the label wrapped onto two lines at 235% Dynamic Type —
-    # "02:" above "19" — which is the one thing a time column must not do.
-    # But a **Box** cannot express "wrap": the bridge fills width whenever
-    # `width` is not a number (`MobBridge.kt:2673`), and `width={:wrap}` is
-    # not a number, so the gutter swallowed the row and every card rendered
-    # at zero width. Column applies only its modifier, so it sizes to
-    # content. Every label is HH:MM, so the column stays straight at any
-    # scale and the lanes give up exactly the width the larger text needs.
+  @doc """
+  The time column.
+
+  44dp wide, which is the drawing's own number and — more to the point — the
+  same 44 the all-day band uses. Sized to its content instead, the band's card
+  started 8dp to the right of every card below it, which is visible as a step
+  down the left edge of the timeline.
+
+  The old comment feared a two-line "02:" over "19" at 235% Dynamic Type. That
+  cannot happen: the label is `max_lines={1}` and every Text in this bridge is
+  built with `TextOverflow.Ellipsis`, so an oversized label shortens rather
+  than wraps.
+
+  `padding_top` tracks what the row is. A plain lane sits its clock beside the
+  card's first line; a clash row has already spent that space on the "n at
+  once" marker; the grouped card is taller and pads more, and the drawing also
+  darkens its clock — it is the one row the day is pointed at.
+  """
+  def gutter(cluster) do
+    top = gutter_top(cluster)
+    strong? = grouped?(cluster)
+    colour = if strong?, do: Kati.Theme.ink(), else: 0xFFA9A29A
+    weight = if strong?, do: "medium", else: "regular"
+
     ~MOB"""
-    <Column padding_top={16} padding_right={12}>
-      <Text text={label} text_size={12} text_color={:muted} font_family="mono" max_lines={1} />
-    </Column>
+    <Row>
+      <Column width={44} padding_top={top}>
+        <Text text={cluster.label} text_size={12} font_weight={weight} text_color={colour} font_family="mono" max_lines={1} />
+      </Column>
+      <Spacer size={12} />
+    </Row>
     """
+  end
+
+  @doc false
+  def grouped?(%{placements: [%{event: %{collapsed: _members}}]}), do: true
+  def grouped?(_cluster), do: false
+
+  defp gutter_top(cluster) do
+    cond do
+      grouped?(cluster) -> 15
+      cluster.n_cols > 1 -> 5
+      true -> 12
+    end
   end
 
   @doc """
@@ -445,22 +496,59 @@ defmodule Kati.Screens.Day do
   `Spacer` sits between lanes and is a fixed size rather than a weight, so
   the gap stays 9dp at every width instead of growing with the lane.
   """
-  def lanes(%{n_cols: 1, placements: [only]}) do
-    card(only)
+  def lanes(%{n_cols: 1, placements: [only]} = cluster) do
+    if grouped?(cluster), do: grouped_card(only), else: card(only, false)
   end
 
   def lanes(cluster) do
-    children =
+    cards =
       cluster.placements
       |> Enum.sort_by(& &1.col)
-      |> Enum.map(&card/1)
-      |> Enum.intersperse(gap())
+      |> Enum.map(&card(&1, true))
+
+    children = Enum.intersperse(cards ++ overflow_tile(cluster.overflow), gap())
 
     ~MOB"""
     <Row fill_width={true} align="top">
       {children}
     </Row>
     """
+  end
+
+  # A lane, not a footer. `Kati.Calendar.Layout` hands the tile back separately
+  # because it is not part of the column grid, and an earlier version took that
+  # literally and drew a full-width cream pill on the line below. The drawing
+  # puts it INSIDE the split row: a 44pt tile on the trailing edge, the same
+  # height as the cards beside it.
+  #
+  # 55 is that height written out rather than measured — 11 + 11 of padding
+  # around a 12.5pt title and a 10pt meta line. There is no way to say "as tall
+  # as my siblings" here: `fill_height` inside a Row resolves against the
+  # incoming maximum, which is unbounded inside a Scroll.
+  defp overflow_tile(nil), do: []
+
+  defp overflow_tile(tile) do
+    label = "+#{length(tile.event.overflow)}"
+
+    [
+      ~MOB"""
+      <Box width={44} height={55} corner_radius={16} background={0xFFE4E0D9} align="center">
+        <Column>
+          <Row align="center">
+            <Spacer weight={1.0} />
+            <Text text={label} font_family="mono" text_size={13} font_weight="medium" text_color={:on_surface} max_lines={1} />
+            <Spacer weight={1.0} />
+          </Row>
+          <Spacer size={2} />
+          <Row align="center">
+            <Spacer weight={1.0} />
+            <Text text="MORE" font_family="mono" text_size={8.5} letter_spacing={0.08} text_color={0xFF8A8479} max_lines={1} />
+            <Spacer weight={1.0} />
+          </Row>
+        </Column>
+      </Box>
+      """
+    ]
   end
 
   defp gap do
@@ -473,17 +561,42 @@ defmodule Kati.Screens.Day do
     """
   end
 
-  @doc false
-  def card(%{event: event, span: span}) do
+  @doc """
+  One card in a lane.
+
+  `split?` is the difference between the drawing's two card shapes. A card
+  that has the row to itself is 13pt titled with 13pt of side padding; one
+  sharing the row with another is 12.5pt titled with 12pt, because two of them
+  and a 7pt gutter have to fit where one did.
+
+  The leading slot holds exactly one mark. The drawing gives the habit row a
+  kind rail, the todo row its ring, the renewals row its coin chip and the
+  "leaves at midnight" row its poster — never two of them — so a card that
+  carries a poster or a ring does not also carry a rail.
+  """
+  def card(%{event: event, span: span}, split?) do
     weight = span * 1.0
     title = Map.get(event, :title) || collapsed_title(event)
     meta = Map.get(event, :meta) || collapsed_meta(event)
 
     # A done or todo row sits on #F4F1EC with no shadow — the design sinks
     # anything already dealt with, so the live rows are the ones that lift.
-    settled? = Map.get(event, :done) == true or Map.get(event, :todo) == true
+    # `flat` says the same thing about a row that was never yours to do: a
+    # title leaving a service at midnight is a notice, not an appointment.
+    settled? =
+      Map.get(event, :done) == true or Map.get(event, :todo) == true or
+        Map.get(event, :flat) == true
+
     background = if settled?, do: 0xFFF4F1EC, else: Kati.Theme.card(:light)
-    shadow = if settled?, do: nil, else: Kati.Theme.shadow_card_soft()
+    shadow = if settled?, do: nil, else: "0 1 2 0 #0A1A1917 | 0 10 20 -18 #B31A1917"
+
+    # 11pt of air above and below a rail-led card, 10 above and below one led
+    # by a ring, a chip or a poster: the drawing's own two numbers, and the
+    # taller mark is the one that gets less.
+    pad_v = if rail?(event), do: 11, else: 10
+    pad_h = if split?, do: 12, else: 13
+    title_size = if split?, do: 12.5, else: 13
+    meta_gap = if split?, do: 4, else: 3
 
     ~MOB"""
     <Box weight={weight}>
@@ -492,18 +605,18 @@ defmodule Kati.Screens.Day do
         background={background}
         corner_radius={16}
         shadow={shadow}
-        padding_left={13}
-        padding_right={13}
-        padding_top={11}
-        padding_bottom={11}
+        padding_left={pad_h}
+        padding_right={pad_h}
+        padding_top={pad_v}
+        padding_bottom={pad_v}
         align="center"
       >
-        {Kati.Screens.Day.kind_rail(event)}
+        {Kati.Screens.Day.kind_rail(event, split?, meta)}
         {Kati.Screens.Day.leading_state(event)}
+        {Kati.Screens.Day.leading_poster(event)}
         <Column weight={1.0}>
-          <Text text={title} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={2} />
-          <Spacer size={3} />
-          <Text text={meta} font_family="mono" text_size={10} text_color={:muted} max_lines={1} />
+          <Text text={title} text_size={title_size} font_weight="semibold" text_color={:on_surface} max_lines={2} />
+          {Kati.Screens.Day.card_meta(meta, meta_gap)}
         </Column>
         {Kati.Screens.Day.state_icon(event)}
       </Row>
@@ -511,22 +624,192 @@ defmodule Kati.Screens.Day do
     """
   end
 
-  # The 3dp rail that says what KIND of thing this is, before the title says
-  # what it is. Green for a habit, bronze for money, ink for everything else.
+  # The drawing's 08:00 card is a single line — a habit that is done says so
+  # with its tick, not with a second sentence — so an absent meta draws nothing
+  # rather than an empty line and the gap above it.
   @doc false
-  def kind_rail(event) do
-    colour =
-      case Map.get(event, :kind) do
-        :habit -> 0xFF4E9A73
-        :money -> 0xFFB08E55
-        :air_date -> 0xFFE8823C
-        _ -> Kati.Theme.ink()
-      end
+  def card_meta(meta, _gap) when meta in [nil, ""], do: ~MOB"<Spacer size={0} />"
+
+  def card_meta(meta, gap) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Box fill_width={true} height={gap} />
+      <Text text={meta} font_family="mono" text_size={10} text_color={0xFFA9A29A} max_lines={1} />
+    </Column>
+    """
+  end
+
+  @doc "Whether this row's leading mark is the kind rail rather than a ring, a chip or a poster."
+  @spec rail?(map()) :: boolean()
+  def rail?(event) do
+    Map.get(event, :todo) != true and Map.get(event, :seed) == nil and
+      Map.get(event, :kind) != :money
+  end
+
+  # The 3dp rail that says what KIND of thing this is, before the title says
+  # what it is. Green for a habit, bronze for money, ink for everything else —
+  # and whatever `:rail` names, for the one card the drawing colours by hand.
+  #
+  # The drawing stretches the rail to the card's content. Nothing here can say
+  # "as tall as my sibling", so the height is the text block's own: a title and
+  # a meta line, or a title alone.
+  @doc false
+  def kind_rail(event, split?, meta) do
+    if rail?(event) do
+      colour =
+        Map.get(event, :rail) ||
+          case Map.get(event, :kind) do
+            :habit -> 0xFF4E9A73
+            :money -> 0xFFB08E55
+            :air_date -> 0xFFE8823C
+            _ -> Kati.Theme.ink()
+          end
+
+      height = if meta in [nil, ""], do: 18, else: 34
+      gap = if split?, do: 9, else: 11
+
+      ~MOB"""
+      <Row align="center">
+        <Box width={3} height={height} corner_radius={2} background={colour} />
+        <Spacer size={gap} />
+      </Row>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
+
+  # The 24x34 poster on the drawing's 23:15 row. It replaces the rail rather
+  # than joining it — see `card/2`.
+  @doc false
+  def leading_poster(%{seed: seed}) when is_binary(seed) do
+    case Kati.Library.Sample.poster(seed) do
+      nil ->
+        ~MOB"""
+        <Row align="center">
+          <Box width={24} height={34} corner_radius={5} background={0xFFE4E0D9} />
+          <Spacer size={11} />
+        </Row>
+        """
+
+      src ->
+        ~MOB"""
+        <Row align="center">
+          <Image src={src} width={24} height={34} corner_radius={5} content_mode="fill" />
+          <Spacer size={11} />
+        </Row>
+        """
+    end
+  end
+
+  def leading_poster(_event), do: ~MOB"<Spacer size={0} />"
+
+  @doc """
+  The grouped card — three episodes on one line, with their posters fanned.
+
+  A different object from a lane card, not a lane card with extra props: 18pt
+  radius against 16, 14pt of padding, a deeper shadow, a 14pt title and a
+  chevron disc that says it opens.
+
+  The fan is the drawing's `margin-left:-14px` trick read from the other side.
+  Mob has no negative margin, so each tile is pushed in from a Box of declared
+  width instead: 22pt apart for a 34pt tile is the same 12pt overlap, and the
+  Box is `n * 22 + 30` wide because the dark count tile that ends the stack is
+  30 rather than 34.
+
+  The count on that tile is `{{ groupCount }}` in the export, with no value
+  behind it. It is drawn as the group's own size here — the only number the
+  card holds that the title does not already spell out is how many members the
+  stack stands for, and three posters over "3" is at least true. Worth
+  re-checking against the design source if that template ever resolves.
+  """
+  def grouped_card(%{event: event}) do
+    members = Map.get(event, :collapsed, [])
+    title = collapsed_title(event)
+    meta = collapsed_meta(event)
 
     ~MOB"""
-    <Row align="center">
-      <Box width={3} height={34} corner_radius={2} background={colour} />
-      <Spacer size={11} />
+    <Box weight={1.0}>
+      <Row
+        fill_width={true}
+        background={Kati.Theme.card(:light)}
+        corner_radius={18}
+        shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
+        padding={14}
+        align="center"
+      >
+        <Box width={3} height={48} corner_radius={2} background={0xFFE8823C} />
+        <Spacer size={12} />
+        {Kati.Screens.Day.poster_stack(members)}
+        <Spacer size={4} />
+        <Column weight={1.0}>
+          <Text text={title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Spacer size={4} />
+          <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFF8A8479} max_lines={1} />
+        </Column>
+        <Spacer size={12} />
+        <Box width={26} height={26} corner_radius={13} background={0xFFEFECE7} align="center">
+          {Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)}
+        </Box>
+      </Row>
+    </Box>
+    """
+  end
+
+  @doc false
+  def poster_stack(members) do
+    shown = Enum.take(members, 3)
+    n = length(shown)
+    width = n * 22 + 30
+    count = "#{length(members)}"
+
+    tiles =
+      shown
+      |> Enum.with_index()
+      |> Enum.map(fn {m, i} -> Kati.Screens.Day.stack_tile(Map.get(m, :seed), i * 22) end)
+
+    ~MOB"""
+    <Box width={width} height={48}>
+      {tiles}
+      {Kati.Screens.Day.stack_count(count, n * 22)}
+    </Box>
+    """
+  end
+
+  # The 2pt ring is a centred 30x44 image inside a 34x48 card-coloured box, not
+  # `padding={2}` — padding measures OUTSIDE the declared width here, so a
+  # padded tile would be 38 wide and the fan would drift.
+  @doc false
+  def stack_tile(seed, offset) do
+    src = Kati.Library.Sample.poster(seed)
+
+    ~MOB"""
+    <Row padding_left={offset}>
+      <Box width={34} height={48} corner_radius={7} background={Kati.Theme.card(:light)} shadow="0 3 8 -3 #801A1917" align="center">
+        {Kati.Screens.Day.stack_art(src)}
+      </Box>
+    </Row>
+    """
+  end
+
+  @doc false
+  def stack_art(nil), do: ~MOB"<Box width={30} height={44} corner_radius={5} background={0xFFE4E0D9} />"
+
+  def stack_art(src) do
+    ~MOB"""
+    <Image src={src} width={30} height={44} corner_radius={5} content_mode="fill" />
+    """
+  end
+
+  @doc false
+  def stack_count(count, offset) do
+    ~MOB"""
+    <Row padding_left={offset}>
+      <Box width={30} height={48} corner_radius={7} background={Kati.Theme.card(:light)} align="center">
+        <Box width={26} height={44} corner_radius={5} background={Kati.Theme.ink()} align="center">
+          <Text text={count} font_family="mono" text_size={11} text_color={0xFFFBFAF8} max_lines={1} />
+        </Box>
+      </Box>
     </Row>
     """
   end
@@ -597,42 +880,6 @@ defmodule Kati.Screens.Day do
   defp kind_plural(:money, n), do: if(n == 1, do: "renewal", else: "renewals")
   defp kind_plural(_kind, n), do: if(n == 1, do: "event", else: "events")
 
-  @doc false
-  def overflow_footer(%{overflow: nil}) do
-    ~MOB"""
-    <Spacer size={0} />
-    """
-  end
-
-  # The 54dp indent matches the gutter at 100% text scale and drifts at
-  # larger ones. The footer reads correctly either way, and pinning it
-  # exactly would need a measured width Elixir does not have.
-  def overflow_footer(%{overflow: tile}) do
-    label = "+#{length(tile.event.overflow)} MORE"
-
-    # A Row, not a Box with `width={:wrap}` — that prop does nothing, the
-    # bridge fills width whenever `width` is not a NUMBER, and this tile was
-    # rendering as a full-width cream bar instead of a small chip. Same
-    # mistake as the back pill, two files apart.
-    ~MOB"""
-    <Row fill_width={true}>
-      <Spacer size={54} />
-      <Row
-        background={Kati.Theme.cream(:light)}
-        corner_radius={999}
-        padding_left={14}
-        padding_right={14}
-        padding_top={7}
-        padding_bottom={7}
-        align="center"
-      >
-        <Text text={label} text_size={11} text_color={:on_surface} letter_spacing={0.1} />
-      </Row>
-      <Spacer weight={1.0} />
-    </Row>
-    """
-  end
-
   # The engine groups these itself. An earlier version reconstructed the
   # clusters here by grouping placements on `start_min`, which gave every
   # event its own cluster: the lanes never split, the Row never got two
@@ -643,6 +890,7 @@ defmodule Kati.Screens.Day do
     |> Enum.map(fn cluster ->
       %{
         label: label_for(cluster.start_min),
+        start_min: cluster.start_min,
         n_cols: cluster.n_cols,
         placements: Enum.filter(cluster.placements, &(&1.role == :event)),
         overflow: cluster.overflow

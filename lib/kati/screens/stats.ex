@@ -33,6 +33,9 @@ defmodule Kati.Screens.Stats do
         <Spacer size={26} />
         {UI.eyebrow("More numbers")}
         {Kati.Screens.Stats.more_numbers()}
+        <Spacer size={26} />
+        {Kati.Screens.Stats.recent_eyebrow()}
+        {Kati.Screens.Stats.recently_watched()}
       </Column>
     </Scroll>
     """
@@ -81,11 +84,13 @@ defmodule Kati.Screens.Stats do
             <Spacer size={7} />
             <Text text={year.time} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
           </Column>
-          <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={9} padding_right={11} align="center">
-            {Kati.UI.symbol("arrow_drop_up", size: 14, color: 0xFF3E8460, fill: true)}
-            <Spacer size={5} />
-            <Text text={year.change} font_family="mono" text_size={11.5} font_weight="medium" text_color={0xFF3E8460} />
-          </Row>
+          <Column padding_bottom={5}>
+            <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={11} padding_right={11} align="center">
+              {Kati.UI.symbol("arrow_drop_up", size: 14, color: 0xFF3E8460, fill: true)}
+              <Spacer size={5} />
+              <Text text={year.change} font_family="mono" text_size={11.5} font_weight="medium" text_color={0xFF3E8460} />
+            </Row>
+          </Column>
         </Row>
         <Spacer size={18} />
         {Kati.Screens.Stats.grid()}
@@ -109,7 +114,9 @@ defmodule Kati.Screens.Stats do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(rows, fn row -> Kati.Screens.Stats.grid_row(row) end)}
+      {rows
+       |> Enum.map(fn row -> Kati.Screens.Stats.grid_row(row) end)
+       |> Enum.intersperse(Kati.Screens.Stats.cell_gap())}
     </Column>
     """
   end
@@ -117,12 +124,9 @@ defmodule Kati.Screens.Stats do
   @doc false
   def grid_row(row) do
     ~MOB"""
-    <Column>
-      <Row>
-        {row |> Enum.map(&Kati.Screens.Stats.cell/1) |> Enum.intersperse(Kati.Screens.Stats.cell_gap())}
-      </Row>
-      <Spacer size={4} />
-    </Column>
+    <Row>
+      {row |> Enum.map(&Kati.Screens.Stats.cell/1) |> Enum.intersperse(Kati.Screens.Stats.cell_gap())}
+    </Row>
     """
   end
 
@@ -165,7 +169,7 @@ defmodule Kati.Screens.Stats do
         padding={15}
       >
         <Text text={number} text_size={26} font_weight="extrabold" letter_spacing={-0.035} text_color={:on_surface} />
-        <Spacer size={4} />
+        <Spacer size={5} />
         <Text text={String.upcase(label)} font_family="mono" text_size={10.5} letter_spacing={0.1} text_color={0xFFA9A29A} max_lines={1} />
       </Column>
     </Box>
@@ -216,7 +220,7 @@ defmodule Kati.Screens.Stats do
 
   @doc false
   def more_numbers do
-    rows = Kati.Stats.Sample.more_numbers()
+    rows = Enum.reject(Kati.Stats.Sample.more_numbers(), &(&1.title == "Recently watched"))
     last = length(rows) - 1
 
     ~MOB"""
@@ -262,6 +266,116 @@ defmodule Kati.Screens.Stats do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+
+  # Coming after four sections that have all happened, this one is a list, not
+  # an alert — so the drawing gives it a #C4BDB3 dash where every other eyebrow
+  # on the page takes the accent. Kati.UI.eyebrow/2 always draws the accent, so
+  # the section states its own.
+  @doc false
+  def recent_eyebrow do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
+        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Spacer size={9} />
+        <Text
+          text={String.upcase("Recently watched")}
+          font_family="mono"
+          text_size={10.5}
+          letter_spacing={0.16}
+          text_color={0xFFA0998F}
+        />
+      </Row>
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The last section of the drawing, which the screen was not drawing at all.
+
+  Three cards under a `Recently watched` kicker, each a 38x54 poster, a title,
+  a mono line and the rating in accent stars. The drawing templates the copy;
+  these are the library's own titles and their photographs, so the section is
+  the drawn shape filled with the data this build actually has.
+  """
+  @spec recent() :: [map()]
+  def recent do
+    [
+      %{seed: "hollow71", title: "The Long Hollow", meta: "S2 E5 · 2h ago", stars: 5},
+      %{seed: "bluehour58", title: "Blue Hour", meta: "FILM · yesterday", stars: 4},
+      %{seed: "marram15", title: "Marram", meta: "S1 E8 · 3 days ago", stars: 4}
+    ]
+  end
+
+  @doc false
+  def recently_watched do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.Stats.recent()
+       |> Enum.map(fn row -> Kati.Screens.Stats.recent_row(row) end)
+       |> Enum.intersperse(Kati.Screens.Stats.recent_gap())}
+    </Column>
+    """
+  end
+
+  @doc false
+  def recent_gap, do: ~MOB"<Spacer size={9} />"
+
+  @doc false
+  def recent_row(row) do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Kati.Theme.card(:light)}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={13}
+      padding_right={13}
+      padding_top={10}
+      padding_bottom={10}
+      align="center"
+    >
+      {Kati.Screens.Stats.recent_thumb(row)}
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Text text={row.title} text_size={13.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+        <Spacer size={4} />
+        <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+      </Column>
+      <Spacer size={13} />
+      {Kati.Screens.Stats.stars(row.stars)}
+    </Row>
+    """
+  end
+
+  @doc false
+  def recent_thumb(row) do
+    case Kati.Design.Images.poster(row.seed) do
+      nil -> ~MOB"<Box width={38} height={54} corner_radius={8} background={0xFFE4E0D9} />"
+      src -> ~MOB"""
+        <Image src={src} width={38} height={54} corner_radius={8} content_mode="fill" />
+        """
+    end
+  end
+
+  # The drawing writes the rating as a run of star characters. Plus Jakarta
+  # Sans has no U+2605, so a literal one renders as nothing at all — these are
+  # the Material Symbols glyph, at the drawn 12 and the drawn accent, spaced by
+  # the .08em the design tracks the run with.
+  @doc false
+  def stars(n) do
+    ~MOB"""
+    <Row align="center">
+      {1..n
+       |> Enum.map(fn _ -> Kati.UI.symbol("star", size: 12, color: 0xFFE8823C, fill: true) end)
+       |> Enum.intersperse(Kati.Screens.Stats.star_gap())}
+    </Row>
+    """
+  end
+
+  @doc false
+  def star_gap, do: ~MOB"<Spacer size={1} />"
 
   # The More numbers rows are the only route to these screens outside the
   # gallery, which is scaffolding.

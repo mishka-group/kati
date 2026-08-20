@@ -29,7 +29,7 @@ defmodule Kati.Screens.Film do
       <Scroll>
         <Column fill_width={true}>
           {Kati.Screens.Film.artwork(f)}
-          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16} padding_bottom={132}>
+          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16} padding_bottom={40}>
             {Kati.Screens.Film.rating_card(f)}
             {Kati.Screens.Film.note(f)}
             {UI.eyebrow("Where to watch")}
@@ -53,12 +53,12 @@ defmodule Kati.Screens.Film do
       </Box>
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
-          <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={9} padding_right={11} align="center">
+          <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={11} padding_right={11} align="center">
             {Kati.UI.symbol("check_circle", size: 15, color: 0xFF3E8460, fill: true)}
             <Spacer size={6} />
             <Text text={f.watched} text_size={11.5} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
           </Row>
-          <Spacer size={9} />
+          <Spacer size={11} />
           <Text text={f.title} text_size={30} font_weight="extrabold" letter_spacing={-0.035} line_height={1.05} text_color={:on_surface} />
           <Spacer size={9} />
           <Text text={f.meta} font_family="mono" text_size={11.5} text_color={0xFF6E6860} max_lines={1} />
@@ -85,17 +85,21 @@ defmodule Kati.Screens.Film do
   def chrome do
     back = {self(), :back}
     fill = 0xD1FBFAF8
+    # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
+    # chrome over a photograph, so both controls carry the same lift. Neither
+    # had one, which is why they read as flat stickers on the still.
+    lift = "0 6 16 -8 #991A1917"
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        <Row height={42} corner_radius={21} background={fill} padding_left={13} padding_right={16} align="center" on_tap={back}>
+        <Row height={42} corner_radius={21} background={fill} shadow={lift} padding_left={12} padding_right={16} align="center" on_tap={back}>
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
-          <Spacer size={7} />
+          <Spacer size={6} />
           <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
         </Row>
         <Spacer weight={1.0} />
-        <Box width={42} height={42} corner_radius={21} background={fill} align="center">
+        <Box width={42} height={42} corner_radius={21} background={fill} shadow={lift} align="center">
           {Kati.UI.symbol("more_horiz", size: 21)}
         </Box>
       </Row>
@@ -119,16 +123,21 @@ defmodule Kati.Screens.Film do
       padding={17}
       align="center"
     >
-      <Column>
+      <Column weight={1.0}>
         <Text text={String.upcase("Your rating")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
         <Spacer size={7} />
         {Kati.Screens.Film.stars(f.stars)}
       </Column>
-      <Spacer weight={1.0} />
-      <Column>
-        <Text text={String.upcase("Seen")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
+      <Column weight={1.0}>
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Text text={String.upcase("Seen")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} max_lines={1} />
+        </Row>
         <Spacer size={8} />
-        <Text text={f.seen} text_size={16} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Text text={f.seen} text_size={16} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        </Row>
       </Column>
     </Row>
     """
@@ -141,14 +150,19 @@ defmodule Kati.Screens.Film do
   def stars(filled) do
     ~MOB"""
     <Row align="center">
-      {Enum.map(1..5, fn i -> Kati.Screens.Film.star(i <= filled) end)}
+      {1..5 |> Enum.map(fn i -> Kati.Screens.Film.star(i <= filled) end) |> Enum.intersperse(Kati.Screens.Film.star_gap())}
     </Row>
     """
   end
 
+  # The drawing sets the star line at 22px with `letter-spacing:.1em` — 2.2pt
+  # of air after each glyph. Material Symbols carry no tracking of their own.
   @doc false
-  def star(true), do: Kati.UI.symbol("star", size: 19, color: 0xFFE8823C, fill: true)
-  def star(false), do: Kati.UI.symbol("star", size: 19, color: 0xFFDCD5C9)
+  def star_gap, do: ~MOB"<Box width={2} height={1} />"
+
+  @doc false
+  def star(true), do: Kati.UI.symbol("star", size: 22, color: 0xFFE8823C, fill: true)
+  def star(false), do: Kati.UI.symbol("star", size: 22, color: 0xFFE8823C)
 
   @doc false
   def note(f) do
@@ -195,7 +209,7 @@ defmodule Kati.Screens.Film do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Box width={32} height={32} corner_radius={10} background={0xFFEFECE7} align="center">
-          <Text text={row.badge} text_size={13} font_weight="bold" text_color={0xFF5C574F} />
+          <Text text={row.badge} font_family="mono" text_size={13} font_weight="medium" text_color={:on_surface} />
         </Box>
         <Spacer size={13} />
         <Text text={row.name} text_size={13.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />

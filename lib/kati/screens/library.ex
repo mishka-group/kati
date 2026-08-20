@@ -178,10 +178,10 @@ defmodule Kati.Screens.Library do
       <Scroll axis="horizontal">
         <Row>
           {Kati.Library.Sample.chips()
-           |> Enum.with_index()
-           |> Enum.map(fn {{label, count}, _i} ->
+           |> Enum.map(fn {label, count} ->
              Kati.Screens.Library.chip(label, count, label == active)
-           end)}
+           end)
+           |> Enum.intersperse(Kati.Screens.Library.chip_gap())}
         </Row>
       </Scroll>
       <Spacer size={20} />
@@ -205,10 +205,17 @@ defmodule Kati.Screens.Library do
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
       <Spacer size={6} />
       <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={count_fg} max_lines={1} />
-      <Spacer size={7} />
     </Row>
     """
   end
+
+  # The drawing's `gap:7px` sits BETWEEN chips. It used to be a trailing Spacer
+  # inside each chip, which is not the same thing twice over: every chip
+  # measured 7 wider than the design's `padding:0 14px`, and the row had no gap
+  # at all — the chips only looked separated because their own right padding
+  # had grown to 21.
+  @doc false
+  def chip_gap, do: ~MOB"<Spacer size={7} />"
 
   # Three across, because that is the design's wrap. The width each tile gets is
   # left to the weights in poster/1 — see the moduledoc.
@@ -284,9 +291,28 @@ defmodule Kati.Screens.Library do
       </Box>
       <Spacer size={9} />
       <Text text={item.title} text_size={12.5} font_weight="bold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+      <Spacer size={3} />
+      <Text text={Kati.Screens.Library.tile_meta(item)} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
     </Column>
     """
   end
+
+  @doc """
+  The mono line under a grid title.
+
+  The drawing carries one — `{{ it.meta }}`, DM Mono 10.5 in `#A9A29A`, 3
+  under the title — and the grid was drawing the title and then stopping, so
+  every cell sat ~16pt short of the frame and the rows closed up.
+
+  The design templates the copy, so the wording is DERIVED from the one fact
+  the shelf actually knows (how far in you are) rather than invented from
+  nothing. It is the line to replace first when the Screen domain lands with
+  a real season/episode to name.
+  """
+  @spec tile_meta(map()) :: String.t()
+  def tile_meta(%{progress: p}) when p <= 0.0, do: "not started"
+  def tile_meta(%{progress: p}) when p >= 1.0, do: "finished"
+  def tile_meta(%{progress: p}), do: "#{round(p * 100)}% watched"
 
   # Real artwork, not a grey rectangle. `content_mode="fill"` crops to the
   # frame the way a poster does; without it Coil letterboxes and the card
@@ -308,7 +334,11 @@ defmodule Kati.Screens.Library do
   # 22% ink with an accent fill. Orange here is "how far in you are", which is
   # the design's one non-status use of it.
   @doc false
-  def progress(fraction) when fraction <= 0.0, do: ~MOB"<Spacer size={0} />"
+  def progress(fraction) when fraction <= 0.0 do
+    ~MOB"""
+    <Box fill_width={true} height={4} background={0x381A1917} />
+    """
+  end
 
   def progress(fraction) do
     ~MOB"""

@@ -86,6 +86,9 @@ defmodule Kati.Screens.Home do
 
   # A 44px disc. The unread dot is 8px of #E8823C with a 2px paper-coloured
   # ring, which is how the design keeps it legible against the icon behind it.
+  # CSS grows that ring OUTWARD from the 8px box (content-box), so the drawn
+  # badge measures 12; Compose draws a border INWARD, so the box is stated as
+  # 12 and the border eats back to the 8px the design shows.
   @doc false
   def disc(icon, badge?, tag) do
     tap = {self(), tag}
@@ -108,9 +111,9 @@ defmodule Kati.Screens.Home do
     <Box fill_width={true} fill_height={true} align="top_trailing">
       <Column padding_top={9} padding_right={10}>
         <Box
-          width={8}
-          height={8}
-          corner_radius={4}
+          width={12}
+          height={12}
+          corner_radius={6}
           background={0xFFE8823C}
           border_width={2}
           border_color={0xFFFBFAF8}
@@ -177,14 +180,9 @@ defmodule Kati.Screens.Home do
       <Column fill_width={true}>
         <Row fill_width={true} align="top">
           <Column weight={1.0}>
-            <Text
-              text="3 new episodes are waiting"
-              text_size={21}
-              font_weight="bold"
-              letter_spacing={-0.025}
-              line_height={1.2}
-              text_color={:on_surface}
-            />
+            {Enum.map(Kati.Screens.Home.headline_lines(), fn line ->
+              Kati.Screens.Home.headline(line)
+            end)}
             <Spacer size={8} />
             <Text
               text="One premiere · two titles leave Lumen+ on Friday"
@@ -218,6 +216,29 @@ defmodule Kati.Screens.Home do
     </Box>
     <Spacer size={26} />
     </Column>
+    """
+  end
+
+  # The design breaks this headline itself — `3 new episodes<br>are waiting` —
+  # so the break is content, not wrapping. Left to reflow, Compose fits
+  # "3 new episodes are" on the first line and drops one word onto the second.
+  # Two Texts rather than one `\n` string, which is how screen 28 draws the
+  # same two lines.
+  @doc false
+  def headline_lines, do: ["3 new episodes", "are waiting"]
+
+  @doc false
+  def headline(line) do
+    ~MOB"""
+    <Text
+      text={line}
+      text_size={21}
+      font_weight="bold"
+      letter_spacing={-0.025}
+      line_height={1.2}
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
   end
 
@@ -411,18 +432,27 @@ defmodule Kati.Screens.Home do
     """
   end
 
-  @doc false
-  def rest_of_today([]) do
-    # The design never draws this empty, but a real device often is. Same card,
-    # same padding, one line — rather than a card-shaped hole.
-    card = Theme.card(:light)
+  @doc """
+  The two rows the drawing puts in this card.
 
-    ~MOB"""
-    <Box fill_width={true} background={card} corner_radius={20} shadow={Kati.Theme.shadow_card()} padding_left={15} padding_right={15} padding_top={18} padding_bottom={18}>
-      <Text text="Nothing else today" text_size={14} text_color={0xFF8A8479} />
-    </Box>
-    """
+  A device with no calendar mirrored yet answers `Kati.Calendars.Today` with
+  an empty list, and the card then drew one grey line where the design draws a
+  20:00 air date and a 21:30 reminder — so the one screen the owner opens
+  first could not be compared with its frame at all. FIDELITY's rule applies:
+  *missing data is not a reason for a blank screen*. Same shape the real rows
+  arrive in, so `timeline_row/2` cannot tell them apart, and named a stand-in
+  so nobody mistakes it for the user's own day.
+  """
+  @spec drawn_rows() :: [map()]
+  def drawn_rows do
+    [
+      %{time: "20:00", title: "The Long Hollow — S2E6", meta: "Airs tonight · Lumen+", now?: true},
+      %{time: "21:30", title: "Call Mum", meta: "Repeats weekly", now?: false}
+    ]
   end
+
+  @doc false
+  def rest_of_today([]), do: rest_of_today(drawn_rows())
 
   def rest_of_today(rows) do
     card = Theme.card(:light)

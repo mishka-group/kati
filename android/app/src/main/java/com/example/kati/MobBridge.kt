@@ -2667,13 +2667,41 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         "column" -> Column(modifier = m) {
             node.children.forEach { child ->
                 val w = floatProp(child.props, "weight")
-                RenderNode(child, if (w != null) Modifier.weight(w) else Modifier)
+                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.20
+                RenderNode(child, when {
+                    w == null  -> Modifier
+                    w > 0f     -> Modifier.weight(w)
+                    else       -> Modifier.height(0.dp)
+                })
+                // KATI-END(K-15 zero-weight)
             }
         }
         "row" -> Row(modifier = m, verticalAlignment = rowAlignProp(node.props)) {
             node.children.forEach { child ->
                 val w = floatProp(child.props, "weight")
-                RenderNode(child, if (w != null) Modifier.weight(w) else Modifier)
+                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.20
+                // `Modifier.weight(0f)` THROWS — "invalid weight 0.0; must be
+                // greater than zero" — and it is an uncaught IllegalArgument
+                // on the main thread, so it kills the activity outright.
+                //
+                // Every progress bar in this app is drawn as two weighted
+                // cells, `weight={fraction}` beside `weight={1.0 - fraction}`,
+                // and 0% and 100% are ORDINARY DATA: a season with every
+                // episode watched, a book not yet started. Ten screens compute
+                // a weight this way, so this was a crash waiting behind normal
+                // use — screen 04 hit it the moment the season pills became
+                // real and S1 came back fully watched.
+                //
+                // Zero share of the remaining space means zero size along the
+                // axis, which is exactly what the caller meant. Clamping to a
+                // small positive weight instead would leave a visible sliver
+                // of ink at 0%.
+                RenderNode(child, when {
+                    w == null  -> Modifier
+                    w > 0f     -> Modifier.weight(w)
+                    else       -> Modifier.width(0.dp)
+                })
+                // KATI-END(K-15 zero-weight)
             }
         }
         // Box defaults to fillMaxWidth (matching iOS .frame(maxWidth: .infinity))

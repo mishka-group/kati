@@ -12,13 +12,16 @@ defmodule Kati.Screens.MonthGrid do
   active, so it renders through `Kati.Shell` and the four-mode switcher is how
   you leave it rather than a back pill.
 
-  ## The one number the drawing computes and this file declares
+  ## The square is the bridge's, not a declared number
 
-  Each cell is `aspect-ratio: 1`. Nothing measures geometry on this bridge —
-  `render/1` gets no width back — so the square is declared: at the design's
-  402pt frame, 21pt gutters and six 2pt gaps leave `(360 - 12) / 7 = 49.7`,
-  which is why the cells are 50 tall. On a wider device they become slightly
-  wide rather than slightly tall, which is the failure mode a grid can survive.
+  Each cell is `aspect-ratio: 1` in the export, and `aspect_ratio={1.0}` is
+  what the cell carries — the modifier chain is weight → aspect_ratio, so the
+  height follows the width the Row actually handed out, at any frame. The 50
+  that used to be declared here was only ever the answer at the drawing's own
+  402pt frame: `(360 - 12) / 7 = 49.7`. A 411dp device gives each column 51,
+  so a capture measured the cells 51 wide and 50 tall — squares that were not
+  square. `Kati.Screens.Widgets` and `Kati.Screens.SeriesMeta` carry the same
+  fix for the same reason.
   """
   use Kati.Screens.Root, root: :calendar
 
@@ -175,7 +178,7 @@ defmodule Kati.Screens.MonthGrid do
     ~MOB"""
     <Box
       weight={1.0}
-      height={50}
+      aspect_ratio={1.0}
       corner_radius={13}
       background={background}
       shadow={shadow}

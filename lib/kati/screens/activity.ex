@@ -12,11 +12,13 @@ defmodule Kati.Screens.Activity do
 
     * **Two stamps, one gutter.** Today's rows carry a `21:12` clock at mono
       11; Earlier this month's carry `12 AUG` at mono 10 with `.06em`. Both
-      sit in a 44pt column, which is what the drawing draws and what screen
-      19's calendar rows already give the same stamp. Sizing each card's
-      gutter to its own stamp is the tempting move and the wrong one — 38 both
-      truncated the date to `12 A…` and stepped the two cards' thumbnails out
-      of line with each other.
+      sit in a 44pt column, which is what screen 19's calendar rows already
+      give the same stamp. Sizing each card's gutter to its own stamp is the
+      tempting move and the wrong one — the export's own 38 both truncated the
+      date to `12 A…` and stepped the two cards' thumbnails out of line with
+      each other. The 6 the column borrowed is given back out of the gap after
+      it, so `stamp column + gap` is the drawing's 50 either way and everything
+      right of the stamp sits where the export puts it — see `entry_row/5`.
     * **The second eyebrow is grey.** "Earlier this month" gets a `#C4BDB3`
       dash, not the accent — see `Kati.UI.Eyebrow`. Last month is neither new
       nor now.
@@ -235,6 +237,16 @@ defmodule Kati.Screens.Activity do
   # only a Box is guaranteed to take the weighted slot on this bridge, and the
   # two text runs have to sit side by side inside it. The trailing weighted
   # Spacer is what makes the unweighted Texts ellipsize instead of overflowing.
+  #
+  # The stamp's gap is 6, not the drawing's 12, and that is arithmetic rather
+  # than taste: the export writes a 38pt stamp column and a 12pt gap, so the
+  # thumbnail starts 50 in from the card's padding. Our column is 44 (see the
+  # moduledoc — 38 ellipsised `12 AUG`), so the gap carries the other 6 and the
+  # thumbnail lands exactly where the export draws it. A measured capture had
+  # it 6.4dp right of the drawing before this. The whitespace either side of
+  # the stamp is unchanged: the text is start-aligned in its column, so what
+  # the eye reads as the gap is (column − text) + gap, which is 17 for `21:12`
+  # in both the drawing and here.
   @doc false
   def entry_row(row, stamp_width, stamp_size, stamp_spacing, rule?) do
     ~MOB"""
@@ -250,7 +262,7 @@ defmodule Kati.Screens.Activity do
             max_lines={1}
           />
         </Column>
-        <Spacer size={12} />
+        <Spacer size={6} />
         {Kati.Screens.Activity.thumb(row)}
         <Spacer size={12} />
         <Box weight={1.0}>

@@ -42,7 +42,7 @@ defmodule Kati.Screens.Series do
       <Scroll>
         <Column fill_width={true}>
           {Kati.Screens.Series.artwork(s)}
-          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16} padding_bottom={132}>
+          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16} padding_bottom={40}>
             {Kati.Screens.Series.season_card(s, pct)}
             {Kati.Screens.Series.actions()}
             {Kati.Screens.Series.episodes_header(s)}
@@ -98,17 +98,18 @@ defmodule Kati.Screens.Series do
     back = {self(), :back}
     more = {self(), :open_settings}
     fill = 0xD1FBFAF8
+    lift = "0 6 16 -8 #991A1917"
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        <Row height={42} corner_radius={21} background={fill} padding_left={13} padding_right={16} align="center" on_tap={back}>
+        <Row height={42} corner_radius={21} background={fill} shadow={lift} padding_left={12} padding_right={16} align="center" on_tap={back}>
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
-          <Spacer size={7} />
+          <Spacer size={6} />
           <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
         </Row>
         <Spacer weight={1.0} />
-        <Box width={42} height={42} corner_radius={21} background={fill} align="center" on_tap={more}>
+        <Box width={42} height={42} corner_radius={21} background={fill} shadow={lift} align="center" on_tap={more}>
           {Kati.UI.symbol("more_horiz", size: 21)}
         </Box>
       </Row>
@@ -149,7 +150,8 @@ defmodule Kati.Screens.Series do
       <Row fill_width={true} align="center">
         <Box width={6} height={6} corner_radius={3} background={0xFFE8823C} />
         <Spacer size={8} />
-        <Text text={"Next episode airs #{s.next_air}"} text_size={12.5} text_color={0xFF5C574F} max_lines={1} />
+        <Text text="Next episode airs " text_size={12.5} text_color={0xFF5C574F} max_lines={1} />
+        <Text text={s.next_air} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       </Row>
     </Column>
     <Spacer size={14} />
@@ -219,12 +221,12 @@ defmodule Kati.Screens.Series do
   @doc false
   def season_pill(label, on?) do
     bg = if on?, do: Theme.ink(), else: 0xFFE4E0D9
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
+    fg = if on?, do: 0xFFFBFAF8, else: 0xFF6E6860
     tap = {self(), String.to_atom("season_" <> label)}
 
     ~MOB"""
     <Box width={30} height={28} corner_radius={10} background={bg} align="center" on_tap={tap}>
-      <Text text={label} text_size={11.5} font_weight="bold" text_color={fg} max_lines={1} />
+      <Text text={label} font_family="mono" text_size={11.5} text_color={fg} max_lines={1} />
     </Box>
     """
   end
@@ -233,7 +235,9 @@ defmodule Kati.Screens.Series do
   def episodes(s) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(s.episodes, fn ep -> Kati.Screens.Series.episode(ep) end)}
+      {s.episodes
+       |> Enum.map(fn ep -> Kati.Screens.Series.episode(ep) end)
+       |> Enum.intersperse(Kati.Screens.Series.episode_gap())}
     </Column>
     """
   end
@@ -262,10 +266,12 @@ defmodule Kati.Screens.Series do
         <Spacer size={13} />
         {Kati.Screens.Series.check(ep.watched, aired?)}
       </Row>
-      <Spacer size={8} />
     </Column>
     """
   end
+
+  @doc false
+  def episode_gap, do: ~MOB"<Spacer size={8} />"
 
   @doc false
   def check(true, _aired?) do

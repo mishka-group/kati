@@ -51,7 +51,7 @@ defmodule Kati.Screens.AddTitle do
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
         {Kati.Screens.AddTitle.header()}
         {Kati.Screens.AddTitle.field()}
         {Kati.Screens.AddTitle.chips(filter)}
@@ -163,9 +163,9 @@ defmodule Kati.Screens.AddTitle do
   @doc false
   def chips(active) do
     children =
-      Enum.map(["Everything", "Films", "Series"], fn label ->
-        Kati.Screens.AddTitle.chip(label, label == active)
-      end)
+      ["Everything", "Films", "Series"]
+      |> Enum.map(fn label -> Kati.Screens.AddTitle.chip(label, label == active) end)
+      |> Enum.intersperse(Kati.Screens.AddTitle.chip_gap())
 
     ~MOB"""
     <Column fill_width={true}>
@@ -188,16 +188,23 @@ defmodule Kati.Screens.AddTitle do
     ~MOB"""
     <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center" on_tap={tap}>
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
-      <Spacer size={7} />
     </Row>
     """
   end
+
+  # `gap:7px` in the drawing is the space BETWEEN chips. Carried inside the
+  # chip it made every chip 7 wider than the drawn `padding:0 15px` and left
+  # the row with no gap of its own.
+  @doc false
+  def chip_gap, do: ~MOB"<Spacer size={7} />"
 
   @doc false
   def results(results) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(results, fn r -> Kati.Screens.AddTitle.result_row(r) end)}
+      {results
+       |> Enum.map(fn r -> Kati.Screens.AddTitle.result_row(r) end)
+       |> Enum.intersperse(Kati.Screens.AddTitle.row_gap())}
       <Spacer size={26} />
     </Column>
     """
@@ -227,13 +234,15 @@ defmodule Kati.Screens.AddTitle do
           <Spacer size={5} />
           <Text text={r.note} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
         </Column>
-        <Spacer size={11} />
+        <Spacer size={13} />
         {Kati.Screens.AddTitle.add_button(r.added, r.title)}
       </Row>
-      <Spacer size={9} />
     </Column>
     """
   end
+
+  @doc false
+  def row_gap, do: ~MOB"<Spacer size={9} />"
 
   @doc false
   def thumb(r) do
@@ -267,6 +276,10 @@ defmodule Kati.Screens.AddTitle do
     """
   end
 
+  # `1.5px dashed rgba(26,25,23,.16)` in the drawing. The bridge draws only
+  # solid borders, so the dash is the one thing here that is not the design;
+  # the COLOUR is now the design's own 16% ink rather than the opaque
+  # #D8D2C8 that stood in for it, which read a shade light on paper.
   @doc false
   def by_hand do
     ~MOB"""
@@ -274,7 +287,7 @@ defmodule Kati.Screens.AddTitle do
       fill_width={true}
       corner_radius={18}
       border_width={1.5}
-      border_color={0xFFD8D2C8}
+      border_color={0x291A1917}
       padding_top={14}
       padding_bottom={14}
       align="center"

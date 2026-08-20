@@ -10,9 +10,9 @@ defmodule Kati.Screens.Search.Sample do
   than flattening them into one list of rows. So the sample is grouped the way
   the drawing groups it, not as a flat result list.
 
-  The counts on the chips are **derived**, not typed: `All` is the total and
-  each section chip counts its own group, so the numbers cannot drift from the
-  lists they describe.
+  The counts on the chips are **typed**, not derived — see `chips/0`. The
+  export prints `Screen 3` above two drawn rows, and the number is what the
+  query matched rather than what the group has room to show.
 
   When the index lands, delete this. The screen reads groups of maps and does
   not care who matched them.
@@ -31,20 +31,28 @@ defmodule Kati.Screens.Search.Sample do
   end
 
   @doc """
-  Filter chips, the counts computed from the groups themselves.
+  Filter chips, with the counts the export types.
+
+  `6 / 3 / 2 / 1`, and the drawing means them: it prints **Screen 3** over two
+  drawn rows, the same way the shelf on screen 20 says *64 books* over six
+  covers. A chip counts what the query matched; the group under it shows the
+  ones that fit above the fold. Deriving these from `titles/0` and `calendar/0`
+  is the tempting move — it was what this function did — and it quietly turned
+  the drawing's 6 and 3 into 5 and 2, which is a literal on the screen not
+  matching its frame.
+
+  When a real index lands these become counts of the whole result set, which is
+  what they already claim to be. `Notes` is 1 in the drawing and 1 here.
 
   `All` is selected, which is what makes the other three read as narrowing
   rather than as four peers.
   """
   @spec chips() :: [{String.t(), integer(), boolean()}]
   def chips do
-    screen = length(titles())
-    calendar = length(calendar())
-
     [
-      {"All", screen + calendar + 1, true},
-      {"Screen", screen, false},
-      {"Calendar", calendar, false},
+      {"All", 6, true},
+      {"Screen", 3, false},
+      {"Calendar", 2, false},
       {"Notes", 1, false}
     ]
   end
