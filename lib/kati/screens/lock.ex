@@ -30,10 +30,11 @@ defmodule Kati.Screens.Lock do
 
   ## No frame, no dock, no gutters at the top level
 
-  The scroll carries `padding: 0 0 40px` and the wallpaper runs edge to edge;
-  the 21pt gutters start inside it, at 52 from the top rather than the usual
-  64. Tapping anywhere dismisses, since a lock screen with no way off it is a
-  dead end on a device with a software back gesture.
+  The wallpaper runs edge to edge and bezel to bezel behind everything; the
+  scroll over it carries `padding: 0 0 40px`, and the 21pt gutters start inside
+  that, at 52 from the top rather than the usual 64. Tapping anywhere
+  dismisses, since a lock screen with no way off it is a dead end on a device
+  with a software back gesture.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -45,23 +46,28 @@ defmodule Kati.Screens.Lock do
     {:ok, socket}
   end
 
+  # The wallpaper and its scrim are siblings of the `Scroll`, not children of
+  # it. A lock screen's photograph has to reach the bottom bezel on any device,
+  # and the only honest way to say that is `fill_height` — but a vertical
+  # `Scroll` hands its children an unbounded height, where `fill_height` is a
+  # no-op that collapses back to wrap-content. Directly inside this root Box
+  # the bound is the viewport, so the picture ends where the screen does. (It
+  # was a declared 810 before, which left a hard #121110 band under it on any
+  # display taller than that.) The Box stacks, so the scrolling content still
+  # draws over the photograph.
   def render(_assigns) do
     dismiss = {self(), :dismiss}
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()} on_tap={dismiss}>
+      {Kati.Screens.Lock.wallpaper()}
+      {Kati.Screens.Lock.scrim()}
       <Scroll>
-        <Column fill_width={true} padding_bottom={40}>
-          <Box fill_width={true} height={810}>
-            {Kati.Screens.Lock.wallpaper()}
-            {Kati.Screens.Lock.scrim()}
-            <Column fill_width={true} padding_left={21} padding_right={21} padding_top={52}>
-              {Kati.Screens.Lock.clock()}
-              {Kati.Screens.Lock.small_widgets()}
-              {Kati.Screens.Lock.today()}
-              {Kati.Screens.Lock.year()}
-            </Column>
-          </Box>
+        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={52} padding_bottom={40}>
+          {Kati.Screens.Lock.clock()}
+          {Kati.Screens.Lock.small_widgets()}
+          {Kati.Screens.Lock.today()}
+          {Kati.Screens.Lock.year()}
         </Column>
       </Scroll>
     </Box>
@@ -74,9 +80,9 @@ defmodule Kati.Screens.Lock do
   @doc false
   def wallpaper do
     case Kati.Design.Images.hero(Sample.wallpaper()) do
-      nil -> ~MOB"<Box fill_width={true} height={810} background={0xFF1C1A18} />"
+      nil -> ~MOB"<Box fill_width={true} fill_height={true} background={0xFF1C1A18} />"
       src -> ~MOB"""
-        <Image src={src} fill_width={true} height={810} content_mode="fill" />
+        <Image src={src} fill_width={true} fill_height={true} content_mode="fill" />
         """
     end
   end
@@ -87,7 +93,7 @@ defmodule Kati.Screens.Lock do
   @doc false
   def scrim do
     ~MOB"""
-    <Box fill_width={true} height={810} gradient="to_bottom #8C0C0B0A #400C0B0A 40% #CC0C0B0A" />
+    <Box fill_width={true} fill_height={true} gradient="to_bottom #8C0C0B0A #400C0B0A 40% #CC0C0B0A" />
     """
   end
 
@@ -138,6 +144,12 @@ defmodule Kati.Screens.Lock do
     """
   end
 
+  # A declared 97pt on both, because the two widgets are the same object at the
+  # same size in the drawing and their contents are not: a 42pt poster on the
+  # left against a 28pt figure and two lines on the right measured 91 and 97,
+  # and two glass panels six points out of step read as a mistake. The height
+  # goes on the weighted Box and the panel fills it — putting it on the panel
+  # itself would land outside its 14pt padding and measure 125.
   @doc false
   def small_widgets do
     up_next = Sample.up_next()
@@ -146,8 +158,8 @@ defmodule Kati.Screens.Lock do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        <Box weight={1.0}>
-          <Column fill_width={true} background={0x801C1A18} corner_radius={20} border_width={1} border_color={0x24FFFFFF} padding={14}>
+        <Box weight={1.0} height={97}>
+          <Column fill_width={true} fill_height={true} background={0x801C1A18} corner_radius={20} border_width={1} border_color={0x24FFFFFF} padding={14}>
             {Kati.Screens.Lock.eyebrow(up_next.eyebrow)}
             <Spacer size={10} />
             <Row fill_width={true} align="center">
@@ -162,8 +174,8 @@ defmodule Kati.Screens.Lock do
           </Column>
         </Box>
         <Spacer size={11} />
-        <Box weight={1.0}>
-          <Column fill_width={true} background={0x801C1A18} corner_radius={20} border_width={1} border_color={0x24FFFFFF} padding={14}>
+        <Box weight={1.0} height={97}>
+          <Column fill_width={true} fill_height={true} background={0x801C1A18} corner_radius={20} border_width={1} border_color={0x24FFFFFF} padding={14}>
             {Kati.Screens.Lock.eyebrow(tonight.eyebrow)}
             <Spacer size={8} />
             <Text text={tonight.count} text_size={28} font_weight="extrabold" letter_spacing={-0.03} text_color={0xFFFFFFFF} max_lines={1} />

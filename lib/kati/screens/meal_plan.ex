@@ -147,6 +147,9 @@ defmodule Kati.Screens.MealPlan do
   end
 
   # The last column is inked because Sunday is the day the list below shows.
+  #
+  # The 62pt lead is `width`, not `size`: `size` sets both axes, and a 62pt tall
+  # spacer would give the header row 62pt of height for a 10pt letter.
   @doc false
   def column_heads do
     columns = Sample.columns()
@@ -155,7 +158,7 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Spacer size={62} />
+        <Spacer width={62} />
         {columns
          |> Enum.with_index()
          |> Enum.map(fn {letter, i} -> Kati.Screens.MealPlan.column_head(letter, i == last) end)}
@@ -421,12 +424,18 @@ defmodule Kati.Screens.MealPlan do
   @doc false
   def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
 
-  # A Box pins its child top-start, which with 3pt of padding is exactly where
-  # an off switch's knob belongs — no alignment needed to draw the off state.
+  # 46x28 with a 22pt knob inset 3pt, drawn the way
+  # `Kati.Screens.Accessibility.toggle/1` draws it: the inset comes from a 40pt
+  # inner Row, not from `padding`, because this bridge applies padding outside
+  # an explicit width — `width={46} padding={3}` renders 52x34, not 46x28.
+  # The knob leads and the space trails, which is the off state.
   def trailing(:switch_off) do
     ~MOB"""
-    <Box width={46} height={28} corner_radius={14} background={0xFFDCD7CF} padding={3}>
-      <Box width={22} height={22} corner_radius={11} background={Kati.Theme.card(:light)} shadow="0 1 3 0 #4D1A1917" />
+    <Box width={46} height={28} corner_radius={14} background={0xFFDCD7CF} align="center">
+      <Row width={40} align="center">
+        <Box width={22} height={22} corner_radius={11} background={Kati.Theme.card(:light)} shadow="0 1 3 0 #4D1A1917" />
+        <Spacer weight={1.0} />
+      </Row>
     </Box>
     """
   end

@@ -305,14 +305,19 @@ defmodule Kati.Screens.Nutrition do
   def macro_gap(false), do: ~MOB"<Spacer size={0} />"
   def macro_gap(true), do: ~MOB"<Spacer size={13} />"
 
-  # Two stacked Rows inside one track: the fill, then the tick. A Box stacks
-  # its children, so the tick draws over the fill rather than beside it, and
-  # offset_y lifts it the 3pt the drawing gives it above the 8pt bar.
+  # A 14pt frame holding two centred layers: the 8pt bar, and the 14pt tick
+  # over it. The frame is what gives the tick its 3pt of overhang either side —
+  # a taller child is not clipped by a Box, but it *is* clipped by the 8pt
+  # track's own corner_radius, which is where the tick lost 9 of its 14 points
+  # and rendered as a stub. Centring both in 14 draws the drawing's
+  # `top:-3px` as real space rather than as an offset out of a mask.
   @doc false
   def track(row) do
     ~MOB"""
-    <Box fill_width={true} height={8} corner_radius={4} background={0xFFEFECE7}>
-      {Kati.Screens.Nutrition.fill(row.fill, row.tone)}
+    <Box fill_width={true} height={14} align="center">
+      <Box fill_width={true} height={8} corner_radius={4} background={0xFFEFECE7}>
+        {Kati.Screens.Nutrition.fill(row.fill, row.tone)}
+      </Box>
       {Kati.Screens.Nutrition.tick()}
     </Box>
     """
@@ -346,7 +351,7 @@ defmodule Kati.Screens.Nutrition do
     ~MOB"""
     <Row fill_width={true}>
       <Spacer weight={mark} />
-      <Box width={1.5} height={14} offset_y={-3} background={0x591A1917} />
+      <Box width={1.5} height={14} background={0x591A1917} />
       <Spacer weight={rest} />
     </Row>
     """

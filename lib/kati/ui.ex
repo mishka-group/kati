@@ -51,11 +51,23 @@ defmodule Kati.UI do
 
   It replaced a flat opaque rectangle, which does not fade — it guillotines.
   On Home it was cutting the Sections tiles in half.
+
+  `stop` is where the gradient stops being fully opaque paper, as a percentage
+  of `height` measured from the bottom. It is a parameter because the drawings
+  disagree on purpose: five of them (04, 08, 14, 45, 58) want the 4% default —
+  a hairline of solid paper under a dock that content may touch — while
+  thirteen (01, 02, 03, 07, 16, 17, 20, 21, 30, 55, 56, 57, 61) want 42%, which
+  is what actually hides the content behind the dock. At 4% the Persian Home's
+  section tiles read straight through it.
   """
-  @spec paper_fade(pos_integer()) :: term()
-  def paper_fade(height) do
+  @spec paper_fade(pos_integer(), number()) :: term()
+  def paper_fade(height, stop \\ 4) do
+    # ~MOB is an uppercase sigil, so #{} inside it is literal text — the
+    # gradient string has to be built out here.
+    gradient = "to_top #FFEFECE7 #{stop}% #00EFECE7"
+
     ~MOB"""
-    <Box fill_width={true} height={height} gradient="to_top #FFEFECE7 4% #00EFECE7" />
+    <Box fill_width={true} height={height} gradient={gradient} />
     """
   end
 
@@ -192,38 +204,88 @@ defmodule Kati.UI do
   Music greyed rather than hiding them, which is also how #60 scoped v1 to
   Screen. Hiding them would misrepresent the app's shape; grey states the
   intent.
+
+  ## Options
+
+    * `:selected` — the filled state: ink pill, `#FBFAF8` label.
+    * `:disabled` — transparent pill, `#B5AEA3` label.
+    * `:count` — a dimmer number after the label, as the library and day filters
+      draw it.
+
+  ## No trailing gap
+
+  This pill deliberately ends where it ends. Several screens grew their own chip
+  with the inter-chip gap baked in *inside* the pill as a trailing `Spacer`,
+  which both pushes the label off centre — the pill has 15dp on the left and
+  15dp plus the gap on the right — and makes chips abut whenever the gap is
+  interpreted as part of the background. The gap belongs to whoever is arranging
+  the chips, so callers intersperse a `<Spacer width={9} />` between them.
   """
-  def chip(label, state) do
-    {bg, fg} =
-      case state do
-        :selected -> {Kati.Theme.ink(), 0xFFFBFAF8}
-        :disabled -> {0x00FFFFFF, 0xFFB5AEA3}
-        _ -> {Kati.Theme.card(:light), 0xFF5C574F}
+  @spec chip(String.t(), keyword() | atom()) :: term()
+  def chip(label, opts \\ [])
+
+  # The old positional-state form, kept so a call written from memory does not
+  # raise on a keyword lookup against an atom.
+  def chip(label, state) when is_atom(state) do
+    chip(label, selected: state == :selected, disabled: state == :disabled)
+  end
+
+  def chip(label, opts) when is_list(opts) do
+    count = Keyword.get(opts, :count)
+    count_text = if count, do: to_string(count), else: nil
+
+    {bg, fg, count_fg} =
+      cond do
+        Keyword.get(opts, :disabled, false) -> {0x00FFFFFF, 0xFFB5AEA3, 0xFFB5AEA3}
+        Keyword.get(opts, :selected, false) -> {Kati.Theme.ink(), 0xFFFBFAF8, 0xFFBFB8AC}
+        true -> {Kati.Theme.card(:light), 0xFF5C574F, 0xFFA0998F}
       end
 
+    width = chip_content_width(label, count_text)
+
     ~MOB"""
-    <Column padding_right={9}>
-      <Box
-        background={bg}
-        corner_radius={22}
-        padding_left={15}
-        padding_right={15}
-        padding_top={9}
-        padding_bottom={9}
-        width={auto_width(label)}
-      >
-        <Column align="center">
-          <Text text={label} text_size={12} text_color={fg} />
-        </Column>
-      </Box>
-    </Column>
+    <Box
+      background={bg}
+      corner_radius={16}
+      height={32}
+      width={width}
+      padding_left={15}
+      padding_right={15}
+      align="center"
+    >
+      <Row align="center">
+        <Text text={label} text_size={12} text_color={fg} max_lines={1} />
+        {Kati.UI.chip_count(count_text, count_fg)}
+      </Row>
+    </Box>
     """
   end
 
-  # A Box needs an explicit width or it fills its parent, and nothing measures
-  # text, so chip widths are derived from character count. Crude, and honest
-  # about being crude: the alternative is a Row that swallows the whole line.
-  defp auto_width(label), do: 30 + String.length(label) * 8
+  @doc false
+  def chip_count(nil, _color), do: ~MOB"<Spacer size={0} />"
+
+  def chip_count(text, color) do
+    # A Box stacks, so the count has to share a Row with the label rather than
+    # be handed to the pill as a second child.
+    ~MOB"""
+    <Row align="center">
+      <Spacer width={6} />
+      <Text text={text} text_size={11} text_color={color} max_lines={1} />
+    </Row>
+    """
+  end
+
+  # A Box that is not given a NUMBER for `width` fills its parent, and nothing
+  # measures text on the Elixir side, so the pill is sized from the character
+  # count. Crude, and honest about being crude — the alternative is a Row that
+  # swallows the whole line. This counts the CONTENT only: the bridge applies
+  # padding before width, so folding the 15dp sides in here would double them.
+  defp chip_content_width(label, nil), do: text_width(label)
+  defp chip_content_width(label, count), do: text_width(label) + 6 + text_width(count)
+
+  # ~7dp per glyph at text_size 12; erring wide, since a clipped label reads as
+  # broken while a loose one only reads as a loose chip.
+  defp text_width(text), do: String.length(text) * 7
 
   @doc "One day in the calendar's 7-day strip."
   def day_cell(dow, num, today?, on_tap \\ nil) do
@@ -253,6 +315,35 @@ defmodule Kati.UI do
       <Spacer size={3} />
       <Text text={label} text_size={11} text_color={:muted} />
     </Column>
+    """
+  end
+
+  @doc """
+  A big number and a small suffix sitting on the same baseline.
+
+  `align="bottom"` is not baseline alignment. It bottoms out the two text
+  *boxes*, and a text box carries descender space in proportion to its size, so
+  a small suffix beside a big number lands 3-9dp below the number's baseline —
+  far enough to read as a bug rather than as typography. The bridge has no
+  baseline mode (`align` is top/center/bottom only) and no metrics come back
+  from `render/1`, so the correction cannot be computed: it is declared.
+
+  `drop` is how far the small text has to be lifted, in dp, applied as bottom
+  padding. `(big_size - small_size) / 5` is a decent first guess, but it is a
+  design number rather than a formula — pass what the drawing shows.
+
+  Both texts are already-rendered nodes, so the caller keeps control of size,
+  weight and colour.
+  """
+  @spec baseline_row(term(), term(), number()) :: term()
+  def baseline_row(big, small, drop) do
+    ~MOB"""
+    <Row align="bottom">
+      {big}
+      <Column padding_bottom={drop}>
+        {small}
+      </Column>
+    </Row>
     """
   end
 

@@ -131,34 +131,29 @@ defmodule Kati.Screens.MealsMatrixFa do
     """
   end
 
+  # Each segment has to be a DIRECT child of the trough Row: `weight` is shared
+  # out among a Row's own children, so wrapping a weighted segment in a plain
+  # Row hid its weight behind a wrapper that neither filled nor weighted, and
+  # that wrapper took the whole trough. The gaps are interspersed between the
+  # segments instead of riding inside them, which also keeps the trough's own
+  # 4pt padding from being doubled at the leading edge.
   @doc false
   def segments(plan) do
-    [first | rest] = plan.segments
-
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4} align="center">
-        {Kati.Screens.MealsMatrixFa.segment(first, true)}
-        {rest
-         |> Enum.map(fn label -> Kati.Screens.MealsMatrixFa.segment(label, false) end)
-         |> Enum.map(fn seg -> Kati.Screens.MealsMatrixFa.segment_slot(seg) end)}
+        {plan.segments
+         |> Enum.with_index()
+         |> Enum.map(fn {label, i} -> Kati.Screens.MealsMatrixFa.segment(label, i == 0) end)
+         |> Enum.intersperse(Kati.Screens.MealsMatrixFa.segment_gap())}
       </Row>
       <Spacer size={18} />
     </Column>
     """
   end
 
-  # The 4pt gap belongs to the segments after the first, so the trough's own
-  # 4pt padding is not doubled at the leading edge.
   @doc false
-  def segment_slot(segment) do
-    ~MOB"""
-    <Row align="center">
-      <Spacer size={4} />
-      {segment}
-    </Row>
-    """
-  end
+  def segment_gap, do: ~MOB"<Spacer size={4} />"
 
   @doc false
   def segment(label, on?) do

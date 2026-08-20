@@ -24,9 +24,13 @@ defmodule Kati.Screens.Health do
       16pt semibold in the drawing's single heading, so a `Row` aligned
       `bottom` rather than one `Text`.
 
-  Tiles are 174 wide because `calc(50% - 6px)` of the 360 the gutters leave is
-  exactly 174, and Mob has no wrap primitive — so the two-across grid is
-  chunked by a declared count, the same as screen 03's posters.
+  The tiles split the row by weight rather than by the drawing's literal 174.
+  `calc(50% - 6px)` of the 360 the gutters leave *is* 174, but this bridge
+  applies padding before width, so a `width={174}` tile carrying `padding={16}`
+  measures 206 and the two columns stop matching. Weight is measured after the
+  gap, which is the same arithmetic without the trap. Mob has no wrap
+  primitive, so the two-across grid is still chunked by a declared count, the
+  same as screen 03's posters.
 
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
@@ -242,9 +246,10 @@ defmodule Kati.Screens.Health do
     """
   end
 
-  # Two across. `calc(50% - 6px)` of the 360 the gutters leave is 174, and
-  # 174*2 + 12 = 360 — so the declared chunk reproduces the wrap rather than
-  # approximating it.
+  # Two across. 174*2 + 12 = 360, which is what the gutters leave — so the
+  # declared chunk of two reproduces the wrap rather than approximating it, and
+  # the tiles take that half by weight (see the moduledoc) rather than by a
+  # literal 174 that padding would inflate.
   @doc false
   def sections do
     rows = Sample.sections() |> Enum.chunk_every(2)
@@ -281,7 +286,7 @@ defmodule Kati.Screens.Health do
   def tile(%{on?: true} = section) do
     ~MOB"""
     <Column
-      width={174}
+      weight={1.0}
       background={Kati.Theme.card(:light)}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
@@ -306,7 +311,7 @@ defmodule Kati.Screens.Health do
   def tile(%{on?: false} = section) do
     ~MOB"""
     <Column
-      width={174}
+      weight={1.0}
       corner_radius={20}
       border_width={1.5}
       border_color={0x241A1917}

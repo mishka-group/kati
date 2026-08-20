@@ -17,9 +17,12 @@ defmodule Kati.Screens.Discover do
   when they do not — the same distinction, at row scale, and the reason the
   sample carries someone with nothing new.
 
-  The rail is three 112pt posters with 12pt gutters: 112*3 + 12*2 = 360, which
-  is the content width inside the 21pt margins, so the drawing's row is exactly
-  full rather than scrolled.
+  The rail is three posters with 12pt gutters, each taking an equal share of
+  whatever is left. The drawing's 112pt is arithmetic for its own 402pt frame —
+  112*3 + 12*2 = 360 — and a real 411dp device leaves ~370dp between the 21pt
+  margins, so a fixed 112 stops ~9dp short and ragged. Weighting the three
+  columns keeps the row exactly full at any width, which is what the drawing
+  meant.
   """
   use Kati.Screens.Pushed, back: "Library"
 
@@ -145,11 +148,13 @@ defmodule Kati.Screens.Discover do
   @doc false
   def rail_gap, do: ~MOB"<Spacer size={12} />"
 
+  # Weighted rather than 112 wide: three equal shares of the real content width
+  # fill the row on any device, where a fixed 112 only fills the drawing's frame.
   @doc false
   def pick(p) do
     ~MOB"""
-    <Column width={112}>
-      <Box width={112} height={158} corner_radius={13} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+    <Column weight={1.0}>
+      <Box fill_width={true} height={158} corner_radius={13} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.Discover.poster(p.seed)}
       </Box>
       <Spacer size={9} />
@@ -168,7 +173,7 @@ defmodule Kati.Screens.Discover do
 
       src ->
         ~MOB"""
-        <Image src={src} width={112} height={158} corner_radius={13} content_mode="fill" />
+        <Image src={src} fill_width={true} height={158} corner_radius={13} content_mode="fill" />
         """
     end
   end

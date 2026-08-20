@@ -4,9 +4,11 @@ defmodule Kati.Screens.LibraryFa do
 
   Built to `.scratch/design/screens/57.html`. Screen 03's page in a root that
   declares `rtl`: the segmented control on its `#E4E0D9` trough, three quick
-  tiles, count chips, and a three-across grid of 112x158 posters — 112*3 +
-  12*2 = 360, the width inside the 21pt gutters, which is why chunking by
-  three reproduces the drawing's wrap rather than approximating it.
+  tiles, count chips, and a three-across grid of 158-tall posters that share
+  the row by weight. Chunking by three reproduces the drawing's wrap; the
+  drawing's 112 does not survive the trip, because 112*3 + 12*2 = 360 is the
+  arithmetic of its own 402pt frame and a real 411dp device leaves ~370dp
+  between the 21pt gutters — fixed tiles would stop ~9dp short of the edge.
 
   ## The two things the mirror does not do by itself
 
@@ -297,10 +299,14 @@ defmodule Kati.Screens.LibraryFa do
   def poster(item) do
     tap = {self(), :open_series}
 
+    # Weighted rather than 112 wide: three equal shares of the real content
+    # width fill the row on any device, where a fixed 112 only fills the
+    # drawing's frame. The mirror is unaffected — a Row lays out start-to-end
+    # either way.
     ~MOB"""
-    <Column width={112} on_tap={tap}>
+    <Column weight={1.0} on_tap={tap}>
       <Box
-        width={112}
+        fill_width={true}
         height={158}
         corner_radius={13}
         background={0xFFE4E0D9}
@@ -334,7 +340,7 @@ defmodule Kati.Screens.LibraryFa do
 
       src ->
         ~MOB"""
-        <Image src={src} width={112} height={158} corner_radius={13} content_mode="fill" />
+        <Image src={src} fill_width={true} height={158} corner_radius={13} content_mode="fill" />
         """
     end
   end

@@ -276,17 +276,24 @@ defmodule Kati.Screens.Books do
     """
   end
 
-  # Three across, as on screen 03: 112*3 + 12*2 = 360, the content width
-  # between the 21pt gutters. Mob has no wrapping primitive, so the row count
-  # is declared rather than measured — and the design's arithmetic is what
-  # makes three the right declaration.
+  # Three across, as on screen 03. Mob has no wrapping primitive, so the row
+  # count is declared rather than measured — three because that is the drawing's
+  # wrap, not because of the 112*3 + 12*2 = 360 arithmetic, which only ever
+  # described the export's own 402pt frame.
+  #
+  # The 18pt gap goes *between* rows: interspersed rather than trailed off each
+  # row, so the last row does not push 18pt of dead space above the dock.
   @doc false
   def grid do
-    rows = Sample.books() |> Enum.chunk_every(3)
+    rows =
+      Sample.books()
+      |> Enum.chunk_every(3)
+      |> Enum.map(&Kati.Screens.Books.grid_row/1)
+      |> Enum.intersperse(Kati.Screens.Books.row_gap())
 
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(rows, fn row -> Kati.Screens.Books.grid_row(row) end)}
+      {rows}
     </Column>
     """
   end
@@ -294,23 +301,27 @@ defmodule Kati.Screens.Books do
   @doc false
   def grid_row(row) do
     ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="top">
-        {row |> Enum.map(&Kati.Screens.Books.tile/1) |> Enum.intersperse(Kati.Screens.Books.grid_gap())}
-      </Row>
-      <Spacer size={18} />
-    </Column>
+    <Row fill_width={true} align="top">
+      {row |> Enum.map(&Kati.Screens.Books.tile/1) |> Enum.intersperse(Kati.Screens.Books.grid_gap())}
+    </Row>
     """
   end
 
   @doc false
   def grid_gap, do: ~MOB"<Spacer size={12} />"
 
+  # `height`, not `size` — a Spacer's `size` sets both axes, and this one only
+  # ever divides rows.
+  @doc false
+  def row_gap, do: ~MOB"<Spacer height={18} />"
+
+  # Weighted rather than 112 wide: three equal shares of the real content width
+  # fill the row on any device, where a fixed 112 only fills the drawing's frame.
   @doc false
   def tile(book) do
     ~MOB"""
-    <Column width={112}>
-      <Box width={112} height={158} corner_radius={6} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+    <Column weight={1.0}>
+      <Box fill_width={true} height={158} corner_radius={6} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.Books.artwork(book)}
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Books.progress(book.progress)}
@@ -332,7 +343,7 @@ defmodule Kati.Screens.Books do
 
       src ->
         ~MOB"""
-        <Image src={src} width={112} height={158} corner_radius={6} content_mode="fill" />
+        <Image src={src} fill_width={true} height={158} corner_radius={6} content_mode="fill" />
         """
     end
   end

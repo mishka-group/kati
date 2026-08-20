@@ -4,7 +4,7 @@ defmodule Kati.Screens.Library do
 
   Built to `.scratch/design/screens/03.html`: a segmented control on a
   `#E4E0D9` trough, three quick tiles carrying mono counts, chips with counts
-  at .65 opacity, and a three-across grid of 112x158 posters each with a
+  at .65 opacity, and a three-across grid of 158-tall posters each with a
   progress bar burnt into its bottom edge.
 
   **Books and Music are drawn inactive**, and that is the design's own
@@ -13,9 +13,11 @@ defmodule Kati.Screens.Library do
   critical path should not open two crowded markets. The design already greys
   them, so matching it and honouring the decision are the same act.
 
-  Mob has no wrap primitive, so the grid is chunked into rows of three. That
-  is exactly the design's arithmetic: 112*3 + 12*2 = 360, the content width
-  inside the 21pt gutters.
+  Mob has no wrap primitive, so the grid is chunked into rows of three, and the
+  three posters share the row by weight rather than measuring 112 each. The
+  design's 112*3 + 12*2 = 360 is the arithmetic of its own 402pt frame; a real
+  411dp device leaves ~370dp between the 21pt gutters, so fixed tiles stop
+  ~9dp short and the right edge goes ragged.
   """
   use Kati.Screens.Root, root: :library
 
@@ -197,9 +199,8 @@ defmodule Kati.Screens.Library do
     """
   end
 
-  # Three across. 112*3 + 12*2 = 360 = the content width between the gutters,
-  # which is why the design's grid is exactly three wide and why chunking by
-  # three reproduces it rather than approximating it.
+  # Three across, because that is the design's wrap. The width each tile gets is
+  # left to the weights in poster/1 — see the moduledoc.
   @doc false
   def grid do
     rows = Sample.titles() |> Enum.chunk_every(3)
@@ -232,9 +233,12 @@ defmodule Kati.Screens.Library do
     # draws them as two different screens, so the grid has to know which.
     tap = {self(), if(item.kind == :film, do: :open_film, else: :open_series)}
 
+    # Weighted rather than 112 wide: three equal shares of the real content
+    # width fill the row on any device, where a fixed 112 only fills the
+    # drawing's frame.
     ~MOB"""
-    <Column width={112} on_tap={tap}>
-      <Box width={112} height={158} corner_radius={13} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+    <Column weight={1.0} on_tap={tap}>
+      <Box fill_width={true} height={158} corner_radius={13} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.Library.artwork(item)}
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Library.progress(item.progress)}
@@ -257,7 +261,7 @@ defmodule Kati.Screens.Library do
 
       src ->
         ~MOB"""
-        <Image src={src} width={112} height={158} corner_radius={13} content_mode="fill" />
+        <Image src={src} fill_width={true} height={158} corner_radius={13} content_mode="fill" />
         """
     end
   end

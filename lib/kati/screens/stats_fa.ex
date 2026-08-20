@@ -108,6 +108,14 @@ defmodule Kati.Screens.StatsFa do
     """
   end
 
+  # No `letter_spacing` on the mono numerals anywhere on this screen: Persian
+  # digits are not in DM Mono and fall back to another face, and tracking
+  # mis-measures the fallback run — wide enough that `max_lines={1}` ellipsised
+  # the number itself (۳۱۲ came out as "۳…"). The English screen keeps its -0.03.
+  #
+  # `align="bottom"` lines up the two Texts' boxes, not their baselines, so the
+  # 15pt unit sat 9dp under the 32pt number's baseline; the padding on its
+  # Column lifts it back onto the line the drawing puts it on.
   @doc false
   def hero(year) do
     ~MOB"""
@@ -136,19 +144,20 @@ defmodule Kati.Screens.StatsFa do
                 font_family="mono"
                 text_size={32}
                 font_weight="medium"
-                letter_spacing={-0.03}
                 text_color={:on_surface}
                 max_lines={1}
               />
               <Spacer size={5} />
-              <Text
-                text={year.hours_unit}
-                font_family="fa"
-                text_size={15}
-                font_weight="semibold"
-                text_color={0xFFB09A72}
-                max_lines={1}
-              />
+              <Column padding_bottom={9}>
+                <Text
+                  text={year.hours_unit}
+                  font_family="fa"
+                  text_size={15}
+                  font_weight="semibold"
+                  text_color={0xFFB09A72}
+                  max_lines={1}
+                />
+              </Column>
             </Row>
           </Column>
           <Column padding_bottom={5}>
@@ -227,6 +236,8 @@ defmodule Kati.Screens.StatsFa do
   @doc false
   def count_gap, do: ~MOB"<Spacer size={12} />"
 
+  # Untracked mono, for the reason given above `hero/1`: tracking the Persian
+  # fallback digits mis-measures them, and `max_lines={1}` then eats the number.
   @doc false
   def count_card(number, label) do
     ~MOB"""
@@ -243,7 +254,6 @@ defmodule Kati.Screens.StatsFa do
           font_family="mono"
           text_size={25}
           font_weight="medium"
-          letter_spacing={-0.03}
           text_color={:on_surface}
           max_lines={1}
         />

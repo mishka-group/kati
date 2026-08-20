@@ -24,10 +24,12 @@ defmodule Kati.Screens.Music do
     * **"New from artists you follow" gets the grey dash** — the records are
       not out yet, so the section is not new. `Kati.UI.Eyebrow.quiet/1`.
 
-  Album tiles are 112 wide because `112*3 + 12*2 = 360`, the content width
-  inside the 21pt gutters — the same arithmetic that makes screen 03's poster
-  grid three across. The export writes it as `flex:1` with `aspect-ratio:1`;
-  nothing here measures, so the square is declared.
+  Album tiles take an equal share of the row, which is what the export actually
+  writes: `flex:1` with `aspect-ratio:1`. The 112 that `112*3 + 12*2 = 360`
+  produces is the arithmetic of the drawing's own 402pt frame, and a real
+  411dp device leaves ~370dp between the 21pt gutters, so a fixed 112 leaves
+  the rail ~9dp short. Nothing here measures, so the 112 *height* is still
+  declared and the square is only exact at the drawing's width.
   """
   use Kati.Screens.Root, root: :library
 
@@ -173,10 +175,11 @@ defmodule Kati.Screens.Music do
   @doc false
   def album_gap, do: ~MOB"<Spacer size={12} />"
 
+  # Weighted rather than 112 wide — the export's own `flex:1`. See the moduledoc.
   @doc false
   def album(item) do
     ~MOB"""
-    <Column width={112}>
+    <Column weight={1.0}>
       {Kati.Screens.Music.cover(item)}
       <Spacer size={9} />
       <Text text={item.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
@@ -193,13 +196,13 @@ defmodule Kati.Screens.Music do
     case Kati.Design.Images.poster(item.seed) do
       nil ->
         ~MOB"""
-        <Box width={112} height={112} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()} />
+        <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()} />
         """
 
       src ->
         ~MOB"""
-        <Box width={112} height={112} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
-          <Image src={src} width={112} height={112} corner_radius={12} content_mode="fill" />
+        <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+          <Image src={src} fill_width={true} height={112} corner_radius={12} content_mode="fill" />
         </Box>
         """
     end

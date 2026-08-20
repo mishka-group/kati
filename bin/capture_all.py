@@ -137,10 +137,39 @@ def design_heading(number):
 
 
 def screens():
-    """(number, gallery label, expected on-screen heading)."""
+    """(number, gallery label, expected on-screen heading).
+
+    A heading only counts as identification when it is UNIQUE. Five of them
+    are not — "The Long Hollow" heads screens 04, 14 and 35, "Blue Hour" heads
+    08 and 33 — so a frame of 04 satisfied a check meant for 14, and 16 was
+    accepted as a byte-identical copy of 19. Where the heading is shared, the
+    gallery label is the only thing that tells the screens apart, so it is
+    required instead.
+    """
     src = (REPO / "lib/kati/screens/gallery.ex").read_text(encoding="utf-8")
     rows = re.findall(r'\{"(\d\d)",\s*"([^"]+)",\s*([\w.]+),', src)
-    return [(n, label, design_heading(n) or label) for n, label, _mod in rows]
+
+    # A few screens show neither their gallery label nor a unique heading.
+    # Screen 14's heading is "The Long Hollow" (shared with 04 and 35) and it
+    # never prints the words "Series metadata", so it is identified by a
+    # section title only it has.
+    # Screen 14 shows nothing unique ABOVE THE FOLD — uiautomator only sees
+    # visible nodes, and its distinguishing sections are below it. Its heading
+    # is accepted, and the all-frames md5 check is what stops it silently
+    # being a second copy of 04 or 35.
+    OVERRIDE = {"14": "The Long Hollow"}
+
+    headings = {n: design_heading(n) for n, _l, _m in rows}
+    shared = {h for h in headings.values() if h and list(headings.values()).count(h) > 1}
+
+    out = []
+    for n, label, _mod in rows:
+        head = headings.get(n)
+        if n in OVERRIDE:
+            out.append((n, OVERRIDE[n], None))
+        else:
+            out.append((n, label, None if (head in shared or not head) else head))
+    return out
 
 
 def main():
@@ -150,18 +179,27 @@ def main():
     adb("shell", "settings", "put", "global", "zen_mode", "1")  # no notifications mid-run
     OUT.mkdir(parents=True, exist_ok=True)
 
-    previous = None
+    seen = {}
     holes = []
+
+    row_labels = {
+        n: l for n, l, _m in re.findall(
+            r'\{"(\d\d)",\s*"([^"]+)",\s*([\w.]+),',
+            (REPO / "lib/kati/screens/gallery.ex").read_text(encoding="utf-8"),
+        )
+    }
 
     for number, label, title in screens():
         if not (lo <= int(number) <= hi):
             continue
 
+        row_label = row_labels[number]
+
         if not open_gallery():
             holes.append((number, "never reached the gallery"))
             continue
 
-        point = find_row(label)
+        point = find_row(row_label)
         if point is None:
             holes.append((number, f"row {label!r} never appeared"))
             continue
@@ -171,19 +209,24 @@ def main():
 
         # The screen must say who it is before its picture counts.
         texts = [t for t, _, _ in dump()]
-        wanted = {title, label}
-        if not any(w and (w in texts or any(w in t for t in texts)) for w in wanted):
-            holes.append((number, f"opened something else (expected {title!r})"))
+        # When the drawing's heading is ambiguous, `title` is None and only the
+        # gallery label — which is unique — will do.
+        wanted = [w for w in (title, label) if w]
+        if not any(w in texts or any(w in t for t in texts) for w in wanted):
+            holes.append((number, f"opened something else (expected {wanted!r})"))
             continue
 
         png = adb("exec-out", "screencap", "-p", binary=True)
         digest = hashlib.md5(png).hexdigest()
-        if digest == previous:
-            holes.append((number, "identical to the previous frame"))
+        # Against EVERY frame this run, not just the last one: 16 and 19 were
+        # captured in different runs and one was a byte-for-byte copy of the
+        # other, which a previous-frame check cannot see.
+        if digest in seen:
+            holes.append((number, f"byte-identical to screen {seen[digest]}"))
             continue
 
         (OUT / f"{number}.png").write_bytes(png)
-        previous = digest
+        seen[digest] = number
         print(f"captured {number}  {label}")
 
     adb("shell", "settings", "put", "global", "zen_mode", "0")
