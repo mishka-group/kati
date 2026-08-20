@@ -603,16 +603,17 @@ defmodule Kati.UI.SettingsList do
   what it is — content *before* the label — with `leading_gap` standing where
   the markup wrote `<Spacer size={11} />`.
 
-  ## `background: :transparent` is not decoration
+  ## `background: :none` says what this frame is
 
-  The pill always writes a `background` and defaults it to `:surface_raised`.
-  This frame has none: the drawing is a border over the page and nothing else,
-  and `:surface_raised` is `#FBFAF8`, which would read as a card. The prop
-  cannot simply be left off — `background: nil` is not absent, it serialises as
-  the **string** `"nil"`, which is the exact hazard the component's own
-  `overrides/2` note describes — so the absence is stated instead, as the
-  palette's `:transparent`. `Mob.Renderer` resolves that to `0x00000000`, and a
-  fill at alpha 0 under `SrcOver` leaves every pixel underneath it alone.
+  The drawing is a border over the page and nothing else, and the pill's
+  default `:surface_raised` is `#FBFAF8`, which would read as a card.
+
+  This used to be stated as the palette's `:transparent` — a fill at alpha 0,
+  which works but says "paint nothing" rather than "there is no fill". Leaving
+  the prop off was not an option either: `background: nil` is not absent, it
+  reaches the wire as the **string** `"nil"`. That was reported upstream and
+  fixed, so the component now takes `:none` and omits the prop entirely, and
+  nil reads as unset rather than as a colour named "nil".
 
   ## Why the pixels do not move
 
@@ -653,7 +654,7 @@ defmodule Kati.UI.SettingsList do
   def note(icon, text) do
     Kati.Components.MishkaPill.pill(
       %{
-        background: :transparent,
+        background: :none,
         corner_radius: 18,
         border_color: 0x291A1917,
         border_width: 1.5,
