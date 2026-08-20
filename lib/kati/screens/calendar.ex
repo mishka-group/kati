@@ -67,7 +67,16 @@ defmodule Kati.Screens.Calendar do
         time: "20:00",
         title: "3 titles airing",
         meta: "Lumen+ · Northlight · 20:00",
-        posters: ~w(hollow71 saltiron33 cartog60)
+        posters: ~w(hollow71 saltiron33 cartog60),
+        # What "3 titles airing" is three OF. The drawing templates these rows
+        # ({{ }} in the export) rather than naming them, so they are stated
+        # from the posters the group already stacks — same three titles, in the
+        # same order, which is the only reading consistent with the artwork.
+        airing: [
+          %{title: "The Long Hollow", meta: "S2E6 · Lumen+ · 20:00", seed: "hollow71"},
+          %{title: "Salt & Iron", meta: "S1E3 · Northlight · 20:00", seed: "saltiron33"},
+          %{title: "Cartographers", meta: "S4E1 · Lumen+ · 21:00", seed: "cartog60"}
+        ]
       }
     ]
   end
@@ -433,7 +442,11 @@ defmodule Kati.Screens.Calendar do
   # offset is stated on a fixed-width Box because negative padding throws.
   @doc false
   def airing(row) do
-    tap = Kati.Screens.Calendar.tap(row)
+    # The flag rides on the row rather than widening card/1, so every other
+    # shape keeps the signature it has and only the one card that opens knows
+    # about opening.
+    open? = Map.get(row, :open?, false)
+    tap = {self(), :toggle_airing}
 
     ~MOB"""
     <Row
@@ -456,9 +469,80 @@ defmodule Kati.Screens.Calendar do
       </Column>
       <Spacer size={12} />
       <Box width={28} height={28} corner_radius={14} background={0xFFEFECE7} align="center">
-        {Kati.UI.symbol("expand_more", size: 18, color: 0xFF5C574F)}
+        {Kati.Screens.Calendar.chevron(open?)}
       </Box>
     </Row>
+    """
+    |> then(fn card -> Kati.Screens.Calendar.with_members(card, row, open?) end)
+  end
+
+  @doc false
+  def with_members(card, _row, false), do: card
+
+  def with_members(card, row, true) do
+    assigns = %{card: card, rows: Kati.Screens.Calendar.airing_rows(row)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@card}
+      {@rows}
+    </Column>
+    """
+  end
+
+  # The collapse glyph is `expand_more` turned over, which is exactly what the
+  # design does — the export rotates it 180deg in CSS. There is no
+  # `expand_less` in the icon subset and there does not need to be: adding one
+  # would mean re-subsetting the font from a source that is not in this repo,
+  # for a glyph that is this glyph upside down. Fence K-16 gave the bridge
+  # `rotate` instead.
+  @doc false
+  def chevron(false), do: Kati.UI.symbol("expand_more", size: 18, color: 0xFF5C574F)
+
+  def chevron(true) do
+    ~MOB"""
+    <Box width={18} height={18} rotate={180.0} align="center">
+      {Kati.UI.symbol("expand_more", size: 18, color: 0xFF5C574F)}
+    </Box>
+    """
+  end
+
+  # The rows the group holds, drawn only while it is open. Each is the poster,
+  # the title and the mono line — the shape the drawing's own templated
+  # sub-rows carry.
+  @doc false
+  def airing_rows(row) do
+    members = Map.get(row, :airing, [])
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(members, fn m -> Kati.Screens.Calendar.airing_row(m) end)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def airing_row(m) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Box fill_width={true} height={9} />
+      <Row fill_width={true} align="center" padding_left={30}>
+        {Kati.Design.Images.poster(m.seed) |> Kati.Screens.Calendar.member_poster()}
+        <Spacer size={12} />
+        <Column weight={1.0}>
+          <Text text={m.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+          <Box fill_width={true} height={3} />
+          <Text text={m.meta} font_family="mono" text_size={10.5} text_color={0xFF8A8479} max_lines={1} />
+        </Column>
+      </Row>
+    </Column>
+    """
+  end
+
+  @doc false
+  def member_poster(path) do
+    ~MOB"""
+    <Image source={path} width={30} height={42} corner_radius={6} content_mode="fill" />
     """
   end
 
@@ -559,6 +643,17 @@ defmodule Kati.Screens.Calendar do
   }
 
   @impl true
+  def handle_tap(:toggle_airing, socket) do
+    open? = not Map.get(socket.assigns, :airing_open?, false)
+
+    rows =
+      Enum.map(socket.assigns.rows, fn row ->
+        if row.shape == :airing, do: Map.put(row, :open?, open?), else: row
+      end)
+
+    {:noreply, Mob.Socket.assign(socket, airing_open?: open?, rows: rows)}
+  end
+
   def handle_tap(:open_search, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
 
