@@ -20,7 +20,7 @@ defmodule Kati.Screens.Calendar do
   @impl true
   def load(socket) do
     date = Kati.Time.today()
-    Mob.Socket.assign(socket, date: date, rows: Kati.Calendars.Today.rows(date))
+    Mob.Socket.assign(socket, date: date, rows: Kati.Calendars.Today.rows(date), filter: "All")
   end
 
   @doc false
@@ -36,8 +36,8 @@ defmodule Kati.Screens.Calendar do
         {Kati.Screens.Calendar.day_strip(date)}
         <Box fill_width={true} height={1} background={0x141A1917} />
         <Spacer size={16} />
-        {Kati.Screens.Calendar.filters()}
-        {Kati.Screens.Calendar.timeline(rows)}
+        {Kati.Screens.Calendar.filters(assigns.filter)}
+        {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter))}
       </Column>
     </Scroll>
     """
@@ -127,7 +127,9 @@ defmodule Kati.Screens.Calendar do
 
   @doc false
   def day_cell(date, today?) do
-    tap = {self(), :open_day}
+    # The tag carries the day, so tapping Thursday shows Thursday. Every cell
+    # used to push the same screen, which looked interactive and was not.
+    tap = {self(), String.to_atom("day_" <> Date.to_iso8601(date))}
 
     bg = if today?, do: Theme.ink(), else: Theme.card(:light)
     name_color = if today?, do: 0xFFBFB8AC, else: 0xFFA9A29A
@@ -155,14 +157,14 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc false
-  def filters do
+  def filters(active) do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
         <Row>
           {["All", "Screen", "Personal", "Money"]
            |> Enum.with_index()
-           |> Enum.map(fn {label, i} -> Kati.Screens.Calendar.chip(label, i == 0) end)}
+           |> Enum.map(fn {label, _i} -> Kati.Screens.Calendar.chip(label, label == active) end)}
         </Row>
       </Scroll>
       <Spacer size={18} />
@@ -172,11 +174,12 @@ defmodule Kati.Screens.Calendar do
 
   @doc false
   def chip(label, on?) do
+    tap = {self(), String.to_atom("filter_" <> label)}
     bg = if on?, do: Theme.ink(), else: Theme.card(:light)
     fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center">
+    <Row height={32} corner_radius={16} background={bg} padding_left={15} padding_right={15} align="center" on_tap={tap}>
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={fg} max_lines={1} />
       <Spacer size={7} />
     </Row>
@@ -239,7 +242,44 @@ defmodule Kati.Screens.Calendar do
     """
   end
 
+  @doc """
+  Rows a filter leaves visible.
+
+  The design's chips are Screen / Personal / Money, which are event KINDS —
+  mirrored events all arrive as `:event`, so Personal is what a device
+  calendar produces and the other two are Kati's own domains.
+  """
+  @spec visible([map()], String.t()) :: [map()]
+  def visible(rows, "All"), do: rows
+
+  def visible(rows, filter) do
+    wanted =
+      case filter do
+        "Screen" -> ["Airs today"]
+        "Money" -> ["Money"]
+        _ -> ["Calendar", "Habit", "Meals"]
+      end
+
+    Enum.filter(rows, fn row -> Enum.any?(wanted, &String.contains?(row.meta, &1)) end)
+  end
+
   @impl true
-  def handle_tap(:open_day, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Day)}
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      "day_" <> iso ->
+        date = Date.from_iso8601!(iso)
+
+        {:noreply,
+         Mob.Socket.assign(socket,
+           date: date,
+           rows: Kati.Calendars.Today.rows(date)
+         )}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
 end
