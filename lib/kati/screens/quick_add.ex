@@ -40,10 +40,11 @@ defmodule Kati.Screens.QuickAdd do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.QuickAdd.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :draft, Sample.draft())}
   end
 
@@ -109,7 +110,7 @@ defmodule Kati.Screens.QuickAdd do
       [
         size: 44,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button(),
         on_tap: {self(), :close}
       ],
@@ -126,10 +127,10 @@ defmodule Kati.Screens.QuickAdd do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={24}
         border_width={2}
-        border_color={0xFF1A1917}
+        border_color={Palette.ink()}
         shadow="0 10 22 -14 #991A1917"
         padding_left={18}
         padding_right={18}
@@ -170,8 +171,9 @@ defmodule Kati.Screens.QuickAdd do
     """
   end
 
-  def piece({:token, text, gap}), do: token(text, gap, 0x141A1917, Kati.Theme.ink())
-  def piece({:accent, text, gap}), do: token(text, gap, 0x2EE8823C, 0xFF96723C)
+  def piece({:token, text, gap}), do: token(text, gap, Palette.hairline_soft(), Palette.ink())
+  def piece({:accent, text, gap}),
+    do: token(text, gap, Palette.accent_wash(), Palette.gold_text())
 
   @doc false
   def token(text, gap, background, color) do
@@ -207,7 +209,7 @@ defmodule Kati.Screens.QuickAdd do
     ~MOB"""
     <Row align="center">
       <Spacer size={2} />
-      <Box width={2} height={18} background={0xFFE8823C} />
+      <Box width={2} height={18} background={Palette.accent()} />
     </Row>
     """
   end
@@ -218,7 +220,7 @@ defmodule Kati.Screens.QuickAdd do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
@@ -229,7 +231,7 @@ defmodule Kati.Screens.QuickAdd do
           <Column weight={1.0}>
             <Text text={draft.title} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} max_lines={1} />
             <Spacer size={3} />
-            <Text text={draft.kind} font_family="mono" text_size={10.5} text_color={0xFFB09A72} max_lines={1} />
+            <Text text={draft.kind} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
           </Column>
         </Row>
         <Spacer size={16} />
@@ -270,8 +272,8 @@ defmodule Kati.Screens.QuickAdd do
   """
   def kind_tile do
     MishkaThemeIcon.theme_icon(
-      %{size: 34, radius: 11, variant: :filled, color: Kati.Theme.ink()},
-      [UI.symbol("event", size: 18, color: 0xFFFBFAF8)]
+      %{size: 34, radius: 11, variant: :filled, color: Palette.ink_fill()},
+      [UI.symbol("event", size: 18, color: Palette.on_ink())]
     )
   end
 
@@ -291,7 +293,7 @@ defmodule Kati.Screens.QuickAdd do
   # drawing's on one row. `render: :box` is the filled rect — the original node
   # — so the line is back to a solid 1dp of 30% bronze.
   @doc false
-  def rule, do: MishkaSeparator.separator(color: 0x4DB09A72, thickness: 1, render: :box)
+  def rule, do: MishkaSeparator.separator(color: Palette.cream_rule(), thickness: 1, render: :box)
 
   @doc false
   def fact_row(chips) do
@@ -305,12 +307,16 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   @doc false
+  # `0xA6FFFFFF` stays a literal: the only token carrying it is `lock_ink_65`,
+  # which is a lock-screen line over a photograph and does not follow the theme.
+  # The cream card's raised chip is `cream_raise`, and that is 0x99FFFFFF — a
+  # different colour, so taking it would move light mode. Reported, not guessed.
   def fact({icon, label}) do
     ~MOB"""
     <Row height={30} corner_radius={15} background={0xA6FFFFFF} padding_left={11} padding_right={11} align="center">
-      {Kati.UI.symbol(icon, size: 14, color: 0xFF96723C)}
+      {Kati.UI.symbol(icon, size: 14, color: Palette.gold_text())}
       <Spacer size={6} />
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+      <Text text={label} text_size={11.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
     </Row>
     """
   end
@@ -323,13 +329,13 @@ defmodule Kati.Screens.QuickAdd do
 
     ~MOB"""
     <Row fill_width={true} align="center">
-      {Kati.UI.symbol("info", size: 15, color: 0xFFB09A72)}
+      {Kati.UI.symbol("info", size: 15, color: Palette.cream_meta())}
       <Spacer size={7} />
-      <Text text={lead} text_size={11.5} text_color={0xFF8A7B60} max_lines={1} />
+      <Text text={lead} text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
       <Spacer size={4} />
       <Text text={subject} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       <Spacer size={4} />
-      <Text text={tail} text_size={11.5} text_color={0xFF8A7B60} max_lines={1} />
+      <Text text={tail} text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
     </Row>
     """
   end
@@ -361,10 +367,10 @@ defmodule Kati.Screens.QuickAdd do
   @doc false
   def kind({icon, label, true}) do
     ~MOB"""
-    <Row height={34} corner_radius={17} background={Kati.Theme.ink()} padding_left={13} padding_right={13} align="center">
-      {Kati.UI.symbol(icon, size: 16, color: 0xFFFBFAF8)}
+    <Row height={34} corner_radius={17} background={Palette.ink_fill()} padding_left={13} padding_right={13} align="center">
+      {Kati.UI.symbol(icon, size: 16, color: Palette.on_ink())}
       <Spacer size={7} />
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
+      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
     </Row>
     """
   end
@@ -374,15 +380,15 @@ defmodule Kati.Screens.QuickAdd do
     <Row
       height={34}
       corner_radius={17}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={13}
       padding_right={13}
       align="center"
     >
-      {Kati.UI.symbol(icon, size: 16, color: 0xFF8A8479)}
+      {Kati.UI.symbol(icon, size: 16, color: Palette.sub())}
       <Spacer size={7} />
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
     </Row>
     """
   end
@@ -397,11 +403,11 @@ defmodule Kati.Screens.QuickAdd do
         weight={1.0}
         height={52}
         corner_radius={26}
-        background={Kati.Theme.ink()}
+        background={Palette.ink_fill()}
         shadow="0 12 24 -12 #D91A1917"
         align="center"
       >
-        <Text text={draft.cta} text_size={14} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+        <Text text={draft.cta} text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
       </Box>
       <Spacer size={10} />
       {Kati.Screens.QuickAdd.mic()}
@@ -433,7 +439,7 @@ defmodule Kati.Screens.QuickAdd do
         size: 52,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_card_soft()
       ],
       [UI.symbol("mic", size: 21)]

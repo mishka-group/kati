@@ -20,17 +20,25 @@ defmodule Kati.UI.Eyebrow do
   @doc "A section label whose dash is muted, for a section that is not new."
   @spec quiet(String.t()) :: term()
   def quiet(label) do
+    # `rail_idle` is the only token whose light value is `0xFFC4BDB3`, and its
+    # meaning transfers exactly: the palette calls it "the rail beside a timeline
+    # row that is not now", and this dash is the same statement about a section.
+    # Both are the drawing saying *present, but not now* in the same grey, and
+    # dark draws that grey as `#4A453F` on screen 28.
+    dash = Kati.Theme.Palette.rail_idle()
+    label_color = Kati.Theme.Palette.eyebrow()
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={label_color}
         />
       </Row>
       <Spacer size={11} />

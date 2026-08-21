@@ -96,11 +96,21 @@ defmodule Kati.App do
     {:ok, _} = Kati.Supervisor.start_link()
     trace("supervisor")
 
-    # Before any screen renders: a `<MishkaChip />` in ~MOB markup expands only
-    # if its tag is in the composite registry, and an unregistered tag renders
-    # as NOTHING rather than raising.
-    Kati.Components.register_all()
-    trace("components")
+    # `Kati.Components.register_all/0` is deliberately NOT called here.
+    #
+    # It costs ~245ms of cold start on the emulator — measured, phase-traced —
+    # because it must `Code.ensure_loaded?/1` all 74 vendored components to ask
+    # what they export. That is 11% of a 2136ms median launch.
+    #
+    # And it buys nothing today: every component is used by DIRECT FUNCTION
+    # CALL, and zero `<MishkaX />` composite tags appear in any markup. The
+    # registry only matters for tag expansion.
+    #
+    # The hazard in leaving it out is real — an unregistered tag renders as
+    # NOTHING rather than raising — so it is a TEST rather than a comment:
+    # `Kati.ComponentsTest` fails if markup ever uses a composite tag while
+    # boot does not register. Whoever writes the first `<MishkaX />` gets a red
+    # suite naming this line, not a blank screen.
 
     # Ingest whatever KatiCalendarReader published. Before the permission is
     # granted this is a no-op returning {:ok, :no_data} — the normal state, not

@@ -30,6 +30,7 @@ defmodule Kati.Screens.UpNext do
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
   alias Kati.Screens.UpNext.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -93,7 +94,7 @@ defmodule Kati.Screens.UpNext do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button()
       ],
       [Kati.UI.symbol("tune", size: 21)]
@@ -106,7 +107,7 @@ defmodule Kati.Screens.UpNext do
     <Column fill_width={true}>
       <Text text="Up next" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text={q.subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={q.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -124,12 +125,12 @@ defmodule Kati.Screens.UpNext do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={12}
       >
-        <Box fill_width={true} height={170} corner_radius={15} background={0xFFE4E0D9}>
+        <Box fill_width={true} height={170} corner_radius={15} background={Palette.placeholder()}>
           {Kati.Screens.UpNext.hero_art()}
           <Box fill_width={true} fill_height={true} align="bottom">
             <Box fill_width={true} height={70} gradient="to_top #C7141210 #00141210" />
@@ -137,12 +138,12 @@ defmodule Kati.Screens.UpNext do
           <Box fill_width={true} fill_height={true} align="bottom">
             <Row fill_width={true} align="bottom" padding_left={14} padding_right={12} padding_bottom={12}>
               <Column weight={1.0}>
-                <Text text={h.title} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={0xFFFBFAF8} max_lines={1} />
+                <Text text={h.title} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={Palette.on_media()} max_lines={1} />
                 <Spacer size={4} />
-                <Text text={h.meta} font_family="mono" text_size={10.5} text_color={0xBFFBFAF8} max_lines={1} />
+                <Text text={h.meta} font_family="mono" text_size={10.5} text_color={Palette.on_media_meta()} max_lines={1} />
               </Column>
               <Spacer size={8} />
-              {Kati.Screens.UpNext.play_disc(44, 24, 0xFFFBFAF8)}
+              {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media())}
             </Row>
           </Box>
           <Box fill_width={true} fill_height={true} align="bottom">
@@ -171,9 +172,9 @@ defmodule Kati.Screens.UpNext do
   @doc false
   def progress(fraction) do
     ~MOB"""
-    <Box fill_width={true} height={3} background={0x40FBFAF8}>
+    <Box fill_width={true} height={3} background={Palette.on_media_track()}>
       <Row fill_width={true}>
-        <Box weight={fraction} height={3} background={0xFFE8823C} />
+        <Box weight={fraction} height={3} background={Palette.accent()} />
         <Spacer weight={1.0 - fraction} />
       </Row>
     </Box>
@@ -196,7 +197,7 @@ defmodule Kati.Screens.UpNext do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={13}
@@ -210,10 +211,10 @@ defmodule Kati.Screens.UpNext do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.UpNext.play_disc(34, 19, 0xFFEFECE7)}
+        {Kati.Screens.UpNext.play_disc(34, 19, Palette.paper())}
       </Row>
       <Spacer size={9} />
     </Column>
@@ -232,6 +233,22 @@ defmodule Kati.Screens.UpNext do
   and the glyph is the same `Kati.UI.symbol/2` Text as before, wrapped in a
   Row that hugs it (a Compose Row takes its content's size unless told to
   fill), centred in a Box of the same declared size.
+
+  ## The two grounds are not the same ground
+
+  The hero's disc is handed `Palette.on_media/0` and the ready row's is handed
+  `Palette.paper/0`, and only one of them moves with the mode: the hero disc
+  sits on a **photograph**, which does not get darker when the app does, so it
+  stays `#FBFAF8` in dark; the ready row's sits on a card, so it sinks to the
+  page colour.
+
+  The glyph is `Kati.UI.symbol/2`'s default colour, which is
+  `Kati.Theme.ink/0` and is pinned light — `#1A1917` in both modes. That is
+  right for the hero disc and wrong for the ready row's, where a dark glyph
+  will land on a `#121110` disc. Fixing it belongs in `Kati.UI.symbol/2`
+  (67 call sites lean on that default); when it moves, this function needs the
+  hero's glyph pinned back to `Palette.ink(:light)`, because the photograph
+  underneath it never inverted.
   """
   @spec play_disc(number(), number(), non_neg_integer()) :: map()
   def play_disc(size, glyph, background) do
@@ -245,7 +262,7 @@ defmodule Kati.Screens.UpNext do
   def thumb(row) do
     case Sample.poster(row.seed) do
       nil ->
-        ~MOB"<Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={40} height={56} corner_radius={8} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -274,7 +291,7 @@ defmodule Kati.Screens.UpNext do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={0xFFF4F1EC}
+        background={Palette.card_settled()}
         corner_radius={18}
         padding_left={13}
         padding_right={13}
@@ -285,9 +302,9 @@ defmodule Kati.Screens.UpNext do
         {Kati.Screens.UpNext.cold_thumb(row)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.UpNext.drop_pill(row.action)}
@@ -316,8 +333,8 @@ defmodule Kati.Screens.UpNext do
   def drop_pill(label) do
     MishkaPill.pill(
       label: label,
-      background: 0xFFE4E0D9,
-      color: 0xFF5C574F,
+      background: Palette.placeholder(),
+      color: Palette.ink_soft(),
       corner_radius: 15,
       height: 30,
       padding: 0,
@@ -333,17 +350,24 @@ defmodule Kati.Screens.UpNext do
   # opacity prop on an Image node, so the same result is composited: 40% of the
   # row's own paper (#F4F1EC) laid over the picture is, to the pixel, the
   # picture at 60% against that paper.
+  #
+  # `on_media_ghost` is the only token whose light value is that 40% veil, and
+  # it is a `:media` colour — it does not move in dark. So in dark the veil is
+  # still 40% of the LIGHT paper while the row underneath it has sunk to
+  # `card_settled` (#161514), and the poster is toned toward white rather than
+  # toward the row. Right in light, approximate in dark; the exact answer would
+  # be a 0x66161514 the palette does not name.
   @doc false
   def cold_thumb(row) do
     case Sample.poster(row.seed) do
       nil ->
-        ~MOB"<Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={40} height={56} corner_radius={8} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
-        <Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9}>
+        <Box width={40} height={56} corner_radius={8} background={Palette.placeholder()}>
           <Image src={src} width={40} height={56} corner_radius={8} content_mode="fill" />
-          <Box width={40} height={56} corner_radius={8} background={0x66F4F1EC} />
+          <Box width={40} height={56} corner_radius={8} background={Palette.on_media_ghost()} />
         </Box>
         """
     end

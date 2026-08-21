@@ -85,7 +85,21 @@ defmodule Kati.Screens.Root do
       @root unquote(root)
 
       def mount(_params, _session, socket) do
-        Mob.Theme.set(Kati.Theme.light())
+        # This used to set the LIGHT palette outright, and the call is not
+        # written out here on purpose: a sweep for the forced-light bug greps
+        # for it, and a copy of the string inside the comment that fixed it is
+        # a false positive in every such sweep from now on.
+        #
+        # That call is what made dark mode impossible: it ran on EVERY mount, and
+        # a screen mounts on every root switch and every push, so whatever the
+        # user had chosen was overwritten with light within one navigation.
+        # `Kati.Theme.Mode.put/1` kept storing :dark quite correctly and the app
+        # kept coming back light, with nothing anywhere saying why.
+        #
+        # `activate/0` is `Mob.Theme.set(Kati.Theme.current())` — the resolved
+        # answer, from the stored choice and the device. Every screen still gets
+        # a theme installed at mount; it is simply no longer always the same one.
+        Kati.Theme.activate()
 
         socket
         |> Mob.Socket.assign(:root, @root)
@@ -103,7 +117,12 @@ defmodule Kati.Screens.Root do
       def load(socket), do: socket
 
       def render(assigns) do
-        Kati.Shell.render(%{root: @root, mode: :light, content: content(assigns)})
+        # No `mode:` key. `Kati.Shell.render/1` defaults it to the mode that is
+        # actually installed, and a hardcoded `:light` here forced light chrome —
+        # a paper dock and a paper tab well — over a dark page for every root in
+        # the app. The key is still read, so a screen that is deliberately one
+        # side can still pin it; a root has no business doing so.
+        Kati.Shell.render(%{root: @root, content: content(assigns)})
       end
 
       # Root switching. `Mob.Socket.switch_tab/2` is inert for a hand-rolled

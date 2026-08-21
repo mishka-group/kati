@@ -41,6 +41,7 @@ defmodule Kati.Screens.Lists do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.Lists.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -78,14 +79,14 @@ defmodule Kati.Screens.Lists do
         <Column weight={1.0}>
           <Text text="Lists" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={l.subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={l.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={9} />
         <Box
           width={44}
           height={44}
           corner_radius={22}
-          background={Kati.Theme.card(:light)}
+          background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
           align="center"
           on_tap={tap}
@@ -114,7 +115,7 @@ defmodule Kati.Screens.Lists do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={13}
@@ -125,7 +126,7 @@ defmodule Kati.Screens.Lists do
         <Column weight={1.0}>
           <Text text={row.title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.count} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.count} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={14} />
         {Kati.Screens.Lists.badge(row.badge)}
@@ -160,7 +161,7 @@ defmodule Kati.Screens.Lists do
         width={38}
         height={54}
         corner_radius={7}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         shadow="0 3 8 -3 #801A1917"
         align="center"
       >
@@ -174,7 +175,7 @@ defmodule Kati.Screens.Lists do
   def tile_art(seed) do
     case Sample.poster(seed) do
       nil ->
-        ~MOB"<Box width={34} height={50} corner_radius={5} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={34} height={50} corner_radius={5} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -187,7 +188,7 @@ defmodule Kati.Screens.Lists do
   # that row with a chevron instead — the badge slot and the affordance slot
   # are the same slot.
   @doc false
-  def badge(nil), do: Kati.UI.symbol("chevron_right", size: 19, color: 0xFFC4BDB3)
+  def badge(nil), do: Kati.UI.symbol("chevron_right", size: 19, color: Palette.rail_idle())
 
   def badge(label) do
     # Mishka's Pill. A pill and not a chip: `RANKED` / `SHARED` is a fact about
@@ -203,8 +204,8 @@ defmodule Kati.Screens.Lists do
     # own default and is what this Text already carried.
     MishkaPill.pill(
       label: label,
-      background: 0xFFFBF1DE,
-      color: 0xFF96723C,
+      background: Palette.cream(),
+      color: Palette.gold_text(),
       corner_radius: 11,
       height: 22,
       padding: 0,
@@ -223,7 +224,7 @@ defmodule Kati.Screens.Lists do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
@@ -247,9 +248,9 @@ defmodule Kati.Screens.Lists do
         <Spacer size={13} />
         <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
         <Spacer size={13} />
-        <Text text={row.count} font_family="mono" text_size={11.5} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={row.count} font_family="mono" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
         <Spacer size={13} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)}
+        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Lists.hairline(rule?)}
     </Column>
@@ -265,14 +266,18 @@ defmodule Kati.Screens.Lists do
   is the hand-rolled one key for key — `width: 30, height: 30, align: :center,
   corner_radius: 9, background: #EFECE7` — around the same `Kati.UI.symbol/2`
   Text. `variant: :filled` with a raw `color` is what puts the design's own
-  value in the fill rather than a theme token, and the glyph keeps the colour
-  it was handed, because a caller-supplied icon always does.
+  value in the fill rather than one of Mishka's variant tokens, and the glyph
+  keeps the colour it was handed, because a caller-supplied icon always does.
+
+  That fill is `Kati.Theme.Palette.paper/0` rather than the literal now — the
+  page colour, which is `#EFECE7` in light and reads as a recess punched into
+  the card in dark.
   """
   @spec kept_icon(String.t()) :: map()
   def kept_icon(icon) do
     MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9],
-      [Kati.UI.symbol(icon, size: 17, color: 0xFF5C574F)]
+      [variant: :filled, color: Palette.paper(), size: 30, radius: 9],
+      [Kati.UI.symbol(icon, size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -285,7 +290,7 @@ defmodule Kati.Screens.Lists do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @impl true
   def handle_tap(:new_list, socket) do

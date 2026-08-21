@@ -52,7 +52,7 @@ defmodule Kati.Screens.Discover do
   alias Kati.Components.MishkaScrollArea
   alias Kati.Components.MishkaSeparator
   alias Kati.Screens.Discover.Sample
-  alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -129,14 +129,14 @@ defmodule Kati.Screens.Discover do
         <Column weight={1.0}>
           <Text text="Discover" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={f.subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={f.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={9} />
         <Box
           width={44}
           height={44}
           corner_radius={22}
-          background={Kati.Theme.card(:light)}
+          background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
           align="center"
         >
@@ -208,10 +208,10 @@ defmodule Kati.Screens.Discover do
       # The tag carries the label, so one handler serves every chip and a new
       # chip is a data change rather than a code change.
       on_toggle: String.to_atom("filter_" <> c.label),
-      color: Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F,
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft(),
       height: 32,
       corner_radius: 16,
       padding_x: 14,
@@ -232,7 +232,7 @@ defmodule Kati.Screens.Discover do
   def chip_count(nil, _selected), do: nil
 
   def chip_count(count, selected) do
-    fg = if selected, do: 0x99FBFAF8, else: 0x995C574F
+    fg = if selected, do: Palette.on_ink_count(), else: Palette.count_idle()
 
     ~MOB"""
     <Text text={count} font_family="mono" text_size={10.5} text_color={fg} max_lines={1} />
@@ -306,13 +306,13 @@ defmodule Kati.Screens.Discover do
   def pick(p) do
     ~MOB"""
     <Column weight={1.0}>
-      <Box fill_width={true} height={158} corner_radius={13} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box fill_width={true} height={158} corner_radius={13} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.Discover.poster(p.seed)}
       </Box>
       <Spacer size={9} />
       <Text text={p.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
       <Spacer size={3} />
-      <Text text={p.match} font_family="mono" text_size={10.5} text_color={0xFFE8823C} max_lines={1} />
+      <Text text={p.match} font_family="mono" text_size={10.5} text_color={Palette.accent()} max_lines={1} />
     </Column>
     """
   end
@@ -338,7 +338,7 @@ defmodule Kati.Screens.Discover do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -365,7 +365,7 @@ defmodule Kati.Screens.Discover do
         <Column weight={1.0}>
           <Text text={p.name} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={p.line} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={p.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Discover.person_mark(p.new?)}
@@ -388,12 +388,12 @@ defmodule Kati.Screens.Discover do
   # rather than tinting it.
   @doc false
   def face(seed) do
-    MishkaAvatar.avatar(src: Sample.image(seed), size: 38, background: 0xFFE4E0D9)
+    MishkaAvatar.avatar(src: Sample.image(seed), size: 38, background: Palette.placeholder())
   end
 
   @doc false
-  def person_mark(true), do: ~MOB"<Box width={8} height={8} corner_radius={4} background={0xFFE8823C} />"
-  def person_mark(false), do: Kati.UI.symbol("check", size: 18, color: 0xFFC4BDB3)
+  def person_mark(true), do: ~MOB"<Box width={8} height={8} corner_radius={4} background={Palette.accent()} />"
+  def person_mark(false), do: Kati.UI.symbol("check", size: 18, color: Palette.rail_idle())
 
   @doc false
   def leaving(f, scheduled) do
@@ -413,7 +413,7 @@ defmodule Kati.Screens.Discover do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={13}
@@ -427,7 +427,7 @@ defmodule Kati.Screens.Discover do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.line} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.Discover.leaving_action(row, done?)}
@@ -445,13 +445,13 @@ defmodule Kati.Screens.Discover do
     <Row
       height={30}
       corner_radius={15}
-      background={Kati.Theme.ink()}
+      background={Palette.ink_fill()}
       padding_left={13}
       padding_right={13}
       align="center"
       on_tap={tap}
     >
-      <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
+      <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
     </Row>
     """
   end
@@ -463,13 +463,13 @@ defmodule Kati.Screens.Discover do
     <Row
       height={30}
       corner_radius={15}
-      background={0xFFE4E0D9}
+      background={Palette.placeholder()}
       padding_left={13}
       padding_right={13}
       align="center"
       on_tap={tap}
     >
-      <Text text="Scheduled" text_size={11.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+      <Text text="Scheduled" text_size={11.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
     </Row>
     """
   end
@@ -478,7 +478,7 @@ defmodule Kati.Screens.Discover do
   def thumb(seed) do
     case Sample.image(seed) do
       nil ->
-        ~MOB"<Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={40} height={56} corner_radius={8} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -495,7 +495,7 @@ defmodule Kati.Screens.Discover do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @impl true
   def handle_tap(tag, socket) do

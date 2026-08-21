@@ -52,13 +52,14 @@ defmodule Kati.Screens.Search do
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
   alias Kati.Screens.Search.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   # `filter` is "All" and `recent` is nil because that is the state the drawing
   # is in: the All chip filled, all three groups on the page, and no recent
   # search picked out of the shelf.
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, results: Sample.results(), filter: "All", recent: nil)}
   end
 
@@ -118,7 +119,7 @@ defmodule Kati.Screens.Search do
         <Row
           height={44}
           corner_radius={22}
-          background={Kati.Theme.card(:light)}
+          background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
           padding_left={12}
           padding_right={16}
@@ -146,9 +147,9 @@ defmodule Kati.Screens.Search do
         fill_width={true}
         height={52}
         corner_radius={26}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         border_width={2}
-        border_color={0xFF1A1917}
+        border_color={Palette.ink()}
         shadow="0 8 18 -14 #991A1917"
         padding_left={18}
         padding_right={18}
@@ -158,9 +159,9 @@ defmodule Kati.Screens.Search do
         <Spacer size={11} />
         <Text text={results.query} text_size={14.5} font_weight="medium" text_color={:on_surface} max_lines={1} />
         <Spacer size={2} />
-        <Box width={2} height={19} background={0xFFE8823C} />
+        <Box width={2} height={19} background={Palette.accent()} />
         <Spacer weight={1.0} />
-        {Kati.UI.symbol("cancel", size: 19, color: 0xFFC4BDB3, fill: true)}
+        {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -224,16 +225,16 @@ defmodule Kati.Screens.Search do
   """
   def chip(label, count, on?) do
     # The tag carries the label, so one handler serves every chip.
-    count_color = if on?, do: 0x99FBFAF8, else: 0x995C574F
+    count_color = if on?, do: Palette.on_ink_count(), else: Palette.count_idle()
 
     MishkaChip.chip(
       label: label,
       checked: on?,
       on_toggle: {self(), String.to_atom("filter_" <> label)},
-      color: Kati.Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Kati.Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F,
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft(),
       height: 32,
       padding_x: 14,
       padding_y: 0,
@@ -305,14 +306,14 @@ defmodule Kati.Screens.Search do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -336,7 +337,7 @@ defmodule Kati.Screens.Search do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={13}
@@ -350,10 +351,10 @@ defmodule Kati.Screens.Search do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)}
+        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>
       <Spacer size={9} />
     </Column>
@@ -364,7 +365,7 @@ defmodule Kati.Screens.Search do
   def thumb(row) do
     case Kati.Design.Images.poster(row.seed) do
       nil ->
-        ~MOB"<Box width={36} height={51} corner_radius={7} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={36} height={51} corner_radius={7} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -381,7 +382,7 @@ defmodule Kati.Screens.Search do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -404,12 +405,12 @@ defmodule Kati.Screens.Search do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column width={44}>
-          <Text text={row.date} font_family="mono" text_size={10} letter_spacing={0.06} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.date} font_family="mono" text_size={10} letter_spacing={0.06} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         <Text text={row.title} text_size={12.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
         <Spacer size={13} />
-        <Text text={row.time} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={row.time} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       </Row>
       {Kati.Screens.Search.hairline(rule?)}
     </Column>
@@ -439,7 +440,7 @@ defmodule Kati.Screens.Search do
   # `color` is passed rather than left to the component's `:border` default:
   # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   # The note card carries no shadow in the drawing — cream is the ground for
   # the user's own words, and lifting it would make it compete with the hits.
@@ -450,27 +451,27 @@ defmodule Kati.Screens.Search do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={0xFFFBF1DE} corner_radius={20} padding={16}>
+      <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
         <Text
           text={note.eyebrow}
           font_family="mono"
           text_size={10}
           letter_spacing={0.14}
-          text_color={0xFFB09A72}
+          text_color={Palette.cream_meta()}
           max_lines={1}
         />
         <Spacer size={8} />
         <Row fill_width={true} align="center">
-          <Text text={note.lead} text_size={13} line_height={1.55} text_color={0xFF4A4238} max_lines={1} />
+          <Text text={note.lead} text_size={13} line_height={1.55} text_color={Palette.cream_body()} max_lines={1} />
           <Spacer size={4} />
-          <Row background={0x47E8823C} align="center">
-            <Text text={note.match} text_size={13} line_height={1.55} text_color={0xFF4A4238} max_lines={1} />
+          <Row background={Palette.accent_fill()} align="center">
+            <Text text={note.match} text_size={13} line_height={1.55} text_color={Palette.cream_body()} max_lines={1} />
           </Row>
           <Spacer size={4} />
-          <Text text={inline} text_size={13} line_height={1.55} text_color={0xFF4A4238} max_lines={1} />
+          <Text text={inline} text_size={13} line_height={1.55} text_color={Palette.cream_body()} max_lines={1} />
         </Row>
         {Kati.Screens.Search.note_leading()}
-        <Text text={rest} text_size={13} line_height={1.55} text_color={0xFF4A4238} />
+        <Text text={rest} text_size={13} line_height={1.55} text_color={Palette.cream_body()} />
       </Column>
       <Spacer size={24} />
     </Column>
@@ -536,9 +537,9 @@ defmodule Kati.Screens.Search do
   @doc false
   def recent_chip(label, on?) do
     tap = {self(), String.to_atom("recent_" <> label)}
-    background = if on?, do: Kati.Theme.ink(), else: 0xFFF4F1EC
-    color = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
-    icon = if on?, do: 0x99FBFAF8, else: 0xFFA9A29A
+    background = if on?, do: Palette.ink_fill(), else: Palette.card_settled()
+    color = if on?, do: Palette.on_ink(), else: Palette.ink_soft()
+    icon = if on?, do: Palette.on_ink_count(), else: Palette.muted()
 
     ~MOB"""
     <Row height={30} corner_radius={15} background={background} padding_left={12} padding_right={12} align="center" on_tap={tap}>

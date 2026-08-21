@@ -68,6 +68,7 @@ defmodule Kati.Screens.Day do
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Theme.Palette
 
   # The drawing's gap BETWEEN LANES — `display:flex;gap:7px` on the split row.
   # Not to be confused with the 9pt `margin-bottom` that separates one lane row
@@ -154,7 +155,7 @@ defmodule Kati.Screens.Day do
       <Spacer size={16} />
       <Text text={heading} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text={subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -230,10 +231,10 @@ defmodule Kati.Screens.Day do
       # The tag carries the label, so one handler serves every chip and a
       # fourth kind is a change to `SampleDay.chips/0` alone.
       on_toggle: String.to_atom("filter_" <> label),
-      color: Kati.Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Kati.Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F,
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft(),
       height: 30,
       corner_radius: 15,
       padding_x: 13,
@@ -250,7 +251,7 @@ defmodule Kati.Screens.Day do
   # its own, so it stays a shade of the chip it sits on in either state.
   @doc false
   def chip_count(count, on?) do
-    fg = if on?, do: 0x99FBFAF8, else: 0x8C5C574F
+    fg = if on?, do: Palette.on_ink_count(), else: Palette.count_idle_faint()
 
     ~MOB"""
     <Text text={"#{count}"} font_family="mono" text_size={10.5} text_color={fg} max_lines={1} />
@@ -297,18 +298,18 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Row fill_width={true} align="top">
       <Column width={44} padding_top={12}>
-        <Text text="ALL" font_family="mono" text_size={10} letter_spacing={0.08} text_color={0xFFB3ACA2} />
-        <Text text="DAY" font_family="mono" text_size={10} letter_spacing={0.08} text_color={0xFFB3ACA2} />
+        <Text text="ALL" font_family="mono" text_size={10} letter_spacing={0.08} text_color={Palette.tertiary()} />
+        <Text text="DAY" font_family="mono" text_size={10} letter_spacing={0.08} text_color={Palette.tertiary()} />
       </Column>
       <Spacer size={12} />
       <Box weight={1.0}>
-        <Row fill_width={true} background={0xFFFBF1DE} corner_radius={16} padding_left={13} padding_right={13} padding_top={11} padding_bottom={11} align="center">
+        <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding_left={13} padding_right={13} padding_top={11} padding_bottom={11} align="center">
           {Kati.Screens.Day.thumb(item)}
           <Spacer size={11} />
           <Column weight={1.0}>
             <Text text={item.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
             <Spacer size={3} />
-            <Text text={item.meta} font_family="mono" text_size={10.5} text_color={0xFFB09A72} max_lines={1} />
+            <Text text={item.meta} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
           </Column>
         </Row>
       </Box>
@@ -321,7 +322,7 @@ defmodule Kati.Screens.Day do
   # band's cream `#EADFC6` against the group row's `#E4E0D9`, which are the two
   # colours the drawings give the two empty rectangles.
   @doc false
-  def thumb(item), do: Kati.Screens.Day.thumb(item, 0xFFEADFC6)
+  def thumb(item), do: Kati.Screens.Day.thumb(item, Palette.poster_on_cream())
 
   @doc false
   def thumb(item, placeholder) do
@@ -347,18 +348,18 @@ defmodule Kati.Screens.Day do
     <Column fill_width={true} padding_left={21} padding_right={21}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={11}>
-          <Text text={m.at} font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={m.at} font_family="mono" text_size={12} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
-          <Row fill_width={true} background={0xFFF4F1EC} corner_radius={16} padding_left={13} padding_right={13} padding_top={10} padding_bottom={10} align="center">
+          <Row fill_width={true} background={Palette.card_settled()} corner_radius={16} padding_left={13} padding_right={13} padding_top={10} padding_bottom={10} align="center">
             {Kati.Screens.Day.money_badge()}
             <Spacer size={11} />
             <Text text={m.label} text_size={13} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
             <Spacer size={11} />
-            <Text text={m.total} font_family="mono" text_size={11.5} text_color={0xFF5C574F} max_lines={1} />
+            <Text text={m.total} font_family="mono" text_size={11.5} text_color={Palette.ink_soft()} max_lines={1} />
             <Spacer size={11} />
-            {Kati.UI.symbol("expand_more", size: 17, color: 0xFFB3ACA2)}
+            {Kati.UI.symbol("expand_more", size: 17, color: Palette.tertiary())}
           </Row>
         </Box>
       </Row>
@@ -382,8 +383,8 @@ defmodule Kati.Screens.Day do
   @spec money_badge() :: map()
   def money_badge do
     MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: 0xFFE4E0D9, size: 24, radius: 7],
-      [Kati.UI.symbol("payments", size: 14, color: 0xFF5C574F)]
+      [variant: :filled, color: Palette.placeholder(), size: 24, radius: 7],
+      [Kati.UI.symbol("payments", size: 14, color: Palette.ink_soft())]
     )
   end
 
@@ -497,14 +498,14 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Row align="center" padding_left={56} padding_bottom={7}>
-      {Kati.UI.symbol("call_split", size: 14, color: 0xFFE8823C)}
+      {Kati.UI.symbol("call_split", size: 14, color: Palette.accent())}
       <Spacer size={6} />
       <Text
         text={String.upcase("#{total} at once")}
         font_family="mono"
         text_size={10}
         letter_spacing={0.12}
-        text_color={0xFFC08A4C}
+        text_color={Palette.gold_label()}
         max_lines={1}
       />
     </Row>
@@ -548,7 +549,7 @@ defmodule Kati.Screens.Day do
   def gutter(cluster) do
     top = gutter_top(cluster)
     strong? = grouped?(cluster)
-    colour = if strong?, do: Kati.Theme.ink(), else: 0xFFA9A29A
+    colour = if strong?, do: Palette.ink(), else: Palette.muted()
     weight = if strong?, do: "medium", else: "regular"
 
     ~MOB"""
@@ -616,7 +617,7 @@ defmodule Kati.Screens.Day do
 
     [
       ~MOB"""
-      <Box width={44} height={55} corner_radius={16} background={0xFFE4E0D9} align="center">
+      <Box width={44} height={55} corner_radius={16} background={Palette.placeholder()} align="center">
         <Column>
           <Row align="center">
             <Spacer weight={1.0} />
@@ -626,7 +627,7 @@ defmodule Kati.Screens.Day do
           <Spacer size={2} />
           <Row align="center">
             <Spacer weight={1.0} />
-            <Text text="MORE" font_family="mono" text_size={8.5} letter_spacing={0.08} text_color={0xFF8A8479} max_lines={1} />
+            <Text text="MORE" font_family="mono" text_size={8.5} letter_spacing={0.08} text_color={Palette.sub()} max_lines={1} />
             <Spacer weight={1.0} />
           </Row>
         </Column>
@@ -671,7 +672,7 @@ defmodule Kati.Screens.Day do
       Map.get(event, :done) == true or Map.get(event, :todo) == true or
         Map.get(event, :flat) == true
 
-    background = if settled?, do: 0xFFF4F1EC, else: Kati.Theme.card(:light)
+    background = if settled?, do: Palette.card_settled(), else: Palette.card()
     shadow = if settled?, do: nil, else: "0 1 2 0 #0A1A1917 | 0 10 20 -18 #B31A1917"
 
     # 11pt of air above and below a rail-led card, 10 above and below one led
@@ -718,7 +719,7 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Column fill_width={true}>
       <Box fill_width={true} height={gap} />
-      <Text text={meta} font_family="mono" text_size={10} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={meta} font_family="mono" text_size={10} text_color={Palette.muted()} max_lines={1} />
     </Column>
     """
   end
@@ -743,10 +744,10 @@ defmodule Kati.Screens.Day do
       colour =
         Map.get(event, :rail) ||
           case Map.get(event, :kind) do
-            :habit -> 0xFF4E9A73
-            :money -> 0xFFB08E55
-            :air_date -> 0xFFE8823C
-            _ -> Kati.Theme.ink()
+            :habit -> Palette.green()
+            :money -> Palette.bronze()
+            :air_date -> Palette.accent()
+            _ -> Palette.ink()
           end
 
       height = if meta in [nil, ""], do: 18, else: 34
@@ -771,7 +772,7 @@ defmodule Kati.Screens.Day do
       nil ->
         ~MOB"""
         <Row align="center">
-          <Box width={24} height={34} corner_radius={5} background={0xFFE4E0D9} />
+          <Box width={24} height={34} corner_radius={5} background={Palette.placeholder()} />
           <Spacer size={11} />
         </Row>
         """
@@ -830,20 +831,20 @@ defmodule Kati.Screens.Day do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
         padding={14}
       >
         <Row fill_width={true} on_tap={tap} align="center">
-          <Box width={3} height={48} corner_radius={2} background={0xFFE8823C} />
+          <Box width={3} height={48} corner_radius={2} background={Palette.accent()} />
           <Spacer size={12} />
           {Kati.Screens.Day.poster_stack(members)}
           <Spacer size={4} />
           <Column weight={1.0}>
             <Text text={title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
             <Spacer size={4} />
-            <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFF8A8479} max_lines={1} />
+            <Text text={meta} font_family="mono" text_size={10.5} text_color={Palette.sub()} max_lines={1} />
           </Column>
           <Spacer size={12} />
           {Kati.Screens.Day.chevron_disc(open?)}
@@ -885,7 +886,8 @@ defmodule Kati.Screens.Day do
   # pixel row of a 1dp rule lands at ~69% coverage — a hairline lighter than
   # the drawn one.
   @doc false
-  def group_rule, do: MishkaSeparator.separator(color: 0x141A1917, thickness: 1, render: :box)
+  def group_rule,
+    do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
 
   @doc """
   One member of an open group.
@@ -901,7 +903,7 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Row fill_width={true} align="center" padding_top={9} padding_bottom={9}>
-      {Kati.Screens.Day.thumb(member, 0xFFE4E0D9)}
+      {Kati.Screens.Day.thumb(member, Palette.placeholder())}
       <Spacer size={11} />
       <Column weight={1.0}>
         <Text text={title} text_size={13} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
@@ -919,7 +921,7 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Column fill_width={true}>
       <Box fill_width={true} height={3} />
-      <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
     </Column>
     """
   end
@@ -934,7 +936,7 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Row align="center">
       <Spacer size={11} />
-      <Text text={label} font_family="mono" text_size={11} text_color={0xFF5C574F} max_lines={1} />
+      <Text text={label} font_family="mono" text_size={11} text_color={Palette.ink_soft()} max_lines={1} />
     </Row>
     """
   end
@@ -965,7 +967,7 @@ defmodule Kati.Screens.Day do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button()
       ],
       [Kati.UI.symbol("density_medium", size: 21)]
@@ -988,7 +990,7 @@ defmodule Kati.Screens.Day do
   @spec chevron_disc(boolean()) :: map()
   def chevron_disc(open?) do
     MishkaActionIcon.action_icon(
-      [size: 26, shape: :circle, variant: :filled, background: 0xFFEFECE7],
+      [size: 26, shape: :circle, variant: :filled, background: Palette.paper()],
       [Kati.Screens.Day.chevron(open?)]
     )
   end
@@ -1000,12 +1002,12 @@ defmodule Kati.Screens.Day do
   # glyph that is this one upside down is not the trade. Fence K-16 gave the
   # bridge `rotate` instead.
   @doc false
-  def chevron(false), do: Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)
+  def chevron(false), do: Kati.UI.symbol("expand_more", size: 17, color: Palette.ink_soft())
 
   def chevron(true) do
     ~MOB"""
     <Box width={17} height={17} rotate={180.0} align="center">
-      {Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)}
+      {Kati.UI.symbol("expand_more", size: 17, color: Palette.ink_soft())}
     </Box>
     """
   end
@@ -1039,7 +1041,7 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Row padding_left={offset}>
-      <Box width={34} height={48} corner_radius={7} background={Kati.Theme.card(:light)} shadow="0 3 8 -3 #801A1917" align="center">
+      <Box width={34} height={48} corner_radius={7} background={Palette.card()} shadow="0 3 8 -3 #801A1917" align="center">
         {Kati.Screens.Day.stack_art(src)}
       </Box>
     </Row>
@@ -1047,7 +1049,8 @@ defmodule Kati.Screens.Day do
   end
 
   @doc false
-  def stack_art(nil), do: ~MOB"<Box width={30} height={44} corner_radius={5} background={0xFFE4E0D9} />"
+  def stack_art(nil),
+    do: ~MOB"<Box width={30} height={44} corner_radius={5} background={Palette.placeholder()} />"
 
   def stack_art(src) do
     ~MOB"""
@@ -1059,9 +1062,9 @@ defmodule Kati.Screens.Day do
   def stack_count(count, offset) do
     ~MOB"""
     <Row padding_left={offset}>
-      <Box width={30} height={48} corner_radius={7} background={Kati.Theme.card(:light)} align="center">
-        <Box width={26} height={44} corner_radius={5} background={Kati.Theme.ink()} align="center">
-          <Text text={count} font_family="mono" text_size={11} text_color={0xFFFBFAF8} max_lines={1} />
+      <Box width={30} height={48} corner_radius={7} background={Palette.card()} align="center">
+        <Box width={26} height={44} corner_radius={5} background={Palette.ink()} align="center">
+          <Text text={count} font_family="mono" text_size={11} text_color={Palette.on_ink()} max_lines={1} />
         </Box>
       </Box>
     </Row>
@@ -1083,7 +1086,7 @@ defmodule Kati.Screens.Day do
     tap = {self(), String.to_atom("todo_" <> to_string(event.id))}
     done? = Map.get(event, :done) == true
     icon = if done?, do: "check_circle", else: "radio_button_unchecked"
-    ink = if done?, do: 0xFF4E9A73, else: 0xFFB3ACA2
+    ink = if done?, do: Palette.green(), else: Palette.tertiary()
 
     ~MOB"""
     <Row align="center" on_tap={tap}>
@@ -1105,7 +1108,7 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Row align="center">
       <Spacer size={11} />
-      {Kati.UI.symbol("check_circle", size: 19, color: 0xFF4E9A73, fill: true)}
+      {Kati.UI.symbol("check_circle", size: 19, color: Palette.green(), fill: true)}
     </Row>
     """
   end

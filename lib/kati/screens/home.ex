@@ -26,6 +26,7 @@ defmodule Kati.Screens.Home do
   alias Kati.Components.MishkaProgress
   alias Kati.Components.MishkaSeparator
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -66,7 +67,7 @@ defmodule Kati.Screens.Home do
           font_family="mono"
           text_size={11}
           letter_spacing={0.14}
-          text_color={0xFFA9A29A}
+          text_color={Palette.muted()}
         />
         <Spacer size={7} />
         <Text
@@ -86,7 +87,7 @@ defmodule Kati.Screens.Home do
     """
   end
 
-  # A 44px disc. The unread dot is 8px of #E8823C with a 2px paper-coloured
+  # A 44px disc. The unread dot is 8px of #E8823C with a 2px card-coloured
   # ring, which is how the design keeps it legible against the icon behind it.
   # CSS grows that ring OUTWARD from the 8px box (content-box), so the drawn
   # badge measures 12; Compose draws a border INWARD, so the box is stated as
@@ -111,7 +112,7 @@ defmodule Kati.Screens.Home do
   @doc false
   def disc(icon, badge?, tag) do
     tap = {self(), tag}
-    card = Theme.card(:light)
+    card = Palette.card()
     shadow = Theme.shadow_button()
 
     ~MOB"""
@@ -133,9 +134,9 @@ defmodule Kati.Screens.Home do
           width={12}
           height={12}
           corner_radius={6}
-          background={0xFFE8823C}
+          background={Palette.accent()}
           border_width={2}
-          border_color={0xFFFBFAF8}
+          border_color={Palette.card()}
         />
       </Column>
     </Box>
@@ -145,7 +146,7 @@ defmodule Kati.Screens.Home do
   @doc false
   def search do
     tap = {self(), :open_search}
-    card = Theme.card(:light)
+    card = Palette.card()
     shadow = Theme.shadow_search()
 
     ~MOB"""
@@ -161,12 +162,12 @@ defmodule Kati.Screens.Home do
       on_tap={tap}
     >
       <Row fill_width={true} fill_height={true} align="center">
-        {UI.symbol("search", size: 20, color: 0xFFA9A29A)}
+        {UI.symbol("search", size: 20, color: Palette.muted())}
         <Spacer size={11} />
         <Text
           text="Search films, shows, events…"
           text_size={14.5}
-          text_color={0xFFA9A29A}
+          text_color={Palette.muted()}
           weight={1.0}
           max_lines={1}
         />
@@ -182,13 +183,13 @@ defmodule Kati.Screens.Home do
   @doc false
   def hero do
     tap = {self(), :open_inbox}
-    ink = Theme.ink()
+    fill = Palette.ink_fill()
 
     ~MOB"""
     <Column fill_width={true}>
     <Box
       fill_width={true}
-      background={0xFFFBF1DE}
+      background={Palette.cream()}
       corner_radius={24}
       shadow={Kati.Theme.shadow_hero()}
       padding_left={19}
@@ -207,7 +208,7 @@ defmodule Kati.Screens.Home do
               text="One premiere · two titles leave Lumen+ on Friday"
               text_size={13}
               line_height={1.45}
-              text_color={0xFF8A7B60}
+              text_color={Palette.cream_sub()}
             />
           </Column>
           <Spacer size={14} />
@@ -218,18 +219,18 @@ defmodule Kati.Screens.Home do
           <Row
             height={40}
             corner_radius={20}
-            background={ink}
+            background={fill}
             padding_left={18}
             padding_right={18}
             align="center"
             on_tap={tap}
           >
-            <Text text="Open inbox" text_size={13.5} font_weight="semibold" text_color={0xFFFBFAF8} />
+            <Text text="Open inbox" text_size={13.5} font_weight="semibold" text_color={Palette.on_ink()} />
             <Spacer size={7} />
-            {UI.symbol("arrow_forward", size: 17, color: 0xFFFBFAF8)}
+            {UI.symbol("arrow_forward", size: 17, color: Palette.on_ink())}
           </Row>
           <Spacer size={10} />
-          <Text text="last check 18:02" font_family="mono" text_size={11} text_color={0xFFB09A72} />
+          <Text text="last check 18:02" font_family="mono" text_size={11} text_color={Palette.cream_meta()} />
         </Row>
       </Column>
     </Box>
@@ -293,9 +294,9 @@ defmodule Kati.Screens.Home do
       height={64}
       offset_x={offset}
       corner_radius={9}
-      background={0xFFEADFC6}
+      background={Palette.poster_on_cream()}
       border_width={2}
-      border_color={0xFFFBF1DE}
+      border_color={Palette.cream()}
       shadow={shadow}
     >
       {Kati.Screens.Home.poster_image(src)}
@@ -328,14 +329,14 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def watch_card(title, meta, progress, seed) do
-    card = Theme.card(:light)
+    card = Palette.card()
     shadow = Theme.shadow_card()
 
     ~MOB"""
     <Box weight={1.0}>
       <Box fill_width={true} background={card} corner_radius={20} shadow={shadow} padding={11}>
         <Column fill_width={true}>
-          <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9}>
+          <Box fill_width={true} height={112} corner_radius={12} background={Palette.placeholder()}>
             {Kati.Screens.Home.still(seed)}
           </Box>
           <Spacer size={11} />
@@ -348,7 +349,7 @@ defmodule Kati.Screens.Home do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
           <Spacer size={10} />
           {Kati.Screens.Home.watch_bar(progress)}
         </Column>
@@ -383,8 +384,8 @@ defmodule Kati.Screens.Home do
       max: 1,
       height: 4,
       corner_radius: 2,
-      color: Theme.ink(),
-      track_color: 0xFFE7E3DC
+      color: Palette.ink(),
+      track_color: Palette.track()
     )
   end
 
@@ -409,9 +410,9 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Column fill_width={true}>
     <Row fill_width={true} align="top">
-      {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", 0xFFB08E55, :open_meals)}
+      {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", Palette.bronze(), :open_meals)}
       <Spacer size={9} />
-      {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", 0xFF4E9A73, :open_habits)}
+      {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", Palette.green(), :open_habits)}
       <Spacer size={9} />
       {Kati.Screens.Home.tile("tune", "Settings", nil, nil, :open_settings)}
     </Row>
@@ -422,7 +423,7 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def tile(icon, title, meta, dot, tag) do
-    card = Theme.card(:light)
+    card = Palette.card()
     shadow = Theme.shadow_card_soft()
     tap = {self(), tag}
 
@@ -471,7 +472,7 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Column>
       <Spacer size={3} />
-      <Text text={meta} font_family="mono" text_size={9.5} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={meta} font_family="mono" text_size={9.5} text_color={Palette.muted()} max_lines={1} />
     </Column>
     """
   end
@@ -499,7 +500,7 @@ defmodule Kati.Screens.Home do
   def rest_of_today([]), do: rest_of_today(drawn_rows())
 
   def rest_of_today(rows) do
-    card = Theme.card(:light)
+    card = Palette.card()
     last = length(rows) - 1
 
     ~MOB"""
@@ -515,14 +516,14 @@ defmodule Kati.Screens.Home do
 
   @doc false
   def timeline_row(row, rule?) do
-    accent = if row.now?, do: 0xFFE8823C, else: 0xFFC4BDB3
+    accent = if row.now?, do: Palette.accent(), else: Palette.rail_idle()
     icon = if row.now?, do: "notifications_active", else: "radio_button_unchecked"
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Box width={40}>
-          <Text text={row.time} font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.time} font_family="mono" text_size={12} text_color={Palette.muted()} max_lines={1} />
         </Box>
         <Spacer size={14} />
         <Box width={3} height={34} corner_radius={2} background={accent} />
@@ -537,10 +538,10 @@ defmodule Kati.Screens.Home do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={row.meta} text_size={12} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.meta} text_size={12} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={14} />
-        {UI.symbol(icon, size: 20, color: 0xFFC4BDB3)}
+        {UI.symbol(icon, size: 20, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Home.hairline(rule?)}
     </Column>
@@ -561,7 +562,7 @@ defmodule Kati.Screens.Home do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @doc "Today's date line and greeting, in the device's zone."
   def today do

@@ -50,6 +50,8 @@ defmodule Kati.UI.SettingsList do
 
   import Mob.Sigil
 
+  alias Kati.Theme.Palette
+
   @doc """
   The row the pushed back pill floats over.
 
@@ -125,7 +127,10 @@ defmodule Kati.UI.SettingsList do
     Kati.Components.MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: 0xFFFBFAF8,
+        # The card token, not `on_ink`/`fab_glyph`/`on_media` — the other three
+        # meanings of `0xFFFBFAF8`. A disc is a surface that floats above the
+        # page, so it follows the ground: `#1E1D1B` in dark, like every card.
+        color: Kati.Theme.card(Palette.mode()),
         size: 44,
         radius: 22,
         shadow: Kati.Theme.shadow_button()
@@ -147,7 +152,7 @@ defmodule Kati.UI.SettingsList do
     <Column fill_width={true}>
       <Text text={text} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text={sub} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={sub} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -160,7 +165,7 @@ defmodule Kati.UI.SettingsList do
         <Column weight={1.0}>
           <Text text={text} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={sub} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={sub} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={9} />
         {Kati.UI.SettingsList.disc(icon)}
@@ -182,14 +187,14 @@ defmodule Kati.UI.SettingsList do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -202,7 +207,7 @@ defmodule Kati.UI.SettingsList do
     ~MOB"""
     <Column
       fill_width={true}
-      background={0xFFFBFAF8}
+      background={Kati.Theme.card(Palette.mode())}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
@@ -290,7 +295,7 @@ defmodule Kati.UI.SettingsList do
 
   def hairline(true) do
     Kati.Components.MishkaSeparator.separator(
-      color: 0x121A1917,
+      color: Palette.hairline(),
       thickness: 1,
       render: :box
     )
@@ -310,7 +315,7 @@ defmodule Kati.UI.SettingsList do
     <Column fill_width={true}>
       <Text text={title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       <Spacer size={3} />
-      <Text text={sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -318,7 +323,7 @@ defmodule Kati.UI.SettingsList do
   @doc "A row title the design greys out — a calendar switched off, an add affordance."
   def body_muted(title) do
     ~MOB"""
-    <Text text={title} text_size={13.5} font_weight="semibold" text_color={0xFF8A8479} max_lines={1} />
+    <Text text={title} text_size={13.5} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
     """
   end
 
@@ -357,14 +362,20 @@ defmodule Kati.UI.SettingsList do
   """
   def icon_tile(name) do
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+      %{variant: :filled, color: Kati.Theme.paper(Palette.mode()), size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: Palette.ink_soft())]
     )
   end
 
   @doc "The disclosure chevron, at the design's `#C4BDB3`."
   def chevron do
-    Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
+    # `rail_idle`, and it is the one mapping in this file that is right by value
+    # and wrong by name. The palette's `tertiary` is the token whose *meaning* is
+    # "a faint chevron" — but its light value is `0xFFB3ACA2`, and this chevron
+    # is `0xFFC4BDB3`; the design draws two chevron greys and only one of them is
+    # `tertiary`. Taking the better name would have moved light mode by eleven
+    # units, so the value wins and this comment carries the discrepancy.
+    Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
   end
 
   @doc """
@@ -461,10 +472,15 @@ defmodule Kati.UI.SettingsList do
       thumb_size: 22,
       thumb_radius: 11,
       thumb_inset: 3,
-      track_on_color: 0xFF1A1917,
-      track_off_color: 0xFFDCD7CF,
-      thumb_on_color: 0xFFFBFAF8,
-      thumb_off_color: 0xFFFBFAF8,
+      # The whole control inverts rather than following the ground, which is
+      # what the design does with every ink-filled control: `ink_fill` under
+      # `on_ink`, the pair screen 28 draws for the hero's CTA pill. Both thumb
+      # colours stay ONE token, because the drawing's thumb does not change
+      # colour — only the track does — and that has to stay true in dark too.
+      track_on_color: Palette.ink_fill(),
+      track_off_color: Palette.track_off(),
+      thumb_on_color: Palette.on_ink(),
+      thumb_off_color: Palette.on_ink(),
       thumb_shadow: "0 1 3 0 #4D1A1917"
     )
   end
@@ -510,7 +526,7 @@ defmodule Kati.UI.SettingsList do
   def action_pill(label) do
     Kati.Components.MishkaPill.pill(
       label: label,
-      background: 0xFFEFECE7,
+      background: Kati.Theme.paper(Palette.mode()),
       color: :on_surface,
       corner_radius: 15,
       height: 30,
@@ -656,13 +672,13 @@ defmodule Kati.UI.SettingsList do
       %{
         background: :none,
         corner_radius: 18,
-        border_color: 0x291A1917,
+        border_color: Palette.border(),
         border_width: 1.5,
         padding: 16,
         fill_width: true,
         content_align: :top,
         content_fill_width: true,
-        leading: Kati.UI.symbol(icon, size: 18, color: 0xFF8A8479),
+        leading: Kati.UI.symbol(icon, size: 18, color: Palette.sub()),
         leading_gap: 11
       },
       [note_text(text)]
@@ -674,7 +690,7 @@ defmodule Kati.UI.SettingsList do
   # list, which the pill drops straight into its children wrapper.
   defp note_text(text) do
     ~MOB"""
-    <Text text={text} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
+    <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
     """
   end
 end

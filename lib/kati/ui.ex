@@ -39,6 +39,8 @@ defmodule Kati.UI do
 
   import Mob.Sigil
 
+  alias Kati.Theme.Palette
+
   @doc """
   A Material Symbol, by the name the design uses.
 
@@ -49,12 +51,27 @@ defmodule Kati.UI do
 
   `fill: true` selects the FILL 1 instance. The design uses it for exactly one
   thing — the active tab — and never for a partial value.
+
+  ## The default colour follows the mode
+
+  It was `Kati.Theme.ink/0`, which takes no mode and is `#1A1917` forever. This
+  is the single most-called helper in the app — 263 call sites — so that one
+  constant would have painted near-black glyphs on near-black cards across every
+  screen at once, and the two dark drawings would not have caught it: screens 28
+  and 29 pass an explicit `:color` to every symbol they draw, so neither ever
+  exercises this default. It is `Palette.ink/0` now, which is the same
+  `0xFF1A1917` in light and `#F5F2EE` in dark.
+
+  `Palette.ink/0` reads the installed theme out of application environment, so
+  the default costs one `Application.get_env` per glyph and no process hop —
+  `Kati.Theme.mode/0` would have put a `Mob.State` GenServer call on every icon
+  in every frame.
   """
   @spec symbol(String.t(), keyword()) :: term()
   def symbol(name, opts \\ []) do
     glyph = Kati.Icons.glyph!(name)
     size = Keyword.get(opts, :size, 22)
-    color = Keyword.get(opts, :color, Kati.Theme.ink())
+    color = Keyword.get(opts, :color, Palette.ink())
     family = if Keyword.get(opts, :fill, false), do: "symbols_filled", else: "symbols"
 
     ~MOB"""
@@ -79,12 +96,37 @@ defmodule Kati.UI do
   thirteen (01, 02, 03, 07, 16, 17, 20, 21, 30, 55, 56, 57, 61) want 42%, which
   is what actually hides the content behind the dock. At 4% the Persian Home's
   section tiles read straight through it.
+
+  ## Both ends of the gradient are the page, so both follow the mode
+
+  The colour was written twice into a string — `#FFEFECE7` and `#00EFECE7` —
+  which is why it is the one literal in this file that a grep for `0x` does not
+  find. A gradient takes CSS-style `#AARRGGBB`, so the page colour is taken from
+  `Palette.paper/1` and its alpha varied here.
+
+  The transparent end MUST be the page colour at alpha 0 and not simply
+  transparent-black or `#00FFFFFF`: Compose interpolates in straight RGBA, so a
+  fade to transparent white greys the middle of the band and a fade to
+  transparent black dirties it. Only a fade to *the same RGB* stays invisible
+  along its whole length, which is also why this cannot be `Palette.transparent/0`.
+
+  `mode` defaults to the installed one and is a parameter because `Kati.Shell`
+  already has an answer for the frame it is drawing and should not have two.
   """
-  @spec paper_fade(pos_integer(), number()) :: term()
-  def paper_fade(height, stop \\ 4) do
+  @spec paper_fade(pos_integer(), number(), :light | :dark) :: term()
+  def paper_fade(height, stop \\ 4, mode \\ Palette.mode()) do
     # ~MOB is an uppercase sigil, so #{} inside it is literal text — the
     # gradient string has to be built out here.
-    gradient = "to_top #FFEFECE7 #{stop}% #00EFECE7"
+    #
+    # `rem/2` rather than a Bitwise import: the low 24 bits of an 0xAARRGGBB
+    # integer are the RGB, and this file imports one sigil and nothing else.
+    rgb =
+      Palette.paper(mode)
+      |> rem(0x1000000)
+      |> Integer.to_string(16)
+      |> String.pad_leading(6, "0")
+
+    gradient = "to_top #FF#{rgb} #{stop}% #00#{rgb}"
 
     ~MOB"""
     <Box fill_width={true} height={height} gradient={gradient} />
@@ -109,11 +151,16 @@ defmodule Kati.UI do
     # write their own eyebrow to say so. Orange means new/now in this design —
     # so "Coming up" (05) and "Recently watched" (07) take #C4BDB3 instead,
     # because nothing in either section has happened yet.
-    dash = Keyword.get(opts, :dash, 0xFFE8823C)
+    dash = Keyword.get(opts, :dash, Palette.accent())
 
     # And the tail is not always 11: the drawings say 12 wherever the eyebrow
     # opens a section rather than labelling a card.
     gap = Keyword.get(opts, :gap, 11)
+
+    # `Palette.eyebrow/0` is named for exactly this call site — the mono section
+    # label after the dash — and is the only token whose light value is
+    # `0xFFA0998F`.
+    label_color = Palette.eyebrow()
 
     ~MOB"""
     <Column fill_width={true}>
@@ -125,7 +172,7 @@ defmodule Kati.UI do
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={label_color}
         />
         <Spacer weight={1.0} />
         {Kati.UI.eyebrow_trailing(trailing)}
@@ -139,8 +186,15 @@ defmodule Kati.UI do
   def eyebrow_trailing(nil), do: ~MOB"<Spacer size={0} />"
 
   def eyebrow_trailing(label) do
+    # "See all". `0xFF8A8479` is `Palette.sub/0`'s light value and no other
+    # token's, so the mapping is forced rather than chosen — the name says
+    # "second line under a row's title" and this is a trailing action, but the
+    # dark value is a ramp step at that lightness and carries no meaning of its
+    # own to be wrong about.
+    color = Palette.sub()
+
     ~MOB"""
-    <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFF8A8479} />
+    <Text text={label} text_size={12.5} font_weight="semibold" text_color={color} />
     """
   end
 
@@ -293,11 +347,19 @@ defmodule Kati.UI do
   and on a cold emulator.
   """
   def poster(label, tone) do
+    # `on_media`, not `card` — both are `0xFFFBFAF8` in light and they are
+    # opposites in dark. The ground here is `tone`, which stands in for artwork,
+    # and a photograph does not get darker when the app does: `on_media` holds
+    # at `#FBFAF8` in both modes. `card`, `on_ink` and `fab_glyph` are the other
+    # three meanings of this same literal and every one of them would have
+    # turned this title near-black over a picture.
+    ink = Palette.on_media()
+
     ~MOB"""
     <Column padding_right={13}>
       <Box width={112} height={168} background={tone} corner_radius={14} align="bottom">
         <Column padding={9}>
-          <Text text={label} text_size={10} text_color={0xFFFBFAF8} />
+          <Text text={label} text_size={10} text_color={ink} />
         </Column>
       </Box>
     </Column>
@@ -306,6 +368,10 @@ defmodule Kati.UI do
 
   @doc "A row in the day timeline: fixed time gutter, then the event card."
   def timeline_row(time, title, meta, accent?) do
+    # LEFT AS A LITERAL. `0xFFC9C3B8` is in no `Kati.Theme.Palette` row. The
+    # nearest is `rail_idle`'s `0xFFC4BDB3` — the timeline rail on the very
+    # screens this row belongs to — but five units apart is a different colour,
+    # and taking it would change light mode to make dark mode work.
     dot = if accent?, do: Kati.Theme.accent(), else: 0xFFC9C3B8
 
     ~MOB"""
@@ -501,23 +567,34 @@ defmodule Kati.UI do
     # third value stays on this side.
     count_fg =
       cond do
+        # LEFT AS A LITERAL. `0xFFB5AEA3` is not in `Kati.Theme.Palette` — it is
+        # two units off `tertiary`'s `0xFFB3ACA2` and naming it that would move
+        # light. It stays light-grey in dark, which is wrong and visible; it
+        # needs a token, not a guess. Same value, same reason, on
+        # `disabled_text_color` below.
         disabled? -> 0xFFB5AEA3
-        selected? -> 0xFFBFB8AC
-        true -> 0xFFA0998F
+        selected? -> Palette.on_ink_muted()
+        true -> Palette.eyebrow()
       end
 
     Kati.Components.MishkaChip.chip(
       label: label,
       checked: selected?,
       disabled: disabled?,
-      color: Kati.Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Kati.Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F,
+      # A selected chip is an ink-filled control, so it takes the pair the
+      # design draws for one: `ink_fill` under `on_ink`. Screen 28 draws that
+      # pair — `#1A1917` + `#FBFAF8` becomes `#F7EFE4` + `#1A1917` — the fill
+      # inverting rather than following the ground. `Kati.Theme.ink/0` was the
+      # fill before and takes no mode, so the pill and its label would both have
+      # gone near-black.
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Kati.Theme.card(Palette.mode()),
+      unchecked_text_color: Palette.ink_soft(),
       # One value for both disabled states, which is what this design asks for:
       # a section that is not built yet reads the same whether or not it is the
       # current filter.
-      disabled_color: 0x00FFFFFF,
+      disabled_color: Palette.transparent(),
       disabled_text_color: 0xFFB5AEA3,
       corner_radius: 16,
       height: 32,
@@ -679,6 +756,17 @@ defmodule Kati.UI do
   end
 
   @doc false
+  # LEFT AS LITERALS, all five, and deliberately as a set.
+  #
+  # Only `0xFFB08E55` has a token — it is `Kati.Theme.bronze/0` — and the other
+  # four are in no `Kati.Theme.Palette` row at all. This is one bronze ramp, so
+  # naming its middle step and leaving its neighbours as hex would read as if
+  # the four unnamed ones had been checked and rejected. They have not been
+  # checked; there is nothing to check them against.
+  #
+  # It matters more here than the count suggests: step 0 is `#E4DFD6`, a pale
+  # warm grey that is a whole field of near-white squares on a near-black card.
+  # The field needs a ramp of its own in the palette before it can be converted.
   def pixel(intensity) do
     tone =
       case intensity do

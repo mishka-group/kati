@@ -18,10 +18,11 @@ defmodule Kati.Screens.Film do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Library.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :film, Sample.film())}
   end
 
@@ -50,7 +51,7 @@ defmodule Kati.Screens.Film do
   @doc false
   def artwork(f) do
     ~MOB"""
-    <Box fill_width={true} height={330} background={0xFFDCD7CF}>
+    <Box fill_width={true} height={330} background={Palette.track_off()}>
       {Kati.Screens.Film.hero_art(f)}
       <Box fill_width={true} fill_height={true} align="bottom">
         {Kati.UI.paper_fade(190)}
@@ -61,7 +62,7 @@ defmodule Kati.Screens.Film do
           <Spacer size={11} />
           <Text text={f.title} text_size={30} font_weight="extrabold" letter_spacing={-0.035} line_height={1.05} text_color={:on_surface} />
           <Spacer size={9} />
-          <Text text={f.meta} font_family="mono" text_size={11.5} text_color={0xFF6E6860} max_lines={1} />
+          <Text text={f.meta} font_family="mono" text_size={11.5} text_color={Palette.meta()} max_lines={1} />
         </Column>
       </Box>
     </Box>
@@ -89,7 +90,7 @@ defmodule Kati.Screens.Film do
   def watched_pill(label) do
     MishkaPill.pill(
       [
-        background: 0x294E9A73,
+        background: Palette.green_wash(),
         corner_radius: 13,
         height: 26,
         padding: 0,
@@ -104,10 +105,10 @@ defmodule Kati.Screens.Film do
   @doc false
   def watched_content(label) do
     [
-      Kati.UI.symbol("check_circle", size: 15, color: 0xFF3E8460, fill: true),
+      Kati.UI.symbol("check_circle", size: 15, color: Palette.green_text(), fill: true),
       ~MOB"<Spacer size={6} />",
       ~MOB"""
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
+      <Text text={label} text_size={11.5} font_weight="semibold" text_color={Palette.green_text()} max_lines={1} />
       """
     ]
   end
@@ -128,7 +129,7 @@ defmodule Kati.Screens.Film do
   @doc false
   def chrome do
     back = {self(), :back}
-    fill = 0xD1FBFAF8
+    fill = Palette.chrome_disc()
     # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
     # chrome over a photograph, so both controls carry the same lift. Neither
     # had one, which is why they read as flat stickers on the still.
@@ -222,21 +223,21 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Row
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card()}
       padding={17}
       align="center"
     >
       <Column weight={1.0}>
-        <Text text={String.upcase("Your rating")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
+        <Text text={String.upcase("Your rating")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.eyebrow()} />
         <Spacer size={7} />
         {Kati.Screens.Film.stars(f.stars)}
       </Column>
       <Column weight={1.0}>
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Text text={String.upcase("Seen")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} max_lines={1} />
+          <Text text={String.upcase("Seen")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.eyebrow()} max_lines={1} />
         </Row>
         <Spacer size={8} />
         <Row fill_width={true} align="center">
@@ -266,22 +267,22 @@ defmodule Kati.Screens.Film do
   def star_gap, do: ~MOB"<Box width={2} height={1} />"
 
   @doc false
-  def star(true), do: Kati.UI.symbol("star", size: 22, color: 0xFFE8823C, fill: true)
-  def star(false), do: Kati.UI.symbol("star", size: 22, color: 0xFFE8823C)
+  def star(true), do: Kati.UI.symbol("star", size: 22, color: Palette.accent(), fill: true)
+  def star(false), do: Kati.UI.symbol("star", size: 22, color: Palette.accent())
 
   @doc false
   def note(f) do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={12} />
-      <Column fill_width={true} background={0xFFFBF1DE} corner_radius={22} padding={17}>
+      <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
         <Row fill_width={true} align="center">
-          <Text text={String.upcase(f.note_date)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
+          <Text text={String.upcase(f.note_date)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
           <Spacer weight={1.0} />
-          {Kati.UI.symbol("edit", size: 17, color: 0xFFC98A3E)}
+          {Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}
         </Row>
         <Spacer size={9} />
-        <Text text={f.note} text_size={14} line_height={1.55} text_color={0xFF4A4238} />
+        <Text text={f.note} text_size={14} line_height={1.55} text_color={Palette.cream_body()} />
       </Column>
       <Spacer size={26} />
     </Column>
@@ -295,7 +296,7 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
       padding_left={15}
@@ -316,7 +317,7 @@ defmodule Kati.Screens.Film do
         {Kati.Screens.Film.where_badge(row.badge)}
         <Spacer size={13} />
         <Text text={row.name} text_size={13.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
-        <Text text={row.price} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={row.price} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       </Row>
       {Kati.Screens.Film.hairline(rule?)}
     </Column>
@@ -338,7 +339,7 @@ defmodule Kati.Screens.Film do
   @spec where_badge(String.t()) :: map()
   def where_badge(badge) do
     MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: 0xFFEFECE7, size: 32, radius: 10],
+      [variant: :filled, color: Palette.paper(), size: 32, radius: 10],
       [Kati.Screens.Film.where_mark(badge)]
     )
   end
@@ -376,7 +377,7 @@ defmodule Kati.Screens.Film do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @doc false
   def actions(f) do
@@ -405,7 +406,7 @@ defmodule Kati.Screens.Film do
         fill_width={true}
         height={52}
         corner_radius={20}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         shadow={Kati.Theme.shadow_card_soft()}
         align="center"
       >
@@ -416,7 +417,7 @@ defmodule Kati.Screens.Film do
             <Spacer weight={1.0} />
           </Row>
           <Spacer size={3} />
-          <Text text={label} text_size={10.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} text_align="center" />
+          <Text text={label} text_size={10.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} text_align="center" />
         </Column>
       </Box>
     </Box>

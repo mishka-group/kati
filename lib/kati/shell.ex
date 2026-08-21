@@ -42,6 +42,8 @@ defmodule Kati.Shell do
 
   import Mob.Sigil
 
+  alias Kati.Theme.Palette
+
   # The design's icon names, not Compose's. Screen 01's bar is
   # home / calendar_month / grid_view / bar_chart_4_bars — and the Material
   # Icons set the template ships with has neither of the last two.
@@ -74,10 +76,22 @@ defmodule Kati.Shell do
   Overlays additionally need `fill_height: true` — without the viewport as a
   reference frame, `align:` has nothing to align against and the chrome lands at
   the top of a wrap-height Box.
+
+  ## Which mode the chrome draws in
+
+  `:mode` used to default to `:light`, and every caller passed `:light` anyway,
+  so the dock fill, the tab well and the FAB were light-mode colours whatever
+  theme was installed. The default is now the mode that **is** installed —
+  `Kati.Theme.Palette.mode/0`, which reads `Mob.Theme.current/0` rather than
+  re-resolving the stored preference, so the raw colours below and the
+  `:background` atom above cannot end up on opposite sides within one frame.
+
+  The key is still read, so a screen drawn deliberately on one side can pin it.
+  Passing `:light` from a screen that is not is how this bug started.
   """
   def render(assigns) do
     active = assigns.root
-    mode = Map.get(assigns, :mode, :light)
+    mode = Map.get(assigns, :mode, Palette.mode())
 
     direction = Kati.Locale.direction_prop()
 
@@ -96,10 +110,14 @@ defmodule Kati.Shell do
   # than the design, and recorded as such rather than pretended.
   # A fade, not a lid. The flat opaque Box this replaces cut straight through
   # whatever it covered — visibly slicing Home's Sections tiles in half.
-  defp scrim(_mode) do
+  # The fade is to the PAGE, so it takes the shell's mode rather than resolving
+  # one of its own — a light scrim over a dark page is a 120pt pale band across
+  # the bottom of the screen, which is the loudest possible way to get this
+  # wrong and the easiest to leave in by threading nothing.
+  defp scrim(mode) do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="bottom">
-      {Kati.UI.paper_fade(120)}
+      {Kati.UI.paper_fade(120, 4, mode)}
     </Box>
     """
   end
@@ -128,7 +146,19 @@ defmodule Kati.Shell do
   # then the browser's own optical rounding differs; the number that matters
   # is where the icons end up, and this is the version that matches.
   defp dock(active, mode) do
-    ink = Kati.Theme.ink()
+    # `Palette.fab_fill/1`, not `Kati.Theme.ink/0`. Both are `0xFF1A1917` in
+    # light — the FAB is an ink disc on paper — but in dark the design inverts
+    # the control rather than following the ground: `#F5F2EE` fill with a
+    # `#16150F` plus, drawn on screen 28. `Kati.Theme.ink/0` takes no mode and
+    # would have left an ink-on-ink disc that renders as a hole with nothing in
+    # it.
+    fab = Palette.fab_fill(mode)
+    glyph = Palette.fab_glyph(mode)
+
+    # `chrome_fill/1` already takes a mode, and there is no palette token for it
+    # — the dock's .97 is `Kati.Theme`'s own recorded compromise for the blur
+    # Mob cannot do, and `Palette.dock_fill/1`'s light value is the drawing's
+    # .90, a different number. Using the palette here would have changed light.
     fill = Kati.Theme.chrome_fill(mode)
     add = {self(), :fab}
 
@@ -147,8 +177,8 @@ defmodule Kati.Shell do
           </Row>
         </Box>
         <Spacer size={11} />
-        <Box width={64} height={64} background={ink} corner_radius={32} align="center" on_tap={add}>
-          {Kati.UI.symbol("add", size: 27, color: 0xFFFBFAF8)}
+        <Box width={64} height={64} background={fab} corner_radius={32} align="center" on_tap={add}>
+          {Kati.UI.symbol("add", size: 27, color: glyph)}
         </Box>
       </Row>
     </Box>
@@ -161,8 +191,15 @@ defmodule Kati.Shell do
     # Inactive icons are #B3ACA2; the active one is ink inside an #EFECE7 disc —
     # the paper colour, so the disc reads as a hole punched in the bar rather
     # than a highlight. Orange means new/now and never appears here.
-    tint = if on?, do: Kati.Theme.ink(), else: 0xFFB3ACA2
-    disc = if on?, do: Kati.Theme.paper(mode), else: 0x00FFFFFF
+    #
+    # The disc is `Palette.tab_well/1`, NOT `Kati.Theme.paper/1`. Both are
+    # `0xFFEFECE7` in light, so nothing moves there — but the two disagree in
+    # dark on purpose. The bar is `#1E1D1B`, which is LIGHTER than the page, so
+    # a well painted at the page's `#121110` is not dark enough to read as a
+    # hole; screen 28 draws `#0E0D0C`, darker than the page, and that is the
+    # token. `Kati.Screens.HomeDark` says the same thing in its own comment.
+    tint = if on?, do: Palette.ink(mode), else: Palette.tertiary(mode)
+    disc = if on?, do: Palette.tab_well(mode), else: Palette.transparent(mode)
     tap = {self(), String.to_atom("root_#{root.id}")}
 
     # weight 1 per item is space-around: four equal segments, content centred.

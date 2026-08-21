@@ -16,6 +16,7 @@ defmodule Kati.Screens.Stats do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Stats.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -37,7 +38,7 @@ defmodule Kati.Screens.Stats do
         {UI.eyebrow("More numbers")}
         {Kati.Screens.Stats.more_numbers()}
         <Spacer size={26} />
-        {UI.eyebrow("Recently watched", dash: 0xFFC4BDB3, gap: 12)}
+        {UI.eyebrow("Recently watched", dash: Palette.rail_idle(), gap: 12)}
         {Kati.Screens.Stats.recently_watched()}
       </Column>
     </Scroll>
@@ -52,7 +53,7 @@ defmodule Kati.Screens.Stats do
         <Column weight={1.0}>
           <Text text="Your year" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={year.range} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={year.range} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         {Kati.Screens.Stats.share_disc()}
       </Row>
@@ -79,7 +80,7 @@ defmodule Kati.Screens.Stats do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button()
       ],
       [Kati.UI.symbol("ios_share", size: 21)]
@@ -92,22 +93,22 @@ defmodule Kati.Screens.Stats do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_hero()}
         padding={19}
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase("Time watched")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
+            <Text text={String.upcase("Time watched")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
             <Spacer size={7} />
             <Text text={year.time} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
           </Column>
           <Column padding_bottom={5}>
-            <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={11} padding_right={11} align="center">
-              {Kati.UI.symbol("arrow_drop_up", size: 14, color: 0xFF3E8460, fill: true)}
+            <Row height={28} corner_radius={14} background={Palette.green_wash()} padding_left={11} padding_right={11} align="center">
+              {Kati.UI.symbol("arrow_drop_up", size: 14, color: Palette.green_text(), fill: true)}
               <Spacer size={5} />
-              <Text text={year.change} font_family="mono" text_size={11.5} font_weight="medium" text_color={0xFF3E8460} />
+              <Text text={year.change} font_family="mono" text_size={11.5} font_weight="medium" text_color={Palette.green_text()} />
             </Row>
           </Column>
         </Row>
@@ -115,9 +116,9 @@ defmodule Kati.Screens.Stats do
         {Kati.Screens.Stats.grid()}
         <Spacer size={12} />
         <Row fill_width={true}>
-          <Text text={"#{year.weeks} weeks"} font_family="mono" text_size={10} text_color={0xFFB09A72} />
+          <Text text={"#{year.weeks} weeks"} font_family="mono" text_size={10} text_color={Palette.cream_meta()} />
           <Spacer weight={1.0} />
-          <Text text={year.streak} font_family="mono" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={year.streak} font_family="mono" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -182,14 +183,14 @@ defmodule Kati.Screens.Stats do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card()}
         padding={15}
       >
         <Text text={number} text_size={26} font_weight="extrabold" letter_spacing={-0.035} text_color={:on_surface} />
         <Spacer size={5} />
-        <Text text={String.upcase(label)} font_family="mono" text_size={10.5} letter_spacing={0.1} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={String.upcase(label)} font_family="mono" text_size={10.5} letter_spacing={0.1} text_color={Palette.muted()} max_lines={1} />
       </Column>
     </Box>
     """
@@ -200,7 +201,7 @@ defmodule Kati.Screens.Stats do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
       padding={17}
@@ -220,7 +221,7 @@ defmodule Kati.Screens.Stats do
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
-          <Box fill_width={true} height={8} corner_radius={4} background={0xFFEFECE7}>
+          <Box fill_width={true} height={8} corner_radius={4} background={Palette.paper()}>
             <Row fill_width={true}>
               <Box weight={fraction} height={8} corner_radius={4} background={color} />
               <Spacer weight={1.0 - fraction} />
@@ -229,7 +230,7 @@ defmodule Kati.Screens.Stats do
         </Box>
         <Spacer size={12} />
         <Column width={34}>
-          <Text text={value} font_family="mono" text_size={11} text_color={0xFFA9A29A} text_align="right" max_lines={1} />
+          <Text text={value} font_family="mono" text_size={11} text_color={Palette.muted()} text_align="right" max_lines={1} />
         </Column>
       </Row>
       <Spacer size={13} />
@@ -245,7 +246,7 @@ defmodule Kati.Screens.Stats do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
       padding_left={15}
@@ -270,10 +271,10 @@ defmodule Kati.Screens.Stats do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)}
+        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Stats.hairline(rule?)}
     </Column>
@@ -297,8 +298,8 @@ defmodule Kati.Screens.Stats do
   @doc false
   def row_tile(icon) do
     MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9],
-      [Kati.UI.symbol(icon, size: 17, color: 0xFF5C574F)]
+      [variant: :filled, color: Palette.paper(), size: 30, radius: 9],
+      [Kati.UI.symbol(icon, size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -316,7 +317,7 @@ defmodule Kati.Screens.Stats do
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @doc """
   The last section of the drawing, which the screen was not drawing at all.
@@ -354,7 +355,7 @@ defmodule Kati.Screens.Stats do
     ~MOB"""
     <Row
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={13}
@@ -368,7 +369,7 @@ defmodule Kati.Screens.Stats do
       <Column weight={1.0}>
         <Text text={row.title} text_size={13.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
         <Spacer size={4} />
-        <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
       </Column>
       <Spacer size={13} />
       {Kati.Screens.Stats.stars(row.stars)}
@@ -379,7 +380,7 @@ defmodule Kati.Screens.Stats do
   @doc false
   def recent_thumb(row) do
     case Kati.Design.Images.poster(row.seed) do
-      nil -> ~MOB"<Box width={38} height={54} corner_radius={8} background={0xFFE4E0D9} />"
+      nil -> ~MOB"<Box width={38} height={54} corner_radius={8} background={Palette.placeholder()} />"
       src -> ~MOB"""
         <Image src={src} width={38} height={54} corner_radius={8} content_mode="fill" />
         """
@@ -395,7 +396,7 @@ defmodule Kati.Screens.Stats do
     ~MOB"""
     <Row align="center">
       {1..n
-       |> Enum.map(fn _ -> Kati.UI.symbol("star", size: 12, color: 0xFFE8823C, fill: true) end)
+       |> Enum.map(fn _ -> Kati.UI.symbol("star", size: 12, color: Palette.accent(), fill: true) end)
        |> Enum.intersperse(Kati.Screens.Stats.star_gap())}
     </Row>
     """

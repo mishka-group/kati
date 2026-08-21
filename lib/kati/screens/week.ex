@@ -32,6 +32,7 @@ defmodule Kati.Screens.Week do
   alias Kati.Calendar.SampleWeek
   alias Kati.Components.MishkaSeparator
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -71,9 +72,9 @@ defmodule Kati.Screens.Week do
           max_lines={1}
         />
         <Spacer weight={1.0} />
-        {UI.symbol("chevron_left", size: 22, color: 0xFF8A8479)}
+        {UI.symbol("chevron_left", size: 22, color: Palette.sub())}
         <Spacer size={8} />
-        {UI.symbol("chevron_right", size: 22, color: 0xFF1A1917)}
+        {UI.symbol("chevron_right", size: 22, color: Palette.ink())}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -132,7 +133,7 @@ defmodule Kati.Screens.Week do
   # Only the selected lane's header sits on a card; the rest are bare paper.
   @doc false
   def lane_header(lane) do
-    background = if lane.selected?, do: 0xFFFBFAF8, else: 0x00FFFFFF
+    background = if lane.selected?, do: Palette.card(), else: Palette.transparent()
     shadow = if lane.selected?, do: "0 1 2 0 #0D1A1917", else: nil
 
     ~MOB"""
@@ -150,7 +151,7 @@ defmodule Kati.Screens.Week do
           font_family="mono"
           text_size={9.5}
           letter_spacing={0.06}
-          text_color={0xFFB3ACA2}
+          text_color={Palette.tertiary()}
           max_lines={1}
         />
       </Box>
@@ -199,7 +200,7 @@ defmodule Kati.Screens.Week do
     >
       <Box width={2.5} height={height} background={rule} />
       <Column padding_left={6} padding_right={6} padding_top={7} padding_bottom={7}>
-        <Text text={block.hour} font_family="mono" text_size={10} text_color={0xFFA0998F} max_lines={1} />
+        <Text text={block.hour} font_family="mono" text_size={10} text_color={Palette.eyebrow()} max_lines={1} />
       </Column>
     </Row>
     """
@@ -213,7 +214,7 @@ defmodule Kati.Screens.Week do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding_left={15}
@@ -232,13 +233,13 @@ defmodule Kati.Screens.Week do
 
   @doc false
   def event_row(row, rule?) do
-    rule_color = if row.rule == :screen, do: Theme.accent(), else: Theme.ink()
+    rule_color = if row.rule == :screen, do: Palette.accent(), else: Palette.ink()
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
         <Column width={38}>
-          <Text text={row.time} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.time} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         <Box width={3} height={20} corner_radius={2} background={rule_color} />
@@ -252,7 +253,7 @@ defmodule Kati.Screens.Week do
           max_lines={1}
         />
         <Spacer size={12} />
-        <Text text={row.length} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+        <Text text={row.length} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
       </Row>
       {Kati.Screens.Week.hairline(rule?)}
     </Column>
@@ -282,16 +283,16 @@ defmodule Kati.Screens.Week do
   # `color` is passed rather than left to the component's `:border` default:
   # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @doc false
   def hint do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        {UI.symbol("touch_app", size: 15, color: 0xFFB3ACA2)}
+        {UI.symbol("touch_app", size: 15, color: Palette.tertiary())}
         <Spacer size={8} />
-        <Text text="Tap any lane to name its day here" text_size={11.5} text_color={0xFF8A8479} />
+        <Text text="Tap any lane to name its day here" text_size={11.5} text_color={Palette.sub()} />
       </Row>
       <Spacer size={20} />
     </Column>
@@ -304,14 +305,14 @@ defmodule Kati.Screens.Week do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -337,7 +338,7 @@ defmodule Kati.Screens.Week do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Theme.shadow_card_soft()}
       padding={17}
@@ -350,7 +351,7 @@ defmodule Kati.Screens.Week do
         {letters}
       </Row>
       <Spacer size={12} />
-      <Text text={sentence} text_size={12.5} line_height={1.45} text_color={0xFF5C574F} />
+      <Text text={sentence} text_size={12.5} line_height={1.45} text_color={Palette.ink_soft()} />
     </Column>
     """
   end
@@ -358,9 +359,12 @@ defmodule Kati.Screens.Week do
   @doc false
   def bar_gap, do: ~MOB"<Spacer size={6} />"
 
+  # The peak bar is ink; the rest take `placeholder`, which is the token whose
+  # light value IS this literal. `bar_neutral` is the name a chart's neutral bar
+  # wants, but it is a different colour (#D8D2C8) and taking it would move light.
   @doc false
   def bar(height, peak?) do
-    color = if peak?, do: Theme.ink(), else: 0xFFE4E0D9
+    color = if peak?, do: Palette.ink(), else: Palette.placeholder()
 
     ~MOB"""
     <Box weight={1.0} height={height} corner_radius={5} background={color} />
@@ -371,7 +375,7 @@ defmodule Kati.Screens.Week do
   def letter(letter) do
     ~MOB"""
     <Box weight={1.0} align="center">
-      <Text text={letter} font_family="mono" text_size={9.5} text_color={0xFFB3ACA2} max_lines={1} />
+      <Text text={letter} font_family="mono" text_size={9.5} text_color={Palette.tertiary()} max_lines={1} />
     </Box>
     """
   end

@@ -30,6 +30,7 @@ defmodule Kati.Screens.Calendar do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme
+  alias Kati.Theme.Palette
 
 
   @impl true
@@ -140,7 +141,7 @@ defmodule Kati.Screens.Calendar do
         <Column weight={1.0}>
           <Text text="Schedule" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         {Kati.Screens.Calendar.disc("search", :open_search)}
         <Spacer size={9} />
@@ -171,7 +172,7 @@ defmodule Kati.Screens.Calendar do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        background: Palette.card(),
         shadow: Theme.shadow_button(),
         on_tap: tag
       ],
@@ -192,10 +193,10 @@ defmodule Kati.Screens.Calendar do
         <Row align="center" on_tap={month_tap}>
           <Text text={label} text_size={20} font_weight="bold" letter_spacing={-0.025} text_color={:on_surface} />
           <Spacer size={6} />
-          {Kati.UI.symbol("unfold_more", size: 19, color: 0xFF8A8479)}
+          {Kati.UI.symbol("unfold_more", size: 19, color: Palette.sub())}
         </Row>
         <Spacer weight={1.0} />
-        <Row height={30} corner_radius={15} background={0xFFE4E0D9} padding_left={13} padding_right={13} align="center">
+        <Row height={30} corner_radius={15} background={Palette.placeholder()} padding_left={13} padding_right={13} align="center">
           <Text text="Today" text_size={12} font_weight="semibold" text_color={:on_surface} />
         </Row>
       </Row>
@@ -234,7 +235,7 @@ defmodule Kati.Screens.Calendar do
   # swaps the primitive back to `<Box fill_width height={1} background />`,
   # so every pixel row carries the full 8% ink again.
   @doc false
-  def rule, do: MishkaSeparator.separator(color: 0x141A1917, thickness: 1, render: :box)
+  def rule, do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
 
   @doc false
   def cell_gap, do: ~MOB"<Spacer size={2} />"
@@ -253,9 +254,9 @@ defmodule Kati.Screens.Calendar do
     # why the second tap is the drill-in.
     tap = {self(), String.to_atom("day_" <> Date.to_iso8601(date))}
 
-    bg = if today?, do: Theme.ink(), else: Theme.card(:light)
-    name_color = if today?, do: 0xFFBFB8AC, else: 0xFFA9A29A
-    num_color = if today?, do: 0xFFFBFAF8, else: 0xFF1A1917
+    bg = if today?, do: Palette.ink_fill(), else: Palette.card()
+    name_color = if today?, do: Palette.on_ink_muted(), else: Palette.muted()
+    num_color = if today?, do: Palette.on_ink(), else: Palette.ink()
     shadow = if today?, do: Theme.shadow_button(), else: Theme.shadow_card_soft()
     name = Kati.Time.day_name(date) |> String.slice(0, 3)
 
@@ -344,10 +345,10 @@ defmodule Kati.Screens.Calendar do
       text_size: 12.5,
       font_weight: :semibold,
       max_lines: 1,
-      color: Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft()
     )
   end
 
@@ -360,8 +361,8 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def timeline([]) do
     ~MOB"""
-    <Box fill_width={true} background={Kati.Theme.card(:light)} corner_radius={18} shadow={Kati.Theme.shadow_card()} padding={18}>
-      <Text text="Nothing scheduled today" text_size={14} text_color={0xFF8A8479} />
+    <Box fill_width={true} background={Palette.card()} corner_radius={18} shadow={Kati.Theme.shadow_card()} padding={18}>
+      <Text text="Nothing scheduled today" text_size={14} text_color={Palette.sub()} />
     </Box>
     """
   end
@@ -388,7 +389,7 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def event_row(row) do
     top = if row.shape in [:reminder, :money], do: 14, else: 15
-    time_color = if row.shape == :airing, do: 0xFF1A1917, else: 0xFFA9A29A
+    time_color = if row.shape == :airing, do: Palette.ink(), else: Palette.muted()
     time_weight = if row.shape == :airing, do: "medium", else: "regular"
 
     ~MOB"""
@@ -405,8 +406,8 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc false
-  def card(%{shape: :done} = row), do: Kati.Screens.Calendar.ruled(row, 0xFF4E9A73, :done)
-  def card(%{shape: :event} = row), do: Kati.Screens.Calendar.ruled(row, Kati.Theme.ink(), :event)
+  def card(%{shape: :done} = row), do: Kati.Screens.Calendar.ruled(row, Palette.green(), :done)
+  def card(%{shape: :event} = row), do: Kati.Screens.Calendar.ruled(row, Palette.ink(), :event)
   def card(%{shape: :airing} = row), do: Kati.Screens.Calendar.airing(row)
 
   def card(%{shape: :reminder} = row) do
@@ -416,7 +417,7 @@ defmodule Kati.Screens.Calendar do
     <Row
       fill_width={true}
       on_tap={tap}
-      background={0xFFF4F1EC}
+      background={Palette.card_settled()}
       corner_radius={18}
       padding_left={15}
       padding_right={15}
@@ -424,13 +425,13 @@ defmodule Kati.Screens.Calendar do
       padding_bottom={13}
       align="center"
     >
-      {Kati.UI.symbol("radio_button_unchecked", size: 21, color: 0xFFB3ACA2)}
+      {Kati.UI.symbol("radio_button_unchecked", size: 21, color: Palette.tertiary())}
       <Spacer size={12} />
       <Box weight={1.0}>
         <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
       </Box>
       <Spacer size={12} />
-      <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
     </Row>
     """
   end
@@ -442,7 +443,7 @@ defmodule Kati.Screens.Calendar do
     <Row
       fill_width={true}
       on_tap={tap}
-      background={0xFFF4F1EC}
+      background={Palette.card_settled()}
       corner_radius={18}
       padding_left={15}
       padding_right={15}
@@ -456,7 +457,7 @@ defmodule Kati.Screens.Calendar do
         <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
       </Box>
       <Spacer size={12} />
-      <Text text={row.meta} font_family="mono" text_size={12} font_weight="medium" text_color={0xFF5C574F} max_lines={1} />
+      <Text text={row.meta} font_family="mono" text_size={12} font_weight="medium" text_color={Palette.ink_soft()} max_lines={1} />
     </Row>
     """
   end
@@ -478,8 +479,8 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def payments_tile do
     MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: 0xFFE4E0D9, size: 26, radius: 8],
-      [Kati.UI.symbol("payments", size: 15, color: 0xFF5C574F)]
+      [variant: :filled, color: Palette.placeholder(), size: 26, radius: 8],
+      [Kati.UI.symbol("payments", size: 15, color: Palette.ink_soft())]
     )
   end
 
@@ -491,7 +492,7 @@ defmodule Kati.Screens.Calendar do
   def ruled(row, rule, state) do
     tap = Kati.Screens.Calendar.tap(row)
     done? = state == :done
-    bg = if done?, do: 0xFFF4F1EC, else: Kati.Theme.card(:light)
+    bg = if done?, do: Palette.card_settled(), else: Palette.card()
     shadow = if done?, do: nil, else: Kati.Theme.shadow_card()
 
     ~MOB"""
@@ -526,7 +527,7 @@ defmodule Kati.Screens.Calendar do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={3} />
-      <Text text={row.meta} text_size={12} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={row.meta} text_size={12} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -535,14 +536,14 @@ defmodule Kati.Screens.Calendar do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={4} />
-      <Text text={row.meta} font_family="mono" text_size={11} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={row.meta} font_family="mono" text_size={11} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
 
   @doc false
-  def trailing(true), do: Kati.UI.symbol("check_circle", size: 21, color: 0xFF4E9A73, fill: true)
-  def trailing(false), do: Kati.UI.symbol("more_horiz", size: 19, color: 0xFFC4BDB3)
+  def trailing(true), do: Kati.UI.symbol("check_circle", size: 21, color: Palette.green(), fill: true)
+  def trailing(false), do: Kati.UI.symbol("more_horiz", size: 19, color: Palette.rail_idle())
 
   # The air-date group: the one card on this screen that opens. Its posters are
   # stacked the way Home stacks the hero's — `margin-left:-12px` shrinks the box
@@ -560,20 +561,20 @@ defmodule Kati.Screens.Calendar do
     <Row
       fill_width={true}
       on_tap={tap}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card()}
       padding={15}
       align="center"
     >
-      <Box width={3} height={48} corner_radius={2} background={0xFFE8823C} />
+      <Box width={3} height={48} corner_radius={2} background={Palette.accent()} />
       <Spacer size={12} />
       {Kati.Screens.Calendar.poster_stack(row)}
       <Spacer size={16} />
       <Column weight={1.0}>
         <Text text={row.title} text_size={14.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
         <Spacer size={4} />
-        <Text text={row.meta} font_family="mono" text_size={11} text_color={0xFF8A8479} max_lines={1} />
+        <Text text={row.meta} font_family="mono" text_size={11} text_color={Palette.sub()} max_lines={1} />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.Calendar.chevron_tile(open?)}
@@ -590,7 +591,7 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def chevron_tile(open?) do
     MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: 0xFFEFECE7, size: 28, radius: 14],
+      [variant: :filled, color: Palette.paper(), size: 28, radius: 14],
       [Kati.Screens.Calendar.chevron(open?)]
     )
   end
@@ -616,12 +617,12 @@ defmodule Kati.Screens.Calendar do
   # for a glyph that is this glyph upside down. Fence K-16 gave the bridge
   # `rotate` instead.
   @doc false
-  def chevron(false), do: Kati.UI.symbol("expand_more", size: 18, color: 0xFF5C574F)
+  def chevron(false), do: Kati.UI.symbol("expand_more", size: 18, color: Palette.ink_soft())
 
   def chevron(true) do
     ~MOB"""
     <Box width={18} height={18} rotate={180.0} align="center">
-      {Kati.UI.symbol("expand_more", size: 18, color: 0xFF5C574F)}
+      {Kati.UI.symbol("expand_more", size: 18, color: Palette.ink_soft())}
     </Box>
     """
   end
@@ -651,7 +652,7 @@ defmodule Kati.Screens.Calendar do
         <Column weight={1.0}>
           <Text text={m.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
           <Box fill_width={true} height={3} />
-          <Text text={m.meta} font_family="mono" text_size={10.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={m.meta} font_family="mono" text_size={10.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
       </Row>
     </Column>
@@ -697,9 +698,9 @@ defmodule Kati.Screens.Calendar do
       height={48}
       offset_x={offset}
       corner_radius={7}
-      background={0xFFE4E0D9}
+      background={Palette.placeholder()}
       border_width={2}
-      border_color={0xFFFBFAF8}
+      border_color={Palette.card()}
       shadow={Kati.Theme.shadow_poster()}
     >
       {Kati.Screens.Calendar.mini_image(src)}

@@ -36,7 +36,7 @@ defmodule Kati.Screens.WhatFits do
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaPill
   alias Kati.Screens.WhatFits.Sample
-  alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -98,7 +98,7 @@ defmodule Kati.Screens.WhatFits do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button()
       ],
       [Kati.UI.symbol("more_horiz", size: 21)]
@@ -111,7 +111,7 @@ defmodule Kati.Screens.WhatFits do
     <Column fill_width={true}>
       <Text text="What fits?" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text={t.now} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={t.now} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -123,7 +123,7 @@ defmodule Kati.Screens.WhatFits do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={19}
@@ -133,7 +133,7 @@ defmodule Kati.Screens.WhatFits do
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFB09A72}
+          text_color={Palette.cream_meta()}
         />
         <Spacer size={8} />
         <Text text={t.window} text_size={40} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
@@ -160,8 +160,8 @@ defmodule Kati.Screens.WhatFits do
 
   @doc false
   def length_button(l) do
-    bg = if l.selected, do: Theme.ink(), else: 0x99FFFFFF
-    fg = if l.selected, do: 0xFFFBFAF8, else: 0xFF8A7B60
+    bg = if l.selected, do: Palette.ink_fill(), else: Palette.cream_raise()
+    fg = if l.selected, do: Palette.on_ink(), else: Palette.cream_sub()
 
     ~MOB"""
     <Box weight={1.0}>
@@ -195,10 +195,10 @@ defmodule Kati.Screens.WhatFits do
     MishkaChip.chip(
       label: m.label,
       checked: m.selected,
-      color: 0x2EE8823C,
-      text_color: 0xFF96723C,
-      unchecked_color: 0x99FFFFFF,
-      unchecked_text_color: 0xFF8A7B60,
+      color: Palette.accent_wash(),
+      text_color: Palette.gold_text(),
+      unchecked_color: Palette.cream_raise(),
+      unchecked_text_color: Palette.cream_sub(),
       height: 28,
       corner_radius: 14,
       padding_x: 11,
@@ -225,7 +225,7 @@ defmodule Kati.Screens.WhatFits do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={13}
@@ -239,7 +239,7 @@ defmodule Kati.Screens.WhatFits do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         <Text text={row.run} font_family="mono" text_size={12} font_weight="medium" text_color={:on_surface} max_lines={1} />
@@ -256,7 +256,7 @@ defmodule Kati.Screens.WhatFits do
     ~MOB"""
     <Row
       fill_width={true}
-      background={0xFFF4F1EC}
+      background={Palette.card_settled()}
       corner_radius={18}
       padding_left={13}
       padding_right={13}
@@ -267,9 +267,9 @@ defmodule Kati.Screens.WhatFits do
       {Kati.Screens.WhatFits.thumb(row.seed)}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+        <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+        <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.WhatFits.defer_pill(row.action)}
@@ -296,8 +296,8 @@ defmodule Kati.Screens.WhatFits do
   def defer_pill(label) do
     MishkaPill.pill(
       label: label,
-      background: 0xFFE4E0D9,
-      color: 0xFF5C574F,
+      background: Palette.placeholder(),
+      color: Palette.ink_soft(),
       corner_radius: 15,
       height: 30,
       padding: 0,
@@ -313,7 +313,7 @@ defmodule Kati.Screens.WhatFits do
   def thumb(seed) do
     case Sample.poster(seed) do
       nil ->
-        ~MOB"<Box width={40} height={56} corner_radius={8} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={40} height={56} corner_radius={8} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""

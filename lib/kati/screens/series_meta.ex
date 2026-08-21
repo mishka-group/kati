@@ -46,10 +46,11 @@ defmodule Kati.Screens.SeriesMeta do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.SeriesMeta.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :series, Sample.series())}
   end
 
@@ -84,11 +85,30 @@ defmodule Kati.Screens.SeriesMeta do
 
   @doc false
   def artwork(s) do
+    # The three-stop scrim, built out here for the two reasons `Kati.UI.paper_fade/3`
+    # builds its two-stop one out: ~MOB is an uppercase sigil, so #{} inside it is
+    # literal text, and the page colour is written into the string as `#AARRGGBB`
+    # rather than as an `0x` literal — which is why a grep for `0x` never found it
+    # and it stayed light while everything around it followed the mode.
+    #
+    # Every stop is the SAME rgb at a different alpha, including the invisible
+    # one. Compose interpolates in straight RGBA, so fading to `#00FFFFFF` or to
+    # transparent black would tint the middle of the band; only the page colour
+    # at alpha 0 stays invisible along its whole length. `rem/2` rather than a
+    # Bitwise import: the low 24 bits of an 0xAARRGGBB integer are the RGB.
+    rgb =
+      Palette.paper()
+      |> rem(0x1000000)
+      |> Integer.to_string(16)
+      |> String.pad_leading(6, "0")
+
+    fade = "to_top #FF#{rgb} 4% #B3#{rgb} 44% #00#{rgb}"
+
     ~MOB"""
-    <Box fill_width={true} height={270} background={0xFFDCD7CF}>
+    <Box fill_width={true} height={270} background={Palette.track_off()}>
       {Kati.Screens.SeriesMeta.hero_art()}
       <Box fill_width={true} fill_height={true} align="bottom">
-        <Box fill_width={true} height={150} gradient="to_top #FFEFECE7 4% #B3EFECE7 44% #00EFECE7" />
+        <Box fill_width={true} height={150} gradient={fade} />
       </Box>
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={4}>
@@ -101,7 +121,7 @@ defmodule Kati.Screens.SeriesMeta do
             text_color={:on_surface}
           />
           <Spacer size={8} />
-          <Text text={s.meta} font_family="mono" text_size={11} text_color={0xFF6E6860} max_lines={1} />
+          <Text text={s.meta} font_family="mono" text_size={11} text_color={Palette.meta()} max_lines={1} />
         </Column>
       </Box>
     </Box>
@@ -124,7 +144,7 @@ defmodule Kati.Screens.SeriesMeta do
   @doc false
   def chrome do
     back = {self(), :back}
-    fill = Kati.Theme.card(:light)
+    fill = Palette.card()
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
@@ -235,7 +255,7 @@ defmodule Kati.Screens.SeriesMeta do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={16}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={12}
@@ -247,7 +267,7 @@ defmodule Kati.Screens.SeriesMeta do
             font_family="mono"
             text_size={9.5}
             letter_spacing={0.12}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
           <Spacer weight={1.0} />
@@ -284,9 +304,9 @@ defmodule Kati.Screens.SeriesMeta do
   def synopsis(s) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={s.synopsis} text_size={14} line_height={1.6} text_color={0xFF4A4238} />
+      <Text text={s.synopsis} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
       <Row align="center">
-        <Text text={s.more} text_size={14} line_height={1.6} text_color={0xFFA0998F} max_lines={1} />
+        <Text text={s.more} text_size={14} line_height={1.6} text_color={Palette.eyebrow()} max_lines={1} />
       </Row>
     </Column>
     """
@@ -303,14 +323,14 @@ defmodule Kati.Screens.SeriesMeta do
             fill_width={true}
             height={48}
             corner_radius={20}
-            background={Kati.Theme.ink()}
+            background={Palette.ink_fill()}
             shadow="0 12 24 -12 #D91A1917"
             align="center"
           >
             <Spacer weight={1.0} />
-            {Kati.UI.symbol("play_arrow", size: 20, color: 0xFFFBFAF8, fill: true)}
+            {Kati.UI.symbol("play_arrow", size: 20, color: Palette.on_ink(), fill: true)}
             <Spacer size={8} />
-            <Text text={s.trailer} text_size={13.5} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+            <Text text={s.trailer} text_size={13.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
             <Spacer weight={1.0} />
           </Row>
         </Box>
@@ -330,7 +350,7 @@ defmodule Kati.Screens.SeriesMeta do
       width={48}
       height={48}
       corner_radius={20}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       shadow={Kati.Theme.shadow_card_soft()}
       align="center"
     >
@@ -364,13 +384,13 @@ defmodule Kati.Screens.SeriesMeta do
   def cast_member(c) do
     ~MOB"""
     <Column weight={1.0}>
-      <Box fill_width={true} aspect_ratio={1.0} corner_radius={999} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box fill_width={true} aspect_ratio={1.0} corner_radius={999} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.SeriesMeta.portrait(c.seed)}
       </Box>
       <Spacer size={8} />
       <Text text={c.name} text_size={11} font_weight="semibold" line_height={1.3} text_color={:on_surface} text_align="center" />
       <Spacer size={2} />
-      <Text text={c.role} font_family="mono" text_size={9.5} text_color={0xFFA9A29A} text_align="center" max_lines={1} />
+      <Text text={c.role} font_family="mono" text_size={9.5} text_color={Palette.muted()} text_align="center" max_lines={1} />
     </Column>
     """
   end
@@ -431,7 +451,7 @@ defmodule Kati.Screens.SeriesMeta do
         <Column weight={1.0}>
           <Text text={row.name} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={2} />
-          <Text text={row.line} text_size={11} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.line} text_size={11} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.SeriesMeta.price(row.price)}
@@ -456,7 +476,7 @@ defmodule Kati.Screens.SeriesMeta do
   @spec where_badge(String.t()) :: map()
   def where_badge(badge) do
     MishkaThemeIcon.theme_icon(
-      [variant: :filled, color: 0xFFEFECE7, size: 32, radius: 10],
+      [variant: :filled, color: Palette.paper(), size: 32, radius: 10],
       [Kati.Screens.SeriesMeta.where_mark(badge)]
     )
   end
@@ -473,7 +493,7 @@ defmodule Kati.Screens.SeriesMeta do
 
   def price(value) do
     ~MOB"""
-    <Text text={value} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+    <Text text={value} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
     """
   end
 
@@ -485,7 +505,7 @@ defmodule Kati.Screens.SeriesMeta do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   # Three then two, which is where the browser breaks these five labels at a
   # 360pt content width. The add-tag slot carries its own flag rather than
@@ -548,8 +568,8 @@ defmodule Kati.Screens.SeriesMeta do
     MishkaPill.pill(
       label: label,
       background: :transparent,
-      color: 0xFFA0998F,
-      border_color: 0x2E1A1917,
+      color: Palette.eyebrow(),
+      border_color: Palette.border_strong(),
       border_width: 1.5,
       corner_radius: 15,
       height: 30,
@@ -565,8 +585,8 @@ defmodule Kati.Screens.SeriesMeta do
   def tag(label, false) do
     MishkaPill.pill(
       label: label,
-      background: Kati.Theme.card(:light),
-      color: 0xFF5C574F,
+      background: Palette.card(),
+      color: Palette.ink_soft(),
       shadow: Kati.Theme.shadow_card_soft(),
       corner_radius: 15,
       height: 30,

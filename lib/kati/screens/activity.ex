@@ -52,6 +52,7 @@ defmodule Kati.Screens.Activity do
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -123,7 +124,7 @@ defmodule Kati.Screens.Activity do
         <Column weight={1.0}>
           <Text text="Activity" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={Kati.Activity.Sample.entries_line()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={Kati.Activity.Sample.entries_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         {Kati.Screens.Activity.disc("search", :open_search)}
         <Spacer size={9} />
@@ -158,7 +159,7 @@ defmodule Kati.Screens.Activity do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button(),
         on_tap: {self(), tag}
       ],
@@ -225,10 +226,10 @@ defmodule Kati.Screens.Activity do
       label: label,
       checked: on?,
       on_toggle: {self(), String.to_atom("filter_" <> label)},
-      color: Kati.Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Kati.Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F,
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft(),
       height: 32,
       padding_x: 14,
       padding_y: 0,
@@ -262,7 +263,7 @@ defmodule Kati.Screens.Activity do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -302,7 +303,7 @@ defmodule Kati.Screens.Activity do
             font_family="mono"
             text_size={stamp_size}
             letter_spacing={stamp_spacing}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
         </Column>
@@ -313,7 +314,7 @@ defmodule Kati.Screens.Activity do
           <Row fill_width={true} align="center">
             <Text text={row.lead} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
             <Spacer size={2} />
-            <Text text={row.rest} text_size={12.5} text_color={0xFF5C574F} max_lines={1} />
+            <Text text={row.rest} text_size={12.5} text_color={Palette.ink_soft()} max_lines={1} />
             {Kati.Screens.Activity.stars(row[:stars])}
             <Spacer weight={1.0} />
           </Row>
@@ -328,7 +329,7 @@ defmodule Kati.Screens.Activity do
   def thumb(row) do
     case Kati.Design.Images.poster(row.seed) do
       nil ->
-        ~MOB"<Box width={26} height={37} corner_radius={5} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={26} height={37} corner_radius={5} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -345,7 +346,7 @@ defmodule Kati.Screens.Activity do
   def stars(nil), do: ~MOB"<Spacer size={0} />"
 
   def stars(count) do
-    star = Kati.UI.symbol("star", size: 11, color: 0xFF5C574F, fill: true)
+    star = Kati.UI.symbol("star", size: 11, color: Palette.ink_soft(), fill: true)
     glyphs = List.duplicate(star, count)
 
     ~MOB"""
@@ -369,7 +370,7 @@ defmodule Kati.Screens.Activity do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={17}
@@ -388,7 +389,7 @@ defmodule Kati.Screens.Activity do
       <Row fill_width={true} align="center">
         <Text text={name} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
         <Spacer weight={1.0} />
-        <Text text={count} font_family="mono" text_size={12} text_color={0xFFE8823C} max_lines={1} />
+        <Text text={count} font_family="mono" text_size={12} text_color={Palette.accent()} max_lines={1} />
       </Row>
       {Kati.Screens.Activity.row_gap(gap?)}
     </Column>
@@ -422,7 +423,7 @@ defmodule Kati.Screens.Activity do
   # `color` is passed rather than left to the component's `:border` default:
   # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   # One clause for all four chips: the tag carries the label. The two discs
   # fall through deliberately — search and the filter sheet are screens this

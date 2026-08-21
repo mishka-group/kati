@@ -28,6 +28,7 @@ defmodule Kati.Screens.MonthGrid do
   alias Kati.Calendar.SampleMonth
   alias Kati.Components.MishkaSeparator
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   # Monday-first, matching the drawing's header row. Duplicated letters are
@@ -70,11 +71,11 @@ defmodule Kati.Screens.MonthGrid do
           max_lines={1}
         />
         <Spacer size={6} />
-        {UI.symbol("unfold_more", size: 19, color: 0xFF8A8479)}
+        {UI.symbol("unfold_more", size: 19, color: Palette.sub())}
         <Spacer weight={1.0} />
-        {UI.symbol("chevron_left", size: 22, color: 0xFF8A8479)}
+        {UI.symbol("chevron_left", size: 22, color: Palette.sub())}
         <Spacer size={8} />
-        {UI.symbol("chevron_right", size: 22, color: 0xFF1A1917)}
+        {UI.symbol("chevron_right", size: 22, color: Palette.ink())}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -125,7 +126,7 @@ defmodule Kati.Screens.MonthGrid do
         font_family="mono"
         text_size={10}
         letter_spacing={0.08}
-        text_color={0xFFB3ACA2}
+        text_color={Palette.tertiary()}
         max_lines={1}
       />
     </Box>
@@ -262,7 +263,7 @@ defmodule Kati.Screens.MonthGrid do
         font_family="mono"
         text_size={10}
         letter_spacing={0.08}
-        text_color={0xFFA0998F}
+        text_color={Palette.eyebrow()}
         max_lines={1}
       />
     </Row>
@@ -276,7 +277,7 @@ defmodule Kati.Screens.MonthGrid do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Theme.shadow_card_soft()}
       padding_left={15}
@@ -297,7 +298,7 @@ defmodule Kati.Screens.MonthGrid do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column width={38}>
-          <Text text={row.time} font_family="mono" text_size={11.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.time} font_family="mono" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         <Box width={3} height={22} corner_radius={2} background={Theme.accent()} />
@@ -311,7 +312,7 @@ defmodule Kati.Screens.MonthGrid do
           max_lines={1}
         />
         <Spacer size={13} />
-        {UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)}
+        {UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.MonthGrid.hairline(rule?)}
     </Column>
@@ -341,7 +342,7 @@ defmodule Kati.Screens.MonthGrid do
   # `color` is passed rather than left to the component's `:border` default:
   # Kati's border token is 0x14000000 and the drawing's rule is 0x121A1917.
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   # ── What a tap changes ────────────────────────────────────────────────────
 

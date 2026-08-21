@@ -52,4 +52,43 @@ defmodule Kati.ComponentsTest do
       assert Map.get(expanders, tag) == {module, :expand}, "#{tag} did not register"
     end
   end
+
+  @markup_dirs ["lib/kati/screens", "lib/kati/ui", "lib/kati/ui.ex", "lib/kati/shell.ex"]
+
+  test "composite tags are registered at boot, or no markup uses one" do
+    tags =
+      @markup_dirs
+      |> Enum.flat_map(fn path ->
+        if File.dir?(path), do: Path.wildcard(Path.join(path, "**/*.ex")), else: [path]
+      end)
+      |> Enum.filter(&File.exists?/1)
+      |> Enum.flat_map(fn file ->
+        file
+        |> File.read!()
+        |> String.split("\n")
+        |> Enum.reject(&(String.trim_leading(&1) |> String.starts_with?("#")))
+        |> Enum.join("\n")
+        |> then(&Regex.scan(~r/<(Mishka[A-Za-z]+)[\s\/>]/, &1))
+        |> Enum.map(fn [_, tag] -> {file, tag} end)
+      end)
+
+    boot_registers? =
+      "lib/kati/app.ex" |> File.read!() |> String.contains?("Components.register_all()")
+
+    # An unregistered composite tag renders as NOTHING rather than raising, so
+    # this is the only thing standing between "someone wrote <MishkaChip/>" and
+    # a blank area on a screen. register_all/0 is off the boot path because it
+    # costs ~245ms of cold start and nothing uses tags; the moment something
+    # does, this fails and names the trade.
+    assert tags == [] or boot_registers?,
+           """
+           markup uses composite tags but Kati.App does not call \
+           Kati.Components.register_all/0, so they will render as NOTHING:
+
+             #{Enum.map_join(tags, "\n  ", fn {f, t} -> "#{f}: <#{t}>" end)}
+
+           Either register at boot (costing ~245ms of cold start) or use the \
+           direct function call, e.g. Kati.Components.MishkaChip.chip(...).
+           """
+  end
 end

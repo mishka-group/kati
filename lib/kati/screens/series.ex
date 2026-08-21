@@ -22,9 +22,10 @@ defmodule Kati.Screens.Series do
   alias Kati.Components.MishkaProgress
   alias Kati.Library.Sample
   alias Kati.Theme
+  alias Kati.Theme.Palette
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :series, Sample.series())}
   end
 
@@ -60,7 +61,7 @@ defmodule Kati.Screens.Series do
   @doc false
   def artwork(s) do
     ~MOB"""
-    <Box fill_width={true} height={330} background={0xFFDCD7CF}>
+    <Box fill_width={true} height={330} background={Palette.track_off()}>
       {Kati.Screens.Series.hero_art()}
       <Box fill_width={true} fill_height={true} align="bottom">
         {Kati.UI.paper_fade(190)}
@@ -76,7 +77,7 @@ defmodule Kati.Screens.Series do
             text_color={:on_surface}
           />
           <Spacer size={9} />
-          <Text text={s.meta} font_family="mono" text_size={11.5} text_color={0xFF6E6860} max_lines={1} />
+          <Text text={s.meta} font_family="mono" text_size={11.5} text_color={Palette.meta()} max_lines={1} />
         </Column>
       </Box>
     </Box>
@@ -98,7 +99,7 @@ defmodule Kati.Screens.Series do
   @doc false
   def chrome do
     back = {self(), :back}
-    fill = 0xD1FBFAF8
+    fill = Palette.chrome_disc()
     lift = "0 6 16 -8 #991A1917"
 
     ~MOB"""
@@ -150,7 +151,7 @@ defmodule Kati.Screens.Series do
     <Column fill_width={true}>
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card()}
       padding={17}
@@ -162,7 +163,7 @@ defmodule Kati.Screens.Series do
           text={"#{s.watched} of #{s.total} watched"}
           font_family="mono"
           text_size={11.5}
-          text_color={0xFF8A8479}
+          text_color={Palette.sub()}
           max_lines={1}
         />
       </Row>
@@ -170,9 +171,9 @@ defmodule Kati.Screens.Series do
       {Kati.Screens.Series.season_bar(pct)}
       <Spacer size={14} />
       <Row fill_width={true} align="center">
-        <Box width={6} height={6} corner_radius={3} background={0xFFE8823C} />
+        <Box width={6} height={6} corner_radius={3} background={Palette.accent()} />
         <Spacer size={8} />
-        <Text text="Next episode airs " text_size={12.5} text_color={0xFF5C574F} max_lines={1} />
+        <Text text="Next episode airs " text_size={12.5} text_color={Palette.ink_soft()} max_lines={1} />
         <Text text={s.next_air} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       </Row>
     </Column>
@@ -214,8 +215,8 @@ defmodule Kati.Screens.Series do
       max: 1,
       height: 6,
       corner_radius: 3,
-      color: Theme.ink(),
-      track_color: 0xFFE7E3DC
+      color: Palette.ink(),
+      track_color: Palette.track()
     )
   end
 
@@ -225,11 +226,11 @@ defmodule Kati.Screens.Series do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Box weight={1.0}>
-          <Row fill_width={true} height={50} corner_radius={25} background={Kati.Theme.ink()} align="center">
+          <Row fill_width={true} height={50} corner_radius={25} background={Palette.ink_fill()} align="center">
             <Spacer weight={1.0} />
-            {Kati.UI.symbol("check", size: 19, color: 0xFFFBFAF8)}
+            {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
             <Spacer size={8} />
-            <Text text="Mark next watched" text_size={14} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+            <Text text="Mark next watched" text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
             <Spacer weight={1.0} />
           </Row>
         </Box>
@@ -259,7 +260,7 @@ defmodule Kati.Screens.Series do
         size: 50,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        background: Palette.card(),
         shadow: Theme.shadow_card_soft()
       ],
       [Kati.UI.symbol(icon, size: 21)]
@@ -272,9 +273,9 @@ defmodule Kati.Screens.Series do
     <Column fill_width={true}>
       <Spacer size={26} />
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFE8823C} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.accent()} />
         <Spacer size={9} />
-        <Text text="EPISODES" font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
+        <Text text="EPISODES" font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.eyebrow()} />
         <Spacer weight={1.0} />
         {s.seasons |> Enum.map(fn n -> Kati.Screens.Series.season_pill(n, n == s.current_season) end) |> Enum.intersperse(Kati.Screens.Series.pill_gap())}
       </Row>
@@ -305,8 +306,8 @@ defmodule Kati.Screens.Series do
   # so this is the prop that decides how many chips the component can draw.
   @doc false
   def season_pill(label, on?) do
-    bg = if on?, do: Theme.ink(), else: 0xFFE4E0D9
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF6E6860
+    bg = if on?, do: Palette.ink_fill(), else: Palette.placeholder()
+    fg = if on?, do: Palette.on_ink(), else: Palette.meta()
     tap = {self(), String.to_atom("season_" <> label)}
 
     ~MOB"""
@@ -330,8 +331,8 @@ defmodule Kati.Screens.Series do
   @doc false
   def episode(ep) do
     aired? = Map.get(ep, :aired, true)
-    bg = if ep.watched, do: 0xFFF4F1EC, else: Theme.card(:light)
-    title_color = if ep.watched or not aired?, do: 0xFF8A8479, else: Theme.ink()
+    bg = if ep.watched, do: Palette.card_settled(), else: Palette.card()
+    title_color = if ep.watched or not aired?, do: Palette.sub(), else: Palette.ink()
     # An episode that has not aired cannot be marked watched, so it gets no tap
     # at all rather than a tap that silently does nothing.
     tap = if aired?, do: {self(), String.to_atom("episode_#{ep.n}")}, else: nil
@@ -340,13 +341,13 @@ defmodule Kati.Screens.Series do
     <Column fill_width={true}>
       <Row fill_width={true} on_tap={tap} background={bg} corner_radius={17} padding_left={15} padding_right={15} padding_top={13} padding_bottom={13} align="center">
         <Column width={22}>
-          <Text text={"#{ep.n}"} font_family="mono" text_size={12} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={"#{ep.n}"} font_family="mono" text_size={12} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={ep.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={title_color} max_lines={1} />
           <Spacer size={4} />
-          <Text text={ep.sub} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={ep.sub} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Series.check(ep.watched, aired?)}
@@ -361,16 +362,16 @@ defmodule Kati.Screens.Series do
   @doc false
   def check(true, _aired?) do
     ~MOB"""
-    <Box width={27} height={27} corner_radius={14} background={Kati.Theme.ink()} align="center">
-      {Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)}
+    <Box width={27} height={27} corner_radius={14} background={Palette.ink_fill()} align="center">
+      {Kati.UI.symbol("check", size: 16, color: Palette.on_ink())}
     </Box>
     """
   end
 
   def check(false, true) do
     ~MOB"""
-    <Box width={27} height={27} corner_radius={14} border_width={1} border_color={0xFFD8D2C8} align="center">
-      {Kati.UI.symbol("check", size: 16, color: 0xFFD8D2C8)}
+    <Box width={27} height={27} corner_radius={14} border_width={1} border_color={Palette.bar_neutral()} align="center">
+      {Kati.UI.symbol("check", size: 16, color: Palette.bar_neutral())}
     </Box>
     """
   end

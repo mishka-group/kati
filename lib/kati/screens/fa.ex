@@ -97,6 +97,7 @@ defmodule Kati.Screens.Fa do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Theme.Palette
 
   # The four roots, in the order the bar draws them. `Kati.Screens.Stats` is
   # the English root standing in for drawing 61 (آمار) until it is built: a
@@ -147,17 +148,26 @@ defmodule Kati.Screens.Fa do
   def dock(active) do
     add = {self(), :fab}
 
+    # `dock_fill` here, where `Kati.Shell` uses `Kati.Theme.chrome_fill/1`, and
+    # the difference is not an oversight on either side: this dock was drawn at
+    # the design's own .90 (`0xE6`) and the shell's at the .97 that stands in for
+    # a backdrop blur Mob cannot do. Both light values are kept exactly as they
+    # were; `dock_fill`'s dark alpha (.92) is drawn on screen 28.
+    fill = Palette.dock_fill()
+    fab = Palette.fab_fill()
+    glyph = Palette.fab_glyph()
+
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="bottom">
       <Row fill_width={true} align="center" padding_left={18} padding_right={18} padding_bottom={30}>
-        <Box weight={1.0} height={64} background={0xE6FBFAF8} corner_radius={32} align="center">
+        <Box weight={1.0} height={64} background={fill} corner_radius={32} align="center">
           <Row fill_width={true} fill_height={true} align="center">
             {Enum.map(Kati.Screens.Fa.roots(), fn root -> Kati.Screens.Fa.tab(root, active) end)}
           </Row>
         </Box>
         <Spacer size={11} />
-        <Box width={64} height={64} background={0xFF1A1917} corner_radius={32} align="center" on_tap={add}>
-          {Kati.UI.symbol("add", size: 27, color: 0xFFFBFAF8)}
+        <Box width={64} height={64} background={fab} corner_radius={32} align="center" on_tap={add}>
+          {Kati.UI.symbol("add", size: 27, color: glyph)}
         </Box>
       </Row>
     </Box>
@@ -183,16 +193,20 @@ defmodule Kati.Screens.Fa do
   # `:center` as the string `"center"` — which is what `boxAlignProp`
   # (`MobBridge.kt:4298`) matches on, `props["align"] as? String`.
   #
-  # The inactive disc's `0x00FFFFFF` survives: `put_some/3` drops `nil` and
+  # The inactive disc's transparent fill survives: `put_some/3` drops `nil` and
   # `false`, not a transparent colour, so the key is on the node either way.
+  # `Palette.transparent/0` is `0x00FFFFFF` in both modes, so that stays true.
   # `variant: :filled` picks a glyph colour from the fill's luminance, and that
   # value is discarded here — the child `Text` carries `Kati.UI.symbol/2`'s own
   # tint, which is the whole reason the glyph is a child rather than `icon`.
   @doc false
   def tab(root, active) do
     on? = root.id == active
-    tint = if on?, do: 0xFF1A1917, else: 0xFFB3ACA2
-    disc = if on?, do: 0xFFEFECE7, else: 0x00FFFFFF
+    # Same four tokens as `Kati.Shell.tab/3`, and for the same reasons — the
+    # active well is `tab_well`, not `paper`: in dark it is DARKER than the page
+    # so it still reads as a hole punched in the bar.
+    tint = if on?, do: Palette.ink(), else: Palette.tertiary()
+    disc = if on?, do: Palette.tab_well(), else: Palette.transparent()
     tap = {self(), String.to_atom("root_#{root.id}")}
 
     glyph =
@@ -214,12 +228,15 @@ defmodule Kati.Screens.Fa do
   tracking, which the drawings set to 0 on every Persian line.
   """
   def eyebrow(label) do
+    dash = Palette.accent()
+    label_color = Palette.eyebrow()
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFE8823C} />
+        <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
-        <Text text={label} font_family="fa" font_weight="semibold" text_size={11} text_color={0xFFA0998F} />
+        <Text text={label} font_family="fa" font_weight="semibold" text_size={11} text_color={label_color} />
       </Row>
       <Spacer size={11} />
     </Column>
@@ -256,7 +273,10 @@ defmodule Kati.Screens.Fa do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: 0xFFFBFAF8,
+        # The doc above calls this "card white", so it is the `card` token and
+        # not one of the other three meanings of `0xFFFBFAF8` — the disc is a
+        # surface that floats, not a mark burnt onto one.
+        background: Kati.Theme.card(Palette.mode()),
         shadow: Kati.Theme.shadow_button(),
         on_tap: tag
       },

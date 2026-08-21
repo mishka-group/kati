@@ -28,6 +28,7 @@ defmodule Kati.Screens.Books do
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaProgress
   alias Kati.Theme
+  alias Kati.Theme.Palette
 
   @doc false
   def content(_assigns) do
@@ -56,7 +57,7 @@ defmodule Kati.Screens.Books do
         <Column weight={1.0}>
           <Text text="Library" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={Kati.Books.Sample.subtitle()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={Kati.Books.Sample.subtitle()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={9} />
         {Kati.Screens.Books.disc("search", :open_search)}
@@ -88,7 +89,7 @@ defmodule Kati.Screens.Books do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        background: Palette.card(),
         shadow: Theme.shadow_button(),
         on_tap: {self(), tag}
       ],
@@ -100,7 +101,7 @@ defmodule Kati.Screens.Books do
   def segments do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={18} padding={4} align="center">
+      <Row fill_width={true} background={Palette.placeholder()} corner_radius={18} padding={4} align="center">
         {Kati.Screens.Books.segment("movie", "Screen", false, :open_screen)}
         <Spacer size={4} />
         {Kati.Screens.Books.segment("menu_book", "Books", true, :open_books)}
@@ -119,7 +120,7 @@ defmodule Kati.Screens.Books do
   @doc false
   def segment(icon, label, true, tag) do
     tap = {self(), tag}
-    fg = Theme.ink()
+    fg = Palette.ink()
 
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
@@ -127,7 +128,7 @@ defmodule Kati.Screens.Books do
         fill_width={true}
         height={38}
         corner_radius={14}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         shadow="0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
         align="center"
       >
@@ -143,7 +144,7 @@ defmodule Kati.Screens.Books do
 
   def segment(icon, label, false, tag) do
     tap = {self(), tag}
-    fg = 0xFFAFA89E
+    fg = Palette.segment_idle()
 
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
@@ -170,7 +171,7 @@ defmodule Kati.Screens.Books do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={14}
@@ -184,7 +185,7 @@ defmodule Kati.Screens.Books do
             font_family="mono"
             text_size={10}
             letter_spacing={0.14}
-            text_color={0xFFA0998F}
+            text_color={Palette.eyebrow()}
             max_lines={1}
           />
           <Spacer size={7} />
@@ -198,11 +199,11 @@ defmodule Kati.Screens.Books do
             max_lines={1}
           />
           <Spacer size={4} />
-          <Text text={r.author} text_size={12} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={r.author} text_size={12} text_color={Palette.sub()} max_lines={1} />
           <Spacer size={12} />
           {Kati.Screens.Books.reading_bar(r.progress)}
           <Spacer size={8} />
-          <Text text={r.pace} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={r.pace} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -214,11 +215,11 @@ defmodule Kati.Screens.Books do
   def hero_cover(r) do
     case Sample.cover(r.seed) do
       nil ->
-        ~MOB"<Box width={74} height={110} corner_radius={6} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={74} height={110} corner_radius={6} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
-        <Box width={74} height={110} corner_radius={6} background={0xFFE4E0D9} shadow="0 6 14 -6 #801A1917">
+        <Box width={74} height={110} corner_radius={6} background={Palette.placeholder()} shadow="0 6 14 -6 #801A1917">
           <Image src={src} width={74} height={110} corner_radius={6} content_mode="fill" />
         </Box>
         """
@@ -250,8 +251,8 @@ defmodule Kati.Screens.Books do
       max: 1,
       height: 5,
       corner_radius: 3,
-      color: Theme.ink(),
-      track_color: 0xFFE7E3DC
+      color: Palette.ink(),
+      track_color: Palette.track()
     )
   end
 
@@ -300,15 +301,15 @@ defmodule Kati.Screens.Books do
   def chip(label, count, on?) do
     # The drawing puts the count at .6 opacity of the label's own colour rather
     # than at a separate token, so it stays legible on both chip states.
-    count_fg = if on?, do: 0x99FBFAF8, else: 0x995C574F
+    count_fg = if on?, do: Palette.on_ink_count(), else: Palette.count_idle()
 
     MishkaChip.chip(
       label: label,
       checked: on?,
-      color: Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F,
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft(),
       height: 32,
       padding_x: 14,
       padding_y: 0,
@@ -375,7 +376,7 @@ defmodule Kati.Screens.Books do
   def tile(book) do
     ~MOB"""
     <Column weight={1.0}>
-      <Box fill_width={true} height={158} corner_radius={6} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box fill_width={true} height={158} corner_radius={6} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
         {Kati.Screens.Books.artwork(book)}
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Books.progress(book.progress)}
@@ -384,7 +385,7 @@ defmodule Kati.Screens.Books do
       <Spacer size={9} />
       <Text text={book.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
       <Spacer size={3} />
-      <Text text={book.line} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={book.line} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
     </Column>
     """
   end
@@ -425,8 +426,8 @@ defmodule Kati.Screens.Books do
       value: fraction,
       max: 1,
       height: 4,
-      color: 0xFFE8823C,
-      track_color: 0x381A1917
+      color: Palette.accent(),
+      track_color: Palette.track_ink()
     )
   end
 

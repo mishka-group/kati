@@ -34,13 +34,14 @@ defmodule Kati.Screens.AddTitle do
   alias Kati.Components.MishkaChip
   alias Kati.Library.Sample
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   # `results` is the whole answer to the query and never shrinks — the chip
   # narrows the VIEW, so a title added under `Films` is still added when the
   # user goes back to `Everything`.
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
 
     {:ok, Mob.Socket.assign(socket, results: Sample.search_results(), filter: "Everything")}
   end
@@ -134,7 +135,7 @@ defmodule Kati.Screens.AddTitle do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        background: Palette.card(),
         shadow: Theme.shadow_button(),
         on_tap: :back
       ],
@@ -153,9 +154,9 @@ defmodule Kati.Screens.AddTitle do
         fill_width={true}
         height={52}
         corner_radius={26}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         border_width={2}
-        border_color={0xFF1A1917}
+        border_color={Palette.ink()}
         shadow={Kati.Theme.shadow_search()}
         padding_left={18}
         padding_right={18}
@@ -165,9 +166,9 @@ defmodule Kati.Screens.AddTitle do
         <Spacer size={11} />
         <Text text="quiet" text_size={14.5} font_weight="medium" text_color={:on_surface} max_lines={1} />
         <Spacer size={2} />
-        <Box width={2} height={19} background={0xFFE8823C} />
+        <Box width={2} height={19} background={Palette.accent()} />
         <Spacer weight={1.0} />
-        {Kati.UI.symbol("cancel", size: 19, color: 0xFFC4BDB3, fill: true)}
+        {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -224,10 +225,10 @@ defmodule Kati.Screens.AddTitle do
       text_size: 12.5,
       font_weight: :semibold,
       max_lines: 1,
-      color: Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: Theme.card(:light),
-      unchecked_text_color: 0xFF5C574F
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.card(),
+      unchecked_text_color: Palette.ink_soft()
     )
   end
 
@@ -255,7 +256,7 @@ defmodule Kati.Screens.AddTitle do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={13}
@@ -269,9 +270,9 @@ defmodule Kati.Screens.AddTitle do
         <Column weight={1.0}>
           <Text text={r.title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
           <Spacer size={5} />
-          <Text text={r.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={r.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
           <Spacer size={5} />
-          <Text text={r.note} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={r.note} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.AddTitle.add_button(r.added, r.title)}
@@ -286,7 +287,7 @@ defmodule Kati.Screens.AddTitle do
   @doc false
   def thumb(r) do
     case Kati.Library.Sample.poster(r[:seed]) do
-      nil -> ~MOB"<Box width={44} height={62} corner_radius={9} background={0xFFE4E0D9} />"
+      nil -> ~MOB"<Box width={44} height={62} corner_radius={9} background={Palette.placeholder()} />"
       src -> ~MOB"""
         <Image src={src} width={44} height={62} corner_radius={9} content_mode="fill" />
         """
@@ -316,9 +317,9 @@ defmodule Kati.Screens.AddTitle do
     # Keyed on the title, not the row's position: the chips reorder nothing but
     # they do renumber, and `add_1` would mean a different film under `Films`.
     tap = {self(), String.to_atom("add_" <> title)}
-    bg = if added?, do: 0xFFE4E0D9, else: Kati.Theme.ink()
+    bg = if added?, do: Palette.placeholder(), else: Palette.ink_fill()
     icon = if added?, do: "check", else: "add"
-    ink = if added?, do: 0xFF8A8479, else: 0xFFFBFAF8
+    ink = if added?, do: Palette.sub(), else: Palette.on_ink()
 
     MishkaActionIcon.action_icon(
       [size: 34, shape: :circle, variant: :filled, background: bg, on_tap: tap],
@@ -337,15 +338,15 @@ defmodule Kati.Screens.AddTitle do
       fill_width={true}
       corner_radius={18}
       border_width={1.5}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       padding_top={14}
       padding_bottom={14}
       align="center"
     >
       <Spacer weight={1.0} />
-      {Kati.UI.symbol("edit_note", size: 18, color: 0xFF8A8479)}
+      {Kati.UI.symbol("edit_note", size: 18, color: Palette.sub())}
       <Spacer size={7} />
-      <Text text="Can’t find it? Add it by hand" text_size={13} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+      <Text text="Can’t find it? Add it by hand" text_size={13} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
       <Spacer weight={1.0} />
     </Row>
     """

@@ -43,7 +43,11 @@ defmodule Kati.Screens.Pushed do
       @back_label unquote(back_label)
 
       def mount(params, _session, socket) do
-        Mob.Theme.set(Kati.Theme.light())
+        # The resolved palette, not `Kati.Theme.light()` — see the note in
+        # `Kati.Screens.Root`'s macro. A push is the commonest navigation in the
+        # app, so this was the single call that most often threw the user's
+        # choice away.
+        Kati.Theme.activate()
 
         socket
         |> Mob.Socket.assign(:params, params)
@@ -109,7 +113,15 @@ defmodule Kati.Screens.Pushed do
     tap = {self(), :back}
     # The card colour, not the 90%-opaque chrome fill: the drawings paint this
     # pill solid and give it the same lift as every other floating control.
-    assigns = %{label: label, tap: tap, chrome: Kati.Theme.card(:light)}
+    #
+    # The mode comes from `Kati.Theme.Palette.mode/0` — which reads the theme
+    # `Mob.Theme` is actually carrying — rather than from `Kati.Theme.mode/0`,
+    # which re-resolves the stored preference. At RENDER time those two can
+    # disagree (a preference stored without a re-activate), and the half of the
+    # markup that resolves through `:on_surface` follows the installed theme
+    # regardless. Asking the installed theme keeps one frame internally
+    # consistent; `Kati.Theme.mode/0` is the mount-time question.
+    assigns = %{label: label, tap: tap, chrome: Kati.Theme.card(Kati.Theme.Palette.mode())}
 
     # A Row, not a Box, and this was wrong on ~30 screens.
     #
