@@ -14,6 +14,14 @@ defmodule Kati.Screens.Calendar do
   TODAY falls back to `drawn_rows/0`, the five rows the drawing itself shows,
   so the screen can still be compared with its frame. Any other day the user
   taps shows its real emptiness.
+
+  ## The route to screen 09
+
+  Tapping the day cell that is **already selected** pushes `Kati.Screens.Day`.
+  Nothing on this screen is drawn differently for it — the gesture rides the
+  seven cells the drawing already gives, so the resting frame is unchanged.
+  The argument for that cell over the `Today` pill is at the `"day_" <> iso`
+  clause of `handle_tap/2`, next to the code it decides.
   """
   use Kati.Screens.Root, root: :calendar
 
@@ -235,6 +243,14 @@ defmodule Kati.Screens.Calendar do
   def day_cell(date, today?) do
     # The tag carries the day, so tapping Thursday shows Thursday. Every cell
     # used to push the same screen, which looked interactive and was not.
+    #
+    # One tag, two meanings, decided by the handler rather than here: the cell
+    # that is NOT selected selects itself, and the cell that IS selected opens
+    # screen 09. The cell cannot know which it is without being told twice —
+    # `today?` is already that answer, but reading it here would mean two
+    # different tags on seven identical-looking controls, and the tag is what
+    # the tap sweep enumerates. See `handle_tap/2`'s `"day_" <> iso` clause for
+    # why the second tap is the drill-in.
     tap = {self(), String.to_atom("day_" <> Date.to_iso8601(date))}
 
     bg = if today?, do: Theme.ink(), else: Theme.card(:light)
@@ -780,14 +796,71 @@ defmodule Kati.Screens.Calendar do
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
 
+      # Two meanings on one tag, and which one you get depends on what is
+      # already selected.
+      #
+      # ## Why this screen needed a route at all
+      #
+      # Screen 09 is drawn as a PUSHED screen whose back pill reads
+      # `‹ Calendar` — so 09 sits over this root, and this root was the one
+      # screen with no way to reach it. Screen 30 (`Kati.Screens.Week`) and
+      # friends get there through `Kati.Screens.ViewSwitcher`; the Schedule
+      # root draws no switcher, so nothing on 02 opened 09.
+      #
+      # ## Why the already-selected cell, and not the "Today" pill
+      #
+      # 02 draws exactly four controls above the timeline: two header discs
+      # (search → 08, more → 16), the month name with `unfold_more` (→ the
+      # month grid), the seven day cells, and the `Today` pill. The discs and
+      # the month name are already spoken for, so the route is one of the last
+      # two, and the drawings decide between them:
+      #
+      #   * **09 is date-parameterised.** Its title is `Thu 20 Aug`, not
+      #     "Today" — it is the heavy-day view of A day, and its own caption
+      #     points back at 02 ("tap the one on 02 to expand it"), so the two
+      #     are the same timeline drawn at two densities. A route into it has
+      #     to carry WHICH day. The `Today` pill carries only one date, by
+      #     definition, so routing 09 through it would make six of the seven
+      #     days in the strip unreachable.
+      #
+      #   * **"Today" names a date, not a view.** Every other pill on these
+      #     drawings that names a view says so (`Day` / `Week` / `Month` /
+      #     `Agenda` on 16/17/30). A pill labelled with a date is a date
+      #     control: it puts the strip back on today. Spending it on
+      #     navigation would leave that job undrawn AND leave 09 reachable
+      #     from one day only — two losses for one gain.
+      #
+      #   * **The day cells are the only controls on 02 that carry a date**,
+      #     and the drawing already paints one of the seven differently — ink
+      #     fill, light numerals, the button lift, while the other six sit
+      #     flat on card white. A second tap on that one cannot mean "select
+      #     it": it is selected. Opening it is the only thing left for the
+      #     gesture to mean, and it costs no new control, no new pixel, and
+      #     nothing in the resting frame.
+      #
+      # Selection is untouched: any of the other six still changes `:date` and
+      # reloads `:rows`, which is what the branch below did before and is the
+      # whole of what it still does.
       "day_" <> iso ->
         date = Date.from_iso8601!(iso)
 
-        {:noreply,
-         Mob.Socket.assign(socket,
-           date: date,
-           rows: Kati.Screens.Calendar.day_rows(date)
-         )}
+        if date == socket.assigns.date do
+          # The date rides along as a param even though `Kati.Screens.Day`
+          # currently throws it away — `day.ex`'s `load/1` assigns
+          # `date: Kati.Time.today()` and never reads `assigns.params`. Said
+          # out loud rather than left as a surprise: this is the route stating
+          # which day was opened, and the day the drawing titles (`Thu 20
+          # Aug`) is whichever cell was tapped. Teaching 09 to read it is a
+          # change to `day.ex`, which this screen does not own; passing
+          # nothing would mean changing both files instead of one.
+          {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Day, %{date: date})}
+        else
+          {:noreply,
+           Mob.Socket.assign(socket,
+             date: date,
+             rows: Kati.Screens.Calendar.day_rows(date)
+           )}
+        end
 
       _ ->
         {:noreply, socket}

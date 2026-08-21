@@ -240,8 +240,45 @@ defmodule Kati.Screens.MealsToday do
   @doc false
   def tile_gap, do: ~MOB"<Spacer size={8} />"
 
+  @doc """
+  Where each quick tile goes, keyed by its **icon** rather than its label.
+
+  The icon is a Material Symbols identifier and is never translated; the label
+  is display text and one day will be. Keying on the label would wire four
+  live controls in English and four dead ones in every other locale, and the
+  failure would be invisible — an unknown key yields no `on_tap`, and a Box
+  with no `on_tap` is drawn exactly like one that has it.
+
+  The four destinations are the four screens whose own drawing carries a
+  `‹ Meals` back pill, which is what identifies them as the places Meals goes:
+  44 the repeating week, 48 Shopping, 47 Nutrition, 49 Plans. `tune` is the
+  odd one only until you read 49 — a plan owns its meals, its targets and its
+  reminder times, so "Plan" is the profile you pick, not the week you look at.
+  """
+  @tile_taps %{
+    "calendar_view_week" => :open_week,
+    "shopping_cart" => :open_shopping,
+    "monitoring" => :open_nutrition,
+    "tune" => :open_plan
+  }
+
+  @spec tile_taps() :: %{String.t() => atom()}
+  def tile_taps, do: @tile_taps
+
+  # Nothing here changes a resting pixel: the four tiles were already drawn
+  # exactly like this, and `on_tap` adds a click target, not ink. What it fixes
+  # is that three of the four destinations below already had a `handle_tap/2`
+  # clause and no control ever sent the tag — `Kati.Screens.MealPlan`,
+  # `Kati.Screens.Shopping` and `Kati.Screens.Nutrition` were reachable only
+  # from `Kati.Screens.Gallery`, and the tiles that name them did nothing.
   @doc false
   def tile(icon, label) do
+    # `Map.fetch!`, not `Map.get`: an icon with no entry would otherwise yield
+    # `on_tap={nil}`, which the bridge drops without a word and draws as a tile
+    # that looks identical and answers nothing. A raise here is caught by the
+    # render sweep long before a device sees it.
+    tap = {self(), Map.fetch!(@tile_taps, icon)}
+
     ~MOB"""
     <Box weight={1.0}>
       <Box
@@ -254,6 +291,7 @@ defmodule Kati.Screens.MealsToday do
         padding_top={11}
         padding_bottom={11}
         align="center"
+        on_tap={tap}
       >
         <Column fill_width={true}>
           <Row fill_width={true} align="center">
@@ -603,10 +641,26 @@ defmodule Kati.Screens.MealsToday do
     )
   end
 
+  # Meals is a hub, and every screen it reaches is one whose own drawing opens
+  # with a `‹ Meals` back pill — 44, 45, 47, 48 and 49. Five of the six; screen
+  # 51 is the sixth and no drawing anywhere gives it a control, which
+  # `Kati.Screens.MealReminders` records rather than papering over.
+  #
+  # `:open_week` is the header disc AND the first tile: the drawing gives both
+  # the same `calendar_view_week` glyph, so they are one affordance drawn twice
+  # and they go to one place.
   @impl true
   def handle_tap(:open_meal, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
-  def handle_tap(:open_plan, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
+  def handle_tap(:open_week, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
   def handle_tap(:open_shopping, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Shopping)}
   def handle_tap(:open_nutrition, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Nutrition)}
+
+  # Both of these open screen 49, and both are the drawing's own words for it.
+  # The `tune` tile is labelled "Plan" — the profile, not the week — and the
+  # title pill is "Cutting v3" under an `unfold_more`, which is a picker glyph:
+  # it says there are others. 49 is where the others are.
+  def handle_tap(:open_plan, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
+  def handle_tap(:switch_plan, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
+
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

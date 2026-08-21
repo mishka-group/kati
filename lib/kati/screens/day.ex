@@ -38,12 +38,35 @@ defmodule Kati.Screens.Day do
   `lit/2` lights the first chip for it, and tapping the kind already showing
   widens back to it — the screen would otherwise have three states and no way
   home.
+
+  ## The grouped card opens
+
+  Screen 09 draws the 20:00 group **collapsed** — a poster stack, a count tile
+  and a chevron disc — and its own caption says where the other half is drawn:
+  *"tap the one on 02 to expand it"*. So the expanded state's geometry comes
+  from `.scratch/design/screens/02.html`, which draws it under
+  `<sc-if value="{{ groupOpen }}">`: the members go **inside** the card, below
+  a 13/4 gap either side of an 8%-ink hairline, one 26x37 poster per member
+  with the title, the episode line and the member's own clock on the trailing
+  edge.
+
+  That is why the members are not `Kati.Screens.Calendar`'s `airing_row/1`
+  read across: that one indents rows *under* the card on the page, which is
+  the shape 02's own drawing does not have. The composition is the same —
+  `group_members/2` is `with_members/3` — and the numbers are 02's.
+
+  Collapsed is the resting state and nothing about it moved: the header row
+  keeps every prop it had, and the card's fill, radius, shadow and 14 of
+  padding moved one level out to the `<Column>` that now holds the header row
+  and the members. A `<Column fill_width>` with one `fill_width` `<Row>` in it
+  measures what the `<Row>` measured alone.
   """
   use Kati.Screens.Pushed, back: "Calendar"
 
   alias Kati.Calendar.Layout
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
+  alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
 
   # The drawing's gap BETWEEN LANES — `display:flex;gap:7px` on the split row.
@@ -68,6 +91,11 @@ defmodule Kati.Screens.Day do
     Mob.Socket.assign(socket,
       date: date,
       filter: nil,
+      # Which collapsed groups are open, by the tag their card carries. A list
+      # rather than one `open?` flag: a day can hold more than one group — five
+      # meals at 12:30 and three episodes at 20:00 collapse independently — and
+      # a single flag would open both at once.
+      open_groups: [],
       occurrences: Kati.Calendar.SampleDay.occurrences()
     )
   end
@@ -80,7 +108,7 @@ defmodule Kati.Screens.Day do
     # Clustered from the FILTERED list, not filtered after clustering: a clash
     # between a meeting and a renewal is not a clash once the renewals are
     # gone, and the lanes have to be recomputed to say so.
-    clusters = clusters(visible(assigns.occurrences, filter))
+    clusters = clusters(visible(assigns.occurrences, filter), assigns.open_groups)
 
     ~MOB"""
     <Scroll>
@@ -288,11 +316,18 @@ defmodule Kati.Screens.Day do
     """
   end
 
+  # The band's thumbnail and an open group's member poster are the same 26x37
+  # at radius 5 and differ only in what shows when the artwork is missing: the
+  # band's cream `#EADFC6` against the group row's `#E4E0D9`, which are the two
+  # colours the drawings give the two empty rectangles.
   @doc false
-  def thumb(item) do
+  def thumb(item), do: Kati.Screens.Day.thumb(item, 0xFFEADFC6)
+
+  @doc false
+  def thumb(item, placeholder) do
     case Kati.Library.Sample.poster(item[:seed]) do
       nil ->
-        ~MOB"<Box width={26} height={37} corner_radius={5} background={0xFFEADFC6} />"
+        ~MOB"<Box width={26} height={37} corner_radius={5} background={placeholder} />"
 
       src ->
         ~MOB"""
@@ -546,7 +581,7 @@ defmodule Kati.Screens.Day do
   the gap stays 9dp at every width instead of growing with the lane.
   """
   def lanes(%{n_cols: 1, placements: [only]} = cluster) do
-    if grouped?(cluster), do: grouped_card(only), else: card(only, false)
+    if grouped?(cluster), do: grouped_card(only, cluster), else: card(only, false)
   end
 
   def lanes(cluster) do
@@ -771,37 +806,140 @@ defmodule Kati.Screens.Day do
   card holds that the title does not already spell out is how many members the
   stack stands for, and three posters over "3" is at least true. Worth
   re-checking against the design source if that template ever resolves.
+
+  ## It opens
+
+  The whole header row is the target, which is where 02's drawing puts it:
+  `onClick="{{ toggleGroup }}"` sits on the flex row holding the rail, the
+  stack, the text and the disc — not on the disc, which is why the disc stays
+  a plain `action_icon/2` with no tap of its own.
+
+  The card chrome (fill, radius, shadow, 14 of padding) lives on the `<Column>`
+  so the members can sit inside it under the hairline. Collapsed, that Column
+  holds one `fill_width` `<Row>` and measures exactly what the Row measured
+  when it carried the chrome itself.
   """
-  def grouped_card(%{event: event}) do
+  def grouped_card(%{event: event}, cluster) do
     members = Map.get(event, :collapsed, [])
     title = collapsed_title(event)
     meta = collapsed_meta(event)
+    open? = Map.get(cluster, :open?, false)
+    tap = {self(), Map.fetch!(cluster, :tag)}
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row
+      <Column
         fill_width={true}
         background={Kati.Theme.card(:light)}
         corner_radius={18}
         shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
         padding={14}
-        align="center"
       >
-        <Box width={3} height={48} corner_radius={2} background={0xFFE8823C} />
-        <Spacer size={12} />
-        {Kati.Screens.Day.poster_stack(members)}
-        <Spacer size={4} />
-        <Column weight={1.0}>
-          <Text text={title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+        <Row fill_width={true} on_tap={tap} align="center">
+          <Box width={3} height={48} corner_radius={2} background={0xFFE8823C} />
+          <Spacer size={12} />
+          {Kati.Screens.Day.poster_stack(members)}
           <Spacer size={4} />
-          <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFF8A8479} max_lines={1} />
-        </Column>
-        <Spacer size={12} />
-        {Kati.Screens.Day.chevron_disc()}
-      </Row>
+          <Column weight={1.0}>
+            <Text text={title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+            <Spacer size={4} />
+            <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFF8A8479} max_lines={1} />
+          </Column>
+          <Spacer size={12} />
+          {Kati.Screens.Day.chevron_disc(open?)}
+        </Row>
+        {Kati.Screens.Day.group_members(members, open?)}
+      </Column>
     </Box>
     """
   end
+
+  @doc """
+  The members, drawn only while the group is open.
+
+  Screen 02's `<sc-if value="{{ groupOpen }}">` block, number for number:
+  `margin-top:13px` above an 8%-ink hairline, `padding-top:4px` below it, then
+  one row per member. Closed it draws a zero `<Spacer>` rather than an empty
+  `<Column>`, the same way `all_day/1` does — the 13 above the rule belongs to
+  the block, and a closed group has to take it with it or the collapsed card
+  is 13pt taller than the drawing.
+  """
+  @spec group_members([map()], boolean()) :: map()
+  def group_members(_members, false), do: ~MOB"<Spacer size={0} />"
+
+  def group_members(members, true) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={13} />
+      {Kati.Screens.Day.group_rule()}
+      <Spacer size={4} />
+      {Enum.map(members, fn member -> Kati.Screens.Day.member_row(member) end)}
+    </Column>
+    """
+  end
+
+  # `border-top:1px solid rgba(26,25,23,.08)`, which is Chelekom's Separator
+  # rather than a Box pretending to be a line. `render: :box` for the reason
+  # `Kati.Screens.Calendar.rule/0` states: the default `:divider` is
+  # Material3's antialiased `drawLine`, and at this device's 2.6875x the last
+  # pixel row of a 1dp rule lands at ~69% coverage — a hairline lighter than
+  # the drawn one.
+  @doc false
+  def group_rule, do: MishkaSeparator.separator(color: 0x141A1917, thickness: 1, render: :box)
+
+  @doc """
+  One member of an open group.
+
+  `display:flex;align-items:center;gap:11px;padding:9px 0` over a 26x37 poster,
+  the title, the episode line and the member's own clock — 02's row, whose
+  trailing `{{ a.t }}` is the one field screen 09's members already carry as
+  data: `start_min`, through the same `label_for/1` the gutter reads.
+  """
+  @spec member_row(map()) :: map()
+  def member_row(member) do
+    title = Map.get(member, :title) || "Untitled"
+
+    ~MOB"""
+    <Row fill_width={true} align="center" padding_top={9} padding_bottom={9}>
+      {Kati.Screens.Day.thumb(member, 0xFFE4E0D9)}
+      <Spacer size={11} />
+      <Column weight={1.0}>
+        <Text text={title} text_size={13} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+        {Kati.Screens.Day.member_meta(Map.get(member, :meta))}
+      </Column>
+      {Kati.Screens.Day.member_time(member)}
+    </Row>
+    """
+  end
+
+  @doc false
+  def member_meta(meta) when meta in [nil, ""], do: ~MOB"<Spacer size={0} />"
+
+  def member_meta(meta) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Box fill_width={true} height={3} />
+      <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+    </Column>
+    """
+  end
+
+  # The `gap:11px` before the clock rides INSIDE this node, so a member with no
+  # start minute takes its own gap with it rather than leaving 11pt of air on
+  # the trailing edge. Same shape as `state_icon/1`.
+  @doc false
+  def member_time(%{start_min: minutes}) when is_integer(minutes) do
+    label = label_for(minutes)
+
+    ~MOB"""
+    <Row align="center">
+      <Spacer size={11} />
+      <Text text={label} font_family="mono" text_size={11} text_color={0xFF5C574F} max_lines={1} />
+    </Row>
+    """
+  end
+
+  def member_time(_member), do: ~MOB"<Spacer size={0} />"
 
   @doc """
   The header's `density_medium` disc — Mishka's Action Icon, now that it can
@@ -843,15 +981,33 @@ defmodule Kati.Screens.Day do
   `Kati.UI.symbol/2` Text, wrapped in a Row that hugs it, centred in a Box of
   the same declared size.
 
-  It is only the disc, not the card's own chevron behaviour: the group does
-  not open, here or in the drawing.
+  It is only the disc. The tap belongs to the header row around it — 02's
+  drawing puts `onClick` there — so this stays an icon in a container with no
+  `on_tap` of its own.
   """
-  @spec chevron_disc() :: map()
-  def chevron_disc do
+  @spec chevron_disc(boolean()) :: map()
+  def chevron_disc(open?) do
     MishkaActionIcon.action_icon(
       [size: 26, shape: :circle, variant: :filled, background: 0xFFEFECE7],
-      [Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)]
+      [Kati.Screens.Day.chevron(open?)]
     )
+  end
+
+  # The collapse glyph is `expand_more` turned over, which is what the design
+  # itself does — 02's export rotates it 180deg in CSS. There is no
+  # `expand_less` in the icon subset and there does not need to be: a missing
+  # glyph draws empty space and says nothing, and re-subsetting the font for a
+  # glyph that is this one upside down is not the trade. Fence K-16 gave the
+  # bridge `rotate` instead.
+  @doc false
+  def chevron(false), do: Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)
+
+  def chevron(true) do
+    ~MOB"""
+    <Box width={17} height={17} rotate={180.0} align="center">
+      {Kati.UI.symbol("expand_more", size: 17, color: 0xFF5C574F)}
+    </Box>
+    """
   end
 
   @doc false
@@ -982,19 +1138,33 @@ defmodule Kati.Screens.Day do
   # clusters here by grouping placements on `start_min`, which gave every
   # event its own cluster: the lanes never split, the Row never got two
   # children, and the screen looked plausible while proving nothing.
-  defp clusters(occurrences) do
+  defp clusters(occurrences, open) do
     occurrences
     |> Layout.clusters()
     |> Enum.map(fn cluster ->
+      # Stamped here rather than recomputed at the card, so the tag a chevron
+      # draws and the tag `handle_tap/2` stored are the same value read twice
+      # — not two `String.to_atom/1` calls that have to agree.
+      tag = group_tag(cluster.start_min)
+
       %{
         label: label_for(cluster.start_min),
         start_min: cluster.start_min,
         n_cols: cluster.n_cols,
         placements: Enum.filter(cluster.placements, &(&1.role == :event)),
-        overflow: cluster.overflow
+        overflow: cluster.overflow,
+        tag: tag,
+        open?: tag in open
       }
     end)
   end
+
+  # The cluster's start minute, not the collapsed event's id. `Layout` keys a
+  # collapsed occurrence `{:collapsed, kind, [ids]}`, which is a tuple and
+  # cannot be a tap tag; the minute is unique across a day's clusters by
+  # construction — the sweep in `Layout.cluster/1` never opens two clusters at
+  # one minute — and it survives a tick or a filter that reshuffles ids.
+  defp group_tag(start_min), do: String.to_atom("group_#{start_min}")
 
   defp label_for(minutes) do
     :io_lib.format("~2..0B:~2..0B", [div(minutes, 60), rem(minutes, 60)]) |> to_string()
@@ -1012,6 +1182,14 @@ defmodule Kati.Screens.Day do
       "filter_" <> label ->
         filter = if socket.assigns.filter == label, do: nil, else: label
         {:noreply, Mob.Socket.assign(socket, :filter, filter)}
+
+      # Toggled by the tag itself, not by an index into the clusters: the
+      # clusters are rebuilt from the filtered occurrences on every render, so
+      # a position would name a different group after a chip tap.
+      "group_" <> _minute ->
+        open = socket.assigns.open_groups
+        open = if tag in open, do: List.delete(open, tag), else: [tag | open]
+        {:noreply, Mob.Socket.assign(socket, :open_groups, open)}
 
       # Matched as a string rather than converted back to an integer: the id is
       # `term()` in `Layout`, and a tick should not be the thing that decides

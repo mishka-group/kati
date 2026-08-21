@@ -119,12 +119,32 @@ defmodule Kati.Screens.Plans do
   # not a grey — so it stays an ARGB int rather than a token. The glyph is a
   # child rather than `icon:`, because Kati's icons are Material Symbols
   # through `Kati.UI.symbol/2`; a child is wrapped in a `<Row>` that hugs it,
-  # inside a Box that already centred it. It carries no handler and passing no
-  # `on_tap` wires none.
+  # inside a Box that already centred it.
+  #
+  # ## Why this disc opens screen 50
+  #
+  # `Kati.Screens.PlanShare`'s drawing opens with a `‹ Plans` back pill and is
+  # titled *"Cutting v3 · share & transfer"* — so it is pushed from this
+  # screen, over the plan this card names. This disc is the only control the
+  # drawing puts on that card, and 49 draws no other affordance that could
+  # lead anywhere: the header disc is `add`, the saved rows end in Activate
+  # pills, and the Switching group is one chevron and two switches.
+  #
+  # It is an overflow glyph, so on a platform with menus it would open one and
+  # share would be an item in it. Mob has no menu node, and inventing a menu is
+  # a bigger fiction than letting the plan's only button reach the plan's only
+  # other screen. `on_tap` adds no ink, so the card's resting pixels are the
+  # drawing's, unchanged.
   @doc false
   def overflow do
     MishkaActionIcon.action_icon(
-      [size: 36, shape: :circle, variant: :filled, background: 0x1FF5F2EE],
+      [
+        size: 36,
+        shape: :circle,
+        variant: :filled,
+        background: 0x1FF5F2EE,
+        on_tap: :share_plan
+      ],
       [UI.symbol("more_horiz", size: 19, color: 0xFFF5F2EE)]
     )
   end
@@ -284,4 +304,14 @@ defmodule Kati.Screens.Plans do
     </Row>
     """
   end
+
+  # One clause and no `_tag` catch-all, deliberately. A catch-all here would
+  # answer every future control with silence, and `Kati.Screens.Pushed`'s
+  # moduledoc is explicit that the DEAD TAP report is the only thing that can
+  # see a button whose resting pixels are correct and whose wiring is absent.
+  # The Activate pills are drawn without a tap and so are not reported; the
+  # moment one grows one, this screen says so.
+  @impl true
+  def handle_tap(:share_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanShare)}
 end

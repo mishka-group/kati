@@ -25,6 +25,30 @@ defmodule Kati.Screens.MealReminders do
   of thing. Only the row padding differs, 12 inside the card and 13 outside it,
   which is the drawing's own difference.
 
+  ## Nothing in the design opens this screen
+
+  Every other Meals screen is reached from the tile row or the title pill on
+  screen 43, and each of those destinations is identifiable because its own
+  drawing opens with a `‹ Meals` back pill: 44, 45, 47, 48, 49. This screen
+  carries that same pill and has no matching control anywhere. Checked, glyph
+  by glyph: 43 draws `calendar_view_week`, `shopping_cart`, `monitoring`,
+  `tune`, `unfold_more` and a per-meal `more_horiz` — four tiles, a plan
+  picker and a meal's own actions, none of them a bell. 44 draws `edit`,
+  `repeat`, `event_available` and `edit_calendar`. 47 draws `ios_share` and
+  `lightbulb`. 48 draws `ios_share` and `add`. 49 draws `add`, `more_horiz`
+  (screen 50) and the Switching group. 50's only reminder row is the
+  *Reminder times* switch under "what travels with it", which is a toggle on
+  the export, not a way in. Screen 24 Settings has no Meals row at all — its
+  Sections group is Books, Music, Habits, Money — so the usual
+  Settings-pushes-a-detail route is not drawn either.
+
+  So the entry point is missing from the **design**, not from the code, and
+  the honest state is to leave it: `Kati.Screens.Gallery` reaches it for
+  comparison against the drawing, and inventing a row on 43 or on Settings
+  would change a resting screen the drawing does not change. When the design
+  grows the control, one `handle_tap/2` clause on whichever screen draws it is
+  the whole fix.
+
   No dock, so the frame's bottom inset is 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Meals"
