@@ -19,6 +19,19 @@ defmodule Kati.Theme do
   There is no shadow token here because `Mob.Theme` has none — its struct carries
   colours, scales, radii and a `glass` flag and nothing else. Elevation is
   therefore Kati's own concern; see #33.
+
+  ## Which palette
+
+  `light/0` and `dark/0` are the two palettes; **`Kati.Theme.Mode` decides which
+  one applies**, from the user's Auto / Light / Dark choice and the device's
+  night-mode setting. Screens should ask for the resolved answer:
+
+      Mob.Theme.set(Kati.Theme.current())
+
+  and not name a side. `light/0` and `dark/0` stay public because two screens
+  legitimately pin themselves: screen 28 (Home, dark) and screen 29 (Lock) are
+  drawn dark and are the reference for what dark mode looks like — they are
+  dark in a light-mode app, so `current/0` would be wrong for them.
   """
 
   # ── Light ────────────────────────────────────────────────────────────────
@@ -98,6 +111,47 @@ defmodule Kati.Theme do
       glass: false
     )
   end
+
+  # ── Mode ─────────────────────────────────────────────────────────────────
+
+  @doc """
+  The palette for a mode.
+
+  `for_mode(:light)` is `light/0` — the same struct, not a re-derivation — so
+  nothing routed through here can drift from the 62 baseline frames.
+  """
+  @spec for_mode(:light | :dark) :: Mob.Theme.t()
+  def for_mode(:light), do: light()
+  def for_mode(:dark), do: dark()
+
+  @doc """
+  The mode Kati is in right now: `:light` or `:dark`, resolved from the user's
+  choice and the device. Delegates to `Kati.Theme.Mode.resolve/0`.
+
+  This is the argument the mode-aware raw tokens want:
+
+      background={Kati.Theme.paper(Kati.Theme.mode())}
+  """
+  @spec mode() :: :light | :dark
+  def mode, do: Kati.Theme.Mode.resolve()
+
+  @doc """
+  The palette Kati is in right now — `for_mode/1` applied to `mode/0`.
+
+      Mob.Theme.set(Kati.Theme.current())
+  """
+  @spec current() :: Mob.Theme.t()
+  def current, do: for_mode(mode())
+
+  @doc """
+  Make the resolved palette the active one.
+
+  `Mob.Theme.set/1` snapshots the theme rather than re-reading it, so storing a
+  new choice with `Kati.Theme.Mode.put/1` changes nothing on screen by itself.
+  This is the other half; a settings tap needs both, plus a re-render.
+  """
+  @spec activate() :: :ok
+  def activate, do: Mob.Theme.set(current())
 
   # ── Raw tokens, for the places a semantic slot does not fit ──────────────
 

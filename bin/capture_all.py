@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Photograph every Kati screen, and refuse to keep a frame it cannot identify.
 
-    python3 bin/capture_all.py            # all 62
-    python3 bin/capture_all.py 10 25      # a range
+    python3 bin/capture_all.py                  # all 62, light
+    python3 bin/capture_all.py 10 25            # a range
+    python3 bin/capture_all.py --dark           # all 62, system dark mode
+    python3 bin/capture_all.py --light          # force system light first
+    python3 bin/capture_all.py --restore-only   # undo a run that was killed
 
 The first version of this tapped rows by arithmetic — a fixed pitch from a
 fixed first row — and pressed BACK between screens. Both were wrong:
@@ -22,19 +25,46 @@ screens. So this version proves each step instead:
   4. Refuse a frame whose md5 matches the previous one.
 
 A screen that fails any check is recorded as a hole, not a stale picture.
+
+DARK MODE
+---------
+`--dark` flips the system night setting, captures into a separate directory,
+and puts the setting back. The putting-back is the part that matters. An
+emulator left in night mode does not announce itself either: the next light
+run would capture 62 dark frames, write them over the baseline the whole
+comparison rests on, and print "captured 01 ... captured 62" the entire way.
+
+So the previous setting is written to disk BEFORE it is changed, restored in a
+`finally`, restored again from that file on the next run if this process was
+killed outright, and every run states the mode it actually captured in — both
+on stdout and in a RUN.json beside the frames. `bin/light_vs_dark.py` reads
+that file and refuses to compare two runs that were captured the same way,
+because "no screen changed" from two light runs is a lie that looks like a
+finding.
 """
+import argparse
+import datetime
 import hashlib
 import html
+import json
 import pathlib
 import re
+import signal
 import subprocess
 import sys
 import time
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 OUT = REPO / ".scratch/design/audit"
+DARK_OUT = REPO / ".scratch/design/audit_dark"
+STASH = REPO / ".scratch/design/.device_state.json"
 PKG = "com.example.kati"
 BELL = (826, 225)
+
+# What `cmd uimode night` accepts and reports back.
+NIGHT_VALUES = ("yes", "no", "auto", "custom_schedule", "custom_bedtime")
+# `settings get secure ui_night_mode`, for when `cmd uimode` says nothing useful.
+NIGHT_BY_CODE = {"0": "auto", "1": "no", "2": "yes", "3": "custom_schedule"}
 
 
 def adb(*args, binary=False, timeout=120):
@@ -59,6 +89,134 @@ def dump():
 def foreground():
     return PKG in adb("shell", "dumpsys", "window", "|", "grep", "mCurrentFocus")
 
+
+# ---------------------------------------------------------------------------
+# System night mode
+# ---------------------------------------------------------------------------
+
+def read_night():
+    """The device's current night setting, or None if it will not say.
+
+    None is a real answer here and is treated as one. Guessing "no" from an
+    unreadable device and then "restoring" that guess would quietly rewrite a
+    user's `auto` schedule; guessing "yes" would leave the emulator dark. The
+    caller decides, loudly, and the decision is printed.
+    """
+    text = adb("shell", "cmd", "uimode", "night")
+    m = re.search(r"night mode:\s*([a-z_]+)", text, re.I)
+    if m and m.group(1).lower() in NIGHT_VALUES:
+        return m.group(1).lower()
+
+    # Older images answer `cmd uimode` with nothing at all. The secure setting
+    # is still there and still readable.
+    code = adb("shell", "settings", "get", "secure", "ui_night_mode").strip()
+    return NIGHT_BY_CODE.get(code)
+
+
+def set_night(value):
+    """Ask for a night setting and REPORT WHAT THE DEVICE ACTUALLY DID.
+
+    `cmd uimode night yes` on a device whose night mode is driven by a custom
+    schedule can come back still saying `custom_schedule`. Returning the value
+    we asked for would make the manifest claim a dark run that never happened,
+    and every screen would then be filed as "ignores the theme".
+    """
+    if value not in NIGHT_VALUES:
+        raise ValueError(f"night mode {value!r} is not one of {NIGHT_VALUES}")
+    adb("shell", "cmd", "uimode", "night", value)
+    time.sleep(4)  # the config change tears down and rebuilds activities
+    return read_night()
+
+
+def read_zen():
+    """Do Not Disturb, so a mid-run notification does not land in a frame."""
+    value = adb("shell", "settings", "get", "global", "zen_mode").strip()
+    return value if value.isdigit() else "0"
+
+
+def set_zen(value):
+    adb("shell", "settings", "put", "global", "zen_mode", str(value))
+
+
+class DeviceState:
+    """Remembers what the device looked like, and puts it back exactly once.
+
+    The stash file is written BEFORE anything changes. A process killed
+    between the write and the change restores a value that is already correct,
+    which costs nothing. A process killed after the change — including with
+    SIGKILL, which no handler can catch — leaves the file behind, and the next
+    run finds it and repairs the device before it captures a single frame.
+    """
+
+    def __init__(self, stash=None, log=print):
+        # Read STASH at call time, not at import time. `stash=STASH` in the
+        # signature binds the module constant once, when the file is first
+        # imported — after which the attribute can be reassigned and this
+        # would go on using the old value without a word. The tests caught it;
+        # nothing at runtime would have.
+        self.stash = pathlib.Path(STASH if stash is None else stash)
+        self.log = log
+        self.saved = None
+        self.restored = False
+
+    def recover(self):
+        """Undo a previous run that never got to its `finally`. Loudly."""
+        if not self.stash.exists():
+            return None
+        try:
+            saved = json.loads(self.stash.read_text(encoding="utf-8"))
+        except (ValueError, OSError) as exc:
+            self.log(f"!! unreadable {self.stash.name} ({exc}); "
+                     "forcing night mode back to `no`")
+            saved = {"night": "no", "zen": "0"}
+
+        self.log(f"!! a previous run did not finish; it left the device at "
+                 f"night={read_night()!r}. Restoring night={saved.get('night')!r} "
+                 f"zen={saved.get('zen')!r} before starting.")
+        self._apply(saved)
+        self.stash.unlink(missing_ok=True)
+        return saved
+
+    def capture_and_change(self, night=None, zen="1"):
+        """Record the current state, then move to the requested one."""
+        self.saved = {"night": read_night(), "zen": read_zen()}
+        self.stash.parent.mkdir(parents=True, exist_ok=True)
+        self.stash.write_text(json.dumps(self.saved, indent=2), encoding="utf-8")
+
+        if zen is not None:
+            set_zen(zen)
+        if night is None:
+            return self.saved["night"]
+        return set_night(night)
+
+    def restore(self):
+        """Idempotent: `finally` and an atexit hook may both call this."""
+        if self.restored or self.saved is None:
+            return
+        self.restored = True
+        self._apply(self.saved)
+        self.stash.unlink(missing_ok=True)
+
+    def _apply(self, saved):
+        night = saved.get("night")
+        if night not in NIGHT_VALUES:
+            # Never leave it dark because we could not read the original.
+            # `no` is the mode the 62-frame baseline was captured in, so it is
+            # the safe direction to fail in — but say that it happened.
+            self.log(f"!! previous night mode was {night!r}; falling back to "
+                     "`no` so the next light capture is not poisoned")
+            night = "no"
+        landed = set_night(night)
+        if landed != night:
+            self.log(f"!! asked for night={night!r}, device reports {landed!r}")
+        else:
+            self.log(f"restored night mode: {night}")
+        set_zen(saved.get("zen") or "0")
+
+
+# ---------------------------------------------------------------------------
+# Navigation
+# ---------------------------------------------------------------------------
 
 def open_gallery():
     """Cold start, scroll Home to the top, then tap the bell.
@@ -109,6 +267,10 @@ def find_row(label, scrolls=22):
         time.sleep(1)
     return None
 
+
+# ---------------------------------------------------------------------------
+# Identifying a screen from its drawing
+# ---------------------------------------------------------------------------
 
 def design_heading(number):
     """The drawing's own largest-type line — what the screen actually says.
@@ -239,16 +401,28 @@ def screens():
     return out
 
 
-def main():
-    lo = int(sys.argv[1]) if len(sys.argv) > 1 else 1
-    hi = int(sys.argv[2]) if len(sys.argv) > 2 else 62
+# ---------------------------------------------------------------------------
+# The run
+# ---------------------------------------------------------------------------
 
-    adb("shell", "settings", "put", "global", "zen_mode", "1")  # no notifications mid-run
-    OUT.mkdir(parents=True, exist_ok=True)
+def capture_range(lo, hi, out_dir, captured=None, holes=None):
+    """Walk the gallery and write frames. Returns (captured, holes).
+
+    Every device change this makes is navigational and self-correcting;
+    nothing here touches a system setting, so it is safe to abandon at any
+    point. The settings live in DeviceState, above.
+
+    `captured` and `holes` are appended to in place so a caller can still read
+    the partial result after an interrupt. Returning them only at the end
+    meant an interrupted run wrote a manifest claiming it had captured
+    nothing, while 40 frames sat in the directory next to it.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     prints = fingerprints()
     seen = {}
-    holes = []
+    holes = [] if holes is None else holes
+    captured = [] if captured is None else captured
 
     row_labels = {
         n: l for n, l, _m in re.findall(
@@ -321,8 +495,9 @@ def main():
             in_gallery = any(t == "All screens" for t, _, _ in dump())
             continue
 
-        (OUT / f"{number}.png").write_bytes(png)
+        (out_dir / f"{number}.png").write_bytes(png)
         seen[digest] = number
+        captured.append(number)
         print(f"captured {number}  {label}", flush=True)
 
         if kind == "root":
@@ -336,14 +511,147 @@ def main():
         # is exactly how 37 frames of Gmail happened the first time.
         in_gallery = any(t == "All screens" for t, _, _ in dump())
 
-    adb("shell", "settings", "put", "global", "zen_mode", "0")
+    return captured, holes
+
+
+def write_manifest(out_dir, **fields):
+    """Stamp the run's mode next to its frames.
+
+    A directory called `audit_dark` is a claim, not evidence. This is what
+    `bin/light_vs_dark.py` reads to check that the two runs it is comparing
+    were genuinely captured in different modes — without it, two light runs
+    would compare clean and read as "no screen ignores the theme", which is
+    the same sentence a correct dark-mode implementation would produce.
+    """
+    path = out_dir / "RUN.json"
+    path.write_text(json.dumps(fields, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8")
+    return path
+
+
+def parse_args(argv):
+    p = argparse.ArgumentParser(
+        prog="capture_all.py",
+        description="Photograph every Kati screen, in light or dark mode.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p.add_argument("lo", nargs="?", type=int, default=1,
+                   help="first screen number (default 1)")
+    p.add_argument("hi", nargs="?", type=int, default=62,
+                   help="last screen number (default 62)")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--dark", action="store_true",
+                      help="set system night mode on, capture to "
+                           f"{DARK_OUT.name}/, then restore the old setting")
+    mode.add_argument("--light", action="store_true",
+                      help="set system night mode OFF first, so the baseline "
+                           "cannot be captured on a device left dark")
+    p.add_argument("--out", type=pathlib.Path, default=None,
+                   help="where to write frames (default: "
+                        f"{OUT.name}/, or {DARK_OUT.name}/ with --dark)")
+    p.add_argument("--restore-only", action="store_true",
+                   help="put the device's night/zen settings back from the "
+                        "stash a killed run left behind, and exit")
+
+    args = p.parse_args(argv)
+    if args.restore_only and (args.dark or args.light or args.out
+                              or args.lo != 1 or args.hi != 62):
+        # `--restore-only 10 25` looks like it captures a range. It cannot,
+        # and quietly ignoring the numbers would leave someone believing they
+        # had captured something.
+        p.error("--restore-only takes no other options and no range")
+    if args.lo > args.hi:
+        p.error(f"empty range: {args.lo}..{args.hi}")
+
+    args.mode = "dark" if args.dark else ("light" if args.light else "as-is")
+    args.night = {"dark": "yes", "light": "no", "as-is": None}[args.mode]
+    if args.out is None:
+        args.out = DARK_OUT if args.dark else OUT
+    return args
+
+
+def main(argv=None):
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+    state = DeviceState()
+
+    if args.restore_only:
+        if state.recover() is None:
+            print(f"nothing stashed in {STASH}; "
+                  f"the device is at night={read_night()!r}")
+        return 0
+
+    # A stash from a killed run is repaired first, so the "previous setting"
+    # this run saves is the user's, not the wreckage of the last one.
+    state.recover()
+
+    # SIGINT and SIGTERM become exceptions so the `finally` below runs. SIGKILL
+    # cannot be caught by anything; the stash file is what covers that case,
+    # and `--restore-only` is how you cash it in by hand.
+    def die(signum, _frame):
+        raise KeyboardInterrupt(f"signal {signum}")
+
+    for name in ("SIGINT", "SIGTERM", "SIGHUP"):
+        sig = getattr(signal, name, None)
+        if sig is None:
+            continue
+        try:
+            signal.signal(sig, die)
+        except (ValueError, OSError):  # not the main thread
+            pass
+
+    started = datetime.datetime.now().isoformat(timespec="seconds")
+    captured, holes = [], []
+    night_now = None
+    ran = False
+
+    try:
+        night_now = state.capture_and_change(night=args.night, zen="1")
+        before = (state.saved or {}).get("night")
+        print(f"mode: {args.mode}   night: {before!r} -> {night_now!r}   "
+              f"out: {args.out}", flush=True)
+
+        if args.night is not None and night_now != args.night:
+            print(f"!! asked the device for night={args.night!r} and it reports "
+                  f"{night_now!r}. The frames will NOT be a {args.mode} run — "
+                  "stopping rather than filing them as one.", flush=True)
+            return 2
+
+        if args.mode == "as-is" and night_now != "no":
+            print(f"!! the device is at night={night_now!r} and no mode was "
+                  "asked for. These frames are not a light baseline. Re-run "
+                  "with --light, or with --dark and a separate --out.",
+                  flush=True)
+
+        ran = True
+        capture_range(args.lo, args.hi, args.out, captured, holes)
+    finally:
+        state.restore()
+        # Only stamp a manifest for a run that actually started capturing. A
+        # run that bailed on the mode check must not overwrite the manifest of
+        # the good run whose frames are already in that directory.
+        if ran and args.out.exists():
+            write_manifest(
+                args.out,
+                mode=args.mode,
+                night_mode=night_now,
+                night_mode_before=(state.saved or {}).get("night"),
+                started=started,
+                finished=datetime.datetime.now().isoformat(timespec="seconds"),
+                screens=[args.lo, args.hi],
+                captured=captured,
+                holes=[list(h) for h in holes],
+                frames_present=len(list(args.out.glob("[0-9][0-9].png"))),
+            )
 
     if holes:
         print("\nnot captured:")
         for number, why in holes:
             print(f"  {number}  {why}")
-    print(f"\n{len(list(OUT.glob('[0-9][0-9].png')))} frames in {OUT}")
+    print(f"\n{len(list(args.out.glob('[0-9][0-9].png')))} frames in {args.out}")
+    print(f"mode recorded in {args.out / 'RUN.json'}: {args.mode} "
+          f"(night={night_now!r})")
+    return 1 if holes else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -12,11 +12,22 @@ An md5 will not do: the status bar carries a clock, so every frame differs.
 So the bars are cropped and the rest compared pixel by pixel, with the
 bounding box of any change printed — a band at one y is a row that moved, a
 box in the middle is content that changed.
+
+For the opposite question — did a screen change ENOUGH between a light run and
+a dark one — see bin/light_vs_dark.py. A clean report here is good news; a
+clean report there means the theme was ignored.
+
+This used to `from PIL import Image`, and Pillow is installed for no python3
+on this machine, so it has been raising ModuleNotFoundError before printing a
+line. The pixels now come from bin/frame_image.py, which uses Pillow when it
+is there and macOS's `sips` when it is not.
 """
 import pathlib
 import sys
 
-from PIL import Image, ImageChops
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import frame_image as FI  # noqa: E402
 
 STATUS_BAR = 90      # clock, battery, wifi — changes between runs by design
 NAV_BAR = 130        # the three-button bar at the bottom
@@ -24,30 +35,29 @@ TOLERANCE = 12       # per-channel; JPEG-ish poster resampling is not a change
 
 
 def compare(a_path, b_path):
-    a = Image.open(a_path).convert("RGB")
-    b = Image.open(b_path).convert("RGB")
+    a = FI.load(a_path)
+    b = FI.load(b_path)
     if a.size != b.size:
         return f"size {a.size} -> {b.size}", None
 
-    w, h = a.size
-    box = (0, STATUS_BAR, w, h - NAV_BAR)
-    a, b = a.crop(box), b.crop(box)
+    a = a.crop_rows(STATUS_BAR, NAV_BAR)
+    b = b.crop_rows(STATUS_BAR, NAV_BAR)
 
-    diff = ImageChops.difference(a, b)
-    # Any channel over the tolerance counts; `point` then `convert` gives a
-    # mask whose bbox is the region that actually moved.
-    mask = diff.convert("L").point(lambda v: 255 if v > TOLERANCE else 0)
-    bbox = mask.getbbox()
+    changed, total, bbox = FI.difference(a, b, TOLERANCE)
     if bbox is None:
         return None, None
 
-    changed = sum(1 for p in mask.getdata() if p)
-    pct = 100.0 * changed / (mask.width * mask.height)
+    pct = 100.0 * changed / total
     x0, y0, x1, y1 = bbox
     return f"{pct:5.2f}% changed  bbox=({x0},{y0 + STATUS_BAR})-({x1},{y1 + STATUS_BAR})", pct
 
 
 def main():
+    if FI.backend() is None:
+        print("!! no image backend: install Pillow, or run where `sips` "
+              "exists. Refusing to report a comparison that did not happen.")
+        return 3
+
     before = pathlib.Path(sys.argv[1])
     after = pathlib.Path(sys.argv[2])
 
@@ -70,7 +80,8 @@ def main():
         print("\nCHANGED — each needs a reason, or it is a regression:")
         for stem, note, _pct in sorted(changed, key=lambda c: -c[2]):
             print(f"  {stem}  {note}")
+    return 1 if changed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

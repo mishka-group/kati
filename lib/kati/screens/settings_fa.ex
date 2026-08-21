@@ -56,6 +56,21 @@ defmodule Kati.Screens.SettingsFa do
   Persian title. A tag becomes an atom and an `accessibility_id`, and the
   capture tooling reads that id; keeping it out of the script keeps the tag
   legible in a log written left-to-right.
+
+  ## پوسته writes the app's appearance choice, and does it through screen 24
+
+  The three tiles are the same control screen 24 draws, so they had better mean
+  the same thing. `Kati.Theme.Mode` owns the setting; `Kati.Screens.Settings`
+  holds the wrapper over it, and this screen calls exactly four of those
+  functions — `choice/0`, `put_choice/1`, `label_for/2`, `choice_at/1` — rather
+  than keeping a second copy, because a boundary written twice is rewired once
+  and then wrong.
+
+  Nothing here has to know that خودکار means auto. The tags already carry the
+  tile's **position**, `Kati.Theme.Mode.choices/0` is in that same order in both
+  drawings, and the choice falls out of the index — which is the only reason a
+  Persian screen and an English one can share this without a translation table
+  between them.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -75,8 +90,15 @@ defmodule Kati.Screens.SettingsFa do
 
   # The sample names a segmented control's options but not which one is picked,
   # because until now nothing could pick. The selection is written in once, on
-  # mount, as the first option — which is what the drawing raises — so from
-  # then on a tap is an ordinary change to a shape that already exists.
+  # mount, so from then on a tap is an ordinary change to a shape that already
+  # exists.
+  #
+  # It used to be the first option unconditionally. It is now the tile standing
+  # for the **stored appearance choice**, read through the boundary that
+  # `Kati.Screens.Settings` owns — see the moduledoc. `خودکار` is the first
+  # option and `:auto` is what a choice never made reads as, so an untouched
+  # install settles on exactly what it settled on before, which is what 62.html
+  # raises.
   defp settle(settings) do
     sections =
       Enum.map(settings.sections, fn section ->
@@ -86,8 +108,10 @@ defmodule Kati.Screens.SettingsFa do
     %{settings | sections: sections}
   end
 
-  defp settle_row(%{trailing: {:segmented, [first | _] = options}} = row),
-    do: %{row | trailing: {:segmented, options, first}}
+  defp settle_row(%{trailing: {:segmented, options}} = row) do
+    label = Kati.Screens.Settings.label_for(options, Kati.Screens.Settings.choice())
+    %{row | trailing: {:segmented, options, label}}
+  end
 
   defp settle_row(row), do: row
 
@@ -574,20 +598,50 @@ defmodule Kati.Screens.SettingsFa do
     """
   end
 
-  # Every tile taps, the raised one included — a tap on the current choice is
-  # then a no-op rather than a dead patch in the middle of the trough. The tag
-  # carries the option's position, so the labels stay data.
+  # Only the tiles that are still choices tap. The raised one used to as well —
+  # a no-op rather than a dead patch — and it no longer does, for the reason
+  # `Kati.Screens.Settings`' moduledoc gives at length: a control that draws a
+  # tag it cannot act on is indistinguishable from a control nothing answers.
+  # Two clauses rather than a conditional prop, because `on_tap={nil}` reaches
+  # the wire as the string "nil" on this bridge.
+  #
+  # The tag carries the option's position, so the labels stay data — and the
+  # position is also what names the choice, since the trough's order is
+  # `Kati.Screens.Settings.choices/0`'s order.
   @doc false
-  def segment(label, on?, index) do
-    background = if on?, do: Theme.card(:light), else: 0x00FFFFFF
-    color = if on?, do: Theme.ink(), else: 0xFFA0998F
-    tap = {self(), String.to_atom("theme_#{index}")}
+  def segment(label, true, _index) do
+    background = Theme.card(:light)
+    color = Theme.ink()
 
     ~MOB"""
     <Row
       height={26}
       corner_radius={9}
       background={background}
+      padding_left={10}
+      padding_right={10}
+      align="center"
+    >
+      <Text
+        text={label}
+        font_family="fa"
+        text_size={10.5}
+        font_weight="semibold"
+        text_color={color}
+        max_lines={1}
+      />
+    </Row>
+    """
+  end
+
+  def segment(label, false, index) do
+    tap = {self(), String.to_atom("theme_#{index}")}
+
+    ~MOB"""
+    <Row
+      height={26}
+      corner_radius={9}
+      background={0x00FFFFFF}
       padding_left={10}
       padding_right={10}
       align="center"
@@ -598,7 +652,7 @@ defmodule Kati.Screens.SettingsFa do
         font_family="fa"
         text_size={10.5}
         font_weight="semibold"
-        text_color={color}
+        text_color={0xFFA0998F}
         max_lines={1}
       />
     </Row>
@@ -699,9 +753,19 @@ defmodule Kati.Screens.SettingsFa do
     end
   end
 
+  # The Persian trough tags by position, which is already the mode's position,
+  # so this needs no table of Persian words. Store first, then move the tile,
+  # and only for a position the trough actually has — `Integer.parse/1` rather
+  # than `String.to_integer/1` so a malformed tag returns the screen instead of
+  # raising it into `handle_info/2`.
   defp tapped("theme_" <> index, socket) do
-    settings = choose(socket.assigns.settings, String.to_integer(index))
-    Mob.Socket.assign(socket, :settings, settings)
+    with {i, ""} <- Integer.parse(index),
+         choice when not is_nil(choice) <- Kati.Screens.Settings.choice_at(i) do
+      Kati.Screens.Settings.put_choice(choice)
+      Mob.Socket.assign(socket, :settings, choose(socket.assigns.settings, i))
+    else
+      _ -> socket
+    end
   end
 
   defp tapped(_tag, socket), do: socket

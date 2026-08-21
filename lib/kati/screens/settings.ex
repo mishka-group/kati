@@ -30,6 +30,62 @@ defmodule Kati.Screens.Settings do
   literal. It is now the Sections group's own tally, so switching Money on
   makes it five. At rest the count is four and `meta/2` rewrites four as four —
   a header that contradicts the switches under it is worse than no header.
+
+  ## The theme segments are the app's appearance mode, not a highlight
+
+  Until this round the trough moved and nothing else did: the raised tile was
+  a value in this screen's own assigns, thrown away with the socket the moment
+  you backed out. Screen 24 draws the one control in the app that says which
+  palette to use, so it now writes the choice where the rest of the app can
+  read it.
+
+  `Kati.Theme.Mode` owns that choice — `choice/0`, `put/1`, `choices/0`,
+  stored in `Mob.State` for the same reason `Kati.Locale` stores the language
+  there: the screen process dies on the next root switch, so a preference held
+  in assigns is gone before anything uses it. Exactly three functions below
+  reach it — `choices/0`, `choice/0` and `put_choice/1`, each one call deep —
+  and they are the only place either settings screen names it. The rest of that
+  section is position arithmetic layered on those three.
+  `Kati.Screens.SettingsFa` calls them rather than repeating them, so the whole
+  boundary is three lines in one file.
+
+  Writing the choice is not the same as showing it. `Mob.Theme.set/1`
+  snapshots a palette rather than re-reading one, so `Kati.Theme.Mode.put/1`
+  alone would be correct and invisible until the next root switch;
+  `put_choice/1` therefore calls `Kati.Theme.activate/0` too, which is what
+  `Kati.Theme.Mode.put/1`'s own doc asks a settings tap to do. The re-render
+  that makes it visible is the tap's returned socket.
+
+  ### Position, not the English word
+
+  A tap tells this screen a label — `"Dark"` — and the store wants an atom.
+  The bridge between them is the trough's **order**, not the string:
+  `Kati.Theme.Mode.choices/0` is `[:auto, :light, :dark]` and both drawings put
+  the three tiles in exactly that order, so `choice_for/2` maps the label to a
+  choice by where it sits in its own `options` list. That is what lets the
+  Persian mirror — whose tiles say خودکار / روشن / تیره and whose tags carry an
+  index rather than a word — share this code with no translation table between
+  them.
+
+  ### The resting frame still cannot move
+
+  `Kati.Theme.Mode.choice/0` answers `:auto` for a key that has never been
+  written, `:auto` is first, and first is what `Kati.Settings.Sample` already
+  selected. So a fresh install renders the trough exactly as `24.html` draws
+  it, and only a user who has actually chosen sees anything else.
+
+  ### The raised tile stops being tappable
+
+  It carried an `on_tap` that set the value it already had. Dropping it costs
+  the press ripple on a tile that could not respond to a press anyway, and buys
+  the invariant every switcher in this app relies on: **the tags a screen draws
+  are the choices it can still make.** `Kati.Screens.Language` selects its rows
+  this way for the same reason, and `Kati.ScreenSweep.tap_tags/1` names the
+  selected segment of a switcher as the thing that is supposed to carry no tag.
+  Without it, "tapping the lit tile changes nothing" and "this control is dead"
+  are the same observation, and the sweep that tells them apart has to be told
+  which one this is — separately for each mode the screen might have been
+  mounted in.
   """
   use Kati.Screens.Pushed, back: "Home"
 
@@ -42,11 +98,107 @@ defmodule Kati.Screens.Settings do
     Mob.Socket.assign(socket, :settings, %{
       synced: Sample.synced(),
       account: Sample.account(),
-      appearance: Sample.appearance(),
+      appearance: Kati.Screens.Settings.settle(Sample.appearance()),
       sections: Sample.sections(),
       data: Sample.data(),
       about: Sample.about()
     })
+  end
+
+  # ── The appearance choice ───────────────────────────────────────────────────
+  #
+  # `choices/0`, `choice/0` and `put_choice/1` are the whole surface both
+  # settings screens have on `Kati.Theme.Mode` — one call each, and nothing else
+  # in either file names that module. What follows them turns a tile's position
+  # into a choice and back, which is arithmetic over `choices/0` alone.
+
+  @doc """
+  Every choice the trough offers, in the order both drawings draw the tiles.
+
+  Ordered, not a set: `choice_at/1` and `label_for/2` read positions off this
+  list, and a reordering silently relabels every tile in both locales.
+  """
+  @spec choices() :: [Kati.Theme.Mode.choice()]
+  def choices, do: Kati.Theme.Mode.choices()
+
+  @doc """
+  The appearance choice the user has made, or `:auto` if they never have.
+
+  The **choice**, not the resolved mode: `Kati.Theme.mode/0` answers `:light`
+  or `:dark` and is what a palette wants, while the trough has to be able to
+  raise Auto, which is neither.
+  """
+  @spec choice() :: Kati.Theme.Mode.choice()
+  def choice, do: Kati.Theme.Mode.choice()
+
+  @doc """
+  Store the user's choice and make it the active palette.
+
+  Both halves, because they are two different things: `Kati.Theme.Mode.put/1`
+  persists the preference, and `Kati.Theme.activate/0` re-snapshots the palette
+  that `Mob.Theme.set/1` had already frozen. Storing without activating is a
+  correct setting nobody can see until the next root switch — the case
+  `Kati.Theme.Mode.put/1`'s own doc warns a settings tap about.
+  """
+  @spec put_choice(Kati.Theme.Mode.choice()) :: :ok
+  def put_choice(choice) do
+    :ok = Kati.Theme.Mode.put(choice)
+    :ok = Kati.Theme.activate()
+  end
+
+  @doc """
+  The choice a trough's `index`-th tile stands for, or `nil` for any index no
+  tile has.
+
+  Negatives are rejected rather than passed through: `Enum.at/2` reads `-1` as
+  the *last* element, so a malformed tag would otherwise select Dark.
+  """
+  @spec choice_at(term()) :: Kati.Theme.Mode.choice() | nil
+  def choice_at(index) when is_integer(index) and index >= 0,
+    do: Enum.at(Kati.Screens.Settings.choices(), index)
+
+  def choice_at(_index), do: nil
+
+  @doc """
+  Which of `options` stands for `choice` — the label to raise.
+
+  Falls back to the first option rather than to none: a trough with no tile
+  raised is not a state either drawing has, and is worse than raising the
+  default.
+  """
+  @spec label_for([String.t()], atom()) :: String.t() | nil
+  def label_for(options, choice) do
+    index = Enum.find_index(Kati.Screens.Settings.choices(), &(&1 == choice)) || 0
+    Enum.at(options, index) || List.first(options)
+  end
+
+  @doc "The choice `label` stands for within `options`, or `nil` if it is not one."
+  @spec choice_for([String.t()], String.t()) :: Kati.Theme.Mode.choice() | nil
+  def choice_for(options, label) do
+    case Enum.find_index(options, &(&1 == label)) do
+      nil -> nil
+      index -> Kati.Screens.Settings.choice_at(index)
+    end
+  end
+
+  @doc """
+  Point a group's segmented control at the stored choice.
+
+  Applied once, at mount, so a tap afterwards is an ordinary change to a shape
+  that already exists — the same move `Kati.Screens.SettingsFa.settle/1` makes,
+  and for the same reason.
+  """
+  @spec settle([map()]) :: [map()]
+  def settle(rows) do
+    choice = Kati.Screens.Settings.choice()
+
+    Enum.map(rows, fn
+      %{control: {:segments, options, _}} = row ->
+        %{row | control: {:segments, options, Kati.Screens.Settings.label_for(options, choice)}}
+
+      row ->
+        row
+    end)
   end
 
   @doc false
@@ -315,13 +467,12 @@ defmodule Kati.Screens.Settings do
   def segment_gap, do: ~MOB"<Spacer size={3} />"
 
   # Two clauses rather than one, because the raised tile carries a shadow the
-  # trough's other two must not have. Both are tappable: the unselected ones so
-  # the choice can move, the selected one so a stray tap on it is a no-op
-  # rather than a dead spot.
+  # trough's other two must not have — and, since this round, no `on_tap`. Only
+  # the unselected tiles are choices; see the moduledoc on what that buys. The
+  # prop is omitted rather than passed as `nil`, which this bridge would send
+  # down the wire as the string "nil".
   @doc false
   def segment(label, true) do
-    tap = {self(), String.to_atom("theme_" <> label)}
-
     ~MOB"""
     <Row
       height={26}
@@ -331,7 +482,6 @@ defmodule Kati.Screens.Settings do
       padding_left={10}
       padding_right={10}
       align="center"
-      on_tap={tap}
     >
       <Text text={label} text_size={11} font_weight="semibold" text_color={:on_surface} max_lines={1} />
     </Row>
@@ -361,7 +511,7 @@ defmodule Kati.Screens.Settings do
         {:noreply, put_rows(socket, &flip(&1, title))}
 
       "theme_" <> label ->
-        {:noreply, put_rows(socket, &choose(&1, label))}
+        {:noreply, choose_theme(socket, label)}
 
       _ ->
         {:noreply, socket}
@@ -392,6 +542,31 @@ defmodule Kati.Screens.Settings do
 
       row ->
         row
+    end)
+  end
+
+  # Store first, then move the tile, and only for a label the trough actually
+  # draws. The screen's own copy of the choice and the app-wide one are written
+  # from the same guard, so the raised tile and `mode/0` cannot disagree — and
+  # a tag naming a label this trough does not have changes neither.
+  defp choose_theme(socket, label) do
+    options = theme_options(socket.assigns.settings.appearance)
+
+    case Kati.Screens.Settings.choice_for(options, label) do
+      nil ->
+        socket
+
+      choice ->
+        Kati.Screens.Settings.put_choice(choice)
+        put_rows(socket, &choose(&1, label))
+    end
+  end
+
+  # The Appearance group holds at most one segmented control — the Theme row.
+  defp theme_options(rows) do
+    Enum.find_value(rows, [], fn
+      %{control: {:segments, options, _}} -> options
+      _ -> false
     end)
   end
 end
