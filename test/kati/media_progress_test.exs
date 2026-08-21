@@ -27,7 +27,21 @@ defmodule Kati.Media.ProgressTest do
   alias Kati.Media.Watch
 
   setup do
+    # The rows go again afterwards. `Kati.Screens.Activity` reads `media_watches`
+    # for screen 15's log and `Kati.Screens.UpNext` reads `tracked_titles`, so
+    # fixtures left here are drawn on a screen `Kati.ScreenDesignLiteralTest`
+    # compares with its drawing — and whether that passes would depend on the
+    # shuffle. Same hazard `Kati.SeedsTest` documents for events.
+    on_exit(&empty_the_tables!/0)
     {:ok, prefix: "mp#{System.unique_integer([:positive])}-"}
+  end
+
+  # Children first: media_watches carries the foreign key into tracked_titles.
+  defp empty_the_tables! do
+    for table <- ~w(media_watches tracked_titles cached_titles),
+        do: Ecto.Adapters.SQL.query!(Kati.Repo, "delete from #{table}", [])
+
+    :ok
   end
 
   defp cache!(prefix, attrs) do

@@ -21,6 +21,19 @@ defmodule Kati.Screens.Shopping do
 
   No dock, so the frame's bottom inset is 40 rather than 132.
 
+  ## Where the data comes from
+
+  `Kati.Meals`, through `list/1`: the active plan's `Kati.Meals.ShoppingListItem`
+  rows for the week today falls in, grouped into aisles in
+  `Kati.Meals.Aisle`'s shopping order. The basket line and the bar count those
+  rows, and the estimate is the sum of the lines that carry a price — silent
+  when none does, which is the resource's own rule about inventing totals. With
+  no active plan, or no list generated for the week, the screen falls back to
+  `Kati.Meals.SampleShopping`.
+
+  The three grouping chips are a control with nothing behind them: no column
+  records which one is chosen, and no tap has ever changed one.
+
   ## The struck line
 
   The design greys a bought item and strikes it through. The bridge's `Text`
@@ -33,12 +46,162 @@ defmodule Kati.Screens.Shopping do
   use Kati.Screens.Pushed, back: "Meals"
 
   alias Kati.Components.MishkaActionIcon
+  alias Kati.Meals.Aisle
   alias Kati.Meals.SampleShopping
+  alias Kati.Meals.ShoppingListItem
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :list, SampleShopping.list())
+  def load(socket), do: Mob.Socket.assign(socket, :list, list(Kati.Time.today()))
+
+  @doc """
+  The week's list: the active plan's own, or the drawing's.
+
+  A device with no plan has no list to roll up, and a rolled-up list with no
+  lines would draw a card with nothing in it, a basket line reading `0 of 0`
+  and an empty progress bar where the design draws nine items over three
+  aisles. FIDELITY's rule applies — *missing data is not a reason for a blank
+  screen* — so the drawn list stands in, exactly as `Kati.Screens.Calendar`
+  falls back to its drawn day.
+
+  One gate for the whole screen rather than a fallback per block: a subtitle
+  counting the user's real items over a card showing the drawing's would be
+  worse than either.
+  """
+  @spec list(Date.t()) :: map()
+  def list(date) do
+    monday = Date.add(date, -(Date.day_of_week(date) - 1))
+
+    with plan when not is_nil(plan) <- active_plan(),
+         [_ | _] = items <- week_items(plan, monday) do
+      shopping_list(items, monday)
+    else
+      _ -> SampleShopping.list()
+    end
+  end
+
+  defp shopping_list(items, monday) do
+    count = length(items)
+    got = Enum.count(items, & &1.got)
+
+    %{
+      subtitle: "week of #{Calendar.strftime(monday, "%-d %b")} · #{plural(count, "item")}",
+      basket: "#{got} of #{count} in the basket",
+      estimate: estimate(items),
+      progress: got / count,
+      # The three groupings are a control, not data: nothing in
+      # `Kati.Meals.ShoppingListItem` records which chip is chosen, and the
+      # screen has never wired one. They stay the drawing's until there is a
+      # place to keep the choice.
+      filters: SampleShopping.filters(),
+      aisles: aisles(items)
+    }
+  end
+
+  # In the shop's own order — `Kati.Meals.Aisle.values/0` is walked rather than
+  # sorted, because the aisle column sorts alphabetically and a list grouped
+  # alphabetically stops reading as a route. An aisle with nothing in it is not
+  # drawn at all.
+  defp aisles(items) do
+    grouped = Enum.group_by(items, & &1.aisle)
+
+    Aisle.values()
+    |> Enum.filter(&Map.has_key?(grouped, &1))
+    |> Enum.map(fn aisle ->
+      %{
+        name: Aisle.label(aisle),
+        items: grouped |> Map.fetch!(aisle) |> Enum.map(&item_row/1)
+      }
+    end)
+  end
+
+  defp item_row(item) do
+    %{name: item.name, meals: meals_label(item), amount: amount_line(item), got: item.got}
+  end
+
+  # The label is stored because the phrasing varies with what the meals have in
+  # common — `7 meals`, `4 dinners`, `snack ×7` — and only the plainest of those
+  # can be recovered from a count. A line the user added by hand has no meals
+  # asking for it and says nothing rather than `0 meals`.
+  defp meals_label(%{meals_label: label}) when is_binary(label) and label != "", do: label
+  defp meals_label(%{meal_count: 0}), do: ""
+  defp meals_label(%{meal_count: count}), do: plural(count, "meal")
+
+  # `price_source: :none` contributes nothing and invents nothing — the
+  # resource's own rule. A week where no line carries a price therefore states
+  # no total at all, rather than an estimate built out of the few that do.
+  defp estimate(items) do
+    case Enum.filter(items, &(&1.price_source != :none and &1.price_minor)) do
+      [] ->
+        ""
+
+      [first | _] = priced ->
+        # Only the lines in the same currency as the first are added up. A
+        # remembered price carries the currency it was paid in, and a list
+        # holding two of them has no single total — adding the minor units
+        # would print one anyway, which is the failure worth ten lines of
+        # arithmetic to avoid.
+        same = Enum.filter(priced, &(&1.price_currency == first.price_currency))
+
+        "#{symbol(first.price_currency)}#{money(same)} est."
+    end
+  end
+
+  defp money(priced) do
+    minor = Enum.reduce(priced, 0, &(&1.price_minor + &2))
+    :erlang.float_to_binary(minor / 100, decimals: 2)
+  end
+
+  defp symbol("GBP"), do: "£"
+  defp symbol("EUR"), do: "€"
+  defp symbol("USD"), do: "$"
+  defp symbol(nil), do: ""
+  defp symbol(code), do: code <> " "
+
+  # Thousandths of the unit, back into the shop's own words. `:piece` is the
+  # drawing's `×7`; grams and millilitres climb to kg and l on the thousand so
+  # a kilo of rice does not read as `1000 g`.
+  defp amount_line(%{unit: :piece, amount_mg: amount}), do: "×#{div(amount, 1000)}"
+  defp amount_line(%{unit: :g, amount_mg: amount}), do: scaled(div(amount, 1000), "g", "kg")
+  defp amount_line(%{unit: :ml, amount_mg: amount}), do: scaled(div(amount, 1000), "ml", "l")
+
+  defp amount_line(%{unit: unit, amount_mg: amount}) do
+    count = div(amount, 1000)
+    {one, many} = unit_words(unit)
+    if count == 1, do: "1 #{one}", else: "#{count} #{many}"
+  end
+
+  defp scaled(amount, small, large) do
+    if amount >= 1000 and rem(amount, 1000) == 0,
+      do: "#{div(amount, 1000)} #{large}",
+      else: "#{amount} #{small}"
+  end
+
+  defp unit_words(:tub), do: {"tub", "tubs"}
+  defp unit_words(:pack), do: {"pack", "packs"}
+  defp unit_words(:pinch), do: {"pinch", "pinches"}
+  defp unit_words(unit), do: {Atom.to_string(unit), Atom.to_string(unit)}
+
+  defp plural(1, word), do: "1 #{word}"
+  defp plural(count, word), do: "#{count} #{word}s"
+
+  defp active_plan do
+    case Kati.Meals.MealPlan |> Ash.Query.for_read(:active) |> Ash.read_one() do
+      {:ok, plan} -> plan
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp week_items(plan, monday) do
+    ShoppingListItem
+    |> Ash.Query.for_read(:for_week, %{meal_plan_id: plan.id, week_starting_on: monday})
+    |> Ash.read!()
+  rescue
+    _ -> []
+  end
 
   @doc false
   def content(assigns) do
@@ -103,7 +266,19 @@ defmodule Kati.Screens.Shopping do
   # Two weighted children inside a filled track, not a child of declared width:
   # nothing reports the track's pixel width back, so the fraction has to be
   # expressed as weight or it cannot be expressed at all.
+  #
+  # An empty basket draws the track and nothing else. `weight` is a share of
+  # what is left over after the fixed children, and a share of zero is not a
+  # zero-width child — it is a child Compose is asked to give none of a
+  # remainder to, which is not the same question. The drawing never asks it
+  # (9 of 24 is 0.38), and a real Monday morning asks it every week.
   @doc false
+  def progress(fraction) when fraction == 0 do
+    ~MOB"""
+    <Box fill_width={true} height={6} corner_radius={3} background={Palette.paper()} />
+    """
+  end
+
   def progress(fraction) do
     ~MOB"""
     <Box fill_width={true} height={6} corner_radius={3} background={Palette.paper()}>

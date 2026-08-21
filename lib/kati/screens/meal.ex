@@ -23,21 +23,290 @@ defmodule Kati.Screens.Meal do
     * **The macro bar's ends are square inside a rounded track.** The drawing
       clips them with `overflow:hidden`; Mob does not clip children.
 
+  ## Where the data comes from
+
+  `Kati.Meals`, through `meal/1` — the day's earliest unlogged slot and its
+  recipe, ingredient lines loaded, because nothing hands this screen an id.
+  Every figure is that recipe's own cached total at the slot's portion, and the
+  three history rows are drawn one per fact the recipe can answer for. With no
+  active plan the screen falls back to `Kati.Meals.SampleRecipe`.
+
+  The drawing's rating row reads `★★★★★ · a keeper`, and the two words are
+  lost: *"a keeper"* is an adjective for a five rather than a column. The stars
+  are the stored number and the sub-line beside them is empty, which is the
+  honest half of that row.
+
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Mob.Screen
   import Mob.Sigil
 
+  require Ash.Query
+
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaNumberField
   alias Kati.Components.MishkaSeparator
+  alias Kati.Meals.MealLog
+  alias Kati.Meals.MealPlanSlot
+  alias Kati.Meals.Nutrition
+  alias Kati.Meals.Recipe
   alias Kati.Meals.SampleRecipe, as: Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :meal, Sample.meal())}
+    {:ok, Mob.Socket.assign(socket, :meal, meal(Kati.Time.today()))}
+  end
+
+  @doc """
+  The meal this screen opens on: the day's next one, or the drawing's.
+
+  Nothing hands this screen an id — `Kati.Screens.MealsToday` pushes it from a
+  row that carries the tag `:open_meal` and no meal with it — so the referent
+  is the one the drawing itself names in its eyebrow: *"Dinner · 19:30 ·
+  today"*, the earliest slot today that has not been logged yet. Failing that
+  (a day already fully logged) it is the day's first planned meal.
+
+  With no active plan there is no such meal, and `Kati.Meals.SampleRecipe` is
+  drawn instead — the values `.scratch/design/screens/45.html` was captured
+  from. FIDELITY's rule: *missing data is not a reason for a blank screen*.
+  """
+  @spec meal(Date.t()) :: map()
+  def meal(date) do
+    case next_meal(date) do
+      {slot, recipe} -> cooked(slot, recipe)
+      nil -> drawn_meal()
+    end
+  end
+
+  @doc "Screen 45 exactly as it is drawn, from `Kati.Meals.SampleRecipe`."
+  @spec drawn_meal() :: map()
+  def drawn_meal do
+    Map.merge(Sample.meal(), %{
+      split: Sample.split(),
+      macros: Sample.macros(),
+      minors: Sample.minors(),
+      ingredients: Sample.ingredients(),
+      method_facts: Sample.method_facts(),
+      method: Sample.method(),
+      history: Sample.history()
+    })
+  end
+
+  defp next_meal(date) do
+    with plan when not is_nil(plan) <- active_plan(),
+         [_ | _] = slots <- cookable(plan, date),
+         %MealPlanSlot{} = slot <- unlogged(slots, date),
+         %Recipe{} = recipe <- with_ingredients(slot.recipe_id) do
+      {slot, recipe}
+    else
+      _ -> nil
+    end
+  end
+
+  defp cookable(plan, date) do
+    MealPlanSlot
+    |> Ash.Query.for_read(:on_day, %{
+      meal_plan_id: plan.id,
+      day_of_week: Date.day_of_week(date)
+    })
+    |> Ash.read!()
+    |> Enum.filter(&(&1.state == :planned and &1.recipe_id))
+  rescue
+    _ -> []
+  end
+
+  # The earliest slot with nothing logged against it. A day whose meals are all
+  # behind it has no *next* meal, and the screen opens on its first rather than
+  # on nothing — the tap that got here came from a row, and a row that opens a
+  # blank screen is worse than one that opens the wrong meal.
+  defp unlogged(slots, date) do
+    logged =
+      date
+      |> logs_on()
+      |> Enum.filter(&(&1.state in [:eaten, :skipped]))
+      |> MapSet.new(& &1.meal_plan_slot_id)
+
+    Enum.find(slots, hd(slots), &(not MapSet.member?(logged, &1.id)))
+  end
+
+  defp with_ingredients(recipe_id) do
+    case Ash.get(Recipe, recipe_id, load: [:ingredients]) do
+      {:ok, recipe} -> recipe
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp cooked(slot, recipe) do
+    portion = slot.portion_milli
+    figures = Nutrition.scale(recipe_figures(recipe), portion)
+
+    %{
+      slot: "#{slot.slot_name} · #{clock(slot.slot_time)} · today",
+      title: recipe.title,
+      seed: recipe.photo_seed,
+      portion: portion_label(portion / Nutrition.one_portion()),
+      calories: "#{figures.kcal}",
+      unit: " kcal",
+      split: split(figures),
+      macros: macro_tiles_of(figures),
+      minors: minors_of(figures),
+      ingredients: Enum.map(recipe.ingredients, &ingredient_line(&1, portion)),
+      method_facts: method_facts(recipe),
+      method: recipe.method || "",
+      history: history_rows(recipe)
+    }
+  end
+
+  # The drawing declares 34/42/24 rather than deriving it. What is derived here
+  # is the same three shares by the energy each macro contributes — 4 kcal a
+  # gram of protein and of carbohydrate, 9 a gram of fat — which is the only
+  # reading that makes the bar a picture of the figure above it.
+  defp split(figures) do
+    protein = grams(figures.protein_mg) * 4
+    carbs = grams(figures.carbs_mg) * 4
+    fat = grams(figures.fat_mg) * 9
+    total = protein + carbs + fat
+
+    [
+      {share(protein, total), Palette.ink()},
+      {share(carbs, total), Palette.bronze()},
+      {share(fat, total), Palette.bar_gold()}
+    ]
+  end
+
+  defp share(_part, 0), do: 0.0
+  defp share(part, total), do: Float.round(part / total, 2)
+
+  defp macro_tiles_of(figures) do
+    [
+      {"Protein", "#{grams(figures.protein_mg)} g", Palette.ink()},
+      {"Carbs", "#{grams(figures.carbs_mg)} g", Palette.bronze()},
+      {"Fat", "#{grams(figures.fat_mg)} g", Palette.bar_gold()}
+    ]
+  end
+
+  # Sodium is the one figure the drawing prints in milligrams, which is the
+  # unit it is stored in — `840 mg`, not `0.84 g`.
+  defp minors_of(figures) do
+    [
+      {"Fibre", "#{grams(figures.fibre_mg)} g"},
+      {"Sugar", "#{grams(figures.sugar_mg)} g"},
+      {"Sodium", "#{figures.sodium_mg} mg"}
+    ]
+  end
+
+  # Each line carries its own kcal so the total is visibly the sum of its
+  # parts, which is screen 45's claim about itself — and the reason
+  # `Kati.Meals.RecipeIngredient` stores the figures on the line rather than
+  # reaching through the food reference for them.
+  defp ingredient_line(line, portion) do
+    %{
+      name: line.name,
+      amount: amount(line.unit, scale_amount(line.amount_mg, portion)),
+      calories: "#{Nutrition.scale(Nutrition.take(line), portion).kcal}"
+    }
+  end
+
+  defp scale_amount(amount_mg, portion) do
+    div(amount_mg * portion + div(Nutrition.one_portion(), 2), Nutrition.one_portion())
+  end
+
+  defp amount(:piece, amount), do: "×#{div(amount, 1000)}"
+  defp amount(unit, amount), do: "#{div(amount, 1000)} #{unit}"
+
+  # A fact with no column behind it is not drawn. A recipe that never sees an
+  # oven has no oven temperature, and `Oven —°` would be worse than three facts
+  # where the drawing has three and two where it has two.
+  defp method_facts(recipe) do
+    [
+      {"schedule", recipe.minutes, fn minutes -> "#{minutes} min" end},
+      {"local_fire_department", recipe.oven_c, fn celsius -> "Oven #{celsius}°" end},
+      {"restaurant", recipe.serves, fn serves -> "Serves #{serves}" end}
+    ]
+    |> Enum.reject(fn {_icon, value, _label} -> is_nil(value) end)
+    |> Enum.map(fn {icon, value, label} -> {icon, label.(value)} end)
+  end
+
+  # Three rows, each drawn only when there is something to say.
+  #
+  # The drawing's rating row reads `★★★★★ · a keeper`, and *"a keeper"* has no
+  # column and is not one: it is an adjective for a five, not a fact about the
+  # recipe. `Kati.Meals.Recipe` stores the number, so the number is drawn and
+  # the sub-line beside the stars is empty rather than invented.
+  defp history_rows(recipe) do
+    eaten = eaten_logs(recipe)
+
+    Enum.concat([
+      eaten_row(eaten),
+      rating_row(recipe.rating),
+      note_row(recipe.note)
+    ])
+  end
+
+  defp eaten_row([]), do: []
+
+  defp eaten_row(logs) do
+    last = logs |> Enum.map(& &1.logged_on) |> Enum.sort({:desc, Date}) |> hd()
+
+    [
+      %{
+        icon: "event_repeat",
+        title: times(length(logs)),
+        sub: "Last on #{Calendar.strftime(last, "%A")}",
+        stars: 0
+      }
+    ]
+  end
+
+  defp rating_row(rating) when is_integer(rating) and rating > 0,
+    do: [%{icon: "star", title: "Your rating", sub: "", stars: rating}]
+
+  defp rating_row(_rating), do: []
+
+  defp note_row(note) when is_binary(note) and note != "",
+    do: [%{icon: "sticky_note_2", title: "Note", sub: note, stars: 0}]
+
+  defp note_row(_note), do: []
+
+  defp times(1), do: "Eaten once"
+  defp times(count), do: "Eaten #{count} times"
+
+  defp grams(milligrams), do: div(milligrams, 1000)
+
+  defp clock(nil), do: ""
+  defp clock(time), do: Calendar.strftime(time, "%H:%M")
+
+  defp recipe_figures(recipe) do
+    Map.new(Nutrition.fields(), fn field -> {field, Map.fetch!(recipe, :"total_#{field}")} end)
+  end
+
+  defp active_plan do
+    case Kati.Meals.MealPlan |> Ash.Query.for_read(:active) |> Ash.read_one() do
+      {:ok, plan} -> plan
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp logs_on(date) do
+    MealLog
+    |> Ash.Query.for_read(:on_day, %{on: date})
+    |> Ash.read!()
+  rescue
+    _ -> []
+  end
+
+  defp eaten_logs(recipe) do
+    MealLog
+    |> Ash.Query.filter(recipe_id == ^recipe.id and state == :eaten)
+    |> Ash.read!()
+  rescue
+    _ -> []
   end
 
   def render(assigns) do
@@ -63,11 +332,10 @@ defmodule Kati.Screens.Meal do
             {Kati.Screens.Meal.portion_card(meal)}
             {Kati.Screens.Meal.actions()}
             {UI.eyebrow("Ingredients · 1 portion")}
-            {Kati.Screens.Meal.ingredients()}
+            {Kati.Screens.Meal.ingredients(meal.ingredients)}
             {Kati.Screens.Meal.muted_eyebrow("Method")}
-            {Kati.Screens.Meal.method()}
-            {Kati.Screens.Meal.muted_eyebrow("History")}
-            {Kati.Screens.Meal.history()}
+            {Kati.Screens.Meal.method(meal)}
+            {Kati.Screens.Meal.history_block(meal.history)}
           </Column>
         </Column>
       </Scroll>
@@ -227,13 +495,13 @@ defmodule Kati.Screens.Meal do
           {Kati.Screens.Meal.stepper(meal)}
         </Row>
         <Spacer size={14} />
-        {Kati.Screens.Meal.macro_bar()}
+        {Kati.Screens.Meal.macro_bar(meal)}
         <Spacer size={14} />
-        {Kati.Screens.Meal.macro_tiles()}
+        {Kati.Screens.Meal.macro_tiles(meal)}
         <Spacer size={12} />
         {Kati.Screens.Meal.hairline(true)}
         <Spacer size={12} />
-        {Kati.Screens.Meal.minors()}
+        {Kati.Screens.Meal.minors(meal)}
       </Column>
       <Spacer size={12} />
     </Column>
@@ -321,17 +589,27 @@ defmodule Kati.Screens.Meal do
   # sink to `#121110` in dark: a hole punched through the card down to the page,
   # which is the same reading they have in light.
   @doc false
-  def macro_bar do
+  def macro_bar(meal) do
     ~MOB"""
     <Box fill_width={true} height={10} corner_radius={5} background={Palette.paper()}>
       <Row fill_width={true}>
-        {Enum.map(Kati.Meals.SampleRecipe.split(), fn {share, tone} -> Kati.Screens.Meal.segment(share, tone) end)}
+        {Enum.map(meal.split, fn {share, tone} -> Kati.Screens.Meal.segment(share, tone) end)}
       </Row>
     </Box>
     """
   end
 
+  # A macro that contributed nothing draws nothing rather than a segment of
+  # zero weight: `weight` is a share of the leftover space, and a share of zero
+  # is a different question from no width. The drawing never asks it — 34/42/24
+  # — and a recipe with no figures yet asks it on the first tap.
   @doc false
+  def segment(share, _tone) when share == 0 do
+    ~MOB"""
+    <Spacer size={0} />
+    """
+  end
+
   def segment(share, tone) do
     ~MOB"""
     <Box weight={share} height={10} background={tone} />
@@ -339,9 +617,9 @@ defmodule Kati.Screens.Meal do
   end
 
   @doc false
-  def macro_tiles do
+  def macro_tiles(meal) do
     tiles =
-      Sample.macros()
+      meal.macros
       |> Enum.map(fn {name, value, tone} -> macro_tile(name, value, tone) end)
       |> Enum.intersperse(tile_gap())
 
@@ -380,9 +658,9 @@ defmodule Kati.Screens.Meal do
   end
 
   @doc false
-  def minors do
+  def minors(meal) do
     columns =
-      Sample.minors()
+      meal.minors
       |> Enum.map(fn {label, value} -> minor(label, value) end)
       |> Enum.intersperse(minor_gap())
 
@@ -495,8 +773,7 @@ defmodule Kati.Screens.Meal do
   end
 
   @doc false
-  def ingredients do
-    rows = Sample.ingredients()
+  def ingredients(rows) do
     last = length(rows) - 1
 
     ~MOB"""
@@ -589,9 +866,9 @@ defmodule Kati.Screens.Meal do
   # On cream, like screen 08's note: the design's one warm surface, used here
   # for the part of the card a person reads rather than counts.
   @doc false
-  def method do
+  def method(meal) do
     facts =
-      Sample.method_facts()
+      meal.method_facts
       |> Enum.map(fn {icon, label} -> fact(icon, label) end)
       |> Enum.intersperse(fact_gap())
 
@@ -603,7 +880,7 @@ defmodule Kati.Screens.Meal do
         </Row>
         <Spacer size={13} />
         <Text
-          text={Kati.Meals.SampleRecipe.method()}
+          text={meal.method}
           text_size={13.5}
           line_height={1.65}
           text_color={Palette.cream_body()}
@@ -634,9 +911,19 @@ defmodule Kati.Screens.Meal do
     """
   end
 
+  # The eyebrow belongs to the card, not to the screen: a recipe nobody has
+  # eaten, rated or written a note about has no history, and an eyebrow over an
+  # empty card states a heading for nothing. Both are absent together, or
+  # neither is — and in the drawing all three rows are there, so both are.
   @doc false
-  def history do
-    rows = Sample.history()
+  def history_block([]), do: []
+
+  def history_block(rows) do
+    [muted_eyebrow("History"), history(rows)]
+  end
+
+  @doc false
+  def history(rows) do
     last = length(rows) - 1
 
     ~MOB"""

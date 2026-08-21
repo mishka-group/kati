@@ -27,7 +27,7 @@ defmodule Kati.Backup.Restore do
   ## Nothing partial, on a data layer that says it cannot transact
 
   `AshSqlite` reports `can?(:transact) == false`, so an Ash action is not
-  atomic and a thirteen-table restore is thirteen hundred separate writes. The
+  atomic and a fourteen-table restore is thousands of separate writes. The
   repository underneath is still Ecto and still SQLite, so every write here —
   the deletes and the inserts both — runs inside one `Kati.Repo.transaction/1`,
   and any failure at any point rolls the whole thing back, including a

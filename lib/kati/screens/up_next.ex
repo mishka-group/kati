@@ -24,17 +24,269 @@ defmodule Kati.Screens.UpNext do
   The back pill is `Kati.Screens.Pushed`'s, floating at the top left; the `tune`
   disc opposite it is this screen's own, which is the same split screen 05 uses
   for its `Mark all` button.
+
+  ## Where the queue comes from
+
+  `Kati.Media`, not `Kati.Screens.UpNext.Sample`. Every line the drawing puts on
+  this screen is a column on one of two resources and nothing here is invented:
+
+    * the sections are `Kati.Media.TrackedTitle.status` — `:watching` is ready,
+      `:paused` is gone cold. Those are the resource's own words for "still
+      going" and "stopped", and `archived` rows are excluded because that flag's
+      whole meaning is *hides from shelf*.
+    * the order is `last_touched_at` descending, which is the order the `:shelf`
+      action itself defines. The hero is the first ready row rather than a
+      separate query, so "what you are closest to" cannot disagree with the list
+      under it.
+    * `S2 · E6` is `progress_season` / `progress_episode`, the bookmark
+      `Kati.Media.TrackedTitle` stores for exactly this.
+    * `18M LEFT` and the burnt-in bar are the one arithmetic on the screen, and
+      both halves come from the same two numbers: `progress_seconds` on the
+      durable row and `runtime_minutes` on the cached one. `Kati.Media.CachedTitle`'s
+      moduledoc names this screen as the reason that ×60 is done where the units
+      are visible instead of behind a `denominator/1` that would be dividing a
+      second by a minute.
+    * `4 MONTHS AGO` is `last_touched_at` against today.
+    * `4 airing soon` is `Kati.Media.Release.resolve/2` answering `:exact` or
+      `:day` for a moment still ahead. No window in days is chosen here: "soon"
+      is *a date Kati is sure enough of to name*, which is the distinction that
+      module already exists to make, and a title whose date is a bare year is
+      not counted rather than being counted as if it were the first of January.
+
+  The poster is `Kati.Media.CachedTitle.poster_path`, which `Kati.Seeds` fills
+  with the design's own seed — its comment says so outright: *"the sample
+  artwork is resolved by seed through `Kati.Design.Images.poster/1`, and the seed
+  is what a renderer needs"*. So `thumb/1` and `cold_thumb/1` are unchanged; they
+  are handed the seed from the cache row instead of from the sample module.
+
+  A cache row can be evicted, and then there is no title to draw — the durable
+  row holds the status, the position and the rating, and deliberately not the
+  name. That row renders as `Untitled` rather than being dropped, which is the
+  same answer `Kati.Calendars.Today` gives a summary-less event.
+
+  ## An empty database still draws the drawing
+
+  With no `:watching` row there is no hero, and a hero card is the whole top of
+  this screen — so `queue/0` falls back to `Sample.queue/0` whole, exactly as
+  `Kati.Screens.Home.rest_of_today/1` and `Kati.Screens.Calendar.day_rows/1`
+  fall back to their drawn rows. This screen is also the reference for frame 10,
+  and a fresh install has nothing tracked. The fallback is all-or-nothing on
+  purpose: a real hero over the drawing's ready list would be four titles the
+  user does not have.
   """
   use Kati.Screens.Pushed, back: "Library"
 
+  require Ash.Query
+
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.Release
+  alias Kati.Media.TrackedTitle
   alias Kati.Screens.UpNext.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :queue, Sample.queue())
+  def load(socket), do: Mob.Socket.assign(socket, :queue, queue())
+
+  @doc """
+  The queue as `content/1` draws it: a hero, the rest of the ready list, and
+  the cold one.
+
+  Read from `Kati.Media`; the drawing's own when the library holds nothing to
+  watch. See the moduledoc for which column is which line.
+  """
+  @spec queue() :: map()
+  def queue do
+    case tracked(:watching) do
+      [] -> Sample.queue()
+      [hero | rest] -> assemble(hero, rest, tracked(:paused))
+    end
+  end
+
+  defp assemble(hero, rest, cold) do
+    cache = cache_for([hero | rest] ++ cold)
+
+    %{
+      subtitle: "#{length(rest) + 1} ready · #{airing_soon([hero | rest], cache)} airing soon",
+      ready_label: "Ready to watch · #{length(rest)}",
+      cold_label: "Gone cold · #{length(cold)}",
+      hero: hero_row(hero, cache),
+      ready: Enum.map(rest, &ready_data(&1, cache)),
+      cold: Enum.map(cold, &cold_data(&1, cache))
+    }
+  end
+
+  # `archived` is excluded here rather than by the caller for the reason the
+  # column exists: "keeps history, hides from shelf".
+  defp tracked(wanted) do
+    TrackedTitle
+    |> Ash.Query.filter(archived == false and status == ^wanted)
+    |> Ash.Query.sort(last_touched_at: :desc)
+    |> Ash.read!()
+  rescue
+    _ -> []
+  end
+
+  # One query for every poster and every runtime on the screen, keyed by the
+  # {source, source_id} pair the durable rows reference the cache by — a value,
+  # never a foreign key, which is what lets the cache be wiped underneath them.
+  #
+  # Only ever called with the hero in the list, so `ids` cannot be empty and
+  # there is no `IN ()` to guard against.
+  defp cache_for(rows) do
+    ids = rows |> Enum.map(& &1.source_id) |> Enum.uniq()
+
+    CachedTitle
+    |> Ash.Query.filter(source_id in ^ids)
+    |> Ash.read!()
+    |> Map.new(&{{&1.source, &1.source_id}, &1})
+  rescue
+    _ -> %{}
+  end
+
+  defp cached(row, cache), do: Map.get(cache, {row.source, row.source_id})
+
+  defp hero_row(row, cache) do
+    c = cached(row, cache)
+
+    %{
+      title: title_of(c),
+      seed: seed_of(c),
+      meta: join(episode(row) ++ hero_tail(row, c)),
+      progress: fraction(row, c)
+    }
+  end
+
+  defp ready_data(row, cache) do
+    c = cached(row, cache)
+    %{title: title_of(c), seed: seed_of(c), meta: join(episode(row) ++ runtime(c))}
+  end
+
+  # `action` is the offer this screen makes on a thread that has gone quiet, not
+  # a stored value — the design gives every cold row the same one.
+  defp cold_data(row, cache) do
+    c = cached(row, cache)
+
+    %{
+      title: title_of(c),
+      seed: seed_of(c),
+      meta: join(episode(row) ++ [age(row.last_touched_at)]),
+      action: "Drop"
+    }
+  end
+
+  defp title_of(nil), do: "Untitled"
+  defp title_of(%CachedTitle{title: nil}), do: "Untitled"
+  defp title_of(%CachedTitle{title: title}), do: title
+
+  defp seed_of(nil), do: nil
+  defp seed_of(%CachedTitle{poster_path: path}), do: path
+
+  defp join(parts), do: Enum.join(parts, " · ")
+
+  defp episode(row) do
+    Enum.reject(
+      [label("S", row.progress_season), label("E", row.progress_episode)],
+      &is_nil/1
+    )
+  end
+
+  defp label(_prefix, nil), do: nil
+  defp label(prefix, n) when is_integer(n), do: prefix <> Integer.to_string(n)
+  defp label(_prefix, _other), do: nil
+
+  # The hero says how much is LEFT, which is the resume point; every other row
+  # says how long the thing is. Both are the same two numbers read differently,
+  # and when there is no resume point the hero says the length as well rather
+  # than inventing a position.
+  defp hero_tail(row, cached) do
+    case seconds_left(row, cached) do
+      nil -> Enum.map(runtime(cached), &String.upcase/1)
+      left -> ["#{div(left, 60)}M LEFT"]
+    end
+  end
+
+  defp runtime(nil), do: []
+
+  defp runtime(%CachedTitle{runtime_minutes: minutes}) when is_integer(minutes) and minutes > 0 do
+    case {div(minutes, 60), rem(minutes, 60)} do
+      {0, m} -> ["#{m}m"]
+      {h, m} -> ["#{h}h #{m}m"]
+    end
+  end
+
+  defp runtime(%CachedTitle{}), do: []
+
+  defp seconds_left(row, cached) do
+    with total when is_integer(total) <- total_seconds(cached),
+         done when is_integer(done) and done > 0 <- row.progress_seconds,
+         left when left > 0 <- total - done do
+      left
+    else
+      _ -> nil
+    end
+  end
+
+  defp total_seconds(%CachedTitle{runtime_minutes: m}) when is_integer(m) and m > 0, do: m * 60
+  defp total_seconds(_cached), do: nil
+
+  defp fraction(row, cached) do
+    with total when is_integer(total) <- total_seconds(cached),
+         done when is_integer(done) and done > 0 <- row.progress_seconds do
+      min(done / total, 1.0)
+    else
+      _ -> nil
+    end
+  end
+
+  @doc """
+  How long ago a title was last touched, in the drawing's own words.
+
+  The cold section's whole argument — `4 MONTHS AGO` is why the design gives a
+  paused thread a grey dash and a flat row instead of a lifted card. Coarse on
+  purpose: a series you stopped in April is not more interesting for having
+  been stopped on the 12th, and the row has one mono line to say it in.
+
+  Public because it is the one string on this screen that no column contains —
+  `last_touched_at` is an instant and this is the sentence about it — so it is
+  the piece a test has to pin directly rather than through a fixture whose
+  timestamp `Kati.Media.Changes.Touch` forces to now.
+  """
+  @spec age(DateTime.t() | nil) :: String.t()
+  def age(nil), do: "NOT STARTED"
+
+  def age(at) do
+    case Date.diff(Kati.Time.today(), DateTime.to_date(at)) do
+      d when d <= 0 -> "TODAY"
+      1 -> "YESTERDAY"
+      d when d < 7 -> "#{d} DAYS AGO"
+      d when d < 14 -> "1 WEEK AGO"
+      d when d < 30 -> "#{div(d, 7)} WEEKS AGO"
+      d when d < 60 -> "1 MONTH AGO"
+      d when d < 365 -> "#{div(d, 30)} MONTHS AGO"
+      d when d < 730 -> "1 YEAR AGO"
+      d -> "#{div(d, 365)} YEARS AGO"
+    end
+  end
+
+  # "Soon" is a date `Kati.Media.Release` is willing to name — `:exact` or
+  # `:day`. An `:approximate` answer carries a period and no day at all, which
+  # is that module's way of making "out sometime in 2026" impossible to count as
+  # this week, and this counter honours it rather than re-deciding.
+  defp airing_soon(rows, cache) do
+    Enum.count(rows, fn row -> ahead?(Release.resolve(row, cached(row, cache))) end)
+  end
+
+  # `Kati.Time.now/0` rather than `DateTime.utc_now/0`: a screen reads the
+  # device's clock through `Kati.Time`, and `Kati.ScreenDateTest` fails the build
+  # over it. The two are the same instant in different zones and `DateTime.compare/2`
+  # normalises, so the comparison is unchanged — the rule is about where a screen
+  # is allowed to learn what time it is.
+  defp ahead?({:exact, at, _origin}), do: DateTime.compare(at, Kati.Time.now()) == :gt
+  defp ahead?({:day, date, _origin}), do: Date.compare(date, Kati.Time.today()) != :lt
+  defp ahead?(_resolution), do: false
 
   @doc false
   def content(assigns) do
@@ -149,7 +401,7 @@ defmodule Kati.Screens.UpNext do
         padding={12}
       >
         <Box fill_width={true} height={170} corner_radius={15} background={Palette.placeholder()}>
-          {Kati.Screens.UpNext.hero_art()}
+          {Kati.Screens.UpNext.hero_art(h.seed)}
           <Box fill_width={true} fill_height={true} align="bottom">
             <Box fill_width={true} height={70} gradient="to_top #C7141210 #00141210" />
           </Box>
@@ -193,9 +445,20 @@ defmodule Kati.Screens.UpNext do
     """
   end
 
-  @doc false
-  def hero_art do
-    case Sample.hero_art() do
+  @doc """
+  The hero still, at the 700x400 crop the drawing asks for.
+
+  The seed rather than `Sample.hero_art/0`, so the card shows the title the
+  queue actually put in the hero — `Sample.hero_art/0` is `hollow71` at this
+  same size, so the drawn frame is byte for byte the picture it was.
+
+  Deliberately not `Kati.Design.Images.hero/1`: that one answers with the
+  900x740 crop, which is a portrait photograph of the same title, and this card
+  is landscape.
+  """
+  @spec hero_art(String.t() | nil) :: map()
+  def hero_art(seed) do
+    case seed && Kati.Design.Images.path(seed, {700, 400}) do
       nil ->
         ~MOB"<Spacer size={0} />"
 
@@ -206,7 +469,32 @@ defmodule Kati.Screens.UpNext do
     end
   end
 
-  @doc false
+  @doc """
+  The bar burnt into the still's bottom edge.
+
+  Three clauses rather than one, and the two extra ones are not decoration:
+  `<Box weight={f}>` beside `<Spacer weight={1.0 - f}>` hands Compose a literal
+  `0.0` weight at either end of the range, which throws and takes the activity
+  down — the same trap `Kati.Screens.Home.watch_bar/1` documents and the reason
+  that card uses Chelekom's Progress instead of two weighted Boxes.
+
+  A title with no resume point gets no bar at all rather than an empty one:
+  `progress_seconds` is the only thing that can say how far in the user is, and
+  a 0% rail burnt into the picture would be claiming they had started.
+
+  The drawing's own 0.62 takes the middle clause, so frame 10 is unchanged.
+  """
+  @spec progress(float() | nil) :: map()
+  def progress(nil), do: ~MOB"<Spacer size={0} />"
+
+  def progress(fraction) when fraction >= 1.0 do
+    ~MOB"""
+    <Box fill_width={true} height={3} background={Palette.accent()} />
+    """
+  end
+
+  def progress(fraction) when fraction <= 0.0, do: ~MOB"<Spacer size={0} />"
+
   def progress(fraction) do
     ~MOB"""
     <Box fill_width={true} height={3} background={Palette.on_media_track()}>

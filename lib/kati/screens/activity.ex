@@ -45,24 +45,66 @@ defmodule Kati.Screens.Activity do
   rewatch count is not part of the log and is never filtered.
 
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
+
+  ## The log is `Kati.Media.Watch`, and only `Kati.Media.Watch`
+
+  That resource's own moduledoc names this screen — it is why `media_watches`
+  carries a bare `watched_at` index, *"screen 15's activity log across every
+  title"* — so the rows here are read through the domain rather than off
+  `Kati.Activity.Sample`. One `Ash.read!` of the user's watches, joined to the
+  title they belong to and to whatever the cache still holds about it, shaped
+  into the same `%{stamp, seed, lead, rest, stars}` the sample produced. The
+  shaping is in this file rather than a read model beside the resource because
+  every judgement in it — which verb a row gets, where the stamp changes from a
+  clock to a date — is a statement about *this drawing* and belongs next to the
+  markup that draws it.
+
+  **An empty database still draws the drawing.** `log/0` falls back to
+  `drawn/0` — the sample verbatim — the way `Kati.Screens.Home.rest_of_today/1`
+  and `Kati.Screens.Calendar.day_rows/1` already do, because this screen is
+  also the reference the frame is compared against and a fresh install has no
+  watches. The gate is the whole screen, not each group: a log with rows today
+  and none earlier shows its real emptiness rather than borrowing four drawn
+  rows from last month.
+
+  ### What `Kati.Media.Watch` cannot say yet
+
+  The drawing's log is *"every tick, rating, drop and import"* and `Watch` is
+  the ticks and the ratings. `Added … to Wishlist`, `Finished … Season 1`,
+  `Dropped … after S1E3` and `Imported 412 titles from a CSV backup` are the
+  other four rows the sample carries, and none of them has a store: a status
+  moving from `:watching` to `:dropped` overwrites a column on
+  `Kati.Media.TrackedTitle` and leaves nothing behind, there is no list
+  resource for a wishlist to be added to, and no import ever records that it
+  ran. So the `Added` chip finds nothing in a real log. That is a missing
+  resource, not a missing query: a `media_events` append-only table, or a
+  status-change row beside `Kati.Media.TrackedTitle`, is what those four verbs
+  need, and inventing a column from a screen would be the wrong end to build it
+  from. Until it exists the drawn rows carry them, which is why
+  `Kati.Activity.Sample` stays.
   """
   use Kati.Screens.Pushed, back: "Stats"
+
+  require Ash.Query
 
   alias Kati.Activity.Sample
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.Watch
   alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, filter: "All")
+  def load(socket), do: Mob.Socket.assign(socket, filter: "All", log: log())
 
   @doc false
   def content(assigns) do
     filter = assigns.filter
-    today = visible(Sample.today(), filter)
-    earlier = visible(Sample.earlier(), filter)
+    log = assigns.log
+    today = visible(log.today, filter)
+    earlier = visible(log.earlier, filter)
 
     ~MOB"""
     <Scroll>
@@ -74,15 +116,111 @@ defmodule Kati.Screens.Activity do
         padding_bottom={40}
       >
         {Kati.Screens.Activity.back_gap()}
-        {Kati.Screens.Activity.header()}
+        {Kati.Screens.Activity.header(log.entries_line)}
         {Kati.Screens.Activity.filters(filter)}
         {Kati.Screens.Activity.group(today, UI.eyebrow("Today"), 44, 11, 0.0)}
         {Kati.Screens.Activity.group(earlier, Kati.UI.Eyebrow.quiet("Earlier this month"), 44, 10, 0.06)}
-        {UI.eyebrow("Rewatch count")}
-        {Kati.Screens.Activity.rewatch()}
+        {Kati.Screens.Activity.rewatch_section(log.rewatch)}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The log this screen draws — the user's own, or the drawing's.
+
+  Real rows whenever there are any, and `drawn/0` when there are none, which
+  is the rule `Kati.Screens.Calendar.day_rows/1` states: *missing data is not
+  a reason for a blank screen*. The two dated groups are what the gate reads,
+  not the rewatch card — a user whose every watch is older than this month has
+  an empty log and a real rewatch tally, and showing the drawing's four rows
+  beside their own counts would be two different months in one frame.
+
+  A database that cannot be read at all draws the drawing too. `Ash.read!` on
+  a device mid-migration raises, and a screen that dies is strictly worse than
+  a screen showing the values it was drawn from; the tests below fail loudly
+  on a query that is merely wrong, because they assert the real strings.
+  """
+  @spec log() :: map()
+  def log do
+    case entries() do
+      %{today: [], earlier: []} -> drawn()
+      log -> log
+    end
+  rescue
+    _ -> drawn()
+  end
+
+  @doc """
+  The drawing's own log — `.scratch/design/screens/15.html`, verbatim.
+
+  `Kati.Activity.Sample` is kept rather than inlined here: it is the frame's
+  specification and the fixture the tests compare a real render against, and
+  two copies of the drawing's copy is exactly how the two drift apart.
+  """
+  @spec drawn() :: map()
+  def drawn do
+    %{
+      entries_line: Sample.entries_line(),
+      today: Sample.today(),
+      earlier: Sample.earlier(),
+      rewatch: Sample.rewatch()
+    }
+  end
+
+  @doc """
+  Every watch the user has recorded, shaped into the drawing's rows.
+
+  One read of `Kati.Media.Watch` rather than one per group. The screen needs
+  the whole history anyway — the header counts it and the rewatch card groups
+  it — and three filtered queries that must agree about what "this month"
+  means is three chances to disagree.
+
+  Stamps are the precision the row actually has. `watched_at` is an instant, so
+  it yields the local clock Today's gutter draws; `watched_on` is a date, and
+  `Kati.Media.Watch` is explicit that the two are separate because *"watched on
+  12 August" is date-valued*. A date-only watch therefore cannot appear in
+  Today, whose gutter is a clock — it is the row that says "I have seen this, I
+  do not remember when", and giving it a manufactured 00:00 would be the same
+  lie as `Kati.Media.Release` refusing to turn a bare year into 1 January.
+
+  `today` is an argument for the same reason `Kati.Calendars.Today.rows/1`
+  takes one: the two groups are *"today"* and *"earlier this month"*, and a
+  function that reads the clock itself can only be tested on the day the
+  fixtures were written for — or, worse, only on the days of the month where
+  "earlier this month" is a non-empty range at all.
+  """
+  @spec entries(Date.t()) :: map()
+  def entries(today \\ Kati.Time.today()) do
+    zone = Kati.Time.device_zone()
+    month = Date.beginning_of_month(today)
+
+    watches = watches()
+    cached = cached_by_reference(watches)
+
+    dated =
+      watches
+      |> Enum.map(&stamped(&1, zone))
+      |> Enum.reject(fn {date, _clock, _watch} -> is_nil(date) end)
+      |> Enum.sort_by(fn {date, clock, watch} ->
+        {Date.to_erl(date), clock || "", watch.id}
+      end)
+      |> Enum.reverse()
+
+    %{
+      entries_line: entries_line(length(watches)),
+      today:
+        for {date, clock, watch} <- dated, date == today, not is_nil(clock) do
+          row(watch, clock, cached)
+        end,
+      earlier:
+        for {date, _clock, watch} <- dated,
+            Date.compare(date, month) != :lt,
+            Date.compare(date, today) == :lt do
+          row(watch, date_stamp(date), cached)
+        end,
+      rewatch: rewatch_counts(watches, cached)
+    }
   end
 
   @doc """
@@ -123,7 +261,7 @@ defmodule Kati.Screens.Activity do
   def back_gap, do: ~MOB"<Spacer size={58} />"
 
   @doc false
-  def header do
+  def header(entries_line) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -137,7 +275,7 @@ defmodule Kati.Screens.Activity do
           />
           <Spacer size={5} />
           <Text
-            text={Kati.Activity.Sample.entries_line()}
+            text={entries_line}
             font_family="mono"
             text_size={11}
             text_color={Palette.muted()}
@@ -381,9 +519,21 @@ defmodule Kati.Screens.Activity do
     """
   end
 
+  @doc """
+  The rewatch card and its eyebrow, or neither.
+
+  Same shape as `group/5` and for the same reason: a user who has never
+  rewatched anything has nothing to count, and an eyebrow over an empty card
+  is the "headed card with no rows" this screen's own moduledoc rejects. A
+  list rather than a wrapper, so the two nodes flatten into the page's Column
+  exactly where they were written and the drawn frame is unchanged.
+  """
+  @spec rewatch_section([{String.t(), String.t()}]) :: [map()]
+  def rewatch_section([]), do: []
+  def rewatch_section(rows), do: [UI.eyebrow("Rewatch count"), rewatch(rows)]
+
   @doc false
-  def rewatch do
-    rows = Sample.rewatch()
+  def rewatch(rows) do
     last = length(rows) - 1
 
     children =
@@ -469,6 +619,189 @@ defmodule Kati.Screens.Activity do
     case Atom.to_string(tag) do
       "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
       _ -> {:noreply, socket}
+    end
+  end
+
+  # ── The log, read through Kati.Media ───────────────────────────────────────
+
+  # `tracked_title` is loaded rather than looked up per row: it carries the
+  # {source, source_id} pair every other lookup here is keyed on, and a query
+  # per row is what turns a 1,204-entry log into 1,204 statements.
+  defp watches do
+    Watch
+    |> Ash.Query.load(:tracked_title)
+    |> Ash.read!()
+  end
+
+  # The cache half, keyed by the VALUE PAIR the durable half references it by
+  # — never by a foreign key, which is the split `Kati.Media.CachedTitle`
+  # exists to protect. A missing entry is the evicted case and is normal: the
+  # row still draws, without its title's artwork.
+  defp cached_by_reference([]), do: %{}
+
+  defp cached_by_reference(watches) do
+    ids = watches |> Enum.map(& &1.tracked_title.source_id) |> Enum.uniq()
+
+    CachedTitle
+    |> Ash.Query.filter(source_id in ^ids)
+    |> Ash.read!()
+    |> Map.new(&{{&1.source, &1.source_id}, &1})
+  end
+
+  # {date, clock, watch}. See `entries/0` on why a date-only watch has no clock
+  # and therefore never lands in Today.
+  defp stamped(watch, zone) do
+    cond do
+      watch.watched_at ->
+        local = Kati.Time.in_zone(watch.watched_at, zone)
+        {DateTime.to_date(local), Calendar.strftime(local, "%H:%M"), watch}
+
+      watch.watched_on ->
+        {watch.watched_on, nil, watch}
+
+      true ->
+        {nil, nil, watch}
+    end
+  end
+
+  # `12 AUG`, the gutter Earlier this month draws. `%d` pads, which is what
+  # makes `07 AUG` and `12 AUG` line up in a 44pt mono column.
+  defp date_stamp(date), do: date |> Calendar.strftime("%d %b") |> String.upcase()
+
+  defp row(watch, stamp, cached) do
+    tracked = watch.tracked_title
+    named = named(title_of(tracked, cached), episode_label(watch))
+    {lead, rest} = verb(watch, named)
+
+    row = %{stamp: stamp, seed: seed_of(tracked, cached), lead: lead, rest: rest}
+
+    # The key is absent rather than nil when there is no rating, because that is
+    # what `Kati.Activity.Sample` produces and `entry_row/5` reads it with
+    # `row[:stars]` — a rating of nothing and no rating are the same node, and
+    # the two shapes have to be indistinguishable for the fallback to be one.
+    case star_count(watch.rating) do
+      nil -> row
+      count -> Map.put(row, :stars, count)
+    end
+  end
+
+  # Which verb a watch gets. Order matters: a rewatch that was also rated reads
+  # as `Rated`, because the stars are the thing the row is showing and the chip
+  # that finds it is the one the user pressed. `Watched` keeps `Rewatched` too
+  # — see `visible/2`, which matches on containment for exactly this.
+  defp verb(%{rating: rating}, named) when is_integer(rating), do: {"Rated", named}
+
+  defp verb(%{rewatch_number: n}, named) when is_integer(n) and n > 1 do
+    {"Rewatched", named <> " · " <> ordinal(n) <> " time"}
+  end
+
+  defp verb(_watch, named), do: {"Watched", named}
+
+  defp named(title, nil), do: title
+  defp named(title, label), do: title <> " " <> label
+
+  # A label snapshot, never identity — `Kati.Media.Watch` is emphatic about
+  # that, and this is the one place the snapshot is for: printing it.
+  defp episode_label(%{season_number: s, episode_number: e})
+       when is_integer(s) and is_integer(e),
+       do: "S#{s}E#{e}"
+
+  defp episode_label(%{season_number: s}) when is_integer(s), do: "S#{s}"
+  defp episode_label(_watch), do: nil
+
+  defp title_of(tracked, cached) do
+    case Map.get(cached, {tracked.source, tracked.source_id}) do
+      %{title: title} when is_binary(title) and title != "" -> title
+      # The evicted case. The memory survived the wipe and the poster did not,
+      # so the row says so rather than disappearing from the user's own history.
+      _ -> "Untitled"
+    end
+  end
+
+  # `Kati.Seeds` writes the design seed straight into `poster_path` — "not a
+  # TMDB path: the sample artwork is resolved by seed" — and `sample_source_id/1`
+  # is the other half of the same convention. Either answer is a seed
+  # `Kati.Design.Images.poster/1` can miss harmlessly: `thumb/1` draws the
+  # placeholder tile for a nil.
+  defp seed_of(tracked, cached) do
+    case Map.get(cached, {tracked.source, tracked.source_id}) do
+      %{poster_path: path} when is_binary(path) and path != "" -> path
+      _ -> Kati.Seeds.sample_seed(tracked.source_id)
+    end
+  end
+
+  # Ten-point scale to whole glyphs: `9` is four and a half stars and this row
+  # draws whole ones, so it draws four. `div/2` rather than `round/1` on
+  # purpose — rounding 9 up to five would claim half a star the user did not
+  # give. A 1 is half a star and no whole one, which is no glyphs at all, and
+  # that is the absent key rather than an empty Row.
+  defp star_count(rating) when is_integer(rating) do
+    case div(rating, 2) do
+      0 -> nil
+      count -> count
+    end
+  end
+
+  defp star_count(_rating), do: nil
+
+  defp ordinal(n) do
+    suffix =
+      cond do
+        rem(n, 100) in 11..13 -> "th"
+        rem(n, 10) == 1 -> "st"
+        rem(n, 10) == 2 -> "nd"
+        rem(n, 10) == 3 -> "rd"
+        true -> "th"
+      end
+
+    Integer.to_string(n) <> suffix
+  end
+
+  # "1,204 entries". Grouped by hand rather than through `Kati.Cldr` because
+  # the drawing's line is ASCII digits and a locale switch would silently turn
+  # it into Persian ones — the Persian mirrors are their own screens.
+  defp entries_line(1), do: "1 entry"
+  defp entries_line(n), do: delimited(n) <> " entries"
+
+  defp delimited(n) do
+    n
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.graphemes()
+    |> Enum.chunk_every(3)
+    |> Enum.map_join(",", &Enum.join/1)
+    |> String.reverse()
+  end
+
+  # What has been watched more than once, and how many times.
+  #
+  # Grouped by `{tracked_title_id, episode_source_id}` — the episode's own id,
+  # which is what makes a tick survive a renumbering — so a film groups under
+  # its `nil` episode and each episode counts on its own.
+  defp rewatch_counts(watches, cached) do
+    watches
+    |> Enum.group_by(&{&1.tracked_title_id, &1.episode_source_id})
+    |> Enum.map(fn {_key, rows} -> rewatch_entry(rows, cached) end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.sort_by(fn {label, times} -> {-times, label} end)
+    |> Enum.map(fn {label, times} -> {label, "#{times}×"} end)
+  end
+
+  # `rewatch_number` is the user's own count and beats the row count, because
+  # `Kati.Media.Watch` says it exists precisely for the history that predates
+  # Kati: someone who saw a film twice before installing and once since has one
+  # row saying "3rd", and counting rows would print 1×.
+  defp rewatch_entry([first | _] = rows, cached) do
+    claimed =
+      rows
+      |> Enum.map(& &1.rewatch_number)
+      |> Enum.filter(&is_integer/1)
+      |> Enum.max(fn -> 0 end)
+
+    times = max(length(rows), claimed)
+
+    if times > 1 do
+      {named(title_of(first.tracked_title, cached), episode_label(first)), times}
     end
   end
 end

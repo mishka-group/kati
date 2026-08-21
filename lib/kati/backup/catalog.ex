@@ -32,6 +32,17 @@ defmodule Kati.Backup.Catalog do
     * **`:device_bound`** — a *column*, not a table: an opaque handle into a
       keystore this device has and the next one does not.
 
+  "Sync machinery" is where the line inside `Kati.Sync` falls, and it falls
+  between the two tables rather than around the domain. `Kati.Sync.OutboxEntry`
+  is a queue of intentions whose every column is true only of this device and
+  this session, and the edits in it are already applied to `events`, which is
+  carried. `Kati.Sync.RejectedChange` is the opposite: it is the losing half of
+  a conflict, held so the user can put it back, and its `properties` are
+  property values **the user typed**. Nothing re-fetches them. Dropping them
+  from the backup would make a restore finish the job the merge deliberately
+  refused to do, so it is `:backup` — at the cost of `schema_version` 2 and the
+  `Kati.Backup.Upgrade` step that lets a version-1 file go on opening.
+
   ## Dropped columns, and why that is not silent loss
 
   Three columns are written as `null` into the payload:
@@ -67,7 +78,12 @@ defmodule Kati.Backup.Catalog do
   # backed-up column is added, removed, renamed, or changes encoding. The test
   # is what makes the rule real: it fails on the change, not on the next
   # restore of a file the change silently broke.
-  @schema_version 1
+  #
+  #   * **1** — the first format.
+  #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
+  #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
+  #     one before anything looks for it.
+  @schema_version 2
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -80,6 +96,7 @@ defmodule Kati.Backup.Catalog do
     %{table: "calendars", resource: Kati.Calendars.Calendar, drop: []},
     %{table: "events", resource: Kati.Calendars.Event, drop: []},
     %{table: "event_occurrence_overrides", resource: Kati.Calendars.Override, drop: []},
+    %{table: "sync_rejected_changes", resource: Kati.Sync.RejectedChange, drop: []},
     %{table: "tracked_titles", resource: Kati.Media.TrackedTitle, drop: []},
     %{table: "media_watches", resource: Kati.Media.Watch, drop: []},
     %{table: "foods", resource: Kati.Meals.Food, drop: []},
@@ -133,16 +150,6 @@ defmodule Kati.Backup.Catalog do
           "closed, and account_id points at an account whose credentials_ref the backup " <>
           "drops. The edit itself is not in here — it is already applied to events, " <>
           "which is carried, and local_rev exceeding synced_rev is what re-queues it."
-    },
-    %{
-      resource: Kati.Sync.RejectedChange,
-      class: :internal,
-      why:
-        "REVIEW THIS ONE. Excluded to avoid a unilateral backup-format change, not " <>
-          "because the case is clear: the rows hold property values the user typed, and " <>
-          "no re-fetch reproduces them, which is the definition of :backup above. " <>
-          "Carrying it needs schema_version 2 plus an Upgrade step, since Verify " <>
-          "Map.fetch!s every catalog table and a v1 file has no such member."
     }
   ]
 

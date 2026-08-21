@@ -11,6 +11,44 @@ defmodule Kati.Screens.Inbox do
   The watcher card at the top is the honest bit — it says how many titles are
   watched and when it last checked, so background work that runs every six
   hours is visible rather than assumed.
+
+  ## Why this screen still reads `Kati.Library.Sample`
+
+  Screen 03 moved onto `Kati.Media` (see `Kati.Screens.Library.shelf/0`). This
+  one did not, and it is worth writing down exactly what stops it, because one
+  of the three values on the watcher card *is* queryable and moving it alone
+  would be the worse outcome.
+
+  **Out now** is a row per episode: `S2 E6 — Ash and After`, `48 min · LUMEN+ ·
+  aired 20:00`. `Kati.Media` has no episode resource at all — see
+  `Kati.Screens.Series` for the same gap stated at length — so the episode name
+  cannot be produced, and `LUMEN+` is availability, which no column holds
+  (`Kati.Media.Watch.service` is where the *user* watched something).
+
+  **The watcher card** is three values with three different answers:
+
+    * `Watching for 24 titles` — this one is real today.
+      `Kati.Media.TrackedTitle`'s `:followed` action is precisely "the titles the
+      release watcher has any business looking at", and counting it is the
+      number.
+    * `last checked 18:02` — **nothing records when the watcher last ran.**
+      `Kati.Media.CachedTitle.last_checked_at` is per title, not per sweep, and
+      the max across a library is not the same fact: a library where one title
+      was refreshed a minute ago and the rest a week ago would read as fully
+      current.
+    * `every 6h` — the watcher's cadence, which lives in no resource and no
+      policy module (`Kati.Media.CachePolicy` states refresh and eviction
+      horizons in *days*, which is a different clock).
+
+  So the count stays frozen with the other two rather than being wired up on
+  its own. A card that reads `Watching for 7 titles · last checked 18:02` puts a
+  live number beside a frozen one in the same breath, and the second is then
+  indistinguishable from the first — which is `Kati.Library.Sample`'s own
+  warning: *sample data that looks like real data is how a demo quietly becomes
+  a lie*. The whole card moves when the watcher records its own run.
+
+  `coming_up_rows/0` below is a separate case and already stated here rather
+  than in the Sample module — see its own doc.
   """
   use Kati.Screens.Pushed, back: "Home"
 

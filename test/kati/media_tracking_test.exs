@@ -21,7 +21,26 @@ defmodule Kati.Media.TrackingTest do
   setup do
     # Every row this module makes shares one prefix, so the cache wipe below can
     # be a real wipe of this test's titles without touching another test's.
+    #
+    # And every row goes again afterwards, because what this module leaves behind
+    # stopped being inert the moment a screen started reading these tables:
+    # `Kati.Screens.Activity` draws screen 15's log out of `media_watches`, and
+    # the watches below are stamped inside the current month, so they land in its
+    # "Earlier this month" card. `Kati.ScreenDesignLiteralTest` then compares
+    # that screen with its drawing and finds this module's fixtures instead —
+    # and whether it passes depends on the shuffle putting it before this file
+    # rather than after it. Same hazard `Kati.SeedsTest` documents for events,
+    # and the same fix.
+    on_exit(&empty_the_tables!/0)
     {:ok, prefix: "mt#{System.unique_integer([:positive])}-"}
+  end
+
+  # Children first: media_watches carries the foreign key into tracked_titles.
+  defp empty_the_tables! do
+    for table <- ~w(media_watches tracked_titles cached_titles),
+        do: Ecto.Adapters.SQL.query!(Kati.Repo, "delete from #{table}", [])
+
+    :ok
   end
 
   defp track!(prefix, attrs \\ %{}) do

@@ -39,23 +39,64 @@ defmodule Kati.Screens.Nutrition do
   observation about Fridays. Neither is scoped to the segment, so neither moves
   when it does.
 
+  ## Where the data comes from
+
+  `Kati.Meals`, through `periods/1`: twelve weeks of `Kati.Meals.MealLog`, read
+  once at `load/1` and bucketed three ways against the active plan's targets.
+  Adherence is `eaten / (eaten + skipped)`, the hero is the daily average of the
+  days that were actually logged, and a bar's verdict is the plan's
+  `tolerance_permille` either side of the target — which is what makes the
+  drawing's 2,120 Tuesday ink and its 2,400 Friday red against one 2,100 line.
+
+  **Two blocks below the segment are still the drawing's, and cannot yet be
+  anything else:**
+
+    * **`Consistency · 12 weeks`** is 84 days at one of four levels, and nothing
+      in `Kati.Meals` says what a level is. A day is not 0–3 of anything the
+      schema holds, and inventing a scale would make the field look computed
+      while meaning nothing. Its caption — `Jun`, `best run — 19 days` — goes
+      with it.
+    * **The insight** is written prose: *"4 of 5 skips happen after 16:00 on a
+      Friday"*. `slot_time` and `state` would carry that arithmetic; the
+      sentence around it is generated language, and nothing here generates it.
+
+  Both stay on `Kati.Meals.SampleNutrition` and are named here, rather than
+  being drawn as computed-looking blanks.
+
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Meals"
 
+  require Ash.Query
+
   alias Kati.Components.MishkaActionIcon
+  alias Kati.Meals.MealLog
   alias Kati.Meals.SampleNutrition, as: Sample
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
 
+  # The drawing's own scale for the hero chart: its 2,040 average stands 51pt
+  # tall and its 2,400 Friday stands 60, which is 40 kcal to the point over a
+  # 64pt frame. Written as the ceiling rather than as the divisor because that
+  # is what it means — a day over 2,560 kcal fills the frame and stops.
+  @chart_ceiling 2560
+
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, period: "Week")
+  def load(socket) do
+    figures = figures(Kati.Time.today())
+
+    Mob.Socket.assign(socket,
+      period: "Week",
+      plan_line: figures.plan_line,
+      periods: figures.periods
+    )
+  end
 
   @doc false
   def content(assigns) do
     period = assigns.period
-    data = period_data(period)
+    data = Map.fetch!(assigns.periods, period)
 
     ~MOB"""
     <Scroll>
@@ -67,7 +108,7 @@ defmodule Kati.Screens.Nutrition do
         padding_bottom={40}
       >
         {Kati.Screens.Nutrition.back_gap()}
-        {Kati.Screens.Nutrition.header()}
+        {Kati.Screens.Nutrition.header(assigns.plan_line)}
         {Kati.Screens.Nutrition.segments(period)}
         {Kati.Screens.Nutrition.hero(data)}
         {Kati.Screens.Nutrition.counts(data)}
@@ -83,14 +124,256 @@ defmodule Kati.Screens.Nutrition do
   end
 
   @doc """
-  Everything the period segment owns, for one period.
+  Everything on this screen that comes off the database, decided once.
 
-  `"Week"` is the drawing: it hands back `Kati.Meals.SampleNutrition` untouched
-  so the resting screen is pixel-identical to `47.html`. The other two are the
-  same four shapes at a longer scale — a monthly average slightly over the
-  weekly one, four weekly bars instead of seven daily ones, counts that are the
-  week's multiplied out, and macro averages that drift the way a longer window
-  does.
+  The header line and all three periods together, because they answer the same
+  question — *whose figures are these?* — and a screen that titled the
+  drawing's 2,040 kcal with the user's own plan name would be the worst of both
+  answers. Three windows over twelve weeks of `Kati.Meals.MealLog`: seven daily
+  buckets, four weekly ones and twelve weekly ones, all from one read, built at
+  `load/1` rather than per render because the segment is a tap and a tap that
+  re-queries the database to redraw four cards is a tap that stutters.
+
+  With no active plan, or no log under it inside the window, this hands back
+  `drawn_figures/0` — what the screen has always drawn, `"Week"` being
+  `Kati.Meals.SampleNutrition` itself. FIDELITY's rule again: *missing data is
+  not a reason for a blank screen*, and this is the one screen where a blank
+  would read as "you have eaten nothing" rather than as "there is nothing here
+  yet".
+  """
+  @spec figures(Date.t()) :: %{plan_line: String.t(), periods: %{String.t() => map()}}
+  def figures(date) do
+    with plan when not is_nil(plan) <- active_plan(),
+         [_ | _] = logs <- plan_logs(plan, Date.add(date, -83), date) do
+      %{
+        plan_line: plan.name <> week_of(plan, date),
+        periods: %{
+          "Week" => window(plan, logs, daily_buckets(date)),
+          "Month" => window(plan, logs, weekly_buckets(date, 4, &"W#{&1}")),
+          "All" => window(plan, logs, weekly_buckets(date, 12, &"#{&1}"))
+        }
+      }
+    else
+      _ -> drawn_figures()
+    end
+  end
+
+  @doc """
+  The screen as it is drawn: `Kati.Meals.SampleNutrition`'s header line and its
+  three sets of figures, `"Week"` being the drawing itself.
+
+  `Kati.Meals.SampleNutrition` is what `.scratch/design/audit/47.png` was
+  captured from, so it is the fallback and the fixture both. `mark` is added to
+  each macro row here because the target tick is a fact about the plan's
+  tolerance rather than about a macro, and the drawn rows have to carry it in
+  the same shape the computed ones do.
+  """
+  @spec drawn_figures() :: %{plan_line: String.t(), periods: %{String.t() => map()}}
+  def drawn_figures do
+    %{
+      plan_line: Sample.plan_line(),
+      periods: %{
+        "Week" => marked(period_data("Week")),
+        "Month" => marked(period_data("Month")),
+        "All" => marked(period_data("All"))
+      }
+    }
+  end
+
+  defp marked(data) do
+    mark = Sample.target_mark()
+    %{data | macros: Enum.map(data.macros, &Map.put(&1, :mark, mark))}
+  end
+
+  # One bucket per day, Monday first, labelled with the day's own initial —
+  # `M T W T F S S`, which is what the drawing's axis is.
+  defp daily_buckets(date) do
+    monday = Date.add(date, -(Date.day_of_week(date) - 1))
+
+    Enum.map(0..6, fn offset ->
+      day = Date.add(monday, offset)
+      {String.first(Calendar.strftime(day, "%a")), [day]}
+    end)
+  end
+
+  # `count` weeks ending with the one `date` falls in, oldest first, each
+  # bucket the seven days of its week.
+  defp weekly_buckets(date, count, label) do
+    monday = Date.add(date, -(Date.day_of_week(date) - 1))
+
+    Enum.map(1..count, fn index ->
+      start = Date.add(monday, -7 * (count - index))
+      {label.(index), Enum.map(0..6, &Date.add(start, &1))}
+    end)
+  end
+
+  defp window(plan, logs, buckets) do
+    eaten = Enum.filter(logs, &(&1.state == :eaten))
+    days = buckets |> Enum.flat_map(fn {_label, dates} -> dates end) |> MapSet.new()
+    inside = Enum.filter(eaten, &MapSet.member?(days, &1.logged_on))
+    target = plan.target_kcal || 0
+
+    %{
+      hero: hero(inside, target),
+      bars: Enum.map(buckets, &bar_of(&1, eaten, target, plan)),
+      counts: counts(logs, days),
+      macros: macro_rows(inside, plan)
+    }
+  end
+
+  # The average of the days that were LOGGED, not of the days in the window: a
+  # week you recorded two days of is not a week you averaged 600 kcal in, and
+  # the honest reading of a gap is that nothing is known about it.
+  defp hero(eaten, target) do
+    %{
+      label: "Daily average",
+      average: group(daily_average(eaten, &(&1.kcal || 0))),
+      unit: " kcal",
+      target_label: "Target",
+      target: group(target)
+    }
+  end
+
+  defp bar_of({label, dates}, eaten, target, plan) do
+    days = MapSet.new(dates)
+    inside = Enum.filter(eaten, &MapSet.member?(days, &1.logged_on))
+    average = daily_average(inside, &(&1.kcal || 0))
+
+    {label, height(average), verdict(average, target, plan)}
+  end
+
+  defp height(average) do
+    round(min(average / @chart_ceiling, 1.0) * 64)
+  end
+
+  # Three verdicts, and the band between them is the plan's own
+  # `tolerance_permille` — 950 by default, which is the 95% tick the drawing
+  # puts on every macro bar. Under it is under; as far over it is on target;
+  # past that is over. A symmetric band is what makes the drawing's 2,120
+  # Tuesday ink and its 2,400 Friday red against the same 2,100 target.
+  defp verdict(_average, 0, _plan), do: Palette.cream_ink()
+
+  defp verdict(average, target, plan) do
+    tolerance = plan.tolerance_permille || 950
+    floor = target * tolerance / 1000
+    ceiling = target * (2000 - tolerance) / 1000
+
+    cond do
+      average > ceiling -> Palette.red()
+      average < floor -> Palette.bar_neutral()
+      true -> Palette.cream_ink()
+    end
+  end
+
+  # `30 hit / 5 skipped / 86%` — the adherence is the share of the meals that
+  # were answered at all, which is what the drawing's three cards add up to.
+  defp counts(logs, days) do
+    inside = Enum.filter(logs, &MapSet.member?(days, &1.logged_on))
+    hit = Enum.count(inside, &(&1.state == :eaten))
+    skipped = Enum.count(inside, &(&1.state == :skipped))
+
+    [
+      {adherence(hit, skipped), "Adherence", Palette.ink()},
+      {"#{hit}", "Meals hit", Palette.ink()},
+      {"#{skipped}", "Skipped", Palette.red()}
+    ]
+  end
+
+  defp adherence(0, 0), do: "—"
+  defp adherence(hit, skipped), do: "#{round(hit * 100 / (hit + skipped))}%"
+
+  # A macro with no target is not drawn: this card is `Macros vs target`, and a
+  # bar with nothing to be measured against is the shape the moduledoc says a
+  # measurement must not be. `Kati.Meals.MealPlan` allows every target to be
+  # nil, so all four rows can legitimately be absent.
+  defp macro_rows(eaten, plan) do
+    [
+      {"Protein", :protein_mg, plan.target_protein_mg, Palette.ink()},
+      {"Carbs", :carbs_mg, plan.target_carbs_mg, Palette.bronze()},
+      {"Fat", :fat_mg, plan.target_fat_mg, Palette.bar_gold()},
+      {"Fibre", :fibre_mg, plan.target_fibre_mg, Palette.bar_ink()}
+    ]
+    |> Enum.reject(fn {_name, _field, target, _tone} -> is_nil(target) or target == 0 end)
+    |> Enum.map(fn {name, field, target, tone} ->
+      value = daily_average(eaten, &(Map.get(&1, field) || 0))
+      grams = div(value, 1000)
+      target_grams = div(target, 1000)
+
+      %{
+        name: name,
+        value: "#{grams} / #{target_grams} g",
+        fill: Float.round(min(grams / target_grams, 1.0), 2),
+        tone: tone,
+        mark: (plan.tolerance_permille || 950) / 1000
+      }
+    end)
+  end
+
+  defp daily_average([], _figure), do: 0
+
+  defp daily_average(logs, figure) do
+    days = logs |> Enum.map(& &1.logged_on) |> Enum.uniq() |> length()
+    div(Enum.reduce(logs, 0, &(figure.(&1) + &2)), days)
+  end
+
+  # "Cutting v3 · week 6 of 12". The week is counted from the plan's start
+  # date; a plan with none says its name and stops, rather than claiming a week
+  # it cannot count.
+  defp week_of(%{starts_on: nil}, _date), do: ""
+
+  defp week_of(%{starts_on: starts_on, weeks_total: nil}, date),
+    do: " · week #{div(Date.diff(date, starts_on), 7) + 1}"
+
+  defp week_of(%{starts_on: starts_on, weeks_total: total}, date),
+    do: " · week #{div(Date.diff(date, starts_on), 7) + 1} of #{total}"
+
+  defp group(number) do
+    number
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+    |> String.reverse()
+  end
+
+  defp active_plan do
+    case Kati.Meals.MealPlan |> Ash.Query.for_read(:active) |> Ash.read_one() do
+      {:ok, plan} -> plan
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  # Scoped to the plan, not merely to the window.
+  #
+  # This screen is titled with a plan and a week of it — `Cutting v3 · week 6
+  # of 12` — and the number it leads with is adherence, which is a question
+  # about the plan's own meals: the drawing's `30 hit / 5 skipped` is 35, one
+  # week of `Kati.Meals.MealPlanSlot` rows. `Kati.Meals.MealLog` records the
+  # plan a meal was logged under precisely so the past stays with the plan it
+  # belonged to (`keep_history`), and reading every log in the window instead
+  # would measure a plan by meals it never asked for.
+  #
+  # The cost is stated rather than hidden: a meal logged with no plan behind it
+  # — eating out, `log_manual` with no `meal_plan_id` — is in nobody's
+  # adherence and so is in no average here either. It is on screen 43's
+  # timeline, where it was eaten.
+  defp plan_logs(plan, from, to) do
+    MealLog
+    |> Ash.Query.filter(meal_plan_id == ^plan.id and logged_on >= ^from and logged_on <= ^to)
+    |> Ash.read!()
+  rescue
+    _ -> []
+  end
+
+  @doc """
+  The figures the drawing carries, for one period.
+
+  `"Week"` is `Kati.Meals.SampleNutrition` unchanged, so the resting screen is
+  pixel-identical to `47.html`. The other two are the same four shapes at a
+  longer scale — a monthly average slightly over the weekly one, four weekly
+  bars instead of seven daily ones, counts that are the week's multiplied out,
+  and macro averages that drift the way a longer window does.
 
   The bar tones are the same three verdicts `bars/0` uses — ink on target,
   `#D8D2C8` under, `#B4553C` over — so a red bar means the same thing in every
@@ -202,7 +485,7 @@ defmodule Kati.Screens.Nutrition do
   def back_gap, do: ~MOB"<Spacer size={58} />"
 
   @doc false
-  def header do
+  def header(plan_line) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -216,7 +499,7 @@ defmodule Kati.Screens.Nutrition do
           />
           <Spacer size={5} />
           <Text
-            text={Kati.Meals.SampleNutrition.plan_line()}
+            text={plan_line}
             font_family="mono"
             text_size={11}
             text_color={Palette.muted()}
@@ -604,7 +887,7 @@ defmodule Kati.Screens.Nutrition do
       <Box fill_width={true} height={8} corner_radius={4} background={Palette.paper()}>
         {Kati.Screens.Nutrition.fill(row.fill, row.tone)}
       </Box>
-      {Kati.Screens.Nutrition.tick()}
+      {Kati.Screens.Nutrition.tick(row.mark)}
     </Box>
     """
   end
@@ -615,6 +898,16 @@ defmodule Kati.Screens.Nutrition do
   def fill(amount, tone) when amount >= 1.0 do
     ~MOB"""
     <Box fill_width={true} height={8} corner_radius={4} background={tone} />
+    """
+  end
+
+  # And an empty bar is drawn as nothing at all, for the mirror-image reason:
+  # `weight` is a share of the leftover space, so a share of zero is a question
+  # Compose rejects rather than a child of no width. The drawing never asks it;
+  # a macro nobody has eaten any of asks it on the first morning.
+  def fill(amount, _tone) when amount == 0 do
+    ~MOB"""
+    <Spacer size={0} />
     """
   end
 
@@ -637,8 +930,7 @@ defmodule Kati.Screens.Nutrition do
   # the bar; left as `0x591A1917` it would be 35% black over a `#1E1D1B` card
   # and the target would silently stop being drawn.
   @doc false
-  def tick do
-    mark = Sample.target_mark()
+  def tick(mark) do
     rest = 1.0 - mark
 
     ~MOB"""

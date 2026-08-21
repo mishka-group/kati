@@ -30,19 +30,51 @@ defmodule Kati.Screens.MealsToday do
       stretch` in the drawing; nothing measures geometry here, and 52 is the
       photograph's height, which is what sets the row's height.
 
+  ## Where the data comes from
+
+  `Kati.Meals`, through `day/1`: the active plan names the pill, its slots for
+  today's weekday are merged with the day's `Kati.Meals.MealLog` rows into the
+  timeline, and the week strip counts the same slots a day at a time. With no
+  active plan the whole screen falls back to `Kati.Meals.SampleToday` — see
+  `day/1` for why that gate is one question rather than seven.
+
+  Two blocks are **not** domain data, and are named here rather than left to be
+  discovered:
+
+    * **The four quick tiles** are navigation. There is no resource behind an
+      icon and a destination.
+    * **The prep card is still the drawing's.** *"Soak the oats, thaw the
+      chicken"* is an instruction, and *"2 need prep"* counts the meals that
+      have one. `Kati.Meals.Recipe` stores a method, a duration and an oven
+      temperature, and nothing that says a step belongs to the night before. So
+      the card stays on `Kati.Meals.SampleToday.prep/0` rather than being faked
+      out of `minutes`: a wrong instruction the evening before a meal is worse
+      than a drawn one.
+
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Health"
 
+  require Ash.Query
+
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
+  alias Kati.Meals.MealLog
+  alias Kati.Meals.MealPlanSlot
+  alias Kati.Meals.Nutrition
+  alias Kati.Meals.Recipe
   alias Kati.Meals.SampleToday, as: Sample
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
 
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, :day, day(Kati.Time.today()))
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    day = assigns.day
+
     ~MOB"""
     <Scroll>
       <Column
@@ -53,17 +85,275 @@ defmodule Kati.Screens.MealsToday do
         padding_bottom={40}
       >
         {Kati.Screens.MealsToday.header()}
-        {Kati.Screens.MealsToday.title()}
-        {Kati.Screens.MealsToday.week_strip()}
+        {Kati.Screens.MealsToday.title(day)}
+        {Kati.Screens.MealsToday.week_strip(day.week)}
         {Kati.Screens.MealsToday.tiles()}
-        {UI.eyebrow(Sample.intake_line())}
-        {Kati.Screens.MealsToday.macro_card()}
-        {Kati.Screens.MealsToday.timeline()}
+        {UI.eyebrow(day.intake_line)}
+        {Kati.Screens.MealsToday.macro_card(day)}
+        {Kati.Screens.MealsToday.timeline(day.meals)}
         {UI.eyebrow("Tomorrow — needs prep tonight")}
         {Kati.Screens.MealsToday.prep()}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The day this screen draws: the active plan's own, or the drawing's.
+
+  `Kati.Meals` answers with the device's own plan, and a device that has never
+  been given one answers with nothing — which would draw an empty timeline, an
+  empty week strip and a macro bar with no segments where the design draws five
+  meals and a 31/44/25 split. FIDELITY's rule covers exactly that: *missing
+  data is not a reason for a blank screen*, and it is the same fallback
+  `Kati.Screens.Calendar.day_rows/1` already makes for a day with no events.
+
+  The gate is one question asked once — **is there an active plan with anything
+  on it?** — rather than a fallback per block, because a screen half drawn from
+  the drawing and half from the database is a screen nobody can compare with
+  either. With a plan, every figure below is the user's own; with none, all of
+  them are `Kati.Meals.SampleToday`'s.
+  """
+  @spec day(Date.t()) :: map()
+  def day(date) do
+    with plan when not is_nil(plan) <- active_plan(),
+         slots = plan_slots(plan),
+         logs = logs_on(date),
+         true <- slots != %{} or logs != [] do
+      planned_day(plan, date, slots, logs)
+    else
+      _ -> drawn_day()
+    end
+  end
+
+  @doc """
+  Screen 43 exactly as `.scratch/design/screens/43.html` draws it.
+
+  Stand-in data, and marked as such — `Kati.Meals.SampleToday` is what the
+  frame was captured from, so it is both the fallback and the fixture, and
+  deleting it would leave the drawing with nothing to be compared against.
+  """
+  @spec drawn_day() :: map()
+  def drawn_day do
+    %{
+      plan: Sample.plan(),
+      day_line: Sample.day_line(),
+      week: Sample.week(),
+      intake_line: Sample.intake_line(),
+      macros: Sample.macros(),
+      remaining: Sample.remaining(),
+      meals: Sample.meals()
+    }
+  end
+
+  defp planned_day(plan, date, slots, logs) do
+    meals = timeline_rows(Map.get(slots, Date.day_of_week(date), []), logs)
+    intake = logs |> Enum.filter(&(&1.state == :eaten)) |> Nutrition.sum()
+    target = plan.target_kcal || 0
+
+    %{
+      plan: plan.name,
+      day_line: day_line(date, length(meals)),
+      week: week(date, slots, logs),
+      intake_line: intake_line(intake.kcal, target),
+      macros: macro_split(intake),
+      remaining: remaining(intake.kcal, target),
+      meals: meals
+    }
+  end
+
+  # The day in clock order: the plan's slots for this weekday, with a log laid
+  # over any slot that has one, plus every log that belongs to no slot at all —
+  # an ad-hoc `log_manual` meal is still a meal that was eaten today.
+  defp timeline_rows(slots, logs) do
+    by_slot =
+      logs
+      |> Enum.filter(& &1.meal_plan_slot_id)
+      |> Map.new(&{&1.meal_plan_slot_id, &1})
+
+    from_slots =
+      slots
+      |> Enum.map(fn slot ->
+        case Map.fetch(by_slot, slot.id) do
+          {:ok, log} -> log_row(log)
+          :error -> slot_row(slot)
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+
+    slot_ids = MapSet.new(slots, & &1.id)
+
+    loose =
+      logs
+      |> Enum.reject(&(&1.meal_plan_slot_id && MapSet.member?(slot_ids, &1.meal_plan_slot_id)))
+      |> Enum.map(&log_row/1)
+
+    Enum.sort_by(from_slots ++ loose, &{&1.time == "", &1.time})
+  end
+
+  # `:next` is not a state on `Kati.Meals.MealLog` and is not meant to be — its
+  # moduledoc calls it "a fact about the clock rather than about a row". Both
+  # things that are true of an upcoming meal reduce to it: a slot with no log
+  # yet, and a `:planned` log, which is what screen 46's *"swap just today"*
+  # writes. Neither has been eaten or skipped, and the drawing has exactly one
+  # card for that.
+  defp slot_row(%MealPlanSlot{state: :planned, recipe: %Recipe{} = recipe} = slot) do
+    %{
+      state: :next,
+      time: clock(slot.slot_time),
+      slot: slot.slot_name,
+      title: recipe.title,
+      calories: "#{Nutrition.scale(recipe_figures(recipe), slot.portion_milli).kcal} kcal",
+      seed: recipe.photo_seed
+    }
+  end
+
+  # A `:free` or `:open` cell is not a meal, and a `:planned` slot with nothing
+  # decided for it yet has no title to draw. Both are absent from the timeline
+  # rather than drawn as a blank card; the week strip still counts them.
+  defp slot_row(_slot), do: nil
+
+  defp log_row(log) do
+    %{
+      state: card_state(log.state),
+      time: clock(log.slot_time),
+      slot: log.slot_name || "",
+      title: log.title,
+      calories: calories(log),
+      seed: photo_seed(log.recipe)
+    }
+  end
+
+  defp card_state(:eaten), do: :eaten
+  defp card_state(:skipped), do: :skipped
+  defp card_state(_planned), do: :next
+
+  # A skipped meal has no calories, so printing a number would be a lie — the
+  # drawing's own reasoning, and the reason the figures are frozen anyway.
+  defp calories(%{state: :skipped}), do: "SKIPPED"
+  defp calories(log), do: "#{log.kcal} kcal"
+
+  # The snapshot carries no photograph — `Kati.Meals.MealLog` freezes figures,
+  # and a seed is not one. It comes through `recipe_id`, which is provenance
+  # and may be nil, and `Kati.Screens.MealsToday.thumb/3` draws the placeholder
+  # when it is.
+  defp photo_seed(%Recipe{photo_seed: seed}), do: seed
+  defp photo_seed(_), do: nil
+
+  defp recipe_figures(recipe) do
+    Map.new(Nutrition.fields(), fn field -> {field, Map.fetch!(recipe, :"total_#{field}")} end)
+  end
+
+  # Five pips per day, filled first then hollow — the drawing's own shorthand:
+  # *"a day with four planned meals and one free evening reads as four filled
+  # pips and one hollow"*. It is a count, not a slot-by-slot map, which is why
+  # Wednesday's free 10:30 draws its hollow pip last rather than second.
+  #
+  # Today is the one day read from the log rather than from the plan, because
+  # today is the only day that has already happened: three green means three
+  # eaten, and the skipped 16:00 and the unstarted 19:30 are both still hollow.
+  defp week(date, slots, logs) do
+    eaten = Enum.count(logs, &(&1.state == :eaten))
+    monday = Date.add(date, -(Date.day_of_week(date) - 1))
+
+    Enum.map(0..6, fn offset ->
+      on = Date.add(monday, offset)
+      day_slots = Map.get(slots, Date.day_of_week(on), [])
+
+      %{
+        dow: Calendar.strftime(on, "%a"),
+        day: Calendar.strftime(on, "%-d"),
+        today?: on == date,
+        dots: dots(day_slots, on == date, eaten)
+      }
+    end)
+  end
+
+  defp dots(slots, true, eaten) do
+    filled = min(eaten, length(slots))
+
+    List.duplicate(Palette.green(), filled) ++
+      List.duplicate(Palette.star_empty(), length(slots) - filled)
+  end
+
+  defp dots(slots, false, _eaten) do
+    planned = Enum.count(slots, &(&1.state == :planned))
+
+    List.duplicate(Palette.rail_idle(), planned) ++
+      List.duplicate(Palette.star_empty(), length(slots) - planned)
+  end
+
+  defp day_line(date, 1), do: Calendar.strftime(date, "%A %-d %B") <> " · 1 meal"
+  defp day_line(date, count), do: Calendar.strftime(date, "%A %-d %B") <> " · #{count} meals"
+
+  defp intake_line(kcal, 0), do: "Today · #{group(kcal)} kcal"
+  defp intake_line(kcal, target), do: "Today · #{group(kcal)} of #{group(target)} kcal"
+
+  defp remaining(_kcal, 0), do: ""
+  defp remaining(kcal, target), do: "#{group(max(target - kcal, 0))} kcal left"
+
+  # The drawing declares 31/44/25 rather than deriving it, and says so. What is
+  # derived here is the same three shares from the same three macros, by the
+  # energy each contributes — 4 kcal a gram of protein and of carbohydrate,
+  # 9 a gram of fat — which is the only reading under which the segments add up
+  # to the intake the eyebrow above states.
+  defp macro_split(figures) do
+    protein = div(figures.protein_mg, 1000) * 4
+    carbs = div(figures.carbs_mg, 1000) * 4
+    fat = div(figures.fat_mg, 1000) * 9
+    total = protein + carbs + fat
+
+    [
+      {"Protein", share(protein, total), Palette.ink()},
+      {"Carbs", share(carbs, total), Palette.bronze()},
+      {"Fat", share(fat, total), Palette.bar_gold()}
+    ]
+  end
+
+  defp share(_part, 0), do: 0.0
+  defp share(part, total), do: Float.round(part / total, 2)
+
+  defp clock(nil), do: ""
+  defp clock(time), do: Calendar.strftime(time, "%H:%M")
+
+  # `1,480`, never `1480`. Written here rather than taken from `Cldr.Number`
+  # because this screen's figures are the drawing's ASCII ones in every locale
+  # — the Persian meals screens are 60 and their own module.
+  defp group(number) do
+    number
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+    |> String.reverse()
+  end
+
+  defp active_plan do
+    case Kati.Meals.MealPlan |> Ash.Query.for_read(:active) |> Ash.read_one() do
+      {:ok, plan} -> plan
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp plan_slots(plan) do
+    MealPlanSlot
+    |> Ash.Query.filter(meal_plan_id == ^plan.id)
+    |> Ash.Query.sort(day_of_week: :asc, position: :asc)
+    |> Ash.Query.load(:recipe)
+    |> Ash.read!()
+    |> Enum.group_by(& &1.day_of_week)
+  rescue
+    _ -> %{}
+  end
+
+  defp logs_on(date) do
+    MealLog
+    |> Ash.Query.for_read(:on_day, %{on: date})
+    |> Ash.Query.load(:recipe)
+    |> Ash.read!()
+  rescue
+    _ -> []
   end
 
   # `Kati.Screens.Pushed` floats the ‹ Health pill over this content. This row
@@ -112,7 +402,7 @@ defmodule Kati.Screens.MealsToday do
   end
 
   @doc false
-  def title do
+  def title(day) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="bottom">
@@ -126,7 +416,7 @@ defmodule Kati.Screens.MealsToday do
           />
           <Spacer size={5} />
           <Text
-            text={Kati.Meals.SampleToday.day_line()}
+            text={day.day_line}
             font_family="mono"
             text_size={11}
             text_color={Palette.muted()}
@@ -134,7 +424,7 @@ defmodule Kati.Screens.MealsToday do
           />
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.MealsToday.plan_pill()}
+        {Kati.Screens.MealsToday.plan_pill(day.plan)}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -144,7 +434,7 @@ defmodule Kati.Screens.MealsToday do
   # Orange here is the plan that is running *now*, which is the one meaning the
   # accent is allowed to carry.
   @doc false
-  def plan_pill do
+  def plan_pill(plan) do
     tap = {self(), :switch_plan}
 
     ~MOB"""
@@ -160,13 +450,7 @@ defmodule Kati.Screens.MealsToday do
     >
       <Box width={7} height={7} corner_radius={4} background={Kati.Theme.accent()} />
       <Spacer size={7} />
-      <Text
-        text={Kati.Meals.SampleToday.plan()}
-        text_size={12.5}
-        font_weight="bold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Text text={plan} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
       <Spacer size={7} />
       {Kati.UI.symbol("unfold_more", size: 16, color: Palette.sub())}
     </Row>
@@ -174,9 +458,9 @@ defmodule Kati.Screens.MealsToday do
   end
 
   @doc false
-  def week_strip do
+  def week_strip(week) do
     cells =
-      Sample.week()
+      week
       |> Enum.map(&day_cell/1)
       |> Enum.intersperse(day_gap())
 
@@ -363,8 +647,8 @@ defmodule Kati.Screens.MealsToday do
   end
 
   @doc false
-  def macro_card do
-    macros = Sample.macros()
+  def macro_card(day) do
+    macros = day.macros
 
     ~MOB"""
     <Column fill_width={true}>
@@ -385,7 +669,7 @@ defmodule Kati.Screens.MealsToday do
           {macros |> Enum.map(fn {name, _share, tone} -> Kati.Screens.MealsToday.legend_key(name, tone) end) |> Enum.intersperse(Kati.Screens.MealsToday.legend_gap())}
           <Spacer weight={1.0} />
           <Text
-            text={Kati.Meals.SampleToday.remaining()}
+            text={day.remaining}
             font_family="mono"
             text_size={10}
             text_color={Palette.muted()}
@@ -409,7 +693,19 @@ defmodule Kati.Screens.MealsToday do
   # them. Its `render={:box}` mode has no segmented form and forwards no
   # `weight`, so neither the bar nor any single segment of it can be a meter.
   # 42 and 43 draw the same bar and want the same upstream change.
+  #
+  # A macro that contributed nothing draws nothing, rather than a segment of
+  # zero weight: `weight` is a share of the leftover space, and asking for a
+  # share of zero is a different question from asking for no width. The drawing
+  # never asks it — 31/44/25 — and a day before breakfast asks it every
+  # morning.
   @doc false
+  def segment(share, _tone) when share == 0 do
+    ~MOB"""
+    <Spacer size={0} />
+    """
+  end
+
   def segment(share, tone) do
     ~MOB"""
     <Box weight={share} height={9} background={tone} />
@@ -438,10 +734,10 @@ defmodule Kati.Screens.MealsToday do
   end
 
   @doc false
-  def timeline do
+  def timeline(meals) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(Kati.Meals.SampleToday.meals(), fn meal -> Kati.Screens.MealsToday.meal_row(meal) end)}
+      {Enum.map(meals, fn meal -> Kati.Screens.MealsToday.meal_row(meal) end)}
     </Column>
     """
   end

@@ -391,7 +391,7 @@ defmodule Kati.BackupEncryptionTest do
     test "records the cost, so raising it later does not orphan this file" do
       populate!()
       before_rows = rows()
-      assert map_size(before_rows) == 13
+      assert map_size(before_rows) == 14
 
       # Sealed at a cost lower than this app's default, exactly as a backup
       # written two Kati versions ago would have been.

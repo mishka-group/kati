@@ -257,6 +257,9 @@ defmodule Kati.BackupFormatTest do
       assert {:ok, ^rows} = Upgrade.walk(rows, Catalog.schema_version())
     end
 
+    # The composition and gap tests pass their own steps rather than the real
+    # chain, because one real step cannot demonstrate either property. They are
+    # about `walk/4` itself; the tests below are about the steps Kati ships.
     test "steps compose, oldest first" do
       steps = [
         {1, 2, fn rows -> Map.put(rows, "trail", ["one-two"]) end},
@@ -279,10 +282,52 @@ defmodule Kati.BackupFormatTest do
       assert error.message =~ "99"
       assert error.message =~ "Nothing has been changed"
     end
+  end
 
-    test "there are no steps yet, because there has only ever been one version" do
-      assert Upgrade.steps() == []
-      assert Catalog.schema_version() == 1
+  describe "the steps Kati ships" do
+    test "the chain is unbroken from every version that has ever been written" do
+      assert Catalog.schema_version() == 2
+
+      froms = Enum.map(Upgrade.steps(), fn {from, _to, _fun} -> from end)
+      tos = Enum.map(Upgrade.steps(), fn {_from, to, _fun} -> to end)
+
+      assert froms == Enum.to_list(1..(Catalog.schema_version() - 1))
+      assert tos == Enum.to_list(2..Catalog.schema_version())
+
+      # Every version ever shipped reaches today, through the real steps.
+      for from <- 1..Catalog.schema_version() do
+        assert {:ok, _} = Upgrade.walk(%{}, from), "no path forward from schema version #{from}"
+      end
+    end
+
+    test "1 -> 2 supplies the rejected-changes table a version-1 file never had" do
+      v1 = %{"events" => [%{"id" => "e"}], "media_watches" => []}
+
+      assert {:ok, upgraded} = Upgrade.walk(v1, 1)
+
+      # The member the v2 readers fetch by name is there, and empty.
+      assert upgraded["sync_rejected_changes"] == []
+
+      # And nothing else moved.
+      assert upgraded["events"] == [%{"id" => "e"}]
+      assert upgraded["media_watches"] == []
+      assert map_size(upgraded) == map_size(v1) + 1
+    end
+
+    test "1 -> 2 never replaces rows that are already there" do
+      row = %{"id" => "r", "event_uid" => "standup@kati"}
+
+      assert {:ok, upgraded} = Upgrade.walk(%{"sync_rejected_changes" => [row]}, 1)
+      assert upgraded["sync_rejected_changes"] == [row]
+    end
+
+    test "the table it supplies is one the catalog actually carries" do
+      # If the promotion were ever reverted without the step going with it, the
+      # step would be inventing a table `Kati.Backup.Verify` then refuses.
+      assert {:ok, upgraded} = Upgrade.walk(%{}, 1)
+
+      assert Map.keys(upgraded) -- Catalog.tables() == []
+      assert "sync_rejected_changes" in Catalog.tables()
     end
   end
 

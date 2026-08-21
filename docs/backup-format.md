@@ -31,6 +31,7 @@ kati-backup-2026-08-21.katibackup
     ├── calendars.json
     ├── events.json
     ├── event_occurrence_overrides.json
+    ├── sync_rejected_changes.json
     ├── tracked_titles.json
     ├── media_watches.json
     ├── foods.json
@@ -59,7 +60,7 @@ else. Only `manifest.json` differs, and only in `exported_at`.
 {
   "format": "kati.backup",
   "format_version": 1,
-  "schema_version": 1,
+  "schema_version": 2,
   "app_version": "0.1.2",
   "exported_at": "2026-08-21T18:44:02.913044Z",
   "record_counts": { "events": 412, "media_watches": 1203, "meal_logs": 88 },
@@ -138,6 +139,7 @@ reproduce.
 | `Kati.Calendars.Calendar` | `calendars` | Their calendars, colours and visibility |
 | `Kati.Calendars.Event` | `events` | Every event Kati owns, and the retained bytes of every one it mirrors |
 | `Kati.Calendars.Override` | `event_occurrence_overrides` | "Just this Tuesday" — moved and cancelled instances |
+| `Kati.Sync.RejectedChange` | `sync_rejected_changes` | The edit that lost a conflict, with the base it was a change from, kept so it can be put back |
 | `Kati.Media.TrackedTitle` | `tracked_titles` | Status, position, rating, per-show switches, hand-typed release dates |
 | `Kati.Media.Watch` | `media_watches` | Every tick, log, review, rewatch, place and companion |
 | `Kati.Meals.Food` | `foods` | Foods Kati or the user wrote, and remembered prices |
@@ -156,8 +158,7 @@ reproduce.
 | `Kati.Meals.LicensedFood` | `:cache` | Food data under someone else's licence, with a not-null `fetched_at` so the same sweep reaches it. Re-fetched, never re-distributed. |
 | `Kati.Meals.BundledFood` | `:bundled` | The CC0 corpus shipped in `priv/`. Byte-identical on every install, so a copy in the file is size for nothing. |
 | `Kati.Spike.Thing` | `:internal` | A migration spike. Holds no user data. |
-| `Kati.Sync.OutboxEntry` | `:internal` | A queue of in-flight intentions, not a record of anything. Its state is true only of the device and session that wrote it: `idempotency_key` names a request a restored phone cannot ask about, `:in_flight` means a socket that is already closed, and `account_id` points at an account whose `credentials_ref` this backup drops. The edit itself is not in here — it is already applied to `events`, which *is* carried, and `local_rev` exceeding `synced_rev` is what re-queues it. |
-| `Kati.Sync.RejectedChange` | `:internal` | **Under review.** Excluded to avoid changing the backup format unilaterally, not because the case is clear. The rows hold property values the user typed and no re-fetch reproduces them, which is this document's own test for `:backup`. Carrying it requires `schema_version` 2 and a `Kati.Backup.Upgrade` step, because `Kati.Backup.Verify` fetches every catalog table by name and a v1 file has no such member. |
+| `Kati.Sync.OutboxEntry` | `:internal` | A queue of in-flight intentions, not a record of anything. Its state is true only of the device and session that wrote it: `idempotency_key` names a request a restored phone cannot ask about, `:in_flight` means a socket that is already closed, and `account_id` points at an account whose `credentials_ref` this backup drops. The edit itself is not in here — it is already applied to `events`, which *is* carried, and `local_rev` exceeding `synced_rev` is what re-queues it. Its sibling `Kati.Sync.RejectedChange` **is** carried — the line inside `Kati.Sync` falls between the two tables, not around the domain. |
 
 Posters, backdrops and synopses are in none of the above and in no backup. A backup
 carries **ids plus what the user did**; metadata re-fetches.
@@ -195,8 +196,15 @@ save.
 
 **An older `schema_version` must keep working forever.** `Kati.Backup.Upgrade` holds a
 chain of `{from, to, fun}` steps that bring rows forward one version at a time, applied
-before any column is decoded. There are no steps yet, because there has only ever been
-one schema version.
+before any column is decoded.
+
+| Step | What moved | What the step does |
+| --- | --- | --- |
+| 1 → 2 | `sync_rejected_changes` joined the backup. | Supplies an empty `sync_rejected_changes` for a file that has no such member, so a version-1 backup restores with its rejected changes **absent** rather than with an error about a file it was never written with. It adds the key and never replaces one. |
+
+Row counts are checked against the manifest **before** the walk runs, because the
+manifest describes the file as it was written: a table a step invents has no count in a
+manifest from before it existed.
 
 `schema_version` moves whenever a backed-up column is added, removed, renamed, or
 changes encoding. `Kati.BackupCatalogTest` pins a SHA-256 fingerprint of every
@@ -210,17 +218,17 @@ made deliberately.
 In order: the archive opens and is not absurdly large; `manifest.json` is present,
 readable, and of a version this app understands; the member list is exactly what the
 manifest claims, with no extra file smuggled in; every payload's SHA-256 and byte
-length match; every payload parses; rows are brought forward to the current schema
-version; every table is one this app knows; every row carries exactly the columns that
-table has; every value decodes to its column's type; no primary key appears twice; the
-row counts agree with the manifest.
+length match; every payload parses; the row counts agree with the manifest; rows are
+brought forward to the current schema version; every table is one this app knows; every
+row carries exactly the columns that table has; every value decodes to its column's
+type; no primary key appears twice.
 
 Only then does anything get written. **Every error means the database was not touched.**
 
 ### One transaction
 
 `AshSqlite` reports `can?(:transact) == false`, so an Ash action is not atomic and a
-thirteen-table restore is thousands of separate writes. The repository underneath is
+fourteen-table restore is thousands of separate writes. The repository underneath is
 still Ecto and still SQLite, so the whole restore — the deletes and the inserts both —
 runs inside one `Kati.Repo.transaction/1`. Any failure at any point rolls back
 everything, including a `:replace`'s wipe. A restore either happened or it did not.

@@ -18,9 +18,16 @@ defmodule Kati.BackupCatalogTest do
   # does: decide whether an older app could still read the file, bump
   # `Kati.Backup.Catalog.schema_version/0` if it could not, add the
   # `Kati.Backup.Upgrade` step, and paste the new value here.
-  @fingerprint "b44a9c8f2585f2ff336fed9f7c0e6e35e0fc31cf92360e8f56f6b7bcd0dd1e49"
+  #
+  # It last moved when `Kati.Sync.RejectedChange` was promoted out of
+  # `:internal`: the rows hold property values the user typed, and a backup
+  # that left them out would discard, on the next restore, exactly what the
+  # merge kept them for. That took `schema_version` to 2 and added the 1 -> 2
+  # upgrade step, which is what `Kati.BackupFormatTest` and
+  # `Kati.BackupRoundTripTest` hold to a version-1 file that must still open.
+  @fingerprint "69ab091a681e2d9c1bdf0b3654a47655784d5fbf9b124384a04fd40d899dfab0"
 
-  @schema_version 1
+  @schema_version 2
 
   describe "every resource is classified" do
     test "no resource in any domain is missing from both lists" do
@@ -48,7 +55,7 @@ defmodule Kati.BackupCatalogTest do
         assert String.length(why) > 40, "#{inspect(resource)} needs a reason, not a label"
       end
 
-      assert length(Catalog.excluded()) == 6
+      assert length(Catalog.excluded()) == 5
     end
 
     test "the domains it checks are the domains the app configures" do
@@ -67,6 +74,21 @@ defmodule Kati.BackupCatalogTest do
       assert Kati.Meals.BundledFood in out
     end
 
+    test "the two sync tables are split by what they hold, not by their domain" do
+      in_backup = MapSet.new(Enum.map(Catalog.entries(), & &1.resource))
+      out = MapSet.new(Enum.map(Catalog.excluded(), & &1.resource))
+
+      # A rejected change is the losing half of a conflict, held so the user can
+      # put it back — property values they typed, which nothing re-fetches.
+      # Leaving it out would make a restore finish the deletion the merge
+      # refused to do.
+      assert Kati.Sync.RejectedChange in in_backup
+
+      # The outbox is a queue of intentions whose edits are already applied to
+      # `events`, and whose every column is true only of this device.
+      assert Kati.Sync.OutboxEntry in out
+    end
+
     test "everything the user authors is in, by name" do
       in_backup = MapSet.new(Enum.map(Catalog.entries(), & &1.resource))
 
@@ -83,7 +105,8 @@ defmodule Kati.BackupCatalogTest do
             Kati.Calendars.Account,
             Kati.Calendars.Calendar,
             Kati.Calendars.Event,
-            Kati.Calendars.Override
+            Kati.Calendars.Override,
+            Kati.Sync.RejectedChange
           ] do
         assert resource in in_backup, "#{inspect(resource)} holds user data and must be backed up"
       end
@@ -117,7 +140,7 @@ defmodule Kati.BackupCatalogTest do
 
     test "every table appears exactly once" do
       assert Catalog.tables() == Enum.uniq(Catalog.tables())
-      assert length(Catalog.tables()) == 13
+      assert length(Catalog.tables()) == 14
     end
 
     test "every backed-up resource keys on a single :id column" do

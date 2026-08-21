@@ -14,6 +14,40 @@ defmodule Kati.Screens.Series do
   Three episode states are drawn and all three are exercised by the sample:
   watched (muted title, filled check), unwatched (ink title, hollow check),
   and not yet aired (muted, no check).
+
+  ## Why this screen still reads `Kati.Library.Sample`
+
+  Screen 03 moved onto `Kati.Media` (see `Kati.Screens.Library.shelf/0`). This
+  one did not, and the reason is a resource rather than a column: **`Kati.Media`
+  has no episode**. It holds `Kati.Media.CachedTitle`, `Kati.Media.TrackedTitle`
+  and `Kati.Media.Watch`, and a `Watch` carries an `episode_source_id` — the
+  provider's id for an episode it has *never seen the record of*. There is
+  nothing anywhere that can answer "what is S2E6 called", "how long is it" or
+  "when did it air", which is what every row of this list is made of.
+
+  Precisely what this screen draws and no resource can currently express:
+
+    * **the episode list itself** — `n`, `title`, runtime and air date per
+      episode. `Kati.Media.Watch` can say an episode was ticked; nothing can
+      name it. This is the whole of `episodes/1`, and it is why the screen
+      stays whole rather than half-moved.
+    * **the season strip** (`S1 / S2 / S3`) — there is no season resource and no
+      season count. `Kati.Media.TrackedTitle.progress_season` is a bookmark, not
+      an inventory, so it cannot enumerate the seasons that exist.
+    * **`2024`** in the meta line — `Kati.Media.CachedTitle` stores
+      `next_release_at`, which is the NEXT release. A first-air year would be a
+      new column.
+    * **`LUMEN+`** in the meta line — availability. `Kati.Media.Watch.service`
+      is where the *user* watched something, which is a different fact and is
+      per-watch.
+    * **`3 SEASONS`** — the season count again.
+
+  Two things here *are* expressible today and are deliberately not split out,
+  because a card whose four values are half real and half frozen reads as fully
+  real: the title and artwork (`Kati.Media.CachedTitle.title` / `poster_path`)
+  and `Next episode airs …` (`Kati.Media.Release.resolve/2` answers `{:exact,
+  at, origin}` when a provider gave a precise timestamp). They land when the
+  episode resource does.
   """
   use Mob.Screen
   import Mob.Sigil

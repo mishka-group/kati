@@ -44,6 +44,7 @@ defmodule Kati.BackupRoundTripTest do
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
+  alias Kati.Sync.RejectedChange
 
   # An opaque handle into the device keystore. It is not a secret, and it is
   # still device-bound: a restored account that claimed it would be pointing at
@@ -55,6 +56,15 @@ defmodule Kati.BackupRoundTripTest do
   # with Persian digits — which belong in a note and must never reach a date.
   @awkward_review "She said \"it's fine\", then, after a beat,\nit was not fine."
   @persian_note "دیدم ۱۲ مرداد — ۹ از ۱۰"
+
+  # The losing half of a conflict: property values the user typed, with a quote,
+  # a comma, a newline and Persian digits in them, so "the rejected change came
+  # back" cannot quietly mean "it came back empty".
+  # Where the newest table's payload lives. Spelled out rather than derived, so
+  # a rename that broke every version-1 file would fail here too.
+  @rejected_path "data/sync_rejected_changes.json"
+
+  @rejected_summary ~s(Standup — "short one", saw ۹:۳۰,\nno slides)
 
   # Screen 45's own X-property, kept verbatim so a re-export cannot regenerate a
   # VEVENT and throw it away.
@@ -152,6 +162,30 @@ defmodule Kati.BackupRoundTripTest do
         recurrence_id_utc: ~U[2026-08-20 07:00:00.000000Z],
         recurrence_id_wall: "20260820T090000",
         kind: :cancelled
+      })
+
+    # The two halves of #82's conflict policy, both preserved: an edit of the
+    # user's that lost to the mirror, and an edit they made in the provider's own
+    # web UI that lost to Kati. Neither is re-fetchable from anywhere.
+    rejected =
+      create!(RejectedChange, :create, %{
+        calendar_id: calendar.id,
+        event_uid: standup.uid,
+        side: :local,
+        reason: :ownership_mirror,
+        properties: Jason.encode!(%{"SUMMARY" => @rejected_summary, "LOCATION" => nil}),
+        base_properties: Jason.encode!(%{"SUMMARY" => "Standup"})
+      })
+
+    reapplied =
+      create!(RejectedChange, :create, %{
+        calendar_id: calendar.id,
+        event_uid: birthday.uid,
+        side: :remote,
+        reason: :ownership_kati,
+        properties: Jason.encode!(%{"SUMMARY" => @persian_note}),
+        base_properties: Jason.encode!(%{"SUMMARY" => "Mum's birthday"}),
+        applied_at: ~U[2026-08-18 08:15:00.000000Z]
       })
 
     # Evictable third-party metadata. Never exported; never touched by a restore.
@@ -294,6 +328,8 @@ defmodule Kati.BackupRoundTripTest do
       birthday: birthday,
       moved: moved,
       cancelled: cancelled,
+      rejected: rejected,
+      reapplied: reapplied,
       tracked: tracked,
       logged: logged,
       in_persian: in_persian,
@@ -358,6 +394,30 @@ defmodule Kati.BackupRoundTripTest do
     Archive.pack(%Bundle{manifest: %{}, files: Map.put(files, "manifest.json", edited)})
   end
 
+  # A genuine schema-version-1 archive, built by taking one apart: the table
+  # that version never had is removed from the members, from the file list and
+  # from the counts, and the manifest says 1. The remaining payloads are
+  # untouched, so their hashes still stand — this is a v1 file, not a doctored
+  # v2 one.
+  defp as_v1(binary) do
+    {:ok, files} = Archive.unpack(binary)
+
+    manifest =
+      files
+      |> Map.fetch!("manifest.json")
+      |> Jason.decode!()
+      |> Map.put("schema_version", 1)
+      |> Map.update!("files", &Map.delete(&1, @rejected_path))
+      |> Map.update!("record_counts", &Map.delete(&1, "sync_rejected_changes"))
+
+    files =
+      files
+      |> Map.delete(@rejected_path)
+      |> Map.put("manifest.json", Jason.encode!(manifest))
+
+    Archive.pack(%Bundle{manifest: %{}, files: files})
+  end
+
   # ── The round trip ─────────────────────────────────────────────────────────
 
   describe "populate, export, wipe, restore" do
@@ -374,7 +434,8 @@ defmodule Kati.BackupRoundTripTest do
       assert before_counts["media_watches"] == 2
       assert before_counts["recipe_ingredients"] == 2
       assert before_counts["meal_logs"] == 1
-      assert Enum.count(before_counts, fn {_t, n} -> n > 0 end) == 13
+      assert before_counts["sync_rejected_changes"] == 2
+      assert Enum.count(before_counts, fn {_t, n} -> n > 0 end) == 14
 
       empty_the_tables!()
       assert Enum.all?(Map.values(counts()), &(&1 == 0))
@@ -393,7 +454,7 @@ defmodule Kati.BackupRoundTripTest do
 
       assert {:ok, summary} = Backup.inspect_binary(binary)
       assert summary.total_records == 0
-      assert map_size(summary.record_counts) == 13
+      assert map_size(summary.record_counts) == 14
 
       assert {:ok, report} = Backup.restore_binary(binary)
       assert report.total_inserted == 0
@@ -716,6 +777,162 @@ defmodule Kati.BackupRoundTripTest do
     end
   end
 
+  # ── The edit that lost, and the files written before it was carried ────────
+
+  describe "the edit that lost" do
+    test "comes back with the property values the user typed" do
+      %{rejected: rejected, reapplied: reapplied} = populate!()
+
+      {:ok, files} = binary_files()
+      payload = files |> Map.fetch!(@rejected_path) |> Jason.decode!()
+
+      # The typed text reached the file, not merely the row count.
+      assert payload["count"] == 2
+      assert files |> Map.fetch!(@rejected_path) |> String.contains?("۹:۳۰")
+
+      binary = Backup.to_binary(Backup.export())
+      empty_the_tables!()
+      assert Ash.count!(RejectedChange) == 0
+
+      assert {:ok, report} = Backup.restore_binary(binary)
+      assert report.inserted["sync_rejected_changes"] == 2
+
+      {:ok, restored} = Ash.get(RejectedChange, rejected.id)
+
+      assert restored.properties == rejected.properties
+
+      assert Jason.decode!(restored.properties) == %{
+               "SUMMARY" => @rejected_summary,
+               "LOCATION" => nil
+             }
+
+      # The base is what makes re-applying a three-way merge rather than a
+      # blind overwrite, so it has to survive too.
+      assert Jason.decode!(restored.base_properties) == %{"SUMMARY" => "Standup"}
+
+      assert restored.calendar_id == rejected.calendar_id
+      assert restored.event_uid == rejected.event_uid
+      assert restored.side == :local
+      assert restored.reason == :ownership_mirror
+      assert is_nil(restored.applied_at)
+      assert is_nil(restored.dismissed_at)
+      assert restored.inserted_at == rejected.inserted_at
+
+      # The half that had already been re-applied keeps that fact, so the
+      # restored phone does not offer the same edit back a second time.
+      {:ok, other} = Ash.get(RejectedChange, reapplied.id)
+      assert other.side == :remote
+      assert other.reason == :ownership_kati
+      assert other.applied_at == reapplied.applied_at
+      assert Jason.decode!(other.properties) == %{"SUMMARY" => @persian_note}
+    end
+
+    test "is still the list screen 37 draws, after a restore" do
+      %{calendar: calendar, rejected: rejected} = populate!()
+
+      binary = Backup.to_binary(Backup.export())
+      empty_the_tables!()
+      assert {:ok, _} = Backup.restore_binary(binary)
+
+      # `Kati.Sync.rejected/1` is the query the screen runs: not applied, not
+      # dismissed. Restoring the rows is only worth anything if it answers.
+      assert [only] = Kati.Sync.rejected(calendar.id)
+      assert only.id == rejected.id
+      assert Jason.decode!(only.properties)["SUMMARY"] == @rejected_summary
+    end
+  end
+
+  describe "a backup written before rejected changes were carried" do
+    test "restores, with the rejected changes simply absent" do
+      populate!()
+      before_counts = counts()
+      assert before_counts["sync_rejected_changes"] == 2
+
+      v1 = as_v1(Backup.to_binary(Backup.export()))
+
+      # It really is a version-1 file: no member, no entry in the file list, no
+      # count, and a manifest that says 1.
+      {:ok, files} = Archive.unpack(v1)
+      manifest = files |> Map.fetch!("manifest.json") |> Jason.decode!()
+      refute Map.has_key?(files, @rejected_path)
+      assert manifest["schema_version"] == 1
+      refute Map.has_key?(manifest["files"], @rejected_path)
+      refute Map.has_key?(manifest["record_counts"], "sync_rejected_changes")
+
+      empty_the_tables!()
+
+      assert {:ok, report} = Backup.restore_binary(v1)
+      assert report.schema_version == 1
+      assert report.inserted["sync_rejected_changes"] == 0
+      assert report.total_inserted == Enum.sum(Map.values(before_counts)) - 2
+      assert Ash.count!(RejectedChange) == 0
+
+      # Absent, not an error — and everything the file did carry came back.
+      assert counts() == %{before_counts | "sync_rejected_changes" => 0}
+    end
+
+    test "is inspected without tripping over the member it does not have" do
+      populate!()
+      v1 = as_v1(Backup.to_binary(Backup.export()))
+
+      assert {:ok, summary} = Backup.inspect_binary(v1)
+
+      # The version it was written at, not the version it was read at.
+      assert summary.schema_version == 1
+      assert summary.record_counts["events"] == 2
+      assert summary.record_counts["media_watches"] == 2
+
+      # The table it never had is reported as an honest zero rather than a
+      # missing key a screen would then have to guard.
+      assert summary.record_counts["sync_rejected_changes"] == 0
+      assert map_size(summary.record_counts) == 14
+      assert summary.total_records == Enum.sum(Map.values(counts())) - 2
+    end
+
+    test "is still held to the counts it does claim" do
+      populate!()
+      before_counts = counts()
+
+      lying =
+        Backup.export()
+        |> Backup.to_binary()
+        |> edit_payload("media_watches", fn payload ->
+          Map.put(payload, "rows", tl(payload["rows"]))
+        end)
+        |> as_v1()
+
+      # Checking counts before the upgrade walk must not have turned the check
+      # off for old files.
+      assert {:error, error} = Backup.restore_binary(lying)
+      assert error.reason == :count_mismatch
+      assert error.message =~ "media_watches"
+      assert counts() == before_counts
+    end
+  end
+
+  describe "a backup from a newer schema version" do
+    test "is refused whole at exactly one version past this app" do
+      populate!()
+      before_counts = counts()
+      next = Catalog.schema_version() + 1
+
+      # One past, not 99: a reader that admitted "just the next one" would be
+      # dropping columns it has never heard of, which is the loss the rule
+      # exists to prevent.
+      future = edit_manifest(Backup.to_binary(Backup.export()), &Map.put(&1, "schema_version", next))
+
+      assert {:error, error} = Backup.restore_binary(future)
+      assert error.reason == :unsupported_schema_version
+      assert error.message =~ "newer version of Kati"
+      assert error.message =~ "#{next}"
+      assert counts() == before_counts
+
+      # And it is refused before a single row is read, so a confirmation screen
+      # cannot show counts off a file the restore would then reject.
+      assert {:error, %{reason: :unsupported_schema_version}} = Backup.inspect_binary(future)
+    end
+  end
+
   # ── Nothing partial, on a data layer that cannot transact ──────────────────
 
   describe "a failure part way through" do
@@ -972,7 +1189,7 @@ defmodule Kati.BackupRoundTripTest do
       assert manifest["schema_version"] == Catalog.schema_version()
       assert manifest["record_counts"]["events"] == 2
       assert manifest["record_counts"]["media_watches"] == 2
-      assert map_size(manifest["files"]) == 13
+      assert map_size(manifest["files"]) == 14
 
       for {path, %{"sha256" => hash, "bytes" => bytes}} <- manifest["files"] do
         assert String.starts_with?(path, "data/")
@@ -1047,11 +1264,11 @@ defmodule Kati.BackupRoundTripTest do
 
       steps = collector |> Agent.get(& &1) |> Enum.reverse()
 
-      # 13 rows went in across 13 tables; a per-record callback would have fired
-      # far more than 13 times.
-      assert length(steps) == 13
+      # 14 rows went in across 14 tables; a per-record callback would have fired
+      # far more than 14 times.
+      assert length(steps) == 14
       assert Enum.map(steps, &elem(&1, 0)) == Catalog.tables()
-      assert List.last(steps) == {"shopping_list_items", 13, 13}
+      assert List.last(steps) == {"shopping_list_items", 14, 14}
     end
 
     test "an unchecked bundle is not written, whatever is in it" do

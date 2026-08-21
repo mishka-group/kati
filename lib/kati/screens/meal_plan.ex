@@ -26,20 +26,44 @@ defmodule Kati.Screens.MealPlan do
       rgba(26,25,23,.16)` has no dashed equivalent here, so it is solid at the
       same weight and colour.
 
+  ## Where the data comes from
+
+  `Kati.Meals`, through `plan/1`: the active plan's name and repeat rule, and
+  its `Kati.Meals.MealPlanSlot` rows folded into five rows of seven cells.
+  `:today` is computed rather than read — the resource is explicit that today
+  is a fact about the calendar, not about the plan — and so is the week number
+  under `Started`. With no active plan the screen falls back to
+  `Kati.Meals.SamplePlan`.
+
+  Two things here have no column behind them and stay written out: the
+  Week / Day / Shop strip, a control this screen has never wired, and the third
+  repeat-rule row, *"Edit this week only"*, which is a mode rather than a stored
+  fact. Both are marked where they are built.
+
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Meals"
 
+  require Ash.Query
+
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaSegmentedControl
   alias Kati.Components.MishkaSeparator
+  alias Kati.Meals.MealPlanSlot
+  alias Kati.Meals.Nutrition
+  alias Kati.Meals.Recipe
   alias Kati.Meals.SamplePlan, as: Sample
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
 
+  @impl true
+  def load(socket), do: Mob.Socket.assign(socket, :plan, plan(Kati.Time.today()))
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    plan = assigns.plan
+
     ~MOB"""
     <Scroll>
       <Column
@@ -50,16 +74,191 @@ defmodule Kati.Screens.MealPlan do
         padding_bottom={40}
       >
         {Kati.Screens.MealPlan.header()}
-        {Kati.Screens.MealPlan.title()}
+        {Kati.Screens.MealPlan.title(plan)}
         {Kati.Screens.MealPlan.segments()}
-        {Kati.Screens.MealPlan.matrix()}
-        {UI.eyebrow(Sample.day_line())}
-        {Kati.Screens.MealPlan.day_list()}
+        {Kati.Screens.MealPlan.matrix(plan)}
+        {UI.eyebrow(plan.day_line)}
+        {Kati.Screens.MealPlan.day_list(plan.day)}
         {Kati.Screens.MealPlan.muted_eyebrow("Repeat rule")}
-        {Kati.Screens.MealPlan.repeat_rule()}
+        {Kati.Screens.MealPlan.repeat_rule(plan.repeat_rule)}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The week this screen draws: the active plan's, or the drawing's.
+
+  35 cells is what a plan looks like when it exists, and seven empty columns is
+  what one looks like when it does not — which is the screen the design cannot
+  be compared with. FIDELITY's rule again: *missing data is not a reason for a
+  blank screen*, so a device with no active plan draws `Kati.Meals.SamplePlan`,
+  the values `.scratch/design/screens/44.html` was drawn from.
+
+  The gate is the plan **and its slots**: a plan row with no week on it yet is
+  a name, and a matrix of a name is 35 outlines.
+  """
+  @spec plan(Date.t()) :: map()
+  def plan(date) do
+    with row when not is_nil(row) <- active_plan(),
+         [_ | _] = slots <- plan_slots(row) do
+      planned_week(row, slots, date)
+    else
+      _ -> drawn_plan()
+    end
+  end
+
+  @doc """
+  Screen 44 exactly as it is drawn, from `Kati.Meals.SamplePlan`.
+
+  `today` is 6 rather than `Date.day_of_week/1`: the drawing inks its last
+  column because Sunday is the day its list below shows, and a fallback that
+  inked a different column on a Tuesday would no longer be the drawing.
+  """
+  @spec drawn_plan() :: map()
+  def drawn_plan do
+    %{
+      title: Sample.title(),
+      subtitle: Sample.subtitle(),
+      today: 6,
+      matrix: Sample.matrix(),
+      day_line: Sample.day_line(),
+      day: Sample.day(),
+      repeat_rule: Sample.repeat_rule()
+    }
+  end
+
+  defp planned_week(row, slots, date) do
+    today = Date.day_of_week(date)
+    day = day_meals(slots, today)
+
+    %{
+      title: row.name,
+      subtitle: subtitle(row),
+      today: today - 1,
+      matrix: matrix_rows(slots, today),
+      day_line: "#{Calendar.strftime(date, "%A")} · #{meals(length(day))}",
+      day: day,
+      repeat_rule: repeat_rows(row)
+    }
+  end
+
+  defp subtitle(%{repeat: :weekly}), do: "repeats every week"
+
+  # Five rows of seven, from 35 rows that are stored one per cell. `position`
+  # is what makes a row a row — two snacks share a name and differ only there —
+  # and a day with no slot at that position is `:open`, which is the drawing's
+  # own word for "not part of the plan this week".
+  defp matrix_rows(slots, today) do
+    slots
+    |> Enum.group_by(& &1.position)
+    |> Enum.sort_by(fn {position, _slots} -> position end)
+    |> Enum.map(fn {_position, row} -> matrix_row_of(row, today) end)
+  end
+
+  defp matrix_row_of(row, today) do
+    by_day = Map.new(row, &{&1.day_of_week, &1})
+    [first | _] = Enum.sort_by(row, & &1.day_of_week)
+
+    %{
+      name: first.slot_name,
+      time: clock(first.slot_time),
+      cells: Enum.map(1..7, fn day -> cell_state(Map.get(by_day, day), day == today) end)
+    }
+  end
+
+  # `:today` is not stored and must not be — `Kati.Meals.MealPlanSlot` says so
+  # in as many words: *"today is a fact about the calendar, not about the
+  # plan"*. It is computed here, over a cell that is planned; a free evening
+  # stays free on the day it falls on.
+  defp cell_state(nil, _today?), do: :open
+  defp cell_state(%{state: :planned}, true), do: :today
+  defp cell_state(%{state: state}, _today?), do: state
+
+  defp day_meals(slots, today) do
+    slots
+    |> Enum.filter(&(&1.day_of_week == today and &1.state == :planned))
+    |> Enum.sort_by(& &1.position)
+    |> Enum.flat_map(&day_meal/1)
+  end
+
+  defp day_meal(%MealPlanSlot{recipe: %Recipe{} = recipe} = slot) do
+    [
+      %{
+        slot: "#{slot.slot_name} · #{clock(slot.slot_time)}",
+        title: recipe.title,
+        calories: "#{Nutrition.scale(recipe_figures(recipe), slot.portion_milli).kcal}",
+        seed: recipe.photo_seed
+      }
+    ]
+  end
+
+  # A planned slot with nothing decided for it yet has no meal to list. It
+  # keeps its cell in the matrix above, which is the whole difference between
+  # `:planned` with no recipe and `:free`.
+  defp day_meal(_slot), do: []
+
+  # Three rows, and only two of them have a column behind them.
+  #
+  # `Edit this week only` is a **mode**, not a stored fact: nothing in
+  # `Kati.Meals.MealPlan` records it, the drawing draws the switch off, and the
+  # screen has never wired it. It is written out here rather than derived so
+  # that it is visible as the one row on this card that the database cannot
+  # answer for.
+  defp repeat_rows(row) do
+    [
+      %{icon: "repeat", title: "Repeats", sub: repeat_sub(row), trailing: :chevron},
+      %{icon: "event_available", title: "Started", sub: started_sub(row), trailing: :chevron},
+      %{
+        icon: "edit_calendar",
+        title: "Edit this week only",
+        sub: "Changes will not carry forward",
+        trailing: :switch_off
+      }
+    ]
+  end
+
+  defp repeat_sub(%{repeat: :weekly, weeks_total: nil}), do: "Every week, indefinitely"
+  defp repeat_sub(%{repeat: :weekly, weeks_total: weeks}), do: "Every week, #{weeks} weeks"
+
+  # "Week 6 · 6 Jul 2026" — the week is counted from the start date, not stored,
+  # because a stored week number is wrong every Monday morning. A plan with no
+  # start date says nothing rather than claiming week 1: `starts_on` is
+  # nullable and an invented start would date every figure on screen 47.
+  defp started_sub(%{starts_on: nil}), do: ""
+
+  defp started_sub(%{starts_on: starts_on}) do
+    week = div(Date.diff(Kati.Time.today(), starts_on), 7) + 1
+    "Week #{week} · #{Calendar.strftime(starts_on, "%-d %b %Y")}"
+  end
+
+  defp meals(1), do: "1 meal"
+  defp meals(count), do: "#{count} meals"
+
+  defp clock(nil), do: ""
+  defp clock(time), do: Calendar.strftime(time, "%H:%M")
+
+  defp recipe_figures(recipe) do
+    Map.new(Nutrition.fields(), fn field -> {field, Map.fetch!(recipe, :"total_#{field}")} end)
+  end
+
+  defp active_plan do
+    case Kati.Meals.MealPlan |> Ash.Query.for_read(:active) |> Ash.read_one() do
+      {:ok, row} -> row
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp plan_slots(row) do
+    MealPlanSlot
+    |> Ash.Query.filter(meal_plan_id == ^row.id)
+    |> Ash.Query.sort(day_of_week: :asc, position: :asc)
+    |> Ash.Query.load(:recipe)
+    |> Ash.read!()
+  rescue
+    _ -> []
   end
 
   # `Kati.Screens.Pushed` floats the ‹ Meals pill over this content. This row
@@ -106,11 +305,11 @@ defmodule Kati.Screens.MealPlan do
   end
 
   @doc false
-  def title do
+  def title(plan) do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text={Kati.Meals.SamplePlan.title()}
+        text={plan.title}
         text_size={28}
         font_weight="bold"
         letter_spacing={-0.03}
@@ -119,7 +318,7 @@ defmodule Kati.Screens.MealPlan do
       />
       <Spacer size={5} />
       <Text
-        text={Kati.Meals.SamplePlan.subtitle()}
+        text={plan.subtitle}
         font_family="mono"
         text_size={11}
         text_color={Palette.muted()}
@@ -204,7 +403,7 @@ defmodule Kati.Screens.MealPlan do
   end
 
   @doc false
-  def matrix do
+  def matrix(plan) do
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -217,8 +416,8 @@ defmodule Kati.Screens.MealPlan do
         padding_top={16}
         padding_bottom={16}
       >
-        {Kati.Screens.MealPlan.column_heads()}
-        {Enum.map(Kati.Meals.SamplePlan.matrix(), fn row -> Kati.Screens.MealPlan.matrix_row(row) end)}
+        {Kati.Screens.MealPlan.column_heads(plan.today)}
+        {Enum.map(plan.matrix, fn row -> Kati.Screens.MealPlan.matrix_row(row) end)}
         {Kati.Screens.MealPlan.legend()}
       </Column>
       <Spacer size={16} />
@@ -226,22 +425,22 @@ defmodule Kati.Screens.MealPlan do
     """
   end
 
-  # The last column is inked because Sunday is the day the list below shows.
+  # One column is inked because it is the day the list below shows — the last
+  # one in the drawing, which is Sunday, and `Date.day_of_week/1 - 1` on a
+  # device, which is today. The seven letters themselves are the calendar's,
+  # not the plan's, so they stay written out here.
   #
   # The 62pt lead is `width`, not `size`: `size` sets both axes, and a 62pt tall
   # spacer would give the header row 62pt of height for a 10pt letter.
   @doc false
-  def column_heads do
-    columns = Sample.columns()
-    last = length(columns) - 1
-
+  def column_heads(today) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Box width={62} height={12} />
-        {columns
+        {Sample.columns()
          |> Enum.with_index()
-         |> Enum.map(fn {letter, i} -> Kati.Screens.MealPlan.column_head(letter, i == last) end)}
+         |> Enum.map(fn {letter, i} -> Kati.Screens.MealPlan.column_head(letter, i == today) end)}
       </Row>
       <Spacer size={9} />
     </Column>
@@ -421,8 +620,7 @@ defmodule Kati.Screens.MealPlan do
   end
 
   @doc false
-  def day_list do
-    rows = Sample.day()
+  def day_list(rows) do
     last = length(rows) - 1
 
     ~MOB"""
@@ -528,8 +726,7 @@ defmodule Kati.Screens.MealPlan do
   end
 
   @doc false
-  def repeat_rule do
-    rows = Sample.repeat_rule()
+  def repeat_rule(rows) do
     last = length(rows) - 1
 
     ~MOB"""

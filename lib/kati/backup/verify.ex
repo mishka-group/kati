@@ -12,11 +12,17 @@ defmodule Kati.Backup.Verify do
   In order: the archive opens; the manifest is present, readable and of a
   version this app understands; the member list is exactly what the manifest
   claims, with no extra file smuggled in; every payload's SHA-256 and byte
-  length match; every payload parses; rows are brought forward to the current
-  schema version; every table is one this app knows; every row carries exactly
-  the columns that table has, no more and no fewer; every value decodes to its
-  column's type; no primary key appears twice; and the row counts agree with
-  the manifest.
+  length match; every payload parses; the row counts agree with the manifest;
+  rows are brought forward to the current schema version; every table is one
+  this app knows; every row carries exactly the columns that table has, no more
+  and no fewer; every value decodes to its column's type; and no primary key
+  appears twice.
+
+  The counts are checked **before** the upgrade walk, because the manifest
+  describes the file as it was written. A `Kati.Backup.Upgrade` step that
+  supplies a table an older version never had — 1 -> 2 does exactly that — would
+  otherwise be measured against a count that manifest never claimed, and every
+  older backup would come back as a count mismatch.
 
   Only then does the bundle come back with `rows` filled in — and
   `Kati.Backup.Restore` will not take a bundle whose `rows` are `nil`.
@@ -45,10 +51,10 @@ defmodule Kati.Backup.Verify do
          :ok <- check_members(files, manifest),
          :ok <- check_hashes(files, manifest),
          {:ok, payloads} <- parse_payloads(files, manifest),
+         :ok <- check_counts(payloads, manifest),
          {:ok, upgraded} <- Upgrade.walk(payloads, Map.fetch!(manifest, "schema_version")),
          :ok <- check_tables(upgraded),
-         {:ok, rows} <- decode_rows(upgraded),
-         :ok <- check_counts(rows, manifest) do
+         {:ok, rows} <- decode_rows(upgraded) do
       {:ok, %Bundle{manifest: manifest, files: files, rows: rows}}
     end
   end
@@ -328,10 +334,12 @@ defmodule Kati.Backup.Verify do
     end
   end
 
-  defp check_counts(rows, manifest) do
+  # Takes the payloads as parsed, not the decoded rows: the manifest counts what
+  # the file holds, and the file is what this compares it against.
+  defp check_counts(payloads, manifest) do
     claimed = Map.fetch!(manifest, "record_counts")
 
-    rows
+    payloads
     |> Enum.sort_by(&elem(&1, 0))
     |> Enum.reduce_while(:ok, fn {table, list}, :ok ->
       actual = length(list)
