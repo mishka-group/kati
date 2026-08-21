@@ -138,6 +138,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         publishDeviceZone()
+        // KATI-BEGIN(K-19 secure-store-attach) mob_new=0.4.20
+        // Hand the credential store the APPLICATION context while there is
+        // certainly an Activity to take it from. MobBridge.activityRef is a
+        // WeakReference, so by the time a background token refresh runs — BEAM
+        // alive inside BeamForegroundService, Activity destroyed — there is no
+        // context left to derive one from, and every put/get would answer
+        // "error:no_context". One line here removes that whole failure mode.
+        KatiSecureStore.attach(this)
+        // KATI-END(K-19 secure-store-attach)
         // KATI-BEGIN(K-26 calendar-publish) mob_new=0.4.20
         KatiCalendarReader.publish(this)
         // KATI-END(K-26 calendar-publish)

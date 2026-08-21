@@ -32,7 +32,6 @@ defmodule Kati.Screens.Calendar do
   alias Kati.Theme
   alias Kati.Theme.Palette
 
-
   @impl true
   def load(socket) do
     date = Kati.Time.today()
@@ -70,9 +69,27 @@ defmodule Kati.Screens.Calendar do
   @spec drawn_rows() :: [map()]
   def drawn_rows do
     [
-      %{shape: :done, kind: "event", time: "08:00", title: "Morning run", meta: "Habit · 12-day streak"},
-      %{shape: :event, kind: "event", time: "11:00", title: "Dentist — Marlow Clinic", meta: "11:00 – 11:45"},
-      %{shape: :reminder, kind: "event", time: "15:00", title: "Renew passport", meta: "reminder"},
+      %{
+        shape: :done,
+        kind: "event",
+        time: "08:00",
+        title: "Morning run",
+        meta: "Habit · 12-day streak"
+      },
+      %{
+        shape: :event,
+        kind: "event",
+        time: "11:00",
+        title: "Dentist — Marlow Clinic",
+        meta: "11:00 – 11:45"
+      },
+      %{
+        shape: :reminder,
+        kind: "event",
+        time: "15:00",
+        title: "Renew passport",
+        meta: "reminder"
+      },
       %{shape: :money, kind: "money", time: "18:00", title: "Lumen+ renews", meta: "£8.99"},
       %{
         shape: :airing,
@@ -116,7 +133,13 @@ defmodule Kati.Screens.Calendar do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.Calendar.header(date, rows)}
         {Kati.Screens.Calendar.month_row(date)}
         {Kati.Screens.Calendar.day_strip(date)}
@@ -139,9 +162,21 @@ defmodule Kati.Screens.Calendar do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Schedule" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Schedule"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={subtitle}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         {Kati.Screens.Calendar.disc("search", :open_search)}
         <Spacer size={9} />
@@ -191,12 +226,25 @@ defmodule Kati.Screens.Calendar do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Row align="center" on_tap={month_tap}>
-          <Text text={label} text_size={20} font_weight="bold" letter_spacing={-0.025} text_color={:on_surface} />
+          <Text
+            text={label}
+            text_size={20}
+            font_weight="bold"
+            letter_spacing={-0.025}
+            text_color={:on_surface}
+          />
           <Spacer size={6} />
           {Kati.UI.symbol("unfold_more", size: 19, color: Palette.sub())}
         </Row>
         <Spacer weight={1.0} />
-        <Row height={30} corner_radius={15} background={Palette.placeholder()} padding_left={13} padding_right={13} align="center">
+        <Row
+          height={30}
+          corner_radius={15}
+          background={Palette.placeholder()}
+          padding_left={13}
+          padding_right={13}
+          align="center"
+        >
           <Text text="Today" text_size={12} font_weight="semibold" text_color={:on_surface} />
         </Row>
       </Row>
@@ -235,7 +283,8 @@ defmodule Kati.Screens.Calendar do
   # swaps the primitive back to `<Box fill_width height={1} background />`,
   # so every pixel row carries the full 8% ink again.
   @doc false
-  def rule, do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
+  def rule,
+    do: MishkaSeparator.separator(color: Palette.hairline_soft(), thickness: 1, render: :box)
 
   @doc false
   def cell_gap, do: ~MOB"<Spacer size={2} />"
@@ -271,9 +320,23 @@ defmodule Kati.Screens.Calendar do
         padding_bottom={11}
         align="center"
       >
-        <Text text={name} font_family="mono" text_size={10.5} letter_spacing={0.06} text_color={name_color} text_align="center" />
+        <Text
+          text={name}
+          font_family="mono"
+          text_size={10.5}
+          letter_spacing={0.06}
+          text_color={name_color}
+          text_align="center"
+        />
         <Spacer size={5} />
-        <Text text={"#{date.day}"} text_size={16.5} font_weight="bold" letter_spacing={-0.02} text_color={num_color} text_align="center" />
+        <Text
+          text={"#{date.day}"}
+          text_size={16.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={num_color}
+          text_align="center"
+        />
       </Column>
     </Box>
     """
@@ -361,7 +424,13 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def timeline([]) do
     ~MOB"""
-    <Box fill_width={true} background={Palette.card()} corner_radius={18} shadow={Kati.Theme.shadow_card()} padding={18}>
+    <Box
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card()}
+      padding={18}
+    >
       <Text text="Nothing scheduled today" text_size={14} text_color={Palette.sub()} />
     </Box>
     """
@@ -395,7 +464,14 @@ defmodule Kati.Screens.Calendar do
     ~MOB"""
     <Row fill_width={true} align="top">
       <Column width={44} padding_top={top}>
-        <Text text={row.time} font_family="mono" text_size={12} font_weight={time_weight} text_color={time_color} max_lines={1} />
+        <Text
+          text={row.time}
+          font_family="mono"
+          text_size={12}
+          font_weight={time_weight}
+          text_color={time_color}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
       <Box weight={1.0}>
@@ -428,10 +504,23 @@ defmodule Kati.Screens.Calendar do
       {Kati.UI.symbol("radio_button_unchecked", size: 21, color: Palette.tertiary())}
       <Spacer size={12} />
       <Box weight={1.0}>
-        <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={14}
+          font_weight="semibold"
+          letter_spacing={-0.01}
+          text_color={:on_surface}
+          max_lines={1}
+        />
       </Box>
       <Spacer size={12} />
-      <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={row.meta}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -454,10 +543,24 @@ defmodule Kati.Screens.Calendar do
       {Kati.Screens.Calendar.payments_tile()}
       <Spacer size={12} />
       <Box weight={1.0}>
-        <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={14}
+          font_weight="semibold"
+          letter_spacing={-0.01}
+          text_color={:on_surface}
+          max_lines={1}
+        />
       </Box>
       <Spacer size={12} />
-      <Text text={row.meta} font_family="mono" text_size={12} font_weight="medium" text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text={row.meta}
+        font_family="mono"
+        text_size={12}
+        font_weight="medium"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -511,7 +614,14 @@ defmodule Kati.Screens.Calendar do
       <Box width={3} height={36} corner_radius={2} background={rule} />
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={row.title} text_size={14} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={14}
+          font_weight="semibold"
+          letter_spacing={-0.01}
+          text_color={:on_surface}
+          max_lines={1}
+        />
         {Kati.Screens.Calendar.sub_line(row, done?)}
       </Column>
       <Spacer size={12} />
@@ -536,13 +646,21 @@ defmodule Kati.Screens.Calendar do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={4} />
-      <Text text={row.meta} font_family="mono" text_size={11} text_color={Palette.sub()} max_lines={1} />
+      <Text
+        text={row.meta}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.sub()}
+        max_lines={1}
+      />
     </Column>
     """
   end
 
   @doc false
-  def trailing(true), do: Kati.UI.symbol("check_circle", size: 21, color: Palette.green(), fill: true)
+  def trailing(true),
+    do: Kati.UI.symbol("check_circle", size: 21, color: Palette.green(), fill: true)
+
   def trailing(false), do: Kati.UI.symbol("more_horiz", size: 19, color: Palette.rail_idle())
 
   # The air-date group: the one card on this screen that opens. Its posters are
@@ -572,9 +690,22 @@ defmodule Kati.Screens.Calendar do
       {Kati.Screens.Calendar.poster_stack(row)}
       <Spacer size={16} />
       <Column weight={1.0}>
-        <Text text={row.title} text_size={14.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.015}
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={row.meta} font_family="mono" text_size={11} text_color={Palette.sub()} max_lines={1} />
+        <Text
+          text={row.meta}
+          font_family="mono"
+          text_size={11}
+          text_color={Palette.sub()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.Calendar.chevron_tile(open?)}
@@ -650,9 +781,22 @@ defmodule Kati.Screens.Calendar do
         {Kati.Design.Images.poster(m.seed) |> Kati.Screens.Calendar.member_poster()}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={m.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={m.title}
+            text_size={13.5}
+            font_weight="semibold"
+            letter_spacing={-0.01}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Box fill_width={true} height={3} />
-          <Text text={m.meta} font_family="mono" text_size={10.5} text_color={Palette.sub()} max_lines={1} />
+          <Text
+            text={m.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.sub()}
+            max_lines={1}
+          />
         </Column>
       </Row>
     </Column>

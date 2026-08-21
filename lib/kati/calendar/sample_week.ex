@@ -114,7 +114,9 @@ defmodule Kati.Calendar.SampleWeek do
   @spec style(atom()) :: map()
   def style(:habit), do: %{background: 0x244E9A73, rule: 0xFF4E9A73, shadow: nil}
   def style(:screen), do: %{background: 0xFFFBF1DE, rule: 0xFFE8823C, shadow: nil}
-  def style(:personal), do: %{background: 0xFFFBFAF8, rule: 0xFF1A1917, shadow: "0 1 2 0 #0D1A1917"}
+
+  def style(:personal),
+    do: %{background: 0xFFFBFAF8, rule: 0xFF1A1917, shadow: "0 1 2 0 #0D1A1917"}
 
   defp block(height, section, hour), do: %{height: height, section: section, hour: hour}
 end

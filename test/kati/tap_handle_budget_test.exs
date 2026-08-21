@@ -53,10 +53,15 @@ defmodule Kati.TapHandleBudgetTest do
       counts
       |> Enum.sort_by(&elem(&1, 1), :desc)
       |> Enum.take(8)
-      |> Enum.each(fn {m, n} -> IO.puts("  #{n |> Integer.to_string() |> String.pad_leading(3)}  #{inspect(m)}") end)
+      |> Enum.each(fn {m, n} ->
+        IO.puts("  #{n |> Integer.to_string() |> String.pad_leading(3)}  #{inspect(m)}")
+      end)
 
       nums = Enum.map(counts, &elem(&1, 1))
-      IO.puts("  #{length(nums)} screens: max #{Enum.max(nums)}, median #{Enum.sort(nums) |> Enum.at(div(length(nums), 2))}, headroom #{@cap - Enum.max(nums)}")
+
+      IO.puts(
+        "  #{length(nums)} screens: max #{Enum.max(nums)}, median #{Enum.sort(nums) |> Enum.at(div(length(nums), 2))}, headroom #{@cap - Enum.max(nums)}"
+      )
     end
 
     over = Enum.filter(counts, fn {_m, n} -> n > @budget end)

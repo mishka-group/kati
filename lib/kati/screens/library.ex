@@ -35,9 +35,16 @@ defmodule Kati.Screens.Library do
   def content(assigns) do
     filter = assigns.filter
     shelf = assigns.shelf
+
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.Library.header()}
         {Kati.Screens.Library.segments(shelf)}
         {Kati.Screens.Library.quick_tiles()}
@@ -54,9 +61,21 @@ defmodule Kati.Screens.Library do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Column weight={1.0}>
-          <Text text="Library" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Library"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={Kati.Library.Sample.subtitle()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={Kati.Library.Sample.subtitle()}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         {Kati.Screens.Library.disc("search", :open_search)}
         <Spacer size={9} />
@@ -94,7 +113,13 @@ defmodule Kati.Screens.Library do
   def segments(active) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.placeholder()} corner_radius={18} padding={4} align="center">
+      <Row
+        fill_width={true}
+        background={Palette.placeholder()}
+        corner_radius={18}
+        padding={4}
+        align="center"
+      >
         {Kati.Screens.Library.segment("movie", "Screen", active == "Screen")}
         <Spacer size={4} />
         {Kati.Screens.Library.segment("menu_book", "Books", active == "Books")}
@@ -136,7 +161,14 @@ defmodule Kati.Screens.Library do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row fill_width={true} height={38} corner_radius={14} background={bg} align="center" on_tap={tap}>
+      <Row
+        fill_width={true}
+        height={38}
+        corner_radius={14}
+        background={bg}
+        align="center"
+        on_tap={tap}
+      >
         <Spacer weight={1.0} />
         {Kati.UI.symbol(icon, size: 17, color: fg)}
         <Spacer size={6} />
@@ -185,7 +217,14 @@ defmodule Kati.Screens.Library do
           {Kati.Screens.Library.tile_count(count)}
         </Row>
         <Spacer size={10} />
-        <Text text={label} text_size={12.5} font_weight="bold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={label}
+          text_size={12.5}
+          font_weight="bold"
+          letter_spacing={-0.01}
+          text_color={:on_surface}
+          max_lines={1}
+        />
       </Column>
     </Box>
     """
@@ -196,7 +235,13 @@ defmodule Kati.Screens.Library do
 
   def tile_count(count) do
     ~MOB"""
-    <Text text={count} font_family="mono" text_size={10} text_color={Palette.rail_idle()} max_lines={1} />
+    <Text
+      text={count}
+      font_family="mono"
+      text_size={10}
+      text_color={Palette.rail_idle()}
+      max_lines={1}
+    />
     """
   end
 
@@ -337,6 +382,7 @@ defmodule Kati.Screens.Library do
   @doc false
   def grid_row(row) do
     row = row ++ List.duplicate(nil, 3 - length(row))
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -363,16 +409,35 @@ defmodule Kati.Screens.Library do
     # drawing's frame.
     ~MOB"""
     <Column weight={1.0} on_tap={tap}>
-      <Box fill_width={true} height={158} corner_radius={13} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box
+        fill_width={true}
+        height={158}
+        corner_radius={13}
+        background={Palette.placeholder()}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
         {Kati.Screens.Library.artwork(item)}
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Library.progress(item.progress)}
         </Box>
       </Box>
       <Spacer size={9} />
-      <Text text={item.title} text_size={12.5} font_weight="bold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+      <Text
+        text={item.title}
+        text_size={12.5}
+        font_weight="bold"
+        letter_spacing={-0.01}
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={3} />
-      <Text text={Kati.Screens.Library.tile_meta(item)} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={Kati.Screens.Library.tile_meta(item)}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -442,12 +507,24 @@ defmodule Kati.Screens.Library do
   end
 
   @impl true
-  def handle_tap(:open_search, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
-  def handle_tap(:open_up_next, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNext)}
-  def handle_tap(:open_discover, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Discover)}
-  def handle_tap(:open_lists, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
-  def handle_tap(:open_series, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
-  def handle_tap(:open_film, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
+  def handle_tap(:open_search, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
+  def handle_tap(:open_up_next, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNext)}
+
+  def handle_tap(:open_discover, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Discover)}
+
+  def handle_tap(:open_lists, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+
+  def handle_tap(:open_series, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
+
+  def handle_tap(:open_film, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
+
   # One clause for every chip and every segment: the tag carries the label, so
   # a new filter is a data change rather than a code change.
   def handle_tap(tag, socket) do

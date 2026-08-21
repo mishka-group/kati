@@ -72,7 +72,13 @@ defmodule Kati.Screens.StatsFa do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.StatsFa.header(year)}
         {Kati.Screens.StatsFa.hero(year)}
         {Kati.Screens.StatsFa.counts(year)}
@@ -101,7 +107,13 @@ defmodule Kati.Screens.StatsFa do
             max_lines={1}
           />
           <Spacer size={5} />
-          <Text text={year.range} font_family="fa" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={year.range}
+            font_family="fa"
+            text_size={11.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         {Fa.disc("ios_share")}
       </Row>
@@ -163,10 +175,23 @@ defmodule Kati.Screens.StatsFa do
             </Row>
           </Column>
           <Column padding_bottom={5}>
-            <Row height={28} corner_radius={14} background={Palette.green_wash()} padding_left={11} padding_right={11} align="center">
+            <Row
+              height={28}
+              corner_radius={14}
+              background={Palette.green_wash()}
+              padding_left={11}
+              padding_right={11}
+              align="center"
+            >
               {Kati.UI.symbol("arrow_drop_up", size: 14, color: Palette.green_text(), fill: true)}
               <Spacer size={5} />
-              <Text text={year.change} font_family="mono" text_size={11.5} text_color={Palette.green_text()} max_lines={1} />
+              <Text
+                text={year.change}
+                font_family="mono"
+                text_size={11.5}
+                text_color={Palette.green_text()}
+                max_lines={1}
+              />
             </Row>
           </Column>
         </Row>
@@ -174,9 +199,21 @@ defmodule Kati.Screens.StatsFa do
         {Kati.Screens.StatsFa.field()}
         <Spacer size={12} />
         <Row fill_width={true} align="center">
-          <Text text={year.weeks} font_family="fa" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
+          <Text
+            text={year.weeks}
+            font_family="fa"
+            text_size={10}
+            text_color={Palette.cream_meta()}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
-          <Text text={year.streak} font_family="fa" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
+          <Text
+            text={year.streak}
+            font_family="fa"
+            text_size={10}
+            text_color={Palette.cream_meta()}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -301,7 +338,13 @@ defmodule Kati.Screens.StatsFa do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
-        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={Palette.eyebrow()} />
+        <Text
+          text={label}
+          font_family="fa"
+          text_size={11}
+          font_weight="semibold"
+          text_color={Palette.eyebrow()}
+        />
       </Row>
       <Spacer size={11} />
     </Column>
@@ -445,10 +488,24 @@ defmodule Kati.Screens.StatsFa do
   @doc false
   def note(year) do
     ~MOB"""
-    <Row fill_width={true} corner_radius={18} border_color={Palette.border()} border_width={1.5} padding={15} align="top">
+    <Row
+      fill_width={true}
+      corner_radius={18}
+      border_color={Palette.border()}
+      border_width={1.5}
+      padding={15}
+      align="top"
+    >
       {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={year.note} font_family="fa" text_size={12.5} line_height={1.7} text_color={Palette.ink_soft()} weight={1.0} />
+      <Text
+        text={year.note}
+        font_family="fa"
+        text_size={12.5}
+        line_height={1.7}
+        text_color={Palette.ink_soft()}
+        weight={1.0}
+      />
     </Row>
     """
   end

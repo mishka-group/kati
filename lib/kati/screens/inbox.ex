@@ -28,7 +28,13 @@ defmodule Kati.Screens.Inbox do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Inbox.mark_all()}
         {Kati.Screens.Inbox.title(inbox)}
         {Kati.Screens.Inbox.watcher(inbox)}
@@ -52,8 +58,21 @@ defmodule Kati.Screens.Inbox do
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
-        <Row height={36} corner_radius={18} background={Palette.placeholder()} padding_left={14} padding_right={14} align="center">
-          <Text text="Mark all" text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+        <Row
+          height={36}
+          corner_radius={18}
+          background={Palette.placeholder()}
+          padding_left={14}
+          padding_right={14}
+          align="center"
+        >
+          <Text
+            text="Mark all"
+            text_size={12.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
         </Row>
       </Row>
       <Spacer size={16} />
@@ -73,9 +92,21 @@ defmodule Kati.Screens.Inbox do
   @spec coming_up_rows() :: [map()]
   def coming_up_rows do
     [
-      %{month: "AUG", day: "20", title: "The Long Hollow — S2E6", line: "Lumen+ · 20:00", armed: true},
+      %{
+        month: "AUG",
+        day: "20",
+        title: "The Long Hollow — S2E6",
+        line: "Lumen+ · 20:00",
+        armed: true
+      },
       %{month: "SEP", day: "04", title: "Vellum", line: "In cinemas", armed: false},
-      %{month: "SEP", day: "12", title: "Nightbirds — Season 2", line: "Full season drop", armed: false}
+      %{
+        month: "SEP",
+        day: "12",
+        title: "Nightbirds — Season 2",
+        line: "Full season drop",
+        armed: false
+      }
     ]
   end
 
@@ -85,9 +116,21 @@ defmodule Kati.Screens.Inbox do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Text text="New releases" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text="New releases"
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text={subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={subtitle}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -110,9 +153,21 @@ defmodule Kati.Screens.Inbox do
         {Kati.UI.symbol("auto_awesome", size: 22, color: Palette.gold_icon())}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={"Watching for #{inbox.watching} titles"} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={"Watching for #{inbox.watching} titles"}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={inbox.last_checked} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
+          <Text
+            text={inbox.last_checked}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.cream_meta()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         {Kati.UI.symbol("settings", size: 19, color: Palette.gold_icon())}
@@ -155,16 +210,42 @@ defmodule Kati.Screens.Inbox do
           <Row fill_width={true} align="center">
             <Box width={6} height={6} corner_radius={3} background={row.dot} />
             <Spacer size={7} />
-            <Text text={row.title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+            <Text
+              text={row.title}
+              text_size={14}
+              font_weight="bold"
+              letter_spacing={-0.015}
+              text_color={:on_surface}
+              max_lines={1}
+            />
           </Row>
           <Spacer size={5} />
           <Text text={row.line} text_size={12} text_color={Palette.ink_soft()} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={row.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
-        <Row height={32} corner_radius={16} background={Palette.ink_fill()} padding_left={14} padding_right={14} align="center">
-          <Text text="Watch" text_size={12} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
+        <Row
+          height={32}
+          corner_radius={16}
+          background={Palette.ink_fill()}
+          padding_left={14}
+          padding_right={14}
+          align="center"
+        >
+          <Text
+            text="Watch"
+            text_size={12}
+            font_weight="semibold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
         </Row>
       </Row>
     </Column>
@@ -177,8 +258,11 @@ defmodule Kati.Screens.Inbox do
   @doc false
   def thumb(row) do
     case Kati.Library.Sample.poster(row[:seed]) do
-      nil -> ~MOB"<Box width={44} height={62} corner_radius={9} background={Palette.placeholder()} />"
-      src -> ~MOB"""
+      nil ->
+        ~MOB"<Box width={44} height={62} corner_radius={9} background={Palette.placeholder()} />"
+
+      src ->
+        ~MOB"""
         <Image src={src} width={44} height={62} corner_radius={9} content_mode="fill" />
         """
     end
@@ -213,12 +297,32 @@ defmodule Kati.Screens.Inbox do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Column width={42} align="center">
-          <Text text={row.month} font_family="mono" text_size={10} letter_spacing={0.1} text_color={Palette.muted()} text_align="center" />
-          <Text text={row.day} text_size={17} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} text_align="center" />
+          <Text
+            text={row.month}
+            font_family="mono"
+            text_size={10}
+            letter_spacing={0.1}
+            text_color={Palette.muted()}
+            text_align="center"
+          />
+          <Text
+            text={row.day}
+            text_size={17}
+            font_weight="bold"
+            letter_spacing={-0.02}
+            text_color={:on_surface}
+            text_align="center"
+          />
         </Column>
         <Spacer size={14} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={row.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -232,7 +336,9 @@ defmodule Kati.Screens.Inbox do
 
   # Armed is the filled bell in accent; listed is the hollow one in #C4BDB3.
   @doc false
-  def bell(true), do: Kati.UI.symbol("notifications_active", size: 19, color: Palette.accent(), fill: true)
+  def bell(true),
+    do: Kati.UI.symbol("notifications_active", size: 19, color: Palette.accent(), fill: true)
+
   def bell(false), do: Kati.UI.symbol("notifications", size: 19, color: Palette.rail_idle())
 
   # Chelekom's headless Separator, given the design's own 7%-ink rule colour.
@@ -248,6 +354,7 @@ defmodule Kati.Screens.Inbox do
   # screen drew by hand, so every pixel row carries the full colour again.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
+
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 end

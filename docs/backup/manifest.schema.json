@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kati.app/schemas/backup/manifest.schema.json",
+  "title": "Kati backup manifest",
+  "description": "manifest.json inside a .katibackup archive. See docs/backup-format.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "format_version",
+    "schema_version",
+    "app_version",
+    "exported_at",
+    "record_counts",
+    "dropped_columns",
+    "files"
+  ],
+  "properties": {
+    "format": {
+      "description": "Always this string. A file without it is not a Kati backup.",
+      "const": "kati.backup"
+    },
+    "format_version": {
+      "description": "Archive layout: member names, manifest shape, hashing. A reader refuses a value newer than it understands.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "schema_version": {
+      "description": "Row shapes: which tables, which columns, how a value is spelled. A reader refuses a value newer than it understands, and upgrades an older one before decoding.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "app_version": {
+      "description": "The version of Kati that wrote the file. Informational; nothing branches on it.",
+      "type": "string"
+    },
+    "exported_at": {
+      "description": "When the backup was written. UTC, ISO-8601, always with an offset.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "record_counts": {
+      "description": "Rows per table. Checked against the payloads before any restore, and shown to the user before they confirm one.",
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "dropped_columns": {
+      "description": "'table.column' to the number of rows that held a value which was deliberately not written. A column that dropped nothing is absent.",
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z_]+\\.[a-z_]+$" },
+      "additionalProperties": { "type": "integer", "minimum": 1 }
+    },
+    "files": {
+      "description": "Every payload member, with its checksum. manifest.json does not hash itself.",
+      "type": "object",
+      "propertyNames": { "pattern": "^data/[a-z_]+\\.json$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["sha256", "bytes"],
+        "properties": {
+          "sha256": {
+            "description": "SHA-256 of the member's bytes, lowercase hex.",
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "description": "Length of the member in bytes.",
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

@@ -44,11 +44,22 @@ defmodule Kati.Screens.Meal do
     meal = assigns.meal
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
         <Column fill_width={true}>
           {Kati.Screens.Meal.artwork(meal)}
-          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16} padding_bottom={40}>
+          <Column
+            fill_width={true}
+            padding_left={21}
+            padding_right={21}
+            padding_top={16}
+            padding_bottom={40}
+          >
             {Kati.Screens.Meal.portion_card(meal)}
             {Kati.Screens.Meal.actions()}
             {UI.eyebrow("Ingredients · 1 portion")}
@@ -113,8 +124,11 @@ defmodule Kati.Screens.Meal do
   @doc false
   def hero_art(meal) do
     case Kati.Design.Images.hero(meal.seed) do
-      nil -> ~MOB"<Spacer size={0} />"
-      src -> ~MOB"""
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      src ->
+        ~MOB"""
         <Image src={src} fill_width={true} height={250} content_mode="fill" />
         """
     end
@@ -133,10 +147,25 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        <Row height={44} corner_radius={22} background={fill} shadow={Kati.Theme.shadow_button()} padding_left={12} padding_right={16} align="center" on_tap={back}>
+        <Row
+          height={44}
+          corner_radius={22}
+          background={fill}
+          shadow={Kati.Theme.shadow_button()}
+          padding_left={12}
+          padding_right={16}
+          align="center"
+          on_tap={back}
+        >
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
           <Spacer size={6} />
-          <Text text="Meals" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
+          <Text
+            text="Meals"
+            text_size={13.5}
+            font_weight="semibold"
+            letter_spacing={-0.01}
+            text_color={:on_surface}
+          />
         </Row>
         <Spacer weight={1.0} />
         {Kati.Screens.Meal.more_button()}
@@ -184,7 +213,13 @@ defmodule Kati.Screens.Meal do
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase("Per portion")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.eyebrow()} />
+            <Text
+              text={String.upcase("Per portion")}
+              font_family="mono"
+              text_size={10.5}
+              letter_spacing={0.16}
+              text_color={Palette.eyebrow()}
+            />
             <Spacer size={6} />
             {Kati.Screens.Meal.portion_figure(meal)}
           </Column>
@@ -213,11 +248,24 @@ defmodule Kati.Screens.Meal do
   @doc false
   def portion_figure(meal) do
     number = ~MOB"""
-    <Text text={meal.calories} text_size={32} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
+    <Text
+      text={meal.calories}
+      text_size={32}
+      font_weight="extrabold"
+      letter_spacing={-0.04}
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
 
     unit = ~MOB"""
-    <Text text={meal.unit} text_size={15} font_weight="semibold" text_color={Palette.muted()} max_lines={1} />
+    <Text
+      text={meal.unit}
+      text_size={15}
+      font_weight="semibold"
+      text_color={Palette.muted()}
+      max_lines={1}
+    />
     """
 
     UI.number_with_unit(number, unit, 3.4)
@@ -238,12 +286,26 @@ defmodule Kati.Screens.Meal do
     up = {self(), :portion_up}
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={Palette.paper()} padding_left={12} padding_right={12} align="center">
+    <Row
+      height={32}
+      corner_radius={16}
+      background={Palette.paper()}
+      padding_left={12}
+      padding_right={12}
+      align="center"
+    >
       <Box on_tap={down} width={16} height={16} align="center">
         {Kati.UI.symbol("remove", size: 16, color: Palette.sub())}
       </Box>
       <Spacer size={7} />
-      <Text text={meal.portion} font_family="mono" text_size={13} font_weight="medium" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={meal.portion}
+        font_family="mono"
+        text_size={13}
+        font_weight="medium"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={7} />
       <Box on_tap={up} width={16} height={16} align="center">
         {Kati.UI.symbol("add", size: 16)}
@@ -347,7 +409,13 @@ defmodule Kati.Screens.Meal do
         max_lines={1}
       />
       <Spacer size={4} />
-      <Text text={value} text_size={13} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text={value}
+        text_size={13}
+        font_weight="semibold"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -383,7 +451,13 @@ defmodule Kati.Screens.Meal do
               <Spacer weight={1.0} />
               {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
               <Spacer size={8} />
-              <Text text="Mark eaten" text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+              <Text
+                text="Mark eaten"
+                text_size={14}
+                font_weight="bold"
+                text_color={Palette.on_ink()}
+                max_lines={1}
+              />
               <Spacer weight={1.0} />
             </Row>
           </Box>
@@ -449,14 +523,40 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={12} padding_bottom={12}>
-        <Box width={20} height={20} corner_radius={6} border_width={1.5} border_color={Palette.border()} />
+        <Box
+          width={20}
+          height={20}
+          corner_radius={6}
+          border_width={1.5}
+          border_color={Palette.border()}
+        />
         <Spacer size={13} />
-        <Text text={row.name} text_size={13} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
+        <Text
+          text={row.name}
+          text_size={13}
+          font_weight="semibold"
+          text_color={:on_surface}
+          weight={1.0}
+          max_lines={1}
+        />
         <Spacer size={13} />
-        <Text text={row.amount} font_family="mono" text_size={11.5} text_color={Palette.ink_soft()} max_lines={1} />
+        <Text
+          text={row.amount}
+          font_family="mono"
+          text_size={11.5}
+          text_color={Palette.ink_soft()}
+          max_lines={1}
+        />
         <Spacer size={13} />
         <Column width={30}>
-          <Text text={row.calories} font_family="mono" text_size={10.5} text_color={Palette.rail_idle()} text_align="right" max_lines={1} />
+          <Text
+            text={row.calories}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.rail_idle()}
+            text_align="right"
+            max_lines={1}
+          />
         </Column>
       </Row>
       {Kati.Screens.Meal.hairline(rule?)}
@@ -502,7 +602,12 @@ defmodule Kati.Screens.Meal do
           {facts}
         </Row>
         <Spacer size={13} />
-        <Text text={Kati.Meals.SampleRecipe.method()} text_size={13.5} line_height={1.65} text_color={Palette.cream_body()} />
+        <Text
+          text={Kati.Meals.SampleRecipe.method()}
+          text_size={13.5}
+          line_height={1.65}
+          text_color={Palette.cream_body()}
+        />
       </Column>
       <Spacer size={24} />
     </Column>
@@ -518,7 +623,13 @@ defmodule Kati.Screens.Meal do
     <Row align="center">
       {Kati.UI.symbol(icon, size: 15, color: Palette.gold_icon())}
       <Spacer size={6} />
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={Palette.cream_sub()} max_lines={1} />
+      <Text
+        text={label}
+        text_size={11.5}
+        font_weight="semibold"
+        text_color={Palette.cream_sub()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -554,7 +665,13 @@ defmodule Kati.Screens.Meal do
         </Box>
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           {Kati.Screens.Meal.history_sub(row)}
         </Column>
@@ -638,12 +755,15 @@ defmodule Kati.Screens.Meal do
       |> Kati.Screens.Meal.portion_factor()
       |> MishkaNumberField.step(direction, step: 0.25, min: 0.5, max: 4.0)
 
-    {:noreply, Mob.Socket.assign(socket, :meal, %{meal | portion: Kati.Screens.Meal.portion_label(factor)})}
+    {:noreply,
+     Mob.Socket.assign(socket, :meal, %{meal | portion: Kati.Screens.Meal.portion_label(factor)})}
   end
 
   def handle_info({:tap, :mark_eaten}, socket) do
     meal = socket.assigns.meal
-    {:noreply, Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))}
+
+    {:noreply,
+     Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

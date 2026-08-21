@@ -45,7 +45,13 @@ defmodule Kati.Screens.MealsToday do
   def content(_assigns) do
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.MealsToday.header()}
         {Kati.Screens.MealsToday.title()}
         {Kati.Screens.MealsToday.week_strip()}
@@ -111,9 +117,21 @@ defmodule Kati.Screens.MealsToday do
     <Column fill_width={true}>
       <Row fill_width={true} align="bottom">
         <Column weight={1.0}>
-          <Text text="Today" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Today"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={Kati.Meals.SampleToday.day_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={Kati.Meals.SampleToday.day_line()}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.MealsToday.plan_pill()}
@@ -142,7 +160,13 @@ defmodule Kati.Screens.MealsToday do
     >
       <Box width={7} height={7} corner_radius={4} background={Kati.Theme.accent()} />
       <Spacer size={7} />
-      <Text text={Kati.Meals.SampleToday.plan()} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={Kati.Meals.SampleToday.plan()}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={7} />
       {Kati.UI.symbol("unfold_more", size: 16, color: Palette.sub())}
     </Row>
@@ -198,13 +222,25 @@ defmodule Kati.Screens.MealsToday do
         <Column fill_width={true}>
           <Row fill_width={true} align="center">
             <Spacer weight={1.0} />
-            <Text text={day.dow} font_family="mono" text_size={10} text_color={dow_color} max_lines={1} />
+            <Text
+              text={day.dow}
+              font_family="mono"
+              text_size={10}
+              text_color={dow_color}
+              max_lines={1}
+            />
             <Spacer weight={1.0} />
           </Row>
           <Spacer size={4} />
           <Row fill_width={true} align="center">
             <Spacer weight={1.0} />
-            <Text text={day.day} text_size={15} font_weight="bold" text_color={day_color} max_lines={1} />
+            <Text
+              text={day.day}
+              text_size={15}
+              font_weight="bold"
+              text_color={day_color}
+              max_lines={1}
+            />
             <Spacer weight={1.0} />
           </Row>
           <Spacer size={6} />
@@ -311,7 +347,13 @@ defmodule Kati.Screens.MealsToday do
           <Spacer size={7} />
           <Row fill_width={true} align="center">
             <Spacer weight={1.0} />
-            <Text text={label} text_size={11} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+            <Text
+              text={label}
+              text_size={11}
+              font_weight="semibold"
+              text_color={Palette.ink_soft()}
+              max_lines={1}
+            />
             <Spacer weight={1.0} />
           </Row>
         </Column>
@@ -342,7 +384,13 @@ defmodule Kati.Screens.MealsToday do
         <Row fill_width={true} align="center">
           {macros |> Enum.map(fn {name, _share, tone} -> Kati.Screens.MealsToday.legend_key(name, tone) end) |> Enum.intersperse(Kati.Screens.MealsToday.legend_gap())}
           <Spacer weight={1.0} />
-          <Text text={Kati.Meals.SampleToday.remaining()} font_family="mono" text_size={10} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={Kati.Meals.SampleToday.remaining()}
+            font_family="mono"
+            text_size={10}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={20} />
@@ -411,7 +459,14 @@ defmodule Kati.Screens.MealsToday do
     <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={gutter_top}>
-          <Text text={meal.time} font_family="mono" text_size={12} font_weight={gutter_weight} text_color={gutter_color} max_lines={1} />
+          <Text
+            text={meal.time}
+            font_family="mono"
+            text_size={12}
+            font_weight={gutter_weight}
+            text_color={gutter_color}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
@@ -452,11 +507,31 @@ defmodule Kati.Screens.MealsToday do
       {Kati.Screens.MealsToday.thumb(meal.seed, 40, 11)}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.eyebrow()} max_lines={1} />
+        <Text
+          text={String.upcase(meal.slot)}
+          font_family="mono"
+          text_size={9.5}
+          letter_spacing={0.14}
+          text_color={Palette.eyebrow()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.015} text_color={Palette.settled_ink()} max_lines={1} />
+        <Text
+          text={meal.title}
+          text_size={13.5}
+          font_weight="semibold"
+          letter_spacing={-0.015}
+          text_color={Palette.settled_ink()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={meal.calories}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
       <Box
@@ -497,14 +572,41 @@ defmodule Kati.Screens.MealsToday do
       align="center"
     >
       <Column weight={1.0}>
-        <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.rail_idle()} max_lines={1} />
+        <Text
+          text={String.upcase(meal.slot)}
+          font_family="mono"
+          text_size={9.5}
+          letter_spacing={0.14}
+          text_color={Palette.rail_idle()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.015} text_color={Palette.tertiary()} max_lines={1} />
+        <Text
+          text={meal.title}
+          text_size={13.5}
+          font_weight="semibold"
+          letter_spacing={-0.015}
+          text_color={Palette.tertiary()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={Palette.rail_idle()} max_lines={1} />
+        <Text
+          text={meal.calories}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.rail_idle()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
-      <Box width={27} height={27} corner_radius={16} border_width={1.5} border_color={Palette.border()} align="center">
+      <Box
+        width={27}
+        height={27}
+        corner_radius={16}
+        border_width={1.5}
+        border_color={Palette.border()}
+        align="center"
+      >
         {Kati.UI.symbol("close", size: 16, color: Palette.rail_idle())}
       </Box>
     </Row>
@@ -533,14 +635,41 @@ defmodule Kati.Screens.MealsToday do
         {Kati.Screens.MealsToday.thumb(meal.seed, 52, 13)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.eyebrow()} max_lines={1} />
+          <Text
+            text={String.upcase(meal.slot)}
+            font_family="mono"
+            text_size={9.5}
+            letter_spacing={0.14}
+            text_color={Palette.eyebrow()}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={meal.title} text_size={15} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={meal.title}
+            text_size={15}
+            font_weight="bold"
+            letter_spacing={-0.015}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={meal.calories}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
-        <Box width={32} height={32} corner_radius={16} border_width={1.5} border_color={Palette.border()} align="center">
+        <Box
+          width={32}
+          height={32}
+          corner_radius={16}
+          border_width={1.5}
+          border_color={Palette.border()}
+          align="center"
+        >
           {Kati.UI.symbol("check", size: 19, color: Palette.track_ink())}
         </Box>
       </Row>
@@ -643,7 +772,13 @@ defmodule Kati.Screens.MealsToday do
         {Kati.UI.symbol("schedule", size: 20, color: Palette.gold_icon())}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={prep.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={prep.title}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={prep.line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
         </Column>
@@ -696,17 +831,27 @@ defmodule Kati.Screens.MealsToday do
   # the same `calendar_view_week` glyph, so they are one affordance drawn twice
   # and they go to one place.
   @impl true
-  def handle_tap(:open_meal, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
-  def handle_tap(:open_week, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
-  def handle_tap(:open_shopping, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Shopping)}
-  def handle_tap(:open_nutrition, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Nutrition)}
+  def handle_tap(:open_meal, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
+
+  def handle_tap(:open_week, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
+
+  def handle_tap(:open_shopping, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Shopping)}
+
+  def handle_tap(:open_nutrition, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Nutrition)}
 
   # Both of these open screen 49, and both are the drawing's own words for it.
   # The `tune` tile is labelled "Plan" — the profile, not the week — and the
   # title pill is "Cutting v3" under an `unfold_more`, which is a picker glyph:
   # it says there are others. 49 is where the others are.
-  def handle_tap(:open_plan, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
-  def handle_tap(:switch_plan, socket), do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
+  def handle_tap(:open_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
+
+  def handle_tap(:switch_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

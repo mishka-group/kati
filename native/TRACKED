@@ -29,3 +29,4 @@ android/app/src/main/java/com/example/kati/KatiDeviceZone.kt
 android/app/src/main/java/com/example/kati/KatiBootReceiver.kt
 android/app/src/main/java/com/example/kati/KatiNotificationStore.kt
 android/app/src/main/java/com/example/kati/KatiCalendarReader.kt
+android/app/src/main/java/com/example/kati/KatiSecureStore.kt

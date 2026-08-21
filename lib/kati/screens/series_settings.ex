@@ -57,7 +57,13 @@ defmodule Kati.Screens.SeriesSettings do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz", 44)}
         {SettingsList.title(show.title, show.subtitle)}
         {UI.eyebrow(show.status_label)}
@@ -123,7 +129,14 @@ defmodule Kati.Screens.SeriesSettings do
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={8} />
-        <Text text={s.label} text_size={12} font_weight="bold" text_color={Palette.on_ink()} text_align="center" max_lines={1} />
+        <Text
+          text={s.label}
+          text_size={12}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          text_align="center"
+          max_lines={1}
+        />
       </Column>
     </Box>
     """
@@ -148,7 +161,14 @@ defmodule Kati.Screens.SeriesSettings do
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={8} />
-        <Text text={s.label} text_size={12} font_weight="bold" text_color={Palette.ink_soft()} text_align="center" max_lines={1} />
+        <Text
+          text={s.label}
+          text_size={12}
+          font_weight="bold"
+          text_color={Palette.ink_soft()}
+          text_align="center"
+          max_lines={1}
+        />
       </Column>
     </Box>
     """
@@ -240,7 +260,13 @@ defmodule Kati.Screens.SeriesSettings do
   @doc false
   def danger_body(title) do
     ~MOB"""
-    <Text text={title} text_size={13.5} font_weight="semibold" text_color={Palette.red()} max_lines={1} />
+    <Text
+      text={title}
+      text_size={13.5}
+      font_weight="semibold"
+      text_color={Palette.red()}
+      max_lines={1}
+    />
     """
   end
 end

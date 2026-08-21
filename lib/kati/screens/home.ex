@@ -38,7 +38,13 @@ defmodule Kati.Screens.Home do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.Home.header()}
         {Kati.Screens.Home.search()}
         {UI.eyebrow("New this week")}
@@ -60,29 +66,29 @@ defmodule Kati.Screens.Home do
 
     ~MOB"""
     <Column fill_width={true}>
-    <Row fill_width={true} align="top">
-      <Column weight={1.0}>
-        <Text
-          text={String.upcase(date_line)}
-          font_family="mono"
-          text_size={11}
-          letter_spacing={0.14}
-          text_color={Palette.muted()}
-        />
-        <Spacer size={7} />
-        <Text
-          text={greeting}
-          text_size={28}
-          font_weight="bold"
-          letter_spacing={-0.03}
-          text_color={:on_surface}
-        />
-      </Column>
-      {Kati.Screens.Home.disc("notifications", true, :notifications)}
-      <Spacer size={9} />
-      {Kati.Screens.Home.disc("calendar_month", false, :open_calendar)}
-    </Row>
-    <Spacer size={20} />
+      <Row fill_width={true} align="top">
+        <Column weight={1.0}>
+          <Text
+            text={String.upcase(date_line)}
+            font_family="mono"
+            text_size={11}
+            letter_spacing={0.14}
+            text_color={Palette.muted()}
+          />
+          <Spacer size={7} />
+          <Text
+            text={greeting}
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
+        </Column>
+        {Kati.Screens.Home.disc("notifications", true, :notifications)}
+        <Spacer size={9} />
+        {Kati.Screens.Home.disc("calendar_month", false, :open_calendar)}
+      </Row>
+      <Spacer size={20} />
     </Column>
     """
   end
@@ -116,7 +122,15 @@ defmodule Kati.Screens.Home do
     shadow = Theme.shadow_button()
 
     ~MOB"""
-    <Box width={44} height={44} background={card} corner_radius={22} shadow={shadow} align="center" on_tap={tap}>
+    <Box
+      width={44}
+      height={44}
+      background={card}
+      corner_radius={22}
+      shadow={shadow}
+      align="center"
+      on_tap={tap}
+    >
       {UI.symbol(icon, size: 21)}
       {Kati.Screens.Home.badge(badge?)}
     </Box>
@@ -151,31 +165,31 @@ defmodule Kati.Screens.Home do
 
     ~MOB"""
     <Column fill_width={true}>
-    <Box
-      fill_width={true}
-      height={52}
-      background={card}
-      corner_radius={26}
-      shadow={shadow}
-      padding_left={18}
-      padding_right={18}
-      on_tap={tap}
-    >
-      <Row fill_width={true} fill_height={true} align="center">
-        {UI.symbol("search", size: 20, color: Palette.muted())}
-        <Spacer size={11} />
-        <Text
-          text="Search films, shows, events…"
-          text_size={14.5}
-          text_color={Palette.muted()}
-          weight={1.0}
-          max_lines={1}
-        />
-        <Spacer size={11} />
-        {UI.symbol("tune", size: 19)}
-      </Row>
-    </Box>
-    <Spacer size={26} />
+      <Box
+        fill_width={true}
+        height={52}
+        background={card}
+        corner_radius={26}
+        shadow={shadow}
+        padding_left={18}
+        padding_right={18}
+        on_tap={tap}
+      >
+        <Row fill_width={true} fill_height={true} align="center">
+          {UI.symbol("search", size: 20, color: Palette.muted())}
+          <Spacer size={11} />
+          <Text
+            text="Search films, shows, events…"
+            text_size={14.5}
+            text_color={Palette.muted()}
+            weight={1.0}
+            max_lines={1}
+          />
+          <Spacer size={11} />
+          {UI.symbol("tune", size: 19)}
+        </Row>
+      </Box>
+      <Spacer size={26} />
     </Column>
     """
   end
@@ -187,54 +201,64 @@ defmodule Kati.Screens.Home do
 
     ~MOB"""
     <Column fill_width={true}>
-    <Box
-      fill_width={true}
-      background={Palette.cream()}
-      corner_radius={24}
-      shadow={Kati.Theme.shadow_hero()}
-      padding_left={19}
-      padding_right={19}
-      padding_top={19}
-      padding_bottom={17}
-    >
-      <Column fill_width={true}>
-        <Row fill_width={true} align="top">
-          <Column weight={1.0}>
-            {Enum.map(Kati.Screens.Home.headline_lines(), fn line ->
+      <Box
+        fill_width={true}
+        background={Palette.cream()}
+        corner_radius={24}
+        shadow={Kati.Theme.shadow_hero()}
+        padding_left={19}
+        padding_right={19}
+        padding_top={19}
+        padding_bottom={17}
+      >
+        <Column fill_width={true}>
+          <Row fill_width={true} align="top">
+            <Column weight={1.0}>
+              {Enum.map(Kati.Screens.Home.headline_lines(), fn line ->
               Kati.Screens.Home.headline(line)
             end)}
-            <Spacer size={8} />
-            <Text
-              text="One premiere · two titles leave Lumen+ on Friday"
-              text_size={13}
-              line_height={1.45}
-              text_color={Palette.cream_sub()}
-            />
-          </Column>
-          <Spacer size={14} />
-          {Kati.Screens.Home.poster_stack()}
-        </Row>
-        <Spacer size={17} />
-        <Row align="center">
-          <Row
-            height={40}
-            corner_radius={20}
-            background={fill}
-            padding_left={18}
-            padding_right={18}
-            align="center"
-            on_tap={tap}
-          >
-            <Text text="Open inbox" text_size={13.5} font_weight="semibold" text_color={Palette.on_ink()} />
-            <Spacer size={7} />
-            {UI.symbol("arrow_forward", size: 17, color: Palette.on_ink())}
+              <Spacer size={8} />
+              <Text
+                text="One premiere · two titles leave Lumen+ on Friday"
+                text_size={13}
+                line_height={1.45}
+                text_color={Palette.cream_sub()}
+              />
+            </Column>
+            <Spacer size={14} />
+            {Kati.Screens.Home.poster_stack()}
           </Row>
-          <Spacer size={10} />
-          <Text text="last check 18:02" font_family="mono" text_size={11} text_color={Palette.cream_meta()} />
-        </Row>
-      </Column>
-    </Box>
-    <Spacer size={26} />
+          <Spacer size={17} />
+          <Row align="center">
+            <Row
+              height={40}
+              corner_radius={20}
+              background={fill}
+              padding_left={18}
+              padding_right={18}
+              align="center"
+              on_tap={tap}
+            >
+              <Text
+                text="Open inbox"
+                text_size={13.5}
+                font_weight="semibold"
+                text_color={Palette.on_ink()}
+              />
+              <Spacer size={7} />
+              {UI.symbol("arrow_forward", size: 17, color: Palette.on_ink())}
+            </Row>
+            <Spacer size={10} />
+            <Text
+              text="last check 18:02"
+              font_family="mono"
+              text_size={11}
+              text_color={Palette.cream_meta()}
+            />
+          </Row>
+        </Column>
+      </Box>
+      <Spacer size={26} />
     </Column>
     """
   end
@@ -317,12 +341,12 @@ defmodule Kati.Screens.Home do
   def continue_watching do
     ~MOB"""
     <Column fill_width={true}>
-    <Row fill_width={true} align="top">
-      {Kati.Screens.Home.watch_card("The Long Hollow", "S2 · E6 · 18m left", 0.62, "hollow71")}
-      <Spacer size={13} />
-      {Kati.Screens.Home.watch_card("Salt & Iron", "S1 · E3 · 41m left", 0.24, "saltiron33")}
-    </Row>
-    <Spacer size={26} />
+      <Row fill_width={true} align="top">
+        {Kati.Screens.Home.watch_card("The Long Hollow", "S2 · E6 · 18m left", 0.62, "hollow71")}
+        <Spacer size={13} />
+        {Kati.Screens.Home.watch_card("Salt & Iron", "S1 · E3 · 41m left", 0.24, "saltiron33")}
+      </Row>
+      <Spacer size={26} />
     </Column>
     """
   end
@@ -349,7 +373,13 @@ defmodule Kati.Screens.Home do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
           <Spacer size={10} />
           {Kati.Screens.Home.watch_bar(progress)}
         </Column>
@@ -409,14 +439,14 @@ defmodule Kati.Screens.Home do
   def sections do
     ~MOB"""
     <Column fill_width={true}>
-    <Row fill_width={true} align="top">
-      {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", Palette.bronze(), :open_meals)}
-      <Spacer size={9} />
-      {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", Palette.green(), :open_habits)}
-      <Spacer size={9} />
-      {Kati.Screens.Home.tile("tune", "Settings", nil, nil, :open_settings)}
-    </Row>
-    <Spacer size={26} />
+      <Row fill_width={true} align="top">
+        {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", Palette.bronze(), :open_meals)}
+        <Spacer size={9} />
+        {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", Palette.green(), :open_habits)}
+        <Spacer size={9} />
+        {Kati.Screens.Home.tile("tune", "Settings", nil, nil, :open_settings)}
+      </Row>
+      <Spacer size={26} />
     </Column>
     """
   end
@@ -472,7 +502,13 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Column>
       <Spacer size={3} />
-      <Text text={meta} font_family="mono" text_size={9.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={meta}
+        font_family="mono"
+        text_size={9.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -491,7 +527,12 @@ defmodule Kati.Screens.Home do
   @spec drawn_rows() :: [map()]
   def drawn_rows do
     [
-      %{time: "20:00", title: "The Long Hollow — S2E6", meta: "Airs tonight · Lumen+", now?: true},
+      %{
+        time: "20:00",
+        title: "The Long Hollow — S2E6",
+        meta: "Airs tonight · Lumen+",
+        now?: true
+      },
       %{time: "21:30", title: "Call Mum", meta: "Repeats weekly", now?: false}
     ]
   end
@@ -504,7 +545,16 @@ defmodule Kati.Screens.Home do
     last = length(rows) - 1
 
     ~MOB"""
-    <Box fill_width={true} background={card} corner_radius={20} shadow={Kati.Theme.shadow_card()} padding_left={15} padding_right={15} padding_top={5} padding_bottom={5}>
+    <Box
+      fill_width={true}
+      background={card}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card()}
+      padding_left={15}
+      padding_right={15}
+      padding_top={5}
+      padding_bottom={5}
+    >
       <Column fill_width={true}>
         {rows |> Enum.with_index() |> Enum.map(fn {row, i} ->
           Kati.Screens.Home.timeline_row(row, i < last)
@@ -523,7 +573,13 @@ defmodule Kati.Screens.Home do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Box width={40}>
-          <Text text={row.time} font_family="mono" text_size={12} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={12}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Box>
         <Spacer size={14} />
         <Box width={3} height={34} corner_radius={2} background={accent} />
@@ -561,6 +617,7 @@ defmodule Kati.Screens.Home do
   # screen drew by hand, so every pixel row carries the full colour again.
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
+
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 

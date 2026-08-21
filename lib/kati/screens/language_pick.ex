@@ -40,9 +40,20 @@ defmodule Kati.Screens.LanguagePick do
     pick = assigns.pick
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           <Column fill_width={true} padding_top={26}>
             {Kati.Screens.LanguagePick.steps(pick)}
             {Kati.Screens.LanguagePick.mark()}
@@ -188,7 +199,13 @@ defmodule Kati.Screens.LanguagePick do
       <Column weight={1.0}>
         {Kati.Screens.LanguagePick.name(option, Palette.on_ink())}
         <Spacer size={4} />
-        <Text text={option.meta} font_family="mono" text_size={10.5} text_color={Palette.on_ink_meta()} max_lines={1} />
+        <Text
+          text={option.meta}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.on_ink_meta()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={14} />
       {Kati.Screens.LanguagePick.chosen_mark()}
@@ -213,7 +230,13 @@ defmodule Kati.Screens.LanguagePick do
       <Column weight={1.0}>
         {Kati.Screens.LanguagePick.name(option, Palette.ink())}
         <Spacer size={4} />
-        <Text text={option.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={option.meta}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={14} />
       {Kati.Screens.LanguagePick.unchosen_mark()}
@@ -300,7 +323,14 @@ defmodule Kati.Screens.LanguagePick do
   @doc false
   def badge(%{script: :persian} = option, color) do
     ~MOB"""
-    <Text text={option.badge} font_family="fa" text_size={16} font_weight="bold" text_color={color} max_lines={1} />
+    <Text
+      text={option.badge}
+      font_family="fa"
+      text_size={16}
+      font_weight="bold"
+      text_color={color}
+      max_lines={1}
+    />
     """
   end
 
@@ -313,7 +343,14 @@ defmodule Kati.Screens.LanguagePick do
   @doc false
   def name(%{script: :persian} = option, color) do
     ~MOB"""
-    <Text text={option.name} font_family="fa" text_size={17} font_weight="bold" text_color={color} max_lines={1} />
+    <Text
+      text={option.name}
+      font_family="fa"
+      text_size={17}
+      font_weight="bold"
+      text_color={color}
+      max_lines={1}
+    />
     """
   end
 
@@ -340,7 +377,13 @@ defmodule Kati.Screens.LanguagePick do
       <Row fill_width={true} background={Palette.cream()} corner_radius={18} padding={15} align="top">
         {Kati.UI.symbol("info", size: 17, color: Palette.gold_icon())}
         <Spacer size={11} />
-        <Text text={pick.note} text_size={12.5} line_height={1.55} text_color={Palette.cream_body()} weight={1.0} />
+        <Text
+          text={pick.note}
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.cream_body()}
+          weight={1.0}
+        />
       </Row>
     </Column>
     """
@@ -351,9 +394,21 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={20} />
-      <Box fill_width={true} height={54} corner_radius={27} background={Palette.ink_fill()} align="center">
+      <Box
+        fill_width={true}
+        height={54}
+        corner_radius={27}
+        background={Palette.ink_fill()}
+        align="center"
+      >
         <Row align="center">
-          <Text text={pick.cta} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+          <Text
+            text={pick.cta}
+            text_size={14.5}
+            font_weight="bold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
           <Spacer size={9} />
           {Kati.UI.symbol("arrow_forward", size: 19, color: Palette.on_ink())}
         </Row>

@@ -52,7 +52,13 @@ defmodule Kati.Screens.Agenda do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.Agenda.header()}
         {Kati.Screens.Agenda.switcher()}
         {Enum.map(agenda.groups, fn group -> Kati.Screens.Agenda.group(group) end)}
@@ -188,7 +194,13 @@ defmodule Kati.Screens.Agenda do
           max_lines={1}
         />
         <Spacer size={9} />
-        <Text text={group.sub} font_family="mono" text_size={10.5} text_color={Palette.eyebrow()} max_lines={1} />
+        <Text
+          text={group.sub}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.eyebrow()}
+          max_lines={1}
+        />
       </Row>
       <Spacer size={10} />
     </Column>
@@ -201,7 +213,13 @@ defmodule Kati.Screens.Agenda do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column width={38}>
-          <Text text={row.time} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         <Box width={3} height={30} corner_radius={2} background={row.rule} />
@@ -285,7 +303,13 @@ defmodule Kati.Screens.Agenda do
       <Row align="center">
         {UI.symbol("expand_more", size: 18, color: Palette.sub())}
         <Spacer size={7} />
-        <Text text={label} text_size={13} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+        <Text
+          text={label}
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.ink_soft()}
+          max_lines={1}
+        />
       </Row>
     </Box>
     """

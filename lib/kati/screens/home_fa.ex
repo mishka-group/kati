@@ -57,7 +57,13 @@ defmodule Kati.Screens.HomeFa do
   def content(moment, inbox) do
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.HomeFa.header(moment)}
         {Kati.Screens.HomeFa.search()}
         {Fa.eyebrow("تازه‌های این هفته")}
@@ -200,7 +206,13 @@ defmodule Kati.Screens.HomeFa do
               {UI.symbol("arrow_back", size: 17, color: Palette.on_ink())}
             </Row>
             <Spacer size={10} />
-            <Text text={inbox.checked} font_family="fa" text_size={11} text_color={Palette.cream_meta()} max_lines={1} />
+            <Text
+              text={inbox.checked}
+              font_family="fa"
+              text_size={11}
+              text_color={Palette.cream_meta()}
+              max_lines={1}
+            />
           </Row>
         </Column>
       </Box>
@@ -348,7 +360,13 @@ defmodule Kati.Screens.HomeFa do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={item.meta} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={item.meta}
+            font_family="fa"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
           <Spacer size={10} />
           {bar}
         </Column>
@@ -475,7 +493,13 @@ defmodule Kati.Screens.HomeFa do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Box width={42}>
-          <Text text={row.time} font_family="fa" text_size={12} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="fa"
+            text_size={12}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Box>
         <Spacer size={14} />
         <Box width={3} height={34} corner_radius={2} background={rule} />
@@ -490,7 +514,13 @@ defmodule Kati.Screens.HomeFa do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={row.meta} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+          <Text
+            text={row.meta}
+            font_family="fa"
+            text_size={11.5}
+            text_color={Palette.sub()}
+            max_lines={1}
+          />
         </Column>
       </Row>
       {Kati.Screens.HomeFa.hairline(rule?)}

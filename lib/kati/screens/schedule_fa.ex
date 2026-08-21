@@ -64,7 +64,13 @@ defmodule Kati.Screens.ScheduleFa do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.ScheduleFa.header(header)}
         {Kati.Screens.ScheduleFa.day_strip()}
         {Kati.Screens.ScheduleFa.week_note()}
@@ -244,7 +250,14 @@ defmodule Kati.Screens.ScheduleFa do
       padding_right={15}
       align="center"
     >
-      <Text text={label} font_family="fa" font_weight="semibold" text_size={12.5} text_color={fg} max_lines={1} />
+      <Text
+        text={label}
+        font_family="fa"
+        font_weight="semibold"
+        text_size={12.5}
+        text_color={fg}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -267,7 +280,13 @@ defmodule Kati.Screens.ScheduleFa do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={14}>
-          <Text text={row.time} font_family="fa" text_size={12} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="fa"
+            text_size={12}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
@@ -294,7 +313,13 @@ defmodule Kati.Screens.ScheduleFa do
                 max_lines={1}
               />
               <Spacer size={3} />
-              <Text text={row.meta} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+              <Text
+                text={row.meta}
+                font_family="fa"
+                text_size={11.5}
+                text_color={Palette.sub()}
+                max_lines={1}
+              />
             </Column>
             {Kati.Screens.ScheduleFa.trailing(row.trailing)}
           </Row>
@@ -409,7 +434,13 @@ defmodule Kati.Screens.ScheduleFa do
               max_lines={1}
             />
             <Spacer size={4} />
-            <Text text={feature.meta} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+            <Text
+              text={feature.meta}
+              font_family="fa"
+              text_size={11.5}
+              text_color={Palette.sub()}
+              max_lines={1}
+            />
             <Spacer size={9} />
             <Row
               height={24}

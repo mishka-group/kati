@@ -43,7 +43,13 @@ defmodule Kati.Screens.Import do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Import.header(job)}
         {Kati.Screens.Import.title(job)}
         {Kati.Screens.Import.steps(job)}
@@ -75,7 +81,13 @@ defmodule Kati.Screens.Import do
           padding_right={16}
           align="center"
         >
-          <Text text={job.action} text_size={13} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+          <Text
+            text={job.action}
+            text_size={13}
+            font_weight="bold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
         </Row>
       </Row>
       <Spacer size={16} />
@@ -87,9 +99,21 @@ defmodule Kati.Screens.Import do
   def title(job) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text="Import" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text="Import"
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text={job.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={job.subtitle}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -134,9 +158,21 @@ defmodule Kati.Screens.Import do
         {Kati.Screens.Import.file_tile()}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={job.file} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={job.file}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={job.shape} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={job.shape}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
         {Kati.UI.symbol("check_circle", size: 20, color: Kati.Theme.green(), fill: true)}
@@ -206,7 +242,13 @@ defmodule Kati.Screens.Import do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column weight={1.0}>
-          <Text text={row.column} font_family="mono" text_size={11} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.column}
+            font_family="mono"
+            text_size={11}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
           <Text text={row.sample} text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
@@ -336,7 +378,13 @@ defmodule Kati.Screens.Import do
         {Kati.Screens.Import.conflict_poster(c)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={c.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={c.title}
+            text_size={13}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           {Kati.Screens.Import.star_text(c.line, 11.5, Palette.cream_sub())}
         </Column>

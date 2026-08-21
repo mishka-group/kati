@@ -58,11 +58,22 @@ defmodule Kati.Screens.SeriesMeta do
     s = assigns.series
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
         <Column fill_width={true}>
           {Kati.Screens.SeriesMeta.artwork(s)}
-          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16} padding_bottom={40}>
+          <Column
+            fill_width={true}
+            padding_left={21}
+            padding_right={21}
+            padding_top={16}
+            padding_bottom={40}
+          >
             {Kati.Screens.SeriesMeta.ratings(s)}
             {Kati.Screens.SeriesMeta.synopsis(s)}
             {Kati.Screens.SeriesMeta.actions(s)}
@@ -121,7 +132,13 @@ defmodule Kati.Screens.SeriesMeta do
             text_color={:on_surface}
           />
           <Spacer size={8} />
-          <Text text={s.meta} font_family="mono" text_size={11} text_color={Palette.meta()} max_lines={1} />
+          <Text
+            text={s.meta}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.meta()}
+            max_lines={1}
+          />
         </Column>
       </Box>
     </Box>
@@ -197,7 +214,13 @@ defmodule Kati.Screens.SeriesMeta do
       Kati.UI.symbol("arrow_back_ios_new", size: 17),
       ~MOB"<Spacer size={6} />",
       ~MOB"""
-      <Text text="Library" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} />
+      <Text
+        text="Library"
+        text_size={13.5}
+        font_weight="semibold"
+        letter_spacing={-0.01}
+        text_color={:on_surface}
+      />
       """
     ]
   end
@@ -306,7 +329,13 @@ defmodule Kati.Screens.SeriesMeta do
     <Column fill_width={true}>
       <Text text={s.synopsis} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
       <Row align="center">
-        <Text text={s.more} text_size={14} line_height={1.6} text_color={Palette.eyebrow()} max_lines={1} />
+        <Text
+          text={s.more}
+          text_size={14}
+          line_height={1.6}
+          text_color={Palette.eyebrow()}
+          max_lines={1}
+        />
       </Row>
     </Column>
     """
@@ -330,7 +359,13 @@ defmodule Kati.Screens.SeriesMeta do
             <Spacer weight={1.0} />
             {Kati.UI.symbol("play_arrow", size: 20, color: Palette.on_ink(), fill: true)}
             <Spacer size={8} />
-            <Text text={s.trailer} text_size={13.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+            <Text
+              text={s.trailer}
+              text_size={13.5}
+              font_weight="bold"
+              text_color={Palette.on_ink()}
+              max_lines={1}
+            />
             <Spacer weight={1.0} />
           </Row>
         </Box>
@@ -384,13 +419,33 @@ defmodule Kati.Screens.SeriesMeta do
   def cast_member(c) do
     ~MOB"""
     <Column weight={1.0}>
-      <Box fill_width={true} aspect_ratio={1.0} corner_radius={999} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box
+        fill_width={true}
+        aspect_ratio={1.0}
+        corner_radius={999}
+        background={Palette.placeholder()}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
         {Kati.Screens.SeriesMeta.portrait(c.seed)}
       </Box>
       <Spacer size={8} />
-      <Text text={c.name} text_size={11} font_weight="semibold" line_height={1.3} text_color={:on_surface} text_align="center" />
+      <Text
+        text={c.name}
+        text_size={11}
+        font_weight="semibold"
+        line_height={1.3}
+        text_color={:on_surface}
+        text_align="center"
+      />
       <Spacer size={2} />
-      <Text text={c.role} font_family="mono" text_size={9.5} text_color={Palette.muted()} text_align="center" max_lines={1} />
+      <Text
+        text={c.role}
+        font_family="mono"
+        text_size={9.5}
+        text_color={Palette.muted()}
+        text_align="center"
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -449,7 +504,13 @@ defmodule Kati.Screens.SeriesMeta do
         {Kati.Screens.SeriesMeta.where_badge(row.badge)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.name} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.name}
+            text_size={13}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={2} />
           <Text text={row.line} text_size={11} text_color={Palette.sub()} max_lines={1} />
         </Column>

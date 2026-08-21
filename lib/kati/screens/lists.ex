@@ -53,7 +53,13 @@ defmodule Kati.Screens.Lists do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Lists.pill_row()}
         {Kati.Screens.Lists.header(l)}
         {Kati.Screens.Lists.made(l)}
@@ -77,9 +83,21 @@ defmodule Kati.Screens.Lists do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Lists" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Lists"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={l.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={l.subtitle}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={9} />
         <Box
@@ -124,9 +142,22 @@ defmodule Kati.Screens.Lists do
         {Kati.Screens.Lists.stack(row.seeds)}
         <Spacer size={14} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={14}
+            font_weight="bold"
+            letter_spacing={-0.015}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={row.count} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.count}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={14} />
         {Kati.Screens.Lists.badge(row.badge)}
@@ -246,9 +277,22 @@ defmodule Kati.Screens.Lists do
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         {Kati.Screens.Lists.kept_icon(row.icon)}
         <Spacer size={13} />
-        <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={13.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          weight={1.0}
+          max_lines={1}
+        />
         <Spacer size={13} />
-        <Text text={row.count} font_family="mono" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={row.count}
+          font_family="mono"
+          text_size={11.5}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
         <Spacer size={13} />
         {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>

@@ -77,7 +77,13 @@ defmodule Kati.Screens.MealsMatrixFa do
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.MealsMatrixFa.header(plan)}
           {Kati.Screens.MealsMatrixFa.title(plan)}
           {Kati.Screens.MealsMatrixFa.segments(plan, view)}
@@ -143,7 +149,13 @@ defmodule Kati.Screens.MealsMatrixFa do
         max_lines={1}
       />
       <Spacer size={5} />
-      <Text text={plan.subtitle} font_family="fa" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={plan.subtitle}
+        font_family="fa"
+        text_size={11.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -188,7 +200,13 @@ defmodule Kati.Screens.MealsMatrixFa do
   def segments(plan, view) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4} align="center">
+      <Row
+        fill_width={true}
+        background={Palette.placeholder()}
+        corner_radius={16}
+        padding={4}
+        align="center"
+      >
         {plan.segments
          |> Enum.with_index()
          |> Enum.map(fn {label, i} -> Kati.Screens.MealsMatrixFa.segment(label, i, i == view) end)
@@ -215,8 +233,22 @@ defmodule Kati.Screens.MealsMatrixFa do
 
     ~MOB"""
     <Box weight={1.0} on_tap={tap}>
-      <Box fill_width={true} height={34} corner_radius={12} background={background} shadow={shadow} align="center">
-        <Text text={label} font_family="fa" text_size={12.5} font_weight={weight} text_color={color} max_lines={1} />
+      <Box
+        fill_width={true}
+        height={34}
+        corner_radius={12}
+        background={background}
+        shadow={shadow}
+        align="center"
+      >
+        <Text
+          text={label}
+          font_family="fa"
+          text_size={12.5}
+          font_weight={weight}
+          text_color={color}
+          max_lines={1}
+        />
       </Box>
     </Box>
     """
@@ -319,7 +351,13 @@ defmodule Kati.Screens.MealsMatrixFa do
             max_lines={1}
           />
           <Spacer size={2} />
-          <Text text={row.time} font_family="mono" text_size={9.5} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={9.5}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
         </Column>
         {row.cells
          |> Enum.with_index()
@@ -351,7 +389,13 @@ defmodule Kati.Screens.MealsMatrixFa do
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} aspect_ratio={1.0} corner_radius={9} background={Palette.ink()} align="center">
+        <Box
+          fill_width={true}
+          aspect_ratio={1.0}
+          corner_radius={9}
+          background={Palette.ink()}
+          align="center"
+        >
           <Box width={7} height={7} corner_radius={4} background={Kati.Theme.accent()} />
         </Box>
       </Row>
@@ -364,7 +408,13 @@ defmodule Kati.Screens.MealsMatrixFa do
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} aspect_ratio={1.0} corner_radius={9} border_color={Palette.border()} border_width={1.5} />
+        <Box
+          fill_width={true}
+          aspect_ratio={1.0}
+          corner_radius={9}
+          border_color={Palette.border()}
+          border_width={1.5}
+        />
       </Row>
     </Box>
     """
@@ -386,7 +436,13 @@ defmodule Kati.Screens.MealsMatrixFa do
     <Box weight={1.0}>
       <Row fill_width={true} align="center">
         <Spacer size={3} />
-        <Box fill_width={true} aspect_ratio={1.0} corner_radius={9} background={Palette.paper()} align="center">
+        <Box
+          fill_width={true}
+          aspect_ratio={1.0}
+          corner_radius={9}
+          background={Palette.paper()}
+          align="center"
+        >
           <Box width={7} height={7} corner_radius={4} background={Palette.rail_idle()} />
         </Box>
       </Row>
@@ -419,7 +475,13 @@ defmodule Kati.Screens.MealsMatrixFa do
     <Row align="center">
       {Kati.Screens.MealsMatrixFa.legend_dot(state)}
       <Spacer size={5} />
-      <Text text={label} font_family="fa" text_size={10} text_color={Palette.eyebrow()} max_lines={1} />
+      <Text
+        text={label}
+        font_family="fa"
+        text_size={10}
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -428,7 +490,13 @@ defmodule Kati.Screens.MealsMatrixFa do
   # border here — the design's way of saying "a slot with nothing in it".
   @doc false
   def legend_dot(:open) do
-    ~MOB"<Box width={7} height={7} corner_radius={4} border_color={Palette.track_off()} border_width={1.5} />"
+    ~MOB"<Box
+  width={7}
+  height={7}
+  corner_radius={4}
+  border_color={Palette.track_off()}
+  border_width={1.5}
+/>"
   end
 
   def legend_dot(:today) do
@@ -446,7 +514,14 @@ defmodule Kati.Screens.MealsMatrixFa do
       <Row fill_width={true} background={Palette.cream()} corner_radius={18} padding={15} align="top">
         {Kati.UI.symbol("swap_horiz", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
-        <Text text={plan.note} font_family="fa" text_size={12.5} line_height={1.7} text_color={Palette.cream_body()} weight={1.0} />
+        <Text
+          text={plan.note}
+          font_family="fa"
+          text_size={12.5}
+          line_height={1.7}
+          text_color={Palette.cream_body()}
+          weight={1.0}
+        />
       </Row>
       <Spacer size={18} />
     </Column>
@@ -466,7 +541,13 @@ defmodule Kati.Screens.MealsMatrixFa do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={Theme.accent()} />
         <Spacer size={9} />
-        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={Palette.eyebrow()} />
+        <Text
+          text={label}
+          font_family="fa"
+          text_size={11}
+          font_weight="semibold"
+          text_color={Palette.eyebrow()}
+        />
       </Row>
       <Spacer size={11} />
     </Column>
@@ -503,12 +584,32 @@ defmodule Kati.Screens.MealsMatrixFa do
         {Kati.Screens.MealsMatrixFa.thumb(meal.seed)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={Palette.eyebrow()} max_lines={1} />
+          <Text
+            text={meal.label}
+            font_family="fa"
+            text_size={10.5}
+            font_weight="semibold"
+            text_color={Palette.eyebrow()}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={meal.title} font_family="fa" text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={meal.title}
+            font_family="fa"
+            text_size={13}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
-        <Text text={meal.calories} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={meal.calories}
+          font_family="mono"
+          text_size={11}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Row>
       {Kati.Screens.MealsMatrixFa.hairline(rule?)}
     </Column>

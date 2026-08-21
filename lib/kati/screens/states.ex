@@ -46,7 +46,13 @@ defmodule Kati.Screens.States do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title("States", "reference sheet")}
         {UI.eyebrow("Empty — nothing added yet")}
@@ -85,19 +91,50 @@ defmodule Kati.Screens.States do
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={18} />
-        <Text text={e.title} text_size={17} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} text_align="center" />
+        <Text
+          text={e.title}
+          text_size={17}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={:on_surface}
+          text_align="center"
+        />
         <Spacer size={8} />
-        <Text text={e.body} text_size={13} line_height={1.55} text_color={0xFF8A8479} text_align="center" />
+        <Text
+          text={e.body}
+          text_size={13}
+          line_height={1.55}
+          text_color={0xFF8A8479}
+          text_align="center"
+        />
         <Spacer size={18} />
-        <Row fill_width={true} height={44} corner_radius={22} background={Kati.Theme.ink()} align="center">
+        <Row
+          fill_width={true}
+          height={44}
+          corner_radius={22}
+          background={Kati.Theme.ink()}
+          align="center"
+        >
           <Spacer weight={1.0} />
           {Kati.UI.symbol("add", size: 18, color: 0xFFFBFAF8)}
           <Spacer size={7} />
-          <Text text={e.action} text_size={13} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+          <Text
+            text={e.action}
+            text_size={13}
+            font_weight="bold"
+            text_color={0xFFFBFAF8}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={14} />
-        <Text text={e.secondary} text_size={12.5} font_weight="semibold" text_color={0xFF8A8479} text_align="center" />
+        <Text
+          text={e.secondary}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={0xFF8A8479}
+          text_align="center"
+        />
       </Column>
       <Spacer size={24} />
     </Column>
@@ -167,7 +204,13 @@ defmodule Kati.Screens.States do
         {Kati.UI.symbol(o.icon, size: 20, color: 0xFFC98A3E)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={o.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={o.title}
+            text_size={13}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={o.sub} text_size={11.5} text_color={0xFF8A7B60} max_lines={1} />
         </Column>
@@ -195,7 +238,13 @@ defmodule Kati.Screens.States do
         {Kati.UI.symbol(e.icon, size: 20, color: Kati.Theme.red())}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={e.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={e.title}
+            text_size={13}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={e.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
         </Column>
@@ -222,9 +271,22 @@ defmodule Kati.Screens.States do
     >
       {Kati.UI.symbol(u.icon, size: 19, color: 0xFFFBFAF8)}
       <Spacer size={12} />
-      <Text text={u.text} text_size={13} font_weight="semibold" text_color={0xFFFBFAF8} weight={1.0} max_lines={1} />
+      <Text
+        text={u.text}
+        text_size={13}
+        font_weight="semibold"
+        text_color={0xFFFBFAF8}
+        weight={1.0}
+        max_lines={1}
+      />
       <Spacer size={12} />
-      <Text text={u.action} text_size={12.5} font_weight="bold" text_color={0xFFE8823C} max_lines={1} />
+      <Text
+        text={u.action}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={0xFFE8823C}
+        max_lines={1}
+      />
     </Row>
     """
   end

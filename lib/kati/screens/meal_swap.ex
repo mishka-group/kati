@@ -47,9 +47,20 @@ defmodule Kati.Screens.MealSwap do
     candidates = assigns.candidates
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.MealSwap.header()}
           {Kati.Screens.MealSwap.replacing()}
           {Kati.Screens.MealSwap.arrow()}
@@ -73,7 +84,13 @@ defmodule Kati.Screens.MealSwap do
       <Row fill_width={true} align="center">
         {Kati.Screens.MealSwap.close_button()}
         <Spacer weight={1.0} />
-        <Text text={Kati.Meals.SampleSwap.heading()} text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={Kati.Meals.SampleSwap.heading()}
+          text_size={15}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
         <Spacer size={44} />
       </Row>
@@ -133,9 +150,21 @@ defmodule Kati.Screens.MealSwap do
             max_lines={1}
           />
           <Spacer size={4} />
-          <Text text={from.title} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={from.title}
+            text_size={14}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={from.macros} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={from.macros}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
       </Row>
       <Spacer size={8} />
@@ -209,7 +238,15 @@ defmodule Kati.Screens.MealSwap do
 
     ~MOB"""
     <Row align="center">
-      <Row height={32} corner_radius={16} background={background} shadow={shadow} padding_left={14} padding_right={14} align="center">
+      <Row
+        height={32}
+        corner_radius={16}
+        background={background}
+        shadow={shadow}
+        padding_left={14}
+        padding_right={14}
+        align="center"
+      >
         <Text text={label} text_size={12.5} font_weight="semibold" text_color={color} max_lines={1} />
       </Row>
       <Spacer size={7} />
@@ -250,14 +287,33 @@ defmodule Kati.Screens.MealSwap do
         <Spacer size={13} />
         <Column weight={1.0}>
           <Row fill_width={true} align="center">
-            <Text text={row.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+            <Text
+              text={row.title}
+              text_size={13.5}
+              font_weight="bold"
+              text_color={:on_surface}
+              max_lines={1}
+            />
             {Kati.Screens.MealSwap.badge(row.badge)}
           </Row>
           <Spacer size={4} />
-          <Text text={row.macros} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.macros}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
-        <Text text={row.delta} font_family="mono" text_size={11} font_weight="medium" text_color={row.delta_color} max_lines={1} />
+        <Text
+          text={row.delta}
+          font_family="mono"
+          text_size={11}
+          font_weight="medium"
+          text_color={row.delta_color}
+          max_lines={1}
+        />
       </Row>
       <Spacer size={10} />
     </Column>
@@ -362,10 +418,28 @@ defmodule Kati.Screens.MealSwap do
         padding={16}
       >
         <Row fill_width={true} align="center">
-          <Text text={effect.label} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={effect.label}
+            text_size={13}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
-          <Text text={effect.total} font_family="mono" text_size={12} text_color={Palette.ink_soft()} max_lines={1} />
-          <Text text={effect.target} font_family="mono" text_size={12} text_color={Palette.rail_idle()} max_lines={1} />
+          <Text
+            text={effect.total}
+            font_family="mono"
+            text_size={12}
+            text_color={Palette.ink_soft()}
+            max_lines={1}
+          />
+          <Text
+            text={effect.target}
+            font_family="mono"
+            text_size={12}
+            text_color={Palette.rail_idle()}
+            max_lines={1}
+          />
         </Row>
         <Spacer size={12} />
         <Box fill_width={true} height={9} corner_radius={4.5} background={Palette.paper()}>
@@ -377,7 +451,13 @@ defmodule Kati.Screens.MealSwap do
         <Row fill_width={true} align="center">
           {Kati.UI.symbol("check_circle", size: 15, color: Palette.green(), fill: true)}
           <Spacer size={7} />
-          <Text text={effect.verdict} text_size={11.5} text_color={Palette.ink_soft()} weight={1.0} max_lines={1} />
+          <Text
+            text={effect.verdict}
+            text_size={11.5}
+            text_color={Palette.ink_soft()}
+            weight={1.0}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={20} />
@@ -401,10 +481,23 @@ defmodule Kati.Screens.MealSwap do
     ~MOB"""
     <Row fill_width={true} align="center">
       <Box weight={1.0}>
-        <Box fill_width={true} height={50} corner_radius={25} background={Palette.ink_fill()} align="center" on_tap={once_tap}>
+        <Box
+          fill_width={true}
+          height={50}
+          corner_radius={25}
+          background={Palette.ink_fill()}
+          align="center"
+          on_tap={once_tap}
+        >
           <Row fill_width={true} align="center">
             <Spacer weight={1.0} />
-            <Text text={once} text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+            <Text
+              text={once}
+              text_size={14}
+              font_weight="bold"
+              text_color={Palette.on_ink()}
+              max_lines={1}
+            />
             <Spacer weight={1.0} />
           </Row>
         </Box>
@@ -420,7 +513,13 @@ defmodule Kati.Screens.MealSwap do
         align="center"
         on_tap={forever_tap}
       >
-        <Text text={forever} text_size={13} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+        <Text
+          text={forever}
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.ink_soft()}
+          max_lines={1}
+        />
       </Row>
     </Row>
     """

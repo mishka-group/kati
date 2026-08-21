@@ -45,7 +45,13 @@ defmodule Kati.Screens.ReleaseWatcher do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title("Release watcher", w.checked)}
         {Kati.Screens.ReleaseWatcher.banner(w.banner)}
@@ -82,9 +88,21 @@ defmodule Kati.Screens.ReleaseWatcher do
         {Kati.UI.symbol("auto_awesome", size: 24, color: Palette.gold_icon())}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={b.title} text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={b.title}
+            text_size={14.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={b.meta} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
+          <Text
+            text={b.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.cream_meta()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
         {SettingsList.switch(b.on)}
@@ -155,7 +173,13 @@ defmodule Kati.Screens.ReleaseWatcher do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4} align="center">
+      <Row
+        fill_width={true}
+        background={Palette.placeholder()}
+        corner_radius={16}
+        padding={4}
+        align="center"
+      >
         {tiles}
       </Row>
       <Spacer size={22} />
@@ -178,7 +202,15 @@ defmodule Kati.Screens.ReleaseWatcher do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row fill_width={true} height={34} corner_radius={12} background={bg} shadow={shadow} align="center" on_tap={tap}>
+      <Row
+        fill_width={true}
+        height={34}
+        corner_radius={12}
+        background={bg}
+        shadow={shadow}
+        align="center"
+        on_tap={tap}
+      >
         <Spacer weight={1.0} />
         <Text text={label} text_size={12} font_weight={weight} text_color={fg} max_lines={1} />
         <Spacer weight={1.0} />
@@ -206,13 +238,22 @@ defmodule Kati.Screens.ReleaseWatcher do
 
     case Atom.to_string(tag) do
       "banner" ->
-        {:noreply, Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: not w.banner.on}})}
+        {:noreply,
+         Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: not w.banner.on}})}
 
       "kind_" <> i ->
-        {:noreply, Mob.Socket.assign(socket, :watcher, %{w | kinds: Kati.Screens.ReleaseWatcher.flip(w.kinds, i)})}
+        {:noreply,
+         Mob.Socket.assign(socket, :watcher, %{
+           w
+           | kinds: Kati.Screens.ReleaseWatcher.flip(w.kinds, i)
+         })}
 
       "loud_" <> i ->
-        {:noreply, Mob.Socket.assign(socket, :watcher, %{w | loudness: Kati.Screens.ReleaseWatcher.flip(w.loudness, i)})}
+        {:noreply,
+         Mob.Socket.assign(socket, :watcher, %{
+           w
+           | loudness: Kati.Screens.ReleaseWatcher.flip(w.loudness, i)
+         })}
 
       "cadence_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :watcher, %{w | cadence: label})}

@@ -66,7 +66,13 @@ defmodule Kati.Screens.Habits do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Habits.back_gap()}
         {Kati.Screens.Habits.header(habits)}
         {Kati.Screens.Habits.cards(habits)}
@@ -90,9 +96,21 @@ defmodule Kati.Screens.Habits do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Habits" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Habits"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={subtitle}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         {Kati.Screens.Habits.disc("add", :new_habit)}
       </Row>
@@ -177,9 +195,22 @@ defmodule Kati.Screens.Habits do
     >
       <Row fill_width={true} align="center">
         <Column weight={1.0}>
-          <Text text={habit.name} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={habit.name}
+            text_size={14}
+            font_weight="bold"
+            letter_spacing={-0.015}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={streak} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={streak}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.Habits.today_button(habit.today, index)}
@@ -251,7 +282,8 @@ defmodule Kati.Screens.Habits do
     )
   end
 
-  defp toggle_tap(index), do: {self(), String.to_atom("toggle_today_" <> Integer.to_string(index))}
+  defp toggle_tap(index),
+    do: {self(), String.to_atom("toggle_today_" <> Integer.to_string(index))}
 
   @doc false
   def week(days) do
@@ -307,9 +339,21 @@ defmodule Kati.Screens.Habits do
       {Enum.map(rows, fn row -> Kati.Screens.Habits.cell_row(row) end)}
       <Spacer size={8} />
       <Row fill_width={true} align="center">
-        <Text text={month} font_family="mono" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
+        <Text
+          text={month}
+          font_family="mono"
+          text_size={10}
+          text_color={Palette.cream_meta()}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
-        <Text text={hit} font_family="mono" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
+        <Text
+          text={hit}
+          font_family="mono"
+          text_size={10}
+          text_color={Palette.cream_meta()}
+          max_lines={1}
+        />
       </Row>
     </Column>
     """
@@ -359,7 +403,8 @@ defmodule Kati.Screens.Habits do
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "toggle_today_" <> index ->
-        {:noreply, Mob.Socket.update(socket, :habits, &Kati.Screens.Habits.toggle_today(&1, index))}
+        {:noreply,
+         Mob.Socket.update(socket, :habits, &Kati.Screens.Habits.toggle_today(&1, index))}
 
       _ ->
         {:noreply, socket}

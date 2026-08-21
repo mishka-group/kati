@@ -236,7 +236,13 @@ defmodule Kati.Screens.Fa do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
-        <Text text={label} font_family="fa" font_weight="semibold" text_size={11} text_color={label_color} />
+        <Text
+          text={label}
+          font_family="fa"
+          font_weight="semibold"
+          text_size={11}
+          text_color={label_color}
+        />
       </Row>
       <Spacer size={11} />
     </Column>

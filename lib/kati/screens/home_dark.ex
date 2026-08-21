@@ -52,9 +52,20 @@ defmodule Kati.Screens.HomeDark do
     moment = assigns.moment
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={132}
+        >
           {Kati.Screens.HomeDark.header(moment)}
           {Kati.Screens.HomeDark.search()}
           {Kati.Screens.HomeDark.eyebrow("New this week")}
@@ -109,7 +120,13 @@ defmodule Kati.Screens.HomeDark do
             text_color={0xFF6A6560}
           />
           <Spacer size={7} />
-          <Text text={moment.greeting} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={0xFFF5F2EE} />
+          <Text
+            text={moment.greeting}
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={0xFFF5F2EE}
+          />
         </Column>
         {Kati.Screens.HomeDark.disc("notifications", :inbox)}
         <Spacer size={9} />
@@ -180,7 +197,13 @@ defmodule Kati.Screens.HomeDark do
       >
         {Kati.UI.symbol("search", size: 20, color: 0xFF6A6560)}
         <Spacer size={11} />
-        <Text text="Search films, shows, events…" text_size={14.5} text_color={0xFF6A6560} weight={1.0} max_lines={1} />
+        <Text
+          text="Search films, shows, events…"
+          text_size={14.5}
+          text_color={0xFF6A6560}
+          weight={1.0}
+          max_lines={1}
+        />
         <Spacer size={11} />
         {Kati.UI.symbol("tune", size: 19, color: 0xFFF5F2EE)}
       </Row>
@@ -240,13 +263,33 @@ defmodule Kati.Screens.HomeDark do
         </Row>
         <Spacer size={17} />
         <Row fill_width={true} align="center">
-          <Row height={40} corner_radius={20} background={0xFFF7EFE4} padding_left={18} padding_right={18} align="center" on_tap={tap}>
-            <Text text={inbox.cta} text_size={13.5} font_weight="semibold" text_color={0xFF1A1917} max_lines={1} />
+          <Row
+            height={40}
+            corner_radius={20}
+            background={0xFFF7EFE4}
+            padding_left={18}
+            padding_right={18}
+            align="center"
+            on_tap={tap}
+          >
+            <Text
+              text={inbox.cta}
+              text_size={13.5}
+              font_weight="semibold"
+              text_color={0xFF1A1917}
+              max_lines={1}
+            />
             <Spacer size={7} />
             {Kati.UI.symbol("arrow_forward", size: 17, color: 0xFF1A1917)}
           </Row>
           <Spacer size={10} />
-          <Text text={moment.last_check} font_family="mono" text_size={11} text_color={0xFF7A6F5E} max_lines={1} />
+          <Text
+            text={moment.last_check}
+            font_family="mono"
+            text_size={11}
+            text_color={0xFF7A6F5E}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={26} />
@@ -349,9 +392,22 @@ defmodule Kati.Screens.HomeDark do
       >
         {Kati.Screens.HomeDark.still(row)}
         <Spacer size={11} />
-        <Text text={row.title} text_size={14.5} font_weight="bold" letter_spacing={-0.02} text_color={0xFFF5F2EE} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={0xFFF5F2EE}
+          max_lines={1}
+        />
         <Spacer size={3} />
-        <Text text={row.meta} font_family="mono" text_size={10.5} text_color={0xFF6A6560} max_lines={1} />
+        <Text
+          text={row.meta}
+          font_family="mono"
+          text_size={10.5}
+          text_color={0xFF6A6560}
+          max_lines={1}
+        />
         <Spacer size={10} />
         <Box fill_width={true} height={4} corner_radius={2} background={0xFF312F2C}>
           <Row fill_width={true}>
@@ -412,13 +468,25 @@ defmodule Kati.Screens.HomeDark do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Column width={40}>
-          <Text text={row.time} font_family="mono" text_size={12} text_color={0xFF6A6560} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={12}
+            text_color={0xFF6A6560}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={14} />
         <Box width={3} height={34} corner_radius={2} background={rail} />
         <Spacer size={14} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={14} font_weight="semibold" text_color={0xFFF5F2EE} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={14}
+            font_weight="semibold"
+            text_color={0xFFF5F2EE}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={row.meta} text_size={12} text_color={0xFF8A837B} max_lines={1} />
         </Column>
@@ -466,7 +534,14 @@ defmodule Kati.Screens.HomeDark do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="bottom">
       <Row fill_width={true} align="center" padding_left={18} padding_right={18} padding_bottom={30}>
-        <Box weight={1.0} height={64} background={0xEB1E1D1B} corner_radius={32} shadow={Kati.Theme.shadow_dock()} align="center">
+        <Box
+          weight={1.0}
+          height={64}
+          background={0xEB1E1D1B}
+          corner_radius={32}
+          shadow={Kati.Theme.shadow_dock()}
+          align="center"
+        >
           <Row fill_width={true} fill_height={true} align="center" padding_left={9} padding_right={9}>
             {Enum.map(Kati.Shell.roots(), fn root -> Kati.Screens.HomeDark.tab(root) end)}
           </Row>

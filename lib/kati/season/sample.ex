@@ -43,7 +43,8 @@ defmodule Kati.Season.Sample do
       ],
       eyebrow: "Episodes · 9 in this order",
       episodes: episodes(),
-      note: "Absolute order renumbers this season 27–35 and drops the special. Your ticks follow the episode, not the number."
+      note:
+        "Absolute order renumbers this season 27–35 and drops the special. Your ticks follow the episode, not the number."
     }
   end
 

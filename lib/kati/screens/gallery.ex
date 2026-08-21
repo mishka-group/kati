@@ -100,8 +100,20 @@ defmodule Kati.Screens.Gallery do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={Kati.Screens.Pushed.content_top()} padding_bottom={40}>
-        <Text text="All screens" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={Kati.Screens.Pushed.content_top()}
+        padding_bottom={40}
+      >
+        <Text
+          text="All screens"
+          text_size={28}
+          font_weight="bold"
+          letter_spacing={-0.03}
+          text_color={:on_surface}
+        />
         <Spacer size={5} />
         <Text
           text={"#{count} pages · tap to open"}
@@ -155,7 +167,13 @@ defmodule Kati.Screens.Gallery do
         </Column>
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={name} text_size={14} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={name}
+            text_size={14}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text
             text={module |> Module.split() |> List.last()}
@@ -175,7 +193,9 @@ defmodule Kati.Screens.Gallery do
 
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={Palette.hairline()} />"
+
+  def hairline(true),
+    do: ~MOB"<Box fill_width={true} height={1} background={Palette.hairline()} />"
 
   @impl true
   def handle_tap(tag, socket) do

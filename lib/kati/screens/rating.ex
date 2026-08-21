@@ -110,9 +110,20 @@ defmodule Kati.Screens.Rating do
     w = assigns.watch
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.Rating.header()}
           {Kati.Screens.Rating.title_card(w)}
           {Kati.Screens.Rating.rating_card(w)}
@@ -135,7 +146,13 @@ defmodule Kati.Screens.Rating do
       <Row fill_width={true} align="center">
         {Kati.Screens.Rating.close_disc(close)}
         <Spacer weight={1.0} />
-        <Text text="Log a watch" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text="Log a watch"
+          text_size={15}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
         {Kati.Screens.Rating.save_pill(save)}
       </Row>
@@ -248,7 +265,13 @@ defmodule Kati.Screens.Rating do
             max_lines={1}
           />
           <Spacer size={6} />
-          <Text text={w.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={w.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
           <Spacer size={9} />
           {Kati.Screens.Rating.rewatch(w.rewatch)}
         </Column>
@@ -279,7 +302,13 @@ defmodule Kati.Screens.Rating do
   """
   def rewatch(label) do
     text = ~MOB"""
-    <Text text={label} text_size={11} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+    <Text
+      text={label}
+      text_size={11}
+      font_weight="semibold"
+      text_color={Palette.ink_soft()}
+      max_lines={1}
+    />
     """
 
     gap = ~MOB"<Spacer size={5} />"
@@ -338,10 +367,23 @@ defmodule Kati.Screens.Rating do
         <Row fill_width={true} align="center">
           {Kati.Screens.Rating.stars(w.rating)}
           <Spacer size={12} />
-          <Text text={"#{w.rating}"} font_family="mono" text_size={14} font_weight="medium" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={"#{w.rating}"}
+            font_family="mono"
+            text_size={14}
+            font_weight="medium"
+            text_color={:on_surface}
+            max_lines={1}
+          />
         </Row>
         <Spacer size={10} />
-        <Text text={w.rating_note} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={w.rating_note}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={14} />
     </Column>
@@ -382,7 +424,13 @@ defmodule Kati.Screens.Rating do
       padding_right={10}
       align="center"
     >
-      <Text text={option.label} text_size={10.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={option.label}
+        text_size={10.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       {Kati.Screens.Rating.scale_star(option.star, Palette.ink())}
     </Row>
     """
@@ -391,7 +439,13 @@ defmodule Kati.Screens.Rating do
   def scale(option) do
     ~MOB"""
     <Row height={24} corner_radius={8} padding_left={10} padding_right={10} align="center">
-      <Text text={option.label} text_size={10.5} font_weight="semibold" text_color={Palette.eyebrow()} max_lines={1} />
+      <Text
+        text={option.label}
+        text_size={10.5}
+        font_weight="semibold"
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
       {Kati.Screens.Rating.scale_star(option.star, Palette.eyebrow())}
     </Row>
     """
@@ -467,7 +521,13 @@ defmodule Kati.Screens.Rating do
   def review_card(w) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={Palette.cream()} corner_radius={22} shadow={Kati.Theme.shadow_card_soft()} padding={18}>
+      <Column
+        fill_width={true}
+        background={Palette.cream()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={18}
+      >
         <Row fill_width={true} align="center">
           <Text
             text={String.upcase("Review")}
@@ -480,7 +540,13 @@ defmodule Kati.Screens.Rating do
           <Spacer weight={1.0} />
           {Kati.UI.symbol("visibility_off", size: 15, color: Palette.gold_icon())}
           <Spacer size={6} />
-          <Text text={w.spoilers} text_size={11} font_weight="semibold" text_color={Palette.gold_text()} max_lines={1} />
+          <Text
+            text={w.spoilers}
+            text_size={11}
+            font_weight="semibold"
+            text_color={Palette.gold_text()}
+            max_lines={1}
+          />
         </Row>
         <Spacer size={10} />
         <Text text={w.review} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
@@ -491,7 +557,13 @@ defmodule Kati.Screens.Rating do
         <Box fill_width={true} height={1} background={Palette.cream_rule()} />
         <Spacer size={13} />
         <Row fill_width={true} align="center">
-          <Text text={w.characters} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
+          <Text
+            text={w.characters}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.cream_meta()}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
           {Kati.UI.symbol("format_bold", size: 16, color: Palette.gold_icon())}
           <Spacer size={7} />

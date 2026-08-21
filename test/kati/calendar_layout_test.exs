@@ -59,7 +59,8 @@ defmodule Kati.Calendar.LayoutTest do
 
   describe "phase 0 — collapse by kind" do
     test "three of a kind become one occurrence carrying its members" do
-      placements = Layout.lanes([ev(1, 600, 630, :meal), ev(2, 610, 640, :meal), ev(3, 620, 650, :meal)])
+      placements =
+        Layout.lanes([ev(1, 600, 630, :meal), ev(2, 610, 640, :meal), ev(3, 620, 650, :meal)])
 
       assert [%{event: %{id: {:collapsed, :meal, ids}} = collapsed}] = placements
       assert ids == [1, 2, 3]
@@ -115,7 +116,9 @@ defmodule Kati.Calendar.LayoutTest do
     end
 
     test "occurrences with no kind never collapse" do
-      assert length(Layout.lanes([ev(1, 600, 660), ev(2, 605, 665), ev(3, 610, 670)], max_cols: 3)) == 3
+      assert length(
+               Layout.lanes([ev(1, 600, 660), ev(2, 605, 665), ev(3, 610, 670)], max_cols: 3)
+             ) == 3
     end
   end
 
@@ -149,7 +152,9 @@ defmodule Kati.Calendar.LayoutTest do
     end
 
     test "the tile spans the hidden events" do
-      placements = Layout.lanes([ev(1, 600, 700), ev(2, 610, 700), ev(3, 620, 780), ev(4, 630, 760)])
+      placements =
+        Layout.lanes([ev(1, 600, 700), ev(2, 610, 700), ev(3, 620, 780), ev(4, 630, 760)])
+
       [tile] = Enum.filter(placements, &(&1.role == :overflow))
 
       assert tile.event.start_min == 620

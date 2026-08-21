@@ -44,7 +44,13 @@ defmodule Kati.Screens.Week do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.Week.header(week)}
         {Kati.Screens.Week.switcher()}
         {Kati.Screens.Week.lanes(week)}
@@ -157,7 +163,13 @@ defmodule Kati.Screens.Week do
       </Box>
       <Spacer size={4} />
       <Box fill_width={true} align="center">
-        <Text text={lane.day} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={lane.day}
+          text_size={14}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
       </Box>
     </Column>
     """
@@ -200,7 +212,13 @@ defmodule Kati.Screens.Week do
     >
       <Box width={2.5} height={height} background={rule} />
       <Column padding_left={6} padding_right={6} padding_top={7} padding_bottom={7}>
-        <Text text={block.hour} font_family="mono" text_size={10} text_color={Palette.eyebrow()} max_lines={1} />
+        <Text
+          text={block.hour}
+          font_family="mono"
+          text_size={10}
+          text_color={Palette.eyebrow()}
+          max_lines={1}
+        />
       </Column>
     </Row>
     """
@@ -239,7 +257,13 @@ defmodule Kati.Screens.Week do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
         <Column width={38}>
-          <Text text={row.time} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         <Box width={3} height={20} corner_radius={2} background={rule_color} />
@@ -253,7 +277,13 @@ defmodule Kati.Screens.Week do
           max_lines={1}
         />
         <Spacer size={12} />
-        <Text text={row.length} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
+        <Text
+          text={row.length}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.tertiary()}
+          max_lines={1}
+        />
       </Row>
       {Kati.Screens.Week.hairline(rule?)}
     </Column>
@@ -375,7 +405,13 @@ defmodule Kati.Screens.Week do
   def letter(letter) do
     ~MOB"""
     <Box weight={1.0} align="center">
-      <Text text={letter} font_family="mono" text_size={9.5} text_color={Palette.tertiary()} max_lines={1} />
+      <Text
+        text={letter}
+        font_family="mono"
+        text_size={9.5}
+        text_color={Palette.tertiary()}
+        max_lines={1}
+      />
     </Box>
     """
   end

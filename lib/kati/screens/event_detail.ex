@@ -92,9 +92,20 @@ defmodule Kati.Screens.EventDetail do
     event = assigns.event
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.EventDetail.chrome()}
           {Kati.Screens.EventDetail.title_card(event)}
           {Kati.Screens.EventDetail.fields(event)}
@@ -118,7 +129,13 @@ defmodule Kati.Screens.EventDetail do
       <Row fill_width={true} align="center">
         {Kati.Screens.EventDetail.close_disc(close)}
         <Spacer weight={1.0} />
-        <Text text="Edit event" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text="Edit event"
+          text_size={15}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
         {Kati.Screens.EventDetail.save_pill()}
       </Row>
@@ -304,7 +321,13 @@ defmodule Kati.Screens.EventDetail do
         {Kati.Screens.EventDetail.tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -379,7 +402,8 @@ defmodule Kati.Screens.EventDetail do
   # value is `0xFFB3ACA2`, and this chevron is `0xFFC4BDB3`; the design draws two
   # chevron greys and only one of them is `tertiary`. Taking the better name
   # would have moved light mode by seventeen units, so the value wins.
-  def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
+  def trailing(:chevron),
+    do: Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
 
   @doc """
   The rule between two rows — `Kati.Components.MishkaSeparator`, and it must be
@@ -416,7 +440,14 @@ defmodule Kati.Screens.EventDetail do
         <Row fill_width={true} align="center">
           {UI.symbol("call_split", size: 18, color: Palette.gold_icon())}
           <Spacer size={10} />
-          <Text text={clash.line} text_size={13} font_weight="bold" text_color={:on_surface} weight={1.0} max_lines={1} />
+          <Text
+            text={clash.line}
+            text_size={13}
+            font_weight="bold"
+            text_color={:on_surface}
+            weight={1.0}
+            max_lines={1}
+          />
         </Row>
         <Spacer size={13} />
         <Row fill_width={true} align="center">
@@ -520,7 +551,13 @@ defmodule Kati.Screens.EventDetail do
         {Kati.Screens.EventDetail.avatar(person)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={person.name} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={person.name}
+            text_size={13}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={2} />
           <Text text={person.sub} text_size={11} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -558,7 +595,9 @@ defmodule Kati.Screens.EventDetail do
   # Green is a `:hue` and does not move with the ground. The waiting clock is
   # `rail_idle` by value, for the reason `trailing(:chevron)` records.
   @doc false
-  def reply(:accepted), do: Kati.UI.symbol("check_circle", size: 18, color: Palette.green(), fill: true)
+  def reply(:accepted),
+    do: Kati.UI.symbol("check_circle", size: 18, color: Palette.green(), fill: true)
+
   def reply(:waiting), do: Kati.UI.symbol("schedule", size: 18, color: Palette.rail_idle())
 
   @doc """
@@ -580,7 +619,14 @@ defmodule Kati.Screens.EventDetail do
     <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
       {Kati.Screens.EventDetail.add_ring()}
       <Spacer size={13} />
-      <Text text="Add someone" text_size={13} font_weight="semibold" text_color={Palette.sub()} weight={1.0} max_lines={1} />
+      <Text
+        text="Add someone"
+        text_size={13}
+        font_weight="semibold"
+        text_color={Palette.sub()}
+        weight={1.0}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -617,7 +663,13 @@ defmodule Kati.Screens.EventDetail do
       <Row align="center">
         {UI.symbol("delete", size: 18, color: Palette.red())}
         <Spacer size={8} />
-        <Text text="Delete event" text_size={13} font_weight="bold" text_color={Palette.red()} max_lines={1} />
+        <Text
+          text="Delete event"
+          text_size={13}
+          font_weight="bold"
+          text_color={Palette.red()}
+          max_lines={1}
+        />
       </Row>
     </Box>
     """
@@ -643,8 +695,11 @@ defmodule Kati.Screens.EventDetail do
         fields =
           Enum.map(event.fields, fn field ->
             case field do
-              %{title: ^title, trailing: {:switch, on?}} -> %{field | trailing: {:switch, not on?}}
-              other -> other
+              %{title: ^title, trailing: {:switch, on?}} ->
+                %{field | trailing: {:switch, not on?}}
+
+              other ->
+                other
             end
           end)
 

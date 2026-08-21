@@ -76,7 +76,13 @@ defmodule Kati.Screens.MealsDay do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.MealsDay.header(density)}
         {Kati.Screens.MealsDay.title(day)}
         {Kati.Screens.MealsDay.chips(day, filter)}
@@ -176,7 +182,13 @@ defmodule Kati.Screens.MealsDay do
         max_lines={1}
       />
       <Spacer size={5} />
-      <Text text={day.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={day.subtitle}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -241,7 +253,13 @@ defmodule Kati.Screens.MealsDay do
     ~MOB"""
     <Row align="center">
       <Spacer size={6} />
-      <Text text={count} font_family="mono" text_size={10} text_color={Palette.count_idle()} max_lines={1} />
+      <Text
+        text={count}
+        font_family="mono"
+        text_size={10}
+        text_color={Palette.count_idle()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -296,7 +314,13 @@ defmodule Kati.Screens.MealsDay do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={13}>
-          <Text text={row.time} font_family="mono" text_size={12} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={12}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
@@ -314,9 +338,21 @@ defmodule Kati.Screens.MealsDay do
             <Box width={3} height={34} corner_radius={2} background={row.rule} />
             <Spacer size={11} />
             <Column weight={1.0}>
-              <Text text={row.title} text_size={13} font_weight="semibold" text_color={color} max_lines={1} />
+              <Text
+                text={row.title}
+                text_size={13}
+                font_weight="semibold"
+                text_color={color}
+                max_lines={1}
+              />
               <Spacer size={4} />
-              <Text text={row.sub} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
+              <Text
+                text={row.sub}
+                font_family="mono"
+                text_size={10.5}
+                text_color={Palette.tertiary()}
+                max_lines={1}
+              />
             </Column>
             {Kati.Screens.MealsDay.check(row.check)}
           </Row>
@@ -465,9 +501,21 @@ defmodule Kati.Screens.MealsDay do
       <Box width={3} height={36} corner_radius={2} background={collapsed.rule} />
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={collapsed.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={collapsed.title}
+          text_size={13}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={collapsed.sub} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={collapsed.sub}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
       {UI.symbol("expand_more", size: 19, color: Palette.ink_soft())}
@@ -483,7 +531,13 @@ defmodule Kati.Screens.MealsDay do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         {UI.symbol("info", size: 15, color: Palette.tertiary())}
         <Spacer size={8} />
-        <Text text={day.note} text_size={11.5} line_height={1.45} text_color={Palette.sub()} weight={1.0} />
+        <Text
+          text={day.note}
+          text_size={11.5}
+          line_height={1.45}
+          text_color={Palette.sub()}
+          weight={1.0}
+        />
       </Row>
     </Column>
     """

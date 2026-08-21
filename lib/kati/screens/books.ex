@@ -34,7 +34,13 @@ defmodule Kati.Screens.Books do
   def content(_assigns) do
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.Books.header()}
         {Kati.Screens.Books.segments()}
         {Kati.Screens.Books.reading_now()}
@@ -55,9 +61,21 @@ defmodule Kati.Screens.Books do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Library" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Library"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={Kati.Books.Sample.subtitle()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={Kati.Books.Sample.subtitle()}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={9} />
         {Kati.Screens.Books.disc("search", :open_search)}
@@ -101,7 +119,13 @@ defmodule Kati.Screens.Books do
   def segments do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.placeholder()} corner_radius={18} padding={4} align="center">
+      <Row
+        fill_width={true}
+        background={Palette.placeholder()}
+        corner_radius={18}
+        padding={4}
+        align="center"
+      >
         {Kati.Screens.Books.segment("movie", "Screen", false, :open_screen)}
         <Spacer size={4} />
         {Kati.Screens.Books.segment("menu_book", "Books", true, :open_books)}
@@ -203,7 +227,13 @@ defmodule Kati.Screens.Books do
           <Spacer size={12} />
           {Kati.Screens.Books.reading_bar(r.progress)}
           <Spacer size={8} />
-          <Text text={r.pace} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={r.pace}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -219,7 +249,13 @@ defmodule Kati.Screens.Books do
 
       src ->
         ~MOB"""
-        <Box width={74} height={110} corner_radius={6} background={Palette.placeholder()} shadow="0 6 14 -6 #801A1917">
+        <Box
+          width={74}
+          height={110}
+          corner_radius={6}
+          background={Palette.placeholder()}
+          shadow="0 6 14 -6 #801A1917"
+        >
           <Image src={src} width={74} height={110} corner_radius={6} content_mode="fill" />
         </Box>
         """
@@ -376,16 +412,34 @@ defmodule Kati.Screens.Books do
   def tile(book) do
     ~MOB"""
     <Column weight={1.0}>
-      <Box fill_width={true} height={158} corner_radius={6} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box
+        fill_width={true}
+        height={158}
+        corner_radius={6}
+        background={Palette.placeholder()}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
         {Kati.Screens.Books.artwork(book)}
         <Box fill_width={true} fill_height={true} align="bottom">
           {Kati.Screens.Books.progress(book.progress)}
         </Box>
       </Box>
       <Spacer size={9} />
-      <Text text={book.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={book.title}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={3} />
-      <Text text={book.line} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={book.line}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end

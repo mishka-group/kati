@@ -67,7 +67,13 @@ defmodule Kati.Screens.MealReminders do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title("Reminders", r.subtitle)}
         {UI.eyebrow("The day before")}
@@ -139,9 +145,21 @@ defmodule Kati.Screens.MealReminders do
       {Kati.UI.symbol(card.icon, size: 23, color: icon_color)}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text text={card.title} text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={card.title}
+          text_size={14.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={card.cadence} font_family="mono" text_size={10.5} text_color={cadence_color} max_lines={1} />
+        <Text
+          text={card.cadence}
+          font_family="mono"
+          text_size={10.5}
+          text_color={cadence_color}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={13} />
       {Kati.UI.SettingsList.switch(card.on)}
@@ -289,7 +307,13 @@ defmodule Kati.Screens.MealReminders do
     >
       {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
+      <Text
+        text={text}
+        text_size={12.5}
+        line_height={1.55}
+        text_color={Palette.ink_soft()}
+        weight={1.0}
+      />
     </Row>
     """
   end

@@ -44,7 +44,13 @@ defmodule Kati.Screens.AutoDetect do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title("Auto-detect", d.sources_line)}
         {Kati.Screens.AutoDetect.banner(d.banner)}
@@ -76,9 +82,21 @@ defmodule Kati.Screens.AutoDetect do
         {Kati.UI.symbol("sensors", size: 24, color: Palette.gold_icon())}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={b.title} text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={b.title}
+            text_size={14.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={b.meta} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
+          <Text
+            text={b.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.cream_meta()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         {SettingsList.switch(b.on)}
@@ -154,9 +172,21 @@ defmodule Kati.Screens.AutoDetect do
           {Kati.Screens.AutoDetect.poster(n.seed, 44, 62, 9)}
           <Spacer size={13} />
           <Column weight={1.0}>
-            <Text text={n.title} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
+            <Text
+              text={n.title}
+              text_size={14}
+              font_weight="bold"
+              text_color={:on_surface}
+              max_lines={1}
+            />
             <Spacer size={4} />
-            <Text text={n.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+            <Text
+              text={n.meta}
+              font_family="mono"
+              text_size={10.5}
+              text_color={Palette.muted()}
+              max_lines={1}
+            />
           </Column>
           <Spacer size={12} />
           {SettingsList.status_pill(n.status, Palette.green_text(), Palette.green_wash())}
@@ -165,9 +195,21 @@ defmodule Kati.Screens.AutoDetect do
         {bar}
         <Spacer size={9} />
         <Row fill_width={true} align="center">
-          <Text text={n.elapsed} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={n.elapsed}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
-          <Text text={n.rule} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={n.rule}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={22} />

@@ -33,7 +33,12 @@ defmodule Kati.Settings.WatcherSample do
       %{icon: "live_tv", title: "New episodes", sub: "Shows you are watching", on: true},
       %{icon: "celebration", title: "Premieres", sub: "New seasons and first episodes", on: true},
       %{icon: "timer", title: "Leaving soon", sub: "7 days’ notice", on: true},
-      %{icon: "person", title: "People you follow", sub: "Announcements, not just releases", on: true},
+      %{
+        icon: "person",
+        title: "People you follow",
+        sub: "Announcements, not just releases",
+        on: true
+      },
       %{icon: "sell", title: "Price drops", sub: "Titles on your wishlist", on: false},
       %{icon: "payments", title: "Renewals", sub: "2 days before", on: true}
     ]

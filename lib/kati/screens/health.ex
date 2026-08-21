@@ -46,7 +46,13 @@ defmodule Kati.Screens.Health do
   def content(_assigns) do
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Health.back_gap()}
         {Kati.Screens.Health.header()}
         {Kati.Screens.Health.eaten()}
@@ -70,9 +76,21 @@ defmodule Kati.Screens.Health do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Health" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Health"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={Kati.Health.Sample.day_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={Kati.Health.Sample.day_line()}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         {Kati.Screens.Health.disc("tune", :open_filters)}
       </Row>
@@ -156,11 +174,30 @@ defmodule Kati.Screens.Health do
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase(e.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
+            <Text
+              text={String.upcase(e.label)}
+              font_family="mono"
+              text_size={10.5}
+              letter_spacing={0.16}
+              text_color={Palette.cream_meta()}
+            />
             <Spacer size={7} />
             <Row align="bottom">
-              <Text text={e.calories} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
-              <Text text={e.target} text_size={16} font_weight="semibold" text_color={Palette.cream_meta()} max_lines={1} />
+              <Text
+                text={e.calories}
+                text_size={34}
+                font_weight="extrabold"
+                letter_spacing={-0.04}
+                text_color={:on_surface}
+                max_lines={1}
+              />
+              <Text
+                text={e.target}
+                text_size={16}
+                font_weight="semibold"
+                text_color={Palette.cream_meta()}
+                max_lines={1}
+              />
             </Row>
           </Column>
           <Spacer size={12} />
@@ -175,7 +212,13 @@ defmodule Kati.Screens.Health do
         <Row fill_width={true} align="center">
           {Kati.Screens.Health.legend(e.macros)}
           <Spacer weight={1.0} />
-          <Text text={e.grams} font_family="mono" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
+          <Text
+            text={e.grams}
+            font_family="mono"
+            text_size={10}
+            text_color={Palette.cream_meta()}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -413,7 +456,14 @@ defmodule Kati.Screens.Health do
         {Kati.Screens.Health.meal_tile()}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={m.title} text_size={14.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={m.title}
+            text_size={14.5}
+            font_weight="bold"
+            letter_spacing={-0.015}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={m.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -505,7 +555,14 @@ defmodule Kati.Screens.Health do
         <Box width={7} height={7} corner_radius={4} background={section.dot} />
       </Row>
       <Spacer size={14} />
-      <Text text={section.name} text_size={14.5} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} max_lines={1} />
+      <Text
+        text={section.name}
+        text_size={14.5}
+        font_weight="bold"
+        letter_spacing={-0.02}
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={4} />
       <Text text={section.line} text_size={11} text_color={Palette.sub()} max_lines={1} />
     </Column>
@@ -532,7 +589,14 @@ defmodule Kati.Screens.Health do
         {Kati.UI.symbol(section.icon, size: 22, color: Palette.tertiary())}
       </Row>
       <Spacer size={14} />
-      <Text text={section.name} text_size={14.5} font_weight="bold" letter_spacing={-0.02} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={section.name}
+        text_size={14.5}
+        font_weight="bold"
+        letter_spacing={-0.02}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={4} />
       <Text text={section.line} text_size={11} text_color={Palette.rail_idle()} max_lines={1} />
     </Column>

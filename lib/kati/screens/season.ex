@@ -65,7 +65,13 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz", 44)}
         {SettingsList.title(s.title, s.subtitle)}
         {Kati.Screens.Season.orders(s)}
@@ -87,7 +93,13 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4} align="center">
+      <Row
+        fill_width={true}
+        background={Palette.placeholder()}
+        corner_radius={16}
+        padding={4}
+        align="center"
+      >
         {tiles}
       </Row>
       <Spacer size={18} />
@@ -110,7 +122,13 @@ defmodule Kati.Screens.Season do
         shadow="0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
         align="center"
       >
-        <Text text={label} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={label}
+          text_size={12.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
       </Box>
     </Box>
     """
@@ -120,7 +138,13 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Box weight={1.0}>
       <Box fill_width={true} height={34} corner_radius={12} align="center">
-        <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.segment_idle()} max_lines={1} />
+        <Text
+          text={label}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={Palette.segment_idle()}
+          max_lines={1}
+        />
       </Box>
     </Box>
     """
@@ -166,7 +190,9 @@ defmodule Kati.Screens.Season do
     watched? = ep.watched
     bg = if watched?, do: Palette.card_settled(), else: Palette.card()
     title_color = if watched?, do: Palette.settled_ink(), else: Palette.ink()
-    number_color = if Map.get(ep, :special, false), do: Palette.gold_icon(), else: Palette.tertiary()
+
+    number_color =
+      if Map.get(ep, :special, false), do: Palette.gold_icon(), else: Palette.tertiary()
 
     ~MOB"""
     <Column fill_width={true}>
@@ -227,7 +253,13 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Row weight={1.0} align="center">
       <Column width={22}>
-        <Text text={ep.number} font_family="mono" text_size={12} text_color={number_color} max_lines={1} />
+        <Text
+          text={ep.number}
+          font_family="mono"
+          text_size={12}
+          text_color={number_color}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={13} />
       <Column weight={1.0}>
@@ -242,7 +274,13 @@ defmodule Kati.Screens.Season do
           {Kati.Screens.Season.badge(Map.get(ep, :badge))}
         </Row>
         <Spacer size={4} />
-        <Text text={ep.sub} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
+        <Text
+          text={ep.sub}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.tertiary()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={13} />
     </Row>
@@ -358,7 +396,13 @@ defmodule Kati.Screens.Season do
       >
         {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
         <Spacer size={11} />
-        <Text text={s.note} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
+        <Text
+          text={s.note}
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.ink_soft()}
+          weight={1.0}
+        />
       </Row>
     </Column>
     """

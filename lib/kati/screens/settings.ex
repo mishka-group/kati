@@ -207,7 +207,13 @@ defmodule Kati.Screens.Settings do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome(nil, 42)}
         {SettingsList.title("Settings", s.synced, "help")}
         {Kati.Screens.Settings.account(s.account, s.sections)}
@@ -241,9 +247,22 @@ defmodule Kati.Screens.Settings do
         {Kati.Screens.Settings.avatar(a)}
         <Spacer size={14} />
         <Column weight={1.0}>
-          <Text text={a.name} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={a.name}
+            text_size={16}
+            font_weight="bold"
+            letter_spacing={-0.02}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text
+            text={meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={0xFFA9A29A}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={14} />
         {Kati.Screens.Settings.status(a.status)}
@@ -483,7 +502,13 @@ defmodule Kati.Screens.Settings do
       padding_right={10}
       align="center"
     >
-      <Text text={label} text_size={11} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={label}
+        text_size={11}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -492,8 +517,21 @@ defmodule Kati.Screens.Settings do
     tap = {self(), String.to_atom("theme_" <> label)}
 
     ~MOB"""
-    <Row height={26} corner_radius={9} padding_left={10} padding_right={10} align="center" on_tap={tap}>
-      <Text text={label} text_size={11} font_weight="semibold" text_color={0xFFA0998F} max_lines={1} />
+    <Row
+      height={26}
+      corner_radius={9}
+      padding_left={10}
+      padding_right={10}
+      align="center"
+      on_tap={tap}
+    >
+      <Text
+        text={label}
+        text_size={11}
+        font_weight="semibold"
+        text_color={0xFFA0998F}
+        max_lines={1}
+      />
     </Row>
     """
   end

@@ -76,11 +76,23 @@ defmodule Kati.Screens.Lock do
     dismiss = {self(), :dismiss}
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()} on_tap={dismiss}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      on_tap={dismiss}
+    >
       {Kati.Screens.Lock.wallpaper()}
       {Kati.Screens.Lock.scrim()}
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={52} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={52}
+          padding_bottom={40}
+        >
           {Kati.Screens.Lock.clock()}
           {Kati.Screens.Lock.small_widgets()}
           {Kati.Screens.Lock.today()}
@@ -97,8 +109,11 @@ defmodule Kati.Screens.Lock do
   @doc false
   def wallpaper do
     case Kati.Design.Images.hero(Sample.wallpaper()) do
-      nil -> ~MOB"<Box fill_width={true} fill_height={true} background={0xFF1C1A18} />"
-      src -> ~MOB"""
+      nil ->
+        ~MOB"<Box fill_width={true} fill_height={true} background={0xFF1C1A18} />"
+
+      src ->
+        ~MOB"""
         <Image src={src} fill_width={true} fill_height={true} content_mode="fill" />
         """
     end
@@ -110,7 +125,11 @@ defmodule Kati.Screens.Lock do
   @doc false
   def scrim do
     ~MOB"""
-    <Box fill_width={true} fill_height={true} gradient="to_bottom #8C0C0B0A #400C0B0A 40% #CC0C0B0A" />
+    <Box
+      fill_width={true}
+      fill_height={true}
+      gradient="to_bottom #8C0C0B0A #400C0B0A 40% #CC0C0B0A"
+    />
     """
   end
 
@@ -176,26 +195,61 @@ defmodule Kati.Screens.Lock do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Box weight={1.0} height={97}>
-          <Column fill_width={true} fill_height={true} background={0x801C1A18} corner_radius={20} border_width={1} border_color={0x24FFFFFF} padding={14}>
+          <Column
+            fill_width={true}
+            fill_height={true}
+            background={0x801C1A18}
+            corner_radius={20}
+            border_width={1}
+            border_color={0x24FFFFFF}
+            padding={14}
+          >
             {Kati.Screens.Lock.eyebrow(up_next.eyebrow)}
             <Spacer size={10} />
             <Row fill_width={true} align="center">
               {Kati.Screens.Lock.thumb(up_next)}
               <Spacer size={9} />
               <Column weight={1.0}>
-                <Text text={up_next.title} text_size={12} font_weight="bold" text_color={0xFFFFFFFF} max_lines={1} />
+                <Text
+                  text={up_next.title}
+                  text_size={12}
+                  font_weight="bold"
+                  text_color={0xFFFFFFFF}
+                  max_lines={1}
+                />
                 <Spacer size={3} />
-                <Text text={up_next.meta} font_family="mono" text_size={9.5} text_color={0x99FFFFFF} max_lines={1} />
+                <Text
+                  text={up_next.meta}
+                  font_family="mono"
+                  text_size={9.5}
+                  text_color={0x99FFFFFF}
+                  max_lines={1}
+                />
               </Column>
             </Row>
           </Column>
         </Box>
         <Spacer size={11} />
         <Box weight={1.0} height={97}>
-          <Column fill_width={true} fill_height={true} background={0x801C1A18} corner_radius={20} border_width={1} border_color={0x24FFFFFF} padding={14}>
+          <Column
+            fill_width={true}
+            fill_height={true}
+            background={0x801C1A18}
+            corner_radius={20}
+            border_width={1}
+            border_color={0x24FFFFFF}
+            padding={14}
+          >
             {Kati.Screens.Lock.eyebrow(tonight.eyebrow)}
             <Spacer size={8} />
-            <Text text={tonight.count} text_size={28} font_weight="extrabold" letter_spacing={-0.03} text_color={0xFFFFFFFF} max_lines={1} />
+            <Text
+              text={tonight.count}
+              text_size={28}
+              font_weight="extrabold"
+              letter_spacing={-0.03}
+              text_color={0xFFFFFFFF}
+              max_lines={1}
+            />
             <Spacer size={2} />
             <Text text={tonight.label} text_size={10.5} text_color={0xA6FFFFFF} max_lines={1} />
           </Column>
@@ -242,7 +296,14 @@ defmodule Kati.Screens.Lock do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={0x801C1A18} corner_radius={22} border_width={1} border_color={0x24FFFFFF} padding={16}>
+      <Column
+        fill_width={true}
+        background={0x801C1A18}
+        corner_radius={22}
+        border_width={1}
+        border_color={0x24FFFFFF}
+        padding={16}
+      >
         <Row fill_width={true} align="center">
           {Kati.Screens.Lock.eyebrow(widget.eyebrow)}
           <Spacer weight={1.0} />
@@ -268,12 +329,25 @@ defmodule Kati.Screens.Lock do
     ~MOB"""
     <Row fill_width={true} align="center">
       <Column width={36}>
-        <Text text={row.time} font_family="mono" text_size={10.5} text_color={0x99FFFFFF} max_lines={1} />
+        <Text
+          text={row.time}
+          font_family="mono"
+          text_size={10.5}
+          text_color={0x99FFFFFF}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={11} />
       <Box width={2.5} height={16} corner_radius={2} background={rail} />
       <Spacer size={11} />
-      <Text text={row.title} text_size={12} font_weight="semibold" text_color={0xFFFFFFFF} weight={1.0} max_lines={1} />
+      <Text
+        text={row.title}
+        text_size={12}
+        font_weight="semibold"
+        text_color={0xFFFFFFFF}
+        weight={1.0}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -283,15 +357,34 @@ defmodule Kati.Screens.Lock do
     field = Sample.year()
 
     ~MOB"""
-    <Column fill_width={true} background={0x801C1A18} corner_radius={22} border_width={1} border_color={0x24FFFFFF} padding={16}>
+    <Column
+      fill_width={true}
+      background={0x801C1A18}
+      corner_radius={22}
+      border_width={1}
+      border_color={0x24FFFFFF}
+      padding={16}
+    >
       {Kati.Screens.Lock.eyebrow(field.eyebrow)}
       <Spacer size={12} />
       {Enum.map(field.rows, fn row -> Kati.Screens.Lock.pixel_row(row) end)}
       <Spacer size={8} />
       <Row fill_width={true} align="center">
-        <Text text={field.watched} font_family="mono" text_size={9.5} text_color={0x80FFFFFF} max_lines={1} />
+        <Text
+          text={field.watched}
+          font_family="mono"
+          text_size={9.5}
+          text_color={0x80FFFFFF}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
-        <Text text={field.streak} font_family="mono" text_size={9.5} text_color={0x80FFFFFF} max_lines={1} />
+        <Text
+          text={field.streak}
+          font_family="mono"
+          text_size={9.5}
+          text_color={0x80FFFFFF}
+          max_lines={1}
+        />
       </Row>
     </Column>
     """

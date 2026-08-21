@@ -59,7 +59,13 @@ defmodule Kati.Screens.Nutrition do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Nutrition.back_gap()}
         {Kati.Screens.Nutrition.header()}
         {Kati.Screens.Nutrition.segments(period)}
@@ -201,9 +207,21 @@ defmodule Kati.Screens.Nutrition do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Nutrition" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Nutrition"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={Kati.Meals.SampleNutrition.plan_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={Kati.Meals.SampleNutrition.plan_line()}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={9} />
         {Kati.Screens.Nutrition.share_button()}
@@ -272,7 +290,13 @@ defmodule Kati.Screens.Nutrition do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4} align="center">
+      <Row
+        fill_width={true}
+        background={Palette.placeholder()}
+        corner_radius={16}
+        padding={4}
+        align="center"
+      >
         {tabs}
       </Row>
       <Spacer size={18} />
@@ -332,7 +356,13 @@ defmodule Kati.Screens.Nutrition do
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase(hero.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
+            <Text
+              text={String.upcase(hero.label)}
+              font_family="mono"
+              text_size={10.5}
+              letter_spacing={0.16}
+              text_color={Palette.cream_meta()}
+            />
             <Spacer size={7} />
             {Kati.Screens.Nutrition.average_figure(hero)}
           </Column>
@@ -348,7 +378,14 @@ defmodule Kati.Screens.Nutrition do
               max_lines={1}
             />
             <Spacer size={6} />
-            <Text text={hero.target} text_size={15} font_weight="semibold" text_color={:on_surface} text_align="right" max_lines={1} />
+            <Text
+              text={hero.target}
+              text_size={15}
+              font_weight="semibold"
+              text_color={:on_surface}
+              text_align="right"
+              max_lines={1}
+            />
           </Column>
         </Row>
         <Spacer size={18} />
@@ -369,11 +406,24 @@ defmodule Kati.Screens.Nutrition do
   @doc false
   def average_figure(hero) do
     number = ~MOB"""
-    <Text text={hero.average} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
+    <Text
+      text={hero.average}
+      text_size={34}
+      font_weight="extrabold"
+      letter_spacing={-0.04}
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
 
     unit = ~MOB"""
-    <Text text={hero.unit} text_size={15} font_weight="semibold" text_color={Palette.cream_meta()} max_lines={1} />
+    <Text
+      text={hero.unit}
+      text_size={15}
+      font_weight="semibold"
+      text_color={Palette.cream_meta()}
+      max_lines={1}
+    />
     """
 
     UI.number_with_unit(number, unit, 3.8)
@@ -421,7 +471,13 @@ defmodule Kati.Screens.Nutrition do
     ~MOB"""
     <Row weight={1.0} align="center">
       <Spacer weight={1.0} />
-      <Text text={letter} font_family="mono" text_size={9.5} text_color={Palette.cream_meta()} max_lines={1} />
+      <Text
+        text={letter}
+        font_family="mono"
+        text_size={9.5}
+        text_color={Palette.cream_meta()}
+        max_lines={1}
+      />
       <Spacer weight={1.0} />
     </Row>
     """
@@ -458,7 +514,14 @@ defmodule Kati.Screens.Nutrition do
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
       >
-        <Text text={value} text_size={24} font_weight="extrabold" letter_spacing={-0.035} text_color={tone} max_lines={1} />
+        <Text
+          text={value}
+          text_size={24}
+          font_weight="extrabold"
+          letter_spacing={-0.035}
+          text_color={tone}
+          max_lines={1}
+        />
         <Spacer size={5} />
         <Text
           text={String.upcase(label)}
@@ -501,9 +564,21 @@ defmodule Kati.Screens.Nutrition do
       <Row fill_width={true} align="center">
         <Box width={7} height={7} corner_radius={2} background={row.tone} />
         <Spacer size={6} />
-        <Text text={row.name} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={row.name}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
-        <Text text={row.value} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={row.value}
+          font_family="mono"
+          text_size={11}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Row>
       <Spacer size={7} />
       {Kati.Screens.Nutrition.track(row)}
@@ -592,9 +667,21 @@ defmodule Kati.Screens.Nutrition do
         {Enum.map(rows, fn row -> Kati.Screens.Nutrition.field_row(row) end)}
         <Spacer size={8} />
         <Row fill_width={true} align="center">
-          <Text text={left} font_family="mono" text_size={10} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={left}
+            font_family="mono"
+            text_size={10}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
-          <Text text={right} font_family="mono" text_size={10} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={right}
+            font_family="mono"
+            text_size={10}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={22} />

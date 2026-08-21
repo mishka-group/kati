@@ -40,3 +40,4 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/sr
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiBootReceiver.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiNotificationStore.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiCalendarReader.kt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiSecureStore.kt

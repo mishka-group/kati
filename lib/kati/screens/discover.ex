@@ -103,7 +103,13 @@ defmodule Kati.Screens.Discover do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Discover.pill_row()}
         {Kati.Screens.Discover.header(f)}
         {Kati.Screens.Discover.chips(f, chip)}
@@ -127,9 +133,21 @@ defmodule Kati.Screens.Discover do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Discover" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Discover"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={f.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={f.subtitle}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={9} />
         <Box
@@ -306,13 +324,31 @@ defmodule Kati.Screens.Discover do
   def pick(p) do
     ~MOB"""
     <Column weight={1.0}>
-      <Box fill_width={true} height={158} corner_radius={13} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
+      <Box
+        fill_width={true}
+        height={158}
+        corner_radius={13}
+        background={Palette.placeholder()}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
         {Kati.Screens.Discover.poster(p.seed)}
       </Box>
       <Spacer size={9} />
-      <Text text={p.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={p.title}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={3} />
-      <Text text={p.match} font_family="mono" text_size={10.5} text_color={Palette.accent()} max_lines={1} />
+      <Text
+        text={p.match}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.accent()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -363,7 +399,13 @@ defmodule Kati.Screens.Discover do
         {Kati.Screens.Discover.face(p.seed)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={p.name} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={p.name}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={p.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -392,7 +434,9 @@ defmodule Kati.Screens.Discover do
   end
 
   @doc false
-  def person_mark(true), do: ~MOB"<Box width={8} height={8} corner_radius={4} background={Palette.accent()} />"
+  def person_mark(true),
+    do: ~MOB"<Box width={8} height={8} corner_radius={4} background={Palette.accent()} />"
+
   def person_mark(false), do: Kati.UI.symbol("check", size: 18, color: Palette.rail_idle())
 
   @doc false
@@ -425,7 +469,13 @@ defmodule Kati.Screens.Discover do
         {Kati.Screens.Discover.thumb(row.seed)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
           <Text text={row.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -451,7 +501,13 @@ defmodule Kati.Screens.Discover do
       align="center"
       on_tap={tap}
     >
-      <Text text={row.action} text_size={11.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
+      <Text
+        text={row.action}
+        text_size={11.5}
+        font_weight="semibold"
+        text_color={Palette.on_ink()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -469,7 +525,13 @@ defmodule Kati.Screens.Discover do
       align="center"
       on_tap={tap}
     >
-      <Text text="Scheduled" text_size={11.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text="Scheduled"
+        text_size={11.5}
+        font_weight="semibold"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Row>
     """
   end

@@ -76,9 +76,24 @@ defmodule Kati.Fa.SampleSettings do
         label: "بخش‌ها",
         dash: :accent,
         rows: [
-          %{icon: "movie", title: "نمایش", sub: "کارت خانه، تقویم، قفسه", trailing: {:toggle, true}},
-          %{icon: "menu_book", title: "کتاب‌ها", sub: "کارت خانه، قفسه", trailing: {:toggle, true}},
-          %{icon: "restaurant", title: "وعده‌ها", sub: "کارت خانه، تقویم", trailing: {:toggle, true}},
+          %{
+            icon: "movie",
+            title: "نمایش",
+            sub: "کارت خانه، تقویم، قفسه",
+            trailing: {:toggle, true}
+          },
+          %{
+            icon: "menu_book",
+            title: "کتاب‌ها",
+            sub: "کارت خانه، قفسه",
+            trailing: {:toggle, true}
+          },
+          %{
+            icon: "restaurant",
+            title: "وعده‌ها",
+            sub: "کارت خانه، تقویم",
+            trailing: {:toggle, true}
+          },
           %{icon: "bolt", title: "عادت‌ها", sub: "تقویم", trailing: {:toggle, true}},
           %{icon: "payments", title: "مالی", sub: "تقویم", trailing: {:toggle, false}}
         ]
@@ -87,9 +102,24 @@ defmodule Kati.Fa.SampleSettings do
         label: "داده‌ها",
         dash: :muted,
         rows: [
-          %{icon: "download", title: "درون‌ریزی", sub: "CSV، JSON یا پشتیبان دیگر", trailing: :chevron},
-          %{icon: "upload", title: "برون‌ریزی همه‌چیز", sub: "آخرین پشتیبان ۱۴ مرداد", trailing: :chevron},
-          %{icon: "sync", title: "همگام‌سازی", sub: "آی‌کلاد · این دستگاه و آی‌پد", trailing: :chevron}
+          %{
+            icon: "download",
+            title: "درون‌ریزی",
+            sub: "CSV، JSON یا پشتیبان دیگر",
+            trailing: :chevron
+          },
+          %{
+            icon: "upload",
+            title: "برون‌ریزی همه‌چیز",
+            sub: "آخرین پشتیبان ۱۴ مرداد",
+            trailing: :chevron
+          },
+          %{
+            icon: "sync",
+            title: "همگام‌سازی",
+            sub: "آی‌کلاد · این دستگاه و آی‌پد",
+            trailing: :chevron
+          }
         ]
       }
     ]

@@ -37,7 +37,13 @@ defmodule Kati.Screens.PlanShare do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title(share.plan, share.subtitle)}
         {Kati.Screens.PlanShare.qr_card(share)}
@@ -166,11 +172,23 @@ defmodule Kati.Screens.PlanShare do
     ~MOB"""
     <Row fill_width={true} align="center">
       <Box weight={1.0}>
-        <Box fill_width={true} height={42} corner_radius={21} background={Palette.ink_fill()} align="center">
+        <Box
+          fill_width={true}
+          height={42}
+          corner_radius={21}
+          background={Palette.ink_fill()}
+          align="center"
+        >
           <Row align="center">
             {Kati.UI.symbol("link", size: 17, color: Palette.on_ink())}
             <Spacer size={7} />
-            <Text text="Copy link" text_size={12.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
+            <Text
+              text="Copy link"
+              text_size={12.5}
+              font_weight="semibold"
+              text_color={Palette.on_ink()}
+              max_lines={1}
+            />
           </Row>
         </Box>
       </Box>
@@ -180,7 +198,13 @@ defmodule Kati.Screens.PlanShare do
           <Row align="center">
             {Kati.UI.symbol("ios_share", size: 17, color: Palette.gold_text())}
             <Spacer size={7} />
-            <Text text="Share" text_size={12.5} font_weight="semibold" text_color={Palette.cream_sub()} max_lines={1} />
+            <Text
+              text="Share"
+              text_size={12.5}
+              font_weight="semibold"
+              text_color={Palette.cream_sub()}
+              max_lines={1}
+            />
           </Row>
         </Box>
       </Box>
@@ -256,7 +280,13 @@ defmodule Kati.Screens.PlanShare do
   def person_body(row) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={row.name} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={row.name}
+        text_size={13}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={2} />
       <Text text={row.sub} text_size={11} text_color={Palette.sub()} max_lines={1} />
     </Column>

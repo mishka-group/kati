@@ -49,7 +49,13 @@ defmodule Kati.Screens.Plans do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome(nil, 42)}
         {SettingsList.title("Plans", plans.subtitle, "add")}
         {UI.eyebrow("Active")}
@@ -101,9 +107,21 @@ defmodule Kati.Screens.Plans do
               max_lines={1}
             />
             <Spacer size={8} />
-            <Text text={active.name} text_size={22} font_weight="bold" letter_spacing={-0.03} text_color={Palette.on_ink()} max_lines={1} />
+            <Text
+              text={active.name}
+              text_size={22}
+              font_weight="bold"
+              letter_spacing={-0.03}
+              text_color={Palette.on_ink()}
+              max_lines={1}
+            />
             <Spacer size={6} />
-            <Text text={active.targets} text_size={12.5} text_color={Palette.on_ink_meta()} max_lines={1} />
+            <Text
+              text={active.targets}
+              text_size={12.5}
+              text_color={Palette.on_ink_meta()}
+              max_lines={1}
+            />
           </Column>
           <Spacer size={12} />
           {Kati.Screens.Plans.overflow()}
@@ -112,9 +130,21 @@ defmodule Kati.Screens.Plans do
         {Kati.Screens.Plans.progress(active.progress)}
         <Spacer size={10} />
         <Row fill_width={true} align="center">
-          <Text text={active.started} font_family="mono" text_size={10} text_color={0xFF6A6560} max_lines={1} />
+          <Text
+            text={active.started}
+            font_family="mono"
+            text_size={10}
+            text_color={0xFF6A6560}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
-          <Text text={active.adherence} font_family="mono" text_size={10} text_color={0xFF6A6560} max_lines={1} />
+          <Text
+            text={active.adherence}
+            font_family="mono"
+            text_size={10}
+            text_color={0xFF6A6560}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={20} />
@@ -206,11 +236,23 @@ defmodule Kati.Screens.Plans do
         {Kati.Screens.Plans.thumb(row.seed)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.name} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.name}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
           <Text text={row.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.meta} font_family="mono" text_size={10} text_color={Palette.rail_idle()} max_lines={1} />
+          <Text
+            text={row.meta}
+            font_family="mono"
+            text_size={10}
+            text_color={Palette.rail_idle()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Plans.activate(row.action)}
@@ -314,7 +356,13 @@ defmodule Kati.Screens.Plans do
     >
       {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
+      <Text
+        text={text}
+        text_size={12.5}
+        line_height={1.55}
+        text_color={Palette.ink_soft()}
+        weight={1.0}
+      />
     </Row>
     """
   end

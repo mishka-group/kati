@@ -78,7 +78,8 @@ defmodule Kati.Library.Sample do
   @spec series() :: map()
   def series do
     %{
-      title: "The Long Hollow", seed: "hollow71",
+      title: "The Long Hollow",
+      seed: "hollow71",
       meta: "2024 · DRAMA · LUMEN+ · 3 SEASONS",
       season: "Season 2",
       seasons: ["S1", "S2", "S3"],
@@ -145,26 +146,35 @@ defmodule Kati.Library.Sample do
       last_checked: "last checked 18:02 · every 6h",
       out_now: [
         %{
-          title: "The Long Hollow", seed: "hollow71",
+          title: "The Long Hollow",
+          seed: "hollow71",
           line: "S2 E6 — Ash and After",
           meta: "48 min · LUMEN+ · aired 20:00",
           dot: 0xFFE8823C
         },
         %{
-          title: "Blue Hour", seed: "bluehour58",
+          title: "Blue Hour",
+          seed: "bluehour58",
           line: "Premiere",
           meta: "1h 52m · CINEMA · out today",
           dot: 0xFF4E9A73
         },
         %{
-          title: "Paper Cities", seed: "cartog60",
+          title: "Paper Cities",
+          seed: "cartog60",
           line: "S1 E2 — The Cartographer",
           meta: "44 min · LUMEN+ · aired 19:00",
           dot: 0xFFE8823C
         }
       ],
       coming_up: [
-        %{month: "AUG", day: "20", title: "The Long Hollow", line: "S2 E7 — Homecoming", meta: "Thu, 20:00"},
+        %{
+          month: "AUG",
+          day: "20",
+          title: "The Long Hollow",
+          line: "S2 E7 — Homecoming",
+          meta: "Thu, 20:00"
+        },
         %{month: "AUG", day: "23", title: "Salt & Iron", line: "S1 E4", meta: "Sun, 21:00"},
         %{month: "SEP", day: "02", title: "Ember & Ash", line: "Leaves Lumen+", meta: "Tue"}
       ]
@@ -181,10 +191,34 @@ defmodule Kati.Library.Sample do
   @spec search_results() :: [map()]
   def search_results do
     [
-      %{title: "The Quiet Coast", seed: "quieterplace8", meta: "2023 · SERIES · 2 SEASONS", note: "Drama · Lumen+", added: false},
-      %{title: "Quiet Earth", seed: "quietones12", meta: "2019 · FILM · 1h 48m", note: "Science fiction", added: false},
-      %{title: "A Quiet Place to Land", seed: "quieterplace8", meta: "2021 · FILM · 2h 04m", note: "Drama · Cinema", added: true},
-      %{title: "Quietus", seed: "quietus39", meta: "2024 · SERIES · 1 SEASON", note: "Thriller · Northlight", added: false}
+      %{
+        title: "The Quiet Coast",
+        seed: "quieterplace8",
+        meta: "2023 · SERIES · 2 SEASONS",
+        note: "Drama · Lumen+",
+        added: false
+      },
+      %{
+        title: "Quiet Earth",
+        seed: "quietones12",
+        meta: "2019 · FILM · 1h 48m",
+        note: "Science fiction",
+        added: false
+      },
+      %{
+        title: "A Quiet Place to Land",
+        seed: "quieterplace8",
+        meta: "2021 · FILM · 2h 04m",
+        note: "Drama · Cinema",
+        added: true
+      },
+      %{
+        title: "Quietus",
+        seed: "quietus39",
+        meta: "2024 · SERIES · 1 SEASON",
+        note: "Thriller · Northlight",
+        added: false
+      }
     ]
   end
 

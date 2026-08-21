@@ -143,7 +143,9 @@ defmodule Kati.Screens.Day do
 
   @doc false
   def header(date, clusters, filter) do
-    heading = "#{Kati.Time.day_name(date) |> String.slice(0, 3)} #{date.day} #{Kati.Time.month_name(date.month) |> String.slice(0, 3)}"
+    heading =
+      "#{Kati.Time.day_name(date) |> String.slice(0, 3)} #{date.day} #{Kati.Time.month_name(date.month) |> String.slice(0, 3)}"
+
     subtitle = subtitle(clusters, filter)
 
     ~MOB"""
@@ -153,9 +155,21 @@ defmodule Kati.Screens.Day do
         {Kati.Screens.Day.density_disc()}
       </Row>
       <Spacer size={16} />
-      <Text text={heading} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text={heading}
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text={subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={subtitle}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -298,18 +312,51 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Row fill_width={true} align="top">
       <Column width={44} padding_top={12}>
-        <Text text="ALL" font_family="mono" text_size={10} letter_spacing={0.08} text_color={Palette.tertiary()} />
-        <Text text="DAY" font_family="mono" text_size={10} letter_spacing={0.08} text_color={Palette.tertiary()} />
+        <Text
+          text="ALL"
+          font_family="mono"
+          text_size={10}
+          letter_spacing={0.08}
+          text_color={Palette.tertiary()}
+        />
+        <Text
+          text="DAY"
+          font_family="mono"
+          text_size={10}
+          letter_spacing={0.08}
+          text_color={Palette.tertiary()}
+        />
       </Column>
       <Spacer size={12} />
       <Box weight={1.0}>
-        <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding_left={13} padding_right={13} padding_top={11} padding_bottom={11} align="center">
+        <Row
+          fill_width={true}
+          background={Palette.cream()}
+          corner_radius={16}
+          padding_left={13}
+          padding_right={13}
+          padding_top={11}
+          padding_bottom={11}
+          align="center"
+        >
           {Kati.Screens.Day.thumb(item)}
           <Spacer size={11} />
           <Column weight={1.0}>
-            <Text text={item.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
+            <Text
+              text={item.title}
+              text_size={13}
+              font_weight="bold"
+              text_color={:on_surface}
+              max_lines={1}
+            />
             <Spacer size={3} />
-            <Text text={item.meta} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
+            <Text
+              text={item.meta}
+              font_family="mono"
+              text_size={10.5}
+              text_color={Palette.cream_meta()}
+              max_lines={1}
+            />
           </Column>
         </Row>
       </Box>
@@ -348,16 +395,44 @@ defmodule Kati.Screens.Day do
     <Column fill_width={true} padding_left={21} padding_right={21}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={11}>
-          <Text text={m.at} font_family="mono" text_size={12} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={m.at}
+            font_family="mono"
+            text_size={12}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
-          <Row fill_width={true} background={Palette.card_settled()} corner_radius={16} padding_left={13} padding_right={13} padding_top={10} padding_bottom={10} align="center">
+          <Row
+            fill_width={true}
+            background={Palette.card_settled()}
+            corner_radius={16}
+            padding_left={13}
+            padding_right={13}
+            padding_top={10}
+            padding_bottom={10}
+            align="center"
+          >
             {Kati.Screens.Day.money_badge()}
             <Spacer size={11} />
-            <Text text={m.label} text_size={13} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
+            <Text
+              text={m.label}
+              text_size={13}
+              font_weight="semibold"
+              text_color={:on_surface}
+              weight={1.0}
+              max_lines={1}
+            />
             <Spacer size={11} />
-            <Text text={m.total} font_family="mono" text_size={11.5} text_color={Palette.ink_soft()} max_lines={1} />
+            <Text
+              text={m.total}
+              font_family="mono"
+              text_size={11.5}
+              text_color={Palette.ink_soft()}
+              max_lines={1}
+            />
             <Spacer size={11} />
             {Kati.UI.symbol("expand_more", size: 17, color: Palette.tertiary())}
           </Row>
@@ -555,7 +630,14 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Row>
       <Column width={44} padding_top={top}>
-        <Text text={cluster.label} text_size={12} font_weight={weight} text_color={colour} font_family="mono" max_lines={1} />
+        <Text
+          text={cluster.label}
+          text_size={12}
+          font_weight={weight}
+          text_color={colour}
+          font_family="mono"
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
     </Row>
@@ -621,13 +703,27 @@ defmodule Kati.Screens.Day do
         <Column>
           <Row align="center">
             <Spacer weight={1.0} />
-            <Text text={label} font_family="mono" text_size={13} font_weight="medium" text_color={:on_surface} max_lines={1} />
+            <Text
+              text={label}
+              font_family="mono"
+              text_size={13}
+              font_weight="medium"
+              text_color={:on_surface}
+              max_lines={1}
+            />
             <Spacer weight={1.0} />
           </Row>
           <Spacer size={2} />
           <Row align="center">
             <Spacer weight={1.0} />
-            <Text text="MORE" font_family="mono" text_size={8.5} letter_spacing={0.08} text_color={Palette.sub()} max_lines={1} />
+            <Text
+              text="MORE"
+              font_family="mono"
+              text_size={8.5}
+              letter_spacing={0.08}
+              text_color={Palette.sub()}
+              max_lines={1}
+            />
             <Spacer weight={1.0} />
           </Row>
         </Column>
@@ -700,7 +796,13 @@ defmodule Kati.Screens.Day do
         {Kati.Screens.Day.leading_state(event)}
         {Kati.Screens.Day.leading_poster(event)}
         <Column weight={1.0}>
-          <Text text={title} text_size={title_size} font_weight="semibold" text_color={:on_surface} max_lines={2} />
+          <Text
+            text={title}
+            text_size={title_size}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={2}
+          />
           {Kati.Screens.Day.card_meta(meta, meta_gap)}
         </Column>
         {Kati.Screens.Day.state_icon(event)}
@@ -719,7 +821,13 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Column fill_width={true}>
       <Box fill_width={true} height={gap} />
-      <Text text={meta} font_family="mono" text_size={10} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={meta}
+        font_family="mono"
+        text_size={10}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -842,9 +950,22 @@ defmodule Kati.Screens.Day do
           {Kati.Screens.Day.poster_stack(members)}
           <Spacer size={4} />
           <Column weight={1.0}>
-            <Text text={title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+            <Text
+              text={title}
+              text_size={14}
+              font_weight="bold"
+              letter_spacing={-0.015}
+              text_color={:on_surface}
+              max_lines={1}
+            />
             <Spacer size={4} />
-            <Text text={meta} font_family="mono" text_size={10.5} text_color={Palette.sub()} max_lines={1} />
+            <Text
+              text={meta}
+              font_family="mono"
+              text_size={10.5}
+              text_color={Palette.sub()}
+              max_lines={1}
+            />
           </Column>
           <Spacer size={12} />
           {Kati.Screens.Day.chevron_disc(open?)}
@@ -906,7 +1027,14 @@ defmodule Kati.Screens.Day do
       {Kati.Screens.Day.thumb(member, Palette.placeholder())}
       <Spacer size={11} />
       <Column weight={1.0}>
-        <Text text={title} text_size={13} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+        <Text
+          text={title}
+          text_size={13}
+          font_weight="semibold"
+          letter_spacing={-0.01}
+          text_color={:on_surface}
+          max_lines={1}
+        />
         {Kati.Screens.Day.member_meta(Map.get(member, :meta))}
       </Column>
       {Kati.Screens.Day.member_time(member)}
@@ -921,7 +1049,13 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Column fill_width={true}>
       <Box fill_width={true} height={3} />
-      <Text text={meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={meta}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -936,7 +1070,13 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Row align="center">
       <Spacer size={11} />
-      <Text text={label} font_family="mono" text_size={11} text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text={label}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -1041,7 +1181,14 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Row padding_left={offset}>
-      <Box width={34} height={48} corner_radius={7} background={Palette.card()} shadow="0 3 8 -3 #801A1917" align="center">
+      <Box
+        width={34}
+        height={48}
+        corner_radius={7}
+        background={Palette.card()}
+        shadow="0 3 8 -3 #801A1917"
+        align="center"
+      >
         {Kati.Screens.Day.stack_art(src)}
       </Box>
     </Row>
@@ -1064,7 +1211,13 @@ defmodule Kati.Screens.Day do
     <Row padding_left={offset}>
       <Box width={30} height={48} corner_radius={7} background={Palette.card()} align="center">
         <Box width={26} height={44} corner_radius={5} background={Palette.ink()} align="center">
-          <Text text={count} font_family="mono" text_size={11} text_color={Palette.on_ink()} max_lines={1} />
+          <Text
+            text={count}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
         </Box>
       </Box>
     </Row>

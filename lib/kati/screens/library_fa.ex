@@ -76,7 +76,13 @@ defmodule Kati.Screens.LibraryFa do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.LibraryFa.header(header)}
         {Kati.Screens.LibraryFa.segments(shelf)}
         {Kati.Screens.LibraryFa.quick_tiles()}
@@ -186,7 +192,13 @@ defmodule Kati.Screens.LibraryFa do
   def segments(shelf) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={Palette.placeholder()} corner_radius={18} padding={4} align="center">
+      <Row
+        fill_width={true}
+        background={Palette.placeholder()}
+        corner_radius={18}
+        padding={4}
+        align="center"
+      >
         {Sample.segments()
          |> Enum.with_index()
          |> Enum.map(fn {seg, i} -> Kati.Screens.LibraryFa.segment(seg, i, i == shelf) end)
@@ -311,7 +323,13 @@ defmodule Kati.Screens.LibraryFa do
 
   def tile_count(count) do
     ~MOB"""
-    <Text text={count} font_family="fa" text_size={10} text_color={Palette.rail_idle()} max_lines={1} />
+    <Text
+      text={count}
+      font_family="fa"
+      text_size={10}
+      text_color={Palette.rail_idle()}
+      max_lines={1}
+    />
     """
   end
 
@@ -420,7 +438,14 @@ defmodule Kati.Screens.LibraryFa do
       align="center"
       on_tap={tap}
     >
-      <Text text={label} font_family="fa" font_weight="semibold" text_size={12.5} text_color={fg} max_lines={1} />
+      <Text
+        text={label}
+        font_family="fa"
+        font_weight="semibold"
+        text_size={12.5}
+        text_color={fg}
+        max_lines={1}
+      />
       <Spacer size={6} />
       <Text text={count} font_family="fa" text_size={10} text_color={count_fg} max_lines={1} />
     </Row>
@@ -495,7 +520,13 @@ defmodule Kati.Screens.LibraryFa do
         max_lines={1}
       />
       <Spacer size={3} />
-      <Text text={item.meta} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={item.meta}
+        font_family="fa"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end

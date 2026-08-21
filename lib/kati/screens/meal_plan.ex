@@ -42,7 +42,13 @@ defmodule Kati.Screens.MealPlan do
   def content(_assigns) do
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.MealPlan.header()}
         {Kati.Screens.MealPlan.title()}
         {Kati.Screens.MealPlan.segments()}
@@ -103,9 +109,22 @@ defmodule Kati.Screens.MealPlan do
   def title do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={Kati.Meals.SamplePlan.title()} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} max_lines={1} />
+      <Text
+        text={Kati.Meals.SamplePlan.title()}
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={5} />
-      <Text text={Kati.Meals.SamplePlan.subtitle()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={Kati.Meals.SamplePlan.subtitle()}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -249,9 +268,21 @@ defmodule Kati.Screens.MealPlan do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Column width={62}>
-          <Text text={row.name} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.name}
+            text_size={11.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={2} />
-          <Text text={row.time} font_family="mono" text_size={9.5} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={9.5}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
         </Column>
         {Enum.map(row.cells, fn state -> Kati.Screens.MealPlan.cell(state) end)}
       </Row>
@@ -268,7 +299,15 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Row weight={1.0} align="center">
       <Spacer size={3} />
-      <Box weight={1.0} height={37} corner_radius={9} background={Kati.Screens.MealPlan.cell_fill(state)} border_width={Kati.Screens.MealPlan.cell_border(state)} border_color={Palette.border()} align="center">
+      <Box
+        weight={1.0}
+        height={37}
+        corner_radius={9}
+        background={Kati.Screens.MealPlan.cell_fill(state)}
+        border_width={Kati.Screens.MealPlan.cell_border(state)}
+        border_color={Palette.border()}
+        align="center"
+      >
         {Kati.Screens.MealPlan.pip(state)}
       </Box>
     </Row>
@@ -371,7 +410,13 @@ defmodule Kati.Screens.MealPlan do
 
   def legend_swatch(_) do
     ~MOB"""
-    <Box width={7} height={7} corner_radius={4} border_width={1.5} border_color={Palette.track_off()} />
+    <Box
+      width={7}
+      height={7}
+      corner_radius={4}
+      border_width={1.5}
+      border_color={Palette.track_off()}
+    />
     """
   end
 
@@ -407,12 +452,31 @@ defmodule Kati.Screens.MealPlan do
         {Kati.Screens.MealPlan.thumb(row.seed)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={String.upcase(row.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.eyebrow()} max_lines={1} />
+          <Text
+            text={String.upcase(row.slot)}
+            font_family="mono"
+            text_size={9.5}
+            letter_spacing={0.14}
+            text_color={Palette.eyebrow()}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
-        <Text text={row.calories} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={row.calories}
+          font_family="mono"
+          text_size={11}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Row>
       {Kati.Screens.MealPlan.hairline(rule?)}
     </Column>
@@ -494,7 +558,13 @@ defmodule Kati.Screens.MealPlan do
         </Box>
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -507,7 +577,8 @@ defmodule Kati.Screens.MealPlan do
   end
 
   @doc false
-  def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
+  def trailing(:chevron),
+    do: Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
 
   # 46x28 with a 22pt knob inset 3pt, drawn the way
   # `Kati.Screens.Accessibility.toggle/1` draws it: the inset comes from a 40pt
@@ -518,7 +589,13 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Box width={46} height={28} corner_radius={14} background={Palette.track_off()} align="center">
       <Row width={40} align="center">
-        <Box width={22} height={22} corner_radius={11} background={Palette.card()} shadow="0 1 3 0 #4D1A1917" />
+        <Box
+          width={22}
+          height={22}
+          corner_radius={11}
+          background={Palette.card()}
+          shadow="0 1 3 0 #4D1A1917"
+        />
         <Spacer weight={1.0} />
       </Row>
     </Box>

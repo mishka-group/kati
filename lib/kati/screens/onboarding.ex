@@ -47,9 +47,20 @@ defmodule Kati.Screens.Onboarding do
     flow = assigns.flow
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.Onboarding.welcome(flow.welcome)}
           {Kati.Screens.Onboarding.divider()}
           {Kati.Screens.Onboarding.telling(flow.telling)}
@@ -81,8 +92,20 @@ defmodule Kati.Screens.Onboarding do
       <Spacer size={14} />
       <Text text={w.body} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
       <Spacer size={24} />
-      <Box fill_width={true} height={54} corner_radius={27} background={Palette.ink_fill()} align="center">
-        <Text text={w.cta} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+      <Box
+        fill_width={true}
+        height={54}
+        corner_radius={27}
+        background={Palette.ink_fill()}
+        align="center"
+      >
+        <Text
+          text={w.cta}
+          text_size={14.5}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
       </Box>
     </Column>
     """
@@ -206,7 +229,13 @@ defmodule Kati.Screens.Onboarding do
       {Kati.UI.symbol(option.icon, size: 21, color: Palette.on_ink())}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text text={option.title} text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+        <Text
+          text={option.title}
+          text_size={14}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
         <Spacer size={3} />
         <Text text={option.sub} text_size={11.5} text_color={Palette.on_ink_count()} max_lines={1} />
       </Column>
@@ -229,7 +258,13 @@ defmodule Kati.Screens.Onboarding do
       {Kati.UI.symbol(option.icon, size: 21, color: Palette.sub())}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text text={option.title} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={option.title}
+          text_size={14}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={3} />
         <Text text={option.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
@@ -322,8 +357,20 @@ defmodule Kati.Screens.Onboarding do
       <Spacer size={18} />
       {Enum.map(rows, fn row -> Kati.Screens.Onboarding.poster_row(row) end)}
       <Spacer size={9} />
-      <Box fill_width={true} height={52} corner_radius={26} background={Palette.ink_fill()} align="center">
-        <Text text={f.cta} text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+      <Box
+        fill_width={true}
+        height={52}
+        corner_radius={26}
+        background={Palette.ink_fill()}
+        align="center"
+      >
+        <Text
+          text={f.cta}
+          text_size={14}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
       </Box>
       <Spacer size={14} />
       <Text
@@ -365,7 +412,13 @@ defmodule Kati.Screens.Onboarding do
     <Column weight={1.0}>
       {Kati.Screens.Onboarding.poster_art(p)}
       <Spacer size={8} />
-      <Text text={p.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={p.title}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
     </Column>
     """
   end

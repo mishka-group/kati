@@ -63,7 +63,13 @@ defmodule Kati.Screens.Widgets do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Widgets.header()}
         {Kati.Screens.Widgets.title()}
         {UI.eyebrow("Sizes")}
@@ -149,9 +155,21 @@ defmodule Kati.Screens.Widgets do
   def title do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text="Widgets" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text="Widgets"
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text="add to home screen" font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text="add to home screen"
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -256,9 +274,21 @@ defmodule Kati.Screens.Widgets do
         <Spacer weight={1.0} />
         {Kati.Screens.Widgets.mini_poster(tile)}
         <Spacer size={7} />
-        <Text text={tile.title} text_size={11} font_weight="bold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={tile.title}
+          text_size={11}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={2} />
-        <Text text={tile.episode} font_family="mono" text_size={9} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={tile.episode}
+          font_family="mono"
+          text_size={9}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Column>
     </Box>
     """
@@ -359,9 +389,21 @@ defmodule Kati.Screens.Widgets do
       <Box width={2.5} height={26} corner_radius={2} background={event.color} />
       <Spacer size={9} />
       <Column weight={1.0}>
-        <Text text={event.time} font_family="mono" text_size={9.5} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={event.time}
+          font_family="mono"
+          text_size={9.5}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
         <Spacer size={2} />
-        <Text text={event.title} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={event.title}
+          text_size={11.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
       </Column>
     </Row>
     """
@@ -402,7 +444,13 @@ defmodule Kati.Screens.Widgets do
         {Kati.Screens.Widgets.icon_tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -524,7 +572,13 @@ defmodule Kati.Screens.Widgets do
         </Box>
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={s.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={s.title}
+            text_size={13}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={2} />
           <Text text={s.sub} text_size={11} text_color={Palette.sub()} max_lines={1} />
         </Column>

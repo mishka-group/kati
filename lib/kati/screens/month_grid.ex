@@ -44,7 +44,13 @@ defmodule Kati.Screens.MonthGrid do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={132}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
         {Kati.Screens.MonthGrid.header(month)}
         {Kati.Screens.MonthGrid.switcher()}
         {Kati.Screens.MonthGrid.weekday_row()}
@@ -189,7 +195,13 @@ defmodule Kati.Screens.MonthGrid do
       <Column fill_width={true}>
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          <Text text={day.label} text_size={13.5} font_weight={weight} text_color={color} max_lines={1} />
+          <Text
+            text={day.label}
+            text_size={13.5}
+            font_weight={weight}
+            text_color={color}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={4} />
@@ -298,7 +310,13 @@ defmodule Kati.Screens.MonthGrid do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column width={38}>
-          <Text text={row.time} font_family="mono" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.time}
+            font_family="mono"
+            text_size={11.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
         <Box width={3} height={22} corner_radius={2} background={Palette.accent()} />

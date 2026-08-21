@@ -69,9 +69,20 @@ defmodule Kati.Screens.Search do
     recent = assigns.recent
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.Search.back()}
           {Kati.Screens.Search.field(results)}
           {Kati.Screens.Search.chips(filter)}
@@ -128,7 +139,14 @@ defmodule Kati.Screens.Search do
         >
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
           <Spacer size={6} />
-          <Text text="Home" text_size={13.5} font_weight="semibold" letter_spacing={-0.01} text_color={:on_surface} max_lines={1} />
+          <Text
+            text="Home"
+            text_size={13.5}
+            font_weight="semibold"
+            letter_spacing={-0.01}
+            text_color={:on_surface}
+            max_lines={1}
+          />
         </Row>
       </Row>
       <Spacer size={16} />
@@ -157,7 +175,13 @@ defmodule Kati.Screens.Search do
       >
         {Kati.UI.symbol("search", size: 20)}
         <Spacer size={11} />
-        <Text text={results.query} text_size={14.5} font_weight="medium" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={results.query}
+          text_size={14.5}
+          font_weight="medium"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={2} />
         <Box width={2} height={19} background={Palette.accent()} />
         <Spacer weight={1.0} />
@@ -250,7 +274,13 @@ defmodule Kati.Screens.Search do
   @doc false
   def chip_count(count, color) do
     ~MOB"""
-    <Text text={to_string(count)} font_family="mono" text_size={10.5} text_color={color} max_lines={1} />
+    <Text
+      text={to_string(count)}
+      font_family="mono"
+      text_size={10.5}
+      text_color={color}
+      max_lines={1}
+    />
     """
   end
 
@@ -349,7 +379,13 @@ defmodule Kati.Screens.Search do
         {Kati.Screens.Search.thumb(row)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
           <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -405,12 +441,32 @@ defmodule Kati.Screens.Search do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column width={44}>
-          <Text text={row.date} font_family="mono" text_size={10} letter_spacing={0.06} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.date}
+            font_family="mono"
+            text_size={10}
+            letter_spacing={0.06}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
-        <Text text={row.title} text_size={12.5} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          weight={1.0}
+          max_lines={1}
+        />
         <Spacer size={13} />
-        <Text text={row.time} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={row.time}
+          font_family="mono"
+          text_size={11}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Row>
       {Kati.Screens.Search.hairline(rule?)}
     </Column>
@@ -462,13 +518,31 @@ defmodule Kati.Screens.Search do
         />
         <Spacer size={8} />
         <Row fill_width={true} align="center">
-          <Text text={note.lead} text_size={13} line_height={1.55} text_color={Palette.cream_body()} max_lines={1} />
+          <Text
+            text={note.lead}
+            text_size={13}
+            line_height={1.55}
+            text_color={Palette.cream_body()}
+            max_lines={1}
+          />
           <Spacer size={4} />
           <Row background={Palette.accent_fill()} align="center">
-            <Text text={note.match} text_size={13} line_height={1.55} text_color={Palette.cream_body()} max_lines={1} />
+            <Text
+              text={note.match}
+              text_size={13}
+              line_height={1.55}
+              text_color={Palette.cream_body()}
+              max_lines={1}
+            />
           </Row>
           <Spacer size={4} />
-          <Text text={inline} text_size={13} line_height={1.55} text_color={Palette.cream_body()} max_lines={1} />
+          <Text
+            text={inline}
+            text_size={13}
+            line_height={1.55}
+            text_color={Palette.cream_body()}
+            max_lines={1}
+          />
         </Row>
         {Kati.Screens.Search.note_leading()}
         <Text text={rest} text_size={13} line_height={1.55} text_color={Palette.cream_body()} />
@@ -542,7 +616,15 @@ defmodule Kati.Screens.Search do
     icon = if on?, do: Palette.on_ink_count(), else: Palette.muted()
 
     ~MOB"""
-    <Row height={30} corner_radius={15} background={background} padding_left={12} padding_right={12} align="center" on_tap={tap}>
+    <Row
+      height={30}
+      corner_radius={15}
+      background={background}
+      padding_left={12}
+      padding_right={12}
+      align="center"
+      on_tap={tap}
+    >
       {Kati.UI.symbol("history", size: 14, color: icon)}
       <Spacer size={6} />
       <Text text={label} text_size={12} text_color={color} max_lines={1} />

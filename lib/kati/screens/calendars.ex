@@ -62,7 +62,13 @@ defmodule Kati.Screens.Calendars do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title("Calendars", c.connected)}
         {UI.eyebrow("Accounts")}
@@ -102,8 +108,11 @@ defmodule Kati.Screens.Calendars do
   end
 
   @doc false
-  def status(label, :live), do: SettingsList.status_pill(label, Palette.green_text(), Palette.green_wash())
-  def status(label, :stale), do: SettingsList.status_pill(label, Palette.red(), Palette.red_wash_strong())
+  def status(label, :live),
+    do: SettingsList.status_pill(label, Palette.green_text(), Palette.green_wash())
+
+  def status(label, :stale),
+    do: SettingsList.status_pill(label, Palette.red(), Palette.red_wash_strong())
 
   # The one row with no trailing control and no filled tile: a dashed square
   # that reads as a slot waiting to be filled rather than a button.
@@ -147,7 +156,13 @@ defmodule Kati.Screens.Calendars do
   """
   def add_tile do
     MishkaThemeIcon.theme_icon(
-      %{variant: :subtle, size: 30, radius: 9, border_color: Palette.border_stronger(), border_width: 1.5},
+      %{
+        variant: :subtle,
+        size: 30,
+        radius: 9,
+        border_color: Palette.border_stronger(),
+        border_width: 1.5
+      },
       [Kati.UI.symbol("add", size: 16, color: Palette.sub())]
     )
   end

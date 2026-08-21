@@ -430,6 +430,52 @@ object MobBridge {
         else "light"
     }
 
+    // KATI-BEGIN(K-19 secure-store-bridge) mob_new=0.4.20
+    // WHY: Kati is about to hold credentials to the user's *account* — a
+    // CalDAV app-specific password, an OAuth refresh token, a user's own TMDB
+    // key. Mob has no secure storage: Mob.State is a plaintext :dets file and
+    // the SQLite database is a plaintext file, both in the sandbox. The
+    // encryption itself is in KatiSecureStore.kt (Keystore-wrapped AES-GCM,
+    // and the reasoning for that choice); these four methods exist only
+    // because a NIF can call a static method on THIS class and nothing else.
+    //
+    // They are shaped exactly like getColorScheme above — @JvmStatic, String
+    // in, String out — because that is the shape mob's nif_load caches
+    // (mob_nif.zig:3706 cacheRequired / :3716 cacheOptional) and the only
+    // shape its JNI marshalling handles. Values cross base64-encoded: a token
+    // is bytes and a JNI string is UTF-16, so the raw form is not safe to
+    // send. Reply strings are "ok" / "ok:<b64>" / "error:<reason>"; no
+    // exception is ever thrown across the JNI boundary.
+    //
+    // Each call attaches the application context first, so the store keeps
+    // working when the Activity is gone and the BEAM is alive inside
+    // BeamForegroundService — which is exactly when a background token
+    // refresh runs.
+    @JvmStatic
+    fun secureStoreStatus(): String {
+        activityRef?.get()?.let { KatiSecureStore.attach(it) }
+        return KatiSecureStore.status()
+    }
+
+    @JvmStatic
+    fun secureStorePut(key: String, valueB64: String): String {
+        activityRef?.get()?.let { KatiSecureStore.attach(it) }
+        return KatiSecureStore.put(key, valueB64)
+    }
+
+    @JvmStatic
+    fun secureStoreGet(key: String): String {
+        activityRef?.get()?.let { KatiSecureStore.attach(it) }
+        return KatiSecureStore.get(key)
+    }
+
+    @JvmStatic
+    fun secureStoreDelete(key: String): String {
+        activityRef?.get()?.let { KatiSecureStore.attach(it) }
+        return KatiSecureStore.delete(key)
+    }
+    // KATI-END(K-19 secure-store-bridge)
+
     /** Called from nif_exit_app via JNI — backgrounds the app without killing it. */
     @JvmStatic
     fun moveToBack() {

@@ -150,7 +150,13 @@ defmodule Kati.UI.SettingsList do
   def title(text, sub, nil) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={text} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text={text}
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
       <Text text={sub} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
@@ -163,9 +169,21 @@ defmodule Kati.UI.SettingsList do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text={text} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text={text}
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={sub} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={sub}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={9} />
         {Kati.UI.SettingsList.disc(icon)}
@@ -306,14 +324,26 @@ defmodule Kati.UI.SettingsList do
 
   def body(title, nil) do
     ~MOB"""
-    <Text text={title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+    <Text
+      text={title}
+      text_size={13.5}
+      font_weight="semibold"
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
   end
 
   def body(title, sub) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={title}
+        text_size={13.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={3} />
       <Text text={sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
@@ -323,7 +353,13 @@ defmodule Kati.UI.SettingsList do
   @doc "A row title the design greys out — a calendar switched off, an add affordance."
   def body_muted(title) do
     ~MOB"""
-    <Text text={title} text_size={13.5} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
+    <Text
+      text={title}
+      text_size={13.5}
+      font_weight="semibold"
+      text_color={Palette.sub()}
+      max_lines={1}
+    />
     """
   end
 
@@ -690,7 +726,13 @@ defmodule Kati.UI.SettingsList do
   # list, which the pill drops straight into its children wrapper.
   defp note_text(text) do
     ~MOB"""
-    <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
+    <Text
+      text={text}
+      text_size={12.5}
+      line_height={1.55}
+      text_color={Palette.ink_soft()}
+      weight={1.0}
+    />
     """
   end
 end

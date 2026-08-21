@@ -71,7 +71,13 @@ defmodule Kati.Screens.Subscriptions do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Subscriptions.back_row()}
         {Kati.Screens.Subscriptions.title()}
         {Kati.Screens.Subscriptions.monthly()}
@@ -137,9 +143,21 @@ defmodule Kati.Screens.Subscriptions do
   def title do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text="Subscriptions" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text="Subscriptions"
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text={Kati.Subscriptions.Sample.active_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={Kati.Subscriptions.Sample.active_line()}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -158,18 +176,46 @@ defmodule Kati.Screens.Subscriptions do
         shadow={Kati.Theme.shadow_card_soft()}
         padding={19}
       >
-        <Text text={String.upcase(m.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
+        <Text
+          text={String.upcase(m.label)}
+          font_family="mono"
+          text_size={10.5}
+          letter_spacing={0.16}
+          text_color={Palette.cream_meta()}
+        />
         <Spacer size={7} />
-        <Text text={m.total} text_size={36} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
+        <Text
+          text={m.total}
+          text_size={36}
+          font_weight="extrabold"
+          letter_spacing={-0.04}
+          text_color={:on_surface}
+        />
         <Spacer size={12} />
         <Row fill_width={true} align="center">
           {Kati.UI.symbol("trending_up", size: 15, color: Palette.red())}
           <Spacer size={7} />
-          <Text text={m.change_lead} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
+          <Text
+            text={m.change_lead}
+            text_size={12.5}
+            text_color={Palette.cream_sub()}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={m.change_amount} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={m.change_amount}
+            text_size={12.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={m.change_rest} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
+          <Text
+            text={m.change_rest}
+            text_size={12.5}
+            text_color={Palette.cream_sub()}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
         </Row>
       </Column>
@@ -219,7 +265,13 @@ defmodule Kati.Screens.Subscriptions do
         {Kati.Screens.Subscriptions.badge(row.badge)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.name} text_size={13.5} font_weight="semibold" text_color={name_color} max_lines={1} />
+          <Text
+            text={row.name}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={name_color}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={row.line} text_size={11.5} text_color={line_color} max_lines={1} />
         </Column>
@@ -264,7 +316,13 @@ defmodule Kati.Screens.Subscriptions do
   @doc false
   def money(row, true) do
     ~MOB"""
-    <Text text={row.price} font_family="mono" text_size={12} text_color={Palette.tertiary()} max_lines={1} />
+    <Text
+      text={row.price}
+      font_family="mono"
+      text_size={12}
+      text_color={Palette.tertiary()}
+      max_lines={1}
+    />
     """
   end
 
@@ -275,9 +333,24 @@ defmodule Kati.Screens.Subscriptions do
   def money(row, false) do
     ~MOB"""
     <Column width={46}>
-      <Text text={row.price} font_family="mono" text_size={12} font_weight="medium" text_color={:on_surface} text_align="right" max_lines={1} />
+      <Text
+        text={row.price}
+        font_family="mono"
+        text_size={12}
+        font_weight="medium"
+        text_color={:on_surface}
+        text_align="right"
+        max_lines={1}
+      />
       <Spacer size={3} />
-      <Text text={row.rate} font_family="mono" text_size={10} text_color={row.rate_tone} text_align="right" max_lines={1} />
+      <Text
+        text={row.rate}
+        font_family="mono"
+        text_size={10}
+        text_color={row.rate_tone}
+        text_align="right"
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -313,7 +386,13 @@ defmodule Kati.Screens.Subscriptions do
       <Row fill_width={true} align="top">
         {Kati.UI.symbol("lightbulb", size: 19, color: Palette.accent())}
         <Spacer size={11} />
-        <Text text={s.body} text_size={13} line_height={1.55} text_color={Palette.cream_body()} weight={1.0} />
+        <Text
+          text={s.body}
+          text_size={13}
+          line_height={1.55}
+          text_color={Palette.cream_body()}
+          weight={1.0}
+        />
       </Row>
       <Spacer size={15} />
       <Row fill_width={true} align="center">
@@ -365,9 +444,22 @@ defmodule Kati.Screens.Subscriptions do
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row fill_width={true} height={40} corner_radius={20} background={background} align="center" on_tap={tap}>
+      <Row
+        fill_width={true}
+        height={40}
+        corner_radius={20}
+        background={background}
+        align="center"
+        on_tap={tap}
+      >
         <Spacer weight={1.0} />
-        <Text text={label} text_size={12.5} font_weight="semibold" text_color={foreground} max_lines={1} />
+        <Text
+          text={label}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={foreground}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
       </Row>
     </Box>
@@ -403,8 +495,22 @@ defmodule Kati.Screens.Subscriptions do
     tap = {self(), :dismiss}
 
     ~MOB"""
-    <Row height={40} corner_radius={20} background={Palette.paper()} padding_left={15} padding_right={15} align="center" on_tap={tap}>
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+    <Row
+      height={40}
+      corner_radius={20}
+      background={Palette.paper()}
+      padding_left={15}
+      padding_right={15}
+      align="center"
+      on_tap={tap}
+    >
+      <Text
+        text={label}
+        text_size={12.5}
+        font_weight="semibold"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Row>
     """
   end

@@ -52,9 +52,20 @@ defmodule Kati.Screens.QuickAdd do
     draft = assigns.draft
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.QuickAdd.header()}
           {Kati.Screens.QuickAdd.field(draft)}
           {UI.eyebrow("Kati read that as")}
@@ -76,7 +87,13 @@ defmodule Kati.Screens.QuickAdd do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Text text="Quick add" text_size={26} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+        <Text
+          text="Quick add"
+          text_size={26}
+          font_weight="bold"
+          letter_spacing={-0.03}
+          text_color={:on_surface}
+        />
         <Spacer weight={1.0} />
         {Kati.Screens.QuickAdd.close_disc()}
       </Row>
@@ -172,6 +189,7 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   def piece({:token, text, gap}), do: token(text, gap, Palette.hairline_soft(), Palette.ink())
+
   def piece({:accent, text, gap}),
     do: token(text, gap, Palette.accent_wash(), Palette.gold_text())
 
@@ -229,9 +247,22 @@ defmodule Kati.Screens.QuickAdd do
           {Kati.Screens.QuickAdd.kind_tile()}
           <Spacer size={10} />
           <Column weight={1.0}>
-            <Text text={draft.title} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} max_lines={1} />
+            <Text
+              text={draft.title}
+              text_size={16}
+              font_weight="bold"
+              letter_spacing={-0.02}
+              text_color={:on_surface}
+              max_lines={1}
+            />
             <Spacer size={3} />
-            <Text text={draft.kind} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
+            <Text
+              text={draft.kind}
+              font_family="mono"
+              text_size={10.5}
+              text_color={Palette.cream_meta()}
+              max_lines={1}
+            />
           </Column>
         </Row>
         <Spacer size={16} />
@@ -313,10 +344,23 @@ defmodule Kati.Screens.QuickAdd do
   # different colour, so taking it would move light mode. Reported, not guessed.
   def fact({icon, label}) do
     ~MOB"""
-    <Row height={30} corner_radius={15} background={0xA6FFFFFF} padding_left={11} padding_right={11} align="center">
+    <Row
+      height={30}
+      corner_radius={15}
+      background={0xA6FFFFFF}
+      padding_left={11}
+      padding_right={11}
+      align="center"
+    >
       {Kati.UI.symbol(icon, size: 14, color: Palette.gold_text())}
       <Spacer size={6} />
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text={label}
+        text_size={11.5}
+        font_weight="semibold"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -333,7 +377,13 @@ defmodule Kati.Screens.QuickAdd do
       <Spacer size={7} />
       <Text text={lead} text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
       <Spacer size={4} />
-      <Text text={subject} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={subject}
+        text_size={11.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={4} />
       <Text text={tail} text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
     </Row>
@@ -367,10 +417,23 @@ defmodule Kati.Screens.QuickAdd do
   @doc false
   def kind({icon, label, true}) do
     ~MOB"""
-    <Row height={34} corner_radius={17} background={Palette.ink_fill()} padding_left={13} padding_right={13} align="center">
+    <Row
+      height={34}
+      corner_radius={17}
+      background={Palette.ink_fill()}
+      padding_left={13}
+      padding_right={13}
+      align="center"
+    >
       {Kati.UI.symbol(icon, size: 16, color: Palette.on_ink())}
       <Spacer size={7} />
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
+      <Text
+        text={label}
+        text_size={12.5}
+        font_weight="semibold"
+        text_color={Palette.on_ink()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -388,7 +451,13 @@ defmodule Kati.Screens.QuickAdd do
     >
       {Kati.UI.symbol(icon, size: 16, color: Palette.sub())}
       <Spacer size={7} />
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text={label}
+        text_size={12.5}
+        font_weight="semibold"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -407,7 +476,13 @@ defmodule Kati.Screens.QuickAdd do
         shadow="0 12 24 -12 #D91A1917"
         align="center"
       >
-        <Text text={draft.cta} text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+        <Text
+          text={draft.cta}
+          text_size={14}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
       </Box>
       <Spacer size={10} />
       {Kati.Screens.QuickAdd.mic()}

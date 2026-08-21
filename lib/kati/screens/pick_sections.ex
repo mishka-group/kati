@@ -58,9 +58,20 @@ defmodule Kati.Screens.PickSections do
     chosen = assigns.chosen
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.PickSections.intro()}
           {Kati.Screens.PickSections.grid(chosen)}
           {Kati.Screens.PickSections.commit(chosen)}
@@ -90,7 +101,12 @@ defmodule Kati.Screens.PickSections do
       {Kati.Screens.PickSections.steps()}
       {Enum.map(Kati.Screens.PickSections.Sample.heading(), fn line -> Kati.Screens.PickSections.heading_line(line) end)}
       <Spacer size={14} />
-      <Text text={Kati.Screens.PickSections.Sample.blurb()} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
+      <Text
+        text={Kati.Screens.PickSections.Sample.blurb()}
+        text_size={14.5}
+        line_height={1.6}
+        text_color={Palette.ink_soft()}
+      />
       <Spacer size={30} />
     </Column>
     """
@@ -204,7 +220,14 @@ defmodule Kati.Screens.PickSections do
           {Kati.Screens.PickSections.badge(chosen?)}
         </Row>
         <Spacer size={14} />
-        <Text text={section.label} text_size={15} font_weight="bold" letter_spacing={-0.02} text_color={ink} max_lines={1} />
+        <Text
+          text={section.label}
+          text_size={15}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={ink}
+          max_lines={1}
+        />
         <Spacer size={4} />
         <Text text={section.sub} text_size={11.5} text_color={sub} max_lines={1} />
       </Column>
@@ -247,7 +270,15 @@ defmodule Kati.Screens.PickSections do
     # the FAB, so neither is honestly this. Left, and reported: the table has no
     # "on a hue fill" row.
     ~MOB"""
-    <Box width={22} height={22} offset_x={2} offset_y={-2} corner_radius={11} background={Palette.accent()} align="center">
+    <Box
+      width={22}
+      height={22}
+      offset_x={2}
+      offset_y={-2}
+      corner_radius={11}
+      background={Palette.accent()}
+      align="center"
+    >
       {Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)}
     </Box>
     """
@@ -275,7 +306,13 @@ defmodule Kati.Screens.PickSections do
         align="center"
       >
         <Row align="center">
-          <Text text={label} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+          <Text
+            text={label}
+            text_size={14.5}
+            font_weight="bold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
           <Spacer size={9} />
           {Kati.UI.symbol("arrow_forward", size: 19, color: Palette.on_ink())}
         </Row>
@@ -283,7 +320,13 @@ defmodule Kati.Screens.PickSections do
       <Spacer size={14} />
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Text text="Import from a backup instead" text_size={13} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
+        <Text
+          text="Import from a backup instead"
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.sub()}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
       </Row>
     </Column>

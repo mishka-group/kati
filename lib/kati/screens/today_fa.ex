@@ -61,7 +61,13 @@ defmodule Kati.Screens.TodayFa do
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.TodayFa.header(day)}
           {Kati.Screens.TodayFa.title(day)}
           {Kati.Screens.TodayFa.quick(day)}
@@ -319,7 +325,13 @@ defmodule Kati.Screens.TodayFa do
     <Row align="center">
       <Box width={7} height={7} corner_radius={2} background={macro.color} />
       <Spacer size={5} />
-      <Text text={macro.label} font_family="fa" text_size={10} text_color={Palette.eyebrow()} max_lines={1} />
+      <Text
+        text={macro.label}
+        font_family="fa"
+        text_size={10}
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -386,23 +398,71 @@ defmodule Kati.Screens.TodayFa do
         {Kati.Screens.TodayFa.thumb(meal.seed, 52, 13)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={Palette.eyebrow()} max_lines={1} />
+          <Text
+            text={meal.label}
+            font_family="fa"
+            text_size={10.5}
+            font_weight="semibold"
+            text_color={Palette.eyebrow()}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={meal.title} font_family="fa" text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={meal.title}
+            font_family="fa"
+            text_size={14.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={meal.sub} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={meal.sub}
+            font_family="fa"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.TodayFa.ring(:next)}
       </Row>
       <Spacer size={13} />
       <Row fill_width={true} align="center" padding_left={15}>
-        <Row height={34} corner_radius={17} background={Palette.ink_fill()} padding_left={14} padding_right={14} align="center">
-          <Text text={meal.eat} font_family="fa" text_size={12} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
+        <Row
+          height={34}
+          corner_radius={17}
+          background={Palette.ink_fill()}
+          padding_left={14}
+          padding_right={14}
+          align="center"
+        >
+          <Text
+            text={meal.eat}
+            font_family="fa"
+            text_size={12}
+            font_weight="semibold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
         </Row>
         <Spacer size={8} />
-        <Row height={34} corner_radius={17} background={Palette.paper()} padding_left={14} padding_right={14} align="center">
-          <Text text={meal.swap} font_family="fa" text_size={12} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+        <Row
+          height={34}
+          corner_radius={17}
+          background={Palette.paper()}
+          padding_left={14}
+          padding_right={14}
+          align="center"
+        >
+          <Text
+            text={meal.swap}
+            font_family="fa"
+            text_size={12}
+            font_weight="semibold"
+            text_color={Palette.ink_soft()}
+            max_lines={1}
+          />
         </Row>
       </Row>
     </Column>
@@ -423,11 +483,31 @@ defmodule Kati.Screens.TodayFa do
       align="center"
     >
       <Column weight={1.0}>
-        <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={Palette.rail_idle()} max_lines={1} />
+        <Text
+          text={meal.label}
+          font_family="fa"
+          text_size={10.5}
+          font_weight="semibold"
+          text_color={Palette.rail_idle()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.title} font_family="fa" text_size={13} font_weight="semibold" text_color={Palette.tertiary()} max_lines={1} />
+        <Text
+          text={meal.title}
+          font_family="fa"
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.tertiary()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.sub} font_family="fa" text_size={11} text_color={Palette.rail_idle()} max_lines={1} />
+        <Text
+          text={meal.sub}
+          font_family="fa"
+          text_size={11}
+          text_color={Palette.rail_idle()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.TodayFa.ring(:skipped)}
@@ -450,11 +530,31 @@ defmodule Kati.Screens.TodayFa do
       {Kati.Screens.TodayFa.thumb(meal.seed, 40, 11)}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={Palette.eyebrow()} max_lines={1} />
+        <Text
+          text={meal.label}
+          font_family="fa"
+          text_size={10.5}
+          font_weight="semibold"
+          text_color={Palette.eyebrow()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.title} font_family="fa" text_size={13} font_weight="semibold" text_color={Palette.settled_ink()} max_lines={1} />
+        <Text
+          text={meal.title}
+          font_family="fa"
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.settled_ink()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={meal.sub} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
+        <Text
+          text={meal.sub}
+          font_family="fa"
+          text_size={11}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.TodayFa.ring(:eaten)}
@@ -492,14 +592,26 @@ defmodule Kati.Screens.TodayFa do
   """
   def ring(:next) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :subtle, size: 32, radius: 16, border_color: Palette.border(), border_width: 1.5},
+      %{
+        variant: :subtle,
+        size: 32,
+        radius: 16,
+        border_color: Palette.border(),
+        border_width: 1.5
+      },
       [Kati.UI.symbol("check", size: 19, color: Palette.track_ink())]
     )
   end
 
   def ring(:skipped) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :subtle, size: 27, radius: 16, border_color: Palette.border(), border_width: 1.5},
+      %{
+        variant: :subtle,
+        size: 27,
+        radius: 16,
+        border_color: Palette.border(),
+        border_width: 1.5
+      },
       [Kati.UI.symbol("close", size: 16, color: Palette.rail_idle())]
     )
   end
@@ -554,13 +666,31 @@ defmodule Kati.Screens.TodayFa do
   @doc false
   def prep(day) do
     ~MOB"""
-    <Row fill_width={true} background={Palette.cream()} corner_radius={20} padding={16} align="center">
+    <Row
+      fill_width={true}
+      background={Palette.cream()}
+      corner_radius={20}
+      padding={16}
+      align="center"
+    >
       {Kati.UI.symbol("schedule", size: 20, color: Palette.gold_icon())}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={day.prep.title} font_family="fa" text_size={13} font_weight="bold" text_color={:on_surface} />
+        <Text
+          text={day.prep.title}
+          font_family="fa"
+          text_size={13}
+          font_weight="bold"
+          text_color={:on_surface}
+        />
         <Spacer size={4} />
-        <Text text={day.prep.sub} font_family="fa" text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
+        <Text
+          text={day.prep.sub}
+          font_family="fa"
+          text_size={11.5}
+          text_color={Palette.cream_sub()}
+          max_lines={1}
+        />
       </Column>
     </Row>
     """

@@ -42,7 +42,13 @@ defmodule Kati.Screens.UpNext do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.UpNext.tune_row()}
         {Kati.Screens.UpNext.header(q)}
         {Kati.Screens.UpNext.hero(q)}
@@ -105,9 +111,21 @@ defmodule Kati.Screens.UpNext do
   def header(q) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text="Up next" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text="Up next"
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text={q.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={q.subtitle}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -136,11 +154,30 @@ defmodule Kati.Screens.UpNext do
             <Box fill_width={true} height={70} gradient="to_top #C7141210 #00141210" />
           </Box>
           <Box fill_width={true} fill_height={true} align="bottom">
-            <Row fill_width={true} align="bottom" padding_left={14} padding_right={12} padding_bottom={12}>
+            <Row
+              fill_width={true}
+              align="bottom"
+              padding_left={14}
+              padding_right={12}
+              padding_bottom={12}
+            >
               <Column weight={1.0}>
-                <Text text={h.title} text_size={16} font_weight="bold" letter_spacing={-0.02} text_color={Palette.on_media()} max_lines={1} />
+                <Text
+                  text={h.title}
+                  text_size={16}
+                  font_weight="bold"
+                  letter_spacing={-0.02}
+                  text_color={Palette.on_media()}
+                  max_lines={1}
+                />
                 <Spacer size={4} />
-                <Text text={h.meta} font_family="mono" text_size={10.5} text_color={Palette.on_media_meta()} max_lines={1} />
+                <Text
+                  text={h.meta}
+                  font_family="mono"
+                  text_size={10.5}
+                  text_color={Palette.on_media_meta()}
+                  max_lines={1}
+                />
               </Column>
               <Spacer size={8} />
               {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media(), Palette.ink(:light))}
@@ -209,9 +246,22 @@ defmodule Kati.Screens.UpNext do
         {Kati.Screens.UpNext.thumb(row)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="bold"
+            letter_spacing={-0.015}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.UpNext.play_disc(34, 19, Palette.paper())}
@@ -310,9 +360,21 @@ defmodule Kati.Screens.UpNext do
         {Kati.Screens.UpNext.cold_thumb(row)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={Palette.sub()}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={row.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.UpNext.drop_pill(row.action)}

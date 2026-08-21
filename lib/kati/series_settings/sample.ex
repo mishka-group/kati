@@ -103,7 +103,12 @@ defmodule Kati.SeriesSettings.Sample do
   @spec this_show() :: [map()]
   def this_show do
     [
-      %{icon: "replay", title: "Reset progress", sub: "Currently 5 of 7 in S2", control: :chevron},
+      %{
+        icon: "replay",
+        title: "Reset progress",
+        sub: "Currently 5 of 7 in S2",
+        control: :chevron
+      },
       %{
         icon: "archive",
         title: "Archive",

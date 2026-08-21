@@ -85,7 +85,13 @@ defmodule Kati.Screens.SeriesFa do
       <Scroll>
         <Column fill_width={true}>
           {Kati.Screens.SeriesFa.artwork(series)}
-          <Column fill_width={true} padding_left={21} padding_right={21} padding_top={16} padding_bottom={40}>
+          <Column
+            fill_width={true}
+            padding_left={21}
+            padding_right={21}
+            padding_top={16}
+            padding_bottom={40}
+          >
             {Kati.Screens.SeriesFa.season_card(series)}
             {Kati.Screens.SeriesFa.actions(series)}
             {Kati.Screens.SeriesFa.episodes_header(series)}
@@ -136,7 +142,13 @@ defmodule Kati.Screens.SeriesFa do
             text_color={:on_surface}
           />
           <Spacer size={8} />
-          <Text text={series.meta} font_family="fa" text_size={11.5} text_color={Palette.meta()} max_lines={1} />
+          <Text
+            text={series.meta}
+            font_family="fa"
+            text_size={11.5}
+            text_color={Palette.meta()}
+            max_lines={1}
+          />
         </Column>
       </Box>
     </Box>
@@ -258,7 +270,13 @@ defmodule Kati.Screens.SeriesFa do
         <Row fill_width={true} align="center">
           <Box width={6} height={6} corner_radius={3} background={Palette.accent()} />
           <Spacer size={8} />
-          <Text text={series.next_air} font_family="fa" text_size={12} text_color={Palette.ink_soft()} max_lines={1} />
+          <Text
+            text={series.next_air}
+            font_family="fa"
+            text_size={12}
+            text_color={Palette.ink_soft()}
+            max_lines={1}
+          />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -389,7 +407,13 @@ defmodule Kati.Screens.SeriesFa do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={Palette.accent()} />
         <Spacer size={9} />
-        <Text text="قسمت‌ها" font_family="fa" font_weight="semibold" text_size={11} text_color={Palette.eyebrow()} />
+        <Text
+          text="قسمت‌ها"
+          font_family="fa"
+          font_weight="semibold"
+          text_size={11}
+          text_color={Palette.eyebrow()}
+        />
         <Spacer weight={1.0} />
         {series.seasons
          |> Enum.with_index()
@@ -535,7 +559,13 @@ defmodule Kati.Screens.SeriesFa do
         on_tap={tap}
       >
         <Column width={24}>
-          <Text text={ep.n} font_family="fa" text_size={12} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={ep.n}
+            font_family="fa"
+            text_size={12}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
         <Column weight={1.0}>
@@ -548,7 +578,13 @@ defmodule Kati.Screens.SeriesFa do
             max_lines={1}
           />
           <Spacer size={4} />
-          <Text text={ep.sub} font_family="fa" text_size={11} text_color={Palette.tertiary()} max_lines={1} />
+          <Text
+            text={ep.sub}
+            font_family="fa"
+            text_size={11}
+            text_color={Palette.tertiary()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.SeriesFa.check(ep.watched)}

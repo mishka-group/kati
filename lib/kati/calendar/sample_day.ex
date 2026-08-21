@@ -48,17 +48,56 @@ defmodule Kati.Calendar.SampleDay do
       %{id: 1, start_min: 480, end_min: 510, kind: :habit, title: "Morning run", done: true},
       # 09:30 — two at once.
       %{id: 2, start_min: 570, end_min: 585, kind: :event, title: "Standup", meta: "09:30–09:45"},
-      %{id: 3, start_min: 570, end_min: 630, kind: :event, title: "Design review", meta: "09:30–10:30", rail: 0xFFE8823C},
+      %{
+        id: 3,
+        start_min: 570,
+        end_min: 630,
+        kind: :event,
+        title: "Design review",
+        meta: "09:30–10:30",
+        rail: 0xFFE8823C
+      },
       # 13:00 — three at once, capped at two lanes with a +1 tile.
-      %{id: 4, start_min: 780, end_min: 840, kind: :event, title: "Lunch — Jo", meta: "13:00–14:00"},
+      %{
+        id: 4,
+        start_min: 780,
+        end_min: 840,
+        kind: :event,
+        title: "Lunch — Jo",
+        meta: "13:00–14:00"
+      },
       %{id: 5, start_min: 780, end_min: 900, kind: :event, title: "Plumber", meta: "13:00–15:00"},
       %{id: 6, start_min: 780, end_min: 810, kind: :air_date, title: "Marram", meta: "S2 · E3"},
       # 15:00 — a todo, and the only thing on the day that can be ticked.
       %{id: 7, start_min: 900, end_min: 930, kind: :todo, title: "Renew passport", todo: true},
       # 20:00 — three episodes, which Layout folds into one grouped card.
-      %{id: 8, start_min: 1200, end_min: 1230, kind: :air_date, title: "Ashfall", meta: "S3 · E2", seed: "ashfall42"},
-      %{id: 9, start_min: 1205, end_min: 1235, kind: :air_date, title: "Salt & Iron", meta: "S1 · E4", seed: "saltiron33"},
-      %{id: 10, start_min: 1210, end_min: 1240, kind: :air_date, title: "The Cartographer", meta: "S2 · E1", seed: "cartog60"},
+      %{
+        id: 8,
+        start_min: 1200,
+        end_min: 1230,
+        kind: :air_date,
+        title: "Ashfall",
+        meta: "S3 · E2",
+        seed: "ashfall42"
+      },
+      %{
+        id: 9,
+        start_min: 1205,
+        end_min: 1235,
+        kind: :air_date,
+        title: "Salt & Iron",
+        meta: "S1 · E4",
+        seed: "saltiron33"
+      },
+      %{
+        id: 10,
+        start_min: 1210,
+        end_min: 1240,
+        kind: :air_date,
+        title: "The Cartographer",
+        meta: "S2 · E1",
+        seed: "cartog60"
+      },
       # 23:15 — a deadline you did not set. Flat paper, and a poster instead
       # of a kind rail.
       %{

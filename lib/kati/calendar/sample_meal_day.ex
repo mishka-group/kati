@@ -36,7 +36,8 @@ defmodule Kati.Calendar.SampleMealDay do
       chips: chips(),
       rows: rows(),
       collapsed: collapsed(),
-      note: "Five meals a day would drown the calendar, so they obey the same 3+ rule as episodes."
+      note:
+        "Five meals a day would drown the calendar, so they obey the same 3+ rule as episodes."
     }
   end
 

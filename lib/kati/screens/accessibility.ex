@@ -56,7 +56,13 @@ defmodule Kati.Screens.Accessibility do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Accessibility.header(contrast?)}
         {Kati.Screens.Accessibility.title(spec)}
         {Kati.Screens.Accessibility.up_next(spec, contrast?)}
@@ -173,9 +179,21 @@ defmodule Kati.Screens.Accessibility do
   def title(spec) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text="Accessibility" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text="Accessibility"
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text={spec.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={spec.subtitle}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -237,7 +255,13 @@ defmodule Kati.Screens.Accessibility do
         <Spacer size={10} />
         <Text text={u.lines} text_size={22} line_height={1.35} text_color={Palette.ink_soft()} />
         <Spacer size={18} />
-        <Box fill_width={true} height={60} corner_radius={30} background={Palette.ink_fill()} align="center">
+        <Box
+          fill_width={true}
+          height={60}
+          corner_radius={30}
+          background={Palette.ink_fill()}
+          align="center"
+        >
           <Row align="center">
             {Kati.UI.symbol("play_arrow", size: 26, color: Palette.on_ink(), fill: true)}
             <Spacer size={10} />
@@ -245,7 +269,13 @@ defmodule Kati.Screens.Accessibility do
           </Row>
         </Box>
         <Spacer size={10} />
-        <Box fill_width={true} height={60} corner_radius={30} background={Palette.paper()} align="center">
+        <Box
+          fill_width={true}
+          height={60}
+          corner_radius={30}
+          background={Palette.paper()}
+          align="center"
+        >
           <Row align="center">
             {Kati.UI.symbol("check", size: 24)}
             <Spacer size={10} />
@@ -323,7 +353,13 @@ defmodule Kati.Screens.Accessibility do
         {Kati.Screens.Accessibility.icon_tile(row.icon)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={3} />
           <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>

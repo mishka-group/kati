@@ -153,42 +153,22 @@ defmodule Kati.Calendar.Shamsi do
   @doc """
   Map ASCII digits to Persian (extended Arabic-Indic) digits.
 
-  Used for output. Input folding — a user typing ۱۴۰۵ — is the inverse and lives
-  in `from_persian_digits/1`.
+  Delegates to `Kati.I18n.Digits`, which owns the character tables. Two folders
+  would drift, and the one on the calendar side is the one that would quietly
+  stop handling the separators.
   """
   @spec to_persian_digits(String.t()) :: String.t()
-  def to_persian_digits(text) when is_binary(text) do
-    String.replace(text, ~w(0 1 2 3 4 5 6 7 8 9), fn d ->
-      <<0x06F0 + String.to_integer(d)::utf8>>
-    end)
-  end
+  defdelegate to_persian_digits(text), to: Kati.I18n.Digits, as: :to_persian
 
   @doc """
-  Fold Persian and Arabic-Indic digits back to ASCII.
+  Fold Persian and Arabic-Indic digits — and separators — back to ASCII.
 
   A user typing a Shamsi date, or a search query containing a number, arrives in
   Persian digits; nothing downstream — FTS5, `Integer.parse/1`, a date parser —
   matches them.
   """
   @spec from_persian_digits(String.t()) :: String.t()
-  def from_persian_digits(text) when is_binary(text) do
-    text
-    |> String.graphemes()
-    |> Enum.map_join(fn g ->
-      case :binary.first(g) do
-        _ ->
-          cp = g |> String.to_charlist() |> hd()
-
-          cond do
-            # Extended Arabic-Indic (Persian) ۰-۹
-            cp in 0x06F0..0x06F9 -> <<?0 + (cp - 0x06F0)>>
-            # Arabic-Indic ٠-٩
-            cp in 0x0660..0x0669 -> <<?0 + (cp - 0x0660)>>
-            true -> g
-          end
-      end
-    end)
-  end
+  defdelegate from_persian_digits(text), to: Kati.I18n.Digits, as: :fold
 
   # ── internals ────────────────────────────────────────────────────────────
 

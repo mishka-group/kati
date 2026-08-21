@@ -113,7 +113,9 @@ defmodule Kati.ScreenDesignLiteralTest do
                "not a reason to check less"
 
       assert Enum.sort(numbered) == on_disk
-      assert length(Enum.uniq(numbered)) == length(numbered), "a screen number is registered twice"
+
+      assert length(Enum.uniq(numbered)) == length(numbered),
+             "a screen number is registered twice"
 
       assert Enum.all?(registered, &ScreenSweep.screen?/1),
              "the registry names modules that are not screens: " <>
@@ -314,8 +316,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"02", "sunday 16 august · 5 items",
        "Schedule's subtitle is the selected day, which starts on the device's today",
        ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
-      {"09", "thu 20 aug",
-       "the heavy day's header is the device's today, in the same short form",
+      {"09", "thu 20 aug", "the heavy day's header is the device's today, in the same short form",
        ~r/^\p{L}{3} #{day} \p{L}{3}$/u}
     ]
   end

@@ -74,7 +74,13 @@ defmodule Kati.Screens.Language do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(h.title, h.subtitle)}
         {UI.eyebrow(h.interface_label)}
@@ -222,7 +228,14 @@ defmodule Kati.Screens.Language do
   @doc false
   def code_tile(%{script: :fa} = l) do
     Kati.Screens.Language.tile(~MOB"""
-    <Text text={l.code} font_family="fa" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
+    <Text
+      text={l.code}
+      font_family="fa"
+      text_size={15}
+      font_weight="bold"
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """)
   end
 
@@ -292,9 +305,22 @@ defmodule Kati.Screens.Language do
   def language_body(%{script: :fa} = l) do
     ~MOB"""
     <Column weight={1.0}>
-      <Text text={l.name} font_family="fa" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={l.name}
+        font_family="fa"
+        text_size={15}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={3} />
-      <Text text={l.region} font_family="fa" text_size={12} text_color={Palette.sub()} max_lines={1} />
+      <Text
+        text={l.region}
+        font_family="fa"
+        text_size={12}
+        text_color={Palette.sub()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -329,7 +355,13 @@ defmodule Kati.Screens.Language do
       {Kati.Screens.Language.tile(Kati.UI.symbol("add", size: 18, color: Palette.sub()))}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text text={a.title} text_size={14} font_weight="bold" text_color={Palette.sub()} max_lines={1} />
+        <Text
+          text={a.title}
+          text_size={14}
+          font_weight="bold"
+          text_color={Palette.sub()}
+          max_lines={1}
+        />
         <Spacer size={3} />
         <Text text={a.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
@@ -374,9 +406,21 @@ defmodule Kati.Screens.Language do
   def body(%{script: :fa} = row) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={row.title}
+        text_size={13.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       <Spacer size={3} />
-      <Text text={row.sub} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+      <Text
+        text={row.sub}
+        font_family="fa"
+        text_size={11.5}
+        text_color={Palette.sub()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -408,7 +452,13 @@ defmodule Kati.Screens.Language do
     >
       {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
+      <Text
+        text={text}
+        text_size={12.5}
+        line_height={1.55}
+        text_color={Palette.ink_soft()}
+        weight={1.0}
+      />
     </Row>
     """
   end

@@ -231,8 +231,18 @@ defmodule Kati.DesignLiterals do
   """
   @spec styling_props() :: [atom()]
   def styling_props do
-    [:align, :font_family, :font_weight, :shadow, :content_mode, :src, :text_align,
-     :layout_direction, :gradient, :axis]
+    [
+      :align,
+      :font_family,
+      :font_weight,
+      :shadow,
+      :content_mode,
+      :src,
+      :text_align,
+      :layout_direction,
+      :gradient,
+      :axis
+    ]
   end
 
   @doc """

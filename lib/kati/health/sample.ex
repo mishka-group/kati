@@ -61,7 +61,13 @@ defmodule Kati.Health.Sample do
   @spec sections() :: [map()]
   def sections do
     [
-      %{icon: "restaurant", name: "Meals", line: "Cutting v3 · week 6", on?: true, dot: 0xFF1A1917},
+      %{
+        icon: "restaurant",
+        name: "Meals",
+        line: "Cutting v3 · week 6",
+        on?: true,
+        dot: 0xFF1A1917
+      },
       %{icon: "bolt", name: "Habits", line: "4 active · 12-day best", on?: true, dot: 0xFF4E9A73},
       %{icon: "bedtime", name: "Sleep", line: "Not set up", on?: false},
       %{icon: "monitor_weight", name: "Weight", line: "Not set up", on?: false},

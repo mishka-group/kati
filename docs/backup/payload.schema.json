@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kati.app/schemas/backup/payload.schema.json",
+  "title": "Kati backup payload",
+  "description": "One data/<table>.json inside a .katibackup archive. See docs/backup-format.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["resource", "table", "count", "columns", "rows"],
+  "properties": {
+    "resource": {
+      "description": "The Ash resource these rows came from. Informational; a reader keys on 'table'.",
+      "type": "string"
+    },
+    "table": {
+      "description": "The table name. Must match the member's filename: data/<table>.json.",
+      "type": "string",
+      "pattern": "^[a-z_]+$"
+    },
+    "count": {
+      "description": "Number of rows in this file. Must equal both the length of 'rows' and the manifest's record count for this table.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "columns": {
+      "description": "Every column of the table, sorted by name. Identical for every row in the file, including columns that are always null.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z_0-9]+$" }
+    },
+    "rows": {
+      "description": "The rows, sorted by primary key. Each object's keys are exactly the 'columns' set — no extra key, no missing key.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "One row. Values are encoded by column type: uuid/string/atom as strings, integer/float as numbers, boolean as true/false, date as YYYY-MM-DD, time as HH:MM:SS.ffffff, instant as ISO-8601 with an offset, decimal as a STRING, and anything absent as null.",
+        "additionalProperties": {
+          "type": ["string", "number", "boolean", "null"]
+        }
+      }
+    }
+  }
+}

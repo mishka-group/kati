@@ -52,17 +52,28 @@ defmodule Kati.Screens.AddTitle do
     count = "#{length(shown)} results"
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={Kati.Locale.direction_prop()}>
-    <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
-        {Kati.Screens.AddTitle.header()}
-        {Kati.Screens.AddTitle.field()}
-        {Kati.Screens.AddTitle.chips(filter)}
-        {UI.eyebrow(count)}
-        {Kati.Screens.AddTitle.results(shown)}
-        {Kati.Screens.AddTitle.by_hand()}
-      </Column>
-    </Scroll>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+    >
+      <Scroll>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
+          {Kati.Screens.AddTitle.header()}
+          {Kati.Screens.AddTitle.field()}
+          {Kati.Screens.AddTitle.chips(filter)}
+          {UI.eyebrow(count)}
+          {Kati.Screens.AddTitle.results(shown)}
+          {Kati.Screens.AddTitle.by_hand()}
+        </Column>
+      </Scroll>
     </Box>
     """
   end
@@ -110,7 +121,13 @@ defmodule Kati.Screens.AddTitle do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Text text="Add a title" text_size={26} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+        <Text
+          text="Add a title"
+          text_size={26}
+          font_weight="bold"
+          letter_spacing={-0.03}
+          text_color={:on_surface}
+        />
         <Spacer weight={1.0} />
         {Kati.Screens.AddTitle.close_disc()}
       </Row>
@@ -164,7 +181,13 @@ defmodule Kati.Screens.AddTitle do
       >
         {Kati.UI.symbol("search", size: 20)}
         <Spacer size={11} />
-        <Text text="quiet" text_size={14.5} font_weight="medium" text_color={:on_surface} max_lines={1} />
+        <Text
+          text="quiet"
+          text_size={14.5}
+          font_weight="medium"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer size={2} />
         <Box width={2} height={19} background={Palette.accent()} />
         <Spacer weight={1.0} />
@@ -268,9 +291,22 @@ defmodule Kati.Screens.AddTitle do
         {Kati.Screens.AddTitle.thumb(r)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={r.title} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
+          <Text
+            text={r.title}
+            text_size={14}
+            font_weight="bold"
+            letter_spacing={-0.015}
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={5} />
-          <Text text={r.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={r.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
           <Spacer size={5} />
           <Text text={r.note} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
@@ -287,8 +323,11 @@ defmodule Kati.Screens.AddTitle do
   @doc false
   def thumb(r) do
     case Kati.Library.Sample.poster(r[:seed]) do
-      nil -> ~MOB"<Box width={44} height={62} corner_radius={9} background={Palette.placeholder()} />"
-      src -> ~MOB"""
+      nil ->
+        ~MOB"<Box width={44} height={62} corner_radius={9} background={Palette.placeholder()} />"
+
+      src ->
+        ~MOB"""
         <Image src={src} width={44} height={62} corner_radius={9} content_mode="fill" />
         """
     end
@@ -346,7 +385,13 @@ defmodule Kati.Screens.AddTitle do
       <Spacer weight={1.0} />
       {Kati.UI.symbol("edit_note", size: 18, color: Palette.sub())}
       <Spacer size={7} />
-      <Text text="Can’t find it? Add it by hand" text_size={13} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text="Can’t find it? Add it by hand"
+        text_size={13}
+        font_weight="semibold"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
       <Spacer weight={1.0} />
     </Row>
     """

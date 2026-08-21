@@ -649,7 +649,6 @@ defmodule Kati.UI do
     """
   end
 
-
   @doc "A headline statistic with its label."
   def stat(value, label) do
     ~MOB"""

@@ -46,7 +46,13 @@ defmodule Kati.Screens.Shopping do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title("Shopping", list.subtitle)}
         {Kati.Screens.Shopping.basket(list)}
@@ -70,9 +76,21 @@ defmodule Kati.Screens.Shopping do
         padding={15}
       >
         <Row fill_width={true} align="center">
-          <Text text={list.basket} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={list.basket}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer weight={1.0} />
-          <Text text={list.estimate} font_family="mono" text_size={11.5} text_color={Palette.ink_soft()} max_lines={1} />
+          <Text
+            text={list.estimate}
+            font_family="mono"
+            text_size={11.5}
+            text_color={Palette.ink_soft()}
+            max_lines={1}
+          />
         </Row>
         <Spacer size={12} />
         {Kati.Screens.Shopping.progress(list.progress)}
@@ -131,8 +149,21 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def filter(label, true) do
     ~MOB"""
-    <Row height={32} corner_radius={16} background={Palette.ink_fill()} padding_left={14} padding_right={14} align="center">
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
+    <Row
+      height={32}
+      corner_radius={16}
+      background={Palette.ink_fill()}
+      padding_left={14}
+      padding_right={14}
+      align="center"
+    >
+      <Text
+        text={label}
+        text_size={12.5}
+        font_weight="semibold"
+        text_color={Palette.on_ink()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -148,7 +179,13 @@ defmodule Kati.Screens.Shopping do
       padding_right={14}
       align="center"
     >
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+      <Text
+        text={label}
+        text_size={12.5}
+        font_weight="semibold"
+        text_color={Palette.ink_soft()}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -192,7 +229,13 @@ defmodule Kati.Screens.Shopping do
     <Column fill_width={true}>
       {Kati.Screens.Shopping.label(item)}
       <Spacer size={3} />
-      <Text text={item.meals} font_family="mono" text_size={10} text_color={Palette.rail_idle()} max_lines={1} />
+      <Text
+        text={item.meals}
+        font_family="mono"
+        text_size={10}
+        text_color={Palette.rail_idle()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -231,7 +274,13 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def label(%{got: false} = item) do
     ~MOB"""
-    <Text text={item.name} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+    <Text
+      text={item.name}
+      text_size={13.5}
+      font_weight="semibold"
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
   end
 
@@ -240,7 +289,13 @@ defmodule Kati.Screens.Shopping do
 
     ~MOB"""
     <Box fill_width={true} align="leading">
-      <Text text={item.name} text_size={13.5} font_weight="semibold" text_color={Palette.tertiary()} max_lines={1} />
+      <Text
+        text={item.name}
+        text_size={13.5}
+        font_weight="semibold"
+        text_color={Palette.tertiary()}
+        max_lines={1}
+      />
       <Box width={width} height={1} background={Palette.tertiary()} />
     </Box>
     """
@@ -261,11 +316,23 @@ defmodule Kati.Screens.Shopping do
     ~MOB"""
     <Row fill_width={true} align="center">
       <Box weight={1.0}>
-        <Box fill_width={true} height={50} corner_radius={25} background={Palette.ink_fill()} align="center">
+        <Box
+          fill_width={true}
+          height={50}
+          corner_radius={25}
+          background={Palette.ink_fill()}
+          align="center"
+        >
           <Row align="center">
             {Kati.UI.symbol("ios_share", size: 18, color: Palette.on_ink())}
             <Spacer size={8} />
-            <Text text="Send list" text_size={13.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+            <Text
+              text="Send list"
+              text_size={13.5}
+              font_weight="bold"
+              text_color={Palette.on_ink()}
+              max_lines={1}
+            />
           </Row>
         </Box>
       </Box>

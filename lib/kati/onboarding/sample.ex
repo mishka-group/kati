@@ -45,8 +45,7 @@ defmodule Kati.Onboarding.Sample do
   def telling do
     %{
       title: "How should we tell you?",
-      body:
-        "Kati checks for new episodes on its own. You choose how loudly it mentions them.",
+      body: "Kati checks for new episodes on its own. You choose how loudly it mentions them.",
       options: [
         %{
           icon: "inbox",

@@ -122,7 +122,13 @@ defmodule Kati.Screens.SettingsFa do
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
       <Scroll>
-        <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+        <Column
+          fill_width={true}
+          padding_left={21}
+          padding_right={21}
+          padding_top={64}
+          padding_bottom={40}
+        >
           {Kati.Screens.SettingsFa.header(settings)}
           {Kati.Screens.SettingsFa.title(settings)}
           {Kati.Screens.SettingsFa.me(settings)}
@@ -183,7 +189,13 @@ defmodule Kati.Screens.SettingsFa do
         max_lines={1}
       />
       <Spacer size={5} />
-      <Text text={settings.subtitle} font_family="fa" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={settings.subtitle}
+        font_family="fa"
+        text_size={11.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -217,10 +229,23 @@ defmodule Kati.Screens.SettingsFa do
             max_lines={1}
           />
           <Spacer size={4} />
-          <Text text={meta} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={meta}
+            font_family="fa"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={14} />
-        <Row height={26} corner_radius={13} background={Palette.green_wash()} padding_left={10} padding_right={10} align="center">
+        <Row
+          height={26}
+          corner_radius={13}
+          background={Palette.green_wash()}
+          padding_left={10}
+          padding_right={10}
+          align="center"
+        >
           {Kati.UI.symbol("cloud_done", size: 14, color: Palette.green_text())}
           <Spacer size={5} />
           <Text
@@ -375,7 +400,13 @@ defmodule Kati.Screens.SettingsFa do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={color} />
         <Spacer size={9} />
-        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={Palette.eyebrow()} />
+        <Text
+          text={label}
+          font_family="fa"
+          text_size={11}
+          font_weight="semibold"
+          text_color={Palette.eyebrow()}
+        />
       </Row>
       <Spacer size={11} />
     </Column>
@@ -492,7 +523,14 @@ defmodule Kati.Screens.SettingsFa do
   """
   def leading(%{badge: badge}) do
     label = ~MOB"""
-    <Text text={badge} font_family="fa" text_size={12} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+    <Text
+      text={badge}
+      font_family="fa"
+      text_size={12}
+      font_weight="bold"
+      text_color={Palette.on_ink()}
+      max_lines={1}
+    />
     """
 
     MishkaThemeIcon.theme_icon(
@@ -676,7 +714,13 @@ defmodule Kati.Screens.SettingsFa do
     <Box width={46} height={28} corner_radius={14} background={track} align="center">
       <Row width={40} align="center">
         {Kati.Screens.SettingsFa.thumb_lead(on?)}
-        <Box width={22} height={22} corner_radius={11} background={Palette.on_ink()} shadow="0 1 3 0 #4D1A1917" />
+        <Box
+          width={22}
+          height={22}
+          corner_radius={11}
+          background={Palette.on_ink()}
+          shadow="0 1 3 0 #4D1A1917"
+        />
         {Kati.Screens.SettingsFa.thumb_trail(on?)}
       </Row>
     </Box>

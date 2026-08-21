@@ -66,7 +66,13 @@ defmodule Kati.Screens.Activity do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.Activity.back_gap()}
         {Kati.Screens.Activity.header()}
         {Kati.Screens.Activity.filters(filter)}
@@ -122,9 +128,21 @@ defmodule Kati.Screens.Activity do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text text="Activity" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+          <Text
+            text="Activity"
+            text_size={28}
+            font_weight="bold"
+            letter_spacing={-0.03}
+            text_color={:on_surface}
+          />
           <Spacer size={5} />
-          <Text text={Kati.Activity.Sample.entries_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={Kati.Activity.Sample.entries_line()}
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         {Kati.Screens.Activity.disc("search", :open_search)}
         <Spacer size={9} />
@@ -312,7 +330,13 @@ defmodule Kati.Screens.Activity do
         <Spacer size={12} />
         <Box weight={1.0}>
           <Row fill_width={true} align="center">
-            <Text text={row.lead} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+            <Text
+              text={row.lead}
+              text_size={12.5}
+              font_weight="bold"
+              text_color={:on_surface}
+              max_lines={1}
+            />
             <Spacer size={2} />
             <Text text={row.rest} text_size={12.5} text_color={Palette.ink_soft()} max_lines={1} />
             {Kati.Screens.Activity.stars(row[:stars])}
@@ -387,9 +411,21 @@ defmodule Kati.Screens.Activity do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        <Text text={name} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={name}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
         <Spacer weight={1.0} />
-        <Text text={count} font_family="mono" text_size={12} text_color={Palette.accent()} max_lines={1} />
+        <Text
+          text={count}
+          font_family="mono"
+          text_size={12}
+          text_color={Palette.accent()}
+          max_lines={1}
+        />
       </Row>
       {Kati.Screens.Activity.row_gap(gap?)}
     </Column>

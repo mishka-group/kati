@@ -48,7 +48,13 @@ defmodule Kati.Screens.WhatFits do
 
     ~MOB"""
     <Scroll>
-      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={64} padding_bottom={40}>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
         {Kati.Screens.WhatFits.more_row()}
         {Kati.Screens.WhatFits.header(t)}
         {Kati.Screens.WhatFits.window(t)}
@@ -109,9 +115,21 @@ defmodule Kati.Screens.WhatFits do
   def header(t) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text text="What fits?" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+      <Text
+        text="What fits?"
+        text_size={28}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
       <Spacer size={5} />
-      <Text text={t.now} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={t.now}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -136,7 +154,13 @@ defmodule Kati.Screens.WhatFits do
           text_color={Palette.cream_meta()}
         />
         <Spacer size={8} />
-        <Text text={t.window} text_size={40} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
+        <Text
+          text={t.window}
+          text_size={40}
+          font_weight="extrabold"
+          letter_spacing={-0.04}
+          text_color={:on_surface}
+        />
         <Spacer size={16} />
         <Row fill_width={true} align="center">
           {t.lengths
@@ -237,12 +261,31 @@ defmodule Kati.Screens.WhatFits do
         {Kati.Screens.WhatFits.thumb(row.seed)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={row.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
+          <Text
+            text={row.title}
+            text_size={13.5}
+            font_weight="bold"
+            text_color={:on_surface}
+            max_lines={1}
+          />
           <Spacer size={4} />
-          <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+          <Text
+            text={row.meta}
+            font_family="mono"
+            text_size={10.5}
+            text_color={Palette.muted()}
+            max_lines={1}
+          />
         </Column>
         <Spacer size={12} />
-        <Text text={row.run} font_family="mono" text_size={12} font_weight="medium" text_color={:on_surface} max_lines={1} />
+        <Text
+          text={row.run}
+          font_family="mono"
+          text_size={12}
+          font_weight="medium"
+          text_color={:on_surface}
+          max_lines={1}
+        />
       </Row>
       <Spacer size={9} />
     </Column>
@@ -267,9 +310,21 @@ defmodule Kati.Screens.WhatFits do
       {Kati.Screens.WhatFits.thumb(row.seed)}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
+        <Text
+          text={row.title}
+          text_size={13.5}
+          font_weight="semibold"
+          text_color={Palette.ink_soft()}
+          max_lines={1}
+        />
         <Spacer size={4} />
-        <Text text={row.meta} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
+        <Text
+          text={row.meta}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Palette.tertiary()}
+          max_lines={1}
+        />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.WhatFits.defer_pill(row.action)}

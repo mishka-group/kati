@@ -92,7 +92,10 @@ defmodule Mix.Tasks.Kati.Gen.Icons do
       |> Path.join("*.html")
       |> Path.wildcard()
       |> Enum.flat_map(fn path ->
-        Regex.scan(~r/<span[^>]*Material Symbols Rounded[^>]*>([a-z0-9_]+)<\/span>/, File.read!(path))
+        Regex.scan(
+          ~r/<span[^>]*Material Symbols Rounded[^>]*>([a-z0-9_]+)<\/span>/,
+          File.read!(path)
+        )
         |> Enum.map(fn [_, name] -> name end)
       end)
 
