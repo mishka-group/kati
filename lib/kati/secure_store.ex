@@ -61,29 +61,45 @@ defmodule Kati.SecureStore do
   `Kati.SecureStoreTest` asserts that absence directly, so a future edit that
   adds a fallback fails the suite.
 
-  ## The chain, and the one link that is not built yet
+  ## The chain
 
       Kati.SecureStore.get/1
-        └─ Kati.Nifs.KatiSecureStore.get/1        DOES NOT EXIST YET
-             └─ MobBridge.secureStoreGet/1        android/…/MobBridge.kt (K-19)
-                  └─ KatiSecureStore.get/1        android/…/KatiSecureStore.kt (K-19)
-                       └─ AES-256-GCM under an AndroidKeyStore key
+        └─ Kati.Nifs.KatiSecureStore.get/1        lib/kati/nifs/…
+             └─ c_src/kati_secure_store.c         GetStaticMethodID + call
+                  └─ MobBridge.secureStoreGet/1   android/…/MobBridge.kt (K-19)
+                       └─ KatiSecureStore.get/1   android/…/KatiSecureStore.kt (K-19)
+                            └─ AES-256-GCM under an AndroidKeyStore key
 
-  The Kotlin is written; the NIF that binds it is not. `mob_nif` has no
-  secure-store entry (its table is `deps/mob/src/mob_nif.erl` plus
-  `deps/mob/android/jni/mob_nif.zig`, both inside the hex package), and Kati
-  does not fork Mob. The supported project-owned route is mob_dev's own:
+  `mob_nif` has no secure-store entry — its table is `deps/mob/src/mob_nif.erl`
+  plus `deps/mob/android/jni/mob_nif.zig`, both inside the hex package — and
+  Kati does not fork Mob, so the binding is a **project-owned static NIF**
+  built with mob_dev's own route:
 
       mix mob.add_nif kati_secure_store --type c
 
-  which generates `lib/kati/nifs/kati_secure_store.ex` (the module named
-  above), `c_src/kati_secure_store.c`, appends
-  `%{module: :kati_secure_store, archs: [:all]}` to `mob.exs`'s `:static_nifs`
-  and regenerates `priv/generated/driver_tab_android.zig`. The C body then
-  calls the four `MobBridge.secureStore*` statics through the `g_jvm` global
-  that `android/app/src/main/jni/beam_jni.c` already publishes. Until that
-  runs, this module reports the store unavailable — which is exactly the
-  honest answer.
+  which generated `lib/kati/nifs/kati_secure_store.ex`,
+  `c_src/kati_secure_store.c`, the `mob.exs` `:static_nifs` entry and the
+  `kati_secure_store_nif_init` line in `priv/generated/driver_tab_android.zig`.
+
+  The entry is `archs: [:android]`, narrowed from the scaffold's `[:all]`.
+  That is not a preference: `mix mob.add_nif --type c` wires `c_src/*.c` into
+  the **Android** build only — its own generated header says adding the iOS
+  block is a manual step — so an `[:all]` entry puts an init symbol in
+  `driver_tab_ios.zig` that nothing compiles, and the iOS link fails on a
+  build machine nobody is watching. `Kati.NativeNifChainTest` asserts both
+  halves of that.
+
+  The one part that is not scaffolding is the class lookup: a NIF runs on an
+  Erlang scheduler thread, which has no Java frames, so `FindClass` there
+  resolves against the system class loader and cannot see `MobBridge`. The
+  class is cached in `JNI_OnLoad` instead — `K-21 nif-bridge-class` in
+  `android/app/src/main/jni/beam_jni.c`, next to the identical cache Mob keeps
+  for its own bridge calls.
+
+  None of this can be exercised on a host: there is no JVM, so the NIF does not
+  bind and every function here answers `{:error, :no_native_store}`. What a
+  host test *can* prove is that the absence is reported rather than papered
+  over, and `Kati.SecureStoreTest` does exactly that.
 
   ## iOS
 
@@ -287,7 +303,20 @@ defmodule Kati.SecureStore do
   defp check_value(_), do: {:error, :too_large}
 
   # `mod` is a variable, so this is a runtime dispatch and the compiler never
-  # has to resolve a module that does not exist yet.
+  # has to resolve the NIF module at compile time.
+  #
+  # There are two distinct ways the native half can be missing and both must
+  # land on the same answer:
+  #
+  #   * the module is not in the build at all — `Code.ensure_loaded?/1` is
+  #     false;
+  #   * the module is there but `:erlang.load_nif/2` did not bind it, which is
+  #     the host and iOS case. Its stubs then raise
+  #     `:erlang.nif_error(:nif_not_loaded)`, which arrives here as an
+  #     `ErlangError` carrying that exact atom.
+  #
+  # Anything else that escapes the native side is a genuine fault and keeps its
+  # own reason, so a real bridge failure is never disguised as "no store".
   defp native(fun, args) do
     mod = @nif
     arity = length(args)
@@ -296,12 +325,15 @@ defmodule Kati.SecureStore do
       try do
         {:ok, apply(mod, fun, args)}
       rescue
-        e -> {:error, {:native_error, Exception.message(e)}}
+        e -> {:error, native_reason(e)}
       end
     else
       {:error, :no_native_store}
     end
   end
+
+  defp native_reason(%ErlangError{original: :nif_not_loaded}), do: :no_native_store
+  defp native_reason(exception), do: {:native_error, Exception.message(exception)}
 
   defp decode_ack("ok"), do: :ok
   defp decode_ack("error:" <> reason), do: {:error, reason_atom(reason)}
@@ -314,6 +346,15 @@ defmodule Kati.SecureStore do
 
   # A closed set. Native replies are never fed to String.to_atom — an
   # unbounded atom table is reachable from whatever the bridge happens to say.
+  #
+  # `no_native_store` is in the set because the NIF answers it from its own
+  # non-Android arm (c_src/kati_secure_store.c): on iOS the table entry exists
+  # and binds, so the store's absence arrives as a reply rather than as an
+  # unbound stub. Same answer, second route.
+  defp reason_atom("no_native_store"), do: :no_native_store
+  defp reason_atom("no_jvm"), do: :no_native_store
+  defp reason_atom("no_bridge"), do: :no_native_store
+  defp reason_atom("no_method"), do: :no_native_store
   defp reason_atom("not_found"), do: :not_found
   defp reason_atom("no_context"), do: :no_context
   defp reason_atom("corrupt"), do: :corrupt

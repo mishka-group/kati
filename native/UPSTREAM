@@ -41,3 +41,31 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/sr
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiNotificationStore.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiCalendarReader.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiSecureStore.kt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiHostContext.kt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiRefreshWorker.kt
+
+# ── Upstream pull-request candidates ──────────────────────────────────────────
+# Kati edits that are Mob's problem rather than Kati's, kept here so a patch
+# series has a to-do list rather than being re-derived from LEDGER.md. Each is
+# a fenced edit today; landing it upstream retires the fence.
+#
+# mob (hex package — a fork or a PR, NOT an app-owned edit):
+#   Mob.Share.file/2 — deps/mob/ios/mob_nif.m + deps/mob/lib/mob/share.ex.
+#     Mob.Share is text-only and `mix mob.enable file_sharing` has no Elixir
+#     surface, so no Mob app can hand a file to the user. Kati's Android answer
+#     is K-20 file-transport; iOS has none and is served by
+#     UIFileSharingEnabled + LSSupportsOpeningDocumentsInPlace instead.
+#   A notify NIF — :mob_nif has no notify entry at all in 0.7.20, so the
+#     generated MobBridge.notify_schedule/notify_cancel are unreachable from
+#     Elixir in every Mob app. See K-22 notify-and-periodic-bridge for the
+#     shape Kati needed (a String reply, and an application context).
+#   A C-linkage accessor for the cached bridge jclass — mob_ui_cache_class
+#     already caches it (mob_nif.zig:1712) but keeps it in a Zig-internal, so
+#     every project-owned NIF has to cache its own copy. See K-21.
+#
+# mob_new (templates — app-owned, so these are template fixes):
+#   handleFilesResult should read OpenableColumns.DISPLAY_NAME rather than
+#     uri.lastPathSegment, and build its JSON with org.json. See
+#     K-20 file-picker-display-name; affects every Mob app that filters picked
+#     files by extension.
+#   Everything already reported in #76.

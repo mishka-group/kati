@@ -141,4 +141,29 @@ dependencies {
     // retrieval will fail at runtime until you swap the file.
     implementation platform('com.google.firebase:firebase-bom:33.1.0')
     implementation 'com.google.firebase:firebase-messaging'
+
+    // KATI-BEGIN(K-22 work-manager) mob_new=0.4.20
+    // WHY: the periodic refresh in KatiRefreshWorker.kt. WorkManager rather
+    // than AlarmManager for the *refresh* (air-date reminders stay on
+    // AlarmManager, which is exact and is what a user is actually waiting
+    // for): a repeating AlarmManager wakeup has no network or battery
+    // constraint, does not survive an OEM battery saver, and lands in Android
+    // Vitals' excessive-background-wakeups metric. WorkManager also
+    // reschedules its own work after a reboot through the RescheduleReceiver
+    // in its own AAR manifest, so Kati's AndroidManifest.xml needs nothing —
+    // which is why #58's "undocumented manifest_application_snippets splice"
+    // is not on Kati's critical path at all. See native/LEDGER.md.
+    //
+    // 2.9.1 pinned exactly, and it is the version #58's own research settled
+    // on: it is the last line built against Kotlin 1.8 metadata, and this
+    // project is on the Kotlin 1.9.22 Gradle plugin. The -ktx artifact is
+    // needed for PeriodicWorkRequestBuilder<T>, which is an inline reified
+    // function and has no Java equivalent.
+    //
+    // COST, stated rather than discovered: work-runtime pulls androidx.room
+    // in transitively (WorkManager keeps its queue in a Room database).
+    // Nothing else in Kati uses Room. That is the price of not writing a
+    // scheduler.
+    implementation 'androidx.work:work-runtime-ktx:2.9.1'
+    // KATI-END(K-22 work-manager)
 }

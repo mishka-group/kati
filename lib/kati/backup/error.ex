@@ -28,7 +28,18 @@ defmodule Kati.Backup.Error do
           | :not_empty
           | :safety_export_required
           | :write_failed
+          # Getting the file OFF the device, which is a different failure from
+          # failing to write it. `:no_transport` means the platform has no way
+          # to hand a file to the user at all — the host, iOS, an Android build
+          # whose NIF did not bind — and the honest response is to tell them
+          # where the file is rather than to claim it was delivered.
+          | :no_transport
+          | :transport_failed
           | :unsupported_type
+          | :passphrase_required
+          | :bad_passphrase
+          | :unusable_passphrase
+          | :unsupported_encryption
 
   defexception [:reason, :message, details: %{}]
 

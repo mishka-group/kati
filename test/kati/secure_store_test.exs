@@ -23,17 +23,27 @@ defmodule Kati.SecureStoreTest do
 
   describe "with no native half" do
     test "the store reports itself unavailable rather than inventing one" do
-      # Today `Kati.Nifs.KatiSecureStore` does not exist at all, so the reason
-      # is :no_native_store. Once `mix mob.add_nif kati_secure_store` generates
-      # the stub, it loads on the host but the NIF behind it never does, so the
-      # reason becomes {:native_error, _}. Both mean "there is no store"; the
-      # thing that must never happen is a success.
-      assert {:error, reason} = SecureStore.status()
-
-      assert reason == :no_native_store or match?({:native_error, _}, reason),
-             "unexpected status reason: #{inspect(reason)}"
-
+      # `Kati.Nifs.KatiSecureStore` now exists and loads on the host; the NIF
+      # behind it never binds, so its stubs raise :nif_not_loaded. That is one
+      # of the two ways to have no native half — the other is the module being
+      # absent entirely — and BOTH must land on :no_native_store, because a
+      # caller's response to them is identical and a {:native_error, _} here
+      # would read as "the keystore is broken" rather than "there isn't one".
+      assert SecureStore.status() == {:error, :no_native_store}
       refute SecureStore.available?()
+    end
+
+    test "asking whether the store exists is silent" do
+      # Answering this used to cost a multi-line [warning] from the code
+      # server on every call, because an @on_load that returns an error makes
+      # Code.ensure_loaded?/1 retry the load each time — and Kati asks from
+      # screens, on every settings render.
+      import ExUnit.CaptureLog
+
+      log = capture_log(fn -> refute SecureStore.available?() end)
+
+      refute log =~ "on_load",
+             "the availability check is logging on every call: #{log}"
     end
 
     test "put refuses, get finds nothing, delete refuses" do

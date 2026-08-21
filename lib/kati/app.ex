@@ -126,6 +126,37 @@ defmodule Kati.App do
         :mob_nif.log("Kati: calendar import failed: #{inspect(reason)}")
     end
 
+    # #58's third leg: refresh on open. The Kotlin worker runs while the BEAM
+    # is dead and leaves what it found in MOB_DATA_DIR; this is where it is
+    # read back. It has to run at start rather than only on
+    # `{:mob_device, :did_become_active}`, because a cold launch never sends
+    # that message and a cold launch is exactly the case where the inbox is
+    # full.
+    case Kati.Background.Handoff.drain() do
+      [] -> :ok
+      runs -> :mob_nif.log("Kati: drained #{length(runs)} background refresh runs")
+    end
+
+    # ...and make sure the worker exists. Idempotent by construction — the
+    # enqueue is `ExistingPeriodicWorkPolicy.KEEP`, so calling it on every boot
+    # does NOT restart the interval clock. `{:error, :no_bridge}` is the normal
+    # answer off Android and must not be logged as a fault.
+    case Kati.Background.Periodic.ensure() do
+      {:ok, %{interval_minutes: minutes}} ->
+        :mob_nif.log("Kati: background refresh every #{minutes}m")
+
+      {:error, :no_bridge} ->
+        :ok
+
+      {:error, reason} ->
+        :mob_nif.log("Kati: background refresh unavailable: #{inspect(reason)}")
+    end
+
+    # A save the user cancelled, or a process that died mid-save, leaves a full
+    # plaintext copy of everything they own in the staging directory. It should
+    # not still be there tomorrow.
+    _swept = Kati.Backup.Transport.sweep()
+
     if @dev? do
       Mob.Dist.ensure_started(
         node: :"kati_android@127.0.0.1",

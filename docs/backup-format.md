@@ -45,6 +45,10 @@ kati-backup-2026-08-21.katibackup
 Every backed-up table has a file, **even when it is empty**. A missing file is a
 damaged backup, not an empty table.
 
+A `.katibackup` may also be **sealed inside a passphrase envelope**, in which case the
+zip above is the plaintext and the file on disk starts with the eight bytes
+`KATIENC\0` instead of `PK`. Encryption is opt-in; see §9.
+
 Two exports of the same data produce byte-identical payload files: rows are sorted by
 primary key and columns by name, so a payload's SHA-256 depends on the data and nothing
 else. Only `manifest.json` differs, and only in `exported_at`.
@@ -152,6 +156,8 @@ reproduce.
 | `Kati.Meals.LicensedFood` | `:cache` | Food data under someone else's licence, with a not-null `fetched_at` so the same sweep reaches it. Re-fetched, never re-distributed. |
 | `Kati.Meals.BundledFood` | `:bundled` | The CC0 corpus shipped in `priv/`. Byte-identical on every install, so a copy in the file is size for nothing. |
 | `Kati.Spike.Thing` | `:internal` | A migration spike. Holds no user data. |
+| `Kati.Sync.OutboxEntry` | `:internal` | A queue of in-flight intentions, not a record of anything. Its state is true only of the device and session that wrote it: `idempotency_key` names a request a restored phone cannot ask about, `:in_flight` means a socket that is already closed, and `account_id` points at an account whose `credentials_ref` this backup drops. The edit itself is not in here — it is already applied to `events`, which *is* carried, and `local_rev` exceeding `synced_rev` is what re-queues it. |
+| `Kati.Sync.RejectedChange` | `:internal` | **Under review.** Excluded to avoid changing the backup format unilaterally, not because the case is clear. The rows hold property values the user typed and no re-fetch reproduces them, which is this document's own test for `:backup`. Carrying it requires `schema_version` 2 and a `Kati.Backup.Upgrade` step, because `Kati.Backup.Verify` fetches every catalog table by name and a v1 file has no such member. |
 
 Posters, backdrops and synopses are in none of the above and in no backup. A backup
 carries **ids plus what the user did**; metadata re-fetches.
@@ -252,12 +258,100 @@ delete, and not the backup's to fill.
 Everything needed is in this document, and the format is stable within a
 `format_version`. A minimal reader:
 
-1. Unzip.
-2. Read `manifest.json`; refuse if `format != "kati.backup"` or either version is
+1. If the first eight bytes are `KATIENC\0`, decrypt per §9 first; otherwise the file
+   is the zip itself.
+2. Unzip.
+3. Read `manifest.json`; refuse if `format != "kati.backup"` or either version is
    newer than you understand.
-3. For each entry in `files`, check SHA-256 and byte length before parsing.
-4. Read `data/<table>.json`; the rows are what you want, decoded per §4.
+4. For each entry in `files`, check SHA-256 and byte length before parsing.
+5. Read `data/<table>.json`; the rows are what you want, decoded per §4.
 
 The one thing worth repeating: **the figures on a `meal_logs` row are the figures as of
 the moment that meal was logged.** They are not to be recomputed from the recipe the
 row points at. That is the whole reason the columns exist.
+
+## 9. Encryption (optional)
+
+A backup can be sealed with a **user passphrase**. It is opt-in, because a forgotten
+passphrase destroys the file as thoroughly as losing the phone did, and this format is
+insurance rather than a vault. The key comes from the passphrase and nothing else —
+never from the device — or the backup would only open on the phone it was made to
+survive the loss of.
+
+Implementation: [`lib/kati/backup/envelope.ex`](../lib/kati/backup/envelope.ex).
+
+### The envelope
+
+```
+offset  size            contents
+0       8               "KATIENC\0"
+8       4               header length, uint32 big-endian
+12      header length   header, UTF-8 JSON, in the clear
+…       16              AES-256-GCM authentication tag
+…       rest            ciphertext: the zip of §1
+```
+
+### The header
+
+```json
+{
+  "format": "kati.backup.encrypted",
+  "envelope_version": 1,
+  "cipher": "aes-256-gcm",
+  "kdf": "pbkdf2-hmac-sha512",
+  "iterations": 210000,
+  "normalization": "nfc",
+  "salt": "8f3c…",
+  "iv": "1b90…",
+  "created_at": "2026-08-21T18:44:02.913044Z"
+}
+```
+
+`salt` (16 bytes) and `iv` (12 bytes) are standard base64. Both are drawn fresh from a
+CSPRNG for **every** export, so two backups of the same data under the same passphrase
+share no ciphertext.
+
+The header is also the GCM **additional authenticated data**. Editing any field in it —
+including `created_at`, which feeds neither the key nor the IV — makes the file fail to
+open as an authentication failure.
+
+`created_at` is the only content-adjacent thing outside the ciphertext, and it is there
+so a user with three encrypted files can tell which is the recent one without typing
+three passphrases. Record counts, table names, app version and schema version are all
+inside.
+
+### Deriving the key
+
+```
+key = PBKDF2-HMAC-SHA512(NFC(passphrase), salt, iterations, 32 bytes)
+```
+
+The passphrase is normalised to **Unicode NFC** before it reaches the KDF. Without
+that, the same characters typed on a Persian or accented keyboard on the new phone can
+arrive as different bytes than on the old one and the passphrase would be rejected as
+wrong — which is the exact failure this whole format exists to prevent. `normalization`
+in the header names the form, so a reader knows which to apply.
+
+`iterations` and `kdf` are written into each file rather than assumed, because the cost
+of a KDF is supposed to rise with hardware. A reader takes them from the file, so
+raising the write-side cost never orphans a backup written before the change, and a
+future move to Argon2id is a new `kdf` value that old files simply do not carry. Kati
+writes 210,000 (OWASP's 2023 figure for PBKDF2-HMAC-SHA512) and will run a file
+claiming between 100,000 and 10,000,000 — the ceiling because the number is
+attacker-controlled and a passphrase box that hangs for an hour is a bug.
+
+### Failing honestly
+
+A passphrase that does not authenticate, and a file whose ciphertext, tag or header has
+been altered, produce **the same** result: GCM cannot tell a wrong key from altered
+bytes. Kati reports it as an authentication failure and says so, rather than guessing
+between "your passphrase is wrong" (actionable) and "this file is damaged" (which sends
+a user hunting for another copy of a file that was fine).
+
+A file that is cut short before its header can be read is reported as damaged, which is
+a different sentence, and correctly so.
+
+An encrypted file **identifies itself without the passphrase**: the header is readable,
+so a confirmation screen can say *"this is an encrypted Kati backup, envelope version
+1, written on 21 August"* and show blanks — not zeroes — for the counts it genuinely
+cannot see.

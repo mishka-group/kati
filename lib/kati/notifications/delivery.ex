@@ -47,6 +47,30 @@ defmodule Kati.Notifications.Delivery do
   @doc "Arm one notification. The id is stable, so this is an upsert."
   @callback arm(Candidate.t()) :: :ok | {:error, term()}
 
+  @doc """
+  The backend for this build: the real one where a platform can arm something,
+  `Kati.Notifications.Delivery.Inert` everywhere else.
+
+  One function so that no screen, and no scheduler call site, ever asks "which
+  platform am I on". The question it really answers is narrower than the
+  platform anyway — `Kati.Notifications.Delivery.Android.available?/0` is false
+  on a host, false on iOS, and false on an Android build whose NIF did not
+  bind, and the correct behaviour is identical in all three.
+
+  Notifications being **refused** is deliberately *not* part of this decision.
+  A user who has denied `POST_NOTIFICATIONS` still gets a full plan — the
+  in-app inbox renders from it — and the caller that wants to stop arming
+  invisible alarms checks
+  `Kati.Notifications.Delivery.Android.status/0` and installs `Inert` itself.
+  Folding that in here would make the choice depend on a permission that can
+  change while the app is running, and hide the reason from the screen that has
+  to explain it.
+  """
+  @spec backend() :: module()
+  def backend do
+    if __MODULE__.Android.available?(), do: __MODULE__.Android, else: __MODULE__.Inert
+  end
+
   @doc "Cancel by id. Cancelling something that is not armed must succeed."
   @callback cancel(String.t()) :: :ok | {:error, term()}
 

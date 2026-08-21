@@ -476,6 +476,319 @@ object MobBridge {
     }
     // KATI-END(K-19 secure-store-bridge)
 
+    // KATI-BEGIN(K-20 file-transport) mob_new=0.4.20
+    // WHY: a Kati backup cannot leave the device without this. Mob's outbound
+    // file surface is `Mob.Share.text/2` and nothing else — mob-framework.md
+    // says so in as many words ("Share (text only — sharing files/images is
+    // missing)") — and `mix mob.enable file_sharing` only sets two iOS plist
+    // keys plus the Android FileProvider declaration, with "(no Elixir
+    // surface)" in its own table. A FileProvider without an Intent gives a
+    // user nothing.
+    //
+    // Meanwhile android:allowBackup="false" keeps kati.db out of Google's
+    // cloud backup, the database lives in filesDir where no file browser can
+    // reach it, and there is no server and no account. The union of "phone
+    // lost / stolen / broken / replaced" is therefore total, unrecoverable
+    // loss of everything the user has ever logged. Kati.Backup produces the
+    // bytes; these two intents are the only way they get out.
+    //
+    // TWO INTENTS, TWO DIFFERENT PROMISES
+    //
+    //   * ACTION_CREATE_DOCUMENT is the insurance path. The system hands back
+    //     a content:// URI, we stream into it, and the outcome is knowable:
+    //     saved with a byte count, or cancelled. No FileProvider involved and
+    //     no permission needed — the user chose the destination.
+    //   * ACTION_SEND is the convenience path, and it CANNOT report whether
+    //     the share completed. Android returns RESULT_CANCELED from the
+    //     chooser whether the user dismissed it or completed a send, so this
+    //     reports `dismissed`, never `shared`, for a closed sheet. Saying
+    //     "shared" there would be a guess printed as a fact, on the one
+    //     feature whose entire job is being trustworthy about data.
+    //
+    // WHY THE SHARE COPY GOES THROUGH cacheDir
+    //
+    // res/xml/file_provider_paths.xml declares only <cache-path path=".">.
+    // Adding a <files-path> root would make the provider able to serve
+    // ANYTHING in filesDir — kati.db, mob_state.dets, the OTP tree — to any
+    // app that ever receives a URI from Kati. Copying the one file the user
+    // asked to share into cacheDir keeps the provider's reach where it
+    // already is. The copy is deleted on the next share of the same name.
+    //
+    // Both calls are asynchronous and take the caller's pid, exactly like
+    // mob's own files_pick/photos_pick, and answer through mob's
+    // nativeDeliverFileResult hook so no new JNI symbol is needed:
+    //   {:kati_files, :saved,  [%{path:, name:, bytes:, uri:}]}
+    //   {:kati_files, :shared, [%{name:}]}   (launched; see the caveat above)
+    //   {:kati_files, :error,  [%{reason: "..."}]}
+    //   {:kati_files, :cancelled}
+    private var pendingKatiFilePid: Long = 0
+    private var pendingKatiFilePath: String? = null
+    private var pendingKatiFileName: String? = null
+
+    private const val KATI_FILES_EVENT = "kati_files"
+    private const val KATI_SHARE_DIR = "kati_share"
+
+    @JvmStatic
+    fun katiFileSaveAs(pid: Long, argsJson: String) {
+        pendingKatiFilePid = pid
+        val activity = activityRef?.get() as? MainActivity
+        if (activity == null) { katiFileError(pid, "no_activity"); return }
+
+        try {
+            val args = org.json.JSONObject(argsJson)
+            val path = args.getString("path")
+            val name = args.optString("name", File(path).name)
+            val mime = args.optString("mime", "application/octet-stream")
+            val source = File(path)
+            if (!source.isFile) { katiFileError(pid, "source_missing"); return }
+
+            pendingKatiFilePath = path
+            pendingKatiFileName = name
+            // launch() must be called from the main thread; this runs on an
+            // Erlang scheduler thread.
+            activity.runOnUiThread { activity.launchKatiSaveAs(name, mime) }
+        } catch (e: Exception) {
+            Log.w("MobBridge", "katiFileSaveAs failed: ${e.javaClass.simpleName}")
+            katiFileError(pid, "bad_request")
+        }
+    }
+
+    @JvmStatic
+    fun katiFileShare(pid: Long, argsJson: String) {
+        pendingKatiFilePid = pid
+        val activity = activityRef?.get() as? MainActivity
+        if (activity == null) { katiFileError(pid, "no_activity"); return }
+
+        val args = try {
+            org.json.JSONObject(argsJson)
+        } catch (e: org.json.JSONException) {
+            katiFileError(pid, "bad_request"); return
+        }
+        val source = File(args.optString("path"))
+        val name = args.optString("name", source.name)
+        val mime = args.optString("mime", "application/octet-stream")
+        val subject = args.optString("subject", name)
+        if (!source.isFile) { katiFileError(pid, "source_missing"); return }
+        pendingKatiFileName = name
+
+        // The staging copy is a whole backup file. Doing it on the caller's
+        // thread would block an Erlang scheduler; doing it on the UI thread
+        // would ANR. So: copy here, then hop to the main thread only for the
+        // launch, which is the one part that requires it.
+        Thread {
+            try {
+                val staged =
+                    File(File(activity.cacheDir, KATI_SHARE_DIR).also { it.mkdirs() }, name)
+                source.inputStream().use { input ->
+                    staged.outputStream().use { output -> input.copyTo(output) }
+                }
+
+                val uri = FileProvider.getUriForFile(
+                    activity, "${activity.packageName}.fileprovider", staged
+                )
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = mime
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_SUBJECT, subject)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                activity.runOnUiThread {
+                    activity.launchKatiShare(Intent.createChooser(send, subject))
+                }
+            } catch (e: Exception) {
+                Log.w("MobBridge", "katiFileShare failed: ${e.javaClass.simpleName}")
+                katiFileError(pid, "share_failed")
+            }
+        }.start()
+    }
+
+    /** Called from MainActivity's ACTION_CREATE_DOCUMENT launcher. */
+    @JvmStatic
+    fun handleKatiSaveAsResult(target: Uri?) {
+        val pid = pendingKatiFilePid
+        val path = pendingKatiFilePath
+        val name = pendingKatiFileName ?: "backup"
+        pendingKatiFilePath = null
+
+        if (target == null || path == null) {
+            nativeDeliverFileResult(pid, KATI_FILES_EVENT, "cancelled", null)
+            return
+        }
+        val activity = activityRef?.get()
+        if (activity == null) { katiFileError(pid, "no_activity"); return }
+
+        // Off the main thread: a backup is megabytes and the copy is the whole
+        // point of the feature, so blocking the UI thread on it would ANR on
+        // exactly the phones with the most data to save.
+        Thread {
+            try {
+                val written = activity.contentResolver.openOutputStream(target)?.use { output ->
+                    File(path).inputStream().use { input -> input.copyTo(output) }
+                } ?: throw java.io.IOException("no output stream")
+
+                val item = org.json.JSONObject()
+                    .put("path", path)
+                    .put("name", name)
+                    .put("bytes", written)
+                    .put("uri", target.toString())
+                nativeDeliverFileResult(
+                    pid, KATI_FILES_EVENT, "saved",
+                    org.json.JSONArray().put(item).toString()
+                )
+            } catch (e: Exception) {
+                Log.w("MobBridge", "save-as copy failed: ${e.javaClass.simpleName}")
+                katiFileError(pid, "write_failed")
+            }
+        }.start()
+    }
+
+    /** Called from MainActivity's ACTION_SEND launcher. */
+    @JvmStatic
+    fun handleKatiShareResult(completed: Boolean) {
+        val pid = pendingKatiFilePid
+        val item = org.json.JSONObject().put("name", pendingKatiFileName ?: "")
+        val sub = if (completed) "shared" else "dismissed"
+        nativeDeliverFileResult(
+            pid, KATI_FILES_EVENT, sub, org.json.JSONArray().put(item).toString()
+        )
+    }
+
+    private fun katiFileError(pid: Long, reason: String) {
+        val item = org.json.JSONObject().put("reason", reason)
+        nativeDeliverFileResult(
+            pid, KATI_FILES_EVENT, "error", org.json.JSONArray().put(item).toString()
+        )
+    }
+    // KATI-END(K-20 file-transport)
+
+    // KATI-BEGIN(K-22 notify-and-periodic-bridge) mob_new=0.4.20
+    // WHY: `notify_schedule`/`notify_cancel` above (K-01 notify-persist) are
+    // correct, persist across reboot, and have never had a caller. `:mob_nif`
+    // has no notify entry — grep the whole mob 0.7.20 package and there is
+    // nothing — and mob_notify is not a dependency, so Elixir had no path to
+    // them at all. That is the entire reason Kati's only shipped notification
+    // delivery backend was `Kati.Notifications.Delivery.Inert`: the decision
+    // layer was complete and nothing could act on it.
+    //
+    // These four differ from the K-01 pair in two ways that matter:
+    //
+    //  * they RETURN a reply. `notify_schedule` is void and swallows its
+    //    failures into a log line, so a caller cannot distinguish "armed" from
+    //    "there was no Activity". A delivery backend has to answer
+    //    `:ok | {:error, reason}` per the `Kati.Notifications.Delivery`
+    //    behaviour, and inventing the :ok would reproduce exactly the silent
+    //    failure K-01 exists to fix.
+    //  * they take the APPLICATION context (KatiHostContext), not
+    //    activityRef. Re-arming two hundred alarms happens on foreground, but
+    //    a token refresh or a quiet-hours reschedule can happen with the
+    //    Activity long destroyed and the BEAM alive in BeamForegroundService,
+    //    where activityRef is null and the K-01 methods return having done
+    //    nothing.
+    //
+    // The K-01 pair is left exactly as it is: it is Mob's contract (void,
+    // pid-first) and the next Mob release may finally ship a NIF for it.
+    @JvmStatic
+    fun katiNotifyArm(argsJson: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+        return try {
+            val opts = org.json.JSONObject(argsJson)
+            val id = opts.getString("id")
+            val triggerAt = opts.getLong("trigger_at") * 1000L
+            if (id.isEmpty()) return "error:bad_request"
+
+            val nm = ctx.getSystemService(android.content.Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+            if (android.os.Build.VERSION.SDK_INT >= 26) {
+                nm.createNotificationChannel(
+                    NotificationChannel(
+                        NOTIF_CHANNEL_ID, "Notifications", NotificationManager.IMPORTANCE_DEFAULT
+                    )
+                )
+            }
+
+            KatiNotificationStore.schedule(
+                ctx, id,
+                opts.optString("title"),
+                opts.optString("body"),
+                opts.optJSONObject("data")?.toString() ?: "{}",
+                triggerAt
+            )
+            "ok"
+        } catch (e: org.json.JSONException) {
+            "error:bad_request"
+        } catch (e: Exception) {
+            Log.w("MobBridge", "katiNotifyArm failed: ${e.javaClass.simpleName}")
+            "error:arm_failed"
+        }
+    }
+
+    @JvmStatic
+    fun katiNotifyCancel(id: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+        return try {
+            KatiNotificationStore.cancel(ctx, id)
+            "ok"
+        } catch (e: Exception) {
+            Log.w("MobBridge", "katiNotifyCancel failed: ${e.javaClass.simpleName}")
+            "error:cancel_failed"
+        }
+    }
+
+    /**
+     * "ok:<pending>:<exact>:<permitted>" — what the platform will actually
+     * honour, so Elixir can install the inert backend rather than arm two
+     * hundred alarms that will never be shown.
+     *
+     * `permitted` is the one that silently ruins everything: with
+     * POST_NOTIFICATIONS refused, Android still lets the alarm be armed and
+     * still lets the receiver call nm.notify(), and the notification simply
+     * never appears — with no error anywhere.
+     */
+    @JvmStatic
+    fun katiNotifyStatus(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+        return try {
+            val am = ctx.getSystemService(android.content.Context.ALARM_SERVICE) as AlarmManager
+            val exact = android.os.Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()
+            val permitted =
+                androidx.core.app.NotificationManagerCompat.from(ctx).areNotificationsEnabled()
+            "ok:${KatiNotificationStore.pendingCount(ctx)}:$exact:$permitted"
+        } catch (e: Exception) {
+            Log.w("MobBridge", "katiNotifyStatus failed: ${e.javaClass.simpleName}")
+            "error:status_failed"
+        }
+    }
+
+    @JvmStatic
+    fun katiPeriodicEnsure(configJson: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+        return try {
+            val opts = org.json.JSONObject(configJson)
+            KatiPeriodicWork.ensure(
+                ctx,
+                opts.optLong("interval_minutes", KatiPeriodicWork.DEFAULT_INTERVAL_MINUTES),
+                opts.optLong("flex_minutes", KatiPeriodicWork.DEFAULT_FLEX_MINUTES)
+            )
+        } catch (e: org.json.JSONException) {
+            "error:bad_request"
+        }
+    }
+
+    @JvmStatic
+    fun katiPeriodicCancel(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+        return KatiPeriodicWork.cancel(ctx)
+    }
+
+    /**
+     * The application context if MainActivity has ever run, else whatever
+     * Activity is still alive. Never null-and-silent: the callers above turn
+     * null into "error:no_context" so Elixir can say so on screen.
+     */
+    private fun katiContext(): android.content.Context? =
+        KatiHostContext.get() ?: activityRef?.get()?.applicationContext
+    // KATI-END(K-22 notify-and-periodic-bridge)
+
     /** Called from nif_exit_app via JNI — backgrounds the app without killing it. */
     @JvmStatic
     fun moveToBack() {
@@ -813,6 +1126,26 @@ object MobBridge {
             ?: nativeDeliverAtom2(pid, "files", "cancelled")
     }
 
+    // KATI-BEGIN(K-20 file-picker-display-name) mob_new=0.4.20
+    // WHY: the stock body takes the picked file's name from
+    // `uri.lastPathSegment`, and a SAF document URI's last segment is a
+    // provider-internal document id — "msf:1000000123" on MediaDocuments,
+    // "primary:Download/x" on ExternalStorage. It is not a filename and often
+    // has no extension at all.
+    //
+    // That breaks two things Kati depends on. `Mob.Files.accept/2` matches on
+    // `Path.extname(name)`, which is the ONLY filter that works on Android
+    // (SAF filters by MIME type and a .katibackup has no registered MIME, so
+    // the picker itself cannot narrow) — so restoring a backup would reject
+    // the very file the user just chose. And the stock string interpolation
+    // builds JSON by hand, so a name containing a quote, a backslash or a
+    // newline produces a malformed payload that :json.decode drops silently,
+    // turning a picked file into an empty list.
+    //
+    // OpenableColumns.DISPLAY_NAME is the documented way to ask a content
+    // provider what a document is called; org.json does the escaping. The
+    // last-segment value stays as the fallback for a provider that answers
+    // nothing, which is the pre-existing behaviour rather than a new failure.
     @JvmStatic
     fun handleFilesResult(uris: List<Uri>) {
         val pid = pendingFilesPid
@@ -820,21 +1153,41 @@ object MobBridge {
         val activity = activityRef?.get() ?: return
         Thread {
             try {
-                val items = uris.mapIndexed { i, uri ->
-                    val name = uri.lastPathSegment ?: "file_$i"
+                val items = org.json.JSONArray()
+                uris.forEachIndexed { i, uri ->
+                    val name = katiDisplayName(activity, uri) ?: uri.lastPathSegment ?: "file_$i"
                     val tmp = File(activity.cacheDir, "mob_file_${System.currentTimeMillis()}_$name")
                     activity.contentResolver.openInputStream(uri)?.use { it.copyTo(tmp.outputStream()) }
-                    val size = tmp.length()
                     val mime = activity.contentResolver.getType(uri) ?: "application/octet-stream"
-                    """{"path":"${tmp.absolutePath}","name":"$name","mime":"$mime","size":$size}"""
+                    items.put(
+                        org.json.JSONObject()
+                            .put("path", tmp.absolutePath)
+                            .put("name", name)
+                            .put("mime", mime)
+                            .put("size", tmp.length())
+                    )
                 }
-                val json = "[${items.joinToString(",")}]"
-                nativeDeliverFileResult(pid, "files", "picked", json)
+                nativeDeliverFileResult(pid, "files", "picked", items.toString())
             } catch (e: Exception) {
                 nativeDeliverAtom2(pid, "files", "cancelled")
             }
         }.start()
     }
+
+    /** The human-facing filename a content provider reports, or null. */
+    private fun katiDisplayName(activity: Activity, uri: Uri): String? =
+        try {
+            activity.contentResolver.query(
+                uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null
+            )?.use { cursor ->
+                val column = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (column >= 0 && cursor.moveToFirst()) cursor.getString(column) else null
+            }
+        } catch (e: Exception) {
+            Log.w("MobBridge", "display name query failed: ${e.javaClass.simpleName}")
+            null
+        }
+    // KATI-END(K-20 file-picker-display-name)
 
     // ── Audio recording ───────────────────────────────────────────────────
     private var audioRecorder: MediaRecorder? = null

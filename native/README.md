@@ -31,6 +31,37 @@ compatibility shims. **The failure mode is silence, not a crash**: the Android n
 
 If you are about to edit `MobBridge.kt`, first check whether options 1–3 can do the job.
 
+## Calling a bridge method Kati added
+
+A `@JvmStatic` method on `MobBridge` is **not reachable from Elixir** just because it exists.
+`:mob_nif`'s function table lives inside the `mob` hex package (`deps/mob/src/mob_nif.erl` +
+`deps/mob/android/jni/mob_nif.zig`) and Kati does not fork Mob, so a bridge method with no NIF
+behind it is dead code. `MobBridge.notify_schedule` sat in that state from `K-01 notify-persist`
+until #58 — correct, reboot-durable and never once called.
+
+The supported route is a **project-owned static NIF**:
+
+```bash
+mix mob.add_nif <name> --type c     # → lib/kati/nifs/<name>.ex, c_src/<name>.c,
+                                    #   mob.exs :static_nifs, priv/generated/driver_tab_*.zig
+```
+
+Kati has two: `kati_secure_store` (the credential store) and `kati_bridge` (file transport,
+notification arming, periodic work). Both use `c_src/kati_jni.h`, which carries the one thing that
+is not scaffolding:
+
+> **`FindClass` does not work from a NIF.** A NIF runs on an Erlang scheduler thread, ERTS created
+> that thread, it has no Java frames, and `FindClass` there resolves against the *system* class
+> loader — which does not contain `com.example.kati.MobBridge`. It returns NULL with a pending
+> `ClassNotFoundException`, and the symptom reads as "the bridge method is missing".
+
+The class is cached in `JNI_OnLoad` instead (`K-21 nif-bridge-class` in `beam_jni.c`), which is
+the same answer Mob's own `mob_ui_cache_class` gives one line away.
+
+`test/kati/native_nif_chain_test.exs` checks every join in that chain — name, arity, JNI
+descriptor, `@JvmStatic`, driver-table registration — because every one of them fails at runtime,
+on a device, and only there.
+
 ## The fence convention
 
 Every Kati change to a tracked file is fenced — including one-line changes, **and including

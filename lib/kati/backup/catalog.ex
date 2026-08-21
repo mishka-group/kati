@@ -26,7 +26,9 @@ defmodule Kati.Backup.Catalog do
       its own. `Kati.Media.CachedTitle` and `Kati.Meals.LicensedFood`.
     * **`:bundled`** — the CC0 corpus shipped in `priv/`. Identical on every
       install, so a copy in the file is bytes for nothing.
-    * **`:internal`** — a development spike, or a table Mob owns.
+    * **`:internal`** — a development spike, a table Mob owns, or sync
+      machinery the device rebuilds for itself from the rows that *are*
+      carried.
     * **`:device_bound`** — a *column*, not a table: an opaque handle into a
       keystore this device has and the next one does not.
 
@@ -71,7 +73,7 @@ defmodule Kati.Backup.Catalog do
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
   # (`Kati.Runtime`'s moduledoc), so a device-side check would silently pass by
   # finding nothing.
-  @domains [Kati.Spike, Kati.Calendars, Kati.Media, Kati.Meals]
+  @domains [Kati.Spike, Kati.Calendars, Kati.Media, Kati.Meals, Kati.Sync]
 
   @entries [
     %{table: "calendar_accounts", resource: Kati.Calendars.Account, drop: [:credentials_ref]},
@@ -120,6 +122,27 @@ defmodule Kati.Backup.Catalog do
       resource: Kati.Spike.Thing,
       class: :internal,
       why: "A migration spike. Holds no user data and is not drawn anywhere."
+    },
+    %{
+      resource: Kati.Sync.OutboxEntry,
+      class: :internal,
+      why:
+        "A queue of in-flight intentions, not a record of anything. Its state is true " <>
+          "only of this device and this session: idempotency_key names a request a " <>
+          "restored phone cannot ask about, :in_flight means a socket that is already " <>
+          "closed, and account_id points at an account whose credentials_ref the backup " <>
+          "drops. The edit itself is not in here — it is already applied to events, " <>
+          "which is carried, and local_rev exceeding synced_rev is what re-queues it."
+    },
+    %{
+      resource: Kati.Sync.RejectedChange,
+      class: :internal,
+      why:
+        "REVIEW THIS ONE. Excluded to avoid a unilateral backup-format change, not " <>
+          "because the case is clear: the rows hold property values the user typed, and " <>
+          "no re-fetch reproduces them, which is the definition of :backup above. " <>
+          "Carrying it needs schema_version 2 plus an Upgrade step, since Verify " <>
+          "Map.fetch!s every catalog table and a v1 file has no such member."
     }
   ]
 

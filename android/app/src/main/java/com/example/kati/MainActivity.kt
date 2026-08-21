@@ -111,6 +111,52 @@ class MainActivity : ComponentActivity() {
         filePickerLauncher.launch(arrayOf("*/*"))
     }
 
+    // KATI-BEGIN(K-20 file-transport-launcher) mob_new=0.4.20
+    // WHY: the two halves of #64's "get the backup off the device". MobBridge
+    // owns the policy (see K-20 file-transport); an ActivityResultLauncher can
+    // only be registered on the Activity, and only before it is STARTED —
+    // which is why these are property initialisers alongside the stock
+    // launchers rather than something MobBridge could create for itself.
+    //
+    // StartActivityForResult with an explicit Intent, not the
+    // CreateDocument()/OpenDocument() contracts: the contract fixes the MIME
+    // type at registration time, and Kati needs it per call (a .katibackup, an
+    // .ics and a .csv are three different types through the same door). The
+    // explicit Intent also keeps EXTRA_TITLE — the filename the dialog
+    // pre-fills — under Elixir's control, which is what makes
+    // Kati.Backup.suggested_filename/1 reach the user.
+    private val katiSaveAsLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            MobBridge.handleKatiSaveAsResult(
+                if (result.resultCode == Activity.RESULT_OK) result.data?.data else null
+            )
+        }
+
+    fun launchKatiSaveAs(name: String, mime: String) {
+        val intent = android.content.Intent(android.content.Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(android.content.Intent.CATEGORY_OPENABLE)
+            type = mime
+            putExtra(android.content.Intent.EXTRA_TITLE, name)
+        }
+        katiSaveAsLauncher.launch(intent)
+    }
+
+    // The chooser's result code is NOT a completion signal: Android returns
+    // RESULT_CANCELED whether the user dismissed the sheet or finished a
+    // share, because the receiving app is what returns a result and almost
+    // none do. It is forwarded anyway so the Elixir side can distinguish
+    // "the sheet came back" from "the sheet never opened", and MobBridge
+    // reports it as `dismissed` rather than inventing a completion.
+    private val katiShareLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            MobBridge.handleKatiShareResult(result.resultCode == Activity.RESULT_OK)
+        }
+
+    fun launchKatiShare(chooser: android.content.Intent) {
+        katiShareLauncher.launch(chooser)
+    }
+    // KATI-END(K-20 file-transport-launcher)
+
     // ── QR scanner launcher ───────────────────────────────────────────────
     // For QR scanning we use an intent to a helper activity (MobScannerActivity)
     // that uses CameraX + ML Kit. It returns the scanned value as a result string.
@@ -147,6 +193,13 @@ class MainActivity : ComponentActivity() {
         // "error:no_context". One line here removes that whole failure mode.
         KatiSecureStore.attach(this)
         // KATI-END(K-19 secure-store-attach)
+        // KATI-BEGIN(K-22 host-context-attach) mob_new=0.4.20
+        // Same reasoning as the line above, for everything that is not the
+        // credential store: arming an alarm and enqueuing the periodic refresh
+        // both happen while the BEAM is alive and the Activity is gone, where
+        // MobBridge.activityRef is a null WeakReference. See KatiHostContext.
+        KatiHostContext.attach(this)
+        // KATI-END(K-22 host-context-attach)
         // KATI-BEGIN(K-26 calendar-publish) mob_new=0.4.20
         KatiCalendarReader.publish(this)
         // KATI-END(K-26 calendar-publish)

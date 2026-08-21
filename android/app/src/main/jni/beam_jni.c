@@ -15,11 +15,50 @@
 JavaVM* g_jvm      = NULL;
 jobject g_activity = NULL;
 
+// KATI-BEGIN(K-21 nif-bridge-class) mob_new=0.4.20
+// WHY: Kati's project-owned static NIFs (c_src/kati_secure_store.c,
+// c_src/kati_bridge.c) call @JvmStatic methods on MobBridge. They cannot look
+// the class up themselves: a NIF runs on an Erlang scheduler thread, ERTS
+// created that thread, it has no Java frames, and FindClass on such a thread
+// resolves against the SYSTEM class loader — which does not contain
+// com.example.kati.MobBridge. The lookup returns NULL with a pending
+// ClassNotFoundException, and the symptom reads as "the bridge method is
+// missing" rather than "the lookup happened on the wrong thread".
+//
+// JNI_OnLoad runs on the thread that called System.loadLibrary, which does
+// have a Java frame, so this is the one place the lookup works. Mob solves the
+// identical problem one line below in mob_ui_cache_class (mob_nif.zig:1712),
+// but caches into a Zig-internal with no C linkage, so Kati caches its own
+// alongside it rather than reaching into a dependency's private state.
+//
+// A global ref, not a local one: a local reference is valid only for the frame
+// that created it, and this outlives JNI_OnLoad by the life of the process.
+jclass g_kati_bridge_cls = NULL;
+
+static void kati_cache_bridge_class(JNIEnv* env) {
+    jclass local = (*env)->FindClass(env, BRIDGE_CLASS);
+    if (local == NULL) {
+        // Clear the pending exception: leaving one set makes the NEXT JNI call
+        // on this thread abort the process, so a missing class would present
+        // as an unrelated crash later in startup.
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        return;
+    }
+    g_kati_bridge_cls = (jclass)(*env)->NewGlobalRef(env, local);
+    (*env)->DeleteLocalRef(env, local);
+}
+// KATI-END(K-21 nif-bridge-class)
+
 JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     g_jvm = vm;
     JNIEnv* env;
     (*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6);
     mob_ui_cache_class(env, BRIDGE_CLASS);
+    // KATI-BEGIN(K-21 nif-bridge-class-cache) mob_new=0.4.20
+    // Same class, Kati's own cache — see the K-21 nif-bridge-class block above
+    // for why this cannot be done lazily from the NIF itself.
+    kati_cache_bridge_class(env);
+    // KATI-END(K-21 nif-bridge-class-cache)
     return JNI_VERSION_1_6;
 }
 

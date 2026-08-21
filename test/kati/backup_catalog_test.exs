@@ -48,7 +48,7 @@ defmodule Kati.BackupCatalogTest do
         assert String.length(why) > 40, "#{inspect(resource)} needs a reason, not a label"
       end
 
-      assert length(Catalog.excluded()) == 4
+      assert length(Catalog.excluded()) == 6
     end
 
     test "the domains it checks are the domains the app configures" do
