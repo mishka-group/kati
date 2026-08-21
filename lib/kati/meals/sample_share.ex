@@ -98,8 +98,18 @@ defmodule Kati.Meals.SampleShare do
   @spec shared_with() :: [map()]
   def shared_with do
     [
-      %{seed: "face32", name: "Jo Mercer", sub: "Following · gets your edits", trail: {:toggle, true}},
-      %{seed: "face45", name: "Ada Vance", sub: "Took a copy · 12 Aug", trail: {:icon, "content_copy"}}
+      %{
+        seed: "face32",
+        name: "Jo Mercer",
+        sub: "Following · gets your edits",
+        trail: {:toggle, true}
+      },
+      %{
+        seed: "face45",
+        name: "Ada Vance",
+        sub: "Took a copy · 12 Aug",
+        trail: {:icon, "content_copy"}
+      }
     ]
   end
 

@@ -42,12 +42,42 @@ defmodule Kati.Meals.SampleToday do
   @spec week() :: [map()]
   def week do
     [
-      %{dow: "Mon", day: "10", today?: false, dots: [@planned, @planned, @planned, @planned, @planned]},
-      %{dow: "Tue", day: "11", today?: false, dots: [@planned, @planned, @planned, @planned, @planned]},
-      %{dow: "Wed", day: "12", today?: false, dots: [@planned, @planned, @planned, @planned, @empty]},
-      %{dow: "Thu", day: "13", today?: false, dots: [@planned, @planned, @planned, @planned, @planned]},
-      %{dow: "Fri", day: "14", today?: false, dots: [@planned, @planned, @planned, @empty, @empty]},
-      %{dow: "Sat", day: "15", today?: false, dots: [@planned, @planned, @planned, @planned, @planned]},
+      %{
+        dow: "Mon",
+        day: "10",
+        today?: false,
+        dots: [@planned, @planned, @planned, @planned, @planned]
+      },
+      %{
+        dow: "Tue",
+        day: "11",
+        today?: false,
+        dots: [@planned, @planned, @planned, @planned, @planned]
+      },
+      %{
+        dow: "Wed",
+        day: "12",
+        today?: false,
+        dots: [@planned, @planned, @planned, @planned, @empty]
+      },
+      %{
+        dow: "Thu",
+        day: "13",
+        today?: false,
+        dots: [@planned, @planned, @planned, @planned, @planned]
+      },
+      %{
+        dow: "Fri",
+        day: "14",
+        today?: false,
+        dots: [@planned, @planned, @planned, @empty, @empty]
+      },
+      %{
+        dow: "Sat",
+        day: "15",
+        today?: false,
+        dots: [@planned, @planned, @planned, @planned, @planned]
+      },
       %{dow: "Sun", day: "16", today?: true, dots: [@done, @done, @done, @empty, @empty]}
     ]
   end

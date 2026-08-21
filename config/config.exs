@@ -23,4 +23,4 @@ config :kati, ecto_repos: [Kati.Repo]
 # with no -config and an empty .app env — so Kati.App.on_start/0 sets the
 # runtime equivalents with Application.put_env/3. These entries exist so mix
 # tasks (ash_sqlite.generate_migrations, ecto.migrate) can find the domains.
-config :kati, ash_domains: [Kati.Spike, Kati.Calendars, Kati.Media]
+config :kati, ash_domains: [Kati.Spike, Kati.Calendars, Kati.Media, Kati.Meals]

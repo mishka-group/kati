@@ -44,11 +44,31 @@ defmodule Kati.Meals.SamplePlan do
   @spec matrix() :: [map()]
   def matrix do
     [
-      %{name: "Breakfast", time: "07:30", cells: [:planned, :planned, :planned, :planned, :planned, :planned, :planned]},
-      %{name: "Snack", time: "10:30", cells: [:planned, :planned, :free, :planned, :free, :planned, :planned]},
-      %{name: "Lunch", time: "13:00", cells: [:planned, :planned, :planned, :planned, :planned, :planned, :planned]},
-      %{name: "Snack", time: "16:00", cells: [:planned, :planned, :planned, :planned, :free, :planned, :open]},
-      %{name: "Dinner", time: "19:30", cells: [:planned, :planned, :planned, :planned, :planned, :planned, :today]}
+      %{
+        name: "Breakfast",
+        time: "07:30",
+        cells: [:planned, :planned, :planned, :planned, :planned, :planned, :planned]
+      },
+      %{
+        name: "Snack",
+        time: "10:30",
+        cells: [:planned, :planned, :free, :planned, :free, :planned, :planned]
+      },
+      %{
+        name: "Lunch",
+        time: "13:00",
+        cells: [:planned, :planned, :planned, :planned, :planned, :planned, :planned]
+      },
+      %{
+        name: "Snack",
+        time: "16:00",
+        cells: [:planned, :planned, :planned, :planned, :free, :planned, :open]
+      },
+      %{
+        name: "Dinner",
+        time: "19:30",
+        cells: [:planned, :planned, :planned, :planned, :planned, :planned, :today]
+      }
     ]
   end
 
@@ -64,9 +84,19 @@ defmodule Kati.Meals.SamplePlan do
   @spec day() :: [map()]
   def day do
     [
-      %{slot: "Brunch · 10:00", title: "Eggs, sourdough, avocado", calories: "520", seed: "mealbrunch"},
+      %{
+        slot: "Brunch · 10:00",
+        title: "Eggs, sourdough, avocado",
+        calories: "520",
+        seed: "mealbrunch"
+      },
       %{slot: "Snack · 16:00", title: "Apple, almond butter", calories: "210", seed: "mealapple"},
-      %{slot: "Dinner · 19:30", title: "Miso salmon, greens, rice", calories: "620", seed: "mealsalmon"}
+      %{
+        slot: "Dinner · 19:30",
+        title: "Miso salmon, greens, rice",
+        calories: "620",
+        seed: "mealsalmon"
+      }
     ]
   end
 
@@ -80,7 +110,12 @@ defmodule Kati.Meals.SamplePlan do
   def repeat_rule do
     [
       %{icon: "repeat", title: "Repeats", sub: "Every week, indefinitely", trailing: :chevron},
-      %{icon: "event_available", title: "Started", sub: "Week 6 · 6 Jul 2026", trailing: :chevron},
+      %{
+        icon: "event_available",
+        title: "Started",
+        sub: "Week 6 · 6 Jul 2026",
+        trailing: :chevron
+      },
       %{
         icon: "edit_calendar",
         title: "Edit this week only",
