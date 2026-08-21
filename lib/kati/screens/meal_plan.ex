@@ -35,6 +35,7 @@ defmodule Kati.Screens.MealPlan do
   alias Kati.Components.MishkaSeparator
   alias Kati.Meals.SamplePlan, as: Sample
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @doc false
@@ -90,7 +91,7 @@ defmodule Kati.Screens.MealPlan do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        background: Palette.card(),
         shadow: Theme.shadow_button(),
         on_tap: :edit_plan
       ],
@@ -104,7 +105,7 @@ defmodule Kati.Screens.MealPlan do
     <Column fill_width={true}>
       <Text text={Kati.Meals.SamplePlan.title()} text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} max_lines={1} />
       <Spacer size={5} />
-      <Text text={Kati.Meals.SamplePlan.subtitle()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={Kati.Meals.SamplePlan.subtitle()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -163,16 +164,16 @@ defmodule Kati.Screens.MealPlan do
       [
         value: active,
         fill_width: true,
-        background: 0xFFE4E0D9,
+        background: Palette.placeholder(),
         corner_radius: 16,
         track_padding: 4,
         segment_radius: 12,
         segment_height: 34,
         segment_weight: 1.0,
         padding: 0,
-        color: Theme.card(:light),
-        text_color: Theme.ink(),
-        label_color: 0xFFAFA89E,
+        color: Palette.card(),
+        text_color: Palette.ink(),
+        label_color: Palette.segment_idle(),
         text_size: 12.5,
         font_weight: :semibold,
         selected_weight: :bold,
@@ -189,7 +190,7 @@ defmodule Kati.Screens.MealPlan do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={14}
@@ -230,7 +231,7 @@ defmodule Kati.Screens.MealPlan do
 
   @doc false
   def column_head(letter, on?) do
-    color = if on?, do: Theme.ink(), else: 0xFFB3ACA2
+    color = if on?, do: Palette.ink(), else: Palette.tertiary()
 
     ~MOB"""
     <Row weight={1.0} align="center">
@@ -250,7 +251,7 @@ defmodule Kati.Screens.MealPlan do
         <Column width={62}>
           <Text text={row.name} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={2} />
-          <Text text={row.time} font_family="mono" text_size={9.5} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={row.time} font_family="mono" text_size={9.5} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         {Enum.map(row.cells, fn state -> Kati.Screens.MealPlan.cell(state) end)}
       </Row>
@@ -267,17 +268,32 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Row weight={1.0} align="center">
       <Spacer size={3} />
-      <Box weight={1.0} height={37} corner_radius={9} background={Kati.Screens.MealPlan.cell_fill(state)} border_width={Kati.Screens.MealPlan.cell_border(state)} border_color={0x291A1917} align="center">
+      <Box weight={1.0} height={37} corner_radius={9} background={Kati.Screens.MealPlan.cell_fill(state)} border_width={Kati.Screens.MealPlan.cell_border(state)} border_color={Palette.border()} align="center">
         {Kati.Screens.MealPlan.pip(state)}
       </Box>
     </Row>
     """
   end
 
+  # Three of `Kati.Theme.Palette`'s multi-meaning literals meet in these three
+  # clauses, so each names which meaning it took:
+  #
+  #   * `ink`, not `ink_fill` / `fab_fill` — the other two things `0xFF1A1917`
+  #     is. A cell is a MARK on the matrix card, not a control you press, so it
+  #     takes the ink that goes on a card (`#F5F2EE`) rather than the warm
+  #     `#F7EFE4` the palette reserves for the hero's CTA pill. Today's orange
+  #     pip inverts with it — orange on ink in light, orange on paper-ink in
+  #     dark — which is what `:inversion` means.
+  #   * `transparent`, not `card_hairline` / `cream_hairline`, the other two
+  #     `0x00FFFFFF`s. This one is a deliberate absence of fill: the free cell
+  #     is drawn as `cell_border/1`'s ring and nothing else.
+  #   * `paper`, not `tab_well`. A planned cell is a well recessed into the
+  #     card, so it follows the page down to `#121110`; `tab_well` is the
+  #     dock's hole and is darker still.
   @doc false
-  def cell_fill(:today), do: Theme.ink()
-  def cell_fill(:open), do: 0x00FFFFFF
-  def cell_fill(_), do: 0xFFEFECE7
+  def cell_fill(:today), do: Palette.ink()
+  def cell_fill(:open), do: Palette.transparent()
+  def cell_fill(_), do: Palette.paper()
 
   @doc false
   def cell_border(:open), do: 1.5
@@ -286,13 +302,13 @@ defmodule Kati.Screens.MealPlan do
   @doc false
   def pip(:planned) do
     ~MOB"""
-    <Box width={7} height={7} corner_radius={4} background={0xFFC4BDB3} />
+    <Box width={7} height={7} corner_radius={4} background={Palette.rail_idle()} />
     """
   end
 
   def pip(:today) do
     ~MOB"""
-    <Box width={7} height={7} corner_radius={4} background={Kati.Theme.accent()} />
+    <Box width={7} height={7} corner_radius={4} background={Palette.accent()} />
     """
   end
 
@@ -333,7 +349,7 @@ defmodule Kati.Screens.MealPlan do
         font_family="mono"
         text_size={9.5}
         letter_spacing={0.06}
-        text_color={0xFFA0998F}
+        text_color={Palette.eyebrow()}
         max_lines={1}
       />
     </Row>
@@ -343,19 +359,19 @@ defmodule Kati.Screens.MealPlan do
   @doc false
   def legend_swatch(:planned) do
     ~MOB"""
-    <Box width={7} height={7} corner_radius={4} background={0xFFC4BDB3} />
+    <Box width={7} height={7} corner_radius={4} background={Palette.rail_idle()} />
     """
   end
 
   def legend_swatch(:today) do
     ~MOB"""
-    <Box width={7} height={7} corner_radius={4} background={Kati.Theme.accent()} />
+    <Box width={7} height={7} corner_radius={4} background={Palette.accent()} />
     """
   end
 
   def legend_swatch(_) do
     ~MOB"""
-    <Box width={7} height={7} corner_radius={4} border_width={1.5} border_color={0xFFDCD7CF} />
+    <Box width={7} height={7} corner_radius={4} border_width={1.5} border_color={Palette.track_off()} />
     """
   end
 
@@ -368,7 +384,7 @@ defmodule Kati.Screens.MealPlan do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -391,12 +407,12 @@ defmodule Kati.Screens.MealPlan do
         {Kati.Screens.MealPlan.thumb(row.seed)}
         <Spacer size={13} />
         <Column weight={1.0}>
-          <Text text={String.upcase(row.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={0xFFA0998F} max_lines={1} />
+          <Text text={String.upcase(row.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.eyebrow()} max_lines={1} />
           <Spacer size={4} />
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
         </Column>
         <Spacer size={13} />
-        <Text text={row.calories} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={row.calories} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       </Row>
       {Kati.Screens.MealPlan.hairline(rule?)}
     </Column>
@@ -407,7 +423,7 @@ defmodule Kati.Screens.MealPlan do
   def thumb(seed) do
     case Kati.Design.Images.poster(seed) do
       nil ->
-        ~MOB"<Box width={40} height={40} corner_radius={11} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={40} height={40} corner_radius={11} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -418,19 +434,28 @@ defmodule Kati.Screens.MealPlan do
 
   # Kati.UI.eyebrow's dash is always the accent, and orange means new or now.
   # The repeat rule is neither, so the drawing gives it a #C4BDB3 dash.
+  #
+  # `#C4BDB3` is `Palette.rail_idle/0`, and the NAME is the part of it that is
+  # off: the palette calls it the timeline rail because that is where the dark
+  # drawing shows this neutral, and screen 28's `#4A453F` is the only measured
+  # dark twin it has. It is the token this screen's four `#C4BDB3` marks — this
+  # dash, the two planned pips, the trailing chevron — must take, because it is
+  # the only one whose LIGHT value is `#C4BDB3`; `tertiary`, whose meaning
+  # ("a faint chevron, an idle tab glyph") fits better, is `#B3ACA2` and would
+  # move the baseline by eleven units.
   @doc false
   def muted_eyebrow(label) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -446,7 +471,7 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
@@ -464,14 +489,14 @@ defmodule Kati.Screens.MealPlan do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
+        <Box width={30} height={30} corner_radius={9} background={Palette.paper()} align="center">
+          {Kati.UI.symbol(row.icon, size: 17, color: Palette.ink_soft())}
         </Box>
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.MealPlan.trailing(row.trailing)}
@@ -482,7 +507,7 @@ defmodule Kati.Screens.MealPlan do
   end
 
   @doc false
-  def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
+  def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
 
   # 46x28 with a 22pt knob inset 3pt, drawn the way
   # `Kati.Screens.Accessibility.toggle/1` draws it: the inset comes from a 40pt
@@ -491,9 +516,9 @@ defmodule Kati.Screens.MealPlan do
   # The knob leads and the space trails, which is the off state.
   def trailing(:switch_off) do
     ~MOB"""
-    <Box width={46} height={28} corner_radius={14} background={0xFFDCD7CF} align="center">
+    <Box width={46} height={28} corner_radius={14} background={Palette.track_off()} align="center">
       <Row width={40} align="center">
-        <Box width={22} height={22} corner_radius={11} background={Kati.Theme.card(:light)} shadow="0 1 3 0 #4D1A1917" />
+        <Box width={22} height={22} corner_radius={11} background={Palette.card()} shadow="0 1 3 0 #4D1A1917" />
         <Spacer weight={1.0} />
       </Row>
     </Box>
@@ -523,7 +548,7 @@ defmodule Kati.Screens.MealPlan do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @impl true
   def handle_tap(:edit_plan, socket),

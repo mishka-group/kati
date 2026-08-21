@@ -9,11 +9,12 @@ defmodule Kati.Theme.PaletteTest do
   failure names the token. A test that read the values back out of the module
   it is testing would pass no matter what the module said.
 
-  The other half is coverage. `.../screens/*.ex` writes 93 distinct
-  `0xAARRGGBB` literals into its markup, and the table is only useful if it can
-  produce all 93. That is asserted against the files on disk rather than
-  against a number typed here, so a screen that grows a 94th literal fails
-  this test rather than quietly falling outside the palette.
+  The other half is coverage, and it now runs the other way round. It used to
+  assert that the screens still wrote **93** distinct `0xAARRGGBB` literals —
+  the count from before this table existed. Passing that meant the migration
+  had *not* happened; the day a screen named a token instead of a number the
+  test went red, and the cheapest way to green was to put the number back. See
+  `@survivors` for the ratchet that replaced it.
 
   And the count, because this repo has been bitten before: a derivation that
   returns nothing looks exactly like a codebase with nothing in it. Asserting
@@ -193,6 +194,131 @@ defmodule Kati.Theme.PaletteTest do
 
   @screens Path.wildcard("lib/kati/screens/*.ex")
 
+  # ── The ratchet ───────────────────────────────────────────────────────────
+  #
+  # Every `0xAARRGGBB` literal still written into screen markup, mapped to the
+  # reason it is still a number and to the screens that still write it. This is
+  # the record the migration is measured against, and it is a RATCHET: the only
+  # edit it accepts is DELETING a row.
+  #
+  #   * a literal reaching markup that is not in this table — the count went UP.
+  #     Never allowed. Name it through `Kati.Theme.Palette` instead.
+  #   * a literal in this table that no screen writes any more — the record is
+  #     stale. Delete the row; `@ceiling` falls with it because `@ceiling` is
+  #     asserted to equal the table's size rather than typed twice.
+  #   * a row whose screens have changed — one of the two above, per screen, so
+  #     migrating `states.ex` alone is visible even though the literal survives
+  #     in `settings.ex`.
+  #
+  # So the number can only go down, and it can only go down by deleting a row
+  # that says why it was there. Nothing here can rot into "93 is correct".
+  @survivors %{
+    # ── Screens 28 and 29 are drawn dark IN A LIGHT APP ──────────────────
+    # `home_dark.ex` and `lock.ex` pin `Kati.Theme.dark/0` at mount, which is
+    # the one legitimate reason a screen names a side. Every literal below IS
+    # the table's dark column, so a zero-arity token would be actively wrong
+    # here: it reads the installed palette, and in a light app that resolves to
+    # the LIGHT value. Migrating these means the two-arity form —
+    # `Palette.card(:dark)` — not `Palette.card()`, and it buys documentation
+    # rather than behaviour. Lowest-value rows in the table; listed so they are
+    # a decision and not an oversight.
+    0x00FFFFFF => {:pinned_dark, ~w(home_dark)},
+    0x0FF5F2EE => {:pinned_dark, ~w(home_dark)},
+    0x12F5F2EE => {:pinned_dark, ~w(home_dark)},
+    0x24E8823C => {:pinned_dark, ~w(home_dark)},
+    0x24FFFFFF => {:pinned_dark, ~w(lock)},
+    0x26FFFFFF => {:pinned_dark, ~w(lock)},
+    0x66FFFFFF => {:pinned_dark, ~w(lock)},
+    0x801C1A18 => {:pinned_dark, ~w(lock)},
+    0x80FFFFFF => {:pinned_dark, ~w(lock)},
+    0x8CFFFFFF => {:pinned_dark, ~w(lock)},
+    0x99FFFFFF => {:pinned_dark, ~w(lock)},
+    0xD9FFFFFF => {:pinned_dark, ~w(lock)},
+    0xEB1E1D1B => {:pinned_dark, ~w(home_dark)},
+    0xFF0E0D0C => {:pinned_dark, ~w(home_dark)},
+    0xFF16150F => {:pinned_dark, ~w(home_dark)},
+    0xFF1A1917 => {:pinned_dark, ~w(home_dark)},
+    0xFF1C1A18 => {:pinned_dark, ~w(lock)},
+    0xFF1E1D1B => {:pinned_dark, ~w(home_dark)},
+    0xFF2A2622 => {:pinned_dark, ~w(home_dark)},
+    0xFF2A2826 => {:pinned_dark, ~w(home_dark)},
+    0xFF312F2C => {:pinned_dark, ~w(home_dark)},
+    0xFF3A342D => {:pinned_dark, ~w(home_dark)},
+    0xFF4A453F => {:pinned_dark, ~w(home_dark)},
+    0xFF7A6F5E => {:pinned_dark, ~w(home_dark)},
+    0xFF8A837B => {:pinned_dark, ~w(home_dark)},
+    0xFFA89B87 => {:pinned_dark, ~w(home_dark)},
+    0xFFF5F2EE => {:pinned_dark, ~w(home_dark)},
+    0xFFF7EFE4 => {:pinned_dark, ~w(home_dark)},
+    0xFFFFFFFF => {:pinned_dark, ~w(lock)},
+
+    # ── The table holds this value only as a DARK one ────────────────────
+    # `muted`, `segment_idle` and `tertiary` all land on `0xFF6A6560` in dark
+    # and none of them is it in light, so no zero-arity token resolves to it on
+    # a light screen. `accessibility.ex` and `widgets.ex` reach for it
+    # deliberately — both draw an INVERTED card inside a light drawing and want
+    # a dark-mode neutral on it — and each says so at the call site.
+    # `plans.ex` does the same thing on 49's active card and says nothing;
+    # that one is a comment away from being the same decision.
+    # Answering this properly means a new token, not a substitution.
+    0xFF6A6560 => {:dark_only, ~w(accessibility home_dark plans widgets)},
+
+    # ── One literal, several meanings ────────────────────────────────────
+    # These are the declared `@light_collisions` above: more than one token has
+    # this exact light value, and they part company in dark. `0xFFFBFAF8` is
+    # `card` on a surface, `on_ink` on an ink fill, `fab_glyph` on the FAB and
+    # `on_media` on a photograph — which is `#1E1D1B`, `#1A1917`, `#16150F` and
+    # `#FBFAF8` in dark, four different answers. A mechanical replacement
+    # cannot pick; each call site needs a human to say which meaning it is, and
+    # getting it wrong is invisible in light and wrong in dark. The nine
+    # screens on that row are almost all a `check` glyph on an ink-filled
+    # control, i.e. `on_ink` — but "almost all" is exactly why this is not a
+    # sweep.
+    0xFFEFECE7 => {:collision, ~w(settings states)},
+    0xFFFBFAF8 =>
+      {:collision,
+       ~w(habits language_pick meals_day meals_today onboarding pick_sections settings states today_fa)},
+
+    # ── The value has a token; the token means something else ────────────
+    # `0xA6FFFFFF` is `rgba(255,255,255,.65)`. On `lock.ex` it is `lock_ink_65`
+    # and could be named today. On `plan_share.ex` and `quick_add.ex` it is a
+    # patch raised a step off a cream card — which is what `cream_raise` means,
+    # and `cream_raise` is `0x99FFFFFF`, .60 not .65. Naming it would move a
+    # baseline frame by an alpha step; naming `lock_ink_65` would put a
+    # lock-screen token on a share sheet. Wants a `cream_raise_strong` row.
+    0xA6FFFFFF => {:no_token, ~w(lock plan_share quick_add)},
+
+    # ── Simply not done yet ──────────────────────────────────────────────
+    # One unambiguous token each, no collision, no missing row: substituting
+    # `Palette.<name>()` is safe and moves nothing in light. `settings.ex`,
+    # `states.ex` and `quick_add.ex` were not among the fifteen screens this
+    # round touched at all; `meals_day.ex` was, and these are its leftovers.
+    # This is the block the next round should empty first — it is the only one
+    # where the work is mechanical.
+    0x294E9A73 => {:unmigrated, ~w(settings)},
+    0xFF3E8460 => {:unmigrated, ~w(settings)},
+    0xFF8A7B60 => {:unmigrated, ~w(states)},
+    0xFF8A8479 => {:unmigrated, ~w(states)},
+    0xFFA0998F => {:unmigrated, ~w(settings)},
+    0xFFA9A29A => {:unmigrated, ~w(settings)},
+    0xFFB08E55 => {:unmigrated, ~w(meals_day)},
+    0xFFC4BDB3 => {:unmigrated, ~w(states)},
+    0xFFC98A3E => {:unmigrated, ~w(states)},
+    0xFFE4E0D9 => {:unmigrated, ~w(settings)},
+    # `accent` is one of the three tokens that is the same in both modes, so
+    # `Palette.accent()` is safe even on 28 and 29.
+    0xFFE8823C => {:unmigrated, ~w(home_dark lock meals_day states)},
+    0xFFFBF1DE => {:unmigrated, ~w(states)}
+  }
+
+  # Where the count stands after this round. It came down from 93. It may be
+  # lowered and never raised — and it is not typed twice: the test below
+  # asserts it against `map_size(@survivors)`, so deleting a row is the only
+  # way to change it.
+  @ceiling 45
+
+  @reasons [:pinned_dark, :dark_only, :collision, :no_token, :unmigrated]
+
   # ── The count ────────────────────────────────────────────────────────────
 
   test "the table has #{@count} tokens" do
@@ -233,19 +359,106 @@ defmodule Kati.Theme.PaletteTest do
     end
   end
 
-  # ── Coverage: the 93 literals the screens actually write ─────────────────
+  # ── Coverage: the literals the screens have NOT migrated yet ─────────────
 
-  test "every 0xAARRGGBB literal in screen markup is reachable through a token" do
-    literals = screen_literals()
+  test "the ratchet's two halves agree, so neither can drift" do
+    # `@ceiling` is not a second opinion about the table — it is the table's
+    # size. Asserting it here is what makes deleting a row the ONLY way to
+    # lower the number, and what stops a future edit from raising the ceiling
+    # without producing a row that says what the extra literal is.
+    assert map_size(@survivors) == @ceiling
 
-    # The number is asserted so an empty or half-read scan cannot pass this
-    # test by finding nothing to check.
-    assert MapSet.size(literals) == 93
+    for {literal, {reason, files}} <- @survivors do
+      assert reason in @reasons, "#{hex(literal)} claims an unknown reason #{inspect(reason)}"
+      assert files != [], "#{hex(literal)} names no screen, so nothing can ever retire it"
+      assert Enum.uniq(files) == files
+      assert Enum.sort(files) == files, "#{hex(literal)}: keep the screens sorted"
+    end
+  end
 
+  test "no screen writes a colour literal that is not in the ratchet" do
+    # THE direction that is never allowed. A literal reaching markup without a
+    # row here means the count went up — either a new hardcoded colour, or a
+    # migration that was reverted.
+    added = Map.keys(actual_survivors()) -- Map.keys(@survivors)
+
+    assert added == [],
+           "these colour literals are in screen markup and not in @survivors, so the " <>
+             "count has gone UP. Name them through Kati.Theme.Palette:\n" <>
+             Enum.map_join(Enum.sort(added), "\n", fn literal ->
+               "  #{hex(literal)} in #{Enum.join(Map.fetch!(actual_survivors(), literal), ", ")}"
+             end)
+  end
+
+  test "the ratchet holds no literal the screens have already stopped writing" do
+    # The other half, and the half that keeps the number honest. A row that no
+    # screen matches any more is a ceiling that has stopped falling — delete it
+    # and lower `@ceiling` by one.
+    retired = Map.keys(@survivors) -- Map.keys(actual_survivors())
+
+    assert retired == [],
+           "these rows are stale — no screen writes them any more. Delete them from " <>
+             "@survivors and lower @ceiling to #{@ceiling - length(retired)}:\n" <>
+             Enum.map_join(Enum.sort(retired), "\n", &("  " <> hex(&1)))
+  end
+
+  test "each surviving literal survives in exactly the screens the ratchet names" do
+    # Per-screen, so migrating `states.ex` on its own registers even where the
+    # literal lives on in `settings.ex` — otherwise a row could stay frozen at
+    # nine screens while eight of them were cleaned up.
+    actual = actual_survivors()
+
+    drift =
+      for {literal, {_reason, declared}} <- @survivors,
+          found = Map.get(actual, literal, []),
+          found != declared do
+        "  #{hex(literal)}: declared #{inspect(declared)}, found #{inspect(found)}"
+      end
+
+    assert drift == [],
+           "the screens named in @survivors have moved. Deleting a screen from a row " <>
+             "is the migration working; adding one is a literal coming back:\n" <>
+             Enum.join(drift, "\n")
+  end
+
+  test "the count is at or below the ceiling, and the ceiling has come down from 93" do
+    remaining = map_size(actual_survivors())
+
+    assert remaining <= @ceiling,
+           "#{remaining} literals remain against a ceiling of #{@ceiling}"
+
+    # The number this file used to assert as an equality. Asserted as a strict
+    # upper bound now, so the old value can never be restored — not by editing
+    # `@ceiling`, and not by putting the literals back.
+    assert @ceiling < 93,
+           "the ceiling is back at or above the pre-migration count of 93"
+  end
+
+  test "every surviving literal is still reachable through a token" do
+    # Unchanged in intent from the version this replaced: the table has to be
+    # able to produce every colour the screens paint, or a migration would have
+    # nothing to migrate TO. It just no longer travels with a count that only a
+    # stalled refactor could satisfy.
     covered = Palette.literals()
-    missing = literals |> Enum.reject(&MapSet.member?(covered, &1)) |> Enum.sort()
+
+    missing =
+      actual_survivors() |> Map.keys() |> Enum.reject(&MapSet.member?(covered, &1)) |> Enum.sort()
 
     assert missing == [], "not named by any token: #{Enum.map_join(missing, ", ", &hex/1)}"
+  end
+
+  test "the scan reads the screens, so an empty read cannot pass the ratchet" do
+    # Every assertion above is a set difference, and two empty sets agree. This
+    # is the guard: the scan has to have found real files with real markup in
+    # them, or the ratchet is measuring nothing.
+    assert length(@screens) > 50, "only #{length(@screens)} screen sources were scanned"
+
+    occurrences =
+      @screens |> Enum.flat_map(&literals_in/1) |> length()
+
+    assert occurrences > 100,
+           "the scan found #{occurrences} literal occurrences, which is too few to be reading " <>
+             "the screens at all"
   end
 
   test "the two literals that appear only in comments are deliberately not tokens" do
@@ -497,10 +710,23 @@ defmodule Kati.Theme.PaletteTest do
   defp screen_literals do
     @screens
     |> Enum.flat_map(&literals_in/1)
+    |> Enum.map(&elem(&1, 0))
     |> MapSet.new()
   end
 
+  # `%{literal => [screen basename]}` — the same scan, keeping which file each
+  # hit came from so `@survivors` can be checked per screen rather than only as
+  # a set of numbers.
+  defp actual_survivors do
+    @screens
+    |> Enum.flat_map(&literals_in/1)
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Map.new(fn {literal, files} -> {literal, files |> Enum.uniq() |> Enum.sort()} end)
+  end
+
   defp literals_in(path) do
+    screen = Path.basename(path, ".ex")
+
     path
     |> File.read!()
     |> String.split("\n")
@@ -511,7 +737,7 @@ defmodule Kati.Theme.PaletteTest do
         in_doc? -> {trimmed != ~s(""") and not String.ends_with?(trimmed, ~s(""")), acc}
         Regex.match?(~r/^@(module)?doc\s+~?S?"""/, trimmed) -> {true, acc}
         String.starts_with?(trimmed, "#") -> {false, acc}
-        true -> {false, scan(line) ++ acc}
+        true -> {false, Enum.map(scan(line), &{&1, screen}) ++ acc}
       end
     end)
     |> elem(1)

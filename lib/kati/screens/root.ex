@@ -27,6 +27,25 @@ defmodule Kati.Screens.Root do
 
   `Kati.SupervisionRuleTest` fails the build if a screen breaks this.
 
+  ## The theme is resolved at mount, not pinned
+
+  `mount/3` calls `Kati.Theme.activate/0` — the palette `Kati.Theme.Mode`
+  resolves from the user's Auto/Light/Dark choice and the device. It used to
+  install the light palette flat, and because a screen is transient that ran
+  again on every root switch and every push: the stored choice was `:dark`, the
+  app was light, and nothing anywhere said so. Storing a preference is only half
+  of a setting; `Mob.Theme.set/1` snapshots, so the other half is a call like
+  this one plus a re-render.
+
+  A screen that hand-rolls its own `mount/3` instead of using this macro takes
+  the same responsibility with it. Pinning a side there is the same bug in a
+  place this macro cannot reach — and it is invisible, because the screen looks
+  correct in isolation and only reads wrong after a navigation.
+
+  Screens 28 (Home, dark) and 29 (Lock) pin `Kati.Theme.dark/0` legitimately:
+  they are drawn dark *in a light app*, so the resolved answer would be wrong
+  for them.
+
   ## Taps are rescued — but two different failures are not the same failure
 
   Mob catches nothing. An exception in a tap handler kills the screen process,

@@ -143,7 +143,7 @@ defmodule Kati.Screens.UpNext do
                 <Text text={h.meta} font_family="mono" text_size={10.5} text_color={Palette.on_media_meta()} max_lines={1} />
               </Column>
               <Spacer size={8} />
-              {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media())}
+              {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media(), Palette.ink(:light))}
             </Row>
           </Box>
           <Box fill_width={true} fill_height={true} align="bottom">
@@ -242,19 +242,27 @@ defmodule Kati.Screens.UpNext do
   stays `#FBFAF8` in dark; the ready row's sits on a card, so it sinks to the
   page colour.
 
-  The glyph is `Kati.UI.symbol/2`'s default colour, which is
-  `Kati.Theme.ink/0` and is pinned light — `#1A1917` in both modes. That is
-  right for the hero disc and wrong for the ready row's, where a dark glyph
-  will land on a `#121110` disc. Fixing it belongs in `Kati.UI.symbol/2`
-  (67 call sites lean on that default); when it moves, this function needs the
-  hero's glyph pinned back to `Palette.ink(:light)`, because the photograph
-  underneath it never inverted.
+  So the glyph cannot be one value either, and it is the argument this
+  function was missing.
+
+  `Kati.UI.symbol/2`'s default colour used to be `Kati.Theme.ink/0` — `#1A1917`
+  forever — and this docstring said that fixing it belonged there, with a note
+  that when it moved, the hero's glyph would need pinning back. It has moved:
+  the default is `Palette.ink/0` now, which is `#F5F2EE` in dark. That is the
+  right answer for the ready row, whose disc sank to `#121110` alongside it,
+  and the wrong one for the hero, whose disc stayed `#FBFAF8` because a
+  photograph does not invert — near-white on near-white, an invisible play
+  button on the one control the screen exists for.
+
+  Hence `ink`, defaulted to the mode-following value the ready row wants, and
+  passed `Palette.ink(:light)` at the hero. Light mode is untouched: the two
+  are the same `#1A1917` there, which is what the drawing has.
   """
-  @spec play_disc(number(), number(), non_neg_integer()) :: map()
-  def play_disc(size, glyph, background) do
+  @spec play_disc(number(), number(), non_neg_integer(), non_neg_integer()) :: map()
+  def play_disc(size, glyph, background, ink \\ Palette.ink()) do
     MishkaActionIcon.action_icon(
       [size: size, shape: :circle, variant: :filled, background: background],
-      [Kati.UI.symbol("play_arrow", size: glyph, fill: true)]
+      [Kati.UI.symbol("play_arrow", size: glyph, fill: true, color: ink)]
     )
   end
 

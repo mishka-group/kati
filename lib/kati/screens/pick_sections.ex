@@ -44,9 +44,13 @@ defmodule Kati.Screens.PickSections do
   import Mob.Sigil
 
   alias Kati.Screens.PickSections.Sample
+  alias Kati.Theme.Palette
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    # The resolved mode, not a hardcoded `light()`. `Kati.Theme.current/0` is
+    # the stored Auto/Light/Dark choice resolved against the device, and every
+    # `Palette` token below reads the theme this installs.
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :chosen, Sample.chosen())}
   end
 
@@ -86,7 +90,7 @@ defmodule Kati.Screens.PickSections do
       {Kati.Screens.PickSections.steps()}
       {Enum.map(Kati.Screens.PickSections.Sample.heading(), fn line -> Kati.Screens.PickSections.heading_line(line) end)}
       <Spacer size={14} />
-      <Text text={Kati.Screens.PickSections.Sample.blurb()} text_size={14.5} line_height={1.6} text_color={0xFF5C574F} />
+      <Text text={Kati.Screens.PickSections.Sample.blurb()} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
       <Spacer size={30} />
     </Column>
     """
@@ -127,7 +131,10 @@ defmodule Kati.Screens.PickSections do
 
   @doc false
   def step(done?) do
-    color = if done?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
+    # A bar, not a control: the filled step is `ink` — the mark meaning of
+    # `0xFF1A1917` — and the unreached one is the token whose own words are
+    # "a step in a dotline not yet reached".
+    color = if done?, do: Palette.ink(), else: Palette.track_off()
 
     ~MOB"""
     <Box weight={1.0} height={4} corner_radius={2} background={color} />
@@ -167,10 +174,19 @@ defmodule Kati.Screens.PickSections do
   @doc false
   def tile(section, chosen?) do
     tap = {self(), String.to_atom("section_" <> section.id)}
-    background = if chosen?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
+    # A chosen tile is an ink-FILLED control, so its ground is `ink_fill` — the
+    # fill meaning of `0xFF1A1917` — and everything on it takes the `on_ink`
+    # family, which inverts with the mode instead of following it. An unchosen
+    # tile is an ordinary card with ordinary ink on it.
+    #
+    # `on_ink_count` is right by value and narrow by name: it is the only token
+    # carrying `0x99FBFAF8`, and its dark twin `0x991A1917` is exactly what a
+    # 60%-alpha label on an inverted fill wants. The name says "a count inside a
+    # selected chip"; this is the sub line inside a selected tile.
+    background = if chosen?, do: Palette.ink_fill(), else: Palette.card()
     shadow = if chosen?, do: "0 12 24 -14 #E61A1917", else: Kati.Theme.shadow_card_soft()
-    ink = if chosen?, do: 0xFFFBFAF8, else: Kati.Theme.ink()
-    sub = if chosen?, do: 0x99FBFAF8, else: 0xFFA9A29A
+    ink = if chosen?, do: Palette.on_ink(), else: Palette.ink()
+    sub = if chosen?, do: Palette.on_ink_count(), else: Palette.muted()
 
     ~MOB"""
     <Box weight={1.0}>
@@ -222,8 +238,16 @@ defmodule Kati.Screens.PickSections do
   def badge(false), do: ~MOB"<Spacer size={0} />"
 
   def badge(true) do
+    # `0xFFFBFAF8` LEFT AS A LITERAL. `Kati.Theme.Palette` names four meanings
+    # for it — the card, a label on an ink fill, the FAB's plus, and a title
+    # over artwork — and this is none of them: it is a glyph on a HUE. Orange is
+    # `:hue` and does not move with the mode, so a check that followed the mode
+    # would turn to ink on a badge that never darkened. The two tokens that keep
+    # this value in dark are scoped to a photographic ground (`on_media`) or to
+    # the FAB, so neither is honestly this. Left, and reported: the table has no
+    # "on a hue fill" row.
     ~MOB"""
-    <Box width={22} height={22} offset_x={2} offset_y={-2} corner_radius={11} background={0xFFE8823C} align="center">
+    <Box width={22} height={22} offset_x={2} offset_y={-2} corner_radius={11} background={Palette.accent()} align="center">
       {Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)}
     </Box>
     """
@@ -232,6 +256,10 @@ defmodule Kati.Screens.PickSections do
   # The count is computed, not typed: the drawing says "Continue with 2"
   # because two tiles are lit, and tapping a third has to say three or the
   # button is lying about what it will do.
+  #
+  # The pill is `ink_fill` and its two marks are `on_ink`: a call-to-action
+  # filled with ink in light is filled with paper in dark, and what sits on it
+  # crosses to the other side of the ramp with it.
   @doc false
   def commit(chosen) do
     label = "Continue with #{MapSet.size(chosen)}"
@@ -242,20 +270,20 @@ defmodule Kati.Screens.PickSections do
         fill_width={true}
         height={54}
         corner_radius={27}
-        background={Kati.Theme.ink()}
+        background={Palette.ink_fill()}
         shadow="0 14 28 -12 #D91A1917"
         align="center"
       >
         <Row align="center">
-          <Text text={label} text_size={14.5} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+          <Text text={label} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
           <Spacer size={9} />
-          {Kati.UI.symbol("arrow_forward", size: 19, color: 0xFFFBFAF8)}
+          {Kati.UI.symbol("arrow_forward", size: 19, color: Palette.on_ink())}
         </Row>
       </Box>
       <Spacer size={14} />
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Text text="Import from a backup instead" text_size={13} font_weight="semibold" text_color={0xFF8A8479} max_lines={1} />
+        <Text text="Import from a backup instead" text_size={13} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
         <Spacer weight={1.0} />
       </Row>
     </Column>

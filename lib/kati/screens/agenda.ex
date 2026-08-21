@@ -40,6 +40,7 @@ defmodule Kati.Screens.Agenda do
   alias Kati.Components.MishkaSeparator
   alias Kati.Design.Images
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -118,7 +119,9 @@ defmodule Kati.Screens.Agenda do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        # The card token, not `on_ink`/`fab_glyph`/`on_media`: a disc is a
+        # surface floating above the page, so it follows the ground.
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button()
       },
       [Kati.UI.symbol(icon, size: 21)]
@@ -152,7 +155,7 @@ defmodule Kati.Screens.Agenda do
       {Kati.Screens.Agenda.kicker(group)}
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding_left={15}
@@ -169,7 +172,8 @@ defmodule Kati.Screens.Agenda do
     """
   end
 
-  # Two mono labels on one baseline: the day in ink, its weight in #A0998F.
+  # Two mono labels on one baseline: the day in ink, its weight in #A0998F —
+  # `eyebrow`, the mono section label, which is what the second one is.
   @doc false
   def kicker(group) do
     ~MOB"""
@@ -184,7 +188,7 @@ defmodule Kati.Screens.Agenda do
           max_lines={1}
         />
         <Spacer size={9} />
-        <Text text={group.sub} font_family="mono" text_size={10.5} text_color={0xFFA0998F} max_lines={1} />
+        <Text text={group.sub} font_family="mono" text_size={10.5} text_color={Palette.eyebrow()} max_lines={1} />
       </Row>
       <Spacer size={10} />
     </Column>
@@ -197,7 +201,7 @@ defmodule Kati.Screens.Agenda do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column width={38}>
-          <Text text={row.time} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.time} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         <Box width={3} height={30} corner_radius={2} background={row.rule} />
@@ -212,7 +216,7 @@ defmodule Kati.Screens.Agenda do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
       </Row>
       {Kati.Screens.Agenda.hairline(rule?)}
@@ -231,7 +235,7 @@ defmodule Kati.Screens.Agenda do
       nil ->
         ~MOB"""
         <Row align="center">
-          <Box width={26} height={37} corner_radius={5} background={0xFFE4E0D9} />
+          <Box width={26} height={37} corner_radius={5} background={Palette.placeholder()} />
           <Spacer size={12} />
         </Row>
         """
@@ -265,7 +269,7 @@ defmodule Kati.Screens.Agenda do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(render: :box, color: 0x121A1917, thickness: 1)
+    do: MishkaSeparator.separator(render: :box, color: Palette.hairline(), thickness: 1)
 
   @doc false
   def footer(label) do
@@ -273,15 +277,15 @@ defmodule Kati.Screens.Agenda do
     <Box
       fill_width={true}
       corner_radius={18}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       border_width={1.5}
       padding={14}
       align="center"
     >
       <Row align="center">
-        {UI.symbol("expand_more", size: 18, color: 0xFF8A8479)}
+        {UI.symbol("expand_more", size: 18, color: Palette.sub())}
         <Spacer size={7} />
-        <Text text={label} text_size={13} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+        <Text text={label} text_size={13} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
       </Row>
     </Box>
     """

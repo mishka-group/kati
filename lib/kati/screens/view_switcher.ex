@@ -64,6 +64,8 @@ defmodule Kati.Screens.ViewSwitcher do
 
   import Mob.Sigil
 
+  alias Kati.Theme.Palette
+
   # `0 1px 2px rgba(26,25,23,.06), 0 6px 12px -8px rgba(26,25,23,.4)`.
   # Shallower than the card recipe because the tile is lifted off a trough
   # rather than off paper.
@@ -80,7 +82,7 @@ defmodule Kati.Screens.ViewSwitcher do
       |> Enum.intersperse(gap())
 
     ~MOB"""
-    <Box fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4}>
+    <Box fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4}>
       <Row fill_width={true} align="center">
         {segments}
       </Row>
@@ -96,8 +98,13 @@ defmodule Kati.Screens.ViewSwitcher do
     # Bound to locals first: inside ~MOB an `@name` is an assign, never a
     # module attribute, so @selected_shadow would be read as assigns.selected_shadow.
     shadow = if on?, do: @selected_shadow, else: nil
-    background = if on?, do: 0xFFFBFAF8, else: 0x00FFFFFF
-    color = if on?, do: 0xFF1A1917, else: 0xFFAFA89E
+    # The selected tile is lifted onto `card` — the surface meaning of
+    # `0xFFFBFAF8`, not `on_ink`/`fab_glyph`/`on_media` — and the other three
+    # segments draw nothing at all, which is `transparent` rather than an
+    # omitted prop. The selected label is `ink` (text, not a fill), and the
+    # unselected one is the token named for exactly this control.
+    background = if on?, do: Palette.card(), else: Palette.transparent()
+    color = if on?, do: Palette.ink(), else: Palette.segment_idle()
     weight = if on?, do: "bold", else: "semibold"
     # The view you are already in is not a destination.
     tap = if on?, do: nil, else: {self(), String.to_atom("view_" <> label)}

@@ -24,6 +24,7 @@ defmodule Kati.Screens.PlanShare do
   use Kati.Screens.Pushed, back: "Plans"
 
   alias Kati.Meals.SampleShare
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -57,7 +58,7 @@ defmodule Kati.Screens.PlanShare do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={20}
@@ -81,7 +82,7 @@ defmodule Kati.Screens.PlanShare do
           text={share.qr_uri}
           font_family="mono"
           text_size={10.5}
-          text_color={0xFFB09A72}
+          text_color={Palette.cream_meta()}
           text_align="center"
           max_lines={1}
         />
@@ -96,6 +97,19 @@ defmodule Kati.Screens.PlanShare do
   # 9 modules of 8pt with 2pt gaps is 88pt, centred inside a 120pt plate —
   # the drawing's own arithmetic, kept so the quiet zone stays 16pt on each
   # side rather than whatever a percentage would land on.
+  #
+  # ## Why the plate does not follow the mode
+  #
+  # `Palette.card(:light)` and `Palette.ink(:light)`, pinned, and they are the
+  # only pinned colours on this screen. A QR code is a MACHINE-readable mark,
+  # which puts it in the family `Kati.Theme.Palette` calls `:media` — "a colour
+  # whose ground is a photograph ... a photograph does not get lighter when the
+  # app does". Let the plate follow the mode and the code inverts: light
+  # modules on a dark plate, which most readers will not decode, and the plate
+  # itself (`#1E1D1B`) sinks BELOW the cream card it is supposed to lift off
+  # (`#2A2622`), so the shadow reads as a hole. Light mode is untouched either
+  # way — `Palette.card(:light)` is `0xFFFBFAF8` exactly, the value that was
+  # written here before.
   @doc false
   def qr_plate(rows) do
     ~MOB"""
@@ -103,7 +117,7 @@ defmodule Kati.Screens.PlanShare do
       width={120}
       height={120}
       corner_radius={20}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card(:light)}
       shadow="0 8 20 -10 #8078501E"
       align="center"
     >
@@ -133,21 +147,30 @@ defmodule Kati.Screens.PlanShare do
 
   @doc false
   def qr_module("1") do
-    ~MOB"<Box width={8} height={8} corner_radius={1} background={Kati.Theme.ink()} />"
+    ~MOB"<Box width={8} height={8} corner_radius={1} background={Palette.ink(:light)} />"
   end
 
   def qr_module(_light), do: ~MOB"<Box width={8} height={8} />"
 
+  # `0xA6FFFFFF` is LEFT as a literal. It is `rgba(255,255,255,.65)` — a patch
+  # raised a step off the cream card, which is exactly what
+  # `Kati.Theme.Palette`'s `cream_raise/0` means — but `cream_raise` is
+  # `0x99FFFFFF`, .60 rather than .65, and taking it would move light-mode
+  # pixels by an alpha step. The only token whose LIGHT value is `0xA6FFFFFF`
+  # is `lock_ink_65`, a `:media` colour that means "a lock-screen widget's
+  # second line over the wallpaper" and is deliberately IDENTICAL in dark;
+  # 65% white over the dark cream card is not what this pill wants. Neither
+  # token fits, so the palette owns the answer, not this screen.
   @doc false
   def qr_actions do
     ~MOB"""
     <Row fill_width={true} align="center">
       <Box weight={1.0}>
-        <Box fill_width={true} height={42} corner_radius={21} background={Kati.Theme.ink()} align="center">
+        <Box fill_width={true} height={42} corner_radius={21} background={Palette.ink_fill()} align="center">
           <Row align="center">
-            {Kati.UI.symbol("link", size: 17, color: 0xFFFBFAF8)}
+            {Kati.UI.symbol("link", size: 17, color: Palette.on_ink())}
             <Spacer size={7} />
-            <Text text="Copy link" text_size={12.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
+            <Text text="Copy link" text_size={12.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
           </Row>
         </Box>
       </Box>
@@ -155,9 +178,9 @@ defmodule Kati.Screens.PlanShare do
       <Box weight={1.0}>
         <Box fill_width={true} height={42} corner_radius={21} background={0xA6FFFFFF} align="center">
           <Row align="center">
-            {Kati.UI.symbol("ios_share", size: 17, color: 0xFF96723C)}
+            {Kati.UI.symbol("ios_share", size: 17, color: Palette.gold_text())}
             <Spacer size={7} />
-            <Text text="Share" text_size={12.5} font_weight="semibold" text_color={0xFF8A7B60} max_lines={1} />
+            <Text text="Share" text_size={12.5} font_weight="semibold" text_color={Palette.cream_sub()} max_lines={1} />
           </Row>
         </Box>
       </Box>
@@ -235,7 +258,7 @@ defmodule Kati.Screens.PlanShare do
     <Column fill_width={true}>
       <Text text={row.name} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       <Spacer size={2} />
-      <Text text={row.sub} text_size={11} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={row.sub} text_size={11} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -271,11 +294,11 @@ defmodule Kati.Screens.PlanShare do
       src: Kati.Design.Images.poster(seed),
       size: 34,
       shape: :circle,
-      background: 0xFFE4E0D9
+      background: Palette.placeholder()
     )
   end
 
   @doc false
   def person_trail({:toggle, on?}), do: SettingsList.switch(on?)
-  def person_trail({:icon, name}), do: Kati.UI.symbol(name, size: 17, color: 0xFFC4BDB3)
+  def person_trail({:icon, name}), do: Kati.UI.symbol(name, size: 17, color: Palette.rail_idle())
 end

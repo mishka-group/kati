@@ -38,6 +38,7 @@ defmodule Kati.Screens.Music do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Music.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @doc false
@@ -66,7 +67,7 @@ defmodule Kati.Screens.Music do
         <Column weight={1.0}>
           <Text text="Library" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={Kati.Music.Sample.subtitle()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={Kati.Music.Sample.subtitle()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         {Kati.Screens.Music.disc("search", :open_search)}
         <Spacer size={9} />
@@ -96,7 +97,7 @@ defmodule Kati.Screens.Music do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button(),
         on_tap: {self(), tag}
       ],
@@ -108,7 +109,7 @@ defmodule Kati.Screens.Music do
   def segments do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={18} padding={4} align="center">
+      <Row fill_width={true} background={Palette.placeholder()} corner_radius={18} padding={4} align="center">
         {Kati.Screens.Music.segment("movie", "Screen", false, :segment_screen)}
         <Spacer size={4} />
         {Kati.Screens.Music.segment("menu_book", "Books", false, :segment_books)}
@@ -126,7 +127,7 @@ defmodule Kati.Screens.Music do
   # and rounding it to shadow_card_soft would make the control look pressed.
   @doc false
   def segment(icon, label, true, tag) do
-    fg = Kati.Theme.ink()
+    fg = Palette.ink()
     tap = {self(), tag}
 
     ~MOB"""
@@ -135,7 +136,7 @@ defmodule Kati.Screens.Music do
         fill_width={true}
         height={38}
         corner_radius={14}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         shadow="0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
         align="center"
         on_tap={tap}
@@ -151,12 +152,12 @@ defmodule Kati.Screens.Music do
   end
 
   def segment(icon, label, false, tag) do
-    fg = 0xFFAFA89E
+    fg = Palette.segment_idle()
     tap = {self(), tag}
 
     ~MOB"""
     <Box weight={1.0}>
-      <Row fill_width={true} height={38} corner_radius={14} background={0x00FFFFFF} align="center" on_tap={tap}>
+      <Row fill_width={true} height={38} corner_radius={14} background={Palette.transparent()} align="center" on_tap={tap}>
         <Spacer weight={1.0} />
         {Kati.UI.symbol(icon, size: 17, color: fg)}
         <Spacer size={6} />
@@ -196,9 +197,9 @@ defmodule Kati.Screens.Music do
       <Spacer size={9} />
       <Text text={item.title} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
       <Spacer size={2} />
-      <Text text={item.artist} text_size={11} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={item.artist} text_size={11} text_color={Palette.sub()} max_lines={1} />
       <Spacer size={3} />
-      <Text text={item.plays} font_family="mono" text_size={10} text_color={0xFFE8823C} max_lines={1} />
+      <Text text={item.plays} font_family="mono" text_size={10} text_color={Palette.accent()} max_lines={1} />
     </Column>
     """
   end
@@ -208,12 +209,12 @@ defmodule Kati.Screens.Music do
     case Kati.Design.Images.poster(item.seed) do
       nil ->
         ~MOB"""
-        <Box fill_width={true} aspect_ratio={1.0} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()} />
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={12} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()} />
         """
 
       src ->
         ~MOB"""
-        <Box fill_width={true} aspect_ratio={1.0} corner_radius={12} background={0xFFE4E0D9} shadow={Kati.Theme.shadow_card_soft()}>
+        <Box fill_width={true} aspect_ratio={1.0} corner_radius={12} background={Palette.placeholder()} shadow={Kati.Theme.shadow_card_soft()}>
           <Image src={src} fill_width={true} aspect_ratio={1.0} corner_radius={12} content_mode="fill" />
         </Box>
         """
@@ -228,19 +229,19 @@ defmodule Kati.Screens.Music do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase(l.label)} font_family="mono" text_size={10} letter_spacing={0.14} text_color={0xFFB09A72} />
+            <Text text={String.upcase(l.label)} font_family="mono" text_size={10} letter_spacing={0.14} text_color={Palette.cream_meta()} />
             <Spacer size={6} />
             <Text text={l.total} text_size={30} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
           </Column>
           <Spacer size={12} />
-          <Text text={l.window} font_family="mono" text_size={11} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={l.window} font_family="mono" text_size={11} text_color={Palette.cream_meta()} max_lines={1} />
         </Row>
         <Spacer size={16} />
         {Kati.Screens.Music.bars(l.bars)}
@@ -301,7 +302,7 @@ defmodule Kati.Screens.Music do
     ~MOB"""
     <Row
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={18}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={13}
@@ -315,10 +316,10 @@ defmodule Kati.Screens.Music do
       <Column weight={1.0}>
         <Text text={row.artist} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer size={4} />
-        <Text text={row.line} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+        <Text text={row.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      <Box width={8} height={8} corner_radius={4} background={0xFFE8823C} />
+      <Box width={8} height={8} corner_radius={4} background={Palette.accent()} />
     </Row>
     """
   end
@@ -327,7 +328,7 @@ defmodule Kati.Screens.Music do
   def release_art(row) do
     case Kati.Design.Images.poster(row.seed) do
       nil ->
-        ~MOB"<Box width={44} height={44} corner_radius={10} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={44} height={44} corner_radius={10} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""

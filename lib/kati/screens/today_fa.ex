@@ -48,9 +48,10 @@ defmodule Kati.Screens.TodayFa do
   alias Kati.Fa.SampleToday
   alias Kati.Screens.Fa
   alias Kati.Theme
+  alias Kati.Theme.Palette
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Kati.Theme.activate()
     {:ok, Mob.Socket.assign(socket, :day, SampleToday.day())}
   end
 
@@ -85,7 +86,7 @@ defmodule Kati.Screens.TodayFa do
         <Row
           height={44}
           corner_radius={22}
-          background={Theme.card(:light)}
+          background={Palette.card()}
           shadow={Theme.shadow_button()}
           padding_left={12}
           padding_right={16}
@@ -132,7 +133,7 @@ defmodule Kati.Screens.TodayFa do
             text={day.subtitle}
             font_family="fa"
             text_size={11.5}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
         </Column>
@@ -153,7 +154,7 @@ defmodule Kati.Screens.TodayFa do
     <Row
       height={36}
       corner_radius={18}
-      background={Theme.card(:light)}
+      background={Palette.card()}
       shadow={Theme.shadow_button()}
       padding_left={13}
       padding_right={13}
@@ -170,7 +171,7 @@ defmodule Kati.Screens.TodayFa do
         max_lines={1}
       />
       <Spacer size={7} />
-      {Kati.UI.symbol("unfold_more", size: 16, color: 0xFF8A8479)}
+      {Kati.UI.symbol("unfold_more", size: 16, color: Palette.sub())}
     </Row>
     """
   end
@@ -198,7 +199,7 @@ defmodule Kati.Screens.TodayFa do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={16}
         shadow={Theme.shadow_card_soft()}
         padding_left={8}
@@ -215,7 +216,7 @@ defmodule Kati.Screens.TodayFa do
           font_family="fa"
           text_size={11}
           font_weight="semibold"
-          text_color={0xFF5C574F}
+          text_color={Palette.ink_soft()}
           text_align="center"
           max_lines={1}
         />
@@ -243,7 +244,7 @@ defmodule Kati.Screens.TodayFa do
           font_family="fa"
           text_size={11}
           font_weight="semibold"
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -270,12 +271,12 @@ defmodule Kati.Screens.TodayFa do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding={15}
       >
-        <Box fill_width={true} height={9} corner_radius={5} background={0xFFEFECE7}>
+        <Box fill_width={true} height={9} corner_radius={5} background={Palette.paper()}>
           <Row fill_width={true}>
             {Enum.map(day.macros, fn m -> Kati.Screens.TodayFa.macro_segment(m) end)}
           </Row>
@@ -290,7 +291,7 @@ defmodule Kati.Screens.TodayFa do
             text={day.remaining}
             font_family="fa"
             text_size={10}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
         </Row>
@@ -318,7 +319,7 @@ defmodule Kati.Screens.TodayFa do
     <Row align="center">
       <Box width={7} height={7} corner_radius={2} background={macro.color} />
       <Spacer size={5} />
-      <Text text={macro.label} font_family="fa" text_size={10} text_color={0xFFA0998F} max_lines={1} />
+      <Text text={macro.label} font_family="fa" text_size={10} text_color={Palette.eyebrow()} max_lines={1} />
     </Row>
     """
   end
@@ -366,15 +367,15 @@ defmodule Kati.Screens.TodayFa do
   def gutter_weight(_), do: nil
 
   @doc false
-  def gutter_color(:next), do: 0xFF1A1917
-  def gutter_color(_), do: 0xFFA9A29A
+  def gutter_color(:next), do: Palette.ink()
+  def gutter_color(_), do: Palette.muted()
 
   @doc false
   def meal_card(%{state: :next} = meal) do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={18}
       shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
       padding={14}
@@ -385,23 +386,23 @@ defmodule Kati.Screens.TodayFa do
         {Kati.Screens.TodayFa.thumb(meal.seed, 52, 13)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={0xFFA0998F} max_lines={1} />
+          <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={Palette.eyebrow()} max_lines={1} />
           <Spacer size={4} />
           <Text text={meal.title} font_family="fa" text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={meal.sub} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={meal.sub} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.TodayFa.ring(:next)}
       </Row>
       <Spacer size={13} />
       <Row fill_width={true} align="center" padding_left={15}>
-        <Row height={34} corner_radius={17} background={Theme.ink()} padding_left={14} padding_right={14} align="center">
-          <Text text={meal.eat} font_family="fa" text_size={12} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
+        <Row height={34} corner_radius={17} background={Palette.ink_fill()} padding_left={14} padding_right={14} align="center">
+          <Text text={meal.eat} font_family="fa" text_size={12} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
         </Row>
         <Spacer size={8} />
-        <Row height={34} corner_radius={17} background={0xFFEFECE7} padding_left={14} padding_right={14} align="center">
-          <Text text={meal.swap} font_family="fa" text_size={12} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+        <Row height={34} corner_radius={17} background={Palette.paper()} padding_left={14} padding_right={14} align="center">
+          <Text text={meal.swap} font_family="fa" text_size={12} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
         </Row>
       </Row>
     </Column>
@@ -413,7 +414,7 @@ defmodule Kati.Screens.TodayFa do
     <Row
       fill_width={true}
       corner_radius={18}
-      border_color={0x241A1917}
+      border_color={Palette.border_soft()}
       border_width={1.5}
       padding_left={13}
       padding_right={13}
@@ -422,11 +423,11 @@ defmodule Kati.Screens.TodayFa do
       align="center"
     >
       <Column weight={1.0}>
-        <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={0xFFC4BDB3} max_lines={1} />
+        <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={Palette.rail_idle()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.title} font_family="fa" text_size={13} font_weight="semibold" text_color={0xFFB3ACA2} max_lines={1} />
+        <Text text={meal.title} font_family="fa" text_size={13} font_weight="semibold" text_color={Palette.tertiary()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.sub} font_family="fa" text_size={11} text_color={0xFFC4BDB3} max_lines={1} />
+        <Text text={meal.sub} font_family="fa" text_size={11} text_color={Palette.rail_idle()} max_lines={1} />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.TodayFa.ring(:skipped)}
@@ -438,7 +439,7 @@ defmodule Kati.Screens.TodayFa do
     ~MOB"""
     <Row
       fill_width={true}
-      background={0xFFF4F1EC}
+      background={Palette.card_settled()}
       corner_radius={18}
       padding_left={13}
       padding_right={13}
@@ -449,11 +450,11 @@ defmodule Kati.Screens.TodayFa do
       {Kati.Screens.TodayFa.thumb(meal.seed, 40, 11)}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={0xFFA0998F} max_lines={1} />
+        <Text text={meal.label} font_family="fa" text_size={10.5} font_weight="semibold" text_color={Palette.eyebrow()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.title} font_family="fa" text_size={13} font_weight="semibold" text_color={0xFF9C958B} max_lines={1} />
+        <Text text={meal.title} font_family="fa" text_size={13} font_weight="semibold" text_color={Palette.settled_ink()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.sub} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={meal.sub} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
       </Column>
       <Spacer size={12} />
       {Kati.Screens.TodayFa.ring(:eaten)}
@@ -491,26 +492,34 @@ defmodule Kati.Screens.TodayFa do
   """
   def ring(:next) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :subtle, size: 32, radius: 16, border_color: 0x291A1917, border_width: 1.5},
-      [Kati.UI.symbol("check", size: 19, color: 0x381A1917)]
+      %{variant: :subtle, size: 32, radius: 16, border_color: Palette.border(), border_width: 1.5},
+      [Kati.UI.symbol("check", size: 19, color: Palette.track_ink())]
     )
   end
 
   def ring(:skipped) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :subtle, size: 27, radius: 16, border_color: 0x291A1917, border_width: 1.5},
-      [Kati.UI.symbol("close", size: 16, color: 0xFFC4BDB3)]
+      %{variant: :subtle, size: 27, radius: 16, border_color: Palette.border(), border_width: 1.5},
+      [Kati.UI.symbol("close", size: 16, color: Palette.rail_idle())]
     )
   end
 
   def ring(:eaten) do
+    # `0xFFFBFAF8` LEFT AS A LITERAL, the call `Kati.Screens.Habits.today_button/2`
+    # makes and for its reason. `Kati.Theme.Palette` names four meanings for this
+    # value — the card, a label on an ink fill, the FAB's plus and a title over
+    # artwork — and a check on a green disc is none of them: green is `:hue`, so
+    # it does not move with the mode, and a tick that followed the mode would turn
+    # to ink on a disc that never darkened. The two tokens holding this value in
+    # dark are scoped to a photographic ground or to the FAB, so neither is
+    # honestly this one. Left, and reported: there is no "on a hue fill" row.
     MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: Theme.green(),
+        color: Palette.green(),
         size: 27,
         radius: 16,
-        border_color: Theme.green(),
+        border_color: Palette.green(),
         border_width: 1.5
       },
       [Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)]
@@ -532,7 +541,7 @@ defmodule Kati.Screens.TodayFa do
     case Images.poster(seed) do
       nil ->
         ~MOB"""
-        <Box width={size} height={size} corner_radius={radius} background={0xFFE4E0D9} />
+        <Box width={size} height={size} corner_radius={radius} background={Palette.placeholder()} />
         """
 
       src ->
@@ -545,13 +554,13 @@ defmodule Kati.Screens.TodayFa do
   @doc false
   def prep(day) do
     ~MOB"""
-    <Row fill_width={true} background={Theme.cream(:light)} corner_radius={20} padding={16} align="center">
-      {Kati.UI.symbol("schedule", size: 20, color: 0xFFC98A3E)}
+    <Row fill_width={true} background={Palette.cream()} corner_radius={20} padding={16} align="center">
+      {Kati.UI.symbol("schedule", size: 20, color: Palette.gold_icon())}
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text text={day.prep.title} font_family="fa" text_size={13} font_weight="bold" text_color={:on_surface} />
         <Spacer size={4} />
-        <Text text={day.prep.sub} font_family="fa" text_size={11.5} text_color={0xFF8A7B60} max_lines={1} />
+        <Text text={day.prep.sub} font_family="fa" text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
       </Column>
     </Row>
     """

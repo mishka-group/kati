@@ -46,6 +46,7 @@ defmodule Kati.Screens.Nutrition do
   alias Kati.Components.MishkaActionIcon
   alias Kati.Meals.SampleNutrition, as: Sample
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -88,6 +89,24 @@ defmodule Kati.Screens.Nutrition do
   The bar tones are the same three verdicts `bars/0` uses — ink on target,
   `#D8D2C8` under, `#B4553C` over — so a red bar means the same thing in every
   period.
+
+  ## Why the on-target ink is two tokens
+
+  Three lists here write `0xFF1A1917` and they sit on two different grounds, so
+  they resolve through two different `Kati.Theme.Palette` tokens. Both are
+  `#1A1917` in light, so nothing moves; in dark they are ten units of blue
+  apart, which is the palette's whole point.
+
+    * `bars` are drawn inside the **cream** hero, alongside a `cream_meta`
+      label and a `cream_meta` axis, so the on-target bar is `cream_ink` and
+      warms to `#F7EFE4` with everything else on that card.
+    * `counts` and `macros` are drawn on plain **cards**, so their on-target
+      figure and dot are `ink` and go to `#F5F2EE`.
+
+  The two verdicts either side are unambiguous: `#D8D2C8` is `bar_neutral`,
+  which the palette defines as "a bar in a chart that is not the highlighted
+  one" — this chart — and `#B4553C` is `red`. The macro tones are the palette's
+  own chart family too: `bronze`, `bar_gold` and `bar_ink`.
   """
   @spec period_data(String.t()) :: %{
           hero: map(),
@@ -105,21 +124,21 @@ defmodule Kati.Screens.Nutrition do
         target: "2,100"
       },
       bars: [
-        {"W1", 46, 0xFFD8D2C8},
-        {"W2", 52, 0xFF1A1917},
-        {"W3", 61, 0xFFB4553C},
-        {"W4", 50, 0xFF1A1917}
+        {"W1", 46, Palette.bar_neutral()},
+        {"W2", 52, Palette.cream_ink()},
+        {"W3", 61, Palette.red()},
+        {"W4", 50, Palette.cream_ink()}
       ],
       counts: [
-        {"84%", "Adherence", 0xFF1A1917},
-        {"126", "Meals hit", 0xFF1A1917},
-        {"24", "Skipped", 0xFFB4553C}
+        {"84%", "Adherence", Palette.ink()},
+        {"126", "Meals hit", Palette.ink()},
+        {"24", "Skipped", Palette.red()}
       ],
       macros: [
-        %{name: "Protein", value: "149 / 168 g", fill: 0.89, tone: 0xFF1A1917},
-        %{name: "Carbs", value: "205 / 210 g", fill: 0.98, tone: 0xFFB08E55},
-        %{name: "Fat", value: "64 / 70 g", fill: 0.91, tone: 0xFFE4D2B0},
-        %{name: "Fibre", value: "27 / 35 g", fill: 0.77, tone: 0xFF7C766D}
+        %{name: "Protein", value: "149 / 168 g", fill: 0.89, tone: Palette.ink()},
+        %{name: "Carbs", value: "205 / 210 g", fill: 0.98, tone: Palette.bronze()},
+        %{name: "Fat", value: "64 / 70 g", fill: 0.91, tone: Palette.bar_gold()},
+        %{name: "Fibre", value: "27 / 35 g", fill: 0.77, tone: Palette.bar_ink()}
       ]
     }
   end
@@ -134,29 +153,29 @@ defmodule Kati.Screens.Nutrition do
         target: "2,100"
       },
       bars: [
-        {"1", 38, 0xFFD8D2C8},
-        {"2", 44, 0xFFD8D2C8},
-        {"3", 49, 0xFF1A1917},
-        {"4", 52, 0xFF1A1917},
-        {"5", 47, 0xFFD8D2C8},
-        {"6", 51, 0xFF1A1917},
-        {"7", 58, 0xFF1A1917},
-        {"8", 62, 0xFFB4553C},
-        {"9", 55, 0xFF1A1917},
-        {"10", 43, 0xFFD8D2C8},
-        {"11", 50, 0xFF1A1917},
-        {"12", 46, 0xFFD8D2C8}
+        {"1", 38, Palette.bar_neutral()},
+        {"2", 44, Palette.bar_neutral()},
+        {"3", 49, Palette.cream_ink()},
+        {"4", 52, Palette.cream_ink()},
+        {"5", 47, Palette.bar_neutral()},
+        {"6", 51, Palette.cream_ink()},
+        {"7", 58, Palette.cream_ink()},
+        {"8", 62, Palette.red()},
+        {"9", 55, Palette.cream_ink()},
+        {"10", 43, Palette.bar_neutral()},
+        {"11", 50, Palette.cream_ink()},
+        {"12", 46, Palette.bar_neutral()}
       ],
       counts: [
-        {"81%", "Adherence", 0xFF1A1917},
-        {"340", "Meals hit", 0xFF1A1917},
-        {"80", "Skipped", 0xFFB4553C}
+        {"81%", "Adherence", Palette.ink()},
+        {"340", "Meals hit", Palette.ink()},
+        {"80", "Skipped", Palette.red()}
       ],
       macros: [
-        %{name: "Protein", value: "146 / 168 g", fill: 0.87, tone: 0xFF1A1917},
-        %{name: "Carbs", value: "212 / 210 g", fill: 1.0, tone: 0xFFB08E55},
-        %{name: "Fat", value: "66 / 70 g", fill: 0.94, tone: 0xFFE4D2B0},
-        %{name: "Fibre", value: "24 / 35 g", fill: 0.69, tone: 0xFF7C766D}
+        %{name: "Protein", value: "146 / 168 g", fill: 0.87, tone: Palette.ink()},
+        %{name: "Carbs", value: "212 / 210 g", fill: 1.0, tone: Palette.bronze()},
+        %{name: "Fat", value: "66 / 70 g", fill: 0.94, tone: Palette.bar_gold()},
+        %{name: "Fibre", value: "24 / 35 g", fill: 0.69, tone: Palette.bar_ink()}
       ]
     }
   end
@@ -184,7 +203,7 @@ defmodule Kati.Screens.Nutrition do
         <Column weight={1.0}>
           <Text text="Nutrition" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={Kati.Meals.SampleNutrition.plan_line()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={Kati.Meals.SampleNutrition.plan_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={9} />
         {Kati.Screens.Nutrition.share_button()}
@@ -212,7 +231,7 @@ defmodule Kati.Screens.Nutrition do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        background: Palette.card(),
         shadow: Theme.shadow_button(),
         on_tap: :share
       ],
@@ -253,7 +272,7 @@ defmodule Kati.Screens.Nutrition do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4} align="center">
+      <Row fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4} align="center">
         {tabs}
       </Row>
       <Spacer size={18} />
@@ -271,8 +290,8 @@ defmodule Kati.Screens.Nutrition do
     # The tag carries the period, so one handler serves all three and a fourth
     # segment would be a change to `SampleNutrition.segments/0` alone.
     tap = {self(), String.to_atom("period_" <> label)}
-    background = if on?, do: Theme.card(:light), else: 0x00FFFFFF
-    color = if on?, do: Theme.ink(), else: 0xFFAFA89E
+    background = if on?, do: Palette.card(), else: Palette.transparent()
+    color = if on?, do: Palette.ink(), else: Palette.segment_idle()
     weight = if on?, do: "bold", else: "semibold"
     shadow = if on?, do: "0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917", else: nil
 
@@ -306,14 +325,14 @@ defmodule Kati.Screens.Nutrition do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.cream(:light)}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={19}
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase(hero.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
+            <Text text={String.upcase(hero.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
             <Spacer size={7} />
             {Kati.Screens.Nutrition.average_figure(hero)}
           </Column>
@@ -324,7 +343,7 @@ defmodule Kati.Screens.Nutrition do
               font_family="mono"
               text_size={10}
               letter_spacing={0.1}
-              text_color={0xFFB09A72}
+              text_color={Palette.cream_meta()}
               text_align="right"
               max_lines={1}
             />
@@ -354,7 +373,7 @@ defmodule Kati.Screens.Nutrition do
     """
 
     unit = ~MOB"""
-    <Text text={hero.unit} text_size={15} font_weight="semibold" text_color={0xFFB09A72} max_lines={1} />
+    <Text text={hero.unit} text_size={15} font_weight="semibold" text_color={Palette.cream_meta()} max_lines={1} />
     """
 
     UI.number_with_unit(number, unit, 3.8)
@@ -402,7 +421,7 @@ defmodule Kati.Screens.Nutrition do
     ~MOB"""
     <Row weight={1.0} align="center">
       <Spacer weight={1.0} />
-      <Text text={letter} font_family="mono" text_size={9.5} text_color={0xFFB09A72} max_lines={1} />
+      <Text text={letter} font_family="mono" text_size={9.5} text_color={Palette.cream_meta()} max_lines={1} />
       <Spacer weight={1.0} />
     </Row>
     """
@@ -434,7 +453,7 @@ defmodule Kati.Screens.Nutrition do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
@@ -446,7 +465,7 @@ defmodule Kati.Screens.Nutrition do
           font_family="mono"
           text_size={10}
           letter_spacing={0.1}
-          text_color={0xFFA9A29A}
+          text_color={Palette.muted()}
           max_lines={1}
         />
       </Column>
@@ -463,7 +482,7 @@ defmodule Kati.Screens.Nutrition do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={17}
@@ -484,7 +503,7 @@ defmodule Kati.Screens.Nutrition do
         <Spacer size={6} />
         <Text text={row.name} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
         <Spacer weight={1.0} />
-        <Text text={row.value} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={row.value} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       </Row>
       <Spacer size={7} />
       {Kati.Screens.Nutrition.track(row)}
@@ -507,7 +526,7 @@ defmodule Kati.Screens.Nutrition do
   def track(row) do
     ~MOB"""
     <Box fill_width={true} height={14} align="center">
-      <Box fill_width={true} height={8} corner_radius={4} background={0xFFEFECE7}>
+      <Box fill_width={true} height={8} corner_radius={4} background={Palette.paper()}>
         {Kati.Screens.Nutrition.fill(row.fill, row.tone)}
       </Box>
       {Kati.Screens.Nutrition.tick()}
@@ -535,6 +554,13 @@ defmodule Kati.Screens.Nutrition do
     """
   end
 
+  # The tick is `0x591A1917`, and `divider_heavy` is the only token whose light
+  # value is that — the palette named it for the 35% vertical rule it draws
+  # between two numbers, which is the same ink tint at the same alpha and the
+  # same 1.5pt width, put to a different use. Taking it keeps the tick on the
+  # ink-tint ladder, so in dark it becomes 35% of `#F5F2EE` and stays a mark ON
+  # the bar; left as `0x591A1917` it would be 35% black over a `#1E1D1B` card
+  # and the target would silently stop being drawn.
   @doc false
   def tick do
     mark = Sample.target_mark()
@@ -543,7 +569,7 @@ defmodule Kati.Screens.Nutrition do
     ~MOB"""
     <Row fill_width={true}>
       <Spacer weight={mark} />
-      <Box width={1.5} height={14} background={0x591A1917} />
+      <Box width={1.5} height={14} background={Palette.divider_heavy()} />
       <Spacer weight={rest} />
     </Row>
     """
@@ -558,7 +584,7 @@ defmodule Kati.Screens.Nutrition do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={17}
@@ -566,9 +592,9 @@ defmodule Kati.Screens.Nutrition do
         {Enum.map(rows, fn row -> Kati.Screens.Nutrition.field_row(row) end)}
         <Spacer size={8} />
         <Row fill_width={true} align="center">
-          <Text text={left} font_family="mono" text_size={10} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={left} font_family="mono" text_size={10} text_color={Palette.tertiary()} max_lines={1} />
           <Spacer weight={1.0} />
-          <Text text={right} font_family="mono" text_size={10} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={right} font_family="mono" text_size={10} text_color={Palette.tertiary()} max_lines={1} />
         </Row>
       </Column>
       <Spacer size={22} />
@@ -607,14 +633,14 @@ defmodule Kati.Screens.Nutrition do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -622,24 +648,31 @@ defmodule Kati.Screens.Nutrition do
     """
   end
 
+  # `cream_body` on a card, which reads as a contradiction and is not one:
+  # `0xFF4A4238` appears exactly once in the palette's light column and that is
+  # the token. The design uses its warmest body ink for the one paragraph on
+  # this screen meant to be READ rather than counted, and puts it on a white
+  # card rather than on cream. In dark it becomes `#E4DBCE` — warm off-white on
+  # `#1E1D1B`, which keeps the sentence reading warmer than the figures around
+  # it, which is what the light drawing does too.
   @doc false
   def insight do
     ~MOB"""
     <Row
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={17}
       align="top"
     >
-      {Kati.UI.symbol("lightbulb", size: 19, color: Kati.Theme.accent())}
+      {Kati.UI.symbol("lightbulb", size: 19, color: Palette.accent())}
       <Spacer size={11} />
       <Text
         text={Kati.Meals.SampleNutrition.insight()}
         text_size={13}
         line_height={1.55}
-        text_color={0xFF4A4238}
+        text_color={Palette.cream_body()}
         weight={1.0}
       />
     </Row>

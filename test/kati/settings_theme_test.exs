@@ -29,6 +29,24 @@ defmodule Kati.SettingsThemeTest do
   alias Kati.Screens.Settings
   alias Kati.Screens.SettingsFa
   alias Kati.Theme
+  alias Kati.Theme.Palette
+
+  # `put_choice/1` stores the preference AND installs the palette, and the two
+  # outlive the test differently. The preference is safe: `Mob.ScreenCase` starts
+  # `Mob.State` per test against a throwaway dir, so it dies with the test. The
+  # palette is not — `Mob.Theme.set/1` is `Application.put_env/3`, which is one
+  # global for the whole run. That was invisible while every screen forced light
+  # at mount; now that screens read the setting, a dark palette left behind here
+  # renders another file's screens dark, and those files assert the drawing's
+  # light numbers. So put back the palette that was installed on the way in.
+  #
+  # Not `Kati.Theme.activate/0`: `on_exit` runs after the test process is gone,
+  # which takes `Mob.State` with it, and resolving a choice would call a dead
+  # GenServer. The snapshot needs nothing but application environment.
+  setup do
+    installed = Mob.Theme.current()
+    on_exit(fn -> Mob.Theme.set(installed) end)
+  end
 
   # The tiles both drawings put in the trough, in the order they put them.
   # Written out rather than read from the samples: a test that asks the code
@@ -268,15 +286,23 @@ defmodule Kati.SettingsThemeTest do
     :ok = Settings.put_choice(other)
   end
 
-  # The trough is the only `Row` on either screen painted the design's #EFECE7 —
-  # the icon tiles that share the colour are `Box`es. Asserted rather than
+  # The trough is the only `Row` on either screen painted the design's page
+  # colour — the icon tiles that share it are `Box`es. Asserted rather than
   # assumed: if a second one ever appears, every helper below silently reads the
   # wrong control.
+  #
+  # Matched as `paper` in EITHER mode rather than as `0xFFEFECE7`. Screen 62 now
+  # names its colours through `Kati.Theme.Palette` and mounts with
+  # `Kati.Theme.activate/0`, so a test that stores :dark and then mounts it gets a
+  # dark trough — which is the point of storing :dark. Screen 24 still writes the
+  # light literal. Both are the same token; which side of it resolves is not what
+  # these tests are about, and the resting-frame tests below still pin the exact
+  # light number.
   defp trough(view) do
     troughs =
       view
       |> flatten()
-      |> Enum.filter(&(&1.type == :row and &1.props[:background] == 0xFFEFECE7))
+      |> Enum.filter(&(&1.type == :row and &1.props[:background] in paper()))
 
     assert length(troughs) == 1, "expected one theme trough, found #{length(troughs)}"
     hd(troughs)
@@ -295,10 +321,16 @@ defmodule Kati.SettingsThemeTest do
   defp labels(view), do: Enum.map(tiles(view), &label/1)
 
   # A tile is raised when it is painted the card colour; both screens paint the
-  # raised one #FBFAF8 and neither paints the idle ones anything close.
+  # raised one #FBFAF8 and neither paints the idle ones anything close. Read in
+  # either mode, for the reason `trough/1` gives — 62's idle tiles are
+  # `Palette.transparent/0` and 24's carry no fill at all, so neither collides
+  # with `card` on either side.
   defp raised(view) do
-    for tile <- tiles(view), tile.props[:background] == Theme.card(:light), do: label(tile)
+    for tile <- tiles(view), tile.props[:background] in card(), do: label(tile)
   end
+
+  defp paper, do: [Palette.paper(:light), Palette.paper(:dark)]
+  defp card, do: [Palette.card(:light), Palette.card(:dark)]
 
   defp label(tile), do: label_props(tile)[:text]
 

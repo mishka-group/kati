@@ -54,6 +54,7 @@ defmodule Kati.Screens.Habits do
   use Kati.Screens.Pushed, back: "Stats"
 
   alias Kati.Habits.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -91,7 +92,7 @@ defmodule Kati.Screens.Habits do
         <Column weight={1.0}>
           <Text text="Habits" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         {Kati.Screens.Habits.disc("add", :new_habit)}
       </Row>
@@ -132,7 +133,7 @@ defmodule Kati.Screens.Habits do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button(),
         on_tap: {self(), tag}
       ],
@@ -169,7 +170,7 @@ defmodule Kati.Screens.Habits do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={15}
@@ -178,7 +179,7 @@ defmodule Kati.Screens.Habits do
         <Column weight={1.0}>
           <Text text={habit.name} text_size={14} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={streak} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={streak} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.Habits.today_button(habit.today, index)}
@@ -192,7 +193,7 @@ defmodule Kati.Screens.Habits do
           font_family="mono"
           text_size={9.5}
           letter_spacing={0.08}
-          text_color={0xFFC4BDB3}
+          text_color={Palette.rail_idle()}
           max_lines={1}
         />
       </Row>
@@ -226,8 +227,17 @@ defmodule Kati.Screens.Habits do
   now takes the same route, because the port has one.
   """
   def today_button(ticked?, index) do
-    background = if ticked?, do: 0xFF4E9A73, else: 0xFFEFECE7
-    ink = if ticked?, do: 0xFFFBFAF8, else: 0xFFC4BDB3
+    background = if ticked?, do: Palette.green(), else: Palette.paper()
+
+    # `0xFFFBFAF8` LEFT AS A LITERAL. `Kati.Theme.Palette` names four meanings
+    # for this value — the card, a label on an ink fill, the FAB's plus, and a
+    # title over artwork — and this is none of them: it is a glyph on a HUE.
+    # Green is `:hue`, so it does not move with the mode; a check that followed
+    # the mode would turn to ink on a green disc that never darkened. The two
+    # tokens that keep this value in dark are scoped to a photographic ground
+    # (`on_media`) or to the FAB, so neither is honestly this. Left, and
+    # reported: the table has no "on a hue fill" row.
+    ink = if ticked?, do: 0xFFFBFAF8, else: Palette.rail_idle()
 
     Kati.Components.MishkaActionIcon.action_icon(
       [
@@ -260,6 +270,10 @@ defmodule Kati.Screens.Habits do
   @doc false
   def day_gap, do: ~MOB"<Spacer size={5} />"
 
+  # `0xFFFBFAF8` LEFT AS A LITERAL, for the reason `today_button/2` records: the
+  # ground under this tick is `Kati.Habits.Sample.day_tone/1` — green, bronze or
+  # the lapsed grey — and none of the three follows the mode, so the tick must
+  # not either.
   @doc false
   def day_square(state) do
     tone = Sample.day_tone(state)
@@ -285,7 +299,7 @@ defmodule Kati.Screens.Habits do
     ~MOB"""
     <Column
       fill_width={true}
-      background={0xFFFBF1DE}
+      background={Palette.cream()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={18}
@@ -293,9 +307,9 @@ defmodule Kati.Screens.Habits do
       {Enum.map(rows, fn row -> Kati.Screens.Habits.cell_row(row) end)}
       <Spacer size={8} />
       <Row fill_width={true} align="center">
-        <Text text={month} font_family="mono" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+        <Text text={month} font_family="mono" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
         <Spacer weight={1.0} />
-        <Text text={hit} font_family="mono" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+        <Text text={hit} font_family="mono" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
       </Row>
     </Column>
     """

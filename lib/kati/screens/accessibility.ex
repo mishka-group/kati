@@ -43,6 +43,7 @@ defmodule Kati.Screens.Accessibility do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaSwitch
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -137,11 +138,12 @@ defmodule Kati.Screens.Accessibility do
 
       %{type: :box,
         props: %{width: 44, height: 44, align: :center, corner_radius: 22,
-                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button()},
+                 background: Palette.card(), shadow: Kati.Theme.shadow_button()},
         children: [glyph]}
 
-  — key for key what the `<Box>` above it carried, minus the `shadow` key in the
-  contrast-on case as described. `align: :center` and `align="center"` reach the
+  — key for key what the `<Box>` above it carried (`Palette.card/0` is
+  `0xFFFBFAF8` in light, which is what that `<Box>` wrote), minus the `shadow`
+  key in the contrast-on case as described. `align: :center` and `align="center"` reach the
   bridge as the same string: `align` is in none of the renderer's token
   whitelists, and `:json.encode/1` writes an atom as its own name.
 
@@ -155,7 +157,10 @@ defmodule Kati.Screens.Accessibility do
     MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: Kati.Theme.card(:light),
+        # `card`, not `on_ink` / `fab_glyph` / `on_media` — the other three
+        # meanings `Kati.Theme.Palette` gives `0xFFFBFAF8`. A disc is a surface
+        # floating above the page, so it follows the ground into `#1E1D1B`.
+        color: Palette.card(),
         size: 44,
         radius: 22,
         shadow: Kati.Screens.Accessibility.lift(Kati.Theme.shadow_button(), contrast?)
@@ -170,7 +175,7 @@ defmodule Kati.Screens.Accessibility do
     <Column fill_width={true}>
       <Text text="Accessibility" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text={spec.subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={spec.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -181,14 +186,14 @@ defmodule Kati.Screens.Accessibility do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
           max_lines={1}
         />
       </Row>
@@ -208,7 +213,7 @@ defmodule Kati.Screens.Accessibility do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={shadow}
         padding={18}
@@ -218,7 +223,7 @@ defmodule Kati.Screens.Accessibility do
           font_family="mono"
           text_size={12}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
         <Spacer size={12} />
         <Text
@@ -230,17 +235,17 @@ defmodule Kati.Screens.Accessibility do
           text_color={:on_surface}
         />
         <Spacer size={10} />
-        <Text text={u.lines} text_size={22} line_height={1.35} text_color={0xFF5C574F} />
+        <Text text={u.lines} text_size={22} line_height={1.35} text_color={Palette.ink_soft()} />
         <Spacer size={18} />
-        <Box fill_width={true} height={60} corner_radius={30} background={Kati.Theme.ink()} align="center">
+        <Box fill_width={true} height={60} corner_radius={30} background={Palette.ink_fill()} align="center">
           <Row align="center">
-            {Kati.UI.symbol("play_arrow", size: 26, color: 0xFFFBFAF8, fill: true)}
+            {Kati.UI.symbol("play_arrow", size: 26, color: Palette.on_ink(), fill: true)}
             <Spacer size={10} />
-            <Text text={u.resume} text_size={19} font_weight="bold" text_color={0xFFFBFAF8} />
+            <Text text={u.resume} text_size={19} font_weight="bold" text_color={Palette.on_ink()} />
           </Row>
         </Box>
         <Spacer size={10} />
-        <Box fill_width={true} height={60} corner_radius={30} background={0xFFEFECE7} align="center">
+        <Box fill_width={true} height={60} corner_radius={30} background={Palette.paper()} align="center">
           <Row align="center">
             {Kati.UI.symbol("check", size: 24)}
             <Spacer size={10} />
@@ -257,14 +262,14 @@ defmodule Kati.Screens.Accessibility do
   def note(spec) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFFBF1DE} corner_radius={18} padding={15} align="top">
-        {Kati.UI.symbol("info", size: 18, color: 0xFFC98A3E)}
+      <Row fill_width={true} background={Palette.cream()} corner_radius={18} padding={15} align="top">
+        {Kati.UI.symbol("info", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
         <Text
           text={spec.note}
           text_size={12.5}
           line_height={1.55}
-          text_color={0xFF4A4238}
+          text_color={Palette.cream_body()}
           weight={1.0}
         />
       </Row>
@@ -283,7 +288,7 @@ defmodule Kati.Screens.Accessibility do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={shadow}
         padding_left={15}
@@ -320,7 +325,7 @@ defmodule Kati.Screens.Accessibility do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Accessibility.toggle(row.toggle)}
@@ -347,14 +352,14 @@ defmodule Kati.Screens.Accessibility do
 
   With children and no `id`, `theme_icon/2` returns
   `%{type: :box, props: %{width: 30, height: 30, align: :center,
-  corner_radius: 9, background: 0xFFEFECE7}, children: [glyph]}` — node for
+  corner_radius: 9, background: Palette.paper()}, children: [glyph]}` — node for
   node what this row wrote by hand, so nothing moves. `align: :center` and
   `align="center"` reach the bridge as the same string.
   """
   def icon_tile(name) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+      %{variant: :filled, color: Palette.paper(), size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -404,30 +409,55 @@ defmodule Kati.Screens.Accessibility do
       thumb_size: 22,
       thumb_radius: 11,
       thumb_inset: 3,
-      track_on_color: Kati.Theme.ink(),
-      track_off_color: 0xFFDCD7CF,
-      thumb_on_color: 0xFFFBFAF8,
-      thumb_off_color: 0xFFFBFAF8,
+      # The whole control inverts rather than following the ground — `ink_fill`
+      # under `on_ink`, the pair screen 28 draws for the hero's CTA pill. Both
+      # thumb colours stay ONE token, because the drawing's thumb does not
+      # change colour, only the track does, and that stays true in dark.
+      track_on_color: Palette.ink_fill(),
+      track_off_color: Palette.track_off(),
+      thumb_on_color: Palette.on_ink(),
+      thumb_off_color: Palette.on_ink(),
       thumb_shadow: "0 1 3 0 #4D1A1917"
     )
   end
 
-  @doc false
+  @doc """
+  The sentence VoiceOver speaks, printed on ink.
+
+  This card is the screen's one inverted surface, and in dark it inverts back:
+  `ink_fill` is `#F7EFE4` there and `on_ink_glyph` — the palette's own name for
+  a mark on an ink card "where the ground is already inverted" — is `#1A1917`.
+  So a dark quotation on a light card becomes a light quotation on a dark one,
+  which is what screen 28 does with the hero's CTA pill.
+
+  `0xFF6A6560` is **left as a literal**; see the comment on it below.
+  """
   def voiceover(spec) do
     v = spec.voiceover
 
+    # `0xFF6A6560` LEFT AS A LITERAL. It is in `Kati.Theme.Palette` three times
+    # and every one of them is a DARK value — `muted`, `segment_idle` and
+    # `tertiary` all land on it — so no token resolves to it in light, and any
+    # token that names this meaning (`on_ink_meta` is the closest, "the mono
+    # meta step on an ink fill") carries a different light value and would move
+    # the baseline. This screen draws a dark card inside a light drawing and
+    # reaches for a dark-mode neutral to label it; the table has no light row to
+    # answer with. Left as it is, and reported. On the inverted `#F7EFE4` card
+    # this still reads at about 4.8:1, so the unchanged value is not a hole.
+    meta = 0xFF6A6560
+
     ~MOB"""
-    <Column fill_width={true} background={Kati.Theme.ink()} corner_radius={20} padding={17}>
+    <Column fill_width={true} background={Palette.ink_fill()} corner_radius={20} padding={17}>
       <Text
         text={v.label}
         font_family="mono"
         text_size={10}
         letter_spacing={0.14}
-        text_color={0xFF6A6560}
+        text_color={meta}
         max_lines={1}
       />
       <Spacer size={10} />
-      <Text text={v.reads} text_size={13.5} line_height={1.6} text_color={0xFFF5F2EE} />
+      <Text text={v.reads} text_size={13.5} line_height={1.6} text_color={Palette.on_ink_glyph()} />
     </Column>
     """
   end
@@ -472,7 +502,14 @@ defmodule Kati.Screens.Accessibility do
   def hairline(false, _contrast?), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true, contrast?) do
-    color = if contrast?, do: 0x381A1917, else: 0x121A1917
+    # `track_ink` is the 22% step of the ink-tint ladder — right by value, and
+    # the name is the one part of it that is wrong: the palette calls `0x38`
+    # a track because that is where the design's other 22% ink appears. What
+    # matters here is that it is the same ladder `hairline` sits on, so it takes
+    # the same alpha-swap in dark (`0x38F5F2EE`) and the darkened rule stays a
+    # rule. Left as `0x381A1917` it would be 22% BLACK on a `#1E1D1B` card in
+    # dark — the row that promises darker hairlines drawing none at all.
+    color = if contrast?, do: Palette.track_ink(), else: Palette.hairline()
 
     MishkaSeparator.separator(color: color, thickness: 1, render: :box)
   end

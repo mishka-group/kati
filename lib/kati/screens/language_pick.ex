@@ -29,9 +29,10 @@ defmodule Kati.Screens.LanguagePick do
   import Mob.Sigil
 
   alias Kati.Onboarding.LanguageSample
+  alias Kati.Theme.Palette
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :pick, LanguageSample.pick())}
   end
 
@@ -77,7 +78,7 @@ defmodule Kati.Screens.LanguagePick do
 
   @doc false
   def step_bar(done?) do
-    color = if done?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
+    color = if done?, do: Palette.ink(), else: Palette.track_off()
 
     ~MOB"<Box weight={1.0} height={4} corner_radius={2} background={color} />"
   end
@@ -91,7 +92,7 @@ defmodule Kati.Screens.LanguagePick do
   Given children, an explicit numeric `color`, no `id` and no `on_tap`,
   `theme_icon/2` returns
   `%{type: :box, props: %{width: 56, height: 56, align: :center,
-  corner_radius: 18, background: 0xFF1A1917}, children: [glyph]}` — node for
+  corner_radius: 18, background: Palette.ink()}, children: [glyph]}` — node for
   node what this wrote by hand. `align: :center` and `align="center"` reach
   the bridge as the same string; the `icon` shorthand, the `:filled` gradient
   layer and the id markers are all skipped.
@@ -109,11 +110,14 @@ defmodule Kati.Screens.LanguagePick do
     """
   end
 
+  # `ink`, not `ink_fill`: this is a brand mark drawn on the page, not a control
+  # filled with ink — the same 56pt tile `Kati.Screens.Onboarding.welcome/1`
+  # leads with, and it takes the same token.
   @doc false
   def mark_tile do
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Kati.Theme.ink(), size: 56, radius: 18},
-      [Kati.UI.symbol("translate", size: 26, color: 0xFFFBFAF8)]
+      %{variant: :filled, color: Palette.ink(), size: 56, radius: 18},
+      [Kati.UI.symbol("translate", size: 26, color: Palette.on_ink())]
     )
   end
 
@@ -136,10 +140,10 @@ defmodule Kati.Screens.LanguagePick do
         text_size={26}
         font_weight="bold"
         line_height={1.4}
-        text_color={0xFF8A8479}
+        text_color={Palette.sub()}
       />
       <Spacer size={14} />
-      <Text text={pick.body} text_size={14.5} line_height={1.6} text_color={0xFF5C574F} />
+      <Text text={pick.body} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
       <Spacer size={24} />
     </Column>
     """
@@ -161,25 +165,30 @@ defmodule Kati.Screens.LanguagePick do
 
   # The chosen row is drawn on ink, the same inversion screen 49 gives the
   # active plan: the choice you are living with is the dark one.
+  #
+  # `ink_fill` and the `on_ink` family, not `ink`: this is a control filled with
+  # ink and carrying its own text, so screen 28's inversion applies — paper fill
+  # with ink content in dark — and everything sitting on it swaps sides of the
+  # ramp with it.
   @doc false
   def option(%{chosen: true} = option) do
     ~MOB"""
     <Row
       fill_width={true}
       height={76}
-      background={Kati.Theme.ink()}
+      background={Palette.ink_fill()}
       corner_radius={22}
       shadow="0 14 28 -14 #E61A1917"
       padding_left={17}
       padding_right={17}
       align="center"
     >
-      {Kati.Screens.LanguagePick.badge_tile(option, 0x1FF5F2EE, 0xFFF5F2EE)}
+      {Kati.Screens.LanguagePick.badge_tile(option, Palette.on_ink_veil(), Palette.on_ink_glyph())}
       <Spacer size={14} />
       <Column weight={1.0}>
-        {Kati.Screens.LanguagePick.name(option, 0xFFFBFAF8)}
+        {Kati.Screens.LanguagePick.name(option, Palette.on_ink())}
         <Spacer size={4} />
-        <Text text={option.meta} font_family="mono" text_size={10.5} text_color={0xFF8A837B} max_lines={1} />
+        <Text text={option.meta} font_family="mono" text_size={10.5} text_color={Palette.on_ink_meta()} max_lines={1} />
       </Column>
       <Spacer size={14} />
       {Kati.Screens.LanguagePick.chosen_mark()}
@@ -192,19 +201,19 @@ defmodule Kati.Screens.LanguagePick do
     <Row
       fill_width={true}
       height={76}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={22}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={17}
       padding_right={17}
       align="center"
     >
-      {Kati.Screens.LanguagePick.badge_tile(option, 0xFFEFECE7, Kati.Theme.ink())}
+      {Kati.Screens.LanguagePick.badge_tile(option, Palette.paper(), Palette.ink())}
       <Spacer size={14} />
       <Column weight={1.0}>
-        {Kati.Screens.LanguagePick.name(option, Kati.Theme.ink())}
+        {Kati.Screens.LanguagePick.name(option, Palette.ink())}
         <Spacer size={4} />
-        <Text text={option.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={option.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
       </Column>
       <Spacer size={14} />
       {Kati.Screens.LanguagePick.unchosen_mark()}
@@ -233,8 +242,16 @@ defmodule Kati.Screens.LanguagePick do
 
   @doc false
   def chosen_mark do
+    # `0xFFFBFAF8` LEFT AS A LITERAL. `Kati.Theme.Palette` names four meanings
+    # for this value — the card, a label on an ink fill, the FAB's plus, and a
+    # title over artwork — and this is none of them: it is a glyph on a HUE.
+    # Orange is `:hue`, unchanged in dark, so a tick that followed the mode
+    # would turn to ink on a disc that never darkened. The two tokens that keep
+    # this value in dark are scoped to a photographic ground (`on_media`) or to
+    # the FAB, so neither is honestly this. Left, and reported: the table has no
+    # "on a hue fill" row.
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Kati.Theme.accent(), size: 24, radius: 12},
+      %{variant: :filled, color: Palette.accent(), size: 24, radius: 12},
       [Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)]
     )
   end
@@ -259,7 +276,7 @@ defmodule Kati.Screens.LanguagePick do
   `icon` and no `on_tap` the id markers, the glyph shorthand and the handler
   are all skipped, and `:subtle` contributes an empty gradient layer, so the
   node is `%{type: :box, props: %{width: 24, height: 24, align: :center,
-  corner_radius: 12, border_color: 0x291A1917, border_width: 1.5},
+  corner_radius: 12, border_color: Palette.border(), border_width: 1.5},
   children: []}`.
 
   That is the `Box` this wrote by hand plus `align: :center`, which cannot
@@ -272,7 +289,7 @@ defmodule Kati.Screens.LanguagePick do
       variant: :subtle,
       size: 24,
       radius: 12,
-      border_color: 0x291A1917,
+      border_color: Palette.border(),
       border_width: 1.5
     })
   end
@@ -320,10 +337,10 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={18} />
-      <Row fill_width={true} background={0xFFFBF1DE} corner_radius={18} padding={15} align="top">
-        {Kati.UI.symbol("info", size: 17, color: 0xFFC98A3E)}
+      <Row fill_width={true} background={Palette.cream()} corner_radius={18} padding={15} align="top">
+        {Kati.UI.symbol("info", size: 17, color: Palette.gold_icon())}
         <Spacer size={11} />
-        <Text text={pick.note} text_size={12.5} line_height={1.55} text_color={0xFF4A4238} weight={1.0} />
+        <Text text={pick.note} text_size={12.5} line_height={1.55} text_color={Palette.cream_body()} weight={1.0} />
       </Row>
     </Column>
     """
@@ -334,11 +351,11 @@ defmodule Kati.Screens.LanguagePick do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={20} />
-      <Box fill_width={true} height={54} corner_radius={27} background={Kati.Theme.ink()} align="center">
+      <Box fill_width={true} height={54} corner_radius={27} background={Palette.ink_fill()} align="center">
         <Row align="center">
-          <Text text={pick.cta} text_size={14.5} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+          <Text text={pick.cta} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
           <Spacer size={9} />
-          {Kati.UI.symbol("arrow_forward", size: 19, color: 0xFFFBFAF8)}
+          {Kati.UI.symbol("arrow_forward", size: 19, color: Palette.on_ink())}
         </Row>
       </Box>
     </Column>

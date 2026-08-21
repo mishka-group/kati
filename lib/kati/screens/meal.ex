@@ -32,10 +32,11 @@ defmodule Kati.Screens.Meal do
   alias Kati.Components.MishkaNumberField
   alias Kati.Components.MishkaSeparator
   alias Kati.Meals.SampleRecipe, as: Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :meal, Sample.meal())}
   end
 
@@ -64,10 +65,22 @@ defmodule Kati.Screens.Meal do
     """
   end
 
+  # The 250pt ground behind the photograph is `#DCD7CF`, and the only token in
+  # `Kati.Theme.Palette` whose LIGHT value is `#DCD7CF` is `track_off` — whose
+  # name means a switch's off track. The name is wrong here and the ladder is
+  # right: `track_off` is placed on the drawing's INERT-FILL ladder rather than
+  # its text one, which is exactly what an image ground is, and it lands on
+  # `#3A3732` — a dark that still reads as a held slot behind a picture that
+  # has not loaded. `placeholder` (`#E4E0D9`) names this meaning and is eight
+  # units lighter, so taking it would move the frame.
+  #
+  # The slot eyebrow and the title below are NOT over media: `Kati.UI.paper_fade/1`
+  # has already laid the page back over the bottom 130pt, which is why the title
+  # is `:on_surface` and the eyebrow is `sub` rather than the `on_media` family.
   @doc false
   def artwork(meal) do
     ~MOB"""
-    <Box fill_width={true} height={250} background={0xFFDCD7CF}>
+    <Box fill_width={true} height={250} background={Palette.track_off()}>
       {Kati.Screens.Meal.hero_art(meal)}
       <Box fill_width={true} fill_height={true} align="bottom">
         {Kati.UI.paper_fade(130)}
@@ -79,7 +92,7 @@ defmodule Kati.Screens.Meal do
             font_family="mono"
             text_size={10.5}
             letter_spacing={0.14}
-            text_color={0xFF8A8479}
+            text_color={Palette.sub()}
             max_lines={1}
           />
           <Spacer size={7} />
@@ -115,7 +128,7 @@ defmodule Kati.Screens.Meal do
   @doc false
   def chrome do
     back = {self(), :back}
-    fill = Kati.Theme.card(:light)
+    fill = Palette.card()
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
@@ -150,7 +163,7 @@ defmodule Kati.Screens.Meal do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button(),
         on_tap: :more
       ],
@@ -164,14 +177,14 @@ defmodule Kati.Screens.Meal do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase("Per portion")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFA0998F} />
+            <Text text={String.upcase("Per portion")} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.eyebrow()} />
             <Spacer size={6} />
             {Kati.Screens.Meal.portion_figure(meal)}
           </Column>
@@ -204,7 +217,7 @@ defmodule Kati.Screens.Meal do
     """
 
     unit = ~MOB"""
-    <Text text={meal.unit} text_size={15} font_weight="semibold" text_color={0xFFA9A29A} max_lines={1} />
+    <Text text={meal.unit} text_size={15} font_weight="semibold" text_color={Palette.muted()} max_lines={1} />
     """
 
     UI.number_with_unit(number, unit, 3.4)
@@ -225,9 +238,9 @@ defmodule Kati.Screens.Meal do
     up = {self(), :portion_up}
 
     ~MOB"""
-    <Row height={32} corner_radius={16} background={0xFFEFECE7} padding_left={12} padding_right={12} align="center">
+    <Row height={32} corner_radius={16} background={Palette.paper()} padding_left={12} padding_right={12} align="center">
       <Box on_tap={down} width={16} height={16} align="center">
-        {Kati.UI.symbol("remove", size: 16, color: 0xFF8A8479)}
+        {Kati.UI.symbol("remove", size: 16, color: Palette.sub())}
       </Box>
       <Spacer size={7} />
       <Text text={meal.portion} font_family="mono" text_size={13} font_weight="medium" text_color={:on_surface} max_lines={1} />
@@ -239,10 +252,16 @@ defmodule Kati.Screens.Meal do
     """
   end
 
+  # `paper`, not `track`. This screen draws every well on its cards — this bar's
+  # unfilled part, the stepper pill, the macro tiles, the history icon discs —
+  # at `#EFECE7`, the page colour, rather than at the `#E7E3DC` the palette
+  # calls "the unfilled part of a progress bar". So they all take `paper` and
+  # sink to `#121110` in dark: a hole punched through the card down to the page,
+  # which is the same reading they have in light.
   @doc false
   def macro_bar do
     ~MOB"""
-    <Box fill_width={true} height={10} corner_radius={5} background={0xFFEFECE7}>
+    <Box fill_width={true} height={10} corner_radius={5} background={Palette.paper()}>
       <Row fill_width={true}>
         {Enum.map(Kati.Meals.SampleRecipe.split(), fn {share, tone} -> Kati.Screens.Meal.segment(share, tone) end)}
       </Row>
@@ -278,7 +297,7 @@ defmodule Kati.Screens.Meal do
   def macro_tile(name, value, tone) do
     ~MOB"""
     <Box weight={1.0}>
-      <Column fill_width={true} background={0xFFEFECE7} corner_radius={14} padding={11}>
+      <Column fill_width={true} background={Palette.paper()} corner_radius={14} padding={11}>
         <Row fill_width={true} align="center">
           <Box width={6} height={6} corner_radius={2} background={tone} />
           <Spacer size={5} />
@@ -287,7 +306,7 @@ defmodule Kati.Screens.Meal do
             font_family="mono"
             text_size={9}
             letter_spacing={0.1}
-            text_color={0xFFA0998F}
+            text_color={Palette.eyebrow()}
             max_lines={1}
           />
         </Row>
@@ -324,15 +343,25 @@ defmodule Kati.Screens.Meal do
         font_family="mono"
         text_size={9}
         letter_spacing={0.1}
-        text_color={0xFFA0998F}
+        text_color={Palette.eyebrow()}
         max_lines={1}
       />
       <Spacer size={4} />
-      <Text text={value} text_size={13} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+      <Text text={value} text_size={13} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
     </Column>
     """
   end
 
+  # `Mark eaten` is this screen's call-to-action, so it takes `ink_fill` — the
+  # palette's name for the hero CTA pill's fill, the one `0xFF1A1917` meaning
+  # that inverts to a WARM `#F7EFE4` in dark rather than to `ink`'s `#F5F2EE`.
+  # Screen 28 draws that inversion: the pill goes paper-filled and its label
+  # goes ink, which is `on_ink` — the other half of the pair, and the reason
+  # the glyph and the label here are `on_ink` rather than `card`. The two discs
+  # beside it are surfaces, not fills, so they are `card`.
+  #
+  # The shadow keeps the drawing's own recipe; dark's card treatment is
+  # `Kati.Theme`'s business, not a colour table's.
   @doc false
   def actions do
     eat = {self(), :mark_eaten}
@@ -345,16 +374,16 @@ defmodule Kati.Screens.Meal do
             fill_width={true}
             height={50}
             corner_radius={25}
-            background={Kati.Theme.ink()}
+            background={Palette.ink_fill()}
             shadow="0 12 24 -12 #D91A1917"
             align="center"
             on_tap={eat}
           >
             <Row fill_width={true} align="center">
               <Spacer weight={1.0} />
-              {Kati.UI.symbol("check", size: 19, color: 0xFFFBFAF8)}
+              {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
               <Spacer size={8} />
-              <Text text="Mark eaten" text_size={14} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+              <Text text="Mark eaten" text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
               <Spacer weight={1.0} />
             </Row>
           </Box>
@@ -383,7 +412,7 @@ defmodule Kati.Screens.Meal do
         size: 50,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_card_soft(),
         on_tap: tag
       ],
@@ -400,7 +429,7 @@ defmodule Kati.Screens.Meal do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -420,14 +449,14 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={12} padding_bottom={12}>
-        <Box width={20} height={20} corner_radius={6} border_width={1.5} border_color={0x291A1917} />
+        <Box width={20} height={20} corner_radius={6} border_width={1.5} border_color={Palette.border()} />
         <Spacer size={13} />
         <Text text={row.name} text_size={13} font_weight="semibold" text_color={:on_surface} weight={1.0} max_lines={1} />
         <Spacer size={13} />
-        <Text text={row.amount} font_family="mono" text_size={11.5} text_color={0xFF5C574F} max_lines={1} />
+        <Text text={row.amount} font_family="mono" text_size={11.5} text_color={Palette.ink_soft()} max_lines={1} />
         <Spacer size={13} />
         <Column width={30}>
-          <Text text={row.calories} font_family="mono" text_size={10.5} text_color={0xFFC4BDB3} text_align="right" max_lines={1} />
+          <Text text={row.calories} font_family="mono" text_size={10.5} text_color={Palette.rail_idle()} text_align="right" max_lines={1} />
         </Column>
       </Row>
       {Kati.Screens.Meal.hairline(rule?)}
@@ -442,14 +471,14 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -468,12 +497,12 @@ defmodule Kati.Screens.Meal do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={Kati.Theme.cream(:light)} corner_radius={20} padding={17}>
+      <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={17}>
         <Row fill_width={true} align="center">
           {facts}
         </Row>
         <Spacer size={13} />
-        <Text text={Kati.Meals.SampleRecipe.method()} text_size={13.5} line_height={1.65} text_color={0xFF4A4238} />
+        <Text text={Kati.Meals.SampleRecipe.method()} text_size={13.5} line_height={1.65} text_color={Palette.cream_body()} />
       </Column>
       <Spacer size={24} />
     </Column>
@@ -487,9 +516,9 @@ defmodule Kati.Screens.Meal do
   def fact(icon, label) do
     ~MOB"""
     <Row align="center">
-      {Kati.UI.symbol(icon, size: 15, color: 0xFFC98A3E)}
+      {Kati.UI.symbol(icon, size: 15, color: Palette.gold_icon())}
       <Spacer size={6} />
-      <Text text={label} text_size={11.5} font_weight="semibold" text_color={0xFF8A7B60} max_lines={1} />
+      <Text text={label} text_size={11.5} font_weight="semibold" text_color={Palette.cream_sub()} max_lines={1} />
     </Row>
     """
   end
@@ -502,7 +531,7 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
@@ -520,8 +549,8 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
-        <Box width={30} height={30} corner_radius={9} background={0xFFEFECE7} align="center">
-          {Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)}
+        <Box width={30} height={30} corner_radius={9} background={Palette.paper()} align="center">
+          {Kati.UI.symbol(row.icon, size: 17, color: Palette.ink_soft())}
         </Box>
         <Spacer size={13} />
         <Column weight={1.0}>
@@ -530,7 +559,7 @@ defmodule Kati.Screens.Meal do
           {Kati.Screens.Meal.history_sub(row)}
         </Column>
         <Spacer size={13} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)}
+        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Meal.hairline(rule?)}
     </Column>
@@ -543,7 +572,7 @@ defmodule Kati.Screens.Meal do
   @doc false
   def history_sub(%{stars: 0} = row) do
     ~MOB"""
-    <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+    <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     """
   end
 
@@ -551,13 +580,13 @@ defmodule Kati.Screens.Meal do
     ~MOB"""
     <Row align="center">
       {Enum.map(1..row.stars, fn _ -> Kati.Screens.Meal.star() end)}
-      <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Row>
     """
   end
 
   @doc false
-  def star, do: Kati.UI.symbol("star", size: 12, color: 0xFF8A8479, fill: true)
+  def star, do: Kati.UI.symbol("star", size: 12, color: Palette.sub(), fill: true)
 
   # `Kati.Components.MishkaSeparator` with `render: :box` — and the `render` is
   # the whole point, because the note that used to sit here was wrong.
@@ -582,7 +611,7 @@ defmodule Kati.Screens.Meal do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

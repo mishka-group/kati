@@ -22,6 +22,7 @@ defmodule Kati.Screens.AutoDetect do
   alias Kati.Components.MishkaProgress
   alias Kati.Components.MishkaToggle
   alias Kati.Settings.DetectSample, as: Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -66,18 +67,18 @@ defmodule Kati.Screens.AutoDetect do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
         align="center"
       >
-        {Kati.UI.symbol("sensors", size: 24, color: 0xFFC98A3E)}
+        {Kati.UI.symbol("sensors", size: 24, color: Palette.gold_icon())}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={b.title} text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={b.meta} font_family="mono" text_size={10.5} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={b.meta} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         {SettingsList.switch(b.on)}
@@ -102,7 +103,8 @@ defmodule Kati.Screens.AutoDetect do
 
   Serialising both trees and diffing them key by key, every node and every prop
   matches — the track `Box` (`fill_width`, `height: 5`, `corner_radius: 3`,
-  `background: 0xFFE7E3DC`), the `fill_width` `Row` inside it, the fill `Box`
+  `background:` the track token, `0xFFE7E3DC` in light), the `fill_width` `Row`
+  inside it, the fill `Box`
   (`weight: 0.74`, `height: 5`, `corner_radius: 3`, `background:` ink) and the
   remainder `<Spacer weight={0.26} />`. One node differs: the component appends
   a `<Spacer size={5} />` as a second child of the track. It is the iOS
@@ -135,15 +137,15 @@ defmodule Kati.Screens.AutoDetect do
         render: :box,
         height: 5,
         corner_radius: 3,
-        track_color: 0xFFE7E3DC,
-        color: Kati.Theme.ink()
+        track_color: Palette.track(),
+        color: Palette.ink()
       )
 
     ~MOB"""
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
@@ -154,18 +156,18 @@ defmodule Kati.Screens.AutoDetect do
           <Column weight={1.0}>
             <Text text={n.title} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
             <Spacer size={4} />
-            <Text text={n.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+            <Text text={n.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
           </Column>
           <Spacer size={12} />
-          {SettingsList.status_pill(n.status, 0xFF3E8460, 0x294E9A73)}
+          {SettingsList.status_pill(n.status, Palette.green_text(), Palette.green_wash())}
         </Row>
         <Spacer size={14} />
         {bar}
         <Spacer size={9} />
         <Row fill_width={true} align="center">
-          <Text text={n.elapsed} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={n.elapsed} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
           <Spacer weight={1.0} />
-          <Text text={n.rule} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={n.rule} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Row>
       </Column>
       <Spacer size={22} />
@@ -178,7 +180,7 @@ defmodule Kati.Screens.AutoDetect do
     case Kati.Design.Images.poster(seed) do
       nil ->
         ~MOB"""
-        <Box width={w} height={h} corner_radius={radius} background={0xFFE4E0D9} />
+        <Box width={w} height={h} corner_radius={radius} background={Palette.placeholder()} />
         """
 
       src ->
@@ -231,7 +233,7 @@ defmodule Kati.Screens.AutoDetect do
     ~MOB"""
     <Column
       fill_width={true}
-      background={0xFFFBFAF8}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={15}
@@ -242,7 +244,7 @@ defmodule Kati.Screens.AutoDetect do
         <Column weight={1.0}>
           <Text text={d.question} text_size={13} font_weight="bold" text_color={:on_surface} />
           <Spacer size={4} />
-          <Text text={d.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={d.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
       </Row>
       <Spacer size={13} />
@@ -322,8 +324,10 @@ defmodule Kati.Screens.AutoDetect do
   box of the same width lands where two equal weights put it.
 
   The three colour props map one for one onto what the two branches computed:
-  `color` and `text_color` are the pressed pair (`#1A1917` / `#FBFAF8`),
-  `background` and `label_color` the idle pair (`#EFECE7` / `#5C574F`), and
+  `color` and `text_color` are the pressed pair — `Palette.ink_fill/0` under
+  `Palette.on_ink/0`, `#1A1917` / `#FBFAF8` in light, the pair screen 28 draws
+  for the hero's CTA pill — `background` and `label_color` the idle pair
+  (`Palette.paper/0` / `Palette.ink_soft/0`, `#EFECE7` / `#5C574F`), and
   `pressed` picks between them exactly as the `if` did.
   """
   def choice(label, on?) do
@@ -331,10 +335,10 @@ defmodule Kati.Screens.AutoDetect do
       MishkaToggle.toggle(
         label: label,
         pressed: on?,
-        color: Kati.Theme.ink(),
-        text_color: 0xFFFBFAF8,
-        background: 0xFFEFECE7,
-        label_color: 0xFF5C574F,
+        color: Palette.ink_fill(),
+        text_color: Palette.on_ink(),
+        background: Palette.paper(),
+        label_color: Palette.ink_soft(),
         corner_radius: 17,
         height: 34,
         padding: 0,

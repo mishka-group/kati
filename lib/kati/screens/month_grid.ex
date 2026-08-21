@@ -301,7 +301,7 @@ defmodule Kati.Screens.MonthGrid do
           <Text text={row.time} font_family="mono" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={13} />
-        <Box width={3} height={22} corner_radius={2} background={Theme.accent()} />
+        <Box width={3} height={22} corner_radius={2} background={Palette.accent()} />
         <Spacer size={13} />
         <Text
           text={row.label}

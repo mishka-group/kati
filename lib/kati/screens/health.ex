@@ -39,6 +39,7 @@ defmodule Kati.Screens.Health do
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Health.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @doc false
@@ -71,7 +72,7 @@ defmodule Kati.Screens.Health do
         <Column weight={1.0}>
           <Text text="Health" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={Kati.Health.Sample.day_line()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={Kati.Health.Sample.day_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         {Kati.Screens.Health.disc("tune", :open_filters)}
       </Row>
@@ -96,12 +97,13 @@ defmodule Kati.Screens.Health do
 
       %{type: :box,
         props: %{width: 44, height: 44, align: :center, corner_radius: 22,
-                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button(),
+                 background: Palette.card(), shadow: Kati.Theme.shadow_button(),
                  on_tap: {self(), tag}},
         children: [glyph]}
 
   — the same eight keys with the same eight values the hand-rolled `<Box>`
-  carried. `align: :center` and `align="center"` reach the bridge as the same
+  carried; `Palette.card/0` is `0xFFFBFAF8` in light, which is what that `<Box>`
+  wrote. `align: :center` and `align="center"` reach the bridge as the same
   string: `align` is in none of the renderer's token whitelists, so an
   unrecognised atom passes through and `:json.encode/1` writes an atom as its
   own name.
@@ -126,7 +128,10 @@ defmodule Kati.Screens.Health do
     MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: Kati.Theme.card(:light),
+        # `card`, not `on_ink` / `fab_glyph` / `on_media` — the other three
+        # meanings `Kati.Theme.Palette` gives `0xFFFBFAF8`. A disc is a surface
+        # floating above the page, so it follows the ground into `#1E1D1B`.
+        color: Palette.card(),
         size: 44,
         radius: 22,
         shadow: Kati.Theme.shadow_button(),
@@ -144,18 +149,18 @@ defmodule Kati.Screens.Health do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={19}
       >
         <Row fill_width={true} align="bottom">
           <Column weight={1.0}>
-            <Text text={String.upcase(e.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
+            <Text text={String.upcase(e.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
             <Spacer size={7} />
             <Row align="bottom">
               <Text text={e.calories} text_size={34} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} max_lines={1} />
-              <Text text={e.target} text_size={16} font_weight="semibold" text_color={0xFFB09A72} max_lines={1} />
+              <Text text={e.target} text_size={16} font_weight="semibold" text_color={Palette.cream_meta()} max_lines={1} />
             </Row>
           </Column>
           <Spacer size={12} />
@@ -170,7 +175,7 @@ defmodule Kati.Screens.Health do
         <Row fill_width={true} align="center">
           {Kati.Screens.Health.legend(e.macros)}
           <Spacer weight={1.0} />
-          <Text text={e.grams} font_family="mono" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={e.grams} font_family="mono" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -256,7 +261,7 @@ defmodule Kati.Screens.Health do
   def meals_pill(label) do
     MishkaPill.pill(
       %{
-        background: 0x294E9A73,
+        background: Palette.green_wash(),
         corner_radius: 14,
         height: 28,
         padding: 0,
@@ -273,7 +278,7 @@ defmodule Kati.Screens.Health do
   # content Row — wrapping them in a Row here would only add a level.
   defp meals_content(label) do
     [
-      Kati.UI.symbol("check", size: 14, color: 0xFF3E8460),
+      Kati.UI.symbol("check", size: 14, color: Palette.green_text()),
       ~MOB"<Spacer size={5} />",
       ~MOB"""
       <Text
@@ -281,7 +286,7 @@ defmodule Kati.Screens.Health do
         font_family="mono"
         text_size={11.5}
         font_weight="medium"
-        text_color={0xFF3E8460}
+        text_color={Palette.green_text()}
         max_lines={1}
       />
       """
@@ -319,12 +324,19 @@ defmodule Kati.Screens.Health do
   # list of `{share, colour}` — is the thing that would take this over, and it
   # is the same component two screens want. `weight` passthrough on the drawn
   # track would be the smaller, more general fix.
+  #
+  # The track is `paper` rather than `track`: the drawing fills it `#EFECE7`,
+  # which is the page colour, not the `#E7E3DC` the design uses for a progress
+  # track elsewhere — and a token has to resolve in light to the literal it
+  # replaces. It follows the page down to `#121110` in dark, which keeps it
+  # reading as a well sunk into the cream card. The three `tone`s that cover it
+  # come from `Kati.Health.Sample` and are still literals there.
   @doc false
   def macro_bar(macros) do
     segments = Enum.map(macros, fn {_name, share, tone} -> macro_segment(share, tone) end)
 
     ~MOB"""
-    <Box fill_width={true} height={9} corner_radius={4.5} background={0xFFEFECE7}>
+    <Box fill_width={true} height={9} corner_radius={4.5} background={Palette.paper()}>
       <Row fill_width={true}>
         {segments}
       </Row>
@@ -367,7 +379,7 @@ defmodule Kati.Screens.Health do
         font_family="mono"
         text_size={9.5}
         letter_spacing={0.08}
-        text_color={0xFFA0998F}
+        text_color={Palette.eyebrow()}
         max_lines={1}
       />
     </Row>
@@ -379,11 +391,19 @@ defmodule Kati.Screens.Health do
     m = Sample.next_meal()
     tap = {self(), :open_meals}
 
+    # `rail_idle` is right by value and wrong by name: the token whose MEANING
+    # is "a faint chevron" is `tertiary`, but its light value is `0xFFB3ACA2`
+    # and this chevron is `0xFFC4BDB3`. The design draws two chevron greys and
+    # only one of them is `tertiary`; taking the better name would move light
+    # mode eleven units, so the value wins. `Kati.UI.SettingsList.chevron/0`
+    # records the same discrepancy for the same reason.
+    chevron = Kati.UI.symbol("chevron_right", size: 19, color: Palette.rail_idle())
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={16}
@@ -395,10 +415,10 @@ defmodule Kati.Screens.Health do
         <Column weight={1.0}>
           <Text text={m.title} text_size={14.5} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={m.line} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={m.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        {Kati.UI.symbol("chevron_right", size: 19, color: 0xFFC4BDB3)}
+        {chevron}
       </Row>
       <Spacer size={24} />
     </Column>
@@ -423,12 +443,12 @@ defmodule Kati.Screens.Health do
 
   With children and no `id`, `theme_icon/2` returns
   `%{type: :box, props: %{width: 36, height: 36, align: :center,
-  corner_radius: 12, background: 0xFFEFECE7}, children: [glyph]}` — node for
+  corner_radius: 12, background: Palette.paper()}, children: [glyph]}` — node for
   node what the row wrote by hand, so nothing moves.
   """
   def meal_tile do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 36, radius: 12},
+      %{variant: :filled, color: Palette.paper(), size: 36, radius: 12},
       [Kati.UI.symbol("restaurant", size: 19)]
     )
   end
@@ -474,7 +494,7 @@ defmodule Kati.Screens.Health do
     ~MOB"""
     <Column
       weight={1.0}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={16}
@@ -487,7 +507,7 @@ defmodule Kati.Screens.Health do
       <Spacer size={14} />
       <Text text={section.name} text_size={14.5} font_weight="bold" letter_spacing={-0.02} text_color={:on_surface} max_lines={1} />
       <Spacer size={4} />
-      <Text text={section.line} text_size={11} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={section.line} text_size={11} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -495,22 +515,26 @@ defmodule Kati.Screens.Health do
   # No dot, no fill, no shadow: an unbuilt section is an outline. The drawing
   # dashes that outline and this bridge cannot, so it is solid at the same
   # 1.5pt and the same rgba(26,25,23,.14).
+  #
+  # The line under the name is `rail_idle` for its value, not its name — see
+  # `next_meal/0` on the two chevron greys. `0xFFC4BDB3` has exactly one row in
+  # `Kati.Theme.Palette` and this is it.
   def tile(%{on?: false} = section) do
     ~MOB"""
     <Column
       weight={1.0}
       corner_radius={20}
       border_width={1.5}
-      border_color={0x241A1917}
+      border_color={Palette.border_soft()}
       padding={16}
     >
       <Row fill_width={true} align="center">
-        {Kati.UI.symbol(section.icon, size: 22, color: 0xFFB3ACA2)}
+        {Kati.UI.symbol(section.icon, size: 22, color: Palette.tertiary())}
       </Row>
       <Spacer size={14} />
-      <Text text={section.name} text_size={14.5} font_weight="bold" letter_spacing={-0.02} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={section.name} text_size={14.5} font_weight="bold" letter_spacing={-0.02} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={4} />
-      <Text text={section.line} text_size={11} text_color={0xFFC4BDB3} max_lines={1} />
+      <Text text={section.line} text_size={11} text_color={Palette.rail_idle()} max_lines={1} />
     </Column>
     """
   end
@@ -522,17 +546,17 @@ defmodule Kati.Screens.Health do
       fill_width={true}
       corner_radius={18}
       border_width={1.5}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       padding={15}
       align="top"
     >
-      {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+      {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
       <Text
         text={Kati.Health.Sample.container_note()}
         text_size={12.5}
         line_height={1.55}
-        text_color={0xFF5C574F}
+        text_color={Palette.ink_soft()}
         weight={1.0}
       />
     </Row>

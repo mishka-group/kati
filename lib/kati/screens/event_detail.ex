@@ -77,10 +77,14 @@ defmodule Kati.Screens.EventDetail do
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Design.Images
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    # The resolved mode, not a hardcoded `light()`. `Kati.Theme.current/0` is
+    # the stored Auto/Light/Dark choice resolved against the device, and every
+    # `Palette` token below reads the theme this installs.
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :event, SampleEvent.event())}
   end
 
@@ -141,7 +145,9 @@ defmodule Kati.Screens.EventDetail do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        # The card token, not `on_ink`/`fab_glyph`/`on_media`: a disc is a
+        # surface floating above the page, so it follows the ground.
+        background: Palette.card(),
         shadow: Theme.shadow_button(),
         on_tap: tap
       },
@@ -162,8 +168,8 @@ defmodule Kati.Screens.EventDetail do
   def save_pill do
     MishkaPill.pill(
       label: "Save",
-      background: Theme.ink(),
-      color: 0xFFFBFAF8,
+      background: Palette.ink_fill(),
+      color: Palette.on_ink(),
       height: 38,
       corner_radius: 19,
       padding: 0,
@@ -181,7 +187,7 @@ defmodule Kati.Screens.EventDetail do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Theme.shadow_card_soft()}
         padding={18}
@@ -196,11 +202,11 @@ defmodule Kati.Screens.EventDetail do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Box width={2} height={22} background={Theme.accent()} />
+          <Box width={2} height={22} background={Palette.accent()} />
         </Row>
         <Spacer size={12} />
         <Row fill_width={true} align="center">
-          {UI.symbol("label", size: 16, color: 0xFF8A8479)}
+          {UI.symbol("label", size: 16, color: Palette.sub())}
           <Spacer size={8} />
           {event.sections
            |> Enum.map(fn {label, on?} -> Kati.Screens.EventDetail.section_chip(label, on?) end)
@@ -220,9 +226,10 @@ defmodule Kati.Screens.EventDetail do
 
   A chip is *selected*, and an event lives in exactly one section, so `checked`
   carries the whole of the state and the four colour props carry both halves of
-  the drawing — ink on `#FBFAF8` when picked, `#8A8479` on `#EFECE7` when not.
-  Until this round `unchecked_color` and `unchecked_text_color` were hardcoded
-  and the chip could not draw the resting half at all.
+  the drawing — `on_ink` on `ink_fill` when picked, `sub` on `paper` when not,
+  which in light is ink on `#FBFAF8` and `#8A8479` on `#EFECE7`. Until this
+  round `unchecked_color` and `unchecked_text_color` were hardcoded and the chip
+  could not draw the resting half at all.
 
   The tag carries the label, so a third section is a change to the event and
   not to this file.
@@ -244,10 +251,13 @@ defmodule Kati.Screens.EventDetail do
     MishkaChip.chip(
       label: label,
       checked: on?,
-      color: Theme.ink(),
-      text_color: 0xFFFBFAF8,
-      unchecked_color: 0xFFEFECE7,
-      unchecked_text_color: 0xFF8A8479,
+      # A checked chip is an ink-FILLED control — `ink_fill`, with `on_ink` on
+      # it — and the resting one is a patch of the PAGE sitting on a card, which
+      # is `paper` and not `tab_well`, the other token carrying `0xFFEFECE7`.
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      unchecked_color: Palette.paper(),
+      unchecked_text_color: Palette.sub(),
       height: 26,
       corner_radius: 13,
       padding_x: 11,
@@ -267,7 +277,7 @@ defmodule Kati.Screens.EventDetail do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding_left={15}
@@ -296,7 +306,7 @@ defmodule Kati.Screens.EventDetail do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.EventDetail.trailing(row.trailing)}
@@ -320,15 +330,16 @@ defmodule Kati.Screens.EventDetail do
 
   With children and no `id`, the component returns
   `%{type: :box, props: %{width: 30, height: 30, align: :center,
-  corner_radius: 9, background: 0xFFEFECE7}, children: [glyph]}` — node for node
-  what this wrote by hand. Nothing else in it runs: the gradient layer is empty
-  for `:filled`, the id markers are skipped without an `id`, and the glyph
-  shorthand is skipped when children are given.
+  corner_radius: 9, background: Palette.paper()}, children: [glyph]}` — node for
+  node what this wrote by hand, and `Palette.paper()` is `0xFFEFECE7` in light.
+  Nothing else in it runs: the gradient layer is empty for `:filled`, the id
+  markers are skipped without an `id`, and the glyph shorthand is skipped when
+  children are given.
   """
   def tile(name) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+      %{variant: :filled, color: Palette.paper(), size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -351,7 +362,7 @@ defmodule Kati.Screens.EventDetail do
   @doc false
   def trailing({:value, text}) do
     ~MOB"""
-    <Text text={text} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+    <Text text={text} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
     """
   end
 
@@ -363,7 +374,12 @@ defmodule Kati.Screens.EventDetail do
   # the bridge applies padding before width.
   def trailing({:switch, on?}), do: Kati.UI.SettingsList.switch(on?)
 
-  def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
+  # `rail_idle`, and it is right by value and wrong by name. The palette's
+  # `tertiary` is the token whose *meaning* is "a faint chevron" — but its light
+  # value is `0xFFB3ACA2`, and this chevron is `0xFFC4BDB3`; the design draws two
+  # chevron greys and only one of them is `tertiary`. Taking the better name
+  # would have moved light mode by seventeen units, so the value wins.
+  def trailing(:chevron), do: Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
 
   @doc """
   The rule between two rows — `Kati.Components.MishkaSeparator`, and it must be
@@ -386,7 +402,7 @@ defmodule Kati.Screens.EventDetail do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(render: :box, color: 0x121A1917, thickness: 1)
+    do: MishkaSeparator.separator(render: :box, color: Palette.hairline(), thickness: 1)
 
   # On cream, and with no shadow: the design's warm card is where the app
   # speaks in its own voice rather than listing a field.
@@ -396,9 +412,9 @@ defmodule Kati.Screens.EventDetail do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={Theme.cream(:light)} corner_radius={20} padding={16}>
+      <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
         <Row fill_width={true} align="center">
-          {UI.symbol("call_split", size: 18, color: 0xFFC98A3E)}
+          {UI.symbol("call_split", size: 18, color: Palette.gold_icon())}
           <Spacer size={10} />
           <Text text={clash.line} text_size={13} font_weight="bold" text_color={:on_surface} weight={1.0} max_lines={1} />
         </Row>
@@ -426,8 +442,13 @@ defmodule Kati.Screens.EventDetail do
   would then look for the handler that changes it. A pill has no state to
   mis-state; the tone picks the two colours and nothing else.
   """
-  def action(label, :primary), do: action_pill(label, Kati.Theme.ink(), 0xFFFBFAF8)
-  def action(label, :quiet), do: action_pill(label, 0x99FFFFFF, 0xFF8A7B60)
+  # The filled pair are `ink_fill`/`on_ink` — screen 28 draws exactly this pill
+  # inside exactly this cream card, `#F7EFE4` filled with `#1A1917`. The quiet
+  # one is `cream_raise`, "a chip lifted a step off the cream card", which is
+  # the meaning of `0x99FFFFFF` here rather than the lock screen's mono meta;
+  # its label is the cream card's second line.
+  def action(label, :primary), do: action_pill(label, Palette.ink_fill(), Palette.on_ink())
+  def action(label, :quiet), do: action_pill(label, Palette.cream_raise(), Palette.cream_sub())
 
   defp action_pill(label, background, color) do
     MishkaPill.pill(
@@ -446,20 +467,22 @@ defmodule Kati.Screens.EventDetail do
   end
 
   # Kati.UI.eyebrow's dash is always the accent; this one is #C4BDB3, which is
-  # how the design marks a section that lists rather than warns.
+  # how the design marks a section that lists rather than warns. That value is
+  # `rail_idle` — the only token carrying it — and a 13x2 rule is a rail in all
+  # but name; the label is `eyebrow`, which is what it is by both.
   @doc false
   def muted_eyebrow(label) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -473,7 +496,7 @@ defmodule Kati.Screens.EventDetail do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding_left={15}
@@ -499,7 +522,7 @@ defmodule Kati.Screens.EventDetail do
         <Column weight={1.0}>
           <Text text={person.name} text_size={13} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={2} />
-          <Text text={person.sub} text_size={11} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={person.sub} text_size={11} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.EventDetail.reply(person.state)}
@@ -528,13 +551,15 @@ defmodule Kati.Screens.EventDetail do
       src: Images.poster(person.seed),
       size: 34,
       shape: :circle,
-      background: 0xFFE4E0D9
+      background: Palette.placeholder()
     )
   end
 
+  # Green is a `:hue` and does not move with the ground. The waiting clock is
+  # `rail_idle` by value, for the reason `trailing(:chevron)` records.
   @doc false
-  def reply(:accepted), do: Kati.UI.symbol("check_circle", size: 18, color: 0xFF4E9A73, fill: true)
-  def reply(:waiting), do: Kati.UI.symbol("schedule", size: 18, color: 0xFFC4BDB3)
+  def reply(:accepted), do: Kati.UI.symbol("check_circle", size: 18, color: Palette.green(), fill: true)
+  def reply(:waiting), do: Kati.UI.symbol("schedule", size: 18, color: Palette.rail_idle())
 
   @doc """
   The add affordance. Its ring is `Kati.Components.MishkaThemeIcon` at
@@ -555,7 +580,7 @@ defmodule Kati.Screens.EventDetail do
     <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
       {Kati.Screens.EventDetail.add_ring()}
       <Spacer size={13} />
-      <Text text="Add someone" text_size={13} font_weight="semibold" text_color={0xFF8A8479} weight={1.0} max_lines={1} />
+      <Text text="Add someone" text_size={13} font_weight="semibold" text_color={Palette.sub()} weight={1.0} max_lines={1} />
     </Row>
     """
   end
@@ -563,8 +588,16 @@ defmodule Kati.Screens.EventDetail do
   @doc false
   def add_ring do
     MishkaThemeIcon.theme_icon(
-      %{variant: :subtle, size: 34, radius: 17, border_color: 0x331A1917, border_width: 1.5},
-      [Kati.UI.symbol("add", size: 16, color: 0xFF8A8479)]
+      %{
+        variant: :subtle,
+        size: 34,
+        radius: 17,
+        # 20% ink on a small subtle disc, which is `border_stronger` by both
+        # value and words. The tint keeps its alpha and swaps its base in dark.
+        border_color: Palette.border_stronger(),
+        border_width: 1.5
+      },
+      [Kati.UI.symbol("add", size: 16, color: Palette.sub())]
     )
   end
 
@@ -577,14 +610,14 @@ defmodule Kati.Screens.EventDetail do
       fill_width={true}
       height={48}
       corner_radius={24}
-      border_color={0x4DB4553C}
+      border_color={Palette.red_ring()}
       border_width={1.5}
       align="center"
     >
       <Row align="center">
-        {UI.symbol("delete", size: 18, color: 0xFFB4553C)}
+        {UI.symbol("delete", size: 18, color: Palette.red())}
         <Spacer size={8} />
-        <Text text="Delete event" text_size={13} font_weight="bold" text_color={0xFFB4553C} max_lines={1} />
+        <Text text="Delete event" text_size={13} font_weight="bold" text_color={Palette.red()} max_lines={1} />
       </Row>
     </Box>
     """

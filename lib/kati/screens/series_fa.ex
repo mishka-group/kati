@@ -59,13 +59,14 @@ defmodule Kati.Screens.SeriesFa do
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.Fa
   alias Kati.Screens.SeriesFa.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   # `current` is read off the sample's own pills rather than written as 1, so
   # the lit pill is whichever one the sample says is lit. `saved` is the
   # bookmark's knob, and false is the unfilled glyph the drawing shows.
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Kati.Theme.activate()
     sample = Sample.series()
     current = Enum.find_index(sample.seasons, fn {_label, on?} -> on? end) || 0
     series = sample |> Map.put(:current, current) |> Map.put(:saved, false)
@@ -99,11 +100,30 @@ defmodule Kati.Screens.SeriesFa do
 
   @doc false
   def artwork(series) do
+    # The three-stop scrim, built out here rather than written into the markup.
+    # ~MOB is an uppercase sigil, so #{} inside it is literal text, and the page
+    # colour went in as `#AARRGGBB` rather than as an `0x` literal — which is why
+    # a grep for `0x` never found it and it stayed light while everything round it
+    # followed the mode. `Kati.Screens.SeriesMeta.artwork/1` builds its own the
+    # same way, and `Kati.UI.paper_fade/3` the two-stop one.
+    #
+    # Every stop is the SAME rgb at a different alpha, the invisible one included:
+    # Compose interpolates in straight RGBA, so fading to `#00FFFFFF` would tint
+    # the middle of the band. `rem/2` rather than a Bitwise import — the low 24
+    # bits of an 0xAARRGGBB integer are the RGB.
+    rgb =
+      Palette.paper()
+      |> rem(0x1000000)
+      |> Integer.to_string(16)
+      |> String.pad_leading(6, "0")
+
+    fade = "to_top #FF#{rgb} 4% #B8#{rgb} 42% #00#{rgb}"
+
     ~MOB"""
-    <Box fill_width={true} height={300} background={0xFFDCD7CF}>
+    <Box fill_width={true} height={300} background={Palette.track_off()}>
       {Kati.Screens.SeriesFa.hero_art(series.seed)}
       <Box fill_width={true} fill_height={true} align="bottom">
-        <Box fill_width={true} height={170} gradient="to_top #FFEFECE7 4% #B8EFECE7 42% #00EFECE7" />
+        <Box fill_width={true} height={170} gradient={fade} />
       </Box>
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
@@ -116,7 +136,7 @@ defmodule Kati.Screens.SeriesFa do
             text_color={:on_surface}
           />
           <Spacer size={8} />
-          <Text text={series.meta} font_family="fa" text_size={11.5} text_color={0xFF6E6860} max_lines={1} />
+          <Text text={series.meta} font_family="fa" text_size={11.5} text_color={Palette.meta()} max_lines={1} />
         </Column>
       </Box>
     </Box>
@@ -148,7 +168,7 @@ defmodule Kati.Screens.SeriesFa do
         <Row
           height={44}
           corner_radius={22}
-          background={0xFFFBFAF8}
+          background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
           padding_left={12}
           padding_right={16}
@@ -196,7 +216,7 @@ defmodule Kati.Screens.SeriesFa do
   """
   def more do
     MishkaActionIcon.action_icon(
-      %{size: 42, shape: :circle, variant: :filled, background: 0xD1FBFAF8},
+      %{size: 42, shape: :circle, variant: :filled, background: Palette.chrome_disc()},
       [UI.symbol("more_horiz", size: 21)]
     )
   end
@@ -209,7 +229,7 @@ defmodule Kati.Screens.SeriesFa do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={17}
@@ -228,7 +248,7 @@ defmodule Kati.Screens.SeriesFa do
             text={series.watched_line}
             font_family="fa"
             text_size={11.5}
-            text_color={0xFF8A8479}
+            text_color={Palette.sub()}
             max_lines={1}
           />
         </Row>
@@ -236,9 +256,9 @@ defmodule Kati.Screens.SeriesFa do
         {Kati.Screens.SeriesFa.season_bar(progress)}
         <Spacer size={14} />
         <Row fill_width={true} align="center">
-          <Box width={6} height={6} corner_radius={3} background={0xFFE8823C} />
+          <Box width={6} height={6} corner_radius={3} background={Palette.accent()} />
           <Spacer size={8} />
-          <Text text={series.next_air} font_family="fa" text_size={12} text_color={0xFF5C574F} max_lines={1} />
+          <Text text={series.next_air} font_family="fa" text_size={12} text_color={Palette.ink_soft()} max_lines={1} />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -262,22 +282,22 @@ defmodule Kati.Screens.SeriesFa do
   # down with it — and فصل ۳ starts at zero for the same reason.
   @doc false
   def season_bar(progress) when progress <= 0.0 do
-    ~MOB"<Box fill_width={true} height={6} corner_radius={3} background={0xFFE7E3DC} />"
+    ~MOB"<Box fill_width={true} height={6} corner_radius={3} background={Palette.track()} />"
   end
 
   def season_bar(progress) when progress >= 1.0 do
     ~MOB"""
-    <Box fill_width={true} height={6} corner_radius={3} background={0xFFE7E3DC}>
-      <Box fill_width={true} height={6} corner_radius={3} background={Kati.Theme.ink()} />
+    <Box fill_width={true} height={6} corner_radius={3} background={Palette.track()}>
+      <Box fill_width={true} height={6} corner_radius={3} background={Palette.ink()} />
     </Box>
     """
   end
 
   def season_bar(progress) do
     ~MOB"""
-    <Box fill_width={true} height={6} corner_radius={3} background={0xFFE7E3DC}>
+    <Box fill_width={true} height={6} corner_radius={3} background={Palette.track()}>
       <Row fill_width={true}>
-        <Box weight={progress} height={6} corner_radius={3} background={Kati.Theme.ink()} />
+        <Box weight={progress} height={6} corner_radius={3} background={Palette.ink()} />
         <Spacer weight={1.0 - progress} />
       </Row>
     </Box>
@@ -302,19 +322,19 @@ defmodule Kati.Screens.SeriesFa do
           fill_width={true}
           height={50}
           corner_radius={25}
-          background={Kati.Theme.ink()}
+          background={Palette.ink_fill()}
           align="center"
           on_tap={mark}
         >
           <Spacer weight={1.0} />
-          {UI.symbol("check", size: 19, color: 0xFFFBFAF8)}
+          {UI.symbol("check", size: 19, color: Palette.on_ink())}
           <Spacer size={8} />
           <Text
             text={series.action}
             font_family="fa"
             font_weight="bold"
             text_size={13.5}
-            text_color={0xFFFBFAF8}
+            text_color={Palette.on_ink()}
             max_lines={1}
           />
           <Spacer weight={1.0} />
@@ -353,7 +373,7 @@ defmodule Kati.Screens.SeriesFa do
         size: 50,
         shape: :circle,
         variant: :filled,
-        background: 0xFFFBFAF8,
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_card_soft(),
         on_tap: :toggle_save
       },
@@ -367,9 +387,9 @@ defmodule Kati.Screens.SeriesFa do
     <Column fill_width={true}>
       <Spacer size={26} />
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFE8823C} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.accent()} />
         <Spacer size={9} />
-        <Text text="قسمت‌ها" font_family="fa" font_weight="semibold" text_size={11} text_color={0xFFA0998F} />
+        <Text text="قسمت‌ها" font_family="fa" font_weight="semibold" text_size={11} text_color={Palette.eyebrow()} />
         <Spacer weight={1.0} />
         {series.seasons
          |> Enum.with_index()
@@ -426,8 +446,8 @@ defmodule Kati.Screens.SeriesFa do
   @doc false
   def season_pill(label, index, on?) do
     tap = {self(), String.to_atom("season_" <> Integer.to_string(index))}
-    bg = if on?, do: Kati.Theme.ink(), else: 0xFFE4E0D9
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF6E6860
+    bg = if on?, do: Palette.ink_fill(), else: Palette.placeholder()
+    fg = if on?, do: Palette.on_ink(), else: Palette.meta()
 
     ~MOB"""
     <Box width={32} height={28} corner_radius={10} background={bg} align="center" on_tap={tap}>
@@ -496,9 +516,9 @@ defmodule Kati.Screens.SeriesFa do
   @doc false
   def episode(ep, index) do
     tap = {self(), String.to_atom("episode_" <> Integer.to_string(index))}
-    bg = if ep.watched, do: 0xFFF4F1EC, else: 0xFFFBFAF8
+    bg = if ep.watched, do: Palette.card_settled(), else: Palette.card()
     shadow = if ep.watched, do: nil, else: Kati.Theme.shadow_card_soft()
-    title_color = if ep.watched, do: 0xFF9C958B, else: Kati.Theme.ink()
+    title_color = if ep.watched, do: Palette.settled_ink(), else: Palette.ink()
 
     ~MOB"""
     <Column fill_width={true}>
@@ -515,7 +535,7 @@ defmodule Kati.Screens.SeriesFa do
         on_tap={tap}
       >
         <Column width={24}>
-          <Text text={ep.n} font_family="fa" text_size={12} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={ep.n} font_family="fa" text_size={12} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         <Column weight={1.0}>
@@ -528,7 +548,7 @@ defmodule Kati.Screens.SeriesFa do
             max_lines={1}
           />
           <Spacer size={4} />
-          <Text text={ep.sub} font_family="fa" text_size={11} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={ep.sub} font_family="fa" text_size={11} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.SeriesFa.check(ep.watched)}
@@ -571,13 +591,13 @@ defmodule Kati.Screens.SeriesFa do
     MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: Kati.Theme.ink(),
+        color: Palette.ink_fill(),
         size: 27,
         radius: 14,
-        border_color: 0xFF1A1917,
+        border_color: Palette.ink_fill(),
         border_width: 1.5
       },
-      [UI.symbol("check", size: 16, color: 0xFFFBFAF8)]
+      [UI.symbol("check", size: 16, color: Palette.on_ink())]
     )
   end
 
@@ -591,10 +611,10 @@ defmodule Kati.Screens.SeriesFa do
         variant: :subtle,
         size: 27,
         radius: 14,
-        border_color: 0x291A1917,
+        border_color: Palette.border(),
         border_width: 1.5
       },
-      [UI.symbol("check", size: 16, color: 0x001A1917)]
+      [UI.symbol("check", size: 16, color: Palette.ink_invisible())]
     )
   end
 

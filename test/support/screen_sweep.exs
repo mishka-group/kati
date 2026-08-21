@@ -140,6 +140,9 @@ defmodule Kati.ScreenSweep do
   a whole pass over the screens in one of these — never a single tap — or the
   sweep spends its time writing a two-atom setting to disk. `per_locale/2` is
   that shape.
+
+  Restores the palette too — see `with_theme/1`. A pass mounts screens, and a
+  mount installs a theme; both are globals this has to hand back.
   """
   @spec with_locale(:en | :fa, (-> result)) :: result when result: term()
   def with_locale(locale, fun) do
@@ -147,9 +150,55 @@ defmodule Kati.ScreenSweep do
     Kati.Locale.put(locale)
 
     try do
-      fun.()
+      with_theme(fun)
     after
       Kati.Locale.put(previous)
+    end
+  end
+
+  @doc """
+  Run `fun` and put back the palette that was installed when it started.
+
+  `Mob.Theme.set/1` is `Application.put_env(:mob, :theme, …)` — **one global
+  for the whole run**, and not one `Mob.ScreenCase` resets between tests the
+  way it resets `Mob.State`.
+
+  It is not the mounts that leak. Mounting all 63 screens ends light, because
+  the last screen mounted resolves the stored choice and nothing in a sweep
+  stores one. It is the **taps**. Screen 24 draws an Auto/Light/Dark control
+  and screen 62 draws its Persian twin, a sweep dispatches every tag every
+  screen drew, and `Kati.Screens.Settings.put_choice/1` does what a real tap
+  does: stores the choice and calls `Kati.Theme.activate/0`. So a tap pass ends
+  with `:theme_Dark` having installed `Kati.Theme.dark/0`, and the stored
+  choice dies with the test while the palette does not.
+
+  That is old, and until this round it was harmless: screen markup wrote
+  `Kati.Theme.card(:light)` and `0xFFFBFAF8`, neither of which reads the
+  installed theme, so nothing downstream could tell. Now that the screens name
+  their colours through `Kati.Theme.Palette`, whose zero-arity tokens resolve
+  against whatever palette is installed, the leak finally has a symptom — an
+  order-dependent failure in a file that never mentions the theme.
+  `Kati.MealsRoutesTest`'s "wiring the two new controls added a handler and no
+  ink" was reading `Kati.Theme.card(:dark)` on roughly half the seeds.
+
+  Restoring what was installed rather than forcing `Kati.Theme.light/0`: a
+  caller that deliberately set a palette before the pass gets that one back,
+  and a caller that set none is handed back Mob's neutral base, which
+  `Kati.Theme.Palette.mode/0` reads as `:light`.
+
+  The restore is at the end of the pass, never around a single mount or tap, so
+  screens 28 and 29 still render in the dark palette their own `mount/3`
+  installs and a tap on the theme control still repaints — this only stops the
+  last one of those escaping the pass.
+  """
+  @spec with_theme((-> result)) :: result when result: term()
+  def with_theme(fun) when is_function(fun, 0) do
+    installed = Mob.Theme.current()
+
+    try do
+      fun.()
+    after
+      Mob.Theme.set(installed)
     end
   end
 

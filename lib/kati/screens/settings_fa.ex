@@ -82,9 +82,10 @@ defmodule Kati.Screens.SettingsFa do
   alias Kati.Fa.SampleSettings
   alias Kati.Screens.Fa
   alias Kati.Theme
+  alias Kati.Theme.Palette
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Kati.Theme.activate()
     {:ok, Mob.Socket.assign(socket, :settings, settle(SampleSettings.settings()))}
   end
 
@@ -142,7 +143,7 @@ defmodule Kati.Screens.SettingsFa do
         <Row
           height={44}
           corner_radius={22}
-          background={Theme.card(:light)}
+          background={Palette.card()}
           shadow={Theme.shadow_button()}
           padding_left={12}
           padding_right={16}
@@ -182,7 +183,7 @@ defmodule Kati.Screens.SettingsFa do
         max_lines={1}
       />
       <Spacer size={5} />
-      <Text text={settings.subtitle} font_family="fa" text_size={11.5} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={settings.subtitle} font_family="fa" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -198,7 +199,7 @@ defmodule Kati.Screens.SettingsFa do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Theme.shadow_card_soft()}
         padding={16}
@@ -216,18 +217,18 @@ defmodule Kati.Screens.SettingsFa do
             max_lines={1}
           />
           <Spacer size={4} />
-          <Text text={meta} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={meta} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={14} />
-        <Row height={26} corner_radius={13} background={0x294E9A73} padding_left={10} padding_right={10} align="center">
-          {Kati.UI.symbol("cloud_done", size: 14, color: 0xFF3E8460)}
+        <Row height={26} corner_radius={13} background={Palette.green_wash()} padding_left={10} padding_right={10} align="center">
+          {Kati.UI.symbol("cloud_done", size: 14, color: Palette.green_text())}
           <Spacer size={5} />
           <Text
             text={me.sync}
             font_family="fa"
             text_size={11}
             font_weight="semibold"
-            text_color={0xFF3E8460}
+            text_color={Palette.green_text()}
             max_lines={1}
           />
         </Row>
@@ -256,7 +257,7 @@ defmodule Kati.Screens.SettingsFa do
   # there is no glyph to lose.
   @doc false
   def avatar(seed) do
-    MishkaAvatar.avatar(src: Images.poster(seed), size: 52, background: 0xFFE4E0D9)
+    MishkaAvatar.avatar(src: Images.poster(seed), size: 52, background: Palette.placeholder())
   end
 
   # The one group whose switches are sections. کاهش حرکت is a toggle too, but
@@ -337,7 +338,7 @@ defmodule Kati.Screens.SettingsFa do
       {Kati.Screens.SettingsFa.eyebrow(section.label, section.dash)}
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding_left={15}
@@ -367,14 +368,14 @@ defmodule Kati.Screens.SettingsFa do
   muted dash is the design's mark for a section you visit rather than set up.
   """
   def eyebrow(label, dash) do
-    color = if dash == :muted, do: 0xFFC4BDB3, else: Theme.accent()
+    color = if dash == :muted, do: Palette.rail_idle(), else: Theme.accent()
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={color} />
         <Spacer size={9} />
-        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={0xFFA0998F} />
+        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={Palette.eyebrow()} />
       </Row>
       <Spacer size={11} />
     </Column>
@@ -491,19 +492,19 @@ defmodule Kati.Screens.SettingsFa do
   """
   def leading(%{badge: badge}) do
     label = ~MOB"""
-    <Text text={badge} font_family="fa" text_size={12} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+    <Text text={badge} font_family="fa" text_size={12} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
     """
 
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Kati.Theme.ink(), size: 30, radius: 9},
+      %{variant: :filled, color: Palette.ink_fill(), size: 30, radius: 9},
       [label]
     )
   end
 
   def leading(row) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
-      [Kati.UI.symbol(row.icon, size: 17, color: 0xFF5C574F)]
+      %{variant: :filled, color: Palette.paper(), size: 30, radius: 9},
+      [Kati.UI.symbol(row.icon, size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -514,7 +515,7 @@ defmodule Kati.Screens.SettingsFa do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={3} />
-      <Text text={text} font_family="fa" text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={text} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -522,11 +523,11 @@ defmodule Kati.Screens.SettingsFa do
   # `chevron_left` and not `chevron_right`: forward is leftwards in Persian,
   # and a Material Symbol is a glyph in a font — nothing mirrors it for us.
   @doc false
-  def trailing(:chevron), do: Kati.UI.symbol("chevron_left", size: 18, color: 0xFFC4BDB3)
+  def trailing(:chevron), do: Kati.UI.symbol("chevron_left", size: 18, color: Palette.rail_idle())
 
   def trailing({:text, label}) do
     ~MOB"""
-    <Text text={label} font_family="fa" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+    <Text text={label} font_family="fa" text_size={12} text_color={Palette.muted()} max_lines={1} />
     """
   end
 
@@ -576,7 +577,7 @@ defmodule Kati.Screens.SettingsFa do
       end)
 
     ~MOB"""
-    <Row background={0xFFEFECE7} corner_radius={12} padding={3} align="center">
+    <Row background={Palette.paper()} corner_radius={12} padding={3} align="center">
       {tiles}
     </Row>
     """
@@ -610,8 +611,8 @@ defmodule Kati.Screens.SettingsFa do
   # `Kati.Screens.Settings.choices/0`'s order.
   @doc false
   def segment(label, true, _index) do
-    background = Theme.card(:light)
-    color = Theme.ink()
+    background = Palette.card()
+    color = Palette.ink()
 
     ~MOB"""
     <Row
@@ -641,7 +642,7 @@ defmodule Kati.Screens.SettingsFa do
     <Row
       height={26}
       corner_radius={9}
-      background={0x00FFFFFF}
+      background={Palette.transparent()}
       padding_left={10}
       padding_right={10}
       align="center"
@@ -652,7 +653,7 @@ defmodule Kati.Screens.SettingsFa do
         font_family="fa"
         text_size={10.5}
         font_weight="semibold"
-        text_color={0xFFA0998F}
+        text_color={Palette.eyebrow()}
         max_lines={1}
       />
     </Row>
@@ -669,13 +670,13 @@ defmodule Kati.Screens.SettingsFa do
   shows, with no mirroring code of its own.
   """
   def toggle(on?) do
-    track = if on?, do: Theme.ink(), else: 0xFFDCD7CF
+    track = if on?, do: Palette.ink_fill(), else: Palette.track_off()
 
     ~MOB"""
     <Box width={46} height={28} corner_radius={14} background={track} align="center">
       <Row width={40} align="center">
         {Kati.Screens.SettingsFa.thumb_lead(on?)}
-        <Box width={22} height={22} corner_radius={11} background={0xFFFBFAF8} shadow="0 1 3 0 #4D1A1917" />
+        <Box width={22} height={22} corner_radius={11} background={Palette.on_ink()} shadow="0 1 3 0 #4D1A1917" />
         {Kati.Screens.SettingsFa.thumb_trail(on?)}
       </Row>
     </Box>
@@ -728,7 +729,7 @@ defmodule Kati.Screens.SettingsFa do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true) do
-    MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}

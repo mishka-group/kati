@@ -29,12 +29,28 @@ defmodule Kati.Screens.Widgets do
   widgets, which is what they are.
 
   No dock, so the frame's bottom inset is 40 rather than 132.
+
+  ## The one colour here that is still a literal
+
+  Every other colour on this screen is a `Kati.Theme.Palette` token. The
+  TONIGHT tile's caption is not: the drawing sets it in `#6A6560` on the ink
+  tile, and `#6A6560` exists in the palette only as a **dark** value — it is
+  what `muted`, `tertiary` and `segment_idle` all collapse to on near-black —
+  and never as a light one. So no token resolves to it in light, and giving it
+  the nearest one (`on_ink_muted`, `#BFB8AC`) would change a baseline frame to
+  make dark mode work. It stays `0xFF6A6560` until the table names it; see
+  `sizes/1`.
+
+  It happens to land well on the inverted tile anyway — `#6A6560` on
+  `ink_fill`'s `#F7EFE4` reads at about 5.5:1 — so the tile is legible in dark
+  rather than merely unbroken.
   """
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaSwitch
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.Widgets.Sample
 
@@ -93,7 +109,7 @@ defmodule Kati.Screens.Widgets do
 
       %{type: :box,
         props: %{width: 44, height: 44, align: :center, corner_radius: 22,
-                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button()},
+                 background: Palette.card(), shadow: Kati.Theme.shadow_button()},
         children: [glyph]}
 
   — the same seven keys, with the same seven values, that the `<Box>` above it
@@ -110,15 +126,17 @@ defmodule Kati.Screens.Widgets do
   a `Text` with no `font_family`, so the Material Symbols ligature
   `"more_horiz"` would be typeset as the word instead of resolved to the glyph.
 
-  `Kati.UI.SettingsList.disc/1` is the same call with the colour spelled
-  `0xFFFBFAF8`; this one keeps `Kati.Theme.card(:light)`, which is that number,
-  because that is what the markup said.
+  `Kati.UI.SettingsList.disc/1` is the same call, and both now spell the colour
+  `Kati.Theme.Palette.card/0` — the card token, not `on_ink`, `fab_glyph` or
+  `on_media`, which are the other three meanings of `0xFFFBFAF8`. A disc is a
+  surface that floats above the page, so it follows the ground: `#1E1D1B` in
+  dark, like every card.
   """
   def disc(icon) do
     MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: Kati.Theme.card(:light),
+        color: Palette.card(),
         size: 44,
         radius: 22,
         shadow: Kati.Theme.shadow_button()
@@ -133,7 +151,7 @@ defmodule Kati.Screens.Widgets do
     <Column fill_width={true}>
       <Text text="Widgets" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text="add to home screen" font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text="add to home screen" font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -144,14 +162,14 @@ defmodule Kati.Screens.Widgets do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
           max_lines={1}
         />
       </Row>
@@ -170,14 +188,40 @@ defmodule Kati.Screens.Widgets do
   # actually hands out, at any frame. See `up_next_tile/1`.
   @doc false
   def sizes(w) do
+    # The ink tile is an ink-filled surface carrying an `on_ink` number, so it
+    # takes screen 28's drawn pair: `ink_fill` under `on_ink`. The cream tile
+    # stays in the cream family, headline included — `cream_ink`, not `ink`,
+    # because `0xFF1A1917` on cream is the headline meaning of that literal.
+    tonight =
+      Kati.Screens.Widgets.count_tile(
+        w.tonight,
+        Palette.ink_fill(),
+        # Still a literal, and it has to be: `0xFF6A6560` appears in
+        # `Kati.Theme.Palette` only as a DARK value (`muted`, `tertiary`,
+        # `segment_idle`), never as a light one, so no token resolves to it in
+        # light and naming one would move a baseline frame. See the moduledoc.
+        0xFF6A6560,
+        Palette.on_ink(),
+        Palette.on_ink_meta()
+      )
+
+    streak =
+      Kati.Screens.Widgets.count_tile(
+        w.streak,
+        Palette.cream(),
+        Palette.cream_meta(),
+        Palette.cream_ink(),
+        Palette.cream_sub()
+      )
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         {Kati.Screens.Widgets.up_next_tile(w.up_next)}
         <Spacer size={11} />
-        {Kati.Screens.Widgets.count_tile(w.tonight, Kati.Theme.ink(), 0xFF6A6560, 0xFFFBFAF8, 0xFF8A837B)}
+        {tonight}
         <Spacer size={11} />
-        {Kati.Screens.Widgets.count_tile(w.streak, 0xFFFBF1DE, 0xFFB09A72, 0xFF1A1917, 0xFF8A7B60)}
+        {streak}
       </Row>
       <Spacer size={14} />
     </Column>
@@ -197,7 +241,7 @@ defmodule Kati.Screens.Widgets do
       weight={1.0}
       aspect_ratio={1.0}
       corner_radius={20}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       shadow={Kati.Theme.shadow_card_soft()}
     >
       <Column fill_width={true} fill_height={true} padding={13}>
@@ -206,7 +250,7 @@ defmodule Kati.Screens.Widgets do
           font_family="mono"
           text_size={9}
           letter_spacing={0.14}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
           max_lines={1}
         />
         <Spacer weight={1.0} />
@@ -214,7 +258,7 @@ defmodule Kati.Screens.Widgets do
         <Spacer size={7} />
         <Text text={tile.title} text_size={11} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer size={2} />
-        <Text text={tile.episode} font_family="mono" text_size={9} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={tile.episode} font_family="mono" text_size={9} text_color={Palette.muted()} max_lines={1} />
       </Column>
     </Box>
     """
@@ -224,7 +268,7 @@ defmodule Kati.Screens.Widgets do
   def mini_poster(tile) do
     case Kati.Design.Images.poster(tile.seed) do
       nil ->
-        ~MOB"<Box width={30} height={42} corner_radius={5} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={30} height={42} corner_radius={5} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -276,7 +320,7 @@ defmodule Kati.Screens.Widgets do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
@@ -287,11 +331,11 @@ defmodule Kati.Screens.Widgets do
             font_family="mono"
             text_size={9}
             letter_spacing={0.14}
-            text_color={0xFFA0998F}
+            text_color={Palette.eyebrow()}
             max_lines={1}
           />
           <Spacer weight={1.0} />
-          {Kati.UI.symbol("calendar_month", size: 14, color: 0xFFC4BDB3)}
+          {Kati.UI.symbol("calendar_month", size: 14, color: Palette.rail_idle())}
         </Row>
         <Spacer size={12} />
         <Row fill_width={true} align="center">
@@ -315,7 +359,7 @@ defmodule Kati.Screens.Widgets do
       <Box width={2.5} height={26} corner_radius={2} background={event.color} />
       <Spacer size={9} />
       <Column weight={1.0}>
-        <Text text={event.time} font_family="mono" text_size={9.5} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={event.time} font_family="mono" text_size={9.5} text_color={Palette.muted()} max_lines={1} />
         <Spacer size={2} />
         <Text text={event.title} text_size={11.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       </Column>
@@ -331,7 +375,7 @@ defmodule Kati.Screens.Widgets do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -360,7 +404,7 @@ defmodule Kati.Screens.Widgets do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Widgets.trailing(row)}
@@ -391,8 +435,8 @@ defmodule Kati.Screens.Widgets do
   """
   def icon_tile(name) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+      %{variant: :filled, color: Palette.paper(), size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -400,7 +444,7 @@ defmodule Kati.Screens.Widgets do
   @doc false
   def trailing(row) do
     case Map.get(row, :toggle) do
-      nil -> Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
+      nil -> Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
       on? -> Kati.Screens.Widgets.toggle(on?)
     end
   end
@@ -449,10 +493,15 @@ defmodule Kati.Screens.Widgets do
       thumb_size: 22,
       thumb_radius: 11,
       thumb_inset: 3,
-      track_on_color: Kati.Theme.ink(),
-      track_off_color: 0xFFDCD7CF,
-      thumb_on_color: 0xFFFBFAF8,
-      thumb_off_color: 0xFFFBFAF8,
+      # The whole control inverts rather than following the ground, which is
+      # what the design does with every ink-filled control: `ink_fill` under
+      # `on_ink`, the pair screen 28 draws for the hero's CTA pill. Both thumb
+      # colours stay ONE token, because the drawing's thumb does not change
+      # colour — only the track does.
+      track_on_color: Palette.ink_fill(),
+      track_off_color: Palette.track_off(),
+      thumb_on_color: Palette.on_ink(),
+      thumb_off_color: Palette.on_ink(),
       thumb_shadow: "0 1 3 0 #4D1A1917"
     )
   end
@@ -464,25 +513,25 @@ defmodule Kati.Screens.Widgets do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={16}
     >
       <Row fill_width={true} align="center" padding_bottom={13}>
-        <Box width={34} height={34} corner_radius={10} background={Kati.Theme.ink()} align="center">
+        <Box width={34} height={34} corner_radius={10} background={Palette.ink()} align="center">
           <Box width={9} height={9} corner_radius={5} background={Kati.Theme.accent()} />
         </Box>
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text text={s.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={2} />
-          <Text text={s.sub} text_size={11} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={s.sub} text_size={11} text_color={Palette.sub()} max_lines={1} />
         </Column>
       </Row>
       {Kati.Screens.Widgets.hairline(true)}
       <Spacer size={13} />
-      <Text text={s.note} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} />
+      <Text text={s.note} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
     </Column>
     """
   end
@@ -505,7 +554,7 @@ defmodule Kati.Screens.Widgets do
 
   `render: :box` builds
 
-      <Box fill_width={true} height={1} background={0x121A1917}>
+      <Box fill_width={true} height={1} background={Palette.hairline()}>
         <Spacer size={1} />
       </Box>
 
@@ -521,7 +570,7 @@ defmodule Kati.Screens.Widgets do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   # The index rather than the title: these titles are spoken phrases wrapped in
   # typographic quotes, and the tag has to survive a round trip through

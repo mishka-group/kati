@@ -98,10 +98,11 @@ defmodule Kati.Screens.Rating do
   alias Kati.Components.MishkaCloseButton
   alias Kati.Components.MishkaPill
   alias Kati.Rating.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :watch, Sample.watch())}
   end
 
@@ -182,7 +183,7 @@ defmodule Kati.Screens.Rating do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button(),
         on_tap: tap
       },
@@ -202,12 +203,21 @@ defmodule Kati.Screens.Rating do
   sitting inside two rows of `:space_sm`. Pinning `padding: 0` is what makes
   the two horizontal edges the only padding the pill has, which is what the
   hand-rolled Row had.
+
+  ## The fill inverts, it does not follow
+
+  Save is the sheet's call to action, so it takes the pair the design draws for
+  an ink-filled control: `Palette.ink_fill/0` under `Palette.on_ink/0`. Screen 28
+  draws that pair — `#1A1917` + `#FBFAF8` becomes `#F7EFE4` + `#1A1917`, the fill
+  swapping sides of the ramp rather than darkening with the page.
+  `Kati.Theme.ink/0` was the fill before and takes no mode, so in dark the pill
+  and its label would both have been near-black.
   """
   def save_pill(tap) do
     MishkaPill.pill(
       label: "Save",
-      background: Kati.Theme.ink(),
-      color: 0xFFFBFAF8,
+      background: Palette.ink_fill(),
+      color: Palette.on_ink(),
       height: 38,
       corner_radius: 19,
       padding: 0,
@@ -238,7 +248,7 @@ defmodule Kati.Screens.Rating do
             max_lines={1}
           />
           <Spacer size={6} />
-          <Text text={w.meta} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={w.meta} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
           <Spacer size={9} />
           {Kati.Screens.Rating.rewatch(w.rewatch)}
         </Column>
@@ -260,17 +270,23 @@ defmodule Kati.Screens.Rating do
   answers `Alignment.CenterVertically` for everything that is not `"top"` or
   `"bottom"` — including an absent `align` — so the 13pt glyph and the 11pt
   count share a centre line either way.
+
+  The fill is `Palette.paper/0`, not `Palette.tab_well/0`. Both are `0xFFEFECE7`
+  in light and this badge sits directly on the page, so paper is the reading
+  that keeps the badge the same colour as its ground in *both* modes — the
+  relationship the drawing has. `tab_well/0` is deliberately darker than the
+  page and belongs to the dock's active tab, which this is not.
   """
   def rewatch(label) do
     text = ~MOB"""
-    <Text text={label} text_size={11} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+    <Text text={label} text_size={11} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
     """
 
     gap = ~MOB"<Spacer size={5} />"
 
     MishkaPill.pill(
       %{
-        background: 0xFFEFECE7,
+        background: Palette.paper(),
         height: 24,
         corner_radius: 12,
         padding: 0,
@@ -278,7 +294,7 @@ defmodule Kati.Screens.Rating do
         padding_right: 10,
         align: :center
       },
-      [Kati.UI.symbol("replay", size: 13, color: 0xFF8A8479), gap, text]
+      [Kati.UI.symbol("replay", size: 13, color: Palette.sub()), gap, text]
     )
   end
 
@@ -286,7 +302,7 @@ defmodule Kati.Screens.Rating do
   def poster(w) do
     case Sample.poster(w.seed) do
       nil ->
-        ~MOB"<Box width={74} height={106} corner_radius={10} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={74} height={106} corner_radius={10} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -301,7 +317,7 @@ defmodule Kati.Screens.Rating do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
@@ -312,7 +328,7 @@ defmodule Kati.Screens.Rating do
             font_family="mono"
             text_size={10.5}
             letter_spacing={0.16}
-            text_color={0xFFA0998F}
+            text_color={Palette.eyebrow()}
             max_lines={1}
           />
           <Spacer weight={1.0} />
@@ -325,13 +341,18 @@ defmodule Kati.Screens.Rating do
           <Text text={"#{w.rating}"} font_family="mono" text_size={14} font_weight="medium" text_color={:on_surface} max_lines={1} />
         </Row>
         <Spacer size={10} />
-        <Text text={w.rating_note} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={w.rating_note} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
       </Column>
       <Spacer size={14} />
     </Column>
     """
   end
 
+  # The track is `Palette.paper/0`. It is `0xFFEFECE7` — the page colour — sunk
+  # into a `Palette.card/0` card, so in dark it goes to `#121110` against the
+  # card's `#1E1D1B` and stays the well it is. `Palette.tab_well/0` carries the
+  # same light value and is the other reading, but it is the dock's active-tab
+  # disc and is deliberately DARKER than the page; this is a trough, not a tab.
   @doc false
   def scale_toggle do
     tiles =
@@ -340,7 +361,7 @@ defmodule Kati.Screens.Rating do
       |> Enum.intersperse(Kati.Screens.Rating.scale_gap())
 
     ~MOB"""
-    <Row background={0xFFEFECE7} corner_radius={11} padding={3} align="center">
+    <Row background={Palette.paper()} corner_radius={11} padding={3} align="center">
       {tiles}
     </Row>
     """
@@ -355,14 +376,14 @@ defmodule Kati.Screens.Rating do
     <Row
       height={24}
       corner_radius={8}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       shadow="0 1 2 0 #1F1A1917"
       padding_left={10}
       padding_right={10}
       align="center"
     >
       <Text text={option.label} text_size={10.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
-      {Kati.Screens.Rating.scale_star(option.star, Kati.Theme.ink())}
+      {Kati.Screens.Rating.scale_star(option.star, Palette.ink())}
     </Row>
     """
   end
@@ -370,8 +391,8 @@ defmodule Kati.Screens.Rating do
   def scale(option) do
     ~MOB"""
     <Row height={24} corner_radius={8} padding_left={10} padding_right={10} align="center">
-      <Text text={option.label} text_size={10.5} font_weight="semibold" text_color={0xFFA0998F} max_lines={1} />
-      {Kati.Screens.Rating.scale_star(option.star, 0xFFA0998F)}
+      <Text text={option.label} text_size={10.5} font_weight="semibold" text_color={Palette.eyebrow()} max_lines={1} />
+      {Kati.Screens.Rating.scale_star(option.star, Palette.eyebrow())}
     </Row>
     """
   end
@@ -410,8 +431,8 @@ defmodule Kati.Screens.Rating do
   def star_gap, do: ~MOB"<Spacer size={2} />"
 
   @doc false
-  def star(:full), do: Kati.UI.symbol("star", size: 26, color: 0xFFE8823C, fill: true)
-  def star(:empty), do: Kati.UI.symbol("star", size: 26, color: 0xFFE0DAD1, fill: true)
+  def star(:full), do: Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)
+  def star(:empty), do: Kati.UI.symbol("star", size: 26, color: Palette.star_empty(), fill: true)
 
   # A real half star, drawn the way the design draws one: the empty star, with
   # a filled star painted over it and CUT at 50%.
@@ -431,9 +452,9 @@ defmodule Kati.Screens.Rating do
   def star(:half) do
     ~MOB"""
     <Box width={26} height={26}>
-      {Kati.UI.symbol("star", size: 26, color: 0xFFE0DAD1, fill: true)}
+      {Kati.UI.symbol("star", size: 26, color: Palette.star_empty(), fill: true)}
       <Box width={26} height={26} clip_width={0.5}>
-        {Kati.UI.symbol("star", size: 26, color: 0xFFE8823C, fill: true)}
+        {Kati.UI.symbol("star", size: 26, color: Palette.accent(), fill: true)}
       </Box>
     </Box>
     """
@@ -446,37 +467,37 @@ defmodule Kati.Screens.Rating do
   def review_card(w) do
     ~MOB"""
     <Column fill_width={true}>
-      <Column fill_width={true} background={0xFFFBF1DE} corner_radius={22} shadow={Kati.Theme.shadow_card_soft()} padding={18}>
+      <Column fill_width={true} background={Palette.cream()} corner_radius={22} shadow={Kati.Theme.shadow_card_soft()} padding={18}>
         <Row fill_width={true} align="center">
           <Text
             text={String.upcase("Review")}
             font_family="mono"
             text_size={10.5}
             letter_spacing={0.16}
-            text_color={0xFFB09A72}
+            text_color={Palette.cream_meta()}
             max_lines={1}
           />
           <Spacer weight={1.0} />
-          {Kati.UI.symbol("visibility_off", size: 15, color: 0xFFC98A3E)}
+          {Kati.UI.symbol("visibility_off", size: 15, color: Palette.gold_icon())}
           <Spacer size={6} />
-          <Text text={w.spoilers} text_size={11} font_weight="semibold" text_color={0xFF96723C} max_lines={1} />
+          <Text text={w.spoilers} text_size={11} font_weight="semibold" text_color={Palette.gold_text()} max_lines={1} />
         </Row>
         <Spacer size={10} />
-        <Text text={w.review} text_size={14} line_height={1.6} text_color={0xFF4A4238} />
+        <Text text={w.review} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
         <Row fill_width={true}>
-          <Box width={2} height={16} background={0xFFE8823C} />
+          <Box width={2} height={16} background={Palette.accent()} />
         </Row>
         <Spacer size={14} />
-        <Box fill_width={true} height={1} background={0x4DB09A72} />
+        <Box fill_width={true} height={1} background={Palette.cream_rule()} />
         <Spacer size={13} />
         <Row fill_width={true} align="center">
-          <Text text={w.characters} font_family="mono" text_size={10.5} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={w.characters} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
           <Spacer weight={1.0} />
-          {Kati.UI.symbol("format_bold", size: 16, color: 0xFFC98A3E)}
+          {Kati.UI.symbol("format_bold", size: 16, color: Palette.gold_icon())}
           <Spacer size={7} />
-          {Kati.UI.symbol("format_italic", size: 16, color: 0xFFC98A3E)}
+          {Kati.UI.symbol("format_italic", size: 16, color: Palette.gold_icon())}
           <Spacer size={7} />
-          {Kati.UI.symbol("link", size: 16, color: 0xFFC98A3E)}
+          {Kati.UI.symbol("link", size: 16, color: Palette.gold_icon())}
         </Row>
       </Column>
       <Spacer size={14} />
@@ -540,8 +561,8 @@ defmodule Kati.Screens.Rating do
   def tag(label) do
     MishkaPill.pill(
       label: label,
-      background: Kati.Theme.card(:light),
-      color: 0xFF5C574F,
+      background: Palette.card(),
+      color: Palette.ink_soft(),
       shadow: Kati.Theme.shadow_card_soft(),
       height: 30,
       corner_radius: 15,
@@ -577,8 +598,8 @@ defmodule Kati.Screens.Rating do
     MishkaPill.pill(
       label: "+ tag",
       background: :transparent,
-      color: 0xFFA0998F,
-      border_color: 0x2E1A1917,
+      color: Palette.eyebrow(),
+      border_color: Palette.border_strong(),
       border_width: 1.5,
       height: 30,
       corner_radius: 15,

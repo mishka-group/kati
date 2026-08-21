@@ -36,6 +36,7 @@ defmodule Kati.Screens.Plans do
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
   alias Kati.Meals.SampleProfiles
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -66,13 +67,25 @@ defmodule Kati.Screens.Plans do
   # The one card in the app drawn on ink rather than on card: it is the plan
   # every other screen is currently obeying, and the inversion says so without
   # a badge.
+  #
+  # `Palette.ink_fill/0` rather than `Palette.ink/0`: this is the ink-FILLED
+  # ground the `on_ink_*` family is measured against. `Kati.Theme.Palette`'s
+  # `:inversion` rule solves those for contrast against the pill screen 28
+  # draws as `#F7EFE4`, which is `ink_fill`'s dark value and not `ink`'s.
+  #
+  # The three `0xFF6A6560` mono figures below are LEFT as literals: no token in
+  # `Kati.Theme.Palette` has that LIGHT value — it appears there only as the
+  # dark side of `muted`, `segment_idle` and `tertiary`. They mean "the mono
+  # meta step on an ink fill", which is `on_ink_meta`, but that token's light
+  # value is `#8A837B` and swapping would move light-mode pixels. Naming them
+  # is the palette's call, not this screen's.
   @doc false
   def active(active) do
     ~MOB"""
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.ink()}
+        background={Palette.ink_fill()}
         corner_radius={24}
         shadow="0 16 32 -16 #E61A1917"
         padding={19}
@@ -88,9 +101,9 @@ defmodule Kati.Screens.Plans do
               max_lines={1}
             />
             <Spacer size={8} />
-            <Text text={active.name} text_size={22} font_weight="bold" letter_spacing={-0.03} text_color={0xFFFBFAF8} max_lines={1} />
+            <Text text={active.name} text_size={22} font_weight="bold" letter_spacing={-0.03} text_color={Palette.on_ink()} max_lines={1} />
             <Spacer size={6} />
-            <Text text={active.targets} text_size={12.5} text_color={0xFF8A837B} max_lines={1} />
+            <Text text={active.targets} text_size={12.5} text_color={Palette.on_ink_meta()} max_lines={1} />
           </Column>
           <Spacer size={12} />
           {Kati.Screens.Plans.overflow()}
@@ -115,8 +128,9 @@ defmodule Kati.Screens.Plans do
   # `corner_radius` box it replaces, and `shape: :circle` computes 36 / 2 =
   # 18.0, the radius written before.
   #
-  # `0x1FF5F2EE` is `rgba(245,242,238,.12)` — a white-ish veil ON the ink card,
-  # not a grey — so it stays an ARGB int rather than a token. The glyph is a
+  # `Palette.on_ink_veil/0` is `rgba(245,242,238,.12)` — a white-ish veil ON
+  # the ink card, not a grey — and `Palette.on_ink_glyph/0` is the mark on it.
+  # Both invert with the card rather than following the page. The glyph is a
   # child rather than `icon:`, because Kati's icons are Material Symbols
   # through `Kati.UI.symbol/2`; a child is wrapped in a `<Row>` that hugs it,
   # inside a Box that already centred it.
@@ -142,10 +156,10 @@ defmodule Kati.Screens.Plans do
         size: 36,
         shape: :circle,
         variant: :filled,
-        background: 0x1FF5F2EE,
+        background: Palette.on_ink_veil(),
         on_tap: :share_plan
       ],
-      [UI.symbol("more_horiz", size: 19, color: 0xFFF5F2EE)]
+      [UI.symbol("more_horiz", size: 19, color: Palette.on_ink_glyph())]
     )
   end
 
@@ -153,7 +167,7 @@ defmodule Kati.Screens.Plans do
   @doc false
   def progress(fraction) do
     ~MOB"""
-    <Box fill_width={true} height={5} corner_radius={3} background={0x26F5F2EE}>
+    <Box fill_width={true} height={5} corner_radius={3} background={Palette.on_ink_track()}>
       <Row fill_width={true}>
         <Box weight={fraction} height={5} corner_radius={3} background={Kati.Theme.accent()} />
         <Spacer weight={1.0 - fraction} />
@@ -180,7 +194,7 @@ defmodule Kati.Screens.Plans do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={13}
@@ -194,9 +208,9 @@ defmodule Kati.Screens.Plans do
         <Column weight={1.0}>
           <Text text={row.name} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.line} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.line} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.meta} font_family="mono" text_size={10} text_color={0xFFC4BDB3} max_lines={1} />
+          <Text text={row.meta} font_family="mono" text_size={10} text_color={Palette.rail_idle()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Plans.activate(row.action)}
@@ -227,7 +241,7 @@ defmodule Kati.Screens.Plans do
   def activate(label) do
     MishkaPill.pill(
       label: label,
-      background: 0xFFEFECE7,
+      background: Palette.paper(),
       color: :on_surface,
       corner_radius: 16,
       height: 32,
@@ -245,7 +259,7 @@ defmodule Kati.Screens.Plans do
   def thumb(seed) do
     case Kati.Design.Images.poster(seed) do
       nil ->
-        ~MOB"<Box width={44} height={44} corner_radius={12} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={44} height={44} corner_radius={12} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -293,14 +307,14 @@ defmodule Kati.Screens.Plans do
     <Row
       fill_width={true}
       corner_radius={18}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       border_width={1.5}
       padding={15}
       align="top"
     >
-      {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+      {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={text} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
+      <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
     </Row>
     """
   end

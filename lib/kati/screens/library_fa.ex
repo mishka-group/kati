@@ -49,10 +49,11 @@ defmodule Kati.Screens.LibraryFa do
   alias Kati.Components.MishkaScrollArea
   alias Kati.Screens.Fa
   alias Kati.Screens.LibraryFa.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Kati.Theme.activate()
 
     socket
     |> Mob.Socket.assign(:header, Sample.header())
@@ -130,7 +131,7 @@ defmodule Kati.Screens.LibraryFa do
             text={header.subtitle}
             font_family="fa"
             text_size={11.5}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
         </Column>
@@ -185,7 +186,7 @@ defmodule Kati.Screens.LibraryFa do
   def segments(shelf) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={18} padding={4} align="center">
+      <Row fill_width={true} background={Palette.placeholder()} corner_radius={18} padding={4} align="center">
         {Sample.segments()
          |> Enum.with_index()
          |> Enum.map(fn {seg, i} -> Kati.Screens.LibraryFa.segment(seg, i, i == shelf) end)
@@ -210,7 +211,7 @@ defmodule Kati.Screens.LibraryFa do
         fill_width={true}
         height={38}
         corner_radius={14}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         shadow="0 1 2 0 #0F1A1917"
         align="center"
       >
@@ -238,14 +239,14 @@ defmodule Kati.Screens.LibraryFa do
     <Box weight={1.0} on_tap={tap}>
       <Row fill_width={true} height={38} corner_radius={14} align="center">
         <Spacer weight={1.0} />
-        {UI.symbol(seg.icon, size: 17, color: 0xFFAFA89E)}
+        {UI.symbol(seg.icon, size: 17, color: Palette.segment_idle())}
         <Spacer size={6} />
         <Text
           text={seg.label}
           font_family="fa"
           font_weight="semibold"
           text_size={12.5}
-          text_color={0xFFAFA89E}
+          text_color={Palette.segment_idle()}
           max_lines={1}
         />
         <Spacer weight={1.0} />
@@ -278,7 +279,7 @@ defmodule Kati.Screens.LibraryFa do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={16}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={11}
@@ -310,7 +311,7 @@ defmodule Kati.Screens.LibraryFa do
 
   def tile_count(count) do
     ~MOB"""
-    <Text text={count} font_family="fa" text_size={10} text_color={0xFFC4BDB3} max_lines={1} />
+    <Text text={count} font_family="fa" text_size={10} text_color={Palette.rail_idle()} max_lines={1} />
     """
   end
 
@@ -403,9 +404,9 @@ defmodule Kati.Screens.LibraryFa do
   @doc false
   def chip(label, count, index, on?) do
     tap = {self(), String.to_atom("filter_" <> Integer.to_string(index))}
-    bg = if on?, do: 0xFF1A1917, else: 0xFFFBFAF8
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
-    count_fg = if on?, do: 0x99FBFAF8, else: 0x995C574F
+    bg = if on?, do: Palette.ink_fill(), else: Palette.card()
+    fg = if on?, do: Palette.on_ink(), else: Palette.ink_soft()
+    count_fg = if on?, do: Palette.on_ink_count(), else: Palette.count_idle()
     shadow = if on?, do: nil, else: Kati.Theme.shadow_card_soft()
 
     ~MOB"""
@@ -476,7 +477,7 @@ defmodule Kati.Screens.LibraryFa do
         fill_width={true}
         height={158}
         corner_radius={13}
-        background={0xFFE4E0D9}
+        background={Palette.placeholder()}
         shadow={Kati.Theme.shadow_card_soft()}
       >
         {Kati.Screens.LibraryFa.artwork(item.seed)}
@@ -494,7 +495,7 @@ defmodule Kati.Screens.LibraryFa do
         max_lines={1}
       />
       <Spacer size={3} />
-      <Text text={item.meta} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={item.meta} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
     </Column>
     """
   end
@@ -536,22 +537,22 @@ defmodule Kati.Screens.LibraryFa do
   # of 3 has nowhere to go.
   @doc false
   def progress(fraction) when fraction <= 0.0 do
-    ~MOB"<Box fill_width={true} height={4} background={0x381A1917} />"
+    ~MOB"<Box fill_width={true} height={4} background={Palette.track_ink()} />"
   end
 
   def progress(fraction) when fraction >= 1.0 do
     ~MOB"""
-    <Box fill_width={true} height={4} background={0x381A1917}>
-      <Box fill_width={true} height={4} background={0xFFE8823C} />
+    <Box fill_width={true} height={4} background={Palette.track_ink()}>
+      <Box fill_width={true} height={4} background={Palette.accent()} />
     </Box>
     """
   end
 
   def progress(fraction) do
     ~MOB"""
-    <Box fill_width={true} height={4} background={0x381A1917}>
+    <Box fill_width={true} height={4} background={Palette.track_ink()}>
       <Row fill_width={true}>
-        <Box weight={fraction} height={4} background={0xFFE8823C} />
+        <Box weight={fraction} height={4} background={Palette.accent()} />
         <Spacer weight={1.0 - fraction} />
       </Row>
     </Box>

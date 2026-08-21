@@ -35,6 +35,7 @@ defmodule Kati.Screens.StatsFa do
   alias Kati.Fa.SampleYear
   alias Kati.Screens.Fa
   alias Kati.Theme
+  alias Kati.Theme.Palette
 
   # 27 cells per row — the most the cream card actually holds on the device,
   # rather than the 26 the drawing's 402dp frame allowed. A cell is 8 with a
@@ -51,12 +52,12 @@ defmodule Kati.Screens.StatsFa do
   @per_row 27
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Kati.Theme.activate()
     {:ok, Mob.Socket.assign(socket, :year, SampleYear.year())}
   end
 
   def render(assigns) do
-    shell = Kati.Shell.render(%{root: :stats, mode: :light, content: content(assigns)})
+    shell = Kati.Shell.render(%{root: :stats, content: content(assigns)})
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
@@ -100,7 +101,7 @@ defmodule Kati.Screens.StatsFa do
             max_lines={1}
           />
           <Spacer size={5} />
-          <Text text={year.range} font_family="fa" text_size={11.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={year.range} font_family="fa" text_size={11.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         {Fa.disc("ios_share")}
       </Row>
@@ -123,7 +124,7 @@ defmodule Kati.Screens.StatsFa do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.cream(:light)}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Theme.shadow_card_soft()}
         padding={19}
@@ -135,7 +136,7 @@ defmodule Kati.Screens.StatsFa do
               font_family="fa"
               text_size={11}
               font_weight="semibold"
-              text_color={0xFFB09A72}
+              text_color={Palette.cream_meta()}
               max_lines={1}
             />
             <Spacer size={7} />
@@ -155,17 +156,17 @@ defmodule Kati.Screens.StatsFa do
                   font_family="fa"
                   text_size={15}
                   font_weight="semibold"
-                  text_color={0xFFB09A72}
+                  text_color={Palette.cream_meta()}
                   max_lines={1}
                 />
               </Column>
             </Row>
           </Column>
           <Column padding_bottom={5}>
-            <Row height={28} corner_radius={14} background={0x294E9A73} padding_left={11} padding_right={11} align="center">
-              {Kati.UI.symbol("arrow_drop_up", size: 14, color: 0xFF3E8460, fill: true)}
+            <Row height={28} corner_radius={14} background={Palette.green_wash()} padding_left={11} padding_right={11} align="center">
+              {Kati.UI.symbol("arrow_drop_up", size: 14, color: Palette.green_text(), fill: true)}
               <Spacer size={5} />
-              <Text text={year.change} font_family="mono" text_size={11.5} text_color={0xFF3E8460} max_lines={1} />
+              <Text text={year.change} font_family="mono" text_size={11.5} text_color={Palette.green_text()} max_lines={1} />
             </Row>
           </Column>
         </Row>
@@ -173,9 +174,9 @@ defmodule Kati.Screens.StatsFa do
         {Kati.Screens.StatsFa.field()}
         <Spacer size={12} />
         <Row fill_width={true} align="center">
-          <Text text={year.weeks} font_family="fa" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={year.weeks} font_family="fa" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
           <Spacer weight={1.0} />
-          <Text text={year.streak} font_family="fa" text_size={10} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={year.streak} font_family="fa" text_size={10} text_color={Palette.cream_meta()} max_lines={1} />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -255,7 +256,7 @@ defmodule Kati.Screens.StatsFa do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding={15}
@@ -274,7 +275,7 @@ defmodule Kati.Screens.StatsFa do
           font_family="fa"
           text_size={11}
           font_weight="semibold"
-          text_color={0xFFA9A29A}
+          text_color={Palette.muted()}
           max_lines={1}
         />
       </Column>
@@ -292,7 +293,7 @@ defmodule Kati.Screens.StatsFa do
   def eyebrow(label), do: dash_label(label, Theme.accent())
 
   @doc "The same label with the muted dash the design gives a section you do not act on."
-  def quiet_eyebrow(label), do: dash_label(label, 0xFFC4BDB3)
+  def quiet_eyebrow(label), do: dash_label(label, Palette.rail_idle())
 
   defp dash_label(label, dash) do
     ~MOB"""
@@ -300,7 +301,7 @@ defmodule Kati.Screens.StatsFa do
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
-        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={0xFFA0998F} />
+        <Text text={label} font_family="fa" text_size={11} font_weight="semibold" text_color={Palette.eyebrow()} />
       </Row>
       <Spacer size={11} />
     </Column>
@@ -315,7 +316,7 @@ defmodule Kati.Screens.StatsFa do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding={17}
@@ -359,7 +360,7 @@ defmodule Kati.Screens.StatsFa do
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
-          <Box fill_width={true} height={8} corner_radius={4} background={0xFFEFECE7}>
+          <Box fill_width={true} height={8} corner_radius={4} background={Palette.paper()}>
             <Row fill_width={true}>
               <Box weight={share} height={8} corner_radius={4} background={color} />
               <Spacer weight={1.0 - share} />
@@ -372,7 +373,7 @@ defmodule Kati.Screens.StatsFa do
             text={value}
             font_family="mono"
             text_size={11}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             text_align="absolute_left"
             max_lines={1}
           />
@@ -393,7 +394,7 @@ defmodule Kati.Screens.StatsFa do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Theme.shadow_card_soft()}
         padding={17}
@@ -418,7 +419,7 @@ defmodule Kati.Screens.StatsFa do
 
   @doc false
   def week_bar(height, on?) do
-    color = if on?, do: Theme.ink(), else: 0xFFE4E0D9
+    color = if on?, do: Palette.ink(), else: Palette.placeholder()
 
     ~MOB"<Box weight={1.0} height={height} corner_radius={5} background={color} />"
   end
@@ -431,7 +432,7 @@ defmodule Kati.Screens.StatsFa do
         text={day}
         font_family="fa"
         text_size={10.5}
-        text_color={0xFFB3ACA2}
+        text_color={Palette.tertiary()}
         text_align="center"
         max_lines={1}
       />
@@ -444,10 +445,10 @@ defmodule Kati.Screens.StatsFa do
   @doc false
   def note(year) do
     ~MOB"""
-    <Row fill_width={true} corner_radius={18} border_color={0x291A1917} border_width={1.5} padding={15} align="top">
-      {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+    <Row fill_width={true} corner_radius={18} border_color={Palette.border()} border_width={1.5} padding={15} align="top">
+      {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={year.note} font_family="fa" text_size={12.5} line_height={1.7} text_color={0xFF5C574F} weight={1.0} />
+      <Text text={year.note} font_family="fa" text_size={12.5} line_height={1.7} text_color={Palette.ink_soft()} weight={1.0} />
     </Row>
     """
   end

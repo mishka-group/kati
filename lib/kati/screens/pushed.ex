@@ -43,8 +43,9 @@ defmodule Kati.Screens.Pushed do
       @back_label unquote(back_label)
 
       def mount(params, _session, socket) do
-        # The resolved palette, not `Kati.Theme.light()` — see the note in
-        # `Kati.Screens.Root`'s macro. A push is the commonest navigation in the
+        # The resolved palette, where this used to pin the light one — see the
+        # note in `Kati.Screens.Root`'s macro, including why neither comment
+        # spells the old call out. A push is the commonest navigation in the
         # app, so this was the single call that most often threw the user's
         # choice away.
         Kati.Theme.activate()

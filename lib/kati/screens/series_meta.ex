@@ -426,7 +426,7 @@ defmodule Kati.Screens.SeriesMeta do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}

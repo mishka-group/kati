@@ -22,6 +22,7 @@ defmodule Kati.Screens.ReleaseWatcher do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Settings.WatcherSample, as: Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -71,19 +72,19 @@ defmodule Kati.Screens.ReleaseWatcher do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
         align="center"
         on_tap={tap}
       >
-        {Kati.UI.symbol("auto_awesome", size: 24, color: 0xFFC98A3E)}
+        {Kati.UI.symbol("auto_awesome", size: 24, color: Palette.gold_icon())}
         <Spacer size={13} />
         <Column weight={1.0}>
           <Text text={b.title} text_size={14.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={b.meta} font_family="mono" text_size={10.5} text_color={0xFFB09A72} max_lines={1} />
+          <Text text={b.meta} font_family="mono" text_size={10.5} text_color={Palette.cream_meta()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {SettingsList.switch(b.on)}
@@ -154,7 +155,7 @@ defmodule Kati.Screens.ReleaseWatcher do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4} align="center">
+      <Row fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4} align="center">
         {tiles}
       </Row>
       <Spacer size={22} />
@@ -170,8 +171,8 @@ defmodule Kati.Screens.ReleaseWatcher do
     # The tag carries the cadence, so a fifth interval is a change to
     # `WatcherSample.cadences/0` and nothing else.
     tap = {self(), String.to_atom("cadence_" <> label)}
-    bg = if on?, do: 0xFFFBFAF8, else: 0x00FFFFFF
-    fg = if on?, do: Kati.Theme.ink(), else: 0xFFAFA89E
+    bg = if on?, do: Palette.card(), else: Palette.transparent()
+    fg = if on?, do: Palette.ink(), else: Palette.segment_idle()
     weight = if on?, do: "bold", else: "semibold"
     shadow = if on?, do: "0 1 2 0 #0F1A1917", else: "0 0 0 0 #00000000"
 

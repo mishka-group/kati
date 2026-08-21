@@ -39,10 +39,11 @@ defmodule Kati.Screens.ScheduleFa do
 
   alias Kati.Screens.Fa
   alias Kati.Screens.ScheduleFa.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Kati.Theme.activate()
 
     socket
     |> Mob.Socket.assign(:header, Sample.header())
@@ -93,7 +94,7 @@ defmodule Kati.Screens.ScheduleFa do
             text={header.subtitle}
             font_family="fa"
             text_size={11.5}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
         </Column>
@@ -132,7 +133,7 @@ defmodule Kati.Screens.ScheduleFa do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={16}
         shadow={Kati.Theme.shadow_button()}
         padding_top={9}
@@ -143,7 +144,7 @@ defmodule Kati.Screens.ScheduleFa do
           font_family="fa"
           font_weight="medium"
           text_size={11}
-          text_color={0xFF8A8479}
+          text_color={Palette.sub()}
           text_align="center"
         />
         <Spacer size={5} />
@@ -152,7 +153,7 @@ defmodule Kati.Screens.ScheduleFa do
           font_family="fa"
           font_weight="medium"
           text_size={15}
-          text_color={0xFF1A1917}
+          text_color={Palette.ink()}
           text_align="center"
         />
       </Column>
@@ -169,7 +170,7 @@ defmodule Kati.Screens.ScheduleFa do
           font_family="fa"
           font_weight="medium"
           text_size={11}
-          text_color={0xFFB3ACA2}
+          text_color={Palette.tertiary()}
           text_align="center"
         />
         <Spacer size={5} />
@@ -178,7 +179,7 @@ defmodule Kati.Screens.ScheduleFa do
           font_family="fa"
           font_weight="medium"
           text_size={15}
-          text_color={0xFF8A8479}
+          text_color={Palette.sub()}
           text_align="center"
         />
       </Column>
@@ -191,13 +192,13 @@ defmodule Kati.Screens.ScheduleFa do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        {UI.symbol("info", size: 15, color: 0xFFB3ACA2)}
+        {UI.symbol("info", size: 15, color: Palette.tertiary())}
         <Spacer size={8} />
         <Text
           text={Sample.week_note()}
           font_family="fa"
           text_size={11.5}
-          text_color={0xFF8A8479}
+          text_color={Palette.sub()}
         />
       </Row>
       <Spacer size={16} />
@@ -229,8 +230,8 @@ defmodule Kati.Screens.ScheduleFa do
 
   @doc false
   def chip(label, on?) do
-    bg = if on?, do: 0xFF1A1917, else: 0xFFFBFAF8
-    fg = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
+    bg = if on?, do: Palette.ink_fill(), else: Palette.card()
+    fg = if on?, do: Palette.on_ink(), else: Palette.ink_soft()
     shadow = if on?, do: nil, else: Kati.Theme.shadow_card_soft()
 
     ~MOB"""
@@ -259,14 +260,14 @@ defmodule Kati.Screens.ScheduleFa do
 
   @doc false
   def event_row(row) do
-    bg = if row.tone == :done, do: 0xFFF4F1EC, else: 0xFFFBFAF8
+    bg = if row.tone == :done, do: Palette.card_settled(), else: Palette.card()
     shadow = if row.tone == :done, do: nil, else: Kati.Theme.shadow_card_soft()
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={14}>
-          <Text text={row.time} font_family="fa" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.time} font_family="fa" text_size={12} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
@@ -293,7 +294,7 @@ defmodule Kati.Screens.ScheduleFa do
                 max_lines={1}
               />
               <Spacer size={3} />
-              <Text text={row.meta} font_family="fa" text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+              <Text text={row.meta} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
             </Column>
             {Kati.Screens.ScheduleFa.trailing(row.trailing)}
           </Row>
@@ -322,7 +323,7 @@ defmodule Kati.Screens.ScheduleFa do
   def lead({:icon, name}) do
     ~MOB"""
     <Column>
-      {Kati.UI.symbol(name, size: 21, color: 0xFFB3ACA2)}
+      {Kati.UI.symbol(name, size: 21, color: Palette.tertiary())}
     </Column>
     """
   end
@@ -333,7 +334,7 @@ defmodule Kati.Screens.ScheduleFa do
   # is, and with the same guarantee. With children, an explicit numeric
   # `color`, no `id` and no `on_tap`, `theme_icon/2` returns
   # `%{type: :box, props: %{width: 26, height: 26, align: :center,
-  # corner_radius: 8, background: 0xFFE4E0D9}, children: [glyph]}` — node for
+  # corner_radius: 8, background: Palette.placeholder()}, children: [glyph]}` — node for
   # node what this wrote by hand. `align: :center` and `align="center"` reach
   # the bridge identically; the glyph shorthand, the gradient layer and the id
   # markers are all skipped.
@@ -343,8 +344,8 @@ defmodule Kati.Screens.ScheduleFa do
   # of the row.
   def lead({:badge, name}) do
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFE4E0D9, size: 26, radius: 8},
-      [Kati.UI.symbol(name, size: 15, color: 0xFF5C574F)]
+      %{variant: :filled, color: Palette.placeholder(), size: 26, radius: 8},
+      [Kati.UI.symbol(name, size: 15, color: Palette.ink_soft())]
     )
   end
 
@@ -380,7 +381,7 @@ defmodule Kati.Screens.ScheduleFa do
           font_family="fa"
           font_weight="medium"
           text_size={12}
-          text_color={0xFF1A1917}
+          text_color={Palette.ink()}
           max_lines={1}
         />
       </Column>
@@ -388,13 +389,13 @@ defmodule Kati.Screens.ScheduleFa do
       <Box weight={1.0}>
         <Row
           fill_width={true}
-          background={0xFFFBFAF8}
+          background={Palette.card()}
           corner_radius={18}
           shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
           padding={15}
           align="top"
         >
-          <Box width={3} height={77} corner_radius={2} background={0xFFE8823C} />
+          <Box width={3} height={77} corner_radius={2} background={Palette.accent()} />
           <Spacer size={12} />
           {Kati.Screens.ScheduleFa.poster(feature.seed)}
           <Spacer size={12} />
@@ -408,24 +409,24 @@ defmodule Kati.Screens.ScheduleFa do
               max_lines={1}
             />
             <Spacer size={4} />
-            <Text text={feature.meta} font_family="fa" text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+            <Text text={feature.meta} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
             <Spacer size={9} />
             <Row
               height={24}
               corner_radius={12}
-              background={0xFFFBF1DE}
+              background={Palette.cream()}
               padding_left={10}
               padding_right={10}
               align="center"
             >
-              <Box width={5} height={5} corner_radius={3} background={0xFFE8823C} />
+              <Box width={5} height={5} corner_radius={3} background={Palette.accent()} />
               <Spacer size={5} />
               <Text
                 text={feature.pill}
                 font_family="fa"
                 font_weight="semibold"
                 text_size={11}
-                text_color={0xFF96723C}
+                text_color={Palette.gold_text()}
                 max_lines={1}
               />
             </Row>
@@ -440,7 +441,7 @@ defmodule Kati.Screens.ScheduleFa do
   def poster(seed) do
     case Kati.Design.Images.poster(seed) do
       nil ->
-        ~MOB"<Box width={42} height={60} corner_radius={8} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={42} height={60} corner_radius={8} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""

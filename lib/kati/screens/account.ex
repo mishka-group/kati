@@ -47,6 +47,7 @@ defmodule Kati.Screens.Account do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaSwitch
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -104,11 +105,12 @@ defmodule Kati.Screens.Account do
 
       %{type: :box,
         props: %{width: 44, height: 44, align: :center, corner_radius: 22,
-                 background: 0xFFFBFAF8, shadow: Kati.Theme.shadow_button()},
+                 background: Palette.card(), shadow: Kati.Theme.shadow_button()},
         children: [glyph]}
 
   — the same seven keys with the same seven values the hand-rolled `<Box>`
-  carried. `align: :center` and `align="center"` reach the bridge as the same
+  carried; `Palette.card/0` is `0xFFFBFAF8` in light, which is what that `<Box>`
+  wrote. `align: :center` and `align="center"` reach the bridge as the same
   string, since `align` is in none of the renderer's token whitelists and
   `:json.encode/1` writes an atom as its own name.
 
@@ -123,7 +125,11 @@ defmodule Kati.Screens.Account do
     MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: Kati.Theme.card(:light),
+        # `card`, not `on_ink` / `fab_glyph` / `on_media` — the other three
+        # meanings `Kati.Theme.Palette` gives `0xFFFBFAF8`. A disc is a surface
+        # floating above the page, so it follows the ground and goes `#1E1D1B`
+        # in dark, like every other card on this screen.
+        color: Palette.card(),
         size: 44,
         radius: 22,
         shadow: Kati.Theme.shadow_button()
@@ -138,7 +144,7 @@ defmodule Kati.Screens.Account do
     <Column fill_width={true}>
       <Text text="Account" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text="sync & access" font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text="sync & access" font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -149,14 +155,14 @@ defmodule Kati.Screens.Account do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
           max_lines={1}
         />
       </Row>
@@ -173,7 +179,7 @@ defmodule Kati.Screens.Account do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={22}
@@ -197,7 +203,7 @@ defmodule Kati.Screens.Account do
           text={i.relay}
           font_family="mono"
           text_size={10.5}
-          text_color={0xFFA9A29A}
+          text_color={Palette.muted()}
           text_align="center"
           max_lines={1}
         />
@@ -240,7 +246,7 @@ defmodule Kati.Screens.Account do
       src: Kati.Design.Images.poster(i.seed),
       size: 64,
       shape: :circle,
-      background: 0xFFE4E0D9
+      background: Palette.placeholder()
     )
   end
 
@@ -250,7 +256,7 @@ defmodule Kati.Screens.Account do
   @doc false
   def action(label) do
     ~MOB"""
-    <Box weight={1.0} height={42} corner_radius={21} background={0xFFEFECE7} align="center">
+    <Box weight={1.0} height={42} corner_radius={21} background={Palette.paper()} align="center">
       <Text text={label} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
     </Box>
     """
@@ -270,7 +276,7 @@ defmodule Kati.Screens.Account do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -303,7 +309,7 @@ defmodule Kati.Screens.Account do
         <Column weight={1.0}>
           <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Account.trailing(row)}
@@ -333,8 +339,8 @@ defmodule Kati.Screens.Account do
   """
   def icon_tile(name) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: 0xFF5C574F)]
+      %{variant: :filled, color: Palette.paper(), size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -343,7 +349,13 @@ defmodule Kati.Screens.Account do
     cond do
       Map.has_key?(row, :pill) -> Kati.Screens.Account.pill(row.pill)
       Map.has_key?(row, :toggle) -> Kati.Screens.Account.toggle(row.toggle)
-      true -> Kati.UI.symbol("chevron_right", size: 18, color: 0xFFC4BDB3)
+      # `rail_idle`, which is right by value and wrong by name: the token whose
+      # MEANING is "a faint chevron" is `tertiary`, but its light value is
+      # `0xFFB3ACA2` and this chevron is `0xFFC4BDB3`. The design draws two
+      # chevron greys and only one of them is `tertiary`; taking the better name
+      # would move light mode eleven units, so the value wins. Same call as
+      # `Kati.UI.SettingsList.chevron/0`.
+      true -> Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
     end
   end
 
@@ -409,7 +421,7 @@ defmodule Kati.Screens.Account do
   def pill(label) do
     MishkaPill.pill(
       label: label,
-      background: 0xFFEFECE7,
+      background: Palette.paper(),
       color: :on_surface,
       corner_radius: 15,
       height: 30,
@@ -450,10 +462,15 @@ defmodule Kati.Screens.Account do
       thumb_size: 22,
       thumb_radius: 11,
       thumb_inset: 3,
-      track_on_color: Kati.Theme.ink(),
-      track_off_color: 0xFFDCD7CF,
-      thumb_on_color: 0xFFFBFAF8,
-      thumb_off_color: 0xFFFBFAF8,
+      # The whole control inverts rather than following the ground, which is
+      # what the design does with every ink-filled control: `ink_fill` under
+      # `on_ink`, the pair screen 28 draws for the hero's CTA pill. Both thumb
+      # colours stay ONE token — the drawing's thumb does not change colour,
+      # only the track does, and that has to stay true in dark.
+      track_on_color: Palette.ink_fill(),
+      track_off_color: Palette.track_off(),
+      thumb_on_color: Palette.on_ink(),
+      thumb_off_color: Palette.on_ink(),
       thumb_shadow: "0 1 3 0 #4D1A1917"
     )
   end
@@ -462,14 +479,14 @@ defmodule Kati.Screens.Account do
   def privacy(a) do
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFFBF1DE} corner_radius={20} padding={16} align="top">
-        {Kati.UI.symbol("lock", size: 18, color: 0xFFC98A3E)}
+      <Row fill_width={true} background={Palette.cream()} corner_radius={20} padding={16} align="top">
+        {Kati.UI.symbol("lock", size: 18, color: Palette.gold_icon())}
         <Spacer size={11} />
         <Text
           text={a.privacy_note}
           text_size={12.5}
           line_height={1.55}
-          text_color={0xFF4A4238}
+          text_color={Palette.cream_body()}
           weight={1.0}
         />
       </Row>
@@ -511,7 +528,7 @@ defmodule Kati.Screens.Account do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @doc "The list a tap leaves behind, with the tapped row flipped."
   @spec flip([map()], String.t()) :: [map()]

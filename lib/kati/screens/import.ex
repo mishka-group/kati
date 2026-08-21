@@ -31,6 +31,7 @@ defmodule Kati.Screens.Import do
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Components.MishkaToggle
   alias Kati.Import.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -69,12 +70,12 @@ defmodule Kati.Screens.Import do
         <Row
           height={38}
           corner_radius={19}
-          background={Kati.Theme.ink()}
+          background={Palette.ink_fill()}
           padding_left={16}
           padding_right={16}
           align="center"
         >
-          <Text text={job.action} text_size={13} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+          <Text text={job.action} text_size={13} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
         </Row>
       </Row>
       <Spacer size={16} />
@@ -88,7 +89,7 @@ defmodule Kati.Screens.Import do
     <Column fill_width={true}>
       <Text text="Import" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text={job.subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={job.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -113,7 +114,7 @@ defmodule Kati.Screens.Import do
 
   @doc false
   def step_bar(done?) do
-    color = if done?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
+    color = if done?, do: Palette.ink(), else: Palette.track_off()
 
     ~MOB"<Box weight={1.0} height={4} corner_radius={2} background={color} />"
   end
@@ -124,7 +125,7 @@ defmodule Kati.Screens.Import do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
@@ -135,7 +136,7 @@ defmodule Kati.Screens.Import do
         <Column weight={1.0}>
           <Text text={job.file} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={job.shape} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={job.shape} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={13} />
         {Kati.UI.symbol("check_circle", size: 20, color: Kati.Theme.green(), fill: true)}
@@ -161,13 +162,14 @@ defmodule Kati.Screens.Import do
 
   With children and no `id`, `theme_icon/2` returns
   `%{type: :box, props: %{width: 38, height: 38, align: :center,
-  corner_radius: 11, background: 0xFFEFECE7}, children: [glyph]}` — node for
+  corner_radius: 11, background: Palette.paper()}, children: [glyph]}` — node
+  for
   node what the card wrote by hand.
   """
   def file_tile do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 38, radius: 11},
-      [Kati.UI.symbol("description", size: 20, color: 0xFF5C574F)]
+      %{variant: :filled, color: Palette.paper(), size: 38, radius: 11},
+      [Kati.UI.symbol("description", size: 20, color: Palette.ink_soft())]
     )
   end
 
@@ -179,7 +181,7 @@ defmodule Kati.Screens.Import do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -198,7 +200,7 @@ defmodule Kati.Screens.Import do
 
   @doc false
   def map_row(row, rule?) do
-    field_color = if row.skipped?, do: 0xFFB3ACA2, else: Kati.Theme.ink()
+    field_color = if row.skipped?, do: Palette.tertiary(), else: Palette.ink()
 
     ~MOB"""
     <Column fill_width={true}>
@@ -206,10 +208,10 @@ defmodule Kati.Screens.Import do
         <Column weight={1.0}>
           <Text text={row.column} font_family="mono" text_size={11} text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={row.sample} text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+          <Text text={row.sample} text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
         </Column>
         <Spacer size={11} />
-        {Kati.UI.symbol(row.icon, size: 15, color: 0xFFC4BDB3)}
+        {Kati.UI.symbol(row.icon, size: 15, color: Palette.rail_idle())}
         <Spacer size={11} />
         <Column width={106}>
           <Text
@@ -237,7 +239,7 @@ defmodule Kati.Screens.Import do
       <Spacer size={3} />
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        {Kati.Screens.Import.star_text(row.note, 10, 0xFFA0998F)}
+        {Kati.Screens.Import.star_text(row.note, 10, Palette.eyebrow())}
       </Row>
     </Column>
     """
@@ -296,7 +298,7 @@ defmodule Kati.Screens.Import do
     <Box weight={1.0}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={14}
@@ -315,7 +317,7 @@ defmodule Kati.Screens.Import do
           font_family="mono"
           text_size={10}
           letter_spacing={0.1}
-          text_color={0xFFA9A29A}
+          text_color={Palette.muted()}
           text_align="center"
           max_lines={1}
         />
@@ -329,14 +331,14 @@ defmodule Kati.Screens.Import do
     c = job.conflict
 
     ~MOB"""
-    <Column fill_width={true} background={0xFFFBF1DE} corner_radius={20} padding={15}>
+    <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={15}>
       <Row fill_width={true} align="center">
         {Kati.Screens.Import.conflict_poster(c)}
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text text={c.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          {Kati.Screens.Import.star_text(c.line, 11.5, 0xFF8A7B60)}
+          {Kati.Screens.Import.star_text(c.line, 11.5, Palette.cream_sub())}
         </Column>
       </Row>
       <Spacer size={12} />
@@ -350,7 +352,7 @@ defmodule Kati.Screens.Import do
         text={c.progress}
         font_family="mono"
         text_size={10.5}
-        text_color={0xFFB09A72}
+        text_color={Palette.cream_meta()}
         text_align="center"
         max_lines={1}
       />
@@ -427,19 +429,20 @@ defmodule Kati.Screens.Import do
   passes through and `:json.encode/1` writes an atom as its own name.
 
   The colour props map one for one onto the two branches: `color`/`text_color`
-  are the pressed pair (`#1A1917` / `#FBFAF8`), `background`/`label_color` the
-  idle pair (60% white on cream / `#8A7B60`), and `pressed` picks between them
-  exactly as the `if` did.
+  are the pressed pair — `Palette.ink_fill/0` under `Palette.on_ink/0`,
+  `#1A1917` / `#FBFAF8` in light — `background`/`label_color` the idle pair
+  (`Palette.cream_raise/0`, 60% white on cream, and `Palette.cream_sub/0`,
+  `#8A7B60`), and `pressed` picks between them exactly as the `if` did.
   """
   def choice({label, primary?}) do
     button =
       MishkaToggle.toggle(
         label: label,
         pressed: primary?,
-        color: Kati.Theme.ink(),
-        text_color: 0xFFFBFAF8,
-        background: 0x99FFFFFF,
-        label_color: 0xFF8A7B60,
+        color: Palette.ink_fill(),
+        text_color: Palette.on_ink(),
+        background: Palette.cream_raise(),
+        label_color: Palette.cream_sub(),
         corner_radius: 16,
         height: 32,
         padding: 0,
@@ -462,7 +465,7 @@ defmodule Kati.Screens.Import do
   def conflict_poster(c) do
     case Kati.Design.Images.poster(c.seed) do
       nil ->
-        ~MOB"<Box width={34} height={48} corner_radius={7} background={0xFFE4E0D9} />"
+        ~MOB"<Box width={34} height={48} corner_radius={7} background={Palette.placeholder()} />"
 
       src ->
         ~MOB"""
@@ -491,9 +494,12 @@ defmodule Kati.Screens.Import do
   `render: :box` swaps the primitive for a filled rect, where every row carries
   the full colour. The node becomes
 
-      <Box fill_width={true} height={1} background={0x121A1917}>
+      <Box fill_width={true} height={1} background={Palette.hairline()}>
         <Spacer size={1} />
       </Box>
+
+  — `0x121A1917` in light, and `0x12F5F2EE` in dark, which is the one
+  alpha-swap the design draws itself on screen 28.
 
   — Compose's own `Box(fillMaxWidth().height(1.dp).background(colour))`, which
   is the modifier chain this file wrote by hand before it adopted the component
@@ -513,5 +519,5 @@ defmodule Kati.Screens.Import do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: MishkaSeparator.separator(color: 0x121A1917, thickness: 1, render: :box)
+    do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 end

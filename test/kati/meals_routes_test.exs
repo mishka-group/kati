@@ -41,6 +41,28 @@ defmodule Kati.MealsRoutesTest do
   alias Kati.ScreenSweep
   alias Kati.Screens
 
+  # The resting-appearance assertions in this file are the DRAWING's numbers,
+  # and the drawing is light. That used to be a fact about the markup — screen
+  # 43 wrote `Kati.Theme.card(:light)`, which is one colour whoever asks. It is
+  # now a fact about the installed palette: the screen writes
+  # `Kati.Theme.Palette.card/0`, which resolves against `Mob.Theme.current/0`.
+  # So a file that asserts a light literal has to say that it means light.
+  #
+  # Without it the file passed or failed on the ExUnit seed. `push_graph/1`,
+  # two tests above, dispatches every tag every screen drew — including screen
+  # 24's Dark tile, which stores the choice and calls `Kati.Theme.activate/0`
+  # exactly as a real tap does — and the palette that leaves behind is
+  # application environment, one global for the whole run.
+  # `Kati.ScreenSweep.with_theme/1` now closes that at the source; this states
+  # the premise anyway, because a test asserting a colour should not depend on
+  # what some other pass left installed.
+  setup do
+    installed = Mob.Theme.current()
+    Mob.Theme.set(Kati.Theme.light())
+    on_exit(fn -> Mob.Theme.set(installed) end)
+    :ok
+  end
+
   # The route table, in the order a user walks it. Each row is
   # `{from, tag, to, why}` — `why` names the control in the drawing, so a
   # failure says which pixels it was supposed to belong to.

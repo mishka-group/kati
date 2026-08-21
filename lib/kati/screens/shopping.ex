@@ -34,6 +34,7 @@ defmodule Kati.Screens.Shopping do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Meals.SampleShopping
+  alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
 
   @impl true
@@ -63,7 +64,7 @@ defmodule Kati.Screens.Shopping do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
@@ -71,7 +72,7 @@ defmodule Kati.Screens.Shopping do
         <Row fill_width={true} align="center">
           <Text text={list.basket} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer weight={1.0} />
-          <Text text={list.estimate} font_family="mono" text_size={11.5} text_color={0xFF5C574F} max_lines={1} />
+          <Text text={list.estimate} font_family="mono" text_size={11.5} text_color={Palette.ink_soft()} max_lines={1} />
         </Row>
         <Spacer size={12} />
         {Kati.Screens.Shopping.progress(list.progress)}
@@ -87,9 +88,9 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def progress(fraction) do
     ~MOB"""
-    <Box fill_width={true} height={6} corner_radius={3} background={0xFFEFECE7}>
+    <Box fill_width={true} height={6} corner_radius={3} background={Palette.paper()}>
       <Row fill_width={true}>
-        <Box weight={fraction} height={6} corner_radius={3} background={Kati.Theme.ink()} />
+        <Box weight={fraction} height={6} corner_radius={3} background={Palette.ink()} />
         <Spacer weight={1.0 - fraction} />
       </Row>
     </Box>
@@ -130,8 +131,8 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def filter(label, true) do
     ~MOB"""
-    <Row height={32} corner_radius={16} background={Kati.Theme.ink()} padding_left={14} padding_right={14} align="center">
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFFFBFAF8} max_lines={1} />
+    <Row height={32} corner_radius={16} background={Palette.ink_fill()} padding_left={14} padding_right={14} align="center">
+      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.on_ink()} max_lines={1} />
     </Row>
     """
   end
@@ -141,13 +142,13 @@ defmodule Kati.Screens.Shopping do
     <Row
       height={32}
       corner_radius={16}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={14}
       padding_right={14}
       align="center"
     >
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
     </Row>
     """
   end
@@ -191,14 +192,14 @@ defmodule Kati.Screens.Shopping do
     <Column fill_width={true}>
       {Kati.Screens.Shopping.label(item)}
       <Spacer size={3} />
-      <Text text={item.meals} font_family="mono" text_size={10} text_color={0xFFC4BDB3} max_lines={1} />
+      <Text text={item.meals} font_family="mono" text_size={10} text_color={Palette.rail_idle()} max_lines={1} />
     </Column>
     """
   end
 
   @doc false
   def amount(item) do
-    color = if item.got, do: 0xFFC4BDB3, else: 0xFF5C574F
+    color = if item.got, do: Palette.rail_idle(), else: Palette.ink_soft()
 
     ~MOB"""
     <Text text={item.amount} font_family="mono" text_size={11.5} text_color={color} max_lines={1} />
@@ -208,8 +209,8 @@ defmodule Kati.Screens.Shopping do
   @doc false
   def tick(true) do
     ~MOB"""
-    <Box width={22} height={22} corner_radius={7} background={Kati.Theme.ink()} align="center">
-      {Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)}
+    <Box width={22} height={22} corner_radius={7} background={Palette.ink_fill()} align="center">
+      {Kati.UI.symbol("check", size: 14, color: Palette.on_ink())}
     </Box>
     """
   end
@@ -221,7 +222,7 @@ defmodule Kati.Screens.Shopping do
       height={22}
       corner_radius={7}
       border_width={1.5}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       align="center"
     />
     """
@@ -239,8 +240,8 @@ defmodule Kati.Screens.Shopping do
 
     ~MOB"""
     <Box fill_width={true} align="leading">
-      <Text text={item.name} text_size={13.5} font_weight="semibold" text_color={0xFFB3ACA2} max_lines={1} />
-      <Box width={width} height={1} background={0xFFB3ACA2} />
+      <Text text={item.name} text_size={13.5} font_weight="semibold" text_color={Palette.tertiary()} max_lines={1} />
+      <Box width={width} height={1} background={Palette.tertiary()} />
     </Box>
     """
   end
@@ -260,11 +261,11 @@ defmodule Kati.Screens.Shopping do
     ~MOB"""
     <Row fill_width={true} align="center">
       <Box weight={1.0}>
-        <Box fill_width={true} height={50} corner_radius={25} background={Kati.Theme.ink()} align="center">
+        <Box fill_width={true} height={50} corner_radius={25} background={Palette.ink_fill()} align="center">
           <Row align="center">
-            {Kati.UI.symbol("ios_share", size: 18, color: 0xFFFBFAF8)}
+            {Kati.UI.symbol("ios_share", size: 18, color: Palette.on_ink())}
             <Spacer size={8} />
-            <Text text="Send list" text_size={13.5} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+            <Text text="Send list" text_size={13.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
           </Row>
         </Box>
       </Box>
@@ -294,7 +295,7 @@ defmodule Kati.Screens.Shopping do
         size: 50,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_card_soft()
       ],
       [Kati.UI.symbol("add", size: 21)]

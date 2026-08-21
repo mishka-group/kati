@@ -52,7 +52,7 @@ defmodule Kati.Screens.Season do
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Season.Sample
-  alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -87,7 +87,7 @@ defmodule Kati.Screens.Season do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} background={0xFFE4E0D9} corner_radius={16} padding={4} align="center">
+      <Row fill_width={true} background={Palette.placeholder()} corner_radius={16} padding={4} align="center">
         {tiles}
       </Row>
       <Spacer size={18} />
@@ -106,7 +106,7 @@ defmodule Kati.Screens.Season do
         fill_width={true}
         height={34}
         corner_radius={12}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         shadow="0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
         align="center"
       >
@@ -120,7 +120,7 @@ defmodule Kati.Screens.Season do
     ~MOB"""
     <Box weight={1.0}>
       <Box fill_width={true} height={34} corner_radius={12} align="center">
-        <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFFAFA89E} max_lines={1} />
+        <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.segment_idle()} max_lines={1} />
       </Box>
     </Box>
     """
@@ -164,9 +164,9 @@ defmodule Kati.Screens.Season do
   @doc false
   def episode(ep) do
     watched? = ep.watched
-    bg = if watched?, do: 0xFFF4F1EC, else: Theme.card(:light)
-    title_color = if watched?, do: 0xFF9C958B, else: Theme.ink()
-    number_color = if Map.get(ep, :special, false), do: 0xFFC98A3E, else: 0xFFB3ACA2
+    bg = if watched?, do: Palette.card_settled(), else: Palette.card()
+    title_color = if watched?, do: Palette.settled_ink(), else: Palette.ink()
+    number_color = if Map.get(ep, :special, false), do: Palette.gold_icon(), else: Palette.tertiary()
 
     ~MOB"""
     <Column fill_width={true}>
@@ -242,7 +242,7 @@ defmodule Kati.Screens.Season do
           {Kati.Screens.Season.badge(Map.get(ep, :badge))}
         </Row>
         <Spacer size={4} />
-        <Text text={ep.sub} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+        <Text text={ep.sub} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
       </Column>
       <Spacer size={13} />
     </Row>
@@ -255,8 +255,8 @@ defmodule Kati.Screens.Season do
   def badge(badge) do
     {bg, fg} =
       case badge.tone do
-        :cream -> {Kati.Theme.cream(:light), 0xFF96723C}
-        _ -> {0xFFEFECE7, 0xFF5C574F}
+        :cream -> {Palette.cream(), Palette.gold_text()}
+        _ -> {Palette.paper(), Palette.ink_soft()}
       end
 
     ~MOB"""
@@ -306,17 +306,27 @@ defmodule Kati.Screens.Season do
   ring through `border_color` / `border_width`. `border_width` is read with
   `floatProp`, so the 1.5 survives.
 
+  ## The tick inverts, it does not follow
+
+  The disc is an ink-filled control, so it takes the pair the design draws for
+  one: `Palette.ink_fill/0` under `Palette.on_ink/0` — `#1A1917` + `#FBFAF8` in
+  light, `#F7EFE4` + `#1A1917` in dark, the fill swapping sides of the ramp
+  rather than darkening with the page. Screen 12's identical 27pt tick is
+  already written that way. `Kati.Theme.ink/0` was the fill before and takes no
+  mode, so in dark the disc and its check would both have been near-black.
+
   ## Why the pixels do not move
 
   `check(true)` returns `Box{width: 27, height: 27, align: :center,
-  corner_radius: 14, background: ink}` around the glyph — node for node what was
-  written by hand. `check(false)` adds one prop the hand-rolled version did not
-  carry, `align: :center`, on a box with no children: there is nothing to align.
+  corner_radius: 14, background: ink_fill}` around the glyph — node for node what
+  was written by hand. `check(false)` adds one prop the hand-rolled version did
+  not carry, `align: :center`, on a box with no children: there is nothing to
+  align.
   """
   def check(true) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Kati.Theme.ink(), size: 27, radius: 14},
-      [Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)]
+      %{variant: :filled, color: Palette.ink_fill(), size: 27, radius: 14},
+      [Kati.UI.symbol("check", size: 16, color: Palette.on_ink())]
     )
   end
 
@@ -325,7 +335,7 @@ defmodule Kati.Screens.Season do
       variant: :subtle,
       size: 27,
       radius: 14,
-      border_color: 0x291A1917,
+      border_color: Palette.border(),
       border_width: 1.5
     })
   end
@@ -342,13 +352,13 @@ defmodule Kati.Screens.Season do
         fill_width={true}
         corner_radius={18}
         border_width={1.5}
-        border_color={0x291A1917}
+        border_color={Palette.border()}
         padding={15}
         align="top"
       >
-        {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+        {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
         <Spacer size={11} />
-        <Text text={s.note} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
+        <Text text={s.note} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
       </Row>
     </Column>
     """

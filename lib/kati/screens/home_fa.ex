@@ -37,10 +37,11 @@ defmodule Kati.Screens.HomeFa do
   alias Kati.Screens.Fa
   alias Kati.Screens.HomeFa.Sample
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Kati.Theme.activate()
 
     socket
     |> Mob.Socket.assign(:moment, Sample.moment())
@@ -83,7 +84,7 @@ defmodule Kati.Screens.HomeFa do
             font_family="fa"
             font_weight="medium"
             text_size={11.5}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
           <Spacer size={7} />
@@ -113,7 +114,7 @@ defmodule Kati.Screens.HomeFa do
       <Box
         fill_width={true}
         height={52}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={26}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={18}
@@ -121,13 +122,13 @@ defmodule Kati.Screens.HomeFa do
         on_tap={tap}
       >
         <Row fill_width={true} fill_height={true} align="center">
-          {UI.symbol("search", size: 20, color: 0xFFA9A29A)}
+          {UI.symbol("search", size: 20, color: Palette.muted())}
           <Spacer size={11} />
           <Text
             text="جست‌وجوی فیلم، سریال، رویداد…"
             font_family="fa"
             text_size={14}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             weight={1.0}
             max_lines={1}
           />
@@ -148,7 +149,7 @@ defmodule Kati.Screens.HomeFa do
     <Column fill_width={true}>
       <Box
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={19}
@@ -170,7 +171,7 @@ defmodule Kati.Screens.HomeFa do
                 font_family="fa"
                 text_size={12.5}
                 line_height={1.6}
-                text_color={0xFF8A7B60}
+                text_color={Palette.cream_sub()}
               />
             </Column>
             <Spacer size={14} />
@@ -181,7 +182,7 @@ defmodule Kati.Screens.HomeFa do
             <Row
               height={40}
               corner_radius={20}
-              background={Kati.Theme.ink()}
+              background={Palette.ink_fill()}
               padding_left={18}
               padding_right={18}
               align="center"
@@ -192,14 +193,14 @@ defmodule Kati.Screens.HomeFa do
                 font_family="fa"
                 font_weight="semibold"
                 text_size={13}
-                text_color={0xFFFBFAF8}
+                text_color={Palette.on_ink()}
                 max_lines={1}
               />
               <Spacer size={7} />
-              {UI.symbol("arrow_back", size: 17, color: 0xFFFBFAF8)}
+              {UI.symbol("arrow_back", size: 17, color: Palette.on_ink())}
             </Row>
             <Spacer size={10} />
-            <Text text={inbox.checked} font_family="fa" text_size={11} text_color={0xFFB09A72} max_lines={1} />
+            <Text text={inbox.checked} font_family="fa" text_size={11} text_color={Palette.cream_meta()} max_lines={1} />
           </Row>
         </Column>
       </Box>
@@ -235,9 +236,9 @@ defmodule Kati.Screens.HomeFa do
       height={64}
       offset_x={offset}
       corner_radius={9}
-      background={0xFFEADFC6}
+      background={Palette.poster_on_cream()}
       border_width={2}
-      border_color={0xFFFBF1DE}
+      border_color={Palette.cream()}
       shadow={Kati.Theme.shadow_poster()}
       align="center"
     >
@@ -320,21 +321,21 @@ defmodule Kati.Screens.HomeFa do
         render: :box,
         height: 4,
         corner_radius: 2,
-        track_color: 0xFFE7E3DC,
-        color: Kati.Theme.ink()
+        track_color: Palette.track(),
+        color: Palette.ink()
       )
 
     ~MOB"""
     <Box weight={1.0}>
       <Box
         fill_width={true}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={11}
       >
         <Column fill_width={true}>
-          <Box fill_width={true} height={112} corner_radius={12} background={0xFFE4E0D9}>
+          <Box fill_width={true} height={112} corner_radius={12} background={Palette.placeholder()}>
             {Kati.Screens.HomeFa.still(item.seed)}
           </Box>
           <Spacer size={11} />
@@ -347,7 +348,7 @@ defmodule Kati.Screens.HomeFa do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={item.meta} font_family="fa" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={item.meta} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
           <Spacer size={10} />
           {bar}
         </Column>
@@ -395,7 +396,7 @@ defmodule Kati.Screens.HomeFa do
     <Box weight={1.0}>
       <Box
         fill_width={true}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={18}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={12}
@@ -436,7 +437,7 @@ defmodule Kati.Screens.HomeFa do
     ~MOB"""
     <Column>
       <Spacer size={3} />
-      <Text text={meta} font_family="fa" text_size={10} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={meta} font_family="fa" text_size={10} text_color={Palette.muted()} max_lines={1} />
     </Column>
     """
   end
@@ -449,7 +450,7 @@ defmodule Kati.Screens.HomeFa do
     ~MOB"""
     <Box
       fill_width={true}
-      background={0xFFFBFAF8}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
@@ -468,13 +469,13 @@ defmodule Kati.Screens.HomeFa do
 
   @doc false
   def timeline_row(row, rule?) do
-    rule = if row.now?, do: Theme.accent(), else: 0xFFC4BDB3
+    rule = if row.now?, do: Theme.accent(), else: Palette.rail_idle()
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
         <Box width={42}>
-          <Text text={row.time} font_family="fa" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.time} font_family="fa" text_size={12} text_color={Palette.muted()} max_lines={1} />
         </Box>
         <Spacer size={14} />
         <Box width={3} height={34} corner_radius={2} background={rule} />
@@ -489,7 +490,7 @@ defmodule Kati.Screens.HomeFa do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={row.meta} font_family="fa" text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+          <Text text={row.meta} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
       </Row>
       {Kati.Screens.HomeFa.hairline(rule?)}
@@ -541,7 +542,7 @@ defmodule Kati.Screens.HomeFa do
 
   def hairline(true) do
     Kati.Components.MishkaSeparator.separator(
-      color: 0x121A1917,
+      color: Palette.hairline(),
       thickness: 1,
       render: :box
     )

@@ -44,6 +44,7 @@ defmodule Kati.Screens.SeriesSettings do
 
   alias Kati.Components.MishkaThemeIcon
   alias Kati.SeriesSettings.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -95,6 +96,13 @@ defmodule Kati.Screens.SeriesSettings do
   # The chosen tile carries a heavier, tighter shadow than the card recipe —
   # `0 12px 24px -14px rgba(26,25,23,.9)` — so it reads as pressed into the
   # paper rather than floating over it like its two neighbours.
+  #
+  # It is an ink-filled control, so it takes the pair the design draws for one:
+  # `Palette.ink_fill/0` under `Palette.on_ink/0`. Screen 28 draws that pair —
+  # `#1A1917` + `#FBFAF8` becomes `#F7EFE4` + `#1A1917`, the fill inverting
+  # rather than following the ground. `Kati.Theme.ink/0` was the fill before and
+  # takes no mode, so in dark the tile, its glyph and its label would all three
+  # have been near-black.
   @doc false
   def status(%{on: true} = s) do
     ~MOB"""
@@ -102,7 +110,7 @@ defmodule Kati.Screens.SeriesSettings do
       <Column
         fill_width={true}
         corner_radius={18}
-        background={Kati.Theme.ink()}
+        background={Palette.ink_fill()}
         shadow="0 12 24 -14 #E61A1917"
         padding_left={10}
         padding_right={10}
@@ -111,11 +119,11 @@ defmodule Kati.Screens.SeriesSettings do
       >
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          {Kati.UI.symbol(s.icon, size: 21, color: 0xFFFBFAF8)}
+          {Kati.UI.symbol(s.icon, size: 21, color: Palette.on_ink())}
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={8} />
-        <Text text={s.label} text_size={12} font_weight="bold" text_color={0xFFFBFAF8} text_align="center" max_lines={1} />
+        <Text text={s.label} text_size={12} font_weight="bold" text_color={Palette.on_ink()} text_align="center" max_lines={1} />
       </Column>
     </Box>
     """
@@ -127,7 +135,7 @@ defmodule Kati.Screens.SeriesSettings do
       <Column
         fill_width={true}
         corner_radius={18}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={10}
         padding_right={10}
@@ -136,11 +144,11 @@ defmodule Kati.Screens.SeriesSettings do
       >
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          {Kati.UI.symbol(s.icon, size: 21, color: 0xFF8A8479)}
+          {Kati.UI.symbol(s.icon, size: 21, color: Palette.sub())}
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={8} />
-        <Text text={s.label} text_size={12} font_weight="bold" text_color={0xFF5C574F} text_align="center" max_lines={1} />
+        <Text text={s.label} text_size={12} font_weight="bold" text_color={Palette.ink_soft()} text_align="center" max_lines={1} />
       </Column>
     </Box>
     """
@@ -217,20 +225,22 @@ defmodule Kati.Screens.SeriesSettings do
 
   With children and no `id` the component returns
   `%{type: :box, props: %{width: 30, height: 30, align: :center,
-  corner_radius: 9, background: 0x1AB4553C}, children: [glyph]}` — node for node
-  what this wrote by hand.
+  corner_radius: 9, background: Palette.red_wash()}, children: [glyph]}` — node
+  for node what this wrote by hand. `red_wash/0` is that stated 10%, and red is a
+  hue: `Kati.Theme.dark/0` keeps `error: @red`, so neither the tint nor the glyph
+  moves with the mode.
   """
   def danger_tile(name) do
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0x1AB4553C, size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: 0xFFB4553C)]
+      %{variant: :filled, color: Palette.red_wash(), size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: Palette.red())]
     )
   end
 
   @doc false
   def danger_body(title) do
     ~MOB"""
-    <Text text={title} text_size={13.5} font_weight="semibold" text_color={0xFFB4553C} max_lines={1} />
+    <Text text={title} text_size={13.5} font_weight="semibold" text_color={Palette.red()} max_lines={1} />
     """
   end
 end

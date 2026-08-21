@@ -36,9 +36,10 @@ defmodule Kati.Screens.Onboarding do
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Onboarding.Sample
+  alias Kati.Theme.Palette
 
   def mount(_params, _session, socket) do
-    Mob.Theme.set(Kati.Theme.light())
+    Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :flow, Sample.flow())}
   end
 
@@ -65,7 +66,7 @@ defmodule Kati.Screens.Onboarding do
     ~MOB"""
     <Column fill_width={true} padding_top={26}>
       {Kati.Screens.Onboarding.steps(1)}
-      <Box width={56} height={56} corner_radius={18} background={Kati.Theme.ink()} align="center">
+      <Box width={56} height={56} corner_radius={18} background={Palette.ink()} align="center">
         <Box width={13} height={13} corner_radius={7} background={Kati.Theme.accent()} />
       </Box>
       <Spacer size={20} />
@@ -78,10 +79,10 @@ defmodule Kati.Screens.Onboarding do
         text_color={:on_surface}
       />
       <Spacer size={14} />
-      <Text text={w.body} text_size={14.5} line_height={1.6} text_color={0xFF5C574F} />
+      <Text text={w.body} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
       <Spacer size={24} />
-      <Box fill_width={true} height={54} corner_radius={27} background={Kati.Theme.ink()} align="center">
-        <Text text={w.cta} text_size={14.5} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+      <Box fill_width={true} height={54} corner_radius={27} background={Palette.ink_fill()} align="center">
+        <Text text={w.cta} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
       </Box>
     </Column>
     """
@@ -108,7 +109,7 @@ defmodule Kati.Screens.Onboarding do
 
   @doc false
   def step_bar(done?) do
-    color = if done?, do: Kati.Theme.ink(), else: 0xFFDCD7CF
+    color = if done?, do: Palette.ink(), else: Palette.track_off()
 
     ~MOB"<Box weight={1.0} height={4} corner_radius={2} background={color} />"
   end
@@ -134,7 +135,7 @@ defmodule Kati.Screens.Onboarding do
   `render: :box` swaps in a filled rect, whose every pixel row carries the whole
   colour:
 
-      <Box fill_width={true} height={1} background={0x1A1A1917}>
+      <Box fill_width={true} height={1} background={Palette.hairline_strong()}>
         <Spacer size={1} />
       </Box>
 
@@ -152,7 +153,7 @@ defmodule Kati.Screens.Onboarding do
   and this break carries none.
   """
   def divider do
-    rule = MishkaSeparator.separator(color: 0x1A1A1917, thickness: 1, render: :box)
+    rule = MishkaSeparator.separator(color: Palette.hairline_strong(), thickness: 1, render: :box)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -177,7 +178,7 @@ defmodule Kati.Screens.Onboarding do
         text_color={:on_surface}
       />
       <Spacer size={10} />
-      <Text text={t.body} text_size={13.5} line_height={1.55} text_color={0xFF5C574F} />
+      <Text text={t.body} text_size={13.5} line_height={1.55} text_color={Palette.ink_soft()} />
       <Spacer size={18} />
       {t.options
        |> Enum.map(fn option -> Kati.Screens.Onboarding.option(option) end)
@@ -196,18 +197,18 @@ defmodule Kati.Screens.Onboarding do
     ~MOB"""
     <Row
       fill_width={true}
-      background={Kati.Theme.ink()}
+      background={Palette.ink_fill()}
       corner_radius={20}
       shadow="0 12 24 -14 #E61A1917"
       padding={15}
       align="center"
     >
-      {Kati.UI.symbol(option.icon, size: 21, color: 0xFFFBFAF8)}
+      {Kati.UI.symbol(option.icon, size: 21, color: Palette.on_ink())}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text text={option.title} text_size={14} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+        <Text text={option.title} text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
         <Spacer size={3} />
-        <Text text={option.sub} text_size={11.5} text_color={0x99FBFAF8} max_lines={1} />
+        <Text text={option.sub} text_size={11.5} text_color={Palette.on_ink_count()} max_lines={1} />
       </Column>
       <Spacer size={13} />
       {Kati.Screens.Onboarding.tick(22, 11, 14)}
@@ -219,18 +220,18 @@ defmodule Kati.Screens.Onboarding do
     ~MOB"""
     <Row
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={15}
       align="center"
     >
-      {Kati.UI.symbol(option.icon, size: 21, color: 0xFF8A8479)}
+      {Kati.UI.symbol(option.icon, size: 21, color: Palette.sub())}
       <Spacer size={13} />
       <Column weight={1.0}>
         <Text text={option.title} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer size={3} />
-        <Text text={option.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+        <Text text={option.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
     </Row>
     """
@@ -272,10 +273,29 @@ defmodule Kati.Screens.Onboarding do
   ligature `"check"` would be typeset as the word, and it sizes the glyph at
   `round(size * 0.55)`, which is 12 on a 22pt disc and 13 on a 24pt one where
   the drawing asks for 14 and 15.
+
+  ## The one colour on this screen that stays a literal
+
+  The tick itself is still `0xFFFBFAF8` rather than a `Kati.Theme.Palette`
+  token, and deliberately. Its ground is the **accent**, which is a hue: screen
+  28 keeps `#E8823C` at full strength on near-black, so this disc is the same
+  orange in both modes. A mark on a ground that does not move must not move
+  either — and none of the four tokens that carry `0xFFFBFAF8` says that. `card`
+  (`#1E1D1B`), `on_ink` (`#1A1917`) and `fab_glyph` (`#16150F`) would all turn
+  the tick near-black over an unchanged orange disc; `on_media` does hold at
+  `#FBFAF8`, but it is named and documented for a ground that is a
+  **photograph**, and this one is not.
+
+  So the literal stays until the palette has a name for *a mark on a hue*.
+  Leaving it is exactly what `on_media` would have painted, in both modes —
+  the difference is only that the call site does not claim a meaning the table
+  has not agreed to.
   """
   def tick(size, radius, glyph) do
     MishkaThemeIcon.theme_icon(
       %{variant: :filled, color: Kati.Theme.accent(), size: size, radius: radius},
+      # Not a Palette token: the ground is the accent, a hue that is identical
+      # in both modes. See the section above.
       [Kati.UI.symbol("check", size: glyph, color: 0xFFFBFAF8)]
     )
   end
@@ -298,19 +318,19 @@ defmodule Kati.Screens.Onboarding do
         text_color={:on_surface}
       />
       <Spacer size={10} />
-      <Text text={f.body} text_size={13.5} line_height={1.55} text_color={0xFF5C574F} />
+      <Text text={f.body} text_size={13.5} line_height={1.55} text_color={Palette.ink_soft()} />
       <Spacer size={18} />
       {Enum.map(rows, fn row -> Kati.Screens.Onboarding.poster_row(row) end)}
       <Spacer size={9} />
-      <Box fill_width={true} height={52} corner_radius={26} background={Kati.Theme.ink()} align="center">
-        <Text text={f.cta} text_size={14} font_weight="bold" text_color={0xFFFBFAF8} max_lines={1} />
+      <Box fill_width={true} height={52} corner_radius={26} background={Palette.ink_fill()} align="center">
+        <Text text={f.cta} text_size={14} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
       </Box>
       <Spacer size={14} />
       <Text
         text={f.skip}
         text_size={13}
         font_weight="semibold"
-        text_color={0xFF8A8479}
+        text_color={Palette.sub()}
         text_align="center"
       />
     </Column>
@@ -357,7 +377,7 @@ defmodule Kati.Screens.Onboarding do
       fill_width={true}
       aspect_ratio={0.6667}
       corner_radius={17}
-      border_color={0xFF1A1917}
+      border_color={Palette.ink()}
       border_width={2.5}
     >
       <Column fill_width={true} fill_height={true} padding={4}>
@@ -365,7 +385,7 @@ defmodule Kati.Screens.Onboarding do
           fill_width={true}
           fill_height={true}
           corner_radius={13}
-          background={0xFFE4E0D9}
+          background={Palette.placeholder()}
           shadow={Kati.Theme.shadow_card_soft()}
         >
           {Kati.Screens.Onboarding.art(p)}
@@ -386,7 +406,7 @@ defmodule Kati.Screens.Onboarding do
       fill_width={true}
       aspect_ratio={0.6667}
       corner_radius={13}
-      background={0xFFE4E0D9}
+      background={Palette.placeholder()}
       shadow={Kati.Theme.shadow_card_soft()}
     >
       {Kati.Screens.Onboarding.art(p)}

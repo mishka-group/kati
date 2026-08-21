@@ -58,6 +58,7 @@ defmodule Kati.Screens.Subscriptions do
   use Kati.Screens.Pushed, back: "Stats"
 
   alias Kati.Subscriptions.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
@@ -124,7 +125,7 @@ defmodule Kati.Screens.Subscriptions do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Kati.Theme.card(:light),
+        background: Palette.card(),
         shadow: Kati.Theme.shadow_button(),
         on_tap: {self(), :open_menu}
       ],
@@ -138,7 +139,7 @@ defmodule Kati.Screens.Subscriptions do
     <Column fill_width={true}>
       <Text text="Subscriptions" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
       <Spacer size={5} />
-      <Text text={Kati.Subscriptions.Sample.active_line()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={Kati.Subscriptions.Sample.active_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -152,23 +153,23 @@ defmodule Kati.Screens.Subscriptions do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={24}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={19}
       >
-        <Text text={String.upcase(m.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={0xFFB09A72} />
+        <Text text={String.upcase(m.label)} font_family="mono" text_size={10.5} letter_spacing={0.16} text_color={Palette.cream_meta()} />
         <Spacer size={7} />
         <Text text={m.total} text_size={36} font_weight="extrabold" letter_spacing={-0.04} text_color={:on_surface} />
         <Spacer size={12} />
         <Row fill_width={true} align="center">
-          {Kati.UI.symbol("trending_up", size: 15, color: 0xFFB4553C)}
+          {Kati.UI.symbol("trending_up", size: 15, color: Palette.red())}
           <Spacer size={7} />
-          <Text text={m.change_lead} text_size={12.5} text_color={0xFF8A7B60} max_lines={1} />
+          <Text text={m.change_lead} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
           <Spacer size={4} />
           <Text text={m.change_amount} text_size={12.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={m.change_rest} text_size={12.5} text_color={0xFF8A7B60} max_lines={1} />
+          <Text text={m.change_rest} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
           <Spacer weight={1.0} />
         </Row>
       </Column>
@@ -191,7 +192,7 @@ defmodule Kati.Screens.Subscriptions do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={15}
@@ -209,8 +210,8 @@ defmodule Kati.Screens.Subscriptions do
   @doc false
   def service_row(row, rule?) do
     paused? = Map.get(row, :paused, false)
-    name_color = if paused?, do: 0xFF8A8479, else: Kati.Theme.ink()
-    line_color = if paused?, do: 0xFFB3ACA2, else: 0xFF8A8479
+    name_color = if paused?, do: Palette.sub(), else: Palette.ink()
+    line_color = if paused?, do: Palette.tertiary(), else: Palette.sub()
 
     ~MOB"""
     <Column fill_width={true}>
@@ -252,7 +253,7 @@ defmodule Kati.Screens.Subscriptions do
     """
 
     Kati.Components.MishkaAvatar.avatar(
-      [size: 32, shape: :rounded, background: 0xFFEFECE7],
+      [size: 32, shape: :rounded, background: Palette.paper()],
       [glyph]
     )
   end
@@ -263,7 +264,7 @@ defmodule Kati.Screens.Subscriptions do
   @doc false
   def money(row, true) do
     ~MOB"""
-    <Text text={row.price} font_family="mono" text_size={12} text_color={0xFFB3ACA2} max_lines={1} />
+    <Text text={row.price} font_family="mono" text_size={12} text_color={Palette.tertiary()} max_lines={1} />
     """
   end
 
@@ -304,15 +305,15 @@ defmodule Kati.Screens.Subscriptions do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={17}
     >
       <Row fill_width={true} align="top">
-        {Kati.UI.symbol("lightbulb", size: 19, color: 0xFFE8823C)}
+        {Kati.UI.symbol("lightbulb", size: 19, color: Palette.accent())}
         <Spacer size={11} />
-        <Text text={s.body} text_size={13} line_height={1.55} text_color={0xFF4A4238} weight={1.0} />
+        <Text text={s.body} text_size={13} line_height={1.55} text_color={Palette.cream_body()} weight={1.0} />
       </Row>
       <Spacer size={15} />
       <Row fill_width={true} align="center">
@@ -328,9 +329,14 @@ defmodule Kati.Screens.Subscriptions do
   # two drawn button treatments and not a spectrum: ink on paper for the primary,
   # `#EFECE7` on `#5C574F` for the secondary. "Already asked for" is the primary
   # wearing the secondary's clothes — no new colour enters the card.
+  #
+  # The primary is `ink_fill` / `on_ink`, which is the pair screen 28 inverts:
+  # ink filled with paper in light, paper filled with ink in dark. It is NOT
+  # `ink` / `card`, whose light values are the same two numbers and whose dark
+  # values would leave this button ink-on-ink.
   @doc false
-  def confirm(label, false), do: confirm_button(label, Kati.Theme.ink(), 0xFFFBFAF8)
-  def confirm(label, true), do: confirm_button(label, 0xFFEFECE7, 0xFF5C574F)
+  def confirm(label, false), do: confirm_button(label, Palette.ink_fill(), Palette.on_ink())
+  def confirm(label, true), do: confirm_button(label, Palette.paper(), Palette.ink_soft())
 
   @doc """
   The primary button of the suggestion card, sharing its row with `dismiss/1`.
@@ -397,8 +403,8 @@ defmodule Kati.Screens.Subscriptions do
     tap = {self(), :dismiss}
 
     ~MOB"""
-    <Row height={40} corner_radius={20} background={0xFFEFECE7} padding_left={15} padding_right={15} align="center" on_tap={tap}>
-      <Text text={label} text_size={12.5} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+    <Row height={40} corner_radius={20} background={Palette.paper()} padding_left={15} padding_right={15} align="center" on_tap={tap}>
+      <Text text={label} text_size={12.5} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
     </Row>
     """
   end
@@ -409,7 +415,7 @@ defmodule Kati.Screens.Subscriptions do
   ## `Kati.Components.MishkaSeparator`, and only because of `render: :box`
 
   A rule between rows is exactly what a separator is, and the port's API always
-  fitted — `separator(color: 0x121A1917)` at its default `thickness: 1` is this
+  fitted — `separator(color: Palette.hairline())` at its default `thickness: 1` is this
   line. What did not fit was what it *drew*. On its default `render: :divider`
   the port emits `<Divider>`, which `MobBridge` hands to Material 3's
   `HorizontalDivider`, and in 1.2.0 that composable is not a filled box:
@@ -432,10 +438,10 @@ defmodule Kati.Screens.Subscriptions do
   always used on its vertical axis, and a filled rect has no antialiased edge,
   so all three device-pixel rows carry the full colour.
 
-  **The pixels are the same node.** `separator(color: 0x121A1917, render: :box)`
+  **The pixels are the same node.** `separator(color: Palette.hairline(), render: :box)`
   builds
 
-      <Box fill_width={true} height={1} background={0x121A1917}>
+      <Box fill_width={true} height={1} background={Palette.hairline()}>
         <Spacer size={1} />
       </Box>
 
@@ -448,7 +454,7 @@ defmodule Kati.Screens.Subscriptions do
   def hairline(false), do: ~MOB"<Spacer size={0} />"
 
   def hairline(true),
-    do: Kati.Components.MishkaSeparator.separator(color: 0x121A1917, render: :box)
+    do: Kati.Components.MishkaSeparator.separator(color: Palette.hairline(), render: :box)
 
   # `:remind` toggles rather than latches, so the one control that arms it can
   # also cancel it. There is nowhere else on this screen to cancel from, and a

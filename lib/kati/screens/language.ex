@@ -58,6 +58,7 @@ defmodule Kati.Screens.Language do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Language.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -125,6 +126,11 @@ defmodule Kati.Screens.Language do
   # are opt-in as a pair in this bridge and a nil colour draws a black hairline
   # rather than nothing.
   #
+  # The ring is `ink`, not `ink_fill`: it is a mark drawn ON the card, not a
+  # control filled with ink, so it takes the ink ramp's dark twin rather than
+  # the CTA pill's inversion. Same call `Kati.Screens.Onboarding.poster_art/1`
+  # makes for its selected 2.5pt ring.
+  #
   # The selected row carries no `on_tap`, which is the drawing's own decision
   # and is kept: choosing the language you are already in is not a choice. It
   # also means `:choose_language_en` can only ever be sent from a `:fa` app and
@@ -135,11 +141,11 @@ defmodule Kati.Screens.Language do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         border_width={2}
-        border_color={0xFF1A1917}
+        border_color={Palette.ink()}
         padding={14}
         align="center"
       >
@@ -163,7 +169,7 @@ defmodule Kati.Screens.Language do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={14}
@@ -195,8 +201,8 @@ defmodule Kati.Screens.Language do
   With children, an explicit numeric `color`, no `id` and no `on_tap`,
   `theme_icon/2` returns
   `%{type: :box, props: %{width: 38, height: 38, align: :center,
-  corner_radius: 12, background: 0xFFEFECE7}, children: [child]}` — node for
-  node what this wrote by hand. `align: :center` and `align="center"` reach
+  corner_radius: 12, background: Palette.paper()}, children: [child]}` — node
+  for node what this wrote by hand. `align: :center` and `align="center"` reach
   the bridge as the same string. Nothing else in the component runs: the
   `icon` shorthand is skipped when children are given, `:filled`'s gradient
   layer is empty, and the id markers need an `id`.
@@ -208,7 +214,7 @@ defmodule Kati.Screens.Language do
   """
   def tile(child) do
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: 0xFFEFECE7, size: 38, radius: 12},
+      %{variant: :filled, color: Palette.paper(), size: 38, radius: 12},
       [child]
     )
   end
@@ -232,11 +238,16 @@ defmodule Kati.Screens.Language do
   Also `MishkaThemeIcon`: radius 12 at size 24 is an exact circle, and the
   component's own `:circle`-shaped siblings resolve theirs the same way. Its
   unfilled partner is `unselected_mark/0`, which is now the same component.
+
+  `ink_fill`, not `ink`: this is a control *filled* with ink and carrying an
+  `on_ink` glyph, so in dark it inverts the way screen 28's CTA pill does —
+  paper fill, ink tick — rather than becoming a near-white disc with a
+  near-white tick on it.
   """
   def selected_mark do
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Kati.Theme.ink(), size: 24, radius: 12},
-      [Kati.UI.symbol("check", size: 15, color: 0xFFFBFAF8)]
+      %{variant: :filled, color: Palette.ink_fill(), size: 24, radius: 12},
+      [Kati.UI.symbol("check", size: 15, color: Palette.on_ink())]
     )
   end
 
@@ -259,7 +270,7 @@ defmodule Kati.Screens.Language do
   the id markers, the glyph shorthand and the handler are all skipped, and the
   gradient layer is empty for anything but `:gradient`. The node is
   `%{type: :box, props: %{width: 24, height: 24, align: :center,
-  corner_radius: 12, border_color: 0x291A1917, border_width: 1.5},
+  corner_radius: 12, border_color: Palette.border(), border_width: 1.5},
   children: []}` — the `Box` written here by hand, plus an `align` that a
   childless box has nothing to apply.
 
@@ -272,7 +283,7 @@ defmodule Kati.Screens.Language do
       variant: :subtle,
       size: 24,
       radius: 12,
-      border_color: 0x291A1917,
+      border_color: Palette.border(),
       border_width: 1.5
     })
   end
@@ -283,7 +294,7 @@ defmodule Kati.Screens.Language do
     <Column weight={1.0}>
       <Text text={l.name} font_family="fa" text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
       <Spacer size={3} />
-      <Text text={l.region} font_family="fa" text_size={12} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={l.region} font_family="fa" text_size={12} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -293,7 +304,7 @@ defmodule Kati.Screens.Language do
     <Column weight={1.0}>
       <Text text={l.name} text_size={14} font_weight="bold" text_color={:on_surface} max_lines={1} />
       <Spacer size={3} />
-      <Text text={l.region} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={l.region} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -310,17 +321,17 @@ defmodule Kati.Screens.Language do
       fill_width={true}
       corner_radius={20}
       border_width={1.5}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       padding={14}
       align="center"
       on_tap={tap}
     >
-      {Kati.Screens.Language.tile(Kati.UI.symbol("add", size: 18, color: 0xFF8A8479))}
+      {Kati.Screens.Language.tile(Kati.UI.symbol("add", size: 18, color: Palette.sub()))}
       <Spacer size={13} />
       <Column weight={1.0}>
-        <Text text={a.title} text_size={14} font_weight="bold" text_color={0xFF8A8479} max_lines={1} />
+        <Text text={a.title} text_size={14} font_weight="bold" text_color={Palette.sub()} max_lines={1} />
         <Spacer size={3} />
-        <Text text={a.sub} text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+        <Text text={a.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
       </Column>
       <Spacer size={13} />
       {Kati.UI.SettingsList.chevron()}
@@ -365,7 +376,7 @@ defmodule Kati.Screens.Language do
     <Column fill_width={true}>
       <Text text={row.title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       <Spacer size={3} />
-      <Text text={row.sub} font_family="fa" text_size={11.5} text_color={0xFF8A8479} max_lines={1} />
+      <Text text={row.sub} font_family="fa" text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -378,7 +389,7 @@ defmodule Kati.Screens.Language do
 
   def control({:value, text}) do
     ~MOB"""
-    <Text text={text} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+    <Text text={text} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
     """
   end
 
@@ -391,13 +402,13 @@ defmodule Kati.Screens.Language do
       fill_width={true}
       corner_radius={18}
       border_width={1.5}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       padding={15}
       align="top"
     >
-      {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+      {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={text} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
+      <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
     </Row>
     """
   end

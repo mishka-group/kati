@@ -38,6 +38,7 @@ defmodule Kati.Screens.MealsToday do
   alias Kati.Components.MishkaPill
   alias Kati.Meals.SampleToday, as: Sample
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   @doc false
@@ -93,7 +94,10 @@ defmodule Kati.Screens.MealsToday do
         size: 44,
         shape: :circle,
         variant: :filled,
-        background: Theme.card(:light),
+        # `card`, not `on_ink` / `fab_glyph` / `on_media` — the other three
+        # meanings `Kati.Theme.Palette` gives `0xFFFBFAF8`. A floating disc is a
+        # surface above the page, so it follows the ground into `#1E1D1B`.
+        background: Palette.card(),
         shadow: Theme.shadow_button(),
         on_tap: :open_week
       ],
@@ -109,7 +113,7 @@ defmodule Kati.Screens.MealsToday do
         <Column weight={1.0}>
           <Text text="Today" text_size={28} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
           <Spacer size={5} />
-          <Text text={Kati.Meals.SampleToday.day_line()} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={Kati.Meals.SampleToday.day_line()} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         {Kati.Screens.MealsToday.plan_pill()}
@@ -129,7 +133,7 @@ defmodule Kati.Screens.MealsToday do
     <Row
       height={36}
       corner_radius={18}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       shadow={Kati.Theme.shadow_button()}
       padding_left={13}
       padding_right={13}
@@ -140,7 +144,7 @@ defmodule Kati.Screens.MealsToday do
       <Spacer size={7} />
       <Text text={Kati.Meals.SampleToday.plan()} text_size={12.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
       <Spacer size={7} />
-      {Kati.UI.symbol("unfold_more", size: 16, color: 0xFF8A8479)}
+      {Kati.UI.symbol("unfold_more", size: 16, color: Palette.sub())}
     </Row>
     """
   end
@@ -170,10 +174,15 @@ defmodule Kati.Screens.MealsToday do
   # bridge, which is exactly what a flex-1 cell must not let it do.
   @doc false
   def day_cell(day) do
-    background = if day.today?, do: Theme.card(:light), else: 0x00FFFFFF
+    # `transparent`, not `card_hairline` / `cream_hairline` — the other two
+    # tokens that are `0x00FFFFFF` in light. Those two are hairlines dark ADDS;
+    # this is a cell the drawing simply does not fill, and it stays unfilled in
+    # both modes. `day_color` is `ink` rather than `ink_fill`: it is the day
+    # number as text on a card, not a control filled with ink.
+    background = if day.today?, do: Palette.card(), else: Palette.transparent()
     shadow = if day.today?, do: Theme.shadow_button(), else: nil
-    dow_color = if day.today?, do: 0xFF8A8479, else: 0xFFB3ACA2
-    day_color = if day.today?, do: Theme.ink(), else: 0xFF8A8479
+    dow_color = if day.today?, do: Palette.sub(), else: Palette.tertiary()
+    day_color = if day.today?, do: Palette.ink(), else: Palette.sub()
 
     ~MOB"""
     <Box weight={1.0}>
@@ -283,7 +292,7 @@ defmodule Kati.Screens.MealsToday do
     <Box weight={1.0}>
       <Box
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={16}
         shadow={Kati.Theme.shadow_card_soft()}
         padding_left={8}
@@ -302,7 +311,7 @@ defmodule Kati.Screens.MealsToday do
           <Spacer size={7} />
           <Row fill_width={true} align="center">
             <Spacer weight={1.0} />
-            <Text text={label} text_size={11} font_weight="semibold" text_color={0xFF5C574F} max_lines={1} />
+            <Text text={label} text_size={11} font_weight="semibold" text_color={Palette.ink_soft()} max_lines={1} />
             <Spacer weight={1.0} />
           </Row>
         </Column>
@@ -319,12 +328,12 @@ defmodule Kati.Screens.MealsToday do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={20}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={15}
       >
-        <Box fill_width={true} height={9} corner_radius={4.5} background={0xFFEFECE7}>
+        <Box fill_width={true} height={9} corner_radius={4.5} background={Palette.paper()}>
           <Row fill_width={true}>
             {Enum.map(macros, fn {_name, share, tone} -> Kati.Screens.MealsToday.segment(share, tone) end)}
           </Row>
@@ -333,7 +342,7 @@ defmodule Kati.Screens.MealsToday do
         <Row fill_width={true} align="center">
           {macros |> Enum.map(fn {name, _share, tone} -> Kati.Screens.MealsToday.legend_key(name, tone) end) |> Enum.intersperse(Kati.Screens.MealsToday.legend_gap())}
           <Spacer weight={1.0} />
-          <Text text={Kati.Meals.SampleToday.remaining()} font_family="mono" text_size={10} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={Kati.Meals.SampleToday.remaining()} font_family="mono" text_size={10} text_color={Palette.muted()} max_lines={1} />
         </Row>
       </Column>
       <Spacer size={20} />
@@ -373,7 +382,7 @@ defmodule Kati.Screens.MealsToday do
         font_family="mono"
         text_size={9.5}
         letter_spacing={0.08}
-        text_color={0xFFA0998F}
+        text_color={Palette.eyebrow()}
         max_lines={1}
       />
     </Row>
@@ -392,7 +401,8 @@ defmodule Kati.Screens.MealsToday do
   @doc false
   def meal_row(meal) do
     gutter_top = if meal.state == :next, do: 17, else: 15
-    gutter_color = if meal.state == :next, do: Theme.ink(), else: 0xFFA9A29A
+    # `ink`, not `ink_fill`: the time is text on the page, not a filled control.
+    gutter_color = if meal.state == :next, do: Palette.ink(), else: Palette.muted()
     gutter_weight = if meal.state == :next, do: "medium", else: "regular"
 
     tap = {self(), :open_meal}
@@ -413,12 +423,25 @@ defmodule Kati.Screens.MealsToday do
     """
   end
 
+  # The tick sits on a GREEN disc, and the green is a hue: it does not move with
+  # the mode. So `0xFFFBFAF8` is LEFT AS A LITERAL below — see the comment there.
   @doc false
   def meal_card(%{state: :eaten} = meal) do
+    # `0xFFFBFAF8` LEFT AS A LITERAL. `Kati.Theme.Palette` names four meanings
+    # for this value — the card, a label on an ink fill, the FAB's plus, and a
+    # title over artwork — and this is none of them: it is a glyph on a HUE.
+    # `green` is `:hue`, unchanged in dark, so a tick that took `on_ink` would
+    # turn to ink on a disc that never darkened. The two tokens that keep the
+    # value in dark are scoped to a photographic ground (`on_media`) or to the
+    # FAB, so neither is honestly this. The table has no "on a hue fill" row;
+    # `Kati.Screens.Habits.today_button/2` leaves the same value for the same
+    # reason.
+    tick = 0xFFFBFAF8
+
     ~MOB"""
     <Row
       fill_width={true}
-      background={0xFFF4F1EC}
+      background={Palette.card_settled()}
       corner_radius={18}
       padding_left={13}
       padding_right={13}
@@ -429,23 +452,23 @@ defmodule Kati.Screens.MealsToday do
       {Kati.Screens.MealsToday.thumb(meal.seed, 40, 11)}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={0xFFA0998F} max_lines={1} />
+        <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.eyebrow()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.015} text_color={0xFF9C958B} max_lines={1} />
+        <Text text={meal.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.015} text_color={Palette.settled_ink()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
       </Column>
       <Spacer size={12} />
       <Box
         width={27}
         height={27}
         corner_radius={16}
-        background={0xFF4E9A73}
+        background={Palette.green()}
         border_width={1.5}
-        border_color={0xFF4E9A73}
+        border_color={Palette.green()}
         align="center"
       >
-        {Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)}
+        {Kati.UI.symbol("check", size: 16, color: tick)}
       </Box>
     </Row>
     """
@@ -453,13 +476,20 @@ defmodule Kati.Screens.MealsToday do
 
   # No photograph, no fill: a skipped meal is an outline of the meal that was
   # planned. The drawing dashes that outline and this bridge cannot.
+  #
+  # Its three faint marks are `rail_idle` for their VALUE, not their name: the
+  # token whose meaning is "a faint chevron / an idle glyph" is `tertiary`, and
+  # its light value is `0xFFB3ACA2` where these are `0xFFC4BDB3`. The design
+  # draws two faint greys and only one of them is `tertiary`. Taking the better
+  # name would move light mode eleven units, so the value wins — the same trade
+  # `Kati.UI.SettingsList.chevron/0` records.
   def meal_card(%{state: :skipped} = meal) do
     ~MOB"""
     <Row
       fill_width={true}
       corner_radius={18}
       border_width={1.5}
-      border_color={0x241A1917}
+      border_color={Palette.border_soft()}
       padding_left={13}
       padding_right={13}
       padding_top={11}
@@ -467,25 +497,32 @@ defmodule Kati.Screens.MealsToday do
       align="center"
     >
       <Column weight={1.0}>
-        <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={0xFFC4BDB3} max_lines={1} />
+        <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.rail_idle()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.015} text_color={0xFFB3ACA2} max_lines={1} />
+        <Text text={meal.title} text_size={13.5} font_weight="semibold" letter_spacing={-0.015} text_color={Palette.tertiary()} max_lines={1} />
         <Spacer size={4} />
-        <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={0xFFC4BDB3} max_lines={1} />
+        <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={Palette.rail_idle()} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      <Box width={27} height={27} corner_radius={16} border_width={1.5} border_color={0x291A1917} align="center">
-        {Kati.UI.symbol("close", size: 16, color: 0xFFC4BDB3)}
+      <Box width={27} height={27} corner_radius={16} border_width={1.5} border_color={Palette.border()} align="center">
+        {Kati.UI.symbol("close", size: 16, color: Palette.rail_idle())}
       </Box>
     </Row>
     """
   end
 
+  # The empty tick in the ring is `track_ink` — right by value, and the one part
+  # of the name that is wrong. `0x381A1917` has exactly one row in
+  # `Kati.Theme.Palette` and it is called a track because that is where the
+  # design's other 22% ink appears; what matters is that it is the same ink-tint
+  # ladder the ring's own `border` sits on, so both take the alpha swap in dark
+  # and the ring keeps a mark inside it. Left as the literal it would be 22%
+  # black on a `#1E1D1B` card — a tick that renders as nothing.
   def meal_card(%{state: :next} = meal) do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={18}
       shadow="0 1 2 0 #0D1A1917 | 0 16 30 -18 #BF1A1917"
       padding={14}
@@ -496,15 +533,15 @@ defmodule Kati.Screens.MealsToday do
         {Kati.Screens.MealsToday.thumb(meal.seed, 52, 13)}
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={0xFFA0998F} max_lines={1} />
+          <Text text={String.upcase(meal.slot)} font_family="mono" text_size={9.5} letter_spacing={0.14} text_color={Palette.eyebrow()} max_lines={1} />
           <Spacer size={4} />
           <Text text={meal.title} text_size={15} font_weight="bold" letter_spacing={-0.015} text_color={:on_surface} max_lines={1} />
           <Spacer size={4} />
-          <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={meal.calories} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
-        <Box width={32} height={32} corner_radius={16} border_width={1.5} border_color={0x291A1917} align="center">
-          {Kati.UI.symbol("check", size: 19, color: 0x381A1917)}
+        <Box width={32} height={32} corner_radius={16} border_width={1.5} border_color={Palette.border()} align="center">
+          {Kati.UI.symbol("check", size: 19, color: Palette.track_ink())}
         </Box>
       </Row>
       <Spacer size={13} />
@@ -528,8 +565,8 @@ defmodule Kati.Screens.MealsToday do
   @doc false
   def overflow do
     MishkaActionIcon.action_icon(
-      [size: 34, shape: :circle, variant: :filled, background: 0xFFEFECE7],
-      [UI.symbol("more_horiz", size: 17, color: 0xFF5C574F)]
+      [size: 34, shape: :circle, variant: :filled, background: Palette.paper()],
+      [UI.symbol("more_horiz", size: 17, color: Palette.ink_soft())]
     )
   end
 
@@ -557,8 +594,12 @@ defmodule Kati.Screens.MealsToday do
   # what `CenterVertically` was doing.
   @doc false
   def action(label, tone, tag) do
-    background = if tone == :ink, do: Theme.ink(), else: 0xFFEFECE7
-    color = if tone == :ink, do: 0xFFFBFAF8, else: 0xFF5C574F
+    # The ink tone is a filled call-to-action, so it INVERTS rather than
+    # following the ground: `ink_fill` under `on_ink`, the pair screen 28 draws
+    # for the hero's Open-inbox pill. The paper tone is a surface and follows
+    # the page down instead.
+    background = if tone == :ink, do: Palette.ink_fill(), else: Palette.paper()
+    color = if tone == :ink, do: Palette.on_ink(), else: Palette.ink_soft()
 
     MishkaPill.pill(
       label: label,
@@ -582,7 +623,7 @@ defmodule Kati.Screens.MealsToday do
     case Kati.Design.Images.poster(seed) do
       nil ->
         ~MOB"""
-        <Box width={size} height={size} corner_radius={radius} background={0xFFE4E0D9} />
+        <Box width={size} height={size} corner_radius={radius} background={Palette.placeholder()} />
         """
 
       src ->
@@ -597,14 +638,14 @@ defmodule Kati.Screens.MealsToday do
     prep = Sample.prep()
 
     ~MOB"""
-    <Column fill_width={true} background={Kati.Theme.cream(:light)} corner_radius={20} padding={16}>
+    <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
       <Row fill_width={true} align="center">
-        {Kati.UI.symbol("schedule", size: 20, color: 0xFFC98A3E)}
+        {Kati.UI.symbol("schedule", size: 20, color: Palette.gold_icon())}
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text text={prep.title} text_size={13.5} font_weight="bold" text_color={:on_surface} max_lines={1} />
           <Spacer size={3} />
-          <Text text={prep.line} text_size={11.5} text_color={0xFF8A7B60} max_lines={1} />
+          <Text text={prep.line} text_size={11.5} text_color={Palette.cream_sub()} max_lines={1} />
         </Column>
       </Row>
       <Spacer size={13} />
@@ -620,14 +661,19 @@ defmodule Kati.Screens.MealsToday do
   # `rgba(255,255,255,.6)` on cream, which is a lighter cream rather than a
   # grey — so it stays a white at 60% alpha instead of being flattened.
   #
+  # `cream_raise`, not `lock_ink_60` — the other meaning `Kati.Theme.Palette`
+  # gives `0x99FFFFFF`. That one sits on a photograph and does not move; this is
+  # a chip lifted a step off the cream card, so it follows the card and goes
+  # solid `#3A342D` in dark, where a 60% white would blow the panel out.
+  #
   # The same pill as `action/3`, and it does not call it only because its fill
   # and ink are neither of that function's two tones.
   @doc false
   def prep_secondary(label) do
     MishkaPill.pill(
       label: label,
-      background: 0x99FFFFFF,
-      color: 0xFF8A7B60,
+      background: Palette.cream_raise(),
+      color: Palette.cream_sub(),
       corner_radius: 17,
       height: 34,
       padding_left: 14,

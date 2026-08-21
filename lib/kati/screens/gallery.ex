@@ -19,6 +19,7 @@ defmodule Kati.Screens.Gallery do
   """
   use Kati.Screens.Pushed, back: "Home"
 
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   # Ordered by the design's own numbering, which is how the owner refers to
@@ -106,7 +107,7 @@ defmodule Kati.Screens.Gallery do
           text={"#{count} pages · tap to open"}
           font_family="mono"
           text_size={11}
-          text_color={0xFFA9A29A}
+          text_color={Palette.muted()}
         />
         <Spacer size={20} />
         {UI.eyebrow("Every page")}
@@ -124,7 +125,7 @@ defmodule Kati.Screens.Gallery do
     ~MOB"""
     <Column
       fill_width={true}
-      background={Kati.Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={20}
       shadow={Kati.Theme.shadow_card()}
       padding_left={15}
@@ -140,13 +141,17 @@ defmodule Kati.Screens.Gallery do
   @doc false
   def row({number, name, module, kind}, rule?) do
     tap = {self(), String.to_atom("open_" <> number)}
-    tint = if kind == :root, do: 0xFFE8823C, else: 0xFFC4BDB3
+
+    # The idle chevron is `rail_idle`, not `tertiary`: the design draws two
+    # chevron greys and this is the `0xFFC4BDB3` one — the same call
+    # `Kati.UI.SettingsList.chevron/0` makes.
+    tint = if kind == :root, do: Palette.accent(), else: Palette.rail_idle()
 
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
       <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
         <Column width={30}>
-          <Text text={number} font_family="mono" text_size={12} text_color={0xFFB3ACA2} />
+          <Text text={number} font_family="mono" text_size={12} text_color={Palette.tertiary()} />
         </Column>
         <Spacer size={12} />
         <Column weight={1.0}>
@@ -156,7 +161,7 @@ defmodule Kati.Screens.Gallery do
             text={module |> Module.split() |> List.last()}
             font_family="mono"
             text_size={10.5}
-            text_color={0xFFB3ACA2}
+            text_color={Palette.tertiary()}
             max_lines={1}
           />
         </Column>
@@ -170,7 +175,7 @@ defmodule Kati.Screens.Gallery do
 
   @doc false
   def hairline(false), do: ~MOB"<Spacer size={0} />"
-  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={0x121A1917} />"
+  def hairline(true), do: ~MOB"<Box fill_width={true} height={1} background={Palette.hairline()} />"
 
   @impl true
   def handle_tap(tag, socket) do

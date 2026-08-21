@@ -40,6 +40,7 @@ defmodule Kati.Screens.Calendars do
 
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Settings.CalendarsSample, as: Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -101,8 +102,8 @@ defmodule Kati.Screens.Calendars do
   end
 
   @doc false
-  def status(label, :live), do: SettingsList.status_pill(label, 0xFF3E8460, 0x294E9A73)
-  def status(label, :stale), do: SettingsList.status_pill(label, 0xFFB4553C, 0x24B4553C)
+  def status(label, :live), do: SettingsList.status_pill(label, Palette.green_text(), Palette.green_wash())
+  def status(label, :stale), do: SettingsList.status_pill(label, Palette.red(), Palette.red_wash_strong())
 
   # The one row with no trailing control and no filled tile: a dashed square
   # that reads as a slot waiting to be filled rather than a button.
@@ -135,17 +136,19 @@ defmodule Kati.Screens.Calendars do
 
   With children and no `id` the component returns
   `%{type: :box, props: %{width: 30, height: 30, align: :center,
-  corner_radius: 9, border_color: 0x331A1917, border_width: 1.5},
+  corner_radius: 9, border_color: Palette.border_stronger(), border_width: 1.5},
   children: [glyph]}` — node for node what this wrote by hand, with `align`
-  reaching the bridge as the same `"center"` either way.
+  reaching the bridge as the same `"center"` either way. `border_stronger/0` is
+  `0x331A1917` in light — the literal this used to carry, unchanged — and the
+  same 20% alpha over ink-on-dark in dark.
 
   Solid, not dashed: `Modifier.border` takes a width and a colour and no
   `PathEffect`, so the stitching does not survive.
   """
   def add_tile do
     MishkaThemeIcon.theme_icon(
-      %{variant: :subtle, size: 30, radius: 9, border_color: 0x331A1917, border_width: 1.5},
-      [Kati.UI.symbol("add", size: 16, color: 0xFF8A8479)]
+      %{variant: :subtle, size: 30, radius: 9, border_color: Palette.border_stronger(), border_width: 1.5},
+      [Kati.UI.symbol("add", size: 16, color: Palette.sub())]
     )
   end
 

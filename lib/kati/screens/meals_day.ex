@@ -44,9 +44,17 @@ defmodule Kati.Screens.MealsDay do
 
   alias Kati.Calendar.SampleMealDay
   alias Kati.Theme
+  alias Kati.Theme.Palette
   alias Kati.UI
 
   # The lane colours `Kati.Calendar.SampleMealDay` paints, read back as kinds.
+  #
+  # LEFT AS LITERALS on purpose: these two are not paint, they are the patterns
+  # `kind/1` matches a row's `rule` against, and a pattern cannot hold a
+  # function call. They stay correct in dark because both colours they stand for
+  # are mode-invariant — `Palette.bronze/0` is `:theme` and `Palette.accent/0`
+  # keeps full strength on near-black — so whatever the data module ends up
+  # calling them, the value on the wire is still these.
   @meal 0xFFB08E55
   @screen 0xFFE8823C
 
@@ -135,8 +143,12 @@ defmodule Kati.Screens.MealsDay do
   """
   def density_disc(density) do
     on? = density == :dense
-    background = if on?, do: Theme.ink(), else: Theme.card(:light)
-    color = if on?, do: 0xFFFBFAF8, else: Theme.ink()
+
+    # `ink_fill`/`on_ink` when it is on: a control FILLED with ink, which screen
+    # 28 inverts to a paper fill with an ink glyph. Off it is a card-white disc
+    # on paper carrying an ink glyph, so `card`/`ink`.
+    background = if on?, do: Palette.ink_fill(), else: Palette.card()
+    color = if on?, do: Palette.on_ink(), else: Palette.ink()
 
     Kati.Components.MishkaActionIcon.action_icon(
       %{
@@ -164,7 +176,7 @@ defmodule Kati.Screens.MealsDay do
         max_lines={1}
       />
       <Spacer size={5} />
-      <Text text={day.subtitle} font_family="mono" text_size={11} text_color={0xFFA9A29A} max_lines={1} />
+      <Text text={day.subtitle} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
       <Spacer size={20} />
     </Column>
     """
@@ -192,8 +204,8 @@ defmodule Kati.Screens.MealsDay do
     # The tag carries the label, so one clause serves every chip and a new
     # section in the data needs no new code here.
     tap = {self(), String.to_atom("filter_" <> label)}
-    background = if on?, do: Theme.ink(), else: Theme.card(:light)
-    color = if on?, do: 0xFFFBFAF8, else: 0xFF5C574F
+    background = if on?, do: Palette.ink_fill(), else: Palette.card()
+    color = if on?, do: Palette.on_ink(), else: Palette.ink_soft()
     shadow = if on?, do: nil, else: Theme.shadow_card_soft()
 
     ~MOB"""
@@ -215,6 +227,13 @@ defmodule Kati.Screens.MealsDay do
 
   # The count is the label at 60% — `opacity:.6` on the same colour, which as
   # ARGB is the alpha, not a lighter grey.
+  #
+  # `count_idle` for BOTH states, because the drawing gives the count one value
+  # and this function is not told which chip it is in. Splitting it into
+  # `on_ink_count`/`count_idle` would put `0x99FBFAF8` on the selected chip,
+  # which is not the literal 52.html draws — and light mode may not move.
+  # 52.html's resting screen has `All` selected and `All` carries no count, so
+  # the drawing never shows a count on ink; the pairing stays as drawn.
   @doc false
   def chip_count(nil), do: ~MOB"<Spacer size={0} />"
 
@@ -222,7 +241,7 @@ defmodule Kati.Screens.MealsDay do
     ~MOB"""
     <Row align="center">
       <Spacer size={6} />
-      <Text text={count} font_family="mono" text_size={10} text_color={0x995C574F} max_lines={1} />
+      <Text text={count} font_family="mono" text_size={10} text_color={Palette.count_idle()} max_lines={1} />
     </Row>
     """
   end
@@ -269,15 +288,15 @@ defmodule Kati.Screens.MealsDay do
 
   @doc false
   def row(row) do
-    background = if row.state == :past, do: 0xFFF4F1EC, else: Theme.card(:light)
+    background = if row.state == :past, do: Palette.card_settled(), else: Palette.card()
     shadow = if row.state == :past, do: nil, else: Theme.shadow_card_soft()
-    color = if row.state == :past, do: 0xFF9C958B, else: 0xFF1A1917
+    color = if row.state == :past, do: Palette.settled_ink(), else: Palette.ink()
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column width={44} padding_top={13}>
-          <Text text={row.time} font_family="mono" text_size={12} text_color={0xFFA9A29A} max_lines={1} />
+          <Text text={row.time} font_family="mono" text_size={12} text_color={Palette.muted()} max_lines={1} />
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
@@ -297,7 +316,7 @@ defmodule Kati.Screens.MealsDay do
             <Column weight={1.0}>
               <Text text={row.title} text_size={13} font_weight="semibold" text_color={color} max_lines={1} />
               <Spacer size={4} />
-              <Text text={row.sub} font_family="mono" text_size={10.5} text_color={0xFFB3ACA2} max_lines={1} />
+              <Text text={row.sub} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} max_lines={1} />
             </Column>
             {Kati.Screens.MealsDay.check(row.check)}
           </Row>
@@ -352,14 +371,14 @@ defmodule Kati.Screens.MealsDay do
   `:eaten` is `variant: :filled` with `color` and `border_color` set to the
   same `#4E9A73` the drawing gives it (`border:1.5px solid #4E9A73;
   background:#4E9A73`), so the container is `%{width: 24, height: 24,
-  align: :center, corner_radius: 12, background: 0xFF4E9A73,
-  border_color: 0xFF4E9A73, border_width: 1.5}` — key for key the `Box` this
-  wrote by hand — holding the same 14pt `check`.
+  align: :center, corner_radius: 12, background: Palette.green(),
+  border_color: Palette.green(), border_width: 1.5}` — key for key the `Box`
+  this wrote by hand — holding the same 14pt `check`.
 
   `:todo` is `variant: :subtle`, whose skin is no background and no border, so
   the only fill-related keys on the node are the two overrides:
   `%{width: 24, height: 24, align: :center, corner_radius: 12,
-  border_color: 0x291A1917, border_width: 1.5}`. `put_some/3` drops a nil
+  border_color: Palette.border(), border_width: 1.5}`. `put_some/3` drops a nil
   background rather than writing one, which matters — the drawing says
   `background:transparent`, and a `nil` would serialise as a JSON null for the
   bridge to read. The `align: :center` the component adds is the one key the
@@ -369,13 +388,21 @@ defmodule Kati.Screens.MealsDay do
   here.
   """
   def ring(:eaten) do
+    # `0xFFFBFAF8` LEFT AS A LITERAL. `Kati.Theme.Palette` names four meanings
+    # for this value — the card, a label on an ink fill, the FAB's plus, and a
+    # title over artwork — and this is none of them: it is a glyph on a HUE.
+    # Green is `:hue`, unchanged in dark, so a tick that followed the mode would
+    # turn to ink on a ring that never darkened. The two tokens that keep this
+    # value in dark are scoped to a photographic ground (`on_media`) or to the
+    # FAB, so neither is honestly this. Left, and reported: the table has no
+    # "on a hue fill" row.
     Kati.Components.MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
-        color: 0xFF4E9A73,
+        color: Palette.green(),
         size: 24,
         radius: 12,
-        border_color: 0xFF4E9A73,
+        border_color: Palette.green(),
         border_width: 1.5
       },
       [Kati.UI.symbol("check", size: 14, color: 0xFFFBFAF8)]
@@ -387,7 +414,7 @@ defmodule Kati.Screens.MealsDay do
       variant: :subtle,
       size: 24,
       radius: 12,
-      border_color: 0x291A1917,
+      border_color: Palette.border(),
       border_width: 1.5
     })
   end
@@ -399,14 +426,14 @@ defmodule Kati.Screens.MealsDay do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        <Box width={13} height={2} corner_radius={1} background={0xFFC4BDB3} />
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
           font_family="mono"
           text_size={10.5}
           letter_spacing={0.16}
-          text_color={0xFFA0998F}
+          text_color={Palette.eyebrow()}
         />
       </Row>
       <Spacer size={11} />
@@ -425,7 +452,7 @@ defmodule Kati.Screens.MealsDay do
     ~MOB"""
     <Row
       fill_width={true}
-      background={Theme.card(:light)}
+      background={Palette.card()}
       corner_radius={18}
       shadow={Theme.shadow_card_soft()}
       padding_left={14}
@@ -440,10 +467,10 @@ defmodule Kati.Screens.MealsDay do
       <Column weight={1.0}>
         <Text text={collapsed.title} text_size={13} font_weight="bold" text_color={:on_surface} max_lines={1} />
         <Spacer size={4} />
-        <Text text={collapsed.sub} font_family="mono" text_size={10.5} text_color={0xFFA9A29A} max_lines={1} />
+        <Text text={collapsed.sub} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
       </Column>
       <Spacer size={12} />
-      {UI.symbol("expand_more", size: 19, color: 0xFF5C574F)}
+      {UI.symbol("expand_more", size: 19, color: Palette.ink_soft())}
     </Row>
     """
   end
@@ -454,9 +481,9 @@ defmodule Kati.Screens.MealsDay do
     <Column fill_width={true}>
       <Spacer size={13} />
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
-        {UI.symbol("info", size: 15, color: 0xFFB3ACA2)}
+        {UI.symbol("info", size: 15, color: Palette.tertiary())}
         <Spacer size={8} />
-        <Text text={day.note} text_size={11.5} line_height={1.45} text_color={0xFF8A8479} weight={1.0} />
+        <Text text={day.note} text_size={11.5} line_height={1.45} text_color={Palette.sub()} weight={1.0} />
       </Row>
     </Column>
     """

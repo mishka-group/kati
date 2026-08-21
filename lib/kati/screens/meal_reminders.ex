@@ -54,6 +54,7 @@ defmodule Kati.Screens.MealReminders do
   use Kati.Screens.Pushed, back: "Meals"
 
   alias Kati.Meals.SampleReminders
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -87,14 +88,14 @@ defmodule Kati.Screens.MealReminders do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={0xFFFBF1DE}
+        background={Palette.cream()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
       >
-        {Kati.Screens.MealReminders.card_head(d, 0xFFC98A3E, 0xFFB09A72)}
+        {Kati.Screens.MealReminders.card_head(d, Palette.gold_icon(), Palette.cream_meta())}
         <Spacer size={15} />
-        {Kati.Screens.MealReminders.preview(d.notification, 0x99FFFFFF, 0xFFB09A72, 0xFF8A7B60)}
+        {Kati.Screens.MealReminders.preview(d.notification, Palette.cream_raise(), Palette.cream_meta(), Palette.cream_sub())}
         <Spacer size={14} />
         {Kati.Screens.MealReminders.options(d.options)}
       </Column>
@@ -109,19 +110,19 @@ defmodule Kati.Screens.MealReminders do
     <Column fill_width={true}>
       <Column
         fill_width={true}
-        background={Kati.Theme.card(:light)}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={18}
       >
-        {Kati.Screens.MealReminders.card_head(o, Kati.Theme.ink(), 0xFFA9A29A)}
+        {Kati.Screens.MealReminders.card_head(o, Palette.ink(), Palette.muted())}
         <Spacer size={15} />
-        {Kati.Screens.MealReminders.preview(o.notification, 0xFFEFECE7, 0xFFA0998F, 0xFF8A8479)}
+        {Kati.Screens.MealReminders.preview(o.notification, Palette.paper(), Palette.eyebrow(), Palette.sub())}
         <Spacer size={13} />
         <Row fill_width={true} align="center">
-          {Kati.UI.symbol("touch_app", size: 15, color: 0xFFB3ACA2)}
+          {Kati.UI.symbol("touch_app", size: 15, color: Palette.tertiary())}
           <Spacer size={8} />
-          <Text text={o.foot} text_size={11.5} text_color={0xFF8A8479} weight={1.0} />
+          <Text text={o.foot} text_size={11.5} text_color={Palette.sub()} weight={1.0} />
         </Row>
       </Column>
       <Spacer size={14} />
@@ -191,14 +192,19 @@ defmodule Kati.Screens.MealReminders do
   With children, an explicit numeric `color`, no `id` and no `on_tap`,
   `theme_icon/2` returns
   `%{type: :box, props: %{width: 20, height: 20, align: :center,
-  corner_radius: 6, background: 0xFF1A1917}, children: [dot]}` — node for node
-  what this wrote by hand. `align: :center` and `align="center"` reach the
+  corner_radius: 6, background: Palette.ink()}, children: [dot]}` — node for
+  node what this wrote by hand. `align: :center` and `align="center"` reach the
   bridge as the same string, the gradient layer is empty for `:filled`, and
   the id markers are skipped without an `id`.
+
+  `Palette.ink/0`, not `ink_fill/0`: this is a MARK, the app's own square, and
+  it follows the page rather than inverting like a control does. Pinning it
+  light would draw a near-black square on a near-black preview — an icon that
+  is simply not there. The accent dot on it is a hue and does not move.
   """
   def app_icon do
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Kati.Theme.ink(), size: 20, radius: 6},
+      %{variant: :filled, color: Palette.ink(), size: 20, radius: 6},
       [~MOB"<Box width={6} height={6} corner_radius={3} background={Kati.Theme.accent()} />"]
     )
   end
@@ -225,8 +231,8 @@ defmodule Kati.Screens.MealReminders do
 
   @doc false
   def preview_action(label, primary?) do
-    bg = if primary?, do: Kati.Theme.ink(), else: Kati.Theme.card(:light)
-    fg = if primary?, do: 0xFFFBFAF8, else: 0xFF5C574F
+    bg = if primary?, do: Palette.ink_fill(), else: Palette.card()
+    fg = if primary?, do: Palette.on_ink(), else: Palette.ink_soft()
 
     ~MOB"""
     <Box weight={1.0}>
@@ -276,14 +282,14 @@ defmodule Kati.Screens.MealReminders do
     <Row
       fill_width={true}
       corner_radius={18}
-      border_color={0x291A1917}
+      border_color={Palette.border()}
       border_width={1.5}
       padding={15}
       align="top"
     >
-      {Kati.UI.symbol("info", size: 17, color: 0xFF8A8479)}
+      {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={11} />
-      <Text text={text} text_size={12.5} line_height={1.55} text_color={0xFF5C574F} weight={1.0} />
+      <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} weight={1.0} />
     </Row>
     """
   end
