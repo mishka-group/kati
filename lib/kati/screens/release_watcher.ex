@@ -18,6 +18,26 @@ defmodule Kati.Screens.ReleaseWatcher do
   drawing's state — the resting frame is unchanged.
 
   No dock — pushed screen — so the frame closes at 40, not 132.
+
+  ## Why this screen is still on `Kati.Settings.WatcherSample`
+
+  Everything it draws is a preference, and Kati has no preferences resource.
+  The Ash domains are `Kati.Calendars`, `Kati.Media`, `Kati.Meals` and
+  `Kati.Sync`; none of them holds a switch, a cadence or a last-checked time,
+  and `lib/kati/settings` is four sample modules with no resource among them.
+  `Kati.Notifications.QuietHours` is the shape of the gap: it states 23:00 to
+  08:00 as a struct default and says out loud that the window is "configurable
+  because it is a user setting", with nowhere for that configuration to live.
+  So every control here edits one socket assign and forgets it on pop, and
+  moving the screen onto a domain means adding the domain first.
+
+  One value is already derivable and deliberately not taken.
+  `Kati.Media.TrackedTitle`'s `:followed` read is, in its own description,
+  "the titles the release watcher has any business looking at", so the banner's
+  `Watching 24 titles` could be a real count today. Counting it while the ten
+  switches, the cadence and the `3 FOUND THIS WEEK` beside it stayed invented
+  would make the card look live and be half made up — a worse thing to reason
+  about than a card that is honestly all sample.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

@@ -44,6 +44,47 @@ defmodule Kati.Screens.Discover do
   gives a row that has stopped asking for anything, and says `Scheduled`.
   Tapping it again undoes it — nothing here writes to a store yet, so the
   screen owns the state and reversing it is the honest affordance.
+
+  ## Why this screen still reads `Kati.Screens.Discover.Sample`
+
+  Screen 03 moved onto `Kati.Media` (see `Kati.Screens.Library.shelf/0`) and
+  screen 10 with it. This one did not, and it is the furthest of the four from
+  being able to: the drawing's own caption says the feed is *"recommendations
+  built only from your own history, plus people you follow"*, and Kati has
+  neither a recommender nor a person. Every one of the three sections is a
+  fact about the world outside the library, and `Kati.Media` holds only what a
+  provider said about a title and what the user did with it.
+
+  Precisely what this screen draws and no resource can currently express:
+
+    * **the picks and their `94% match`** — a recommendation and its score.
+      Nothing scores a title against a history, and there is no column to keep
+      a score in. `Kati.Media.CachedTitle` is a projection of one provider
+      record; a match is a statement about two.
+    * **`People you follow`, and every part of a person's row** — the name,
+      the role (`Director` / `Writer` / `Actor`), the credit count
+      (`2 new projects`), and the trailing mark that says whether there is
+      news. There is no person anywhere in the app, and that is a decision
+      rather than an omission: `Kati.Media.Watch.companions` says so outright
+      — *"Kati has no people table and no contacts permission, and inventing
+      either to hold the word 'Jo' would be a larger privacy decision than the
+      feature is asking for."* That column is also who you watched *with*,
+      which is not who you follow.
+    * **`Leaving Lumen+ in 7 days`, and the rows under it** — an availability
+      window on a named service. There is no service resource and nothing
+      stores when a title leaves one. `Kati.Media.Watch.service` is again a
+      past fact about the user, not a catalogue.
+    * **`Tuned to 128 titles`** — the size of the corpus the recommender is
+      tuned to. `Ash.count!(Kati.Media.TrackedTitle)` is a *different* number
+      wearing this one's caption, and on a seeded install it is nine.
+    * **the `Leaving` chip's `5`** — a count of the section above.
+
+  One line here *is* reachable today and is deliberately not split out:
+  `Because you watched The Long Hollow` is the newest touched
+  `Kati.Media.TrackedTitle` joined to its `Kati.Media.CachedTitle.title`. It
+  stays frozen with the rest because it is the heading *over* the picks, and a
+  real sentence above three invented posters claims more for them than drawing
+  both from the sample does.
   """
   use Kati.Screens.Pushed, back: "Library"
 

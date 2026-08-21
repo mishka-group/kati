@@ -50,6 +50,38 @@ defmodule Kati.Screens.Habits do
   rolling window ending at today and there is no square a tap may flip without
   inventing a weekday mapping the drawing does not carry. A toggle therefore
   moves the button, the streak line and the header — and leaves the week alone.
+
+  ## Why this screen is still on `Kati.Habits.Sample`
+
+  It is not an oversight and it is not a stage to be passed through quietly:
+  **there is no resource anywhere in this app that records a habit being
+  kept.** Every number on this screen is a count over that history.
+
+  Half of a habit *is* modelled. `Kati.Calendars.Event.kind` carries a `:habit`
+  value and `Kati.Calendars.Event`'s own moduledoc names habits as the case a
+  floating `tzid` exists for — *"09:00 wherever you are"* — so "a habit is a
+  repeating calendar item", the drawing's own claim, is already expressible. A
+  habit's **name** and its **schedule** could be read today.
+
+  The other half is missing entirely, and it is the half this screen draws:
+
+    * **A tick has nowhere to go.** `Kati.Calendars.Override.kind` is
+      `:modified | :cancelled`. An override can say an occurrence was called
+      off; nothing can say one was *done*. So `today`, the seven day squares
+      and the 13-week field have no source.
+    * **A streak is a count over that history**, so `base`, `streak_line/1` and
+      the header's `N-day best` are derived from data that is not stored.
+    * **Bronze and grey are ages of a streak, not states of a day.**
+      `Kati.Habits.Sample.day_tone/1` draws four tones and three of them
+      describe how long ago the streak was — which needs the history twice
+      over.
+
+  Reading the names out of `Kati.Calendars.Event` and leaving every number the
+  drawing's would be worse than this: the cards would carry the user's own
+  habits above streaks belonging to somebody else's, and a screen that is
+  wrong in a plausible way is harder to notice than one that is wholly the
+  drawing. So it stays whole, and the ask is a resource — a habit and a
+  per-day completion — not a column.
   """
   use Kati.Screens.Pushed, back: "Stats"
 

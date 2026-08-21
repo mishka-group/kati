@@ -112,12 +112,29 @@ defmodule Kati.BackupEncryptionTest do
       assert {:ok, ^plain} = Envelope.open(sealed, @passphrase)
     end
 
-    test "shares no bytes with a second export of the same data" do
+    test "shares no bytes with a second sealing of the same archive" do
       populate!()
-      bundle = Backup.export()
 
-      assert {:ok, first} = Backup.to_encrypted_binary(bundle, @passphrase)
-      assert {:ok, second} = Backup.to_encrypted_binary(bundle, @passphrase)
+      # Packed ONCE, and sealed twice — where this used to export twice and pin
+      # the second plaintext against the first.
+      #
+      # That was a real failure roughly one run in four, and it was not the
+      # envelope's: `:zip.create/3` stamps every member with the clock at the
+      # moment it packs, in both the local header and the extended-timestamp
+      # extra field. Two `Backup.to_binary/1` calls that straddle a second tick
+      # therefore differ by two bytes per member, and the two archives are
+      # genuinely not equal. Each sealing pays for a key derivation, so the two
+      # exports were far enough apart to straddle a tick often — which read as
+      # flakiness in the crypto and never as a clock in the zip.
+      #
+      # The claim being made here is about the envelope — same input, same
+      # passphrase, a fresh salt and a fresh IV each time — so the input is now
+      # held fixed instead of rebuilt. `Backup.to_encrypted_binary/2` is
+      # `to_binary/1 |> Envelope.seal/2` and both tests above call it.
+      plain = Backup.to_binary(Backup.export())
+
+      assert {:ok, first} = Envelope.seal(plain, @passphrase)
+      assert {:ok, second} = Envelope.seal(plain, @passphrase)
 
       # Same data, same passphrase, different salt and different IV — so the
       # two files reveal nothing by comparison, and neither can be replayed
@@ -127,8 +144,8 @@ defmodule Kati.BackupEncryptionTest do
       assert header_of(first)["iv"] != header_of(second)["iv"]
       assert parts(first).ciphertext != parts(second).ciphertext
 
-      # Both still open.
-      assert {:ok, plain} = Envelope.open(first, @passphrase)
+      # Both still open, and onto the archive that went in.
+      assert {:ok, ^plain} = Envelope.open(first, @passphrase)
       assert {:ok, ^plain} = Envelope.open(second, @passphrase)
     end
 

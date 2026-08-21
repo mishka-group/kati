@@ -60,6 +60,48 @@ defmodule Kati.Screens.Day do
   padding moved one level out to the `<Column>` that now holds the header row
   and the members. A `<Column fill_width>` with one `fill_width` `<Row>` in it
   measures what the `<Row>` measured alone.
+
+  ## Why this screen is still on `Kati.Calendar.SampleDay`
+
+  Alone among the sample-bound screens, this one has its domain already: the
+  day IS in `Kati.Calendars.Event` — `Kati.Seeds` writes all fourteen of its
+  rows — and `Kati.Calendars.Today.occurrences/1` already returns them in the
+  shape `Kati.Calendar.Layout` takes. The screen still does not read them,
+  because five of the things the drawing draws are not on that resource and
+  cannot be derived from it.
+
+    * **The episodes.** `Kati.Media` has no episode resource, so the 20:00
+      group's `S3 · E2` lines have nothing to come from, and an `air_date`
+      event carries no `{source, source_id}` pair, so it cannot reach
+      `Kati.Media.CachedTitle.poster_path` for the poster stack or the 23:15
+      row's tile either. `Kati.Screens.Series` and `Kati.Screens.Inbox` are on
+      `Kati.Library.Sample` for the same missing resource.
+
+    * **The tick.** `done` on the 08:00 habit and on the 15:00 todo has no
+      column anywhere: `Kati.Calendars.Event` models timing, identity, kind and
+      sync bookkeeping, and nothing about completion. `handle_tap/2`'s
+      `"todo_" <> id` clause would go on flipping a flag with nowhere to put
+      it, which is a control that silently forgets rather than one that works.
+
+    * **`£22.98`.** `money_row/0` prints a total and an event has no amount.
+      `Kati.Seeds` puts each service's price in `description`, but that is free
+      iCalendar text on any row a user or a sync wrote, so reading money out of
+      it would be a guess wearing the shape of a join.
+
+    * **The meta lines.** `09:30–09:45`, `S2 · E3` and `leaves Lumen+ at
+      midnight` are not stored — the seeder writes `summary` and the timing and
+      drops `meta` — and `Kati.Calendars.Today.meta/1` synthesises a *different*
+      string (`Calendar`, `Airs today`) out of `location` and `kind`.
+
+    * **`rail` and `flat`.** A per-event colour override on Design review, and
+      the settled paper under the 23:15 notice, are facts the drawing states
+      and the schema does not carry.
+
+  An empty database was never the problem — a fallback covers that, and rule 2
+  would be satisfied. A database holding the user's own day is: all five would
+  come back blank or wrong on every real row, which is the case
+  `Kati.Screens.Library` answers with `nil` rather than a guess. So the whole
+  screen waits for the columns instead of shipping a half-real day.
   """
   use Kati.Screens.Pushed, back: "Calendar"
 

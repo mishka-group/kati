@@ -14,8 +14,25 @@ defmodule Kati.SyncOwnershipTest do
   alias Kati.Sync.Outbox
   alias Kati.Sync.Ownership
 
+  # `Kati.Screens.Calendars` reads `calendars` now — its "which calendars show"
+  # group is `stored_calendars/0` — so the calendars this module creates are rows
+  # on somebody else's screen once it has finished with them.
+  # `Kati.ScreenDesignLiteralTest` renders screen 32 at an arbitrary point in the
+  # run and compares its copy with `.scratch/design/screens/32.html`; with these
+  # rows standing it drew them instead of the drawing's four, and whether it
+  # passed depended on `--seed`. Same wipe, and the same reasoning, as
+  # `Kati.SeedsTest`'s own teardown.
   setup_all do
     Kati.SyncSchema.ensure!()
+    on_exit(&empty_the_calendar_tables!/0)
+    :ok
+  end
+
+  # Child tables first: overrides and events carry the foreign keys.
+  defp empty_the_calendar_tables! do
+    for table <- ~w(event_occurrence_overrides events calendars calendar_accounts),
+        do: Ecto.Adapters.SQL.query!(Kati.Repo, "delete from #{table}", [])
+
     :ok
   end
 

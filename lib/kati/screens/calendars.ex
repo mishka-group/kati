@@ -35,9 +35,49 @@ defmodule Kati.Screens.Calendars do
       each one would change every calendar row. The prop it needs upstream is
       a `border_color` that can be `nil` — the same escape `MishkaThemeIcon`
       already has in the other direction.
+
+  ## Which of the three groups is real, and which are not
+
+  The screen's own structure is three groups answering three different
+  questions, so they are answered separately rather than gated as one — the
+  middle one is `Kati.Calendars.Calendar` and the other two have nothing behind
+  them yet.
+
+    * **"Which calendars show" is real.** `calendar_list/0` reads
+      `Kati.Calendars.Calendar` and falls back to `Kati.Settings.CalendarsSample`
+      when there is none, exactly as `Kati.Screens.Library.titles/0` does. Every
+      field the group draws is a column: `display_name` is the title,
+      `visible` is the switch, and `colour_token` is the swatch — which is
+      precisely what that column is for, since `colour_source` keeps the
+      provider's own value and is documented as never rendered.
+
+    * **Accounts stay on the Sample, and the icon is why.** Title, subtitle and
+      the Live/Stale pill are all derivable — `account_name`, a count of the
+      account's calendars, `last_sync_at`, `state`. The 30pt tile's glyph is
+      not: the drawing distinguishes iCloud (`cloud`), Google (`mail`) and
+      Fastmail-over-CalDAV (`dns`), and `Kati.Calendars.Account.provider`
+      collapses the first and third into one `:caldav`. `Kati.Seeds` says the
+      same thing from the other side — *"the drawing has no way to say 'this
+      iCloud row is CalDAV underneath'"* — and the reverse is just as true.
+      Deriving the glyph from `provider` would draw `dns` where the design
+      draws `cloud`, so the group is left whole rather than moved with one
+      field wrong. What it needs is a service/brand slot on the account, or a
+      `provider` value set that separates iCloud from a generic CalDAV
+      principal.
+
+    * **Write back stays on the Sample too**, and for a plainer reason: its
+      three rows are Kati's own event categories — air dates, habits, renewals
+      — and nothing stores a per-category push preference.
+      `Kati.Calendars.Calendar.writeback_policy` is per *calendar*, which is
+      the wrong axis and would answer a different question than the one the
+      group asks.
   """
   use Kati.Screens.Pushed, back: "Settings"
 
+  # Deliberately aliased away from `Calendar`: the bare name is Elixir's own
+  # module, and shadowing it here would be a trap for the next function that
+  # wants `Calendar.strftime/2`. `Kati.Seeds` aliases it the same way.
+  alias Kati.Calendars.Calendar, as: CalendarRow
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Settings.CalendarsSample, as: Sample
   alias Kati.Theme.Palette
@@ -50,11 +90,100 @@ defmodule Kati.Screens.Calendars do
       connected: Sample.connected(),
       accounts: Sample.accounts(),
       add_account: Sample.add_account(),
-      calendars: Sample.calendars(),
+      calendars: calendar_list(),
       write_back: Sample.write_back(),
       note: Sample.note()
     })
   end
+
+  @doc """
+  The calendars the middle group draws: the device's own, or the drawing's.
+
+  `stored_calendars/0` answers with nothing on a fresh install, and four rows
+  of nothing cannot be compared with `.scratch/design/audit/32.png` — the
+  swatches, the three ticked switches and the one greyed title would all go
+  unexercised. The same rule `Kati.Screens.Library.titles/0` states applies
+  here: *missing data is not a reason for a blank screen*.
+  """
+  @spec calendar_list() :: [map()]
+  def calendar_list do
+    case stored_calendars() do
+      [] -> drawn_calendars()
+      rows -> rows
+    end
+  end
+
+  @doc """
+  Every calendar Kati knows about, in the order it learnt about them.
+
+  One query, no join: the group draws nothing that belongs to the account, so
+  nothing about the account is loaded. Ordered by `inserted_at` because there
+  is no position column and none should be invented — the order a calendar
+  arrived in is the only order the schema actually holds, and it is the order
+  `Kati.Seeds` writes the drawing's four in. `id` breaks a tie so the list is
+  stable rather than merely usually stable.
+
+  **A calendar with no `display_name` is dropped.** The row is a title and a
+  switch, and a switch labelled `nil` is not a control — the same call
+  `Kati.Screens.Library.shelf/0` makes for a title whose cache row was evicted.
+  Every writer in the app sets a name (`Kati.Calendars.DeviceImport` falls back
+  to `"Calendar"`), so this is the column's nullability being honoured rather
+  than a case anything is expected to hit.
+  """
+  @spec stored_calendars() :: [map()]
+  def stored_calendars do
+    CalendarRow
+    |> Ash.Query.sort(inserted_at: :asc, id: :asc)
+    |> Ash.read!()
+    |> Enum.map(&shaped/1)
+    |> Enum.reject(&(&1.title == nil))
+  rescue
+    # The degradation `Kati.Calendars.Today` and `Kati.Screens.Library.shelf/0`
+    # both make: a screen that cannot reach its store draws the drawing rather
+    # than taking the push down.
+    _ -> []
+  end
+
+  @doc "The four calendars `.scratch/design/screens/32.html` draws, in its order."
+  @spec drawn_calendars() :: [map()]
+  def drawn_calendars, do: Sample.calendars()
+
+  @doc """
+  One calendar in the shape `calendar_row/2`, `calendar_title/1` and `swatch/1`
+  all read — the same three keys `Kati.Settings.CalendarsSample.calendars/0`
+  produces, so both halves of `calendar_list/0` answer one question one way.
+  """
+  @spec shaped(CalendarRow.t()) :: map()
+  def shaped(row) do
+    %{color: swatch_colour(row.colour_token), title: row.display_name, on: row.visible}
+  end
+
+  @doc """
+  The 12pt swatch's fill, resolved from the calendar's palette slot.
+
+  `Kati.Theme.Palette.token/1` rather than a mapping written out here: the
+  column holds a token name and the table is what token names mean, so a slot
+  added to the palette needs no clause. In light the drawing's four resolve to
+  the four literals the Sample carries — `:ink` is `0xFF1A1917`, `:green`
+  `0xFF4E9A73`, `:bronze` `0xFFB08E55`, `:rail_idle` `0xFFC4BDB3` — and in
+  dark they follow the theme, which a literal could not.
+
+  **A calendar with no slot is drawn in `rail_idle`**, and that is the one
+  place this screen falls short of what it draws.
+  `Kati.Calendars.DeviceImport` stores `colour_source` and never sets
+  `colour_token`, so every calendar imported from the device provider has no
+  palette slot at all — nothing in the app maps a provider's own colour onto
+  one. Until something does, they are all the design's "exists, no colour of
+  its own" grey. Inventing a colour per calendar would be worse: the swatch's
+  whole meaning is *this is what your events will be drawn in*, and a colour
+  chosen here is not one anything else would honour.
+  """
+  @spec swatch_colour(atom() | nil) :: pos_integer()
+  def swatch_colour(token) when is_atom(token) and not is_nil(token) do
+    if token in Palette.names(), do: Palette.token(token), else: Palette.rail_idle()
+  end
+
+  def swatch_colour(_token), do: Palette.rail_idle()
 
   @doc false
   def content(assigns) do

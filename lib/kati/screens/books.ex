@@ -20,6 +20,48 @@ defmodule Kati.Screens.Books do
   The progress track is drawn on **every** cover, including the two at 0%.
   The drawing keeps the 22%-ink rail under a book you have not opened, which
   is what makes "to read" read as a state rather than as missing data.
+
+  ## Why this screen still reads `Kati.Books.Sample`
+
+  Screen 03 moved onto `Kati.Media` (see `Kati.Screens.Library.shelf/0`), and
+  most of this one could follow it. `Kati.Media.TrackedTitle` already takes
+  `kind: :book`; its `:shelf` action carries an index documented as serving
+  "screens 03, 20 and 21"; and `Kati.Media.CachedTitle`'s own moduledoc names
+  *this* screen for the `p.214/380` line — `progress_page` on the durable row
+  over `page_count` on the cache row, put back together at render time by
+  `progress/2`, which answers a bare position rather than inventing a total
+  when the cache is gone. The grid, the chips and the counting half of the
+  header are all reachable today.
+
+  The **Reading now** hero is what keeps the screen whole, because two of the
+  four things it says have no column anywhere in `Kati.Media`:
+
+    * **`Ines Karvel`** — a byline. `Kati.Media.CachedTitle` holds `title`,
+      `title_original`, `overview`, `poster_path`, `backdrop_path`,
+      `runtime_minutes` and `genres`, and not one of them is an author. The
+      same absence blocks screen 21's artist, so this is one missing column
+      rather than two.
+    * **`23 MIN/DAY PACE`** — a rate, and nothing stores the minutes it is a
+      rate of. `Kati.Media.Watch` records that something was read and when,
+      never for how long, and `Kati.Media.TrackedTitle.progress_page` is one
+      current position with no history behind it, so a per-day pace cannot be
+      computed from anything stored. The `p. 214 / 380` in front of it *is*
+      expressible; the clause after the dot is not.
+
+  Half-moving it is the thing not to do. The grid could be read today, but a
+  screen whose six covers are the user's own and whose hero names a book they
+  do not own is a worse lie than one that is stand-in throughout and says so —
+  and the hero is the largest object on the screen.
+
+  The shelf is also empty by decision rather than by accident: #60 scoped v1 to
+  one media domain, Screen, which is why screen 03 draws Books and Music
+  inactive and `Kati.Screens.Library.visible/3` answers `[]` for them. Nothing
+  in v1 writes a `kind: :book` row, so a query here would return nothing on
+  every device and the fallback would be carrying the screen regardless.
+
+  `64 books` and the `All 64` chip stay literals for the drawing's own reason,
+  recorded in `Kati.Books.Sample`: a shelf is a window onto a library, and
+  counting the six covers would quietly turn 64 into 6.
   """
   use Kati.Screens.Root, root: :library
 

@@ -9,22 +9,314 @@ defmodule Kati.Screens.Film do
   The note sits on cream. The design's own caption says that is deliberate:
   it is "the one place the palette warms up", the same treatment the hero card
   gets on Home, and it marks the user's own words as different from metadata.
+
+  ## Where the data comes from
+
+  `Kati.Media`, through `film/0`. This screen is the durable half of that
+  domain drawn as a page: `Kati.Media.Watch`'s own moduledoc names it twice —
+  *"screen 08 does not [know the hour]"* is why `watched_on` is a date beside
+  `watched_at`, and the `[:tracked_title_id, :watched_at]` index is annotated
+  *"screen 08's 'seen 2 times'"*. The rating, the note, the watch date and the
+  count are all rows the user made, so they are read rather than frozen.
+
+  Three reads, never one per row: the film shelf (`Kati.Media.TrackedTitle`'s
+  own `:shelf` action, which is where *keeps history, hides from shelf* is
+  enforced), the one cache row it names, and that title's watches. The cache is
+  reached by `{source, source_id}` because that is what a tracked row holds —
+  a value pair, not a foreign key — so an evicted poster cannot take the user's
+  memory of the film down with it.
+
+  **Which film.** Nothing hands this screen an id: `Kati.Screens.Library` taps a
+  poster and pushes `Kati.Screens.Film` with no title attached, exactly as
+  `Kati.Screens.MealsToday` pushes `Kati.Screens.Meal`. So the referent is the
+  one the shelf itself puts first — the most recently touched film — and it is
+  `:shelf` that decides that, not an ordering written out here.
+
+  With nothing tracked there is no such film and `Kati.Library.Sample` is drawn
+  instead, the values `.scratch/design/screens/08.html` was captured from.
+  FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
+  module stays exactly where it is; it is the fallback and the fixture, not a
+  stage this screen has passed through.
+
+  ## What no resource can express, and is therefore not drawn
+
+  Two things on this drawing have no store anywhere in the app, and neither is
+  invented for a real film. Both are drawn in full on the fallback, because
+  there they are the drawing rather than a claim about a title.
+
+    * **The whole `Where to watch` card.** `Lumen+ · included` and
+      `Kino store · £9.99` are availability and pricing, and `Kati.Media` holds
+      neither: `Kati.Media.Watch.service` is where the *user* watched something,
+      which is a different fact, is per-watch, and carries no price.
+      `Kati.Media.CachedTitle` has a poster, a runtime and a release date and no
+      offers. A frozen `£9.99` beside a real film is not a placeholder, it is a
+      price quoted for a film nobody priced — so `where/1` gets an empty list
+      and `where_section/1` takes the eyebrow with it. What this needs is an
+      offers resource per `{title, service, region}`, which screen 35's *Region
+      & availability* group is the settings half of.
+    * **`2025` in the meta line.** `Kati.Media.CachedTitle.next_release_at` is
+      the NEXT release; a first-release year would be a new column, and reading
+      the next one as the first would print next Tuesday's date as a film's
+      year. The line degrades to `1H 52M · DRAMA`, which is `runtime_minutes`
+      and `genres` and nothing else.
+
+  Three smaller ones are derived rather than dropped, and each states what it is
+  derived from: `seen` counts watches against the user's own `rewatch_number`
+  the way `Kati.Screens.Activity` does, the stars are `rating` on the ten-point
+  scale halved, and the watched pill is the latest watch's date.
   """
   use Mob.Screen
   import Mob.Sigil
+
+  require Ash.Query
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Library.Sample
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.TrackedTitle
+  alias Kati.Media.Watch
   alias Kati.Theme.Palette
   alias Kati.UI
 
+  # The row of affordances under the card stack. Labels, not data — the same
+  # class of literal as screen 03's `Up next` tile — so they live in the screen
+  # beside the markup that draws them rather than being read back out of the
+  # fixture, which would be a lie about where a real render's copy came from.
+  @actions [{"replay", "Log rewatch"}, {"event", "Schedule"}, {"ios_share", "Share"}]
+
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :film, Sample.film())}
+    {:ok, Mob.Socket.assign(socket, :film, film())}
   end
+
+  @doc """
+  The film this screen draws: the user's, or the drawing's.
+
+  The gate is the whole screen rather than each card, for the reason
+  `Kati.Screens.Series` gives for not moving half of itself: a page whose title
+  is a real film and whose note is somebody else's evening reads as entirely
+  real. Either every value is this user's or every value is the drawing's.
+  """
+  @spec film() :: map()
+  def film do
+    tracked_film() || drawn_film()
+  end
+
+  @doc """
+  Screen 08 exactly as it is drawn, from `Kati.Library.Sample`.
+
+  Kept in the fixture rather than inlined here: it is the frame's specification
+  and the fixture the tests compare a real render against, and two copies of the
+  drawing's copy is exactly how the two drift apart.
+  """
+  @spec drawn_film() :: map()
+  def drawn_film, do: Sample.film()
+
+  @doc """
+  The user's own film, shaped for the markup, or `nil` when there is not one.
+
+  `nil` is the ordinary answer on a fresh install and the one `film/0` reads as
+  "draw the drawing". A database that cannot be read at all answers `nil` too:
+  `Ash.read!` on a device mid-migration raises, and a screen that dies is
+  strictly worse than a screen showing the values it was drawn from — the same
+  degradation `Kati.Screens.Library.shelf/0` and `Kati.Calendars.Today` make.
+  """
+  @spec tracked_film() :: map() | nil
+  def tracked_film do
+    case newest_film() do
+      nil -> nil
+      tracked -> shaped(tracked, cached_for(tracked), watches_of(tracked))
+    end
+  rescue
+    _ -> nil
+  end
+
+  # The top of the film shelf. `:shelf` rather than a filter written out here:
+  # it is the action `Kati.Media.TrackedTitle` names for "screens 03, 20 and 21"
+  # and it is where archived rows are excluded, so a shelf that forgot the flag
+  # would show a title the user hid. `limit(1)` because this screen draws one
+  # film and the sort is the action's own.
+  defp newest_film do
+    TrackedTitle
+    |> Ash.Query.for_read(:shelf, %{kind: :movie})
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> List.first()
+  end
+
+  # One read, by the VALUE PAIR the durable half references the cache by. A
+  # missing row is the evicted case and is ordinary — see `shaped/3`.
+  defp cached_for(%TrackedTitle{source: source, source_id: source_id}) do
+    CachedTitle
+    |> Ash.Query.filter(source == ^source and source_id == ^source_id)
+    |> Ash.read_one!()
+  end
+
+  defp watches_of(%TrackedTitle{id: id}) do
+    Watch
+    |> Ash.Query.for_read(:for_title, %{tracked_title_id: id})
+    |> Ash.read!()
+  end
+
+  @doc """
+  One tracked film in the shape the markup reads, whatever is missing.
+
+  `cached` may be `nil` and `watches` may be empty; both are ordinary states and
+  neither is allowed to invent a value.
+
+    * `title` is the cache's, and `Untitled` when the cache row has gone. The
+      same answer `Kati.Screens.Activity` gives, and for its reason: the memory
+      survived the wipe and the poster did not, so the page says so rather than
+      handing the user somebody else's film. (Screen 03 drops such a row instead,
+      because there a nameless tile among nine named ones says nothing; here it
+      is the whole page and the user's own rating and note are on it.)
+    * `seed` is `poster_path`, which for a seeded sample title is the design's
+      own picsum seed and for a real one is a provider path
+      `Kati.Design.Images.poster/1` will not find. Both degrade to the
+      `track_off` rectangle `hero_art/1` already leaves behind.
+    * `watched`, `note` and `note_date` are `nil` when nothing was logged, and
+      each draws nothing at all rather than an empty pill or a blank cream card.
+    * `where` is `[]`, always. See the moduledoc: there is no offers resource.
+  """
+  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, [Watch.t()]) :: map()
+  def shaped(tracked, cached, watches) do
+    zone = Kati.Time.device_zone()
+    dated = Enum.sort_by(watches, &sort_key(&1, zone), {:desc, Date})
+    noted = Enum.find(dated, &noted?/1)
+
+    %{
+      title: title_of(cached),
+      seed: seed_of(tracked, cached),
+      meta: meta_line(cached),
+      watched: watched_label(tracked, dated, zone),
+      stars: star_count(tracked.rating),
+      seen: seen_line(watches),
+      note_date: noted && note_date(noted, zone),
+      note: noted && noted.review,
+      where: [],
+      actions: @actions
+    }
+  end
+
+  defp title_of(%CachedTitle{title: title}) when is_binary(title) and title != "", do: title
+  defp title_of(_cached), do: "Untitled"
+
+  # `Kati.Seeds` writes the design seed straight into `poster_path` — "not a
+  # TMDB path: the sample artwork is resolved by seed" — and `sample_source_id/1`
+  # is the other half of that convention, so a row whose cache has been evicted
+  # can still find its picture.
+  defp seed_of(tracked, cached) do
+    case cached do
+      %CachedTitle{poster_path: path} when is_binary(path) and path != "" -> path
+      _ -> Kati.Seeds.sample_seed(tracked.source_id)
+    end
+  end
+
+  # `2025 · 1H 52M · DRAMA` minus the year, which nothing stores. Both halves
+  # are nullable — a provider can decline either — and an absent half is left
+  # out rather than spelled as a dash, so the line is `DRAMA` alone or empty.
+  defp meta_line(cached) do
+    [runtime_label(cached), genre_label(cached)]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
+  end
+
+  defp runtime_label(%CachedTitle{runtime_minutes: m}) when is_integer(m) and m > 0 do
+    case {div(m, 60), rem(m, 60)} do
+      {0, minutes} -> "#{minutes}M"
+      {hours, 0} -> "#{hours}H"
+      {hours, minutes} -> "#{hours}H #{minutes}M"
+    end
+  end
+
+  defp runtime_label(_cached), do: nil
+
+  defp genre_label(%CachedTitle{genres: g}) when is_binary(g) and g != "", do: String.upcase(g)
+  defp genre_label(_cached), do: nil
+
+  # The green pill is an assertion that the film has been seen, so it needs
+  # something that asserts it. A dated watch gives the drawing's own
+  # `Watched 12 Aug`; a watch with no date is the "I have seen this, I do not
+  # remember when" `Kati.Media.Watch` describes, and says so without one; a
+  # title the user marked finished with nothing logged is the same statement
+  # made on the shelf. Anything else has not been watched and gets no pill.
+  defp watched_label(tracked, dated, zone) do
+    cond do
+      date = dated |> Enum.find_value(&watch_date(&1, zone)) ->
+        "Watched " <> Calendar.strftime(date, "%-d %b")
+
+      dated != [] ->
+        "Watched"
+
+      tracked.status == :finished ->
+        "Watched"
+
+      true ->
+        nil
+    end
+  end
+
+  # Ten-point scale to whole glyphs, as `Kati.Screens.Activity.star_count/1`
+  # does it: `9` is four and a half stars and this row draws whole ones, so it
+  # draws four. Rounding 9 up to five would claim half a star nobody gave. An
+  # unrated film is five empty stars, which is what "you have not rated this"
+  # looks like — the card is the user's own rating and is never hidden.
+  defp star_count(rating) when is_integer(rating), do: div(rating, 2)
+  defp star_count(_rating), do: 0
+
+  # `2 times`. Rows counted against the user's own `rewatch_number`, which
+  # `Kati.Media.Watch` says exists precisely for the history that predates Kati:
+  # someone who saw a film twice before installing and once since has one row
+  # claiming "3rd", and counting rows alone would print 1. Same arithmetic as
+  # screen 15's rewatch card, and deliberately the same, because the two numbers
+  # are the same fact and must not disagree.
+  defp seen_line(watches) do
+    claimed =
+      watches
+      |> Enum.map(& &1.rewatch_number)
+      |> Enum.filter(&is_integer/1)
+      |> Enum.max(fn -> 0 end)
+
+    case max(length(watches), claimed) do
+      0 -> "never"
+      1 -> "1 time"
+      n -> "#{n} times"
+    end
+  end
+
+  # A watch with something written in it. The drawing's cream card is the user's
+  # own words; a watch with a rating and no review has nothing to put in it.
+  defp noted?(%Watch{review: review}), do: is_binary(review) and String.trim(review) != ""
+
+  # `Note · 12 Aug`, and `Note` alone for a review the user never dated.
+  defp note_date(watch, zone) do
+    case watch_date(watch, zone) do
+      nil -> "Note"
+      date -> "Note · " <> Calendar.strftime(date, "%-d %b")
+    end
+  end
+
+  # `watched_on` first: it is the date-valued half, and `Kati.Media.Watch` keeps
+  # the two apart because storing "watched on 12 August" as midnight moves it a
+  # day the moment the user flies.
+  #
+  # `nil` for a watch that carries neither, and that `nil` is the whole reason
+  # this is separate from `sort_key/2`: "I have seen this, I do not remember
+  # when" is a real answer, and a sentinel date substituted for it would come
+  # back out of `watched_label/3` as a film watched on the first of January.
+  defp watch_date(%Watch{watched_on: %Date{} = date}, _zone), do: date
+
+  defp watch_date(%Watch{watched_at: %DateTime{} = at}, zone) do
+    at |> Kati.Time.in_zone(zone) |> DateTime.to_date()
+  end
+
+  defp watch_date(%Watch{}, _zone), do: nil
+
+  # Newest first, undated last. Only ever compared, never printed.
+  defp sort_key(watch, zone), do: watch_date(watch, zone) || ~D[0000-01-01]
 
   def render(assigns) do
     f = assigns.film
@@ -48,8 +340,7 @@ defmodule Kati.Screens.Film do
           >
             {Kati.Screens.Film.rating_card(f)}
             {Kati.Screens.Film.note(f)}
-            {UI.eyebrow("Where to watch")}
-            {Kati.Screens.Film.where(f)}
+            {Kati.Screens.Film.where_section(f)}
             {Kati.Screens.Film.actions(f)}
           </Column>
         </Column>
@@ -69,8 +360,7 @@ defmodule Kati.Screens.Film do
       </Box>
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
-          {Kati.Screens.Film.watched_pill(f.watched)}
-          <Spacer size={11} />
+          {Kati.Screens.Film.watched(f.watched)}
           <Text
             text={f.title}
             text_size={30}
@@ -91,6 +381,22 @@ defmodule Kati.Screens.Film do
       </Box>
     </Box>
     """
+  end
+
+  @doc """
+  The watched pill and the 11pt of air under it, or neither.
+
+  A list rather than a wrapper `Column`, because the sigil flattens an
+  interpolated list into its parent: the drawn film gets the same two nodes in
+  the same place it already had them, and a film nobody has watched leaves no
+  node behind at all rather than an empty lozenge or a stray gap above the
+  title. Same move as `Kati.Screens.Activity.group/5`, and for the same reason.
+  """
+  @spec watched(String.t() | nil) :: [map()]
+  def watched(nil), do: []
+
+  def watched(label) do
+    [Kati.Screens.Film.watched_pill(label), ~MOB"<Spacer size={11} />"]
   end
 
   @doc """
@@ -143,9 +449,14 @@ defmodule Kati.Screens.Film do
     ]
   end
 
+  # `Kati.Design.Images.poster/1` rather than `Kati.Library.Sample.poster/1` —
+  # the Sample function is a one-line delegation to it, and a real film's seed
+  # now arrives on `Kati.Media.CachedTitle.poster_path` (see `shaped/3`), so
+  # routing it through the fixture module would be a lie about where the value
+  # came from. Screen 03's `artwork/1` made the same move for the same reason.
   @doc false
   def hero_art(f) do
-    case Sample.poster(f.seed) do
+    case Kati.Design.Images.poster(f.seed) do
       nil ->
         ~MOB"<Spacer size={0} />"
 
@@ -325,7 +636,18 @@ defmodule Kati.Screens.Film do
   def star(true), do: Kati.UI.symbol("star", size: 22, color: Palette.accent(), fill: true)
   def star(false), do: Kati.UI.symbol("star", size: 22, color: Palette.accent())
 
-  @doc false
+  @doc """
+  The cream note card, or nothing.
+
+  The card is the user's own words — the design's caption calls cream *"the one
+  place the palette warms up"* precisely to mark them as not metadata — so a
+  film with no review has no card, rather than a warm rectangle with an empty
+  paragraph in it. The `12` above and the `26` below go with it, which is why
+  they are inside the card's own `Column` and not in `render/1`.
+  """
+  @spec note(map()) :: map() | []
+  def note(%{note: nil}), do: []
+
   def note(f) do
     ~MOB"""
     <Column fill_width={true}>
@@ -349,6 +671,23 @@ defmodule Kati.Screens.Film do
     </Column>
     """
   end
+
+  @doc """
+  The `Where to watch` eyebrow and its card, or neither.
+
+  See the moduledoc: nothing in `Kati.Media` can say a film is on Lumen+ for
+  nothing and in the Kino store for £9.99, so a real film has no offers and the
+  section is not drawn. An eyebrow over an empty card is the shape
+  `Kati.Screens.Activity` already rejects — *"a headed card with no rows inside
+  it is a worse answer than no card"* — and here it would be worse still,
+  because the drawing's two rows quote a price.
+
+  A list, so the flattened result is the two nodes `render/1` used to name
+  itself and the drawn film is unchanged to the node.
+  """
+  @spec where_section(map()) :: [map()]
+  def where_section(%{where: []}), do: []
+  def where_section(f), do: [UI.eyebrow("Where to watch"), Kati.Screens.Film.where(f)]
 
   @doc false
   def where(f) do

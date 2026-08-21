@@ -46,6 +46,54 @@ defmodule Kati.Screens.Season do
   `order/2` keeps the two on separate boxes — an outer `Box weight={1.0}` around
   an inner `Box fill_width={true}` — which is why it has a wrapper that looks
   redundant and is not.
+
+  ## Why this screen still reads `Kati.Season.Sample`
+
+  Screens 03 and 08 moved onto `Kati.Media`; this one did not, and the reason
+  changed halfway through the round it did not move in. It used to be that
+  `Kati.Media` had no episode at all — a `Kati.Media.Watch` carried an
+  `episode_source_id` and nothing anywhere held the record it named, so nothing
+  could answer *what is E5 called*, *how long is it* or *when did it air*, which
+  is every row of this list. That is no longer true:
+  `Kati.Media.CachedEpisode` and `Kati.Media.CachedSeason` now exist and were
+  built naming this screen — `for_season/3` is *"one season's episodes, in aired
+  order"*, `in_order/2` quotes this drawing's own footnote, and `special` is
+  stored rather than derived because *"screen 34 draws it as a bronze number and
+  a SPECIAL badge: in the order, out of the count"*.
+
+  **The schema is no longer what blocks it.** It was, for most of the round
+  this screen did not move in: the two resources existed and had no migration,
+  so a query written against them could only ever be observed falling back —
+  `Ash.read!` on a missing table raises, the rescue swallows it, and the Sample
+  list draws. `20260821231241_media_seasons_and_episodes` created
+  `cached_seasons` and `cached_episodes` at the end of that same round, so both
+  tables exist now and a read here would be a read that could be verified.
+  What is left is the list below, and it is what actually keeps the screen
+  whole.
+
+  Three things on this drawing have no store, and each is a resource or a
+  column rather than a query:
+
+    * **`Include specials` and `Merge multi-part`.** Two switches on a card, and
+      neither has a column. `Kati.Media.TrackedTitle` carries the four per-show
+      switches screen 35 draws and none of these: they are per-*season* display
+      choices about how an order is built, and `Kati.Media.CachedEpisode` is a
+      cache, which is the one place a user's choice must never live.
+    * **The `DVD` tile.** `Kati.Media.CachedEpisode.orders/0` answers
+      `[:aired, :absolute]` and says why at length: no source Kati fetches from
+      provides per-episode DVD numbering. The drawing offers three tiles and the
+      data can fill two, and *"a segmented control whose third option changes
+      nothing is a lie told in pixels"* is that resource's own sentence.
+    * **The `PARTS 1–2` badge.** Merging a two-part finale into one entry is a
+      transformation of the order with nothing to record that it happened —
+      no column marks an episode as merged and none pairs it with its other
+      half.
+
+  Two smaller ones are worth naming so a later round does not re-derive them:
+  nothing hands this screen a season (it would be the tracked row's
+  `progress_season`, the bookmark `Kati.Media.CachedSeason` was built to give an
+  inventory to), and the footnote's `27–35` is a specific renumbering of a
+  specific season rather than the general sentence beside it.
   """
   use Kati.Screens.Pushed, back: "Series"
 

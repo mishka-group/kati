@@ -39,6 +39,55 @@ defmodule Kati.Screens.SeriesSettings do
   label rather than over it, and neither takes a per-item layout weight. What
   they would need is a content slot that is a `Column` — which is a different
   component, not a prop.
+
+  ## Why this screen still reads `Kati.SeriesSettings.Sample`
+
+  This is the screen in the Screen subtree with the strongest claim to a
+  migration and it did not get one, so the reasons are written out rather than
+  left to be re-derived. The top of it is `Kati.Media.TrackedTitle` almost
+  literally: `status` is the three tiles, and `auto_add_new_seasons`,
+  `notify_new_episodes`, `add_air_dates_to_calendar` and
+  `hide_unwatched_titles` are the four switches of the season-pass card in the
+  order the drawing lists them, with the resource's own defaults —
+  `true, true, true, false` — already matching the drawing's four positions.
+  That resource's moduledoc names this screen three separate times, and **those
+  four columns have no other reader anywhere in the app**. That is the cost of
+  not moving, and it is a real one.
+
+  Three things stop it, and only the first is a matter of taste:
+
+    * **The `Region & availability` group is not per-show, and has no store at
+      all.** `Region · United Kingdom`, `My services · Lumen+, Orbit, Kino · 3 of
+      12`, `Watch for price drops` and `Preferred quality · 4K HDR where offered`
+      are app-level preferences and a subscription list. There is no settings
+      resource in `Kati.Media` or anywhere else — `lib/kati/settings/` is Sample
+      modules — and no offers resource for "available" to mean anything against.
+      Four of this screen's eleven rows would stay frozen beside four that had
+      become the user's own, which is the arrangement `Kati.Screens.Series`
+      rejects: half real reads as fully real.
+    * **Two sub-lines are per-show claims that need the episode tables.** `S4
+      will appear when announced` is `Kati.Media.CachedSeason.count/1` plus one
+      and `Currently 5 of 7 in S2` is
+      `Kati.Media.CachedEpisode.watched_of/2` against the tracked row's
+      `progress_season`. Both resources exist and, since
+      `20260821231241_media_seasons_and_episodes`, so do their tables — so this
+      is now a matter of nothing writing a season or an episode row rather than
+      of nowhere to put one. Frozen, the two lines are sentences about a season
+      this show may not have and a position the user is not at.
+    * **The referent cannot be picked safely yet, and the test suite proves
+      it.** Nothing hands this screen a show — `Kati.Screens.Series` pushes it
+      from its `⋯` with no title attached — so the referent would be the newest
+      tracked series, exactly as `Kati.Screens.Film` takes the newest tracked
+      film. The difference is what is in the database when the sweeps run:
+      `Kati.Notifications.Sources.MediaTest` creates real `:tv` tracked rows
+      through `Ash.create!` and has no `on_exit` that removes them, so after it
+      runs there is always a tracked series to find. `Kati.ScreenDesignLiteralTest`
+      renders every screen against that same shared file, so this screen would
+      take the real path or the drawn one depending on where `--seed` put the
+      two modules — a coin flip, not a flake. (`Kati.Screens.Film` is unaffected:
+      every module that writes a `:movie` tracked row wipes it again.) The fix
+      is one `on_exit` in a file this round does not own, and it has to land
+      before the referent here can be trusted.
   """
   use Kati.Screens.Pushed, back: "Series"
 

@@ -33,6 +33,40 @@ defmodule Kati.Screens.Music do
   the covers 115 wide and 112 tall — the drawing's squares, drawn oblong. The
   modifier chain is weight → aspect_ratio, so the square is taken off the width
   the Row actually granted, at any frame.
+
+  ## Why this screen still reads `Kati.Music.Sample`
+
+  `Kati.Media` can hold a record: `:album` is one of `Kati.Media.CachedTitle`'s
+  and `Kati.Media.TrackedTitle`'s five kinds, `track_count` is the album
+  denominator, and the `:shelf` action's index is documented as serving
+  "screens 03, 20 and 21". What it cannot hold is nearly everything *this*
+  screen says.
+
+    * **The artist** — `Kell Ostrand`, `Vesper Line`, `Aud Marne` on the tiles,
+      and again on both release rows. `Kati.Media.CachedTitle` has no byline
+      column at all; the same absence blocks screen 20's author. And an artist
+      here is more than a string: "New from artists you follow" follows a
+      *person*, where an `:album` row is one record, so there is nothing of the
+      right shape to follow.
+    * **The listening card, entire** — `9h 12m`, `mostly 21:00–23:00`, and the
+      twenty daily bars. `Kati.Media.Watch` records that a record was played
+      and when, never for how long, so there are no minutes to total, none to
+      split across twenty days, and none to say `61h this year` with in the
+      header. `Kati.Media.CachedTitle.runtime_minutes` is the record's length
+      rather than the listening's, and counting a skipped album in full is how
+      a listening total becomes fiction.
+    * **`41 PLAYS`** — this one is nearly there. A play is a
+      `Kati.Media.Watch` with no `episode_source_id`, and `watched_at` bounds
+      the week. It is deliberately not split out: the tile it labels cannot
+      name its artist, and a tile whose count is real and whose name is frozen
+      reads as fully real.
+    * **`Estuary Tapes · out Friday`** — the date half is
+      `Kati.Media.Release.resolve/2`'s job and it would answer. The row it
+      belongs to is the one that cannot be built.
+
+  As on screen 20, the shelf is empty by decision as well as by absence: #60
+  scoped v1 to one media domain, Screen, so nothing writes a `kind: :album`
+  row and a query here would answer nothing on every device.
   """
   use Kati.Screens.Root, root: :library
 

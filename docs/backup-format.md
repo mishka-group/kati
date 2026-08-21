@@ -155,6 +155,8 @@ reproduce.
 | Resource | Class | Why not |
 | --- | --- | --- |
 | `Kati.Media.CachedTitle` | `:cache` | Third-party title metadata under a provider's terms, behind a `fetched_at` eviction sweep. Restoring it seven months later would be restoring someone else's data under terms that expired — and it re-fetches on its own. The user's half references it by `{source, source_id}` as a *value*, not a foreign key, so leaving it out orphans nothing. |
+| `Kati.Media.CachedSeason` | `:cache` | A provider's season inventory — names, poster paths, episode counts, air dates — behind the same `fetched_at` sweep as `cached_titles`. The user's half names a season by its number in `tracked_titles.progress_season`, so leaving it out orphans nothing and a re-fetch puts the count back. |
+| `Kati.Media.CachedEpisode` | `:cache` | A provider's episode records — names, runtimes, air dates, numbering — behind the same sweep. It holds nothing the user did: a tick is a `media_watches` row, which **is** carried, and it names its episode by the provider id, so a restore without this table loses no progress and re-fetches every name. |
 | `Kati.Meals.LicensedFood` | `:cache` | Food data under someone else's licence, with a not-null `fetched_at` so the same sweep reaches it. Re-fetched, never re-distributed. |
 | `Kati.Meals.BundledFood` | `:bundled` | The CC0 corpus shipped in `priv/`. Byte-identical on every install, so a copy in the file is size for nothing. |
 | `Kati.Spike.Thing` | `:internal` | A migration spike. Holds no user data. |

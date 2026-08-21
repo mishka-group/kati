@@ -23,6 +23,59 @@ defmodule Kati.Screens.AddTitle do
   #45 settled that screens 06, 18 and 46 become Android sheets via a new
   `:sheet` node type. Until that lands it pushes, which is the same
   information in a different container.
+
+  ## Why this screen still reads `Kati.Library.Sample`
+
+  Screen 03 moved onto `Kati.Media` (see `Kati.Screens.Library.shelf/0`) and
+  this one did not, for the reason `Kati.Screens.Series` states about its own
+  list: the gap is a *source*, not a column. This sheet searches titles the
+  user does **not** have, and Kati has nothing that can answer such a query.
+
+  `Kati.Media.CachedTitle` is not that thing and must not be pressed into
+  being it. It is a cache of titles something already fetched — its own
+  moduledoc opens with "entirely evictable", `Kati.Seeds` fills it from the
+  nine titles already on the shelf, and it carries no read action that matches
+  on `title`. Searching it would answer with the library, which is the one set
+  of titles this sheet exists to look outside of, and on the seeded database
+  "quiet" matches none of the nine, so the screen would query, find nothing and
+  fall back every time. A query that is ceremony reads as a query that works.
+
+  Precisely what this screen draws and no resource can currently express:
+
+    * **the results themselves** — nothing in `lib/` turns `quiet` into
+      candidates. There is no provider search client, and no read action
+      anywhere matches a title by name.
+    * **`2019` / `2023`** in the meta line — a first-release year.
+      `Kati.Media.CachedTitle` stores `next_release_at`, which is the NEXT
+      release; this is the same missing column `Kati.Screens.Series` names for
+      its own `2024`.
+    * **`2 SEASONS` / `1 SEASON`** — a season count, and the one of these that
+      is closing. `CachedTitle` holds `episode_count` and no season inventory,
+      and `Kati.Media.TrackedTitle.progress_season` is a bookmark rather than a
+      total, so neither can enumerate the seasons that exist;
+      `Kati.Media.CachedSeason`, added this round, answers it with `count/1`.
+      That changes nothing about whether this sheet can move, because a season
+      count is a fact about a title already cached and these four are titles
+      the cache has never seen.
+    * **`Lumen+` / `Cinema` / `Northlight`** in the note line — availability.
+      `Kati.Media.Watch.service` is where the *user* watched something, which
+      is a different fact, recorded per watch and only after the fact — a
+      search result has no watch yet.
+
+  Three things here *are* expressible today and are deliberately not split
+  out, because a row whose four values are half real and half frozen reads as
+  fully real: `FILM` / `SERIES` is `Kati.Media.CachedTitle.kind`, `1h 48m` is
+  `runtime_minutes`, and `Drama` / `Thriller` is `genres`.
+
+  So is `added`, and it is the sharpest of the four.
+  `Kati.Media.TrackedTitle`'s `:by_reference` action names *this screen* in its
+  own comment — "screen 06 asks 'is this already in the library?' of a search
+  result that only carries provider ids" — and it stays unused here for want of
+  the ids. A result carries no `{source, source_id}` until a search client
+  produces one, so the lookup has nothing to look up, and wiring it anyway
+  would draw four ink `+` discs where the drawing draws three and a muted
+  `check`. It lands with the search client, which is what will hand it a
+  reference.
   """
   # Not `Kati.Screens.Pushed`: this screen has its own close button in the
   # header, and the pushed chrome would draw a second back affordance over the

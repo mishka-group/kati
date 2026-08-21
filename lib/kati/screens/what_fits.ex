@@ -29,6 +29,40 @@ defmodule Kati.Screens.WhatFits do
   existing chip moves, is what this needs. `MishkaPill` has exactly that prop
   and would draw them, but its own docs send anything with a checked state to
   the chip, and a selected/unselected pair is precisely what these are.
+
+  ## Why this screen still reads `Kati.Screens.WhatFits.Sample`
+
+  The same absence `Kati.Screens.Series` names, and for the same reason:
+  **`Kati.Media` has no episode.** `Kati.Media.Watch` carries an
+  `episode_source_id` and a `season_number` / `episode_number` label snapshot,
+  but only for an episode already ticked — and this screen is entirely about
+  the ones that have not been. Nothing can say what S3E2 of *Ashfall* is
+  called, and nothing can say it runs 41 minutes, which is the one number the
+  whole screen sorts on.
+
+  What that blocks, exactly:
+
+    * **`41m`, `43m`, `44m`** — a per-episode runtime.
+      `Kati.Media.CachedTitle.runtime_minutes` is the *title's*, which for a
+      series is either a nominal length or nothing at all, and a window that
+      admits three episodes is measured against neither.
+    * **`S3 · E2`** — an unwatched episode's place in its series.
+      `Kati.Media.TrackedTitle.progress_season` and `progress_episode` are one
+      bookmark, not an inventory, so they cannot enumerate what comes next.
+    * **`3 episodes fit`** — the count follows the list.
+    * **`Light`, `Tense`, `Long-form`** — a mood.
+      `Kati.Media.CachedTitle.genres` is a genre, which is a different claim
+      about a title, and `Kati.Media.Watch.tags` is per-watch and written after
+      the fact.
+
+  Two things here *are* expressible and are deliberately not split out. The
+  over-budget row is one — `Quiet Harbour` at `1H 46M · 61 MIN OVER` is a
+  `kind: :movie` tracked row's `runtime_minutes` measured against the chosen
+  window — and `Sunday, 21:40` is the other, a wall clock `Kati.Time` would
+  answer (and which the audit frame pins to the drawing's own evening). A
+  screen whose *nothing else fits* row is the user's real film while the three
+  episodes above it are invented would be making its most specific claim about
+  data it does not have. Both land when the episode resource does.
   """
   use Kati.Screens.Pushed, back: "Library"
 

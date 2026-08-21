@@ -24,6 +24,22 @@ defmodule Kati.Screens.Import do
   Symbols `star` glyph in its place at the surrounding text's size and colour.
 
   No dock, so the frame's bottom inset is 40 rather than 132.
+
+  ## Why this screen is still on `Kati.Import.Sample`
+
+  There is no reader and no job. `lib/kati/import` holds that one sample module
+  and nothing else, and no Ash resource models a file, a column mapping, an
+  outcome count or a conflict queue. The screen is drawn *mid-job* — step 3 of
+  4, five columns matched, one of six conflicts open — which is a state that
+  has to be held between two renders, and there is nowhere to hold it: the
+  answer to a conflict would be forgotten the moment the screen popped.
+
+  `Kati.Backup.inspect_file/1` is the nearest existing thing and worth naming,
+  because it already makes this screen's promise — it opens a file and reports
+  what a restore would write *without writing it*, so a screen can never offer
+  numbers the write would then refuse. It answers about Kati's own archives
+  rather than a third party's CSV, so it is the shape to copy when the reader
+  lands, not a call this screen can make today.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

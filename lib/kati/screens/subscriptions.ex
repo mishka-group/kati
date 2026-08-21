@@ -54,6 +54,40 @@ defmodule Kati.Screens.Subscriptions do
   where it gets called; until then the button must not claim otherwise.
 
   Both states start off, so the resting screen is the drawing exactly.
+
+  ## Why this screen is still on `Kati.Subscriptions.Sample`
+
+  There is no subscription resource, and this is the one screen in the app
+  where that is a statement about the schema rather than about the round it
+  landed in: **no table anywhere holds a price.** Not `Kati.Media`, not
+  `Kati.Calendars`, not `Kati.Meals`. Every figure this screen prints — the
+  `£46.47` hero, the four prices, the change since March — has nowhere to come
+  from.
+
+  The nearest thing that exists is `Kati.Calendars.Event.kind`'s `:money`
+  value, and `Kati.Seeds` does write two renewal events with a price in the
+  `description`. That is not a source and must not be treated as one:
+
+    * It is **two** of the four services the card lists, seeded only because
+      screen 09 merges them into one *"2 renewals · £22.98"* row.
+    * The price rides in `description`, which is free text on a calendar event.
+      Parsing money out of a description would make the total depend on how
+      somebody phrased a reminder.
+    * A renewal event is a **date**. It says nothing about whether a service is
+      paused, what it cost last month, or what it costs per month at all.
+
+  And the number the screen exists for is further away still. *"Cost per
+  watched hour is the one subscription number no finance app can compute for
+  you"* needs the hours as well as the price, and `Kati.Media.Watch` records
+  that an episode was watched — not for how long. `Kati.Media.CachedTitle`
+  carries `runtime_minutes`, so hours per *service* would additionally need a
+  provider→service mapping, which nothing holds either.
+
+  So the ask here is a domain, not a column: a service with a price and a
+  cadence, a link from a tracked title to the service that carries it, and a
+  duration on a watch. Until all three exist, every row on this screen is the
+  drawing's, and a screen half-priced from calendar descriptions would be
+  worse than one that is honestly a drawing.
   """
   use Kati.Screens.Pushed, back: "Stats"
 

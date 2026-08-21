@@ -34,6 +34,38 @@ defmodule Kati.Screens.Lists do
   list-detail screen the design never draws and the app does not have, and
   `on_tap={nil}` — a row that does nothing and admits it — is better than a row
   that swallows a press.
+
+  ## Why this screen still reads `Kati.Screens.Lists.Sample`
+
+  Not a missing column this time — a missing **resource**. `Kati.Media` holds
+  `Kati.Media.CachedTitle`, `Kati.Media.TrackedTitle` and `Kati.Media.Watch`,
+  and that is the whole of it. Nothing in the app names a list, orders one, or
+  records that a title is in one, so unlike screen 03 there is no query to
+  write and no shape to fall back *from*.
+
+  Precisely what this screen draws and no resource can express:
+
+    * **the made lists themselves** — `Best of 2026`, `Rainy Sunday`,
+      `Recommended by Jo`. A name, plus the `ranked` / `shared` badge, which is
+      a list's own state and not a property of anything in it.
+    * **membership** — which is both `14 titles` and the three posters in each
+      fanned stack. A list-to-title join is the table that does not exist, and
+      the stack is its first three rows' `Kati.Media.CachedTitle.poster_path`.
+    * **`7 lists · 2 ranked`** — the count of lists, and of the ranked ones.
+      The drawing means it to exceed the three cards on screen, so it is a
+      count of the table rather than of the section.
+    * **the kept lists** — `Wishlist`, `Rewatches`, `Abandoned`, `Owned on
+      disc`, and their counts. Two of the four could be *inferred* today —
+      `Abandoned` is `status: :dropped` on `Kati.Media.TrackedTitle`, and
+      `Rewatches` is a `Kati.Media.Watch` carrying a `rewatch_number` — and
+      neither is split out, because a card where two rows count the user's real
+      library and two are frozen reads as fully real. `Wishlist` and `Owned on
+      disc` are assertions the user makes and nothing stores.
+
+  `handle_tap(:new_list, ...)` is the same gap seen from the writing side: it
+  makes a list in the socket's assigns, which lasts exactly as long as the
+  screen does. With a resource behind it, `add_list/1` is where the create
+  goes.
   """
   use Kati.Screens.Pushed, back: "Library"
 

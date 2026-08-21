@@ -37,6 +37,52 @@ defmodule Kati.Screens.SeriesMeta do
 
   Tags `flex-wrap` in the drawing and nothing wraps here, so they are chunked
   three-then-two — which is where the browser breaks them at this width.
+
+  ## Why this screen still reads `Kati.Screens.SeriesMeta.Sample`
+
+  Screens 03 and 08 moved onto `Kati.Media`. This one stays, and the reason is
+  not an episode this time — it is that most of what this page *is* has no
+  resource in the app at all. `Kati.Media` holds what a provider said about a
+  title, what the user did with it, and now its seasons and episodes. This
+  drawing is mostly the third thing a provider says about a title, and there is
+  nowhere to put it.
+
+  Precisely what this screen draws and no resource can currently express:
+
+    * **The cast.** Four faces, four names, four character names. There is no
+      person resource, no credit resource and no column on
+      `Kati.Media.CachedTitle` that could hold one — `Kati.Media.Watch.companions`
+      is names as typed for *who you watched with*, and its own moduledoc says
+      Kati has no people table and that inventing one *"would be a larger privacy
+      decision than the feature is asking for"*. This is the whole of
+      `cast/1`.
+    * **Two of the three ratings.** `Audience 8.1` and `Critics 96%` are other
+      people's scores; nothing caches them. Only `Yours` is expressible, from
+      `Kati.Media.TrackedTitle.rating` on the ten-point scale — `4.5` is `9` —
+      and one real number between two frozen ones is the worst of the three
+      available answers.
+    * **`Where to watch`, and its prices.** The same absent offers resource
+      screen 08 names: `included · 4K HDR`, `buy season · £14.99` and
+      `Blu-ray, S1–S2 · owned` are availability, pricing and physical ownership,
+      and `Kati.Media.Watch.service` is per-watch and carries none of them.
+    * **`Your tags`.** `Kati.Media.Watch.tags` is comma-separated tags on *one
+      night's watch*; these are tags on the title. Nothing stores a tag against
+      a `Kati.Media.TrackedTitle`, and reading a title's tags out of its watches
+      would make a tag vanish when the watch it happened to be typed on was
+      deleted.
+    * **`Trailer`.** No video, no link, no column.
+    * **Two thirds of the meta line.** `2024` is a first-air year and
+      `Kati.Media.CachedTitle.next_release_at` is the NEXT release; `15` is a
+      certification with no column. `DRAMA, MYSTERY` is `genres`, `3 SEASONS` is
+      `Kati.Media.CachedSeason.count/1` and `26 EP` is
+      `CachedTitle.episode_count` — so the line would land as three of its five
+      parts, in a card whose ratings above it are already two thirds frozen.
+
+  What *is* expressible today is the title, the artwork, the synopsis
+  (`Kati.Media.CachedTitle.overview`) and one rating. Those four are deliberately
+  not split out, for the reason `Kati.Screens.Series` gives: a page whose ratings
+  are one real and two invented, and whose cast is four strangers, reads as
+  entirely real. An honest gap is worth more than a screen that renders wrong.
   """
   use Mob.Screen
   import Mob.Sigil

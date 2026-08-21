@@ -122,6 +122,24 @@ defmodule Kati.Backup.Catalog do
           "value, so nothing is orphaned by leaving it out, and it re-fetches."
     },
     %{
+      resource: Kati.Media.CachedSeason,
+      class: :cache,
+      why:
+        "A provider's season inventory — names, poster paths, episode counts, air " <>
+          "dates — behind the same fetched_at eviction sweep as cached_titles. The " <>
+          "user's half names a season by its number on tracked_titles.progress_season, " <>
+          "so nothing is orphaned by leaving it out, and it re-fetches."
+    },
+    %{
+      resource: Kati.Media.CachedEpisode,
+      class: :cache,
+      why:
+        "A provider's episode records — names, runtimes, air dates, numbering — behind " <>
+          "the same fetched_at eviction sweep. It holds nothing the user did: a tick is " <>
+          "a media_watches row, which IS carried, and it names its episode by the " <>
+          "provider id it can re-fetch, so a restore without this table loses no progress."
+    },
+    %{
       resource: Kati.Meals.LicensedFood,
       class: :cache,
       why:

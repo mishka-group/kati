@@ -16,6 +16,26 @@ defmodule Kati.Screens.AutoDetect do
   history nobody audits.
 
   No dock — pushed screen — so the frame closes at 40, not 132.
+
+  ## Why this screen is still on `Kati.Settings.DetectSample`
+
+  None of it has a resource. There is no row for the master switch, none for
+  the per-source switches or their tick counts, none for the tick threshold,
+  none for a playing session, and none for the queue of unsure matches — which
+  is the card the whole screen is arranged around. Detection is a feature that
+  has not been built, not a screen that has not been wired.
+
+  Two near misses, so the next pass does not re-derive them:
+
+    * **`41 EPISODES TICKED FOR YOU`.** `Kati.Media.Watch` holds the ticks, but
+      it records no provenance — there is no column saying a tick was detected
+      rather than tapped — so a count of every tick ever would be a different
+      sentence wearing the same words.
+
+    * **`S2E6 · LUMEN+ · APPLE TV`.** `Watch` has `service`, but this is a
+      session in flight rather than a logged one, and the episode half needs an
+      episode resource `Kati.Media` does not have. `Kati.Screens.Series` and
+      `Kati.Screens.Inbox` are on `Kati.Library.Sample` for that same gap.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

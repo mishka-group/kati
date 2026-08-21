@@ -31,6 +31,43 @@ defmodule Kati.Screens.QuickAdd do
   the fact chips. Both are declared as lines in `Kati.Screens.QuickAdd.Sample`
   at the break the drawing shows, because `Row` does not wrap and no geometry
   comes back from `render/1`.
+
+  ## Why this screen still reads `Kati.Screens.QuickAdd.Sample`
+
+  Screen 03 moved onto `Kati.Media` and screens 43-48 onto `Kati.Meals`. This
+  one has nothing to move onto, and the gap is neither a resource nor a
+  column: **every value on this screen is the output of a parser, and `lib/`
+  has none.** `Kati.Recurrence.Rule` parses an RRULE and `Kati.Sync.ICalendar`
+  parses iCalendar; nothing turns *dentist thu 11am for 45m, remind 1h before*
+  into a title, a kind, a start, a duration and an alarm. A store cannot
+  supply what has never been computed.
+
+  Precisely what this screen draws and nothing can currently produce:
+
+    * **the tinted spans in the field** — which characters of the typed line
+      were understood, and as what. That is a set of offsets into a string the
+      user is still typing; it is the parse itself, drawn in place, and it is
+      the design's whole first claim.
+    * **`Dentist` and `PERSONAL EVENT`** — the title lifted out of the
+      sentence and the kind inferred from it.
+    * **the fact chips** — `Thu 20 Aug`, `11:00 – 11:45`, `10:00 alert`,
+      `Personal`. Every one is a field of the event the parse would build. The
+      event does not exist yet, and an uncommitted draft is stored nowhere:
+      there is no draft resource, and `Kati.Calendars.Event` is what the user
+      gets *after* tapping the button.
+    * **`Add to Thursday`** — the day is the parsed start.
+    * **the six kind chips' selection** — which of `Event`, `Reminder`,
+      `Title`, `Habit`, `Note`, `Expense` the sentence was filed as. The list
+      is fixed copy, so it is real; the tick on the first one is the parse.
+
+  One half of one row *is* nearly reachable and is deliberately not split out.
+  `Clashes with Design review` is a range query against
+  `Kati.Calendars.Event`, which holds that very event —
+  `Kati.Calendars.Today` already does the range arithmetic and `Kati.Seeds`
+  writes Design review onto the Work calendar. It stays frozen because the
+  window to test against (Thursday 11:00 to 11:45) comes out of the parse, so
+  there is nothing yet to ask the calendar about. It lands the day the parser
+  does, and it is the first thing on this screen that should.
   """
   use Mob.Screen
   import Mob.Sigil
