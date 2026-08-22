@@ -747,7 +747,7 @@ object MobBridge {
         }
     }
 
-    // KATI-BEGIN(K-32 permission-status) mob_new=0.4.20
+    // KATI-BEGIN(K-33 permission-status) mob_new=0.4.20
     // Reading a permission, which Mob can only request.
     //
     // `Mob.Permissions.request/2` raises the dialog and delivers
@@ -839,7 +839,7 @@ object MobBridge {
                 }
             else -> null
         }
-    // KATI-END(K-32 permission-status)
+    // KATI-END(K-33 permission-status)
 
     @JvmStatic
     fun katiPeriodicEnsure(configJson: String): String {
