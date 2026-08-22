@@ -63,7 +63,13 @@ defmodule Kati.BackupFormatTest do
         Ash.Type.UtcDatetime,
         Ash.Type.Decimal,
         Ash.Type.Float,
-        Ash.Type.Atom
+        Ash.Type.Atom,
+        # The codec encodes an array element by element through the rules for
+        # its element type, so what has to be known is the ELEMENT type. Listed
+        # explicitly rather than matched loosely: an array of something the
+        # codec cannot write must still fail this test, not slip through on the
+        # word "array".
+        {:array, Ash.Type.Atom}
       ]
 
       assert used -- known == []
@@ -286,7 +292,7 @@ defmodule Kati.BackupFormatTest do
 
   describe "the steps Kati ships" do
     test "the chain is unbroken from every version that has ever been written" do
-      assert Catalog.schema_version() == 2
+      assert Catalog.schema_version() == 3
 
       froms = Enum.map(Upgrade.steps(), fn {from, _to, _fun} -> from end)
       tos = Enum.map(Upgrade.steps(), fn {_from, to, _fun} -> to end)
@@ -303,7 +309,11 @@ defmodule Kati.BackupFormatTest do
     test "1 -> 2 supplies the rejected-changes table a version-1 file never had" do
       v1 = %{"events" => [%{"id" => "e"}], "media_watches" => []}
 
-      assert {:ok, upgraded} = Upgrade.walk(v1, 1)
+      # `walk/4` with the destination spelled out, so this stays a test of the
+      # 1 -> 2 step. `walk/2` runs every step up to today's version, and once a
+      # later step also adds a table the "+1" below would be counting all of
+      # them.
+      assert {:ok, upgraded} = Upgrade.walk(v1, 1, 2, Upgrade.steps())
 
       # The member the v2 readers fetch by name is there, and empty.
       assert upgraded["sync_rejected_changes"] == []
@@ -317,8 +327,34 @@ defmodule Kati.BackupFormatTest do
     test "1 -> 2 never replaces rows that are already there" do
       row = %{"id" => "r", "event_uid" => "standup@kati"}
 
-      assert {:ok, upgraded} = Upgrade.walk(%{"sync_rejected_changes" => [row]}, 1)
+      assert {:ok, upgraded} =
+               Upgrade.walk(%{"sync_rejected_changes" => [row]}, 1, 2, Upgrade.steps())
+
       assert upgraded["sync_rejected_changes"] == [row]
+    end
+
+    test "2 -> 3 supplies the two content-warning tables a version-2 file never had" do
+      v2 = %{"events" => [%{"id" => "e"}], "media_watches" => []}
+
+      assert {:ok, upgraded} = Upgrade.walk(v2, 2, 3, Upgrade.steps())
+
+      assert upgraded["media_content_warnings"] == []
+      assert upgraded["media_warning_preferences"] == []
+      assert map_size(upgraded) == map_size(v2) + 2
+    end
+
+    test "a version-2 watch restores with no moods rather than failing" do
+      # The half that needs NO step, and the reason: a missing table raises
+      # because `Kati.Backup.Restore` does `Map.fetch!/2` per table, and a
+      # missing COLUMN does not — `Ash.Seed.seed!/2` takes a plain map, so the
+      # attribute default applies. `moods` defaults to `[]`.
+      v2_watch = %{"id" => "w", "rating" => 8}
+
+      assert {:ok, upgraded} =
+               Upgrade.walk(%{"media_watches" => [v2_watch]}, 2, 3, Upgrade.steps())
+
+      assert upgraded["media_watches"] == [v2_watch]
+      refute Map.has_key?(hd(upgraded["media_watches"]), "moods")
     end
 
     test "the table it supplies is one the catalog actually carries" do

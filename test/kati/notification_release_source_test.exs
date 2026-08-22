@@ -210,6 +210,18 @@ defmodule Kati.Notifications.Sources.MediaTest do
   # because this runs from `on_exit`, after the test process is gone, and it is
   # a delete by value with no resource behaviour to honour.
   defp delete_rows!(prefix) do
+    # Content warnings first, and by a different column: they hang off a
+    # tracked title rather than off a source, so `source_id` does not exist on
+    # them. Deleting them at all is only necessary because the foreign key
+    # would otherwise refuse the delete below.
+    Kati.Repo.query!(
+      """
+      DELETE FROM media_content_warnings
+      WHERE tracked_title_id IN (SELECT id FROM tracked_titles WHERE source_id LIKE ?1)
+      """,
+      [prefix <> "%"]
+    )
+
     for table <- ~w(tracked_titles cached_titles) do
       Kati.Repo.query!("DELETE FROM #{table} WHERE source_id LIKE ?1", [prefix <> "%"])
     end

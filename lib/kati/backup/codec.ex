@@ -63,6 +63,15 @@ defmodule Kati.Backup.Codec do
   def encode_value(Ash.Type.Decimal, %Decimal{} = value, _name),
     do: Decimal.to_string(value, :normal)
 
+  # A list, encoded element by element through the rules above. Recursing rather
+  # than special-casing `{:array, :atom}` is what keeps a future array of dates
+  # or integers from being a second bug: the element type decides, exactly as it
+  # does for a scalar column, and an element type with no encoding still raises
+  # rather than reaching JSON as something the decoder cannot read back.
+  def encode_value({:array, element_type}, value, name) when is_list(value) do
+    Enum.map(value, &encode_value(element_type, &1, name))
+  end
+
   def encode_value(type, value, name) do
     raise Error.new(
             :unsupported_type,
@@ -148,6 +157,26 @@ defmodule Kati.Backup.Codec do
     case Keyword.get(constraints, :one_of) do
       nil -> loose_atom(value, name)
       allowed -> one_of(allowed, value, name)
+    end
+  end
+
+  # The mirror of the array encoder. `items:` is where Ash puts an array's
+  # element constraints, so a `one_of` on the elements is still enforced on the
+  # way back in — a backup carrying a mood this version has never heard of is
+  # refused with the column named, not silently turned into a new atom.
+  def decode_value({:array, element_type}, constraints, value, name) when is_list(value) do
+    item_constraints = Keyword.get(constraints, :items, [])
+
+    value
+    |> Enum.reduce_while({:ok, []}, fn element, {:ok, acc} ->
+      case decode_value(element_type, item_constraints, element, name) do
+        {:ok, decoded} -> {:cont, {:ok, [decoded | acc]}}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, decoded} -> {:ok, Enum.reverse(decoded)}
+      {:error, reason} -> {:error, reason}
     end
   end
 

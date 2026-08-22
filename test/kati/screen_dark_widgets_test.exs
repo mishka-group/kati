@@ -42,10 +42,7 @@ defmodule Kati.ScreenDarkWidgetsTest do
 
   # Child tables first: overrides and events carry the foreign keys, and a watch
   # carries one to its tracked title.
-  @tables ~w(
-    event_occurrence_overrides events calendars calendar_accounts
-    media_watches tracked_titles cached_titles cached_episodes
-  )
+  @tables ~w(event_occurrence_overrides events calendars calendar_accounts media_watches media_content_warnings tracked_titles cached_titles cached_episodes)
 
   setup do
     installed = Mob.Theme.current()

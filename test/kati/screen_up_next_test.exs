@@ -38,7 +38,7 @@ defmodule Kati.ScreenUpNextTest do
   alias Kati.Screens.UpNext.Sample
 
   # Child first: a watch carries the foreign key to a tracked title.
-  @tables ~w(media_watches tracked_titles cached_titles)
+  @tables ~w(media_watches media_content_warnings tracked_titles cached_titles)
 
   setup do
     empty_the_tables!()

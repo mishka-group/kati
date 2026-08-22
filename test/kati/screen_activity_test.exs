@@ -49,7 +49,7 @@ defmodule Kati.ScreenActivityTest do
   @drawn_day ~D[2026-08-16]
 
   # Children first: media_watches carries the foreign key into tracked_titles.
-  @tables ~w(media_watches tracked_titles cached_titles)
+  @tables ~w(media_watches media_content_warnings tracked_titles cached_titles)
 
   # The whole suite shares one SQLite file (test/test_helper.exs), so an empty
   # database has to be made rather than assumed — and made again afterwards,

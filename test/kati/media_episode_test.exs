@@ -58,7 +58,8 @@ defmodule Kati.Media.EpisodeTest do
   # The three cache tables reference each other by value, so their order among
   # themselves does not matter — which is itself the thing under test.
   defp empty_the_tables! do
-    for table <- ~w(media_watches tracked_titles cached_episodes cached_seasons cached_titles),
+    for table <-
+          ~w(media_watches media_content_warnings tracked_titles cached_episodes cached_seasons cached_titles),
         do: Ecto.Adapters.SQL.query!(Kati.Repo, "delete from #{table}", [])
 
     :ok

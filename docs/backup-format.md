@@ -34,6 +34,8 @@ kati-backup-2026-08-21.katibackup
     ├── sync_rejected_changes.json
     ├── tracked_titles.json
     ├── media_watches.json
+    ├── media_content_warnings.json
+    ├── media_warning_preferences.json
     ├── foods.json
     ├── recipes.json
     ├── recipe_ingredients.json
@@ -60,7 +62,7 @@ else. Only `manifest.json` differs, and only in `exported_at`.
 {
   "format": "kati.backup",
   "format_version": 1,
-  "schema_version": 2,
+  "schema_version": 3,
   "app_version": "0.1.2",
   "exported_at": "2026-08-21T18:44:02.913044Z",
   "record_counts": { "events": 412, "media_watches": 1203, "meal_logs": 88 },
@@ -141,7 +143,9 @@ reproduce.
 | `Kati.Calendars.Override` | `event_occurrence_overrides` | "Just this Tuesday" — moved and cancelled instances |
 | `Kati.Sync.RejectedChange` | `sync_rejected_changes` | The edit that lost a conflict, with the base it was a change from, kept so it can be put back |
 | `Kati.Media.TrackedTitle` | `tracked_titles` | Status, position, rating, per-show switches, hand-typed release dates |
-| `Kati.Media.Watch` | `media_watches` | Every tick, log, review, rewatch, place and companion |
+| `Kati.Media.Watch` | `media_watches` | Every tick, log, review, rewatch, place, companion, mood and pace |
+| `Kati.Media.ContentWarning` | `media_content_warnings` | Warnings the user recorded on a title, and whether each came from them or from an import |
+| `Kati.Media.WarningPreference` | `media_warning_preferences` | What to do with a warning category — avoid, warn, or show |
 | `Kati.Meals.Food` | `foods` | Foods Kati or the user wrote, and remembered prices |
 | `Kati.Meals.Recipe` | `recipes` | Recipes, methods, notes, ratings, cached totals |
 | `Kati.Meals.RecipeIngredient` | `recipe_ingredients` | Every ingredient line, with its own figures |

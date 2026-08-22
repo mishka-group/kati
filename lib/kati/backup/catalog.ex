@@ -83,7 +83,7 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 2
+  @schema_version 3
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -99,6 +99,14 @@ defmodule Kati.Backup.Catalog do
     %{table: "sync_rejected_changes", resource: Kati.Sync.RejectedChange, drop: []},
     %{table: "tracked_titles", resource: Kati.Media.TrackedTitle, drop: []},
     %{table: "media_watches", resource: Kati.Media.Watch, drop: []},
+    # Both are user-authored and neither is derivable. A content warning is
+    # something a person typed about a story after reading it, and Kati has no
+    # source that could regenerate one — Open Library carries none and
+    # StoryGraph's are its own dataset. A preference is a decision about what
+    # they would rather not be shown, which is the last thing a restore should
+    # silently forget.
+    %{table: "media_content_warnings", resource: Kati.Media.ContentWarning, drop: []},
+    %{table: "media_warning_preferences", resource: Kati.Media.WarningPreference, drop: []},
     %{table: "foods", resource: Kati.Meals.Food, drop: []},
     %{table: "recipes", resource: Kati.Meals.Recipe, drop: []},
     %{

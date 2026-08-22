@@ -70,7 +70,7 @@ defmodule Kati.ScreenSeriesTest do
   # Child first: a watch carries the foreign key. The two cache tables reference
   # nothing and are referenced by nothing — that is the point of the value-pair
   # split — so their order does not matter and they are emptied anyway.
-  @tables ~w(media_watches tracked_titles cached_titles cached_seasons cached_episodes)
+  @tables ~w(media_watches media_content_warnings tracked_titles cached_titles cached_seasons cached_episodes)
 
   @source :tmdb
   @title_id "series-north"

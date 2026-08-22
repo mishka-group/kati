@@ -38,7 +38,7 @@ defmodule Kati.Media.ProgressTest do
 
   # Children first: media_watches carries the foreign key into tracked_titles.
   defp empty_the_tables! do
-    for table <- ~w(media_watches tracked_titles cached_titles),
+    for table <- ~w(media_watches media_content_warnings tracked_titles cached_titles),
         do: Ecto.Adapters.SQL.query!(Kati.Repo, "delete from #{table}", [])
 
     :ok

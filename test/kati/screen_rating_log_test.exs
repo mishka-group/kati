@@ -42,7 +42,7 @@ defmodule Kati.ScreenRatingLogTest do
   alias Kati.Screens.Rating
 
   # Child first: a watch carries the foreign key.
-  @tables ~w(media_watches tracked_titles cached_titles)
+  @tables ~w(media_watches media_content_warnings tracked_titles cached_titles)
 
   setup do
     empty_the_tables!()

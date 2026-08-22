@@ -22,6 +22,15 @@ defmodule Kati.Backup.Upgrade do
       rejected changes simply **absent** rather than with an error about a
       member it was never written with.
 
+    * **2 -> 3** — `media_content_warnings` and `media_warning_preferences`
+      joined the backup for #16. Same shape of problem as 1 -> 2 and the same
+      fix. Note what does NOT need a step: `media_watches` gained `moods`,
+      `pace` and `driven_by`, and a version-2 row simply lacks those keys —
+      `Ash.Seed.seed!/2` takes a plain map, so the attribute defaults apply and
+      an old watch restores with no moods rather than failing. A missing
+      **table** raises because `Kati.Backup.Restore` does `Map.fetch!/2` per
+      table; a missing **column** does not.
+
   The step adds the key and never replaces one, so it is safe to run over rows
   that already have it and it cannot be the thing that loses a row.
 
@@ -38,7 +47,7 @@ defmodule Kati.Backup.Upgrade do
 
   @doc "Every upgrade step, oldest first."
   @spec steps() :: [step()]
-  def steps, do: [{1, 2, &add_rejected_changes/1}]
+  def steps, do: [{1, 2, &add_rejected_changes/1}, {2, 3, &add_content_warnings/1}]
 
   @doc """
   Bring rows from `from` up to the current schema version.
@@ -75,6 +84,13 @@ defmodule Kati.Backup.Upgrade do
   # keeps its rows and has them checked like any others, and running the step
   # twice cannot erase them.
   defp add_rejected_changes(rows), do: Map.put_new(rows, "sync_rejected_changes", [])
+
+  # Same `Map.put_new/3` reasoning as above, twice.
+  defp add_content_warnings(rows) do
+    rows
+    |> Map.put_new("media_content_warnings", [])
+    |> Map.put_new("media_warning_preferences", [])
+  end
 
   defp no_path(version, target) do
     Error.error(

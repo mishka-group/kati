@@ -43,7 +43,7 @@ defmodule Kati.ScreenInboxTest do
   alias Kati.Screens.Inbox
 
   # Child first: a watch carries the only foreign key in the domain.
-  @tables ~w(media_watches tracked_titles cached_episodes cached_seasons cached_titles)
+  @tables ~w(media_watches media_content_warnings tracked_titles cached_episodes cached_seasons cached_titles)
 
   @day 24 * 60 * 60
 

@@ -107,7 +107,8 @@ defmodule Kati.ScreenSampleOnlyTest do
       # pragma, a renamed system table — and emptying nothing would make every
       # assertion below vacuous. So the tables the four screens' own domains sit
       # on are named here, and only here, as proof the read worked.
-      for table <- ~w(cached_titles tracked_titles media_watches events calendars) do
+      for table <-
+            ~w(cached_titles media_content_warnings tracked_titles media_watches events calendars) do
         assert table in tables,
                "#{table} was not read off sqlite_master, so this file is not emptying it " <>
                  "and the renders below prove nothing about a fresh install"

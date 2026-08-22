@@ -100,6 +100,42 @@ defmodule Kati.Media.Watch do
     # by them: a join table nothing queries is a migration with no reader.
     attribute :tags, :string, public?: true
 
+    # ── How it felt, which is the part a local recommender can use ─────────
+    #
+    # On the WATCH and not on the title, which is #16's own open question. A
+    # rewatch in a different frame of mind is the example the issue gives, and
+    # it settles it: the title-level answer is derivable from its watches
+    # (`Kati.Media.Mood.for_title/1`) and the reverse is not. Recording per
+    # title would make "I found it funny the first time and sad the second"
+    # unsayable.
+    #
+    # An array rather than `tags`' comma-separated string, and the difference
+    # is not taste. Nothing filters on `tags`; screen 07's distribution and
+    # screen 11's mood filter both read this. On a delimited string those become
+    # `LIKE '%tense%'`, which matches **intense** — a bug that shows up as a
+    # wrong recommendation and never as an error.
+    #
+    # Fixed vocabulary, the fourteen the brief names verbatim. Extensible was
+    # the alternative and needs a source Kati does not have: a free-text mood is
+    # unaggregatable across titles, which is the one thing this attribute exists
+    # to make possible.
+    attribute :moods, {:array, :atom},
+      public?: true,
+      default: [],
+      constraints: [items: [one_of: Kati.Media.Mood.vocabulary()]]
+
+    # StoryGraph's other axis. Three values, not a number: "medium" is a
+    # judgement and a 1-10 pace scale invites a precision nobody has.
+    attribute :pace, :atom, public?: true, constraints: [one_of: [:slow, :medium, :fast]]
+
+    # A segmented control, not the slider the brief asks for. The design has no
+    # slider in its 38-row component table, and D-13 prefers the segmented
+    # control for the same reason: no new component, no new gesture, no new
+    # accessibility story.
+    attribute :driven_by, :atom,
+      public?: true,
+      constraints: [one_of: [:character, :both, :plot]]
+
     timestamps()
   end
 

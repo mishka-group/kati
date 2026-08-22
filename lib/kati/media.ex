@@ -34,5 +34,7 @@ defmodule Kati.Media do
     resource Kati.Media.CachedEpisode
     resource Kati.Media.TrackedTitle
     resource Kati.Media.Watch
+    resource Kati.Media.ContentWarning
+    resource Kati.Media.WarningPreference
   end
 end
