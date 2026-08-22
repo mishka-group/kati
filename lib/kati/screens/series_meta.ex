@@ -172,6 +172,7 @@ defmodule Kati.Screens.SeriesMeta do
           <Text
             text={s.title}
             text_size={28}
+            max_font_scale={1.6}
             font_weight="extrabold"
             letter_spacing={-0.035}
             line_height={1.05}

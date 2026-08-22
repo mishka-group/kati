@@ -128,6 +128,7 @@ defmodule Kati.Screens.Import do
       <Text
         text="Import"
         text_size={28}
+        max_font_scale={1.6}
         font_weight="bold"
         letter_spacing={-0.03}
         text_color={:on_surface}

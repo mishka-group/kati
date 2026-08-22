@@ -46,6 +46,42 @@ defmodule Kati.DynamicTypeTest do
     end
   end
 
+  describe "display titles stop growing before they break" do
+    test "the bridge still reads max_font_scale" do
+      # Same silent-drop hazard as min_width: a prop the bridge ignores is not
+      # an error, it just does nothing, and the title goes back to three lines.
+      src = File.read!(@bridge)
+
+      assert src =~ ~s|floatProp(node.props, "max_font_scale")|,
+             "K-29 is gone from #{@bridge}: max_font_scale is a silently ignored prop"
+    end
+
+    test "every 28sp display title carries a cap" do
+      # 28 is the display size. Uncapped, it is 66sp at 235% and "Schedule"
+      # wants ~290dp of the 272 its column has — one word over three lines.
+      offenders =
+        "lib/kati/**/*.ex"
+        |> Path.wildcard()
+        |> Enum.reject(&String.contains?(&1, "/components/"))
+        |> Enum.flat_map(fn file ->
+          file
+          |> File.read!()
+          |> String.split("\n")
+          |> Enum.chunk_every(2, 1, :discard)
+          |> Enum.with_index(1)
+          |> Enum.filter(fn {[line, next], _} ->
+            String.match?(line, ~r/^\s*text_size=\{28\}\s*$/) and
+              not String.contains?(next, "max_font_scale")
+          end)
+          |> Enum.map(fn {_, i} -> "#{file}:#{i}" end)
+        end)
+
+      assert offenders == [],
+             "display titles with no max_font_scale — they wrap mid-word at 235%:\n  " <>
+               Enum.join(offenders, "\n  ")
+    end
+  end
+
   describe "text measurements are floors, not caps" do
     for {file, what} <- @text_measured do
       test "#{what} grows with the text (#{file})" do

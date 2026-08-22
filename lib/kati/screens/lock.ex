@@ -349,6 +349,7 @@ defmodule Kati.Screens.Lock do
             <Text
               text={tonight.count}
               text_size={28}
+              max_font_scale={1.6}
               font_weight="extrabold"
               letter_spacing={-0.03}
               text_color={0xFFFFFFFF}

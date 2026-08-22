@@ -164,6 +164,7 @@ defmodule Kati.Screens.HomeDark do
           <Text
             text={moment.greeting}
             text_size={28}
+            max_font_scale={1.6}
             font_weight="bold"
             letter_spacing={-0.03}
             text_color={0xFFF5F2EE}

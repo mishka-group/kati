@@ -372,6 +372,7 @@ defmodule Kati.Screens.SeriesFa do
             font_family="fa"
             font_weight="extrabold"
             text_size={28}
+            max_font_scale={1.6}
             line_height={1.35}
             text_color={:on_surface}
           />

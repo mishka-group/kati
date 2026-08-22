@@ -248,6 +248,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+// KATI-BEGIN(K-29 max-font-scale-imports) mob_new=0.4.20
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.Density
+// KATI-END(K-29 max-font-scale-imports)
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -3071,6 +3075,40 @@ object MobNativeViewRegistry {
 /** Renders a MobNode tree produced by Mob.Renderer. */
 @Composable
 fun RenderNode(node: MobNode, modifier: Modifier = Modifier) {
+    // KATI-BEGIN(K-29 max-font-scale) mob_new=0.4.20
+    // max_font_scale — a ceiling on how far a subtree's TEXT may grow.
+    //
+    // Text sizes cross the wire in sp, so every label scales with the system
+    // font size. That is right for body copy and wrong for a display title,
+    // which starts large: screen 02's "Schedule" is 28sp, and at Android's 235%
+    // Dynamic Type it wants ~290dp of the 272dp its column has, so it wrapped
+    // mid-word — one word over three lines (#79).
+    //
+    // Capping the scale rather than the size keeps this an accessibility
+    // decision instead of a hard-coded number: the title still grows, just no
+    // further than the cap, while everything around it goes on to the full
+    // 235%. Compose 1.8's autoSize would be the other answer; the BOM here is
+    // 2024.02.00 (Compose 1.6) and does not have it.
+    //
+    // Applied by overriding LocalDensity for the subtree, which is what sp
+    // resolution reads, so it needs no cooperation from any node type and
+    // reaches children that were never told about it. density is passed
+    // through untouched: dp must not move, or a capped title would also shrink
+    // its own padding and corner radii.
+    val cap = floatProp(node.props, "max_font_scale")
+    val density = LocalDensity.current
+    if (cap != null && cap > 0f && density.fontScale > cap) {
+        CompositionLocalProvider(LocalDensity provides Density(density.density, cap)) {
+            RenderNodeOffset(node, modifier)
+        }
+    } else {
+        RenderNodeOffset(node, modifier)
+    }
+}
+
+@Composable
+private fun RenderNodeOffset(node: MobNode, modifier: Modifier) {
+    // KATI-END(K-29 max-font-scale)
     val ox = floatProp(node.props, "offset_x") ?: 0f
     val oy = floatProp(node.props, "offset_y") ?: 0f
     if (ox != 0f || oy != 0f) {
