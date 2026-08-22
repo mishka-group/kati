@@ -24,7 +24,14 @@ defmodule Kati.MixProject do
   end
 
   def application do
-    [extra_applications: [:logger]]
+    # `:xmerl` is for `Kati.Sync.CalDAV.XML`, which reads WebDAV multistatus
+    # replies. It has to be declared rather than merely present: without it the
+    # `Record.extract(from_lib: "xmerl/include/xmerl.hrl")` in that module
+    # cannot find the header under MIX_ENV=test, and — the part that would have
+    # been discovered on a phone rather than here — the app's release would not
+    # carry the application, so every CalDAV pull would die on the device with
+    # an undefined module.
+    [extra_applications: [:logger, :xmerl]]
   end
 
   defp deps do
@@ -62,6 +69,16 @@ defmodule Kati.MixProject do
       # Mozilla's CA trust store. Android has no bundle at any path OTP knows,
       # so this is copied into priv/ and loaded at boot — see Kati.App.
       {:castore, "~> 1.0"},
+      # The HTTP client for `Kati.Sync.CalDAV.Req`, and Kati's first outbound
+      # call of any kind. It was already here transitively — igniter depends on
+      # it — but a transitive dependency is not a promise: a dev-only tool
+      # dropping it would take Kati's only transport with it, and the failure
+      # would be a compile error on a phone build rather than here.
+      #
+      # `Kati.App.on_start/0` was already prepared for it: it loads the cacert
+      # bundle and switches BEAM's DNS off the iOS-broken `:native` path, both
+      # commented for "Req / Finch / Mint". This is what those lines were for.
+      {:req, "~> 0.7"},
       # Code quality — Credo + ex_slop (catches AI-generated patterns
       # like blanket rescue, narrator docs, redundant Enum chains, etc).
       # Mishka Chelekom is a DEV-ONLY CLI that generates component source into
