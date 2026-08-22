@@ -12,9 +12,20 @@ buildscript {
         // apps and updates from 2026-08-31. 8.13.2 is the last 8.x line;
         // AGP 9.x is a major with DSL breakage and is deliberately not taken
         // in the same step as an API bump against a CMake+zig build.
-        classpath 'com.android.tools.build:gradle:8.13.2'
+        classpath 'com.android.tools.build:gradle:9.3.1'
         // KATI-END(K-02 agp-api36)
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
+        // KATI-BEGIN(K-32 kotlin2) mob_new=0.4.20
+        // was: org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22
+        //
+        // Kotlin 2.x moves the Compose compiler out of AGP's
+        // `composeOptions { kotlinCompilerExtensionVersion }` and into its own
+        // Gradle plugin, versioned with the compiler rather than separately —
+        // which is why the plugin classpath below is pinned to the same
+        // 2.4.10. Keeping the old block alongside it is not an option: AGP
+        // fails the build if both are present.
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.10'
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.10'
+        // KATI-END(K-32 kotlin2)
     }
 }
 allprojects { repositories { google(); mavenCentral() } }

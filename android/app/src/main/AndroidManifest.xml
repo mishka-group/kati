@@ -79,13 +79,21 @@
          attribute because XML forbids a comment inside an attribute list.
     -->
     <!-- KATI-END(K-12 supports-rtl) -->
+    <!-- KATI-BEGIN(K-32 agp9-extract-native-libs) mob_new=0.4.20
+         Dropped: android:extractNativeLibs="true"
+         AGP 9 fails packageDebug outright if this is set in the manifest and
+         directs you to the build script instead. The behaviour is still
+         required, not optional: mob's mob_start_beam re-dlopens libkati.so by
+         absolute path out of the native lib dir, which only exists when the
+         .so is extracted. Now android.packaging.jniLibs.useLegacyPackaging in
+         app/build.gradle.
+         KATI-END(K-32 agp9-extract-native-libs) -->
     <application
         android:label="Kati"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:allowBackup="false"
         android:supportsRtl="true"
-        android:extractNativeLibs="true"
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/AppTheme">
 

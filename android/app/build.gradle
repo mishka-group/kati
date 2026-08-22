@@ -5,7 +5,16 @@
 // KATI-END(K-05 vendored-header)
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
+    // KATI-BEGIN(K-32 agp9-builtin-kotlin) mob_new=0.4.20
+    // was: id 'kotlin-android'
+    // AGP 9.0 builds Kotlin itself and REFUSES the plugin: "The
+    // 'org.jetbrains.kotlin.android' plugin is no longer required for Kotlin
+    // support since AGP 9.0" is a hard error, not a warning.
+    // KATI-END(K-32 agp9-builtin-kotlin)
+    // KATI-BEGIN(K-32 kotlin2-compose-plugin) mob_new=0.4.20
+    // Kotlin 2.x requires this instead of composeOptions — see K-32 kotlin2.
+    id 'org.jetbrains.kotlin.plugin.compose'
+    // KATI-END(K-32 kotlin2-compose-plugin)
 }
 
 // ── Mob path config ───────────────────────────────────────────────────────────
@@ -77,22 +86,47 @@ android {
         compose true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.8'
+    // KATI-BEGIN(K-32 kotlin2-jvm17) mob_new=0.4.20
+    // was: composeOptions { kotlinCompilerExtensionVersion '1.5.8' }
+    //      kotlinOptions   { jvmTarget = '1.8' }
+    //
+    // composeOptions is gone because the Compose compiler is a Kotlin plugin
+    // from 2.x on; leaving it in makes AGP fail the build outright.
+    //
+    // jvmTarget 1.8 was stale — Java 8 bytecode on a minSdk 28 app that builds
+    // under JDK 21. 17 is what AGP 9 will require anyway, and moving it here
+    // rather than in the AGP step keeps the two migrations separable: if
+    // something breaks, it is attributable.
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
+    // KATI-END(K-32 kotlin2-jvm17)
 
     buildTypes {
         release { minifyEnabled false }
         debug   { jniDebuggable true }
     }
+
+    // KATI-BEGIN(K-32 agp9-legacy-jnilibs) mob_new=0.4.20
+    // The build-script home of what android:extractNativeLibs="true" used to
+    // say in the manifest — see K-32 agp9-extract-native-libs. Required, not a
+    // size trade: mob's mob_start_beam re-dlopens libkati.so by absolute path
+    // out of the native lib dir, which only exists when the .so is extracted.
+    packaging {
+        jniLibs { useLegacyPackaging = true }
+    }
+    // KATI-END(K-32 agp9-legacy-jnilibs)
 }
 
 dependencies {
-    def composeBom = platform('androidx.compose:compose-bom:2024.02.00')
+    // KATI-BEGIN(K-32 compose-bom) mob_new=0.4.20
+    // was: androidx.compose:compose-bom:2024.02.00
+    // Two and a half years behind, and the reason #79 could not use autoSize:
+    // that arrived in Compose 1.8. Bumped with Kotlin 2 rather than separately
+    // because the Compose compiler plugin is versioned with the compiler now.
+    def composeBom = platform('androidx.compose:compose-bom:2026.06.00')
+    // KATI-END(K-32 compose-bom)
     implementation composeBom
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.material3:material3'
@@ -152,3 +186,14 @@ dependencies {
     implementation 'androidx.work:work-runtime-ktx:2.9.1'
     // KATI-END(K-22 work-manager)
 }
+
+// KATI-BEGIN(K-32 kotlin2-jvmtarget) mob_new=0.4.20
+// The Kotlin side of the JVM target. `kotlinOptions { jvmTarget }` is the
+// AGP-owned shim and is deprecated from Kotlin 2.x; this is the Kotlin Gradle
+// plugin's own DSL and the form that survives the AGP 9 step.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+// KATI-END(K-32 kotlin2-jvmtarget)
