@@ -66,6 +66,29 @@ defmodule Kati.FaShellRoutesTest do
     end
   end
 
+  describe "the way out of Persian" do
+    test "screen 62's تغییر opens the language screen" do
+      # The only one. Screen 62 draws no other language control and the Persian
+      # dock's four tabs are all Persian, so while this was inert a reader who
+      # chose فارسی on screen 53 could not get back to English by any route.
+      # A bare socket, not a mounted one: `mount/3` installs the theme, which
+      # reads `Mob.State`'s DETS, and this file is async with no such table.
+      # The push needs no assigns.
+      {:noreply, moved} =
+        Kati.Screens.SettingsFa.handle_info({:tap, :go_language}, %Mob.Socket{})
+
+      assert moved.__mob__.nav_action == {:push, Kati.Screens.Language, %{}}
+    end
+
+    test "the language row actually carries that tag" do
+      # The other half: a handler nothing dispatches to is the same as no
+      # handler. The row has `badge:` and no `icon:`, so it misses the
+      # glyph-keyed clause and needs one of its own.
+      row = %{badge: "فا", title: "زبان", sub: "فارسی · راست به چپ", trailing: {:text, "تغییر"}}
+      assert {_pid, :go_language} = Kati.Screens.SettingsFa.tap_for(row, 0, 0)
+    end
+  end
+
   # `Mob.Socket.reset_to/3` records `{:reset, destination, params}` in
   # `__mob__.nav_action`; the destination is the whole assertion here.
   defp target_of(%Mob.Socket{__mob__: %{nav_action: {:reset, dest, _params}}}), do: dest

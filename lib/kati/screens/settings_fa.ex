@@ -519,15 +519,25 @@ defmodule Kati.Screens.SettingsFa do
   A row's tap tag: a toggle flips by position, a row that names a screen opens
   it, everything else is inert.
 
-  The language row carries `badge:` and no `icon:`, so it never matches the
-  destination clause — a map without the key does not match a pattern that
-  names it.
+  The language row carries `badge:` and no `icon:`, so it cannot match the
+  glyph-keyed destination clause — a map without the key does not match a
+  pattern that names it — and it gets a clause of its own.
+
+  That row is the only way out of Persian. Screen 62 draws no other language
+  control and the Persian dock has four tabs, none of them Settings' English
+  twin, so while تغییر was inert a reader who chose فارسی on screen 53 could
+  not get back: every route from here stays inside the eight Persian screens.
+  `Kati.Screens.Language` is screen 54, and it is written for exactly this —
+  its own comment notes that `:choose_language_en` "can only ever be sent from
+  a `:fa` app".
   """
   def tap_for(%{trailing: {:toggle, _}}, si, ri),
     do: {self(), String.to_atom("toggle_#{si}_#{ri}")}
 
   def tap_for(%{icon: icon}, _si, _ri) when is_map_key(@destinations, icon),
     do: {self(), String.to_atom("go_" <> icon)}
+
+  def tap_for(%{badge: _badge}, _si, _ri), do: {self(), :go_language}
 
   def tap_for(_row, _si, _ri), do: nil
 
@@ -894,6 +904,13 @@ defmodule Kati.Screens.SettingsFa do
   # The glyph is the key, so the tag stays ASCII and readable in a log. A tag
   # naming a glyph no row here carries returns the screen rather than raising
   # it into `handle_info/2`, for the reason the comment above `tapped/2` gives.
+  # Before the glyph clause, which matches "go_" <> anything: `language` is not
+  # a key in `@destinations` — it is a badge row, not a glyph row — so falling
+  # through to that clause returns the screen unchanged and the only way out of
+  # Persian stays shut.
+  defp tapped("go_language", socket),
+    do: Mob.Socket.push_screen(socket, Kati.Screens.Language)
+
   defp tapped("go_" <> icon, socket) do
     case Map.fetch(@destinations, icon) do
       {:ok, module} -> Mob.Socket.push_screen(socket, module)
