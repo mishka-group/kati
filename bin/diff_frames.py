@@ -33,6 +33,21 @@ STATUS_BAR = 90      # clock, battery, wifi — changes between runs by design
 NAV_BAR = 130        # the three-button bar at the bottom
 TOLERANCE = 12       # per-channel; JPEG-ish poster resampling is not a change
 
+# Screens that legitimately differ from any earlier capture, because they draw
+# what the DEVICE says rather than what the drawing says. Listing them is not a
+# way of excusing regressions: each entry names the specific thing that moves,
+# and anything else changing on these screens still shows up in the bounding
+# box. Without this the same six get re-litigated on every run and the real
+# regressions get lost among them.
+DEVICE_DEPENDENT = {
+    "01": "greeting and date come from the clock",
+    "02": "subtitle carries today's date and item count",
+    "09": "title is today's date",
+    "32": "draws the phone's actual calendars; falls back to the drawing's four when there are none",
+    "55": "Shamsi date and greeting come from the clock",
+    "56": "Shamsi date, day strip, and which cell is lit",
+}
+
 
 def compare(a_path, b_path):
     a = FI.load(a_path)
@@ -73,12 +88,20 @@ def main():
         else:
             changed.append((b.stem, note, pct or 0.0))
 
+    expected = [(st, note) for st, note, _ in changed if st in DEVICE_DEPENDENT]
+    regressions = [c for c in changed if c[0] not in DEVICE_DEPENDENT]
+
     print(f"identical at rest: {len(clean)}/{len(clean) + len(changed)}")
+
+    if expected:
+        print("\nexpected to differ — these screens read the device, not the drawing:")
+        for stem, note in sorted(expected):
+            print(f"  {stem}  {note}   [{DEVICE_DEPENDENT[stem]}]")
     if missing:
         print(f"missing from the second run: {' '.join(missing)}")
-    if changed:
+    if regressions:
         print("\nCHANGED — each needs a reason, or it is a regression:")
-        for stem, note, _pct in sorted(changed, key=lambda c: -c[2]):
+        for stem, note, _pct in sorted(regressions, key=lambda c: -c[2]):
             print(f"  {stem}  {note}")
     return 1 if changed else 0
 
