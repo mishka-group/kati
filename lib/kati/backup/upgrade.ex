@@ -37,6 +37,10 @@ defmodule Kati.Backup.Upgrade do
       actually recorded: the tables did not exist when it was written, so there
       is nothing to be sorry about losing.
 
+    * **4 -> 5** — `music_artists`, `music_albums`, `music_tracks` and
+      `music_listens` joined the backup when the Music domain landed. Four
+      members, same shape again.
+
   The step adds the key and never replaces one, so it is safe to run over rows
   that already have it and it cannot be the thing that loses a row.
 
@@ -54,7 +58,12 @@ defmodule Kati.Backup.Upgrade do
   @doc "Every upgrade step, oldest first."
   @spec steps() :: [step()]
   def steps,
-    do: [{1, 2, &add_rejected_changes/1}, {2, 3, &add_content_warnings/1}, {3, 4, &add_books/1}]
+    do: [
+      {1, 2, &add_rejected_changes/1},
+      {2, 3, &add_content_warnings/1},
+      {3, 4, &add_books/1},
+      {4, 5, &add_music/1}
+    ]
 
   @doc """
   Bring rows from `from` up to the current schema version.
@@ -105,6 +114,15 @@ defmodule Kati.Backup.Upgrade do
     |> Map.put_new("books", [])
     |> Map.put_new("book_reading_sessions", [])
     |> Map.put_new("book_notes", [])
+  end
+
+  # Four members, same `Map.put_new/3` reasoning as the three steps above.
+  defp add_music(rows) do
+    rows
+    |> Map.put_new("music_artists", [])
+    |> Map.put_new("music_albums", [])
+    |> Map.put_new("music_tracks", [])
+    |> Map.put_new("music_listens", [])
   end
 
   defp no_path(version, target) do

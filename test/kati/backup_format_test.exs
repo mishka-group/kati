@@ -292,7 +292,7 @@ defmodule Kati.BackupFormatTest do
 
   describe "the steps Kati ships" do
     test "the chain is unbroken from every version that has ever been written" do
-      assert Catalog.schema_version() == 4
+      assert Catalog.schema_version() == 5
 
       froms = Enum.map(Upgrade.steps(), fn {from, _to, _fun} -> from end)
       tos = Enum.map(Upgrade.steps(), fn {_from, to, _fun} -> to end)

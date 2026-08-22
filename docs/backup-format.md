@@ -156,6 +156,10 @@ reproduce.
 | `Kati.Books.Book` | `books` | Every book, where you are in it, the edition you own, who it is lent to |
 | `Kati.Books.ReadingSession` | `book_reading_sessions` | Each sitting: the pages it covered, the minutes it took, whether it was a re-read |
 | `Kati.Books.Note` | `book_notes` | Quotes copied out and notes left, each anchored to a page |
+| `Kati.Music.Artist` | `music_artists` | Artists, and whether you follow them |
+| `Kati.Music.Album` | `music_albums` | Releases, your rating, your note, when you first heard it |
+| `Kati.Music.Track` | `music_tracks` | The tracklist, and the per-track play counts a scrobble import brings in |
+| `Kati.Music.Listen` | `music_listens` | Each sitting: when, how long, how many tracks |
 
 ### Not in the backup
 
@@ -212,6 +216,7 @@ before any column is decoded.
 | 1 → 2 | `sync_rejected_changes` joined the backup. | Supplies an empty `sync_rejected_changes` for a file that has no such member, so a version-1 backup restores with its rejected changes **absent** rather than with an error about a file it was never written with. It adds the key and never replaces one. |
 | 2 → 3 | `media_content_warnings` and `media_warning_preferences` joined the backup. | Supplies both as empty members, the same way. Note what needs **no** step: `media_watches` gained `moods`, `pace` and `driven_by` in the same change, and a version-2 row simply lacks those keys — a missing *column* takes the attribute default, where a missing *table* raises. |
 | 3 → 4 | `books`, `book_reading_sessions` and `book_notes` joined the backup. | Supplies all three as empty members. A version-3 archive restores with an empty shelf, which is exactly what it recorded: the tables did not exist when it was written. |
+| 4 → 5 | `music_artists`, `music_albums`, `music_tracks` and `music_listens` joined the backup. | Supplies all four as empty members, the same way. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

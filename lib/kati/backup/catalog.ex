@@ -83,13 +83,21 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 4
+  @schema_version 5
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
   # (`Kati.Runtime`'s moduledoc), so a device-side check would silently pass by
   # finding nothing.
-  @domains [Kati.Spike, Kati.Books, Kati.Calendars, Kati.Media, Kati.Meals, Kati.Sync]
+  @domains [
+    Kati.Spike,
+    Kati.Books,
+    Kati.Calendars,
+    Kati.Media,
+    Kati.Meals,
+    Kati.Music,
+    Kati.Sync
+  ]
 
   @entries [
     %{table: "calendar_accounts", resource: Kati.Calendars.Account, drop: [:credentials_ref]},
@@ -126,7 +134,16 @@ defmodule Kati.Backup.Catalog do
     # is yours.
     %{table: "books", resource: Kati.Books.Book, drop: []},
     %{table: "book_reading_sessions", resource: Kati.Books.ReadingSession, drop: []},
-    %{table: "book_notes", resource: Kati.Books.Note, drop: []}
+    %{table: "book_notes", resource: Kati.Books.Note, drop: []},
+    # The same line as books, one domain over. MusicBrainz can supply a
+    # tracklist and Cover Art Archive an image; neither can supply the evening
+    # you played it, the note you left, or the count a scrobble import brought
+    # in. `music_tracks` is carried for the counts alone — the titles and
+    # durations would re-fetch, and the plays would not.
+    %{table: "music_artists", resource: Kati.Music.Artist, drop: []},
+    %{table: "music_albums", resource: Kati.Music.Album, drop: []},
+    %{table: "music_tracks", resource: Kati.Music.Track, drop: []},
+    %{table: "music_listens", resource: Kati.Music.Listen, drop: []}
   ]
 
   @excluded [

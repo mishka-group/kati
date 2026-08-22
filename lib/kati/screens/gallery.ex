@@ -90,7 +90,10 @@ defmodule Kati.Screens.Gallery do
     {"61", "آمار", Kati.Screens.StatsFa, :push},
     {"62", "تنظیمات", Kati.Screens.SettingsFa, :push},
     {"66", "Book detail", Kati.Screens.BookDetail, :push},
-    {"70", "Log progress", Kati.Screens.LogProgress, :push}
+    {"70", "Log progress", Kati.Screens.LogProgress, :push},
+    {"73", "Log a listen", Kati.Screens.LogListen, :push},
+    {"74", "Album detail", Kati.Screens.AlbumDetail, :push},
+    {"77", "Artist detail", Kati.Screens.ArtistDetail, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

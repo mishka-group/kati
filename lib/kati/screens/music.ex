@@ -258,7 +258,7 @@ defmodule Kati.Screens.Music do
   @doc false
   def album(item) do
     ~MOB"""
-    <Column weight={1.0}>
+    <Column weight={1.0} on_tap={{self(), :open_album}}>
       {Kati.Screens.Music.cover(item)}
       <Spacer size={9} />
       <Text
@@ -418,6 +418,7 @@ defmodule Kati.Screens.Music do
       padding_top={10}
       padding_bottom={10}
       align="center"
+      on_tap={{self(), :open_artist}}
     >
       {Kati.Screens.Music.release_art(row)}
       <Spacer size={12} />
@@ -455,6 +456,12 @@ defmodule Kati.Screens.Music do
   # yet — #60 scoped v1 to one media domain — and Music is where we already
   # are, so both swallow the tap rather than pretending.
   @impl true
+  def handle_tap(:open_album, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetail)}
+
+  def handle_tap(:open_artist, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ArtistDetail)}
+
   def handle_tap(:segment_screen, socket) do
     {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
   end

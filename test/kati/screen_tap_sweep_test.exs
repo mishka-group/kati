@@ -133,6 +133,10 @@ defmodule Kati.ScreenTapSweepTest do
     # tapping it sets the unit it already has; `unit_percent` and
     # `unit_minutes` both move, which is what proves the family is wired.
     {Kati.Screens.LogProgress, :unit_page},
+    # Screen 73's scope segments. The sheet opens on `Selected tracks` — see
+    # `Kati.Screens.LogListen`'s moduledoc for why that rather than `Whole
+    # album` — so it is this one that sets the value it already has.
+    {Kati.Screens.LogListen, :scope_selected},
     {Kati.Screens.Library, :shelf_Screen},
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},

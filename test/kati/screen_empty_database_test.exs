@@ -193,7 +193,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # against. 70 is also the first screen here that can WRITE — its fallback
     # is what stops a save being aimed at a book that does not exist.
     {"66", Kati.Screens.BookDetail},
-    {"70", Kati.Screens.LogProgress}
+    {"70", Kati.Screens.LogProgress},
+    # The Music domain's three. 74 and 77 gate the whole page as 66 does; 73
+    # gates the album it is about to write a play against, through 74's reader
+    # for the reason 70 uses 66's.
+    {"73", Kati.Screens.LogListen},
+    {"74", Kati.Screens.AlbumDetail},
+    {"77", Kati.Screens.ArtistDetail}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -229,7 +235,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books)
+  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.
@@ -738,6 +744,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # it is 66's.
       {"70", Kati.Screens.LogProgress, &Kati.Screens.LogProgress.book/0,
        &Kati.Screens.BookDetail.drawn_book/0},
+      # 74 and 77 gate the whole page for the reason 66 does. 73 gates the album
+      # rather than the tracklist, and through 74's own reader: a sheet aimed at
+      # a different album from the screen that opened it would credit the wrong
+      # record.
+      {"73", Kati.Screens.LogListen, &Kati.Screens.LogListen.album/0,
+       &Kati.Screens.AlbumDetail.drawn_album/0},
+      {"74", Kati.Screens.AlbumDetail, &Kati.Screens.AlbumDetail.album/0,
+       &Kati.Screens.AlbumDetail.drawn_album/0},
+      {"77", Kati.Screens.ArtistDetail, &Kati.Screens.ArtistDetail.artist/0,
+       &Kati.Screens.ArtistDetail.drawn_artist/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,

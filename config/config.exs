@@ -24,4 +24,12 @@ config :kati, ecto_repos: [Kati.Repo]
 # runtime equivalents with Application.put_env/3. These entries exist so mix
 # tasks (ash_sqlite.generate_migrations, ecto.migrate) can find the domains.
 config :kati,
-  ash_domains: [Kati.Spike, Kati.Books, Kati.Calendars, Kati.Media, Kati.Meals, Kati.Sync]
+  ash_domains: [
+    Kati.Spike,
+    Kati.Books,
+    Kati.Calendars,
+    Kati.Media,
+    Kati.Meals,
+    Kati.Music,
+    Kati.Sync
+  ]
