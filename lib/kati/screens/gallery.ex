@@ -102,7 +102,10 @@ defmodule Kati.Screens.Gallery do
     {"106", "New goal", Kati.Screens.NewGoal, :push},
     {"122", "Money", Kati.Screens.Money, :push},
     {"124", "Quick add — expense", Kati.Screens.QuickAddExpense, :push},
-    {"125", "Currency", Kati.Screens.Currency, :push}
+    {"125", "Currency", Kati.Screens.Currency, :push},
+    {"109", "Weight", Kati.Screens.Weight, :push},
+    {"111", "Log weight", Kati.Screens.LogWeight, :push},
+    {"112", "Medication", Kati.Screens.Medication, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

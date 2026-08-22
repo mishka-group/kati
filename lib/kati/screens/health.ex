@@ -104,11 +104,44 @@ defmodule Kati.Screens.Health do
         {Kati.Screens.Health.header(today.day_line)}
         {Kati.Screens.Health.eaten(today.eaten)}
         {Kati.Screens.Health.next_meal(today.next_meal)}
+        {UI.eyebrow("Watching")}
+        {Kati.Screens.Health.watching()}
         {UI.eyebrow("Sections")}
         {Kati.Screens.Health.sections(today.sections)}
         {Kati.Screens.Health.container_note()}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc """
+  The one row that is not about health at all.
+
+  It arrived with screen 92 and it is on this page for the reason screen 92
+  exists: *available* is a claim the media half of the app makes constantly,
+  and the row that decides what it means turns out to be worth reaching from
+  more than one place. Screens 01 and 24 carry the same row.
+
+  Read through `Kati.Settings.Sample.watching/0` — one definition of that
+  sub-line, so the three pages carrying it cannot disagree about how many
+  services you have.
+  """
+  @spec watching() :: map()
+  def watching do
+    [row] = Kati.Settings.Sample.watching()
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.card([
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile(row.icon),
+          Kati.UI.SettingsList.body(row.title, row.sub),
+          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+          on_tap: {self(), :open_services}
+        )
+      ])}
+      <Spacer size={22} />
+    </Column>
     """
   end
 
@@ -858,6 +891,20 @@ defmodule Kati.Screens.Health do
   @doc false
   def tile_gap, do: ~MOB"<Spacer size={12} />"
 
+  @doc """
+  Where a tile goes, or `nil` for a section that has no screen.
+
+  `nil` rather than an inert tag: a tag nothing answers is reported as a dead
+  tap, and Sleep and Workouts are not dead — they are unbuilt, which their
+  dashed outline already says.
+  """
+  @spec tile_tap(String.t()) :: {pid(), atom()} | nil
+  def tile_tap("Meals"), do: {self(), :open_meals}
+  def tile_tap("Habits"), do: {self(), :open_habits}
+  def tile_tap("Weight"), do: {self(), :open_weight}
+  def tile_tap("Medication"), do: {self(), :open_medication}
+  def tile_tap(_unbuilt), do: nil
+
   @doc false
   def tile(%{on?: true} = section) do
     ~MOB"""
@@ -867,6 +914,7 @@ defmodule Kati.Screens.Health do
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={16}
+      on_tap={Kati.Screens.Health.tile_tap(section.name)}
     >
       <Row fill_width={true} align="center">
         {Kati.UI.symbol(section.icon, size: 22)}
@@ -956,6 +1004,21 @@ defmodule Kati.Screens.Health do
   @impl true
   def handle_tap(:open_meals, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
+
+  # Weight and Medication stopped being outlines when screens 109 and 112
+  # landed. Sleep and Workouts are still unbuilt and still fall through to the
+  # catch-all below, which is what their dashed tiles say.
+  def handle_tap(:open_weight, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Weight)}
+
+  def handle_tap(:open_medication, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Medication)}
+
+  def handle_tap(:open_habits, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+
+  def handle_tap(:open_services, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
 
   # `:open_filters` — the header's `tune` disc — is deliberately inert.
   #

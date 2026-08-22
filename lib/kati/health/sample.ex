@@ -70,9 +70,25 @@ defmodule Kati.Health.Sample do
       },
       %{icon: "bolt", name: "Habits", line: "4 active · 12-day best", on?: true, dot: 0xFF4E9A73},
       %{icon: "bedtime", name: "Sleep", line: "Not set up", on?: false},
-      %{icon: "monitor_weight", name: "Weight", line: "Not set up", on?: false},
+      # Weight and Medication stopped being outlines when screens 109 and 112
+      # landed. Both now carry a real line and a dot, which is what `on?` has
+      # always meant on this grid: switching a section on is a state change, not
+      # a new screen. Sleep and Workouts are still unbuilt and still dashed.
+      %{
+        icon: "monitor_weight",
+        name: "Weight",
+        line: "76.0 kg · down 2.4",
+        on?: true,
+        dot: 0xFF4E9A73
+      },
       %{icon: "fitness_center", name: "Workouts", line: "Not set up", on?: false},
-      %{icon: "medication", name: "Medication", line: "Not set up", on?: false}
+      %{
+        icon: "medication",
+        name: "Medication",
+        line: "4 doses today",
+        on?: true,
+        dot: 0xFF1A1917
+      }
     ]
   end
 

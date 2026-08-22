@@ -213,7 +213,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"106", Kati.Screens.NewGoal},
     {"122", Kati.Screens.Money},
     {"124", Kati.Screens.QuickAddExpense},
-    {"125", Kati.Screens.Currency}
+    {"125", Kati.Screens.Currency},
+    {"109", Kati.Screens.Weight},
+    {"111", Kati.Screens.LogWeight},
+    {"112", Kati.Screens.Medication}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -249,7 +252,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses)
+  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.
@@ -804,6 +807,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.Money.drawn_months/0},
       {"125", Kati.Screens.Currency, &Kati.Screens.Money.months/0,
        &Kati.Screens.Money.drawn_months/0},
+      # 109 gates the entry list, which is what the hero, the chart and every
+      # delta on the page are derived from — one read, so one gate. 111 gates on
+      # it too, for the reason 70 gates on 66's: the sheet's confirmation is
+      # arithmetic over the same series the page charts.
+      {"109", Kati.Screens.Weight, &Kati.Screens.Weight.entries/0,
+       &Kati.Screens.Weight.drawn_entries/0},
+      {"111", Kati.Screens.LogWeight, &Kati.Screens.Weight.entries/0,
+       &Kati.Screens.Weight.drawn_entries/0},
+      {"112", Kati.Screens.Medication, &Kati.Screens.Medication.doses/0,
+       &Kati.Screens.Medication.drawn_doses/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
@@ -899,7 +912,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.Services.flag/1` derives the emoji from the country code. See
       # `Kati.ScreenDesignLiteralTest` for the full reasoning — reproducing the
       # slip would mean shipping a wrong flag to keep a sweep quiet.
-      {"94", "🇰🇭", ~r/^🇳🇱$/u}
+      {"94", "🇰🇭", ~r/^🇳🇱$/u},
+      # 111's `Today` row prints the device's clock. See
+      # `Kati.ScreenDesignLiteralTest` for the full reasoning.
+      {"111", "16 august, 07:42", ~r/^#{day} \p{L}+, \d{2}:\d{2}$/u}
     ]
   end
 

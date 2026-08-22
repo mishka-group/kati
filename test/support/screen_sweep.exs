@@ -233,6 +233,40 @@ defmodule Kati.ScreenSweep do
   A sweep has to survive the first offender to report the rest of them, and a
   test that stops at screen 3 of 63 hides 60 screens' worth of answer.
   """
+  @doc """
+  Run `fun` with every database write it causes rolled back afterwards.
+
+  **Every sweep that dispatches taps must go through this**, and the reason is
+  a defect that took three files to notice.
+
+  A sweep's whole method is to press every control every screen draws. Most
+  controls navigate or set an assign; a few *commit* — screen 106's `Save
+  goal`, screen 111's `Save reading`, screen 124's `Save the expense` — and
+  those write a row and mean to. Unlike screens 70 and 73, whose saves no-op
+  against an empty shelf, these need no prerequisite: a goal is a goal.
+
+  The rows then outlive the sweep, and the screens that fall back to their
+  drawing *only while their table is empty* — 104, 109, 111, 122 — stop drawing
+  it. The failure lands on `Kati.ScreenDesignLiteralTest`, which never touched
+  any of them, and only for the seeds that order the modules the wrong way
+  round. Three separate sweeps build a push graph this way
+  (`Kati.ScreenTapSweepTest`, `Kati.MealsRoutesTest`, `Kati.AppReachabilityTest`),
+  so cleaning up in each one's `on_exit` is three chances to forget.
+
+  A rolled-back transaction is exact where a `DELETE` list is a guess: it
+  restores whatever was there, it needs no list of tables to maintain, and a
+  sweep that starts writing to a new table is covered the day it does.
+  `Kati.ScreenEmptyDatabaseTest.in_empty_database/1` uses the same shape for the
+  mirror-image job.
+  """
+  @spec rolled_back((-> result)) :: result when result: term()
+  def rolled_back(fun) when is_function(fun, 0) do
+    {:error, {:rolled_back, result}} =
+      Kati.Repo.transaction(fn -> Kati.Repo.rollback({:rolled_back, fun.()}) end)
+
+    result
+  end
+
   @spec safely((-> result)) :: {:ok, result} | {:error, String.t()} when result: term()
   def safely(fun) when is_function(fun, 0) do
     {:ok, fun.()}

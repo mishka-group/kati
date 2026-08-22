@@ -69,7 +69,12 @@ defmodule Kati.BackupFormatTest do
         # explicitly rather than matched loosely: an array of something the
         # codec cannot write must still fail this test, not slip through on the
         # word "array".
-        {:array, Ash.Type.Atom}
+        {:array, Ash.Type.Atom},
+        # `Kati.Health.Medication.times` — the clock times a dose is due,
+        # `"08:00"` each. Arrived with screen 112 and needs no codec change:
+        # the array encoder already recurses on its element type, and a string
+        # is the simplest element there is.
+        {:array, Ash.Type.String}
       ]
 
       assert used -- known == []
@@ -292,7 +297,7 @@ defmodule Kati.BackupFormatTest do
 
   describe "the steps Kati ships" do
     test "the chain is unbroken from every version that has ever been written" do
-      assert Catalog.schema_version() == 7
+      assert Catalog.schema_version() == 8
 
       froms = Enum.map(Upgrade.steps(), fn {from, _to, _fun} -> from end)
       tos = Enum.map(Upgrade.steps(), fn {_from, to, _fun} -> to end)

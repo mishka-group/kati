@@ -130,8 +130,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 76,
-             "expected 76 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 79,
+             "expected 79 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -359,7 +359,12 @@ defmodule Kati.ScreenDesignLiteralTest do
       # flag with the Netherlands, and the app derives the emoji from the
       # country code, so reproducing the slip would mean shipping a wrong flag
       # to keep this sweep quiet.
-      assert length(device_values()) <= 13,
+      #
+      # Raised to 14 for screen 111's `Today` row, which prints the device's own
+      # clock. Same category as screens 01, 02 and 09's date lines and pinned
+      # the same way — the pattern carries today's day of the month, so a sheet
+      # that hardcoded 16 August would fail on every other day.
+      assert length(device_values()) <= 14,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -443,6 +448,10 @@ defmodule Kati.ScreenDesignLiteralTest do
          "derives the emoji from the ISO country code, so the row draws the Dutch flag and " <>
          "cannot draw the wrong one for any country — reproducing the slip to satisfy this " <>
          "sweep would be shipping a wrong flag to keep a test quiet", ~r/^🇳🇱$/u},
+      {"111", "16 august, 07:42",
+       "the sheet's `Today` row is `Kati.Screens.LogWeight.taken_line/0`, which formats " <>
+         "`Kati.Time.now/0`. The drawing froze one device's minute; what the row promises is " <>
+         "the day and the time it is being logged at", ~r/^#{day} \p{L}+, \d{2}:\d{2}$/u},
       {"24", "last backup 14 aug",
        "the drawing froze a date; the Export row now reports " <>
          "`Kati.Screens.Settings.last_backup/0`, which is `nil` until something completes a " <>

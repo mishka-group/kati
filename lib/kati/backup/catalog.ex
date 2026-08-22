@@ -83,7 +83,7 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 7
+  @schema_version 8
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -96,6 +96,7 @@ defmodule Kati.Backup.Catalog do
     Kati.Media,
     Kati.Meals,
     Kati.Goals,
+    Kati.Health,
     Kati.Money,
     Kati.Music,
     Kati.Services,
@@ -154,7 +155,13 @@ defmodule Kati.Backup.Catalog do
     # A goal is a number somebody meant to reach; an expense is a thing they
     # bought. Neither is derivable from anything and neither re-fetches.
     %{table: "goals", resource: Kati.Goals.Goal, drop: []},
-    %{table: "expenses", resource: Kati.Money.Expense, drop: []}
+    %{table: "expenses", resource: Kati.Money.Expense, drop: []},
+    # Readings and doses. Nothing here is fetched from anywhere and nothing
+    # re-derives — screen 109's own note is that no scale is connected — so
+    # losing them in a restore would lose the whole record.
+    %{table: "health_medications", resource: Kati.Health.Medication, drop: []},
+    %{table: "health_readings", resource: Kati.Health.Reading, drop: []},
+    %{table: "health_doses", resource: Kati.Health.Dose, drop: []}
   ]
 
   @excluded [

@@ -77,26 +77,22 @@ defmodule Kati.ScreenTapSweepTest do
   # THIS SWEEP WRITES, AND MUST NOT LEAVE ANYTHING BEHIND.
   #
   # It dispatches every tag every screen draws, and some of those tags are
-  # commits: screen 106's `Save goal` creates a goal, screen 124's `Save the
-  # expense` creates an expense. Both are unconditional — a goal needs nothing
-  # to exist first — so unlike screen 70's and 73's saves, which no-op with an
-  # empty shelf, these two actually insert.
+  # commits: screens 106, 111 and 124 each create a row and mean to. Left
+  # behind, those rows stop screens 104, 109, 111 and 122 falling back to their
+  # drawings, and the failure surfaces on `Kati.ScreenDesignLiteralTest` — a
+  # file this one never touched — for the seeds that order them the wrong way
+  # round.
   #
-  # `Kati.ScreenDesignLiteralTest` renders screens 104 and 122 against this same
-  # shared database and both fall back to their drawings only while their tables
-  # are empty. One goal left behind here makes screen 104 take the real path,
-  # its drawing's literals stop appearing, and the failure lands on a file this
-  # one never touched — for the seeds that order the two the wrong way round.
-  # `Kati.MediaMoodTest` records the same hazard and it is the same hazard: a
-  # coin flip, not a flake.
-  #
-  # Raw SQL rather than `Ash.destroy`, because this runs from `on_exit` after
-  # the test process is gone. Everything in these two tables is this sweep's,
-  # because nothing else in the suite writes to them without cleaning up.
+  # `Kati.ScreenSweep.rolled_back/1` explains it in full and is what the other
+  # two tap-dispatching sweeps go through. This one deletes instead, because
+  # its dispatch is spread across several tests rather than gathered into one
+  # function call — three tables named explicitly, and the list grows the day a
+  # new sheet starts committing.
   setup do
     on_exit(fn ->
-      Kati.Repo.query!("DELETE FROM goals", [])
-      Kati.Repo.query!("DELETE FROM expenses", [])
+      for table <- ~w(goals expenses health_readings) do
+        Kati.Repo.query!("DELETE FROM " <> table, [])
+      end
     end)
 
     :ok
@@ -238,6 +234,44 @@ defmodule Kati.ScreenTapSweepTest do
     # live.
     {Kati.Screens.QuickAddExpense, :edit_amount},
     {Kati.Screens.QuickAddExpense, :file_as_expense},
+    # ── Screen 111's three.
+    #
+    # `unit_kg` is the one the sheet opens on, and `unit_st` writes through
+    # `Kati.Health.put_unit/1` to `Mob.State` — which this heuristic cannot see,
+    # the same blind spot `Kati.Screens.LanguagePick`'s entries are here for. It
+    # bites unevenly because the control mount re-reads what the real tap wrote.
+    # `Kati.HealthTest` asserts the unit actually moves.
+    #
+    # `now` sets the reading's timestamp to the clock, which it already is:
+    # the sheet opens on now, so the button is a way back from a time you have
+    # changed. With no time picker behind it — Mob has no date input, which is
+    # #45 — there is nothing to come back from yet.
+    {Kati.Screens.LogWeight, :unit_kg},
+    {Kati.Screens.LogWeight, :unit_st},
+    {Kati.Screens.LogWeight, :now},
+    # ── Screen 112's four.
+    #
+    # `mark_taken` and `mark_skipped` write, and the write lands on the first
+    # dose of the day that has not been decided about. This sweep runs against
+    # an empty database, where there are no doses at all and the page is the
+    # drawing's — so the write is a no-op, which is correct rather than dead.
+    # `Kati.HealthTest` asserts both with doses stored.
+    #
+    # `add` and `open_schedule` are drawn and reachable and open nothing:
+    # neither a new-medication sheet nor a per-medication page is drawn
+    # anywhere in the 127 artboards.
+    {Kati.Screens.Medication, :mark_taken},
+    {Kati.Screens.Medication, :mark_skipped},
+    {Kati.Screens.Medication, :add},
+    {Kati.Screens.Medication, :open_schedule},
+    # A dose row itself, which marks the same dose the `Taken` button does and
+    # is the same no-op on an empty database.
+    {Kati.Screens.Medication, :toggle_dose},
+    # Screen 109's current range. The chart draws every reading whatever the
+    # segment says — the range is drawn and not yet applied, because a series
+    # of four readings has no month to narrow to. It narrows when there is
+    # something to narrow.
+    {Kati.Screens.Weight, :range_month},
     {Kati.Screens.Library, :shelf_Screen},
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},

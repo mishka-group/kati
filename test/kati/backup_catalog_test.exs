@@ -25,9 +25,9 @@ defmodule Kati.BackupCatalogTest do
   # merge kept them for. That took `schema_version` to 2 and added the 1 -> 2
   # upgrade step, which is what `Kati.BackupFormatTest` and
   # `Kati.BackupRoundTripTest` hold to a version-1 file that must still open.
-  @fingerprint "7f6e13a96c54f6e3331b5628ee47f0510e1de76c04c76ccbe442fc2683c06b0e"
+  @fingerprint "0d22dcb1be794aa180afe5f239693f1cdf9fa0c929cad8b84af08c3d59622625"
 
-  @schema_version 7
+  @schema_version 8
 
   describe "every resource is classified" do
     test "no resource in any domain is missing from both lists" do
@@ -140,7 +140,7 @@ defmodule Kati.BackupCatalogTest do
 
     test "every table appears exactly once" do
       assert Catalog.tables() == Enum.uniq(Catalog.tables())
-      assert length(Catalog.tables()) == 26
+      assert length(Catalog.tables()) == 29
     end
 
     test "every backed-up resource keys on a single :id column" do

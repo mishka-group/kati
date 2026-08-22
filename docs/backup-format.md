@@ -163,6 +163,9 @@ reproduce.
 | `Kati.Services.Service` | `services` | The streaming services you pay for, what they cost, and the ones you have said are not yours |
 | `Kati.Goals.Goal` | `goals` | A number you meant to reach by a date, and how far along you are |
 | `Kati.Money.Expense` | `expenses` | Things you bought, each with the section it belongs to |
+| `Kati.Health.Medication` | `health_medications` | What you take, the dose, and when it is due |
+| `Kati.Health.Reading` | `health_readings` | Weights you typed, in grams |
+| `Kati.Health.Dose` | `health_doses` | Each dose, and whether it was taken or skipped |
 
 ### Not in the backup
 
@@ -222,6 +225,7 @@ before any column is decoded.
 | 4 → 5 | `music_artists`, `music_albums`, `music_tracks` and `music_listens` joined the backup. | Supplies all four as empty members, the same way. |
 | 5 → 6 | `services` joined the backup with screen 92. | Supplies it as an empty member. A version-5 archive restores with no services, which is what it recorded. |
 | 6 → 7 | `goals` and `expenses` joined with screens 104 and 122. | Supplies both as empty members. |
+| 7 → 8 | `health_medications`, `health_readings` and `health_doses` joined with screens 109 and 112. | Supplies all three as empty members. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

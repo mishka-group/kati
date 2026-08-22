@@ -194,7 +194,7 @@ defmodule Kati.ScreenBackupTest do
       end
 
       # And the file it would write is a real one, with the same total.
-      assert Backup.preview_sub(preview) == "0 records across 26 tables"
+      assert Backup.preview_sub(preview) == "0 records across 29 tables"
     end
 
     test "the columns the format leaves out are named when there are any" do

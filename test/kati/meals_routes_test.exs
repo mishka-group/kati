@@ -287,21 +287,25 @@ defmodule Kati.MealsRoutesTest do
 
   # `%{screen => [screen]}` for every screen except the gallery: dispatch each
   # tag the screen drew and keep the ones that navigate somewhere.
+  # Rolled back, because a few of the tags this dispatches are commits — see
+  # `Kati.ScreenSweep.rolled_back/1` for the defect that made it necessary.
   defp push_graph(locale) do
-    ScreenSweep.with_locale(locale, fn ->
-      for {module, {socket, tags}} <- ScreenSweep.drawn_taps(locale),
-          module != Screens.Gallery,
-          into: %{} do
-        targets =
-          for tag <- tags,
-              {:ok, dest} <- [ScreenSweep.safely(fn -> push_target(module, socket, tag) end)],
-              is_atom(dest),
-              dest != nil,
-              uniq: true,
-              do: dest
+    ScreenSweep.rolled_back(fn ->
+      ScreenSweep.with_locale(locale, fn ->
+        for {module, {socket, tags}} <- ScreenSweep.drawn_taps(locale),
+            module != Screens.Gallery,
+            into: %{} do
+          targets =
+            for tag <- tags,
+                {:ok, dest} <- [ScreenSweep.safely(fn -> push_target(module, socket, tag) end)],
+                is_atom(dest),
+                dest != nil,
+                uniq: true,
+                do: dest
 
-        {module, targets}
-      end
+          {module, targets}
+        end
+      end)
     end)
   end
 

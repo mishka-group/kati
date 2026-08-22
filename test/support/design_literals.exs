@@ -111,7 +111,10 @@ defmodule Kati.DesignLiterals do
     # currency symbols, and screen 122's pace arithmetic is written with a
     # division sign.
     "&euro;" => "€",
-    "&divide;" => "÷"
+    "&divide;" => "÷",
+    # Screen 109's delta column sets a true minus sign rather than a hyphen: the
+    # column is numeric and U+2212 aligns with the digits where U+002D does not.
+    "&minus;" => "−"
   }
 
   @doc "Absolute path of screen `number`'s drawing. `number` is zero-padded."

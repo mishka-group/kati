@@ -125,13 +125,17 @@ defmodule Kati.AppReachabilityTest do
   # screen without navigating, re-render and collect again. One level is
   # enough — a menu inside a menu is not a thing any of these drawings has —
   # and the recursion is bounded by that rather than by a visited set.
+  # Rolled back, because a few of the tags this dispatches are commits — see
+  # `Kati.ScreenSweep.rolled_back/1` for the defect that made it necessary.
   defp push_graph do
-    ScreenSweep.with_locale(:en, fn ->
-      for {module, {socket, tags}} <- ScreenSweep.drawn_taps(:en),
-          module != Screens.Gallery,
-          into: %{} do
-        {module, targets(module, socket, tags) ++ opened_targets(module, socket, tags)}
-      end
+    ScreenSweep.rolled_back(fn ->
+      ScreenSweep.with_locale(:en, fn ->
+        for {module, {socket, tags}} <- ScreenSweep.drawn_taps(:en),
+            module != Screens.Gallery,
+            into: %{} do
+          {module, targets(module, socket, tags) ++ opened_targets(module, socket, tags)}
+        end
+      end)
     end)
   end
 

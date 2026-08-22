@@ -45,6 +45,9 @@ defmodule Kati.Backup.Upgrade do
 
     * **6 -> 7** — `goals` and `expenses` joined with screens 104 and 122.
 
+    * **7 -> 8** — `health_medications`, `health_readings` and `health_doses`
+      joined with screens 109 and 112.
+
   The step adds the key and never replaces one, so it is safe to run over rows
   that already have it and it cannot be the thing that loses a row.
 
@@ -68,7 +71,8 @@ defmodule Kati.Backup.Upgrade do
       {3, 4, &add_books/1},
       {4, 5, &add_music/1},
       {5, 6, &add_services/1},
-      {6, 7, &add_goals_and_expenses/1}
+      {6, 7, &add_goals_and_expenses/1},
+      {7, 8, &add_health/1}
     ]
 
   @doc """
@@ -137,6 +141,14 @@ defmodule Kati.Backup.Upgrade do
   # Two members, same `Map.put_new/3` reasoning as every step above.
   defp add_goals_and_expenses(rows) do
     rows |> Map.put_new("goals", []) |> Map.put_new("expenses", [])
+  end
+
+  # Three members, same `Map.put_new/3` reasoning as every step above.
+  defp add_health(rows) do
+    rows
+    |> Map.put_new("health_medications", [])
+    |> Map.put_new("health_readings", [])
+    |> Map.put_new("health_doses", [])
   end
 
   defp no_path(version, target) do
