@@ -111,8 +111,8 @@ defmodule Kati.MealsRoutesTest do
     taps = Screens.MealsToday.tile_taps()
     icons = Enum.map(Kati.Meals.SampleToday.tiles(), fn {icon, _label} -> icon end)
 
-    assert length(icons) == 4, "the drawing gives Meals four tiles, not #{length(icons)}"
-    assert map_size(taps) == 4
+    assert length(icons) == 5, "the drawing gives Meals five tiles, not #{length(icons)}"
+    assert map_size(taps) == 5
 
     missing = icons -- Map.keys(taps)
 

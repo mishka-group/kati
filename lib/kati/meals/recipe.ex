@@ -83,6 +83,18 @@ defmodule Kati.Meals.Recipe do
     attribute :serves, :integer, allow_nil?: false, default: 1, public?: true
     attribute :photo_seed, :string, public?: true
 
+    # Which meal of the day this one usually is — `Breakfast`, `Lunch`,
+    # `Dinner`, `Snack`, `Brunch`. Screen 116's chips group the library by it.
+    #
+    # A free string rather than an enum, and deliberately the same shape as
+    # `Kati.Meals.MealLog.slot_name`: the vocabulary is the user's. Somebody
+    # who eats second breakfast should be able to say so, and an enum would
+    # make that a feature request rather than a word.
+    #
+    # Nullable, because a meal that is not any particular time of day is
+    # ordinary — screen 116 shows it under `All` and under nothing else.
+    attribute :slot_name, :string, public?: true
+
     # ── The user's own facts (screen 45's history rows) ────────────────────
     attribute :rating, :integer, public?: true, constraints: [min: 0, max: 5]
     attribute :note, :string, public?: true
@@ -123,6 +135,9 @@ defmodule Kati.Meals.Recipe do
       :oven_c,
       :serves,
       :photo_seed,
+      # Screen 118's slot chips are the only control on that editor that
+      # commits, so this is the only new field the editor can accept.
+      :slot_name,
       :rating,
       :note,
       :source_url,

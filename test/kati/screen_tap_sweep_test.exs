@@ -264,6 +264,34 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Medication, :mark_skipped},
     {Kati.Screens.Medication, :add},
     {Kati.Screens.Medication, :open_schedule},
+    # ── Screen 119's four.
+    #
+    # `aisle_Uncategorised` is the aisle the draft opens on, the same
+    # already-selected case as every other chip family above.
+    #
+    # `edit_name`, `edit_quantity` and `edit_ingredient` open no keyboard,
+    # because Mob has no text input — every field in this app is a drawn value
+    # (#45). The sheet is honest about it: the preview under the fields shows
+    # exactly the row the draft will become.
+    {Kati.Screens.AddIngredient, :aisle_Uncategorised},
+    {Kati.Screens.AddIngredient, :edit_name},
+    {Kati.Screens.AddIngredient, :edit_quantity},
+    {Kati.Screens.AddIngredient, :edit_ingredient},
+    {Kati.Screens.AddIngredient, :edit_unit},
+    # `Type it in` is the built path and opens a form Mob cannot draw yet — the
+    # same #45 gap. The row is honest: the two beside it carry `NOT IN V1`, and
+    # this one does not, because typing figures in is what the app will do.
+    {Kati.Screens.AddIngredient, :type_it_in},
+    # ── Screens 116 and 118.
+    #
+    # `filter_All` and `slot_Dinner` are the selected members of their
+    # families. `search` opens no keyboard (#45). `add_photo` needs a camera or
+    # a picker, and fence K-31 removed both — see `native/LEDGER.md` for why
+    # they went and what it would take to bring one back.
+    {Kati.Screens.MealLibrary, :filter_All},
+    {Kati.Screens.MealLibrary, :search},
+    {Kati.Screens.MealEdit, :slot_Dinner},
+    {Kati.Screens.MealEdit, :add_photo},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     {Kati.Screens.Medication, :toggle_dose},

@@ -25,9 +25,9 @@ defmodule Kati.BackupCatalogTest do
   # merge kept them for. That took `schema_version` to 2 and added the 1 -> 2
   # upgrade step, which is what `Kati.BackupFormatTest` and
   # `Kati.BackupRoundTripTest` hold to a version-1 file that must still open.
-  @fingerprint "0d22dcb1be794aa180afe5f239693f1cdf9fa0c929cad8b84af08c3d59622625"
+  @fingerprint "c2c06099a6e2be7aa799d9e36dfa4a1a72b1877681810efaa21ff58f6bffcaf2"
 
-  @schema_version 8
+  @schema_version 9
 
   describe "every resource is classified" do
     test "no resource in any domain is missing from both lists" do

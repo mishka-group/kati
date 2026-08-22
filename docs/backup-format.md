@@ -226,6 +226,7 @@ before any column is decoded.
 | 5 → 6 | `services` joined the backup with screen 92. | Supplies it as an empty member. A version-5 archive restores with no services, which is what it recorded. |
 | 6 → 7 | `goals` and `expenses` joined with screens 104 and 122. | Supplies both as empty members. |
 | 7 → 8 | `health_medications`, `health_readings` and `health_doses` joined with screens 109 and 112. | Supplies all three as empty members. |
+| 8 → 9 | `recipes` gained `slot_name` with screen 116. | **Nothing.** A version-8 archive has every member a version-9 app expects and its recipe rows simply lack one key, which takes the attribute default. The version still moved, because `schema_version` tracks the row shape — the step is here saying so rather than the chain having a hole in it. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

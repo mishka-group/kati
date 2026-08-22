@@ -48,6 +48,15 @@ defmodule Kati.Backup.Upgrade do
     * **7 -> 8** — `health_medications`, `health_readings` and `health_doses`
       joined with screens 109 and 112.
 
+    * **8 -> 9** — `recipes` gained `slot_name` with screen 116. **Nothing
+      moves**, and that is the point of the step existing: a version-8 archive
+      has every member a version-9 app expects, and its recipe rows simply lack
+      one key, which `Ash.Seed.seed!/2` fills with the attribute default. The
+      version still had to move — `schema_version` tracks the row shape, and a
+      shape that gained a column is a different shape — so the step is here
+      saying so, rather than the chain having a hole in it. A step that does
+      nothing is the honest way to record a change that needs nothing done.
+
   The step adds the key and never replaces one, so it is safe to run over rows
   that already have it and it cannot be the thing that loses a row.
 
@@ -72,7 +81,8 @@ defmodule Kati.Backup.Upgrade do
       {4, 5, &add_music/1},
       {5, 6, &add_services/1},
       {6, 7, &add_goals_and_expenses/1},
-      {7, 8, &add_health/1}
+      {7, 8, &add_health/1},
+      {8, 9, &unchanged/1}
     ]
 
   @doc """
@@ -150,6 +160,10 @@ defmodule Kati.Backup.Upgrade do
     |> Map.put_new("health_readings", [])
     |> Map.put_new("health_doses", [])
   end
+
+  # See the 8 -> 9 note in the moduledoc: a column arrived, and a missing
+  # column takes the attribute default where a missing table would raise.
+  defp unchanged(rows), do: rows
 
   defp no_path(version, target) do
     Error.error(

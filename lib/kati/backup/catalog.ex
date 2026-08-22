@@ -83,7 +83,7 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 8
+  @schema_version 9
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

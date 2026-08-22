@@ -216,7 +216,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"125", Kati.Screens.Currency},
     {"109", Kati.Screens.Weight},
     {"111", Kati.Screens.LogWeight},
-    {"112", Kati.Screens.Medication}
+    {"112", Kati.Screens.Medication},
+    {"116", Kati.Screens.MealLibrary},
+    {"118", Kati.Screens.MealEdit},
+    {"119", Kati.Screens.AddIngredient}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -817,6 +820,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.Weight.drawn_entries/0},
       {"112", Kati.Screens.Medication, &Kati.Screens.Medication.doses/0,
        &Kati.Screens.Medication.drawn_doses/0},
+      # 116 gates the whole grid, 118 the meal it is editing. 119 reads nothing
+      # of its own — it is a form over a draft — so it gates on 118's meal, for
+      # the reason 70 gates on 66's: a sheet aimed at a different meal from the
+      # screen that opened it would add an ingredient to the wrong one.
+      {"116", Kati.Screens.MealLibrary, &Kati.Screens.MealLibrary.meals/0,
+       &Kati.Screens.MealLibrary.drawn_meals/0},
+      {"118", Kati.Screens.MealEdit, &Kati.Screens.MealEdit.meal/0,
+       &Kati.Screens.MealEdit.drawn_meal/0},
+      {"119", Kati.Screens.AddIngredient, &Kati.Screens.MealEdit.meal/0,
+       &Kati.Screens.MealEdit.drawn_meal/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,

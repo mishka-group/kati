@@ -9,6 +9,28 @@ defmodule Kati.MealsTest do
   """
   use ExUnit.Case, async: false
 
+  # EVERY RECIPE THIS FILE MAKES IS DESTROYED AGAIN.
+  #
+  # It did not have to be until screen 116 landed. `Kati.Screens.MealLibrary`
+  # falls back to `Kati.Meals.SampleLibrary` only while `recipes` is empty, so
+  # one fixture left behind makes the library take the real path and its
+  # drawing's literals stop appearing — on `Kati.ScreenDesignLiteralTest`, a
+  # file this one never touches, and only for the seeds that order the two the
+  # wrong way round. `Kati.MediaMoodTest` records the same hazard from the
+  # media side; `Kati.ScreenSweep.rolled_back/1` records it from the sweeps'.
+  #
+  # Raw SQL because this runs from `on_exit`, after the test process is gone,
+  # and children first because the foreign keys refuse the parent otherwise.
+  setup do
+    on_exit(fn ->
+      for table <- ~w(recipe_ingredients meal_logs meal_plan_slots recipes) do
+        Kati.Repo.query!("DELETE FROM " <> table, [])
+      end
+    end)
+
+    :ok
+  end
+
   alias Kati.Meals.Aisle
   alias Kati.Meals.BundledFood
   alias Kati.Meals.Food

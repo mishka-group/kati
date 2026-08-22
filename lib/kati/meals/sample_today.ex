@@ -86,6 +86,10 @@ defmodule Kati.Meals.SampleToday do
   @spec tiles() :: [{String.t(), String.t()}]
   def tiles do
     [
+      # Library joined the row with screen 116, and it goes FIRST: it is the
+      # input to everything else on this page, and a library you reach after
+      # the shopping list is a library you build after you needed it.
+      {"grid_view", "Library"},
       {"calendar_view_week", "Week"},
       {"shopping_cart", "Shop"},
       {"monitoring", "Nutrition"},

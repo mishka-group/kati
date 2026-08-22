@@ -614,13 +614,15 @@ defmodule Kati.Screens.MealsToday do
   failure would be invisible — an unknown key yields no `on_tap`, and a Box
   with no `on_tap` is drawn exactly like one that has it.
 
-  The four destinations are the four screens whose own drawing carries a
-  `‹ Meals` back pill, which is what identifies them as the places Meals goes:
-  44 the repeating week, 48 Shopping, 47 Nutrition, 49 Plans. `tune` is the
-  odd one only until you read 49 — a plan owns its meals, its targets and its
-  reminder times, so "Plan" is the profile you pick, not the week you look at.
+  The destinations are the screens whose own drawing carries a `‹ Meals` back
+  pill, which is what identifies them as the places Meals goes: 116 the
+  library, 44 the repeating week, 48 Shopping, 47 Nutrition, 49 Plans. `tune`
+  is the odd one only until you read 49 — a plan owns its meals, its targets
+  and its reminder times, so "Plan" is the profile you pick, not the week you
+  look at.
   """
   @tile_taps %{
+    "grid_view" => :open_library,
     "calendar_view_week" => :open_week,
     "shopping_cart" => :open_shopping,
     "monitoring" => :open_nutrition,
@@ -1165,6 +1167,9 @@ defmodule Kati.Screens.MealsToday do
   @impl true
   def handle_tap(:open_meal, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
+
+  def handle_tap(:open_library, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealLibrary)}
 
   def handle_tap(:open_week, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
