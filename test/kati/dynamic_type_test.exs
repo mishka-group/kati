@@ -1,0 +1,63 @@
+defmodule Kati.DynamicTypeTest do
+  @moduledoc """
+  #79 — what may carry a fixed size when the text scales.
+
+  The rule, decided here rather than per-screen because 62 screens repeat it:
+
+    * A fixed `width`/`height` states a **shape**. A 44x44 box with
+      `corner_radius={22}` is a circle; growing it makes it an oval, so it stays
+      fixed however large the text gets. Same for a poster, a 3x36 rule, a 7x7
+      dot, a colour swatch.
+
+    * `min_width`/`min_height` state a **measurement of text** — a number that
+      came from "how wide is this label". Those must be a floor, not a cap: the
+      drawing's size at 100%, free to grow after that.
+
+  Told apart by asking what the number describes, not by what it contains: both
+  kinds hold a `<Text>`, because an icon glyph is a text node too.
+  """
+  use ExUnit.Case, async: true
+
+  @bridge "android/app/src/main/java/com/example/kati/MobBridge.kt"
+
+  # Every container whose number was measured from a label. Each one truncated
+  # its text at 235% before K-28; `{file, line, label}` so a failure names the
+  # thing that broke rather than a count.
+  @text_measured [
+    {"lib/kati/screens/calendar.ex", "the schedule's time gutter"},
+    {"lib/kati/screens/day.ex", "the day view's time gutters"},
+    {"lib/kati/ui.ex", "timeline_row's time column"}
+  ]
+
+  describe "the min-size primitive" do
+    test "the bridge still reads min_width and min_height" do
+      # An unknown prop is DROPPED, in silence. `nodeModifier` reads the props
+      # it knows and ignores the rest, so a `min_width` the bridge had stopped
+      # reading would leave every gutter with no floor at all, log nothing, and
+      # fail nothing — the exact shape of bug that put "0…" on screen in the
+      # first place. This assertion is the only thing between K-28 and that.
+      src = File.read!(@bridge)
+
+      assert src =~ ~s|floatProp(props, "min_width")|,
+             "K-28 is gone from #{@bridge}: min_width is now a silently ignored prop"
+
+      assert src =~ ~s|floatProp(props, "min_height")|,
+             "K-28 is gone from #{@bridge}: min_height is now a silently ignored prop"
+    end
+  end
+
+  describe "text measurements are floors, not caps" do
+    for {file, what} <- @text_measured do
+      test "#{what} grows with the text (#{file})" do
+        src = File.read!(unquote(file))
+
+        refute src =~ ~r/<Column width=\{44\}/,
+               "#{unquote(what)}: `width={44}` caps the column at 44dp, so \"08:00\" " <>
+                 "renders as \"0…\" once the system font scale passes ~1.6. Use min_width."
+
+        assert src =~ ~r/min_width=\{\d/,
+               "#{unquote(what)}: expected a min_width floor and found none"
+      end
+    end
+  end
+end

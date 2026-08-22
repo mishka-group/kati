@@ -472,7 +472,7 @@ defmodule Kati.Screens.Calendar do
 
     ~MOB"""
     <Row fill_width={true} align="top">
-      <Column width={44} padding_top={top}>
+      <Column min_width={44} padding_top={top}>
         <Text
           text={row.time}
           font_family="mono"

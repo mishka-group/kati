@@ -4784,6 +4784,28 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
     floatProp(props, "width")?.let  { w -> m = m.width(w.dp) }
     floatProp(props, "height")?.let { h -> m = m.height(h.dp) }
 
+    // KATI-BEGIN(K-28 min-size) mob_new=0.4.20
+    // min_width / min_height — the drawing's number as a FLOOR, not a cap.
+    //
+    // `width` is the wrong tool for anything measured to fit TEXT, because the
+    // text is the part that grows. At Android's 235% Dynamic Type the
+    // schedule's `<Column width={44}>` time gutter still measured 44dp while
+    // "08:00" needed roughly 78, so it rendered "0…" — losing the one label
+    // that says which hour a card belongs to (#79). Nothing was logged; a
+    // fixed width is not an error, it is just too small.
+    //
+    // The rule this makes expressible, which #79 asks to settle as policy
+    // rather than per-screen: a fixed `width`/`height` is for content that does
+    // NOT scale with text — an icon disc, a poster, a dot, a rule, a swatch.
+    // Anything sized to fit text takes `min_width`/`min_height`, which pins the
+    // drawing's measurement at 100% and lets it grow past that.
+    //
+    // widthIn(min=) composes with an earlier fillMaxWidth rather than fighting
+    // it, so a node can still be told both to fill and to never go under.
+    floatProp(props, "min_width")?.let  { w -> m = m.widthIn(min = w.dp) }
+    floatProp(props, "min_height")?.let { h -> m = m.heightIn(min = h.dp) }
+    // KATI-END(K-28 min-size)
+
     // aspect_ratio: lock a node to width:height = ratio. Common use is
     // <Box fill_width={true} aspect_ratio={1.0}> to make a square area
     // (e.g. camera preview + overlay canvas that need to match the

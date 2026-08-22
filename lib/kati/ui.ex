@@ -376,7 +376,7 @@ defmodule Kati.UI do
 
     ~MOB"""
     <Row align="top" fill_width={true}>
-      <Box width={54} height={44} align="top">
+      <Box min_width={54} min_height={44} align="top">
         <Column>
           <Text text={time} text_size={11} text_color={:muted} font_family="mono" />
         </Column>

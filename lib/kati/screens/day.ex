@@ -359,7 +359,7 @@ defmodule Kati.Screens.Day do
   def all_day_row(item) do
     ~MOB"""
     <Row fill_width={true} align="top">
-      <Column width={44} padding_top={12}>
+      <Column min_width={44} padding_top={12}>
         <Text
           text="ALL"
           font_family="mono"
@@ -442,7 +442,7 @@ defmodule Kati.Screens.Day do
     ~MOB"""
     <Column fill_width={true} padding_left={21} padding_right={21}>
       <Row fill_width={true} align="top">
-        <Column width={44} padding_top={11}>
+        <Column min_width={44} padding_top={11}>
           <Text
             text={m.at}
             font_family="mono"
@@ -677,7 +677,7 @@ defmodule Kati.Screens.Day do
 
     ~MOB"""
     <Row>
-      <Column width={44} padding_top={top}>
+      <Column min_width={44} padding_top={top}>
         <Text
           text={cluster.label}
           text_size={12}
@@ -747,7 +747,13 @@ defmodule Kati.Screens.Day do
 
     [
       ~MOB"""
-      <Box width={44} height={55} corner_radius={16} background={Palette.placeholder()} align="center">
+      <Box
+        min_width={44}
+        min_height={55}
+        corner_radius={16}
+        background={Palette.placeholder()}
+        align="center"
+      >
         <Column>
           <Row align="center">
             <Spacer weight={1.0} />
