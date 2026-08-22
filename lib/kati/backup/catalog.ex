@@ -83,7 +83,7 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 5
+  @schema_version 6
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -96,6 +96,7 @@ defmodule Kati.Backup.Catalog do
     Kati.Media,
     Kati.Meals,
     Kati.Music,
+    Kati.Services,
     Kati.Sync
   ]
 
@@ -143,7 +144,11 @@ defmodule Kati.Backup.Catalog do
     %{table: "music_artists", resource: Kati.Music.Artist, drop: []},
     %{table: "music_albums", resource: Kati.Music.Album, drop: []},
     %{table: "music_tracks", resource: Kati.Music.Track, drop: []},
-    %{table: "music_listens", resource: Kati.Music.Listen, drop: []}
+    %{table: "music_listens", resource: Kati.Music.Listen, drop: []},
+    # What you pay for and what you have said is not yours. JustWatch can list
+    # every service in a country; only this device knows which three of them
+    # are on your card, what they cost you, and which ones you have ruled out.
+    %{table: "services", resource: Kati.Services.Service, drop: []}
   ]
 
   @excluded [

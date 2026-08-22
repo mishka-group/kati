@@ -41,6 +41,8 @@ defmodule Kati.Backup.Upgrade do
       `music_listens` joined the backup when the Music domain landed. Four
       members, same shape again.
 
+    * **5 -> 6** — `services` joined the backup with screen 92. One member.
+
   The step adds the key and never replaces one, so it is safe to run over rows
   that already have it and it cannot be the thing that loses a row.
 
@@ -62,7 +64,8 @@ defmodule Kati.Backup.Upgrade do
       {1, 2, &add_rejected_changes/1},
       {2, 3, &add_content_warnings/1},
       {3, 4, &add_books/1},
-      {4, 5, &add_music/1}
+      {4, 5, &add_music/1},
+      {5, 6, &add_services/1}
     ]
 
   @doc """
@@ -124,6 +127,9 @@ defmodule Kati.Backup.Upgrade do
     |> Map.put_new("music_tracks", [])
     |> Map.put_new("music_listens", [])
   end
+
+  # One member, same `Map.put_new/3` reasoning as the four steps above.
+  defp add_services(rows), do: Map.put_new(rows, "services", [])
 
   defp no_path(version, target) do
     Error.error(

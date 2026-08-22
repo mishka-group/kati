@@ -130,8 +130,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 67,
-             "expected 67 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 71,
+             "expected 71 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -345,7 +345,21 @@ defmodule Kati.ScreenDesignLiteralTest do
       # still draws. Two literals move from "checked against a frozen date" to
       # "checked against a two-state contract", which is less than an exact
       # string and more than nothing.
-      assert length(device_values()) <= 9,
+      #
+      # Raised to 10 for screen 80's connected ListenBrainz row. Same shape of
+      # decision and the same kind of value: the account name and the listen
+      # count come from a provider Kati has no client for yet, the row is
+      # unreachable in a test because `Kati.SecureStore` is empty, and the
+      # pattern states both branches of what the row can say.
+      #
+      # Raised again to 13 for screen 80's two cache figures and screen 94's
+      # flag. The cache pair are device values in the plainest sense — a file
+      # size and the age of a row. The flag is a different case and is the only
+      # entry here that exists because the DRAWING is wrong: it pairs Cambodia's
+      # flag with the Netherlands, and the app derives the emoji from the
+      # country code, so reproducing the slip would mean shipping a wrong flag
+      # to keep this sweep quiet.
+      assert length(device_values()) <= 13,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -407,6 +421,28 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the Persian Schedule's subtitle is the selected day and the number of rows on it, " <>
          "and the selected day starts on the device's today",
        ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u},
+      {"80", "connected as ines.k · 412 listens",
+       "the account name and the listen count come from ListenBrainz, and Kati has no " <>
+         "client for it yet. The row's contract is the alternation: what the provider " <>
+         "supplies when a token is present, or what the provider is FOR when none is. In a " <>
+         "test it is always the second branch, because `Kati.SecureStore` is empty. See " <>
+         "`Kati.Screens.DataSources.connected_line/1` for the branch this cannot reach",
+       ~r/^(connected as \p{L}[\p{L}.]* · \d+ listens|scrobbles, listening history|pairing — expanded)$/u},
+      {"80", "34 mb cached",
+       "the row reports this database file's own size, which is the question it exists to " <>
+         "answer — how much of the phone is this using. The drawing froze one device's " <>
+         "figure; the pattern is the row's contract, a whole number of megabytes or the " <>
+         "sentence a cache with nothing in it says", ~r/^(\d+ mb cached|nothing cached yet)$/u},
+      {"80", "oldest entry 2 months",
+       "the age of the oldest cache row, read off `fetched_at`. Same shape as above: the " <>
+         "drawing froze one device's answer, and the alternation is what the row can say — " <>
+         "an age in the drawing's own units, or that there is nothing to refresh",
+       ~r/^(oldest entry (today|\d+ (day|days|month|months))|nothing to refresh)$/u},
+      {"94", "🇰🇭",
+       "the drawing pairs Cambodia's flag with the Netherlands. `Kati.Services.flag/1` " <>
+         "derives the emoji from the ISO country code, so the row draws the Dutch flag and " <>
+         "cannot draw the wrong one for any country — reproducing the slip to satisfy this " <>
+         "sweep would be shipping a wrong flag to keep a test quiet", ~r/^🇳🇱$/u},
       {"24", "last backup 14 aug",
        "the drawing froze a date; the Export row now reports " <>
          "`Kati.Screens.Settings.last_backup/0`, which is `nil` until something completes a " <>

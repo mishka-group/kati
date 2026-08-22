@@ -241,6 +241,7 @@ defmodule Kati.Screens.Settings do
       synced: Sample.synced(),
       account: Sample.account(),
       appearance: Kati.Screens.Settings.settle(Sample.appearance()),
+      watching: Sample.watching(),
       sections: Sample.sections(),
       data: Sample.data(),
       sources: Sample.sources(),
@@ -439,6 +440,8 @@ defmodule Kati.Screens.Settings do
         {Kati.Screens.Settings.account(s.account, s.sections)}
         {UI.eyebrow("Appearance")}
         {Kati.Screens.Settings.group(s.appearance, 14, 22)}
+        {UI.eyebrow("Watching")}
+        {Kati.Screens.Settings.group(s.watching, 14, 22)}
         {UI.eyebrow("Sections")}
         {Kati.Screens.Settings.group(s.sections, 13, 22)}
         {UI.eyebrow("Data")}
@@ -640,7 +643,12 @@ defmodule Kati.Screens.Settings do
     "Accessibility" => Kati.Screens.Accessibility,
     "Language" => Kati.Screens.Language,
     "Text size" => Kati.Screens.Accessibility,
-    "States" => Kati.Screens.States
+    "States" => Kati.Screens.States,
+    # The three the second wave of drawings added, and each one is a screen that
+    # existed nowhere until its row did.
+    "My services" => Kati.Screens.MyServices,
+    "Data sources" => Kati.Screens.DataSources,
+    "Where this comes from" => Kati.Screens.Attribution
   }
 
   @doc false

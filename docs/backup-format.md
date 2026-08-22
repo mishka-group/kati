@@ -160,6 +160,7 @@ reproduce.
 | `Kati.Music.Album` | `music_albums` | Releases, your rating, your note, when you first heard it |
 | `Kati.Music.Track` | `music_tracks` | The tracklist, and the per-track play counts a scrobble import brings in |
 | `Kati.Music.Listen` | `music_listens` | Each sitting: when, how long, how many tracks |
+| `Kati.Services.Service` | `services` | The streaming services you pay for, what they cost, and the ones you have said are not yours |
 
 ### Not in the backup
 
@@ -217,6 +218,7 @@ before any column is decoded.
 | 2 → 3 | `media_content_warnings` and `media_warning_preferences` joined the backup. | Supplies both as empty members, the same way. Note what needs **no** step: `media_watches` gained `moods`, `pace` and `driven_by` in the same change, and a version-2 row simply lacks those keys — a missing *column* takes the attribute default, where a missing *table* raises. |
 | 3 → 4 | `books`, `book_reading_sessions` and `book_notes` joined the backup. | Supplies all three as empty members. A version-3 archive restores with an empty shelf, which is exactly what it recorded: the tables did not exist when it was written. |
 | 4 → 5 | `music_artists`, `music_albums`, `music_tracks` and `music_listens` joined the backup. | Supplies all four as empty members, the same way. |
+| 5 → 6 | `services` joined the backup with screen 92. | Supplies it as an empty member. A version-5 archive restores with no services, which is what it recorded. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

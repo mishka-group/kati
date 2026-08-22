@@ -31,5 +31,6 @@ config :kati,
     Kati.Media,
     Kati.Meals,
     Kati.Music,
+    Kati.Services,
     Kati.Sync
   ]

@@ -52,6 +52,28 @@ defmodule Kati.Settings.Sample do
   end
 
   @doc """
+  Watching — the one group that decides what the rest of the app may claim.
+
+  One row, and it sits between Appearance and Sections rather than under Data,
+  because it is not a source of data — it is the question *what can I actually
+  watch*, which everything in the media half of the app is downstream of.
+  Screen 92 is where it goes.
+  """
+  @spec watching() :: [map()]
+  def watching do
+    [
+      %{
+        icon: "subscriptions",
+        title: "My services",
+        sub:
+          "#{Kati.Services.region_name(Kati.Services.region())} · " <>
+            "#{length(Kati.Screens.MyServices.subscribed())} subscribed",
+        control: :chevron
+      }
+    ]
+  end
+
+  @doc """
   Sections — the growth mechanic made literal.
 
   Each row states which surfaces its section appears on, which is why the
@@ -92,6 +114,12 @@ defmodule Kati.Settings.Sample do
       },
       %{icon: "upload", title: "Export everything", sub: "Last backup 14 Aug", control: :chevron},
       %{icon: "sync", title: "Sync", sub: "iCloud · this device + iPad", control: :chevron},
+      %{
+        icon: "database",
+        title: "Data sources",
+        sub: "TVmaze, Open Library, MusicBrainz · 3 reachable",
+        control: :chevron
+      },
       %{icon: "delete", title: "Clear watch history", sub: nil, control: :chevron}
     ]
   end
@@ -144,6 +172,12 @@ defmodule Kati.Settings.Sample do
         icon: "phone_iphone",
         title: "This device",
         sub: "Permissions and storage",
+        control: :chevron
+      },
+      %{
+        icon: "copyright",
+        title: "Where this comes from",
+        sub: "Sources and licences",
         control: :chevron
       }
     ]

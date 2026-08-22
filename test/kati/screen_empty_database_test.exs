@@ -199,7 +199,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # for the reason 70 uses 66's.
     {"73", Kati.Screens.LogListen},
     {"74", Kati.Screens.AlbumDetail},
-    {"77", Kati.Screens.ArtistDetail}
+    {"77", Kati.Screens.ArtistDetail},
+    # 24 and 62 joined this list the moment their Watching group started
+    # counting real services: a settings page that says `3 subscribed` is a
+    # settings page with a read in it, and its fallback is the drawing's own
+    # three.
+    {"24", Kati.Screens.Settings},
+    {"62", Kati.Screens.SettingsFa},
+    {"80", Kati.Screens.DataSources},
+    {"92", Kati.Screens.MyServices},
+    {"94", Kati.Screens.CountryPicker}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -235,7 +244,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists)
+  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.
@@ -754,6 +763,23 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.AlbumDetail.drawn_album/0},
       {"77", Kati.Screens.ArtistDetail, &Kati.Screens.ArtistDetail.artist/0,
        &Kati.Screens.ArtistDetail.drawn_artist/0},
+      # 92 gates both service groups at once — either the shelf is yours or the
+      # whole page is the drawing's — and 24, 62 and 94 all gate on 92's own
+      # reader rather than on a second one, because the count in Settings' row
+      # and the list on 92 must never be able to disagree.
+      {"92", Kati.Screens.MyServices, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"24", Kati.Screens.Settings, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"62", Kati.Screens.SettingsFa, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"94", Kati.Screens.CountryPicker, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 80 reads the metadata cache rather than a domain the user writes to, so
+      # what it falls back to is a sentence about there being nothing — which is
+      # the correct thing for a cache page to say and is asserted as itself.
+      {"80", Kati.Screens.DataSources, &Kati.Screens.DataSources.cache_size/0,
+       fn -> "Nothing cached yet" end},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
@@ -830,7 +856,26 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
       {"55", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"55", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
-      {"56", "یکشنبه ۲۵ مرداد · ۵ مورد", ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u}
+      {"56", "یکشنبه ۲۵ مرداد · ۵ مورد", ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u},
+      # 24 and 62's Export row: `Kati.Screens.Settings.last_backup/0` is `nil`
+      # until something completes a Save As, and `Mob.State` is empty here.
+      # `Kati.ScreenDesignLiteralTest` carries the same pair with the full
+      # reasoning; this list is that one's shorter twin.
+      {"24", "last backup 14 aug", ~r/^(last backup \d{1,2} \p{L}{3}|never backed up)$/u},
+      {"62", "آخرین پشتیبان ۱۴ مرداد",
+       ~r/^(آخرین پشتیبان \p{N}+ #{word}|هنوز پشتیبانی گرفته نشده)$/u},
+      # 80's three provider-supplied values and two cache figures, none of which
+      # exists on a device with an empty database and no tokens.
+      {"80", "connected as ines.k · 412 listens",
+       ~r/^(connected as \p{L}[\p{L}.]* · \d+ listens|scrobbles, listening history)$/u},
+      {"80", "34 mb cached", ~r/^(\d+ mb cached|nothing cached yet)$/u},
+      {"80", "oldest entry 2 months",
+       ~r/^(oldest entry (today|\d+ (day|days|month|months))|nothing to refresh)$/u},
+      # 94's Netherlands row: the drawing pairs Cambodia's flag with it, and
+      # `Kati.Services.flag/1` derives the emoji from the country code. See
+      # `Kati.ScreenDesignLiteralTest` for the full reasoning — reproducing the
+      # slip would mean shipping a wrong flag to keep a sweep quiet.
+      {"94", "🇰🇭", ~r/^🇳🇱$/u}
     ]
   end
 

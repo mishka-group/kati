@@ -137,6 +137,37 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.Screens.LogListen`'s moduledoc for why that rather than `Whole
     # album` — so it is this one that sets the value it already has.
     {Kati.Screens.LogListen, :scope_selected},
+    # ── Screen 83's six link rows. Every card and the notices row opens a URL
+    # in the platform browser, and Kati has no fence for that: nothing in
+    # `native/LEDGER.md` opens an external link, and inventing one to make six
+    # taps look alive would be shipping a native change for a test. The rows
+    # are drawn, reachable, and honest about being links; what they would open
+    # is the browser, through a bridge that does not exist yet.
+    {Kati.Screens.Attribution, :open_tmdb},
+    {Kati.Screens.Attribution, :open_justwatch},
+    {Kati.Screens.Attribution, :open_tvmaze},
+    {Kati.Screens.Attribution, :open_open_library},
+    {Kati.Screens.Attribution, :open_musicbrainz},
+    {Kati.Screens.Attribution, :open_notices},
+    # ── Screen 92's three rule switches and both search fields.
+    #
+    # The rules ARE wired: each writes through `Kati.Services.toggle_rule/1` and
+    # re-reads the set into the socket. What this heuristic cannot see is that
+    # the write lands in `Mob.State`, which is neither an assign nor a nav
+    # action — the same blind spot `Kati.Screens.LanguagePick`'s two entries
+    # above are here for, and the reason it bites unevenly is that the sweep's
+    # control mount re-reads the value the real tap just wrote. Covered properly
+    # by `Kati.ServicesTest`, which asserts the stored set actually moves.
+    #
+    # The two search fields and the service row are drawn, reachable and open
+    # nothing: neither a service search nor a per-service editor is drawn
+    # anywhere in the 127 artboards.
+    {Kati.Screens.MyServices, :rule_rentals},
+    {Kati.Screens.MyServices, :rule_purchases},
+    {Kati.Screens.MyServices, :rule_hide_unavailable},
+    {Kati.Screens.MyServices, :search},
+    {Kati.Screens.MyServices, :edit_service},
+    {Kati.Screens.CountryPicker, :search},
     {Kati.Screens.Library, :shelf_Screen},
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},
