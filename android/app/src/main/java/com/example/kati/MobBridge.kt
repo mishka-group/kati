@@ -27,8 +27,6 @@ import android.net.Uri
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
 import android.os.SystemClock
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -43,7 +41,6 @@ import android.bluetooth.BluetoothProfile
 import android.bluetooth.BluetoothSocket
 import android.media.AudioManager
 import java.util.UUID
-import androidx.fragment.app.FragmentActivity
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.lang.ref.WeakReference
@@ -257,13 +254,6 @@ import androidx.compose.ui.window.PopupProperties
 // KATI-END(K-18 anchored-node)
 import coil.compose.AsyncImage
 import org.json.JSONObject
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview as CameraPreview
-import androidx.camera.core.UseCase
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 
@@ -848,8 +838,6 @@ object MobBridge {
     @JvmStatic external fun nativeDeliverMotion(pid: Long, ax: Double, ay: Double, az: Double,
                                                   gx: Double, gy: Double, gz: Double, ts: Long)
     @JvmStatic external fun nativeDeliverFileResult(pid: Long, event: String, sub: String, json: String?)
-    @JvmStatic external fun nativeDeliverCameraFrame(pid: Long, bytes: ByteArray, width: Int, height: Int,
-                                                     format: String, timestampMs: Long, dropped: Long)
     @JvmStatic external fun nativeDeliverNotification(pid: Long, json: String)
     @JvmStatic external fun nativeSetLaunchNotification(json: String?)
     @JvmStatic external fun nativeDeliverWebViewMessage(pid: Long, json: String)
@@ -894,11 +882,8 @@ object MobBridge {
     var pendingPermissionPid:  Long = 0
     var pendingPermissionCap:  String = ""
     @Volatile var notifyPid:   Long = 0
-    var pendingCameraPid:      Long = 0
-    var pendingCameraIsVideo:  Boolean = false
     var pendingPhotosPid:      Long = 0
     var pendingFilesPid:       Long = 0
-    var pendingScanPid:        Long = 0
 
     // ── Permissions ────────────────────────────────────────────────────────
     @JvmStatic
@@ -937,37 +922,31 @@ object MobBridge {
         nativeDeliverAtom3(pendingPermissionPid, "permission", pendingPermissionCap, if (granted) "granted" else "denied")
     }
 
-    // ── Biometric ─────────────────────────────────────────────────────────
-    @JvmStatic
-    fun biometric_authenticate(pid: Long, reason: String) {
-        val activity = activityRef?.get() as? FragmentActivity ?: run {
-            nativeDeliverAtom2(pid, "biometric", "not_available"); return
-        }
-        val mgr = BiometricManager.from(activity)
-        if (mgr.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
-                != BiometricManager.BIOMETRIC_SUCCESS) {
-            nativeDeliverAtom2(pid, "biometric", "not_available"); return
-        }
-        val executor: Executor = ContextCompat.getMainExecutor(activity)
-        val prompt = BiometricPrompt(activity, executor, object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                nativeDeliverAtom2(pid, "biometric", "success")
-            }
-            override fun onAuthenticationFailed() {
-                nativeDeliverAtom2(pid, "biometric", "failure")
-            }
-            override fun onAuthenticationError(code: Int, msg: CharSequence) {
-                nativeDeliverAtom2(pid, "biometric", if (code == BiometricPrompt.ERROR_CANCELED ||
-                    code == BiometricPrompt.ERROR_USER_CANCELED) "failure" else "not_available")
-            }
-        })
-        activity.runOnUiThread {
-            prompt.authenticate(BiometricPrompt.PromptInfo.Builder()
-                .setTitle("Authenticate").setSubtitle(reason)
-                .setNegativeButtonText("Cancel")
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK).build())
-        }
-    }
+    // KATI-BEGIN(K-31 drop-camera-scanner-biometric) mob_new=0.4.20
+    // Gone with androidx.camera, com.google.mlkit:barcode-scanning,
+    // androidx.appcompat and androidx.biometric (#75):
+    //
+    //   Biometric      biometric_authenticate + the BiometricPrompt/FragmentActivity imports
+    //   Camera         camera_capture_photo/_video and their result handlers
+    //   Camera preview camera_start_preview/_stop_preview, the camera_preview node
+    //                  and MobCameraPreview
+    //   Frame stream   camera_start/_stop_frame_stream, deliverFrame and the YUV
+    //                  helpers, plus the nativeDeliverCameraFrame extern
+    //   QR scanner     scanner_scan + handleScanResult, and MobScannerActivity.kt
+    //
+    // Every one was checked against nif_load before removal, because a bridge
+    // method Mob resolves by name and cannot find kills the BEAM thread with
+    // NoSuchMethodError before any Elixir runs — that is what K-01 torch-method
+    // exists to prevent. All eight have no cacheRequired/cacheOptional entry in
+    // mob_nif.zig and no reference anywhere in deps/mob outside the CHANGELOG.
+    //
+    // None of it was reachable from Kati either: no screen draws a camera
+    // preview, QR scanning is not in v1 and the CAMERA permission is already
+    // gone from the manifest, and screen 29's lock screen is a drawing that
+    // never calls BiometricPrompt. Re-adding any of them is adding the Gradle
+    // line back and writing the method — the node types and NIF names are
+    // Mob's, not ours, so nothing here is load-bearing for that.
+    // KATI-END(K-31 drop-camera-scanner-biometric)
 
     // KATI-BEGIN(K-30 drop-location) mob_new=0.4.20
     // The Location section is gone: `location_get_once` / `location_start` /
@@ -982,57 +961,6 @@ object MobBridge {
     // raises UndefinedFunctionError. What remained here was template residue
     // that only kept play-services-location in the APK. (#75)
     // KATI-END(K-30 drop-location)
-
-    // ── Camera ────────────────────────────────────────────────────────────
-    @JvmStatic
-    fun camera_capture_photo(pid: Long, quality: String) {
-        pendingCameraPid = pid
-        pendingCameraIsVideo = false
-        activityRef?.get()?.let { (it as? MainActivity)?.launchCameraPhoto() }
-            ?: nativeDeliverAtom2(pid, "camera", "cancelled")
-    }
-
-    @JvmStatic
-    fun camera_capture_video(pid: Long, maxDuration: String) {
-        pendingCameraPid = pid
-        pendingCameraIsVideo = true
-        activityRef?.get()?.let { (it as? MainActivity)?.launchCameraVideo() }
-            ?: nativeDeliverAtom2(pid, "camera", "cancelled")
-    }
-
-    @JvmStatic
-    fun handleCameraPhotoResult(uri: Uri?) {
-        val pid = pendingCameraPid
-        if (uri == null) { nativeDeliverAtom2(pid, "camera", "cancelled"); return }
-        val activity = activityRef?.get() ?: return
-        Thread {
-            try {
-                val tmp = File(activity.cacheDir, "mob_photo_${System.currentTimeMillis()}.jpg")
-                activity.contentResolver.openInputStream(uri)?.use { it.copyTo(tmp.outputStream()) }
-                val json = """[{"path":"${tmp.absolutePath}","width":0,"height":0}]"""
-                nativeDeliverFileResult(pid, "camera", "photo", json)
-            } catch (e: Exception) {
-                nativeDeliverAtom2(pid, "camera", "cancelled")
-            }
-        }.start()
-    }
-
-    @JvmStatic
-    fun handleCameraVideoResult(uri: Uri?) {
-        val pid = pendingCameraPid
-        if (uri == null) { nativeDeliverAtom2(pid, "camera", "cancelled"); return }
-        val activity = activityRef?.get() ?: return
-        Thread {
-            try {
-                val tmp = File(activity.cacheDir, "mob_video_${System.currentTimeMillis()}.mp4")
-                activity.contentResolver.openInputStream(uri)?.use { it.copyTo(tmp.outputStream()) }
-                val json = """[{"path":"${tmp.absolutePath}","duration":0.0}]"""
-                nativeDeliverFileResult(pid, "camera", "video", json)
-            } catch (e: Exception) {
-                nativeDeliverAtom2(pid, "camera", "cancelled")
-            }
-        }.start()
-    }
 
     // ── Photos picker ─────────────────────────────────────────────────────
     @JvmStatic
@@ -1612,165 +1540,6 @@ object MobBridge {
         }
     }
 
-    // ── Camera preview ────────────────────────────────────────────────────
-    internal var previewCameraProvider: ProcessCameraProvider? = null
-
-    @JvmStatic
-    fun camera_start_preview(pid: Long, optsJson: String) {
-        try {
-            val facing = JSONObject(optsJson).optString("facing", "back")
-            _previewFacing.value = facing
-        } catch (_: Exception) {}
-    }
-
-    @JvmStatic
-    fun camera_stop_preview() {
-        _previewFacing.value = null
-        previewCameraProvider?.unbindAll()
-        previewCameraProvider = null
-    }
-
-    private val _previewFacing = mutableStateOf<String?>(null)
-    val previewFacing: State<String?> get() = _previewFacing
-
-    // ── Camera live frame stream ──────────────────────────────────────────
-    // Mirrors the iOS shape: CameraX ImageAnalysis is bound to the same
-    // lifecycle as the preview, converts each YUV frame to RGB f32, and
-    // posts {:camera, :frame, %{...}} via JNI back to the caller pid.
-    // frameStreamRev increments on each start/stop so the MobCameraPreview
-    // composable's LaunchedEffect can detect changes and rebind use cases
-    // with or without the analyzer.
-    internal val frameStreamRev = AtomicLong(0L)
-    internal val frameStreamActive = mutableStateOf(false)
-    internal var frameStreamPid: Long = 0L
-    internal var frameStreamWidth: Int = 640
-    internal var frameStreamHeight: Int = 640
-    internal var frameStreamFormat: String = "rgb_f32"
-    internal var frameStreamThrottleMs: Int = 0
-    private var frameStreamLastDeliveryMs: Long = 0L
-    private var frameStreamDroppedCount: Long = 0L
-    internal val frameAnalysisExecutor = Executors.newSingleThreadExecutor()
-
-    @JvmStatic
-    fun camera_start_frame_stream(pid: Long, optsJson: String) {
-        try {
-            val opts = JSONObject(optsJson)
-            frameStreamPid = pid
-            frameStreamWidth = opts.optInt("width", 640).coerceIn(1, 4096)
-            frameStreamHeight = opts.optInt("height", 640).coerceIn(1, 4096)
-            frameStreamFormat = opts.optString("format", "rgb_f32")
-            frameStreamThrottleMs = opts.optInt("throttle_ms", 0)
-            val facing = opts.optString("facing", "back")
-            frameStreamLastDeliveryMs = 0L
-            frameStreamDroppedCount = 0L
-            // Match iOS: start_frame_stream activates the camera on its own
-            // even if no explicit start_preview was issued.
-            if (_previewFacing.value != facing) _previewFacing.value = facing
-            frameStreamActive.value = true
-            frameStreamRev.incrementAndGet()
-        } catch (e: Exception) {
-            Log.e("MobCamera", "start_frame_stream failed: ${e.message}")
-        }
-    }
-
-    @JvmStatic
-    fun camera_stop_frame_stream() {
-        frameStreamActive.value = false
-        frameStreamRev.incrementAndGet()
-    }
-
-    // Called from the CameraX analyzer thread. Converts YUV → target
-    // format and forwards to BEAM. The ImageProxy must be closed
-    // exactly once, which we do in a finally.
-    internal fun deliverFrame(image: ImageProxy) {
-        try {
-            val now = System.currentTimeMillis()
-            if (frameStreamThrottleMs > 0 &&
-                (now - frameStreamLastDeliveryMs) < frameStreamThrottleMs.toLong()) {
-                frameStreamDroppedCount++
-                return
-            }
-            // CameraX 1.3+ gives us toBitmap() which handles YUV_420_888
-            // → ARGB conversion internally. Slower than a hand-rolled
-            // native YUV path but unblocks the common case without
-            // per-device YUV plane quirks.
-            val raw = image.toBitmap()
-            val rotated = rotateIfNeeded(raw, image.imageInfo.rotationDegrees)
-            val cropped = centerCropAndScale(rotated, frameStreamWidth, frameStreamHeight)
-            val bytes = when (frameStreamFormat) {
-                "bgra_u8" -> bitmapToBgraU8(cropped)
-                else -> bitmapToRgbF32(cropped)
-            }
-            nativeDeliverCameraFrame(
-                frameStreamPid, bytes, cropped.width, cropped.height,
-                frameStreamFormat, now, frameStreamDroppedCount
-            )
-            frameStreamLastDeliveryMs = now
-            frameStreamDroppedCount = 0L
-        } catch (e: Throwable) {
-            Log.e("MobCamera", "deliverFrame failed: ${e.message}")
-        } finally {
-            image.close()
-        }
-    }
-
-    private fun rotateIfNeeded(bm: Bitmap, deg: Int): Bitmap {
-        if (deg == 0) return bm
-        val m = Matrix().apply { postRotate(deg.toFloat()) }
-        return Bitmap.createBitmap(bm, 0, 0, bm.width, bm.height, m, true)
-    }
-
-    private fun centerCropAndScale(src: Bitmap, w: Int, h: Int): Bitmap {
-        val srcAspect = src.width.toDouble() / src.height
-        val dstAspect = w.toDouble() / h
-        val (cropX, cropY, cropW, cropH) = when {
-            srcAspect > dstAspect -> {
-                val cw = (src.height * dstAspect).toInt()
-                arrayOf((src.width - cw) / 2, 0, cw, src.height)
-            }
-            srcAspect < dstAspect -> {
-                val ch = (src.width / dstAspect).toInt()
-                arrayOf(0, (src.height - ch) / 2, src.width, ch)
-            }
-            else -> arrayOf(0, 0, src.width, src.height)
-        }
-        val cropped = Bitmap.createBitmap(src, cropX, cropY, cropW, cropH)
-        return if (cropped.width != w || cropped.height != h) {
-            Bitmap.createScaledBitmap(cropped, w, h, true)
-        } else cropped
-    }
-
-    private fun bitmapToRgbF32(bm: Bitmap): ByteArray {
-        val w = bm.width; val h = bm.height
-        val pixels = IntArray(w * h)
-        bm.getPixels(pixels, 0, w, 0, 0, w, h)
-        val out = ByteArray(w * h * 3 * 4)
-        val bb = ByteBuffer.wrap(out).order(ByteOrder.LITTLE_ENDIAN)
-        for (i in 0 until w * h) {
-            val px = pixels[i]
-            val r = ((px shr 16) and 0xff).toFloat() / 255f
-            val g = ((px shr 8) and 0xff).toFloat() / 255f
-            val b = (px and 0xff).toFloat() / 255f
-            bb.putFloat(r); bb.putFloat(g); bb.putFloat(b)
-        }
-        return out
-    }
-
-    private fun bitmapToBgraU8(bm: Bitmap): ByteArray {
-        val w = bm.width; val h = bm.height
-        val pixels = IntArray(w * h)
-        bm.getPixels(pixels, 0, w, 0, 0, w, h)
-        val out = ByteArray(w * h * 4)
-        for (i in 0 until w * h) {
-            val px = pixels[i]
-            out[i * 4 + 0] = (px and 0xff).toByte()           // B
-            out[i * 4 + 1] = ((px shr 8) and 0xff).toByte()   // G
-            out[i * 4 + 2] = ((px shr 16) and 0xff).toByte()  // R
-            out[i * 4 + 3] = ((px shr 24) and 0xff).toByte()  // A
-        }
-        return out
-    }
-
     // ── Alerts / action sheets / toasts ───────────────────────────────────
 
     @JvmStatic
@@ -1924,24 +1693,6 @@ object MobBridge {
     fun motion_stop() {
         sensorListener?.let { sensorManager?.unregisterListener(it) }
         sensorListener = null
-    }
-
-    // ── QR scanner ────────────────────────────────────────────────────────
-    @JvmStatic
-    fun scanner_scan(pid: Long, formatsJson: String) {
-        pendingScanPid = pid
-        activityRef?.get()?.let { (it as? MainActivity)?.launchQrScanner() }
-            ?: nativeDeliverAtom2(pid, "scan", "cancelled")
-    }
-
-    @JvmStatic
-    fun handleScanResult(value: String?, type: String?) {
-        val pid = pendingScanPid
-        if (value == null) { nativeDeliverAtom2(pid, "scan", "cancelled"); return }
-        val safeValue = value.replace("\"", "\\\"")
-        val safeType  = (type ?: "qr").replace("\"", "\\\"")
-        val json = """[{"type":"$safeType","value":"$safeValue"}]"""
-        nativeDeliverFileResult(pid, "scan", "result", json)
     }
 
     // ── Local notifications ────────────────────────────────────────────────
@@ -3177,7 +2928,6 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         "icon"       -> MobIcon(node, m)
         "lazy_list"  -> MobLazyList(node, m)
         "video"          -> MobVideoPlayer(node, m)
-        "camera_preview" -> MobCameraPreview(node, m)
         "web_view"       -> MobWebView(node, m)
         "native_view"    -> MobNativeViewRegistry.render(node)
         "canvas"         -> MobCanvas(node, m)
@@ -3876,78 +3626,6 @@ private fun materialIconFor(logical: String): androidx.compose.ui.graphics.vecto
         // KATI-END(K-07 root-icons)
         else              -> Icons.Filled.QuestionMark
     }
-
-@Composable
-private fun MobCameraPreview(node: MobNode, modifier: Modifier) {
-    val facingStr  = (node.props["facing"] as? String) ?: "back"
-    val cameraSelector = if (facingStr == "front")
-        CameraSelector.DEFAULT_FRONT_CAMERA
-    else
-        CameraSelector.DEFAULT_BACK_CAMERA
-    val context        = LocalContext.current
-    val lifecycleOwner = context as LifecycleOwner
-
-    // Observe frameStreamActive so the LaunchedEffect below rebinds use
-    // cases when Mob.Camera.start_frame_stream/stop_frame_stream is called
-    // from BEAM.
-    val frameActive = MobBridge.frameStreamActive.value
-
-    // PreviewView is held in remember so the LaunchedEffect can rebind to
-    // the same surface provider across recompositions. COMPATIBLE mode
-    // uses TextureView so the preview renders inside the normal Compose
-    // Z-order — PERFORMANCE (default) uses SurfaceView which punches
-    // through above Compose and hides any overlay drawn on top of the
-    // camera (e.g. bounding boxes, status text). FILL_CENTER center-crops
-    // the camera image to fill the view; this matches the model-side
-    // center-crop in MobBridge.deliverFrame so model-space coords from an
-    // overlay Canvas align with the visible preview underneath.
-    val previewView = remember(context) {
-        PreviewView(context).apply {
-            scaleType = PreviewView.ScaleType.FILL_CENTER
-            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-        }
-    }
-
-    // Bind in a LaunchedEffect keyed only on (frameActive, cameraSelector)
-    // — NOT in AndroidView's update block. The update block re-runs on
-    // every recomposition, so wiring the bind there caused continual
-    // unbindAll/bind cycles whenever any sibling state ticked (e.g. an
-    // FPS counter), making the TextureView surface flicker and fight
-    // with overlays.
-    LaunchedEffect(frameActive, cameraSelector) {
-        val providerFuture = ProcessCameraProvider.getInstance(context)
-        providerFuture.addListener({
-            val provider = providerFuture.get()
-            MobBridge.previewCameraProvider = provider
-            val preview = CameraPreview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-            val useCases = mutableListOf<UseCase>(preview)
-            if (frameActive) {
-                val analysis = ImageAnalysis.Builder()
-                    .setTargetResolution(Size(MobBridge.frameStreamWidth, MobBridge.frameStreamHeight))
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                analysis.setAnalyzer(MobBridge.frameAnalysisExecutor) { proxy ->
-                    MobBridge.deliverFrame(proxy)
-                }
-                useCases.add(analysis)
-            }
-            try {
-                provider.unbindAll()
-                provider.bindToLifecycle(lifecycleOwner, cameraSelector, *useCases.toTypedArray())
-            } catch (e: Exception) {
-                Log.e("MobCamera", "bindToLifecycle failed: ${e.message}")
-            }
-        }, context.mainExecutor)
-    }
-
-    // clipToBounds keeps the TextureView's surface texture from bleeding
-    // past the AndroidView's declared layout bounds; without it, sibling
-    // Compose nodes adjacent to the preview can be overdrawn by the
-    // camera surface.
-    AndroidView(modifier = modifier.clipToBounds(), factory = { previewView })
-}
 
 private val MOB_JS_SHIM = """
 (function(){

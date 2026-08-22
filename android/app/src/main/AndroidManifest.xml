@@ -101,17 +101,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Full-screen QR / barcode scanner.
-             Theme override is required: MobScannerActivity extends
-             AppCompatActivity (CameraX + ML Kit need it), and that
-             throws IllegalStateException at setContentView when the
-             activity's theme isn't AppCompat-derived. AppTheme is
-             Theme.NoTitleBar to keep the main Compose surface clean,
-             so the scanner activity declares its own AppCompat theme. -->
-        <activity android:name=".MobScannerActivity"
-            android:exported="false"
-            android:theme="@style/Theme.AppCompat.NoActionBar" />
-
         <!-- Scheduled local notification delivery -->
         <receiver android:name=".NotificationReceiver"
             android:exported="false" />
@@ -137,7 +126,7 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- FileProvider for camera temp files (photo / video capture) -->
+        <!-- FileProvider: shares the .katibackup out via Save As / Share (K-20). -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

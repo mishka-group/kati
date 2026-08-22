@@ -8,7 +8,10 @@
 android/app/src/main/java/com/example/kati/MobBridge.kt
 android/app/src/main/java/com/example/kati/MainActivity.kt
 android/app/src/main/java/com/example/kati/MobNode.kt
-android/app/src/main/java/com/example/kati/MobScannerActivity.kt
+# MobScannerActivity.kt was DELETED by #75 with CameraX, ML Kit and AppCompat.
+# QR scanning is not in v1, the CAMERA permission is already gone, and nothing
+# could reach scanner_scan (see K-31). Its 0.4.20 baseline stays under
+# native/baseline/ as the record of what the template generated.
 # MobFirebaseService.kt was DELETED by #75 along with firebase-messaging, the
 # google-services plugin and google-services.json. Kati is device-first with no
 # server (#52), the shipped json was the mob_new placeholder, and the one method

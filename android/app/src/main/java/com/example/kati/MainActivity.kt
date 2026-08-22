@@ -62,30 +62,17 @@ class MainActivity : ComponentActivity() {
     external fun nativeSetActivity(activity: Activity)
     external fun nativeStartBeam()
 
-    // ── Camera launchers ──────────────────────────────────────────────────
-    private var cameraPhotoUri: Uri? = null
-
-    private val cameraPhotoLauncher =
-        registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-            MobBridge.handleCameraPhotoResult(if (success) cameraPhotoUri else null)
-        }
-
-    private val cameraVideoLauncher =
-        registerForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
-            MobBridge.handleCameraVideoResult(if (success) cameraPhotoUri else null)
-        }
-
-    fun launchCameraPhoto() {
-        val file = File(cacheDir, "mob_cam_${System.currentTimeMillis()}.jpg")
-        cameraPhotoUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-        cameraPhotoLauncher.launch(cameraPhotoUri!!)
-    }
-
-    fun launchCameraVideo() {
-        val file = File(cacheDir, "mob_cam_${System.currentTimeMillis()}.mp4")
-        cameraPhotoUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
-        cameraVideoLauncher.launch(cameraPhotoUri!!)
-    }
+    // KATI-BEGIN(K-31 drop-camera-launchers) mob_new=0.4.20
+    // The photo and video capture launchers went with androidx.camera (#75).
+    // They were reachable only from MobBridge.camera_capture_photo/_video,
+    // which nothing could call: no cacheRequired/cacheOptional entry in
+    // mob_nif.zig and no reference in deps/mob.
+    //
+    // FileProvider stays. It reads as camera scaffolding, and its manifest
+    // comment said so, but K-20 file-transport shares the .katibackup through
+    // the same provider — removing it would break Save As and Share, which are
+    // the only way a user can get their data off the phone.
+    // KATI-END(K-31 drop-camera-launchers)
 
     // ── Photo picker launcher ─────────────────────────────────────────────
     private val photosPickerLauncher =
@@ -157,20 +144,11 @@ class MainActivity : ComponentActivity() {
     }
     // KATI-END(K-20 file-transport-launcher)
 
-    // ── QR scanner launcher ───────────────────────────────────────────────
-    // For QR scanning we use an intent to a helper activity (MobScannerActivity)
-    // that uses CameraX + ML Kit. It returns the scanned value as a result string.
-    private val scannerLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val value = result.data?.getStringExtra("scan_value")
-            val type  = result.data?.getStringExtra("scan_type") ?: "qr"
-            MobBridge.handleScanResult(value, type)
-        }
-
-    fun launchQrScanner() {
-        val intent = android.content.Intent(this, MobScannerActivity::class.java)
-        scannerLauncher.launch(intent)
-    }
+    // KATI-BEGIN(K-31 drop-scanner-launcher) mob_new=0.4.20
+    // The QR scanner launcher went with MobScannerActivity, CameraX, ML Kit
+    // and AppCompat (#75). QR scanning is not in v1 and the CAMERA permission
+    // is already gone from the manifest.
+    // KATI-END(K-31 drop-scanner-launcher)
 
     // ── Permission result ─────────────────────────────────────────────────
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
