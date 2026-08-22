@@ -70,12 +70,18 @@ defmodule Kati.Screens.Day do
   because five of the things the drawing draws are not on that resource and
   cannot be derived from it.
 
-    * **The episodes.** `Kati.Media` has no episode resource, so the 20:00
-      group's `S3 · E2` lines have nothing to come from, and an `air_date`
-      event carries no `{source, source_id}` pair, so it cannot reach
-      `Kati.Media.CachedTitle.poster_path` for the poster stack or the 23:15
-      row's tile either. `Kati.Screens.Series` and `Kati.Screens.Inbox` are on
-      `Kati.Library.Sample` for the same missing resource.
+    * **The episodes.** Not for want of an episode resource any more —
+      `20260821231241_media_seasons_and_episodes` built
+      `Kati.Media.CachedEpisode`, and `Kati.Screens.Series` and
+      `Kati.Screens.Inbox` came off their Sample modules on the strength of it.
+      **The missing thing is the join, not the table.** `Kati.Calendars.Event`
+      carries `uid`, `summary`, `location` and its sync bookkeeping and no
+      `{source, source_id}` pair at all, so an `air_date` row on this day cannot
+      reach the episode that produced it: the 20:00 group's `S3 · E2` lines have
+      nothing to look up, and `Kati.Media.CachedTitle.poster_path` is equally
+      out of reach for the poster stack and the 23:15 row's tile. Matching on
+      `summary` would be a guess wearing the shape of a join, which is the same
+      objection the `£22.98` bullet below makes about `description`.
 
     * **The tick.** `done` on the 08:00 habit and on the 15:00 todo has no
       column anywhere: `Kati.Calendars.Event` models timing, identity, kind and

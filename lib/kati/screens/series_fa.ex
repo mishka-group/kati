@@ -31,6 +31,45 @@ defmodule Kati.Screens.SeriesFa do
   metrics identical to the filled one, so the column does not shift. That is
   reproduced literally rather than tidied away.
 
+  ## Where the data comes from
+
+  `Kati.Media`, through **`Kati.Screens.Series.tracked_series/0`** — screen
+  04's own read, not a second copy of it. That is the whole of what "the
+  mirror" means here, and it is the choice `Kati.Screens.LibraryFa` makes
+  against `Kati.Screens.Library.shelf/0`: one series, read once, presented
+  twice. A query written out again in this file could disagree with 04 about
+  which title is at the top of the shelf, which season the bookmark names, or
+  which episodes carry a tick — and the first eviction would be the day it did.
+
+  `tracked_series/0` answers in **no language**: numbers, `Kati.Media.Release`
+  resolutions and booleans, with not one formatted date or pluralised noun in
+  it. So what this screen adds is exactly the half 04 cannot give it, and no
+  more: Persian type, Persian digits, the Shamsi calendar, and headings built
+  from a number rather than borrowed from a provider's English `name`.
+
+  Three consequences worth writing down, because each is a decision:
+
+    * **A provider's genre is left as the provider wrote it.** درام in the
+      drawing is the drawing's copy; a real series' `genres` is a word Kati did
+      not author and has no dictionary for, so it is not translated and not
+      re-cased. Only Kati's own numbers become Persian digits — the season
+      count, the counter, the runtimes, the episode numbers.
+    * **A season heading is always `فصل ‹n›`.** `Kati.Media.CachedSeason.name`
+      is nullable *and* English where a provider gives it, and that resource
+      says outright that a screen wanting "Season 2" out of a bare number is
+      the thing that knows what its own heading should read. Here that reads
+      فصل ۲, and never `Part 1`.
+    * **A coarse air date draws nothing at all.** #74's rule is that a period
+      never becomes a day; a Gregorian *period* has no Shamsi counterpart
+      either — 2026 spans ۱۴۰۴ and ۱۴۰۵ — so rendering `{:year, 2026}` as a
+      Shamsi year would invent the same precision by another route. The
+      English page can say `Q3 2026` honestly and this one cannot, so the row
+      is left out rather than mixed calendars.
+
+  Screens 04 and 58 keep the same two things nothing can express — availability
+  (لومن‌پلاس) and the first-air year (۲۰۲۴) — and for the same reasons, which
+  `Kati.Screens.Series` sets out in full.
+
   ## The rows and the pills are real, and what that costs
 
   Tapping an episode toggles its ring, and the ۱/۲/۳ pills swap the season
@@ -40,13 +79,14 @@ defmodule Kati.Screens.SeriesFa do
   that can disagree eventually do — and the first tap that marks an episode
   watched is the tap that makes them.
 
-  But they are derived *only in a handler*. `Sample.series/0`'s own
-  `watched_line`, `progress` and `action` are what the drawing shows, and they
-  are the resting values verbatim: ۵ از ۷ and .71 and قسمت ۶ را دیده‌ام. The
+  But on the drawn path they are derived *only in a handler*. `Sample.series/0`'s
+  own `watched_line`, `progress` and `action` are what the drawing shows, and
+  they are the resting values verbatim: ۵ از ۷ and .71 and قسمت ۶ را دیده‌ام. The
   derivation would produce the same three strings and 5/7 = .714, which is a
   third of a device pixel wider than the drawing's bar. Not worth spending on
   a frame that is compared pixel by pixel, so nothing recomputes until the
-  reader touches something.
+  reader touches something. A real series has no captured frame to preserve, so
+  `shaped/1` derives all three the moment it is built.
 
   A tag carries an **index**, never a label — `Kati.Screens.MealsMatrixFa`'s
   rule, for its reason: an atom that has to survive the tap registry and the
@@ -55,24 +95,218 @@ defmodule Kati.Screens.SeriesFa do
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Calendar.Shamsi
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.Fa
+  alias Kati.Screens.Series
   alias Kati.Screens.SeriesFa.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  # `current` is read off the sample's own pills rather than written as 1, so
-  # the lit pill is whichever one the sample says is lit. `saved` is the
-  # bookmark's knob, and false is the unfilled glyph the drawing shows.
+  # Chrome copy, not data — the same class of literal as screen 08's action
+  # labels, so it lives in the screen beside the markup that draws it rather
+  # than being read back out of the fixture on a real render.
+  @back "کتابخانه"
+
+  # The episode a real title has no number for. `Kati.Media.CachedEpisode` says
+  # the numbering is a label and every one of its columns is nullable, and
+  # "قسمت  را دیده‌ام" with a hole in it is worse than a sentence that does not
+  # name the episode at all.
+  @unnumbered "قسمت بعدی را دیده‌ام"
+
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
-    sample = Sample.series()
-    current = Enum.find_index(sample.seasons, fn {_label, on?} -> on? end) || 0
-    series = sample |> Map.put(:current, current) |> Map.put(:saved, false)
-
-    {:ok, Mob.Socket.assign(socket, :series, series)}
+    {:ok, Mob.Socket.assign(socket, :series, series())}
   end
+
+  @doc """
+  The series this page draws: the user's, or the drawing's.
+
+  Screen 04's gate, reached through screen 04's read — see the moduledoc. An
+  empty store answers `drawn_series/0` to the term, which is what keeps this
+  page comparable with `.scratch/design/audit/58.png` on a device that has
+  never synced anything.
+  """
+  @spec series() :: map()
+  def series do
+    case Series.tracked_series() do
+      nil -> drawn_series()
+      facts -> shaped(facts)
+    end
+  end
+
+  @doc """
+  Screen 58 exactly as it is drawn, from `Kati.Screens.SeriesFa.Sample`.
+
+  `current` is read off the sample's own pills rather than written as 1, so the
+  lit pill is whichever one the sample says is lit. `saved` is the bookmark's
+  knob, and false is the unfilled glyph the drawing shows. `by_index` is the
+  three seasons the pills switch between, built from `season/1`, so the control
+  changes something without the resting frame moving.
+  """
+  @spec drawn_series() :: map()
+  def drawn_series do
+    drawn = Sample.series()
+    current = Enum.find_index(drawn.seasons, fn {_label, on?} -> on? end) || 0
+
+    by_index =
+      drawn.seasons
+      |> Enum.with_index()
+      |> Map.new(fn {_pair, i} -> {i, Kati.Screens.SeriesFa.season(i)} end)
+
+    drawn
+    |> Map.put(:current, current)
+    |> Map.put(:saved, false)
+    |> Map.put(:total, length(drawn.episodes))
+    |> Map.put(:by_index, by_index)
+  end
+
+  @doc """
+  `Kati.Screens.Series.tracked_series/0`'s facts, said in Persian.
+
+  The presentation half, and the only half this file owns. Every string below
+  is built here — headings from a season number, counters and runtimes through
+  `Kati.Calendar.Shamsi.fa/1`, dates through the Shamsi calendar — because the
+  facts arrive in no language at all. See the moduledoc for the three places
+  that costs something.
+  """
+  @spec shaped(map()) :: map()
+  def shaped(facts) do
+    zone = Kati.Time.device_zone()
+    next_air = next_air_label(facts.next_air, zone)
+
+    by_index =
+      facts.seasons
+      |> Enum.with_index()
+      |> Map.new(fn {season, i} -> {i, season_view(season, next_air, zone)} end)
+
+    current = Enum.find_index(facts.seasons, &(&1.number == facts.current)) || 0
+    view = Map.fetch!(by_index, current)
+
+    recount(%{
+      title: facts.title || "بدون نام",
+      seed: facts.seed,
+      meta: meta_line(facts),
+      back: @back,
+      season: view.season,
+      next_air: view.next_air,
+      episodes: view.episodes,
+      total: view.total,
+      seasons: Enum.map(facts.seasons, &{Shamsi.fa(&1.number), &1.number == facts.current}),
+      current: current,
+      saved: false,
+      by_index: by_index,
+      watched_line: nil,
+      progress: 0.0,
+      action: nil
+    })
+  end
+
+  # The next airing is a fact about the *show*, not about the season on screen,
+  # so every view carries the same one and tapping a pill does not rewrite it.
+  # The drawn path is the exception and says so: `season/1`'s three entries each
+  # carry their own line, because those are the drawing's words.
+  defp season_view(season, next_air, zone) do
+    %{
+      season: "فصل " <> Shamsi.fa(season.number),
+      next_air: next_air,
+      total: season.total,
+      episodes: Enum.map(season.episodes, &episode_row(&1, zone))
+    }
+  end
+
+  defp episode_row(episode, zone) do
+    %{
+      n: episode_number(episode),
+      title: episode_title(episode),
+      sub: episode_sub(episode, zone),
+      watched: episode.watched
+    }
+  end
+
+  defp episode_number(%{number: n}) when is_integer(n), do: Shamsi.fa(n)
+  defp episode_number(_episode), do: ""
+
+  defp episode_title(%{title: title}) when is_binary(title) and title != "", do: title
+  defp episode_title(%{number: n}) when is_integer(n), do: "قسمت " <> Shamsi.fa(n)
+  defp episode_title(_episode), do: "بدون نام"
+
+  # The Persian drawing's sub-line is ONE fact, where the English drawing's is
+  # two: an aired row reads ۵۴ دقیقه and an unaired one پخش ۲۹ مرداد. So a
+  # runtime wins where there is one, and the air date is what an episode with
+  # no runtime — or one still ahead — has to say instead.
+  defp episode_sub(%{airing: :upcoming} = episode, zone) do
+    aired_on(episode.air, zone) || ""
+  end
+
+  defp episode_sub(%{runtime: m}, _zone) when is_integer(m) and m > 0 do
+    Shamsi.fa(m) <> " دقیقه"
+  end
+
+  defp episode_sub(episode, zone), do: aired_on(episode.air, zone) || ""
+
+  defp aired_on(air, zone) do
+    case shamsi_date(air, zone) do
+      nil -> nil
+      date -> "پخش " <> Shamsi.format(date, :short)
+    end
+  end
+
+  # `۲۰۲۴ · درام · لومن‌پلاس · ۳ فصل` minus the two nothing stores — see
+  # `Kati.Screens.Series` for why availability and the first-air year are not
+  # invented for a real title on either page.
+  defp meta_line(facts) do
+    [genre_label(facts.genres), seasons_label(facts.season_count)]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
+  end
+
+  defp genre_label(genres) when is_binary(genres) and genres != "", do: genres
+  defp genre_label(_genres), do: nil
+
+  # `0` is `Kati.Media.CachedSeason.count/1` saying *nothing to say* rather than
+  # *a series with no seasons*. Persian has no plural agreement to make here —
+  # ۱ فصل and ۳ فصل are the same noun — so there is one clause where the
+  # English page needs two.
+  defp seasons_label(n) when is_integer(n) and n > 0, do: Shamsi.fa(n) <> " فصل"
+  defp seasons_label(_none), do: nil
+
+  # `قسمت بعد پنجشنبه ۲۹ مرداد، ساعت ۲۰:۰۰`. The clock is the only place an hour
+  # appears, because `:exact` is the only resolution that has one — a `:day`
+  # answer is precisely not knowing the hour, and supplying 00:00 for it would
+  # be #74's own mistake in miniature.
+  defp next_air_label({:exact, at, _origin}, zone) do
+    local = Kati.Time.in_zone(at, zone)
+
+    "قسمت بعد " <>
+      long_date(DateTime.to_date(local)) <>
+      "، ساعت " <> Shamsi.to_persian_digits(Calendar.strftime(local, "%H:%M"))
+  end
+
+  defp next_air_label({:day, date, _origin}, _zone), do: "قسمت بعد " <> long_date(date)
+
+  # A period, or nothing known. See the moduledoc: a Gregorian period has no
+  # Shamsi counterpart, so this page says nothing where the English one says
+  # `Q3 2026`.
+  defp next_air_label(_coarse, _zone), do: nil
+
+  defp long_date(%Date{} = date) do
+    {_year, month, day} = Shamsi.from_gregorian(date)
+
+    "#{Shamsi.weekday_name(Shamsi.weekday_index(date))} #{Shamsi.fa(day)} " <>
+      Shamsi.month_name(month)
+  end
+
+  # A resolution as a Gregorian `Date`, or `nil` for anything coarser than a
+  # day. The one place this file turns a `Kati.Media.Release` answer into
+  # something the Shamsi calendar can convert, so the rule is written once.
+  defp shamsi_date({:exact, at, _origin}, zone) do
+    at |> Kati.Time.in_zone(zone) |> DateTime.to_date()
+  end
+
+  defp shamsi_date({:day, date, _origin}, _zone), do: date
+  defp shamsi_date(_coarse, _zone), do: nil
 
   def render(assigns) do
     Fa.pushed_frame(Kati.Screens.SeriesFa.page(assigns.series))
@@ -266,22 +500,44 @@ defmodule Kati.Screens.SeriesFa do
         </Row>
         <Spacer size={12} />
         {Kati.Screens.SeriesFa.season_bar(progress)}
-        <Spacer size={14} />
-        <Row fill_width={true} align="center">
-          <Box width={6} height={6} corner_radius={3} background={Palette.accent()} />
-          <Spacer size={8} />
-          <Text
-            text={series.next_air}
-            font_family="fa"
-            text_size={12}
-            text_color={Palette.ink_soft()}
-            max_lines={1}
-          />
-        </Row>
+        {Kati.Screens.SeriesFa.next_air(series.next_air)}
       </Column>
       <Spacer size={14} />
     </Column>
     """
+  end
+
+  @doc """
+  The next-airing row and the 14pt of air above it, or neither.
+
+  A list rather than a wrapper `Column`, because the sigil flattens an
+  interpolated list into its parent: the drawn series gets the same two nodes in
+  the same place it already had them, and a series with nothing announced leaves
+  no node behind rather than a bullet beside an empty sentence. Screen 04's
+  `next_air/1` is the same two clauses, and both reach `nil` by the same route —
+  `Kati.Media.Release` answering `:unknown`, or answering with a period this
+  page has no honest Shamsi form for.
+  """
+  @spec next_air(String.t() | nil) :: [map()]
+  def next_air(nil), do: []
+
+  def next_air(label) do
+    [
+      ~MOB"<Spacer size={14} />",
+      ~MOB"""
+      <Row fill_width={true} align="center">
+        <Box width={6} height={6} corner_radius={3} background={Palette.accent()} />
+        <Spacer size={8} />
+        <Text
+          text={label}
+          font_family="fa"
+          text_size={12}
+          text_color={Palette.ink_soft()}
+          max_lines={1}
+        />
+      </Row>
+      """
+    ]
   end
 
   # Not `Kati.Components.MishkaProgress`: it renders the native `Progress`
@@ -481,7 +737,7 @@ defmodule Kati.Screens.SeriesFa do
   end
 
   @doc """
-  The seasons the drawing never shows.
+  The seasons **the drawing** never shows.
 
   58 draws فصل ۲ and only فصل ۲, so `Sample.series/0` carries that one
   verbatim and the captured frame is untouched. The ۱/۲/۳ pills are a real
@@ -490,37 +746,58 @@ defmodule Kati.Screens.SeriesFa do
   the drawing's own rows: a finished season whose sub-lines are runtimes, and
   one that has not started whose sub-lines are air dates — which is exactly
   the two sub-line shapes فصل ۲ already mixes.
+
+  Drawn path only. A real series' three views are built by `shaped/1` out of
+  `Kati.Media.CachedEpisode`, and each carries the same next-airing line
+  because that is a fact about the show; these three carry their own, because
+  here they are the drawing's own copy rather than a claim about a season.
+
+  `total` rides along so the counter and the bar divide by the same number on
+  both paths — a real season's denominator is the provider's `episode_count`
+  and can be larger than the list, and a drawn one is the list.
   """
   @spec season(non_neg_integer()) :: map()
   def season(0) do
+    episodes = [
+      %{n: "۱", title: "آب فرودست", sub: "۴۶ دقیقه", watched: true},
+      %{n: "۲", title: "جاده‌ی گدار", sub: "۴۴ دقیقه", watched: true},
+      %{n: "۳", title: "خار ساحل", sub: "۴۹ دقیقه", watched: true},
+      %{n: "۴", title: "هر چیز خاموش", sub: "۴۵ دقیقه", watched: true},
+      %{n: "۵", title: "گودال بلند", sub: "۵۸ دقیقه", watched: true}
+    ]
+
     %{
       season: "فصل ۱",
       next_air: "پخش این فصل تمام شده است",
-      episodes: [
-        %{n: "۱", title: "آب فرودست", sub: "۴۶ دقیقه", watched: true},
-        %{n: "۲", title: "جاده‌ی گدار", sub: "۴۴ دقیقه", watched: true},
-        %{n: "۳", title: "خار ساحل", sub: "۴۹ دقیقه", watched: true},
-        %{n: "۴", title: "هر چیز خاموش", sub: "۴۵ دقیقه", watched: true},
-        %{n: "۵", title: "گودال بلند", sub: "۵۸ دقیقه", watched: true}
-      ]
+      total: length(episodes),
+      episodes: episodes
     }
   end
 
   def season(2) do
+    episodes = [
+      %{n: "۱", title: "زنگ شناور", sub: "پخش ۱۲ شهریور", watched: false},
+      %{n: "۲", title: "شوره‌زار", sub: "پخش ۱۹ شهریور", watched: false},
+      %{n: "۳", title: "خط جزر", sub: "پخش ۲۶ شهریور", watched: false}
+    ]
+
     %{
       season: "فصل ۳",
       next_air: "قسمت اول پنجشنبه ۱۲ شهریور، ساعت ۲۰:۰۰",
-      episodes: [
-        %{n: "۱", title: "زنگ شناور", sub: "پخش ۱۲ شهریور", watched: false},
-        %{n: "۲", title: "شوره‌زار", sub: "پخش ۱۹ شهریور", watched: false},
-        %{n: "۳", title: "خط جزر", sub: "پخش ۲۶ شهریور", watched: false}
-      ]
+      total: length(episodes),
+      episodes: episodes
     }
   end
 
   def season(_two) do
     sample = Sample.series()
-    %{season: sample.season, next_air: sample.next_air, episodes: sample.episodes}
+
+    %{
+      season: sample.season,
+      next_air: sample.next_air,
+      total: length(sample.episodes),
+      episodes: sample.episodes
+    }
   end
 
   @doc false
@@ -676,20 +953,12 @@ defmodule Kati.Screens.SeriesFa do
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
       "season_" <> index ->
-        i = String.to_integer(index)
-        series = socket.assigns.series
-        data = Kati.Screens.SeriesFa.season(i)
-
-        series =
-          recount(%{
-            series
-            | current: i,
-              season: data.season,
-              next_air: data.next_air,
-              episodes: data.episodes
-          })
-
-        {:noreply, Mob.Socket.assign(socket, :series, series)}
+        {:noreply,
+         Mob.Socket.assign(
+           socket,
+           :series,
+           switch(socket.assigns.series, String.to_integer(index))
+         )}
 
       "episode_" <> index ->
         series = socket.assigns.series
@@ -702,6 +971,27 @@ defmodule Kati.Screens.SeriesFa do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
+  # The season a pill names, out of the map both paths built — the drawing's
+  # three from `season/1`, a real title's from `Kati.Media.CachedEpisode`. An
+  # index with no entry cannot come from a drawn pill and is answered by leaving
+  # the screen alone rather than by raising inside a tap handler.
+  defp switch(series, index) do
+    case Map.fetch(series.by_index, index) do
+      {:ok, view} ->
+        recount(%{
+          series
+          | current: index,
+            season: view.season,
+            next_air: view.next_air,
+            total: view.total,
+            episodes: view.episodes
+        })
+
+      :error ->
+        series
+    end
+  end
+
   defp toggle(series, index) do
     flip = fn ep -> %{ep | watched: not ep.watched} end
     recount(%{series | episodes: List.update_at(series.episodes, index, flip)})
@@ -711,11 +1001,17 @@ defmodule Kati.Screens.SeriesFa do
   # `action/1` regenerates the drawing's own قسمت ۶ را دیده‌ام when the sample's
   # five-of-seven is what it is handed, which is the check that the sentence
   # here and the sentence in the sample are the same sentence.
+  #
+  # `total` is the season's, NOT `length(episodes)`: a provider that says a
+  # season has seven episodes while five are cached is the case
+  # `Kati.Media.CachedSeason.denominator/1` exists for, and recounting the
+  # length here would quietly overwrite the seven with a five. A tick cannot
+  # change how long a season is, so it is set only where a season is chosen.
   defp recount(series) do
     watched = Enum.count(series.episodes, & &1.watched)
-    total = length(series.episodes)
-    fraction = if total > 0, do: watched / total, else: 0.0
-    fa = &Kati.Calendar.Shamsi.fa/1
+    total = series.total
+    fraction = if is_integer(total) and total > 0, do: min(watched / total, 1.0), else: 0.0
+    fa = &Shamsi.fa/1
 
     %{
       series
@@ -728,6 +1024,7 @@ defmodule Kati.Screens.SeriesFa do
   defp action(episodes) do
     case Enum.find(episodes, &(not &1.watched)) do
       nil -> "همه‌ی قسمت‌ها دیده شده"
+      %{n: ""} -> @unnumbered
       ep -> "قسمت " <> ep.n <> " را دیده‌ام"
     end
   end

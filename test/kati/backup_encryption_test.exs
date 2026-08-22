@@ -91,6 +91,22 @@ defmodule Kati.BackupEncryptionTest do
       assert @review in Enum.map(watches, & &1.review)
     end
 
+    # OBSERVED ONCE, NOT REPRODUCED. This test failed in one full-suite run and
+    # passed on re-run, in isolation at five seeds, and in seven later full runs.
+    #
+    # Chance is not the explanation: @needle is 25+ bytes of Persian, so
+    # ciphertext containing it by accident is not a thing that happens. The
+    # likely cause is the suite's shared database — there is NO Ecto sandbox,
+    # every test writes the same SQLite file, and several tests truncate tables
+    # they do not own. If one of those runs between `populate!()` and
+    # `export()`, the plain backup has no needle to find and the assertion on
+    # line 104 fails first.
+    #
+    # Checked and ruled out: no `async: true` test touches the database (the
+    # three that name Kati.Repo only inspect source text), so it is not an
+    # async race between files. Left recorded rather than "fixed" by weakening
+    # an assertion — the real fix is a sandbox, and guessing at one would hide
+    # the next occurrence.
     test "hides what a plain backup shows in the clear" do
       populate!()
       bundle = Backup.export()

@@ -47,65 +47,327 @@ defmodule Kati.Screens.Season do
   an inner `Box fill_width={true}` — which is why it has a wrapper that looks
   redundant and is not.
 
-  ## Why this screen still reads `Kati.Season.Sample`
+  ## Where the list comes from
 
-  Screens 03 and 08 moved onto `Kati.Media`; this one did not, and the reason
-  changed halfway through the round it did not move in. It used to be that
-  `Kati.Media` had no episode at all — a `Kati.Media.Watch` carried an
-  `episode_source_id` and nothing anywhere held the record it named, so nothing
-  could answer *what is E5 called*, *how long is it* or *when did it air*, which
-  is every row of this list. That is no longer true:
-  `Kati.Media.CachedEpisode` and `Kati.Media.CachedSeason` now exist and were
-  built naming this screen — `for_season/3` is *"one season's episodes, in aired
+  `Kati.Media`, through `season/0` — **the episode list, the header and every
+  tick in it**. The rest of the screen is still the drawing's, and which half is
+  which is set out below rather than left to be inferred.
+
+  This screen used to say `Kati.Media` had no episode at all — a
+  `Kati.Media.Watch` carried an `episode_source_id` and nothing anywhere held
+  the record it named, so nothing could answer *what is E5 called*, *how long is
+  it* or *when did it air*, which is every row of this list. That is no longer
+  true, and it stopped being true naming this screen:
+  `Kati.Media.CachedEpisode.for_season/3` is *"one season's episodes, in aired
   order"*, `in_order/2` quotes this drawing's own footnote, and `special` is
   stored rather than derived because *"screen 34 draws it as a bronze number and
   a SPECIAL badge: in the order, out of the count"*.
 
-  **The schema is no longer what blocks it.** It was, for most of the round
-  this screen did not move in: the two resources existed and had no migration,
-  so a query written against them could only ever be observed falling back —
-  `Ash.read!` on a missing table raises, the rescue swallows it, and the Sample
-  list draws. `20260821231241_media_seasons_and_episodes` created
-  `cached_seasons` and `cached_episodes` at the end of that same round, so both
-  tables exist now and a read here would be a read that could be verified.
-  What is left is the list below, and it is what actually keeps the screen
-  whole.
+  Five reads, never one per row: the two series shelves, the season, its
+  episodes, and that title's episode ticks. The cache is reached by value —
+  `{source, source_id}` for a title and `{source, title_source_id,
+  season_number}` for a season — because that is what the durable row holds, so
+  an eviction cannot orphan a tick.
 
-  Three things on this drawing have no store, and each is a resource or a
-  column rather than a query:
+  **Which season.** Nothing hands this screen one: `Kati.Screens.Series` pushes
+  it with no title and no number attached, exactly as `Kati.Screens.Library`
+  pushes `Kati.Screens.Film`. So the referent is the season the user is
+  bookmarked in — `Kati.Media.TrackedTitle.progress_season` on the most recently
+  touched series, which is the bookmark `Kati.Media.CachedSeason` was built to
+  give an inventory to. A tracked row with no `progress_season`, or a season
+  with nothing cached in it, is not a season this screen can draw, and both fall
+  back rather than drawing an empty running order.
 
-    * **`Include specials` and `Merge multi-part`.** Two switches on a card, and
-      neither has a column. `Kati.Media.TrackedTitle` carries the four per-show
-      switches screen 35 draws and none of these: they are per-*season* display
-      choices about how an order is built, and `Kati.Media.CachedEpisode` is a
-      cache, which is the one place a user's choice must never live.
+  With nothing tracked there is no such season and `Kati.Season.Sample` is drawn
+  instead, the values `.scratch/design/screens/34.html` was captured from.
+  FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
+  module stays exactly where it is; it is the fallback and the fixture, not a
+  stage this screen has passed through.
+
+  ### What each row is made of
+
+    * `E1` / `S1` is `episode_number` read through
+      `Kati.Media.CachedEpisode.number_in/2` at `:aired`, with the prefix chosen
+      by the stored `special` flag rather than by `season_number == 0` — that
+      equivalence is TMDB's and TVmaze does not share it. An episode a source
+      left unnumbered draws no label at all, because a number this screen
+      invented is precisely the renumbering the footnote warns about.
+    * `Low Water` is `title`, and `Untitled` where a provider has announced an
+      episode without naming it — the answer `Kati.Screens.Film` and
+      `Kati.Screens.UpNext` already give a name that is missing, rather than the
+      `TBA` `Kati.Media.CachedEpisode` calls *"a string a provider invented"*.
+    * `54m · 9 Jul` is `runtime_minutes` and the air date, and the air date is
+      `Kati.Media.Release.air/1` and nothing else — the one date path. `airs`
+      is prepended for anything `Kati.Media.Release.airing/2` does not call
+      `:aired`, which is what makes E6 and E7 read `airs 20 Aug` while E1 reads
+      `9 Jul`. A date coarser than a day carries no day at all, so the runtime
+      is drawn alone rather than under a month pretending to be the first of it.
+    * The tick is a `Kati.Media.Watch` row, keyed on `episode_source_id` through
+      `Kati.Media.CachedEpisode.ticked?/2` — **never** on `{season, episode}`.
+      That is the whole of the footnote: *your ticks follow the episode, not the
+      number*, and keying on the label is the bug it warns about.
+    * The bronze number and the `SPECIAL` badge are one stored `special`, drawn
+      as the two marks the design gives it.
+
+  ## What stays the drawing's, and why
+
+  The order strip, the two switches, the `PARTS 1–2` badge and the footnote's
+  first sentence. Each is a resource or a column rather than a query, so none of
+  them moves when the list under it does:
+
     * **The `DVD` tile.** `Kati.Media.CachedEpisode.orders/0` answers
       `[:aired, :absolute]` and says why at length: no source Kati fetches from
       provides per-episode DVD numbering. The drawing offers three tiles and the
       data can fill two, and *"a segmented control whose third option changes
-      nothing is a lie told in pixels"* is that resource's own sentence.
+      nothing is a lie told in pixels"* is that resource's own sentence. So the
+      strip is drawn with the three tiles the design has and `Aired` is the
+      order the list is actually built in — `in_order/2` at `:aired` — rather
+      than a label over an arbitrary sort.
+    * **`Include specials` and `Merge multi-part`.** Two switches on a card, and
+      neither has a column. `Kati.Media.TrackedTitle` carries the four per-show
+      switches screen 35 draws and none of these: they are per-*season* display
+      choices about how an order is built, and `Kati.Media.CachedEpisode` is a
+      cache, which is the one place a user's choice must never live. Both are
+      therefore drawn in their design state and neither changes what is read —
+      which is why a real season lists what `for_season/3` returns for the
+      bookmarked number and does not reach into season 0 for the specials the
+      first switch would include.
     * **The `PARTS 1–2` badge.** Merging a two-part finale into one entry is a
-      transformation of the order with nothing to record that it happened —
-      no column marks an episode as merged and none pairs it with its other
-      half.
+      transformation of the order with nothing to record that it happened — no
+      column marks an episode as merged and none pairs it with its other half.
+      A real row never carries it; the drawn one still does.
+    * **The footnote's first sentence.** `Absolute order renumbers this season
+      27–35 and drops the special` is a specific renumbering of a specific
+      season, and it would be a claim about a season nobody made it about. A
+      real season keeps only the general half — *your ticks follow the episode,
+      not the number* — which is true of every season and is the sentence the
+      tick keying above actually honours.
 
-  Two smaller ones are worth naming so a later round does not re-derive them:
-  nothing hands this screen a season (it would be the tracked row's
-  `progress_season`, the bookmark `Kati.Media.CachedSeason` was built to give an
-  inventory to), and the footnote's `27–35` is a specific renumbering of a
-  specific season rather than the general sentence beside it.
+  The subtitle `order & specials` stays too, and is a label rather than data:
+  the same class of literal as screen 08's action row.
+
   """
   use Kati.Screens.Pushed, back: "Series"
 
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Media.CachedEpisode
+  alias Kati.Media.CachedSeason
+  alias Kati.Media.Release
+  alias Kati.Media.TrackedTitle
+  alias Kati.Media.Watch
   alias Kati.Season.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  # The kinds a season can belong to. `:movie` is absent because a film has no
+  # seasons — this is `Kati.Screens.Library`'s `@screen_kinds` less the one that
+  # cannot be here — and `:book` and `:album` are absent for that screen's own
+  # reason: #60 settled that v1 ships one media domain.
+  @series_kinds [:tv, :anime]
+
+  # The half of the drawing's footnote that is true of every season. See the
+  # moduledoc: the other half renumbers one particular season.
+  @general_note "Your ticks follow the episode, not the number."
+
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :season, Sample.season())
+  def load(socket), do: Mob.Socket.assign(socket, :season, season())
+
+  @doc """
+  The season this screen draws: the user's, or the drawing's.
+
+  The gate is the list rather than the page, because the page is not all one
+  kind of fact — the order strip and the two switches have no store at all (see
+  the moduledoc) and are the design's in both branches. What moves together is
+  the header, the count and the rows, and those are one season or they are the
+  drawing's.
+  """
+  @spec season() :: map()
+  def season, do: tracked_season() || drawn_season()
+
+  @doc """
+  Screen 34 exactly as it is drawn, from `Kati.Season.Sample`.
+
+  Kept in the fixture rather than inlined here, for the reason
+  `Kati.Screens.Film.drawn_film/0` gives: it is the frame's specification and
+  the value a test compares a real render against, and two copies of the
+  drawing's copy is exactly how the two drift apart.
+  """
+  @spec drawn_season() :: map()
+  def drawn_season, do: Sample.season()
+
+  @doc """
+  The season the user is bookmarked in, shaped for the markup, or `nil`.
+
+  `nil` is the ordinary answer three times over — nothing tracked, no
+  `progress_season` on the row that is, or a season whose episodes have not been
+  fetched — and it is the answer `season/0` reads as *draw the drawing*. A
+  database that cannot be read at all answers `nil` too: `Ash.read!` on a device
+  mid-migration raises, and a screen that dies is strictly worse than a screen
+  showing the values it was drawn from — the same degradation
+  `Kati.Screens.Library.shelf/0` and `Kati.Calendars.Today` make.
+  """
+  @spec tracked_season() :: map() | nil
+  def tracked_season do
+    case newest_series() do
+      %TrackedTitle{progress_season: number} = tracked when is_integer(number) ->
+        episodes(tracked, number)
+
+      _none ->
+        nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  # The most recently touched series, across both kinds that have seasons.
+  # `:shelf` rather than a filter written out here: it is the action
+  # `Kati.Media.TrackedTitle` names for "screens 03, 20 and 21" and it is where
+  # *keeps history, hides from shelf* is enforced, so a shelf that forgot the
+  # flag would open the season of a show the user hid. `limit(1)` per kind
+  # because each answers `last_touched_at` descending on its own, and the two
+  # are then compared as one shelf rather than as two.
+  defp newest_series do
+    @series_kinds
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.Query.limit(1)
+      |> Ash.read!()
+    end)
+    |> Enum.max_by(& &1.last_touched_at, DateTime, fn -> nil end)
+  end
+
+  # A season with nothing cached in it is not a season this screen can draw. The
+  # list IS the screen — an order strip and two switches over an empty card says
+  # less than the drawing does — so it falls back whole rather than rendering a
+  # heading with no running order under it.
+  defp episodes(tracked, number) do
+    case CachedEpisode.for_season(tracked.source, tracked.source_id, number) do
+      [] -> nil
+      episodes -> assemble(tracked, number, episodes)
+    end
+  end
+
+  # The three parts of the drawing a season can actually fill, laid over the
+  # drawn one. Everything not named here is the design's own and stays that way
+  # — see the moduledoc for the list and for why each is on it.
+  defp assemble(tracked, number, episodes) do
+    ticked = tracked |> ticks() |> CachedEpisode.ticked_ids()
+    rows = episodes |> CachedEpisode.in_order(:aired) |> Enum.map(&row(&1, ticked))
+    drawn = drawn_season()
+
+    %{
+      drawn
+      | title: heading(cached_season(tracked, number), number),
+        eyebrow: "Episodes · #{length(rows)} in this order",
+        episodes: rows,
+        note: @general_note
+    }
+  end
+
+  # One read, by the triple `Kati.Media.CachedSeason` is keyed on. `nil` is the
+  # evicted case and is ordinary: `heading/2` answers from the number instead.
+  defp cached_season(%TrackedTitle{} = tracked, number) do
+    CachedSeason.by_reference(tracked.source, tracked.source_id, number)
+  end
+
+  # `:episode_ticks` rather than every watch: this screen asks one question of
+  # the history — is this episode ticked — and a whole-title watch carries no
+  # episode id to answer it with.
+  defp ticks(%TrackedTitle{id: id}) do
+    Watch
+    |> Ash.Query.for_read(:episode_ticks, %{tracked_title_id: id})
+    |> Ash.read!()
+  end
+
+  # The provider's own name for the season where it gave one — "Season 2", but
+  # also "Specials", "Miniseries", "Part 1". `Kati.Media.CachedSeason` declines
+  # to invent one and says why: *"a screen that wants 'Season 2' out of a bare
+  # number is the thing that knows what its own heading should read"*. This is
+  # that screen, and 0 is the specials shelf every source files them on.
+  defp heading(%CachedSeason{name: name}, _number) when is_binary(name) and name != "", do: name
+  defp heading(_season, 0), do: "Specials"
+  defp heading(_season, number), do: "Season #{number}"
+
+  # One episode in the shape `episode/1` reads. `special` is stored, so both
+  # marks the design gives it — the bronze number and the badge — come off the
+  # one column rather than being decided twice.
+  defp row(%CachedEpisode{} = episode, ticked) do
+    %{
+      number: number_label(episode),
+      title: title_of(episode),
+      sub: sub_line(episode),
+      watched: CachedEpisode.ticked?(episode, ticked),
+      special: episode.special,
+      badge: badge_for(episode)
+    }
+  end
+
+  defp badge_for(%CachedEpisode{special: true}), do: %{label: "SPECIAL", tone: :cream}
+  defp badge_for(%CachedEpisode{}), do: nil
+
+  # `E6`, and `S1` for a special. The number is what the chosen order calls this
+  # episode, which is why it goes through `number_in/2` rather than being read
+  # off the column: the Absolute tile would answer from `absolute_number`, and
+  # the two must not be able to disagree about which scheme is being drawn.
+  #
+  # An unnumbered episode draws nothing rather than a bare prefix. TVmaze gives
+  # some specials no placement at all, and `S` alone is a label for a position
+  # nobody asserted.
+  defp number_label(%CachedEpisode{} = episode) do
+    case CachedEpisode.number_in(episode, :aired) do
+      nil -> ""
+      n -> if episode.special, do: "S#{n}", else: "E#{n}"
+    end
+  end
+
+  defp title_of(%CachedEpisode{title: title}) when is_binary(title) and title != "", do: title
+  defp title_of(%CachedEpisode{}), do: "Untitled"
+
+  # `54m · 9 Jul`, and either half may be missing — a provider can decline a
+  # runtime and an unannounced episode has no date. An absent half is left out
+  # rather than spelled as a dash, the way `Kati.Screens.Film.meta_line/1` does.
+  defp sub_line(%CachedEpisode{} = episode) do
+    [runtime_label(episode), air_label(episode)]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
+  end
+
+  defp runtime_label(%CachedEpisode{runtime_minutes: m}) when is_integer(m) and m > 0, do: "#{m}m"
+  defp runtime_label(%CachedEpisode{}), do: nil
+
+  # `9 Jul` for something that has gone out, `airs 20 Aug` for something that
+  # has not — the two states the drawing distinguishes, and it reads both off
+  # `Kati.Media.Release` rather than comparing `air_at` here. That module is the
+  # one date path (#74): an episode a source described as "some time in March"
+  # resolves to a period with no day in it, and this line then draws the runtime
+  # alone rather than the first of the month wearing a date's clothes.
+  defp air_label(%CachedEpisode{} = episode) do
+    resolution = Release.air(episode)
+
+    case air_date(resolution) do
+      nil -> nil
+      date -> air_prefix(resolution) <> Calendar.strftime(date, "%-d %b")
+    end
+  end
+
+  defp air_date({:exact, at, _origin}) do
+    at |> Kati.Time.in_zone(Kati.Time.device_zone()) |> DateTime.to_date()
+  end
+
+  defp air_date({:day, date, _origin}), do: date
+  defp air_date(_resolution), do: nil
+
+  # `Kati.Media.Release.airing/2`'s third answer is `:unknown` — day precision
+  # on today itself, which is precisely not knowing the hour — and it takes the
+  # `airs` prefix along with `:upcoming`. An episode that goes out at 20:00 has
+  # not gone out at 09:00, and the empty ring beside it is an affordance the
+  # user should not be offered for something nobody has seen.
+  defp air_prefix(resolution) do
+    if Release.airing(resolution, Kati.Time.now()) == :aired, do: "", else: "airs "
+  end
 
   @doc false
   def content(assigns) do

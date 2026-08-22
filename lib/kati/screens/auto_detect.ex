@@ -32,10 +32,16 @@ defmodule Kati.Screens.AutoDetect do
       rather than tapped — so a count of every tick ever would be a different
       sentence wearing the same words.
 
-    * **`S2E6 · LUMEN+ · APPLE TV`.** `Watch` has `service`, but this is a
-      session in flight rather than a logged one, and the episode half needs an
-      episode resource `Kati.Media` does not have. `Kati.Screens.Series` and
-      `Kati.Screens.Inbox` are on `Kati.Library.Sample` for that same gap.
+    * **`S2E6 · LUMEN+ · APPLE TV`.** `Watch` has `service`, and the episode
+      half can now be named — `Kati.Media.CachedEpisode` carries
+      `season_number`, `episode_number` and `title` since
+      `20260821231241_media_seasons_and_episodes`, which is what let
+      `Kati.Screens.Series` and `Kati.Screens.Inbox` come off their Sample
+      modules. **That is no longer the blocker here, and this bullet used to say
+      it was.** What is missing is the other half: *Now playing* is a session in
+      flight, and nothing anywhere holds one. `Watch` records a tick after the
+      fact, so a screen reading it would be drawing something already finished
+      under a heading that says it is happening.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

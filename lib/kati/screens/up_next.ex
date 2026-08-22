@@ -39,7 +39,16 @@ defmodule Kati.Screens.UpNext do
       separate query, so "what you are closest to" cannot disagree with the list
       under it.
     * `S2 · E6` is `progress_season` / `progress_episode`, the bookmark
-      `Kati.Media.TrackedTitle` stores for exactly this.
+      `Kati.Media.TrackedTitle` stores for exactly this — **two numbers, and
+      deliberately no name**. `Kati.Media.CachedEpisode` could now supply one:
+      the bookmark is a `{season, episode}` pair and `for_season/3` would find
+      the row it names. `.scratch/design/screens/10.html` does not draw one.
+      Every mono line on the screen is numbers and a duration — `S2 · E6 · 18M
+      LEFT`, `S3 · E2 · 48m`, `S1 · E3 · 4 MONTHS AGO` — and adding a name here
+      would widen a `max_lines={1}` line that is already close to the play disc,
+      pushing the title's ellipsis in on a card whose whole job is to be
+      glanceable. So this stays a pair of numbers, and the episode name is
+      screen 04's, where the drawing does ask for it.
     * `18M LEFT` and the burnt-in bar are the one arithmetic on the screen, and
       both halves come from the same two numbers: `progress_seconds` on the
       durable row and `runtime_minutes` on the cached one. `Kati.Media.CachedTitle`'s

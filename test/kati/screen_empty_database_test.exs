@@ -89,31 +89,40 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # Ash and is not added here fails, and an entry here for a screen that reads
   # nothing fails too.
   #
-  # `Kati.Screens.Series` (04), `Kati.Screens.Inbox` (05),
-  # `Kati.Screens.SeriesMeta` (14), `Kati.Screens.Season` (34) and
-  # `Kati.Screens.SeriesSettings` (35) are absent because they read no store at
-  # all: each still reads its Sample module outright and says why at length in
-  # its moduledoc — no cast, no availability, no per-season display columns —
-  # so none of them has a fallback that could regress.
-  # `Kati.ScreenSampleOnlyTest` stands over those.
+  # `Kati.Screens.SeriesMeta` (14) and `Kati.Screens.SeriesSettings` (35) are
+  # absent because they read no store at all: each still reads its Sample module
+  # outright and says why at length in its moduledoc — no cast, no availability,
+  # no offers, and in 35's case a referent it argues cannot be picked safely —
+  # so neither has a fallback that could regress.
   #
-  # `Kati.Screens.SeriesFa` (58) is absent for exactly 04's reason, which is
-  # the point of a mirror: it is screen 04 in Persian, and 04 has not moved.
-  # Its whole page is an episode list — number, name, runtime, air date — and
-  # the season strip above it. A Persian mirror cannot migrate a screen its
-  # English original could not, so 58 moves on the round 04 does and not before.
-  #
-  # What is NOT the reason any more, recorded because both moduledocs still say
-  # it is: that `Kati.Media` cannot enumerate a season or name an episode.
+  # **04 and 58 have moved, and this comment used to explain why they had not.**
+  # The reason given was that `Kati.Media` cannot enumerate a season or name an
+  # episode, which stopped being true when
   # `20260821231241_media_seasons_and_episodes` created `cached_seasons` and
-  # `cached_episodes` at the end of this round, and `Kati.Media.CachedEpisode`
-  # carries `title`, `runtime_minutes`, `air_at` and `episode_number` with
-  # `for_season/3` and `for_title/2` to read them, while
-  # `Kati.Media.CachedSeason.for_title/2` and `count/1` are the season strip and
-  # its `3 SEASONS`. `Kati.Screens.Season`'s (34) moduledoc has been brought up
-  # to date and names three per-season display columns that genuinely do not
-  # exist; 04's and 58's have not, and their stated blocker is now false.
-  # Leaving them here is a decision about scope, not a fact about the schema.
+  # `cached_episodes`: `Kati.Media.CachedEpisode` carries `title`,
+  # `runtime_minutes`, `air_at` and `episode_number` with `for_season/3` and
+  # `for_title/2` to read them, and `Kati.Media.CachedSeason.for_title/2` and
+  # `count/1` are the season strip and its `3 SEASONS`. Both screens' moduledocs
+  # still asserted the old blocker after it was gone, and one of them cost a
+  # round; both now say what they read instead. 58 reaches the store the way a
+  # mirror should — through `Kati.Screens.Series.tracked_series/0`, not a second
+  # copy of the query — so it is in this list transitively and by design.
+  #
+  # **05 and 34 moved on the same round, and 34 moved only PARTLY.** Screen 05
+  # draws both of its lists out of `Kati.Media.CachedEpisode`,
+  # `Kati.Media.CachedSeason` and `Kati.Media.Release`, and keeps its watcher
+  # card frozen because two of that card's three values have no store anywhere.
+  # Screen 34 draws its episode list, its heading and its count, and keeps the
+  # order strip, the two switches and the `PARTS 1–2` badge drawn — those are
+  # columns that do not exist rather than queries nobody wrote, and
+  # `Kati.Media.CachedEpisode.orders/0` answering `[:aired, :absolute]` is the
+  # DVD tile's own reason.
+  #
+  # A partly-migrated screen is exactly the shape this file has to be careful
+  # about: its gate must answer with the drawn value *whole* on an empty
+  # database, frozen parts and all, which is what `fallbacks/0` compares. Both
+  # therefore lay their real values over `drawn_*/0` rather than building a
+  # fresh map, so the two branches cannot differ in a key neither side names.
   @migrated [
     # 01 and 02 are the two that were reading the database before this round and
     # were never in this file. Both take `Kati.Calendars.Today`, which answers
@@ -125,6 +134,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"01", Kati.Screens.Home},
     {"02", Kati.Screens.Calendar},
     {"03", Kati.Screens.Library},
+    {"04", Kati.Screens.Series},
+    {"05", Kati.Screens.Inbox},
     {"07", Kati.Screens.Stats},
     {"08", Kati.Screens.Film},
     {"10", Kati.Screens.UpNext},
@@ -136,6 +147,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # (23) are absent here for the same reason 04 and 05 are: no habit
     # completion, no price, nothing to fall back FROM.
     {"32", Kati.Screens.Calendars},
+    # 34 is the one screen in this list that is only PARTLY migrated — see the
+    # note above. It is here for the ordinary reason: it reaches the store, so
+    # its fallback is a thing that can regress.
+    {"34", Kati.Screens.Season},
     # The two screens the design draws DARK, and the log sheet.
     #
     # 28 is Home in dark and reads exactly what Home reads — `Rest of today`,
@@ -169,7 +184,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # Persian page that renders empty cannot be compared with anything.
     {"55", Kati.Screens.HomeFa},
     {"56", Kati.Screens.ScheduleFa},
-    {"57", Kati.Screens.LibraryFa}
+    {"57", Kati.Screens.LibraryFa},
+    # 58 is 04 in Persian and reads through 04 — see the note above.
+    {"58", Kati.Screens.SeriesFa}
   ]
 
   # Every table an Ash resource in this app is backed by, child tables first so
@@ -349,8 +366,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # halves are therefore derived rather than trusted.
       #
       # Derived from the **compiled import table**, not from the source: a
-      # moduledoc quoting `Ash.read!` is not a query (`Kati.Screens.Season`'s
-      # says exactly that sentence and reads nothing), and a read that has moved
+      # moduledoc quoting an `Ash` call is not a query
+      # (`Kati.Screens.SeriesSettings`'s quotes `Ash.create!` and reads
+      # nothing), and a read that has moved
       # into a helper — `Kati.Calendars.Today`, which is how 01 and 02 read —
       # is invisible to a grep of the screen's own file and plain in its imports.
       listed = MapSet.new(@migrated, &elem(&1, 1))
@@ -380,11 +398,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # much) or `false` for everything (a chunk that did not load, an empty
       # module list). Both would make the test above vacuous, so three known
       # answers are pinned: one screen that queries directly, one that queries
-      # only through a helper, and one whose moduledoc quotes `Ash.read!` at
+      # only through a helper, and one whose moduledoc names an `Ash` call at
       # length and whose body reads nothing.
+      #
+      # That third one used to be `Kati.Screens.Season`, which now reads — so
+      # the exemplar moved to `Kati.Screens.SeriesSettings`, whose moduledoc
+      # quotes `Ash.create!` while arguing that its referent cannot be picked
+      # safely yet. Keeping a mention-only screen pinned here is the point: a
+      # namespace test that matched too much would answer `true` for it.
       assert reaches_store?(Kati.Screens.Film)
       assert reaches_store?(Kati.Screens.Home)
-      refute reaches_store?(Kati.Screens.Season)
+      refute reaches_store?(Kati.Screens.SeriesSettings)
       refute reaches_store?(Kati.Screens.Gallery)
     end
   end
@@ -554,6 +578,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.Calendar.drawn_rows/0},
       {"03", Kati.Screens.Library, &Kati.Screens.Library.titles/0,
        &Kati.Screens.Library.drawn_titles/0},
+      # 04 gates the whole page rather than a card — either every value on it is
+      # this user's or every value is the drawing's — so one pair covers the
+      # title, the meta line, the season strip, the counter, the next airing and
+      # all seven rows. `by_season` rides on both sides, which is what makes the
+      # S1/S2/S3 pills a control on an empty database too.
+      {"04", Kati.Screens.Series, &Kati.Screens.Series.series/0,
+       &Kati.Screens.Series.drawn_series/0},
+      # 05 gates on `:followed` being empty rather than on either list being
+      # empty: "nothing is out this week" is a true thing for a release inbox to
+      # say, and the drawing's three rows would be a false one. The pair
+      # compares the whole map, watcher card included — that card is frozen, so
+      # a round that wired its count up on its own would show here as the two
+      # sides differing on a key neither list touches.
+      {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       # 07 has no single drawn accessor: `figures/0` answers a keyword list whose
       # third element is a real read either way. The two the gate decides are
       # taken, in the order the list holds them.
@@ -571,6 +609,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, &Kati.Screens.Activity.drawn/0},
       {"32", Kati.Screens.Calendars, &Kati.Screens.Calendars.calendar_list/0,
        &Kati.Screens.Calendars.drawn_calendars/0},
+      # 34 is the partly-migrated one, and the whole map is compared for exactly
+      # that reason: the order strip, the two switches and the subtitle are the
+      # drawing's on BOTH branches, so a gate that looked only at the episode
+      # list would pass while one of the frozen parts quietly changed.
+      {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
+       &Kati.Screens.Season.drawn_season/0},
       # 28 is 01's shape and is gated in the same place for the same reason: the
       # dark Home mounts the timeline raw and substitutes the drawing at
       # `rest_of_today/1`'s `[]` clause, so the comparison is made where the
@@ -613,7 +657,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"56", Kati.Screens.ScheduleFa, fn -> Kati.Screens.ScheduleFa.day(today) end,
        &Kati.Screens.ScheduleFa.drawn_day/0},
       {"57", Kati.Screens.LibraryFa, &Kati.Screens.LibraryFa.titles/0,
-       &Kati.Screens.LibraryFa.drawn_titles/0}
+       &Kati.Screens.LibraryFa.drawn_titles/0},
+      # 58 is 04's gate reached through 04's read, so this pair fails for two
+      # different defects: a lost Persian fallback, and an English one — the
+      # mirror cannot keep drawing its drawing if `tracked_series/0` stops
+      # answering `nil` on an empty store.
+      {"58", Kati.Screens.SeriesFa, &Kati.Screens.SeriesFa.series/0,
+       &Kati.Screens.SeriesFa.drawn_series/0}
     ]
   end
 

@@ -52,22 +52,25 @@ defmodule Kati.Screens.HomeFa do
   for the same reason: the Screen domain has no "up next" and no section counts
   to supply them from.
 
-  ### What this screen cannot say in Persian, and where the fix belongs
+  ### The sub-line is rebuilt in Persian, not translated
 
-  A timeline row's `meta` arrives already composed:
-  `Kati.Calendars.Today.meta/1` joins the event's location to a **kind label it
-  writes in English** (`Airs today`, `Habit`, `Money`, `Calendar`). The row
-  shape carries no `:kind`, so nothing here can name that fact in Persian
-  without guessing at another module's output, and guessing is how the label
-  and the word drift apart the first time either changes. So the line is drawn
-  as it arrives and the gap is stated rather than papered over: the fix is a
-  locale-aware label in `Kati.Calendars.Today`, or a `:kind` on the row so each
-  screen can name it in its own language.
+  A timeline row's `:meta` field is its sub-line **in English** — the event's
+  location joined to a kind label (`Airs today`, `Habit`, `Money`, `Calendar`)
+  — because that field is what screens 01, 02 and 28 draw and what their
+  captured frames hold. Drawing it here is what ended every real row on this
+  page in an English word beneath a Persian title.
 
-  Digits are converted where Kati wrote them and nowhere else. `time` is
-  entirely Kati's — `Calendar.strftime(local, "%H:%M")` — so it is rendered
-  ۲۰:۰۰; the title and the meta are the user's own words and a location they
-  typed, and rewriting characters inside those is not translation.
+  The row carries `:kind` and `:location` now, so `fa_row/1` asks
+  `Kati.Calendars.Today.meta/2` for the same line in Persian instead. The label
+  is written once, where the kinds live, rather than guessed at from another
+  module's output — which is the way the label and the word stay in step when
+  either changes.
+
+  Digits and words are converted where Kati wrote them and nowhere else. `time`
+  is entirely Kati's — `Calendar.strftime(local, "%H:%M")` — so it is rendered
+  ۲۰:۰۰, and the kind label is Kati's so it is rendered پخش امروز; the title is
+  the event's summary and the location is one the user typed, and rewriting
+  characters inside those is transliteration rather than translation.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -568,15 +571,33 @@ defmodule Kati.Screens.HomeFa do
   end
 
   @doc """
-  One timeline row with the digits Kati wrote rendered in Persian.
+  One timeline row with the parts Kati wrote rendered in Persian.
 
-  Only `time`, and deliberately only `time`: it is `%H:%M` off the device
-  clock, so every character in it is Kati's. `title` is the event's `summary`
-  and `meta` carries the location beside it — both the user's own text — and a
-  screen that rewrote characters inside those would be transliterating a
-  person's words, not localising an interface.
+  `time` is `%H:%M` off the device clock, so every character in it is Kati's and
+  the digits are converted. `title` is the event's `summary` — the user's own
+  text — and is left exactly as typed, because rewriting characters inside a
+  person's words is transliteration, not localisation.
+
+  `meta` is the one that is half and half. A row's `:meta` field is its sub-line
+  **in English**, because that is the field screens 01, 02 and 28 draw and were
+  captured drawing; rendering it here is what ended every real row on this page
+  in `Airs today` or `Habit`. So the line is rebuilt rather than translated:
+  `Kati.Calendars.Today.meta/2` joins the row's own `:location` — still the
+  user's words, still untouched — to the one word Kati supplies, in Persian.
+
+  **A drawn row passes through with only its digits changed**, which is the
+  property that keeps `timeline_row/2` unable to tell the two apart.
+  `Kati.Screens.HomeFa.Sample`'s rows are written in Persian already and carry
+  no `:kind`, so `:kind` is exactly the mark of a row that came from the store
+  and the only thing worth branching on.
   """
   @spec fa_row(map()) :: map()
+  def fa_row(%{kind: _} = row) do
+    row
+    |> Map.update!(:time, &Digits.to_persian/1)
+    |> Map.put(:meta, Kati.Calendars.Today.meta(row, :fa))
+  end
+
   def fa_row(row), do: Map.update!(row, :time, &Digits.to_persian/1)
 
   @doc false

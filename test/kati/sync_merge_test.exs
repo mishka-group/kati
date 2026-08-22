@@ -217,7 +217,9 @@ defmodule Kati.SyncMergeTest do
       })
 
     {:resolved, straight_winner, straight, _} = Merge.merge_raw(base, local, remote, :kati)
-    {:resolved, skewed_winner, skewed, _} = Merge.merge_raw(base, skewed_local, skewed_remote, :kati)
+
+    {:resolved, skewed_winner, skewed, _} =
+      Merge.merge_raw(base, skewed_local, skewed_remote, :kati)
 
     assert straight_winner == :local
     assert skewed_winner == :local

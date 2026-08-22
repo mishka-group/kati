@@ -4,6 +4,35 @@ defmodule Kati.Calendars.Today do
 
   Queries by UTC window rather than by date, because "today" is a wall-clock
   question in the device's zone and the rows are stored as instants.
+
+  ## A row carries its kind; the label is a rendering decision
+
+  A row is `%{time, title, meta, kind, location, now?}`. `kind` is the event's
+  own `Kati.Calendars.Event` kind, **verbatim** rather than collapsed, and
+  `location` is the event's own — so a screen has the two facts the sub-line is
+  made of, not only the one sentence one language wrote out of them.
+
+  `meta` is that sentence **in English**: it is what screens 01, 02 and 28
+  draw and what their captured frames hold, so it does not move. A screen
+  drawing in another language composes its own line with `meta/2` instead of
+  reading the field — which is the bug screens 55 and 56 exposed, where every
+  real row on a Persian page ended in `Airs today` or `Habit` because the label
+  was baked in before the row left this module.
+
+  Two things follow, and both matter more than the field does:
+
+    * **The label is written once**, in `kind_label/2`. It used to be written
+      here and read back out of the composed string by
+      `Kati.Screens.Calendar.kind/1`, which decided a card's shape, its chip and
+      the screen a tap pushed by `String.contains?(meta, "Money")` — so an event
+      whose location the user had typed as *Money* was routed to Subscriptions,
+      and any edit to a word here silently re-routed every row of that kind.
+      That screen reads `:kind` now.
+
+    * **Nothing downstream has to guess.** A kind is a fact of the event; a
+      label is a fact of a language. Deriving the first from the second is the
+      one direction that cannot be done safely, and it is the direction the two
+      screens were forced into.
   """
 
   require Ash.Query
@@ -18,7 +47,7 @@ defmodule Kati.Calendars.Today do
 
     day
     |> events(zone)
-    |> Enum.map(&to_row(&1, zone))
+    |> Enum.map(&row(&1, zone))
   end
 
   # One query, shared by the timeline rows and the lane layout, so the two
@@ -71,6 +100,7 @@ defmodule Kati.Calendars.Today do
       # not dropped and not wrapped — the next day draws its own share.
       end_min: min(max(end_min, start_min), 1440),
       kind: event.kind,
+      location: event.location,
       title: event.summary || "Untitled",
       meta: meta(event)
     }
@@ -86,32 +116,89 @@ defmodule Kati.Calendars.Today do
     end
   end
 
-  defp to_row(event, zone) do
+  @doc """
+  One event in the shape the timeline draws it, in a given zone.
+
+  Public because it is the whole of the row contract, and the only way to
+  exercise that contract without a store: an `%Kati.Calendars.Event{}` built in
+  memory answers exactly the row a stored one does. `rows/1` reads the zone once
+  and passes it in, so every row of a day is stamped against one clock.
+  """
+  @spec row(Event.t(), String.t()) :: map()
+  def row(event, zone) do
     local = Kati.Time.in_zone(event.dtstart_utc, zone)
     now = DateTime.utc_now()
 
     %{
       time: Calendar.strftime(local, "%H:%M"),
       title: event.summary || "Untitled",
+      # The event's own kind, uncollapsed. `:reminder` and `:event` share a
+      # label and draw differently — screen 56 gives a reminder a hollow ring
+      # and an appointment a rule — so the row keeps the value that can still
+      # tell them apart, and the collapsing happens at each point of use.
+      kind: event.kind,
+      location: event.location,
       meta: meta(event),
       # Orange means new/now, and only that: within the next hour counts as now.
       now?: DateTime.diff(event.dtstart_utc, now, :second) in 0..3600
     }
   end
 
-  defp meta(event) do
-    [event.location, kind_label(event.kind)]
+  @doc """
+  The sub-line under a row's title, in one locale.
+
+  Takes a row, an occurrence or the `Kati.Calendars.Event` any of them was built
+  from — all three carry the `:location` and the `:kind` the line is made of —
+  so a screen that needs the line in another language asks for it here rather
+  than translating a sentence back into its parts.
+
+  The location leads because it is the user's own words and the label is Kati's,
+  and it is dropped when there is none. `kind_label/2` is never empty, so the
+  line never is either.
+
+  English is the default because it is what the row's `:meta` field holds and
+  what screens 01, 02 and 28 were captured drawing.
+  """
+  @spec meta(map(), :en | :fa) :: String.t()
+  def meta(row_or_event, locale \\ :en)
+
+  def meta(%{location: location, kind: kind}, locale) do
+    [location, kind_label(kind, locale)]
     |> Enum.reject(&(is_nil(&1) or &1 == ""))
     |> Enum.join(" · ")
-    |> case do
-      "" -> "Calendar"
-      s -> s
-    end
   end
 
-  defp kind_label(:air_date), do: "Airs today"
-  defp kind_label(:meal), do: "Meals"
-  defp kind_label(:habit), do: "Habit"
-  defp kind_label(:money), do: "Money"
-  defp kind_label(_), do: "Calendar"
+  @doc """
+  The word for an event kind, in one locale.
+
+  Seven kinds, five words: `:event`, `:reminder` and `:note` are all *on the
+  calendar* and the drawings give them one label. An unknown locale answers in
+  English, which is `Kati.Locale`'s own default and the safer half of a guess.
+
+  **The English words are exactly what this module has always written.** Screens
+  01, 02 and 28 draw this line and are compared pixel-by-pixel with captured
+  frames, so these five strings are fixed until a capture says otherwise. (09 is
+  compared the same way and is not on this path at all — `Kati.Screens.Day` is
+  still on `Kati.Calendar.SampleDay` and writes its own sub-lines, for the five
+  reasons its moduledoc lists.)
+
+  The Persian words are the ones screens 55–62 already use for the same things,
+  rather than a second translation of the same concept: عادت and مالی are
+  `Kati.Screens.ScheduleFa.Sample`'s own, وعده‌ها is the Meals root's title in
+  `Kati.Screens.HomeFa.Sample`, and تقویم is Settings'.
+  """
+  @spec kind_label(atom(), :en | :fa) :: String.t()
+  def kind_label(kind, locale \\ :en)
+
+  def kind_label(:air_date, :fa), do: "پخش امروز"
+  def kind_label(:meal, :fa), do: "وعده‌ها"
+  def kind_label(:habit, :fa), do: "عادت"
+  def kind_label(:money, :fa), do: "مالی"
+  def kind_label(_kind, :fa), do: "تقویم"
+
+  def kind_label(:air_date, _locale), do: "Airs today"
+  def kind_label(:meal, _locale), do: "Meals"
+  def kind_label(:habit, _locale), do: "Habit"
+  def kind_label(:money, _locale), do: "Money"
+  def kind_label(_kind, _locale), do: "Calendar"
 end

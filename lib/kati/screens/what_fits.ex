@@ -32,28 +32,38 @@ defmodule Kati.Screens.WhatFits do
 
   ## Why this screen still reads `Kati.Screens.WhatFits.Sample`
 
-  The same absence `Kati.Screens.Series` names, and for the same reason:
-  **`Kati.Media` has no episode.** `Kati.Media.Watch` carries an
-  `episode_source_id` and a `season_number` / `episode_number` label snapshot,
-  but only for an episode already ticked — and this screen is entirely about
-  the ones that have not been. Nothing can say what S3E2 of *Ashfall* is
-  called, and nothing can say it runs 41 minutes, which is the one number the
-  whole screen sorts on.
+  **This section used to say `Kati.Media` has no episode, and that is no longer
+  true.** `20260821231241_media_seasons_and_episodes` built
+  `Kati.Media.CachedEpisode` with `title`, `runtime_minutes`, `season_number`,
+  `episode_number` and `air_at`, and `for_title/2` and `for_season/3` to read
+  them — which is what took `Kati.Screens.Series` and `Kati.Screens.Inbox` off
+  their Sample modules. Three of the four things listed below were blocked on
+  exactly that resource and are now expressible:
 
-  What that blocks, exactly:
-
-    * **`41m`, `43m`, `44m`** — a per-episode runtime.
-      `Kati.Media.CachedTitle.runtime_minutes` is the *title's*, which for a
-      series is either a nominal length or nothing at all, and a window that
-      admits three episodes is measured against neither.
-    * **`S3 · E2`** — an unwatched episode's place in its series.
-      `Kati.Media.TrackedTitle.progress_season` and `progress_episode` are one
-      bookmark, not an inventory, so they cannot enumerate what comes next.
+    * **`41m`, `43m`, `44m`** — a per-episode runtime. Available:
+      `CachedEpisode.runtime_minutes`, which is the per-episode number this
+      screen sorts on rather than `Kati.Media.CachedTitle.runtime_minutes`, the
+      title's nominal length that a three-episode window could never be measured
+      against.
+    * **`S3 · E2`** — an unwatched episode's place in its series. Available:
+      `for_title/2` is the inventory `Kati.Media.TrackedTitle.progress_season`
+      and `progress_episode` could not be, and those two remain the bookmark
+      that says where to start reading it.
     * **`3 episodes fit`** — the count follows the list.
-    * **`Light`, `Tense`, `Long-form`** — a mood.
-      `Kati.Media.CachedTitle.genres` is a genre, which is a different claim
-      about a title, and `Kati.Media.Watch.tags` is per-watch and written after
-      the fact.
+
+  One thing is still genuinely absent, and it is an axis rather than a value:
+
+    * **`Light`, `Tense`, `Long-form`** — a mood. `CachedTitle.genres` is a
+      genre, which is a different claim about a title, and `Kati.Media.Watch.tags`
+      is per-watch and written after the fact. Nothing on the new episode
+      resource speaks to it either.
+
+  So what keeps this screen on its Sample module is now a decision about scope
+  rather than a fact about the schema: the list is derivable and the three chips
+  above it are not, and a page whose rows are real while its only filter is
+  invented would be the same kind of half-truth the paragraph below objects to.
+  Recorded plainly so the next pass weighs that rather than re-deriving a
+  blocker that has already been cleared.
 
   Two things here *are* expressible and are deliberately not split out. The
   over-budget row is one — `Quiet Harbour` at `1H 46M · 61 MIN OVER` is a
@@ -62,7 +72,7 @@ defmodule Kati.Screens.WhatFits do
   answer (and which the audit frame pins to the drawing's own evening). A
   screen whose *nothing else fits* row is the user's real film while the three
   episodes above it are invented would be making its most specific claim about
-  data it does not have. Both land when the episode resource does.
+  data it does not have. Both land on the round the list above them does.
   """
   use Kati.Screens.Pushed, back: "Library"
 

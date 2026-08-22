@@ -72,13 +72,20 @@ defmodule Kati.Screens.ScheduleFa do
   that is not imminent therefore settles onto the flat card with a hollow ring,
   which asserts nothing about whether it happened.
 
-  ### What this screen cannot say in Persian
+  ### The sub-line is composed here, not taken off the row
 
-  `Kati.Calendars.Today.meta/1` composes its line in English and the row shape
-  carries no `:kind`, so `Kati.Screens.Calendar.kind/1` — which reads that
-  English back to pick a card — is what decides a real row's chrome here too.
-  The chrome is language-free and the line under it is not: a real row's meta
-  is drawn as it arrives. See `Kati.Screens.HomeFa` for where that fix belongs.
+  A row's `:meta` is its sub-line **in English** — screens 01, 02 and 28 draw
+  that field and were captured drawing it — so a page that renders it verbatim
+  ends every real row in `Airs today` or `Habit` beneath a Persian title. That
+  is what this screen used to do.
+
+  The row carries `:location` and `:kind` now, which are the two facts the line
+  is made of, so `shaped/1` asks `Kati.Calendars.Today.meta/2` for the Persian
+  line and the English one never reaches the page. The location is the user's
+  own words either way and is not rewritten; only Kati's half of the line is
+  translated. `Kati.Screens.Calendar.kind/1` reads the same `:kind` to pick the
+  chrome, so the card a row gets and the words under it are now derived from one
+  fact rather than from a sentence one of them had to search.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -149,6 +156,14 @@ defmodule Kati.Screens.ScheduleFa do
   `Kati.Screens.Calendar.kind/1` for which of the four kinds it is, and `now?`
   for whether it is imminent. Nothing claims a habit was kept — see the
   moduledoc — so `trailing` is `nil` on every real row.
+
+  **The sub-line is composed here, in Persian**, rather than taken off the row.
+  `row.meta` is the same sentence in English — it is what screens 01, 02 and 28
+  were captured drawing, so `Kati.Calendars.Today` keeps writing it there — and
+  drawing that field on this page is what ended every real row in `Airs today`
+  under a Persian title. `Kati.Calendars.Today.meta/2` builds the line from the
+  row's own `:location` and `:kind` instead, so the location stays the user's
+  own words and only Kati's half is translated.
   """
   @spec shaped(map()) :: map()
   def shaped(row) do
@@ -159,7 +174,7 @@ defmodule Kati.Screens.ScheduleFa do
       tone: tone,
       lead: lead,
       title: row.title,
-      meta: row.meta,
+      meta: Kati.Calendars.Today.meta(row, :fa),
       trailing: nil
     }
   end

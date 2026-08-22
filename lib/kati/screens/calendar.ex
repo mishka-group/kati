@@ -111,7 +111,16 @@ defmodule Kati.Screens.Calendar do
     ]
   end
 
-  @doc "A real event, given the drawn shape its kind calls for."
+  @doc """
+  A real event, given the drawn shape its kind calls for.
+
+  `:kind` changes vocabulary here, and that is deliberate rather than a
+  collision: a `Kati.Calendars.Today` row arrives carrying the event's own kind
+  atom, and leaves carrying one of this screen's four chip names as a string —
+  the value `visible/2`, `tap/1` and `handle_tap/2` all read. `kind/1` maps
+  between the two and passes a string straight through, so shaping a row twice
+  is the same as shaping it once.
+  """
   @spec shaped(map()) :: map()
   def shaped(row) do
     kind = Kati.Screens.Calendar.kind(row)
@@ -886,24 +895,37 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc """
-  Which screen a timeline row belongs to, read off the row's own meta.
+  Which screen a timeline row belongs to, read off the row's own kind.
 
   Called once, by `shaped/1`, which stamps the answer onto the row as `:kind`.
   Everything downstream — the chip filter in `visible/2`, the card shape, the
   destination a tap pushes — then reads that one field, so the row's
-  destination and its chip cannot drift apart, and the drawn rows can state
-  their kind outright rather than having it inferred from a sub-line that
-  names no kind at all.
+  destination and its chip cannot drift apart.
+
+  Seven event kinds onto the four names `@row_screens` is keyed on, which is a
+  collapse and is meant to be: `Kati.Calendars.Event` calls a habit a habit and
+  the drawing files it under Personal along with reminders and notes, so all
+  three answer `"event"`. The kind the collapse throws away is still on the row
+  for a screen that wants it — 56 draws a reminder differently from an
+  appointment.
+
+  **This used to read the answer back out of `meta`** with
+  `String.contains?(meta, "Money")`, and that string is the event's location
+  joined to a label `Kati.Calendars.Today` writes — so an event at a place the
+  user had typed as *Money* was drawn as a payment and pushed Subscriptions,
+  and the same label was derived twice, once to render and once to route. The
+  row carries `:kind` now, which is the fact both readings were guessing at;
+  the label is `Kati.Calendars.Today.kind_label/2`'s alone.
+
+  A string passes through untouched, which is what makes `shaped/1` idempotent
+  and lets `drawn_rows/0` state its own kinds outright.
   """
   @spec kind(map()) :: String.t()
-  def kind(%{meta: meta}) do
-    cond do
-      String.contains?(meta, "Meals") -> "meals"
-      String.contains?(meta, "Airs today") -> "screen"
-      String.contains?(meta, "Money") -> "money"
-      true -> "event"
-    end
-  end
+  def kind(%{kind: kind}) when is_binary(kind), do: kind
+  def kind(%{kind: :meal}), do: "meals"
+  def kind(%{kind: :air_date}), do: "screen"
+  def kind(%{kind: :money}), do: "money"
+  def kind(%{kind: _kind}), do: "event"
 
   @row_screens %{
     "meals" => Kati.Screens.MealsDay,
