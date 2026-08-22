@@ -5,8 +5,8 @@ defmodule Kati.Screens.Gallery do
   Two jobs, and the second is why it exists at all.
 
   **For the owner**: a way to see every page without hunting for the tap that
-  reaches each one — "let me see all different type of each page". The 62 drawn
-  screens are listed by their design number; anything built without a drawing is
+  reaches each one — "let me see all different type of each page". Every drawn
+  screen is listed by its design number; anything built without a drawing is
   listed under *Not yet drawn*, unnumbered, for the reason `@undrawn` gives.
 
   **For verification**: a screen nobody can reach cannot be checked against its
@@ -88,7 +88,9 @@ defmodule Kati.Screens.Gallery do
     {"59", "امروز", Kati.Screens.TodayFa, :push},
     {"60", "وعده‌ها", Kati.Screens.MealsMatrixFa, :push},
     {"61", "آمار", Kati.Screens.StatsFa, :push},
-    {"62", "تنظیمات", Kati.Screens.SettingsFa, :push}
+    {"62", "تنظیمات", Kati.Screens.SettingsFa, :push},
+    {"66", "Book detail", Kati.Screens.BookDetail, :push},
+    {"70", "Log progress", Kati.Screens.LogProgress, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.
@@ -96,7 +98,7 @@ defmodule Kati.Screens.Gallery do
   # `@screens` is not a list of screens; it is the app's number → drawing
   # registry, and three readers treat an entry as the claim that
   # `.scratch/design/screens/NN.html` exists. `Kati.ScreenDesignLiteralTest`
-  # pairs every entry with that file and asserts the numbers are exactly the 62
+  # pairs every entry with that file and asserts the numbers are exactly the ones
   # on disk. `Kati.ScreenEmptyDatabaseTest` asks this module whether a drawing
   # exists at all, and moves a screen out of its `@undrawn` the moment one does.
   # `bin/capture_all.py` parses this file for `{"NN", label, module, kind}` and

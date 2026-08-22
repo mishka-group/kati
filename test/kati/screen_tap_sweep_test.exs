@@ -114,12 +114,25 @@ defmodule Kati.ScreenTapSweepTest do
     # and the tick follows it.
     {Kati.Screens.LanguagePick, :choose_en},
     {Kati.Screens.LanguagePick, :choose_fa},
+    # ── Drawn, reachable, and pushing nothing because the design draws no
+    # destination. Screen 66's series row ends in `Next: Low Water` and its
+    # ownership row in `Due 27 Aug`; both carry a chevron, and neither a
+    # next-in-series screen nor a lending screen exists anywhere in the 127
+    # artboards. Answering them with a no-op is the honest state — the row is
+    # real, the data behind it is real, and the page it would open has not been
+    # drawn. Delete these the moment either is.
+    {Kati.Screens.BookDetail, :open_series},
+    {Kati.Screens.BookDetail, :open_lending},
     {Kati.Screens.Activity, :filter_All},
     {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_All},
     {Kati.Screens.Discover, :"filter_For you"},
     {Kati.Screens.EventDetail, :section_Work},
     {Kati.Screens.Library, :filter_All},
+    # Screen 70's unit segments. `Page` is the one the sheet opens on, so
+    # tapping it sets the unit it already has; `unit_percent` and
+    # `unit_minutes` both move, which is what proves the family is wired.
+    {Kati.Screens.LogProgress, :unit_page},
     {Kati.Screens.Library, :shelf_Screen},
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},

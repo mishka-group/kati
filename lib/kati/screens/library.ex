@@ -7,11 +7,22 @@ defmodule Kati.Screens.Library do
   at .65 opacity, and a three-across grid of 158-tall posters each with a
   progress bar burnt into its bottom edge.
 
-  **Books and Music are drawn inactive**, and that is the design's own
-  decision, not a shortcut: #60 settled that v1 ships one media domain —
-  Screen — because a solo maintainer with a calendar and a sync engine on the
-  critical path should not open two crowded markets. The design already greys
-  them, so matching it and honouring the decision are the same act.
+  **Books and Music push their shelves**, and did not always. #60 settled that
+  v1 ships one media domain — Screen — because a solo maintainer with a
+  calendar and a sync engine on the critical path should not open two crowded
+  markets, and both segments were inert on that reasoning.
+
+  The reasoning expired when the design did. Screens 66-72 draw a book in full
+  — detail, states, dark, RTL, and a reading-session logger that writes — and
+  73-79 do the same for an album and an artist. Fourteen drawn screens behind a
+  segment that goes nowhere is not restraint, it is fourteen screens nobody can
+  reach. `Kati.Books` is a real domain with a real backup entry, so the segment
+  now does what it looks like it does.
+
+  Nothing on this screen changes shape. `#AFA89E` is `Palette.segment_idle/0`,
+  the ordinary unselected segment colour, and the drawing never gave either
+  segment a disabled treatment — they were unselected, and the app read that as
+  unavailable. So the frame is identical and only the tap is different.
 
   Mob has no wrap primitive, so the grid is chunked into rows of three, and the
   three posters share the row by weight rather than measuring 112 each. The
@@ -827,6 +838,15 @@ defmodule Kati.Screens.Library do
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.push_screen(Kati.Screens.WhatFits)}
   end
+
+  # Books and Music push their own shelves; Screen is the shelf you are already
+  # on and only moves the assign. See the moduledoc for why the first two
+  # stopped being inert.
+  def handle_tap(:shelf_Books, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+
+  def handle_tap(:shelf_Music, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

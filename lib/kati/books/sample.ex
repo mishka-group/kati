@@ -76,4 +76,92 @@ defmodule Kati.Books.Sample do
   @doc "Absolute path to a cover, or `nil` when that seed was never drawn."
   @spec cover(String.t()) :: String.t() | nil
   def cover(seed), do: Kati.Design.Images.poster(seed)
+
+  @doc """
+  Screen 66's book, as the drawing captured it.
+
+  The fallback, in the sense `Kati.Library.Sample.film/0` is one for screen 08:
+  what the detail screen shows when `Kati.Books.Book` holds nothing. Every value
+  here is read off `.scratch/design/screens/66.html`, including the two the
+  drawing means as literals — the pace, which needs seven days of sessions to
+  compute and has none here, and the community rating, which has no source at
+  all and is drawn as an em dash on purpose.
+  """
+  @spec detail() :: map()
+  def detail do
+    %{
+      title: "The Salt Almanac",
+      author: "Ines Karvel",
+      seed: "bookaa1",
+      status: :reading,
+      status_label: "Reading",
+      meta: "2024 · FABER · 380 PP",
+      progress: 0.56,
+      progress_line: "p. 214 / 380 · 23 MIN/DAY PACE",
+      rating: 9,
+      rating_label: "4.5",
+      community: nil,
+      format: :paperback,
+      extent_label: "380 pages",
+      isbn: "978–0–571–33915–2",
+      owned: true,
+      warning_count: 3,
+      series_line: "#3 of 7 in The Coastal Ledgers",
+      series_next: "Next: Low Water",
+      lent_to: "Lent to Jo",
+      lent_due: "Due 27 Aug"
+    }
+  end
+
+  @doc """
+  The two entries in the cream card, in the order the drawing prints them.
+
+  A quote and a note, which is the whole reason `Kati.Books.Note` has a `kind`:
+  the first wears quotation marks and the second does not, and both anchor to a
+  page.
+  """
+  @spec notes() :: [map()]
+  def notes do
+    [
+      %{kind: :quote, body: "The tide keeps its own ledger.", anchor: "p. 148"},
+      %{
+        kind: :note,
+        body: "Re-read chapter seven before starting the second volume.",
+        anchor: "p. 206"
+      }
+    ]
+  end
+
+  @doc """
+  The reading history band, newest first.
+
+  Dates are the drawing's own and are deliberately not computed from the clock:
+  this is the fixture, and a fixture whose dates move is a fixture that cannot
+  be compared with the frame it was captured from.
+  """
+  @spec sessions() :: [map()]
+  def sessions do
+    [
+      %{date: "16 AUG", span: "p. 168 → 214", duration: "38m"},
+      %{date: "14 AUG", span: "p. 130 → 168", duration: "31m"},
+      %{date: "11 AUG", span: "p. 94 → 130", duration: "29m"}
+    ]
+  end
+
+  @doc "The four status choices screen 66 offers, and the one that is on."
+  @spec statuses() :: [{atom(), String.t()}]
+  def statuses do
+    [
+      {:reading, "Reading"},
+      {:finished, "Finished"},
+      {:paused, "Paused"},
+      {:did_not_finish, "Did not finish"}
+    ]
+  end
+
+  @doc "The three edition formats, in the drawing's order."
+  @spec formats() :: [{atom(), String.t()}]
+  def formats do
+    [{:paperback, "Paperback"}, {:ebook, "Ebook"}, {:audiobook, "Audiobook"}]
+  end
 end

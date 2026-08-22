@@ -260,14 +260,26 @@ defmodule Kati.ScreenLibraryShelfTest do
       end
     end
 
-    test "Books and Music are drawn, and empty" do
+    test "Books and Music push their own shelves rather than switching this one" do
+      # They used to switch the assign and draw an empty grid, which was the
+      # honest rendering of #60's "v1 ships one media domain". That decision was
+      # superseded by fourteen drawn screens — 66-72 for books, 73-79 for music
+      # — so each segment now opens the shelf it names.
+      #
+      # Asserted as a push and not merely as "something happened": the failure
+      # this replaces was a segment that looked live and set a value nobody
+      # read, and `assigns.shelf` staying put is exactly what tells the two
+      # apart.
       view = mount_screen(Library)
 
-      for shelf <- ["Books", "Music"] do
+      for {shelf, screen} <- [{"Books", Kati.Screens.Books}, {"Music", Kati.Screens.Music}] do
         switched = render_info(view, {:tap, String.to_atom("shelf_" <> shelf)})
 
-        assert assigns(switched).shelf == shelf
-        assert tile_columns(tree(switched)) == []
+        assert navigated_to(switched) == screen,
+               "the #{shelf} segment should push #{inspect(screen)}"
+
+        assert assigns(switched).shelf == "Screen",
+               "pushing a shelf must not also switch the one underneath it"
       end
     end
 

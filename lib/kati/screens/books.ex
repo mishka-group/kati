@@ -244,7 +244,9 @@ defmodule Kati.Screens.Books do
         padding={14}
         align="center"
       >
-        {Kati.Screens.Books.hero_cover(r)}
+        <Box width={74} height={110} on_tap={{self(), :open_book}}>
+          {Kati.Screens.Books.hero_cover(r)}
+        </Box>
         <Spacer size={14} />
         <Column weight={1.0}>
           <Text
@@ -277,9 +279,61 @@ defmodule Kati.Screens.Books do
             text_color={Palette.muted()}
             max_lines={1}
           />
+          {Kati.Screens.Books.hero_actions()}
         </Column>
       </Row>
       <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The hero's two controls: `Log progress`, and a timer shortcut beside it.
+
+  Screen 70's ticket named no control that opens it, and this is where the
+  drawing put one — on the hero, because the book you are reading is the only
+  book a session can be logged against without first choosing one. The timer
+  disc is the same sheet with its timer already running, which is why it is a
+  shortcut rather than a second destination.
+  """
+  @spec hero_actions() :: map()
+  def hero_actions do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row fill_width={true} align="center">
+        <Row
+          height={34}
+          corner_radius={17}
+          background={Palette.ink_fill()}
+          padding_left={14}
+          padding_right={14}
+          align="center"
+          on_tap={{self(), :log_progress}}
+        >
+          {Kati.UI.symbol("add", size: 16, color: Palette.on_ink())}
+          <Spacer size={6} />
+          <Text
+            text="Log progress"
+            text_size={12}
+            font_weight="semibold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
+        </Row>
+        <Spacer size={8} />
+        <Box
+          width={34}
+          height={34}
+          corner_radius={17}
+          background={Palette.paper()}
+          align="center"
+          on_tap={{self(), :start_timer}}
+        >
+          {Kati.UI.symbol("timer", size: 17, color: Palette.ink_soft())}
+        </Box>
+        <Spacer weight={1.0} />
+      </Row>
     </Column>
     """
   end
@@ -454,7 +508,7 @@ defmodule Kati.Screens.Books do
   @doc false
   def tile(book) do
     ~MOB"""
-    <Column weight={1.0}>
+    <Column weight={1.0} on_tap={{self(), :open_book}}>
       <Box
         fill_width={true}
         height={158}
@@ -529,6 +583,15 @@ defmodule Kati.Screens.Books do
   end
 
   @impl true
+  def handle_tap(:log_progress, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+
+  def handle_tap(:start_timer, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+
+  def handle_tap(:open_book, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetail)}
+
   def handle_tap(:open_screen, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
 

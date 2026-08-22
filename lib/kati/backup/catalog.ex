@@ -83,13 +83,13 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 3
+  @schema_version 4
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
   # (`Kati.Runtime`'s moduledoc), so a device-side check would silently pass by
   # finding nothing.
-  @domains [Kati.Spike, Kati.Calendars, Kati.Media, Kati.Meals, Kati.Sync]
+  @domains [Kati.Spike, Kati.Books, Kati.Calendars, Kati.Media, Kati.Meals, Kati.Sync]
 
   @entries [
     %{table: "calendar_accounts", resource: Kati.Calendars.Account, drop: [:credentials_ref]},
@@ -117,7 +117,16 @@ defmodule Kati.Backup.Catalog do
     %{table: "meal_plans", resource: Kati.Meals.MealPlan, drop: []},
     %{table: "meal_plan_slots", resource: Kati.Meals.MealPlanSlot, drop: []},
     %{table: "meal_logs", resource: Kati.Meals.MealLog, drop: []},
-    %{table: "shopping_list_items", resource: Kati.Meals.ShoppingListItem, drop: []}
+    %{table: "shopping_list_items", resource: Kati.Meals.ShoppingListItem, drop: []},
+    # All three are the user's, and none of them is re-fetchable. Open Library
+    # can supply a cover and a page count; it cannot supply the page you are on,
+    # the sitting you logged on Tuesday, or the sentence you copied out. This is
+    # the same line `tracked_titles` and `media_watches` fall on and for the
+    # same reason: a title's metadata is somebody else's, what you did with it
+    # is yours.
+    %{table: "books", resource: Kati.Books.Book, drop: []},
+    %{table: "book_reading_sessions", resource: Kati.Books.ReadingSession, drop: []},
+    %{table: "book_notes", resource: Kati.Books.Note, drop: []}
   ]
 
   @excluded [

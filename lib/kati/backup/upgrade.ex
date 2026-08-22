@@ -31,6 +31,12 @@ defmodule Kati.Backup.Upgrade do
       **table** raises because `Kati.Backup.Restore` does `Map.fetch!/2` per
       table; a missing **column** does not.
 
+    * **3 -> 4** — `books`, `book_reading_sessions` and `book_notes` joined the
+      backup when the Books domain landed. Same shape again, three members this
+      time. A version-3 archive restores with an empty shelf, which is what it
+      actually recorded: the tables did not exist when it was written, so there
+      is nothing to be sorry about losing.
+
   The step adds the key and never replaces one, so it is safe to run over rows
   that already have it and it cannot be the thing that loses a row.
 
@@ -47,7 +53,8 @@ defmodule Kati.Backup.Upgrade do
 
   @doc "Every upgrade step, oldest first."
   @spec steps() :: [step()]
-  def steps, do: [{1, 2, &add_rejected_changes/1}, {2, 3, &add_content_warnings/1}]
+  def steps,
+    do: [{1, 2, &add_rejected_changes/1}, {2, 3, &add_content_warnings/1}, {3, 4, &add_books/1}]
 
   @doc """
   Bring rows from `from` up to the current schema version.
@@ -90,6 +97,14 @@ defmodule Kati.Backup.Upgrade do
     rows
     |> Map.put_new("media_content_warnings", [])
     |> Map.put_new("media_warning_preferences", [])
+  end
+
+  # Three members, same `Map.put_new/3` reasoning as the two steps above.
+  defp add_books(rows) do
+    rows
+    |> Map.put_new("books", [])
+    |> Map.put_new("book_reading_sessions", [])
+    |> Map.put_new("book_notes", [])
   end
 
   defp no_path(version, target) do

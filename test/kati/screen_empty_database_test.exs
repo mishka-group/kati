@@ -186,7 +186,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"56", Kati.Screens.ScheduleFa},
     {"57", Kati.Screens.LibraryFa},
     # 58 is 04 in Persian and reads through 04 — see the note above.
-    {"58", Kati.Screens.SeriesFa}
+    {"58", Kati.Screens.SeriesFa},
+    # The Books domain's two screens, and they are the pair this file was
+    # written for: 66 falls back to `Kati.Books.Sample.detail/0` for the whole
+    # page, and 70 falls back for the book it is about to write a session
+    # against. 70 is also the first screen here that can WRITE — its fallback
+    # is what stops a save being aimed at a book that does not exist.
+    {"66", Kati.Screens.BookDetail},
+    {"70", Kati.Screens.LogProgress}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -222,7 +229,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things)
+  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.
@@ -719,6 +726,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"29", Kati.Screens.Lock, &Kati.Screens.Lock.widgets/0, &Kati.Screens.Lock.drawn_widgets/0},
       {"33", Kati.Screens.Rating, &Kati.Screens.Rating.watch/0,
        &Kati.Screens.Rating.drawn_watch/0},
+      # 66 gates the whole page, as 04 does: either every value on it is this
+      # reader's book or every value is the drawing's, so one pair covers the
+      # hero, the ratings, the edition facts, the notes and the history band.
+      {"66", Kati.Screens.BookDetail, &Kati.Screens.BookDetail.book/0,
+       &Kati.Screens.BookDetail.drawn_book/0},
+      # 70 falls back to the same book 66 does, and deliberately through 66's own
+      # reader rather than a second one — a sheet aimed at a different book from
+      # the screen that opened it would write a session against the wrong title.
+      # That is what this pair pins: not that the sheet has a fallback, but that
+      # it is 66's.
+      {"70", Kati.Screens.LogProgress, &Kati.Screens.LogProgress.book/0,
+       &Kati.Screens.BookDetail.drawn_book/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,

@@ -153,6 +153,9 @@ reproduce.
 | `Kati.Meals.MealPlanSlot` | `meal_plan_slots` | The slots a plan is made of |
 | `Kati.Meals.MealLog` | `meal_logs` | What was eaten, **with the figures frozen at the moment it was logged** |
 | `Kati.Meals.ShoppingListItem` | `shopping_list_items` | The list, what was got, what it cost |
+| `Kati.Books.Book` | `books` | Every book, where you are in it, the edition you own, who it is lent to |
+| `Kati.Books.ReadingSession` | `book_reading_sessions` | Each sitting: the pages it covered, the minutes it took, whether it was a re-read |
+| `Kati.Books.Note` | `book_notes` | Quotes copied out and notes left, each anchored to a page |
 
 ### Not in the backup
 
@@ -207,6 +210,8 @@ before any column is decoded.
 | Step | What moved | What the step does |
 | --- | --- | --- |
 | 1 → 2 | `sync_rejected_changes` joined the backup. | Supplies an empty `sync_rejected_changes` for a file that has no such member, so a version-1 backup restores with its rejected changes **absent** rather than with an error about a file it was never written with. It adds the key and never replaces one. |
+| 2 → 3 | `media_content_warnings` and `media_warning_preferences` joined the backup. | Supplies both as empty members, the same way. Note what needs **no** step: `media_watches` gained `moods`, `pace` and `driven_by` in the same change, and a version-2 row simply lacks those keys — a missing *column* takes the attribute default, where a missing *table* raises. |
+| 3 → 4 | `books`, `book_reading_sessions` and `book_notes` joined the backup. | Supplies all three as empty members. A version-3 archive restores with an empty shelf, which is exactly what it recorded: the tables did not exist when it was written. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

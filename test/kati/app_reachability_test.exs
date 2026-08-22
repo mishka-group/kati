@@ -39,11 +39,6 @@ defmodule Kati.AppReachabilityTest do
   # put in a header without ever drawing what it opens. What is left is five
   # screens that are not places in the app at all.
   @no_route [
-    {Screens.Books,
-     "#60 settled that v1 ships one media domain. Screen 03 greys Books and " <>
-       "Music, and 20's own moduledoc says Music is 'drawn but inert, exactly " <>
-       "as screen 03 draws Books and Music'."},
-    {Screens.Music, "as above — #60."},
     {Screens.States,
      "a catalogue of empty, loading and offline states for comparison against " <>
        "the drawing. Not a place in the app."},
