@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the window shows before the BEAM has drawn a frame.
+     It was @android:color/black, which read as the app failing to start on a
+     boot that takes a second or two. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/ic_launcher_background" />
+    <item android:gravity="center">
+        <bitmap android:src="@mipmap/ic_launcher_foreground" android:gravity="center" />
+    </item>
+</layer-list>
