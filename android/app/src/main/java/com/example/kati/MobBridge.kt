@@ -747,6 +747,100 @@ object MobBridge {
         }
     }
 
+    // KATI-BEGIN(K-32 permission-status) mob_new=0.4.20
+    // Reading a permission, which Mob can only request.
+    //
+    // `Mob.Permissions.request/2` raises the dialog and delivers
+    // `{:permission, cap, :granted | :denied}`. There is no matching read —
+    // nothing in Mob answers "is :calendar granted right now" — and screen 40's
+    // whole purpose is to state what Kati is allowed to do. Without this the
+    // trailing state on every row is a drawing, and it goes stale the moment
+    // the user changes a permission in system settings while Kati is
+    // backgrounded, which is the normal way permissions change.
+    //
+    // Three answers, not two, because Android's are not symmetric:
+    //
+    //   granted        checkSelfPermission says so.
+    //   denied:true    refused once; asking again will show the dialog.
+    //   denied:false   either never asked, or refused permanently. Android
+    //                  cannot tell these apart — `shouldShowRequestPermissionRationale`
+    //                  is false for both — so the caller disambiguates with its
+    //                  own record of having asked. See `Kati.Permissions`.
+    //
+    // The `denied:false` + asked case is the one that matters on screen: once
+    // permanently denied, `request/2` will not re-prompt, so the row has to
+    // offer system settings instead of an Allow button that does nothing.
+    @JvmStatic
+    fun katiPermissionStatus(cap: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        return try {
+            if (cap == "exact_alarms") {
+                // Not a runtime permission — a settings toggle, and the reason
+                // an alarm for 21:00 arrives at 21:00. Below API 31 it is
+                // granted by declaration.
+                val am = ctx.getSystemService(android.content.Context.ALARM_SERVICE) as AlarmManager
+                return if (android.os.Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms()) {
+                    "ok:granted"
+                } else {
+                    "ok:denied:false"
+                }
+            }
+
+            val perms = katiPermissionNames(cap) ?: return "error:unknown_capability"
+
+            // An empty array means the platform grants it without asking —
+            // POST_NOTIFICATIONS below API 33. Reporting "denied" there would
+            // draw an Allow button for a permission that cannot be requested.
+            if (perms.isEmpty()) return "ok:granted"
+
+            val granted =
+                perms.all { ContextCompat.checkSelfPermission(ctx, it) == PackageManager.PERMISSION_GRANTED }
+
+            if (granted) {
+                "ok:granted"
+            } else {
+                val activity = activityRef?.get()
+                val rationale =
+                    activity != null &&
+                        perms.any { ActivityCompat.shouldShowRequestPermissionRationale(activity, it) }
+                "ok:denied:$rationale"
+            }
+        } catch (e: Exception) {
+            Log.w("MobBridge", "katiPermissionStatus failed: ${e.javaClass.simpleName}")
+            "error:status_failed"
+        }
+    }
+
+    // The same map `request_permission` uses, extracted so a read and a request
+    // can never disagree about which Android permission a capability means.
+    // `null` is an unknown capability; an empty array is one the platform
+    // grants without asking at this API level.
+    private fun katiPermissionNames(cap: String): Array<String>? =
+        when (cap) {
+            "camera" -> arrayOf(android.Manifest.permission.CAMERA)
+            "microphone" -> arrayOf(android.Manifest.permission.RECORD_AUDIO)
+            "photo_library" ->
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    arrayOf(
+                        android.Manifest.permission.READ_MEDIA_IMAGES,
+                        android.Manifest.permission.READ_MEDIA_VIDEO
+                    )
+                } else {
+                    arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+            "location" -> arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            "calendar" -> arrayOf(android.Manifest.permission.READ_CALENDAR)
+            "notifications" ->
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    arrayOf()
+                }
+            else -> null
+        }
+    // KATI-END(K-32 permission-status)
+
     @JvmStatic
     fun katiPeriodicEnsure(configJson: String): String {
         val ctx = katiContext() ?: return "error:no_context"

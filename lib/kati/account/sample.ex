@@ -17,47 +17,60 @@ defmodule Kati.Account.Sample do
   @spec account() :: map()
   def account do
     %{
-      identity: identity(),
-      devices: devices(),
+      storage: storage(),
       permissions: permissions(),
+      install: install_permissions(),
       privacy_note:
-        "Your library, notes and history live on your devices and in your own " <>
-          "iCloud. Kati has no server that can read them.",
+        "Kati has no analytics and no server. There is nothing to switch off, " <>
+          "and nothing that could be read if there were.",
       data: data()
     }
   end
 
-  @doc "The signed-in identity, and the two things you can do to it."
-  @spec identity() :: map()
-  def identity do
+  @doc """
+  Where the data is, what it weighs, and how it leaves.
+
+  Replaces the account card. Screen 40 opened with *"Signed in with Apple ·
+  relay address · no email shared"* above a list of syncing devices, and Kati
+  has no account, no server and no second device to sync with — so the card
+  states the model positively instead of listing an absence.
+
+  There is a hard reason the *Move to a new phone* row cannot be soft:
+  `android:allowBackup` is `false` and there is no server, so a user who loses
+  this phone loses everything unless they have exported it themselves.
+  """
+  @spec storage() :: map()
+  def storage do
     %{
-      seed: "face68",
-      name: "Signed in with Apple",
-      relay: "RELAY ADDRESS · NO EMAIL SHARED",
-      actions: ["Manage devices", "Sign out"]
+      headline: "Everything is in one file on this phone.",
+      body:
+        "There is no account, no sign-in and no server. Because there is no " <>
+          "server, moving to a new phone means moving the file yourself.",
+      rows: [
+        %{icon: "inventory_2", title: "Storage used", value: "214 MB · 1,206 titles"},
+        # "Never" is the honest empty value and should read as a gentle warning
+        # rather than an error — nothing has gone wrong, but nothing is safe
+        # either.
+        %{icon: "upload", title: "Last backup", value: "Never", warn: true},
+        %{icon: "phone_iphone", title: "Move to a new phone", value: nil, chevron: true}
+      ]
     }
   end
 
-  @doc "Every device the account syncs to, this one first."
-  @spec devices() :: [map()]
-  def devices do
-    [
-      %{
-        icon: "phone_iphone",
-        title: "iPhone 16 Pro",
-        sub: "This device · synced 2 min ago"
-      },
-      %{icon: "tablet_mac", title: "iPad Air", sub: "Synced yesterday"},
-      %{icon: "tv", title: "Apple TV", sub: "Detects playback only"}
-    ]
-  end
-
   @doc """
-  The permissions, each with the feature that needs it.
+  The permissions, each stating its purpose before anything is asked.
 
-  A row carries `pill` when the permission has never been requested, `toggle`
-  once it has — so the screen can say "not yet asked" honestly instead of
-  drawing an off switch that implies a refusal.
+  Exactly what `AndroidManifest.xml` declares and Kati uses. The drawing's
+  Photos, Microphone and Local network rows are gone: `READ_MEDIA_IMAGES`,
+  `RECORD_AUDIO` and the Bluetooth permissions were never requested (K-30,
+  K-31 removed the surfaces that would have needed them), so a row for any of
+  them asks the user about something Kati cannot do.
+
+  `capability` is what `Kati.Permissions.status/1` reads. The trailing control
+  is decided from that answer at render time rather than stored here — a
+  permission changes in system settings while Kati is backgrounded, which is
+  the normal way it changes, so a copy kept in a sample would be a lie exactly
+  when it matters.
   """
   @spec permissions() :: [map()]
   def permissions do
@@ -65,32 +78,58 @@ defmodule Kati.Account.Sample do
       %{
         icon: "notifications",
         title: "Notifications",
-        sub: "Not yet asked — only when you turn one on",
-        pill: "Allow"
+        capability: :notifications,
+        sub: "Only when you turn one on.",
+        # Android 13 made this a runtime permission, and a denial is not fatal:
+        # screen 25's inbox card is the degraded path, so the row says so
+        # rather than leaving the user to discover it.
+        denied_sub: "Turned off. New episodes will still appear in your inbox."
       },
       %{
         icon: "calendar_month",
         title: "Calendars",
-        sub: "Read + write · 3 accounts",
-        toggle: true
+        capability: :calendar,
+        # READ_CALENDAR only. WRITE_CALENDAR is not declared, which is why
+        # `Kati.Sync.Adapter.DeviceProvider` reports `writable: false` — so the
+        # row promises reading and nothing else.
+        sub: "To show your appointments beside your episodes. Kati only reads them.",
+        denied_sub: "Turned off. Your episodes will show without your appointments."
       },
       %{
-        icon: "photo_camera",
-        title: "Photos",
-        sub: "Only when you pick a poster",
-        toggle: true
+        icon: "schedule",
+        title: "Alarms and reminders",
+        capability: :exact_alarms,
+        sub: "So a reminder set for 21:00 arrives at 21:00.",
+        denied_sub: "Turned off. Reminders will arrive late, when the phone next wakes."
+      }
+    ]
+  end
+
+  @doc """
+  What Kati asks for by being installed, stated as fact.
+
+  These have no runtime state to read and no dialog behind them — they are
+  granted by being declared. Drawing a control for them would be a switch that
+  cannot move, so the screen states them and moves on.
+  """
+  @spec install_permissions() :: [map()]
+  def install_permissions do
+    [
+      %{
+        icon: "public",
+        title: "Internet",
+        sub: "To look up what you are watching. Nothing about you is sent."
       },
       %{
-        icon: "mic",
-        title: "Microphone",
-        sub: "Voice quick-add only",
-        toggle: false
+        icon: "history",
+        title: "Start at boot",
+        sub:
+          "Android drops pending alarms when the phone restarts. This puts your reminders back."
       },
       %{
-        icon: "sensors",
-        title: "Local network",
-        sub: "Finds Chromecast for auto-detect",
-        toggle: true
+        icon: "notifications_active",
+        title: "Vibrate",
+        sub: "So a reminder can be felt, not just seen."
       }
     ]
   end
@@ -99,12 +138,9 @@ defmodule Kati.Account.Sample do
   @spec data() :: [map()]
   def data do
     [
-      %{
-        icon: "analytics",
-        title: "Share anonymous usage",
-        sub: "Off",
-        toggle: false
-      },
+      # No "Share anonymous usage" row. With no server it had nowhere to send
+      # anything, so an off switch was a control over a thing that did not
+      # exist — the privacy note says it in one sentence instead.
       %{icon: "delete_forever", title: "Delete everything", sub: "Cannot be undone"}
     ]
   end

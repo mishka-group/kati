@@ -72,7 +72,6 @@ defmodule Kati.Screens.Account do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Account.Sample
-  alias Kati.Components.MishkaAvatar
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaSwitch
@@ -98,11 +97,12 @@ defmodule Kati.Screens.Account do
       >
         {Kati.Screens.Account.header()}
         {Kati.Screens.Account.title()}
-        {Kati.Screens.Account.identity(a)}
-        {UI.eyebrow("Devices")}
-        {Kati.Screens.Account.list(a.devices, 22, "device_")}
-        {UI.eyebrow("Permissions")}
-        {Kati.Screens.Account.list(a.permissions, 22, "perm_")}
+        {UI.eyebrow("Your data lives here")}
+        {Kati.Screens.Account.storage(a.storage)}
+        {UI.eyebrow("What Kati is allowed to do")}
+        {Kati.Screens.Account.list(Kati.Screens.Account.permission_rows(a.permissions), 22, "perm_")}
+        {Kati.Screens.Account.quiet_eyebrow("What it asks for by being installed")}
+        {Kati.Screens.Account.list(a.install, 22, "install_")}
         {Kati.Screens.Account.quiet_eyebrow("Privacy")}
         {Kati.Screens.Account.privacy(a)}
         {Kati.Screens.Account.list(a.data, 0, "data_")}
@@ -179,7 +179,7 @@ defmodule Kati.Screens.Account do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Account"
+        text="This device"
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
@@ -188,7 +188,7 @@ defmodule Kati.Screens.Account do
       />
       <Spacer size={5} />
       <Text
-        text="sync & access"
+        text="nothing leaves it unless you send it"
         font_family="mono"
         text_size={11}
         text_color={Palette.muted()}
@@ -220,10 +220,15 @@ defmodule Kati.Screens.Account do
     """
   end
 
-  @doc false
-  def identity(a) do
-    i = a.identity
+  @doc """
+  Where the data is, what it weighs, and how it leaves.
 
+  Replaces the account card, which said *"Signed in with Apple · relay address
+  · no email shared"* above three syncing devices. Kati has no account, no
+  server and nothing to sync with, so the card states the model positively
+  rather than listing what is missing.
+  """
+  def storage(storage) do
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -231,98 +236,85 @@ defmodule Kati.Screens.Account do
         background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
-        padding={22}
+        padding={17}
       >
-        <Row fill_width={true} align="center">
-          <Spacer weight={1.0} />
-          {Kati.Screens.Account.avatar(i)}
-          <Spacer weight={1.0} />
-        </Row>
-        <Spacer size={14} />
         <Text
-          text={i.name}
-          text_size={18}
+          text={storage.headline}
+          text_size={15}
           font_weight="bold"
-          letter_spacing={-0.025}
+          letter_spacing={-0.02}
           text_color={:on_surface}
-          text_align="center"
         />
-        <Spacer size={5} />
+        <Spacer size={7} />
         <Text
-          text={i.relay}
-          font_family="mono"
-          text_size={10.5}
-          text_color={Palette.muted()}
-          text_align="center"
-          max_lines={1}
+          text={storage.body}
+          text_size={12.5}
+          line_height={1.5}
+          text_color={Palette.ink_soft()}
         />
-        <Spacer size={16} />
-        <Row fill_width={true} align="center">
-          {i.actions
-           |> Enum.map(fn label -> Kati.Screens.Account.action(label) end)
-           |> Enum.intersperse(Kati.Screens.Account.action_gap())}
-        </Row>
       </Column>
-      <Spacer size={22} />
+      <Spacer size={14} />
+      {Kati.Screens.Account.list(Enum.map(storage.rows, &Kati.Screens.Account.storage_row/1), 22, "storage_")}
     </Column>
     """
   end
 
+  @doc false
+  def storage_row(%{value: nil} = row), do: %{icon: row.icon, title: row.title, sub: ""}
+
+  def storage_row(row) do
+    %{icon: row.icon, title: row.title, sub: row.value, mono_sub: true, warn: row[:warn] == true}
+  end
+
   @doc """
-  The 64pt face, drawn by `Kati.Components.MishkaAvatar`.
+  The permission rows, with their trailing control decided by what the platform
+  says right now.
 
-  A circular image with a fill behind it for when there is no image is the
-  whole of what an avatar is, so the two clauses this used to carry collapse
-  into one call: the component takes `src` as `nil` and renders the fallback
-  alone, which is exactly what the missing-poster clause drew.
+  `Kati.Permissions.status/1` is read at render rather than stored: a
+  permission changes in system settings while Kati is backgrounded, which is
+  the normal way it changes, so anything remembered is stale exactly when it
+  matters.
 
-  ## Why the pixels do not move
-
-  `shape: :circle` is an exact `size / 2` radius rather than a token, so 64
-  gives 32 — the drawing's own number. With a `src` the component stacks
-  `[fallback, image]` inside a 64x64 `Box`, and the image is the same
-  `width=64 height=64 corner_radius=32 content_mode="fill"` node this wrote by
-  hand, painted over a fallback of identical size and radius; the fallback's
-  `Text` carries no initials, so it contributes no glyph. Without a `src` the
-  fallback stands alone: a 64x64 `Box` at radius 32 filled `#E4E0D9`.
-
-  `initials` is deliberately not passed. The drawing shows a photograph and
-  nothing behind it, and a person's initials over their own face is a detail
-  the export does not contain.
+  Which control a state earns is `Kati.Permissions.affordance/1` — **Allow**
+  where Android will still show the dialog, **Settings** where it will not, and
+  nothing at all once granted. An Allow button on a permanently denied
+  permission is a control that silently does nothing.
   """
-  def avatar(i) do
-    MishkaAvatar.avatar(
-      src: Kati.Design.Images.poster(i.seed),
-      size: 64,
-      shape: :circle,
-      background: Palette.placeholder()
-    )
+  def permission_rows(permissions) do
+    Enum.map(permissions, fn row ->
+      state = Kati.Permissions.status(row.capability)
+
+      base = %{
+        icon: row.icon,
+        title: row.title,
+        sub: Kati.Screens.Account.purpose(row, state)
+      }
+
+      case Kati.Permissions.affordance(state) do
+        :allow -> Map.put(base, :pill, "Allow")
+        :settings -> Map.put(base, :pill, "Settings")
+        # Not nothing, and specifically not a chevron: this screen's own rule
+        # is that a chevron means *leads elsewhere*, and a granted permission
+        # leads nowhere. D-06 asks for a trailing state of Allowed / Not
+        # allowed / Not yet asked, so a granted row states it quietly rather
+        # than borrowing a control's shape.
+        :none -> Map.put(base, :state, Kati.Screens.Account.state_label(state))
+      end
+    end)
   end
 
-  @doc false
-  def action_gap, do: ~MOB"<Spacer size={9} />"
+  @doc """
+  A row's second line: its purpose before anything is asked, and what is lost
+  once it is refused.
 
-  @doc false
-  def action(label) do
-    ~MOB"""
-    <Box weight={1.0} height={42} corner_radius={21} background={Palette.paper()} align="center">
-      <Text
-        text={label}
-        text_size={12.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
-    </Box>
-    """
-  end
+  The purpose comes first and is drawn whether or not the permission is held —
+  that is the part of screen 40 the ticket asks to keep intact, and the reason
+  is that a user deciding whether to grant something needs the sentence before
+  the prompt, not after it.
+  """
+  def purpose(row, state) when state in [:denied, :blocked], do: row.denied_sub
+  def purpose(row, _state), do: row.sub
 
-  # One card recipe for all three lists — the drawing uses the same 4/15 card
-  # and the same 13pt rows for devices, permissions and the privacy pair.
-  #
-  # `prefix` names which list a tap came from, so one row recipe can serve
-  # three lists whose rows mean different things: "perm_2" and "data_0" reach
-  # different collections in `handle_tap/2`.
   @doc false
   def list(rows, gap, prefix) do
     last = length(rows) - 1
@@ -370,7 +362,13 @@ defmodule Kati.Screens.Account do
             max_lines={1}
           />
           <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+          <Text
+            text={row.sub}
+            text_size={11.5}
+            line_height={1.35}
+            text_color={Palette.sub()}
+            max_lines={2}
+          />
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Account.trailing(row)}
@@ -409,6 +407,7 @@ defmodule Kati.Screens.Account do
   def trailing(row) do
     cond do
       Map.has_key?(row, :pill) -> Kati.Screens.Account.pill(row.pill)
+      Map.has_key?(row, :state) -> Kati.Screens.Account.state_mark(row.state)
       Map.has_key?(row, :toggle) -> Kati.Screens.Account.toggle(row.toggle)
       # `rail_idle`, which is right by value and wrong by name: the token whose
       # MEANING is "a faint chevron" is `tertiary`, but its light value is
@@ -436,6 +435,30 @@ defmodule Kati.Screens.Account do
     if Map.has_key?(row, :toggle) or Map.has_key?(row, :pill) do
       {self(), String.to_atom(prefix <> Integer.to_string(i))}
     end
+  end
+
+  @doc false
+  def state_label(:granted), do: "Allowed"
+  def state_label(:unknown), do: "Not available here"
+  def state_label(_state), do: ""
+
+  @doc """
+  A granted permission's trailing state: mono, quiet, and not a control.
+
+  An empty label draws nothing at all rather than an empty pill.
+  """
+  def state_mark(""), do: ~MOB"<Spacer size={0} />"
+
+  def state_mark(label) do
+    ~MOB"""
+    <Text
+      text={label}
+      font_family="mono"
+      text_size={10.5}
+      text_color={Palette.rail_idle()}
+      max_lines={1}
+    />
+    """
   end
 
   @doc """

@@ -126,6 +126,22 @@ static ERL_NIF_TERM kb_notify_status(ErlNifEnv *env, int argc, const ERL_NIF_TER
     return kati_bridge_call(env, "katiNotifyStatus", "()Ljava/lang/String;", NULL, NULL);
 }
 
+/* ── #9: reading a permission, which Mob can only request ────────────────── */
+
+static ERL_NIF_TERM kb_permission_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *cap;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    cap = kati_take_cstr(env, argv[0]);
+    if (cap == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call(env, "katiPermissionStatus", "(Ljava/lang/String;)Ljava/lang/String;",
+                             cap, NULL);
+    kati_free_cstr(cap);
+    return reply;
+}
+
 /* ── #58: the periodic refresh worker ────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -203,6 +219,12 @@ static ERL_NIF_TERM kb_notify_cancel(ErlNifEnv *env, int argc, const ERL_NIF_TER
     return kb_unavailable(env);
 }
 
+static ERL_NIF_TERM kb_permission_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
 static ERL_NIF_TERM kb_notify_status(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     (void)argc;
     (void)argv;
@@ -230,6 +252,7 @@ static ErlNifFunc nif_funcs[] = {
     {"notify_arm", 1, kb_notify_arm, 0},
     {"notify_cancel", 1, kb_notify_cancel, 0},
     {"notify_status", 0, kb_notify_status, 0},
+    {"permission_status", 1, kb_permission_status, 0},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

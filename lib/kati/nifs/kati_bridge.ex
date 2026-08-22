@@ -111,6 +111,19 @@ defmodule Kati.Nifs.KatiBridge do
   @spec notify_status() :: binary()
   def notify_status, do: :erlang.nif_error(:nif_not_loaded)
 
+  # ── #9: reading a permission ────────────────────────────────────────────
+
+  @doc """
+  `"ok:granted"` or `"ok:denied:<rationale>"` for one capability.
+
+  The read `Mob.Permissions` does not have. `rationale` is Android's
+  `shouldShowRequestPermissionRationale`, which is false BOTH for a permission
+  never asked for and one denied permanently — see `Kati.Permissions` for how
+  the two are told apart.
+  """
+  @spec permission_status(binary()) :: binary()
+  def permission_status(_capability), do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """
