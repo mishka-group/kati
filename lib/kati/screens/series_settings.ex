@@ -74,20 +74,28 @@ defmodule Kati.Screens.SeriesSettings do
       is now a matter of nothing writing a season or an episode row rather than
       of nowhere to put one. Frozen, the two lines are sentences about a season
       this show may not have and a position the user is not at.
-    * **The referent cannot be picked safely yet, and the test suite proves
-      it.** Nothing hands this screen a show — `Kati.Screens.Series` pushes it
-      from its `⋯` with no title attached — so the referent would be the newest
-      tracked series, exactly as `Kati.Screens.Film` takes the newest tracked
-      film. The difference is what is in the database when the sweeps run:
-      `Kati.Notifications.Sources.MediaTest` creates real `:tv` tracked rows
-      through `Ash.create!` and has no `on_exit` that removes them, so after it
-      runs there is always a tracked series to find. `Kati.ScreenDesignLiteralTest`
-      renders every screen against that same shared file, so this screen would
-      take the real path or the drawn one depending on where `--seed` put the
-      two modules — a coin flip, not a flake. (`Kati.Screens.Film` is unaffected:
-      every module that writes a `:movie` tracked row wipes it again.) The fix
-      is one `on_exit` in a file this round does not own, and it has to land
-      before the referent here can be trusted.
+    * ~~**The referent cannot be picked safely yet.**~~ **Resolved.** This said
+      that `Kati.Notifications.Sources.MediaTest` created real `:tv` tracked
+      rows and never removed them, so a shared-file sweep like
+      `Kati.ScreenDesignLiteralTest` would find a tracked series or not
+      depending on where `--seed` put the two modules — a coin flip rather than
+      a flake. That module now carries the `on_exit` the entry asked for, so
+      the referent could be picked the way `Kati.Screens.Film` picks its own:
+      the newest tracked series. Kept rather than deleted because it is the one
+      of the three that a reader would otherwise re-derive from scratch.
+
+  So one blocker stands, and it is the one that decides the screen. Blocker two
+  has also softened — the season and episode tables exist since
+  `20260821231241_media_seasons_and_episodes`, so its two sub-lines want a
+  writer rather than a schema. What has not moved is the first: half of this
+  screen would become the user's own and half would stay a picture, and
+  `Kati.Screens.Series` rejects exactly that arrangement because half real
+  reads as fully real.
+
+  That is also why the controls here carry no `on_tap` at all. A switch that
+  flips and forgets is not a smaller version of a switch that works — it is a
+  screen that lies about having saved something, which is worse than one that
+  visibly does nothing.
   """
   use Kati.Screens.Pushed, back: "Series"
 

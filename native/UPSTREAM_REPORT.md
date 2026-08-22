@@ -191,6 +191,60 @@ wants to pass an accessibility review.
 
 ---
 
+## 9. `Mob.Permissions` can request a permission and cannot read one
+
+`Mob.Permissions.request/2` raises the dialog and delivers
+`{:permission, capability, :granted | :denied}`. There is no matching read —
+nothing in Mob answers *is `:calendar` granted right now*.
+
+Any screen that draws a permission row therefore draws a guess. Kati's screen
+40 lists what the app is allowed to do, and its own moduledoc had to record
+that its switches were pictures: *"a switch position is a read, not a request"*.
+Worse than the gap being missing is that a remembered answer is wrong exactly
+when it matters — a permission can be changed in system settings while the app
+is backgrounded, which is the normal way permissions get revoked, so any
+app-local copy is stale precisely at the moment the user looks.
+
+Kati added `K-33 permission-status`. Three answers rather than two, because
+Android's are not symmetric:
+
+* `granted` — `checkSelfPermission` says so.
+* `denied:true` — refused once; `shouldShowRequestPermissionRationale` is true,
+  so requesting again shows the dialog.
+* `denied:false` — **never asked, or refused permanently.** Android reports both
+  identically, so the caller has to disambiguate with its own record of having
+  asked.
+
+That third case is the one that matters on screen: once permanently denied,
+`request/2` will not re-prompt, so the row must offer a deep link to system
+settings rather than an Allow button that silently does nothing. Mob already
+documents that behaviour — *"Once denied, `request/2` won't re-prompt; `:denied`
+still fires so you can deep-link to Settings"* — which is precisely the case an
+app cannot detect without this read.
+
+A `Mob.Permissions.status/1` returning that trio would retire the whole fence.
+The mapping from capability to Android permission already exists in
+`request_permission`; Kati had to extract it so a read and a request could not
+disagree about what `:calendar` means.
+
+---
+
+## 10. Not a Mob bug — a `mishka_chelekom` / `igniter` one, recorded here because it stopped work
+
+`mix mishka.ui.gen.mob` hung: ~90% CPU, no output, no component, indefinitely.
+The task listed **its own name** in `composes:`, and
+`Igniter.Util.Info.recursively_compose_schema/4` walks that list with no
+visited set. Each level merges a keyword list one entry longer than the last,
+which is why a stack sample showed binary and list building rather than IO.
+
+Fixed in mishka_chelekom by removing the self-reference — 23 minutes of not
+terminating became 4.4 seconds. But a self-reference in `composes:` is an easy
+authoring mistake and Igniter answers it with an unkillable spin rather than an
+error. **A visited set in `recursively_compose_schema/4` would make it a clear
+message.** Worth filing against `igniter` rather than `mob`.
+
+---
+
 ## Smaller, same root cause
 
 * **`build.zig` from mob_new 0.4.20 has no x86_64 arm**, yet

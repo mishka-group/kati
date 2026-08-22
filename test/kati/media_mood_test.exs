@@ -19,6 +19,44 @@ defmodule Kati.MediaMoodTest do
   alias Kati.Media.Mood
   alias Kati.Media.WarningPreference
 
+  # Every row this file writes is removed again, and that is not tidiness.
+  # `Kati.ScreenDesignLiteralTest` renders screens 05, 07 and 08 against this
+  # same shared database file and each falls back to its drawing only while the
+  # tables are empty. A `:movie` tracked row left behind here makes screen 08
+  # take the real path instead, and the drawing's literals stop appearing — a
+  # failure that lands on a file this one never touched, and only for the seeds
+  # that order the two modules the wrong way round.
+  #
+  # `Kati.Screens.SeriesSettings`' moduledoc records the same hazard from the
+  # other side: a coin flip, not a flake.
+  @prefix "mood-test-"
+
+  setup do
+    on_exit(&delete_rows!/0)
+    :ok
+  end
+
+  defp delete_rows! do
+    # Warnings first: the foreign key refuses the delete below otherwise. Raw
+    # SQL because this runs from `on_exit`, after the test process is gone.
+    Kati.Repo.query!(
+      """
+      DELETE FROM media_content_warnings
+      WHERE tracked_title_id IN (SELECT id FROM tracked_titles WHERE source_id LIKE ?1)
+      """,
+      [@prefix <> "%"]
+    )
+
+    Kati.Repo.query!(
+      "DELETE FROM media_watches WHERE tracked_title_id IN " <>
+        "(SELECT id FROM tracked_titles WHERE source_id LIKE ?1)",
+      [@prefix <> "%"]
+    )
+
+    Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
+    :ok
+  end
+
   # `source` and `source_id` are required — a tracked title is always something
   # a provider named, even when the user typed the name.
   defp tracked_title(attrs) do
@@ -27,7 +65,7 @@ defmodule Kati.MediaMoodTest do
       :create,
       Enum.into(attrs, %{
         source: :tmdb,
-        source_id: "mood-#{System.unique_integer([:positive])}"
+        source_id: @prefix <> "#{System.unique_integer([:positive])}"
       })
     )
     |> Ash.create!()
