@@ -99,15 +99,16 @@ defmodule Kati.Screens.Fa do
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme.Palette
 
-  # The four roots, in the order the bar draws them. `Kati.Screens.Stats` is
-  # the English root standing in for drawing 61 (آمار) until it is built: a
-  # tab that does nothing reads as a broken bar, and this at least arrives
-  # somewhere. Swap the module when 61 lands; nothing else changes.
+  # The four roots, in the order the bar draws them. All four are Persian: the
+  # آمار tab stood in with `Kati.Screens.Stats` while drawing 61 was unbuilt,
+  # on the reasoning that a tab going nowhere reads as a broken bar. 61 has
+  # landed, so the stand-in is gone — it was the one tab that changed the
+  # app's language out from under the reader, and RTL with it.
   @roots [
     %{id: :home, icon: "home", screen: Kati.Screens.HomeFa},
     %{id: :calendar, icon: "calendar_month", screen: Kati.Screens.ScheduleFa},
     %{id: :library, icon: "grid_view", screen: Kati.Screens.LibraryFa},
-    %{id: :stats, icon: "bar_chart_4_bars", screen: Kati.Screens.Stats}
+    %{id: :stats, icon: "bar_chart_4_bars", screen: Kati.Screens.StatsFa}
   ]
 
   @doc "The four roots of the Persian shell."

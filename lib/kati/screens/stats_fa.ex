@@ -25,9 +25,11 @@ defmodule Kati.Screens.StatsFa do
   without touching `Kati.Shell` or the roots that share it. The dock itself
   still comes from the shell — there is only one dock.
 
-  Root switching and the FAB are re-stated here rather than inherited from
-  `Kati.Screens.Root`, whose `render/1` is not overridable. They behave
-  identically; `Kati.Shell.screen_for/1` remains the single routing table.
+  Root switching and the FAB are delegated to `Kati.Screens.Fa.dock_tap/3`
+  rather than inherited from `Kati.Screens.Root`, whose `render/1` is not
+  overridable. `Kati.Screens.Fa.roots/0` is the routing table, as it is for the
+  other three Persian roots — not `Kati.Shell.screen_for/1`, which names the
+  English four and would carry the reader out of Persian on a dock tap.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -510,23 +512,15 @@ defmodule Kati.Screens.StatsFa do
     """
   end
 
-  def handle_info({:tap, :fab}, socket) do
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
-  end
-
-  def handle_info({:tap, tag}, socket) do
-    case Atom.to_string(tag) do
-      "root_stats" ->
-        {:noreply, socket}
-
-      "root_" <> id ->
-        target = String.to_existing_atom(id)
-        {:noreply, Mob.Socket.reset_to(socket, Kati.Shell.screen_for(target))}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
+  # The dock's four tabs and the FAB go to `Kati.Screens.Fa.dock_tap/3`, which
+  # is where the other three Persian roots send theirs.
+  #
+  # This screen used to answer them here against `Kati.Shell.screen_for/1`,
+  # and that table is the ENGLISH one: tapping home, calendar or library from
+  # آمار landed on screen 01, 02 or 03 and left the app in English, LTR, with
+  # no way back to Persian except Settings. The tags are identical either way,
+  # so nothing about the drawn bar changes — only which four screens it means.
+  def handle_info({:tap, tag}, socket), do: Kati.Screens.Fa.dock_tap(tag, :stats, socket)
 
   def handle_info(_message, socket), do: {:noreply, socket}
 end
