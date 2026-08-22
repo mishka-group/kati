@@ -28,19 +28,22 @@ defmodule Kati.ComponentPolicyTest do
            "the prefix must be recorded, or a regeneration will not match"
   end
 
-  test "no Kati code calls the :anchored node type" do
-    # popover/tooltip/preview_card emit %{type: :anchored}, which the published
-    # mob 0.7.20 renderer does not know. On Android the dispatch `when` has no
-    # `else` arm, so the node draws NOTHING — no crash, no log. On iOS it falls
-    # through to a column and becomes an in-flow accordion.
+  test "only Kati.UI.Menu reaches the :anchored node type" do
+    # This was a flat ban, on the grounds that the published mob 0.7.20
+    # renderer does not know `:anchored`: on Android the dispatch `when` has no
+    # `else` arm, so the node draws NOTHING — no crash, no log — and on iOS it
+    # falls through to a column and becomes an in-flow accordion.
     #
-    # Generated `anchored.ex`/`popover.ex` may exist as `necessary:` siblings.
-    # That is fine as dead code; this lint is what keeps it dead.
-    # The three library components that genuinely need `:anchored` are
-    # quarantined rather than excused: they are copied in so the set is
-    # complete, and they stay unusable until the bridge gains MobAnchored
-    # (Mishka's own commit 2cd3a427 has a working Kotlin port to take). The
-    # rule this test defends is that nothing Kati *renders* reaches for them.
+    # `K-18 anchored-node` lifted half of that. Kati's Android bridge carries a
+    # real `MobAnchored`, so on the platform Kati ships the node draws a proper
+    # floating window, and `Kati.UI.Menu` is built on it — the overflow menu
+    # that makes seven otherwise-stranded screens reachable.
+    #
+    # The allowance is deliberately one module wide. iOS is still the stock
+    # renderer (`ios/` has no Swift bridge), so every other use would be an
+    # accordion there, and the three library components stay quarantined: they
+    # are copied in so the set is complete, not so they can be rendered.
+    allowed = ~w(menu.ex)
     quarantined = ~w(mishka_popover.ex mishka_preview_card.ex mishka_tooltip.ex)
 
     offenders =
@@ -48,14 +51,33 @@ defmodule Kati.ComponentPolicyTest do
           not String.contains?(path, "components/anchored.ex"),
           not String.contains?(path, "components/popover.ex"),
           Path.basename(path) not in quarantined,
+          Path.basename(path) not in allowed,
           body = strip_comments(File.read!(path)),
           body =~ ~r/Anchored\.(anchor|closed)\s*\(/ do
         Path.relative_to(path, @lib)
       end
 
     assert offenders == [],
-           "these call the :anchored node type, which renders nothing on a " <>
-             "stock Android bridge:\n" <> Enum.join(offenders, "\n")
+           "these call the :anchored node type. Only Kati.UI.Menu may — " <>
+             "everywhere else it is an accordion on iOS:\n" <> Enum.join(offenders, "\n")
+  end
+
+  test "the bridge still renders the node Kati.UI.Menu depends on" do
+    # The other half of the allowance, and the one that fails silently. If
+    # K-18 is dropped from MobBridge.kt — a bad merge after a mob bump, a
+    # regenerated bridge — every overflow menu in the app goes back to drawing
+    # nothing at all, with no crash and no log, and seven screens become
+    # unreachable again. Nothing else in the suite would notice.
+    bridge =
+      Path.expand("../../android/app/src/main/java/com/example/kati/MobBridge.kt", __DIR__)
+
+    src = File.read!(bridge)
+
+    assert src =~ ~s|"anchored"|,
+           "K-18 is gone: the bridge no longer dispatches the anchored node"
+
+    assert src =~ "MobAnchored",
+           "K-18 is gone: MobAnchored is not in the bridge"
   end
 
   test "generated components keep the prefix the policy records" do

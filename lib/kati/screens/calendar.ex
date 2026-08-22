@@ -35,7 +35,7 @@ defmodule Kati.Screens.Calendar do
   @impl true
   def load(socket) do
     date = Kati.Time.today()
-    Mob.Socket.assign(socket, date: date, rows: day_rows(date), filter: "All")
+    Mob.Socket.assign(socket, date: date, rows: day_rows(date), filter: "All", menu?: false)
   end
 
   @doc """
@@ -149,7 +149,7 @@ defmodule Kati.Screens.Calendar do
         padding_top={64}
         padding_bottom={132}
       >
-        {Kati.Screens.Calendar.header(date, rows)}
+        {Kati.Screens.Calendar.header(date, rows, assigns.menu?)}
         {Kati.Screens.Calendar.month_row(date)}
         {Kati.Screens.Calendar.day_strip(date)}
         {Kati.Screens.Calendar.rule()}
@@ -162,7 +162,7 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc false
-  def header(date, rows) do
+  def header(date, rows, menu?) do
     subtitle =
       "#{Kati.Time.day_name(date)} #{date.day} #{Kati.Time.month_name(date.month)} · " <>
         "#{length(rows)} #{if length(rows) == 1, do: "item", else: "items"}"
@@ -190,7 +190,7 @@ defmodule Kati.Screens.Calendar do
         </Column>
         {Kati.Screens.Calendar.disc("search", :open_search)}
         <Spacer size={9} />
-        {Kati.Screens.Calendar.disc("more_horiz", :open_menu)}
+        {Kati.Screens.Calendar.menu(menu?)}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -210,6 +210,30 @@ defmodule Kati.Screens.Calendar do
   # the `<Row>` the component wraps children in, which hugs its single `<Text>`
   # and is centred by the same `Alignment.Center` — centring a hugging Row that
   # holds one glyph lands the glyph where centring the glyph did.
+  @doc """
+  The ⋯ disc and the menu behind it.
+
+  The drawing puts a `more_horiz` in screen 02's header and draws nothing on
+  the other side of it. It used to go straight to the agenda, which made one
+  destination reachable and hid two: screens 18 and 52 were gallery-only.
+
+  Quick add sits between them because it is the only row that writes something
+  — the other two change what you are looking at.
+  """
+  def menu(open?) do
+    Kati.UI.Menu.overflow(
+      Kati.Screens.Calendar.disc("more_horiz", :toggle_menu),
+      open?,
+      [
+        Kati.UI.Menu.item("density_medium", "Agenda", :open_agenda),
+        Kati.UI.Menu.item("bolt", "Quick add", :open_quick_add),
+        Kati.UI.Menu.rule(),
+        Kati.UI.Menu.item("restaurant", "Meals on the calendar", :open_meals_day)
+      ],
+      dismiss: :close_menu
+    )
+  end
+
   @doc false
   def disc(icon, tag) do
     MishkaActionIcon.action_icon(
@@ -953,8 +977,17 @@ defmodule Kati.Screens.Calendar do
   def handle_tap(:open_month, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MonthGrid)}
 
-  def handle_tap(:open_menu, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Agenda)}
+  def handle_tap(:toggle_menu, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
+
+  def handle_tap(:close_menu, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+
+  def handle_tap(:open_agenda, socket), do: {:noreply, pick(socket, Kati.Screens.Agenda)}
+
+  def handle_tap(:open_quick_add, socket), do: {:noreply, pick(socket, Kati.Screens.QuickAdd)}
+
+  def handle_tap(:open_meals_day, socket), do: {:noreply, pick(socket, Kati.Screens.MealsDay)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
@@ -1033,5 +1066,14 @@ defmodule Kati.Screens.Calendar do
       _ ->
         {:noreply, socket}
     end
+  end
+
+  # Close the menu, then go. The socket this returns is what `Mob.Screen` saves
+  # onto the nav history, so a menu left open is a menu that reopens itself
+  # every time the user comes back from what it opened.
+  defp pick(socket, module) do
+    socket
+    |> Mob.Socket.assign(:menu?, false)
+    |> Mob.Socket.push_screen(module)
   end
 end

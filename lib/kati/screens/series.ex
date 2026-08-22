@@ -133,7 +133,11 @@ defmodule Kati.Screens.Series do
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :series, series())}
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:series, series())
+     |> Mob.Socket.assign(:menu?, false)}
   end
 
   @doc """
@@ -534,7 +538,7 @@ defmodule Kati.Screens.Series do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Series.chrome()}
+      {Kati.Screens.Series.chrome(assigns.menu?)}
     </Box>
     """
   end
@@ -609,7 +613,7 @@ defmodule Kati.Screens.Series do
   # The floating chrome. `arrow_back_ios_new` rather than a chevron, because
   # that is the glyph the drawing names.
   @doc false
-  def chrome do
+  def chrome(menu?) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     lift = "0 6 16 -8 #991A1917"
@@ -638,7 +642,7 @@ defmodule Kati.Screens.Series do
           />
         </Row>
         <Spacer weight={1.0} />
-        {Kati.Screens.Series.more_disc(fill, lift)}
+        {Kati.Screens.Series.more_disc(fill, lift, menu?)}
       </Row>
     </Box>
     """
@@ -658,17 +662,37 @@ defmodule Kati.Screens.Series do
   # inside a SQUARE `size x size` box, so a 42-tall pill 100-odd wide has no
   # shape to be built out of.
   @doc false
-  def more_disc(fill, lift) do
-    MishkaActionIcon.action_icon(
+  def more_disc(fill, lift, menu?) do
+    trigger =
+      MishkaActionIcon.action_icon(
+        [
+          size: 42,
+          shape: :circle,
+          variant: :filled,
+          background: fill,
+          shadow: lift,
+          on_tap: :toggle_menu
+        ],
+        [Kati.UI.symbol("more_horiz", size: 21)]
+      )
+
+    # The drawing puts a ⋯ here and never draws what it opens; three screens
+    # were stranded behind it. `on_tap` used to go straight to screen 35, which
+    # made the button honest about one destination and silent about the other
+    # two — 14 and 34 were reachable only from the gallery.
+    #
+    # Order is the drawing's own sense of scope: what this show IS, then how
+    # its episodes are numbered, then what Kati does about it.
+    Kati.UI.Menu.overflow(
+      trigger,
+      menu?,
       [
-        size: 42,
-        shape: :circle,
-        variant: :filled,
-        background: fill,
-        shadow: lift,
-        on_tap: :open_settings
+        Kati.UI.Menu.item("info", "Show details", :show_details),
+        Kati.UI.Menu.item("checklist", "Episode order", :episode_order),
+        Kati.UI.Menu.rule(),
+        Kati.UI.Menu.item("tune", "Show settings", :open_settings)
       ],
-      [Kati.UI.symbol("more_horiz", size: 21)]
+      dismiss: :close_menu
     )
   end
 
@@ -1013,8 +1037,20 @@ defmodule Kati.Screens.Series do
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
+  def handle_info({:tap, :toggle_menu}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
+
+  def handle_info({:tap, :close_menu}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+
+  def handle_info({:tap, :show_details}, socket),
+    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesMeta)}
+
+  def handle_info({:tap, :episode_order}, socket),
+    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.Season)}
+
   def handle_info({:tap, :open_settings}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesSettings)}
+    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesSettings)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
@@ -1055,5 +1091,19 @@ defmodule Kati.Screens.Series do
   defp toggle(s, index) do
     flip = fn ep -> %{ep | watched: not ep.watched} end
     recount(%{s | episodes: List.update_at(s.episodes, String.to_integer(index), flip)})
+  end
+
+  @doc """
+  Close the menu, then go.
+
+  Both halves matter. The push is the point; closing first is what stops the
+  panel being on screen again when the user comes back — this socket is what
+  `Mob.Screen` saves onto the nav history, so a menu left open is a menu that
+  reopens itself on every return from the screen it opened.
+  """
+  def pick(socket, module) do
+    socket
+    |> Mob.Socket.assign(:menu?, false)
+    |> Mob.Socket.push_screen(module)
   end
 end

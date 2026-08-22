@@ -43,17 +43,32 @@ release adding its own `Dialog` node would collide silently — the dispatch
 
 ## Guardrails
 
-### `:anchored` must not reach a Kati screen
+### `:anchored` may only be reached through `Kati.UI.Menu`
 
 Three Mishka components — `popover`, `tooltip`, `preview_card` — emit
 `%{type: :anchored}`, which the **published** mob 0.7.20 renderer does not know.
-On Android the bridge's `when` has no `else` arm, so such a node draws **nothing
-at all**; on iOS it falls through to a column and becomes an in-flow accordion.
+On Android the stock bridge's `when` has no `else` arm, so such a node draws
+**nothing at all**; on iOS it falls through to a column and becomes an in-flow
+accordion.
 
-`Kati.ComponentPolicyTest` fails the build if `Anchored.anchor` or
-`Anchored.closed` is called anywhere under `lib/`. Note that `popover.ex` and
-`anchored.ex` may still be *generated* as `necessary:` siblings of `menu` —
-that is fine as dead code, and the lint is what keeps it dead.
+This used to be a flat ban. `K-18 anchored-node` lifted half of it: Kati's
+Android bridge now carries a real `MobAnchored`, ported from Mishka's own
+bridge, so on the platform Kati ships the node draws a proper floating window.
+`Kati.UI.Menu` — the overflow menu behind the `more_horiz` on screens 02, 03,
+04, 08 and 43 — is built on it, and seven screens are reachable because of it.
+
+**iOS is still the stock renderer.** `ios/` holds the BEAM entry point and no
+Swift bridge, so an `:anchored` node there is an accordion: the panel pushes
+the page down instead of floating over it. That is a degradation and not a
+blank, and it is the reason this is a narrow allowance rather than a repeal.
+
+`Kati.ComponentPolicyTest` now enforces two things instead of one: that the
+three library components stay quarantined and unreachable from any screen, and
+that `K-18` is still in `MobBridge.kt` — because the moment that patch is
+dropped, every menu in the app goes back to drawing nothing, silently. Note
+that `popover.ex` and `anchored.ex` may still be *generated* as `necessary:`
+siblings of `menu`; that is fine, and the lint is what keeps the three
+components dead.
 
 ### Regeneration must not silently revert Kati's edits
 

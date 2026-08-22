@@ -133,6 +133,22 @@ defmodule Kati.ScreenSweep do
   end
 
   @doc """
+  Every node type Kati can actually draw.
+
+  `Mob.ScreenCase.renderable_types/0` is mob's own set, read off
+  `priv/tags/{ios,android}.txt`, and it is right for a stock bridge. Kati's is
+  not stock: `K-18 anchored-node` adds a real `MobAnchored` to
+  `MobBridge.kt`, which is what `Kati.UI.Menu` — and so every overflow menu in
+  the app — is built on.
+
+  Named once, here, so the exception is a fact about the bridge rather than a
+  string repeated at each assertion. `Kati.ComponentPolicyTest` is what keeps
+  it true: it fails if K-18 leaves the bridge.
+  """
+  @spec renderable_types() :: MapSet.t(atom())
+  def renderable_types, do: MapSet.put(Mob.ScreenCase.renderable_types(), :anchored)
+
+  @doc """
   Run `fun` with `locale` active, restoring the previous locale afterwards.
 
   Costly enough to be worth hoisting: `Kati.Locale` lives in `Mob.State`, which

@@ -89,7 +89,7 @@ defmodule Kati.Screens.Film do
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :film, film())}
+    {:ok, socket |> Mob.Socket.assign(:film, film()) |> Mob.Socket.assign(:menu?, false)}
   end
 
   @doc """
@@ -345,7 +345,7 @@ defmodule Kati.Screens.Film do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Film.chrome()}
+      {Kati.Screens.Film.chrome(assigns.menu?)}
     </Box>
     """
   end
@@ -468,7 +468,7 @@ defmodule Kati.Screens.Film do
   end
 
   @doc false
-  def chrome do
+  def chrome(menu?) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
@@ -481,7 +481,7 @@ defmodule Kati.Screens.Film do
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
         {Kati.Screens.Film.back_pill(back, fill, lift)}
         <Spacer weight={1.0} />
-        {Kati.Screens.Film.more_disc(fill, lift)}
+        {Kati.Screens.Film.more_disc(fill, lift, menu?)}
       </Row>
     </Box>
     """
@@ -552,11 +552,29 @@ defmodule Kati.Screens.Film do
   Row's only child, centred in a Box of the declared size, lands where the bare
   centred Text did.
   """
-  @spec more_disc(non_neg_integer(), String.t()) :: map()
-  def more_disc(fill, lift) do
-    MishkaActionIcon.action_icon(
-      [size: 42, shape: :circle, variant: :filled, background: fill, shadow: lift],
-      [Kati.UI.symbol("more_horiz", size: 21)]
+  @spec more_disc(non_neg_integer(), String.t(), boolean()) :: map()
+  def more_disc(fill, lift, menu?) do
+    trigger =
+      MishkaActionIcon.action_icon(
+        [
+          size: 42,
+          shape: :circle,
+          variant: :filled,
+          background: fill,
+          shadow: lift,
+          on_tap: :toggle_menu
+        ],
+        [Kati.UI.symbol("more_horiz", size: 21)]
+      )
+
+    # This disc carried no tag at all — a ⋯ drawn on the still that answered
+    # nothing. Screen 33 is the write path for the rating screen 08 displays,
+    # and it was reachable only from the gallery.
+    Kati.UI.Menu.overflow(
+      trigger,
+      menu?,
+      [Kati.UI.Menu.item("star", "Log a watch", :log_watch)],
+      dismiss: :close_menu
     )
   end
 
@@ -851,5 +869,19 @@ defmodule Kati.Screens.Film do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  def handle_info({:tap, :toggle_menu}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
+
+  def handle_info({:tap, :close_menu}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+
+  def handle_info({:tap, :log_watch}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.Rating)}
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
 end

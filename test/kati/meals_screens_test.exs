@@ -181,7 +181,7 @@ defmodule Kati.MealsScreensTest do
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Screens.MealsToday))
+      assert_renderable(mount_screen(Screens.MealsToday), extra: [:anchored])
     end
   end
 

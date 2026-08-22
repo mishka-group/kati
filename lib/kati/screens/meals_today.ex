@@ -69,7 +69,8 @@ defmodule Kati.Screens.MealsToday do
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :day, day(Kati.Time.today()))
+  def load(socket),
+    do: Mob.Socket.assign(socket, day: day(Kati.Time.today()), menu?: false)
 
   @doc false
   def content(assigns) do
@@ -84,7 +85,7 @@ defmodule Kati.Screens.MealsToday do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.MealsToday.header()}
+        {Kati.Screens.MealsToday.header(assigns.menu?)}
         {Kati.Screens.MealsToday.title(day)}
         {Kati.Screens.MealsToday.week_strip(day.week)}
         {Kati.Screens.MealsToday.tiles()}
@@ -359,11 +360,13 @@ defmodule Kati.Screens.MealsToday do
   # `Kati.Screens.Pushed` floats the ‹ Health pill over this content. This row
   # reserves its height and carries the week button opposite it.
   @doc false
-  def header do
+  def header(menu?) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
+        {Kati.Screens.MealsToday.menu(menu?)}
+        <Spacer size={9} />
         {Kati.Screens.MealsToday.week_button()}
       </Row>
       <Spacer size={16} />
@@ -383,6 +386,38 @@ defmodule Kati.Screens.MealsToday do
   # family, not the component's own `:lg` Text. A child is wrapped in a `<Row>`
   # that hugs it, inside a Box that already centred it, so the glyph does not
   # move.
+  @doc """
+  The ⋯ disc and the one screen behind it.
+
+  Added to screen 43's header, which the drawing does not draw. The ⋯ that IS
+  drawn on 43 belongs to the next meal's card — it sits beside that meal's
+  title and calorie count — so wiring it here would make a per-meal control do
+  something section-wide. Screen 51's own moduledoc checks all seven sibling
+  drawings glyph by glyph and concludes the entry point is missing from the
+  design rather than from the code; this supplies it.
+  """
+  def menu(open?) do
+    trigger =
+      MishkaActionIcon.action_icon(
+        [
+          size: 44,
+          shape: :circle,
+          variant: :filled,
+          background: Palette.card(),
+          shadow: Theme.shadow_button(),
+          on_tap: :toggle_menu
+        ],
+        [UI.symbol("more_horiz", size: 21)]
+      )
+
+    Kati.UI.Menu.overflow(
+      trigger,
+      open?,
+      [Kati.UI.Menu.item("notifications", "Reminders", :open_reminders)],
+      dismiss: :close_menu
+    )
+  end
+
   @doc false
   def week_button do
     MishkaActionIcon.action_icon(
@@ -1149,6 +1184,19 @@ defmodule Kati.Screens.MealsToday do
 
   def handle_tap(:switch_plan, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Plans)}
+
+  def handle_tap(:toggle_menu, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
+
+  def handle_tap(:close_menu, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+
+  def handle_tap(:open_reminders, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.MealReminders)}
+  end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

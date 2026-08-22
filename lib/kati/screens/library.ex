@@ -55,7 +55,7 @@ defmodule Kati.Screens.Library do
 
   @impl true
   def load(socket),
-    do: Mob.Socket.assign(socket, filter: "All", shelf: "Screen", titles: titles())
+    do: Mob.Socket.assign(socket, filter: "All", shelf: "Screen", titles: titles(), menu?: false)
 
   @doc """
   The shelf the screen renders: the user's library, or the drawing's.
@@ -245,7 +245,7 @@ defmodule Kati.Screens.Library do
         padding_top={64}
         padding_bottom={132}
       >
-        {Kati.Screens.Library.header(titles)}
+        {Kati.Screens.Library.header(titles, assigns.menu?)}
         {Kati.Screens.Library.segments(shelf)}
         {Kati.Screens.Library.quick_tiles()}
         {Kati.Screens.Library.chips(filter, titles)}
@@ -267,7 +267,7 @@ defmodule Kati.Screens.Library do
   end
 
   @doc false
-  def header(titles) do
+  def header(titles, menu?) do
     subtitle = Kati.Screens.Library.subtitle(titles)
 
     ~MOB"""
@@ -294,6 +294,8 @@ defmodule Kati.Screens.Library do
         {Kati.Screens.Library.disc("search", :open_search)}
         <Spacer size={9} />
         {Kati.Screens.Library.disc("sort", :open_sort)}
+        <Spacer size={9} />
+        {Kati.Screens.Library.menu(menu?)}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -308,6 +310,27 @@ defmodule Kati.Screens.Library do
   # reads both as 22.0f. The glyph is a child so `Kati.UI.symbol/2` keeps
   # supplying the Material Symbol at 21; the component's `<Row>` wrapper hugs
   # that single `<Text>` and is centred by the same `Alignment.Center`.
+  @doc """
+  The ⋯ disc, and the only thing behind it.
+
+  A third disc beside search and sort, which screen 03's drawing does not
+  draw — the one addition to a resting screen in this change, and it is here
+  because screen 13's own back pill reads `‹ Library` and no control on 03
+  could open it. The alternative was leaving a finished screen unreachable
+  forever, or hanging it off `sort`, which promises an ordering and would
+  deliver a recommender.
+
+  One item, so the panel is small on purpose. It grows when 03 grows.
+  """
+  def menu(open?) do
+    Kati.UI.Menu.overflow(
+      Kati.Screens.Library.disc("more_horiz", :toggle_menu),
+      open?,
+      [Kati.UI.Menu.item("schedule", "What fits?", :open_what_fits)],
+      dismiss: :close_menu
+    )
+  end
+
   @doc false
   def disc(icon, tag) do
     MishkaActionIcon.action_icon(
@@ -792,6 +815,19 @@ defmodule Kati.Screens.Library do
 
   # One clause for every chip and every segment: the tag carries the label, so
   # a new filter is a data change rather than a code change.
+  def handle_tap(:toggle_menu, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
+
+  def handle_tap(:close_menu, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+
+  def handle_tap(:open_what_fits, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.WhatFits)}
+  end
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}

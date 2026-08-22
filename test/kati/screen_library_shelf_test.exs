@@ -272,7 +272,7 @@ defmodule Kati.ScreenLibraryShelfTest do
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Library))
+      assert_renderable(mount_screen(Library), extra: [:anchored])
     end
   end
 
@@ -402,7 +402,7 @@ defmodule Kati.ScreenLibraryShelfTest do
     end
 
     test "renders a tree the native layer can draw" do
-      assert_renderable(mount_screen(Library))
+      assert_renderable(mount_screen(Library), extra: [:anchored])
     end
   end
 

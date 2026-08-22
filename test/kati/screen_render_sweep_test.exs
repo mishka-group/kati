@@ -82,12 +82,12 @@ defmodule Kati.ScreenRenderSweepTest do
   end
 
   test "every rendered node is a type the native layer can draw" do
-    # `Mob.ScreenCase.renderable_types/0` is the set the ~MOB sigil validates
-    # against — mob's own priv/tags/{ios,android}.txt. A node outside it draws
+    # `Kati.ScreenSweep.renderable_types/0` is mob's set plus the one type
+    # Kati's own bridge adds — `anchored`, via K-18. A node outside it draws
     # NOTHING on Android: no crash, no log, just an absent control. Same class
     # of invisibility `Kati.ComponentPolicyTest` guards for `:anchored`, caught
     # here from the other end — off the rendered tree rather than the source.
-    renderable = Mob.ScreenCase.renderable_types()
+    renderable = ScreenSweep.renderable_types()
 
     offenders =
       ScreenSweep.per_locale(@locales, fn locale ->
