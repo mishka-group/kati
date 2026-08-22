@@ -28,7 +28,12 @@ if [ "$before" -lt "$NEED_MB" ]; then
   # show "0 items" for a reason that has nothing to do with the calendar code.
   # That has been misdiagnosed more than once, so put it back here rather than
   # remembering to do it every time.
-  for perm in android.permission.READ_CALENDAR android.permission.WRITE_CALENDAR; do
+  # POST_NOTIFICATIONS is Android 13+. Without it the notification backend
+  # reports `permitted: false` and arms nothing — silently, since that is the
+  # correct answer to "may I post?" rather than an error. Every deploy would
+  # otherwise turn notifications off and look like a scheduler bug.
+  for perm in android.permission.READ_CALENDAR android.permission.WRITE_CALENDAR \
+              android.permission.POST_NOTIFICATIONS; do
     "$ADB" shell pm grant "$PKG" "$perm" >/dev/null 2>&1 || true
   done
   echo "   re-granted calendar permissions (pm clear revokes them)"
