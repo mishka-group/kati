@@ -37,17 +37,43 @@ defmodule Kati.Screens.LibraryFa do
   نمایش and همه — the pair the drawing shows — so the resting frame is the
   drawing's, and no list is reordered to get there.
 
-  **The chip counts stay as they are drawn.** ۹ · ۴ · ۳ · ۲ describe a library
-  of nine, and `Sample.titles/0` holds the six the grid draws; recomputing
-  them from six would rewrite four numbers the frame is compared against. The
-  counts are copy, so they are left as copy — the chip filters the grid under
-  it, which is the consequence the reader can actually see.
+  **The drawn counts are the drawing's, and only the drawing's.** ۹ · ۴ · ۳ · ۲
+  describe a library of nine where `Sample.titles/0` holds the six the grid
+  draws, so recomputing them *from the sample* would rewrite four numbers the
+  frame is compared against. They are therefore taken from `Sample` verbatim on
+  the path that draws the sample, and computed from the shelf on the path that
+  draws a real library — see `chip_counts/1` and `header_line/1`.
+
+  ## Real data versus the drawing
+
+  The shelf is `Kati.Media`, read through **`Kati.Screens.Library.shelf/0`** —
+  the same fixed set of reads screen 03 makes, not a second copy of them. That
+  is the whole of what "the mirror" means here: one library, read once,
+  presented twice. A second query written out in this file could disagree with
+  03 about what is on the shelf, and the first eviction would be the day it
+  did.
+
+  What this screen adds is the presentation 03 cannot give it: Persian type,
+  Persian digits, and a Persian second line under each poster. `meta/1` derives
+  that line the way `Kati.Screens.Library.tile_meta/1` derives its own — from
+  the status the user set and how far in they are — because those are the two
+  facts the shelf knows. فصل ۲ · ۵ از ۷ is *not* among them: no season and no
+  episode total reach this shelf shape, so the drawing's own second line stays
+  what it always was, copy on `Sample`, and a real row says شروع نشده,
+  تمام‌شده or ۳۷ درصد دیده شده instead.
+
+  A database with no library falls back to `drawn_titles/0` — `Sample`'s six,
+  with the status a real row carries stamped on each so `visible/3` asks one
+  question of both kinds of row. The Sample module is the fallback and the
+  fixture both; it does not go.
   """
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Calendar.Shamsi
   alias Kati.Components.MishkaScrollArea
   alias Kati.Screens.Fa
+  alias Kati.Screens.Library
   alias Kati.Screens.LibraryFa.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -55,12 +81,167 @@ defmodule Kati.Screens.LibraryFa do
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
 
+    # The shelf is read once and the three things it decides are derived from
+    # that one answer: an empty shelf is what makes this the drawing's page
+    # rather than the user's, and asking the store three times could give three
+    # different answers to that one question.
+    shelf = Kati.Screens.LibraryFa.shelf()
+
     socket
-    |> Mob.Socket.assign(:header, Sample.header())
-    |> Mob.Socket.assign(:titles, Sample.titles())
+    |> Mob.Socket.assign(:header, Kati.Screens.LibraryFa.header_line(shelf))
+    |> Mob.Socket.assign(:counts, Kati.Screens.LibraryFa.chip_counts(shelf))
+    |> Mob.Socket.assign(:titles, Kati.Screens.LibraryFa.titles(shelf))
     |> Mob.Socket.assign(:shelf, 0)
     |> Mob.Socket.assign(:filter, 0)
     |> then(&{:ok, &1})
+  end
+
+  @doc """
+  The shelf this screen renders: the user's library, or the drawing's.
+
+  `shelf/0` answers with nothing on a fresh install, and a کتابخانه rendered
+  empty cannot be compared with `.scratch/design/audit/57.png` at all. Same
+  rule `Kati.Screens.Library.titles/0` keeps, for the same reason: *missing
+  data is not a reason for a blank screen*.
+  """
+  @spec titles() :: [map()]
+  def titles, do: titles(shelf())
+
+  @doc """
+  The same choice, over a shelf that has already been read.
+
+  `mount/3` reads the shelf once and asks it three questions, so the branch
+  that decides *drawing or library* has to be one branch — written here, and
+  reached both by the screen and by whatever checks the screen. Two copies of
+  it is how the guard ends up asserting something the screen no longer does.
+  """
+  @spec titles([map()]) :: [map()]
+  def titles([]), do: drawn_titles()
+  def titles(shelf), do: shelf
+
+  @doc """
+  The Screen shelf, in this drawing's shape.
+
+  `Kati.Screens.Library.shelf/0` does the reading — one read per kind, then one
+  for every cache row they name and one for every tick logged against them,
+  rather than an N+1. The cache is reached by `{source, source_id}` as a value
+  pair, and a row whose cache row was evicted is dropped rather than drawn
+  anonymous. Everything below this line is presentation.
+  """
+  @spec shelf() :: [map()]
+  def shelf, do: Enum.map(Library.shelf(), &shaped/1)
+
+  @doc """
+  One shelf row as the grid draws it.
+
+  `progress` goes through `Kati.Screens.Library.fraction/1` so it is always a
+  float the rail can sweep: an unknown ratio is an empty track and a finished
+  title a full one, and neither invents a percentage — `meta/1` says so in
+  words in exactly the case this returns `0.0`.
+  """
+  @spec shaped(map()) :: map()
+  def shaped(row) do
+    %{
+      title: row.title,
+      seed: row.seed,
+      status: row.status,
+      progress: Library.fraction(row),
+      meta: Kati.Screens.LibraryFa.meta(row)
+    }
+  end
+
+  @doc """
+  The Persian line under a poster.
+
+  The counterpart of `Kati.Screens.Library.tile_meta/1`, clause for clause and
+  in the same order: the status the user asserted comes before the fraction
+  that is inferred from it, so a title marked finished says تمام‌شده even when
+  the cache row that would divide its ticks has been evicted. The last clause
+  is the one a fraction cannot describe — `Kati.Media.CachedTitle.ratio/1`
+  answered `nil` because nobody knows how many episodes there are — and it
+  names the state rather than printing a percentage of an unknown total.
+
+  درصد rather than ٪: the sign's side of a number is a bidi argument this line
+  does not need to have, and the word is what a Persian reader reads anyway.
+  """
+  @spec meta(map()) :: String.t()
+  def meta(%{status: :not_started}), do: "شروع نشده"
+  def meta(%{status: :finished}), do: "تمام‌شده"
+
+  def meta(%{progress: p}) when is_float(p) and p > 0.0,
+    do: "#{Shamsi.fa(round(p * 100))} درصد دیده شده"
+
+  def meta(%{status: :paused}), do: "متوقف شده"
+  def meta(%{status: :dropped}), do: "رها شده"
+  def meta(_row), do: "در حال تماشا"
+
+  @doc """
+  The six titles `.scratch/design/screens/57.html` draws, in its own order.
+
+  Stand-in data, and `Kati.Screens.LibraryFa.Sample` says so at length. What is
+  not stand-in is the set of states: three part-watched, two complete and one
+  wish-list title with an empty track, which is every chip the drawing has.
+
+  Each row is given the `status` a real row carries — the mapping
+  `Kati.Screens.Library.drawn_titles/0` makes, and for the same reason: one
+  question, asked of both kinds of row, cannot be answered two different ways.
+  """
+  @spec drawn_titles() :: [map()]
+  def drawn_titles, do: Enum.map(Sample.titles(), &with_status/1)
+
+  defp with_status(%{progress: progress} = row) do
+    status =
+      cond do
+        progress <= 0.0 -> :not_started
+        progress >= 1.0 -> :finished
+        true -> :watching
+      end
+
+    Map.put(row, :status, status)
+  end
+
+  @doc """
+  The header, counted off the shelf that is actually drawn.
+
+  The drawing's own ۹ · ۴ belong to the drawing, so the sample path answers
+  with `Sample.header/0` verbatim rather than with six recounted as nine. A
+  real shelf is counted, because a line that disagrees with the grid under it
+  is worse than a line that changes.
+  """
+  @spec header_line([map()]) :: map()
+  def header_line([]), do: Sample.header()
+
+  def header_line(shelf) do
+    watching = Enum.count(shelf, &(&1.status == :watching))
+
+    %{
+      title: "کتابخانه",
+      subtitle: "#{Shamsi.fa(length(shelf))} عنوان · #{Shamsi.fa(watching)} در حال تماشا"
+    }
+  end
+
+  @doc """
+  The four filter chips with their counts, in the drawing's order.
+
+  The counts read `status`, never a fraction: `Kati.Media.TrackedTitle` names
+  `:not_started` and `:finished` as this screen's shelf filters, and
+  `:watching` is what the drawing's ۴ counts. A shelf holding `:paused` or
+  `:dropped` rows therefore has sub-counts that do not add to همه, which is the
+  truth — those rows are in the library and in none of the three named states.
+
+  The sample path answers with the drawing's own four numbers, for the reason
+  `header_line/1` gives.
+  """
+  @spec chip_counts([map()]) :: [{String.t(), String.t()}]
+  def chip_counts([]), do: Sample.chips()
+
+  def chip_counts(shelf) do
+    [
+      {"همه", Shamsi.fa(length(shelf))},
+      {"در حال تماشا", Shamsi.fa(Enum.count(shelf, &(&1.status == :watching)))},
+      {"تمام‌شده", Shamsi.fa(Enum.count(shelf, &(&1.status == :finished)))},
+      {"آرزو", Shamsi.fa(Enum.count(shelf, &(&1.status == :not_started)))}
+    ]
   end
 
   def render(assigns) do
@@ -70,6 +251,7 @@ defmodule Kati.Screens.LibraryFa do
   @doc false
   def content(assigns) do
     header = assigns.header
+    counts = assigns.counts
     shelf = assigns.shelf
     filter = assigns.filter
     titles = Kati.Screens.LibraryFa.visible(assigns.titles, filter, shelf)
@@ -86,7 +268,7 @@ defmodule Kati.Screens.LibraryFa do
         {Kati.Screens.LibraryFa.header(header)}
         {Kati.Screens.LibraryFa.segments(shelf)}
         {Kati.Screens.LibraryFa.quick_tiles()}
-        {Kati.Screens.LibraryFa.chips(filter)}
+        {Kati.Screens.LibraryFa.chips(filter, counts)}
         {Kati.Screens.LibraryFa.grid(titles)}
       </Column>
     </Scroll>
@@ -104,6 +286,14 @@ defmodule Kati.Screens.LibraryFa do
   The chips read the same states the poster grid already draws — part-watched,
   complete, and a wish-list title with an empty track — so نمایش + همه, the
   pair the drawing rests on, returns every title unfiltered.
+
+  They read **`status`, not the fraction**, and that is a correctness change
+  rather than a tidy-up. `Kati.Screens.Library.fraction/1` answers `0.0` for a
+  title whose denominator nobody knows, and a real shelf carries `:paused` and
+  `:dropped` rows besides — so `progress >= 1.0` would file an unknown-total
+  title under تمام‌شده and `progress <= 0.0` would file it under آرزو.
+  `drawn_titles/0` stamps the same three states onto the sample rows, so the
+  drawn grid is unchanged title for title.
   """
   @spec visible([map()], non_neg_integer(), non_neg_integer()) :: [map()]
   def visible(_titles, _filter, shelf) when shelf != 0, do: []
@@ -111,9 +301,9 @@ defmodule Kati.Screens.LibraryFa do
   def visible(titles, filter, _shelf) do
     Enum.filter(titles, fn t ->
       case filter do
-        1 -> t.progress > 0.0 and t.progress < 1.0
-        2 -> t.progress >= 1.0
-        3 -> t.progress <= 0.0
+        1 -> t.status == :watching
+        2 -> t.status == :finished
+        3 -> t.status == :not_started
         _ -> true
       end
     end)
@@ -344,11 +534,11 @@ defmodule Kati.Screens.LibraryFa do
   # The chips inside it stay hand-rolled; `Kati.Components.MishkaChip` cannot
   # draw them, for the reasons `chip/4` records.
   @doc false
-  def chips(filter) do
+  def chips(filter, counts) do
     rail =
       ~MOB"""
       <Row>
-        {Sample.chips()
+        {counts
          |> Enum.with_index()
          |> Enum.map(fn {{label, count}, i} ->
            Kati.Screens.LibraryFa.chip(label, count, i, i == filter)

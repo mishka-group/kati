@@ -39,6 +39,29 @@ defmodule Kati.Screens.PickSections do
   turns those into a `Modifier.offset`, which moves what is drawn without
   moving what was measured, so the icon opposite it and the title below do not
   shift: the badge lands at 14/14 and nothing else on the tile moves.
+
+  ## Audited: drawn copy, and one answer with nowhere to be kept
+
+  **No resource in the app holds anything this screen displays.** The six
+  sections are the app's own shape rather than rows, which is what
+  `Kati.Screens.PickSections.Sample` says about itself, and the heading, the
+  blurb and the step meter are the design's words.
+
+  The *answer* is another matter, and it is the one real gap: the chosen set
+  lives in this screen's assigns, `Continue with 2` counts it, and **Continue
+  carries no tap**, so the question the whole screen exists to ask is thrown
+  away with the socket. It is left that way deliberately rather than stored,
+  for the two reasons `Kati.Screens.Settings` sets out at length: nothing in
+  the app reads which sections are on, and this screen and screen 24 draw
+  different section sets (this one has **Notes**; 24 does not) with different
+  defaults (two chosen here, four on there), so one store behind both has to
+  choose a canonical list — a product decision, not a migration.
+
+  What it needs is `Kati.Sections`: a preference over `Mob.State` shaped like
+  `Kati.Theme.Mode`, with an unset default so both drawings still render their
+  own, landing with the first surface that hides itself when a section is off.
+  Not an Ash resource — six booleans are a preference, and `Kati.Theme.Mode`
+  and `Kati.Locale` are the pattern for one.
   """
   use Mob.Screen
   import Mob.Sigil

@@ -146,6 +146,21 @@ defmodule Kati.Notifications.Sources.MediaTest do
 
   describe "against the database the app actually reads" do
     test "followed titles become candidates, muted ones as refusals", %{prefix: prefix} do
+      # The prefix keeps this test's assertions clear of every other test's rows.
+      # It does NOT keep the rows out of theirs: there is no Ecto sandbox here —
+      # `test/test_helper.exs` migrates one SQLite file and the whole suite
+      # shares it — so eight rows written and not taken back are eight titles
+      # the screen sweeps then render.
+      #
+      # That is not hypothetical. Left behind, these four `Wilderness` rows are
+      # what `Kati.Screens.LibraryFa` (57) draws instead of its Persian shelf,
+      # and `Kati.ScreenDesignLiteralTest` fails on all thirteen of that
+      # drawing's title and season lines — but only on the seeds that order this
+      # module before it, which is what made it look like flakiness.
+      # `Kati.ScreenLibraryShelfTest` and `Kati.SeedsTest` both empty what they
+      # write for this reason; this module was the one writer that did not.
+      on_exit(fn -> delete_rows!(prefix) end)
+
       airs_soon = track!(prefix, "1", %{})
       muted = track!(prefix, "2", %{notify_new_episodes: false})
       vague = track!(prefix, "3", %{})
@@ -187,6 +202,19 @@ defmodule Kati.Notifications.Sources.MediaTest do
       Map.merge(%{source: :tmdb, source_id: prefix <> suffix, kind: :tv}, attrs)
     )
     |> Ash.create!()
+  end
+
+  # Takes back exactly the rows this module wrote and nothing a neighbour left
+  # behind — the prefix is unique per test, so `LIKE prefix%` cannot reach
+  # further than the test that owns it. Raw SQL rather than `Ash.bulk_destroy`
+  # because this runs from `on_exit`, after the test process is gone, and it is
+  # a delete by value with no resource behaviour to honour.
+  defp delete_rows!(prefix) do
+    for table <- ~w(tracked_titles cached_titles) do
+      Kati.Repo.query!("DELETE FROM #{table} WHERE source_id LIKE ?1", [prefix <> "%"])
+    end
+
+    :ok
   end
 
   defp cache!(%TrackedTitle{} = tracked, attrs) do

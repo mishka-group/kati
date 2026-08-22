@@ -36,6 +36,34 @@ defmodule Kati.Screens.Accessibility do
   off its cards, which is the row keeping its own promise. Nothing else here
   claims a consequence this screen can show — **Dynamic Type** in particular
   is deliberately inert, see `toggle/1`.
+
+  ## Audited: drawn copy, with no stored state anywhere behind it
+
+  **Every string on this screen is `Kati.Accessibility.Sample`, and no resource
+  in the app holds any of it.** The design's caption is the reason and not an
+  excuse — this is *the spec drawn rather than described*, so the six rows are
+  claims Kati makes about itself, not settings a user keeps:
+
+    * The **Up next card** is a specimen, deliberately frozen even though
+      `Kati.Screens.UpNext` reads a real one from `Kati.Media`. Its whole job is
+      to render one known card at 235% so `.scratch/design/audit/41.png` can be
+      compared, and the **VoiceOver reads** quotation below it spells that same
+      episode out — *"Episode 6, The Undertow. 55 minutes. Airs 20 August."* — as
+      fixed prose. Swapping the card for the user's own title would leave the
+      quotation naming a different episode, and a screen that contradicts itself
+      is a worse accessibility spec than a frozen one.
+    * The **six switches** are guarantees, not preferences. *Touch targets ·
+      Nothing under 44×44* and *Colour is never alone* are properties of every
+      other screen in the app; there is nothing for a stored boolean to change.
+      **Reduce motion** is the one that reads like a setting and still is not:
+      Mob has no animation primitive — a node tree is a still frame, as the
+      section above says — so there are no cross-fades to ask for. The device's
+      own accessibility settings own these, and reading them needs a platform
+      bridge (`Mob.Device`) rather than a resource.
+
+  So a flip here is honestly local: it moves a thumb, and **Increase contrast**
+  additionally darkens this screen's own rules. Nothing is stored because
+  nothing would read it, and there is no resource to name.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

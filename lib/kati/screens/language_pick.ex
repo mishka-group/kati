@@ -24,6 +24,42 @@ defmodule Kati.Screens.LanguagePick do
   flow — the whole interface flips only once the choice is *made*, which is
   what the cream note promises. Bidi resolution puts the Arabic script the
   right way round inside an LTR paragraph on its own.
+
+  ## The ticked row is the app's own locale
+
+  Everything else on this screen is drawn copy — the question, the two `meta`
+  specifications, the cream note — but **which row carries the tick is a
+  setting the app already holds**, and until this round it was a `chosen: true`
+  frozen onto English in `Kati.Onboarding.LanguageSample`. That module's own
+  doc had already written the change down: *"when the choice becomes real it
+  goes through `Kati.Locale.put/1` … only `chosen` moves."* So only `chosen`
+  moved. `pick/0` re-answers it from `Kati.Locale.current/0` at mount, and
+  `locale_of/1` is the whole mapping — the same one-line bridge
+  `Kati.Screens.Language.locale_of/1` is on screen 54, off `script:` rather
+  than off the displayed name, so no English word decides anything.
+
+  Two things this buys, and they are the same thing seen from either end. The
+  container already reads `Kati.Locale.direction_prop()`, so a `:fa` install
+  drew this screen right-to-left **with the tick still on English** — a picker
+  contradicting the interface it is drawn inside. And screen 54 has read the
+  locale since it gained a write path, so the app's two language pickers can no
+  longer disagree about the language it is in.
+
+  The resting frame cannot move: `Kati.Locale.current/0` answers `:en` for a
+  device that has never chosen, `:en` is English, and English is the row
+  `53.html` ticks.
+
+  ## What this screen still does not do: choose
+
+  It reads the locale and does not write one. No option carries an `on_tap` and
+  neither does **Continue**, exactly as before — a picture of a picker, which is
+  what the export is. Making it a real one is not a data question and is not
+  done here: `Kati.Locale.put/1` is one call, but step 1 of 5 has no step 2 to
+  advance to (nothing in the app pushes this screen; `Kati.Screens.Gallery`
+  opens it), and writing the locale from a screen with no way forward strands
+  the user in a flipped interface whose only exit is the back button — the
+  stranding `Kati.Screens.Language` spends three paragraphs of its own moduledoc
+  avoiding. The write belongs with whatever builds the flow.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -33,8 +69,48 @@ defmodule Kati.Screens.LanguagePick do
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :pick, LanguageSample.pick())}
+    {:ok, Mob.Socket.assign(socket, :pick, Kati.Screens.LanguagePick.pick())}
   end
+
+  @doc """
+  The question as `render/1` draws it: the drawing's copy, the app's own locale.
+
+  `Kati.Onboarding.LanguageSample` supplies every string and the option order;
+  the only field this rewrites is `chosen`, which is a setting rather than copy.
+  The sample is left holding `chosen: true` on English — it is the drawn state
+  and the fixture the tests compare a real render against, and a second copy of
+  the drawing's answer is exactly how the two drift apart.
+  """
+  @spec pick() :: map()
+  def pick do
+    drawn = LanguageSample.pick()
+    locale = Kati.Locale.current()
+
+    %{drawn | options: Enum.map(drawn.options, &Kati.Screens.LanguagePick.settle(&1, locale))}
+  end
+
+  @doc "One option, ticked or not according to `locale`."
+  @spec settle(map(), :en | :fa) :: map()
+  def settle(option, locale),
+    do: %{option | chosen: Kati.Screens.LanguagePick.locale_of(option) == locale}
+
+  @doc """
+  Which locale an option stands for.
+
+  Off `script:`, which the option already carries because the badge and the
+  name have to pick a typeface — the same key, and the same two-clause shape,
+  `Kati.Screens.Language.locale_of/1` uses on screen 54. It says `:persian`
+  where that one says `:fa`, which is why this is a second function rather than
+  a call to that one: two screens named the same idea differently before either
+  read a locale, and unifying the atom would move a string in the sample module
+  that the fixture is compared against.
+
+  A third installed language needs a third locale to point at; `Kati.Locale`
+  ships two, and this screen draws two.
+  """
+  @spec locale_of(map()) :: :en | :fa
+  def locale_of(%{script: :persian}), do: :fa
+  def locale_of(_option), do: :en
 
   def render(assigns) do
     pick = assigns.pick

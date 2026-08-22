@@ -38,6 +38,36 @@ defmodule Kati.Screens.Account do
   Chevron rows carry no tap. A chevron means *leads elsewhere*, and there is
   nowhere yet for a device or Delete everything to lead — the rule
   `Kati.Screens.Series.episode/1` applies to an unaired episode.
+
+  ## Audited: drawn copy, and one derivable number left alone on purpose
+
+  **Every string on this screen is `Kati.Account.Sample`, and no resource in the
+  app holds any of it.** There is no account and no device anywhere in Kati:
+  *Signed in with Apple*, the relay line, and all three device rows would need
+  an account/device record — one row per paired device with its own
+  `last_sync_at` — and nothing models one. `Kati.Sync`'s two resources are an
+  outbox and a rejection log, which are a queue's state rather than a device's.
+
+  The **permissions are the platform's, not a table's.** Whether Kati may read
+  the calendar is answered by Android, can be changed in system settings while
+  the app is backgrounded, and an app-local boolean copying it becomes a lie the
+  moment it is — so this group wants no resource at all. What it wants is
+  `Mob.Permissions`, and half of that exists: `Mob.Permissions.request/2` raises
+  the dialog and delivers `{:permission, capability, :granted | :denied}`, which
+  is what the **Allow** pill should call. There is no matching *read* — nothing
+  in Mob answers "is `:calendars` granted right now" — and a switch position is a
+  read, not a request. So a flip here is left local and says only *"this is the
+  shape a granted permission takes"*; the Allow pill turning into a switch is
+  the drawing's own second shape, not a claim about the OS.
+
+  One line **is** derivable and is deliberately not derived: `Read + write · 3
+  accounts` is a count of `Kati.Calendars.Account`, which `Kati.Seeds` writes
+  three of. It stays a literal for the reason `Kati.Screens.Calendars` gives for
+  leaving its own accounts group whole — a row moved half onto the store is
+  worse than one left off it. Here the halves are in one sentence: the count
+  would be this device's while the switch beside it stays a picture, and every
+  fixture any other test leaves behind moves the number under a baseline frame.
+  It becomes worth reading when the permission it qualifies is real.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

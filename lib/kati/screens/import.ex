@@ -40,6 +40,16 @@ defmodule Kati.Screens.Import do
   numbers the write would then refuse. It answers about Kati's own archives
   rather than a third party's CSV, so it is the shape to copy when the reader
   lands, not a call this screen can make today.
+
+  ## Audited
+
+  **Drawn copy with no stored state: every string is `Kati.Import.Sample` and
+  no resource in the app holds an import job**, which the section above sets
+  out in full. Nothing on this screen taps, either — the three conflict choices
+  and the step meter are drawn, not offered — so there is no answer being
+  forgotten, only one that cannot yet be asked for. What it needs is named
+  above: a job resource holding the file, its column mapping, the counted
+  outcome and a conflict queue, so that step 3 of 4 survives the screen popping.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

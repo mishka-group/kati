@@ -29,6 +29,29 @@ defmodule Kati.Screens.Onboarding do
   174 would leave the second column 10pt short of the right gutter. The height
   is the export's own `aspect-ratio:2/3` rather than a number, so the tile
   stays 2:3 at whatever width the weight grants.
+
+  ## Audited: drawn copy with no stored state
+
+  **Every string is `Kati.Onboarding.Sample` and no resource in the app holds
+  any of it**, which is what an onboarding screen is: three steps of sentences,
+  drawn before the app contains anything. Nothing here taps — not the three
+  notification options, not the four posters, not **Get started**, **Finish
+  setup** or **Skip** — so the `selected?` flags are the drawing's state rather
+  than a choice being forgotten, and the flow that would move them is the later
+  job the section above describes.
+
+  Two of the three steps would still have nothing to read once it exists. The
+  **four starter posters** are a curated set for a device with an empty
+  `Kati.Media.CachedTitle` — that is the point of step 4, so they cannot come
+  from the cache. The **notification decision** is the one answer that ought to
+  outlive the screen, and it has nowhere to go: `Kati.Notifications` is a
+  scheduling library — `Plan`, `Budget`, `Digest`, `QuietHours` are all pure
+  functions over candidates — and holds no per-user delivery preference. What it
+  needs is a stored delivery style (`:quiet | :push | :digest`, plus the digest's
+  weekday and hour) on `Mob.State` in the shape of `Kati.Theme.Mode`, read by
+  `Kati.Notifications.Scheduler`. It is also, as screen 40 says, the answer that
+  lets *"Not yet asked"* stay true — the decision is made here and the OS
+  permission is requested later.
   """
   use Mob.Screen
   import Mob.Sigil

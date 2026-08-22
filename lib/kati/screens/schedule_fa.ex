@@ -33,10 +33,58 @@ defmodule Kati.Screens.ScheduleFa do
 
   Persian text is Vazirmatn throughout, digits included — see
   `Kati.Screens.Fa` for why the times cannot be set in DM Mono.
+
+  ## Real data versus the drawing
+
+  Screen 02's query, read the same way: `Kati.Calendars.Today.rows/1` for the
+  selected day, falling back to the drawn day when nothing is mirrored — the
+  substitution `Kati.Screens.Calendar.day_rows/1` makes, and *only* for today,
+  because a fresh install must still be comparable with
+  `.scratch/design/audit/56.png` and no other day may be dressed up with events
+  that are not there.
+
+  **The strip is the real week, and it is still not a mirrored list.** `days/1`
+  walks forward from the شنبه of the selected week —
+  `Kati.Calendar.Shamsi.weekday_index/1` is 1 for شنبه, so the Saturday is
+  `date - (index - 1)` and the seven cells are generated in reading order.
+  Nothing is reversed to get there, which is the whole point 60 makes about
+  matrices whose columns are days.
+
+  **The subtitle counts what is drawn.** یکشنبه ۲۵ مرداد · ۵ مورد is the
+  weekday, the Shamsi day and month, and the number of rows under it — five on
+  the drawn day, because the four ordinary rows and the evening's episode are
+  five items. A real day answers with its own.
+
+  ### The feature card is the one thing a real row cannot become
+
+  The evening's episode has a poster, a service and a cream pill saying why it
+  matters, and `Kati.Calendars.Today` carries none of the three: a row is a
+  time, a summary and a composed meta line. So a real air date draws as an
+  ordinary row with the accent rule — the same fact, minus artwork nothing can
+  supply — and the feature card belongs to the drawn day. Screen 02 makes the
+  same admission in a different shape: `Kati.Screens.Calendar.shaped/1` stamps
+  `posters: []` on every real row it builds.
+
+  Nor can a real row be drawn **done**. The flat `#F4F1EC` card with the green
+  `check_circle` says a habit was kept, and `Kati.Calendars.Override.kind` is
+  `:modified | :cancelled` — an occurrence can be called off and cannot be
+  ticked, which is the gap `Kati.Screens.Habits` is waiting on in full. A row
+  that is not imminent therefore settles onto the flat card with a hollow ring,
+  which asserts nothing about whether it happened.
+
+  ### What this screen cannot say in Persian
+
+  `Kati.Calendars.Today.meta/1` composes its line in English and the row shape
+  carries no `:kind`, so `Kati.Screens.Calendar.kind/1` — which reads that
+  English back to pick a card — is what decides a real row's chrome here too.
+  The chrome is language-free and the line under it is not: a real row's meta
+  is drawn as it arrives. See `Kati.Screens.HomeFa` for where that fix belongs.
   """
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Calendar.Shamsi
+  alias Kati.I18n.Digits
   alias Kati.Screens.Fa
   alias Kati.Screens.ScheduleFa.Sample
   alias Kati.Theme.Palette
@@ -45,10 +93,15 @@ defmodule Kati.Screens.ScheduleFa do
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
 
+    date = Kati.Time.today()
+    day = Kati.Screens.ScheduleFa.day(date)
+    count = length(day.events) + if(day.feature, do: 1, else: 0)
+
     socket
-    |> Mob.Socket.assign(:header, Sample.header())
-    |> Mob.Socket.assign(:events, Sample.events())
-    |> Mob.Socket.assign(:feature, Sample.feature())
+    |> Mob.Socket.assign(:header, Kati.Screens.ScheduleFa.header_line(date, count))
+    |> Mob.Socket.assign(:days, Kati.Screens.ScheduleFa.days(date))
+    |> Mob.Socket.assign(:events, day.events)
+    |> Mob.Socket.assign(:feature, day.feature)
     |> then(&{:ok, &1})
   end
 
@@ -56,9 +109,109 @@ defmodule Kati.Screens.ScheduleFa do
     Fa.frame(:calendar, Kati.Screens.ScheduleFa.content(assigns))
   end
 
+  @doc """
+  The day's rows, in the two shapes this page draws them in.
+
+  `events` are the ordinary rows and `feature` is the evening's episode card,
+  which only the drawn day has — see the moduledoc. Returned as one map rather
+  than two reads so the pair can never come from two different answers about
+  whether the store is empty.
+  """
+  @spec day(Date.t()) :: %{events: [map()], feature: map() | nil}
+  def day(date) do
+    case Kati.Calendars.Today.rows(date) do
+      # Today, and only today, is dressed in the drawing. The strip on this
+      # page selects nothing yet, so `date` is always today and this is the
+      # branch that never runs — kept because it is the rule
+      # `Kati.Screens.Calendar.day_rows/1` states and the one the first day tap
+      # will need: no other day may be shown events it does not have.
+      [] -> if date == Kati.Time.today(), do: drawn_day(), else: %{events: [], feature: nil}
+      rows -> %{events: Enum.map(rows, &Kati.Screens.ScheduleFa.shaped/1), feature: nil}
+    end
+  end
+
+  @doc """
+  The five rows `.scratch/design/screens/56.html` draws, in its own order.
+
+  Stand-in copy, and `Kati.Screens.ScheduleFa.Sample` says so — but the five
+  SHAPES are not stand-in: a kept habit, an appointment, a reminder, a payment
+  and an air date are five states the real timeline needs, and the drawing
+  spends the whole page proving they are not one row repeated.
+  """
+  @spec drawn_day() :: %{events: [map()], feature: map()}
+  def drawn_day, do: %{events: Sample.events(), feature: Sample.feature()}
+
+  @doc """
+  A real timeline row, given the drawn chrome its kind calls for.
+
+  `tone`, `lead` and `trailing` are the three axes `Sample.events/0` carries,
+  and every one of them is decided here from something the row actually says:
+  `Kati.Screens.Calendar.kind/1` for which of the four kinds it is, and `now?`
+  for whether it is imminent. Nothing claims a habit was kept — see the
+  moduledoc — so `trailing` is `nil` on every real row.
+  """
+  @spec shaped(map()) :: map()
+  def shaped(row) do
+    {tone, lead} = chrome(Kati.Screens.Calendar.kind(row), row.now?)
+
+    %{
+      time: Digits.to_persian(row.time),
+      tone: tone,
+      lead: lead,
+      title: row.title,
+      meta: row.meta,
+      trailing: nil
+    }
+  end
+
+  # Orange means new or now and only that, which on this page is an air date.
+  # An imminent appointment is lifted on card white with the ink rule; anything
+  # else settles onto the flat card behind a hollow ring, which is the drawing's
+  # own shape for a row that is neither done nor happening.
+  defp chrome("money", _now?), do: {:done, {:badge, "payments"}}
+  defp chrome("screen", _now?), do: {:raised, {:rule, Palette.accent()}}
+  defp chrome(_kind, true), do: {:raised, {:rule, Palette.ink()}}
+  defp chrome(_kind, _now?), do: {:done, {:icon, "radio_button_unchecked"}}
+
+  @doc """
+  The seven day cells, شنبه first, for the week the selected day falls in.
+
+  Generated forward from that week's Saturday, so the sequence is produced in
+  reading order rather than reversed out of a Gregorian one. Day numbers are
+  Shamsi and Persian-digited, which is `Kati.Calendar.Shamsi.fa/1`'s job.
+  """
+  @spec days(Date.t()) :: [map()]
+  def days(date) do
+    saturday = Date.add(date, -(Shamsi.weekday_index(date) - 1))
+
+    for offset <- 0..6 do
+      cell = Date.add(saturday, offset)
+      {_year, _month, day} = Shamsi.from_gregorian(cell)
+
+      %{
+        name: Shamsi.weekday_short(Shamsi.weekday_index(cell)),
+        num: Shamsi.fa(day),
+        selected?: cell == date
+      }
+    end
+  end
+
+  @doc "The root's title, and the selected day with the number of rows on it."
+  @spec header_line(Date.t(), non_neg_integer()) :: map()
+  def header_line(date, count) do
+    {_year, month, day} = Shamsi.from_gregorian(date)
+
+    subtitle =
+      "#{Shamsi.weekday_name(Shamsi.weekday_index(date))} #{Shamsi.fa(day)} " <>
+        "#{Shamsi.month_name(month)} · #{Shamsi.fa(count)} مورد"
+
+    %{title: "برنامه", subtitle: subtitle}
+  end
+
   @doc false
   def content(assigns) do
     header = assigns.header
+    days = assigns.days
     events = assigns.events
     feature = assigns.feature
 
@@ -72,7 +225,7 @@ defmodule Kati.Screens.ScheduleFa do
         padding_bottom={132}
       >
         {Kati.Screens.ScheduleFa.header(header)}
-        {Kati.Screens.ScheduleFa.day_strip()}
+        {Kati.Screens.ScheduleFa.day_strip(days)}
         {Kati.Screens.ScheduleFa.week_note()}
         {Kati.Screens.ScheduleFa.chips()}
         {Kati.Screens.ScheduleFa.timeline(events)}
@@ -114,11 +267,11 @@ defmodule Kati.Screens.ScheduleFa do
   end
 
   @doc false
-  def day_strip do
+  def day_strip(days) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Sample.days()
+        {days
          |> Enum.map(&Kati.Screens.ScheduleFa.day_cell/1)
          |> Enum.intersperse(Kati.Screens.ScheduleFa.cell_gap())}
       </Row>
@@ -396,7 +549,12 @@ defmodule Kati.Screens.ScheduleFa do
   # y=1643..1923 (106.9dp) at 15pt padding, and the cream pill's bottom edge —
   # the last thing in the text column — lands 77.3dp below the content top. 72
   # left the rule a full 5dp short of the pill.
+  # A real day has no feature card — see the moduledoc — so the node is absent
+  # rather than an empty one, which is what `<Spacer size={0} />` is for
+  # everywhere else on these screens.
   @doc false
+  def feature_row(nil), do: ~MOB"<Spacer size={0} />"
+
   def feature_row(feature) do
     ~MOB"""
     <Row fill_width={true} align="top">

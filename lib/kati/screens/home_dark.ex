@@ -31,10 +31,50 @@ defmodule Kati.Screens.HomeDark do
 
   The tabs and the FAB are wired to the real roots and the real add sheet, so
   this is an entry point rather than a picture of one.
+
+  ## What this screen reads, and why it is exactly what Home reads
+
+  Screen 28 is screen 01 in dark, so it reads what screen 01 reads and nothing
+  else. `Kati.Screens.Home` takes one thing from a domain — *Rest of today*,
+  through `Kati.Calendars.Today.rows/1` — and leaves the hero, the two
+  continue-watching cards and their fractions as the drawing's own copy, for the
+  reason its moduledoc gives. This screen matches that split rather than picking
+  its own, because two pages that are the same page must not disagree about
+  which half of themselves is real.
+
+  So `rest_of_today/1` is `Kati.Screens.Home.rest_of_today/1` in dark, down to
+  the `[]` clause: a device with nothing mirrored draws
+  `Kati.Screens.HomeDark.Sample.rest_of_today/0`, which is the same 20:00 and
+  21:30 the drawing shows. FIDELITY's rule — *missing data is not a reason for a
+  blank screen* — and the Sample stays exactly where it is; it is the fallback
+  and the fixture, not a stage this screen has passed through.
+
+  ## The header stays pinned, and that is a decision rather than an omission
+
+  Home's other real value is its header: the date line and the greeting come off
+  the device clock. This screen cannot take that one, and the reason is written
+  into `Kati.Screens.HomeDark.Sample` — screen 29 draws the lock screen of *this
+  same evening*, down to the same two events at 20:00 and 21:30, so the two
+  pages have to agree about what time it is or they stop being one design.
+
+  There is a second, sharper reason. `Kati.ScreenDesignLiteralTest` can only
+  excuse a drawn literal a screen replaces with a clock value by naming it on an
+  allow-list, and that list is capped at four entries with the note that raising
+  the bound is *a decision to check less*. `Sunday · 16 August`, `Good evening`
+  and `last check 18:02` would need three more. A screen is not worth making the
+  suite check less of the app.
+
+  The cost is stated rather than hidden: on a device with a mirrored calendar
+  this page prints the drawing's evening over the device's own today. That is
+  the same class of split screen 09 already carries in the other direction — a
+  live header over drawn rows — and it closes for good when dark stops being a
+  separate page and becomes `Kati.Shell`'s `mode`, which is when this module and
+  its Sample both disappear.
   """
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Calendars.Today
   alias Kati.Screens.HomeDark.Sample
 
   # The drawing's dark palette stays as literals at each point of use, the way
@@ -45,11 +85,12 @@ defmodule Kati.Screens.HomeDark do
   # hairline standing in for the shadow the light theme uses.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.dark())
-    {:ok, Mob.Socket.assign(socket, :moment, Sample.moment())}
+    {:ok, Mob.Socket.assign(socket, moment: Sample.moment(), timeline: Today.rows())}
   end
 
   def render(assigns) do
     moment = assigns.moment
+    timeline = assigns.timeline
 
     ~MOB"""
     <Box
@@ -73,7 +114,7 @@ defmodule Kati.Screens.HomeDark do
           {Kati.Screens.HomeDark.eyebrow("Continue watching")}
           {Kati.Screens.HomeDark.continue()}
           {Kati.Screens.HomeDark.eyebrow("Rest of today")}
-          {Kati.Screens.HomeDark.rest_of_today()}
+          {Kati.Screens.HomeDark.rest_of_today(timeline)}
         </Column>
       </Scroll>
       {Kati.Screens.HomeDark.scrim()}
@@ -436,9 +477,23 @@ defmodule Kati.Screens.HomeDark do
     end
   end
 
-  @doc false
-  def rest_of_today do
-    rows = Sample.rest_of_today()
+  @doc """
+  The rest of the evening: the device's own calendar, or the drawing's.
+
+  `Kati.Screens.Home.rest_of_today/1` in dark, clause for clause. The `[]` head
+  is the whole of the fallback and it is deliberately the same shape Home's is —
+  the substitution happens *here*, at the point the card is built, rather than
+  in `mount/3`, so what an empty database renders is the card the drawing shows
+  rather than a card that happens to be empty.
+
+  A row is `%{time, title, meta, now?}` whichever side it came from, so
+  `timeline_row/2` cannot tell a mirrored event from a drawn one and cannot
+  answer the two differently.
+  """
+  @spec rest_of_today([map()]) :: map()
+  def rest_of_today([]), do: rest_of_today(Sample.rest_of_today())
+
+  def rest_of_today(rows) do
     last = length(rows) - 1
 
     ~MOB"""

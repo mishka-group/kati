@@ -86,6 +86,63 @@ defmodule Kati.Screens.Settings do
   are the same observation, and the sweep that tells them apart has to be told
   which one this is — separately for each mode the screen might have been
   mounted in.
+
+  ## Audited: the theme choice is the only thing here that is stored
+
+  **Everything else on this screen is drawn copy in `Kati.Settings.Sample`, and
+  no resource in the app holds any of it.** That is not an oversight to be
+  found again next round, so the four things that look like readings and are
+  not are named here with what each would actually need:
+
+    * `1,204 ENTRIES` — there is no *entry* anywhere in Kati. The word spans
+      four domains that count different things (`Kati.Media.Watch`,
+      `Kati.Calendars.Event`, `Kati.Meals.MealLog`, a tracked title), and a
+      total over them is a unit this app has never defined. Summing the tables
+      to reach a number would be inventing the noun, not reading it.
+    * `Synced 2 min ago`, the `Synced` pill, and `iCloud · this device + iPad` —
+      Kati has no account and no device table. `Kati.Sync` is the CalDAV engine
+      and its two resources are a queue and a rejection log;
+      `Kati.Calendars.Account.last_sync_at` is *a calendar account's* last poll,
+      which is the different fact screen 32's Live/Stale pill is about. What
+      this card needs is an account/device record — one row per paired device
+      with its own `last_sync_at` — and nothing models one.
+    * `Last backup 14 Aug` — `Kati.Backup` writes and verifies archives and
+      keeps no ledger of having done so. `Kati.Backup.Catalog` is the file
+      *format*; nothing records that a backup happened, or when.
+    * `0.1 · mock build` — the app version is real (`mix.exs` says `0.1.2`) and
+      the rest of the line is not, so reading half of it would print a truthful
+      number beside a claim about a build nobody makes.
+
+  `4 SECTIONS` is the exception and is already live — `meta/2` rewrites it from
+  the switches below it, see `enabled/1`.
+
+  ## The Sections switches change something that ought to persist, and cannot yet
+
+  A tap flips a switch in this screen's assigns and the flip dies with the
+  socket, which is the same defect the Theme control had before
+  `Kati.Theme.Mode`. It is **not** fixed the same way here, and the reason is
+  not effort:
+
+    * Nothing in the app reads which sections are on. `Kati.Screens.Home`'s
+      Sections grid is three hardcoded tiles (Meals, Habits, Settings) and
+      `Kati.Screens.Library`'s shelf is a fixed `@screen_kinds`. A stored set
+      would be a preference with no consumer — and a switch that says *"Music ·
+      Shelf only"* and then leaves the shelf standing is worse persisted than
+      forgotten, because the lie survives the restart.
+    * The app cannot yet say what a section *is*. This screen offers five
+      (Screen, Books, Music, Habits, Money) with four on; screen 26
+      (`Kati.Screens.PickSections`) offers six — it adds **Notes** — with two
+      chosen. Two drawings, two different section sets and two different
+      defaults, and both are baseline frames that may not move. One store
+      behind them has to pick a canonical list and a canonical default, which
+      is a product decision rather than a migration.
+
+  What it needs, named precisely: a `Kati.Sections` preference over `Mob.State`
+  in the shape of `Kati.Theme.Mode` — `choices/0`, `enabled/0`, `put/1`, with an
+  unset default so each screen still falls back to its own drawn state — landing
+  together with the first surface that actually hides itself when a section is
+  off. `Kati.Screens.PickSections.Sample` names the same module from the other
+  end.
   """
   use Kati.Screens.Pushed, back: "Home"
 

@@ -29,11 +29,52 @@ defmodule Kati.Screens.HomeFa do
   The header disc, the hero button and the notification bell reach the English
   inbox: 05 has no Persian mirror in the export yet, and a dead button reads as
   a bug where an untranslated screen reads as unfinished, which is the truth.
+
+  ## Real data versus the drawing
+
+  The same two things screen 01 reads, read the same way:
+
+    * **The header is the device's own clock**, in the Solar Hijri calendar.
+      `Kati.Calendar.Shamsi.format/2` at `:long` produces the drawing's line to
+      the character — `یکشنبه ۲۵ مرداد ۱۴۰۵`, Persian digits included — which
+      is what `Kati.Screens.HomeFa.Sample`'s own moduledoc said would replace
+      it. `moment/0` keeps `Kati.Screens.Home.today/0`'s thresholds exactly and
+      changes only the words: the hour that draws *Good evening* in English
+      draws عصر بخیر here.
+    * **باقی امروز is `Kati.Calendars.Today`** — the device's real calendar —
+      and falls back to `Sample.rest_of_today/0` when nothing is mirrored yet,
+      the substitution `Kati.Screens.Home.rest_of_today/1` makes at its own
+      `[]` clause. A fresh install has no events and this page is also the
+      design reference, so *missing data is not a reason for a blank screen*.
+
+  Everything else on the page — the cream card, ادامه تماشا, the three section
+  tiles — is still the drawing's own copy, exactly as it is on screen 01, and
+  for the same reason: the Screen domain has no "up next" and no section counts
+  to supply them from.
+
+  ### What this screen cannot say in Persian, and where the fix belongs
+
+  A timeline row's `meta` arrives already composed:
+  `Kati.Calendars.Today.meta/1` joins the event's location to a **kind label it
+  writes in English** (`Airs today`, `Habit`, `Money`, `Calendar`). The row
+  shape carries no `:kind`, so nothing here can name that fact in Persian
+  without guessing at another module's output, and guessing is how the label
+  and the word drift apart the first time either changes. So the line is drawn
+  as it arrives and the gap is stated rather than papered over: the fix is a
+  locale-aware label in `Kati.Calendars.Today`, or a `:kind` on the row so each
+  screen can name it in its own language.
+
+  Digits are converted where Kati wrote them and nowhere else. `time` is
+  entirely Kati's — `Calendar.strftime(local, "%H:%M")` — so it is rendered
+  ۲۰:۰۰; the title and the meta are the user's own words and a location they
+  typed, and rewriting characters inside those is not translation.
   """
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Calendar.Shamsi
   alias Kati.Components.MishkaProgress
+  alias Kati.I18n.Digits
   alias Kati.Screens.Fa
   alias Kati.Screens.HomeFa.Sample
   alias Kati.Theme
@@ -44,17 +85,46 @@ defmodule Kati.Screens.HomeFa do
     Kati.Theme.activate()
 
     socket
-    |> Mob.Socket.assign(:moment, Sample.moment())
+    |> Mob.Socket.assign(:moment, Kati.Screens.HomeFa.moment())
     |> Mob.Socket.assign(:inbox, Sample.inbox())
+    |> Mob.Socket.assign(:timeline, Kati.Calendars.Today.rows())
     |> then(&{:ok, &1})
   end
 
   def render(assigns) do
-    Fa.frame(:home, Kati.Screens.HomeFa.content(assigns.moment, assigns.inbox))
+    content =
+      Kati.Screens.HomeFa.content(assigns.moment, assigns.inbox, assigns.timeline)
+
+    Fa.frame(:home, content)
+  end
+
+  @doc """
+  The header: today's Solar Hijri date, and the greeting for this hour.
+
+  `:long` is the drawing's own form — weekday, day, month, year — and it comes
+  back with Persian digits because `Kati.Calendar.Shamsi.fa/1` writes them, not
+  because anything downstream transliterates.
+
+  The three greetings sit on `Kati.Screens.Home.today/0`'s thresholds without
+  restating why they are where they are: midnight–12 is صبح, 12–18 is ظهر, and
+  the rest of the day is عصر, which is the word 55 is drawn with at ۱۸:۰۲.
+  """
+  @spec moment() :: %{date: String.t(), greeting: String.t()}
+  def moment do
+    now = Kati.Time.now()
+
+    greeting =
+      cond do
+        now.hour < 12 -> "صبح بخیر"
+        now.hour < 18 -> "ظهر بخیر"
+        true -> "عصر بخیر"
+      end
+
+    %{date: Shamsi.format(Kati.Time.today(), :long), greeting: greeting}
   end
 
   @doc false
-  def content(moment, inbox) do
+  def content(moment, inbox, timeline) do
     ~MOB"""
     <Scroll>
       <Column
@@ -73,7 +143,7 @@ defmodule Kati.Screens.HomeFa do
         {Fa.eyebrow("بخش‌ها")}
         {Kati.Screens.HomeFa.sections()}
         {Fa.eyebrow("باقی امروز")}
-        {Kati.Screens.HomeFa.rest_of_today()}
+        {Kati.Screens.HomeFa.rest_of_today(timeline)}
       </Column>
     </Scroll>
     """
@@ -460,9 +530,21 @@ defmodule Kati.Screens.HomeFa do
     """
   end
 
-  @doc false
-  def rest_of_today do
-    rows = Sample.rest_of_today()
+  @doc """
+  The rest of the evening: the device's own calendar, or the drawing's.
+
+  The `[]` clause is the substitution itself, in the same place
+  `Kati.Screens.Home.rest_of_today/1` puts it — one clause, so a change that
+  deletes the fallback deletes something a test can point at.
+
+  `fa_row/1` runs over both kinds of row and is a no-op on the drawn ones,
+  which is the property that keeps `timeline_row/2` unable to tell them apart.
+  """
+  @spec rest_of_today([map()]) :: map()
+  def rest_of_today([]), do: rest_of_today(Sample.rest_of_today())
+
+  def rest_of_today(rows) do
+    rows = Enum.map(rows, &Kati.Screens.HomeFa.fa_row/1)
     last = length(rows) - 1
 
     ~MOB"""
@@ -484,6 +566,18 @@ defmodule Kati.Screens.HomeFa do
     </Box>
     """
   end
+
+  @doc """
+  One timeline row with the digits Kati wrote rendered in Persian.
+
+  Only `time`, and deliberately only `time`: it is `%H:%M` off the device
+  clock, so every character in it is Kati's. `title` is the event's `summary`
+  and `meta` carries the location beside it — both the user's own text — and a
+  screen that rewrote characters inside those would be transliterating a
+  person's words, not localising an interface.
+  """
+  @spec fa_row(map()) :: map()
+  def fa_row(row), do: Map.update!(row, :time, &Digits.to_persian/1)
 
   @doc false
   def timeline_row(row, rule?) do

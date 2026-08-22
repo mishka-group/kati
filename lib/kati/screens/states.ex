@@ -22,6 +22,43 @@ defmodule Kati.Screens.States do
       are the flat `#E7E3DC` the gradient starts and ends on.
 
   No dock — pushed screen — so the frame closes at 40, not 132.
+
+  ## Nothing on this sheet is domain data, and that was checked rather than assumed
+
+  Every other screen in this round moved onto `Kati.Media`, `Kati.Calendars` or
+  `Kati.Meals`. This one has nothing to move, and the reason is structural
+  rather than a gap in the domains: **a reference sheet draws all five states at
+  once, unconditionally.** Each card is a picture of a state, not a report that
+  the app is in it, so a value read from a resource would be a true number
+  attached to an event that never happened.
+
+  Four lines look like data. None of them is:
+
+    * **`Last success 6h ago`** is the one that could be read.
+      `Kati.Calendars.Account.last_sync_at` holds exactly that instant and
+      `Kati.Sync.Engine` writes it **only on success**, so the figure exists and
+      is trustworthy. It is still not read here, because the card above it —
+      *Couldn't check for releases* — is drawn whether or not a check failed.
+      Dating a real last success against an invented failure is worse than the
+      drawing: it reads as a live incident report and is not one.
+    * **`Dropped The Quiet Ones`** names a title nothing dropped.
+      `Kati.Media.TrackedTitle.status` can be `:dropped`, and nothing anywhere
+      records **when** a status changed — no tombstone, no audit row, no undo
+      window. So there is no most-recent destructive action to name, and none
+      that tapping `Undo` could take back.
+    * **`Offline`** is a condition of the device. No resource stores it, and the
+      badge is drawn on this sheet whether the radio is on or off.
+    * **`No titles yet`** is the empty state, drawn here beside a full library on
+      purpose. Gating it on `Kati.Media.TrackedTitle` being empty would show
+      five states on a fresh install and four on every other device, which is
+      the opposite of what a reference sheet is for.
+
+  So this screen reads no store and has no fallback to keep: its Sample module
+  is the specimen itself rather than a stand-in for data that has not arrived,
+  which is why `Kati.Settings.StatesSample` says *the "sample" here is the
+  specimen itself* in its own first paragraph. The one thing that would change
+  this is a **live** states screen — the app showing its own current condition —
+  and that is a different screen from the sheet the design draws.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

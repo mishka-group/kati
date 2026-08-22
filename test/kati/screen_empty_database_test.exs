@@ -41,6 +41,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   it is what makes "the fallback exists" a claim a run settles rather than one
   a moduledoc asserts.
 
+  Which means the second question is only asked of the screens `fallbacks/0`
+  lists, and a `for` over a list says nothing about a screen the list omits.
+  `@migrated` cannot go stale — it is pinned against the compiled call graph in
+  both directions — so the way this file loses a guard is a screen that joins
+  `@migrated` on the round it migrates and is not given an entry-point gate:
+  rendered, passing every literal check, and its fallback taken on trust.
+  `fallbacks/0` is therefore pinned against `@migrated` in both directions too,
+  and by number, so a gate cannot drift onto the wrong screen either.
+
   ## How the database is made empty
 
   Inside one transaction that is always rolled back: every table is emptied,
@@ -87,6 +96,24 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # its moduledoc — no cast, no availability, no per-season display columns —
   # so none of them has a fallback that could regress.
   # `Kati.ScreenSampleOnlyTest` stands over those.
+  #
+  # `Kati.Screens.SeriesFa` (58) is absent for exactly 04's reason, which is
+  # the point of a mirror: it is screen 04 in Persian, and 04 has not moved.
+  # Its whole page is an episode list — number, name, runtime, air date — and
+  # the season strip above it. A Persian mirror cannot migrate a screen its
+  # English original could not, so 58 moves on the round 04 does and not before.
+  #
+  # What is NOT the reason any more, recorded because both moduledocs still say
+  # it is: that `Kati.Media` cannot enumerate a season or name an episode.
+  # `20260821231241_media_seasons_and_episodes` created `cached_seasons` and
+  # `cached_episodes` at the end of this round, and `Kati.Media.CachedEpisode`
+  # carries `title`, `runtime_minutes`, `air_at` and `episode_number` with
+  # `for_season/3` and `for_title/2` to read them, while
+  # `Kati.Media.CachedSeason.for_title/2` and `count/1` are the season strip and
+  # its `3 SEASONS`. `Kati.Screens.Season`'s (34) moduledoc has been brought up
+  # to date and names three per-season display columns that genuinely do not
+  # exist; 04's and 58's have not, and their stated blocker is now false.
+  # Leaving them here is a decision about scope, not a fact about the schema.
   @migrated [
     # 01 and 02 are the two that were reading the database before this round and
     # were never in this file. Both take `Kati.Calendars.Today`, which answers
@@ -109,12 +136,40 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # (23) are absent here for the same reason 04 and 05 are: no habit
     # completion, no price, nothing to fall back FROM.
     {"32", Kati.Screens.Calendars},
+    # The two screens the design draws DARK, and the log sheet.
+    #
+    # 28 is Home in dark and reads exactly what Home reads — `Rest of today`,
+    # through `Kati.Calendars.Today` — so its `[]` clause is Home's `[]` clause
+    # and is guarded here the same way. Its header stays the drawing's evening
+    # on purpose; `Kati.Screens.HomeDark`'s moduledoc gives both reasons.
+    #
+    # 29's four widgets fall back one at a time rather than as a page, which is
+    # why the pair below compares the whole `widgets/0` map: a widget that
+    # quietly stopped falling back would leave the other three drawing the
+    # drawing and pass every literal check in this file.
+    #
+    # 33 reads the newest logged watch. It is the one screen here whose
+    # fallback fires on a database that is NOT empty — a library full of
+    # episode ticks and no rating or review anywhere still has nothing this
+    # sheet can draw — so the empty case guarded here is the floor, not the
+    # whole of it.
+    {"28", Kati.Screens.HomeDark},
+    {"29", Kati.Screens.Lock},
+    {"33", Kati.Screens.Rating},
     {"42", Kati.Screens.Health},
     {"43", Kati.Screens.MealsToday},
     {"44", Kati.Screens.MealPlan},
     {"45", Kati.Screens.Meal},
     {"47", Kati.Screens.Nutrition},
-    {"48", Kati.Screens.Shopping}
+    {"48", Kati.Screens.Shopping},
+    # The Persian mirrors of 01, 02 and 03, reading the same two domains their
+    # originals read. They are the first screens in 55-62 to reach a store at
+    # all, and they are the ones with the most to lose from losing a fallback:
+    # every drawing in that range was captured from its Sample module, and a
+    # Persian page that renders empty cannot be compared with anything.
+    {"55", Kati.Screens.HomeFa},
+    {"56", Kati.Screens.ScheduleFa},
+    {"57", Kati.Screens.LibraryFa}
   ]
 
   # Every table an Ash resource in this app is backed by, child tables first so
@@ -349,6 +404,53 @@ defmodule Kati.ScreenEmptyDatabaseTest do
                "capture is where it would have surfaced:\n" <> Enum.join(missing, "\n")
     end
 
+    test "every migrated screen has an entry-point gate, and every gate a migrated screen" do
+      # `@migrated` is pinned from both sides against the compiled call graph, so
+      # a screen that starts reading Ash cannot stay out of it. `fallbacks/0` had
+      # no such pin, and it is the stronger of the two halves this file asks:
+      # the literal checks are satisfied by presence anywhere in the tree, and
+      # only this one puts the question to the screen's own read.
+      #
+      # A `for` over a list asserts nothing about a screen the list omits. So a
+      # screen added to `@migrated` — which the derivation above *forces* on the
+      # round it migrates — and not added here would be rendered, would pass
+      # every literal check, and would have its fallback taken entirely on
+      # trust. Verified by deleting screen 33's entry: the whole file still
+      # passed, and 33 is the one whose moduledoc calls its own fallback the
+      # subtlest here.
+      listed = MapSet.new(@migrated, &elem(&1, 0))
+      gated = MapSet.new(fallbacks(Kati.Time.today()), &elem(&1, 0))
+
+      ungated = listed |> MapSet.difference(gated) |> Enum.sort()
+
+      assert ungated == [],
+             "these screens are rendered against an empty database and their own read is " <>
+               "never asked what it answered, so their fallback is a claim rather than a " <>
+               "result. Add each to `fallbacks/0` as `{number, module, what the screen " <>
+               "reads, what the drawing is}`:\n" <> Enum.map_join(ungated, "\n", &"  #{&1}")
+
+      stray = gated |> MapSet.difference(listed) |> Enum.sort()
+
+      assert stray == [],
+             "these screens have an entry-point gate and are not in @migrated, so nothing " <>
+               "renders them and the gate is checking a screen this file does not cover:\n" <>
+               Enum.map_join(stray, "\n", &"  #{&1}")
+
+      # Both halves keyed by number, so the modules are checked too rather than
+      # assumed to follow — a gate pointing at the wrong screen would otherwise
+      # satisfy every set comparison above.
+      mismatched =
+        for {number, module} <- @migrated,
+            {^number, gate_module, _live, _drawn} <-
+              fallbacks(Kati.Time.today()),
+            gate_module != module,
+            do: "  #{number} is #{inspect(module)} in @migrated, #{inspect(gate_module)} here"
+
+      assert mismatched == [],
+             "an entry-point gate names a different module than the screen it is filed " <>
+               "under:\n" <> Enum.join(mismatched, "\n")
+    end
+
     test "each screen's own read answers empty, so it is the drawing that drew" do
       # The literal checks say the drawing's words reached the tree. They cannot
       # say *by which path* — a screen could satisfy every one of them from copy
@@ -391,7 +493,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
                "the row that used to carry it is:\n" <> Enum.join(missing, "\n")
     end
 
-    test "the two clock literals are still exempted for the reason they were" do
+    test "the clock literals are still exempted for the reason they were" do
       # An allow-list is the one thing in this file that can only ever make it
       # check less, so it is pinned from both ends. A dead entry — a literal the
       # drawing no longer contains — would be an exemption for nothing, and an
@@ -469,6 +571,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, &Kati.Screens.Activity.drawn/0},
       {"32", Kati.Screens.Calendars, &Kati.Screens.Calendars.calendar_list/0,
        &Kati.Screens.Calendars.drawn_calendars/0},
+      # 28 is 01's shape and is gated in the same place for the same reason: the
+      # dark Home mounts the timeline raw and substitutes the drawing at
+      # `rest_of_today/1`'s `[]` clause, so the comparison is made where the
+      # substitution is rather than at a restatement of it.
+      {"28", Kati.Screens.HomeDark,
+       fn -> Kati.Screens.HomeDark.rest_of_today(Kati.Calendars.Today.rows()) end,
+       fn ->
+         Kati.Screens.HomeDark.rest_of_today(Kati.Screens.HomeDark.Sample.rest_of_today())
+       end},
+      # 29 answers with all four widgets at once, because it falls back one
+      # widget at a time: three that still drew the drawing would hide a fourth
+      # that had stopped being able to.
+      {"29", Kati.Screens.Lock, &Kati.Screens.Lock.widgets/0, &Kati.Screens.Lock.drawn_widgets/0},
+      {"33", Kati.Screens.Rating, &Kati.Screens.Rating.watch/0,
+       &Kati.Screens.Rating.drawn_watch/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
@@ -480,18 +597,34 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"47", Kati.Screens.Nutrition, fn -> Kati.Screens.Nutrition.figures(today) end,
        &Kati.Screens.Nutrition.drawn_figures/0},
       {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
-       &Kati.Meals.SampleShopping.list/0}
+       &Kati.Meals.SampleShopping.list/0},
+      # 55 is 01's shape, and gated in the same place for the same reason: the
+      # Persian Home mounts the timeline raw and substitutes the drawing at
+      # `rest_of_today/1`'s `[]` clause, so the comparison is made where the
+      # substitution is rather than at a restatement of it.
+      {"55", Kati.Screens.HomeFa,
+       fn -> Kati.Screens.HomeFa.rest_of_today(Kati.Calendars.Today.rows()) end,
+       fn ->
+         Kati.Screens.HomeFa.rest_of_today(Kati.Screens.HomeFa.Sample.rest_of_today())
+       end},
+      # 56 answers with both halves of its day at once — the ordinary rows and
+      # the evening's feature card — because only the drawn day has the second,
+      # and a gate that looked at one half would pass while the other emptied.
+      {"56", Kati.Screens.ScheduleFa, fn -> Kati.Screens.ScheduleFa.day(today) end,
+       &Kati.Screens.ScheduleFa.drawn_day/0},
+      {"57", Kati.Screens.LibraryFa, &Kati.Screens.LibraryFa.titles/0,
+       &Kati.Screens.LibraryFa.drawn_titles/0}
     ]
   end
 
   # What `Kati.Screens.Home.load/1` assigns, called the way the screen calls it.
   defp timeline, do: Kati.Calendars.Today.rows()
 
-  # ── The two literals no empty database can put back ─────────────────────────
+  # ── The literals no empty database can put back ─────────────────────────────
 
-  # Screens 01 and 02 print the device clock, and their drawings froze the day
-  # they were exported. That is not a fallback that could regress — it is the
-  # same value on a full database and on an empty one — so the pair is exempted
+  # Screens 01, 02, 55 and 56 print the device clock, and their drawings froze
+  # the day they were exported. That is not a fallback that could regress — it
+  # is the same value on a full database and on an empty one — so each is exempted
   # here exactly as `Kati.ScreenDesignLiteralTest` exempts them, with a stand-in
   # pattern rather than a bare pass, and the stand-in carries **today's** day of
   # the month so a screen that hardcoded the drawing's date fails on every day
@@ -501,13 +634,29 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # is how an exemption granted for one question quietly answers another, and
   # three entries is not the kind of duplication worth a shared fixture. The
   # `no_dead_entries` test below is what stops this copy going stale.
+  # Screens 55 and 56 are the same three lines in Persian, and their stand-ins
+  # carry today's **Shamsi** day rather than its Gregorian one — the number the
+  # screens actually print. Two things about the patterns are not decoration:
+  #
+  #   * `\x{200C}` is in every word class. Four of the seven Persian weekday
+  #     names contain a zero-width non-joiner (سه‌شنبه, پنج‌شنبه), and a ZWNJ is
+  #     `\p{Cf}`, not `\p{L}` — so a bare `\p{L}+` would match on Saturday and
+  #     fail on Tuesday, which is a stand-in that works four days in seven.
+  #   * `\p{N}+` rather than `\d+`. The digits are U+06F0-U+06F9, which are
+  #     `Nd` and are not what `\d` means.
   defp device_values do
     day = Integer.to_string(Kati.Time.now().day)
+    {_year, _month, shamsi_day} = Kati.Calendar.Shamsi.from_gregorian(Kati.Time.today())
+    fa_day = Kati.Calendar.Shamsi.fa(shamsi_day)
+    word = "[\\p{L}\\x{200C}]+"
 
     [
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
-      {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u}
+      {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
+      {"55", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"55", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
+      {"56", "یکشنبه ۲۵ مرداد · ۵ مورد", ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u}
     ]
   end
 

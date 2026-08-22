@@ -44,6 +44,31 @@ defmodule Kati.Screens.Widgets do
   It happens to land well on the inverted tile anyway — `#6A6560` on
   `ink_fill`'s `#F7EFE4` reads at about 5.5:1 — so the tile is legible in dark
   rather than merely unbroken.
+
+  ## Audited: drawn copy — the tiles are pictures of widgets, not widgets
+
+  **Every string on this screen is `Kati.Widgets.Sample`, and it stays that
+  way.** The eyebrow says **Sizes** and the export's own caption says *"four
+  widget sizes off one data model"*: what is being shown is the same content at
+  four scales, which is a claim about layout rather than about this user's
+  evening.
+
+  Three of the four could be read today — `Long Hollow · S2E6` is the hero
+  `Kati.Screens.UpNext.queue/0` already assembles from `Kati.Media`, and
+  `20:00 · 6 episodes air` is `Kati.Calendars.Today`, which screens 01 and 02
+  read. **STREAK · 11 nights cannot**, and that is what decides it: nothing
+  anywhere records that a habit was kept — `Kati.Calendars.Override.kind` is
+  `:modified | :cancelled`, so an occurrence can be called off and cannot be
+  ticked — which is why `Kati.Screens.Habits` is on its Sample outright. Making
+  three tiles live would leave one permanently invented sitting in the same row,
+  which is the mixture `Kati.Screens.Film` refuses: either every value is this
+  user's or every value is the drawing's. The set moves when a habit completion
+  exists to count.
+
+  The **shortcut switches** flip locally and are stored nowhere, honestly:
+  there is no voice layer in `lib/` at all, so *"Hey Siri, what's next?"* is
+  describing a surface Kati does not yet have rather than a setting it keeps.
+  A stored boolean would arm nothing.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

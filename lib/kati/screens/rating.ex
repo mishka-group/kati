@@ -91,20 +91,329 @@ defmodule Kati.Screens.Rating do
   not a run — so the caret is drawn at the start of the line below the body,
   which is where a cursor lands when a line ends exactly at its edge. Recorded
   rather than faked with an offset that would drift with every font metric.
+
+  ## Which half of a write path this is: it READS a watch, it does not write one
+
+  `Kati.Media.Watch` models this sheet column for column — rating, review,
+  `contains_spoilers`, `rewatch_number`, `watched_on` beside `watched_at`,
+  `service`, `place`, `companions`, `tags` — and its own moduledoc names screen
+  33 four times over. So the question was not *whether* this screen belongs to
+  that resource but *which direction*, and the answer the screen itself gives is
+  **read**.
+
+  **The drawing is a filled-in sheet, and only a stored watch can fill it.** The
+  rating is set, the review is typed, the spoiler toggle is on, three context
+  rows have values and three tags are attached. A sheet composing a *new* watch
+  has none of that: it is five empty cards, which is not this drawing and not
+  anything screen 27's empty state would call a state either. The only thing in
+  the app that looks like this picture is a watch that already exists — so this
+  screen reads the newest one and shows it, which is what reopening a log to
+  edit it looks like.
+
+  **Nothing on this sheet can change a value, so there is nothing to save.**
+  The whole screen draws exactly three tap targets — `close`, `save` and
+  `+ tag`. The five stars carry no `on_tap`, the `5★`/`10pt` toggle carries
+  none, the three context rows are `Kati.UI.SettingsList` rows with a chevron
+  and no handler, and the review body is a `Text` with a drawn caret rather than
+  a `TextField`. A `Save` wired today would write back, to the value, exactly
+  what it had just read. What the write half needs first is those controls: a
+  tap target per star (and per half), a real text field for the review, a picker
+  behind each context row, and `:add_tag` doing something — after which
+  `Kati.Media.Watch`'s `create: :*` and `update: :*` already accept every one of
+  these columns and the changeset is a dozen lines.
+
+  One consequence worth writing down before that lands:
+  `Kati.ScreenTapSweepTest` taps **every** control **every** screen draws, in
+  both locales, against the one shared SQLite file — the suite has no Ecto
+  sandbox. The day `:save` writes, that sweep starts creating `Kati.Media.Watch`
+  rows that every other sweep then renders. The fix is for the write to go
+  through something the sweep can point at a scratch database, not for the sweep
+  to skip the tag.
+
+  ## Where the watch comes from
+
+  Nothing hands this screen an id — `Kati.Screens.Gallery` pushes it with no
+  watch attached, exactly as it pushes `Kati.Screens.Film` with no film — so the
+  referent is chosen here and stated: **the newest watch that carries a rating
+  or a review**, which is the newest thing the user actually *logged* as opposed
+  to *ticked*. `Kati.Media.Watch` is explicit that a tick and a log are one row
+  shape at two levels of detail; a tick has no rating, no review and no context,
+  so a sheet drawn from one would be five empty cards for a second reason.
+
+  Three reads, never one per row: that watch, its durable row (loaded with it),
+  and the one cache row that row names — by `{source, source_id}` as a **value
+  pair**, so an evicted poster cannot take the user's own review down with it.
+
+  With nothing logged there is no such watch and `Kati.Rating.Sample` is drawn
+  instead, the values `.scratch/design/screens/33.html` was captured from.
+  FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
+  module stays exactly where it is; it is the fallback and the fixture, not a
+  stage this screen has passed through.
+
+  ### What no resource can express, and is therefore not drawn
+
+    * **`2025` in the meta line.** The same gap `Kati.Screens.Film` records:
+      `Kati.Media.CachedTitle.next_release_at` is the NEXT release, and reading
+      it as a first-release year would print next Tuesday's date as a film's
+      year. The line degrades to `1H 52M`, which is `runtime_minutes` and
+      nothing else.
+    * **`HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE`, and the `5★`/`10pt`
+      toggle.** Both are display preferences — which scale the user reads
+      ratings on — and no resource holds one. `Kati.Media.Watch.rating` is the
+      ten-point integer either way, and screen 35's settings are where a scale
+      preference would live. So both stay the drawing's, on a real watch as on
+      the fallback, and the note is taken from the one place that copy lives
+      rather than written out a second time here.
   """
   use Mob.Screen
   import Mob.Sigil
 
+  require Ash.Query
+
   alias Kati.Components.MishkaCloseButton
   alias Kati.Components.MishkaPill
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.TrackedTitle
+  alias Kati.Media.Watch
   alias Kati.Rating.Sample
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :watch, Sample.watch())}
+    {:ok, Mob.Socket.assign(socket, :watch, watch())}
   end
+
+  @doc """
+  The watch this sheet draws: the user's newest log, or the drawing's.
+
+  The gate is the whole sheet rather than each card, for the reason
+  `Kati.Screens.Film.film/0` gives: a page whose review is the user's own and
+  whose title is somebody else's film reads as entirely real. Either every value
+  on it is this watch's or every value is the drawing's.
+  """
+  @spec watch() :: map()
+  def watch, do: logged_watch() || drawn_watch()
+
+  @doc """
+  Screen 33 exactly as it is drawn, from `Kati.Rating.Sample`.
+
+  Kept in the fixture rather than inlined here: it is the frame's specification
+  and the value a test compares a real render against, and two copies of the
+  drawing's copy is how the two drift apart.
+  """
+  @spec drawn_watch() :: map()
+  def drawn_watch, do: Sample.watch()
+
+  @doc """
+  The user's newest log, shaped for the markup, or `nil` when there is not one.
+
+  `nil` is the ordinary answer on a fresh install and the one `watch/0` reads as
+  "draw the drawing". A database that cannot be read at all answers `nil` too —
+  `Ash.read!` on a device mid-migration raises, and a sheet that dies is
+  strictly worse than a sheet showing the values it was drawn from.
+  """
+  @spec logged_watch() :: map() | nil
+  def logged_watch do
+    case newest_log() do
+      nil -> nil
+      logged -> shaped(logged.tracked_title, cached_for(logged.tracked_title), logged)
+    end
+  rescue
+    _ -> nil
+  end
+
+  # The newest thing the user logged rather than ticked — see the moduledoc for
+  # why a tick cannot fill this sheet. `watched_at` first because that is the
+  # night the log is about; `inserted_at` behind it so a watch recorded with no
+  # instant ("I have seen this, I do not remember when") still orders by when it
+  # was written down rather than arbitrarily.
+  defp newest_log do
+    Watch
+    |> Ash.Query.filter(not is_nil(rating) or (not is_nil(review) and review != ""))
+    |> Ash.Query.sort(watched_at: :desc, inserted_at: :desc)
+    |> Ash.Query.load(:tracked_title)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> List.first()
+  end
+
+  # One read, by the VALUE PAIR the durable half references the cache by. A
+  # missing row is the evicted case and is ordinary — see `shaped/3`.
+  defp cached_for(%TrackedTitle{source: source, source_id: source_id}) do
+    CachedTitle
+    |> Ash.Query.filter(source == ^source and source_id == ^source_id)
+    |> Ash.read_one!()
+  end
+
+  @doc """
+  One logged watch in the shape the markup reads, whatever is missing.
+
+  `cached` may be `nil` and every column on the watch but `contains_spoilers` is
+  nullable; each absence is an ordinary state of a log and none of them is
+  allowed to invent a value:
+
+    * `title` is the cache's, and `Untitled` when the cache row has gone — the
+      answer `Kati.Screens.Film` and `Kati.Screens.Activity` both give, because
+      the review survived the wipe and the poster did not.
+    * `rating` is the ten-point integer halved, so `9` is `4.5` and the row
+      draws four stars and a half. `nil` for an unrated log, which
+      `stars/1` draws as five empty stars and `rating_label/1` prints as a dash:
+      that is what *you have not rated this* looks like, and it is a real state
+      of a review the user wrote without scoring.
+    * `rewatch` is `nil` below `2`. `rewatch_number` is the user's own count and
+      `1` means a first watch, which is not a rewatch — `Kati.Media.Watch` keeps
+      the column precisely because counting rows would say "1st" to someone who
+      saw the film twice before Kati existed.
+    * `spoilers` is `nil` when the review does not carry them, and the toggle
+      draws nothing rather than an inverted claim: `contains_spoilers` says a
+      review has spoilers to hide, and its `false` says nothing is hidden.
+    * `characters` is counted off the review here, where the fixture stores it —
+      `Kati.Rating.Sample` says why the drawing's own 184 is stored rather than
+      derived, and that reason is about the drawing, not about a real review.
+    * the three context rows are always drawn and their `sub` may be `nil`,
+      which `Kati.UI.SettingsList.body/2` renders as a title alone. An editor
+      with a field not yet filled in is exactly what a log with no place is.
+  """
+  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, Watch.t()) :: map()
+  def shaped(tracked, cached, logged) do
+    zone = Kati.Time.device_zone()
+
+    %{
+      title: title_of(cached),
+      seed: seed_of(tracked, cached),
+      meta: runtime_label(cached),
+      rewatch: rewatch_label(logged.rewatch_number),
+      rating: logged.rating && logged.rating / 2,
+      # A display preference with no resource behind it — see the moduledoc.
+      rating_note: Sample.watch().rating_note,
+      spoilers: if(logged.contains_spoilers, do: "Spoilers hidden"),
+      review: logged.review || "",
+      characters: characters_label(logged.review),
+      context: context_rows(logged, zone),
+      tags: tag_list(logged.tags)
+    }
+  end
+
+  defp title_of(%CachedTitle{title: title}) when is_binary(title) and title != "", do: title
+  defp title_of(_cached), do: "Untitled"
+
+  # `Kati.Seeds` writes the design's own seed into `poster_path` and
+  # `sample_source_id/1` is the other half of that convention, so a row whose
+  # cache has been evicted can still find its picture. A real provider path is
+  # one `Kati.Design.Images.poster/1` will not find, and `poster/1` already
+  # draws the placeholder rectangle for that.
+  defp seed_of(tracked, cached) do
+    case cached do
+      %CachedTitle{poster_path: path} when is_binary(path) and path != "" -> path
+      _ -> Kati.Seeds.sample_seed(tracked.source_id)
+    end
+  end
+
+  # `2025 · 1H 52M` minus the year, which nothing stores. An unknown runtime
+  # leaves the line empty rather than spelling the absence as a dash.
+  defp runtime_label(%CachedTitle{runtime_minutes: m}) when is_integer(m) and m > 0 do
+    case {div(m, 60), rem(m, 60)} do
+      {0, minutes} -> "#{minutes}M"
+      {hours, 0} -> "#{hours}H"
+      {hours, minutes} -> "#{hours}H #{minutes}M"
+    end
+  end
+
+  defp runtime_label(_cached), do: ""
+
+  defp rewatch_label(n) when is_integer(n) and n > 1, do: "#{ordinal(n)} rewatch"
+  defp rewatch_label(_n), do: nil
+
+  defp ordinal(n) do
+    suffix =
+      cond do
+        rem(n, 100) in 11..13 -> "th"
+        rem(n, 10) == 1 -> "st"
+        rem(n, 10) == 2 -> "nd"
+        rem(n, 10) == 3 -> "rd"
+        true -> "th"
+      end
+
+    "#{n}#{suffix}"
+  end
+
+  defp characters_label(review) when is_binary(review) do
+    case String.length(review) do
+      1 -> "1 character"
+      n -> "#{n} characters"
+    end
+  end
+
+  defp characters_label(_review), do: "0 characters"
+
+  # The three facts that make a log worth keeping later — when, where, and who
+  # with — in the drawing's own order. Always three rows: this is an editor, and
+  # a field with nothing in it is a field with nothing in it, not a row to hide.
+  defp context_rows(logged, zone) do
+    [
+      %{icon: "event", title: "Watched on", sub: when_label(logged, zone)},
+      %{icon: "tv", title: "Where", sub: where_label(logged)},
+      %{icon: "group", title: "With", sub: presence(logged.companions)}
+    ]
+  end
+
+  # `Sun 16 Aug · 21:40`, and `Sun 16 Aug` for a watch that carries a date and
+  # no hour. The two columns are separate on purpose — `watched_on` is
+  # date-valued and storing it as midnight moves it a day the moment the user
+  # flies — so the date is taken from whichever holds one and the hour only
+  # from the instant, which is the only half that has one.
+  defp when_label(logged, zone) do
+    date = log_date(logged, zone)
+    hour = log_hour(logged, zone)
+
+    case {date, hour} do
+      {nil, _hour} -> nil
+      {date, nil} -> Calendar.strftime(date, "%a %-d %b")
+      {date, hour} -> Calendar.strftime(date, "%a %-d %b") <> " · " <> hour
+    end
+  end
+
+  defp log_date(%Watch{watched_on: %Date{} = date}, _zone), do: date
+
+  defp log_date(%Watch{watched_at: %DateTime{} = at}, zone),
+    do: at |> Kati.Time.in_zone(zone) |> DateTime.to_date()
+
+  defp log_date(%Watch{}, _zone), do: nil
+
+  defp log_hour(%Watch{watched_at: %DateTime{} = at}, zone),
+    do: at |> Kati.Time.in_zone(zone) |> Calendar.strftime("%H:%M")
+
+  defp log_hour(%Watch{}, _zone), do: nil
+
+  # `Lumen+ · living room`. Stored apart even though the drawing writes them as
+  # one line, because one of them is a thing stats can group by and the other is
+  # a room in a house — so either half can be absent and the line closes up.
+  defp where_label(%Watch{service: service, place: place}) do
+    [service, place]
+    |> Enum.map(&presence/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
+    |> presence()
+  end
+
+  # Names and tags are stored as typed, comma-separated: Kati has no people
+  # table and no contacts permission, and inventing either to hold the word
+  # "Jo" would be a larger privacy decision than this row is asking for.
+  defp tag_list(tags) when is_binary(tags) do
+    tags |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+  end
+
+  defp tag_list(_tags), do: []
+
+  defp presence(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp presence(_value), do: nil
 
   def render(assigns) do
     w = assigns.watch
@@ -300,6 +609,12 @@ defmodule Kati.Screens.Rating do
   relationship the drawing has. `tab_well/0` is deliberately darker than the
   page and belongs to the dock's active tab, which this is not.
   """
+  # A first watch is not a rewatch, so there is no badge to draw — see
+  # `shaped/3` on why `rewatch_number` of 1 (or of nothing) answers `nil`. The
+  # 9pt spacer above stays where it is: it belongs to the block, and taking it
+  # away with the badge would move the meta line up on a real log.
+  def rewatch(nil), do: ~MOB"<Spacer size={0} />"
+
   def rewatch(label) do
     text = ~MOB"""
     <Text
@@ -368,7 +683,7 @@ defmodule Kati.Screens.Rating do
           {Kati.Screens.Rating.stars(w.rating)}
           <Spacer size={12} />
           <Text
-            text={"#{w.rating}"}
+            text={Kati.Screens.Rating.rating_label(w.rating)}
             font_family="mono"
             text_size={14}
             font_weight="medium"
@@ -460,7 +775,28 @@ defmodule Kati.Screens.Rating do
   # without a second one.
   def scale_star(true, color), do: Kati.UI.symbol("star", size: 11, color: color, fill: true)
 
+  @doc """
+  The number beside the stars, in the scale the row draws.
+
+  `4.5` prints as `4.5` and `4.0` as `4`, because a whole rating is a whole
+  number on a five-star row and `.0` reads as a precision nobody claimed. An
+  unrated log prints the em dash `Kati.Screens.Stats` uses for the same absence
+  in `Avg ★` — the card is the user's own rating and is never hidden, so it says
+  "not rated" rather than "0".
+  """
+  @spec rating_label(number() | nil) :: String.t()
+  def rating_label(nil), do: "—"
+
+  def rating_label(value) do
+    whole = trunc(value)
+    if value == whole, do: Integer.to_string(whole), else: "#{value}"
+  end
+
+  # Five empty stars, which is what "you have not rated this" looks like —
+  # `Kati.Screens.Film.star_count/1` gives the same answer for the same reason.
   @doc false
+  def stars(nil), do: stars(0)
+
   def stars(value) do
     full = trunc(value)
     half? = value - full >= 0.5
@@ -538,15 +874,7 @@ defmodule Kati.Screens.Rating do
             max_lines={1}
           />
           <Spacer weight={1.0} />
-          {Kati.UI.symbol("visibility_off", size: 15, color: Palette.gold_icon())}
-          <Spacer size={6} />
-          <Text
-            text={w.spoilers}
-            text_size={11}
-            font_weight="semibold"
-            text_color={Palette.gold_text()}
-            max_lines={1}
-          />
+          {Kati.Screens.Rating.spoiler_toggle(w.spoilers)}
         </Row>
         <Spacer size={10} />
         <Text text={w.review} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
@@ -574,6 +902,38 @@ defmodule Kati.Screens.Rating do
       </Column>
       <Spacer size={14} />
     </Column>
+    """
+  end
+
+  @doc """
+  The spoiler state of the review, or nothing at all.
+
+  `Kati.Media.Watch.contains_spoilers` says a review has spoilers *to hide*, so
+  its `false` is not a second state to draw — it is the absence of the first.
+  Drawing `visibility_off` beside "no spoilers" would be the icon asserting the
+  opposite of the sentence.
+
+  The pair goes in a propless `<Row>`, which is inert: `MobBridge.kt` builds a
+  row as `Row(modifier = m, verticalAlignment = rowAlignProp(props))` with no
+  `fillMaxWidth`, and `rowAlignProp/1` answers `CenterVertically` for an absent
+  `align` — so the glyph and the label share the same centre line and the same
+  6pt gap they had as direct children of the eyebrow row.
+  """
+  def spoiler_toggle(nil), do: ~MOB"<Spacer size={0} />"
+
+  def spoiler_toggle(label) do
+    ~MOB"""
+    <Row>
+      {Kati.UI.symbol("visibility_off", size: 15, color: Palette.gold_icon())}
+      <Spacer size={6} />
+      <Text
+        text={label}
+        text_size={11}
+        font_weight="semibold"
+        text_color={Palette.gold_text()}
+        max_lines={1}
+      />
+    </Row>
     """
   end
 

@@ -54,6 +54,27 @@ defmodule Kati.Screens.Language do
   No dock — this is a pushed screen — so the frame closes at 40, not 132. The
   header is the back pill alone, with nothing opposite it, so the chrome row
   reserves the pill's height and draws no disc.
+
+  ## Audited: the locale is stored; the eight rows under it are drawn copy
+
+  The picker is the app's real setting and is read and written above.
+  **Everything below it is `Kati.Language.Sample`, and no resource in the app
+  holds any of it** — the five *Follows the language* rows, the three *Content*
+  rows and the closing promise are the design's words about a locale's
+  consequences.
+
+  None of the eight carries an `on_tap`, including the *Title language* switch,
+  and by this file's own invariant — the tags a screen draws are the choices it
+  can still make — that is the screen saying so rather than a control that lost
+  its handler. Each names a preference the app does not keep: `Kati.Locale`
+  stores the locale and derives the writing direction from it and nothing else,
+  so a calendar system, a numeral set, a week start, a time format, whether
+  original titles show, units and currency have nowhere to be written. They
+  belong on `Kati.Locale` as stored overrides — the row's own word is
+  *overridable*, and `Kati.Theme.Mode` is the shape one takes — rather than in a
+  domain: they are preferences, not rows. `Writing direction` is the exception
+  that never becomes a setting, and the drawing already says so by printing
+  `auto` where the other four print an arrow.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

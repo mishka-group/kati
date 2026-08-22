@@ -42,7 +42,7 @@ defmodule Kati.ScreenDesignLiteralTest do
 
   ## The allow-list
 
-  Four literals cannot be asserted directly, all for the same reason: the
+  Seven literals cannot be asserted directly, all for the same reason: the
   drawing froze a value the screen reads from the device clock. They are listed
   in `device_values/0` with the pattern that must stand in for each, and there
   is deliberately no way to add a bare exemption — an entry with no stand-in
@@ -284,7 +284,7 @@ defmodule Kati.ScreenDesignLiteralTest do
     end
 
     test "the list stays small enough to read" do
-      assert length(device_values()) <= 4,
+      assert length(device_values()) <= 7,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -301,8 +301,17 @@ defmodule Kati.ScreenDesignLiteralTest do
   # day of the month: the drawings froze one date, the screens format the
   # device's, and pinning the day is what stops a screen that hardcoded the
   # drawing's date from passing here.
+  #
+  # The Persian half carries today's **Shamsi** day, because that is the number
+  # those screens print, and two details of its patterns are load-bearing:
+  # `\x{200C}` is inside every word class (four of the seven Persian weekday
+  # names contain a zero-width non-joiner, which is `\p{Cf}` and not `\p{L}`),
+  # and `\p{N}+` rather than `\d+` (the digits are U+06F0-U+06F9).
   defp device_values do
     day = Integer.to_string(Kati.Time.now().day)
+    {_year, _month, shamsi_day} = Kati.Calendar.Shamsi.from_gregorian(Kati.Time.today())
+    fa_day = Kati.Calendar.Shamsi.fa(shamsi_day)
+    word = "[\\p{L}\\x{200C}]+"
 
     [
       {"01", "sunday · 16 august",
@@ -317,7 +326,22 @@ defmodule Kati.ScreenDesignLiteralTest do
        "Schedule's subtitle is the selected day, which starts on the device's today",
        ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
       {"09", "thu 20 aug", "the heavy day's header is the device's today, in the same short form",
-       ~r/^\p{L}{3} #{day} \p{L}{3}$/u}
+       ~r/^\p{L}{3} #{day} \p{L}{3}$/u},
+      {"55", "یکشنبه ۲۵ مرداد ۱۴۰۵",
+       "the Persian Home's date line is `Kati.Screens.HomeFa.moment/0`, which is " <>
+         "`Kati.Calendar.Shamsi.format/2` at `:long` over `Kati.Time.today/0` — the mirror " <>
+         "of 01's own exemption, in the calendar the screen is drawn in",
+       ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"55", "عصر بخیر",
+       "the greeting is picked from the device clock's hour by that same function, on " <>
+         "`Kati.Screens.Home.today/0`'s thresholds. Which of the three it is belongs there; " <>
+         "restating the hours here would only make this fail when the product changed its " <>
+         "mind about evening",
+       ~r/^(صبح|ظهر|عصر) بخیر$/u},
+      {"56", "یکشنبه ۲۵ مرداد · ۵ مورد",
+       "the Persian Schedule's subtitle is the selected day and the number of rows on it, " <>
+         "and the selected day starts on the device's today",
+       ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u}
     ]
   end
 
