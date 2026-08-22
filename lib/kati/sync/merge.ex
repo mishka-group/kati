@@ -158,8 +158,12 @@ defmodule Kati.Sync.Merge do
          {:ok, local} <- parse(local_raw),
          {:ok, remote} <- parse(remote_raw) do
       case merge(base, local, remote, origin) do
-        {:merged, {:present, props}} -> {:merged, rebuild(remote_raw, remote, props)}
-        {:merged, :deleted} -> {:merged, :deleted}
+        {:merged, {:present, props}} ->
+          {:merged, rebuild(remote_raw, remote, props)}
+
+        {:merged, :deleted} ->
+          {:merged, :deleted}
+
         {:resolved, winner, props, rejected} ->
           {:resolved, winner, rebuild(remote_raw, remote, props), rejected}
 

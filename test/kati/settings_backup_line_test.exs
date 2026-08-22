@@ -111,7 +111,14 @@ defmodule Kati.SettingsBackupLineTest do
       render_info(
         mount_screen(Backup),
         {:kati_files, :saved,
-         [%{path: "/tmp/kati.katibackup", name: "kati.katibackup", bytes: 8736, uri: "content://x"}]}
+         [
+           %{
+             path: "/tmp/kati.katibackup",
+             name: "kati.katibackup",
+             bytes: 8736,
+             uri: "content://x"
+           }
+         ]}
       )
 
     # The notice is the screen's half and the ledger is settings'. Both, so a

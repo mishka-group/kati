@@ -18,6 +18,15 @@ defmodule Kati.App do
   # compile time because `Mix` does not exist on the device.
   @dev? Mix.env() == :dev
 
+  # MUST stay pure. `Mob.Nav.Registry.start_link/1` calls this from its own
+  # `init/1`, and `Mob.App.start/0` starts that registry BEFORE `Mob.State` —
+  # so anything here that reaches a GenServer kills the boot before a single
+  # screen renders. Asking `Kati.Onboarding.complete?/0` here did exactly that:
+  # the BEAM came up, `Mob.Nav.Registry.populate/1` exited on a call to a
+  # process that did not exist yet, and the app sat on its splash screen
+  # forever with no crash and no trace.
+  #
+  # The real root is chosen in `on_start/0`, which runs after `Mob.State`.
   @impl Mob.App
   def navigation(_platform) do
     stack(:main, root: Kati.Screens.Home)
@@ -27,6 +36,16 @@ defmodule Kati.App do
   def on_start do
     Kati.Runtime.configure()
     trace("configure")
+
+    # Re-point the stack root now that `Mob.State` is running.
+    #
+    # A fresh install has to run the first-run sequence — screens 53, 26 and
+    # 38 — and after it the root is whichever shell the chosen locale names,
+    # so someone who picked فارسی does not get an English home page on every
+    # launch. `navigation/1` cannot make that decision (see the comment there);
+    # `Mob.Nav.Registry.register/3` is the runtime equivalent and writes the
+    # same `{name, root, params}` row `populate/1` does.
+    Mob.Nav.Registry.register(:main, Kati.Onboarding.first_screen())
 
     # Android's system trust store lives behind a Java API that BEAM's
     # `:public_key` cannot reach, so `:public_key.cacerts_load/0` finds no

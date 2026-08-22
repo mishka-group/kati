@@ -93,7 +93,9 @@ defmodule Kati.SyncAdapterTest do
 
     assert {:ok, [], _cursor} = DeviceProvider.pull(%Calendar{remote_id: "1"}, nil)
 
-    write!("device_deleted.json", [%{"calendar_id" => "1", "event_id" => 44, "sync_id" => "sync-44"}])
+    write!("device_deleted.json", [
+      %{"calendar_id" => "1", "event_id" => 44, "sync_id" => "sync-44"}
+    ])
 
     assert {:ok, [change], _cursor} = DeviceProvider.pull(%Calendar{remote_id: "1"}, nil)
     assert change.kind == :delete

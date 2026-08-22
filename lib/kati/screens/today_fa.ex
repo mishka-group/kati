@@ -111,7 +111,7 @@ defmodule Kati.Screens.TodayFa do
           />
         </Row>
         <Spacer weight={1.0} />
-        {Fa.disc("calendar_view_week")}
+        {Fa.disc("calendar_view_week", :open_week)}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -697,5 +697,12 @@ defmodule Kati.Screens.TodayFa do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  # The week disc opens screen 60, which is what the English pair does: screen
+  # 43's Week tile opens 44. 60's own back pill reads وعده‌ها, naming this
+  # screen as its parent, and the disc was drawn here with no tag at all.
+  def handle_info({:tap, :open_week}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsMatrixFa)}
+
   def handle_info(_message, socket), do: {:noreply, socket}
 end

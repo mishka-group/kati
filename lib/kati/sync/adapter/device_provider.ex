@@ -64,7 +64,10 @@ defmodule Kati.Sync.Adapter.DeviceProvider do
     with {:ok, rows} <- read(@instances_file),
          {:ok, gone} <- read_optional(@deleted_file) do
       upserts =
-        for row <- rows, row["calendar_id"] == calendar.remote_id, uid = uid_for(row), uid != nil do
+        for row <- rows,
+            row["calendar_id"] == calendar.remote_id,
+            uid = uid_for(row),
+            uid != nil do
           Change.upsert(uid,
             remote_id: to_string_or_nil(row["event_id"]),
             # The provider's version of an etag. Not compared with anything
@@ -75,7 +78,10 @@ defmodule Kati.Sync.Adapter.DeviceProvider do
         end
 
       deletions =
-        for row <- gone, row["calendar_id"] == calendar.remote_id, uid = uid_for(row), uid != nil do
+        for row <- gone,
+            row["calendar_id"] == calendar.remote_id,
+            uid = uid_for(row),
+            uid != nil do
           Change.delete(uid, remote_id: to_string_or_nil(row["event_id"]))
         end
 

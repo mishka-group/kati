@@ -106,6 +106,14 @@ defmodule Kati.ScreenTapSweepTest do
     # it from a dead control. Each was confirmed by its siblings: every OTHER
     # tag in the same family does change the screen, so the family is wired and
     # only its current member looks inert.
+    # ── Wired, but the change lives outside the socket. This heuristic
+    # compares assigns and nav action; `Kati.Locale.put/1` writes `Mob.State`,
+    # which is neither. `choose_en` is additionally the already-selected
+    # member of its family. Both are covered properly by
+    # `Kati.ScreenLanguagePickTest`, which asserts the locale actually moves
+    # and the tick follows it.
+    {Kati.Screens.LanguagePick, :choose_en},
+    {Kati.Screens.LanguagePick, :choose_fa},
     {Kati.Screens.Activity, :filter_All},
     {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_All},

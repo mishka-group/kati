@@ -120,10 +120,68 @@ defmodule Kati.Screens.Root do
         # a theme installed at mount; it is simply no longer always the same one.
         Kati.Theme.activate()
 
+        # A fresh install goes to the first-run sequence instead of here.
+        #
+        # The decision cannot be made in `Kati.App.navigation/1`: that runs
+        # inside `Mob.Nav.Registry`'s own `init/1`, which `Mob.App.start/0`
+        # starts BEFORE `Mob.State`, so asking `Kati.Onboarding.complete?/0`
+        # there exits on a call to a process that does not exist yet and the
+        # app sits on its splash screen with no crash and no trace. It is made
+        # here instead, at the first mount, by which point everything is up.
+        #
+        # Sent to self rather than returned: `Mob.Screen`'s initial mount takes
+        # `{:ok, socket}` straight to `do_render/2` and never reads
+        # `nav_action`, so a `reset_to/2` here is silently discarded. Mob uses
+        # exactly this idiom two lines further down its own init, for a
+        # notification that launched the app from a killed state — the message
+        # arrives via `handle_info/2` once init has returned, where nav *is*
+        # processed.
+        # Once per launch, and `nav_stack == []` is not enough to say that:
+        # popping back to a root empties the stack too, so that test alone
+        # re-runs onboarding in the middle of a session. `Kati.Screens.Root.launching?/0`
+        # is a `:persistent_term` latch — per BEAM run, reset by an app
+        # restart, no process to be up or down.
+        #
+        # Both guards are needed. The latch says "this is the first screen
+        # since launch"; the empty stack says "this is a root, not something
+        # pushed on top of one".
+        if socket.__mob__.nav_stack == [] and Kati.Screens.Root.launching?() do
+          cond do
+            not Kati.Onboarding.complete?() ->
+              send(self(), :kati_first_run)
+
+            # Only Home. `Kati.App.navigation/1` names it as the stack root, so
+            # it is the only screen the app can launch on, and
+            # `Kati.Onboarding.shell_root/1` only ever answers Home or HomeFa —
+            # comparing it against Calendar, Library or Stats is always true
+            # and would redirect a root the app never launches on.
+            @root == :home and
+                Kati.Onboarding.shell_root(Kati.Locale.current()) != Kati.Screens.Home ->
+              send(self(), :kati_locale_root)
+
+            true ->
+              :ok
+          end
+        end
+
         socket
         |> Mob.Socket.assign(:root, @root)
         |> load()
         |> then(&{:ok, &1})
+      end
+
+      # Placed before every tap clause so no screen's own catch-all can swallow
+      # it. Screens 53, 26 and 38 run before the app proper on a fresh install.
+      def handle_info(:kati_first_run, socket) do
+        {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.LanguagePick)}
+      end
+
+      # Someone who chose فارسی gets screen 55 on every launch, not only on the
+      # one where they chose it. `Kati.App.navigation/1` has to name a single
+      # module and cannot read the locale (see the comment there), so the swap
+      # happens here.
+      def handle_info(:kati_locale_root, socket) do
+        {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.shell_root(Kati.Locale.current()))}
       end
 
       @doc """
@@ -190,6 +248,43 @@ defmodule Kati.Screens.Root do
   end
 
   require Logger
+
+  @latch {__MODULE__, :launched}
+
+  @doc """
+  True exactly once per BEAM run, for the first root that asks.
+
+  What "the app just launched" means, without a process to ask. `Mob.State` is
+  the wrong home for it — that is DETS and survives a restart, which is the
+  opposite of what is wanted — and a GenServer would be one more thing that has
+  to be up before the first screen mounts. `:persistent_term` is neither: it
+  lives for the life of the VM and is gone when the app is killed.
+
+  Needed because `nav_stack == []` alone does not mean "just launched":
+  popping back to a root empties the stack too, and on that test alone the
+  first-run sequence re-runs in the middle of a session — which is exactly how
+  `Kati.CalendarDayRouteTest` caught it, backing off screen 09 into a language
+  picker.
+
+  Tests latch it closed in `test/test_helper.exs`: a suite is not an app
+  launch. `rearm_launch!/0` opens it again for the tests that are about one.
+  """
+  @spec launching?() :: boolean()
+  def launching? do
+    if :persistent_term.get(@latch, false) do
+      false
+    else
+      :persistent_term.put(@latch, true)
+      true
+    end
+  end
+
+  @doc "Re-arms `launching?/0`, so the next root that asks sees a launch."
+  @spec rearm_launch!() :: :ok
+  def rearm_launch! do
+    :persistent_term.erase(@latch)
+    :ok
+  end
 
   @doc """
   Runs `module.handle_tap/2`, surviving both ways it can fail to answer.

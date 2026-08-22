@@ -112,6 +112,7 @@ defmodule Kati.Sync.Backoff do
   def classify({:http, status, _detail}, _op) when status in [400, 422], do: :quarantine
 
   def classify({:http, status}, :create) when status in [409, 412], do: :already_landed
+
   def classify({:http, status}, op) when status in [409, 412] and op in [:update, :delete],
     do: :conflict
 

@@ -117,7 +117,9 @@ defmodule Kati.SyncICalendarTest do
     physical =
       patched
       |> String.split("\r\n")
-      |> Enum.drop_while(&(not String.starts_with?(&1, "DESCRIPTION:" <> String.slice(long, 0, 5))))
+      |> Enum.drop_while(
+        &(not String.starts_with?(&1, "DESCRIPTION:" <> String.slice(long, 0, 5)))
+      )
       |> Enum.take_while(&(&1 != "END:VEVENT"))
 
     assert length(physical) > 1, "a 300-character value was not folded at all"
@@ -139,7 +141,8 @@ defmodule Kati.SyncICalendarTest do
   end
 
   test "a document with no VEVENT is an error, not an empty event" do
-    only_timezone = "BEGIN:VCALENDAR\r\nBEGIN:VTIMEZONE\r\nTZID:UTC\r\nEND:VTIMEZONE\r\nEND:VCALENDAR\r\n"
+    only_timezone =
+      "BEGIN:VCALENDAR\r\nBEGIN:VTIMEZONE\r\nTZID:UTC\r\nEND:VTIMEZONE\r\nEND:VCALENDAR\r\n"
 
     assert ICalendar.properties(only_timezone) == {:error, :no_vevent}
     assert ICalendar.patch(only_timezone, %{"SUMMARY" => "x"}) == {:error, :no_vevent}

@@ -176,23 +176,63 @@ defmodule Kati.ScreenLanguagePickTest do
     assert frame(view).props[:layout_direction] == "rtl"
   end
 
-  # ── What is still drawn rather than offered ─────────────────────────────────
+  # ── The picker actually picks ───────────────────────────────────────────────
 
-  test "no control on this screen writes the locale" do
+  # This section used to assert the opposite — that nothing on screen 53 was
+  # tappable — and said so for a reason worth keeping: writing a locale from a
+  # step 1 with no step 2 strands the reader in a flipped interface whose only
+  # exit is a back button. `Kati.Onboarding` supplied the step 2, and on a
+  # first run this screen is the stack root, so there is no back to strand
+  # anyone with. That old test named itself as the thing to update.
+
+  test "both options and Continue carry a tap" do
     :ok = Kati.Locale.put(:en)
 
-    tagged =
+    tags =
       mount_screen(LanguagePick)
       |> flatten()
       |> Enum.filter(&Map.has_key?(&1.props, :on_tap))
+      |> Enum.map(& &1.props[:on_tap])
+      |> Enum.map(fn {_pid, tag} -> tag end)
 
-    assert tagged == [],
-           "screen 53 has grown a tappable control. It reads the locale and deliberately " <>
-             "writes none — see its moduledoc on why step 1 of 5 with no step 2 must not " <>
-             "strand a user in a flipped interface. If the flow has landed, this test is " <>
-             "what wants updating."
+    for wanted <- [:choose_en, :choose_fa, :continue] do
+      assert wanted in tags, "screen 53 draws no control tagged #{inspect(wanted)}"
+    end
+  end
 
+  test "choosing فارسی writes the locale and re-ticks the picker" do
+    :ok = Kati.Locale.put(:en)
+
+    {:noreply, moved} =
+      LanguagePick.handle_info({:tap, :choose_fa}, mount_socket(LanguagePick))
+
+    assert Kati.Locale.current() == :fa
+
+    assert Enum.map(moved.assigns.pick.options, & &1.chosen) == [false, true],
+           "the tick still follows the old locale — pick/0 was not re-read"
+  after
+    Kati.Locale.put(:en)
+  end
+
+  test "choosing the locale already active leaves it alone" do
+    :ok = Kati.Locale.put(:en)
+    {:noreply, _} = LanguagePick.handle_info({:tap, :choose_en}, mount_socket(LanguagePick))
     assert Kati.Locale.current() == :en
+  end
+
+  test "Continue opens step two" do
+    :ok = Kati.Locale.put(:en)
+
+    {:noreply, moved} =
+      LanguagePick.handle_info({:tap, :continue}, mount_socket(LanguagePick))
+
+    assert moved.__mob__.nav_action == {:push, Kati.Screens.PickSections, %{}}
+  end
+
+  # `mount_screen/1` returns the rendered tree; the handlers need the socket.
+  defp mount_socket(module) do
+    {:ok, socket} = module.mount(%{}, %{}, %Mob.Socket{})
+    socket
   end
 
   # ── Reading the picker out of a rendered screen ─────────────────────────────

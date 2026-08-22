@@ -524,7 +524,10 @@ defmodule Kati.ScreenBackupTest do
       assert notice.body =~ "Kati already has data on this device"
       assert notice.body =~ "Nothing has been changed."
 
-      assert notice.actions == [{"Merge instead", :mode_merge}, {"Replace instead", :mode_replace}]
+      assert notice.actions == [
+               {"Merge instead", :mode_merge},
+               {"Replace instead", :mode_replace}
+             ]
 
       tree = tree(view)
       assert drawn?(tree, engine.message)

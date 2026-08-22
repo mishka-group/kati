@@ -104,10 +104,30 @@ defmodule Kati.Screens.PickSections do
     """
   end
 
+  # Continue is step two of four, so it pushes step three rather than finishing.
+  # `Kati.Onboarding.complete!/0` is deliberately NOT called here: someone who
+  # backs out at step three has not finished, and marking them done at the
+  # earliest button that looks like a commit is how a half-run first run never
+  # gets offered again.
+  #
+  # "Import from a backup instead" is the drawing's own escape hatch and opens
+  # screen 37, which is the same screen Settings → Import opens. It is drawn as
+  # plain text rather than a button, so the tap goes on the Row: the words are
+  # centred by two weighted spacers and a tap on the Text alone would miss
+  # everywhere except the glyphs themselves.
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
-      "section_" <> id -> {:noreply, Mob.Socket.update(socket, :chosen, &toggle(&1, id))}
-      _ -> {:noreply, socket}
+      "section_" <> id ->
+        {:noreply, Mob.Socket.update(socket, :chosen, &toggle(&1, id))}
+
+      "continue" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Onboarding)}
+
+      "import_backup" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}
+
+      _ ->
+        {:noreply, socket}
     end
   end
 
@@ -317,10 +337,13 @@ defmodule Kati.Screens.PickSections do
   @doc false
   def commit(chosen) do
     label = "Continue with #{MapSet.size(chosen)}"
+    go = {self(), :continue}
+    restore = {self(), :import_backup}
 
     ~MOB"""
     <Column fill_width={true}>
       <Box
+        on_tap={go}
         fill_width={true}
         height={54}
         corner_radius={27}
@@ -341,7 +364,7 @@ defmodule Kati.Screens.PickSections do
         </Row>
       </Box>
       <Spacer size={14} />
-      <Row fill_width={true} align="center">
+      <Row fill_width={true} align="center" on_tap={restore}>
         <Spacer weight={1.0} />
         <Text
           text="Import from a backup instead"

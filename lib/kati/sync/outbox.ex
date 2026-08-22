@@ -302,7 +302,9 @@ defmodule Kati.Sync.Outbox do
   # ── Internals ──────────────────────────────────────────────────────────────
 
   defp filter_calendar(query, nil), do: query
-  defp filter_calendar(query, calendar_id), do: Ash.Query.filter(query, calendar_id == ^calendar_id)
+
+  defp filter_calendar(query, calendar_id),
+    do: Ash.Query.filter(query, calendar_id == ^calendar_id)
 
   defp due?(entry, now) do
     ready? = is_nil(entry.next_attempt_at) or DateTime.compare(entry.next_attempt_at, now) != :gt

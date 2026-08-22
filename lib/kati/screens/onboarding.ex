@@ -116,6 +116,7 @@ defmodule Kati.Screens.Onboarding do
       <Text text={w.body} text_size={14.5} line_height={1.6} text_color={Palette.ink_soft()} />
       <Spacer size={24} />
       <Box
+        on_tap={{self(), :get_started}}
         fill_width={true}
         height={54}
         corner_radius={27}
@@ -381,6 +382,7 @@ defmodule Kati.Screens.Onboarding do
       {Enum.map(rows, fn row -> Kati.Screens.Onboarding.poster_row(row) end)}
       <Spacer size={9} />
       <Box
+        on_tap={{self(), :finish}}
         fill_width={true}
         height={52}
         corner_radius={26}
@@ -396,13 +398,15 @@ defmodule Kati.Screens.Onboarding do
         />
       </Box>
       <Spacer size={14} />
-      <Text
-        text={f.skip}
-        text_size={13}
-        font_weight="semibold"
-        text_color={Palette.sub()}
-        text_align="center"
-      />
+      <Box fill_width={true} on_tap={{self(), :finish}}>
+        <Text
+          text={f.skip}
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+      </Box>
     </Column>
     """
   end
@@ -501,6 +505,27 @@ defmodule Kati.Screens.Onboarding do
         <Image src={src} fill_width={true} fill_height={true} corner_radius={13} content_mode="fill" />
         """
     end
+  end
+
+  # The last step of the first run, so this is where the flag is written.
+  #
+  # All three exits finish. The drawing gives this screen **Get started**,
+  # **Finish setup** and **Skip — I'll add things later**, and because it draws
+  # its three steps stacked rather than one at a time, they are three ways out
+  # of the same screen rather than three stages. Skip finishes too: the drawing
+  # offers it as a way past adding a title, not a way to abandon setup, and a
+  # user who takes it has still chosen a language and their sections.
+  #
+  # `reset_to/2`, not `push_screen/2`: Home must be the bottom of the stack
+  # afterwards. Pushing would leave the whole first run underneath it, and the
+  # back gesture from Home would walk the user back into onboarding they have
+  # just completed.
+  #
+  # The root follows the locale chosen on screen 53, so a user who picked
+  # فارسی lands on screen 55 and not on an English home page.
+  def handle_info({:tap, tag}, socket) when tag in [:get_started, :finish] do
+    Kati.Onboarding.complete!()
+    {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.first_screen())}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

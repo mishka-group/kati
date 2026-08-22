@@ -355,7 +355,13 @@ defmodule Kati.Screens.Backup do
     """
 
     unit = ~MOB"""
-    <Text text="records" text_size={13} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
+    <Text
+      text="records"
+      text_size={13}
+      font_weight="semibold"
+      text_color={Palette.sub()}
+      max_lines={1}
+    />
     """
 
     row = UI.number_with_unit(number, unit, 6)
@@ -369,7 +375,8 @@ defmodule Kati.Screens.Backup do
 
   @doc false
   def table_lines(filled) do
-    lines = Enum.map(filled, fn {table, count} -> Kati.Screens.Backup.table_line(table, count) end)
+    lines =
+      Enum.map(filled, fn {table, count} -> Kati.Screens.Backup.table_line(table, count) end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -415,7 +422,13 @@ defmodule Kati.Screens.Backup do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={10} />
-      <Text text={text} font_family="mono" text_size={10.5} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={text}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -688,7 +701,8 @@ defmodule Kati.Screens.Backup do
 
   @doc "The mode a tag names, or `nil` for a tag no row draws."
   @spec mode_for(atom()) :: atom() | nil
-  def mode_for(tag), do: Enum.find(@modes, fn mode -> Kati.Screens.Backup.mode_tag(mode) == tag end)
+  def mode_for(tag),
+    do: Enum.find(@modes, fn mode -> Kati.Screens.Backup.mode_tag(mode) == tag end)
 
   @doc false
   def mode_copy(:into_empty),

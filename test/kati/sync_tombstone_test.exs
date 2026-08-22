@@ -177,9 +177,15 @@ defmodule Kati.SyncTombstoneTest do
 
   test "a stated remote deletion removes a clean mirror row" do
     calendar = remote_calendar!()
-    event = mirror!(calendar, vevent("remote-delete-1@example.com"), %{uid: "remote-delete-1@example.com"})
 
-    assert %{deleted: 1} = Engine.apply_pull(calendar, [Change.delete("remote-delete-1@example.com")])
+    event =
+      mirror!(calendar, vevent("remote-delete-1@example.com"), %{
+        uid: "remote-delete-1@example.com"
+      })
+
+    assert %{deleted: 1} =
+             Engine.apply_pull(calendar, [Change.delete("remote-delete-1@example.com")])
+
     assert reload(event).deleted_at != nil
     assert live_rows(calendar, "remote-delete-1@example.com") == []
   end
@@ -214,7 +220,8 @@ defmodule Kati.SyncTombstoneTest do
         writeback_policy: :full
       })
 
-    mirrored = mirror!(calendar, vevent("disc-mirror@example.com"), %{uid: "disc-mirror@example.com"})
+    mirrored =
+      mirror!(calendar, vevent("disc-mirror@example.com"), %{uid: "disc-mirror@example.com"})
 
     mine =
       event!(calendar, %{
@@ -258,7 +265,10 @@ defmodule Kati.SyncTombstoneTest do
   test "a calendar left with nothing of Kati's own is removed with the account" do
     account = account!()
     calendar = calendar!(%{account_id: account.id, kind: :provider, remote_id: unique("cal")})
-    mirror!(calendar, vevent("disc-only-mirror@example.com"), %{uid: "disc-only-mirror@example.com"})
+
+    mirror!(calendar, vevent("disc-only-mirror@example.com"), %{
+      uid: "disc-only-mirror@example.com"
+    })
 
     result = Tombstone.disconnect_account(account.id)
 

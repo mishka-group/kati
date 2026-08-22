@@ -99,7 +99,9 @@ defmodule Kati.Sync.Engine do
   holding SQLite's single write connection for the length of an account sync is
   a UI that has stopped responding.
   """
-  @spec apply_pull(Calendar.t(), [Kati.Sync.Change.t()], keyword()) :: %{outcome() => pos_integer()}
+  @spec apply_pull(Calendar.t(), [Kati.Sync.Change.t()], keyword()) :: %{
+          outcome() => pos_integer()
+        }
   def apply_pull(%Calendar{} = calendar, changes, opts \\ []) do
     changes
     |> Batch.run(&apply_change(calendar, &1, opts), size: Keyword.get(opts, :size, 50))
@@ -435,6 +437,7 @@ defmodule Kati.Sync.Engine do
 
       verdict ->
         Outbox.fail(entry, verdict, reason)
+
         if Backoff.exhausted?(entry.attempt_count) do
           mark_row(operation, %{sync_state: :push_failed})
           :quarantined

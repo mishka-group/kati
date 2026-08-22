@@ -38,4 +38,9 @@ ExUnit.after_suite(fn _results -> File.rm_rf(tmp) end)
 
 Ecto.Migrator.run(Kati.Repo, Path.join(:code.priv_dir(:kati), "repo/migrations"), :up, all: true)
 
+# A suite is not an app launch. `Kati.Screens.Root` redirects the first root it
+# mounts after a launch into the first-run sequence; latching this closed keeps
+# that out of every test that is not about it. `Kati.FirstRunTest` re-arms it.
+:persistent_term.put({Kati.Screens.Root, :launched}, true)
+
 ExUnit.start()

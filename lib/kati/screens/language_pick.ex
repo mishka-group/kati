@@ -49,17 +49,26 @@ defmodule Kati.Screens.LanguagePick do
   device that has never chosen, `:en` is English, and English is the row
   `53.html` ticks.
 
-  ## What this screen still does not do: choose
+  ## Choosing, and why the write is safe here
 
-  It reads the locale and does not write one. No option carries an `on_tap` and
-  neither does **Continue**, exactly as before — a picture of a picker, which is
-  what the export is. Making it a real one is not a data question and is not
-  done here: `Kati.Locale.put/1` is one call, but step 1 of 5 has no step 2 to
-  advance to (nothing in the app pushes this screen; `Kati.Screens.Gallery`
-  opens it), and writing the locale from a screen with no way forward strands
-  the user in a flipped interface whose only exit is the back button — the
-  stranding `Kati.Screens.Language` spends three paragraphs of its own moduledoc
-  avoiding. The write belongs with whatever builds the flow.
+  Each option writes the locale and **Continue** pushes step two, screen 26.
+
+  This screen was a picture of a picker for as long as it had nowhere to go.
+  The objection was never `Kati.Locale.put/1`, which is one call — it was that
+  writing a locale from a screen with no way forward strands the reader in a
+  flipped interface whose only exit is the back button, the stranding
+  `Kati.Screens.Language` spends three of its own paragraphs avoiding.
+
+  `Kati.Onboarding` is the flow that answers it, and it also removes the
+  hazard: this screen has no back pill and no dock, and on a first run it is
+  the stack root, so there is no back to press and nothing to be stranded
+  from. Flipping the direction here is the *point* — every screen after it is
+  laid out in the direction chosen on it.
+
+  The write goes through `Kati.Locale.put/1` and then re-reads `pick/0` rather
+  than assigning the option list directly, because `pick/0` derives `chosen`
+  from the locale: one source of truth answers both the tick drawn here and
+  the direction of everything downstream.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -259,8 +268,13 @@ defmodule Kati.Screens.LanguagePick do
   # ramp with it.
   @doc false
   def option(%{chosen: true} = option) do
+    tap =
+      {self(),
+       String.to_atom("choose_" <> Atom.to_string(Kati.Screens.LanguagePick.locale_of(option)))}
+
     ~MOB"""
     <Row
+      on_tap={tap}
       fill_width={true}
       height={76}
       background={Palette.ink_fill()}
@@ -290,8 +304,13 @@ defmodule Kati.Screens.LanguagePick do
   end
 
   def option(%{chosen: false} = option) do
+    tap =
+      {self(),
+       String.to_atom("choose_" <> Atom.to_string(Kati.Screens.LanguagePick.locale_of(option)))}
+
     ~MOB"""
     <Row
+      on_tap={tap}
       fill_width={true}
       height={76}
       background={Palette.card()}
@@ -467,10 +486,13 @@ defmodule Kati.Screens.LanguagePick do
 
   @doc false
   def cta(pick) do
+    tap = {self(), :continue}
+
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={20} />
       <Box
+        on_tap={tap}
         fill_width={true}
         height={54}
         corner_radius={27}
@@ -493,5 +515,40 @@ defmodule Kati.Screens.LanguagePick do
     """
   end
 
+  # Tapping an option writes the locale; Continue moves to step two.
+  #
+  # The moduledoc below used to end "the write belongs with whatever builds the
+  # flow" — this is that flow. Writing here is safe in a way it was not on
+  # screen 54: this screen has no back pill and no dock, so flipping the
+  # direction under the reader cannot strand them in a mirrored app whose only
+  # exit is a back button. There is no back to press yet.
+  #
+  # `Kati.Locale.put/1` then a re-read of `pick/0`, rather than assigning the
+  # option list directly: `pick/0` derives `chosen` from the locale, so one
+  # source of truth answers both the tick and every later screen's direction.
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "choose_" <> code ->
+        {:noreply, choose(code, socket)}
+
+      "continue" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp choose(code, socket) do
+    case Enum.find(Kati.Locale.supported(), &(Atom.to_string(&1) == code)) do
+      nil ->
+        socket
+
+      locale ->
+        Kati.Locale.put(locale)
+        Mob.Socket.assign(socket, :pick, Kati.Screens.LanguagePick.pick())
+    end
+  end
 end

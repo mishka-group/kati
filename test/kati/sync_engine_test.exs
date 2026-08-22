@@ -64,6 +64,7 @@ defmodule Kati.SyncEngineTest do
 
   defp reload(event), do: Ash.get!(Event, event.id)
   defp later(seconds), do: DateTime.add(DateTime.utc_now(), seconds, :second)
+
   defp value(raw, name) do
     {:ok, props} = ICalendar.properties(raw)
     props |> Map.get(name) |> hd() |> ICalendar.line_value()
@@ -189,7 +190,9 @@ defmodule Kati.SyncEngineTest do
     assert value(merged.raw_icalendar, "SUMMARY") == "Theirs"
 
     assert [rejected] =
-             RejectedChange |> Ash.Query.filter(event_uid == "conflict-2@example.com") |> Ash.read!()
+             RejectedChange
+             |> Ash.Query.filter(event_uid == "conflict-2@example.com")
+             |> Ash.read!()
 
     assert rejected.side == :local
     assert rejected.reason == :ownership_mirror
@@ -263,7 +266,9 @@ defmodule Kati.SyncEngineTest do
     assert entry.state == :pending
 
     assert [%{side: :remote, reason: :user_choice}] =
-             RejectedChange |> Ash.Query.filter(event_uid == "resolve-1@example.com") |> Ash.read!()
+             RejectedChange
+             |> Ash.Query.filter(event_uid == "resolve-1@example.com")
+             |> Ash.read!()
   end
 
   test "screen 37's Take file drops the push and keeps the losing edit on file" do
@@ -277,7 +282,9 @@ defmodule Kati.SyncEngineTest do
     assert Outbox.open_entries(calendar.id, row.uid) == []
 
     assert [%{side: :local, reason: :user_choice}] =
-             RejectedChange |> Ash.Query.filter(event_uid == "resolve-2@example.com") |> Ash.read!()
+             RejectedChange
+             |> Ash.Query.filter(event_uid == "resolve-2@example.com")
+             |> Ash.read!()
   end
 
   test "screen 37's Keep both forks the local version into a new Kati event" do
@@ -302,7 +309,9 @@ defmodule Kati.SyncEngineTest do
 
   # ── Lossless write-back ────────────────────────────────────────────────────
 
-  test "a title-only push patches the server's document instead of regenerating it", %{store: store} do
+  test "a title-only push patches the server's document instead of regenerating it", %{
+    store: store
+  } do
     calendar = remote_calendar!()
     original = vevent("lossless@kati", [@apple, @busy, @moz, "SEQUENCE:4"])
 
@@ -328,7 +337,9 @@ defmodule Kati.SyncEngineTest do
     assert String.contains?(pushed.body, @busy)
     assert String.contains?(pushed.body, @moz)
     assert value(pushed.body, "SUMMARY") == "Standup (moved)"
-    assert value(pushed.body, "SEQUENCE") == "5", "SEQUENCE did not increment on a scheduled change"
+
+    assert value(pushed.body, "SEQUENCE") == "5",
+           "SEQUENCE did not increment on a scheduled change"
 
     # The row now holds the bytes the server accepted, so the next patch has a
     # base that still exists.
@@ -407,7 +418,9 @@ defmodule Kati.SyncEngineTest do
     assert reload(row).remote_id != nil
   end
 
-  test "interrupted after the response, before the local commit: one event, not two", %{store: store} do
+  test "interrupted after the response, before the local commit: one event, not two", %{
+    store: store
+  } do
     {calendar, _row} = publish_one("air-3@kati")
 
     # The response arrived; the process died before anything was written down.

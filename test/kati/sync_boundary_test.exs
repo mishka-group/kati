@@ -34,7 +34,15 @@ defmodule Kati.SyncBoundaryTest do
   ]
 
   @clock_modules [DateTime, NaiveDateTime, Date, Time, :calendar, :os, :erlang, System]
-  @clock_functions [:utc_now, :now, :system_time, :timestamp, :local_time, :universal_time, :monotonic_time]
+  @clock_functions [
+    :utc_now,
+    :now,
+    :system_time,
+    :timestamp,
+    :local_time,
+    :universal_time,
+    :monotonic_time
+  ]
 
   defp app_modules do
     {:ok, modules} = :application.get_key(:kati, :modules)

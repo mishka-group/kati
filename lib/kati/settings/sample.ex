@@ -45,7 +45,9 @@ defmodule Kati.Settings.Sample do
         sub: "Follows system · up to 235%",
         control: :chevron
       },
-      %{icon: "motion_blur", title: "Reduce motion", sub: nil, control: {:switch, false}}
+      %{icon: "motion_blur", title: "Reduce motion", sub: nil, control: {:switch, false}},
+      %{icon: "translate", title: "Language", sub: "English · فارسی", control: :chevron},
+      %{icon: "grid_view", title: "Widgets", sub: "Home and lock screen", control: :chevron}
     ]
   end
 
@@ -94,12 +96,56 @@ defmodule Kati.Settings.Sample do
     ]
   end
 
-  @doc "About — version and the privacy claim the app has to keep."
+  @doc """
+  Sources — where Kati's information comes from, as opposed to where it goes.
+
+  Not in screen 24's drawing, which was drawn before 25, 32 and 36 existed and
+  whose Data group is about moving a library in and out: import, export, sync,
+  and the one destructive row. Reading the phone's calendars, watching for a
+  premiere and noticing what is playing are the opposite direction, and filing
+  them under Data would have made that group mean two things.
+
+  The screens are drawn and finished; only the way in was missing, and the
+  caption on 24 claims the screen is "everything the app can be told". #7 and
+  #61 name this group *Data sources* and give it a screen of its own; when
+  that lands, these three rows are what it inherits.
+  """
+  @spec sources() :: [map()]
+  def sources do
+    [
+      %{
+        icon: "calendar_month",
+        title: "Calendars",
+        sub: "Which calendars Kati may read",
+        control: :chevron
+      },
+      %{
+        icon: "notifications_active",
+        title: "Release watcher",
+        sub: "Premieres, new episodes, price drops",
+        control: :chevron
+      },
+      %{
+        icon: "sensors",
+        title: "Auto-detect",
+        sub: "Notice what you play",
+        control: :chevron
+      }
+    ]
+  end
+
+  @doc "About — version, the privacy claim the app has to keep, and this phone."
   @spec about() :: [map()]
   def about do
     [
       %{icon: "info", title: "Version", sub: "0.1 · mock build", control: :chevron},
-      %{icon: "shield", title: "Privacy", sub: "Nothing leaves the device", control: :chevron}
+      %{icon: "shield", title: "Privacy", sub: "Nothing leaves the device", control: :chevron},
+      %{
+        icon: "phone_iphone",
+        title: "This device",
+        sub: "Permissions and storage",
+        control: :chevron
+      }
     ]
   end
 end

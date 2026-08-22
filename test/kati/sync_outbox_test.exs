@@ -98,7 +98,9 @@ defmodule Kati.SyncOutboxTest do
 
     assert update_op.op == :update
     refute update_op.if_none_match
-    assert update_op.if_match == "etag-7", "without If-Match the server cannot detect the conflict"
+
+    assert update_op.if_match == "etag-7",
+           "without If-Match the server cannot detect the conflict"
   end
 
   test "the create key is the UID and is stable across every retry" do
@@ -157,7 +159,11 @@ defmodule Kati.SyncOutboxTest do
         master,
         calendar,
         %{rrule: "FREQ=WEEKLY;BYDAY=WE;UNTIL=20260901T090000Z"},
-        %{uid: unique("uid") <> "@kati", summary: "Standup (new time)", rrule: "FREQ=WEEKLY;BYDAY=WE"}
+        %{
+          uid: unique("uid") <> "@kati",
+          summary: "Standup (new time)",
+          rrule: "FREQ=WEEKLY;BYDAY=WE"
+        }
       )
 
     assert successor.depends_on == trim.id

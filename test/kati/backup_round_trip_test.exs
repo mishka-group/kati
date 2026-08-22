@@ -919,7 +919,8 @@ defmodule Kati.BackupRoundTripTest do
       # One past, not 99: a reader that admitted "just the next one" would be
       # dropping columns it has never heard of, which is the loss the rule
       # exists to prevent.
-      future = edit_manifest(Backup.to_binary(Backup.export()), &Map.put(&1, "schema_version", next))
+      future =
+        edit_manifest(Backup.to_binary(Backup.export()), &Map.put(&1, "schema_version", next))
 
       assert {:error, error} = Backup.restore_binary(future)
       assert error.reason == :unsupported_schema_version

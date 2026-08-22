@@ -243,6 +243,7 @@ defmodule Kati.Screens.Settings do
       appearance: Kati.Screens.Settings.settle(Sample.appearance()),
       sections: Sample.sections(),
       data: Sample.data(),
+      sources: Sample.sources(),
       about: Sample.about()
     })
   end
@@ -442,6 +443,8 @@ defmodule Kati.Screens.Settings do
         {Kati.Screens.Settings.group(s.sections, 13, 22)}
         {UI.eyebrow("Data")}
         {Kati.Screens.Settings.group(s.data, 14, 22)}
+        {UI.eyebrow("Sources")}
+        {Kati.Screens.Settings.group(s.sources, 14, 22)}
         {SettingsList.eyebrow_muted("About")}
         {Kati.Screens.Settings.group(s.about, 14, 0)}
       </Column>
@@ -632,6 +635,7 @@ defmodule Kati.Screens.Settings do
     "Export everything" => Kati.Screens.Backup,
     "Sync" => Kati.Screens.Sync,
     "Widgets" => Kati.Screens.Widgets,
+    "This device" => Kati.Screens.Account,
     "Account" => Kati.Screens.Account,
     "Accessibility" => Kati.Screens.Accessibility,
     "Language" => Kati.Screens.Language,

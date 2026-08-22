@@ -463,6 +463,18 @@ defmodule Kati.Screens.HomeFa do
     end
   end
 
+  # وعده‌ها and تنظیمات open the Persian screens; عادت‌ها opens nothing.
+  #
+  # Screen 55 draws all three tiles and, until now, none of them carried a tap
+  # — the same defect `Kati.MealsRoutesTest` was written for, where three
+  # correct destinations sat behind three tiles that drew perfectly and did
+  # nothing. The Persian tiles had no destinations at all.
+  #
+  # عادت‌ها stays inert deliberately. There is no Persian habits screen in the
+  # 62, and pointing it at `Kati.Screens.Habits` is precisely the bug fixed in
+  # the آمار tab: one tap and the reader is in English, LTR, with no way back.
+  # An inert tile is visibly unfinished; a tile that changes the app's language
+  # is not.
   @doc false
   def sections do
     [meals, habits, settings] = Sample.sections()
@@ -470,21 +482,43 @@ defmodule Kati.Screens.HomeFa do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.HomeFa.tile(meals)}
+        {Kati.Screens.HomeFa.tile(meals, :open_meals)}
         <Spacer size={9} />
-        {Kati.Screens.HomeFa.tile(habits)}
+        {Kati.Screens.HomeFa.tile(habits, nil)}
         <Spacer size={9} />
-        {Kati.Screens.HomeFa.tile(settings)}
+        {Kati.Screens.HomeFa.tile(settings, :open_settings)}
       </Row>
       <Spacer size={26} />
     </Column>
     """
   end
 
+  # Two clauses rather than one that passes `on_tap={tap_or_nil}`: an unknown
+  # prop is dropped silently, and a nil one reaches the wire as the string
+  # "nil", so the inert tile has to omit the prop rather than pass nothing.
   @doc false
-  def tile(section) do
+  def tile(section, nil) do
     ~MOB"""
     <Box weight={1.0}>
+      {Kati.Screens.HomeFa.tile_body(section)}
+    </Box>
+    """
+  end
+
+  def tile(section, tag) do
+    tap = {self(), tag}
+
+    ~MOB"""
+    <Box weight={1.0} on_tap={tap}>
+      {Kati.Screens.HomeFa.tile_body(section)}
+    </Box>
+    """
+  end
+
+  @doc false
+  def tile_body(section) do
+    ~MOB"""
+    <Box fill_width={true}>
       <Box
         fill_width={true}
         background={Palette.card()}
@@ -701,6 +735,12 @@ defmodule Kati.Screens.HomeFa do
 
   def handle_info({:tap, :open_calendar}, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.ScheduleFa)}
+
+  def handle_info({:tap, :open_meals}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.TodayFa)}
+
+  def handle_info({:tap, :open_settings}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SettingsFa)}
 
   def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :home, socket)
   def handle_info(_message, socket), do: {:noreply, socket}
