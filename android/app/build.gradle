@@ -6,7 +6,6 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
-    id 'com.google.gms.google-services'
 }
 
 // ── Mob path config ───────────────────────────────────────────────────────────
@@ -109,9 +108,6 @@ dependencies {
     // Biometric authentication
     implementation 'androidx.biometric:biometric:1.1.0'
 
-    // Location (FusedLocationProviderClient)
-    implementation 'com.google.android.gms:play-services-location:21.0.1'
-
     // CameraX (QR scanner via MobScannerActivity)
     implementation 'androidx.camera:camera-camera2:1.3.4'
     implementation 'androidx.camera:camera-lifecycle:1.3.4'
@@ -120,27 +116,29 @@ dependencies {
     // ML Kit barcode scanning (QR scanner)
     implementation 'com.google.mlkit:barcode-scanning:17.2.0'
 
-    // Media3 ExoPlayer (video playback)
-    implementation 'androidx.media3:media3-exoplayer:1.3.1'
-    implementation 'androidx.media3:media3-ui:1.3.1'
-
-    // Firebase Cloud Messaging (remote push notifications)
+    // KATI-BEGIN(K-30 pruned-deps) mob_new=0.4.20
+    // Removed by #75, with the Kotlin that referenced them:
     //
-    // The Google Services plugin (declared above) parses
-    // android/app/google-services.json at build time. `mix mob.new`
-    // ships a placeholder google-services.json so the project builds
-    // out of the box. To actually deliver FCM pushes:
+    //   com.google.firebase:firebase-bom + firebase-messaging, and the
+    //     com.google.gms.google-services plugin and google-services.json.
+    //     Kati is device-first with no server (#52); the shipped json was the
+    //     mob_new placeholder and `notify_register_push` had no caller — see
+    //     K-30 drop-push in MobBridge.kt.
     //
-    //   1. Create a Firebase project at https://console.firebase.google.com
-    //   2. Add an Android app whose package name matches this build's
-    //      applicationId (above).
-    //   3. Download the real google-services.json and replace
-    //      android/app/google-services.json.
+    //   com.google.android.gms:play-services-location. Location was extracted
+    //     to the mob_location plugin in 0.7.20 and core keeps no shim, so the
+    //     bridge's location methods were unreachable — see K-30 drop-location.
     //
-    // The placeholder lets the app build and install; FCM token
-    // retrieval will fail at runtime until you swap the file.
-    implementation platform('com.google.firebase:firebase-bom:33.1.0')
-    implementation 'com.google.firebase:firebase-messaging'
+    //   androidx.media3:media3-exoplayer + media3-ui. Nothing in the design
+    //     plays video; the bridge's video node is a placeholder that names
+    //     media3 in a comment and never imported it.
+    //
+    // androidx.camera, com.google.mlkit:barcode-scanning and
+    // androidx.appcompat are still here: they carry the QR scanner and the
+    // camera preview node, which is a larger removal (a node type, a
+    // composable, a frame stream and two Activity launchers) and wants its
+    // own change.
+    // KATI-END(K-30 pruned-deps)
 
     // KATI-BEGIN(K-22 work-manager) mob_new=0.4.20
     // WHY: the periodic refresh in KatiRefreshWorker.kt. WorkManager rather

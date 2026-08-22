@@ -9,7 +9,12 @@ android/app/src/main/java/com/example/kati/MobBridge.kt
 android/app/src/main/java/com/example/kati/MainActivity.kt
 android/app/src/main/java/com/example/kati/MobNode.kt
 android/app/src/main/java/com/example/kati/MobScannerActivity.kt
-android/app/src/main/java/com/example/kati/MobFirebaseService.kt
+# MobFirebaseService.kt was DELETED by #75 along with firebase-messaging, the
+# google-services plugin and google-services.json. Kati is device-first with no
+# server (#52), the shipped json was the mob_new placeholder, and the one method
+# that used FCM — notify_register_push — had no caller in mob 0.7.20 (see K-30
+# drop-push). Its 0.4.20 baseline stays under native/baseline/ as the record of
+# what the template generated; it is simply no longer a file we carry.
 android/app/src/main/java/com/example/kati/BeamForegroundService.kt
 android/app/src/main/AndroidManifest.xml
 android/app/build.gradle

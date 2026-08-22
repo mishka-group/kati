@@ -44,12 +44,6 @@ import android.bluetooth.BluetoothSocket
 import android.media.AudioManager
 import java.util.UUID
 import androidx.fragment.app.FragmentActivity
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.lang.ref.WeakReference
@@ -856,7 +850,6 @@ object MobBridge {
     @JvmStatic external fun nativeDeliverFileResult(pid: Long, event: String, sub: String, json: String?)
     @JvmStatic external fun nativeDeliverCameraFrame(pid: Long, bytes: ByteArray, width: Int, height: Int,
                                                      format: String, timestampMs: Long, dropped: Long)
-    @JvmStatic external fun nativeDeliverPushToken(pid: Long, token: String)
     @JvmStatic external fun nativeDeliverNotification(pid: Long, json: String)
     @JvmStatic external fun nativeSetLaunchNotification(json: String?)
     @JvmStatic external fun nativeDeliverWebViewMessage(pid: Long, json: String)
@@ -976,70 +969,19 @@ object MobBridge {
         }
     }
 
-    // ── Location ──────────────────────────────────────────────────────────
-    private var locationClient: FusedLocationProviderClient? = null
-    private var locationCallback: LocationCallback? = null
-
-    @JvmStatic
-    fun location_get_once(pid: Long, accuracy: String) {
-        val activity = activityRef?.get() ?: run {
-            nativeDeliverAtom3(pid, "location", "error", "unavailable"); return
-        }
-        if (ContextCompat.checkSelfPermission(activity, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            nativeDeliverAtom3(pid, "location", "error", "permission_denied"); return
-        }
-        val client = LocationServices.getFusedLocationProviderClient(activity)
-        client.lastLocation.addOnSuccessListener { loc ->
-            if (loc != null) {
-                nativeDeliverLocation(pid, loc.latitude, loc.longitude,
-                    loc.accuracy.toDouble(), loc.altitude)
-            } else {
-                val req = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 1000).setMaxUpdates(1).build()
-                val cb = object : LocationCallback() {
-                    override fun onLocationResult(result: LocationResult) {
-                        result.lastLocation?.let { l ->
-                            nativeDeliverLocation(pid, l.latitude, l.longitude, l.accuracy.toDouble(), l.altitude)
-                        }
-                        client.removeLocationUpdates(this)
-                    }
-                }
-                client.requestLocationUpdates(req, cb, activity.mainLooper)
-            }
-        }
-    }
-
-    @JvmStatic
-    fun location_start(pid: Long, accuracy: String) {
-        val activity = activityRef?.get() ?: return
-        if (ContextCompat.checkSelfPermission(activity, android.Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            nativeDeliverAtom3(pid, "location", "error", "permission_denied"); return
-        }
-        val priority = when (accuracy) {
-            "high" -> Priority.PRIORITY_HIGH_ACCURACY
-            "low"  -> Priority.PRIORITY_LOW_POWER
-            else   -> Priority.PRIORITY_BALANCED_POWER_ACCURACY
-        }
-        val client = LocationServices.getFusedLocationProviderClient(activity)
-        locationClient = client
-        val req = LocationRequest.Builder(priority, 5000).build()
-        val cb = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                result.lastLocation?.let { l ->
-                    nativeDeliverLocation(pid, l.latitude, l.longitude, l.accuracy.toDouble(), l.altitude)
-                }
-            }
-        }
-        locationCallback = cb
-        client.requestLocationUpdates(req, cb, activity.mainLooper)
-    }
-
-    @JvmStatic
-    fun location_stop() {
-        locationCallback?.let { locationClient?.removeLocationUpdates(it) }
-        locationCallback = null
-    }
+    // KATI-BEGIN(K-30 drop-location) mob_new=0.4.20
+    // The Location section is gone: `location_get_once` / `location_start` /
+    // `location_stop`, their FusedLocationProviderClient fields and the six
+    // com.google.android.gms.location imports.
+    //
+    // They were unreachable, not merely unused. Mob 0.7.20 extracted location
+    // to the standalone `mob_location` plugin and its CHANGELOG is explicit
+    // that "core no longer provides any location surface and there is
+    // intentionally no compatibility shim" — `nif_load` caches no location
+    // method, nothing in deps/mob names one, and `:mob_nif.location_get_once/0`
+    // raises UndefinedFunctionError. What remained here was template residue
+    // that only kept play-services-location in the APK. (#75)
+    // KATI-END(K-30 drop-location)
 
     // ── Camera ────────────────────────────────────────────────────────────
     @JvmStatic
@@ -2073,20 +2015,16 @@ object MobBridge {
     }
     // KATI-END(K-01 notify-cancel)
 
-    @JvmStatic
-    fun notify_register_push(pid: Long, arg: String?) {
-        notifyPid = pid
-        // Deliver any token that refreshed while no screen was active.
-        MobFirebaseService.pendingToken?.let { token ->
-            MobFirebaseService.pendingToken = null
-            nativeDeliverPushToken(pid, token)
-            return
-        }
-        com.google.firebase.messaging.FirebaseMessaging.getInstance().token
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) nativeDeliverPushToken(pid, task.result)
-            }
-    }
+    // KATI-BEGIN(K-30 drop-push) mob_new=0.4.20
+    // `notify_register_push` and the `nativeDeliverPushToken` extern are gone
+    // with Firebase Cloud Messaging. #75 asked for this one to be decided
+    // rather than assumed, because it is NIF-facing: the answer is that
+    // nothing can call it. `nif_load` has no cacheRequired/cacheOptional entry
+    // for it and the name appears nowhere in deps/mob, so keeping a stub would
+    // have kept firebase-messaging in the APK for a path with no caller. Kati
+    // is device-first with no server (#52) and the shipped
+    // google-services.json was the mob_new placeholder.
+    // KATI-END(K-30 drop-push)
 
     @JvmStatic
     fun setLaunchNotification(json: String?) {
