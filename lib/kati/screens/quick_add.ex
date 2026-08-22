@@ -116,7 +116,22 @@ defmodule Kati.Screens.QuickAdd do
     """
   end
 
+  @doc """
+  The tag a kind chip sends, or `nil` for one with nowhere to go.
+
+  `nil` rather than an inert tag, because a chip that sends a tag nothing
+  answers is reported as a dead tap — and these five are not dead, they are
+  undrawn. When each gets its own screen it gets its own tag here.
+  """
+  @spec kind_tap(String.t()) :: {pid(), atom()} | nil
+  def kind_tap("Expense"), do: {self(), :file_as_expense}
+  def kind_tap(_label), do: nil
+
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  def handle_info({:tap, :file_as_expense}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.QuickAddExpense)}
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @doc false
@@ -281,7 +296,7 @@ defmodule Kati.Screens.QuickAdd do
         padding={18}
       >
         <Row fill_width={true} align="center">
-          {Kati.Screens.QuickAdd.kind_tile()}
+          {Kati.Screens.QuickAdd.kind_tile(Map.get(draft, :kind_icon, "event"))}
           <Spacer size={10} />
           <Column weight={1.0}>
             <Text
@@ -338,10 +353,10 @@ defmodule Kati.Screens.QuickAdd do
   given, so `Kati.UI.symbol/2` still supplies the drawn 18 in the drawn
   #FBFAF8. The component's own luminance guess never runs.
   """
-  def kind_tile do
+  def kind_tile(icon \\ "event") do
     MishkaThemeIcon.theme_icon(
       %{size: 34, radius: 11, variant: :filled, color: Palette.ink_fill()},
-      [UI.symbol("event", size: 18, color: Palette.on_ink())]
+      [UI.symbol(icon, size: 18, color: Palette.on_ink())]
     )
   end
 
@@ -405,6 +420,8 @@ defmodule Kati.Screens.QuickAdd do
   # Three Texts rather than one, because the drawing bolds the clashing event's
   # name inside the sentence and there is no inline span on this bridge.
   @doc false
+  def clash(%{clash: nil}), do: []
+
   def clash(draft) do
     {lead, subject, tail} = draft.clash
 
@@ -451,6 +468,10 @@ defmodule Kati.Screens.QuickAdd do
     """
   end
 
+  # The chips are the design's real claim — *one field for the whole app* — so
+  # they have to change what the sentence became. Only `Expense` has a screen
+  # drawn for it (124); the other five would each need their own parse of the
+  # same sentence, and the design draws none of them.
   @doc false
   def kind({icon, label, true}) do
     ~MOB"""
@@ -461,6 +482,7 @@ defmodule Kati.Screens.QuickAdd do
       padding_left={13}
       padding_right={13}
       align="center"
+      on_tap={Kati.Screens.QuickAdd.kind_tap(label)}
     >
       {Kati.UI.symbol(icon, size: 16, color: Palette.on_ink())}
       <Spacer size={7} />
@@ -485,6 +507,7 @@ defmodule Kati.Screens.QuickAdd do
       padding_left={13}
       padding_right={13}
       align="center"
+      on_tap={Kati.Screens.QuickAdd.kind_tap(label)}
     >
       {Kati.UI.symbol(icon, size: 16, color: Palette.sub())}
       <Spacer size={7} />
@@ -501,8 +524,14 @@ defmodule Kati.Screens.QuickAdd do
 
   # The commit button is a Box with `weight`, not a Row: it has to fill the
   # line beside the 52pt microphone, and a Row would hug the label.
+  #
+  # `on_commit` is optional and screen 18 does not supply one: its sentence is
+  # a picture of a parse, and there is no parser behind it to commit. Screen
+  # 124 does, because its sentence has already become an expense.
   @doc false
   def actions(draft) do
+    tap = Map.get(draft, :on_commit)
+
     ~MOB"""
     <Row fill_width={true} align="center">
       <Box
@@ -512,6 +541,7 @@ defmodule Kati.Screens.QuickAdd do
         background={Palette.ink_fill()}
         shadow="0 12 24 -12 #D91A1917"
         align="center"
+        on_tap={tap}
       >
         <Text
           text={draft.cta}

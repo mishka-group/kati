@@ -99,4 +99,51 @@ defmodule Kati.Screens.QuickAdd.Sample do
       {"payments", "Expense", false}
     ]
   end
+
+  @doc """
+  Screen 124's draft: the same field, with the Expense chip selected and no
+  amount parsed.
+
+  A separate draft rather than a flag on `draft/0`, because it is a different
+  sentence — *bought the salt almanac at the bookshop today* — parsed into a
+  different set of facts. One field, two things it became, which is the whole
+  claim screen 18 makes.
+  """
+  @spec expense_draft() :: map()
+  def expense_draft do
+    %{
+      query: expense_query(),
+      title: "The Salt Almanac",
+      kind: "EXPENSE · BOOKS",
+      kind_icon: "payments",
+      facts: [[{"calendar_today", "Sun 16 Aug"}, {"menu_book", "Books"}]],
+      amount: nil,
+      amount_placeholder: "no amount found",
+      clash: nil,
+      kinds: expense_kinds(),
+      cta: "Save the expense"
+    }
+  end
+
+  @doc "The typed sentence on screen 124, one entry per drawn line."
+  @spec expense_query() :: [map()]
+  def expense_query do
+    [
+      %{
+        caret: false,
+        pieces: [
+          {:plain, "bought", 0},
+          {:token, "the salt almanac", 4},
+          {:plain, "at the bookshop", 4}
+        ]
+      },
+      %{caret: true, pieces: [{:accent, "today", 0}]}
+    ]
+  end
+
+  @doc "The same six chips, with Expense selected instead of Event."
+  @spec expense_kinds() :: [{String.t(), String.t(), boolean()}]
+  def expense_kinds do
+    Enum.map(kinds(), fn {icon, label, _on?} -> {icon, label, label == "Expense"} end)
+  end
 end

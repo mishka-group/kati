@@ -409,6 +409,10 @@ defmodule Kati.Screens.Language do
     """
   end
 
+  # `Currency` is the one row here that leads somewhere: screen 125 is the
+  # screen the moduledoc says did not exist, and it holds the only preference in
+  # this list that Kati actually stores. Every other row still carries no
+  # `on_tap`, for the reason given above.
   @doc false
   def row(row, rule?) do
     SettingsList.row(
@@ -416,9 +420,14 @@ defmodule Kati.Screens.Language do
       Kati.Screens.Language.body(row),
       Kati.Screens.Language.control(row.control),
       padding: 13,
-      rule: rule?
+      rule: rule?,
+      on_tap: Kati.Screens.Language.tap(row.title)
     )
   end
+
+  @doc false
+  def tap("Currency"), do: {self(), :open_currency}
+  def tap(_title), do: nil
 
   # Vazirmatn for the two rows whose second line carries Persian — see the
   # moduledoc. The title stays in the body face; only the line with the glyphs
@@ -489,6 +498,9 @@ defmodule Kati.Screens.Language do
     case Atom.to_string(tag) do
       "choose_language_" <> code ->
         {:noreply, choose(code, socket)}
+
+      "open_currency" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Currency)}
 
       # `:add_language` lands here. 53.html and 54.html between them draw two
       # installed languages and `Kati.Locale.supported/0` returns two; there is

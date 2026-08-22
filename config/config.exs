@@ -30,6 +30,8 @@ config :kati,
     Kati.Calendars,
     Kati.Media,
     Kati.Meals,
+    Kati.Goals,
+    Kati.Money,
     Kati.Music,
     Kati.Services,
     Kati.Sync

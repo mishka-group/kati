@@ -559,6 +559,12 @@ defmodule Kati.UI do
     count_text = if count, do: to_string(count), else: nil
     selected? = Keyword.get(opts, :selected, false)
     disabled? = Keyword.get(opts, :disabled, false)
+    # The tag a tap sends, or `nil` for a chip that is a label rather than a
+    # control. Passed straight through to the component's `on_toggle`, which is
+    # how screen 03's filters have always been wired — this only stops every
+    # caller from having to reach past `Kati.UI` to `Kati.Components.MishkaChip`
+    # to get a chip that does something.
+    on_toggle = Keyword.get(opts, :on_toggle)
 
     # The pill and the label are the component's to resolve — it checks
     # disabled BEFORE checked in both `background/3` and `text_color/3`, which
@@ -581,6 +587,7 @@ defmodule Kati.UI do
       label: label,
       checked: selected?,
       disabled: disabled?,
+      on_toggle: on_toggle,
       # A selected chip is an ink-filled control, so it takes the pair the
       # design draws for one: `ink_fill` under `on_ink`. Screen 28 draws that
       # pair — `#1A1917` + `#FBFAF8` becomes `#F7EFE4` + `#1A1917` — the fill

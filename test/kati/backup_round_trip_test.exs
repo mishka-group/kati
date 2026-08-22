@@ -454,7 +454,7 @@ defmodule Kati.BackupRoundTripTest do
 
       assert {:ok, summary} = Backup.inspect_binary(binary)
       assert summary.total_records == 0
-      assert map_size(summary.record_counts) == 24
+      assert map_size(summary.record_counts) == 26
 
       assert {:ok, report} = Backup.restore_binary(binary)
       assert report.total_inserted == 0
@@ -885,7 +885,7 @@ defmodule Kati.BackupRoundTripTest do
       # The table it never had is reported as an honest zero rather than a
       # missing key a screen would then have to guard.
       assert summary.record_counts["sync_rejected_changes"] == 0
-      assert map_size(summary.record_counts) == 24
+      assert map_size(summary.record_counts) == 26
       assert summary.total_records == Enum.sum(Map.values(counts())) - 2
     end
 
@@ -1190,7 +1190,7 @@ defmodule Kati.BackupRoundTripTest do
       assert manifest["schema_version"] == Catalog.schema_version()
       assert manifest["record_counts"]["events"] == 2
       assert manifest["record_counts"]["media_watches"] == 2
-      assert map_size(manifest["files"]) == 24
+      assert map_size(manifest["files"]) == 26
 
       for {path, %{"sha256" => hash, "bytes" => bytes}} <- manifest["files"] do
         assert String.starts_with?(path, "data/")
@@ -1267,9 +1267,9 @@ defmodule Kati.BackupRoundTripTest do
 
       # One callback per TABLE, not per record: a per-record callback would have
       # fired far more than `Catalog.tables()` times.
-      assert length(steps) == 24
+      assert length(steps) == 26
       assert Enum.map(steps, &elem(&1, 0)) == Catalog.tables()
-      assert List.last(steps) == {"services", 24, 24}
+      assert List.last(steps) == {"expenses", 26, 26}
     end
 
     test "an unchecked bundle is not written, whatever is in it" do

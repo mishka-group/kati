@@ -106,7 +106,12 @@ defmodule Kati.DesignLiterals do
     "&times;" => "×",
     "&hellip;" => "…",
     "&rarr;" => "→",
-    "&deg;" => "°"
+    "&deg;" => "°",
+    # Added with the second wave of drawings: the money screens carry two more
+    # currency symbols, and screen 122's pace arithmetic is written with a
+    # division sign.
+    "&euro;" => "€",
+    "&divide;" => "÷"
   }
 
   @doc "Absolute path of screen `number`'s drawing. `number` is zero-padded."

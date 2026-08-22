@@ -32,7 +32,11 @@ defmodule Kati.Stats.Sample do
       %{icon: "history", title: "Activity log", sub: "1,204 entries"},
       %{icon: "bolt", title: "Habits", sub: "4 active · 12-day best"},
       %{icon: "nutrition", title: "Nutrition", sub: "Cutting v3 · 86%"},
-      %{icon: "payments", title: "Subscriptions", sub: "£46.47 a month"},
+      # Goals joined this list with screen 104, and Subscriptions became Money:
+      # screen 122 is the wider page — the same four services plus the one-off
+      # expenses quick-add writes — and screen 23 is still one tap further in.
+      %{icon: "flag", title: "Goals", sub: "3 active · 38 of 52 books"},
+      %{icon: "payments", title: "Money", sub: "£46.47 a month · 7 expenses"},
       %{icon: "movie", title: "Recently watched", sub: "The Long Hollow · 2h ago"}
     ]
   end

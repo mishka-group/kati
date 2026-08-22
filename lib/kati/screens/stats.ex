@@ -905,7 +905,8 @@ defmodule Kati.Screens.Stats do
     "Activity log" => Kati.Screens.Activity,
     "Habits" => Kati.Screens.Habits,
     "Nutrition" => Kati.Screens.Health,
-    "Subscriptions" => Kati.Screens.Subscriptions,
+    "Goals" => Kati.Screens.Goals,
+    "Money" => Kati.Screens.Money,
     "Recently watched" => Kati.Screens.UpNext
   }
 

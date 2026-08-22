@@ -74,6 +74,34 @@ defmodule Kati.ScreenTapSweepTest do
   """
   use Mob.ScreenCase, async: false
 
+  # THIS SWEEP WRITES, AND MUST NOT LEAVE ANYTHING BEHIND.
+  #
+  # It dispatches every tag every screen draws, and some of those tags are
+  # commits: screen 106's `Save goal` creates a goal, screen 124's `Save the
+  # expense` creates an expense. Both are unconditional — a goal needs nothing
+  # to exist first — so unlike screen 70's and 73's saves, which no-op with an
+  # empty shelf, these two actually insert.
+  #
+  # `Kati.ScreenDesignLiteralTest` renders screens 104 and 122 against this same
+  # shared database and both fall back to their drawings only while their tables
+  # are empty. One goal left behind here makes screen 104 take the real path,
+  # its drawing's literals stop appearing, and the failure lands on a file this
+  # one never touched — for the seeds that order the two the wrong way round.
+  # `Kati.MediaMoodTest` records the same hazard and it is the same hazard: a
+  # coin flip, not a flake.
+  #
+  # Raw SQL rather than `Ash.destroy`, because this runs from `on_exit` after
+  # the test process is gone. Everything in these two tables is this sweep's,
+  # because nothing else in the suite writes to them without cleaning up.
+  setup do
+    on_exit(fn ->
+      Kati.Repo.query!("DELETE FROM goals", [])
+      Kati.Repo.query!("DELETE FROM expenses", [])
+    end)
+
+    :ok
+  end
+
   alias Kati.ScreenSweep
   alias Kati.TapSweepProbe.BarePushed
   alias Kati.TapSweepProbe.BareRoot
@@ -168,6 +196,48 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MyServices, :search},
     {Kati.Screens.MyServices, :edit_service},
     {Kati.Screens.CountryPicker, :search},
+    # ── Screen 66's status and edition chips.
+    #
+    # All seven write: `Kati.Screens.BookDetail.apply_change/1` updates the
+    # book and the page re-reads, because the hero band, the bar, the pace line
+    # and the extent are all derived from the row. What this sweep runs against
+    # is an EMPTY shelf, where there is no book to update and the page is the
+    # drawing's — so the write is a no-op and the assigns are identical, which
+    # is correct behaviour rather than a dead control. `Kati.BooksTest` asserts
+    # the write with a book on the shelf.
+    {Kati.Screens.BookDetail, :status_reading},
+    {Kati.Screens.BookDetail, :status_finished},
+    {Kati.Screens.BookDetail, :status_paused},
+    {Kati.Screens.BookDetail, :status_did_not_finish},
+    {Kati.Screens.BookDetail, :format_paperback},
+    {Kati.Screens.BookDetail, :format_ebook},
+    {Kati.Screens.BookDetail, :format_audiobook},
+    # Screen 125's current currency. Tapping it clears the confirmation, which
+    # on a device already showing one IS a change — but the sweep's control
+    # mount opens with a confirmation for a DIFFERENT currency, so the two
+    # sockets agree. `Kati.MoneyTest` asserts the clear directly.
+    {Kati.Screens.Currency, :pick_GBP},
+    # And the currency the confirmation is already about — see
+    # `Kati.Screens.Currency.other_than/1`. Tapping it re-raises the same
+    # confirmation.
+    {Kati.Screens.Currency, :pick_EUR},
+    # Screen 106's already-selected type and period, the same family case as
+    # every other selected chip above.
+    {Kati.Screens.NewGoal, :kind_films},
+    {Kati.Screens.NewGoal, :period_year},
+    # ── Screen 124's two.
+    #
+    # `edit_amount` is drawn and reachable and opens no keyboard, because Mob
+    # has no text input — every field in this app is drawn rather than typed
+    # into, which is #45. The field is honest about being empty and the sheet
+    # saves without it, which is the screen's whole subject.
+    #
+    # `file_as_expense` is the Expense chip, and on this screen it is the
+    # selected one: you are already looking at what it files the sentence as.
+    # On screen 18 the same chip pushes here, which is what makes the family
+    # live.
+    {Kati.Screens.QuickAddExpense, :edit_amount},
+    {Kati.Screens.QuickAddExpense, :file_as_expense},
     {Kati.Screens.Library, :shelf_Screen},
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},

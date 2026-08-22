@@ -208,7 +208,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"62", Kati.Screens.SettingsFa},
     {"80", Kati.Screens.DataSources},
     {"92", Kati.Screens.MyServices},
-    {"94", Kati.Screens.CountryPicker}
+    {"94", Kati.Screens.CountryPicker},
+    {"104", Kati.Screens.Goals},
+    {"106", Kati.Screens.NewGoal},
+    {"122", Kati.Screens.Money},
+    {"124", Kati.Screens.QuickAddExpense},
+    {"125", Kati.Screens.Currency}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -244,7 +249,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services)
+  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_content_warnings media_warning_preferences tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes spike_things book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.
@@ -780,6 +785,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # the correct thing for a cache page to say and is asserted as itself.
       {"80", Kati.Screens.DataSources, &Kati.Screens.DataSources.cache_size/0,
        fn -> "Nothing cached yet" end},
+      # 104 gates all three cards at once, as 66 does: either every goal on the
+      # page is yours or every one is the drawing's.
+      {"104", Kati.Screens.Goals, &Kati.Screens.Goals.goals/0, &Kati.Screens.Goals.drawn_goals/0},
+      # 106 writes rather than reads, and what it reads is the kind list, which
+      # is a constant of the build. Its gate is 104's, because a sheet whose
+      # types disagreed with the page that opened it would be the defect worth
+      # catching.
+      {"106", Kati.Screens.NewGoal, &Kati.Screens.Goals.goals/0,
+       &Kati.Screens.Goals.drawn_goals/0},
+      {"122", Kati.Screens.Money, &Kati.Screens.Money.months/0,
+       &Kati.Screens.Money.drawn_months/0},
+      # 124 and 125 both write to a store and read one value back — the
+      # currency — which is `Mob.State` rather than the database and is
+      # therefore the same on an empty one. Gated on 122's reader for the same
+      # reason 106 is gated on 104's.
+      {"124", Kati.Screens.QuickAddExpense, &Kati.Screens.Money.months/0,
+       &Kati.Screens.Money.drawn_months/0},
+      {"125", Kati.Screens.Currency, &Kati.Screens.Money.months/0,
+       &Kati.Screens.Money.drawn_months/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,

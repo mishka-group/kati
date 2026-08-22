@@ -43,6 +43,8 @@ defmodule Kati.Backup.Upgrade do
 
     * **5 -> 6** — `services` joined the backup with screen 92. One member.
 
+    * **6 -> 7** — `goals` and `expenses` joined with screens 104 and 122.
+
   The step adds the key and never replaces one, so it is safe to run over rows
   that already have it and it cannot be the thing that loses a row.
 
@@ -65,7 +67,8 @@ defmodule Kati.Backup.Upgrade do
       {2, 3, &add_content_warnings/1},
       {3, 4, &add_books/1},
       {4, 5, &add_music/1},
-      {5, 6, &add_services/1}
+      {5, 6, &add_services/1},
+      {6, 7, &add_goals_and_expenses/1}
     ]
 
   @doc """
@@ -130,6 +133,11 @@ defmodule Kati.Backup.Upgrade do
 
   # One member, same `Map.put_new/3` reasoning as the four steps above.
   defp add_services(rows), do: Map.put_new(rows, "services", [])
+
+  # Two members, same `Map.put_new/3` reasoning as every step above.
+  defp add_goals_and_expenses(rows) do
+    rows |> Map.put_new("goals", []) |> Map.put_new("expenses", [])
+  end
 
   defp no_path(version, target) do
     Error.error(

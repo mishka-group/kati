@@ -523,7 +523,10 @@ defmodule Kati.Screens.BookDetail do
     chips =
       Sample.statuses()
       |> Enum.map(fn {value, label} ->
-        UI.chip(label, if(value == b.status, do: :selected, else: :idle))
+        UI.chip(label,
+          selected: value == b.status,
+          on_toggle: String.to_atom("status_#{value}")
+        )
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
@@ -550,7 +553,10 @@ defmodule Kati.Screens.BookDetail do
     chips =
       Sample.formats()
       |> Enum.map(fn {value, label} ->
-        UI.chip(label, if(value == b.format, do: :selected, else: :idle))
+        UI.chip(label,
+          selected: value == b.format,
+          on_toggle: String.to_atom("format_#{value}")
+        )
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
@@ -908,11 +914,54 @@ defmodule Kati.Screens.BookDetail do
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
   end
 
-  # The series row and the lending row have no screen of their own in the design
-  # and none is invented here. They are answered rather than left dead, because
-  # a dead tap is a defect `Kati.Screens.Root.rescue_tap/3` reports by name and
-  # this is not one: both controls are drawn, both are reachable, and what each
-  # would push is a screen the design has not drawn. `Kati.ScreenTapSweepTest`
-  # carries them on `@inert_taps` with that reason written out.
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  # Everything that is not a chip: the series row and the lending row. Answered
+  # rather than left dead, because a dead tap is a defect
+  # `Kati.Screens.Root.rescue_tap/3` reports by name and this is not one — both
+  # controls are drawn, both are reachable, and what each would push is a screen
+  # the design has not drawn. `Kati.ScreenTapSweepTest` carries them on
+  # `@inert_taps` with that reason written out.
+  #
+  # The status and edition chips write, and then re-read: the page's whole hero
+  # band is derived from the row — the bar, the pace line, the extent, the meta
+  # — so assigning the chip alone would leave five other things on the page
+  # disagreeing with it.
+  def handle_tap(tag, socket) do
+    case Kati.Screens.BookDetail.chip_change(tag) do
+      nil ->
+        {:noreply, socket}
+
+      change ->
+        Kati.Screens.BookDetail.apply_change(change)
+        {:noreply, Mob.Socket.assign(socket, :book, Kati.Screens.BookDetail.book())}
+    end
+  end
+
+  @doc """
+  The attribute a chip tag sets, or `nil` for a tag that is not a chip.
+
+  Split out so the two families share one parser and a third cannot be added
+  without going through it.
+  """
+  @spec chip_change(atom()) :: {atom(), atom()} | nil
+  def chip_change(tag) do
+    statuses = Enum.map(Kati.Books.Sample.statuses(), &elem(&1, 0))
+    formats = Enum.map(Kati.Books.Sample.formats(), &elem(&1, 0))
+
+    cond do
+      value = Enum.find(statuses, &(String.to_atom("status_#{&1}") == tag)) -> {:status, value}
+      value = Enum.find(formats, &(String.to_atom("format_#{&1}") == tag)) -> {:format, value}
+      true -> nil
+    end
+  end
+
+  @doc false
+  def apply_change({attribute, value}) do
+    with %Book{} = book <- newest() do
+      Ash.update(book, %{attribute => value})
+    end
+
+    :ok
+  rescue
+    _error -> :ok
+  end
 end
