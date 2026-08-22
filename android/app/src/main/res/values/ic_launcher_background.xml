@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Kati's accent. The one colour in the palette that only ever means
-         new/now, and the colourway chosen for the icon. -->
-    <color name="ic_launcher_background">#E8823C</color>
+    <!-- The black colourway from the brand sheet: the mark in #F5F2EE on ink. -->
+    <color name="ic_launcher_background">#1A1917</color>
 </resources>
