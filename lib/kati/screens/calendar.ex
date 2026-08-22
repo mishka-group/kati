@@ -249,6 +249,21 @@ defmodule Kati.Screens.Calendar do
     )
   end
 
+  # ## Why the month name caps and the day numbers do not (#79)
+  #
+  # It shares a row with a control. At 235% "August 2026" is 727 of 1080
+  # pixels, and the Today pill — which hugs its own label — was squeezed until
+  # its text ellipsised to "...". A pill that says nothing is not a smaller
+  # control, it is a broken one.
+  #
+  # This is the second half of the rule in `day_strip/1`: content grows, and
+  # chrome caps — but a heading that shares a row with a control is competing
+  # for the same width, and the control cannot shrink below its own label. So
+  # the heading yields. Capping at 1.6 leaves it at 32pt, still the largest
+  # thing in the row, with room for the chevron and the pill beside it.
+  #
+  # The app-wide sweep that capped every display title missed this one: it
+  # keyed on `text_size={28}` and this is 20.
   @doc false
   def month_row(date) do
     label = "#{Kati.Time.month_name(date.month)} #{date.year}"
@@ -263,6 +278,7 @@ defmodule Kati.Screens.Calendar do
           <Text
             text={label}
             text_size={20}
+            max_font_scale={1.6}
             font_weight="bold"
             letter_spacing={-0.025}
             text_color={:on_surface}
@@ -279,7 +295,13 @@ defmodule Kati.Screens.Calendar do
           padding_right={13}
           align="center"
         >
-          <Text text="Today" text_size={12} font_weight="semibold" text_color={:on_surface} />
+          <Text
+            text="Today"
+            text_size={12}
+            max_font_scale={1.4}
+            font_weight="semibold"
+            text_color={:on_surface}
+          />
         </Row>
       </Row>
       <Spacer size={14} />
@@ -289,6 +311,25 @@ defmodule Kati.Screens.Calendar do
 
   # Seven flex:1 cells, gap 2, radius 16 — not the fixed pills Home's earlier
   # version used. Today is ink; the rest sit on card white.
+  #
+  # ## Which parts of this may grow with the system font size (#79)
+  #
+  # The rule this screen settles, because 62 screens will meet it:
+  #
+  #   * **Content grows.** The day NUMBER is what the strip is for, so it takes
+  #     the full 235% and the cell's height follows it. Nothing caps it.
+  #   * **Chrome whose size carries structure caps instead.** The weekday
+  #     abbreviation and the Today pill are labels on a control, and the
+  #     control's size means something: seven cells across is a week, and a
+  #     30pt pill is a pill. Growing either does not make them more readable —
+  #     it makes the week stop being seven-across and the pill stop being one.
+  #   * **A fixed size is never the answer to the question.** `width={44}` on
+  #     the cell was what clipped the digits out of it entirely; the cells flex
+  #     now and the digits are the reason.
+  #
+  # Capping the label rather than the whole cell is what keeps the number at
+  # full size: `max_font_scale` provides a clamped `LocalDensity` for the
+  # subtree it is on, so a cap on the Text does not reach its sibling.
   @doc false
   def day_strip(today) do
     start = Date.add(today, -Date.day_of_week(today) + 1)
@@ -358,6 +399,7 @@ defmodule Kati.Screens.Calendar do
           text={name}
           font_family="mono"
           text_size={10.5}
+          max_font_scale={1.5}
           letter_spacing={0.06}
           text_color={name_color}
           text_align="center"
