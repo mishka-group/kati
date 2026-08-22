@@ -55,7 +55,25 @@ defmodule Kati.Screens.SettingsFa do
   Tap tags are ASCII and positional — `toggle_2_4`, `theme_1` — not the row's
   Persian title. A tag becomes an atom and an `accessibility_id`, and the
   capture tooling reads that id; keeping it out of the script keeps the tag
-  legible in a log written left-to-right.
+  legible in a log written left-to-right. The two Data rows added this round
+  follow the same rule and key on the row's **glyph** — `go_upload`, `go_sync`
+  — which is the one part of a row that is not copy; see `@destinations`.
+
+  ## داده‌ها reaches the backup and sync engines, and its date is real
+
+  Two rows under داده‌ها now open something: برون‌ریزی همه‌چیز pushes
+  `Kati.Screens.Backup` and همگام‌سازی pushes `Kati.Screens.Sync`, the same two
+  destinations screen 24's own Data group names. Both engines were finished and
+  proven on device long before either screen existed, and nothing in the app
+  invoked them, which made them exactly as useful to a user as no engine at all.
+
+  The برون‌ریزی row's second line follows from that. `۱۴ مرداد` was a literal in
+  `Kati.Fa.SampleSettings` with nothing behind it; it is now
+  `Kati.Screens.Settings.last_backup/0` — one setting, read through the screen
+  that owns it, exactly as پوسته reads the appearance choice — rendered in
+  Shamsi by `backup_line/1`, or stated as an absence when there has been no
+  backup. `Kati.Screens.Settings`' moduledoc argues what is recorded, when, and
+  why the store is a note about the backup rather than the backup.
 
   ## پوسته writes the app's appearance choice, and does it through screen 24
 
@@ -414,12 +432,14 @@ defmodule Kati.Screens.SettingsFa do
   end
 
   @doc """
-  One row, tappable along its whole width when it carries a toggle.
+  One row, tappable along its whole width when it carries a toggle or leads
+  somewhere.
 
   Screen 24 does the same, and for the same reason: a 46pt track is a small
-  target and the row already reads as one object. A chevron row stays inert —
-  its destination is not built yet, and a row that lights up and goes nowhere
-  is a worse promise than a row that does nothing.
+  target and the row already reads as one object. A chevron row whose
+  destination is not built stays inert — a row that lights up and goes nowhere
+  is a worse promise than a row that does nothing — which as of this round is
+  every chevron row here except the two under داده‌ها that `@destinations` names.
 
   ## Not `Kati.Components.MishkaNavLink`, which is the component for this shape
 
@@ -450,6 +470,7 @@ defmodule Kati.Screens.SettingsFa do
   """
   def row(row, rule?, si, ri) do
     tap = Kati.Screens.SettingsFa.tap_for(row, si, ri)
+    sub = Kati.Screens.SettingsFa.sub(Kati.Screens.SettingsFa.sub_for(row))
 
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
@@ -465,7 +486,7 @@ defmodule Kati.Screens.SettingsFa do
             text_color={:on_surface}
             max_lines={1}
           />
-          {Kati.Screens.SettingsFa.sub(row.sub)}
+          {sub}
         </Column>
         <Spacer size={13} />
         {Kati.Screens.SettingsFa.trailing(row.trailing)}
@@ -475,11 +496,68 @@ defmodule Kati.Screens.SettingsFa do
     """
   end
 
-  @doc "A toggle row's tap tag, by position; everything else is inert."
+  # Which rows lead somewhere, keyed by the row's **glyph** rather than by its
+  # Persian title. Two reasons, and the first is the one that matters:
+  #
+  #   * The tag has to survive the bridge. Every other tag this screen draws is
+  #     ASCII and positional (`toggle_0_1`, `theme_2`) because a tag is an atom
+  #     that crosses into Kotlin and back; `برون‌ریزی همه‌چیز` carries a
+  #     zero-width non-joiner, and a tag nobody can read in a log is a tag
+  #     nobody can debug.
+  #   * The glyph is the one part of these rows that is not copy, so screen 24
+  #     and this screen name the same destinations without a translation table
+  #     between them — the same reason the theme trough tags by position.
+  @destinations %{
+    "upload" => Kati.Screens.Backup,
+    "sync" => Kati.Screens.Sync
+  }
+
+  @doc false
+  def destinations, do: @destinations
+
+  @doc """
+  A row's tap tag: a toggle flips by position, a row that names a screen opens
+  it, everything else is inert.
+
+  The language row carries `badge:` and no `icon:`, so it never matches the
+  destination clause — a map without the key does not match a pattern that
+  names it.
+  """
   def tap_for(%{trailing: {:toggle, _}}, si, ri),
     do: {self(), String.to_atom("toggle_#{si}_#{ri}")}
 
+  def tap_for(%{icon: icon}, _si, _ri) when is_map_key(@destinations, icon),
+    do: {self(), String.to_atom("go_" <> icon)}
+
   def tap_for(_row, _si, _ri), do: nil
+
+  @doc """
+  A row's second line: the sample's copy, except on the برون‌ریزی row, which
+  reports the backup ledger.
+
+  The reading is `Kati.Screens.Settings.last_backup/0` — one setting, read
+  through the screen that owns it, exactly as this screen reads the appearance
+  choice. Only the sentence is this file's, because only the sentence is
+  Persian: `Kati.Calendar.Shamsi.format/2` at `:short` is `۱۴ مرداد`, which is
+  the form 62.html draws.
+  """
+  def sub_for(%{icon: "upload"}),
+    do: Kati.Screens.SettingsFa.backup_line(Kati.Screens.Settings.last_backup())
+
+  def sub_for(%{sub: sub}), do: sub
+
+  @doc """
+  What the برون‌ریزی row's second line says, given a backup time or `nil`.
+
+  `هنوز پشتیبانی گرفته نشده` is impersonal, like every other sub-line on this
+  screen, and states an absence rather than raising an error — the empty value
+  `.scratch/tickets/D-06.md` asks to read as a gentle warning.
+  """
+  @spec backup_line(DateTime.t() | nil) :: String.t()
+  def backup_line(nil), do: "هنوز پشتیبانی گرفته نشده"
+
+  def backup_line(%DateTime{} = at),
+    do: "آخرین پشتیبان " <> Kati.Calendar.Shamsi.format(DateTime.to_date(at), :short)
 
   @doc """
   A row's 30pt leading tile, as `Kati.Components.MishkaThemeIcon`.
@@ -810,6 +888,16 @@ defmodule Kati.Screens.SettingsFa do
       Mob.Socket.assign(socket, :settings, choose(socket.assigns.settings, i))
     else
       _ -> socket
+    end
+  end
+
+  # The glyph is the key, so the tag stays ASCII and readable in a log. A tag
+  # naming a glyph no row here carries returns the screen rather than raising
+  # it into `handle_info/2`, for the reason the comment above `tapped/2` gives.
+  defp tapped("go_" <> icon, socket) do
+    case Map.fetch(@destinations, icon) do
+      {:ok, module} -> Mob.Socket.push_screen(socket, module)
+      :error -> socket
     end
   end
 

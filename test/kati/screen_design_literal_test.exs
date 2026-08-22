@@ -42,12 +42,19 @@ defmodule Kati.ScreenDesignLiteralTest do
 
   ## The allow-list
 
-  Seven literals cannot be asserted directly, all for the same reason: the
-  drawing froze a value the screen reads from the device clock. They are listed
-  in `device_values/0` with the pattern that must stand in for each, and there
-  is deliberately no way to add a bare exemption — an entry with no stand-in
-  pattern would be an excuse, and `test/support/design_literals.exs` has no
-  shape for one.
+  Nine literals cannot be asserted directly, because the drawing froze a value
+  the screen reads at runtime: seven from the device clock, and two — screens 24
+  and 62's `Last backup` line — from the backup ledger
+  `Kati.Screens.Settings.last_backup/0` keeps, which is empty in every test here.
+  They are listed in `device_values/0` with the pattern that must stand in for
+  each, and there is deliberately no way to add a bare exemption — an entry with
+  no stand-in pattern would be an excuse, and `test/support/design_literals.exs`
+  has no shape for one.
+
+  That last point is why "just stop drawing the line" is not the cheap way out
+  of a frozen value: a line the screen no longer renders can be exempted by
+  nothing here, so deleting copy the drawing contains is a change this sweep
+  refuses outright rather than one it merely records.
 
   Two staleness checks keep that list from rotting, and one that would be
   unsound is left out on purpose:
@@ -81,9 +88,25 @@ defmodule Kati.ScreenDesignLiteralTest do
   # cannot be renumbered in one place and checked in another.
   @registry Kati.Screens.Gallery.screens()
 
-  # The gallery is scaffolding — "every screen in the app, in one list" — and has
-  # no drawing, so it is the one screen this sweep does not cover.
-  @undesigned [Kati.Screens.Gallery]
+  # The three screens this sweep cannot cover, because no drawing exists to
+  # compare them against. Sorted, because the assertion below subtracts one
+  # sorted list from another and compares the remainder to this one.
+  #
+  #   * `Kati.Screens.Gallery` is scaffolding — "every screen in the app, in one
+  #     list" — and was never drawn.
+  #   * `Kati.Screens.Backup` and `Kati.Screens.Sync` are the two halves of #54.
+  #     `.scratch/design/screens/` stops at 62 and none of the 62 is either of
+  #     them; issue #25 asks for the drawings and they do not exist. Both are
+  #     built in screen 24's idiom instead — every container is
+  #     `Kati.UI.SettingsList`'s and every colour a `Kati.Theme.Palette` token —
+  #     and each says so in its own moduledoc.
+  #
+  # An entry here buys **only** exemption from the literal comparison. Both
+  # screens are still mounted and rendered by `Kati.ScreenRenderSweepTest`,
+  # still tapped by `Kati.ScreenTapSweepTest`, and each has its own suite
+  # (`Kati.ScreenSyncTest` and the backup screen's) asserting the copy this file
+  # would otherwise have checked. Delete an entry the moment a drawing lands.
+  @undesigned [Kati.Screens.Backup, Kati.Screens.Gallery, Kati.Screens.Sync]
 
   # Screens 55-62 are the Persian mirrors and hold their Persian copy literally,
   # so only the writing direction actually changes with the locale. Each screen
@@ -124,6 +147,36 @@ defmodule Kati.ScreenDesignLiteralTest do
       assert Enum.sort(ScreenSweep.screens()) -- Enum.sort(registered) == @undesigned,
              "a screen exists that no drawing is checked against:\n" <>
                inspect((ScreenSweep.screens() -- registered) -- @undesigned)
+    end
+
+    test "an undrawn screen is still openable from the gallery" do
+      # `@undesigned` buys exemption from the literal comparison. It must not
+      # also buy invisibility.
+      #
+      # A screen with no drawing cannot go in `Kati.Screens.Gallery`'s numbered
+      # registry — the assertion above is exactly what would fail, and
+      # `bin/capture_all.py` would go looking for a frame that does not exist —
+      # so the gallery keeps a second, unnumbered list for them. Without this
+      # pin, "it has no drawing" would quietly become "it is on no page", which
+      # is how `Kati.Screens.Backup` and `Kati.Screens.Sync` arrived: two
+      # finished engines behind two screens, and nothing that opened either.
+      #
+      # The gallery itself is the one exemption, for the obvious reason.
+      openable = MapSet.new(Kati.Screens.Gallery.undrawn(), &elem(&1, 2))
+      expected = MapSet.delete(MapSet.new(@undesigned), Kati.Screens.Gallery)
+
+      assert openable == expected,
+             "the gallery's undrawn list and this file's @undesigned disagree about which " <>
+               "screens have no drawing. Missing from the gallery: " <>
+               inspect(MapSet.to_list(MapSet.difference(expected, openable))) <>
+               "; listed there and not here: " <>
+               inspect(MapSet.to_list(MapSet.difference(openable, expected)))
+
+      assert Enum.all?(Kati.Screens.Gallery.undrawn(), fn {tag, _name, _module} ->
+               is_atom(tag) and Atom.to_string(tag) =~ ~r/^[a-z_]+$/
+             end),
+             "a gallery tag is not lowercase ASCII; every tag in this app crosses into " <>
+               "Kotlin and back and has to be readable in a log"
     end
   end
 
@@ -284,7 +337,15 @@ defmodule Kati.ScreenDesignLiteralTest do
     end
 
     test "the list stays small enough to read" do
-      assert length(device_values()) <= 7,
+      # Raised from 7 to 9 for screens 24 and 62's `Last backup` line, and the
+      # decision is the one this assertion asks for: the drawing's `14 Aug` had
+      # nothing behind it, and the alternatives were a ledger the screen reads
+      # (this) or deleting the second line entirely — which this sweep has no
+      # exemption shape for, because every entry needs a pattern the screen
+      # still draws. Two literals move from "checked against a frozen date" to
+      # "checked against a two-state contract", which is less than an exact
+      # string and more than nothing.
+      assert length(device_values()) <= 9,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -297,10 +358,15 @@ defmodule Kati.ScreenDesignLiteralTest do
   # stand in for it}`. The pattern is matched against the screen's rendered
   # strings; there is no entry shape without one.
   #
-  # Built rather than declared because three of the four patterns carry today's
-  # day of the month: the drawings froze one date, the screens format the
-  # device's, and pinning the day is what stops a screen that hardcoded the
-  # drawing's date from passing here.
+  # Built rather than declared because most of the patterns carry today's day of
+  # the month: the drawings froze one date, the screens format the device's, and
+  # pinning the day is what stops a screen that hardcoded the drawing's date
+  # from passing here.
+  #
+  # The two backup entries (24 and 62) are the exception and say so in their own
+  # reason: their value follows a *stored* fact rather than the clock, and the
+  # store is empty in every test, so the day cannot be pinned and the pattern
+  # states both branches instead.
   #
   # The Persian half carries today's **Shamsi** day, because that is the number
   # those screens print, and two details of its patterns are load-bearing:
@@ -336,12 +402,24 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the greeting is picked from the device clock's hour by that same function, on " <>
          "`Kati.Screens.Home.today/0`'s thresholds. Which of the three it is belongs there; " <>
          "restating the hours here would only make this fail when the product changed its " <>
-         "mind about evening",
-       ~r/^(صبح|ظهر|عصر) بخیر$/u},
+         "mind about evening", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"56", "یکشنبه ۲۵ مرداد · ۵ مورد",
        "the Persian Schedule's subtitle is the selected day and the number of rows on it, " <>
          "and the selected day starts on the device's today",
-       ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u}
+       ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u},
+      {"24", "last backup 14 aug",
+       "the drawing froze a date; the Export row now reports " <>
+         "`Kati.Screens.Settings.last_backup/0`, which is `nil` until something completes a " <>
+         "Save As. The alternation is the screen's whole contract at this slot — a date in " <>
+         "the drawing's own day-and-short-month form, or the absence — and in a test it is " <>
+         "always the second branch, because `Mob.ScreenCase` starts `Mob.State` empty. See " <>
+         "`Kati.SettingsBackupLineTest` for the branch this cannot reach",
+       ~r/^(last backup \d{1,2} \p{L}{3}|never backed up)$/u},
+      {"62", "آخرین پشتیبان ۱۴ مرداد",
+       "the Persian mirror of 24's Export row, on the same reading through " <>
+         "`Kati.Screens.Settings.last_backup/0`, with the date in Shamsi because that is the " <>
+         "calendar this screen is drawn in",
+       ~r/^(آخرین پشتیبان \p{N}+ #{word}|هنوز پشتیبانی گرفته نشده)$/u}
     ]
   end
 

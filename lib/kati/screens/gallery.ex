@@ -4,8 +4,10 @@ defmodule Kati.Screens.Gallery do
 
   Two jobs, and the second is why it exists at all.
 
-  **For the owner**: a way to see all 62 pages without hunting for the tap that
-  reaches each one — "let me see all different type of each page".
+  **For the owner**: a way to see every page without hunting for the tap that
+  reaches each one — "let me see all different type of each page". The 62 drawn
+  screens are listed by their design number; anything built without a drawing is
+  listed under *Not yet drawn*, unnumbered, for the reason `@undrawn` gives.
 
   **For verification**: a screen nobody can reach cannot be checked against its
   drawing. 53 screens landed at once with no way in, and wiring every real
@@ -89,14 +91,47 @@ defmodule Kati.Screens.Gallery do
     {"62", "تنظیمات", Kati.Screens.SettingsFa, :push}
   ]
 
+  # Screens with no drawing, kept **out** of `@screens` on purpose.
+  #
+  # `@screens` is not a list of screens; it is the app's number → drawing
+  # registry, and three readers treat an entry as the claim that
+  # `.scratch/design/screens/NN.html` exists. `Kati.ScreenDesignLiteralTest`
+  # pairs every entry with that file and asserts the numbers are exactly the 62
+  # on disk. `Kati.ScreenEmptyDatabaseTest` asks this module whether a drawing
+  # exists at all, and moves a screen out of its `@undrawn` the moment one does.
+  # `bin/capture_all.py` parses this file for `{"NN", label, module, kind}` and
+  # then opens the frame of that number to identify the capture. So inventing a
+  # "63" for a screen the design has never contained fails the first two and
+  # sends the capture harness looking for a file that is not there — the
+  # opposite of making a screen capturable.
+  #
+  # The gallery's own job is the other one in the moduledoc — every screen in
+  # the app, in one list, each one tappable, so each can be *opened and looked
+  # at* — and that job never needed a number. Both of these are reached from
+  # screen 24's Data group in the real app, which is where a user finds them and
+  # what `Kati.SettingsDataRoutesTest` pins; this list is so that the page which
+  # claims to reach every screen is not lying about two of them.
+  #
+  # A three-element shape, so the regex in `bin/capture_all.py` — which wants
+  # four elements beginning with two digits — cannot pick these up by accident.
+  # Delete an entry the moment its drawing lands, and add it to `@screens` with
+  # the number it was filed under.
+  @undrawn [
+    {:open_undrawn_backup, "Backup", Kati.Screens.Backup},
+    {:open_undrawn_sync, "Sync", Kati.Screens.Sync}
+  ]
+
   @doc false
   def screens, do: @screens
+
+  @doc false
+  def undrawn, do: @undrawn
 
   @doc false
   def content(_assigns) do
     # Bound to a local: inside ~MOB an `@name` means an ASSIGN, so `@screens`
     # would be read as `assigns.screens` and fail.
-    count = length(@screens)
+    count = length(@screens) + length(@undrawn)
 
     ~MOB"""
     <Scroll>
@@ -124,6 +159,9 @@ defmodule Kati.Screens.Gallery do
         <Spacer size={20} />
         {UI.eyebrow("Every page")}
         {Kati.Screens.Gallery.rows()}
+        <Spacer size={20} />
+        {UI.eyebrow("Not yet drawn")}
+        {Kati.Screens.Gallery.undrawn_rows()}
       </Column>
     </Scroll>
     """
@@ -151,8 +189,40 @@ defmodule Kati.Screens.Gallery do
   end
 
   @doc false
-  def row({number, name, module, kind}, rule?) do
-    tap = {self(), String.to_atom("open_" <> number)}
+  def undrawn_rows do
+    undrawn = @undrawn
+    last = length(undrawn) - 1
+
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card()}
+      padding_left={15}
+      padding_right={15}
+      padding_top={4}
+      padding_bottom={4}
+    >
+      {undrawn |> Enum.with_index() |> Enum.map(fn {u, i} -> Kati.Screens.Gallery.undrawn_row(u, i < last) end)}
+    </Column>
+    """
+  end
+
+  # The number column holds `--` rather than a number, which is the whole fact
+  # about these two rows. The tag is the entry's own atom rather than one built
+  # from that marker: every tag this app draws crosses into Kotlin and back, and
+  # `open_--` is not a name anyone can read in a log.
+  @doc false
+  def undrawn_row({tag, name, module}, rule?),
+    do: Kati.Screens.Gallery.row({"--", name, module, :push}, rule?, tag)
+
+  @doc false
+  def row(entry, rule?), do: Kati.Screens.Gallery.row(entry, rule?, nil)
+
+  @doc false
+  def row({number, name, module, kind}, rule?, override) do
+    tap = {self(), override || String.to_atom("open_" <> number)}
 
     # The idle chevron is `rail_idle`, not `tertiary`: the design draws two
     # chevron greys and this is the `0xFFC4BDB3` one — the same call
@@ -199,6 +269,14 @@ defmodule Kati.Screens.Gallery do
 
   @impl true
   def handle_tap(tag, socket) do
+    case List.keyfind(@undrawn, tag, 0) do
+      {_tag, _name, module} -> {:noreply, Mob.Socket.push_screen(socket, module)}
+      nil -> Kati.Screens.Gallery.open_numbered(tag, socket)
+    end
+  end
+
+  @doc false
+  def open_numbered(tag, socket) do
     number = tag |> Atom.to_string() |> String.replace_prefix("open_", "")
 
     case Enum.find(@screens, fn {n, _, _, _} -> n == number end) do

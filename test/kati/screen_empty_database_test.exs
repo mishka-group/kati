@@ -189,6 +189,33 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"58", Kati.Screens.SeriesFa}
   ]
 
+  # Screens that read the database and have **no drawing at all**.
+  #
+  # Every entry in `@migrated` above is a pair of a screen and the frame under
+  # `.scratch/design/screens/` it is compared against, and the whole of what
+  # this file asks of one is *does it still draw its drawing when nothing is
+  # stored*. These two have no frame: `.scratch/design/screens/` stops at 62,
+  # none of the 62 is a backup or a sync page, and issue #25 asks for the
+  # drawings and they do not exist. Filing them under `@migrated` would mean
+  # inventing a number, and `DesignLiterals.read!/1` would then fail on a file
+  # that is not there.
+  #
+  # So the literal comparison is skipped and **the render is not**: `every
+  # undrawn store-reading screen still renders with nothing stored` below mounts
+  # each one inside the same empty transaction and asserts it comes back a whole
+  # renderable page. That is the check that actually matters for these two —
+  # they are screens whose ordinary state IS empty, since a device with no
+  # queued change and no conflict is the normal one, not the edge case.
+  #
+  # Pinned from both ends by `the undrawn list names only screens that read and
+  # are genuinely undrawn`, so an entry cannot become a way to duck this file:
+  # a module here that stops reading the store, or that acquires a drawing and
+  # joins `Kati.Screens.Gallery`'s registry, fails.
+  @undrawn [
+    Kati.Screens.Backup,
+    Kati.Screens.Sync
+  ]
+
   # Every table an Ash resource in this app is backed by, child tables first so
   # the deletes below do not trip a foreign key. Written out rather than derived
   # so that `every_table_is_listed/0` can compare it against the schema the
@@ -371,7 +398,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # nothing), and a read that has moved
       # into a helper — `Kati.Calendars.Today`, which is how 01 and 02 read —
       # is invisible to a grep of the screen's own file and plain in its imports.
-      listed = MapSet.new(@migrated, &elem(&1, 1))
+      listed = MapSet.union(MapSet.new(@migrated, &elem(&1, 1)), MapSet.new(@undrawn))
       readers = MapSet.new(Enum.filter(ScreenSweep.screens(), &reaches_store?/1))
 
       unguarded = readers |> MapSet.difference(listed) |> Enum.sort()
@@ -380,7 +407,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
              "these screens read the database and are not rendered against an empty one. " <>
                "Add each to @migrated with the number its drawing is filed under — a screen " <>
                "that has just moved onto a domain is exactly the one whose fallback nobody " <>
-               "has checked:\n" <> Enum.map_join(unguarded, "\n", &"  #{inspect(&1)}")
+               "has checked. A screen with no drawing at all goes in @undrawn instead, " <>
+               "which skips the literal comparison and keeps the render:\n" <>
+               Enum.map_join(unguarded, "\n", &"  #{inspect(&1)}")
 
       idle = listed |> MapSet.difference(readers) |> Enum.sort()
 
@@ -411,9 +440,75 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       refute reaches_store?(Kati.Screens.SeriesSettings)
       refute reaches_store?(Kati.Screens.Gallery)
     end
+
+    test "the undrawn list names only screens that read and are genuinely undrawn" do
+      # `@undrawn` is the one thing in this file that can make it check less, so
+      # it is pinned from both ends like every other allow-list here.
+      #
+      # A module that stops reading the store does not belong in this file at
+      # all, and a module that gains a drawing belongs in `@migrated` with its
+      # number — where the literal comparison it was exempted from starts
+      # applying again. `Kati.Screens.Gallery.screens/0` is the app's own
+      # number → module registry and therefore the only honest answer to "does
+      # a drawing exist for this screen", which is why it is asked rather than
+      # a second list kept here.
+      drawn = MapSet.new(Kati.Screens.Gallery.screens(), &elem(&1, 2))
+
+      for module <- @undrawn do
+        assert ScreenSweep.screen?(module),
+               "#{inspect(module)} is in @undrawn and is not a screen at all"
+
+        assert reaches_store?(module),
+               "#{inspect(module)} is exempted from the literal comparison and reads no " <>
+                 "store, so it has nothing to be exempted from. Remove it"
+
+        refute MapSet.member?(drawn, module),
+               "#{inspect(module)} is registered in Kati.Screens.Gallery, so a drawing " <>
+                 "exists for it. Move it to @migrated with its number and let the literal " <>
+                 "comparison run"
+      end
+
+      assert MapSet.disjoint?(MapSet.new(@undrawn), MapSet.new(@migrated, &elem(&1, 1))),
+             "a screen is in both @migrated and @undrawn, which cannot both be true"
+    end
   end
 
   describe "with nothing stored" do
+    test "every undrawn store-reading screen still renders with nothing stored" do
+      # The half of this file that `@undrawn` keeps rather than skips, and for
+      # these two it is the half that matters. A backup page on a device that
+      # has never exported, and a sync page on a device with no queued change
+      # and no conflict, are not edge cases — they are the ordinary state, and
+      # the state a fresh install opens in. A screen that only holds together
+      # once there are rows would fail here and nowhere else, because no drawing
+      # exists for the literal sweep to catch it with.
+      #
+      # Rendered inside the same rolled-back transaction as everything else, so
+      # "nothing stored" means what it means everywhere else in this file.
+      trees =
+        in_empty_database(fn ->
+          Map.new(@undrawn, fn module ->
+            {:ok, _socket, tree} = ScreenSweep.render(module)
+            {module, tree}
+          end)
+        end)
+
+      for {module, tree} <- trees do
+        assert_renderable(tree)
+
+        texts =
+          tree
+          |> find_all(:text)
+          |> Enum.map(&(&1.props[:text] || ""))
+          |> Enum.reject(&(&1 == ""))
+
+        assert length(texts) > 12,
+               "#{inspect(module)} rendered #{length(texts)} strings against an empty " <>
+                 "database. A page that is mostly chrome is what a lost empty state looks " <>
+                 "like, and this screen has no drawing for anything else to compare"
+      end
+    end
+
     test "every migrated screen still draws every literal its drawing contains" do
       missing =
         for screen <- render_migrated(),

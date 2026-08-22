@@ -87,11 +87,11 @@ defmodule Kati.Screens.Settings do
   which one this is — separately for each mode the screen might have been
   mounted in.
 
-  ## Audited: the theme choice is the only thing here that is stored
+  ## Audited: the theme choice and the backup ledger are what is stored
 
   **Everything else on this screen is drawn copy in `Kati.Settings.Sample`, and
   no resource in the app holds any of it.** That is not an oversight to be
-  found again next round, so the four things that look like readings and are
+  found again next round, so the three things that look like readings and are
   not are named here with what each would actually need:
 
     * `1,204 ENTRIES` — there is no *entry* anywhere in Kati. The word spans
@@ -106,15 +106,100 @@ defmodule Kati.Screens.Settings do
       which is the different fact screen 32's Live/Stale pill is about. What
       this card needs is an account/device record — one row per paired device
       with its own `last_sync_at` — and nothing models one.
-    * `Last backup 14 Aug` — `Kati.Backup` writes and verifies archives and
-      keeps no ledger of having done so. `Kati.Backup.Catalog` is the file
-      *format*; nothing records that a backup happened, or when.
     * `0.1 · mock build` — the app version is real (`mix.exs` says `0.1.2`) and
       the rest of the line is not, so reading half of it would print a truthful
       number beside a claim about a build nobody makes.
 
-  `4 SECTIONS` is the exception and is already live — `meta/2` rewrites it from
-  the switches below it, see `enabled/1`.
+  Two lines used to be on that list and are not any more. `4 SECTIONS` is the
+  Sections group's own tally — `meta/2` rewrites it from the switches below it,
+  see `enabled/1` — and `Last backup 14 Aug` now reports a ledger, which is the
+  next section.
+
+  ## The Data group is the door to the two engines nothing was calling
+
+  `Kati.Backup` and `Kati.Sync` have both been finished and exercised against
+  the running app over Erlang distribution — export, encrypted export, a restore
+  that refuses a non-empty database by table and count, `:merge`, a wrong
+  passphrase, an outbox with retries, a rejection log — and until this round **no
+  screen in the app invoked any of it.** A user could not back up, could not
+  restore, and could not see or resolve a conflict, and every engine test was
+  green throughout. An engine nothing calls is worth what no engine is worth.
+
+  So `@destinations` gains two rows the drawing already put in the Data group:
+  `Export everything` opens `Kati.Screens.Backup` and `Sync` opens
+  `Kati.Screens.Sync`. Nothing else about either row moves — same glyph, same
+  title, same chevron, same 14pt padding — because the rows were always drawn as
+  links and were the only two in the group that were not.
+
+  `Kati.Screens.SettingsFa` names the same two destinations off the same two
+  rows, keyed by glyph rather than by its Persian titles; `Kati.SettingsDataRoutesTest`
+  is what holds the two lists to each other.
+
+  ## The Export row reports a real backup, or says there has been none
+
+  `Last backup 14 Aug` was the fourth false reading, and it is the one worth
+  answering rather than deleting. Android's `allowBackup` is `false`, Kati keeps
+  its database in `filesDir`, and there is no server and no account — so *when
+  did I last make a copy of this?* is a question nothing else on the device can
+  answer, and the row that asks it is the row a user reads before they lose the
+  phone.
+
+  Deleting the second line was the alternative and it is not the smaller change
+  it looks like. The line exists only to carry this fact; drop it and the row is
+  a bare `Export everything`, and `Kati.ScreenDesignLiteralTest` — which asks
+  that every literal a drawing contains is somewhere in the rendered tree — has
+  no exemption shape for a line a screen simply stopped drawing. Its allow-list
+  entries are `{number, literal, why, pattern}` and the pattern is *required* to
+  match something the screen still draws. "Draw nothing" is the same edit with
+  the check switched off.
+
+  ### What counts as a backup, and what does not
+
+  Not "an archive was written". `Kati.Backup.export_to_file/2` writes a
+  `.katibackup` wherever its caller points it, and most of those places are not
+  backups: a verify round trip, a test's temp dir, the app-private staging path
+  the native transport streams *from*. What makes a backup a backup is that it
+  reached somewhere the user can get it back from, and the app has exactly one
+  signal for that — `{:saved, …}` out of `Kati.Native.Files.decode/1`, which is
+  `ACTION_CREATE_DOCUMENT` reporting that Kati streamed the bytes into the
+  `content://` URI the user picked.
+
+  `{:shared, …}` deliberately does not count, and `Kati.Native.Files`' own
+  moduledoc gives the reason: Android returns `RESULT_CANCELED` from a chooser
+  whether the sheet was dismissed or the send completed, so a share that ended
+  in an abandoned mail draft cannot be told from one that arrived. Stamping the
+  ledger there would print a date to a user who has no backup, which is the
+  exact failure this row exists to prevent.
+
+  ### Where the timestamp lives, and why that is not the backup
+
+  `Mob.State`, on `:last_backup_at`, beside the theme choice and the locale — a
+  named GenServer over DETS in app-private storage, synced before
+  `record_backup/1` returns.
+
+  It is a **note about** the backup, and it is stored where a note should be. An
+  uninstall erases it and `allowBackup="false"` carries it nowhere, which is the
+  right lifetime: it describes *this* database on *this* device and should die
+  with the thing it describes rather than outlive it as a date claiming a copy
+  of rows that are gone. For the same reason it is not written into the archive
+  — a restored ledger would tell a new phone it has a backup when what it has is
+  a restore, and `.scratch/tickets/D-06.md` already names that as a different
+  sentence for a different row: *"Restored from a backup made 14 Aug"*.
+
+  ### The one call this needs from elsewhere, and it is made
+
+  `Kati.Screens.Backup.apply_event/2` calls `record_backup/0` from the branch
+  where `Kati.Native.Files.decode/1` answers `{:saved, …}`, and from nowhere
+  else. That is the only writer, so it is the whole reason this row can ever
+  say anything but *Never backed up*, and
+  `Kati.SettingsBackupLineTest`'s *the Save As branch of the backup screen is
+  what stamps the ledger* is what holds the two ends together — a reading whose
+  writer does not exist is a hardcoded `nil` wearing a function's clothes, and
+  it is what this row had until the call landed.
+
+  `last_backup/0` still answers `nil` on a device that has never completed a
+  Save As, and both settings screens then draw *Never backed up*. That is not a
+  placeholder but the truth about that device.
 
   ## The Sections switches change something that ought to persist, and cannot yet
 
@@ -237,6 +322,83 @@ defmodule Kati.Screens.Settings do
       index -> Kati.Screens.Settings.choice_at(index)
     end
   end
+
+  # ── The backup ledger ───────────────────────────────────────────────────────
+  #
+  # `last_backup/0` and `record_backup/1` are the whole of it. This screen owns
+  # them for the same reason it owns the appearance boundary above: the Export
+  # row is the only thing in the app that reads the value, and
+  # `Kati.Screens.SettingsFa` reads it through here rather than keeping a second
+  # key. If a backup domain ever wants it, the three functions lift out verbatim
+  # and neither screen changes.
+
+  @backup_key :last_backup_at
+
+  @doc """
+  When Kati last put a backup file somewhere the user can reach, or `nil`.
+
+  `nil` on a fresh install and on every install that has never completed a
+  Save As — see the moduledoc for why a share and a write to a scratch path are
+  neither of them backups. Anything on the key that is not a `DateTime` reads as
+  `nil` rather than crashing a mount, the way `Kati.Theme.Mode.choice/0` falls
+  back to `:auto`.
+  """
+  @spec last_backup() :: DateTime.t() | nil
+  def last_backup do
+    case Mob.State.get(@backup_key) do
+      %DateTime{} = at -> at
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Record that a backup file has just reached the user. Persisted before this
+  returns.
+
+  Call it from the `{:saved, …}` branch of `Kati.Native.Files.decode/1` and from
+  nowhere else — not from `{:shared, …}`, which Android cannot distinguish from
+  a dismissed sheet, and not from `Kati.Backup.export_to_file/2`, which also
+  writes the archives nobody keeps.
+  """
+  @spec record_backup(DateTime.t()) :: :ok
+  def record_backup(at \\ Kati.Time.now()) when is_struct(at, DateTime) do
+    Mob.State.put(@backup_key, at)
+    :ok
+  end
+
+  @doc """
+  What the Export row's second line says, given what `last_backup/0` answered.
+
+  Pure and separate from the reading, because the two states are the only two
+  this app can be in and both should be checkable without a store.
+
+  The date form is the drawing's own — `Last backup 14 Aug`, day then short
+  month, no year. `.scratch/design/screens/24.html` is the frame this screen is
+  captured against, and only the *value* was ever wrong.
+  """
+  @spec backup_line(DateTime.t() | nil) :: String.t()
+  def backup_line(nil), do: "Never backed up"
+
+  def backup_line(%DateTime{} = at) do
+    date = DateTime.to_date(at)
+    "Last backup #{date.day} #{String.slice(Kati.Time.month_name(date.month), 0, 3)}"
+  end
+
+  @doc """
+  A row's second line: the sample's copy, except on the Export row, which
+  reports the ledger.
+
+  Matched on the row's **glyph** rather than on its title. `upload` is the one
+  part of that row both drawings share and the one part of it that is not copy,
+  so `Kati.Screens.SettingsFa` asks the same question of its own Persian row
+  without either screen carrying the other's words — the same move the theme
+  trough makes when it tags by position.
+  """
+  @spec sub(map()) :: String.t() | nil
+  def sub(%{icon: "upload"}),
+    do: Kati.Screens.Settings.backup_line(Kati.Screens.Settings.last_backup())
+
+  def sub(%{sub: sub}), do: sub
 
   @doc """
   Point a group's segmented control at the stored choice.
@@ -446,7 +608,7 @@ defmodule Kati.Screens.Settings do
   def row(row, pad, rule?) do
     SettingsList.row(
       SettingsList.icon_tile(row.icon),
-      SettingsList.body(row.title, row.sub),
+      SettingsList.body(row.title, Kati.Screens.Settings.sub(row)),
       Kati.Screens.Settings.control(row.control),
       padding: pad,
       rule: rule?,
@@ -456,11 +618,19 @@ defmodule Kati.Screens.Settings do
 
   # Which rows lead somewhere. A row with no destination gets no tap, so it
   # does not pretend to be a link.
+  #
+  # The two Data rows added this round are the whole reason `Kati.Backup` and
+  # `Kati.Sync` stopped being unreachable. Both engines are finished and proven
+  # on device — export, encrypted export, refused restore, merge, conflicts,
+  # rejections — and until these two lines existed no screen in the app invoked
+  # any of it, which made them exactly as useful to a user as no engine at all.
   @destinations %{
     "Release watcher" => Kati.Screens.ReleaseWatcher,
     "Calendars" => Kati.Screens.Calendars,
     "Auto-detect" => Kati.Screens.AutoDetect,
     "Import" => Kati.Screens.Import,
+    "Export everything" => Kati.Screens.Backup,
+    "Sync" => Kati.Screens.Sync,
     "Widgets" => Kati.Screens.Widgets,
     "Account" => Kati.Screens.Account,
     "Accessibility" => Kati.Screens.Accessibility,
