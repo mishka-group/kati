@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ draws its own splash for every app targeting 31+ (Kati is at
+     36), and it hands off to `windowBackground` partway through the boot. Both
+     draw the Kati mark; @drawable/splash explains how their sizes were made to
+     agree.
+
+     Pinning the background here rather than letting it fall through to
+     ?android:colorBackground: the inherited value happens to be dark today, so
+     the seam is invisible, but a theme change would put the mark's #F5F2EE on
+     an unrelated ground with nothing to say so. -->
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.NoTitleBar">
+        <item name="android:windowBackground">@drawable/splash</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
+    </style>
+</resources>

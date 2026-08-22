@@ -1,10 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- What the window shows before the BEAM has drawn a frame.
      It was @android:color/black, which read as the app failing to start on a
-     boot that takes a second or two. -->
+     boot that takes a second or two.
+
+     This is the SECOND thing that draws the launch logo, and until now it drew
+     it at a different size from the first. Android 12+ shows its own splash for
+     every app targeting 31+ (Kati is at 36) and scales the adaptive launcher
+     icon into a 288dp canvas; this drawable then took over and drew the SAME
+     @mipmap/ic_launcher_foreground at its natural 108dp. The mark is 0.3889 of
+     that canvas either way, so it fell from 112dp to 42dp about a second in and
+     stayed small for the rest of the boot — measured on a Pixel 9a as 184x294px
+     then 69x110px.
+
+     So the mark here is @drawable/kati_mark at its intrinsic 133dp, which is
+     112dp of ink: the same size the system splash gives the same artwork. The
+     handoff is now invisible.
+
+     Deliberately NOT solved by deferring the first frame until the BEAM has a
+     tree. That is what androidx.core:core-splashscreen does, and it would show
+     one splash rather than two, but Mob's mob_start_beam polls
+     Activity.hasWindowFocus() before erl_start() and hasWindowFocus() only goes
+     true once the window has DRAWN (mob_beam.zig:460). Holding the frame
+     starves that poll: it burned its full 3000ms timeout and then started the
+     BEAM anyway, which is exactly the hwui/ERTS pthread race the wait exists to
+     prevent. Matching the sizes costs nothing and keeps the BEAM's start on
+     its intended signal. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/ic_launcher_background" />
-    <item android:gravity="center">
-        <bitmap android:src="@mipmap/ic_launcher_foreground" android:gravity="center" />
-    </item>
+    <item android:drawable="@drawable/kati_mark" android:gravity="center" />
 </layer-list>

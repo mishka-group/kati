@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Kati's launcher icon: the bird from the app's mark, on the accent orange.
-     Adaptive so the launcher can mask it to whatever shape the device uses. -->
+<!-- Kati's launcher icon: the sparrow lockup in the black colourway.
+     Adaptive so the launcher can mask it to whatever shape the device uses.
+     The brand sheet reserves the BARE LADDER for the app icon, on the grounds
+     that it survives the home screen, and gives the sparrow lockup to the
+     launch screen and anything above 40px. Both carry the sparrow today
+     because that is what was asked for; reverting this file to a
+     ladder-only foreground is the whole change if it reads muddy at 48dp. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
     <foreground android:drawable="@mipmap/ic_launcher_foreground" />

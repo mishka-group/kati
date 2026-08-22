@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kati's display mark: the sparrow lockup, black colourway.
+
+     Transcribed from the brand sheet's own SVG (examples/ui_design/Kati.dc.html,
+     the 74x74 tile with background #1A1917 and stroke #F5F2EE) — same 240-unit
+     viewBox, same coordinates, same stroke widths, same paint order. Draw order
+     is load-bearing: rails and rungs first, then the spark, then the legs, then
+     the filled body over the top. That is what puts the sparrow in FRONT of the
+     near rail with the rungs passing BEHIND it, which is how the sheet defines
+     this lockup.
+
+     A vector rather than a bitmap because the splash draws it at 133dp while
+     mipmap-xxhdpi only has 324px to give: scaling that up to 756px visibly
+     softens a hairline mark on a dark ground.
+
+     133dp is not arbitrary. The ink spans 202.5 of the 240 viewport units, and
+     the Android 12+ system splash renders the launcher icon's mark at 112dp
+     (288dp canvas x the 0.3889 the mark occupies of it). 112 x 240/202.5 = 133,
+     so the two mechanisms draw the mark at the same size. See
+     @drawable/splash for why that matters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="133dp"
+    android:height="133dp"
+    android:viewportWidth="240"
+    android:viewportHeight="240">
+
+    <!-- Ladder: two rails, five rungs. -->
+    <path android:pathData="M102 218 L112 94"     android:strokeColor="#F5F2EE" android:strokeWidth="12" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M178 218 L168 94"     android:strokeColor="#F5F2EE" android:strokeWidth="12" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M102.6 208.8 L177.4 208.8" android:strokeColor="#F5F2EE" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M104.8 182.4 L175.2 182.4" android:strokeColor="#F5F2EE" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M107.0 156.0 L173.0 156.0" android:strokeColor="#F5F2EE" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M109.2 129.6 L170.8 129.6" android:strokeColor="#F5F2EE" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M111.4 103.2 L168.6 103.2" android:strokeColor="#F5F2EE" android:strokeWidth="10" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+
+    <!-- The faceted spark, carried over from the Mishka mark. -->
+    <path android:pathData="M140 37 L155 52 L140 67 L125 52 Z" android:strokeColor="#F5F2EE" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M140 28 L140 16"  android:strokeColor="#F5F2EE" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M152 42 L163 31"  android:strokeColor="#F5F2EE" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M128 42 L117 31"  android:strokeColor="#F5F2EE" android:strokeWidth="8" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+
+    <!-- Sparrow: legs under, then the solid body, then the punched-out eye. -->
+    <path android:pathData="M88 204 L88 213"  android:strokeColor="#F5F2EE" android:strokeWidth="5" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M99 199 L100 213" android:strokeColor="#F5F2EE" android:strokeWidth="5" android:strokeLineCap="butt" android:strokeLineJoin="miter" android:strokeMiterLimit="10" />
+    <path android:pathData="M106 151 L92 148 L80 157 L76 172 L73 188 L56 197 L63 205 L80 200 L88 205 L105 191 L108 176 L102 160 Z" android:fillColor="#F5F2EE" />
+    <path android:pathData="M92 155 L96 159 L92 163 L88 159 Z" android:fillColor="#1A1917" />
+</vector>
