@@ -49,6 +49,7 @@ defmodule Kati.Screens.InboxNotifications do
   alias Kati.Notifications.Candidate
   alias Kati.Notifications.Inbox
   alias Kati.Notifications.Scheduler
+  alias Kati.Notifications.Sources
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
@@ -59,10 +60,9 @@ defmodule Kati.Screens.InboxNotifications do
   The plan this screen shows.
 
   Built from every domain's candidates through the one scheduler, on this
-  device's platform and clock. `Kati.Notifications.Sources.Media` is the only
-  source with a real collector today; the other five domains contribute nothing
-  yet and their rows say `Nothing today` rather than being absent, because
-  *nothing* is an answer.
+  device's platform and clock. All six domains have a collector now — see
+  `candidates/0` — so a row that says `Nothing today` means the domain was
+  asked and had nothing, rather than that nobody asked.
   """
   @spec plan() :: Kati.Notifications.Plan.t()
   def plan do
@@ -73,16 +73,53 @@ defmodule Kati.Screens.InboxNotifications do
   end
 
   @doc """
-  Every domain's candidates.
+  Every domain's candidates, from all six collectors.
 
-  One collector today and five domains without one, and that asymmetry is
-  visible on the page rather than hidden: a domain with no source has an empty
-  row, which is what `Kati.Notifications.Inbox.by_domain/1` guarantees by
-  reading the budget's own domain list rather than the collectors'.
+  One call per domain, each reading its own store and each free to fail on its
+  own: a collector that raises contributes `[]` and the other five still
+  answer. That is deliberate rather than defensive — this screen is the one a
+  reader opens *because* something is not arriving, and a page that goes blank
+  when one domain is unhappy cannot tell them which.
+
+  The domain list the page renders comes from
+  `Kati.Notifications.Inbox.by_domain/1`, which reads
+  `Kati.Notifications.Budget`'s own list rather than the collectors', so a
+  domain that returns nothing still draws its row.
+
+  Each source is told the day rather than reading the clock itself, so the six
+  answers are about one day and `Kati.Notifications.Scheduler` is comparing
+  like with like.
   """
   @spec candidates() :: [Candidate.t()]
   def candidates do
-    Kati.Notifications.Sources.Media.candidates(media_pairs())
+    day = Kati.Time.today()
+    opts = [zone: Kati.Time.device_zone()]
+
+    zone = Kati.Time.device_zone()
+
+    Enum.concat([
+      safely(fn -> Sources.Media.candidates(media_pairs()) end),
+      safely(fn -> Sources.Calendar.candidates(Sources.Calendar.events(day, zone), opts) end),
+      safely(fn -> Sources.Habits.candidates(Sources.Habits.events(day, zone), day, opts) end),
+      safely(fn -> meals(day, opts) end),
+      safely(fn -> Sources.Health.candidates(Sources.Health.active(), day, opts) end),
+      safely(fn -> Sources.Money.candidates(Sources.Money.subscribed(), day, opts) end)
+    ])
+  end
+
+  # The plan and its slots are two reads and the source takes both, so the pair
+  # is assembled here — one place that knows they belong together, and a `nil`
+  # plan never runs the second read.
+  defp meals(day, opts) do
+    case Sources.Meals.active_plan() do
+      nil -> []
+      plan -> Sources.Meals.candidates(plan, Sources.Meals.slots(plan, day), day, opts)
+    end
+  end
+
+  # One collector's failure is not the page's. See `candidates/0`.
+  defp safely(fun) do
+    fun.()
   rescue
     _error -> []
   end
@@ -184,9 +221,32 @@ defmodule Kati.Screens.InboxNotifications do
         Kati.Screens.InboxNotifications.sub(candidate, kind)
       ),
       SettingsList.trailing(Kati.Screens.InboxNotifications.trailing(candidate, kind)),
-      on_tap: {self(), :open_source}
+      on_tap: {self(), Kati.Screens.InboxNotifications.tag_for(candidate.domain)}
     )
   end
+
+  @doc """
+  Which screen a row opens: the one that owns that kind of reminder.
+
+  A row on this page is a reminder from somewhere else, and the useful thing to
+  do with it is go to where it is configured — a held meal reminder is a
+  question about screen 51, not about this page. So the tap carries the
+  **domain** rather than the candidate, because the domain is the thing that has
+  a screen; a candidate has an id, and an id has no destination.
+
+  The tag is per domain rather than one `:open_source` for all six. That was
+  the shape until every domain had a collector, and it could not survive one:
+  a single tag has to decide at handle time what it could not know at draw time,
+  and `Kati.ScreenTapSweepTest` reports a tag that reaches nothing — correctly,
+  because a tap answered by a catch-all is a tap that does nothing.
+  """
+  @spec tag_for(Kati.Notifications.Budget.domain()) :: atom()
+  def tag_for(:calendar), do: :open_calendar
+  def tag_for(:tv), do: :open_tv
+  def tag_for(:habits), do: :open_habits
+  def tag_for(:meals), do: :open_meals
+  def tag_for(:health), do: :open_health
+  def tag_for(:money), do: :open_money
 
   @doc false
   def sub(%Candidate{} = candidate, :held), do: Inbox.held_reason(candidate.suppressed)
@@ -331,8 +391,27 @@ defmodule Kati.Screens.InboxNotifications do
   def handle_tap(:open_diagnostic, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NotificationsHelp)}
 
-  # A reminder's own screen is per-domain and this inbox spans six of them; the
-  # candidate carries an id rather than a destination, so there is nothing here
-  # to route on yet. Answered rather than left dead.
+  # One clause per domain, and each one lands on the screen that owns that
+  # reminder rather than on the thing it is about: a held meal reminder is a
+  # question about screen 51's controls, not about tonight's dal. `tag_for/1`
+  # carries the argument.
+  def handle_tap(:open_calendar, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Calendar)}
+
+  def handle_tap(:open_tv, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher)}
+
+  def handle_tap(:open_habits, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+
+  def handle_tap(:open_meals, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealReminders)}
+
+  def handle_tap(:open_health, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Medication)}
+
+  def handle_tap(:open_money, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
+
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

@@ -60,6 +60,18 @@ defmodule Kati.Calendars.Event do
     end
   end
 
+  # The seven things a row on the calendar can be.
+  #
+  # Named rather than written into the constraint inline, because three
+  # `Kati.Notifications.Sources` read this table and the rule that keeps them
+  # apart is *every kind is claimed exactly once*. A test can only hold that
+  # rule against a list it can read.
+  @kinds [:event, :reminder, :habit, :meal, :air_date, :money, :note]
+
+  @doc "Every kind a row can be. See `@kinds`."
+  @spec kinds() :: [atom()]
+  def kinds, do: @kinds
+
   attributes do
     uuid_primary_key :id
 
@@ -99,7 +111,7 @@ defmodule Kati.Calendars.Event do
       allow_nil?: false,
       default: :event,
       public?: true,
-      constraints: [one_of: [:event, :reminder, :habit, :meal, :air_date, :money, :note]]
+      constraints: [one_of: @kinds]
 
     attribute :status, :atom,
       public?: true,
