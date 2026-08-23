@@ -51,6 +51,8 @@ defmodule Kati.Screens.Home do
         {Kati.Screens.Home.hero()}
         {UI.eyebrow("Continue watching")}
         {Kati.Screens.Home.continue_watching()}
+        {UI.eyebrow("Watching")}
+        {Kati.Screens.Home.watching()}
         {UI.eyebrow("Sections")}
         {Kati.Screens.Home.sections()}
         {UI.eyebrow("Rest of today", trailing: "See all")}
@@ -436,6 +438,44 @@ defmodule Kati.Screens.Home do
     end
   end
 
+  @doc """
+  The Watching band — one row, and the same row screen 24 draws.
+
+  The 23 August redraw puts *My services* on Home as well as in Settings, and
+  the reason is what the row answers: **what can I actually watch**. Every
+  recommendation, every "leaving on Friday", every *What fits tonight* is
+  downstream of it, and a user whose services are wrong gets a home page full
+  of confident nonsense with no visible cause.
+
+  `Kati.Settings.Sample.watching/0` is the row, unchanged and unwrapped — the
+  region and the subscribed count are read there, once, so Home and Settings
+  cannot come to different answers about how many services somebody has. Screen
+  92 is where it goes from both.
+  """
+  @spec watching() :: map()
+  def watching do
+    rows =
+      Kati.Settings.Sample.watching()
+      |> Enum.map(fn row ->
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile(row.icon),
+          Kati.UI.SettingsList.body(row.title, row.sub),
+          Kati.UI.SettingsList.chevron(),
+          rule: false,
+          on_tap: {self(), :open_services}
+        )
+      end)
+
+    assigns = %{card: Kati.UI.SettingsList.card(rows)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@card}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
   @doc false
   def sections do
     ~MOB"""
@@ -655,6 +695,9 @@ defmodule Kati.Screens.Home do
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
+
+  def handle_tap(:open_services, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
 
   def handle_tap(:open_meals, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}

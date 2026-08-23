@@ -110,11 +110,20 @@ defmodule Kati.Screens.PickSections do
   # earliest button that looks like a commit is how a half-run first run never
   # gets offered again.
   #
-  # "Import from a backup instead" is the drawing's own escape hatch and opens
-  # screen 37, which is the same screen Settings → Import opens. It is drawn as
-  # plain text rather than a button, so the tap goes on the Row: the words are
-  # centred by two weighted spacers and a tap on the Text alone would miss
-  # everywhere except the glyphs themselves.
+  # "Restore from a backup instead" is the drawing's own escape hatch. It reads
+  # *restore* and not *import* since the 23 August redraw, and the word is the
+  # whole distinction #25 asks to be visible: a restore is your own data coming
+  # home, an import is somebody else's arriving. They are different screens and
+  # a first-run user reaching for one of them wants the first.
+  #
+  # It opens screen 37 until screen 129 is built — the wrong one of the two, and
+  # deliberately the wrong one rather than nothing, because a returning user
+  # with a file in hand can still get their data in through the mapper. The
+  # route moves the day 129 lands.
+  #
+  # Drawn as plain text rather than a button, so the tap goes on the Row: the
+  # words are centred by two weighted spacers and a tap on the Text alone would
+  # miss everywhere except the glyphs themselves.
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
       "section_" <> id ->
@@ -367,7 +376,7 @@ defmodule Kati.Screens.PickSections do
       <Row fill_width={true} align="center" on_tap={restore}>
         <Spacer weight={1.0} />
         <Text
-          text="Import from a backup instead"
+          text="Restore from a backup instead"
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}

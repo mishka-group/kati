@@ -102,10 +102,44 @@ defmodule Kati.Settings.Sample do
     ]
   end
 
-  @doc "Data — import, export, sync, and the one destructive row."
+  @doc """
+  Data — back up, restore, import, export, sync, and the one destructive row.
+
+  ## The two backup rows come first, and the order is the argument
+
+  Kati has no server by locked decision, so a backup is the only thing between
+  a user and losing everything when a phone dies. The 23 August redraw puts
+  **Back up everything** and **Restore a Kati backup** at the head of this
+  group, above Import and Export, and that ordering is the design saying which
+  of the five a person is most likely to be here for.
+
+  ## Restore and Import are two rows because they are two acts
+
+  *Your own file — merges or replaces* against *CSV, JSON, or another tracker's
+  backup*. One is your data coming home and one is somebody else's data
+  arriving, and #25 asks specifically that the two be visibly different rather
+  than one row with two meanings. They route to different screens.
+
+  `Export everything` stays alongside `Back up everything` rather than being
+  folded into it: a backup is the restorable format and an export is the
+  portable one, and screen 128 draws both as choices *within* the backup screen.
+  The row here is the shortcut for someone who already knows which they want.
+  """
   @spec data() :: [map()]
   def data do
     [
+      %{
+        icon: "cloud_done",
+        title: "Back up everything",
+        sub: "Last backup 14 Aug · 214 MB",
+        control: :chevron
+      },
+      %{
+        icon: "upload_file",
+        title: "Restore a Kati backup",
+        sub: "Your own file — merges or replaces",
+        control: :chevron
+      },
       %{
         icon: "download",
         title: "Import",
