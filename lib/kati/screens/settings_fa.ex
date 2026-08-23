@@ -509,7 +509,13 @@ defmodule Kati.Screens.SettingsFa do
   #     between them — the same reason the theme trough tags by position.
   @destinations %{
     "upload" => Kati.Screens.Backup,
-    "sync" => Kati.Screens.Sync
+    "sync" => Kati.Screens.Sync,
+    # The two the second wave added, keyed on the glyph for the reason above:
+    # screen 24 and this screen name the same destinations without a
+    # translation table between them.
+    "subscriptions" => Kati.Screens.MyServicesFa,
+    "dns" => Kati.Screens.DataSourcesFa,
+    "info" => Kati.Screens.AttributionFa
   }
 
   @doc false

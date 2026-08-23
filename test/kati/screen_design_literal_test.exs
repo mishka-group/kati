@@ -125,7 +125,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 97)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
   # tier. Today: 7, all of them rating rows the drawing writes as one run of
@@ -143,8 +143,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 94,
-             "expected 94 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 106,
+             "expected 106 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -377,7 +377,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # clock. Same category as screens 01, 02 and 09's date lines and pinned
       # the same way — the pattern carries today's day of the month, so a sheet
       # that hardcoded 16 August would fail on every other day.
-      assert length(device_values()) <= 14,
+      assert length(device_values()) <= 17,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -465,6 +465,18 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the sheet's `Today` row is `Kati.Screens.LogWeight.taken_line/0`, which formats " <>
          "`Kati.Time.now/0`. The drawing froze one device's minute; what the row promises is " <>
          "the day and the time it is being logged at", ~r/^#{day} \p{L}+, \d{2}:\d{2}$/u},
+      # Screen 82's three, the Persian mirror of screen 80's. Same values, same
+      # reasons: a pairing code for a provider Kati has no client for, the
+      # database file's own size, and the age of its oldest row.
+      {"82", "۴kq9۲",
+       "the Persian mirror of 80's pairing code, which is stated because nothing in Kati " <>
+         "talks to ListenBrainz yet", ~r/^\p{N}?[\p{L}\p{N}]+$/u},
+      {"82", "۳۴ مگابایت",
+       "the database file's own size, in Persian digits — the mirror of 80's `34 mb cached`",
+       ~r/^(\p{N}+ مگابایت|هنوز چیزی ذخیره نشده)$/u},
+      {"82", "۲ ماه قدیمی‌ترین",
+       "the age of the oldest cache row, in Persian — the mirror of 80's `oldest entry 2 months`",
+       ~r/^(.*قدیمی‌ترین|چیزی برای تازه‌سازی نیست)$/u},
       {"24", "last backup 14 aug",
        "the drawing froze a date; the Export row now reports " <>
          "`Kati.Screens.Settings.last_backup/0`, which is `nil` until something completes a " <>

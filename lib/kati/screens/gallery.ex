@@ -120,7 +120,19 @@ defmodule Kati.Screens.Gallery do
     {"78", "Artist detail — states", Kati.Screens.ArtistDetailStates, :push},
     {"86", "Search — idle", Kati.Screens.SearchIdle, :push},
     {"88", "Scope & ranking", Kati.Screens.SearchSpec, :push},
-    {"126", "Money on the calendar", Kati.Screens.MoneyDay, :push}
+    {"126", "Money on the calendar", Kati.Screens.MoneyDay, :push},
+    {"76", "آلبوم", Kati.Screens.AlbumDetailFa, :push},
+    {"79", "هنرمند", Kati.Screens.ArtistDetailFa, :push},
+    {"81", "Data sources — states", Kati.Screens.DataSourcesStates, :push},
+    {"82", "منابع داده", Kati.Screens.DataSourcesFa, :push},
+    {"84", "Attribution — states", Kati.Screens.AttributionStates, :push},
+    {"85", "منابع", Kati.Screens.AttributionFa, :push},
+    {"93", "My services — nothing set up", Kati.Screens.MyServicesEmpty, :push},
+    {"95", "My services — states", Kati.Screens.MyServicesStates, :push},
+    {"96", "Nothing set up — knock-on", Kati.Screens.NothingSetUpKnockOn, :push},
+    {"97", "سرویس‌های من", Kati.Screens.MyServicesFa, :push},
+    {"99", "Your year — Books", Kati.Screens.YearShareBooks, :push},
+    {"101", "Year cards — states", Kati.Screens.YearCardsStates, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

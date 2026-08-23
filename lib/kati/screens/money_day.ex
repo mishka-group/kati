@@ -43,7 +43,11 @@ defmodule Kati.Screens.MoneyDay do
     socket
     |> Mob.Socket.assign(:rows, rows())
     |> Mob.Socket.assign(:filter, "All")
-    |> Mob.Socket.assign(:expanded?, false)
+    # Expanded, because the drawing draws both states at once so a reader can
+    # compare them — and the collapsed one is the state you get by pressing the
+    # chevron, not the state the page opens in. Screen 52 makes the same choice
+    # for the same reason.
+    |> Mob.Socket.assign(:expanded?, true)
   end
 
   @doc "The day's rows: what is stored, or the drawing's four."
@@ -179,7 +183,9 @@ defmodule Kati.Screens.MoneyDay do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true}>{chips}</Row>
+      <Row fill_width={true}>
+        {chips}
+      </Row>
       <Spacer size={20} />
     </Column>
     """
@@ -194,19 +200,55 @@ defmodule Kati.Screens.MoneyDay do
   """
   @spec spine([map()], String.t(), boolean()) :: map()
   def spine(rows, filter, expanded?) do
-    cards =
+    sections =
       rows
       |> Enum.filter(&Kati.Screens.MoneyDay.shows?(&1, filter))
-      |> Enum.flat_map(&Kati.Screens.MoneyDay.card(&1, expanded?))
-      |> Enum.intersperse(~MOB"<Spacer size={9} />")
+      |> Enum.map(&Kati.Screens.MoneyDay.section(&1, expanded?))
 
     ~MOB"""
     <Column fill_width={true}>
-      {cards}
+      {sections}
       <Spacer size={22} />
     </Column>
     """
   end
+
+  @doc """
+  One row, under the label that says which case it is.
+
+  The board labels each example rather than running them together, and the
+  labels are load-bearing: *Merged — three or more on one day* puts the
+  threshold and three services in the same glance, and *A past expense — the
+  answer is yes, quietly* is the ticket's second question answered in the place
+  the answer is drawn.
+
+  So this page reads as a board rather than as a day, which is what it is.
+  """
+  @spec section(map(), boolean()) :: map()
+  def section(row, expanded?) do
+    assigns = %{
+      label: Kati.Screens.MoneyDay.label(row),
+      cards:
+        row
+        |> Kati.Screens.MoneyDay.card(expanded?)
+        |> Enum.intersperse(~MOB"<Spacer size={9} />")
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.eyebrow(@label, dash: Palette.rail_idle())}
+      {@cards}
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc "The board's own label for each case."
+  @spec label(map()) :: String.t()
+  def label(%{kind: :merged}), do: "Merged — three or more on one day"
+  def label(%{kind: :expense}), do: "A past expense — the answer is yes, quietly"
+  def label(%{all_day?: true}), do: "All day"
+  def label(_single), do: "A single renewal"
 
   @doc """
   Whether a row survives a chip.
@@ -410,13 +452,7 @@ defmodule Kati.Screens.MoneyDay do
     assigns = %{text: text}
 
     ~MOB"""
-    <Text
-      text={@text}
-      font_family="mono"
-      text_size={12.5}
-      text_color={:on_surface}
-      max_lines={1}
-    />
+    <Text text={@text} font_family="mono" text_size={12.5} text_color={:on_surface} max_lines={1} />
     """
   end
 

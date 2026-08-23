@@ -364,6 +364,38 @@ defmodule Kati.ScreenTapSweepTest do
     # platform browser, and Kati has no fence that does.
     {Kati.Screens.AttributionStates, :open_tmdb},
     {Kati.Screens.AttributionStates, :open_listenbrainz},
+    # Screen 85's link rows, the Persian mirror of 83's. Same reason: every one
+    # opens a URL in the platform browser and Kati has no fence that does.
+    {Kati.Screens.AttributionFa, :open_tmdb},
+    {Kati.Screens.AttributionFa, :open_tvmaze},
+    {Kati.Screens.AttributionFa, :open_open_library},
+    {Kati.Screens.AttributionFa, :open_musicbrainz},
+    # Screen 82's TMDB key choice, opening on Kati's own — the already-selected
+    # member of a family whose other half does move.
+    {Kati.Screens.DataSourcesFa, :key_kati},
+    # Screen 126's opening filter.
+    {Kati.Screens.MoneyDay, :filter_All},
+    # Screen 82's other key choice, and screen 93's two fields. `key_own` writes
+    # through `Kati.Sources.put_tmdb_key/1` to `Mob.State`, which this heuristic
+    # cannot see — the LanguagePick blind spot again, and covered by
+    # `Kati.ServicesTest`. The two on 93 open no keyboard (#45).
+    {Kati.Screens.DataSourcesFa, :key_own},
+    {Kati.Screens.MyServicesEmpty, :search},
+    {Kati.Screens.MyServicesEmpty, :edit_service},
+    # Screen 99's scope chips. The board has one section's figures on it and
+    # cannot follow them anywhere — relighting a chip over a card that did not
+    # move is the one thing it exists to argue against. Its own moduledoc says
+    # so, and 98 is where the choice is actually made.
+    {Kati.Screens.YearShareBooks, :scope_All},
+    {Kati.Screens.YearShareBooks, :scope_Books},
+    {Kati.Screens.YearShareBooks, :scope_Screen},
+    {Kati.Screens.YearShareBooks, :scope_Music},
+    {Kati.Screens.YearShareBooks, :scope_Meals},
+    {Kati.Screens.YearShareBooks, :scope_Habits},
+    {Kati.Screens.YearShareBooks, :aspect_square},
+    # Screen 97's third rule, the Persian mirror of 92's — the same `Mob.State`
+    # blind spot the English entries above record.
+    {Kati.Screens.MyServicesFa, :rule_hide_unavailable},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     {Kati.Screens.Medication, :toggle_dose},

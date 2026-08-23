@@ -119,6 +119,30 @@ defmodule Kati.Fa.SampleSettings do
             title: "همگام‌سازی",
             sub: "آی‌کلاد · این دستگاه و آی‌پد",
             trailing: :chevron
+          },
+          # Screen 62 gained this row when 82 landed, the mirror of the one 24
+          # gained for 80. `dns` rather than `database`, which is not in Kati's
+          # icon subset — the same swap the English side made.
+          # Screen 62's Watching row, the mirror of 24's. `subscriptions` is the
+          # same glyph the English row uses.
+          %{
+            icon: "subscriptions",
+            title: "سرویس‌های من",
+            sub: "ایران · ۳ سرویس",
+            trailing: :chevron
+          },
+          %{
+            icon: "dns",
+            title: "منابع داده",
+            sub: "TVmaze، Open Library، MusicBrainz",
+            trailing: :chevron
+          },
+          # The Persian mirror of 24's About row for screen 83.
+          %{
+            icon: "info",
+            title: "منابع",
+            sub: "پروانه‌ها و اعتبارها",
+            trailing: :chevron
           }
         ]
       }

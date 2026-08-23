@@ -137,7 +137,9 @@ defmodule Kati.Screens.SearchIdle do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
-        <Row>{chips}</Row>
+        <Row>
+          {chips}
+        </Row>
       </Scroll>
       <Spacer size={22} />
     </Column>

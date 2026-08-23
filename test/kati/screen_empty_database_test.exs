@@ -239,7 +239,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"68", Kati.Screens.BookDetailDark},
     {"71", Kati.Screens.LogProgressStates},
     {"75", Kati.Screens.AlbumDetailStates},
-    {"78", Kati.Screens.ArtistDetailStates}
+    {"78", Kati.Screens.ArtistDetailStates},
+    # The six the second wave added on top: two Persian music pages, and the
+    # states-and-RTL pairs for Data sources and Attribution. Each gates on its
+    # primary's own pair, for the reason every mirror in this list does — a
+    # mirror that fell back differently from the page it mirrors would be the
+    # defect worth catching.
+    {"76", Kati.Screens.AlbumDetailFa},
+    {"79", Kati.Screens.ArtistDetailFa},
+    {"81", Kati.Screens.DataSourcesStates},
+    {"82", Kati.Screens.DataSourcesFa},
+    {"85", Kati.Screens.AttributionFa},
+    {"126", Kati.Screens.MoneyDay},
+    # Screen 92's three companions: its empty state, its states sheet, and the
+    # board showing what four other screens look like when nothing is set up.
+    # All three gate on 92's own pair.
+    {"93", Kati.Screens.MyServicesEmpty},
+    {"95", Kati.Screens.MyServicesStates},
+    {"96", Kati.Screens.NothingSetUpKnockOn},
+    {"97", Kati.Screens.MyServicesFa}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -873,6 +891,26 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.AlbumDetail.drawn_album/0},
       {"78", Kati.Screens.ArtistDetailStates, &Kati.Screens.ArtistDetail.artist/0,
        &Kati.Screens.ArtistDetail.drawn_artist/0},
+      {"76", Kati.Screens.AlbumDetailFa, &Kati.Screens.AlbumDetail.album/0,
+       &Kati.Screens.AlbumDetail.drawn_album/0},
+      {"79", Kati.Screens.ArtistDetailFa, &Kati.Screens.ArtistDetail.artist/0,
+       &Kati.Screens.ArtistDetail.drawn_artist/0},
+      {"81", Kati.Screens.DataSourcesStates, &Kati.Screens.DataSources.cache_size/0,
+       fn -> "Nothing cached yet" end},
+      {"82", Kati.Screens.DataSourcesFa, &Kati.Screens.DataSources.cache_size/0,
+       fn -> "Nothing cached yet" end},
+      {"85", Kati.Screens.AttributionFa, &Kati.Screens.DataSources.cache_size/0,
+       fn -> "Nothing cached yet" end},
+      {"126", Kati.Screens.MoneyDay, &Kati.Screens.MoneyDay.rows/0,
+       &Kati.Screens.MoneyDay.drawn_rows/0},
+      {"93", Kati.Screens.MyServicesEmpty, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"95", Kati.Screens.MyServicesStates, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"96", Kati.Screens.NothingSetUpKnockOn, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"97", Kati.Screens.MyServicesFa, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
@@ -971,7 +1009,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"94", "🇰🇭", ~r/^🇳🇱$/u},
       # 111's `Today` row prints the device's clock. See
       # `Kati.ScreenDesignLiteralTest` for the full reasoning.
-      {"111", "16 august, 07:42", ~r/^#{day} \p{L}+, \d{2}:\d{2}$/u}
+      {"111", "16 august, 07:42", ~r/^#{day} \p{L}+, \d{2}:\d{2}$/u},
+      # Screen 82's three provider-and-cache values, the Persian mirror of the
+      # three screen 80 already carries: a pairing code for a provider Kati has
+      # no client for, the database file's own size, and the age of its oldest
+      # row. None exists on a device with an empty database and no tokens.
+      {"82", "۴kq9۲", ~r/^\p{N}?[\p{L}\p{N}]+$/u},
+      {"82", "۳۴ مگابایت", ~r/^(\p{N}+ مگابایت|هنوز چیزی ذخیره نشده)$/u},
+      {"82", "۲ ماه قدیمی‌ترین", ~r/^(.*قدیمی‌ترین|چیزی برای تازه‌سازی نیست)$/u}
     ]
   end
 

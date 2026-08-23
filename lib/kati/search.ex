@@ -41,7 +41,8 @@ defmodule Kati.Search do
   # `{scope, label, [fields]}` in the order every result list uses. The fields
   # are the contract screen 88 draws; the module is what makes them true.
   @scopes [
-    {:screen, "Screen", ["title", "original title", "alt titles", "cast", "your tags", "your review"]},
+    {:screen, "Screen",
+     ["title", "original title", "alt titles", "cast", "your tags", "your review"]},
     {:books, "Books", ["title", "author", "series", "ISBN", "your notes", "your quotes"]},
     {:music, "Music", ["album", "artist", "track", "your notes"]},
     {:calendar, "Calendar", ["event title", "location", "notes", "never invitee names"]},

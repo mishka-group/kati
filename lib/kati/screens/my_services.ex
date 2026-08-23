@@ -404,8 +404,11 @@ defmodule Kati.Screens.MyServices do
   def handle_tap(:open_subscriptions, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
 
+  # `Show all 47` opens the whole JustWatch catalogue for the region, which is
+  # what screen 93 draws when none of it is set up yet — the empty state IS the
+  # catalogue with nothing chosen from it.
   def handle_tap(:show_all, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServicesEmpty)}
 
   def handle_tap(:add_service, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}

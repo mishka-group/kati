@@ -799,6 +799,12 @@ defmodule Kati.Screens.LibraryFa do
       "shelf_1" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetailFa)}
 
+      # Index 2 is موسیقی, and it opens the one Persian album page that exists —
+      # the same reasoning as the Books segment above, and the same absence: the
+      # 127 hold no Persian music SHELF.
+      "shelf_2" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetailFa)}
+
       "shelf_" <> index ->
         {:noreply, Mob.Socket.assign(socket, :shelf, String.to_integer(index))}
 

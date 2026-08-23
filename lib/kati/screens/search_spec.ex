@@ -83,7 +83,9 @@ defmodule Kati.Screens.SearchSpec do
   def scopes do
     cards =
       Search.scopes()
-      |> Enum.map(fn {_scope, label, fields} -> Kati.Screens.SearchSpec.scope_card(label, fields) end)
+      |> Enum.map(fn {_scope, label, fields} ->
+        Kati.Screens.SearchSpec.scope_card(label, fields)
+      end)
       |> Enum.intersperse(~MOB"<Spacer size={11} />")
 
     ~MOB"""
@@ -227,11 +229,7 @@ defmodule Kati.Screens.SearchSpec do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={12} />
-      <Text
-        text="Ties break by recency."
-        text_size={12.5}
-        text_color={Palette.ink_soft()}
-      />
+      <Text text="Ties break by recency." text_size={12.5} text_color={Palette.ink_soft()} />
       <Spacer size={24} />
     </Column>
     """
@@ -254,17 +252,15 @@ defmodule Kati.Screens.SearchSpec do
       </Box>
       """,
       SettingsList.body(name, nil),
-      SettingsList.trailing(
-        ~MOB"""
-        <Text
-          text={@example}
-          font_family="mono"
-          text_size={10.5}
-          text_color={Palette.muted()}
-          max_lines={1}
-        />
-        """
-      )
+      SettingsList.trailing(~MOB"""
+      <Text
+        text={@example}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
+      """)
     )
   end
 
@@ -327,7 +323,8 @@ defmodule Kati.Screens.SearchSpec do
   """
   @spec word(integer()) :: String.t()
   def word(n) when n in 1..10,
-    do: Enum.at(~w(one two three four five six seven eight nine ten), n - 1) |> String.capitalize()
+    do:
+      Enum.at(~w(one two three four five six seven eight nine ten), n - 1) |> String.capitalize()
 
   def word(n), do: Integer.to_string(n)
 
@@ -359,42 +356,24 @@ defmodule Kati.Screens.SearchSpec do
       nil,
       ~MOB"""
       <Row fill_width={true} align="center">
-        <Text
-          text={@from}
-          font_family="fa"
-          text_size={14}
-          text_color={:on_surface}
-          width={54}
-        />
-        <Text
-          text={@from_code}
-          font_family="mono"
-          text_size={10.5}
-          text_color={Palette.muted()}
-        />
+        <Text text={@from} font_family="fa" text_size={14} text_color={:on_surface} width={54} />
+        <Text text={@from_code} font_family="mono" text_size={10.5} text_color={Palette.muted()} />
         <Spacer size={10} />
         {Kati.UI.symbol("arrow_forward", size: 15, color: Palette.tertiary())}
         <Spacer size={10} />
-        <Text
-          text={@to}
-          font_family="fa"
-          text_size={14}
-          text_color={:on_surface}
-        />
+        <Text text={@to} font_family="fa" text_size={14} text_color={:on_surface} />
         <Spacer weight={1.0} />
       </Row>
       """,
-      SettingsList.trailing(
-        ~MOB"""
-        <Text
-          text={@to_code}
-          font_family="mono"
-          text_size={10.5}
-          text_color={Palette.muted()}
-          max_lines={1}
-        />
-        """
-      )
+      SettingsList.trailing(~MOB"""
+      <Text
+        text={@to_code}
+        font_family="mono"
+        text_size={10.5}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
+      """)
     )
   end
 

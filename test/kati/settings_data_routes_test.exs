@@ -90,14 +90,42 @@ defmodule Kati.SettingsDataRoutesTest do
     end
   end
 
-  test "both screens name the same two destinations" do
+  test "both screens reach both engines, and 62's extra rows are 24's in Persian" do
     both = MapSet.new([Kati.Screens.Backup, Kati.Screens.Sync])
 
     assert MapSet.subset?(both, MapSet.new(Map.values(Settings.destinations()))),
            "screen 24 no longer reaches both engines"
 
-    assert MapSet.new(Map.values(SettingsFa.destinations())) == both,
-           "screen 62 is the mirror of 24's Data group and reaches something else"
+    assert MapSet.subset?(both, MapSet.new(Map.values(SettingsFa.destinations()))),
+           "screen 62 no longer reaches both engines"
+
+    # This used to be an equality, because 62's Data group named exactly the two
+    # engines and nothing else. It stopped being one when screens 82, 85 and 97
+    # landed: the Persian settings page gained the same two rows the English one
+    # gained for 80 and 83, and a mirror that did NOT gain them would be the
+    # defect — a Persian reader who could not reach Data sources at all.
+    #
+    # So the assertion moved from "these and no others" to the two things that
+    # are actually true: both engines are reachable from both screens, and every
+    # extra destination 62 names is one 24 names too. A route that existed only
+    # in Persian would fail here, which is what the equality was protecting.
+    fa = MapSet.new(Map.values(SettingsFa.destinations()))
+    en = MapSet.new(Map.values(Settings.destinations()))
+
+    persian_only =
+      fa
+      |> MapSet.difference(en)
+      |> MapSet.difference(
+        MapSet.new([
+          Kati.Screens.MyServicesFa,
+          Kati.Screens.DataSourcesFa,
+          Kati.Screens.AttributionFa
+        ])
+      )
+
+    assert MapSet.to_list(persian_only) == [],
+           "screen 62 reaches something screen 24 does not, and it is not one of the two " <>
+             "Persian mirrors: " <> inspect(MapSet.to_list(persian_only))
   end
 
   test "the two rows are the ones the drawings put the upload and sync glyphs on" do

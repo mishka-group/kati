@@ -51,10 +51,17 @@ defmodule Kati.AppReachabilityTest do
     {Screens.LogProgressStates, "screen 70's states, in 27's manner. As above."},
     {Screens.AlbumDetailStates, "screen 74's states, in 27's manner. As above."},
     {Screens.ArtistDetailStates, "screen 77's states, in 27's manner. As above."},
-    {Screens.SearchSpec,
-     "the search contract, drawn as its own board. A specification for the " <>
-       "build to be compared against rather than a place in the app — screen 27's " <>
-       "own reason, one subject over."},
+    {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
+    {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
+    {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
+    {Screens.YearCardsStates, "screen 100's states, in 27's manner. As above."},
+    {Screens.YearShareBooks,
+     "screen 98 with one scope selected, drawn so the two can be compared. A " <>
+       "board about a choice rather than a place the choice is made — 98 is where " <>
+       "you make it."},
+    {Screens.NothingSetUpKnockOn,
+     "what four other screens look like when no service is set up. A board " <>
+       "about four screens rather than a fifth screen — 27's reason again."},
     {Screens.BookDetailDark,
      "screen 66 in the dark colourway. The same screen, not another one — " <>
        "reached by changing the theme, not by navigating, exactly as 28 is."},
