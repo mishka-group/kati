@@ -35,12 +35,32 @@ defmodule Kati.HostHardeningTest do
     end
 
     test "the bundle is loaded before anything can use TLS" do
-      source = File.read!(Path.join(@root, "lib/kati/app.ex"))
-      assert source =~ "Mob.Certs.load_cacerts!"
+      # This used to assert the load happened in `Kati.App.on_start/0`, ahead of
+      # the repo. #37 measured that boot — the trust store and the resolver
+      # together cost 137ms of 1.06s, for something no screen needs before it
+      # draws — so the load moved to `Kati.Net.Tls.ensure!/0`, which every HTTP
+      # caller runs first.
+      #
+      # The guarantee is unchanged and is the one worth asserting: **nothing
+      # can open a TLS connection before the bundle is loaded.** Where that
+      # happens is an implementation detail; that it happens is not.
+      # `Kati.BootPathTest` holds the other half — that every Req caller calls
+      # it, and that it has not crept back onto the boot path.
+      source = File.read!(Path.join(@root, "lib/kati/net/tls.ex"))
+
+      assert source =~ "Mob.Certs.load_cacerts!",
+             "Kati.Net.Tls no longer loads the trust store. Every HTTPS call on Android " <>
+               "will die inside Mint with an opaque FunctionClauseError."
+
+      assert source =~ "Mob.DNS.configure_pure_beam",
+             "Kati.Net.Tls no longer configures the resolver."
 
       certs_at = source |> String.split("Mob.Certs.load_cacerts!") |> hd() |> String.length()
-      repo_at = source |> String.split("Kati.Repo.start_link") |> hd() |> String.length()
-      assert certs_at < repo_at, "certs must load before anything that might open a connection"
+      flag_at = source |> String.split(":persistent_term.put") |> hd() |> String.length()
+
+      assert certs_at < flag_at,
+             "the configured? flag is written before the trust store is loaded, so a second " <>
+               "caller can start a request against an unconfigured BEAM"
     end
   end
 

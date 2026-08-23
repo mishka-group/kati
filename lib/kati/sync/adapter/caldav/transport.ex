@@ -53,6 +53,8 @@ defmodule Kati.Sync.Adapter.CalDAV.Req do
 
   @impl true
   def call(%{method: method, url: url, headers: headers, body: body}) do
+    :ok = Kati.Net.Tls.ensure!()
+
     [
       method: method,
       url: url,

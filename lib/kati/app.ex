@@ -54,10 +54,12 @@ defmodule Kati.App do
     # opaque `FunctionClauseError`. Kati is entirely third-party API calls,
     # so this must happen before anything touches TLS.
     #
-    # `Mob.Certs`' own docs suggest `Application.app_dir/2` here — that is
-    # wrong on device for the same reason it is wrong for migrations (see
-    # `priv_path/1`).
-    Mob.Certs.load_cacerts!(priv_path("cacerts.pem"))
+    # NOT here any more — `Kati.Net.Tls.ensure!/0` does it before the first
+    # request instead. The two of them cost 137ms of a 1.06s boot, 13 per cent
+    # of the path to first paint, and no screen in the app needs either before
+    # it draws. #37 asked which statements must leave the boot path; these are
+    # the two that leave it without changing any behaviour. That module's
+    # moduledoc carries the argument and `Kati.BootPathTest` keeps them off.
 
     # Prove the bundle before anything depends on it. Five features ship
     # assets in priv/ and a missing one fails silently in a different way
@@ -72,14 +74,7 @@ defmodule Kati.App do
         IO.puts("Kati: priv/ BUNDLE BROKEN\n  " <> Enum.join(lines, "\n  "))
     end
 
-    # Configure BEAM's DNS path so Req / Finch / Mint / `gen_tcp:connect/3`
-    # with a hostname work on iOS without per-host setup. Flips the lookup
-    # chain from the iOS-broken `:native` (inet_gethost port program) path
-    # to `[:file, :dns]` and seeds Google + Cloudflare as fallback
-    # nameservers.
-    Mob.DNS.configure_pure_beam()
-
-    trace("certs+dns")
+    trace("priv probe")
     {:ok, _} = Application.ensure_all_started(:ecto_sqlite3)
     trace("ecto_sqlite3")
     start_ash!()
