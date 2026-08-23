@@ -117,7 +117,9 @@ defmodule Kati.Screens.Gallery do
     {"68", "Book detail — dark", Kati.Screens.BookDetailDark, :push},
     {"71", "Log progress — states", Kati.Screens.LogProgressStates, :push},
     {"75", "Album detail — states", Kati.Screens.AlbumDetailStates, :push},
-    {"78", "Artist detail — states", Kati.Screens.ArtistDetailStates, :push}
+    {"78", "Artist detail — states", Kati.Screens.ArtistDetailStates, :push},
+    {"86", "Search — idle", Kati.Screens.SearchIdle, :push},
+    {"88", "Scope & ranking", Kati.Screens.SearchSpec, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

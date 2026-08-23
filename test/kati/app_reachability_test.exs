@@ -51,6 +51,10 @@ defmodule Kati.AppReachabilityTest do
     {Screens.LogProgressStates, "screen 70's states, in 27's manner. As above."},
     {Screens.AlbumDetailStates, "screen 74's states, in 27's manner. As above."},
     {Screens.ArtistDetailStates, "screen 77's states, in 27's manner. As above."},
+    {Screens.SearchSpec,
+     "the search contract, drawn as its own board. A specification for the " <>
+       "build to be compared against rather than a place in the app — screen 27's " <>
+       "own reason, one subject over."},
     {Screens.BookDetailDark,
      "screen 66 in the dark colourway. The same screen, not another one — " <>
        "reached by changing the theme, not by navigating, exactly as 28 is."},

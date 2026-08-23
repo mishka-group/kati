@@ -68,6 +68,23 @@ defmodule Kati.DesignLiterals do
   # the check would then pass on the empty remainder.
   @caption_marker ~r/<div[^>]*max-width:380px/
 
+  # THE PLATFORM KEYBOARD IS NOT KATI'S TO DRAW.
+  #
+  # Screen 86 is the search field with the keyboard already up, and the artboard
+  # draws the keyboard — twenty-six letter keys, a globe and a magnifier — as
+  # context for the state it is documenting. Mob has no text input at all (#45),
+  # and even when it does the keyboard will be the OS's: an app that drew its
+  # own would be drawing a control the user cannot type on.
+  #
+  # So the block is cut before literals are taken, the same way the caption is.
+  # The alternative was twenty-eight allow-list entries, one per key, which
+  # would say nothing except that a sweep had been talked out of twenty-eight
+  # assertions.
+  #
+  # Keyed on the tray's own fill and stacking — `#D6D2CB` at `z-index:20` — which
+  # appears on exactly one artboard and nowhere else in the app's palette.
+  @keyboard_marker ~r/<div[^>]*background:#D6D2CB[^>]*z-index:20/
+
   # Material Symbols are drawn as a ligature: the glyph NAME is the span's text
   # content. Both the name (for the icon list) and the removal of the span (so
   # the name is not counted a second time as copy) key off the font family.
@@ -157,7 +174,11 @@ defmodule Kati.DesignLiterals do
     %{text: text_literals(frame), icons: icon_names(frame)}
   end
 
-  defp frame(html), do: @caption_marker |> Regex.split(html, parts: 2) |> hd()
+  defp frame(html) do
+    html
+    |> then(&(@caption_marker |> Regex.split(&1, parts: 2) |> hd()))
+    |> then(&(@keyboard_marker |> Regex.split(&1, parts: 2) |> hd()))
+  end
 
   defp icon_names(frame) do
     @icon_span

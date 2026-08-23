@@ -662,8 +662,13 @@ defmodule Kati.Screens.Home do
   def handle_tap(:open_habits, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
 
+  # Screen 86 rather than 19, and the two are different states rather than a
+  # replacement: 86 is the empty field the moment it opens — which is what a tap
+  # on this one produces — and 19 is *Search everything* with results showing,
+  # reached from the Library. Both are drawn and both are worth being able to
+  # look at.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchIdle)}
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

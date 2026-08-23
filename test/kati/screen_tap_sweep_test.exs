@@ -356,6 +356,14 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.LogProgressStates, :stop},
     {Kati.Screens.LogProgressStates, :unit_percent},
     {Kati.Screens.LogProgressStates, :unit_minutes},
+    # Screen 86's opening scope, the same already-selected case as every other
+    # chip family above.
+    {Kati.Screens.SearchIdle, :scope_All},
+    # Screen 84's two link rows. Screen 83's six are above for the same reason
+    # and this sheet reuses that screen's cards: every one opens a URL in the
+    # platform browser, and Kati has no fence that does.
+    {Kati.Screens.AttributionStates, :open_tmdb},
+    {Kati.Screens.AttributionStates, :open_listenbrainz},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     {Kati.Screens.Medication, :toggle_dose},
