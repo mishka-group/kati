@@ -34,6 +34,7 @@ defmodule Kati.App do
 
   @impl Mob.App
   def on_start do
+    trace_start()
     Kati.Runtime.configure()
     trace("configure")
 
@@ -220,12 +221,44 @@ defmodule Kati.App do
 
   # A phase marker per boot step, tagged BEAMout in logcat.
   #
-  # Worth its eight lines: when the app died before any screen appeared, the
-  # only evidence was `step 5 => {error,{badmatch,...}}` from `src/kati.erl`,
-  # which names the failing pattern but not the caller. Several deploys went
-  # into guessing which call it was. This answers it in one. It also gives
-  # #37 real per-phase timings on a cold start rather than a single total.
-  defp trace(phase), do: IO.puts("Kati.boot: " <> phase)
+  # Worth its lines: when the app died before any screen appeared, the only
+  # evidence was `step 5 => {error,{badmatch,...}}` from `src/kati.erl`, which
+  # names the failing pattern but not the caller. Several deploys went into
+  # guessing which call it was. This answers it in one.
+  #
+  # ## The timings, which #37 asks for and this file is the only place to take
+  #
+  # Each marker carries the milliseconds that phase cost and the total since
+  # `on_start/0` was entered:
+  #
+  #     Kati.boot: migrations +412ms (1180ms)
+  #
+  # A single total says the boot is slow; a per-phase split says which
+  # statement to move, which is the whole of what #37 asks. Taken with
+  # `:erlang.monotonic_time/1` rather than wall time so an NTP correction
+  # mid-boot cannot produce a negative phase.
+  #
+  # The origin lives in the process dictionary. `on_start/0` runs once, in one
+  # process, before any supervision tree exists — there is nowhere else to put
+  # it that is not more machinery than the measurement, and a missing origin
+  # degrades to the marker without a number rather than raising.
+  defp trace_start, do: Process.put(:kati_boot_origin, now_ms())
+
+  defp trace(phase) do
+    case Process.get(:kati_boot_origin) do
+      nil ->
+        IO.puts("Kati.boot: " <> phase)
+
+      origin ->
+        now = now_ms()
+        last = Process.get(:kati_boot_last, origin)
+        Process.put(:kati_boot_last, now)
+
+        IO.puts("Kati.boot: #{phase} +#{now - last}ms (#{now - origin}ms)")
+    end
+  end
+
+  defp now_ms, do: :erlang.monotonic_time(:millisecond)
 
   @doc false
   @spec never_start_on_device() :: [atom()]
