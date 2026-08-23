@@ -27,12 +27,43 @@ defmodule Kati.Meals.SampleShare do
       subtitle: "share & transfer",
       qr: qr(),
       qr_title: "Scan to import this plan",
-      qr_uri: "KATI://PLAN/CUTTING-V3 · 35 MEALS",
+      qr_uri: "KATI://PLAN/CUTTING-V3 · SETTINGS ONLY",
       travels: travels(),
       shared_with: shared_with(),
       transfer: transfer()
     }
   end
+
+  @doc """
+  What the QR actually carries, which is not the plan.
+
+  ## `SETTINGS ONLY`, and the board said `35 MEALS`
+
+  A QR code holds a few kilobytes. *Cutting v3* is 35 slots, each naming a
+  recipe with its ingredients and macros, and it does not fit — a library never
+  will. The board's `KATI://PLAN/CUTTING-V3 · 35 MEALS` promises a payload the
+  format cannot carry, and a QR that silently fails on a big plan is worse than
+  one that never offered.
+
+  So the code carries **the plan's shape and its settings** — its name, its
+  five slot labels, its repeat rule, its reminder settings — and not the meals
+  behind them. Someone who scans it gets the plan's skeleton and fills it with
+  their own recipes, which is what a plan shared between two people is for
+  anyway: the second person does not want the first person's salmon.
+
+  ## And the whole-library path already exists
+
+  `Kati.Screens.PlanShare`'s export row and screen 128's backup are where a big
+  payload belongs, because a file has no size limit worth worrying about. Two
+  mechanisms for two clearly different sizes of thing, rather than one
+  mechanism that works until it does not.
+
+  #71 asked whether the QR carries the payload or becomes a pairing token with
+  a transfer channel that does not exist. This is the third answer: it carries
+  a *small, whole, useful* thing, and says so on its own face.
+  """
+  @spec qr_scope() :: String.t()
+  def qr_scope, do: "SETTINGS ONLY"
 
   @doc "The 9x9 module grid the design draws, one string per row, 1 = ink."
   @spec qr() :: [String.t()]

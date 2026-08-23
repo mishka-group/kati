@@ -150,6 +150,16 @@ defmodule Kati.ScreenDesignLiteralTest do
   # has to yield at least one.
   @symbolless ["65"]
 
+  # Symbols a screen deliberately does not draw, because the row that carried
+  # them is gone and its absence is the decision.
+  #
+  # `auto_mode` is screen 49's Auto-switch row, retired under #71: it promised
+  # *Travel week when a trip is on the calendar* and there is no trip in Kati —
+  # no travel entity, no location state. `Kati.Meals.MealPlan`'s moduledoc has
+  # the argument. The row is replaced by a scheduled switch, which is the same
+  # intent expressed in a date the schema actually holds.
+  @retired_symbols [{"49", "auto_mode"}]
+
   describe "the registry" do
     test "every drawing has a screen, and every screen but the gallery has a drawing" do
       # Rebuilt from three independent sources — the files on disk, the app's
@@ -304,6 +314,7 @@ defmodule Kati.ScreenDesignLiteralTest do
             glyph = Kati.Icons.glyph(name),
             glyph != nil,
             not MapSet.member?(glyphs, glyph),
+            {screen.number, name} not in @retired_symbols,
             do: "  #{screen.number} #{inspect(screen.module)} never draws #{name}"
 
       assert missing == [],
@@ -395,12 +406,22 @@ defmodule Kati.ScreenDesignLiteralTest do
       # the same way — the pattern carries today's day of the month, so a sheet
       # that hardcoded 16 August would fail on every other day.
       #
+      # Raised to 26 for the five #71 retirements — 46's fridge filter, 49's
+      # Auto-switch row and its sub-line, 50 and 120's QR caption, and 51's
+      # three notification buttons with the footnote they were evidence for.
+      #
+      # Raised to 21 for 46's third swap filter and 49's Auto-switch row and
+      # its sub-line, all three retired under #71 and all three the flag's kind
+      # rather than the clock's: the board promises something the app cannot
+      # do, and each pattern insists on the replacement rather than accepting
+      # anything.
+      #
       # Raised to 18 for screen 115's direction note, which is the second entry
       # of the flag's kind rather than the clock's: the board's sentence says
       # today's column is on the right and the board's own bars put it on the
       # left. Its pattern insists on the corrected word, so the entry checks
       # something rather than merely excusing it.
-      assert length(device_values()) <= 18,
+      assert length(device_values()) <= 26,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -500,6 +521,66 @@ defmodule Kati.ScreenDesignLiteralTest do
          "where the DM Mono clause in the same sentence is a claim about a font subset that " <>
          "no reader can check — so that half is reproduced and this half is corrected",
        ~r/^نمودار از راست به چپ .+ ستون امروز در سمت چپ است\./u},
+      # 46's third swap filter and 49's Auto-switch row — both retired under
+      # #71, and both the same shape as 94's flag directly above: the board
+      # promises something the app cannot do, and reproducing the promise to
+      # keep a sweep quiet would be shipping the promise.
+      #
+      # *In my fridge* needs a pantry — stock, depletion, expiry — and Kati has
+      # none. `Kati.Meals.ShoppingListItem` records the finding from the other
+      # side. *Recently eaten* replaces it and is the same kind of thing the
+      # other two filters are: something the app already knows, from
+      # `Kati.Meals.MealLog`.
+      {"46", "in my fridge",
+       "a pantry is a whole feature with its own maintenance burden, and one that is 60 per " <>
+         "cent accurate is worse than none — the swap tab would quietly stop offering meals " <>
+         "you could cook. The rule the filter row is held to is that a filter is only offered " <>
+         "if the app can apply it", ~r/^recently eaten$/},
+
+      # *Travel week when a trip is on the calendar* needs a trip, and there is
+      # no travel entity, no location state, and the calendar's own "follows
+      # travel" is separately unresolved.
+      {"49", "auto-switch",
+       "a boolean pointing at a concept the schema cannot express is a column that can only " <>
+         "ever be false. The scheduled switch carries the same intent in a date the app holds " <>
+         "— and the design already draws that shape elsewhere, as *switch takes effect next " <>
+         "Monday*", ~r/^switch on a date$/},
+      {"49", "travel week when a trip is on the calendar",
+       "the sub-line of the retired row above", ~r/^travel week takes effect next monday$/},
+      # 50's and 120's QR caption, and 51's three notification buttons with
+      # their footnote — the last two of #71's five, and both the flag's kind:
+      # the board promises what the platform cannot deliver.
+      #
+      # A QR holds a few kilobytes and *Cutting v3* is 35 slots with their
+      # recipes. `35 MEALS` is a payload the format cannot carry, and a QR that
+      # silently fails on a big plan is worse than one that never offered — so
+      # it carries the plan's shape and settings, and says so on its face.
+      # `Kati.Meals.SampleShare.qr_scope/0` has the argument.
+      {"50", "kati://plan/cutting-v3 · 35 meals",
+       "the code carries the plan's skeleton — name, slot labels, repeat rule, reminder " <>
+         "settings — not the 35 recipes behind them, because they do not fit. The " <>
+         "whole-library path is the file export and screen 128's backup, where a big payload " <>
+         "has no size limit worth worrying about",
+       ~r/^kati:\/\/plan\/cutting-v3 · settings only$/},
+      {"120", "kati://plan/cutting-v3 · 35 meals",
+       "screen 120 draws the same code from the receiving side",
+       ~r/^kati:\/\/plan\/cutting-v3 · settings only$/},
+
+      # Mob supports no notification actions on either platform. Reaching them
+      # means patching the host bridge permanently, for three buttons — and
+      # #22's retirement ritual exists for exactly this. The notification keeps
+      # its place and says what it says; tapping it opens the meal, where the
+      # three actions already exist and always have.
+      {"51", "eaten",
+       "Mob has no notification actions on either platform, so a drawn Eaten button is a " <>
+         "button that cannot be pressed. The footnote below it claimed *no need to open the " <>
+         "app*, which the platform cannot keep", ~r/^tap it to open tonight's meal/},
+      {"51", "snooze", "the third of the same three buttons", ~r/^tap it to open tonight's meal/},
+      {"51", "tick it straight from the notification — no need to open the app",
+       "the claim the three buttons were the evidence for. It is replaced by what is true: " <>
+         "tapping opens the meal, and Kati says plainly that it cannot put buttons on a " <>
+         "notification",
+       ~r/^tap it to open tonight's meal — kati cannot put buttons on a notification$/},
       {"111", "16 august, 07:42",
        "the sheet's `Today` row is `Kati.Screens.LogWeight.taken_line/0`, which formats " <>
          "`Kati.Time.now/0`. The drawing froze one device's minute; what the row promises is " <>

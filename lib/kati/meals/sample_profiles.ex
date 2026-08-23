@@ -97,11 +97,24 @@ defmodule Kati.Meals.SampleProfiles do
         sub: "Past days stay on their old plan",
         trail: {:toggle, true}
       },
+      # NOT "Auto-switch · Travel week when a trip is on the calendar".
+      #
+      # There is no trip in Kati — no travel entity, no location state — and
+      # the calendar's own "follows travel" is a separate unresolved question.
+      # `Kati.Meals.MealPlan`'s moduledoc carries the full argument: a boolean
+      # pointing at a concept the schema cannot express is a column that can
+      # only ever be false.
+      #
+      # The scheduled switch is the same intent expressed in something the app
+      # has. It is a date, `activates_on`, and the design already draws this
+      # shape elsewhere — *"switch takes effect next Monday"*. It is honest
+      # about being manual, and it does not commit Kati to knowing where
+      # anybody is.
       %{
-        icon: "auto_mode",
-        title: "Auto-switch",
-        sub: "Travel week when a trip is on the calendar",
-        trail: {:toggle, true}
+        icon: "event_upcoming",
+        title: "Switch on a date",
+        sub: "Travel week takes effect next Monday",
+        trail: :chevron
       }
     ]
   end

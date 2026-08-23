@@ -33,9 +33,30 @@ defmodule Kati.Meals.SampleSwap do
     }
   end
 
-  @doc "How the candidate list is ranked. The first is the one in force."
+  @doc """
+  How the candidate list is ranked. The first is the one in force.
+
+  ## "In my fridge" is gone, and what replaced it
+
+  The board draws a third filter reading *In my fridge*, and there is no pantry
+  in Kati — no stock, no depletion when a meal is logged, no expiry.
+  `Kati.Meals.ShoppingListItem`'s moduledoc records the same finding from the
+  other side: a pantry is a whole feature with its own maintenance burden, and
+  one that is 60 per cent accurate is worse than none, because the swap tab
+  then quietly stops offering meals you could actually cook.
+
+  **Recently eaten** replaces it, and the difference is that Kati already knows
+  the answer. `Kati.Meals.MealLog` holds every logged meal with its date, so
+  *not this again* is a real ranking over data that already exists rather than
+  a promise resting on a table nobody keeps true.
+
+  All three filters now share that property, which is the rule this list is
+  held to: **a filter is only offered if the app can apply it.** Closest macros
+  reads the recipe's totals, Faster reads its prep time, Recently eaten reads
+  the log.
+  """
   @spec filters() :: [String.t()]
-  def filters, do: ["Closest macros", "Faster", "In my fridge"]
+  def filters, do: ["Closest macros", "Faster", "Recently eaten"]
 
   @doc """
   The candidates, already ranked by macro distance.

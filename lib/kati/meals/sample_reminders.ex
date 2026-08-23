@@ -80,9 +80,9 @@ defmodule Kati.Meals.SampleReminders do
         from: "KATI · 19:15",
         title: "Dinner in 15 minutes",
         body: "Miso salmon, greens, rice · 620 kcal",
-        actions: ["Eaten", "Skip", "Snooze"]
+        actions: []
       },
-      foot: "Tick it straight from the notification — no need to open the app"
+      foot: "Tap it to open tonight's meal — Kati cannot put buttons on a notification"
     }
   end
 
