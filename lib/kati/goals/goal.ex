@@ -23,6 +23,27 @@ defmodule Kati.Goals.Goal do
   description of this one — a goal set in March runs to 31 December and the
   repeat makes the next one a full year. Deriving the window from `period`
   would silently move the deadline of every goal set mid-period.
+
+  ## A deadline does not become a calendar event, and #18 asked which
+
+  `ends_on` is a boundary, not an occurrence. `Kati.Calendars.Event` is for
+  things that happen **at** a time — an episode airs, a meal is cooked, a
+  renewal is taken — and screen 02 reads as a list of those. A row saying *the
+  2025 reading goal ends* on 31 December would be the only item in that list
+  that nothing does and nobody attends, and it would arrive in the one place
+  the app promises is a day's actual shape.
+
+  So the period lives on the goal card, where the pace line already reads it —
+  screen 104 prints the window and the projection together, which is the
+  question a deadline is actually asked (*am I going to make it*) rather than
+  the one a calendar row answers (*what is happening today*). The Persian
+  mirror, screen 108, states the same thing about شمسی periods: a yearly goal
+  ends at the end of اسفند, not on 31 December.
+
+  This is a decision, not an omission. The day a goal wants to be visible on a
+  date, the shape to reach for is screen 126's — money on the calendar, which
+  is a *derived* row rendered by the day screen from another domain's rows,
+  not an `Event` written into the calendar's own table.
   """
 
   use Ash.Resource, domain: Kati.Goals, data_layer: AshSqlite.DataLayer
