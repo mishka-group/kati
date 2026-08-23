@@ -3,7 +3,7 @@
 One file per artboard Kati needs and has not drawn. Hand a single file to Claude Design;
 each one is self-contained and carries the house style.
 
-**56 briefs.** The app has 127 drawn screens (01–127); nothing may be numbered below 127.
+**62 briefs.** The app has 139 drawn screens (01–139); nothing may be numbered below 139.
 
 | Brief | Screen | Kind | Issue |
 |---|---|---|---|
@@ -63,3 +63,9 @@ each one is self-contained and carries the house style.
 | `D-21-money-rtl.md` | پول — Money, RTL | Full screen | #24 |
 | `D-22-backup-and-restore.md` | Back up everything · Restore from a backup | Two screens + states | #25 |
 | `D-23-first-run-sequence.md` | The first-run sequence | Flow map + states | #11 |
+| `D-24-named-source-tiles.md` | Where are you coming from — importer source tiles | New step + states | #12 |
+| `D-25-per-episode-rating.md` | Per-episode rating and review | Two edits | #15 |
+| `D-26-shelf-sort-filter-select.md` | Sort, filter and multi-select on the shelves | Sheet + mode | #19 |
+| `D-27-drop-dnf-abandon.md` | Drop, DNF and abandon — one state machine | Reference board | #17 |
+| `D-28-auto-detect-music.md` | The music variant of Auto-detect | Screen mode | #20 |
+| `D-29-anime-as-a-filter.md` | Anime as a filter, not a section | Four edits | #21 |
