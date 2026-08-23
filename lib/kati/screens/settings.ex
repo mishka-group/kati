@@ -649,7 +649,8 @@ defmodule Kati.Screens.Settings do
     "My services" => Kati.Screens.MyServices,
     "Data sources" => Kati.Screens.DataSources,
     "Where this comes from" => Kati.Screens.Attribution,
-    "Year cards" => Kati.Screens.YearCards
+    "Year cards" => Kati.Screens.YearCards,
+    "Every screen" => Kati.Screens.Gallery
   }
 
   @doc false

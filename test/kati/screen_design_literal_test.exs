@@ -106,7 +106,20 @@ defmodule Kati.ScreenDesignLiteralTest do
   # still tapped by `Kati.ScreenTapSweepTest`, and each has its own suite
   # (`Kati.ScreenSyncTest` and the backup screen's) asserting the copy this file
   # would otherwise have checked. Delete an entry the moment a drawing lands.
-  @undesigned [Kati.Screens.Backup, Kati.Screens.Gallery, Kati.Screens.Sync]
+  # Sorted, because the assertion below subtracts one sorted list from another.
+  #
+  # The two notification screens joined for the reason `Kati.Screens.Gallery`'s
+  # undrawn list gives: the 127 drawings hold the lock screen showing a Kati
+  # notification and the release watcher's loudness settings and nothing
+  # between them, and #26 is a design ticket that names components rather than
+  # supplying a frame. Both are built from those components and each says so.
+  @undesigned [
+    Kati.Screens.Backup,
+    Kati.Screens.Gallery,
+    Kati.Screens.InboxNotifications,
+    Kati.Screens.NotificationsHelp,
+    Kati.Screens.Sync
+  ]
 
   # Screens 55-62 are the Persian mirrors and hold their Persian copy literally,
   # so only the writing direction actually changes with the locale. Each screen

@@ -296,6 +296,14 @@ defmodule Kati.ScreenTapSweepTest do
     # every other family above.
     {Kati.Screens.YearShare, :scope_All},
     {Kati.Screens.YearShare, :aspect_square},
+    # The diagnostic's battery row opens the phone's own settings screen, which
+    # Kati has no fence for — nothing in `native/LEDGER.md` launches an Android
+    # settings intent, and the research is explicit that the exemption must be
+    # reached by deep link rather than requested, because
+    # `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` carries Play-policy risk. The row
+    # is drawn, reachable and honest about waiting on that fence — the same
+    # state screen 83's six link rows are in.
+    {Kati.Screens.NotificationsHelp, :open_battery},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     {Kati.Screens.Medication, :toggle_dose},

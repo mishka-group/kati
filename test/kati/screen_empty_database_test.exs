@@ -250,6 +250,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # joins `Kati.Screens.Gallery`'s registry, fails.
   @undrawn [
     Kati.Screens.Backup,
+    # The two notification screens. Both read a store — the inbox builds a plan
+    # from every domain's candidates, the diagnostic reads the permission state
+    # and the same plan — and neither has a drawing to be compared against, so
+    # they take the `@undrawn` path: rendered against an empty database, checked
+    # for shape, and exempt from the literal comparison.
+    Kati.Screens.InboxNotifications,
+    Kati.Screens.NotificationsHelp,
     Kati.Screens.Sync
   ]
 

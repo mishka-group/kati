@@ -140,6 +140,16 @@ defmodule Kati.Screens.Gallery do
   # the number it was filed under.
   @undrawn [
     {:open_undrawn_backup, "Backup", Kati.Screens.Backup},
+    # The two notification screens. Neither has an artboard: the 127 drawings
+    # hold screen 29 (the lock screen showing a Kati notification) and screen 25
+    # (the release watcher's loudness settings) and nothing between them, and
+    # #26 is a *design* ticket that names the components rather than supplying a
+    # frame. Both are built from those components — settings rows with status
+    # values, the tinted info footnote, screen 40's Allow treatment — and each
+    # says so in its own moduledoc.
+    {:open_undrawn_notifications, "Notifications", Kati.Screens.InboxNotifications},
+    {:open_undrawn_notifications_help, "Why am I not getting these?",
+     Kati.Screens.NotificationsHelp},
     {:open_undrawn_sync, "Sync", Kati.Screens.Sync}
   ]
 

@@ -644,8 +644,14 @@ defmodule Kati.Screens.Home do
 
   # The bell opens the gallery for now. Every page needs to be reachable
   # before any of it can be checked, and this is the one tap that does it.
+  # The bell opened `Kati.Screens.Gallery` for as long as the gallery was the
+  # only way to reach 53 screens that had landed at once. Every one of them is
+  # reachable from its own place now, so the bell means what a bell means:
+  # `Kati.Screens.InboxNotifications`, which is where Kati's badge-instead-of-
+  # push manners are visible. The gallery moved to Settings → About, which is
+  # where a page that describes the app belongs.
   def handle_tap(:notifications, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Gallery)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)}
 
   def handle_tap(:open_settings, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
