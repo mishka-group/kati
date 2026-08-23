@@ -2926,7 +2926,30 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // KATI-END(K-18 anchored-node)
     val m = tapModifier.then(nodeModifier(node.props))
     when (node.type) {
-        "column" -> Column(modifier = m) {
+        // KATI-BEGIN(K-34 column-align) mob_new=0.4.20
+        // `align` on a column was read by nobody. `Column(modifier = m)` took
+        // no `horizontalAlignment`, so a column always hugged its widest child
+        // and every narrower child sat at the start edge — silently, because a
+        // dropped alignment is not an error, it is just a layout nobody drew.
+        //
+        // Eight nodes in this app write it and all eight were wrong: the three
+        // book-detail action buttons (`Kati.Screens.BookDetail.action/3` and
+        // its dark and Persian twins) each draw a glyph over a label in a
+        // `weight={1.0}` column and asked for `center`; screen 09's and screen
+        // 05's fixed-width time gutters asked for the same; and screens 122 and
+        // 127's per-hour rate columns asked for `trailing`, which is the one
+        // that had a visible cost — `Kati.Screens.Money.rate/1` reached for
+        // `text_align` to flush its two lines instead, and a `Text` carrying
+        // `text_align` takes `fillMaxWidth()` (see `MobText`), so the rate
+        // filled the row and the weighted body beside it measured zero. The
+        // Persian money screen drew three service rows with no service names
+        // in them.
+        //
+        // Vertical values are ignored rather than mapped: `align="bottom"` on a
+        // column is four nodes asking a column for a row's alignment, and
+        // guessing at what they meant would move ink nobody asked to move.
+        "column" -> Column(modifier = m, horizontalAlignment = columnAlignProp(node.props)) {
+        // KATI-END(K-34 column-align)
             node.children.forEach { child ->
                 val w = floatProp(child.props, "weight")
                 // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.20
@@ -4825,6 +4848,23 @@ private fun tabDefsProp(props: Map<String, Any?>): List<Map<String, String>> {
 // (atom from Elixir arrives as a String). Defaults to CenterVertically because
 // that matches the most common visual expectation (e.g. icon next to title);
 // opt back into Top with align: :top.
+// KATI-BEGIN(K-34 column-align) mob_new=0.4.20
+// Horizontal alignment for a column's children. `leading`/`trailing` are the
+// direction-relative names the rest of this bridge uses, and they mirror under
+// RTL; `start`/`end` are accepted as the same thing because half the app spells
+// them that way in `text_align`. Anything else — including the vertical names a
+// few nodes pass — is `Start`, which is what a column did before this existed.
+private fun columnAlignProp(props: Map<String, Any?>): Alignment.Horizontal =
+    when (props["align"] as? String) {
+        "center"   -> Alignment.CenterHorizontally
+        "trailing" -> Alignment.End
+        "end"      -> Alignment.End
+        "leading"  -> Alignment.Start
+        "start"    -> Alignment.Start
+        else       -> Alignment.Start
+    }
+// KATI-END(K-34 column-align)
+
 private fun rowAlignProp(props: Map<String, Any?>): Alignment.Vertical =
     when (props["align"] as? String) {
         "top"    -> Alignment.Top

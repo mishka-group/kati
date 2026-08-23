@@ -171,6 +171,29 @@ defmodule Kati.Screens.BookDetailFa do
   Arabic-script glyphs at all, so a Persian label without `font_family="fa"` is
   a row of empty boxes rather than a fallback — `Kati.Screens.Fa`'s moduledoc
   checked the font and says so.
+
+  ## `align` defaults to nothing, and defaulted to `"start"` for a long time
+
+  `text_align` is not a free prop. `MobText` reads a present one as *this text
+  is wider than its glyphs* and applies `fillMaxWidth()` — which is right for a
+  centred title and catastrophic for a `Text` sitting in a `Row` next to
+  anything else, because it takes the whole row and every weighted sibling
+  measures zero. With `"start"` as the default, **every** Persian string in the
+  app carried it, so every Persian row was one unlucky layout away from losing
+  a column.
+
+  Two did, and both only on a device: screen 127's service rows drew a badge, a
+  price and a per-hour rate with **no service name**, and its one-off expense
+  rows drew an amount and nothing else. In a `Column` the two behaviours are
+  indistinguishable — a filled `Text` with `text_align="start"` and a hugging
+  one both put their glyphs at the container's start edge — which is why this
+  survived every screen sweep and every literal check: the strings were in the
+  tree, at the right size, in the right colour, measured to nothing.
+
+  So the default is `nil` and the prop is written only when a caller asks for
+  it. Twelve callers do, and each of them wants what `text_align` means:
+  `"center"` for a code or a stat, `"absolute_left"`/`"absolute_right"` for the
+  handful of things the design says must not mirror.
   """
   @spec fa(String.t(), number(), term(), keyword()) :: map()
   def fa(text, size, colour, opts \\ []) do
@@ -180,7 +203,7 @@ defmodule Kati.Screens.BookDetailFa do
       colour: colour,
       weight: Keyword.get(opts, :weight, "normal"),
       lines: Keyword.get(opts, :lines, 1),
-      align: Keyword.get(opts, :align, "start")
+      align: Keyword.get(opts, :align)
     }
 
     ~MOB"""

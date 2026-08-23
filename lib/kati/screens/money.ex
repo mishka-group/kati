@@ -250,7 +250,6 @@ defmodule Kati.Screens.Money do
         text={@price}
         font_family="mono"
         text_size={12.5}
-        text_align="right"
         text_color={Palette.sub()}
         max_lines={1}
       />
@@ -260,7 +259,6 @@ defmodule Kati.Screens.Money do
         font_family="mono"
         text_size={13}
         font_weight="medium"
-        text_align="right"
         text_color={@colour}
         max_lines={1}
       />

@@ -572,19 +572,24 @@ defmodule Kati.Screens.MoneyFa do
   could not be reproduced is the two `Text` nodes themselves, both of which are
   `font_family="mono"` there and so have no Persian digits.
 
-  `text_align="end"` rather than `"right"`: the bridge maps both to
-  `TextAlign.End`, but only one of them says what is meant, which is *the far
-  side of the column, whichever side that is*. In Persian that is the left
-  edge, which is where the drawing puts it.
+  ## `align="trailing"` does the flushing now, and `text_align` used to try
 
-  `align="trailing"` on the `Column` is kept from
-  `Kati.Screens.Money.rate/1` and, on Android, does nothing today: the bridge's
-  `"column"` branch (`MobBridge.kt:2929`) builds a `Column(modifier = m)` and
-  passes no `horizontalAlignment` at all, so a column hugs its widest child and
-  the narrower line sits at the group's start edge. It is written anyway, and
-  written as the same node 122 writes, so the day a Column reads the prop both
-  sheets straighten together. The column the caption cares about is held by the
-  row's trailing edge regardless — see the moduledoc.
+  Both lines carried `text_align="end"` and neither does any more, and the
+  reason is the defect that pairing caused. `MobText` reads a present
+  `text_align` as *this text is wider than its glyphs* and applies
+  `fillMaxWidth()`, so the rate column filled the row it was the trailing slot
+  of — and `Kati.UI.SettingsList.row/4` puts the body in a `weight={1.0}`
+  column beside it, which then measured **zero**. On a Pixel 9a this screen
+  drew three service rows with a badge, a price and a per-hour rate and **no
+  service name in any of them**. Screen 122 is the same markup and had the same
+  hole.
+
+  `align="trailing"` on the `Column` was already written here and in 122, and
+  until `K-34 column-align` the bridge read it from nobody: `Column(modifier =
+  m)` took no `horizontalAlignment`, so a column hugged its widest child and
+  the narrower line sat at the start edge. The prop is honoured now, which is
+  what flushes the two lines — so the alignment is expressed once, on the
+  container that owns it, and the two `Text` nodes go back to hugging.
   """
   @spec rate(map(), String.t()) :: map()
   def rate(service, word \\ word()) do
@@ -600,21 +605,13 @@ defmodule Kati.Screens.MoneyFa do
 
     ~MOB"""
     <Column align="trailing">
-      <Text
-        text={price}
-        font_family="fa"
-        text_size={12}
-        text_align="end"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Text text={price} font_family="fa" text_size={12} text_color={:on_surface} max_lines={1} />
       <Spacer size={4} />
       <Text
         text={per_hour}
         font_family="fa"
         text_size={15}
         font_weight="semibold"
-        text_align="end"
         text_color={colour}
         max_lines={1}
       />

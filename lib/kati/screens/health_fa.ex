@@ -536,7 +536,7 @@ defmodule Kati.Screens.HealthFa do
         <Row fill_width={true} align="bottom">
           {Kati.Screens.HealthFa.figure(reading.figure)}
           <Spacer size={6} />
-          {BookDetailFa.fa(reading.unit, 14, Palette.sub(), align: nil)}
+          {BookDetailFa.fa(reading.unit, 14, Palette.sub())}
           <Spacer weight={1.0} />
           {Kati.Screens.HealthFa.change_pill(reading)}
         </Row>
@@ -611,13 +611,12 @@ defmodule Kati.Screens.HealthFa do
 
   Moving to it was not enough on its own, and the second half is the reason the
   first half looked like it had not worked. A pill hugs its CONTENT, and the
-  content here is `Kati.Screens.BookDetailFa.fa/4`, which defaults to
-  `align: "start"` and therefore always writes a `text_align`. `MobText` reads
-  a present `text_align` as *this text is wider than its glyphs* and applies
-  `fillMaxWidth()` — so the label filled, and the pill dutifully hugged a
-  full-width label. `align: nil` is how the rest of the app opts out of that
-  (`Kati.Screens.MealLibraryEmpty` does it four times); the unit beside the
-  figure takes it for the same reason.
+  content here is `Kati.Screens.BookDetailFa.fa/4`, which used to default to
+  `align: "start"` and so always wrote a `text_align`. `MobText` reads a
+  present `text_align` as *this text is wider than its glyphs* and applies
+  `fillMaxWidth()` — so the label filled and the pill dutifully hugged a
+  full-width label. That default is `nil` now, for the reason `fa/4`'s own doc
+  gives, and both this label and the unit beside the figure hug because of it.
 
   The glyph and the two text colours are 109's two lines exactly —
   `arrow_downward` in `green_text` for a loss and `arrow_drop_up` in `gold_text`
@@ -646,7 +645,7 @@ defmodule Kati.Screens.HealthFa do
       [
         Kati.UI.symbol(icon, size: 15, color: colour, fill: true),
         ~MOB"<Spacer size={5} />",
-        BookDetailFa.fa(reading.change, 11.5, colour, align: nil)
+        BookDetailFa.fa(reading.change, 11.5, colour)
       ]
     )
   end
