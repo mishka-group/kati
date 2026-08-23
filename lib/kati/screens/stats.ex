@@ -167,12 +167,9 @@ defmodule Kati.Screens.Stats do
   # separate, and the drawing's disc is legible only because it floats above
   # them on `shadow_button()`.
   #
-  # It carries no handler, and passing none is the right way to say so — the
-  # component omits the `on_tap` key entirely rather than sending a null, so
-  # `RenderNodeInner` attaches no `clickable` and the disc stays exactly as
-  # inert as the Box it replaces. Sharing a year is not built yet, and a disc
-  # that swallowed a tap silently would be worse than one that plainly does
-  # nothing.
+  # It carried no handler for a long time, and that was the honest state: a disc
+  # that swallowed a tap silently would have been worse than one that plainly
+  # did nothing. Screen 98 is what it was waiting for, so it has one now.
   @doc false
   def share_disc do
     MishkaActionIcon.action_icon(
@@ -181,7 +178,8 @@ defmodule Kati.Screens.Stats do
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
-        shadow: Kati.Theme.shadow_button()
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), :share_year}
       ],
       [Kati.UI.symbol("ios_share", size: 21)]
     )
@@ -911,6 +909,9 @@ defmodule Kati.Screens.Stats do
   }
 
   @impl true
+  def handle_tap(:share_year, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.YearShare)}
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "go_" <> title ->

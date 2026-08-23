@@ -292,6 +292,10 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealLibrary, :search},
     {Kati.Screens.MealEdit, :slot_Dinner},
     {Kati.Screens.MealEdit, :add_photo},
+    # Screen 98's opening scope and ratio, the same already-selected case as
+    # every other family above.
+    {Kati.Screens.YearShare, :scope_All},
+    {Kati.Screens.YearShare, :aspect_square},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     {Kati.Screens.Medication, :toggle_dose},

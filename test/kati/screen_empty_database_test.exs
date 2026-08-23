@@ -219,7 +219,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"112", Kati.Screens.Medication},
     {"116", Kati.Screens.MealLibrary},
     {"118", Kati.Screens.MealEdit},
-    {"119", Kati.Screens.AddIngredient}
+    {"119", Kati.Screens.AddIngredient},
+    # 100 is a reference sheet and draws no user data of its own — its only
+    # read is the pixel field it borrows from screen 74, which is where its
+    # gate points.
+    {"100", Kati.Screens.YearCards}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -830,6 +834,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MealEdit.drawn_meal/0},
       {"119", Kati.Screens.AddIngredient, &Kati.Screens.MealEdit.meal/0,
        &Kati.Screens.MealEdit.drawn_meal/0},
+      {"100", Kati.Screens.YearCards, &Kati.Screens.AlbumDetail.field/0,
+       &Kati.Music.Sample.listen_field/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,

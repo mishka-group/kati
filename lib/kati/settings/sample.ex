@@ -179,6 +179,18 @@ defmodule Kati.Settings.Sample do
         title: "Where this comes from",
         sub: "Sources and licences",
         control: :chevron
+      },
+      # A reference sheet rather than a place in the app, filed under About for
+      # the reason screen 27 is: it is the app describing itself. Screen 100's
+      # own back pill says `Settings`, which is what puts it here — the design
+      # names the parent and never redrew 24 to add the row, exactly as it did
+      # for the three Sources rows above. The screen is drawn and finished;
+      # only the way in was missing.
+      %{
+        icon: "grid_view",
+        title: "Year cards",
+        sub: "How a shared card is drawn",
+        control: :chevron
       }
     ]
   end

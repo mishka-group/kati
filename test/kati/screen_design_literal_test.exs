@@ -130,8 +130,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 82,
-             "expected 82 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 84,
+             "expected 84 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 

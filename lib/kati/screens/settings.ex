@@ -648,7 +648,8 @@ defmodule Kati.Screens.Settings do
     # existed nowhere until its row did.
     "My services" => Kati.Screens.MyServices,
     "Data sources" => Kati.Screens.DataSources,
-    "Where this comes from" => Kati.Screens.Attribution
+    "Where this comes from" => Kati.Screens.Attribution,
+    "Year cards" => Kati.Screens.YearCards
   }
 
   @doc false
