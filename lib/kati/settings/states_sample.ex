@@ -79,4 +79,31 @@ defmodule Kati.Settings.StatesSample do
   def undo do
     %{icon: "undo", text: "Dropped The Quiet Ones", action: "Undo"}
   end
+
+  @doc """
+  The sixth band: a surface Kati draws and cannot open.
+
+  The other five are states a screen passes through. This one is a state a
+  *screen* is in, and it is here because #22 asked for the ritual that was
+  missing — how a drawn surface gets downgraded to *not in v1* without the
+  design losing coherence. Screen 42 invented the visual answer and used it
+  once; naming it here is what makes it a pattern.
+
+  `example` is the tile screen 42 draws for Sleep, reproduced rather than
+  imported: this sheet is a reference, and a reference that reads a section
+  list would report what the app happens to hold today instead of what the
+  treatment looks like.
+  """
+  @spec retired() :: map()
+  def retired do
+    %{
+      title: "A surface Kati draws and cannot open",
+      body:
+        "It keeps its place, dashed rather than filled, and says Not set up. " <>
+          "It never says coming soon — a date is a promise this version cannot " <>
+          "keep. Tapping it opens one sheet that names what it is, why it is not " <>
+          "here, and what Kati can do instead today.",
+      example: %{icon: "bedtime", name: "Sleep", status: "Not set up"}
+    }
+  end
 end

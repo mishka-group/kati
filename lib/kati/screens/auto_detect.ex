@@ -282,9 +282,28 @@ defmodule Kati.Screens.AutoDetect do
       SettingsList.body(row.title, row.sub),
       Kati.Screens.AutoDetect.control(row.control),
       padding: 13,
-      rule: rule?
+      rule: rule?,
+      on_tap: Kati.Screens.AutoDetect.tap(row.title)
     )
   end
+
+  @doc """
+  The tap a row carries, or `nil` for the rows that carry none.
+
+  One row here promises something that is not in this version: **Browser
+  extension**, drawn `Not installed` with a `Get` pill that led nowhere. That
+  is the same dead control screen 42's dashed tiles were, and it gets the same
+  answer — `Kati.Screens.RetiredTile`, the sheet that says *X isn't in this
+  version* and why. #22 asks for the treatment to be applied consistently to
+  exactly this row rather than left as a Health one-off.
+
+  Matched on the title because that is what `Kati.Settings.DetectSample` keys
+  its rows by; `nil` rather than an inert tag, so a row with nowhere to go
+  draws no tap at all and `Kati.ScreenTapSweepTest` has nothing to report.
+  """
+  @spec tap(String.t()) :: {pid(), atom()} | nil
+  def tap("Browser extension"), do: {self(), :open_retired}
+  def tap(_title), do: nil
 
   @doc false
   def control(:chevron), do: SettingsList.chevron()
@@ -423,5 +442,14 @@ defmodule Kati.Screens.AutoDetect do
       {button}
     </Box>
     """
+  end
+
+  # `handle_tap/2` rather than a `handle_info/2` clause: `Kati.Screens.Pushed`
+  # owns `handle_info/2` and its `:back` clause, and overriding it here would
+  # take the back pill with it.
+  @impl true
+  def handle_tap(:open_retired, socket) do
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Browser extension"})}
   end
 end

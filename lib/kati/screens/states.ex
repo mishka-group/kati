@@ -73,7 +73,8 @@ defmodule Kati.Screens.States do
       skeletons: Sample.skeletons(),
       offline: Sample.offline(),
       error: Sample.error(),
-      undo: Sample.undo()
+      undo: Sample.undo(),
+      retired: Sample.retired()
     })
   end
 
@@ -101,6 +102,9 @@ defmodule Kati.Screens.States do
         {Kati.Screens.States.error(s.error)}
         {SettingsList.eyebrow_muted("Undo — every destructive action")}
         {Kati.Screens.States.undo(s.undo)}
+        <Spacer size={26} />
+        {SettingsList.eyebrow_muted("Not in this version — drawn, not built")}
+        {Kati.Screens.States.retired(s.retired)}
       </Column>
     </Scroll>
     """
@@ -326,5 +330,93 @@ defmodule Kati.Screens.States do
       />
     </Row>
     """
+  end
+
+  @doc """
+  The sixth band, and the one that is about a screen rather than about a state.
+
+  Five bands above say what a screen does while it waits, fails or undoes. This
+  one says what a screen does when it is **drawn and not built** — the ritual
+  #22 named as missing. The rule is in words and then in a tile, because the
+  words are what another screen has to follow and the tile is what a reader
+  recognises.
+
+  The tile is pressable and lands on `Kati.Screens.RetiredTile`, which is the
+  half of the treatment a static picture cannot show: the answer to *what does
+  tapping it do*. It is drawn here rather than borrowed from
+  `Kati.Screens.Health.tile/1` on purpose — that builder reads a live section
+  list, and a reference sheet that reported today's sections would stop being a
+  reference the day one of them turned on.
+  """
+  @spec retired(map()) :: map()
+  def retired(r) do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={0xFFFBFAF8}
+      corner_radius={22}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding={22}
+    >
+      <Text
+        text={r.title}
+        text_size={15}
+        font_weight="bold"
+        letter_spacing={-0.01}
+        text_color={:on_surface}
+      />
+      <Spacer size={8} />
+      <Text text={r.body} text_size={13} line_height={1.6} text_color={0xFF8A8479} max_lines={6} />
+      <Spacer size={16} />
+      {Kati.Screens.States.dashed_tile(r.example)}
+    </Column>
+    """
+  end
+
+  @doc """
+  One dashed tile, in screen 42's geometry, carrying the tap that is the point.
+
+  `border_width` and `border_color` rather than a fill: a tile that is drawn
+  and not built has an outline where the others have a surface, which is the
+  whole of how the grid says it without a word.
+  """
+  @spec dashed_tile(map()) :: map()
+  def dashed_tile(example) do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      corner_radius={20}
+      border_width={1.5}
+      border_color={Kati.Theme.Palette.border_soft()}
+      padding={16}
+      on_tap={{self(), :open_retired}}
+    >
+      <Row fill_width={true} align="center">
+        {Kati.UI.symbol(example.icon, size: 22, color: Kati.Theme.Palette.tertiary())}
+        <Spacer size={10} />
+        <Text
+          text={example.name}
+          text_size={14}
+          font_weight="semibold"
+          text_color={Kati.Theme.Palette.tertiary()}
+          weight={1.0}
+          max_lines={1}
+        />
+        <Text
+          text={example.status}
+          text_size={11.5}
+          text_color={Kati.Theme.Palette.tertiary()}
+          max_lines={1}
+        />
+      </Row>
+    </Column>
+    """
+  end
+
+  # The tap the band exists to demonstrate. Pushed with the section the example
+  # tile names, so the sheet that opens is the one screen 42 would have opened.
+  @impl true
+  def handle_tap(:open_retired, socket) do
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Sleep"})}
   end
 end

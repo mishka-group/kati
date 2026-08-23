@@ -82,13 +82,16 @@ defmodule Kati.Screens.RetiredTile do
     * `Kati.Screens.Health.tile/1` draws the dashed tile. This sheet does not
       draw the tile it came from; 113 does.
 
-  ## Nothing here is wired into 42 yet, and that is one line short
+  ## What opens this, on two screens
 
-  `Kati.Screens.Health.tile/1` gives an `on?: false` tile no `on_tap` at all,
-  so the dashed tiles remain inert until 42 pushes this module with the
-  section's name in `params`. That change belongs in screen 42's file rather
-  than this one, and `unbuilt/0` is the predicate it would use to decide which
-  tiles get it.
+  `Kati.Screens.Health.tile_tap/1` answers `:open_retired` for any section it
+  has no destination for, and `Kati.Screens.Health.tile/1` puts that tap on the
+  dashed tiles — so pressing Sleep or Workouts on screen 42 lands here with the
+  section's name in `params`.
+
+  Screen 36's **Browser extension** row is the second entry point and the
+  reason this sheet is keyed on a *subject* rather than on a Health section.
+  See `@offsite`.
 
   ## The explainer card is hand-rolled, and `SettingsList.body/3` is why
 
@@ -178,6 +181,35 @@ defmodule Kati.Screens.RetiredTile do
     "Sleep" => %{icon: "bolt", title: "Track a bedtime as a habit", section: "Habits"}
   }
 
+  # Subjects that are not Health sections at all.
+  #
+  # Screen 42's grid is not the only place in the app that draws something and
+  # cannot open it. Screen 36 draws a **Browser extension** row reading `Not
+  # installed` with a `Get` pill, and the pill led nowhere — the same dead
+  # control the dashed tiles were, in a different section. #22 asks for exactly
+  # this: that the retirement treatment be *"applied consistently to the other
+  # existing cases"* rather than staying a Health one-off, and one sheet that
+  # already says *X isn't in this version* is the treatment. So the sheet's
+  # subject stops being a Health section and becomes a subject, of which a
+  # Health section is one kind.
+  #
+  # These carry their own `name` and `icon` because there is no tile to take
+  # them from, and no `instead`: the row a browser extension would send you to
+  # is the one directly under it on the screen you came from, and a card
+  # pointing back at the row below is worse than no card.
+  @offsite %{
+    "Browser extension" => %{
+      name: "Browser extension",
+      icon: "computer",
+      why:
+        "It was designed, and the design is good. It is not built because an " <>
+          "extension is a second program on a second platform — its own store " <>
+          "listing, its own updates, and a way to reach this phone that Kati has " <>
+          "no server to carry. This phone already detects audio from any app on " <>
+          "its own, which is the row under this one."
+    }
+  }
+
   # The label of the slot, not of the destination — it says what the row is for,
   # and it would be the same sentence above any other section's closing row.
   @today_line "What Kati can do today"
@@ -253,13 +285,21 @@ defmodule Kati.Screens.RetiredTile do
   subject needs no new sentence; `why` and `instead` are copy, and a section
   without them draws neither rather than something written to fill the gap.
 
-  A name that is not an unbuilt section — a built one, or a typo — falls back
-  to the drawn subject. The alternative is a sheet telling you that Meals is
+  `@offsite` is checked first, for the subjects that are not sections of screen
+  42 at all — see its own comment. A name that is neither offsite nor an
+  unbuilt section — a built one, or a typo — falls back to the drawn subject. The alternative is a sheet telling you that Meals is
   not in this version, and a wrong answer delivered confidently is worse here
   than the design's own example.
   """
   @spec subject(String.t()) :: map()
   def subject(name) do
+    case Map.fetch(@offsite, name) do
+      {:ok, offsite} -> Map.merge(offsite, %{headline: headline(offsite.name), instead: nil})
+      :error -> section_subject(name)
+    end
+  end
+
+  defp section_subject(name) do
     section =
       Enum.find(unbuilt(), &(&1.name == name)) ||
         Enum.find(Sample.sections(), &(&1.name == @drawn))
@@ -267,11 +307,13 @@ defmodule Kati.Screens.RetiredTile do
     %{
       name: section.name,
       icon: section.icon,
-      headline: "#{section.name} isn’t in this version",
+      headline: headline(section.name),
       why: Map.get(@why, section.name),
       instead: Map.get(@instead, section.name)
     }
   end
+
+  defp headline(name), do: "#{name} isn’t in this version"
 
   @doc """
   The tile's own glyph at 58, and the sentence that says what happened to it.
