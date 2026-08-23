@@ -3,7 +3,7 @@
 One file per artboard Kati needs and has not drawn. Hand a single file to Claude Design;
 each one is self-contained and carries the house style.
 
-**62 briefs.** The app has 139 drawn screens (01–139); nothing may be numbered below 139.
+**63 briefs.** The app has 139 drawn screens (01–139); nothing may be numbered below 139.
 
 | Brief | Screen | Kind | Issue |
 |---|---|---|---|
@@ -69,3 +69,4 @@ each one is self-contained and carries the house style.
 | `D-27-drop-dnf-abandon.md` | Drop, DNF and abandon — one state machine | Reference board | #17 |
 | `D-28-auto-detect-music.md` | The music variant of Auto-detect | Screen mode | #20 |
 | `D-29-anime-as-a-filter.md` | Anime as a filter, not a section | Four edits | #21 |
+| `D-23b-first-run-flow-map.md` | First run — the flow map | One diagram | #11 |
