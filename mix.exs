@@ -4,7 +4,7 @@ defmodule Kati.MixProject do
   def project do
     [
       app: :kati,
-      version: "0.1.2",
+      version: "0.0.1",
       elixir: "~> 1.19",
       start_permanent: false,
       deps: deps(),
