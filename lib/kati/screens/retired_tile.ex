@@ -254,7 +254,7 @@ defmodule Kati.Screens.RetiredTile do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.RetiredTile.hero(subject)}
-      {Kati.Screens.RetiredTile.explainer(subject.why)}
+      {Kati.Screens.RetiredTile.explainer(subject.why, subject.noun)}
       {Kati.Screens.RetiredTile.instead(subject.instead)}
       {Kati.UI.Sheet.commit("Fair enough", :close)}
     </Column>
@@ -294,8 +294,11 @@ defmodule Kati.Screens.RetiredTile do
   @spec subject(String.t()) :: map()
   def subject(name) do
     case Map.fetch(@offsite, name) do
-      {:ok, offsite} -> Map.merge(offsite, %{headline: headline(offsite.name), instead: nil})
-      :error -> section_subject(name)
+      {:ok, offsite} ->
+        Map.merge(offsite, %{headline: headline(offsite.name), instead: nil, noun: "row"})
+
+      :error ->
+        section_subject(name)
     end
   end
 
@@ -308,6 +311,7 @@ defmodule Kati.Screens.RetiredTile do
       name: section.name,
       icon: section.icon,
       headline: headline(section.name),
+      noun: "tile",
       why: Map.get(@why, section.name),
       instead: Map.get(@instead, section.name)
     }
@@ -367,8 +371,8 @@ defmodule Kati.Screens.RetiredTile do
   section does and another does not. The first is the section's, and a subject
   with none leaves the card holding the sentence that is always true.
   """
-  @spec explainer(String.t() | nil) :: map()
-  def explainer(why) do
+  @spec explainer(String.t() | nil, String.t()) :: map()
+  def explainer(why, noun) do
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -379,7 +383,7 @@ defmodule Kati.Screens.RetiredTile do
         padding={17}
       >
         {Kati.Screens.RetiredTile.why(why)}
-        {Kati.Screens.RetiredTile.no_date()}
+        {Kati.Screens.RetiredTile.no_date(noun)}
       </Column>
       <Spacer size={14} />
     </Column>
@@ -412,6 +416,12 @@ defmodule Kati.Screens.RetiredTile do
   @doc """
   *There is no date for it* — the one claim the sheet makes in bold.
 
+  `noun` is what the subject *is on the screen you came from* — a tile on
+  screen 42's grid, a row on screen 36's list. It was welded to `tile` until
+  the extension row opened this sheet and the sentence told a reader that a row
+  they were looking at was a tile. A sheet whose whole job is to be straight
+  about a gap cannot misname the thing it is about.
+
   Two runs through `Kati.UI.rich_text/1` rather than two `Text` nodes in a
   `Row`, because a `Row` does not wrap and the emphasised clause would orphan
   onto a line of its own. The cost is that the emphasis is not rendered at all
@@ -424,12 +434,12 @@ defmodule Kati.Screens.RetiredTile do
   is short enough that an edit to either clause could flip which style the
   whole paragraph takes.
   """
-  @spec no_date() :: map()
-  def no_date do
+  @spec no_date(String.t()) :: map()
+  def no_date(noun) do
     UI.rich_text([
       {"There is no date for it",
        [text_size: 13, line_height: 1.65, font_weight: "semibold", text_color: Palette.ink()]},
-      {". When Kati can read the data properly, this tile turns on.",
+      {". When Kati can read the data properly, this #{noun} turns on.",
        [text_size: 13, line_height: 1.65, text_color: Palette.ink_soft(), base: true]}
     ])
   end

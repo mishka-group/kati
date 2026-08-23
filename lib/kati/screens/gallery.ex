@@ -209,14 +209,28 @@ defmodule Kati.Screens.Gallery do
     count = length(@screens) + length(@undrawn)
 
     ~MOB"""
-    <Scroll>
-      <Column
-        fill_width={true}
-        padding_left={21}
-        padding_right={21}
-        padding_top={Kati.Screens.Pushed.content_top()}
-        padding_bottom={40}
-      >
+    <LazyList>
+      {Kati.Screens.Gallery.header(count)}
+      {Kati.Screens.Gallery.rows()}
+      {Kati.Screens.Gallery.undrawn_rows()}
+      <Spacer size={40} />
+    </LazyList>
+    """
+  end
+
+  @doc """
+  Title, count and the first eyebrow, as one lazy item.
+
+  Everything above the first row, kept together because it scrolls as one thing
+  and composing it is not what costs anything here.
+  """
+  @spec header(non_neg_integer()) :: map()
+  def header(count) do
+    assigns = %{count: count, top: Kati.Screens.Pushed.content_top()}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column fill_width={true} padding_left={21} padding_right={21} padding_top={@top}>
         <Text
           text="All screens"
           text_size={28}
@@ -227,39 +241,97 @@ defmodule Kati.Screens.Gallery do
         />
         <Spacer size={5} />
         <Text
-          text={"#{count} pages · tap to open"}
+          text={"#{@count} pages · tap to open"}
           font_family="mono"
           text_size={11}
           text_color={Palette.muted()}
         />
         <Spacer size={20} />
-        {UI.eyebrow("Every page")}
-        {Kati.Screens.Gallery.rows()}
-        <Spacer size={20} />
-        {UI.eyebrow("Not yet drawn")}
-        {Kati.Screens.Gallery.undrawn_rows()}
+        {Kati.UI.eyebrow("Every page")}
       </Column>
-    </Scroll>
+      {Kati.Screens.Gallery.cap()}
+    </Column>
     """
   end
 
+  @doc """
+  The 4pt rounded strip that opens and closes a card of rows.
+
+  The card used to be one `Column` with `corner_radius={20}` and 4pt of top and
+  bottom padding, holding every row. That is what a `Scroll` allows and a
+  `LazyList` does not: a lazy list only skips composing what it can see the
+  edges of, and a single child holding 127 rows is one item, so the whole list
+  composes on every frame. It measurably did — a fling through this page ANR'd
+  the app on a Pixel 9a, twice, with `Input dispatching timed out` and the BEAM
+  at 8% CPU, which is what a UI thread laying out ~800 nodes a frame looks like.
+
+  So the rows became items and the card became three pieces: this strip at the
+  top, square-edged rows on the same ground, and this strip again at the
+  bottom. The bridge has no per-corner radius — `corner_radius_top_start` is
+  not a prop `MobBridge.kt` reads — so a 4pt tall rounded box is how the cap is
+  spelled, and it is exactly the 4pt padding it replaces.
+
+  Neither the caps nor the rows carry `Kati.Theme.shadow_card/0`. One card cast
+  one shadow; 131 items casting it each drew a hard grey band under every cap
+  and a faint seam between every row, because a shadow that used to fall
+  outside the card now falls on the item below it. A flat ground is the honest
+  reading of the same card.
+  """
+  @spec cap() :: map()
+  def cap do
+    ~MOB"""
+    <Column fill_width={true} padding_left={21} padding_right={21}>
+      <Box fill_width={true} height={4} corner_radius={20} background={Palette.card()} />
+    </Column>
+    """
+  end
+
+  # One lazy item per row, not one item holding every row — see `cap/0`.
   @doc false
   def rows do
     screens = @screens
     last = length(screens) - 1
 
+    caps =
+      screens
+      |> Enum.with_index()
+      |> Enum.map(fn {s, i} ->
+        Kati.Screens.Gallery.on_card(Kati.Screens.Gallery.row(s, i < last))
+      end)
+
+    caps ++ [Kati.Screens.Gallery.cap(), Kati.Screens.Gallery.group_gap()]
+  end
+
+  @doc "The 20pt gap that used to sit between the two cards."
+  @spec group_gap() :: map()
+  def group_gap do
     ~MOB"""
-    <Column
-      fill_width={true}
-      background={Palette.card()}
-      corner_radius={20}
-      shadow={Kati.Theme.shadow_card()}
-      padding_left={15}
-      padding_right={15}
-      padding_top={4}
-      padding_bottom={4}
-    >
-      {screens |> Enum.with_index() |> Enum.map(fn {s, i} -> Kati.Screens.Gallery.row(s, i < last) end)}
+    <Column fill_width={true}>
+      <Column fill_width={true} padding_left={21} padding_right={21}>
+        <Spacer size={20} />
+        {Kati.UI.eyebrow("Not yet drawn")}
+      </Column>
+      {Kati.Screens.Gallery.cap()}
+    </Column>
+    """
+  end
+
+  @doc """
+  One row on the card's ground, with the page's own side margins outside it.
+
+  The 21pt page margin was on the `Scroll`'s single `Column` and the 15pt card
+  margin was on the card. A lazy item is laid out edge to edge, so both live
+  here now: 21 outside the ground, 15 inside it.
+  """
+  @spec on_card(map()) :: map()
+  def on_card(row) do
+    assigns = %{row: row}
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={21} padding_right={21}>
+      <Column fill_width={true} background={Palette.card()} padding_left={15} padding_right={15}>
+        {@row}
+      </Column>
     </Column>
     """
   end
@@ -269,20 +341,14 @@ defmodule Kati.Screens.Gallery do
     undrawn = @undrawn
     last = length(undrawn) - 1
 
-    ~MOB"""
-    <Column
-      fill_width={true}
-      background={Palette.card()}
-      corner_radius={20}
-      shadow={Kati.Theme.shadow_card()}
-      padding_left={15}
-      padding_right={15}
-      padding_top={4}
-      padding_bottom={4}
-    >
-      {undrawn |> Enum.with_index() |> Enum.map(fn {u, i} -> Kati.Screens.Gallery.undrawn_row(u, i < last) end)}
-    </Column>
-    """
+    rows =
+      undrawn
+      |> Enum.with_index()
+      |> Enum.map(fn {u, i} ->
+        Kati.Screens.Gallery.on_card(Kati.Screens.Gallery.undrawn_row(u, i < last))
+      end)
+
+    rows ++ [Kati.Screens.Gallery.cap()]
   end
 
   # The number column holds `--` rather than a number, which is the whole fact

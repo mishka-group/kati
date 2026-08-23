@@ -499,6 +499,26 @@ defmodule Kati.Screens.HealthFa do
   baseline of the numeral rather than under it, which is 109's rule and screen
   111's: *the unit sits inside the numeral rather than as a separate label, so
   the hero reads as one value.*
+
+  ## There is no nested `Column` here, and there was, twice
+
+  The label, the figure and the pill were once a `Column` holding the first two
+  and the pill beside it. On a Pixel 9a that card lost both ends of itself: the
+  32pt figure drew `۷۶…`, ellipsised after two glyphs with two thirds of the
+  card empty beside it, and the pill did not draw at all. Putting `weight={1.0}`
+  on the `Column` did not fix it — it inverted it, and the pill took the whole
+  width while the label, the figure and the unit vanished. Nothing was ever
+  wrong in the tree: `Kati.ScreenEmptyDatabaseTest` finds every one of those
+  strings in it on both attempts.
+
+  What works is `Kati.Screens.Weight.hero/1`'s own shape — 109, the screen this
+  mirrors — which has no nested container at all: the label is a sibling of the
+  row, and the row is figure, unit, a weighted `Spacer`, then the pill. Two
+  containers competing for one row's width is the thing to avoid, and the board
+  draws the label on its own line anyway.
+
+  Only visible on a device. The sweeps assert what is in the tree, and every
+  string was in it every time.
   """
   @spec hero(map()) :: map()
   def hero(reading) do
@@ -511,16 +531,12 @@ defmodule Kati.Screens.HealthFa do
         padding={17}
         shadow={Theme.shadow_card()}
       >
+        {BookDetailFa.fa(reading.label, 11, Palette.eyebrow(), weight: "semibold")}
+        <Spacer size={8} />
         <Row fill_width={true} align="bottom">
-          <Column>
-            {BookDetailFa.fa(reading.label, 11, Palette.eyebrow(), weight: "semibold")}
-            <Spacer size={8} />
-            <Row align="bottom">
-              {Kati.Screens.HealthFa.figure(reading.figure)}
-              <Spacer size={6} />
-              {BookDetailFa.fa(reading.unit, 14, Palette.sub())}
-            </Row>
-          </Column>
+          {Kati.Screens.HealthFa.figure(reading.figure)}
+          <Spacer size={6} />
+          {BookDetailFa.fa(reading.unit, 14, Palette.sub(), align: nil)}
           <Spacer weight={1.0} />
           {Kati.Screens.HealthFa.change_pill(reading)}
         </Row>
@@ -533,9 +549,31 @@ defmodule Kati.Screens.HealthFa do
   @doc """
   The 32pt numeral, written out rather than passed to the shared Persian `Text`.
 
-  `Kati.Screens.BookDetailFa.fa/4` fixes `line_height` at 1.4 and takes no
-  tracking, and the board sets this one numeral at −0.03. It is the only figure
-  on the page big enough for tracking to read at all.
+  `Kati.Screens.BookDetailFa.fa/4` fixes `line_height` at 1.4, which this
+  figure does not want, so the `Text` is spelled here.
+
+  ## The board's −0.03 tracking is not applied, and a device is why
+
+  It was, and this numeral drew `۷۶…` — the separator and the zero ellipsised
+  away, on a card two thirds empty. With `max_lines` removed to see what was
+  happening it wrapped instead, `۷۶٫` over `۰`, which says the `Text` was
+  measured at three glyphs rather than four. Three probes on a Pixel 9a
+  separate the cause cleanly: `۷۶٫۰` at 32 in `fa` renders whole; at 32 with
+  `font_weight="medium"` it renders whole; with `letter_spacing` set — at
+  either weight — it loses its last glyph. `K-10 letter-spacing-em` applies
+  tracking as `.em`, and an em value on this font measures short.
+
+  The app already had the rule and this line had simply not been held to it.
+  `Kati.Screens.Fa.eyebrow/1` states it — *no tracking, which the drawings set
+  to 0 on every Persian line* — and `Kati.Screens.WeekImage.page_fa/0` gives
+  the typographic reason: tracking Arabic script pulls the joins apart. The
+  board's −0.03 is a hair under a pixel per glyph at this size; the last glyph
+  of the number is the whole hero.
+
+  `Kati.Screens.DataSourcesFa` is the one Persian line still carrying tracking
+  — screen 82's pairing code at +0.14 — and it is a different case in two ways:
+  the value is positive, so it widens rather than narrows, and the `Text` is
+  centred and therefore fills its width rather than hugging.
   """
   @spec figure(String.t()) :: map()
   def figure(text) do
@@ -545,7 +583,6 @@ defmodule Kati.Screens.HealthFa do
       font_family="fa"
       text_size={32}
       font_weight="medium"
-      letter_spacing={-0.03}
       text_color={:on_surface}
       max_lines={1}
     />
@@ -554,6 +591,33 @@ defmodule Kati.Screens.HealthFa do
 
   @doc """
   The change, as a washed pill with an arrow through it.
+
+  ## `Kati.Components.MishkaPill`, and not a hand-rolled `Row`
+
+  This was a `Row` with a `height`, a `corner_radius` and two side paddings —
+  the drawing's geometry, spelled directly — and on device it swallowed the
+  whole hero. `MobBridge.kt` fills width for any container whose `width` is not
+  a number (its own comment at `MobBridge.kt:2673` says so about `Text`; the
+  containers read the same prop the same way), so a bare `Row` beside a
+  weighted `Column` takes everything and leaves the figure and its label with
+  nothing. It did exactly that: the card drew a full-width green pill and no
+  weight at all.
+
+  `MishkaPill` is the component every other pill in the app goes through —
+  `Kati.UI.SettingsList.status_pill/3` is the same shape, a glyph then a label
+  handed in as content — and it hugs. Its own `Row` carries no `align`, which
+  is `CenterVertically` (`rowAlignProp`), so `align: :center` here is the pill
+  box's alignment and the content stays centred either way.
+
+  Moving to it was not enough on its own, and the second half is the reason the
+  first half looked like it had not worked. A pill hugs its CONTENT, and the
+  content here is `Kati.Screens.BookDetailFa.fa/4`, which defaults to
+  `align: "start"` and therefore always writes a `text_align`. `MobText` reads
+  a present `text_align` as *this text is wider than its glyphs* and applies
+  `fillMaxWidth()` — so the label filled, and the pill dutifully hugged a
+  full-width label. `align: nil` is how the rest of the app opts out of that
+  (`Kati.Screens.MealLibraryEmpty` does it four times); the unit beside the
+  figure takes it for the same reason.
 
   The glyph and the two text colours are 109's two lines exactly —
   `arrow_downward` in `green_text` for a loss and `arrow_drop_up` in `gold_text`
@@ -569,20 +633,22 @@ defmodule Kati.Screens.HealthFa do
     colour = if down?, do: Palette.green_text(), else: Palette.gold_text()
     ground = if down?, do: Palette.green_wash(), else: Palette.cream()
 
-    ~MOB"""
-    <Row
-      height={26}
-      corner_radius={13}
-      background={ground}
-      padding_left={10}
-      padding_right={10}
-      align="center"
-    >
-      {Kati.UI.symbol(icon, size: 15, color: colour, fill: true)}
-      <Spacer size={5} />
-      {BookDetailFa.fa(reading.change, 11.5, colour)}
-    </Row>
-    """
+    Kati.Components.MishkaPill.pill(
+      %{
+        background: ground,
+        corner_radius: 13,
+        height: 26,
+        padding: 0,
+        padding_left: 10,
+        padding_right: 10,
+        align: :center
+      },
+      [
+        Kati.UI.symbol(icon, size: 15, color: colour, fill: true),
+        ~MOB"<Spacer size={5} />",
+        BookDetailFa.fa(reading.change, 11.5, colour, align: nil)
+      ]
+    )
   end
 
   @doc """
