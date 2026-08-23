@@ -440,6 +440,13 @@ defmodule Kati.Screens.LaunchScreen do
   Written in sentence case and upcased at render, as `Kati.UI.eyebrow/2` does,
   because the drawing sets it in sentence case under `text-transform: uppercase`
   and the label in the source should read the way the design file writes it.
+
+  Centred by a weighted `Spacer` at **each** end. There was one only at the
+  leading end for a while, which does not centre a group — it pushes it to the
+  trailing edge — and on a Pixel 9a the second rule ran off the right of the
+  screen with the label pinned against it. A single weighted spacer is the
+  idiom for *push everything after me to the far side*; two are the idiom for
+  *centre what is between them*, and this is the second one.
   """
   @spec line_name() :: map()
   def line_name do
@@ -458,6 +465,7 @@ defmodule Kati.Screens.LaunchScreen do
       />
       <Spacer size={9} />
       {Kati.Screens.LaunchScreen.rule()}
+      <Spacer weight={1.0} />
     </Row>
     """
   end
