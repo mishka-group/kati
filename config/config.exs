@@ -34,6 +34,7 @@ config :kati,
     Kati.Health,
     Kati.Money,
     Kati.Music,
+    Kati.Notifications,
     Kati.Services,
     Kati.Sync
   ]

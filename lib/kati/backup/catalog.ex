@@ -99,6 +99,7 @@ defmodule Kati.Backup.Catalog do
     Kati.Health,
     Kati.Money,
     Kati.Music,
+    Kati.Notifications,
     Kati.Services,
     Kati.Sync
   ]
@@ -209,6 +210,16 @@ defmodule Kati.Backup.Catalog do
       resource: Kati.Spike.Thing,
       class: :internal,
       why: "A migration spike. Holds no user data and is not drawn anywhere."
+    },
+    %{
+      resource: Kati.Notifications.Pending,
+      class: :internal,
+      why:
+        "Kati's own record of what it believes is armed on THIS device's platform. Every " <>
+          "row is a claim about an OS-level alarm that a restored phone has never held, and " <>
+          "the whole set is recomputed from the domains on the next foreground anyway — " <>
+          "`Kati.Notifications.Reconcile` reconciles rather than accumulates, so carrying it " <>
+          "would restore a belief about a platform rather than a fact about the user."
     },
     %{
       resource: Kati.Sync.OutboxEntry,
