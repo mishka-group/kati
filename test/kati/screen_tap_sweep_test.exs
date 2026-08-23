@@ -304,6 +304,58 @@ defmodule Kati.ScreenTapSweepTest do
     # is drawn, reachable and honest about waiting on that fence — the same
     # state screen 83's six link rows are in.
     {Kati.Screens.NotificationsHelp, :open_battery},
+    # ── Screen 69, the Persian book page.
+    #
+    # Its controls are screen 66's controls and are inert for the same reasons,
+    # one language over: `finish` and `add_to_list` push screens that exist,
+    # and `open_series`/`open_lending` push screens the design has not drawn.
+    # The status and edition chips are the mirror of 66's, which write against a
+    # shelved book and no-op against an empty one.
+    #
+    # Screen 66 carries the English half of this list above; a Persian mirror
+    # that behaved differently from the page it mirrors would be the defect
+    # worth catching, and it would show up as one of these going live alone.
+    {Kati.Screens.BookDetailFa, :finish},
+    {Kati.Screens.BookDetailFa, :add_to_list},
+    {Kati.Screens.BookDetailFa, :open_series},
+    {Kati.Screens.BookDetailFa, :open_lending},
+    {Kati.Screens.BookDetailFa, :status_reading},
+    {Kati.Screens.BookDetailFa, :status_finished},
+    {Kati.Screens.BookDetailFa, :status_paused},
+    {Kati.Screens.BookDetailFa, :status_did_not_finish},
+    {Kati.Screens.BookDetailFa, :format_paperback},
+    {Kati.Screens.BookDetailFa, :format_ebook},
+    {Kati.Screens.BookDetailFa, :format_audiobook},
+    # Screen 72's opening unit and its timer stop, the same two shapes screen
+    # 70's list above carries.
+    {Kati.Screens.LogProgressFa, :unit_page},
+    {Kati.Screens.LogProgressFa, :stop_timer},
+    # ── Screen 68, screen 66 in the dark colourway.
+    #
+    # Its controls ARE screen 66's controls — the dark page reuses that module's
+    # builders — so they are inert here for exactly the reasons the English
+    # entries above give, and they would stop being inert on the same day.
+    {Kati.Screens.BookDetailDark, :open_series},
+    {Kati.Screens.BookDetailDark, :open_lending},
+    {Kati.Screens.BookDetailDark, :status_reading},
+    {Kati.Screens.BookDetailDark, :status_finished},
+    {Kati.Screens.BookDetailDark, :status_paused},
+    {Kati.Screens.BookDetailDark, :status_did_not_finish},
+    {Kati.Screens.BookDetailDark, :format_paperback},
+    {Kati.Screens.BookDetailDark, :format_ebook},
+    {Kati.Screens.BookDetailDark, :format_audiobook},
+    # ── Screen 71, screen 70's states in 27's manner.
+    #
+    # A states sheet draws all five situations at once, so its controls are
+    # pictures of controls — the stepper belongs to a state rather than to a
+    # value, and pressing it would move a number that is illustrating a
+    # different state's problem. Screen 27's own controls are inert for exactly
+    # this reason and always have been.
+    {Kati.Screens.LogProgressStates, :step_up},
+    {Kati.Screens.LogProgressStates, :step_down},
+    {Kati.Screens.LogProgressStates, :stop},
+    {Kati.Screens.LogProgressStates, :unit_percent},
+    {Kati.Screens.LogProgressStates, :unit_minutes},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     {Kati.Screens.Medication, :toggle_dose},

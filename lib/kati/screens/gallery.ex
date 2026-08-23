@@ -110,7 +110,14 @@ defmodule Kati.Screens.Gallery do
     {"118", "Create or edit a meal", Kati.Screens.MealEdit, :push},
     {"119", "Add an ingredient", Kati.Screens.AddIngredient, :push},
     {"98", "Your year, shared", Kati.Screens.YearShare, :push},
-    {"100", "Year cards", Kati.Screens.YearCards, :push}
+    {"100", "Year cards", Kati.Screens.YearCards, :push},
+    {"69", "کتاب", Kati.Screens.BookDetailFa, :push},
+    {"72", "ثبت پیشرفت", Kati.Screens.LogProgressFa, :push},
+    {"67", "Book detail — states", Kati.Screens.BookDetailStates, :push},
+    {"68", "Book detail — dark", Kati.Screens.BookDetailDark, :push},
+    {"71", "Log progress — states", Kati.Screens.LogProgressStates, :push},
+    {"75", "Album detail — states", Kati.Screens.AlbumDetailStates, :push},
+    {"78", "Artist detail — states", Kati.Screens.ArtistDetailStates, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

@@ -477,7 +477,8 @@ defmodule Kati.ThemeModeTest do
             Mob.Theme.current() == Theme.dark()
         end)
 
-      assert Enum.sort(pinning) == [Kati.Screens.HomeDark, Kati.Screens.Lock]
+      assert Enum.sort(pinning) ==
+               [Kati.Screens.BookDetailDark, Kati.Screens.HomeDark, Kati.Screens.Lock]
     end
   end
 

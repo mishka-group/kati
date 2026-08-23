@@ -223,7 +223,23 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 100 is a reference sheet and draws no user data of its own — its only
     # read is the pixel field it borrows from screen 74, which is where its
     # gate points.
-    {"100", Kati.Screens.YearCards}
+    {"100", Kati.Screens.YearCards},
+    # The Persian book pair. 69 reads screen 66's own shelf and supplies only
+    # the Persian chrome — see `Kati.Screens.BookDetailFa.book/0` — so its
+    # fallback is a real branch. 72 draws the fixture and reaches the store only
+    # through 66's cover helper, so it gates on the same pair for the reason 70
+    # gates on 66's.
+    {"69", Kati.Screens.BookDetailFa},
+    {"72", Kati.Screens.LogProgressFa},
+    # The five states-and-dark sheets. Each renders its primary's own reader
+    # under a different theme or in a different state, so each gates on that
+    # primary's pair — a states sheet whose fallback broke would be showing a
+    # picture of a state the app can no longer reach.
+    {"67", Kati.Screens.BookDetailStates},
+    {"68", Kati.Screens.BookDetailDark},
+    {"71", Kati.Screens.LogProgressStates},
+    {"75", Kati.Screens.AlbumDetailStates},
+    {"78", Kati.Screens.ArtistDetailStates}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -843,6 +859,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MealEdit.drawn_meal/0},
       {"100", Kati.Screens.YearCards, &Kati.Screens.AlbumDetail.field/0,
        &Kati.Music.Sample.listen_field/0},
+      {"69", Kati.Screens.BookDetailFa, &Kati.Screens.BookDetailFa.book/0,
+       &Kati.Screens.BookDetailFa.drawn_book/0},
+      {"72", Kati.Screens.LogProgressFa, &Kati.Screens.BookDetailFa.book/0,
+       &Kati.Screens.BookDetailFa.drawn_book/0},
+      {"67", Kati.Screens.BookDetailStates, &Kati.Screens.BookDetail.book/0,
+       &Kati.Screens.BookDetail.drawn_book/0},
+      {"68", Kati.Screens.BookDetailDark, &Kati.Screens.BookDetail.book/0,
+       &Kati.Screens.BookDetail.drawn_book/0},
+      {"71", Kati.Screens.LogProgressStates, &Kati.Screens.LogProgress.book/0,
+       &Kati.Screens.BookDetail.drawn_book/0},
+      {"75", Kati.Screens.AlbumDetailStates, &Kati.Screens.AlbumDetail.album/0,
+       &Kati.Screens.AlbumDetail.drawn_album/0},
+      {"78", Kati.Screens.ArtistDetailStates, &Kati.Screens.ArtistDetail.artist/0,
+       &Kati.Screens.ArtistDetail.drawn_artist/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,

@@ -42,6 +42,18 @@ defmodule Kati.AppReachabilityTest do
     {Screens.States,
      "a catalogue of empty, loading and offline states for comparison against " <>
        "the drawing. Not a place in the app."},
+    # The four states sheets the second wave of drawings added. Each is screen
+    # 27's shape for one screen rather than for the app, and each is a reference
+    # sheet for exactly the same reason: it draws all of a page's states at once,
+    # so it is a picture of five situations rather than a situation the app can
+    # be in.
+    {Screens.BookDetailStates, "screen 66's states, in 27's manner. As above."},
+    {Screens.LogProgressStates, "screen 70's states, in 27's manner. As above."},
+    {Screens.AlbumDetailStates, "screen 74's states, in 27's manner. As above."},
+    {Screens.ArtistDetailStates, "screen 77's states, in 27's manner. As above."},
+    {Screens.BookDetailDark,
+     "screen 66 in the dark colourway. The same screen, not another one — " <>
+       "reached by changing the theme, not by navigating, exactly as 28 is."},
     {Screens.HomeDark,
      "screen 01 in the dark colourway. The same screen, not another one — " <>
        "reached by changing the theme, not by navigating."},

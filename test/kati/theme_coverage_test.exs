@@ -39,9 +39,17 @@ defmodule Kati.ThemeCoverageTest do
   # Screens drawn dark BY DESIGN. They install their own palette and are
   # supposed to look the same whatever the app is set to — 28 and 29 are the
   # design's only dark drawings and the reference the rest were derived from.
-  @drawn_dark [Kati.Screens.HomeDark, Kati.Screens.Lock]
+  @drawn_dark [
+    Kati.Screens.HomeDark,
+    Kati.Screens.Lock,
+    # Screen 68 joined the pair: it is screen 66 in the dark colourway and pins
+    # dark for the same reason 28 and 29 do — the page IS the dark one, and a
+    # dark drawing that followed the stored theme would draw its light twin
+    # whenever the phone was set to light.
+    Kati.Screens.BookDetailDark
+  ]
 
-  test "every screen responds to the theme, except the two drawn dark" do
+  test "every screen responds to the theme, except the three drawn dark" do
     modules = Kati.Screens.Gallery.screens() |> Enum.map(&elem(&1, 2)) |> Enum.uniq()
 
     blind =

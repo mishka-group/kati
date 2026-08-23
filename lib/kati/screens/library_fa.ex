@@ -791,6 +791,14 @@ defmodule Kati.Screens.LibraryFa do
   # Anything left over is the dock's.
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
+      # Index 1 is کتاب — the Books shelf — and it pushes screen 69 rather than
+      # switching the assign, exactly as screen 03's Books segment pushes screen
+      # 20. There is no Persian Books SHELF in the 127 drawings, so the segment
+      # opens the one Persian book page that exists; screen 69's own caption
+      # records that its parent was inferred for the same reason.
+      "shelf_1" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetailFa)}
+
       "shelf_" <> index ->
         {:noreply, Mob.Socket.assign(socket, :shelf, String.to_integer(index))}
 

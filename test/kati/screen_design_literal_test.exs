@@ -125,7 +125,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
   # tier. Today: 7, all of them rating rows the drawing writes as one run of
@@ -143,8 +143,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 84,
-             "expected 84 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 91,
+             "expected 91 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
