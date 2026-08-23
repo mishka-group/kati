@@ -228,7 +228,8 @@ defmodule Kati.Screens.Calendar do
         Kati.UI.Menu.item("density_medium", "Agenda", :open_agenda),
         Kati.UI.Menu.item("bolt", "Quick add", :open_quick_add),
         Kati.UI.Menu.rule(),
-        Kati.UI.Menu.item("restaurant", "Meals on the calendar", :open_meals_day)
+        Kati.UI.Menu.item("restaurant", "Meals on the calendar", :open_meals_day),
+        Kati.UI.Menu.item("payments", "Money on the calendar", :open_money_day)
       ],
       dismiss: :close_menu
     )
@@ -997,7 +998,10 @@ defmodule Kati.Screens.Calendar do
   @row_screens %{
     "meals" => Kati.Screens.MealsDay,
     "screen" => Kati.Screens.Film,
-    "money" => Kati.Screens.Subscriptions,
+    # Screen 126 rather than 23. A money row on a calendar day is a renewal or
+    # an expense on THAT DAY, and the page that answers "what does this day
+    # cost" is the day — 23 is the account, one tap further in.
+    "money" => Kati.Screens.MoneyDay,
     "event" => Kati.Screens.EventDetail
   }
 
@@ -1030,6 +1034,8 @@ defmodule Kati.Screens.Calendar do
   def handle_tap(:open_quick_add, socket), do: {:noreply, pick(socket, Kati.Screens.QuickAdd)}
 
   def handle_tap(:open_meals_day, socket), do: {:noreply, pick(socket, Kati.Screens.MealsDay)}
+
+  def handle_tap(:open_money_day, socket), do: {:noreply, pick(socket, Kati.Screens.MoneyDay)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

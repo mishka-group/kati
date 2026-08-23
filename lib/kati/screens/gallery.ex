@@ -119,7 +119,8 @@ defmodule Kati.Screens.Gallery do
     {"75", "Album detail — states", Kati.Screens.AlbumDetailStates, :push},
     {"78", "Artist detail — states", Kati.Screens.ArtistDetailStates, :push},
     {"86", "Search — idle", Kati.Screens.SearchIdle, :push},
-    {"88", "Scope & ranking", Kati.Screens.SearchSpec, :push}
+    {"88", "Scope & ranking", Kati.Screens.SearchSpec, :push},
+    {"126", "Money on the calendar", Kati.Screens.MoneyDay, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.
