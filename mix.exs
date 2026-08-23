@@ -39,8 +39,8 @@ defmodule Kati.MixProject do
       # Mob is pre-1.0 with a fast release cadence, no `mix mob.upgrade`, and a
       # native shell that is forked at generation time — so every bump has to be
       # a deliberate act with a bridge diff, not a silent `~>` drift.
-      {:mob, "== 0.7.20"},
-      {:mob_dev, "== 0.6.23", only: :dev, runtime: false},
+      {:mob, "== 0.7.24"},
+      {:mob_dev, "== 0.6.24", only: :dev, runtime: false},
       {:ecto_sqlite3, "~> 0.24"},
       # Ash is the data layer for the whole system. Pinned exactly: Kati appears
       # to be the first public user of AshSqlite on a device BEAM, so a silent
