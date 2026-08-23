@@ -21,6 +21,8 @@ defmodule Kati.ScreenSweep do
   is not this file's business.
   """
 
+  @bridge Path.expand("../../android/app/src/main/java/com/example/kati/MobBridge.kt", __DIR__)
+
   @doc """
   Every compiled module that is a screen: `Kati.Screens.*` exporting the
   `Mob.Screen` pair (`mount/3` and `render/1`).
@@ -141,12 +143,41 @@ defmodule Kati.ScreenSweep do
   `MobBridge.kt`, which is what `Kati.UI.Menu` — and so every overflow menu in
   the app — is built on.
 
+  `:canvas` is the second exception and it has the opposite cause. Nothing in
+  Kati added it — the vendored bridge has dispatched `"canvas" -> MobCanvas`
+  since it was generated, and mob's own
+  `priv/tags/android.txt` simply never listed it. That file's header says it is
+  generated from the switch statement; it has drifted from it, and `icon` and
+  `native_view` are missing from it for the same reason. So this is a hole in
+  mob's manifest rather than a hole in the bridge, and the screens that draw
+  the Kati mark — 63, 64 and 65 — would have been called unrenderable for a
+  node the device draws.
+
   Named once, here, so the exception is a fact about the bridge rather than a
   string repeated at each assertion. `Kati.ComponentPolicyTest` is what keeps
-  it true: it fails if K-18 leaves the bridge.
+  the first one true: it fails if K-18 leaves the bridge. The second is pinned
+  by `bridge_draws?/1` below, which reads the dispatch itself.
   """
   @spec renderable_types() :: MapSet.t(atom())
-  def renderable_types, do: MapSet.put(Mob.ScreenCase.renderable_types(), :anchored)
+  def renderable_types do
+    Mob.ScreenCase.renderable_types()
+    |> MapSet.put(:anchored)
+    |> MapSet.put(:canvas)
+  end
+
+  @doc """
+  True when the vendored Android bridge has a dispatch arm for `tag`.
+
+  Read off `MobBridge.kt`'s own `when` block rather than off a list in a test,
+  because the thing that would make `renderable_types/0`'s `:canvas` wrong is
+  the arm going away — a list here would keep saying yes after it did.
+  """
+  @spec bridge_draws?(String.t()) :: boolean()
+  def bridge_draws?(tag) when is_binary(tag) do
+    @bridge
+    |> File.read!()
+    |> String.contains?(~s("#{tag}"))
+  end
 
   @doc """
   Run `fun` with `locale` active, restoring the previous locale afterwards.

@@ -243,7 +243,7 @@ defmodule Kati.MealsRoutesTest do
            "the gallery is the only way into screen 51 and it no longer lists it"
   end
 
-  test "Plans answers its one tag and supplies no catch-all" do
+  test "Plans answers every tag it draws and supplies no catch-all" do
     # `Kati.Screens.Pushed` reports a tag nothing answers as a DEAD TAP, and a
     # `_tag ->` clause on this screen would answer every future control with
     # silence. Asserted directly: the real tag returns a push, and a tag the
@@ -255,7 +255,11 @@ defmodule Kati.MealsRoutesTest do
     # `Kati.ScreenTapSweepTest` drops it.
     own = Enum.reject(tags, &ScreenSweep.shell_tag?/1)
 
-    assert own == [:share_plan],
+    # Two now: `import_plan` joined when screen 120 landed. The assertion is
+    # still "every tag Plans draws has its own clause and there is no
+    # catch-all", which is what this test is for — the list is the fact it
+    # checks against, not the fact it asserts.
+    assert Enum.sort(own) == [:import_plan, :share_plan],
            "screen 49 now draws #{inspect(own)}; every one of them needs a clause"
 
     assert push_target(Screens.Plans, socket, :share_plan) == Screens.PlanShare

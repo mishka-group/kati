@@ -462,7 +462,7 @@ defmodule Kati.ThemeModeTest do
       :ok
     end
 
-    test "exactly two screens pin dark against the stored choice, and they are the drawn ones" do
+    test "only the screens drawn dark pin dark against the stored choice" do
       # The mirror of the sweep above, and the reason it is not just "no screen
       # may ever name a side". Screens 28 and 29 are drawn dark IN A LIGHT APP
       # — they are the reference for what dark mode looks like — so
@@ -477,8 +477,12 @@ defmodule Kati.ThemeModeTest do
             Mob.Theme.current() == Theme.dark()
         end)
 
-      assert Enum.sort(pinning) ==
-               [Kati.Screens.BookDetailDark, Kati.Screens.HomeDark, Kati.Screens.Lock]
+      assert Enum.sort(pinning) == [
+               Kati.Screens.BookDetailDark,
+               Kati.Screens.HomeDark,
+               Kati.Screens.Lock,
+               Kati.Screens.YearShareDark
+             ]
     end
   end
 

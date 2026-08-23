@@ -46,10 +46,14 @@ defmodule Kati.ThemeCoverageTest do
     # dark for the same reason 28 and 29 do — the page IS the dark one, and a
     # dark drawing that followed the stored theme would draw its light twin
     # whenever the phone was set to light.
-    Kati.Screens.BookDetailDark
+    Kati.Screens.BookDetailDark,
+    # Screen 102 for the same reason: it is 98 in the dark colourway, and a dark
+    # drawing that followed the stored theme would draw its light twin whenever
+    # the phone was set to light.
+    Kati.Screens.YearShareDark
   ]
 
-  test "every screen responds to the theme, except the three drawn dark" do
+  test "every screen responds to the theme, except the ones drawn dark" do
     modules = Kati.Screens.Gallery.screens() |> Enum.map(&elem(&1, 2)) |> Enum.uniq()
 
     blind =

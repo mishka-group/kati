@@ -65,8 +65,34 @@ defmodule Kati.Screens.Plans do
         {UI.eyebrow("Switching")}
         {Kati.Screens.Plans.switching(plans.switching)}
         {Kati.Screens.Plans.note(plans.note)}
+        {Kati.Screens.Plans.import_row()}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc """
+  The row that takes a plan in, opposite screen 50 which sends one out.
+
+  On Plans rather than on Meals, because a plan somebody sent you has to land
+  where plans live — and because the import writes nothing until its last step,
+  which is screen 37's discipline and is what makes an import row safe to put on
+  a page full of live plans.
+  """
+  @spec import_row() :: map()
+  def import_row do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={22} />
+      {Kati.UI.SettingsList.card([
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("download"),
+          Kati.UI.SettingsList.body("Import a plan", "From a link or a code somebody sent you"),
+          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+          on_tap: {self(), :import_plan}
+        )
+      ])}
+    </Column>
     """
   end
 
@@ -374,6 +400,12 @@ defmodule Kati.Screens.Plans do
   # The Activate pills are drawn without a tap and so are not reported; the
   # moment one grows one, this screen says so.
   @impl true
+  # Screen 120 is the other half of 50: one screen shares a plan and the other
+  # takes one in. The import row is on Plans because that is where a plan you
+  # have been sent has to land.
+  def handle_tap(:import_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport)}
+
   def handle_tap(:share_plan, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanShare)}
 end

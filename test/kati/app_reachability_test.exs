@@ -55,6 +55,25 @@ defmodule Kati.AppReachabilityTest do
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
     {Screens.YearCardsStates, "screen 100's states, in 27's manner. As above."},
+    {Screens.MoneyStates, "screen 122's states, in 27's manner. As above."},
+    {Screens.MealLibraryEmpty,
+     "screen 116 with nothing in it, and the same board in Persian. The same " <>
+       "screen in two states, not another one."},
+    {Screens.GoalStates, "screen 104's states, in 27's manner. As above."},
+    {Screens.GoalsEmpty,
+     "screen 104 with nothing set. The same screen in a different state, not " <>
+       "another one — reached by having no goals, not by navigating."},
+    {Screens.WeightStates, "screen 109's states, in 27's manner. As above."},
+    {Screens.HealthEmptyStates, "screen 42's empty states, in 27's manner. As above."},
+    {Screens.SearchTyping, "screen 86's three states before results, in 27's manner. As above."},
+    {Screens.SearchResultStates,
+     "screen 86's four result edge states, in 27's manner. As above."},
+    {Screens.SearchLarge,
+     "screen 86 at 235% text size. The same screen at a system setting, not " <>
+       "another one — reached by changing the setting, not by navigating."},
+    {Screens.YearShareDark,
+     "screen 98 in the dark colourway. The same screen, not another one — " <>
+       "reached by changing the theme, exactly as 28 and 68 are."},
     {Screens.YearShareBooks,
      "screen 98 with one scope selected, drawn so the two can be compared. A " <>
        "board about a choice rather than a place the choice is made — 98 is where " <>
@@ -70,7 +89,19 @@ defmodule Kati.AppReachabilityTest do
        "reached by changing the theme, not by navigating."},
     {Screens.Lock,
      "a drawing of the OS lock screen showing Kati's notification. Nothing in " <>
-       "an app can navigate to the lock screen."}
+       "an app can navigate to the lock screen."},
+    # 63, 64 and 65 — the three drawings of Kati seen from outside the app.
+    # 29's reason, three more times: an app cannot navigate to the surface it
+    # is being launched from.
+    {Screens.MarkIos,
+     "a drawing of an iOS home screen with Kati's icon on it. Nothing in an " <>
+       "app can navigate to the launcher — 29's reason exactly, and 63's own " <>
+       "moduledoc names 29 as its precedent."},
+    {Screens.MarkAndroid, "the same drawing on an Android launcher. As above."},
+    {Screens.LaunchScreen,
+     "the frame the app puts up while it boots, drawn as a picture of itself. " <>
+       "Reached by launching Kati, and by the time anything could navigate it " <>
+       "is already gone."}
   ]
 
   test "every drawn screen is reachable, or is on the inventory with a reason" do

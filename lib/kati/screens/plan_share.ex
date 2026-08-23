@@ -229,6 +229,14 @@ defmodule Kati.Screens.PlanShare do
 
   # One row shape for both lists. A row that carries an `on` key is a promise
   # you can revoke, so it gets a switch; one that does not is a disclosure.
+  #
+  # **Print the week** is the one row here with somewhere to go.
+  # `Kati.Screens.WeekImage` is screen 121, and 121's own caption says what it
+  # is for: *the recommended replacement for a PDF that has no implementation
+  # path*. This row drew `picture_as_pdf · One page, fridge-sized` and reached
+  # nothing, because the thing it promised did not exist; it does now, and it is
+  # a page rather than a PDF. The row's drawn pixels are unchanged — `on_tap` on
+  # the wrapping `Column` adds no ink.
   @doc false
   def tile_rows(rows) do
     last = length(rows) - 1
@@ -240,10 +248,23 @@ defmodule Kati.Screens.PlanShare do
         SettingsList.icon_tile(row.icon),
         SettingsList.body(row.title, row.sub),
         Kati.Screens.PlanShare.tile_trail(row),
-        rule: i < last
+        rule: i < last,
+        on_tap: Kati.Screens.PlanShare.tile_tap(row)
       )
     end)
   end
+
+  @doc """
+  The tap a transfer row carries, or `nil` for the rows that carry none.
+
+  Matched on the icon rather than the title, because the title is copy and
+  copy is translated; the icon is the row's identity. `nil` rather than a
+  no-op tag on purpose — `Kati.ScreenTapSweepTest` reports a tag that reaches
+  nothing, and a row that has nowhere to go should draw no tap at all.
+  """
+  @spec tile_tap(map()) :: {pid(), atom()} | nil
+  def tile_tap(%{icon: "picture_as_pdf"}), do: {self(), :print_week}
+  def tile_tap(_row), do: nil
 
   @doc false
   def tile_trail(%{on: on?}), do: SettingsList.switch(on?)
@@ -331,4 +352,12 @@ defmodule Kati.Screens.PlanShare do
   @doc false
   def person_trail({:toggle, on?}), do: SettingsList.switch(on?)
   def person_trail({:icon, name}), do: Kati.UI.symbol(name, size: 17, color: Palette.rail_idle())
+  # `handle_tap/2` rather than a `handle_info/2` clause: `Kati.Screens.Pushed`
+  # already owns `handle_info/2` and its `:back` clause, and overriding it here
+  # would take the back pill with it. `Kati.Screens.Root.rescue_tap/3` routes
+  # every non-`:back` tag through here — the same shape `Kati.Screens.Plans`
+  # uses for its own two.
+  @impl true
+  def handle_tap(:print_week, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.WeekImage)}
 end

@@ -730,8 +730,12 @@ defmodule Kati.Screens.HomeFa do
   def handle_info({:tap, :open_inbox}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
 
+  # Screen 90, the Persian search, and not screen 19. A Persian root that
+  # pushed an English page would change the app's language out from under the
+  # reader — `Kati.Screens.Fa` records that failure for the آمار tab's old
+  # stand-in, and it is the same failure here.
   def handle_info({:tap, :open_search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchFa)}
 
   def handle_info({:tap, :open_calendar}, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.ScheduleFa)}

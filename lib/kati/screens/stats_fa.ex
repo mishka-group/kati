@@ -68,6 +68,69 @@ defmodule Kati.Screens.StatsFa do
     """
   end
 
+  @doc """
+  اعداد بیشتر — the two rows screen 61 gained with 108 and 127.
+
+  The Persian mirror of screen 07's More numbers list, cut to the two rows that
+  have a Persian page behind them. A row here that pushed an English screen
+  would change the app's language out from under the reader —
+  `Kati.Screens.Fa`'s moduledoc records that failure for the آمار tab's own
+  stand-in — so Activity, Habits, Nutrition and Recently watched are absent
+  rather than linked, and they arrive the day their mirrors do.
+
+  سلامت is the first one to arrive that way. `Kati.Screens.HealthFa` is screen
+  115, the Persian weight-and-doses page, and until it existed there was no
+  Persian route to health at all: the Persian shell's roots are خانه, تقویم,
+  کتابخانه and آمار — `Kati.Screens.Fa.roots/0` — and none of them is a health
+  hub the way English's screen 42 is. This row is that route. `monitor_weight`
+  is the glyph screen 110's board uses for the same page.
+
+  `checklist` and `payments` are the glyphs screen 07 uses for the same two
+  rows, and `chevron_left` is the direction a push goes in Persian.
+  """
+  @spec more_numbers() :: map()
+  def more_numbers do
+    cards =
+      [
+        {"checklist", "اهداف", "۳ هدف فعال", :open_goals},
+        {"payments", "پول", "۴۶٫۴۷ پوند در ماه", :open_money},
+        {"monitor_weight", "سلامت", "۷۶٫۰ کیلوگرم", :open_health}
+      ]
+      |> Enum.map(fn {icon, title, sub, tag} ->
+        Kati.Screens.StatsFa.more_row(icon, title, sub, tag)
+      end)
+
+    assigns = %{cards: cards}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.StatsFa.eyebrow("اعداد بیشتر")}
+      {Kati.UI.SettingsList.card(@cards)}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def more_row(icon, title, sub, tag) do
+    assigns = %{icon: icon, title: title, sub: sub, tap: {self(), tag}}
+
+    Kati.UI.SettingsList.row(
+      Kati.UI.SettingsList.icon_tile(icon),
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.Screens.BookDetailFa.fa(@title, 13.5, :on_surface, weight: "semibold")}
+        <Spacer size={3} />
+        {Kati.Screens.BookDetailFa.fa(@sub, 11.5, Kati.Theme.Palette.sub())}
+      </Column>
+      """,
+      Kati.UI.SettingsList.trailing(
+        Kati.UI.symbol("chevron_left", size: 18, color: Kati.Theme.Palette.rail_idle())
+      ),
+      on_tap: {self(), tag}
+    )
+  end
+
   @doc false
   def content(assigns) do
     year = assigns.year
@@ -89,6 +152,7 @@ defmodule Kati.Screens.StatsFa do
         {Kati.Screens.StatsFa.quiet_eyebrow(year.week_label)}
         {Kati.Screens.StatsFa.week(year)}
         {Kati.Screens.StatsFa.note(year)}
+        {Kati.Screens.StatsFa.more_numbers()}
       </Column>
     </Scroll>
     """
@@ -117,7 +181,7 @@ defmodule Kati.Screens.StatsFa do
             max_lines={1}
           />
         </Column>
-        {Fa.disc("ios_share")}
+        {Fa.disc("ios_share", {self(), :share_year})}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -520,6 +584,20 @@ defmodule Kati.Screens.StatsFa do
   # آمار landed on screen 01, 02 or 03 and left the app in English, LTR, with
   # no way back to Persian except Settings. The tags are identical either way,
   # so nothing about the drawn bar changes — only which four screens it means.
+  # The share disc, and the Persian card page rather than the English one — the
+  # same rule `Kati.Screens.HomeFa` follows for its search field.
+  def handle_info({:tap, :share_year}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.YearShareFa)}
+
+  def handle_info({:tap, :open_goals}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.GoalsFa)}
+
+  def handle_info({:tap, :open_money}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MoneyFa)}
+
+  def handle_info({:tap, :open_health}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.HealthFa)}
+
   def handle_info({:tap, tag}, socket), do: Kati.Screens.Fa.dock_tap(tag, :stats, socket)
 
   def handle_info(_message, socket), do: {:noreply, socket}

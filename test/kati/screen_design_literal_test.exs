@@ -125,7 +125,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 97)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
   # tier. Today: 7, all of them rating rows the drawing writes as one run of
@@ -133,6 +133,22 @@ defmodule Kati.ScreenDesignLiteralTest do
   # more copy that is only checked with its spacing thrown away, which is a
   # decision rather than a fix.
   @squashed_budget 20
+
+  # The floor above is 5 because a frame that yields fewer than five strings is
+  # almost always the extractor having matched nothing. One drawing genuinely
+  # holds fewer, and it is the one screen in the app that is *supposed* to be
+  # nearly wordless: 65, the launch screen, which is a mark, a wordmark in two
+  # scripts and a byline. Its floor is its exact count, so a literal going
+  # missing from it still fails here — the exemption lowers the bar to what the
+  # frame has, it does not remove it.
+  @sparse %{"65" => 4}
+
+  # The same screen, for the same reason, against the symbol assertion below.
+  # 65 is a mark, a wordmark and a byline on a paper ground; it draws no
+  # Material Symbol because a launch screen has no controls to put one on. It
+  # is listed rather than the assertion softened, so every other drawing still
+  # has to yield at least one.
+  @symbolless ["65"]
 
   describe "the registry" do
     test "every drawing has a screen, and every screen but the gallery has a drawing" do
@@ -143,8 +159,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 106,
-             "expected 106 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 127,
+             "expected 127 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -208,12 +224,13 @@ defmodule Kati.ScreenDesignLiteralTest do
                    "`max-width:380px` blocks; the frame is split at the first, so a second " <>
                    "one earlier in the file would truncate the screen to nothing"
 
-          assert length(design.text) >= 5,
+          assert length(design.text) >= Map.get(@sparse, number, 5),
                  "screen #{number}'s drawing yielded only #{length(design.text)} literals " <>
                    "(#{inspect(design.text)}) — the frame is 13KB of markup, so this is the " <>
                    "extractor failing, not a sparse screen"
 
-          assert design.icons != [], "screen #{number}'s drawing yielded no Material Symbols"
+          assert design.icons != [] or number in @symbolless,
+                 "screen #{number}'s drawing yielded no Material Symbols"
 
           {length(design.text), length(design.icons)}
         end
@@ -377,7 +394,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # clock. Same category as screens 01, 02 and 09's date lines and pinned
       # the same way — the pattern carries today's day of the month, so a sheet
       # that hardcoded 16 August would fail on every other day.
-      assert length(device_values()) <= 17,
+      #
+      # Raised to 18 for screen 115's direction note, which is the second entry
+      # of the flag's kind rather than the clock's: the board's sentence says
+      # today's column is on the right and the board's own bars put it on the
+      # left. Its pattern insists on the corrected word, so the entry checks
+      # something rather than merely excusing it.
+      assert length(device_values()) <= 18,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -461,6 +484,22 @@ defmodule Kati.ScreenDesignLiteralTest do
          "derives the emoji from the ISO country code, so the row draws the Dutch flag and " <>
          "cannot draw the wrong one for any country — reproducing the slip to satisfy this " <>
          "sweep would be shipping a wrong flag to keep a test quiet", ~r/^🇳🇱$/u},
+      # 115's direction note. Same shape as 94's flag directly above: the board
+      # says *…و ستون امروز در سمت راست است* — today's column is on the right —
+      # and its own bars put the ink one at the left, because
+      # `Kati.Screens.Weight.bars/0` returns them oldest-first and an `rtl` row
+      # lays the first child out at the right edge. `Kati.Screens.HealthFa`'s
+      # moduledoc carries the full argument. The pattern insists on چپ rather
+      # than accepting either word, so a revert to the board's راست fails here.
+      {"115",
+       "نمودار از راست به چپ خوانده می‌شود و ستون امروز در سمت راست است. " <>
+         "اعداد وزن در dm mono با ارقام فارسی و جداکننده اعشار",
+       "the board's own chart contradicts this sentence: the ink bar is the last child of " <>
+         "an `rtl` row and lands at the left, and the axis prints امروز under it. A note " <>
+         "pointing at the wrong end of the chart is wrong to everyone who reads the screen, " <>
+         "where the DM Mono clause in the same sentence is a claim about a font subset that " <>
+         "no reader can check — so that half is reproduced and this half is corrected",
+       ~r/^نمودار از راست به چپ .+ ستون امروز در سمت چپ است\./u},
       {"111", "16 august, 07:42",
        "the sheet's `Today` row is `Kati.Screens.LogWeight.taken_line/0`, which formats " <>
          "`Kati.Time.now/0`. The drawing froze one device's minute; what the row promises is " <>

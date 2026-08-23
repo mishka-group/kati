@@ -132,7 +132,28 @@ defmodule Kati.Screens.Gallery do
     {"96", "Nothing set up — knock-on", Kati.Screens.NothingSetUpKnockOn, :push},
     {"97", "سرویس‌های من", Kati.Screens.MyServicesFa, :push},
     {"99", "Your year — Books", Kati.Screens.YearShareBooks, :push},
-    {"101", "Year cards — states", Kati.Screens.YearCardsStates, :push}
+    {"101", "Year cards — states", Kati.Screens.YearCardsStates, :push},
+    {"87", "Search — typing", Kati.Screens.SearchTyping, :push},
+    {"89", "Search — result states", Kati.Screens.SearchResultStates, :push},
+    {"90", "جست‌وجو", Kati.Screens.SearchFa, :push},
+    {"91", "Search at 235%", Kati.Screens.SearchLarge, :push},
+    {"102", "Your year, shared — dark", Kati.Screens.YearShareDark, :push},
+    {"103", "سال شما", Kati.Screens.YearShareFa, :push},
+    {"105", "Goals — empty", Kati.Screens.GoalsEmpty, :push},
+    {"110", "Weight — states", Kati.Screens.WeightStates, :push},
+    {"113", "Health hub — empty", Kati.Screens.HealthEmptyStates, :push},
+    {"107", "Goal states", Kati.Screens.GoalStates, :push},
+    {"108", "اهداف", Kati.Screens.GoalsFa, :push},
+    {"114", "Retired tile", Kati.Screens.RetiredTile, :push},
+    {"117", "Meal library — empty", Kati.Screens.MealLibraryEmpty, :push},
+    {"120", "Import a plan", Kati.Screens.PlanImport, :push},
+    {"123", "Money — states", Kati.Screens.MoneyStates, :push},
+    {"115", "سلامت", Kati.Screens.HealthFa, :push},
+    {"121", "The week as an image", Kati.Screens.WeekImage, :push},
+    {"127", "پول", Kati.Screens.MoneyFa, :push},
+    {"63", "iOS home screen", Kati.Screens.MarkIos, :push},
+    {"64", "Android home screen", Kati.Screens.MarkAndroid, :push},
+    {"65", "Launch screen", Kati.Screens.LaunchScreen, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

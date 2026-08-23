@@ -892,18 +892,35 @@ defmodule Kati.Screens.Health do
   def tile_gap, do: ~MOB"<Spacer size={12} />"
 
   @doc """
-  Where a tile goes, or `nil` for a section that has no screen.
+  Where a tile goes.
 
-  `nil` rather than an inert tag: a tag nothing answers is reported as a dead
-  tap, and Sleep and Workouts are not dead — they are unbuilt, which their
-  dashed outline already says.
+  Four sections have their own screen. The two that do not — Sleep and Workouts
+  — open screen 114, the explainer behind a tile that reads `Not set up`, which
+  is a better answer than a tile that swallows the press. The dashed outline
+  still says *not built*; the tap says *and here is why*.
   """
   @spec tile_tap(String.t()) :: {pid(), atom()} | nil
   def tile_tap("Meals"), do: {self(), :open_meals}
   def tile_tap("Habits"), do: {self(), :open_habits}
   def tile_tap("Weight"), do: {self(), :open_weight}
   def tile_tap("Medication"), do: {self(), :open_medication}
-  def tile_tap(_unbuilt), do: nil
+
+  # Sleep and Workouts are still unbuilt, and now they say so out loud: screen
+  # 114 is the explainer behind a tile that reads `Not set up`, which is a
+  # better answer than a tile that swallows the press. The dashed outline still
+  # says *not built*; the tap says *and here is why, and what it would take*.
+  def tile_tap(_unbuilt), do: {self(), :open_retired}
+
+  @doc """
+  Whether a section has a screen of its own.
+
+  The question `tile_tap/1` used to answer by returning `nil`, and stopped
+  answering when the unbuilt tiles gained screen 114. Screen 114 itself needs
+  it — it lists exactly the sections that are not built — so it is a predicate
+  rather than an accident of the tap map.
+  """
+  @spec built?(String.t()) :: boolean()
+  def built?(name), do: name in ["Meals", "Habits", "Weight", "Medication"]
 
   @doc false
   def tile(%{on?: true} = section) do
@@ -951,6 +968,7 @@ defmodule Kati.Screens.Health do
       border_width={1.5}
       border_color={Palette.border_soft()}
       padding={16}
+      on_tap={Kati.Screens.Health.tile_tap(section.name)}
     >
       <Row fill_width={true} align="center">
         {Kati.UI.symbol(section.icon, size: 22, color: Palette.tertiary())}
@@ -1016,6 +1034,9 @@ defmodule Kati.Screens.Health do
 
   def handle_tap(:open_habits, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+
+  def handle_tap(:open_retired, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile)}
 
   def handle_tap(:open_services, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}

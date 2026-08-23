@@ -396,6 +396,24 @@ defmodule Kati.ScreenTapSweepTest do
     # Screen 97's third rule, the Persian mirror of 92's — the same `Mob.State`
     # blind spot the English entries above record.
     {Kati.Screens.MyServicesFa, :rule_hide_unavailable},
+    # The opening chip on each of the four screens the third batch added. Same
+    # already-selected case as every other family above: 87 and 90 open on All,
+    # and 102 and 103 are 98's board with its own opening scope and ratio.
+    {Kati.Screens.SearchTyping, :scope_All},
+    {Kati.Screens.SearchFa, :scope_all},
+    {Kati.Screens.YearShareDark, :scope_All},
+    {Kati.Screens.YearShareDark, :aspect_square},
+    {Kati.Screens.YearShareFa, :scope_All},
+    {Kati.Screens.YearShareFa, :aspect_square},
+    # Screen 113 draws screen 42's Meals tile as one of the states it is about.
+    # A picture of a tile, not a tile.
+    {Kati.Screens.HealthEmptyStates, :open_meals},
+    # Screen 115's dose buttons and its opening range. The two writes land on
+    # the first undecided dose of the day and there are none on an empty
+    # database, which is the same no-op screen 112's English entries record.
+    {Kati.Screens.HealthFa, :mark_taken},
+    {Kati.Screens.HealthFa, :mark_skipped},
+    {Kati.Screens.HealthFa, :range_month},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     {Kati.Screens.Medication, :toggle_dose},
@@ -453,7 +471,17 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Nutrition, :share},
     {Kati.Screens.Rating, :add_tag},
     {Kati.Screens.ScheduleFa, :open_menu},
-    {Kati.Screens.Subscriptions, :open_menu}
+    {Kati.Screens.Subscriptions, :open_menu},
+    # ── Blocked on a capability the app does not have. Screen 121 is the week
+    # rendered as one printable page, and its button says Save image. Kati can
+    # put a file into `ACTION_CREATE_DOCUMENT` or `ACTION_SEND` —
+    # `Kati.Native.Files.save_as/2` and `share/2` — but it has no way to turn a
+    # rendered screen into a bitmap to hand them, and no screen in the app does:
+    # `Kati.Screens.YearCards.handle_tap/2` stubs its own save for exactly the
+    # same reason. The tap is drawn because the button is drawn, and the button
+    # is drawn because it is on the board. It stops being inert the day the
+    # bridge gains a screen-to-bitmap call, and not before.
+    {Kati.Screens.WeekImage, :save_image}
   ]
 
   test "both locales are swept" do

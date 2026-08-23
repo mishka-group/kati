@@ -257,7 +257,40 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"93", Kati.Screens.MyServicesEmpty},
     {"95", Kati.Screens.MyServicesStates},
     {"96", Kati.Screens.NothingSetUpKnockOn},
-    {"97", Kati.Screens.MyServicesFa}
+    {"97", Kati.Screens.MyServicesFa},
+    # The Persian search and the two year-card twins. Each gates on the pair its
+    # primary gates on, for the reason every mirror in this list does.
+    {"90", Kati.Screens.SearchFa},
+    {"102", Kati.Screens.YearShareDark},
+    {"103", Kati.Screens.YearShareFa},
+    {"105", Kati.Screens.GoalsEmpty},
+    {"110", Kati.Screens.WeightStates},
+    {"113", Kati.Screens.HealthEmptyStates},
+    {"107", Kati.Screens.GoalStates},
+    {"108", Kati.Screens.GoalsFa},
+    {"114", Kati.Screens.RetiredTile},
+    {"117", Kati.Screens.MealLibraryEmpty},
+    {"123", Kati.Screens.MoneyStates},
+    # 115 is the Persian weight-and-doses page, and 61 joined the moment its
+    # More numbers rows started counting real goals and services.
+    {"115", Kati.Screens.HealthFa},
+    {"61", Kati.Screens.StatsFa},
+    # Screen 120 is deliberately NOT here. `Kati.Screens.PlanImport` draws the
+    # import flow entirely from its own literals — no store, no Sample module —
+    # so rendering it against an empty database would assert nothing, and the
+    # derivation below says so. The render and literal sweeps still cover it.
+    #
+    # The four pictures. None of these reads anything itself — each is a frame
+    # drawn from another screen's `drawn_*` value — and each lands here anyway
+    # because the derivation reads the compiled import table, which cannot tell
+    # calling `Kati.Screens.Lock.drawn_widgets/0` from calling
+    # `Kati.Screens.Lock.widgets/0`. That is the right way round: what these
+    # four depend on is precisely that the borrowed pair still agrees on an
+    # empty database, and their gates below ask exactly that.
+    {"121", Kati.Screens.WeekImage},
+    {"127", Kati.Screens.MoneyFa},
+    {"63", Kati.Screens.MarkIos},
+    {"64", Kati.Screens.MarkAndroid}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -911,6 +944,43 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MyServices.drawn/0},
       {"97", Kati.Screens.MyServicesFa, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
+      {"90", Kati.Screens.SearchFa, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"102", Kati.Screens.YearShareDark, &Kati.Screens.AlbumDetail.field/0,
+       &Kati.Music.Sample.listen_field/0},
+      {"103", Kati.Screens.YearShareFa, &Kati.Screens.AlbumDetail.field/0,
+       &Kati.Music.Sample.listen_field/0},
+      {"105", Kati.Screens.GoalsEmpty, &Kati.Screens.Goals.goals/0,
+       &Kati.Screens.Goals.drawn_goals/0},
+      {"110", Kati.Screens.WeightStates, &Kati.Screens.Weight.entries/0,
+       &Kati.Screens.Weight.drawn_entries/0},
+      {"113", Kati.Screens.HealthEmptyStates, fn -> Kati.Screens.Health.day(today) end,
+       &Kati.Screens.Health.drawn_day/0},
+      {"107", Kati.Screens.GoalStates, &Kati.Screens.Goals.goals/0,
+       &Kati.Screens.Goals.drawn_goals/0},
+      {"108", Kati.Screens.GoalsFa, &Kati.Screens.Goals.goals/0,
+       &Kati.Screens.Goals.drawn_goals/0},
+      {"114", Kati.Screens.RetiredTile, fn -> Kati.Screens.Health.day(today) end,
+       &Kati.Screens.Health.drawn_day/0},
+      {"117", Kati.Screens.MealLibraryEmpty, &Kati.Screens.MealLibrary.meals/0,
+       &Kati.Screens.MealLibrary.drawn_meals/0},
+      {"123", Kati.Screens.MoneyStates, &Kati.Screens.Money.months/0,
+       &Kati.Screens.Money.drawn_months/0},
+      {"115", Kati.Screens.HealthFa, &Kati.Screens.Weight.entries/0,
+       &Kati.Screens.Weight.drawn_entries/0},
+      {"61", Kati.Screens.StatsFa, &Kati.Screens.Goals.goals/0,
+       &Kati.Screens.Goals.drawn_goals/0},
+      # The four pictures, each gated on the pair it borrows rather than on a
+      # read of its own — the same shape 120 already uses. 121 draws 44's week
+      # grid, 127 draws 122's months, and 63 and 64 both draw 28's lock widgets.
+      {"121", Kati.Screens.WeekImage, fn -> Kati.Screens.MealPlan.plan(today) end,
+       &Kati.Screens.MealPlan.drawn_plan/0},
+      {"127", Kati.Screens.MoneyFa, &Kati.Screens.Money.months/0,
+       &Kati.Screens.Money.drawn_months/0},
+      {"63", Kati.Screens.MarkIos, &Kati.Screens.Lock.widgets/0,
+       &Kati.Screens.Lock.drawn_widgets/0},
+      {"64", Kati.Screens.MarkAndroid, &Kati.Screens.Lock.widgets/0,
+       &Kati.Screens.Lock.drawn_widgets/0},
       {"42", Kati.Screens.Health, fn -> Kati.Screens.Health.day(today) end,
        &Kati.Screens.Health.drawn_day/0},
       {"43", Kati.Screens.MealsToday, fn -> Kati.Screens.MealsToday.day(today) end,
@@ -1007,6 +1077,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.ScreenDesignLiteralTest` for the full reasoning — reproducing the
       # slip would mean shipping a wrong flag to keep a sweep quiet.
       {"94", "🇰🇭", ~r/^🇳🇱$/u},
+      # 115's direction note, which is the second board slip this list carries
+      # and the same shape as 94's flag: the board writes *…و ستون امروز در سمت
+      # راست است* — today's column is on the right — and its own bars put the
+      # ink one at the left, because they are laid out oldest-first inside an
+      # `rtl` row. `Kati.Screens.HealthFa`'s moduledoc has the full reasoning.
+      # Reproducing the slip would ship a direction note pointing at the wrong
+      # end of the chart, which every reader of the screen can check.
+      #
+      # The pattern insists on چپ rather than accepting either word, so a revert
+      # to the board's راست fails here instead of quietly passing.
+      {"115",
+       "نمودار از راست به چپ خوانده می‌شود و ستون امروز در سمت راست است. " <>
+         "اعداد وزن در dm mono با ارقام فارسی و جداکننده اعشار",
+       ~r/^نمودار از راست به چپ .+ ستون امروز در سمت چپ است\./u},
       # 111's `Today` row prints the device's clock. See
       # `Kati.ScreenDesignLiteralTest` for the full reasoning.
       {"111", "16 august, 07:42", ~r/^#{day} \p{L}+, \d{2}:\d{2}$/u},
