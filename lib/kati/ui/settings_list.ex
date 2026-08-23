@@ -322,9 +322,9 @@ defmodule Kati.UI.SettingsList do
   end
 
   @doc "A row's title, with the design's 11.5pt secondary line under it when there is one."
-  def body(title, sub \\ nil)
+  def body(title, sub \\ nil, opts \\ [])
 
-  def body(title, nil) do
+  def body(title, nil, _opts) do
     ~MOB"""
     <Text
       text={title}
@@ -336,7 +336,25 @@ defmodule Kati.UI.SettingsList do
     """
   end
 
-  def body(title, sub) do
+  def body(title, sub, opts) do
+    # ONE LINE IS RIGHT FOR A SETTING AND WRONG FOR AN EXPLANATION.
+    #
+    # Every settings row in the 127 drawings has a sub-line that fits: `English
+    # · فارسی`, `Permissions and storage`, `renews 18 Aug · 41h watched`. So the
+    # default is one line and truncation is the correct behaviour — a settings
+    # list whose rows grew to three lines each would stop being scannable.
+    #
+    # The diagnostic (#26) is the exception, and it was caught on device rather
+    # than in a test: its rows carry the *reason* a notification did not
+    # arrive — "Denied, Kati still arms the alarm and the phone never displays
+    # it. Nothing reports the failure." — and a row that truncates that has
+    # deleted the only thing on the page worth reading. The screenshot showed
+    # `…the phone …` and stopped.
+    #
+    # `lines:` rather than a second function, so the call site says how many
+    # lines this particular sentence needs and every other row keeps its one.
+    lines = Keyword.get(opts, :lines, 1)
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
@@ -347,7 +365,13 @@ defmodule Kati.UI.SettingsList do
         max_lines={1}
       />
       <Spacer size={3} />
-      <Text text={sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+      <Text
+        text={sub}
+        text_size={11.5}
+        line_height={1.4}
+        text_color={Palette.sub()}
+        max_lines={lines}
+      />
     </Column>
     """
   end

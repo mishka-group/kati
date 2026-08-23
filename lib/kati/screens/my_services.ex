@@ -311,7 +311,7 @@ defmodule Kati.Screens.MyServices do
         ),
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("add"),
-          Kati.UI.SettingsList.body("Something else", "Kati will remember it for your subscription total, but cannot tell you what is on it"),
+          Kati.UI.SettingsList.body("Something else", "Kati will remember it for your subscription total, but cannot tell you what is on it", lines: 3),
           Kati.UI.SettingsList.trailing(nil),
           on_tap: {self(), :add_service}
         )
@@ -328,7 +328,7 @@ defmodule Kati.Screens.MyServices do
       Enum.map(@rules, fn {key, title, why} ->
         SettingsList.row(
           nil,
-          SettingsList.body(title, why),
+          SettingsList.body(title, why, lines: 3),
           SettingsList.trailing(SettingsList.switch(Map.fetch!(rules, key))),
           on_tap: {self(), String.to_atom("rule_#{key}")}
         )

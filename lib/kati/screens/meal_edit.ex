@@ -279,7 +279,7 @@ defmodule Kati.Screens.MealEdit do
       align="center"
       on_tap={{self(), :add_photo}}
     >
-      {Kati.UI.symbol("add_a_photo", size: 19, color: Palette.ink_soft())}
+      {Kati.UI.symbol("add", size: 19, color: Palette.ink_soft())}
       <Spacer size={11} />
       <Text
         text="Add a meal photo"
@@ -540,12 +540,12 @@ defmodule Kati.Screens.MealEdit do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("event_upcoming"),
-          Kati.UI.SettingsList.body("Changes take effect next Monday", "This week’s plan keeps the meal as it was"),
+          Kati.UI.SettingsList.body("Changes take effect next Monday", "This week’s plan keeps the meal as it was", lines: 2),
           Kati.UI.SettingsList.trailing(Kati.Screens.MealEdit.default_badge())
         ),
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("history"),
-          Kati.UI.SettingsList.body("Keep the history", "Past days keep the old numbers — nothing is recalculated"),
+          Kati.UI.SettingsList.body("Keep the history", "Past days keep the old numbers — nothing is recalculated", lines: 2),
           Kati.UI.SettingsList.trailing(Kati.Screens.MealEdit.default_badge())
         )
       ])}

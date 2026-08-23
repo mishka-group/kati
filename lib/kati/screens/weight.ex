@@ -161,7 +161,7 @@ defmodule Kati.Screens.Weight do
   """
   @spec hero(map()) :: map()
   def hero(latest) do
-    icon = if latest.direction == :down, do: "arrow_drop_down", else: "arrow_drop_up"
+    icon = if latest.direction == :down, do: "arrow_downward", else: "arrow_drop_up"
     colour = if latest.direction == :down, do: Palette.green_text(), else: Palette.gold_text()
     assigns = %{latest: latest, icon: icon, colour: colour}
 

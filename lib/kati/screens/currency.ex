@@ -271,7 +271,7 @@ defmodule Kati.Screens.Currency do
       {Kati.UI.eyebrow("Changing it", dash: Kati.Theme.Palette.bronze())}
       <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
         <Row fill_width={true} align="center">
-          {Kati.UI.symbol("warning", size: 18, color: Palette.gold_icon())}
+          {Kati.UI.symbol("error", size: 18, color: Palette.gold_icon())}
           <Spacer size={11} />
           <Text
             text={@title}

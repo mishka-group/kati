@@ -118,7 +118,8 @@ defmodule Kati.Screens.NotificationsHelp do
         SettingsList.icon_tile("notifications"),
         SettingsList.body(
           "Push is off until you ask",
-          "Kati shows a badge on the bell instead. Nothing here is broken by that."
+          "Kati shows a badge on the bell instead. Nothing here is broken by that.",
+          lines: 3
         ),
         SettingsList.trailing(Kati.Screens.NotificationsHelp.status("By design", :neutral))
       ),
@@ -126,7 +127,8 @@ defmodule Kati.Screens.NotificationsHelp do
         SettingsList.icon_tile("bedtime"),
         SettingsList.body(
           "Quiet hours 23:00 – 08:00",
-          "A reminder inside them moves to the morning. It is never dropped."
+          "A reminder inside them moves to the morning. It is never dropped.",
+          lines: 3
         ),
         SettingsList.trailing(Kati.Screens.NotificationsHelp.status("Shifting", :neutral))
       ),
@@ -134,7 +136,8 @@ defmodule Kati.Screens.NotificationsHelp do
         SettingsList.icon_tile("inbox"),
         SettingsList.body(
           "Held back right now",
-          Kati.Screens.NotificationsHelp.held_line(groups.held)
+          Kati.Screens.NotificationsHelp.held_line(groups.held),
+          lines: 3
         ),
         SettingsList.trailing(SettingsList.chevron()),
         on_tap: {self(), :open_inbox}
@@ -191,7 +194,12 @@ defmodule Kati.Screens.NotificationsHelp do
         SettingsList.icon_tile("bolt"),
         SettingsList.body(
           "Battery optimisation",
-          "Some phones stop background work in ways an app cannot detect. If reminders are late or missing, this is the first place to look."
+          "Some phones stop background work in ways an app cannot detect. If reminders are late or missing, this is the first place to look.",
+          # Five, not four: this row's sub shares its width with an
+          # `Open settings` pill, so it wraps narrower than the rows above it.
+          # Counted from the device rather than guessed — the screenshot showed
+          # `…this is the fi…` at four.
+          lines: 5
         ),
         SettingsList.trailing(SettingsList.action_pill("Open settings")),
         on_tap: {self(), :open_battery}
@@ -200,7 +208,8 @@ defmodule Kati.Screens.NotificationsHelp do
         SettingsList.icon_tile("timer"),
         SettingsList.body(
           "After a restart",
-          "Kati re-arms everything still due. Anything that was due while the phone was off is gone — it cannot be delivered late."
+          "Kati re-arms everything still due. Anything that was due while the phone was off is gone — it cannot be delivered late.",
+          lines: 5
         ),
         SettingsList.trailing(Kati.Screens.NotificationsHelp.status("Re-armed", :good))
       )
@@ -218,7 +227,7 @@ defmodule Kati.Screens.NotificationsHelp do
   def permission_row(icon, title, why, state) do
     SettingsList.row(
       SettingsList.icon_tile(icon),
-      SettingsList.body(title, why),
+      SettingsList.body(title, why, lines: 4),
       SettingsList.trailing(Kati.Screens.NotificationsHelp.permission_trailing(state)),
       on_tap: Kati.Screens.NotificationsHelp.permission_tap(state)
     )

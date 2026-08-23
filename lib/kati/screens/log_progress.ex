@@ -437,7 +437,7 @@ defmodule Kati.Screens.LogProgress do
       [{"That’s ", body}, {Kati.Screens.LogProgress.delta_line(b, page), strong}] ++
         Kati.Screens.LogProgress.duration_runs(body, strong)
 
-    Sheet.insight("insights", runs)
+    Sheet.insight("lightbulb", runs)
   end
 
   @doc """

@@ -320,7 +320,7 @@ defmodule Kati.Screens.Money do
   def delta(%{delta: nil}), do: []
 
   def delta(month) do
-    icon = if month.direction == :up, do: "trending_up", else: "trending_down"
+    icon = if month.direction == :up, do: "trending_up", else: "arrow_downward"
     colour = if month.direction == :up, do: Palette.red(), else: Palette.green_text()
     assigns = %{icon: icon, colour: colour, delta: month.delta}
 

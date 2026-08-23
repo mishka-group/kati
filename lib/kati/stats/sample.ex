@@ -35,7 +35,7 @@ defmodule Kati.Stats.Sample do
       # Goals joined this list with screen 104, and Subscriptions became Money:
       # screen 122 is the wider page — the same four services plus the one-off
       # expenses quick-add writes — and screen 23 is still one tap further in.
-      %{icon: "flag", title: "Goals", sub: "3 active · 38 of 52 books"},
+      %{icon: "checklist", title: "Goals", sub: "3 active · 38 of 52 books"},
       %{icon: "payments", title: "Money", sub: "£46.47 a month · 7 expenses"},
       %{icon: "movie", title: "Recently watched", sub: "The Long Hollow · 2h ago"}
     ]

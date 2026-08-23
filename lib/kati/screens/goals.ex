@@ -331,7 +331,7 @@ defmodule Kati.Screens.Goals do
   def drift(%{drift: nil}), do: []
 
   def drift(goal) do
-    icon = if goal.pace == :ahead, do: "arrow_drop_up", else: "arrow_drop_down"
+    icon = if goal.pace == :ahead, do: "arrow_drop_up", else: "arrow_downward"
     colour = if goal.pace == :ahead, do: Palette.green_text(), else: Palette.gold_text()
     assigns = %{icon: icon, colour: colour, label: goal.drift}
 
@@ -398,13 +398,13 @@ defmodule Kati.Screens.Goals do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("repeat"),
-          Kati.UI.SettingsList.body("Repeat each period", "A yearly goal restarts on 1 January, indefinitely"),
+          Kati.UI.SettingsList.body("Repeat each period", "A yearly goal restarts on 1 January, indefinitely", lines: 2),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.switch(repeat?)),
           on_tap: {self(), :toggle_repeat}
         ),
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("bolt"),
-          Kati.UI.SettingsList.body("Habits", "“Read every day” is a habit. “Read 52 books” is a goal."),
+          Kati.UI.SettingsList.body("Habits", "“Read every day” is a habit. “Read 52 books” is a goal.", lines: 2),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :open_habits}
         )

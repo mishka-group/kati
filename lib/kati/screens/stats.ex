@@ -269,9 +269,14 @@ defmodule Kati.Screens.Stats do
   would be actively false rather than merely approximate. The drawn figures
   carry `rising?: true`, so frame 07 is unchanged.
   """
+  # `arrow_downward` and not `arrow_drop_down`, which is the glyph this drew
+  # until the drawings were re-exported against Kati's font subset. The subset
+  # holds `arrow_drop_up` and not its twin, so the falling branch — reachable
+  # only when a real year is down on the last, and therefore never captured —
+  # was a tofu box waiting to happen.
   @spec arrow(map()) :: map()
   def arrow(%{rising?: false}),
-    do: Kati.UI.symbol("arrow_drop_down", size: 14, color: Palette.green_text(), fill: true)
+    do: Kati.UI.symbol("arrow_downward", size: 14, color: Palette.green_text(), fill: true)
 
   def arrow(_year),
     do: Kati.UI.symbol("arrow_drop_up", size: 14, color: Palette.green_text(), fill: true)

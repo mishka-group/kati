@@ -352,7 +352,7 @@ defmodule Kati.Screens.LogListen do
     tracks = Kati.Screens.LogListen.chosen_count(assigns)
     minutes = Kati.Screens.LogListen.chosen_minutes(assigns)
 
-    Sheet.insight("insights", [
+    Sheet.insight("lightbulb", [
       {"That’s ", body},
       {"#{tracks} #{if tracks == 1, do: "track", else: "tracks"}", strong},
       {" · ", body},

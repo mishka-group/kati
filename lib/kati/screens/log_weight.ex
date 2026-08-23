@@ -282,10 +282,10 @@ defmodule Kati.Screens.LogWeight do
 
         cond do
           diff == 0 ->
-            {"insights", "No change", "from your last reading, #{ago}."}
+            {"lightbulb", "No change", "from your last reading, #{ago}."}
 
           diff < 0 ->
-            {"trending_down", Reading.display(abs(diff), unit) <> " down",
+            {"arrow_downward", Reading.display(abs(diff), unit) <> " down",
              "from your last reading, #{ago}."}
 
           true ->
@@ -435,9 +435,9 @@ defmodule Kati.Screens.LogWeight do
   def drawn_change do
     if Kati.Screens.Weight.entries() == Kati.Screens.Weight.drawn_entries() do
       c = WeightSample.confirmation()
-      {"trending_down", c.lead, c.tail}
+      {"arrow_downward", c.lead, c.tail}
     else
-      {"insights", "Your first reading", "— there is nothing to compare it with yet."}
+      {"lightbulb", "Your first reading", "— there is nothing to compare it with yet."}
     end
   end
 

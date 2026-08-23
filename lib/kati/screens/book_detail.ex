@@ -755,7 +755,7 @@ defmodule Kati.Screens.BookDetail do
 
   defp series_row(b) do
     SettingsList.row(
-      SettingsList.icon_tile("auto_stories"),
+      SettingsList.icon_tile("menu_book"),
       SettingsList.body(b.series_line, b.series_next),
       SettingsList.trailing(SettingsList.chevron()),
       on_tap: {self(), :open_series}

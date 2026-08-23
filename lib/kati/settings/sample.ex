@@ -115,7 +115,7 @@ defmodule Kati.Settings.Sample do
       %{icon: "upload", title: "Export everything", sub: "Last backup 14 Aug", control: :chevron},
       %{icon: "sync", title: "Sync", sub: "iCloud · this device + iPad", control: :chevron},
       %{
-        icon: "database",
+        icon: "dns",
         title: "Data sources",
         sub: "TVmaze, Open Library, MusicBrainz · 3 reachable",
         control: :chevron
@@ -175,7 +175,7 @@ defmodule Kati.Settings.Sample do
         control: :chevron
       },
       %{
-        icon: "copyright",
+        icon: "info",
         title: "Where this comes from",
         sub: "Sources and licences",
         control: :chevron

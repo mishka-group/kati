@@ -167,7 +167,7 @@ defmodule Kati.Screens.AddIngredient do
       Enum.map(SampleLibrary.nutrition_paths(), fn path ->
         SettingsList.row(
           SettingsList.icon_tile(path.icon),
-          SettingsList.body(path.title, path.sub),
+          SettingsList.body(path.title, path.sub, lines: 2),
           SettingsList.trailing(Kati.Screens.AddIngredient.path_trailing(path.built?)),
           on_tap: Kati.Screens.AddIngredient.path_tap(path.built?)
         )

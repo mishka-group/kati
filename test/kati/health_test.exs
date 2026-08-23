@@ -163,7 +163,7 @@ defmodule Kati.HealthTest do
 
       {icon, lead, tail} = LogWeight.change(76_000)
 
-      assert icon == "trending_down"
+      assert icon == "arrow_downward"
       assert lead == "0.4 kg down"
       assert tail =~ "three days ago"
     end
@@ -173,7 +173,7 @@ defmodule Kati.HealthTest do
 
       {icon, lead, _tail} = LogWeight.change(76_000)
 
-      assert icon == "insights"
+      assert icon == "lightbulb"
       assert lead == "Your first reading"
     end
 

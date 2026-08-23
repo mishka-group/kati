@@ -242,7 +242,7 @@ defmodule Kati.Screens.ArtistDetail do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("notifications"),
-          Kati.UI.SettingsList.body("Following", a.following_note),
+          Kati.UI.SettingsList.body("Following", a.following_note, lines: 2),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.switch(a.following)),
           on_tap: {self(), :toggle_following}
         )

@@ -271,7 +271,7 @@ defmodule Kati.Screens.DataSources do
     """
   end
 
-  def connect_control(false, true), do: UI.symbol("expand_less", size: 20)
+  def connect_control(false, true), do: UI.symbol("expand_more", size: 20)
 
   def connect_control(false, false) do
     ~MOB"""
