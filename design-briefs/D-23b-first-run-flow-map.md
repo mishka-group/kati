@@ -1,3 +1,9 @@
+> **SUPERSEDED — the board existed all along.** Claude Design drew screen 134
+> at 1720px as plain `div`s rather than as an `IOSDevice` frame, which is what
+> this brief asked for. The slicer here counted `<x-import>` boundaries and so
+> could not see a board with no phone in it, and reported it missing. Kept as
+> the record of the wrong call; nothing here needs drawing.
+
 # The first-run flow map — the one board that is missing
 
 > **One artboard, and it is not a phone screen** · issue [#11](https://github.com/mishka-group/kati/issues/11) · ticket `D-23b`

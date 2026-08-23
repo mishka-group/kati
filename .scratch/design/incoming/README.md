@@ -1,6 +1,6 @@
 # Drawn, sliced, not yet built
 
-Twenty-five artboards from the 23 August export, staged here rather than in
+Twenty-six artboards from the 23 August export, staged here rather than in
 `screens/` because `Kati.ScreenDesignLiteralTest` treats every file in that
 directory as the claim *a screen exists for this and renders every literal in
 it*. Putting them there before the screens exist would make the suite red for
@@ -21,6 +21,7 @@ its `Kati.Screens.Gallery` entry.
 | 136 | Loudness → the OS prompt | `D-23` |
 | 137 | راه‌اندازی — onboarding, RTL | `D-23` |
 | 138 | Onboarding at 235% | `D-23` |
+| 134 | First run — the flow map | `D-23` |
 | 139 | Home — nothing set up | `D-23` |
 | 140 | Import — where are you coming from | `D-24` |
 | 141 | Import — recognised | `D-24` |
@@ -37,13 +38,26 @@ its `Kati.Screens.Gallery` entry.
 | 152 | Anime — a type, not a section | `D-29` |
 | 153 | Numbering — inherited and overridden | `D-29` |
 
-**134 is missing on purpose, and is the one thing to go back to Claude Design
-for.** `D-23`'s deliverable was *"First run — the flow map"*, and the export
-carries its caption with no frame behind it. The brief said a map may take
-whatever width it needs, so it is likely to have been skipped as not fitting
-the 402×874 artboard convention rather than forgotten. It is the artboard that
-answers *where does a killed app resume* and *which screen is step 1*, which is
-the whole reason #11 was opened.
+**134 is not a phone, and my splitter could not see it.** The brief said a map
+may take whatever width it needs; Claude Design drew it as plain `div`s at
+1720px rather than as an `<x-import IOSDevice>` frame, and the splitter here
+sliced on `<x-import>` boundaries — so a board with no phone frame was invisible
+to it and reported missing. It was never missing. The splitter now slices on
+`data-screen-label` for a board with no frame.
+
+It answers all three questions `D-23` left open, on the board:
+
+  * **The resume rule** — *"Killed after 26 → resumes at 26. Kati reopens at the
+    last completed step with earlier answers intact. Language is never
+    re-asked."*
+  * **One wide artboard**, not a spread.
+  * **38's numbering** — the map carries the correspondence rather than the
+    boards being renumbered, and says what the build must do: *renumber the
+    rules to five segments at build time.* 38 draws "1, 3 and 4 of four"; with
+    53 ahead of it the run order is five.
+
+`D-23b` was written to ask for this board and is unnecessary. Left in
+`design-briefs/` as the record of the wrong call rather than deleted.
 
 ---
 
