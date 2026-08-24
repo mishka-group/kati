@@ -2,7 +2,7 @@ defmodule Kati.Onboarding.LanguageSample do
   @moduledoc """
   The language choice screen 53 draws, as data.
 
-  The copy is the design's own, from `.scratch/design/screens/53.html`. It is
+  The copy is the design's own, from `test/design/screens/53.html`. It is
   the first thing the app asks, before anything else can be worded, so nothing
   on it can be translated by the answer — which is why the question is asked
   twice, once in each script, and each option states its three consequences in

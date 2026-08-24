@@ -2,7 +2,7 @@ defmodule Kati.DesignLiterals do
   @moduledoc """
   What a drawing says, in a form a rendered tree can be asked about.
 
-  `.scratch/design/screens/NN.html` is the design for screen NN: an exported
+  `test/design/screens/NN.html` is the design for screen NN: an exported
   frame of inline-styled `div`s, followed by the caption the designer wrote
   *about* the screen. This module pulls two lists out of the frame —
 
@@ -58,7 +58,7 @@ defmodule Kati.DesignLiterals do
   literals the 62 drawings hold; `:flow` carries 2 and `:node` the other 1562.
   """
 
-  @screens_dir Path.expand("../../.scratch/design/screens", __DIR__)
+  @screens_dir Path.expand("../../test/design/screens", __DIR__)
 
   # The export follows each frame with the designer's commentary in a
   # `max-width:380px` block, and then the NEXT screen's header. Everything from
@@ -102,7 +102,7 @@ defmodule Kati.DesignLiterals do
   @next_header ~r/^\d\d\s+—/
 
   # Every entity the 62 drawings use, from
-  # `grep -ohE '&[a-zA-Z#0-9]+;' .scratch/design/screens/*.html`. Numeric
+  # `grep -ohE '&[a-zA-Z#0-9]+;' test/design/screens/*.html`. Numeric
   # references (`&#1776;`, the Persian zero) are handled separately.
   @entities %{
     "&middot;" => "·",

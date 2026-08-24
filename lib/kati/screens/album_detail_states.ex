@@ -13,7 +13,7 @@ defmodule Kati.Screens.AlbumDetailStates do
   The caption states both and this screen is the answer to them.
 
   **With art is an inset, not a whole board.** An album that has artwork differs
-  from `.scratch/design/screens/74.html` in the hero and nowhere else: the
+  from `test/design/screens/74.html` in the hero and nowhere else: the
   tracklist, the dates, the history field and the note are the same nodes
   reading the same values. A second full board would therefore be 90% a copy of
   the first, and a copy is a thing that can drift — the day the tracklist gains

@@ -2,7 +2,7 @@ defmodule Kati.Screens.WhatFits do
   @moduledoc """
   Screen 13 — What fits?, pushed under Library.
 
-  Built to `.scratch/design/screens/13.html`: a cream card carrying the window
+  Built to `test/design/screens/13.html`: a cream card carrying the window
   of time you actually have, then the episodes that fit inside it, then the
   nearest thing that does not.
 

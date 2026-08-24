@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare two capture runs and report where a screen CHANGED at rest.
 
-    python3 bin/diff_frames.py .scratch/design/audit_before .scratch/design/audit
+    python3 bin/diff_frames.py .captures/audit_before .captures/audit
 
 Twenty-five screen files were edited to make their chips and toggles real. The
 one rule that outranked everything was that the RESTING appearance must not

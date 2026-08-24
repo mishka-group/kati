@@ -2,7 +2,7 @@ defmodule Kati.Screens.AddTitle do
   @moduledoc """
   Screen 06 — Add a title, reached from the `+` button.
 
-  Built to `.scratch/design/screens/06.html`, drawn mid-query on "quiet": the
+  Built to `test/design/screens/06.html`, drawn mid-query on "quiet": the
   field carries a 2px ink ring and an orange caret, because the design shows
   the focused state rather than the resting one, and a screen that only draws
   its resting state is untested where it matters.

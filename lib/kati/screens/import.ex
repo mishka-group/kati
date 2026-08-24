@@ -2,7 +2,7 @@ defmodule Kati.Screens.Import do
   @moduledoc """
   Screen 37 — Import, pushed under Settings.
 
-  Built to `.scratch/design/screens/37.html`. The drawing's argument is that
+  Built to `test/design/screens/37.html`. The drawing's argument is that
   nothing is written until the person has seen what will happen: the file is
   acknowledged, every column is shown mapped to a field with a real value
   beside it, the write is summarised as three counts, and each conflict is

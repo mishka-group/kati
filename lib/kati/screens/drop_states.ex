@@ -2,7 +2,7 @@ defmodule Kati.Screens.DropStates do
   @moduledoc """
   Screen 148 — Drop states, a reference sheet pushed under Settings.
 
-  Built to `.scratch/design/incoming/148.html` in screen 27's own manner —
+  Built to `test/design/reference/148.html` in screen 27's own manner —
   27 drew the four states nobody designs, this draws the five `TrackedTitle`
   can be in, three media wide, so the parallel between Show, Book and Album
   is *visible* rather than *asserted*. `Kati.Media.TrackedTitle.status` is

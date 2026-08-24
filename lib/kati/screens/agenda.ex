@@ -2,7 +2,7 @@ defmodule Kati.Screens.Agenda do
   @moduledoc """
   Screen 30 — Calendar, agenda.
 
-  Built to `.scratch/design/screens/30.html`. The fourth view mode, and the
+  Built to `test/design/screens/30.html`. The fourth view mode, and the
   only one with no grid at all: a date kicker appears where something exists
   and nowhere else, so an empty week costs no scrolling. The gap at the end is
   *stated* — "Nothing else until 12 Sep" inside a dashed outline — rather than

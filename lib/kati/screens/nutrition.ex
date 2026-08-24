@@ -2,7 +2,7 @@ defmodule Kati.Screens.Nutrition do
   @moduledoc """
   Screen 47 — nutrition and adherence, pushed under Meals.
 
-  Built to `.scratch/design/screens/47.html`. The order of the screen is its
+  Built to `test/design/screens/47.html`. The order of the screen is its
   argument, and the design states it: *"Adherence is the number that matters,
   not calories — so it leads."* Calories get the cream hero because they are
   the number people look for; adherence gets the first count card because it

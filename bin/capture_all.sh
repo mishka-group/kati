@@ -10,7 +10,7 @@
 set -u
 ADB="${ADB:-adb}"
 PKG=com.example.kati
-OUT=.scratch/design/audit
+OUT=.captures/audit
 FIRST_Y=518      # centre of row 1, device px
 PITCH=161        # row to row
 PER_PAGE=11      # rows fully on screen before a scroll is needed

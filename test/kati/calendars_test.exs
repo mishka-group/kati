@@ -13,7 +13,7 @@ defmodule Kati.CalendarsTest do
   # group is `stored_calendars/0` — so the twelve `Test N` rows this module's
   # `setup` used to leave behind are twelve rows on somebody else's screen.
   # `Kati.ScreenDesignLiteralTest` renders screen 32 at an arbitrary point in the
-  # run and compares its copy with `.scratch/design/screens/32.html`; with these
+  # run and compares its copy with `test/design/screens/32.html`; with these
   # rows standing it drew them instead of the drawing's four, and whether it
   # passed depended on `--seed`.
   #

@@ -259,7 +259,7 @@ defmodule Kati.Music.Sample do
   @doc """
   Ninety-one days of listening intensity — thirteen weeks, as the eyebrow says.
 
-  Read cell for cell off `.scratch/design/screens/74.html` rather than
+  Read cell for cell off `test/design/screens/74.html` rather than
   generated, unlike `Kati.Stats.Sample.contributions/0`, and for a reason worth
   stating: this field is **compared against its own frame**. A generated field
   would be plausible and would not be the drawing, so the capture and the app

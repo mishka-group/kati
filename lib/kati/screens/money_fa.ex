@@ -93,7 +93,7 @@ defmodule Kati.Screens.MoneyFa do
       them in a 28pt chip at radius 14 on `green_wash`. `delta/1` here is that
       chip.
     * **`trending_up` is red and `lightbulb` is accent.** Both frames say so —
-      `#B4553C` and `#E8823C` in `.scratch/design/screens/122.html` too — and
+      `#B4553C` and `#E8823C` in `test/design/screens/122.html` too — and
       `Kati.Screens.Money.hero/0` and `suggestion/1` paint both
       `Palette.gold_icon()`. The frames agree with each other and disagree with
       122's module, so the frames win.

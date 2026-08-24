@@ -2,7 +2,7 @@ defmodule Kati.Screens.Season do
   @moduledoc """
   Screen 34 — a season's order and its specials, pushed under Series.
 
-  Built to `.scratch/design/screens/34.html`. Three numbering schemes across
+  Built to `test/design/screens/34.html`. Three numbering schemes across
   the top, two switches that decide what counts as an episode, then the list
   those choices produce. The dashed footnote at the bottom is the screen's
   whole argument: **your ticks follow the episode, not the number**, so
@@ -79,7 +79,7 @@ defmodule Kati.Screens.Season do
   back rather than drawing an empty running order.
 
   With nothing tracked there is no such season and `Kati.Season.Sample` is drawn
-  instead, the values `.scratch/design/screens/34.html` was captured from.
+  instead, the values `test/design/screens/34.html` was captured from.
   FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
   module stays exactly where it is; it is the fallback and the fixture, not a
   stage this screen has passed through.

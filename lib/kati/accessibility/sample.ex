@@ -5,7 +5,7 @@ defmodule Kati.Accessibility.Sample do
   The drawing is the spec: the app's densest card rendered at 235% Dynamic
   Type, the six guarantees as a switch list, and the sentence VoiceOver
   actually speaks on an episode row. Copy is the design's own, from
-  `.scratch/design/screens/41.html`.
+  `test/design/screens/41.html`.
 
   `up_next` is the same episode `Kati.Library.Sample.series/0` carries — the
   point of the card is that the *ordinary* screen survives the largest type,

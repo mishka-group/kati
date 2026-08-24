@@ -2,7 +2,7 @@ defmodule Kati.Screens.Widgets do
   @moduledoc """
   Screen 39 — Widgets, Shortcuts & share, pushed under Settings.
 
-  Built to `.scratch/design/screens/39.html`: the parts of the app used
+  Built to `test/design/screens/39.html`: the parts of the app used
   without opening it. Three square widget previews at the top, a wide one
   underneath, the voice shortcuts as a switch list, and the share extension
   described in a card.

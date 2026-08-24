@@ -18,7 +18,7 @@ defmodule Kati.SyncOwnershipTest do
   # group is `stored_calendars/0` — so the calendars this module creates are rows
   # on somebody else's screen once it has finished with them.
   # `Kati.ScreenDesignLiteralTest` renders screen 32 at an arbitrary point in the
-  # run and compares its copy with `.scratch/design/screens/32.html`; with these
+  # run and compares its copy with `test/design/screens/32.html`; with these
   # rows standing it drew them instead of the drawing's four, and whether it
   # passed depended on `--seed`. Same wipe, and the same reasoning, as
   # `Kati.SeedsTest`'s own teardown.

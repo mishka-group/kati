@@ -2,7 +2,7 @@ defmodule Kati.Screens.QuickAdd do
   @moduledoc """
   Screen 18 — Quick add.
 
-  Built to `.scratch/design/screens/18.html`: the `64px 21px 40px` frame with
+  Built to `test/design/screens/18.html`: the `64px 21px 40px` frame with
   no dock at the bottom, a focused field carrying a 2px ink ring, the cream
   card of what Kati understood, the six things the sentence could be filed as,
   and a 52pt commit row with a microphone beside it.

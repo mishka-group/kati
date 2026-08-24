@@ -2,7 +2,7 @@ defmodule Kati.Screens.ScheduleFa do
   @moduledoc """
   Screen 56 — برنامه, the Persian Schedule root.
 
-  Built to `.scratch/design/screens/56.html`. Screen 02's page, right to left:
+  Built to `test/design/screens/56.html`. Screen 02's page, right to left:
   the header with its two 44pt discs, seven `flex:1` day cells at radius 16
   with a 2pt gap, the filter chips, and a 44pt time gutter beside every card.
 
@@ -138,7 +138,7 @@ defmodule Kati.Screens.ScheduleFa do
   end
 
   @doc """
-  The five rows `.scratch/design/screens/56.html` draws, in its own order.
+  The five rows `test/design/screens/56.html` draws, in its own order.
 
   Stand-in copy, and `Kati.Screens.ScheduleFa.Sample` says so — but the five
   SHAPES are not stand-in: a kept habit, an appointment, a reminder, a payment

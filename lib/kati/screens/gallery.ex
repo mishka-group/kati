@@ -25,7 +25,7 @@ defmodule Kati.Screens.Gallery do
   alias Kati.UI
 
   # Ordered by the design's own numbering, which is how the owner refers to
-  # them and how `.scratch/design/screens/NN.html` is named.
+  # them and how `test/design/screens/NN.html` is named.
   @screens [
     {"01", "Home", Kati.Screens.Home, :root},
     {"02", "Schedule", Kati.Screens.Calendar, :root},
@@ -164,7 +164,7 @@ defmodule Kati.Screens.Gallery do
     # #11 — the first run. 134 is the flow map and is deliberately absent from
     # this list: it is a diagram at 1720px rather than a 402x874 screen, it has
     # no `IOSDevice` frame to render, and there is nothing in the app for it to
-    # be. It lives in `.scratch/design/incoming/134.html` as the design record,
+    # be. It lives in `test/design/reference/134.html` as the design record,
     # and what it decides — the resume rule, 38's numbering correspondence — is
     # carried by the screens below rather than by a screen of its own.
     {"135", "Restore — first run", Kati.Screens.RestoreFirstRun, :push},
@@ -199,7 +199,7 @@ defmodule Kati.Screens.Gallery do
   #
   # `@screens` is not a list of screens; it is the app's number → drawing
   # registry, and three readers treat an entry as the claim that
-  # `.scratch/design/screens/NN.html` exists. `Kati.ScreenDesignLiteralTest`
+  # `test/design/screens/NN.html` exists. `Kati.ScreenDesignLiteralTest`
   # pairs every entry with that file and asserts the numbers are exactly the ones
   # on disk. `Kati.ScreenEmptyDatabaseTest` asks this module whether a drawing
   # exists at all, and moves a screen out of its `@undrawn` the moment one does.

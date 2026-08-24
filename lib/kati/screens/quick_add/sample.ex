@@ -2,7 +2,7 @@ defmodule Kati.Screens.QuickAdd.Sample do
   @moduledoc """
   The one draft screen 18 is drawn mid-parse on, until a parser exists.
 
-  `.scratch/design/screens/18.html` does not draw an empty field. It draws
+  `test/design/screens/18.html` does not draw an empty field. It draws
   *dentist thu 11am for 45m, remind 1h before* already typed, already
   understood, with a caret still blinking after the last token — so the screen
   can only be compared with its drawing if the sample carries the same

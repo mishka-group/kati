@@ -2,7 +2,7 @@ defmodule Kati.Screens.Plans do
   @moduledoc """
   Screen 49 — Meal plan profiles, pushed under Meals.
 
-  Built to `.scratch/design/screens/49.html`. Plans are the profile mechanism:
+  Built to `test/design/screens/49.html`. Plans are the profile mechanism:
   a plan owns its meals, its targets and its reminder times, exactly one is
   active, and switching swaps all three at once. The screen is arranged to say
   that — one ink card for the active plan, a list of saved ones you can

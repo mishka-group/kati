@@ -40,7 +40,7 @@ defmodule Kati.ScreenActivityTest do
   alias Kati.Media.Watch
   alias Kati.Screens.Activity
 
-  # The day `.scratch/design/screens/15.html` was drawn for: its Today rows are
+  # The day `test/design/screens/15.html` was drawn for: its Today rows are
   # stamped 21:12, 20:40 and 18:03, and its Earlier this month rows run back to
   # 02 AUG. Passed to `entries/1` rather than left to the clock, so the two
   # groups are testable on a day that is not the 16th — and, more to the point,

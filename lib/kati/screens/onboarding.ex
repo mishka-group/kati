@@ -2,7 +2,7 @@ defmodule Kati.Screens.Onboarding do
   @moduledoc """
   Screen 38 — Onboarding, steps 1, 3 and 4.
 
-  Built to `.scratch/design/screens/38.html`, which draws all three steps in
+  Built to `test/design/screens/38.html`, which draws all three steps in
   one frame separated by hairlines rather than three frames side by side. This
   screen renders exactly that: one scroll, three sections, a divider between
   them. It is the drawing, so it is what gets built — the flow that shows one

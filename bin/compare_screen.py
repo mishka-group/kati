@@ -3,7 +3,7 @@
 
     python3 bin/compare_screen.py 01 [screenshot.png]
 
-Writes .scratch/design/compare/NN.html. Open it (or screenshot it) to see the
+Writes .captures/compare/NN.html. Open it (or screenshot it) to see the
 drawing and the build at the same scale, on the same baseline, so a difference
 is visible rather than remembered.
 
@@ -16,20 +16,20 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 N = sys.argv[1].zfill(2)
 SHOT = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else None
 
-design = (ROOT / f".scratch/design/screens/{N}.html").read_text(encoding="utf-8")
+design = (ROOT / f"test/design/screens/{N}.html").read_text(encoding="utf-8")
 # The frame's own markup, minus the x-import wrapper the export uses.
 inner = re.sub(r"^<x-import[^>]*>", "", design.strip())
 inner = re.sub(r"</x-import>\s*$", "", inner)
 
 if SHOT is None:
-    SHOT = ROOT / ".scratch/design/compare" / f"{N}-device.png"
+    SHOT = ROOT / ".captures/compare" / f"{N}-device.png"
     subprocess.run(["adb", "shell", "screencap", "-p", "/sdcard/cmp.png"], check=True)
     subprocess.run(["adb", "pull", "-a", "/sdcard/cmp.png", str(SHOT)],
                    check=True, stdout=subprocess.DEVNULL)
 
 shot_b64 = base64.b64encode(SHOT.read_bytes()).decode()
 
-out = ROOT / f".scratch/design/compare/{N}.html"
+out = ROOT / f".captures/compare/{N}.html"
 out.write_text(f"""<!doctype html>
 <meta charset="utf-8">
 <title>Kati {N} — design vs build</title>

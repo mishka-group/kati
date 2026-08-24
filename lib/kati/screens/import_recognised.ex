@@ -2,7 +2,7 @@ defmodule Kati.Screens.ImportRecognised do
   @moduledoc """
   Screen 141 — Import, source recognised, pushed under Settings.
 
-  Built to `.scratch/design/incoming/141.html`. One step earlier than screen
+  Built to `test/design/reference/141.html`. One step earlier than screen
   37: the file has been read and a source has been guessed, but nobody has
   looked at the mapping yet. The drawing's argument is proportion — a person
   who has not asked to see nine columns matched one by one should not be

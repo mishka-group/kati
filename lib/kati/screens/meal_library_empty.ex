@@ -110,7 +110,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
   The panel exists to show what changes under RTL, so anything in it that
   differs from 116 for a reason other than direction or language would report a
   difference the app does not have. Five places, and in all five the *drawings*
-  win, because `.scratch/design/screens/116.html` and this board agree with each
+  win, because `test/design/screens/116.html` and this board agree with each
   other and it is 116's module that departs from both:
 
     * **The search field is 46 tall at radius 23** with 16pt sides, a 10pt gap

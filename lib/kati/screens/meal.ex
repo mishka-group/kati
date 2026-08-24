@@ -2,7 +2,7 @@ defmodule Kati.Screens.Meal do
   @moduledoc """
   Screen 45 — a meal in full, pushed under Meals.
 
-  Built to `.scratch/design/screens/45.html`. It shares screens 04 and 08's
+  Built to `test/design/screens/45.html`. It shares screens 04 and 08's
   shape — artwork with the paper gradient lifted back over it, chrome floating
   at 60pt, the title sitting on paper rather than on the photograph — and
   diverges where a meal differs from a film: the hero is 250pt instead of 330
@@ -69,7 +69,7 @@ defmodule Kati.Screens.Meal do
   (a day already fully logged) it is the day's first planned meal.
 
   With no active plan there is no such meal, and `Kati.Meals.SampleRecipe` is
-  drawn instead — the values `.scratch/design/screens/45.html` was captured
+  drawn instead — the values `test/design/screens/45.html` was captured
   from. FIDELITY's rule: *missing data is not a reason for a blank screen*.
   """
   @spec meal(Date.t()) :: map()

@@ -3,7 +3,7 @@ defmodule Kati.Screens.HomeEmpty do
   Screen 139 — Home with nothing chosen, the state after *Skip, I will add
   things later*.
 
-  Built to `.scratch/design/incoming/139.html`. Screen 01 is this same page
+  Built to `test/design/reference/139.html`. Screen 01 is this same page
   once a section has something to show; this is the page the moment before
   any of them do, and — like screen 105 next to 104 — it earns a whole board
   rather than a state on some other screen's sheet, because it is the state

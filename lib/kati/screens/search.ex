@@ -2,7 +2,7 @@ defmodule Kati.Screens.Search do
   @moduledoc """
   Screen 19 — Search everything, pushed under Home.
 
-  Built to `.scratch/design/screens/19.html`: the `64px 21px 40px` frame with
+  Built to `test/design/screens/19.html`: the `64px 21px 40px` frame with
   no dock, a focused field carrying its 2px ink ring and orange caret, four
   counted filter chips, and then the hits **grouped by where they live** —
   Screen, Calendar, Notes — with a recent-searches shelf underneath.

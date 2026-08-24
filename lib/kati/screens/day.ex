@@ -44,7 +44,7 @@ defmodule Kati.Screens.Day do
   Screen 09 draws the 20:00 group **collapsed** — a poster stack, a count tile
   and a chevron disc — and its own caption says where the other half is drawn:
   *"tap the one on 02 to expand it"*. So the expanded state's geometry comes
-  from `.scratch/design/screens/02.html`, which draws it under
+  from `test/design/screens/02.html`, which draws it under
   `<sc-if value="{{ groupOpen }}">`: the members go **inside** the card, below
   a 13/4 gap either side of an 8%-ink hairline, one 26x37 poster per member
   with the title, the episode line and the member's own clock on the trailing

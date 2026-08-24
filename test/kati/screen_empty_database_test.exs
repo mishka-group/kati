@@ -314,9 +314,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # Screens that read the database and have **no drawing at all**.
   #
   # Every entry in `@migrated` above is a pair of a screen and the frame under
-  # `.scratch/design/screens/` it is compared against, and the whole of what
+  # `test/design/screens/` it is compared against, and the whole of what
   # this file asks of one is *does it still draw its drawing when nothing is
-  # stored*. These two have no frame: `.scratch/design/screens/` stops at 62,
+  # stored*. These two have no frame: `test/design/screens/` stops at 62,
   # none of the 62 is a backup or a sync page, and issue #25 asks for the
   # drawings and they do not exist. Filing them under `@migrated` would mean
   # inventing a number, and `DesignLiterals.read!/1` would then fail on a file

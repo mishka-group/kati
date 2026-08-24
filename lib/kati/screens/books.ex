@@ -2,7 +2,7 @@ defmodule Kati.Screens.Books do
   @moduledoc """
   Screen 20 — the Books shelf, the Library root with **Books** selected.
 
-  Built to `.scratch/design/screens/20.html`. The drawing's own caption is the
+  Built to `test/design/screens/20.html`. The drawing's own caption is the
   brief: *"The second shelf, built from the identical parts — only the aspect
   ratio, the progress unit (pages, not episodes) and the hero card change."*
   So this file is deliberately screen 03's arrangement with three differences

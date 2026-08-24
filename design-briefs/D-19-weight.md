@@ -6,7 +6,7 @@ Log a weight and see the trend over time — the one tile of the four the ticket
 
 ## Where it is reached from
 
-Screen 42 Health hub, the "Weight" tile in the Sections tile grid (today reads "Not set up"). Parent confirmed: .scratch/design/screens/42.html and lib/kati/screens/health.ex. Pushed screen, back pill "‹ Health", matching screen 43.
+Screen 42 Health hub, the "Weight" tile in the Sections tile grid (today reads "Not set up"). Parent confirmed: test/design/screens/42.html and lib/kati/screens/health.ex. Pushed screen, back pill "‹ Health", matching screen 43.
 
 ## Bands, top to bottom
 

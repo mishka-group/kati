@@ -2,7 +2,7 @@ defmodule Kati.Screens.MealPlan do
   @moduledoc """
   Screen 44 — the repeating week, pushed under Meals.
 
-  Built to `.scratch/design/screens/44.html`. The design's caption states both
+  Built to `test/design/screens/44.html`. The design's caption states both
   the layout and the domain rule behind it: *"Five slots × seven days as a
   matrix — too narrow for names, so cells carry state only and the tapped day
   lists underneath, exactly like the week calendar. The plan is a rule, not 52
@@ -93,7 +93,7 @@ defmodule Kati.Screens.MealPlan do
   what one looks like when it does not — which is the screen the design cannot
   be compared with. FIDELITY's rule again: *missing data is not a reason for a
   blank screen*, so a device with no active plan draws `Kati.Meals.SamplePlan`,
-  the values `.scratch/design/screens/44.html` was drawn from.
+  the values `test/design/screens/44.html` was drawn from.
 
   The gate is the plan **and its slots**: a plan row with no week on it yet is
   a name, and a matrix of a name is 35 outlines.

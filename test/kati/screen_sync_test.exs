@@ -10,7 +10,7 @@ defmodule Kati.ScreenSyncTest do
   Every other screen in this app is checked twice over by the sweeps: the
   render sweep mounts it, the tap sweep taps it, and
   `Kati.ScreenDesignLiteralTest` compares every word it draws with the frame
-  under `.scratch/design/screens/`. That third check does not exist here —
+  under `test/design/screens/`. That third check does not exist here —
   there is no frame, `Kati.Screens.Sync` is in `@undesigned`, and issue #25 has
   been asking for the drawing since before the engine landed. Nothing else in
   the suite reads this screen's copy.

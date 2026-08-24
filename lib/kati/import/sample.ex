@@ -8,7 +8,7 @@ defmodule Kati.Import.Sample do
   screen's whole argument is that the user sees the consequences *before*
   anything is written, so the drawing's own numbers live here.
 
-  Every string is the design's own copy from `.scratch/design/screens/37.html`
+  Every string is the design's own copy from `test/design/screens/37.html`
   rather than invented sample text, so the screen can be compared with its
   drawing line for line. When the reader lands, this module is replaced by the
   parse result — the screen reads a map and does not care where it came from.

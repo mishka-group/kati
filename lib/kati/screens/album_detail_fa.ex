@@ -54,7 +54,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   74's, so the two pages cannot disagree about the record. But in six places
   74's *module* and 76's *frame* draw different things, and each time the frame
   wins — because the frame is the thing being reproduced, and every number
-  below is also in `.scratch/design/screens/74.html`, which is 74's own
+  below is also in `test/design/screens/74.html`, which is 74's own
   capture. The drift is 74's to settle; the mirror is not inventing a second
   album page.
 

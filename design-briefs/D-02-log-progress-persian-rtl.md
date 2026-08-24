@@ -6,7 +6,7 @@ The Persian mirror of the reading-session sheet, proving the stepper column stil
 
 ## Where it is reached from
 
-A language variant of the new sheet, not a new route. The 62 contains no fa Books shelf — 57 کتابخانه (.scratch/design/screens/57.html) is the film/TV shelf — so no existing fa screen opens it; the parent is whichever fa books surface is drawn later.
+A language variant of the new sheet, not a new route. The 62 contains no fa Books shelf — 57 کتابخانه (test/design/screens/57.html) is the film/TV shelf — so no existing fa screen opens it; the parent is whichever fa books surface is drawn later.
 
 ## Bands, top to bottom
 

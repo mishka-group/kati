@@ -5,7 +5,7 @@ defmodule Kati.Widgets.Sample do
   Widgets, voice shortcuts and the share extension all read the same three
   facts the app already knows — what is next, what airs tonight, how long the
   streak is — so this module supplies them in one shape rather than three. The
-  values are the design's own, from `.scratch/design/screens/39.html`.
+  values are the design's own, from `test/design/screens/39.html`.
 
   The shortcut rows carry `toggle` only when the drawing gives them a switch;
   the row without one gets a chevron instead, which is how the screen tells

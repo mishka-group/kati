@@ -51,7 +51,7 @@ defmodule Kati.Library.Sample do
   @spec titles() :: [map()]
   def titles, do: @titles
 
-  # `.scratch/design/incoming/146.html`'s own three tiles, in its own words —
+  # `test/design/reference/146.html`'s own three tiles, in its own words —
   # `S2 · 5/7` and `S1 · 3/8` are a season and an episode fraction, not the
   # `62% watched` `Kati.Screens.Library.tile_meta/1` prints for the same two
   # shows. Two screens, two sentences about one shelf; this list carries the
@@ -112,7 +112,7 @@ defmodule Kati.Library.Sample do
 
   `selected?` is the board's own starting selection — two tiles ringed, two
   more counted but off the 402pt crop, `Nightbirds` neither — so a fresh
-  mount of the screen opens on exactly `.scratch/design/incoming/146.html`'s
+  mount of the screen opens on exactly `test/design/reference/146.html`'s
   "Four selected" vignette rather than an empty one nothing was drawn for.
 
   `done?` is not the board's — the drawing has no status control to be one —

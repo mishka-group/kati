@@ -2,7 +2,7 @@ defmodule Kati.Screens.Habits do
   @moduledoc """
   Screen 22 — Habits & streaks, pushed under Stats.
 
-  Built to `.scratch/design/screens/22.html`. The drawing's note is the whole
+  Built to `test/design/screens/22.html`. The drawing's note is the whole
   argument for the screen: *"habits reuse the calendar's green and the stats
   pixel field. A habit is just a repeating calendar item that keeps a streak —
   no new visual language needed."* Nothing here is invented; every colour and

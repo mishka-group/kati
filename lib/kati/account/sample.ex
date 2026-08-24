@@ -10,7 +10,7 @@ defmodule Kati.Account.Sample do
   Notifications sit in the drawn state the flow actually produces — **not yet
   asked** — because screen 38 makes the notification decision before any
   permission dialog is raised. Copy is the design's own, from
-  `.scratch/design/screens/40.html`.
+  `test/design/screens/40.html`.
   """
 
   @doc "Everything screen 40 shows, in the order it shows it."

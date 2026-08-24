@@ -3,7 +3,7 @@ defmodule Kati.Screens.Search.Sample do
   One query — `hollow` — matched across every section, until a real index
   exists.
 
-  `.scratch/design/screens/19.html` is drawn mid-query with six hits split
+  `test/design/screens/19.html` is drawn mid-query with six hits split
   three ways, and the split is the whole point of the screen: a title, an
   episode, two calendar entries and a note about the same word are four
   different shapes, and the design keeps them four different shapes rather

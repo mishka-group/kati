@@ -33,7 +33,7 @@ defmodule Kati.Screens.Film do
   `:shelf` that decides that, not an ordering written out here.
 
   With nothing tracked there is no such film and `Kati.Library.Sample` is drawn
-  instead, the values `.scratch/design/screens/08.html` was captured from.
+  instead, the values `test/design/screens/08.html` was captured from.
   FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
   module stays exactly where it is; it is the fallback and the fixture, not a
   stage this screen has passed through.

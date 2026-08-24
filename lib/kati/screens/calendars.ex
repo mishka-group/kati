@@ -2,7 +2,7 @@ defmodule Kati.Screens.Calendars do
   @moduledoc """
   Screen 32 — Calendars, pushed under Settings.
 
-  Built to `.scratch/design/screens/32.html`. Two-way sync stated plainly, in
+  Built to `test/design/screens/32.html`. Two-way sync stated plainly, in
   three groups that answer three different questions: which accounts come in,
   which of their calendars are drawn, and exactly what Kati is allowed to
   write out.
@@ -144,7 +144,7 @@ defmodule Kati.Screens.Calendars do
     _ -> []
   end
 
-  @doc "The four calendars `.scratch/design/screens/32.html` draws, in its order."
+  @doc "The four calendars `test/design/screens/32.html` draws, in its order."
   @spec drawn_calendars() :: [map()]
   def drawn_calendars, do: Sample.calendars()
 

@@ -2,7 +2,7 @@ defmodule Kati.Screens.Week do
   @moduledoc """
   Screen 17 — Calendar, week.
 
-  Built to `.scratch/design/screens/17.html`. Seven `flex:1` lanes of blocks
+  Built to `test/design/screens/17.html`. Seven `flex:1` lanes of blocks
   with no titles in them: height is duration, colour is section, and the only
   text a block carries is its start hour in mono. Names live in the card
   underneath, for whichever lane you tap — which is what the `touch_app` line

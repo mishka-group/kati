@@ -82,7 +82,7 @@ defmodule Kati.Books.Sample do
 
   The fallback, in the sense `Kati.Library.Sample.film/0` is one for screen 08:
   what the detail screen shows when `Kati.Books.Book` holds nothing. Every value
-  here is read off `.scratch/design/screens/66.html`, including the two the
+  here is read off `test/design/screens/66.html`, including the two the
   drawing means as literals — the pace, which needs seven days of sessions to
   compute and has none here, and the community rating, which has no source at
   all and is drawn as an em dash on purpose.

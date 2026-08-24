@@ -2,7 +2,7 @@ defmodule Kati.Screens.RateEpisode.Sample do
   @moduledoc """
   Stand-in data for the episode rating sheet, until a real log exists to draw.
 
-  `.scratch/design/screens/144.html` draws one live sheet and hangs two
+  `test/design/screens/144.html` draws one live sheet and hangs two
   labelled swatches under it. `sheet/0` is the live half: the episode being
   rated, four stars and a half, and a review not yet written. `context` is the
   three rows the drawing fills in — `Tonight · 21:40`, `Lumen+ · living room`,

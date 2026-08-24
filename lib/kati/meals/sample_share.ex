@@ -3,7 +3,7 @@ defmodule Kati.Meals.SampleShare do
   Sharing, importing and exporting a plan — screen 50, as data.
 
   A stand-in for the Meals domain. The copy is the design's own, from
-  `.scratch/design/screens/50.html`.
+  `test/design/screens/50.html`.
 
   The screen's argument is that a plan is a **portable document**: a QR or a
   link hands it over, an explicit list says what travels with it, and history

@@ -3,7 +3,7 @@ defmodule Kati.Screens.RateEpisode do
   Screen 33 in its episode variant — rate the one you just watched, not the
   whole title.
 
-  Built to `.scratch/design/incoming/144.html`. Episode 06's episode picker
+  Built to `test/design/reference/144.html`. Episode 06's episode picker
   narrows a title to one row; this narrows `Kati.Screens.Rating` to one row
   the same way, scoped by `episode_source_id` rather than drawing the title's
   rating over again. The board's own caption calls it *"33's modal,
@@ -35,7 +35,7 @@ defmodule Kati.Screens.RateEpisode do
 
   ## Why this is a sheet and screen 33 is not, even though both say "sheet"
 
-  `.scratch/design/screens/33.html` draws a **full page** — `padding:64px
+  `test/design/screens/33.html` draws a **full page** — `padding:64px
   21px 40px` directly on the frame, no scrim, no rounded corner. `144.html`
   draws the other family: a `rgba(26,25,23,.42)` scrim, a paper drawer with
   `border-radius:22px 22px 0 0` and `18px 21px 34px` of padding, anchored to

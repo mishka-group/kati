@@ -2,7 +2,7 @@ defmodule Kati.Screens.Language do
   @moduledoc """
   Screen 54 — Language, pushed under Settings.
 
-  Built to `.scratch/design/screens/54.html`. The design's caption states the
+  Built to `test/design/screens/54.html`. The design's caption states the
   idea: *"language is one switch that carries five settings with it, each still
   overridable. The row that matters most is the last one: nothing you typed
   yourself ever gets rewritten."*

@@ -2,7 +2,7 @@ defmodule Kati.Screens.ReleaseWatcher do
   @moduledoc """
   Screen 25 — the release watcher's settings, pushed under Settings.
 
-  Built to `.scratch/design/screens/25.html`. Three questions in order: what to
+  Built to `test/design/screens/25.html`. Three questions in order: what to
   look for, how often to look, and how loudly to say so. The last group is the
   one that matters — push is off, the inbox badge is on, and the dashed
   footnote says why rather than leaving it to be discovered.

@@ -4,7 +4,7 @@ defmodule Kati.Fa.SampleToday do
 
   Same rule as `Kati.Library.Sample`: a stand-in, named as one, shaped like
   the domain that will replace it. Every string is the design's own, taken
-  from `.scratch/design/screens/59.html` rather than translated here, because
+  from `test/design/screens/59.html` rather than translated here, because
   a mirror screen exists to be compared with its drawing and invented copy
   makes that comparison meaningless.
 

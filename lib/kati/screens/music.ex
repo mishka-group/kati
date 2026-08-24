@@ -2,7 +2,7 @@ defmodule Kati.Screens.Music do
   @moduledoc """
   Screen 21 — the Library root with the **Music** segment selected.
 
-  Built to `.scratch/design/screens/21.html`. Not a pushed screen and not a
+  Built to `test/design/screens/21.html`. Not a pushed screen and not a
   fifth root: the drawing carries the four-tab dock with `grid_view` lit, which
   is the Library root, so this is the same root wearing a different shelf. It
   therefore `use`s `Kati.Screens.Root, root: :library` and tapping **Screen**

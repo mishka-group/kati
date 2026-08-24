@@ -3,7 +3,7 @@ defmodule Kati.Meals.SampleReminders do
   Meal reminders — screen 51, as data.
 
   A stand-in for the Meals domain. The copy is the design's own, from
-  `.scratch/design/screens/51.html`.
+  `test/design/screens/51.html`.
 
   Both halves of the reminder are drawn as the **notifications they actually
   become**, not as settings that describe them: a 20:00 preview listing what to

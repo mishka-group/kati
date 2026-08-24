@@ -2,7 +2,7 @@ defmodule Kati.Screens.ShelfSelection do
   @moduledoc """
   Board 146 — Shelf, selection mode.
 
-  Built to `.scratch/design/screens/146.html`, which is three drawings wearing
+  Built to `test/design/screens/146.html`, which is three drawings wearing
   one artboard: the shelf's **resting** header with a persisted sort named on
   it, the shelf **in selection mode** at `1 selected` and at `4 selected`, and
   what a destructive action leaves behind — screen 27's dark undo pill. This

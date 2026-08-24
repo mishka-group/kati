@@ -2,7 +2,7 @@ defmodule Kati.Screens.HomeFa do
   @moduledoc """
   Screen 55 — Home in Persian.
 
-  Built to `.scratch/design/screens/55.html`. The same page as screen 01 and
+  Built to `test/design/screens/55.html`. The same page as screen 01 and
   the same numbers — the `64px 21px 132px` frame, 44pt header discs, the 52pt
   search bar at radius 26, the cream card at radius 24, two continue-watching
   cards, three section tiles, and the rest-of-today card with its

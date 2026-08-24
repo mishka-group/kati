@@ -2,7 +2,7 @@ defmodule Kati.Screens.ImportSources do
   @moduledoc """
   Screen 140 — Import sources, pushed under Settings. Step 0 of the importer.
 
-  Built to `.scratch/design/incoming/140.html`. Screen 37 (`Kati.Screens.Import`)
+  Built to `test/design/reference/140.html`. Screen 37 (`Kati.Screens.Import`)
   is drawn *mid-job* — a file already read, columns already matched. This is
   what comes before it: a grid of every source Kati recognises, so the job on
   37 has a file to open at all. The drawing's own argument, from its caption,

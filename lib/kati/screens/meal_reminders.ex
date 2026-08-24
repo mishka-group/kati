@@ -2,7 +2,7 @@ defmodule Kati.Screens.MealReminders do
   @moduledoc """
   Screen 51 — meal reminders, pushed under Meals.
 
-  Built to `.scratch/design/screens/51.html`. Both halves of the reminder are
+  Built to `test/design/screens/51.html`. Both halves of the reminder are
   drawn as the notifications they actually become rather than as settings that
   describe them: a 20:00 preview that lists what to prep, and a 15-minute
   warning carrying **Eaten / Skip / Snooze** so it can be answered from the

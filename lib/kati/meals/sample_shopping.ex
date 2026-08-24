@@ -3,7 +3,7 @@ defmodule Kati.Meals.SampleShopping do
   The shopping list screen 48 draws, as data.
 
   A stand-in for the Meals domain, which does not exist yet. The copy is the
-  design's own, from `.scratch/design/screens/48.html`, because the whole
+  design's own, from `test/design/screens/48.html`, because the whole
   argument of the screen is in the wording: every line names **which meals
   asked for it**, so cutting a meal visibly shrinks the list. Inventing
   "2 x tomatoes" here would throw that away.

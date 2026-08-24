@@ -2,7 +2,7 @@ defmodule Kati.Screens.Accessibility do
   @moduledoc """
   Screen 41 — Accessibility, pushed under Settings.
 
-  Built to `.scratch/design/screens/41.html`. The design's caption calls it
+  Built to `test/design/screens/41.html`. The design's caption calls it
   "the spec drawn rather than described", and that is exactly what it is: the
   Up next card rendered at 235% Dynamic Type so the claim "nothing truncates"
   can be checked by looking, the six guarantees as a switch list, and the

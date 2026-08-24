@@ -1,6 +1,6 @@
 defmodule Kati.Media.AnimeSample do
   @moduledoc """
-  Stand-in numbers for `.scratch/design/incoming/152.html`'s Anime board.
+  Stand-in numbers for `test/design/reference/152.html`'s Anime board.
 
   `:anime` is not a proposal. `Kati.Media.TrackedTitle` and
   `Kati.Media.CachedTitle` already constrain `:kind` to

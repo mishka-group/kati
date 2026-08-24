@@ -3,7 +3,7 @@ defmodule Kati.Onboarding.Sample do
   The copy for the three onboarding steps screen 38 draws.
 
   It is sample data only in the sense that nothing is persisted yet — the
-  words are the design's, from `.scratch/design/screens/38.html`, because the
+  words are the design's, from `test/design/screens/38.html`, because the
   whole point of an onboarding screen is the sentences. When the flow becomes
   real, the titles stay and only `selected?` moves.
 

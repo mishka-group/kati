@@ -2,7 +2,7 @@ defmodule Kati.Screens.Backup do
   @moduledoc """
   Screen 128 — Back up everything, pushed under Settings.
 
-  Built to `.scratch/design/incoming/128.html`, ticket `D-22`'s Screen A. That
+  Built to `test/design/reference/128.html`, ticket `D-22`'s Screen A. That
   ticket is explicit about what this screen is and is not: *"a backup is a
   file you keep"*, one format that actually restores, and — deliberately — no
   restore flow on this board at all. Screen 129, *Restore from a backup*, is

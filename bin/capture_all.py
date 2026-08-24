@@ -55,9 +55,9 @@ import sys
 import time
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-OUT = REPO / ".scratch/design/audit"
-DARK_OUT = REPO / ".scratch/design/audit_dark"
-STASH = REPO / ".scratch/design/.device_state.json"
+OUT = REPO / ".captures/audit"
+DARK_OUT = REPO / ".captures/audit_dark"
+STASH = REPO / ".captures/.device_state.json"
 PKG = "com.example.kati"
 BELL = (826, 225)
 
@@ -280,7 +280,7 @@ def design_heading(number):
     Checking for the label rejected eight screens that had opened perfectly
     well. The drawing knows what its own heading is, so ask it.
     """
-    path = REPO / f".scratch/design/screens/{number}.html"
+    path = REPO / f"test/design/screens/{number}.html"
     if not path.exists():
         return None
 
@@ -306,7 +306,7 @@ def design_texts(number):
     Symbol spans whose ligature name ("search", "close") is not text a
     reader ever sees.
     """
-    path = REPO / f".scratch/design/screens/{number}.html"
+    path = REPO / f"test/design/screens/{number}.html"
     if not path.exists():
         return []
 

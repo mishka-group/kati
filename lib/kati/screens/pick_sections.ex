@@ -2,7 +2,7 @@ defmodule Kati.Screens.PickSections do
   @moduledoc """
   Screen 26 — *What should Kati keep?*, the second of four onboarding steps.
 
-  Built to `.scratch/design/screens/26.html`: a four-bar step meter with two
+  Built to `test/design/screens/26.html`: a four-bar step meter with two
   filled, a 32pt two-line question, six section tiles in a 2-across grid, a
   54pt commit button, and a quiet way out to a backup import.
 

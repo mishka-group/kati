@@ -3,7 +3,7 @@ defmodule Kati.Fa.SampleYear do
   Screen 61's year, as data — the Persian mirror of the stats root.
 
   A stand-in, named as one. Copy is the design's own, from
-  `.scratch/design/screens/61.html`, including the Persian numerals: the
+  `test/design/screens/61.html`, including the Persian numerals: the
   domain that would produce real figures does not exist yet, and inventing
   formatted output here would make the screen impossible to compare with its
   drawing.

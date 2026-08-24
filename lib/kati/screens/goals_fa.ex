@@ -94,7 +94,7 @@ defmodule Kati.Screens.GoalsFa do
 
   `Kati.Screens.AlbumDetailFa` set this rule and the reasoning carries: the
   frame is the thing being reproduced, every number below is also in
-  `.scratch/design/screens/104.html` — screen 104's own capture, byte for byte
+  `test/design/screens/104.html` — screen 104's own capture, byte for byte
   identical to `pending/104.html` — and the drift is 104's to settle. A mirror
   is not licensed to invent a second goals page, but it is not licensed to
   reproduce a departure from the drawing either.

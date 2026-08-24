@@ -2,7 +2,7 @@ defmodule Kati.Screens.UpNext do
   @moduledoc """
   Screen 10 — Up next, pushed under Library.
 
-  Built to `.scratch/design/screens/10.html`. One landscape hero card for the
+  Built to `test/design/screens/10.html`. One landscape hero card for the
   thing you are closest to finishing, then a plain list of everything else that
   is ready, then a third section for the shows that have gone quiet.
 
@@ -42,7 +42,7 @@ defmodule Kati.Screens.UpNext do
       `Kati.Media.TrackedTitle` stores for exactly this — **two numbers, and
       deliberately no name**. `Kati.Media.CachedEpisode` could now supply one:
       the bookmark is a `{season, episode}` pair and `for_season/3` would find
-      the row it names. `.scratch/design/screens/10.html` does not draw one.
+      the row it names. `test/design/screens/10.html` does not draw one.
       Every mono line on the screen is numbers and a duration — `S2 · E6 · 18M
       LEFT`, `S3 · E2 · 48m`, `S1 · E3 · 4 MONTHS AGO` — and adding a name here
       would widen a `max_lines={1}` line that is already close to the play disc,

@@ -2,7 +2,7 @@ defmodule Kati.Screens.Restore do
   @moduledoc """
   Screen 129 — Restore from a backup, pushed under Settings.
 
-  Built to `.scratch/design/incoming/129.html`. This is screen 37's import
+  Built to `test/design/reference/129.html`. This is screen 37's import
   idiom moved onto a device: a file is acknowledged, the write is summarised
   as three counts, one conflict is answered at a time, and nothing is written
   until the last step. `Kati.Screens.PlanImport` is the pattern this file was

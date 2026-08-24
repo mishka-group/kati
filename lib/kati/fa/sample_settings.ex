@@ -3,7 +3,7 @@ defmodule Kati.Fa.SampleSettings do
   Screen 62's settings, as data — the Persian mirror of Settings.
 
   A stand-in, named as one. Copy is the design's own, from
-  `.scratch/design/screens/62.html`.
+  `test/design/screens/62.html`.
 
   ## The trailing control is part of the row, not a style
 

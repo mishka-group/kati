@@ -11,7 +11,7 @@ defmodule Kati.Meals.SampleRecipe do
   thing that rescales them. The drawing shows `1.0×`, so the drawn numbers and
   the stored numbers are the same until someone taps `add`.
 
-  Copy is taken from `.scratch/design/screens/45.html` unchanged.
+  Copy is taken from `test/design/screens/45.html` unchanged.
   """
 
   @doc "The eyebrow and title over the photograph."

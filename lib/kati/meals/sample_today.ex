@@ -2,7 +2,7 @@ defmodule Kati.Meals.SampleToday do
   @moduledoc """
   Stand-in data for screen 43 — the meal plan's own Today.
 
-  Every string here is taken from `.scratch/design/screens/43.html` rather
+  Every string here is taken from `test/design/screens/43.html` rather
   than invented, so the built screen can be compared with the drawing line for
   line. The Meals domain does not exist yet; when it does, this module is the
   shape it has to return, and swapping it out is one line in the screen.

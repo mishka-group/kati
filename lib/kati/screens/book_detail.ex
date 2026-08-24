@@ -33,7 +33,7 @@ defmodule Kati.Screens.BookDetail do
   poster tap on screen 20 pushes this module and no more, exactly as screen 43
   pushes `Kati.Screens.Meal`. So the book is the one the shelf puts first, and
   with nothing shelved `Kati.Books.Sample.detail/0` is drawn instead, which is
-  the values `.scratch/design/screens/66.html` was captured from.
+  the values `test/design/screens/66.html` was captured from.
 
   FIDELITY's rule, again: missing data is not a reason for a blank screen.
 

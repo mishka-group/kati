@@ -2,7 +2,7 @@ defmodule Kati.Screens.AutoDetect do
   @moduledoc """
   Screen 36 — Auto-detect, pushed under Settings.
 
-  Built to `.scratch/design/screens/36.html`. Manual ticking stays the
+  Built to `test/design/screens/36.html`. Manual ticking stays the
   default; this is the opt-in that removes it, and the screen is arranged as
   the argument for trusting it: the cream banner says how many episodes it has
   already ticked, Now playing shows the rule being applied live, and the last

@@ -2,7 +2,7 @@ defmodule Kati.Screens.Activity do
   @moduledoc """
   Screen 15 — Activity, pushed under Stats.
 
-  Built to `.scratch/design/screens/15.html`. An append-only history — every
+  Built to `test/design/screens/15.html`. An append-only history — every
   tick, rating, drop and import — grouped by when it happened, with the
   per-episode rewatch counts underneath. The drawing's own note calls it the
   undo trail: *nothing in the app deletes silently*, so nothing here is a
@@ -152,7 +152,7 @@ defmodule Kati.Screens.Activity do
   end
 
   @doc """
-  The drawing's own log — `.scratch/design/screens/15.html`, verbatim.
+  The drawing's own log — `test/design/screens/15.html`, verbatim.
 
   `Kati.Activity.Sample` is kept rather than inlined here: it is the frame's
   specification and the fixture the tests compare a real render against, and

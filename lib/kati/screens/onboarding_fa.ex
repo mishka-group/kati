@@ -2,7 +2,7 @@ defmodule Kati.Screens.OnboardingFa do
   @moduledoc """
   Screen 137 — راه‌اندازی, onboarding step three in Persian.
 
-  Built to `.scratch/design/incoming/137.html`. Structurally this is
+  Built to `test/design/reference/137.html`. Structurally this is
   `Kati.Screens.PickSections` (screen 26) read in Persian — the same shape of
   question: a step meter, a two-line heading, a blurb, a 2-across grid of six
   section tiles with two pre-chosen, and a commit button — because 137 draws

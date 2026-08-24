@@ -6,7 +6,7 @@ A reference sheet, in screen 27's manner, showing the five states the Log progre
 
 ## Where it is reached from
 
-Not navigable — a reference sheet in the pattern of screen 27 Empty, loading, offline (.scratch/design/screens/27.html, lib/kati/screens/states.ex, reached ‹ Settings).
+Not navigable — a reference sheet in the pattern of screen 27 Empty, loading, offline (test/design/screens/27.html, lib/kati/screens/states.ex, reached ‹ Settings).
 
 ## Bands, top to bottom
 

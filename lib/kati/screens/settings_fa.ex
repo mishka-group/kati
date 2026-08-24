@@ -2,7 +2,7 @@ defmodule Kati.Screens.SettingsFa do
   @moduledoc """
   Screen 62 — تنظیمات, the Persian mirror of Settings.
 
-  Built to `.scratch/design/screens/62.html`. Pushed under خانه (Home), so no
+  Built to `test/design/screens/62.html`. Pushed under خانه (Home), so no
   dock and a bottom inset of **40, not 132**.
 
   ## Two glyphs point opposite ways here, and both are right

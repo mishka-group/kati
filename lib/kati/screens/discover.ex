@@ -2,7 +2,7 @@ defmodule Kati.Screens.Discover do
   @moduledoc """
   Screen 11 — Discover, pushed under Library.
 
-  Built to `.scratch/design/screens/11.html`: a chip row, a three-poster rail
+  Built to `test/design/screens/11.html`: a chip row, a three-poster rail
   of matches, a card of people you follow, and the titles about to leave a
   service.
 

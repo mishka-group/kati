@@ -2,7 +2,7 @@ defmodule Kati.Screens.LibraryFa do
   @moduledoc """
   Screen 57 — کتابخانه, the Persian Library root.
 
-  Built to `.scratch/design/screens/57.html`. Screen 03's page in a root that
+  Built to `test/design/screens/57.html`. Screen 03's page in a root that
   declares `rtl`: the segmented control on its `#E4E0D9` trough, three quick
   tiles, count chips, and a three-across grid of 158-tall posters that share
   the row by weight. Chunking by three reproduces the drawing's wrap; the
@@ -176,7 +176,7 @@ defmodule Kati.Screens.LibraryFa do
   def meta(_row), do: "در حال تماشا"
 
   @doc """
-  The six titles `.scratch/design/screens/57.html` draws, in its own order.
+  The six titles `test/design/screens/57.html` draws, in its own order.
 
   Stand-in data, and `Kati.Screens.LibraryFa.Sample` says so at length. What is
   not stand-in is the set of states: three part-watched, two complete and one

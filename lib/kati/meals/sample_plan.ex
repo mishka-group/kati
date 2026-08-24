@@ -8,7 +8,7 @@ defmodule Kati.Meals.SamplePlan do
   than a materialised year of meals. `day/0` is what the tapped column lists
   underneath.
 
-  Copy is taken from `.scratch/design/screens/44.html` unchanged.
+  Copy is taken from `test/design/screens/44.html` unchanged.
   """
 
   @doc "The plan's name, and the mono line under it."

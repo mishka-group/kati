@@ -2,7 +2,7 @@ defmodule Kati.Screens.AutoDetectMusic do
   @moduledoc """
   Screen 150 — Auto-detect, music mode, pushed under Settings.
 
-  Built to `.scratch/design/incoming/150.html`, the sibling frame to screen
+  Built to `test/design/reference/150.html`, the sibling frame to screen
   36's `Kati.Screens.AutoDetect`. The board's own caption says this should be
   *"a mode on 36 rather than a second board"* — sources, rules and the
   disambiguation card are shared in spirit, and two boards risk drifting
@@ -102,7 +102,7 @@ defmodule Kati.Screens.AutoDetectMusic do
 
   ## Everything the board draws is here
 
-  Nothing on `.scratch/design/incoming/150.html`'s frame was left unbuilt.
+  Nothing on `test/design/reference/150.html`'s frame was left unbuilt.
   """
 
   use Kati.Screens.Pushed, back: "Settings"

@@ -2,7 +2,7 @@ defmodule Kati.Screens.Health do
   @moduledoc """
   Screen 42 — Health, pushed under Home.
 
-  Built to `.scratch/design/screens/42.html`. The drawing says what it is in a
+  Built to `test/design/screens/42.html`. The drawing says what it is in a
   dashed box at the bottom of itself: *"Health is a container, not a feature.
   Each tile is an independent section with its own shelf, calendar feed and
   home card."* Meals is not a top-level thing; it sits inside Health, which is
@@ -176,7 +176,7 @@ defmodule Kati.Screens.Health do
   end
 
   @doc """
-  Screen 42 exactly as `.scratch/design/screens/42.html` draws it.
+  Screen 42 exactly as `test/design/screens/42.html` draws it.
 
   Stand-in data, and marked as such — `Kati.Health.Sample` is what the frame
   was captured from, so it is both the fallback and the fixture, and deleting

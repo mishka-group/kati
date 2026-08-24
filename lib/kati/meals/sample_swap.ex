@@ -12,7 +12,7 @@ defmodule Kati.Meals.SampleSwap do
   is red, which is a judgement about the day's remaining headroom rather than
   about the sign.
 
-  Copy is taken from `.scratch/design/screens/46.html` unchanged.
+  Copy is taken from `test/design/screens/46.html` unchanged.
   """
 
   @green 0xFF4E9A73

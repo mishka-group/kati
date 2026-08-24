@@ -2,7 +2,7 @@ defmodule Kati.Screens.StatsFa do
   @moduledoc """
   Screen 61 — آمار, the Persian mirror of the stats root.
 
-  Built to `.scratch/design/screens/61.html`. A **root**, so the dock is here
+  Built to `test/design/screens/61.html`. A **root**, so the dock is here
   and the frame's bottom inset is 132.
 
   ## Charts are where RTL is usually dropped

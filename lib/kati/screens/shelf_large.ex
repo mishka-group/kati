@@ -15,7 +15,7 @@ defmodule Kati.Screens.ShelfLarge do
   backup's — a specimen to be checked by looking, not a screen a user reaches
   by tapping anything.
 
-  Board 146 is itself unbuilt (`.scratch/design/incoming/README.md` still
+  Board 146 is itself unbuilt (`test/design/reference/README.md` still
   lists it `queued`), so unlike `Kati.Screens.SearchLarge`, which can lean on
   `Kati.Screens.Search` for chrome and `Kati.Search.chip_labels/0` for data,
   this file has no sibling selection-mode module to borrow from. Every

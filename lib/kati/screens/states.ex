@@ -2,7 +2,7 @@ defmodule Kati.Screens.States do
   @moduledoc """
   Screen 27 — States, a reference sheet pushed under Settings.
 
-  Built to `.scratch/design/screens/27.html`: the four states nobody designs,
+  Built to `test/design/screens/27.html`: the four states nobody designs,
   drawn once so every other screen can quote them. Empty invites rather than
   apologises; loading is a skeleton and never a spinner; offline promises the
   ticks are safe; and every destructive action leaves an undo bar behind.

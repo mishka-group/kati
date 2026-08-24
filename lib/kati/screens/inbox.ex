@@ -2,7 +2,7 @@ defmodule Kati.Screens.Inbox do
   @moduledoc """
   Screen 05 — the new releases inbox, pushed under Home.
 
-  Built to `.scratch/design/screens/05.html`. Two lists that look different
+  Built to `test/design/screens/05.html`. Two lists that look different
   because they answer different questions: **Out now** is a card per title with
   its poster and a Watch button, because each row is something you can act on;
   **Coming up** is one card of dated rows, because it is a schedule and the
@@ -34,7 +34,7 @@ defmodule Kati.Screens.Inbox do
   watcher's output, so it must not have a second opinion about what it watches.
 
   With nothing followed there is nothing to be new and `Kati.Library.Sample` is
-  drawn instead, the values `.scratch/design/screens/05.html` was captured from.
+  drawn instead, the values `test/design/screens/05.html` was captured from.
   FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
   module stays exactly where it is; it is the fallback and the fixture, not a
   stage this screen has passed through. A user who follows something and has

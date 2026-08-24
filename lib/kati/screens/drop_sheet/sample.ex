@@ -1,6 +1,6 @@
 defmodule Kati.Screens.DropSheet.Sample do
   @moduledoc """
-  `.scratch/design/incoming/149.html` exactly as it is drawn, until a real
+  `test/design/reference/149.html` exactly as it is drawn, until a real
   gone-cold title exists to draw instead.
 
   `The Quiet Ones` is not invented for this board — it is the one title this

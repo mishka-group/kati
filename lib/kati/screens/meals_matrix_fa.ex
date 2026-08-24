@@ -2,7 +2,7 @@ defmodule Kati.Screens.MealsMatrixFa do
   @moduledoc """
   Screen 60 — برنامه هفتگی, the Persian mirror of the weekly meals matrix.
 
-  Built to `.scratch/design/screens/60.html`. Pushed under وعده‌ها (Meals), so
+  Built to `test/design/screens/60.html`. Pushed under وعده‌ها (Meals), so
   no dock and a bottom inset of **40, not 132**.
 
   ## The one screen mirroring alone cannot fix

@@ -2,7 +2,7 @@ defmodule Kati.Screens.Stats do
   @moduledoc """
   Screen 07 — Your year.
 
-  Built to `.scratch/design/screens/07.html`: a cream hero carrying the year's
+  Built to `test/design/screens/07.html`: a cream hero carrying the year's
   headline figure, a change pill, and 26 weeks of contribution squares; three
   count cards; then the breakdown bars.
 

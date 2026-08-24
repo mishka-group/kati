@@ -3,7 +3,7 @@ defmodule Kati.Screens.NumberingScheme do
   Screen 153 — pushed under Series, explaining the numbering feature rather
   than showing one show's setting.
 
-  Built to `.scratch/design/incoming/153.html`. Its own eyebrow is the thesis:
+  Built to `test/design/reference/153.html`. Its own eyebrow is the thesis:
   *"a default that announces its own reason"*. Kati stores absolute episode
   numbers and season/episode pairs for the same show at once — every anime
   tracker's oldest footgun — and picks Absolute for anime on no other basis

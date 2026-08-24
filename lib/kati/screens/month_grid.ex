@@ -2,7 +2,7 @@ defmodule Kati.Screens.MonthGrid do
   @moduledoc """
   Screen 16 — Calendar, month.
 
-  Built to `.scratch/design/screens/16.html`. The design's own caption states
+  Built to `test/design/screens/16.html`. The design's own caption states
   the idea: *"Month view is a load map, not a list"* — one dot per section, a
   filled card on the heaviest day, and the selected day's clashes summarised
   underneath. Nothing on the grid says what an event is called, because at

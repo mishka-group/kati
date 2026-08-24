@@ -2,7 +2,7 @@ defmodule Kati.Screens.Account do
   @moduledoc """
   Screen 40 — Account & permissions, pushed under Settings.
 
-  Built to `.scratch/design/screens/40.html`. The account card is deliberately
+  Built to `test/design/screens/40.html`. The account card is deliberately
   small: a relay address, the fact that no email was shared, and two buttons.
   Below it the devices that sync, then every permission with the sentence
   saying what it is for, then privacy — the cream card claiming there is no

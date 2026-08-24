@@ -2,7 +2,7 @@ defmodule Kati.Screens.LoudnessPrompt do
   @moduledoc """
   Screen 136 — *Loudness → the OS prompt*.
 
-  Built to `.scratch/design/incoming/136.html`: screen 38's step-3 question —
+  Built to `test/design/reference/136.html`: screen 38's step-3 question —
   *"How should we tell you?"*, the same title, the same body, the same three
   option cards — with the band the flow was missing bolted underneath it. The
   export's own caption names the gap this fills: *"what each choice **does

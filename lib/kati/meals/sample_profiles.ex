@@ -3,7 +3,7 @@ defmodule Kati.Meals.SampleProfiles do
   The meal-plan profiles screen 49 draws, as data.
 
   A stand-in for the Meals domain. The copy is the design's own, from
-  `.scratch/design/screens/49.html`.
+  `test/design/screens/49.html`.
 
   A plan is the profile mechanism: it owns its meals, its targets and its
   reminder times, and exactly one is active. That is why `active` is a single

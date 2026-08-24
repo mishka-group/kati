@@ -35,7 +35,7 @@ defmodule Kati.Screens.AlbumDetail do
   album, its artist, its tracklist and its listens — for the reason
   `Kati.Screens.Film` takes three. Nothing hands this screen an id, so the
   referent is the shelf's first, and with nothing shelved `Kati.Music.Sample`
-  is drawn: the values `.scratch/design/screens/74.html` was captured from.
+  is drawn: the values `test/design/screens/74.html` was captured from.
   """
 
   use Kati.Screens.Pushed, back: "Library"

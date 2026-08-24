@@ -2,7 +2,7 @@ defmodule Kati.Screens.SeriesSettings do
   @moduledoc """
   Screen 35 — per-show settings, pushed under Series.
 
-  Built to `.scratch/design/screens/35.html`. Three grouped lists in the usual
+  Built to `test/design/screens/35.html`. Three grouped lists in the usual
   card rhythm, over one thing that is not a list: the **Status** row, where
   watching / paused / dropped are three tiles of equal weight with one filled
   ink. The design's caption is explicit that this is the point — state as "a

@@ -2,7 +2,7 @@ defmodule Kati.Screens.EventDetail do
   @moduledoc """
   Screen 31 — Event detail & edit.
 
-  Built to `.scratch/design/screens/31.html`. Its own dismissal, not a back
+  Built to `test/design/screens/31.html`. Its own dismissal, not a back
   pill: the drawing puts a `close` disc, a centred "Edit event" title and an
   ink Save pill on one row, in flow at the top of the scroll — an editor you
   finish or abandon, not a page you came from. So this is `use Mob.Screen`

@@ -2,7 +2,7 @@ defmodule Kati.Screens.EpisodeRatings do
   @moduledoc """
   Screen 04, Edit 1 — the episode row gains a trailing rating column.
 
-  Built to `.scratch/design/incoming/143.html`. Not a change to
+  Built to `test/design/reference/143.html`. Not a change to
   `Kati.Screens.Series` — the board draws three specimen bands under one back
   pill labelled `Library`, in the manner of `Kati.Screens.SearchResultStates`:
   a sheet you go and look at to settle what an edit looks like in every state

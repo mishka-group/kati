@@ -12,7 +12,7 @@ defmodule Kati.Meals.SampleNutrition do
   every macro bar, and the pixel field, which is the same visual screens 07 and
   22 use — *"so a good week looks the same everywhere"*.
 
-  Copy is taken from `.scratch/design/screens/47.html` unchanged.
+  Copy is taken from `test/design/screens/47.html` unchanged.
   """
 
   @doc "The mono line under the title."

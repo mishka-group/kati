@@ -43,7 +43,7 @@ defmodule Kati.ScreenTitleSubtitleTest do
 
   @registry Kati.Screens.Gallery.screens()
 
-  @boards ".scratch/design/screens"
+  @boards "test/design/screens"
 
   describe "the line under a 28pt title" do
     test "is the size, family and gap its own board draws" do

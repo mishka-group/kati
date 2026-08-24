@@ -5,10 +5,10 @@ defmodule Kati.Screens.Sync do
   ## There is no drawing for this screen, and this is what it follows instead
 
   Every other file in `lib/kati/screens/` is built to a numbered frame under
-  `.scratch/design/screens/`. This one is not. Issue #25 asks for a drawing of
+  `test/design/screens/`. This one is not. Issue #25 asks for a drawing of
   the sync surface and it does not exist, and the two frames the sync
   moduledocs point at are not pictures of this page:
-  `.scratch/design/screens/37.html` is the CSV **import** wizard — its
+  `test/design/screens/37.html` is the CSV **import** wizard — its
   *Keep mine / Take file / Keep both* strip is what `Kati.Sync.resolve/3`'s doc
   borrows a vocabulary from — and `27.html` is the states reference sheet whose
   error card carries the **Retry** `Kati.Sync.Outbox.retry/1` names.

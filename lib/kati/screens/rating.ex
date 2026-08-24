@@ -2,7 +2,7 @@ defmodule Kati.Screens.Rating do
   @moduledoc """
   Screen 33 — Log a watch: the rating, the review, and the context.
 
-  Built to `.scratch/design/screens/33.html`. It carries its own dismissal —
+  Built to `test/design/screens/33.html`. It carries its own dismissal —
   a `close` disc and a **Save** pill, not the pushed back pill — because it is
   a sheet you either commit or abandon, and a back arrow says neither. Screen
   06 is the precedent. No dock, so the frame closes at 40 rather than 132.
@@ -145,7 +145,7 @@ defmodule Kati.Screens.Rating do
   pair**, so an evicted poster cannot take the user's own review down with it.
 
   With nothing logged there is no such watch and `Kati.Rating.Sample` is drawn
-  instead, the values `.scratch/design/screens/33.html` was captured from.
+  instead, the values `test/design/screens/33.html` was captured from.
   FIDELITY's rule: *missing data is not a reason for a blank screen*. The Sample
   module stays exactly where it is; it is the fallback and the fixture, not a
   stage this screen has passed through.

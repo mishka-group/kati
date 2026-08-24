@@ -2,7 +2,7 @@ defmodule Kati.Screens.TodayFa do
   @moduledoc """
   Screen 59 — امروز, the Persian mirror of the meals Today screen.
 
-  Built to `.scratch/design/screens/59.html`. Pushed under سلامت (Health), so
+  Built to `test/design/screens/59.html`. Pushed under سلامت (Health), so
   there is no dock and the frame's bottom inset is **40, not 132**.
 
   ## Why this draws its own back pill

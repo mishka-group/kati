@@ -2,7 +2,7 @@ defmodule Kati.Screens.Calendar do
   @moduledoc """
   Screen 02 — Schedule.
 
-  Built to `.scratch/design/screens/02.html`. Note how little it shares with
+  Built to `test/design/screens/02.html`. Note how little it shares with
   Home: the title carries a mono subtitle rather than an eyebrow above it, the
   day strip is seven `flex:1` cells at radius 16 rather than fixed 44x62 pills,
   and the timeline is a 44pt mono time column beside a card, not a rule and a
@@ -59,7 +59,7 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc """
-  The five rows of `.scratch/design/screens/02.html`, in its own order.
+  The five rows of `test/design/screens/02.html`, in its own order.
 
   Stand-in data, and marked as such — but the SHAPES are not stand-in: the
   design draws a done habit, an appointment, a reminder, a renewal and an

@@ -2,7 +2,7 @@ defmodule Kati.Screens.Series do
   @moduledoc """
   Screen 04 — a series, pushed under Library.
 
-  Built to `.scratch/design/screens/04.html`. The shape is a 330pt artwork
+  Built to `test/design/screens/04.html`. The shape is a 330pt artwork
   block with a 190pt gradient lifting the paper back over it, floating chrome
   at 60pt, and the title sitting on the gradient rather than in a bar.
 
@@ -79,7 +79,7 @@ defmodule Kati.Screens.Series do
   name an episode.
 
   With nothing to draw, `Kati.Library.Sample` is drawn instead — the values
-  `.scratch/design/screens/04.html` was captured from. FIDELITY's rule:
+  `test/design/screens/04.html` was captured from. FIDELITY's rule:
   *missing data is not a reason for a blank screen*. The Sample module stays
   exactly where it is; it is the fallback and the fixture, not a stage this
   screen has passed through.

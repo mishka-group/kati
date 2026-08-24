@@ -2,7 +2,7 @@ defmodule Kati.Screens.Subscriptions do
   @moduledoc """
   Screen 23 — Subscriptions, pushed under Stats.
 
-  Built to `.scratch/design/screens/23.html`. The money section, and the
+  Built to `test/design/screens/23.html`. The money section, and the
   drawing says plainly why it belongs in this app rather than a finance one:
   *"cost per watched hour is the one subscription number no finance app can
   compute for you."* The price comes from a bank; the hours come from the

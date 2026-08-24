@@ -2,8 +2,8 @@ defmodule Kati.Screens.BackupDark do
   @moduledoc """
   Screen 128's "Back up everything" summary, in the dark colourway.
 
-  Built to `.scratch/design/incoming/131.html`, which sits beside
-  `.scratch/design/incoming/128.html` — the same page, the same copy, the same
+  Built to `test/design/reference/131.html`, which sits beside
+  `test/design/reference/128.html` — the same page, the same copy, the same
   frame, only the palette moved. That is `Kati.Screens.YearShareDark`'s
   relationship to `Kati.Screens.YearShare` and `Kati.Screens.BookDetailDark`'s
   to `Kati.Screens.BookDetail`: a dark board is a separate screen because

@@ -2,7 +2,7 @@ defmodule Kati.Screens.Settings do
   @moduledoc """
   Screen 24 — Settings, pushed under Home.
 
-  Built to `.scratch/design/screens/24.html`. Everything the app can be told,
+  Built to `test/design/screens/24.html`. Everything the app can be told,
   in the same card rhythm as every other screen: an account card, then four
   grouped lists.
 
@@ -375,7 +375,7 @@ defmodule Kati.Screens.Settings do
   this app can be in and both should be checkable without a store.
 
   The date form is the drawing's own — `Last backup 14 Aug`, day then short
-  month, no year. `.scratch/design/screens/24.html` is the frame this screen is
+  month, no year. `test/design/screens/24.html` is the frame this screen is
   captured against, and only the *value* was ever wrong.
   """
   @spec backup_line(DateTime.t() | nil) :: String.t()

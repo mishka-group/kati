@@ -2,7 +2,7 @@ defmodule Kati.Screens.LanguagePick do
   @moduledoc """
   Screen 53 — the onboarding language choice.
 
-  Built to `.scratch/design/screens/53.html`. The first step of five, and the
+  Built to `test/design/screens/53.html`. The first step of five, and the
   first thing the app asks: nothing else can be worded until it is answered.
   So the question is asked twice, once in each script, and each option states
   its three consequences — direction, digits, calendar — in its own script.

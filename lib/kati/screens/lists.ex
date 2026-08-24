@@ -2,7 +2,7 @@ defmodule Kati.Screens.Lists do
   @moduledoc """
   Screen 12 — Lists, pushed under Library.
 
-  Built to `.scratch/design/screens/12.html`. Hand-made lists sit above the
+  Built to `test/design/screens/12.html`. Hand-made lists sit above the
   ones the app keeps, and the two are drawn as different objects rather than as
   one list with a divider: a made list shows three fanned posters, because what
   is in it is the point; a kept list shows an icon and a count, because it is a

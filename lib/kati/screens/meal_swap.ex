@@ -2,7 +2,7 @@ defmodule Kati.Screens.MealSwap do
   @moduledoc """
   Screen 46 — swap a meal.
 
-  Built to `.scratch/design/screens/46.html`. The screen is an argument in
+  Built to `test/design/screens/46.html`. The screen is an argument in
   three parts, top to bottom: what is being replaced, what could replace it
   and by how much it differs, and what the day looks like afterwards. The
   design's caption puts it plainly — *"A swap is only useful if it tells you

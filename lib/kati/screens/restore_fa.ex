@@ -3,7 +3,7 @@ defmodule Kati.Screens.RestoreFa do
   Screen 132 — بازگردانی از پشتیبان, the Persian mirror of Restore from a
   backup, pushed under تنظیمات.
 
-  Built to `.scratch/design/incoming/132.html`, screen 129's mirror the way
+  Built to `test/design/reference/132.html`, screen 129's mirror the way
   `Kati.Screens.MoneyFa` is 127's: 129 is `Kati.Screens.Restore`, and it
   landed only just before this file did, which is why `pick_sections.ex`'s
   own comment still says *"until screen 129 is built"* — that comment is now

@@ -9,7 +9,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   ## The blind spot this closes
 
   A screen is verified by capturing a device frame and comparing it with
-  `.scratch/design/screens/NN.html`. A captured frame shows **only what fits on
+  `test/design/screens/NN.html`. A captured frame shows **only what fits on
   the screen**, so the bottom of a long screen has never been compared with
   anything. Ten screens are long enough for that to matter — 25, 36, 37, 38, 39,
   40, 47, 48, 49, 50 — and the failure mode is quiet: a section the drawing
@@ -83,7 +83,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   alias Kati.ScreenSweep
 
   # `Kati.Screens.Gallery` is the app's own number → module registry, the list
-  # the owner navigates by and the one `.scratch/design/screens/NN.html` is named
+  # the owner navigates by and the one `test/design/screens/NN.html` is named
   # after. Reading it here rather than keeping a second copy means a screen
   # cannot be renumbered in one place and checked in another.
   @registry Kati.Screens.Gallery.screens()
@@ -95,7 +95,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   #   * `Kati.Screens.Gallery` is scaffolding — "every screen in the app, in one
   #     list" — and was never drawn.
   #   * `Kati.Screens.Backup` and `Kati.Screens.Sync` are the two halves of #54.
-  #     `.scratch/design/screens/` stops at 62 and none of the 62 is either of
+  #     `test/design/screens/` stops at 62 and none of the 62 is either of
   #     them; issue #25 asks for the drawings and they do not exist. Both are
   #     built in screen 24's idiom instead — every container is
   #     `Kati.UI.SettingsList`'s and every colour a `Kati.Theme.Palette` token —
@@ -189,7 +189,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       registered = Enum.map(@registry, &elem(&1, 2))
 
       assert length(on_disk) == 152,
-             "expected 152 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+             "expected 152 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 

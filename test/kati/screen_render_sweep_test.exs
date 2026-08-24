@@ -30,7 +30,7 @@ defmodule Kati.ScreenRenderSweepTest do
   ## What it is not
 
   It proves each screen produces *a* tree, not the *right* tree. Nothing here
-  compares against `.scratch/design/screens/NN.html`; a screen that renders a
+  compares against `test/design/screens/NN.html`; a screen that renders a
   blank box passes. Taps are `Kati.ScreenTapSweepTest`'s job.
   """
   # `Mob.ScreenCase` is the blessed in-BEAM screen harness: it opens the

@@ -2,7 +2,7 @@ defmodule Kati.Screens.DropSheet do
   @moduledoc """
   Screen 149 — Drop this show, a sheet over the title you have gone quiet on.
 
-  Built to `.scratch/design/incoming/149.html`. The board's own caption names
+  Built to `test/design/reference/149.html`. The board's own caption names
   three things it is dropping at once: a captured **position** — never a bare
   "dropped" with no stopping point — an optional, one-tap **reason**, and a
   dark **undo** pill, because the app's activity log is append-only and this
@@ -61,7 +61,7 @@ defmodule Kati.Screens.DropSheet do
   `Kati.Screens.SeriesMeta`'s own note is the method: tags `flex-wrap` in the
   drawing and Mob's `Row` does not, so the break is wherever a browser
   actually wraps them at the frame's own width — not a character count. Six
-  labels rendered at `.scratch/design/incoming/149.html`'s own `402px` frame
+  labels rendered at `test/design/reference/149.html`'s own `402px` frame
   break after `Too long`: `Lost interest · Too slow · Not for me · Too long`,
   then `Bad time for it · Might come back`. `Enum.chunk_every(@reasons, 4)`
   is that break, not a coincidence — six items in fours is two rows of 4 and

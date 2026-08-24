@@ -2,7 +2,7 @@ defmodule Kati.Screens.SeriesMeta do
   @moduledoc """
   Screen 14 — a series in full, pushed under Library.
 
-  Built to `.scratch/design/screens/14.html`. Where screen 04 answers *what do
+  Built to `test/design/screens/14.html`. Where screen 04 answers *what do
   I watch next*, this one answers *what is this thing* — three ratings side by
   side, the synopsis, real cast, every way to watch including the user's own
   shelf, and the user's own tags last.

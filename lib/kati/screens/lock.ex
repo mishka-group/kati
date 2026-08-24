@@ -2,7 +2,7 @@ defmodule Kati.Screens.Lock do
   @moduledoc """
   Screen 29 — the lock screen and its widgets.
 
-  Built to `.scratch/design/screens/29.html`: a full-bleed wallpaper under a
+  Built to `test/design/screens/29.html`: a full-bleed wallpaper under a
   three-stop scrim, the clock, then three glass widgets — small, small,
   medium, large — off one data model.
 

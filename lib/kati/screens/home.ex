@@ -2,7 +2,7 @@ defmodule Kati.Screens.Home do
   @moduledoc """
   Screen 01 — Home.
 
-  Built to `.scratch/design/screens/01.html`, where every number is literal:
+  Built to `test/design/screens/01.html`, where every number is literal:
   the `64px 21px 132px` frame, the 44px header discs, the 52px search bar at
   radius 26, the cream hero at radius 24 with its three overlapping posters,
   the two continue-watching cards, three section tiles, and the rest-of-today

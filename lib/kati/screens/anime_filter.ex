@@ -2,7 +2,7 @@ defmodule Kati.Screens.AnimeFilter do
   @moduledoc """
   Screen 152 — Anime, pushed under Settings.
 
-  Built to `.scratch/design/incoming/152.html`, which is not a filter sheet —
+  Built to `test/design/reference/152.html`, which is not a filter sheet —
   it is the argument for one. The board's own eyebrow says so: "FOUR EDITS,
   ONE SENTENCE". This screen draws the argument, in the board's own words, and
   wires the three controls it actually puts a finger on: the misclassified
@@ -55,7 +55,7 @@ defmodule Kati.Screens.AnimeFilter do
     * **Yes / No**, "Do you watch anime?" — the sub-choice itself, a real
       either/or rather than a picture of one.
 
-  ## Two things `.scratch/design/incoming/152.html` draws that this cannot move
+  ## Two things `test/design/reference/152.html` draws that this cannot move
 
   `Kati.Components.MishkaChip` has no `shadow` prop — every unselected chip on
   the board carries `shadow_card_soft`'s own drop shadow and this file cannot

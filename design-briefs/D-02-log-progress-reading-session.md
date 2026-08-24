@@ -6,7 +6,7 @@ Logs one reading session — a new position or a duration — so the pace figure
 
 ## Where it is reached from
 
-Screen 20 Books shelf (.scratch/design/screens/20.html, lib/kati/screens/books.ex — parent confirmed). The ticket names NO control on 20; 20's Reading-now hero currently draws no button, so the trigger must be invented. Also opened from the D-01 Book detail 'Log progress' action, which is not drawn yet.
+Screen 20 Books shelf (test/design/screens/20.html, lib/kati/screens/books.ex — parent confirmed). The ticket names NO control on 20; 20's Reading-now hero currently draws no button, so the trigger must be invented. Also opened from the D-01 Book detail 'Log progress' action, which is not drawn yet.
 
 ## Bands, top to bottom
 

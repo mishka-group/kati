@@ -2,7 +2,7 @@ defmodule Kati.Screens.PlanShare do
   @moduledoc """
   Screen 50 — share, import & export a plan, pushed under Plans.
 
-  Built to `.scratch/design/screens/50.html`. A plan is a portable document:
+  Built to `test/design/screens/50.html`. A plan is a portable document:
   a QR code or a link hands it over, an explicit list states what travels with
   it, and history never leaves the device. Import accepts the same file export
   produces, which is the only reason the two live on one screen.

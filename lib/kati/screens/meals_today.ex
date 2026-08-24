@@ -2,7 +2,7 @@ defmodule Kati.Screens.MealsToday do
   @moduledoc """
   Screen 43 — Today, pushed under Health.
 
-  Built to `.scratch/design/screens/43.html`. The design's own caption says
+  Built to `test/design/screens/43.html`. The design's own caption says
   what this screen is: *"The day reads like the schedule screen because it is
   the same component: time gutter, one card per item, the next one lifted."*
   So the 44pt time column, the card per meal and the lift on the next thing
@@ -128,7 +128,7 @@ defmodule Kati.Screens.MealsToday do
   end
 
   @doc """
-  Screen 43 exactly as `.scratch/design/screens/43.html` draws it.
+  Screen 43 exactly as `test/design/screens/43.html` draws it.
 
   Stand-in data, and marked as such — `Kati.Meals.SampleToday` is what the
   frame was captured from, so it is both the fallback and the fixture, and

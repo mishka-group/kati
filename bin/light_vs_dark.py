@@ -2,7 +2,7 @@
 """Per screen: did anything change at all between the light run and the dark one?
 
     python3 bin/light_vs_dark.py
-    python3 bin/light_vs_dark.py .scratch/design/audit_v7 .scratch/design/audit_dark
+    python3 bin/light_vs_dark.py .captures/audit_v7 .captures/audit_dark
 
 `bin/diff_frames.py` answers "did this screen stay the same when it was
 supposed to", and its good news is a clean report. This script asks the
@@ -37,8 +37,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import frame_image as FI  # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-LIGHT = REPO / ".scratch/design/audit_v7"
-DARK = REPO / ".scratch/design/audit_dark"
+LIGHT = REPO / ".captures/audit_v7"
+DARK = REPO / ".captures/audit_dark"
 
 STATUS_BAR = 90   # clock, battery, wifi — differ between runs by design
 NAV_BAR = 130     # the three-button bar at the bottom

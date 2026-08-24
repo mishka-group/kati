@@ -3,7 +3,7 @@ defmodule Kati.Screens.RestoreFirstRun do
   Screen 135 — *Bring your Kati back*, the chromeless twin of 129, reached
   from inside first-run onboarding rather than from Settings.
 
-  Built to `.scratch/design/incoming/135.html`. The flow map, `134.html`,
+  Built to `test/design/reference/135.html`. The flow map, `134.html`,
   draws it as a branch offered on two of the five onboarding steps — 38·1
   (Welcome) and 26 (`Kati.Screens.PickSections`) — with one outgoing edge:
   "file accepted" into 37, `Kati.Screens.Import`. Reached from onboarding, so

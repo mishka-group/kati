@@ -3,7 +3,7 @@ defmodule Kati.Fa.SampleWeek do
   Screen 60's plan, as data — the Persian mirror of the weekly meals matrix.
 
   A stand-in, named as one, shaped like the domain that will replace it. Copy
-  is the design's own, from `.scratch/design/screens/60.html`.
+  is the design's own, from `test/design/screens/60.html`.
 
   ## The week starts on Saturday, and that is data, not styling
 

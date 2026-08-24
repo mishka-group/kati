@@ -2,7 +2,7 @@ defmodule Kati.Screens.Library do
   @moduledoc """
   Screen 03 — Library.
 
-  Built to `.scratch/design/screens/03.html`: a segmented control on a
+  Built to `test/design/screens/03.html`: a segmented control on a
   `#E4E0D9` trough, three quick tiles carrying mono counts, chips with counts
   at .65 opacity, and a three-across grid of 158-tall posters each with a
   progress bar burnt into its bottom edge.
@@ -212,7 +212,7 @@ defmodule Kati.Screens.Library do
   end
 
   @doc """
-  The nine titles `.scratch/design/screens/03.html` draws, in its own order.
+  The nine titles `test/design/screens/03.html` draws, in its own order.
 
   Stand-in data, and marked as such — `Kati.Library.Sample`'s moduledoc says so
   at length. What is NOT stand-in is the set of states: three titles not

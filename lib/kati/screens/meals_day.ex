@@ -2,7 +2,7 @@ defmodule Kati.Screens.MealsDay do
   @moduledoc """
   Screen 52 — meals on the calendar.
 
-  Built to `.scratch/design/screens/52.html`. A day where five of the eleven
+  Built to `test/design/screens/52.html`. A day where five of the eleven
   items are meals, drawn to prove that meals need no special lane: they take a
   bronze rule, sit in clock order with everything else, and then collapse into
   a single row under the same 3+ density rule that collapses six episodes on

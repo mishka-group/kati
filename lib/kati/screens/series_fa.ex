@@ -2,7 +2,7 @@ defmodule Kati.Screens.SeriesFa do
   @moduledoc """
   Screen 58 — سریال, the Persian episode tracker, pushed under کتابخانه.
 
-  Built to `.scratch/design/screens/58.html`. Screen 04's page in Persian, and
+  Built to `test/design/screens/58.html`. Screen 04's page in Persian, and
   smaller in two ways that are easy to miss: the artwork is **300** tall, not
   330, and the frame's bottom inset is **40, not 132**, because a pushed
   screen has no dock to clear.

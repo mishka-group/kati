@@ -2,7 +2,7 @@ defmodule Kati.Screens.HomeDark do
   @moduledoc """
   Screen 28 — Home in dark.
 
-  Built to `.scratch/design/screens/28.html`. Same page as screen 01, same
+  Built to `test/design/screens/28.html`. Same page as screen 01, same
   `64px 21px 132px` frame, same order of parts — and deliberately **not** an
   inversion of it. The drawing's own caption states the rule this screen
   exists to prove:

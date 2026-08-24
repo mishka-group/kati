@@ -6,7 +6,7 @@ Logs a manual album listen so the music shelf has a write path while automatic s
 
 ## Where it is reached from
 
-Screen 21 Music shelf (.scratch/design/screens/21.html, lib/kati/screens/music.ex — parent confirmed), presumably from an album tile in the "On repeat this week" rail; the ticket names no specific control. Also from the D-03 album screen, which is not drawn yet.
+Screen 21 Music shelf (test/design/screens/21.html, lib/kati/screens/music.ex — parent confirmed), presumably from an album tile in the "On repeat this week" rail; the ticket names no specific control. Also from the D-03 album screen, which is not drawn yet.
 
 ## Bands, top to bottom
 
