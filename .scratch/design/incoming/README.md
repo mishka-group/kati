@@ -1,42 +1,31 @@
-# Drawn, sliced, not yet built
+# Drawn, sliced, and one still staged
 
-Twenty-six artboards from the 23 August export, staged here rather than in
-`screens/` because `Kati.ScreenDesignLiteralTest` treats every file in that
-directory as the claim *a screen exists for this and renders every literal in
-it*. Putting them there before the screens exist would make the suite red for
-work that is queued rather than broken.
+Twenty-six artboards landed in the 23 August export. **Twenty-five are built**
+— their boards moved into `screens/` in the commit that added the screen module
+and its `Kati.Screens.Gallery` entry, which is the rule this directory exists to
+enforce: `Kati.ScreenDesignLiteralTest` reads every file in `screens/` as the
+claim *a screen exists for this and renders every literal in it*, so a board
+arrives there only once that claim is true.
 
-Move a file into `screens/` in the same commit that adds its screen module and
-its `Kati.Screens.Gallery` entry.
+One remains here.
 
-| # | Board | Brief |
-|---|---|---|
-| 128 | Back up everything | `D-22` |
-| 129 | Restore from a backup | `D-22` |
-| 130 | Backup & restore — states (eight) | `D-22` |
-| 131 | Back up everything — dark | `D-22` |
-| 132 | بازگردانی — Restore, RTL | `D-22` |
-| 133 | Back up & restore at 235% | `D-22` |
-| 135 | Restore — first-run, chromeless | `D-23` |
-| 136 | Loudness → the OS prompt | `D-23` |
-| 137 | راه‌اندازی — onboarding, RTL | `D-23` |
-| 138 | Onboarding at 235% | `D-23` |
-| 134 | First run — the flow map | `D-23` |
-| 139 | Home — nothing set up | `D-23` |
-| 140 | Import — where are you coming from | `D-24` |
-| 141 | Import — recognised | `D-24` |
-| 142 | Import — source states | `D-24` |
-| 143 | Episode rows — the rating column | `D-25` |
-| 144 | Rate an episode — three states | `D-25` |
-| 145 | Shelf filter sheet | `D-26` |
-| 146 | Shelf — selection mode | `D-26` |
-| 147 | Selection & filters at 235% | `D-26` |
-| 148 | Drop, DNF & abandon — the states | `D-27` |
-| 149 | Dropping — the sheet and after | `D-27` |
-| 150 | Auto-detect — music mode | `D-28` |
-| 151 | Notification access — four states | `D-28` |
-| 152 | Anime — a type, not a section | `D-29` |
-| 153 | Numbering — inherited and overridden | `D-29` |
+| # | Board | Brief | Why it is still staged |
+|---|---|---|---|
+| 134 | First run — the flow map | `D-23` | Not a screen. See below. |
+
+The twenty-five that left are 128–133 (`D-22`, #25), 135–139 (`D-23`, #11),
+140–142 (`D-24`, #12), 143–144 (`D-25`, #15), 145–147 (`D-26`, #19), 148–149
+(`D-27`, #17), 150–151 (`D-28`, #20) and 152–153 (`D-29`, #21).
+
+---
+
+## Screen 134 is a map, not a screen
+
+It is a 1720px-wide diagram of how the first run flows between screens. Kati
+does not draw it and never will — there is no phone it fits on and no route
+that could reach it. It stays here as the design record for #11 rather than
+becoming a gallery entry, and `Kati.Screens.Gallery` says so at its `#11`
+comment.
 
 **134 is not a phone, and my splitter could not see it.** The brief said a map
 may take whatever width it needs; Claude Design drew it as plain `div`s at

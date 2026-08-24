@@ -303,10 +303,33 @@ defmodule Kati.Theme.Palette do
     {:red_wash, 0x1AB4553C, 0x1AB4553C, :hue, "A 10% red ground behind a destructive glyph."},
     {:red_wash_strong, 0x24B4553C, 0x24B4553C, :hue, "The ground of a stale status pill."},
     {:red_ring, 0x4DB4553C, 0x4DB4553C, :hue, "The ring around a destructive control."},
+    {:red_ring_strong, 0x66B4553C, 0x66B4553C, :hue,
+     "The heavier ring screens 129 and 132 draw around Replace everything — the one control in " <>
+       "the app that cannot be undone, so it carries more ring than a merely destructive row."},
+    {:green_wash_soft, 0x244E9A73, 0x244E9A73, :hue,
+     "A 14% green ground, under a tick that marks something as travelling with a backup " <>
+       "(128, 131) or as an inherited default (153). Lighter than `green_wash`, which is a " <>
+       "live status pill and wants to read as a state rather than as a mark."},
     {:bronze, 0xFFB08E55, 0xFFB08E55, :theme,
      "Meals, money. `Kati.Theme.bronze/0` takes no mode."},
 
     # ── Ink tints: rules, borders, tracks ─────────────────────────────────
+    {:rule_full, 0x1F1A1917, 0x1FF5F2EE, :drawn,
+     "A 12% ink rule that spans a card edge to edge, where `hairline` divides two rows " <>
+       "inside one. Screens 128 and 140 draw it between a card's halves. The alpha keeps and " <>
+       "the ink swaps, which is the rule every `:drawn` row here follows."},
+    {:scrim_soft, 0x9EFBFAF8, 0x9E1E1D1B, :drawn,
+     "A 62% card veil, over content a large-type layout has had to overlap rather than " <>
+       "reflow. Screen 138 is the only caller: at 235% the step rule and the option list " <>
+       "cannot both fit, and the veil is what keeps the rule legible over the list."},
+    {:tile_grey, 0xFFF1EEE9, 0xFF232220, :drawn,
+     "The third grey — between `paper` and `card`, and equal to neither. Screen 27's skeleton " <>
+       "shimmer and screen 151's retired-row tile both want it, and forcing either onto the " <>
+       "nearer of the two would move that token's meaning to match one drawing."},
+    {:chip_text_disabled, 0xFFB5AEA3, 0xFF6E6860, :step,
+     "The label of a chip that cannot be tapped — screen 145's filter chips that would empty " <>
+       "the shelf. `Kati.UI.chip/2`'s moduledoc warns against borrowing `tertiary` here: a " <>
+       "disabled label has to read as disabled rather than merely quiet."},
     {:hairline, 0x121A1917, 0x12F5F2EE, :drawn,
      "The 7% rule between two rows. The one alpha-swap the design draws itself."},
     {:hairline_soft, 0x141A1917, 0x14F5F2EE, :alpha, "An 8% rule between grouped rows."},

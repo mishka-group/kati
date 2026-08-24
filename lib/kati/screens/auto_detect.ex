@@ -447,7 +447,13 @@ defmodule Kati.Screens.AutoDetect do
   # `handle_tap/2` rather than a `handle_info/2` clause: `Kati.Screens.Pushed`
   # owns `handle_info/2` and its `:back` clause, and overriding it here would
   # take the back pill with it.
+  # #20 draws the music half of this screen as a MODE of it rather than as a
+  # second screen — the sources, rules and disambiguation card are shared, and
+  # two boards would drift within a release. The switch itself is drawn on 150.
   @impl true
+  def handle_tap(:open_music, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
+
   def handle_tap(:open_retired, socket) do
     {:noreply,
      Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Browser extension"})}

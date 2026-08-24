@@ -290,7 +290,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"121", Kati.Screens.WeekImage},
     {"127", Kati.Screens.MoneyFa},
     {"63", Kati.Screens.MarkIos},
-    {"64", Kati.Screens.MarkAndroid}
+    {"64", Kati.Screens.MarkAndroid},
+    # #25 and #11's screens that reach a store. `Kati.Screens.Backup` left
+    # `@undrawn` on 24 August when 128 landed — the comment there says to move
+    # an entry the moment its drawing arrives, and this is that move.
+    {"128", Kati.Screens.Backup},
+    {"131", Kati.Screens.BackupDark},
+    {"139", Kati.Screens.HomeEmpty},
+    {"144", Kati.Screens.RateEpisode},
+    {"149", Kati.Screens.DropSheet},
+    {"132", Kati.Screens.RestoreFa},
+    # 129 and 135 joined on 24 August, when #25's restore half moved off
+    # `Kati.Screens.Backup` and onto the screen its drawing puts it on. They
+    # reach the store through `Kati.Backup.restore_file/2` — a tap, not a
+    # mount — and 135 inherits the classification through its one reuse of
+    # `Kati.Screens.Restore.qr_pattern/0`. Both are here anyway: this list is
+    # derived from the compiled import table precisely so that a screen cannot
+    # opt itself out by only touching the store on a tap.
+    {"129", Kati.Screens.Restore},
+    {"135", Kati.Screens.RestoreFirstRun}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -316,7 +334,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # a module here that stops reading the store, or that acquires a drawing and
   # joins `Kati.Screens.Gallery`'s registry, fails.
   @undrawn [
-    Kati.Screens.Backup,
     # The two notification screens. Both read a store — the inbox builds a plan
     # from every domain's candidates, the diagnostic reads the permission state
     # and the same plan — and neither has a drawing to be compared against, so
@@ -488,6 +505,19 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       end
     end
   end
+
+  # How many of a board's literals belong to a moment the live screen is not in.
+  # See the pairs in `device_values/0` for which they are.
+  @moment_screens %{"144" => 5, "149" => 3}
+
+  @moment_symbols [
+    {"128", "cloud_done"},
+    {"144", "expand_more"},
+    {"144", "visibility_off"},
+    {"149", "undo"}
+  ]
+
+  defp exempt_symbol?(number, name), do: {number, name} in @moment_symbols
 
   describe "which screens this file has to cover" do
     test "every screen that can reach the database is in the list, and every one listed does" do
@@ -710,6 +740,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
             glyph = Kati.Icons.glyph(name),
             glyph != nil,
             not MapSet.member?(glyphs, glyph),
+            not exempt_symbol?(screen.number, name),
             do: "  #{screen.number} #{inspect(screen.module)} never draws #{name}"
 
       assert missing == [],
@@ -745,9 +776,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # a screen whose lists emptied while its chrome survived could still pass it
       # if the drawing's copy happened to sit in the chrome. Counting what was
       # actually rendered catches the shape of that before it needs a frame.
+      # A board that draws several moments at once holds more copy than any one
+      # render can. `@moment_screens` names those and how many literals belong
+      # to a moment the screen is not in, so the count still has to be right —
+      # it is a smaller number, not an absent check.
       thin =
         for screen <- render_migrated(),
-            length(screen.texts) < length(screen.design.text),
+            allowance = Map.get(@moment_screens, screen.number, 0),
+            length(screen.texts) < length(screen.design.text) - allowance,
             do:
               "  #{screen.number} #{inspect(screen.module)} rendered #{length(screen.texts)} " <>
                 "strings against a drawing holding #{length(screen.design.text)}"
@@ -860,6 +896,31 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MyServices.drawn/0},
       {"24", Kati.Screens.Settings, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
+      # #25 and #11's readers. Four of the six borrow the pair they are built
+      # on, which is the shape 120 already uses: the screen draws another
+      # screen's `drawn_*` value, so what it depends on is that the borrowed
+      # pair still agrees on an empty database, and that is what this asks.
+      {"128", Kati.Screens.Backup, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"131", Kati.Screens.BackupDark, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"132", Kati.Screens.RestoreFa, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 129 and 135 write rather than read: what they draw at rest is
+      # `Kati.Backup.SampleRestore`'s fixture, and the database only enters on
+      # the tap that restores. Their gate is 128's for the reason 106's is
+      # 104's — a screen that restored into a Kati whose service list disagreed
+      # with the page that sent it there would be the defect worth catching.
+      {"129", Kati.Screens.Restore, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"135", Kati.Screens.RestoreFirstRun, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"139", Kati.Screens.HomeEmpty, fn -> Kati.Screens.Home.rest_of_today(timeline()) end,
+       fn -> Kati.Screens.Home.rest_of_today(Kati.Screens.Home.drawn_rows()) end},
+      {"144", Kati.Screens.RateEpisode, &Kati.Screens.Rating.watch/0,
+       &Kati.Screens.Rating.drawn_watch/0},
+      {"149", Kati.Screens.DropSheet, &Kati.Screens.Library.titles/0,
+       &Kati.Screens.Library.drawn_titles/0},
       {"62", Kati.Screens.SettingsFa, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       {"94", Kati.Screens.CountryPicker, &Kati.Screens.MyServices.listed/0,
@@ -1055,6 +1116,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
+      # 139 is 01 with nothing stored — the same greeting, from the same
+      # `Kati.Screens.Home.today/0`. Its date line is not here because an empty
+      # Home draws no timeline to date, so only the greeting survives to be
+      # exempted; `Kati.ScreenDesignLiteralTest` carries both, because the
+      # populated render draws both.
+      {"139", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"55", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"55", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"56", "یکشنبه ۲۵ مرداد · ۵ مورد", ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u},
@@ -1077,6 +1144,34 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.ScreenDesignLiteralTest` for the full reasoning — reproducing the
       # slip would mean shipping a wrong flag to keep a sweep quiet.
       {"94", "🇰🇭", ~r/^🇳🇱$/u},
+      # 128's status card. `Kati.Screens.Settings.last_backup/0` is `nil` until
+      # something completes a Save As, so on an empty database this card reads
+      # "Never" — which is the state the board itself calls *a warning, not an
+      # error*, and the default state of every user. Same pair 24 and 62 carry.
+      {"128", "14 aug", ~r/^(\d{1,2} \p{L}{3}|never)$/u},
+      {"128", "2 weeks ago · 214 mb", ~r/^(.*ago · \d+ mb|still only on this phone)$/u},
+      # 139's greeting line prints the device's own clock, as 01's does.
+      {"139", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
+      # 144 and 149's boards each show SEVERAL MOMENTS in one frame, and a live
+      # screen can only be in one of them. Both modules argue the reading in
+      # their own moduledocs and both are worth reading before changing this:
+      #
+      #   * 144's "Spoiler-safe variant" panel is a swatch documenting a
+      #     SUBSTITUTION inside the one headline — `S2 E6 · The Undertow`
+      #     becomes `S2 E6 · Episode 6` — not a second headline drawn beside
+      #     the first. `headline/2` performs the substitution.
+      #   * 149's board draws the action row AND the dark undo pill together,
+      #     which are before and after the same tap. `dropped?` starts false,
+      #     so the sheet opens on the action row and the pill replaces it.
+      {"144", "spoiler-safe variant", ~r/^rate this episode$/},
+      {"144", "s2 e6 · episode 6", ~r/^s2 e6 · (the undertow|episode 6)$/},
+      {"144", "rewatch — your last verdict, above the input", ~r/^review$/},
+      {"144", "you, 3 mar 2024 · \uF09A4", ~r/^what did you make of it\?$/},
+      {"144",
+       "the estuary scenes land completely differently once you know what mara is looking for.",
+       ~r/^what did you make of it\?$/},
+      {"149", "dropped the quiet ones at s1 e3", ~r/^drop at s1 e3$/},
+      {"149", "undo", ~r/^still on it$/},
       # 115's direction note, which is the second board slip this list carries
       # and the same shape as 94's flag: the board writes *…و ستون امروز در سمت
       # راست است* — today's column is on the right — and its own bars put the
@@ -1103,6 +1198,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"82", "۲ ماه قدیمی‌ترین", ~r/^(.*قدیمی‌ترین|چیزی برای تازه‌سازی نیست)$/u}
     ]
   end
+
+  # Symbols whose row is a moment this screen is not in. Same reasoning as the
+  # literal pairs above; see 144's and 149's moduledocs.
 
   defp exempt?(number, literal) do
     Enum.any?(device_values(), fn {n, l, _pattern} -> n == number and l == literal end)

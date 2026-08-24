@@ -304,6 +304,31 @@ defmodule Kati.ScreenTapSweepTest do
     # is drawn, reachable and honest about waiting on that fence — the same
     # state screen 83's six link rows are in.
     {Kati.Screens.NotificationsHelp, :open_battery},
+    # ── Screen 151, the notification-listener sheet. Both `Open system
+    # settings` rows want the Android notification-listener settings intent,
+    # which no fence in `native/LEDGER.md` launches — the same missing fence
+    # `:open_battery` above is waiting on, one permission over. `:log_by_hand`
+    # is NOT here: it pushes `Kati.Screens.LogListen`, because this sheet gates
+    # auto-detecting a listen and hand-logging one is a screen Kati already has.
+    {Kati.Screens.NotificationAccess, :open_settings},
+    # ── Screen 136, the loudness prompt's `Continue`. Wired, and the change
+    # lives outside the socket twice over: `Mob.Permissions.request/2` raises
+    # the system dialog, and `Permissions.note_asked/1` writes `Mob.State` so a
+    # later read can tell `:blocked` from `:unasked`. Under test the native
+    # call has no bridge, `continue/1`'s rescue returns the socket it was
+    # given, and this heuristic sees a no-op. Same shape, same reason, as
+    # `Kati.Screens.LanguagePick`'s pair above.
+    {Kati.Screens.LoudnessPrompt, :continue},
+    # ── Screens 152 and 150, three already-selected members with live
+    # siblings — the first category this list documents, confirmed the way that
+    # paragraph prescribes. `load/1` opens screen 152 on `onboarding_pick:
+    # "Screen"` and `watches_anime?: true`, so `:pick_screen` and
+    # `:watches_yes` write the values already there while `:pick_books` and
+    # `:watches_no` move the screen. `:music` is screen 150's own segment of
+    # the header switch it draws; its sibling `:tv` leaves for screen 36.
+    {Kati.Screens.AnimeFilter, :pick_screen},
+    {Kati.Screens.AnimeFilter, :watches_yes},
+    {Kati.Screens.AutoDetectMusic, :music},
     # ── Screen 69, the Persian book page.
     #
     # Its controls are screen 66's controls and are inert for the same reasons,
@@ -591,6 +616,55 @@ defmodule Kati.ScreenTapSweepTest do
              end)
   end
 
+  test "every on_tap the app draws is a shape the bridge actually registers" do
+    # The gap that let a dead control through a fully green run.
+    #
+    # `Kati.Screens.ImportRecognised` shipped `on_tap: :check_mapping` — a bare
+    # atom. `Mob.Renderer` calls `nif.register_tap/1` for `{:on_tap, pid}` and
+    # for `{:on_tap, {pid, tag}}` and for nothing else; a bare atom falls to the
+    # generic prop catch-all and is serialised as data. No handle is registered,
+    # no `accessibility_id` is emitted, and the row is decoration on the device.
+    #
+    # Every other check in this file was blind to it. `ScreenSweep.tap_tags/1`
+    # collects `%{on_tap: {pid, tag}} when is_atom(tag)`, so a malformed tag is
+    # not a tag it can see — it is not drawn, not dead, not inert, just absent.
+    # `handle_tap/2 answers every tag its screen draws` passed because the tag
+    # was never counted as drawn. `Kati.AppReachabilityTest`'s push graph
+    # skipped it for the same reason. A sweep that can only see well-formed
+    # values cannot report a malformed one, so this asks the opposite question:
+    # not "is every tag wired" but "is every value even a tag".
+    #
+    # `nil` is legal and deliberate — `ScreenSweep.tap_tags/1`'s own doc says so.
+    # It is what the selected segment of a switcher carries, and it is the one
+    # thing a control can hold that means "not tappable" rather than "broken".
+    #
+    # Most call sites cannot get this wrong: `Kati.UI.MishkaPill.pill/1` and
+    # `Kati.UI.MishkaActionIcon.action_icon/2` run a bare atom through
+    # `Event.handler/1` and wrap it themselves. `Kati.UI.SettingsList.row/4`
+    # puts `:on_tap` onto the node untouched, which is why the one screen that
+    # hand-wrote a row got it wrong and forty others did not.
+    malformed =
+      @locales
+      |> ScreenSweep.per_locale(fn _locale ->
+        for module <- ScreenSweep.screens(),
+            {:ok, _socket, tree} <- [ScreenSweep.render(module)],
+            node <- Mob.ScreenCase.flatten(tree),
+            {:ok, value} <- [Map.fetch(Map.get(node, :props) || %{}, :on_tap)],
+            not registrable_tap?(value),
+            do: "  #{inspect(module)} draws on_tap: #{inspect(value)}"
+      end)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    assert malformed == [],
+           "these `on_tap` values reach the device without a name. A bare atom is not " <>
+             "registered at all and the control is inert; a `{pid, term}` whose term is not " <>
+             "an atom does fire, but emits no `accessibility_id`, so no sweep in this file " <>
+             "and no screen reader can see it. Give each one an atom tag — " <>
+             "`Kati.Screens.ImportSources.tag/1` is the shape to copy:\n" <>
+             Enum.join(malformed, "\n")
+  end
+
   test "neither shell macro supplies a default handle_tap/2" do
     # The load-bearing assumption under this whole file. A
     # `def handle_tap(_tag, socket), do: {:noreply, socket}` in either macro
@@ -650,6 +724,22 @@ defmodule Kati.ScreenTapSweepTest do
     # mean deleting them twice.
     [{Kati.Screens.Calendar, today} | @inert_taps] ++ @dead_taps
   end
+
+  # A tap value Kati is willing to draw. A bare pid is the whole-node form;
+  # `{pid, atom}` is the tagged form and the only one that also emits an
+  # `accessibility_id`, which is what every sweep in this file and every screen
+  # reader reads a control by. `nil` is "not tappable" and is not a defect.
+  #
+  # Everything else is refused, for two different reasons. A bare atom does not
+  # register and cannot be tapped at all. A `{pid, term}` whose term is not an
+  # atom does register and does fire — `Mob.List` tags its own rows
+  # `{:list, id, :select, index}` — but arrives nameless, so it is invisible to
+  # every check here and unnamed to a screen reader. The first is broken; the
+  # second is unobservable, and this file exists to make taps observable.
+  defp registrable_tap?(nil), do: true
+  defp registrable_tap?(pid) when is_pid(pid), do: true
+  defp registrable_tap?({pid, tag}) when is_pid(pid) and is_atom(tag), do: true
+  defp registrable_tap?(_other), do: false
 
   # Every `{module, tag}` that reaches a handler and leaves the screen exactly
   # as a tag no screen draws would have left it.

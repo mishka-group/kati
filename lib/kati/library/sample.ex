@@ -51,6 +51,77 @@ defmodule Kati.Library.Sample do
   @spec titles() :: [map()]
   def titles, do: @titles
 
+  # `.scratch/design/incoming/146.html`'s own three tiles, in its own words —
+  # `S2 · 5/7` and `S1 · 3/8` are a season and an episode fraction, not the
+  # `62% watched` `Kati.Screens.Library.tile_meta/1` prints for the same two
+  # shows. Two screens, two sentences about one shelf; this list carries the
+  # sentence 146 draws rather than teaching `tile_meta/1` a second dialect.
+  #
+  # `:ashfall` and `:vellum` are not on the board. It crops to three posters
+  # at a 402pt frame and still reads "4 selected" — so two more names are
+  # selected off the visible edge, the same way a real shelf's selection runs
+  # past whatever a phone happens to be showing. Both are titles `@titles`
+  # already carries, given a season/episode line here since 146's grid is not
+  # 03's grid and does not print a percentage.
+  @selection_shelf [
+    %{
+      id: :hollow,
+      title: "The Long Hollow",
+      seed: "hollow71",
+      meta: "S2 · 5/7",
+      selected?: true,
+      done?: false
+    },
+    %{
+      id: :saltiron,
+      title: "Salt & Iron",
+      seed: "saltiron33",
+      meta: "S1 · 3/8",
+      selected?: true,
+      done?: false
+    },
+    %{
+      id: :nightbirds,
+      title: "Nightbirds",
+      seed: "nightbirds24",
+      meta: "done",
+      selected?: false,
+      done?: false
+    },
+    %{
+      id: :ashfall,
+      title: "Ashfall",
+      seed: "ashfall42",
+      meta: "S1 · 2/6",
+      selected?: true,
+      done?: false
+    },
+    %{
+      id: :vellum,
+      title: "Vellum",
+      seed: "vellum97",
+      meta: "not started",
+      selected?: true,
+      done?: false
+    }
+  ]
+
+  @doc """
+  The shelf `Kati.Screens.ShelfSelection` draws: three tiles the board shows
+  and two more selected the same board's own count implies.
+
+  `selected?` is the board's own starting selection — two tiles ringed, two
+  more counted but off the 402pt crop, `Nightbirds` neither — so a fresh
+  mount of the screen opens on exactly `.scratch/design/incoming/146.html`'s
+  "Four selected" vignette rather than an empty one nothing was drawn for.
+
+  `done?` is not the board's — the drawing has no status control to be one —
+  it is what `Kati.Screens.ShelfSelection.change_status/2` flips, standing in
+  for the sheet 146 does not draw behind its own `Status` pill.
+  """
+  @spec selection_shelf() :: [map()]
+  def selection_shelf, do: @selection_shelf
+
   @doc "The header's mono subtitle: `9 titles · 4 in progress`."
   @spec subtitle() :: String.t()
   def subtitle do

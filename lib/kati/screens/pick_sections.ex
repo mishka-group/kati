@@ -116,10 +116,9 @@ defmodule Kati.Screens.PickSections do
   # home, an import is somebody else's arriving. They are different screens and
   # a first-run user reaching for one of them wants the first.
   #
-  # It opens screen 37 until screen 129 is built — the wrong one of the two, and
-  # deliberately the wrong one rather than nothing, because a returning user
-  # with a file in hand can still get their data in through the mapper. The
-  # route moves the day 129 lands.
+  # It opens screen 135, the chromeless restore drawn for exactly this moment
+  # in the first-run chain. It pointed at screen 37 — the mapper, the wrong one
+  # of the two — until 135 landed on 24 August.
   #
   # Drawn as plain text rather than a button, so the tap goes on the Row: the
   # words are centred by two weighted spacers and a tap on the Text alone would
@@ -133,7 +132,7 @@ defmodule Kati.Screens.PickSections do
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Onboarding)}
 
       "import_backup" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFirstRun)}
 
       _ ->
         {:noreply, socket}

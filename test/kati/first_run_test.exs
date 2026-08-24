@@ -62,8 +62,20 @@ defmodule Kati.FirstRunTest do
       assert push_of(Screens.PickSections, :continue) == Screens.Onboarding
     end
 
-    test "26 offers the drawing's escape hatch to Import" do
-      assert push_of(Screens.PickSections, :import_backup) == Screens.Import
+    test "26's escape hatch goes to the chromeless Restore, not straight to Import" do
+      # This asserted `Screens.Import` until 24 August, and was right to: 135 did
+      # not exist, so the only place a `Restore from a backup instead` tap could
+      # land was the importer. Screen 134 — the first-run flow map — draws the
+      # edge as `26 call_split Restore from a backup instead → 135`, and the same
+      # branch offered from 38·1. Import is still downstream, one hop later:
+      # 135's own `file accepted` edge goes to 37, which is where the pre-write
+      # summary and the conflicts live.
+      #
+      # The distinction is load-bearing rather than cosmetic. Landing on 37
+      # directly would ask someone to resolve conflicts for a file they have not
+      # chosen yet; 135 is the chromeless screen where the file or the QR is
+      # picked, and it is the screen that can refuse one.
+      assert push_of(Screens.PickSections, :import_backup) == Screens.RestoreFirstRun
     end
 
     test "26 does not mark the run complete — step two is not the end" do

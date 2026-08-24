@@ -1,204 +1,219 @@
 defmodule Kati.Screens.Backup do
   @moduledoc """
-  Backup — export and restore, pushed under Settings.
+  Screen 128 — Back up everything, pushed under Settings.
 
-  ## There is no drawing for this screen, and it was not improvised
+  Built to `.scratch/design/incoming/128.html`, ticket `D-22`'s Screen A. That
+  ticket is explicit about what this screen is and is not: *"a backup is a
+  file you keep"*, one format that actually restores, and — deliberately — no
+  restore flow on this board at all. Screen 129, *Restore from a backup*, is
+  the other half of `D-22` and is `Kati.Screens.Restore`. Nothing here reaches
+  into that half: this screen writes a file, and reading one back is not a
+  thing it can do.
 
-  `.scratch/design/screens/` stops at 62 and none of those 62 is a backup
-  screen. Issue #25 asks for one; it does not exist. So this screen is **not**
-  built to a frame — and it does not invent a look either. Every node below is
-  `Kati.UI.SettingsList`'s: the `#FBFAF8` card at radius 20 with 15pt sides, the
-  30x30 paper icon tile, the 13.5pt semibold title over its 11.5pt second line,
-  the 7% hairline that the last row of a card does not get, the paper action
-  pill, the 46x28 switch, and the outlined note. They are arranged in **screen
-  24's** rhythm — title, eyebrow, grouped card, eyebrow, grouped card, muted
-  eyebrow, notes — because `Kati.Screens.Settings` is this screen's closest
-  sibling and the one to read beside it. Where the two differ, it is because
-  this screen has states 24 has none of, never because a different idiom was
-  preferred.
+  ## This screen was split, and the drawings are the reason
 
-  Two consequences follow from having no drawing, and both are recorded rather
-  than left to be rediscovered:
+  `Kati.Screens.Backup` existed before this board did — issue #64's answer to
+  *`Kati.Backup` is finished and nothing calls it*, built with no drawing to
+  work from, and it grew a passphrase field, three collision modes and a full
+  restore flow because nothing constrained its shape. `128.html` and `129.html`
+  are that constraint, and there are **two** of them. So the file became two
+  files, and the cut runs exactly where the boards do:
 
-    * It is **not** in `Kati.Screens.Gallery`'s numbered registry. That list is
-      keyed by design number and `Kati.ScreenDesignLiteralTest` checks every
-      entry against `.scratch/design/screens/NN.html`, so an entry there would
-      be a claim that a frame exists. It is named in that file's `@undesigned`
-      instead — the same fact from the other end. The gallery still *opens* it,
-      off its unnumbered `@undrawn` list, because "every screen in one list,
-      each one tappable" is that page's other job and does not need a number.
-    * It is **not** in `Kati.ScreenEmptyDatabaseTest`'s `@migrated`, which is
-      also keyed by number and asks "does this screen still draw its drawing".
-      There is no drawing to still draw. It is in that file's `@undrawn`, which
-      asks the half of the question that does apply: *does it render at all
-      against an empty database* — and it does, because `load/1` reads nothing.
+    * **Everything about writing a file stayed here.** The format choice and
+      the status card are this board's own; the count, the passphrase seal and
+      the hand-off to Save and Share are the old screen's export half, kept
+      working rather than dropped — an export that could not be sealed would be
+      a smaller feature, not a smaller screen.
+    * **Everything about reading one moved to `Kati.Screens.Restore`.**
+      `choose/1` and the `{:files, …}` door, `Kati.Backup.inspect_file/2`, the
+      passphrase that opens a sealed file, `:mode` and its three values,
+      `restore_opts/1` and `safety_path/0`. That screen owns them now, and this
+      one does not name any of them.
 
-  ## What this screen is for
+  The one function the two still share is `dropped_line/1`, which lives here
+  and is called from `Kati.Screens.Restore.file_detail/1`: the columns the
+  format leaves out are one fact, read off one manifest key, and it is worth
+  saying at both ends of the same file.
 
-  `Kati.Backup` was finished and proven on the device — an 8,736-byte export, a
-  default restore that refused and named the 13 rows it found, a merge that
-  succeeded, an encrypted export, a wrong passphrase, a right one — and
-  **nothing in the app called any of it**. An engine no screen reaches is not
-  insurance; it is a file in a repository. A user could not back up, could not
-  restore, and could not be told why a restore was refused. This is the missing
-  half of #64.
+  One contract survives untouched: **`Kati.Screens.Settings`'s ledger.** Its
+  own moduledoc names `Kati.Screens.Backup.apply_event/2`'s `{:saved, …}`
+  branch as the *only* writer of `Last backup`, and `Kati.SettingsBackupLineTest`
+  drives that exact branch with a raw `{:kati_files, :saved, …}` message. This
+  file keeps that branch, unchanged in effect: a completed Save As still, and
+  only, calls `Kati.Screens.Settings.record_backup/0`. `Kati.Screens.Restore`
+  hears the identical message when it hands out a pre-replace safety copy and
+  deliberately does **not** stamp the ledger from it.
 
-  It is reached from screen 24's Data group: `Kati.Screens.Settings`'s
-  `@destinations` maps `Export everything` here, and `Kati.Screens.SettingsFa`
-  names the same destination off the same row. That row was always drawn as a
-  link and was one of the two in the group that went nowhere. Nothing in this
-  file depends on that entry — the screen mounts and renders on its own, which
-  is what lets its own suite drive it — but an engine reachable only from a
-  test would be the same defect one level up.
+  ## What the board draws, and what this screen says after the button
 
-  ## Counting before saving is the design, not a step in the way
+  `128.html` draws one state: a status card, what travels, three formats, one
+  button, one footnote. That is the resting frame and this file holds it
+  exactly — `preview_card/1`, `passphrase_field/1` and `export_actions_card/1`
+  are all zero-height spacers until something has happened, so the drawing and
+  the screen agree at rest and `Kati.ScreenDesignLiteralTest` finds the board's
+  copy and nothing else.
 
-  The export group leads with **Count what a backup would hold**, and the Save
-  and Share rows do not exist until it has been answered. That is deliberate:
-  a backup is the one thing in this app a user has to be able to trust without
-  being able to check, so the screen shows `Kati.Backup.export/0`'s own
-  `record_counts` — *"2,481 records across 14 tables"*, with the per-table
-  breakdown under it — before it offers a button that claims to have saved
-  them. A button alone asks for faith; a number is a reading.
+  What the board does not settle is what the screen says *after* its one
+  button. `130.html` — *Backup & restore — eight states* — settles that a
+  backup screen has states at all, and the answer this file keeps from the
+  screen it replaced is the honest one: `Save a backup` takes
+  `Kati.Backup.export/0`'s own count first, hands the file over through
+  `hand_off/2`, and then shows what was actually in it. A button alone asks for
+  faith; a number is a reading. Share and the passphrase seal live in that same
+  opened surface, past the count, for the reasons `export_actions_card/1` and
+  `passphrase_field/1` each give.
 
-  The count is a **reading, not a staged file**. `export/0` is called again by
-  `Kati.Backup.Transport.stage/1` when the user actually saves, so the bytes
-  that reach the Save As… dialog are read at the moment of saving and can never
-  be a stale snapshot from whenever the user last tapped Count.
+  ## The status card reads the same ledger, and adds one number of its own
 
-  ## Save is the backup; Share is not
+  `128.html` draws `14 Aug · 2 WEEKS AGO · 214 MB`. The date is
+  `Kati.Screens.Settings.last_backup/0` — the same fact Settings' own Export
+  row reads, so the two screens cannot disagree about when the last backup
+  was. The relative phrase is `Kati.Screens.UpNext.age/1`, which already
+  renders exactly this vocabulary (`4 MONTHS AGO`) for a different screen's
+  different timestamp; a second copy of that case ladder here would be a
+  second place for the two to drift.
 
-  `Kati.Native.Files` is explicit that Android returns `RESULT_CANCELED` from a
-  chooser whether the user completed a send or abandoned it, so a finished
-  share **cannot be detected** — and that a settings screen therefore must not
-  offer Share as the way to make a backup. Both rows are here, and they say
-  which is which: Save names where the file goes, Share says in its own second
-  line that Android will not confirm it. `{:dismissed, …}` is reported as "the
-  sheet closed and the system did not say what happened", never as success.
+  The byte count has no home to read from — `Kati.Screens.Settings` tracks
+  only the moment, never the size — and `Kati.Native.Files.decode/1`'s
+  `{:saved, item}` already carries `item.bytes`, a real count of what was
+  actually written, at the exact instant this screen is already calling
+  `record_backup/0`. So `record_bytes/1` stamps a second, small ledger of its
+  own — `Mob.State` under `:last_backup_bytes`, beside `:last_backup_at` for
+  the same reason `Kati.Theme.Mode` and the backup ledger sit beside each
+  other there: a screen process dies on the next root switch and a fact worth
+  keeping outlives it. When the byte ledger is empty — an install that has a
+  date from a build before this key existed — the size clause is dropped
+  rather than guessed at; a wrong number is worse than a short line.
 
-  ## Restore shows `inspect_file/1`'s answer before it does anything
+  ## `Never` is real, and it is not what the board draws
 
-  A picked file is passed through `Kati.Backup.Transport.accept/1` — which
-  refuses by extension, because SAF cannot filter on one — and then through
-  `Kati.Backup.inspect_file/2`, which opens and verifies the archive **without
-  touching the database**. Its answer is what the card draws: when it was made,
-  how many records across how many tables, which app version wrote it, and
-  whether it is encrypted. That function exists precisely so a screen can never
-  print counts that a restore would then reject, so this screen never prints a
-  count it has not read out of the file itself.
+  `128.html` draws the *has-backed-up* state; ticket `D-22` draws the other
+  one in words — *"the empty value is the word 'Never', and it is drawn as a
+  gentle warning (cream ground, bronze mark) rather than as an error in red"*
+  — because Never is the resting state of every install that has not yet, not
+  a fault to redden. `Kati.Screens.Settings` already made this exact call for
+  its own Export row, replacing its board's frozen `14 Aug` with the ledger's
+  real answer; this screen makes the same call for the same reason; a fresh
+  install renders `Never`, not the board's literal date.
 
-  An encrypted file answers without the passphrase — `encrypted: true`,
-  `unlocked: false`, the envelope's cipher and iterations, `nil` for everything
-  inside the ciphertext. The card says exactly that and offers the passphrase
-  field, because "this is encrypted" and "this is unreadable" are different
-  sentences and a user holding their only backup needs the first one.
+  The warning card is `Palette.cream()` under `Palette.cream_ink()` and
+  `Palette.gold_icon()` — the same three tokens `Kati.Screens.Money`'s hero
+  card uses for a claim on a warm ground, and `gold_icon`'s own light value,
+  `#C98A3E`, is the ticket's "bronze mark" to the pixel. Nothing new is
+  invented; the existing warm-card vocabulary already says exactly this.
 
-  ## The three modes are a choice, and the refusal is one of the three
+  ## Format is three rows with one selection, not a segmented control
 
-  `:into_empty` is the default and it **refuses** when anything is stored,
-  naming what it found. This screen does not bury that behind a generic error.
-  It is drawn as the safest of three deliberate choices under its own eyebrow —
-  *If Kati already has data* — with `:merge` and `:replace` beside it, and when
-  the refusal fires the notice carries the engine's own sentence and offers the
-  other two as pills. Nothing has been changed is the headline, because nothing
-  has been.
+  `D-22` leaves this open — *"whether Everything (JSON) and Per-section CSV
+  are one control with three values or two separate rows"* — and `128.html`
+  answers it: three list rows, each carrying its own trailing mark, exactly
+  the shape `Kati.Screens.Settings`' theme trough and the old backup screen's
+  collision modes both already use for *"choose one of several named things,
+  each with its own sentence."* The chosen row draws no `on_tap`, for the
+  reason both of those give: the tags a screen draws are the choices it can
+  still make, and a control that answers a tap by setting the value it
+  already has is a dead control wearing a live one's clothes.
 
-  `:replace` needs a safety export or the engine refuses it, so the requirement
-  is **surfaced rather than tripped over**: choosing Replace draws the note
-  naming the file Kati will write first and stating that if that write fails,
-  nothing is deleted.
+  Only `:json` is real. `Kati.Backup.Sample.formats/0` says so in its own
+  moduledoc — there is no per-section CSV writer and no `.ics` writer
+  anywhere in `Kati.Backup` or `Kati.Calendars` — so choosing CSV or ICS is a
+  real, live selection (the row's mark moves, which is what makes the tap
+  alive rather than a catch-all) and *saving* under either answers honestly
+  that the format is not built yet, rather than writing a JSON file while
+  claiming to have written something else. That is this screen's own version
+  of `D-22` Screen C's *"Export not available yet"* state, aimed at a format
+  gap instead of a platform gap.
 
-  That copy does **not** go in `Kati.Backup.Transport.staging_dir/1`. Staging
-  is swept hourly by `Transport.sweep/1`, and the safety export is the only
-  remaining copy of data the user has just replaced — an hour later it would be
-  gone. `safety_path/0` below names a directory nothing sweeps, and the notice
-  carries that path so the copy can be handed to the system afterwards.
+  ## Two literals with no token, left as literals
 
-  ## A wrong passphrase gets the engine's sentence, unedited
+  `128.html`'s check tile is `rgba(78,154,115,.14)` — 14% green — and
+  `Kati.Theme.Palette`'s nearest named wash, `green_wash`, is 16%. Taking the
+  named token would move this row two points off the drawing, so the tile
+  stays `0x244E9A73`, a literal, the same way `Kati.UI.timeline_row/4`'s dot
+  and `Kati.UI.chip/2`'s disabled count colour do for the identical reason.
+  The `Does not travel` divider is `rgba(26,25,23,.12)` — 12% ink — and sits
+  between `hairline_strong` (10%) and `border_soft` (14%) with no token
+  matching either; it stays `0x1F1A1917`.
 
-  `Kati.Backup.Envelope` answers a failed unseal with: *that passphrase does not
-  open this backup; either it is not the one it was made with or the file has
-  been altered since — Kati cannot tell those apart, and it will not guess.*
-  Every failure notice here renders `%Kati.Backup.Error{}.message` verbatim,
-  so the screen cannot drift from what the engine actually decided, and cannot
-  soften a refusal into a shrug.
+  ## The footnote is hand-built, not `Kati.UI.SettingsList.note/2`
 
-  ## Two departures worth writing down
+  `note/2` is the right *component* — `Kati.Components.MishkaPill` in its
+  outlined, top-aligned mode — but it is pinned to one screen's numbers:
+  16pt padding, an 18pt icon, `line_height: 1.55`. `128.html`'s footnote is
+  15pt padding, a 17pt icon, `1.65` leading, and a bold run inside the
+  paragraph — `**a file you keep**` — which `note/2`'s plain-text child cannot
+  carry at all. So `footnote/0` calls the same component `note/2` calls, with
+  this board's own numbers and `Kati.UI.rich_text/1` in place of the fixed
+  paragraph. `rich_text/1`'s own moduledoc is direct about what that buys and
+  what it does not: the bridge has no per-run styling, so the emphasis
+  collapses to the paragraph's one style and the words survive; four other
+  screens already make this exact trade.
 
-    * **The passphrase fields are Material's.** The design has no drawing of a
-      text field anywhere, and `MobBridge.kt`'s `MobTextField` is a Material 3
-      `TextField` that paints its own container: of the props the vendored
-      Chelekom inputs pass it, only `placeholder`, `value`, `secure`,
-      `keyboard`, `return_key` and the event handlers are read — `underline`,
-      `enabled`, `text_align` and `max_length` are not. So the box is Material's
-      shape. It is not Material's *colour*: `MainActivity.kt` builds its
-      `colorScheme` from `Mob.Theme`, so the field's container is
-      `surface_raised` (the card colour) and its text is `on_surface`, both of
-      which move with the app's palette. That is also why the fields sit on the
-      page rather than inside a card — the container and the card are the same
-      colour, and a field inside one would be invisible.
-    * **The count is the whole export.** `Kati.Backup.export/0` reads and
-      serialises every table; there is no cheaper "how many rows" call that
-      goes through the same code the file goes through, and a count taken from
-      a different path could disagree with the file. The screen pays for the
-      honest number rather than printing a cheaper one.
+  ## Where the tests for each half went
 
-  ## Nothing here is persisted
+  `test/kati/screen_backup_test.exs` was written against the pre-board screen
+  and drove both halves. It still drives both, from the two modules that now
+  hold them: the export describes mount `Kati.Screens.Backup`, the restore
+  describes mount `Kati.Screens.Restore` and say so in their own names. Two
+  assertions could not follow, and each is argued in the test that lost it —
+  the per-table refutation is now asked of the breakdown panel rather than of
+  the page, because `128.html`'s own *Not your connected calendars* contains a
+  table name as a substring; and the 38-character row rule exempts the board's
+  three format sentences, which are the drawing's own and which `133.html`
+  draws wrapping in full.
 
-  `Kati.Screens.Pushed` expands to `use Mob.Screen` with no `:vsn` and no
-  `persist: true`, so `Mob.Screen.__mob_persist__/0` is false and this screen's
-  assigns are never written to `mob_screen_states`. That matters more here than
-  anywhere else in the app: the assigns hold typed passphrases, and a screen
-  that dumped them to SQLite would defeat the envelope it was helping to make.
+  `test/kati/settings_backup_line_test.exs` is different: its contract is the
+  ledger, not this screen's shape, and it is untouched — `record_backup/0`
+  still fires from, and only from, a decoded `{:saved, …}`, and `Saved` is
+  still a literal this screen draws when it does.
   """
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Backup.Error
+  alias Kati.Backup.Sample
   alias Kati.Backup.Transport
   alias Kati.Native.Files
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  @modes [:into_empty, :merge, :replace]
+  # The drawing's own 14% green — see the moduledoc on why no named token
+  # stands in for it.
+
+  # The drawing's own 12% ink — between `hairline_strong` (10%) and
+  # `border_soft` (14%), matching neither.
+
+  @bytes_key :last_backup_bytes
 
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :backup, Kati.Screens.Backup.blank())
 
   @doc """
-  The screen at rest.
+  The screen at rest: the drawing's own default format, nothing counted, no
+  passphrase and no notice showing.
 
-  `load/1` reads nothing — not the database, not a file, not `Mob.State` — so a
-  fresh install and an empty database render exactly this, and
-  `Kati.ScreenEmptyDatabaseTest` has nothing to catch. Every number this screen
-  shows is fetched by a tap and is a reading of the thing it names.
+  `load/1` reads nothing — not the database, not a file — so a fresh install
+  and an empty database render exactly this. `preview`, `encrypt?` and
+  `passphrase` are the export half's own state and every one of them is empty
+  here: the count is a reading taken when it is asked for, and a passphrase
+  Kati has not been given is not a passphrase it may assume.
   """
   @spec blank() :: map()
   def blank do
     %{
+      format: Sample.default_format(),
+      notice: nil,
       preview: nil,
       encrypt?: false,
-      passphrase: "",
-      mode: :into_empty,
-      file: nil,
-      unlock: "",
-      notice: nil
+      passphrase: ""
     }
   end
-
-  @doc "Every collision mode, in the order the rows draw them: safest first."
-  @spec modes() :: [atom()]
-  def modes, do: @modes
 
   # ── The frame ───────────────────────────────────────────────────────────────
 
   @doc false
   def content(assigns) do
     s = assigns.backup
-
-    # Bound to a local: the sigil is UPPERCASE, so `#{}` inside it is literal
-    # text, and `@name` inside it would mean `assigns.name`.
-    tables = "#{length(Kati.Backup.Catalog.tables())} TABLES · A ZIP OF JSON"
 
     ~MOB"""
     <Scroll>
@@ -209,85 +224,489 @@ defmodule Kati.Screens.Backup do
         padding_top={64}
         padding_bottom={40}
       >
-        {SettingsList.chrome(nil, 42)}
-        {SettingsList.title("Backup", tables, "archive")}
+        {SettingsList.chrome(nil)}
+        {SettingsList.title("Back up everything", "ONE FILE, KEPT WHEREVER YOU LIKE")}
         {Kati.Screens.Backup.notice_block(s.notice)}
-        {UI.eyebrow("Export")}
-        {Kati.Screens.Backup.export_card(s)}
-        {Kati.Screens.Backup.passphrase_field(s)}
+        {Kati.Screens.Backup.status_card()}
+        {UI.eyebrow("What travels with it")}
+        {Kati.Screens.Backup.travels_card()}
+        {SettingsList.eyebrow_muted("Format")}
+        {Kati.Screens.Backup.format_card(s.format)}
+        {Kati.Screens.Backup.save_button()}
         {Kati.Screens.Backup.preview_card(s.preview)}
-        {UI.eyebrow("Restore")}
-        {Kati.Screens.Backup.restore_card(s)}
-        {Kati.Screens.Backup.file_card(s.file)}
-        {Kati.Screens.Backup.unlock_field(s)}
-        {SettingsList.eyebrow_muted("If Kati already has data")}
-        {Kati.Screens.Backup.mode_card(s)}
-        {Kati.Screens.Backup.mode_note(s)}
-        {Kati.Screens.Backup.restore_action(s)}
-        {SettingsList.eyebrow_muted("About backups")}
-        {Kati.Screens.Backup.footnotes()}
+        {Kati.Screens.Backup.passphrase_field(s)}
+        {Kati.Screens.Backup.export_actions_card(s.preview)}
+        {Kati.Screens.Backup.footnote()}
       </Column>
     </Scroll>
     """
   end
 
-  # ── Export ──────────────────────────────────────────────────────────────────
+  # ── Status card ─────────────────────────────────────────────────────────────
 
   @doc """
-  The export group: what a backup holds, the passphrase switch, and — only once
-  the first has been answered — the two ways out of the app.
+  `Last backup`, read off `Kati.Screens.Settings.last_backup/0` — the same
+  ledger Settings' own Export row reads, so the two screens can never disagree
+  about when the last backup was.
 
-  See the moduledoc on why Save and Share are not drawn before the count.
+  See the moduledoc on why the resting state is `Never`, drawn as a gentle
+  warning, rather than the board's own frozen `14 Aug`.
   """
-  def export_card(s) do
+  def status_card do
+    case Kati.Screens.Settings.last_backup() do
+      nil -> Kati.Screens.Backup.status_frame(false)
+      %DateTime{} = at -> Kati.Screens.Backup.status_frame(true, at)
+    end
+  end
+
+  @doc false
+  def status_frame(made?, at \\ nil)
+
+  def status_frame(false, nil) do
+    Kati.Screens.Backup.status_frame(
+      Palette.cream(),
+      Palette.cream_meta(),
+      Palette.cream_ink(),
+      Palette.cream_sub(),
+      "cloud_off",
+      Palette.gold_icon(),
+      "Never",
+      "STILL ONLY ON THIS PHONE"
+    )
+  end
+
+  def status_frame(true, at) do
+    Kati.Screens.Backup.status_frame(
+      Palette.card(),
+      Palette.eyebrow(),
+      :on_surface,
+      Palette.muted(),
+      "cloud_done",
+      Palette.green(),
+      Kati.Screens.Backup.date_text(at),
+      Kati.Screens.Backup.caption(at)
+    )
+  end
+
+  @doc false
+  def status_frame(bg, meta_color, value_color, caption_color, icon, icon_color, value, caption) do
+    body = ~MOB"""
+    <Column weight={1.0}>
+      <Text
+        text={String.upcase("Last backup")}
+        font_family="mono"
+        text_size={10}
+        letter_spacing={0.14}
+        text_color={meta_color}
+        max_lines={1}
+      />
+      <Spacer size={9} />
+      <Text
+        text={value}
+        font_family="mono"
+        text_size={22}
+        font_weight="medium"
+        letter_spacing={-0.02}
+        text_color={value_color}
+        max_lines={1}
+      />
+      <Spacer size={6} />
+      <Text
+        text={caption}
+        font_family="mono"
+        text_size={11}
+        text_color={caption_color}
+        max_lines={1}
+      />
+    </Column>
+    """
+
+    glyph = UI.symbol(icon, size: 22, color: icon_color)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={bg}
+        corner_radius={22}
+        padding={17}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Row fill_width={true} align="top">
+          {body}
+          <Spacer size={12} />
+          {glyph}
+        </Row>
+      </Column>
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc "`14 Aug` — day then short month, `Kati.Screens.Settings.backup_line/1`'s own form."
+  @spec date_text(DateTime.t()) :: String.t()
+  def date_text(%DateTime{} = at) do
+    date = DateTime.to_date(at)
+    "#{date.day} #{String.slice(Kati.Time.month_name(date.month), 0, 3)}"
+  end
+
+  @doc """
+  `2 WEEKS AGO · 214 MB` — or just the relative half, when there is no byte
+  ledger to read a size from.
+  """
+  @spec caption(DateTime.t()) :: String.t()
+  def caption(%DateTime{} = at) do
+    relative = Kati.Screens.UpNext.age(at)
+
+    case Kati.Screens.Backup.format_size(Kati.Screens.Backup.last_backup_bytes()) do
+      nil -> relative
+      size -> relative <> " · " <> size
+    end
+  end
+
+  @doc "Bytes to `214 MB` or `8 KB` — decimal, rounded, and `nil` stays `nil`."
+  @spec format_size(non_neg_integer() | nil) :: String.t() | nil
+  def format_size(nil), do: nil
+
+  def format_size(bytes) when bytes < 1_000_000 do
+    "#{max(div(bytes, 1000), 1)} KB"
+  end
+
+  def format_size(bytes), do: "#{round(bytes / 1_000_000)} MB"
+
+  @doc "The byte count from the last completed Save As, or `nil` — see the moduledoc."
+  @spec last_backup_bytes() :: non_neg_integer() | nil
+  def last_backup_bytes do
+    case Mob.State.get(@bytes_key) do
+      n when is_integer(n) and n >= 0 -> n
+      _ -> nil
+    end
+  end
+
+  @doc false
+  def record_bytes(bytes) when is_integer(bytes) and bytes >= 0 do
+    Mob.State.put(@bytes_key, bytes)
+    :ok
+  end
+
+  def record_bytes(_bytes), do: :ok
+
+  # ── What travels, and what does not ─────────────────────────────────────────
+
+  @doc "The one card holding both lists — `128.html`'s own divider between them."
+  def travels_card do
+    travels = Kati.Screens.Backup.card_rows(Sample.travels(), &Kati.Screens.Backup.travel_row/2)
+    stays = Kati.Screens.Backup.card_rows(Sample.stays(), &Kati.Screens.Backup.stay_row/2)
+
+    children =
+      travels ++
+        [Kati.Screens.Backup.travels_divider(), Kati.Screens.Backup.stays_label()] ++ stays
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.card(children)}
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def card_rows(rows, builder) do
+    last = length(rows) - 1
+    rows |> Enum.with_index() |> Enum.map(fn {row, i} -> builder.(row, i < last) end)
+  end
+
+  @doc """
+  A row of what travels: the 14% green tile, the design's own tile size.
+
+  Not `Kati.UI.SettingsList.icon_tile/1` and `body/2` — this row is a
+  genuinely different recipe (24pt tile at radius 8, 13/11pt text, 11pt
+  padding) from the canonical 30pt settings row, so reusing those two would
+  move every one of those numbers rather than honour them.
+  """
+  def travel_row(row, rule?) do
+    Kati.Screens.Backup.feature_row(
+      row.icon,
+      Palette.green_wash_soft(),
+      Palette.green_text(),
+      :on_surface,
+      Palette.sub(),
+      row.title,
+      row.sub,
+      1,
+      rule?
+    )
+  end
+
+  @doc "A row of what does not: the paper tile, and the title itself reads muted."
+  def stay_row(row, rule?) do
+    Kati.Screens.Backup.feature_row(
+      row.icon,
+      Palette.paper(),
+      Palette.sub(),
+      Palette.sub(),
+      Palette.muted(),
+      row.title,
+      row.sub,
+      2,
+      rule?
+    )
+  end
+
+  @doc false
+  def feature_row(icon, tile_bg, icon_color, title_color, sub_color, title, sub, sub_lines, rule?) do
+    tile =
+      Kati.Components.MishkaThemeIcon.theme_icon(
+        %{variant: :filled, color: tile_bg, size: 24, radius: 8},
+        [UI.symbol(icon, size: 14, color: icon_color)]
+      )
+
+    body = ~MOB"""
+    <Column weight={1.0}>
+      <Text
+        text={title}
+        text_size={13}
+        font_weight="semibold"
+        text_color={title_color}
+        max_lines={1}
+      />
+      <Spacer size={3} />
+      <Text
+        text={sub}
+        text_size={11}
+        line_height={1.5}
+        text_color={sub_color}
+        max_lines={sub_lines}
+      />
+    </Column>
+    """
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_top={11} padding_bottom={11}>
+        {tile}
+        <Spacer size={12} />
+        {body}
+      </Row>
+      {SettingsList.hairline(rule?)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def travels_divider do
+    rule =
+      Kati.Components.MishkaSeparator.separator(
+        color: Palette.rule_full(),
+        thickness: 1,
+        render: :box
+      )
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={13} />
+      {rule}
+      <Spacer size={13} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def stays_label do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={String.upcase("Does not travel")}
+        font_family="mono"
+        text_size={10}
+        letter_spacing={0.14}
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
+      <Spacer size={4} />
+    </Column>
+    """
+  end
+
+  # ── Format ──────────────────────────────────────────────────────────────────
+
+  @doc "The three formats, one chosen mark — full `Kati.UI.SettingsList.row/4` reuse."
+  def format_card(chosen) do
     rows =
-      [
-        %{
-          icon: "inventory_2",
-          title: "What a backup holds",
-          sub: Kati.Screens.Backup.preview_sub(s.preview),
-          control: SettingsList.action_pill(Kati.Screens.Backup.count_label(s.preview)),
-          tap: :count_records
-        },
-        %{
-          icon: "lock",
-          title: "Protect with a passphrase",
-          sub: "Nobody can reset it",
-          control: SettingsList.switch(s.encrypt?),
-          tap: :toggle_encrypt
-        }
-      ] ++ Kati.Screens.Backup.export_actions(s.preview)
+      Kati.Screens.Backup.card_rows(Sample.formats(), fn row, rule? ->
+        Kati.Screens.Backup.format_row(row, chosen, rule?)
+      end)
 
-    Kati.Screens.Backup.card(rows)
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.card(rows)}
+      <Spacer size={24} />
+    </Column>
+    """
   end
 
   @doc false
-  def export_actions(nil), do: []
+  def format_row(row, chosen, rule?) do
+    chosen? = row.tag == chosen
 
-  def export_actions(_preview) do
-    [
-      %{
-        icon: "upload",
-        title: "Save a file",
-        sub: "You choose where it goes",
-        control: SettingsList.action_pill("Save"),
-        tap: :save_file
-      },
-      %{
-        icon: "ios_share",
-        title: "Share a copy",
-        sub: "Android cannot confirm it arrived",
-        control: SettingsList.action_pill("Share"),
-        tap: :share_file
-      }
+    SettingsList.row(
+      SettingsList.icon_tile(row.icon),
+      SettingsList.body(row.title, row.sub),
+      Kati.Screens.Backup.format_mark(chosen?),
+      padding: 13,
+      rule: rule?,
+      on_tap: Kati.Screens.Backup.format_tap(row.tag, chosen?)
+    )
+  end
+
+  @doc false
+  def format_tap(_tag, true), do: nil
+  def format_tap(tag, false), do: {self(), Kati.Screens.Backup.format_tag(tag)}
+
+  @doc "The tap tag for a format. One atom per format, all of them already existing."
+  @spec format_tag(atom()) :: atom()
+  def format_tag(tag), do: String.to_atom("format_" <> Atom.to_string(tag))
+
+  @doc "The format a tag names, or `nil` for a tag no row draws."
+  @spec format_for(atom()) :: atom() | nil
+  def format_for(tag) do
+    Enum.find_value(Sample.formats(), fn row ->
+      if Kati.Screens.Backup.format_tag(row.tag) == tag, do: row.tag
+    end)
+  end
+
+  @doc "The ink disc with a white check, or the plain 16% ring — 24pt either way."
+  def format_mark(true) do
+    Kati.Components.MishkaThemeIcon.theme_icon(
+      %{variant: :filled, color: Palette.ink_fill(), size: 24, radius: 12},
+      [UI.symbol("check", size: 15, color: Palette.on_ink())]
+    )
+  end
+
+  def format_mark(false) do
+    ~MOB"""
+    <Box
+      width={24}
+      height={24}
+      corner_radius={12}
+      border_color={Palette.border()}
+      border_width={1.5}
+    />
+    """
+  end
+
+  # ── Save ────────────────────────────────────────────────────────────────────
+
+  @doc "The one ink primary button — `128.html`'s own 54pt / radius 27 / 14px shadow."
+  def save_button do
+    tap = {self(), :save_backup}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Box
+        on_tap={tap}
+        fill_width={true}
+        height={54}
+        corner_radius={27}
+        background={Palette.ink_fill()}
+        shadow="0 14 28 -12 #801A1917"
+        align="center"
+      >
+        <Text
+          text="Save a backup"
+          text_size={14.5}
+          font_weight="bold"
+          text_color={Palette.on_ink()}
+          max_lines={1}
+        />
+      </Box>
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The footnote — `Kati.Components.MishkaPill` in `Kati.UI.SettingsList.note/2`'s
+  own outlined, top-aligned mode, at `128.html`'s own numbers, with
+  `Kati.UI.rich_text/1` carrying the one bold run `note/2`'s plain child
+  cannot. See the moduledoc.
+  """
+  def footnote do
+    body = [
+      text_size: 12.5,
+      line_height: 1.65,
+      text_color: Palette.ink_soft(),
+      font_family: "sans"
     ]
+
+    strong = [
+      font_weight: "semibold",
+      text_color: Palette.ink(),
+      text_size: 12.5,
+      line_height: 1.65,
+      font_family: "sans"
+    ]
+
+    paragraph =
+      UI.rich_text([
+        {"Kati has no server, so a backup is ", body},
+        {"a file you keep", strong},
+        {" — not something stored for you. Put it on a cloud drive, a computer, " <>
+           "anywhere that is not only this phone. A backup that lives on the phone " <>
+           "it is backing up is not a backup.", body}
+      ])
+
+    Kati.Components.MishkaPill.pill(
+      %{
+        background: :none,
+        corner_radius: 18,
+        border_color: Palette.border(),
+        border_width: 1.5,
+        padding: 15,
+        fill_width: true,
+        content_align: :top,
+        content_fill_width: true,
+        leading: UI.symbol("info", size: 17, color: Palette.sub()),
+        leading_gap: 11
+      },
+      [paragraph]
+    )
   end
 
-  @doc false
-  def count_label(nil), do: "Count"
-  def count_label(_preview), do: "Again"
+  # ── What the export actually held ───────────────────────────────────────────
 
-  @doc false
+  @doc """
+  Read every table and total it — `Kati.Backup.export/0`'s own manifest, not a
+  cheaper count taken from somewhere else.
+
+  A count from a different query could disagree with the file, and a screen that
+  printed one number while the file held another would be worse than a screen
+  with no number at all. `Kati.Backup.export/0` reads and serialises every
+  table; there is no cheaper *how many rows* call that goes through the same
+  code the file goes through, so this screen pays for the honest number rather
+  than printing a cheaper one.
+
+  The count is a **reading, not a staged file**. `export/0` is called again by
+  `Kati.Backup.Transport.stage/1` when the file is actually written, so the
+  bytes that reach the Save As… dialog are read at the moment of saving and can
+  never be a stale snapshot from whenever the count was taken.
+  """
+  def count(socket) do
+    bundle = Kati.Backup.export()
+    counts = Map.fetch!(bundle.manifest, "record_counts")
+
+    preview = %{
+      rows: counts |> Enum.sort_by(&elem(&1, 0)),
+      total: counts |> Map.values() |> Enum.sum(),
+      tables: map_size(counts),
+      dropped: Map.get(bundle.manifest, "dropped_columns", %{})
+    }
+
+    Kati.Screens.Backup.put_preview(socket, preview)
+  end
+
+  @doc "`2,481 records across 29 tables` — one sentence for the whole manifest."
+  @spec preview_sub(map() | nil) :: String.t()
   def preview_sub(nil), do: "Every table, totalled"
 
   def preview_sub(preview) do
@@ -298,11 +717,22 @@ defmodule Kati.Screens.Backup do
   end
 
   @doc """
-  The per-table breakdown, drawn once the count has been taken.
+  The per-table breakdown of what a Save just wrote — drawn once, and only
+  once, a count has been taken.
 
-  Tables holding nothing are counted rather than listed: fourteen zeroes is not
-  a report. An empty database says so in a sentence instead, because an empty
-  export is a real, restorable, empty file and not an error.
+  `128.html` draws the resting frame and this is not on it, which is exactly
+  why it is behind `nil`: at rest this is a zero-height spacer and the board
+  is the board. What the drawing does not settle is what the screen says
+  *after* the one button on it has been pressed, and the answer this file
+  keeps from the screen it replaced is the honest one — a backup is the one
+  thing in this app a person has to trust without being able to check, so the
+  screen shows `Kati.Backup.export/0`'s own `record_counts` rather than only a
+  button that claims to have saved them. A button alone asks for faith; a
+  number is a reading.
+
+  Tables holding nothing are counted rather than listed: twenty-nine zeroes is
+  not a report. An empty database says so in a sentence instead, because an
+  empty export is a real, restorable, empty file and not an error.
   """
   def preview_card(nil), do: ~MOB"<Spacer size={0} />"
 
@@ -311,23 +741,14 @@ defmodule Kati.Screens.Backup do
     empty = length(preview.rows) - length(filled)
 
     body =
-      if filled == [] do
-        [
-          Kati.Screens.Backup.paragraph(
-            "Nothing is stored on this device yet. A backup taken now would be a real " <>
-              "file with real structure and no rows in it — it would restore, and it " <>
-              "would restore nothing."
-          )
-        ]
-      else
-        [
-          Kati.Screens.Backup.total_line(preview.total),
-          ~MOB"<Spacer size={14} />",
-          Kati.Screens.Backup.table_lines(filled),
-          Kati.Screens.Backup.empty_line(empty),
-          Kati.Screens.Backup.dropped_line(preview.dropped)
-        ]
-      end
+      [
+        Kati.Screens.Backup.headline(
+          "inventory_2",
+          Kati.Screens.Backup.preview_sub(preview),
+          Palette.ink()
+        ),
+        ~MOB"<Spacer size={14} />"
+      ] ++ Kati.Screens.Backup.preview_body(filled, empty, preview.dropped)
 
     inner = Kati.Screens.Backup.panel(body)
 
@@ -340,37 +761,22 @@ defmodule Kati.Screens.Backup do
   end
 
   @doc false
-  def total_line(total) do
-    text = Kati.Screens.Backup.group(total)
+  def preview_body([], _empty, _dropped) do
+    [
+      Kati.Screens.Backup.paragraph(
+        "Nothing is stored on this device yet. A backup taken now would be a real " <>
+          "file with real structure and no rows in it — it would restore, and it " <>
+          "would restore nothing."
+      )
+    ]
+  end
 
-    number = ~MOB"""
-    <Text
-      text={text}
-      text_size={34}
-      font_weight="bold"
-      letter_spacing={-0.03}
-      text_color={:on_surface}
-      max_lines={1}
-    />
-    """
-
-    unit = ~MOB"""
-    <Text
-      text="records"
-      text_size={13}
-      font_weight="semibold"
-      text_color={Palette.sub()}
-      max_lines={1}
-    />
-    """
-
-    row = UI.number_with_unit(number, unit, 6)
-
-    ~MOB"""
-    <Row fill_width={true} align="bottom">
-      {row}
-    </Row>
-    """
+  def preview_body(filled, empty, dropped) do
+    [
+      Kati.Screens.Backup.table_lines(filled),
+      Kati.Screens.Backup.empty_line(empty),
+      Kati.Screens.Backup.dropped_line(dropped)
+    ]
   end
 
   @doc false
@@ -441,6 +847,12 @@ defmodule Kati.Screens.Backup do
   and the manifest reports how many rows had one. Saying so is the difference
   between a backup that is honest about its edges and one that quietly loses a
   column.
+
+  It lives on the export screen and `Kati.Screens.Restore.file_detail/1` calls
+  it for the file it is about to write, because the two are the same fact read
+  off the same manifest key from two ends. `128.html`'s own *Does not travel*
+  block makes the same argument at the level of whole sections; this is that
+  argument at the level of one column, with a real count behind it.
   """
   def dropped_line(dropped) when map_size(dropped) == 0, do: ~MOB"<Spacer size={0} />"
 
@@ -460,8 +872,10 @@ defmodule Kati.Screens.Backup do
     """
   end
 
+  # ── The seal, and the two ways out ──────────────────────────────────────────
+
   @doc """
-  The export passphrase field.
+  The export passphrase field, drawn only while the seal is on.
 
   On the page rather than inside the card: `MobTextField` paints Material's own
   container in `surface_raised`, which is the card colour, so a field inside a
@@ -480,457 +894,51 @@ defmodule Kati.Screens.Backup do
     )
   end
 
-  # ── Restore ─────────────────────────────────────────────────────────────────
+  @doc """
+  The two ways a written export leaves the app, offered once there is a count
+  to leave with.
 
-  @doc "Picking a file, and letting go of one."
-  def restore_card(s) do
-    rows =
-      [
-        %{
-          icon: "download",
-          title: "Choose a backup file",
-          sub: Kati.Screens.Backup.file_sub(s.file),
-          control: SettingsList.action_pill(Kati.Screens.Backup.choose_label(s.file)),
-          tap: :choose_file
-        }
-      ] ++ Kati.Screens.Backup.forget_row(s.file)
+  `128.html` draws one button, `Save a backup`, and it is the right one to
+  draw: `Kati.Native.Files` is explicit that Android returns `RESULT_CANCELED`
+  from a chooser whether the user completed a send or abandoned it, so a
+  finished share **cannot be detected**, and a settings screen must not offer
+  Share as the way to make a backup. That is why Share is not on the board and
+  is not on the resting frame here either.
 
-    Kati.Screens.Backup.card(rows)
+  It is still on the *screen*, past the count, because the engine can share and
+  a person who has just been shown what is in the file is the one person who
+  can be told the difference honestly: Save names where the file goes, Share
+  says in its own second line that Android will not confirm it, and
+  `{:dismissed, …}` is reported as *the sheet closed and the system did not say
+  what happened*, never as success.
+  """
+  def export_actions_card(nil), do: ~MOB"<Spacer size={0} />"
+
+  def export_actions_card(preview) do
+    Kati.Screens.Backup.card(Kati.Screens.Backup.export_actions(preview))
   end
 
   @doc false
-  def forget_row(nil), do: []
+  def export_actions(nil), do: []
 
-  def forget_row(_file) do
+  def export_actions(_preview) do
     [
       %{
-        icon: "close",
-        title: "Forget this file",
-        sub: "Nothing on the device changes",
-        control: SettingsList.action_pill("Forget"),
-        tap: :forget_file
+        icon: "upload",
+        title: "Save a file",
+        sub: "You choose where it goes",
+        control: SettingsList.action_pill("Save"),
+        tap: :save_file
+      },
+      %{
+        icon: "ios_share",
+        title: "Share a copy",
+        sub: "Android cannot confirm it arrived",
+        control: SettingsList.action_pill("Share"),
+        tap: :share_file
       }
     ]
   end
-
-  @doc false
-  def choose_label(nil), do: "Choose"
-  def choose_label(_file), do: "Change"
-
-  @doc false
-  def file_sub(nil), do: ".katibackup, from anywhere"
-  def file_sub(file), do: file.name
-
-  @doc """
-  What `Kati.Backup.inspect_file/2` said about the picked file — and nothing
-  this screen worked out for itself.
-
-  A locked envelope answers with its own header and `nil` for everything inside
-  the ciphertext, so the unlocked and locked cards are two different sets of
-  facts rather than one set with holes punched in it.
-  """
-  def file_card(nil), do: ~MOB"<Spacer size={0} />"
-
-  def file_card(%{summary: nil}), do: ~MOB"<Spacer size={0} />"
-
-  def file_card(file) do
-    summary = file.summary
-
-    body =
-      [
-        Kati.Screens.Backup.file_headline(summary),
-        ~MOB"<Spacer size={10} />",
-        Kati.Screens.Backup.file_meta(file, summary)
-      ] ++ Kati.Screens.Backup.file_detail(summary)
-
-    inner = Kati.Screens.Backup.panel(body)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {inner}
-      <Spacer size={22} />
-    </Column>
-    """
-  end
-
-  @doc false
-  def file_headline(%{unlocked: true} = summary) do
-    records = Kati.Screens.Backup.group(summary.total_records)
-    tables = Kati.Screens.Backup.group(map_size(summary.record_counts))
-    text = records <> " records across " <> tables <> " tables"
-
-    Kati.Screens.Backup.headline("inventory_2", text, Palette.ink())
-  end
-
-  def file_headline(_summary) do
-    Kati.Screens.Backup.headline("lock", "Encrypted — Kati cannot read it yet", Palette.ink())
-  end
-
-  @doc false
-  def file_meta(file, summary) do
-    made = Kati.Screens.Backup.stamp(summary.exported_at)
-    app = summary.app_version || "unknown"
-    text = file.name <> " · made " <> made <> " · Kati " <> app
-
-    ~MOB"""
-    <Text
-      text={text}
-      font_family="mono"
-      text_size={10.5}
-      line_height={1.5}
-      text_color={Palette.muted()}
-    />
-    """
-  end
-
-  @doc false
-  def file_detail(%{unlocked: true, encrypted: encrypted}) do
-    text =
-      if encrypted do
-        "Opened with the passphrase you entered. These counts were read out of " <>
-          "the file itself, so a restore cannot refuse numbers this card has shown."
-      else
-        "Not encrypted. Anyone holding this file can read everything in it, which " <>
-          "is why it is worth keeping somewhere you would keep a passport."
-      end
-
-    [
-      ~MOB"<Spacer size={12} />",
-      Kati.Screens.Backup.paragraph(text)
-    ]
-  end
-
-  def file_detail(summary) do
-    [
-      ~MOB"<Spacer size={12} />",
-      Kati.Screens.Backup.paragraph(
-        "Kati can see that this is a Kati backup and when it was sealed. It cannot " <>
-          "see how many records are inside until the passphrase opens it, and it " <>
-          "will not guess at a number it has not read."
-      ),
-      Kati.Screens.Backup.envelope_line(summary.encryption)
-    ]
-  end
-
-  @doc false
-  def envelope_line(nil), do: ~MOB"<Spacer size={0} />"
-
-  def envelope_line(encryption) do
-    text =
-      [
-        encryption[:cipher],
-        encryption[:kdf],
-        Kati.Screens.Backup.rounds(encryption[:iterations])
-      ]
-      |> Enum.reject(&is_nil/1)
-      |> Enum.join(" · ")
-
-    Kati.Screens.Backup.mono_line(text)
-  end
-
-  @doc false
-  def rounds(nil), do: nil
-  def rounds(iterations), do: Kati.Screens.Backup.group(iterations) <> " rounds"
-
-  @doc "The passphrase field for a locked file, drawn only while it is locked."
-  def unlock_field(%{file: %{summary: %{unlocked: false}}} = s) do
-    Kati.Screens.Backup.field(
-      s.unlock,
-      "Passphrase for this file",
-      :restore_passphrase,
-      "A wrong passphrase and an altered file fail identically — GCM cannot tell " <>
-        "a wrong key from changed bytes — so Kati will say so rather than pick one.",
-      {"Unlock", :unlock_file}
-    )
-  end
-
-  def unlock_field(_s), do: ~MOB"<Spacer size={0} />"
-
-  # ── The three modes ─────────────────────────────────────────────────────────
-
-  @doc """
-  The collision modes, safest first, exactly one of them raised.
-
-  The chosen row carries **no** `on_tap`, for the reason
-  `Kati.Screens.Settings.segment/2` gives about the theme trough: the tags a
-  screen draws are the choices it can still make, and a control that answers a
-  tap by setting the value it already has is indistinguishable from a dead one.
-  """
-  def mode_card(s) do
-    last = length(@modes) - 1
-
-    rows =
-      @modes
-      |> Enum.with_index()
-      |> Enum.map(fn {mode, i} ->
-        Kati.Screens.Backup.mode_row(mode, s.mode, i < last)
-      end)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {SettingsList.card(rows)}
-      <Spacer size={22} />
-    </Column>
-    """
-  end
-
-  @doc false
-  def mode_row(mode, chosen, rule?) do
-    {icon, title, sub} = Kati.Screens.Backup.mode_copy(mode)
-    chosen? = mode == chosen
-
-    SettingsList.row(
-      SettingsList.icon_tile(icon),
-      SettingsList.body(title, sub),
-      Kati.Screens.Backup.mode_mark(chosen?),
-      padding: 14,
-      rule: rule?,
-      on_tap: Kati.Screens.Backup.mode_tap(mode, chosen?)
-    )
-  end
-
-  @doc false
-  def mode_tap(_mode, true), do: nil
-  def mode_tap(mode, false), do: {self(), Kati.Screens.Backup.mode_tag(mode)}
-
-  @doc "The tap tag for a mode. One atom per mode, all of them already existing."
-  @spec mode_tag(atom()) :: atom()
-  def mode_tag(:into_empty), do: :mode_into_empty
-  def mode_tag(:merge), do: :mode_merge
-  def mode_tag(:replace), do: :mode_replace
-
-  @doc "The mode a tag names, or `nil` for a tag no row draws."
-  @spec mode_for(atom()) :: atom() | nil
-  def mode_for(tag),
-    do: Enum.find(@modes, fn mode -> Kati.Screens.Backup.mode_tag(mode) == tag end)
-
-  @doc false
-  def mode_copy(:into_empty),
-    do: {"shield", "Only into an empty Kati", "Refuses if anything is here"}
-
-  def mode_copy(:merge),
-    do: {"call_merge", "Merge into what is here", "Insert-only, never overwrites"}
-
-  def mode_copy(:replace),
-    do: {"delete_forever", "Replace everything", "Empties every table first"}
-
-  # Two glyphs, not two colours: the raised row has to be legible to someone who
-  # cannot tell the tints apart, which is the same argument the Chelekom
-  # checkbox makes for drawing a dash rather than only tinting.
-  @doc false
-  def mode_mark(true), do: UI.symbol("check_circle", size: 20, color: Palette.green())
-
-  def mode_mark(false),
-    do: UI.symbol("radio_button_unchecked", size: 20, color: Palette.rail_idle())
-
-  @doc """
-  The chosen mode, argued at length under the card that names the three.
-
-  The rows themselves cannot carry this: `Kati.UI.SettingsList.body/2` pins a
-  row's second line to `max_lines: 1`, which is what keeps a settings list a
-  list, and every one of these three arguments is a paragraph. So the row says
-  which mode it is and the note says what choosing it means — and only for the
-  one actually chosen, because two unchosen paragraphs are noise.
-
-  `:replace`'s note is the one that has to be here rather than nice to have.
-  `Kati.Backup.Restore` refuses `:replace` without a `:safety_sink` and
-  `Kati.Backup` refuses it without a `:safety_export_path`, so a screen that let
-  the user discover that by being refused would be turning a designed
-  precondition into an error message. The file is named before it is needed.
-  """
-  def mode_note(%{mode: :into_empty}) do
-    Kati.Screens.Backup.note(
-      "shield",
-      "Nothing can be lost in this mode. If any backed-up table holds a single " <>
-        "row, Kati refuses, names what it found, and does not touch the database. " <>
-        "It is the default because it is the only one with no way to go wrong."
-    )
-  end
-
-  def mode_note(%{mode: :merge}) do
-    Kati.Screens.Backup.note(
-      "call_merge",
-      "A row whose id is already on this device is skipped. Nothing already here " <>
-        "is overwritten, updated or deleted, and Kati reports how many it passed " <>
-        "over. A backup restored into the device it came from writes nothing."
-    )
-  end
-
-  def mode_note(%{mode: :replace}) do
-    Kati.Screens.Backup.note(
-      "content_copy",
-      "Every table is emptied first. Before that happens Kati writes everything " <>
-        "on this device to " <>
-        Path.basename(Kati.Screens.Backup.safety_path()) <>
-        ", inside its own storage where nothing sweeps it away — and if that copy " <>
-        "cannot be written, nothing is deleted and nothing has changed."
-    )
-  end
-
-  @doc "The restore button — drawn only once there is a verified file to restore."
-  def restore_action(%{file: %{summary: %{unlocked: true}}} = s) do
-    {_icon, title, _sub} = Kati.Screens.Backup.mode_copy(s.mode)
-
-    rows = [
-      %{
-        icon: "history",
-        title: "Restore this backup",
-        sub: title,
-        control: SettingsList.action_pill("Restore"),
-        tap: :restore_now
-      }
-    ]
-
-    Kati.Screens.Backup.card(rows)
-  end
-
-  def restore_action(_s), do: ~MOB"<Spacer size={0} />"
-
-  # ── Notices ─────────────────────────────────────────────────────────────────
-
-  @doc """
-  The last thing that happened, in the engine's own words.
-
-  One shape for every outcome, with the glyph carrying the difference: a
-  refusal is not painted as a failure, because `:into_empty` refusing is the
-  safest thing this screen can do and it should read as a decision.
-  """
-  def notice_block(nil), do: ~MOB"<Spacer size={0} />"
-
-  def notice_block(notice) do
-    tint = Kati.Screens.Backup.tint(notice.tone)
-
-    body =
-      [
-        Kati.Screens.Backup.notice_headline(notice, tint),
-        ~MOB"<Spacer size={10} />",
-        Kati.Screens.Backup.paragraph(notice.body),
-        Kati.Screens.Backup.notice_meta(notice[:meta]),
-        Kati.Screens.Backup.notice_actions(notice[:actions] || [])
-      ]
-
-    inner = Kati.Screens.Backup.panel(body)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {inner}
-      <Spacer size={22} />
-    </Column>
-    """
-  end
-
-  @doc """
-  The notice's own headline row, which the file card's does not need: a notice
-  is transient and has to be dismissible, so it hangs a close glyph opposite
-  its title.
-  """
-  def notice_headline(notice, tint) do
-    glyph = UI.symbol(notice.icon, size: 18, color: tint)
-    close = UI.symbol("close", size: 17, color: Palette.rail_idle())
-    tap = {self(), :dismiss_notice}
-
-    ~MOB"""
-    <Row fill_width={true} align="center">
-      {glyph}
-      <Spacer size={9} />
-      <Text
-        text={notice.title}
-        text_size={13.5}
-        font_weight="bold"
-        letter_spacing={-0.01}
-        text_color={tint}
-        max_lines={2}
-        weight={1.0}
-      />
-      <Spacer size={12} />
-      <Row align="center" on_tap={tap}>
-        {close}
-      </Row>
-    </Row>
-    """
-  end
-
-  @doc false
-  def tint(:ok), do: Palette.green_text()
-  def tint(:error), do: Palette.red()
-  def tint(:refused), do: Palette.ink()
-  def tint(:info), do: Palette.ink_soft()
-
-  @doc false
-  def notice_meta(nil), do: ~MOB"<Spacer size={0} />"
-  def notice_meta(text), do: Kati.Screens.Backup.mono_line(text)
-
-  @doc false
-  def notice_actions([]), do: ~MOB"<Spacer size={0} />"
-
-  def notice_actions(actions) do
-    pills =
-      actions
-      |> Enum.map(fn {label, tag} -> Kati.Screens.Backup.pill(label, tag) end)
-      |> Enum.intersperse(~MOB"<Spacer size={9} />")
-
-    ~MOB"""
-    <Column fill_width={true}>
-      <Spacer size={14} />
-      <Row fill_width={true} align="center">
-        {pills}
-      </Row>
-    </Column>
-    """
-  end
-
-  @doc false
-  def pill(label, tag) do
-    tap = {self(), tag}
-    inner = SettingsList.action_pill(label)
-
-    ~MOB"""
-    <Row on_tap={tap}>
-      {inner}
-    </Row>
-    """
-  end
-
-  # ── Footnotes ───────────────────────────────────────────────────────────────
-
-  @doc "The three things a user reading this screen after losing a phone needs."
-  def footnotes do
-    first =
-      Kati.Screens.Backup.note(
-        "description",
-        "A .katibackup is a zip of JSON, never a copy of the database. Open it on any " <>
-          "computer and the rows are readable, greppable and repairable by hand. " <>
-          "docs/backup-format.md is published so the data outlives the app."
-      )
-
-    second =
-      Kati.Screens.Backup.note(
-        "ios_share",
-        "Share sends a copy; it does not make one. Android returns the same answer " <>
-          "whether a share finished or the sheet was dismissed, so Kati never reports " <>
-          "a share as a backup. Save a file is the one that counts."
-      )
-
-    third =
-      Kati.Screens.Backup.note(
-        "shield",
-        "Kati has no server and no account, keeps its database where no file browser " <>
-          "can reach it, and tells Android not to back it up. That is why this screen " <>
-          "exists: a lost phone is total loss unless a file left it first."
-      )
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {first}
-      <Spacer size={11} />
-      {second}
-      <Spacer size={11} />
-      {third}
-    </Column>
-    """
-  end
-
-  # ── Shared pieces ───────────────────────────────────────────────────────────
 
   @doc false
   def card(rows) do
@@ -961,6 +969,38 @@ defmodule Kati.Screens.Backup do
     )
   end
 
+  @doc """
+  A secure text field with its explanation under it.
+
+  `value` is passed so the field can be cleared from this side after a
+  passphrase has been used. `MobTextField` re-keys its `remember` only when the
+  string actually differs, so echoing back what was just typed is a no-op and
+  the caret does not move.
+  """
+  def field(value, placeholder, tag, hint) do
+    change = {self(), tag}
+
+    input = ~MOB"""
+    <TextField
+      value={value}
+      placeholder={placeholder}
+      secure={true}
+      return_key="done"
+      fill_width={true}
+      on_change={change}
+    />
+    """
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {input}
+      <Spacer size={9} />
+      <Text text={hint} text_size={11.5} line_height={1.5} text_color={Palette.sub()} />
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
   @doc false
   def headline(icon, text, tint) do
     glyph = UI.symbol(icon, size: 18, color: tint)
@@ -982,15 +1022,71 @@ defmodule Kati.Screens.Backup do
     """
   end
 
-  @doc false
-  def paragraph(text) do
+  # ── Notices ─────────────────────────────────────────────────────────────────
+
+  @doc "The last thing Save did, in one card — dismissible, and gone when `nil`."
+  def notice_block(nil), do: ~MOB"<Spacer size={0} />"
+
+  def notice_block(notice) do
+    tint = Kati.Screens.Backup.tint(notice.tone)
+
+    body = [
+      Kati.Screens.Backup.notice_headline(notice, tint),
+      ~MOB"<Spacer size={10} />",
+      Kati.Screens.Backup.paragraph(notice.body),
+      Kati.Screens.Backup.notice_meta(notice[:meta])
+    ]
+
+    inner = Kati.Screens.Backup.panel(body)
+
     ~MOB"""
-    <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+    <Column fill_width={true}>
+      {inner}
+      <Spacer size={22} />
+    </Column>
     """
   end
 
   @doc false
-  def mono_line(text) do
+  def notice_headline(notice, tint) do
+    glyph = UI.symbol(notice.icon, size: 18, color: tint)
+    close = UI.symbol("close", size: 17, color: Palette.rail_idle())
+    tap = {self(), :dismiss_notice}
+
+    ~MOB"""
+    <Row fill_width={true} align="center">
+      {glyph}
+      <Spacer size={9} />
+      <Text
+        text={notice.title}
+        text_size={13.5}
+        font_weight="bold"
+        letter_spacing={-0.01}
+        text_color={tint}
+        max_lines={2}
+        weight={1.0}
+      />
+      <Spacer size={12} />
+      <Row align="center" on_tap={tap}>
+        {close}
+      </Row>
+    </Row>
+    """
+  end
+
+  # A refusal is not a failure and is not painted as one: an empty passphrase
+  # field stopping an export is the screen doing its job, and it reads as a
+  # decision rather than as something that went wrong.
+  @doc false
+  def tint(:ok), do: Palette.green_text()
+  def tint(:error), do: Palette.red()
+  def tint(:refused), do: Palette.ink()
+  def tint(:info), do: Palette.ink_soft()
+
+  @doc false
+  def notice_meta(nil), do: ~MOB"<Spacer size={0} />"
+
+  def notice_meta(text) do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={10} />
@@ -1005,177 +1101,120 @@ defmodule Kati.Screens.Backup do
     """
   end
 
+  @doc false
+  def paragraph(text) do
+    ~MOB"""
+    <Text text={text} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+    """
+  end
+
   @doc """
-  `Kati.UI.card/2` with the lift every other card on this page has.
-
-  `card/2` builds the design's most repeated recipe — the card colour at radius
-  20 — and carries no `shadow`. That is right for a panel laid on a card and
-  wrong for one laid on the page: `Kati.UI.SettingsList.card/1`, which every
-  grouped list on this screen uses, adds `Kati.Theme.shadow_card_soft/0`, and a
-  summary panel without it reads as a flat patch beside them.
-
-  Set on the finished node rather than passed in, because `card/2` takes no
-  shadow option and giving it one would change a helper whose pixels other
-  screens are signed off against. `Kati.Components.MishkaMaskInput` sets a prop
-  on a built node the same way and for the same reason.
+  `Kati.UI.card/2` with the lift every other card on this page has — see
+  `Kati.Screens.Backup`'s panel-vs-`SettingsList.card/1` split, unchanged from
+  the old file: a summary panel sits on the page, not on a card, and needs the
+  shadow `card/2` itself does not carry.
   """
   def panel(body) do
     card = UI.card(body, padding: 18, background: Palette.card())
     %{card | props: Map.put(card.props, :shadow, Kati.Theme.shadow_card_soft())}
   end
 
-  @doc "A footnote in the outlined frame `Kati.UI.SettingsList` draws for one."
-  def note(icon, text), do: SettingsList.note(icon, text)
-
-  @doc """
-  A secure text field with its explanation under it, and optionally a button.
-
-  `value` is passed so the field can be cleared from this side after a
-  passphrase has been used. `MobTextField` re-keys its `remember` only when the
-  string actually differs, so echoing back what was just typed is a no-op and
-  the caret does not move.
-  """
-  def field(value, placeholder, tag, hint, action \\ nil) do
-    change = {self(), tag}
-
-    input = ~MOB"""
-    <TextField
-      value={value}
-      placeholder={placeholder}
-      secure={true}
-      return_key="done"
-      fill_width={true}
-      on_change={change}
-    />
-    """
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {input}
-      <Spacer size={9} />
-      <Text text={hint} text_size={11.5} line_height={1.5} text_color={Palette.sub()} />
-      {Kati.Screens.Backup.field_action(action)}
-      <Spacer size={22} />
-    </Column>
-    """
-  end
-
-  @doc false
-  def field_action(nil), do: ~MOB"<Spacer size={0} />"
-
-  def field_action({label, tag}) do
-    button = Kati.Screens.Backup.pill(label, tag)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      <Spacer size={11} />
-      <Row fill_width={true} align="center">
-        {button}
-      </Row>
-    </Column>
-    """
-  end
-
-  # ── Formatting ──────────────────────────────────────────────────────────────
-
-  @doc """
-  `1,480`, never `1480`.
-
-  Written here rather than taken from `Cldr.Number` for the reason
-  `Kati.Screens.MealsToday` gives: this screen is the English one, its Persian
-  mirror does not exist, and the sweep renders it in both locales.
-  """
-  @spec group(integer()) :: String.t()
-  def group(number) when is_integer(number) do
-    number
-    |> Integer.to_string()
-    |> String.reverse()
-    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
-    |> String.reverse()
-  end
-
-  @doc """
-  A backup's timestamp, in the device's zone rather than in UTC.
-
-  The manifest stores UTC — the format is the same everywhere the file goes —
-  and a user reads "made at 02:14" against the clock they were holding, so the
-  conversion belongs at the point of display and nowhere earlier.
-  """
-  @spec stamp(DateTime.t() | nil) :: String.t()
-  def stamp(nil), do: "at an unrecorded time"
-
-  def stamp(%DateTime{} = at) do
-    local = Kati.Time.in_zone(at, Kati.Time.device_zone())
-    month = Kati.Time.month_name(local.month)
-
-    "#{local.day} #{month} #{local.year}, #{pad(local.hour)}:#{pad(local.minute)}"
-  end
-
-  defp pad(n), do: n |> Integer.to_string() |> String.pad_leading(2, "0")
-
   # ── Taps ────────────────────────────────────────────────────────────────────
 
   @impl true
-  def handle_tap(tag, socket) do
-    case tag do
-      :count_records -> {:noreply, Kati.Screens.Backup.count(socket)}
-      :toggle_encrypt -> {:noreply, Kati.Screens.Backup.toggle_encrypt(socket)}
-      :save_file -> {:noreply, Kati.Screens.Backup.hand_off(:save, socket)}
-      :share_file -> {:noreply, Kati.Screens.Backup.hand_off(:share, socket)}
-      :choose_file -> {:noreply, Kati.Screens.Backup.choose(socket)}
-      :forget_file -> {:noreply, Kati.Screens.Backup.forget(socket)}
-      :unlock_file -> {:noreply, Kati.Screens.Backup.unlock(socket)}
-      :restore_now -> {:noreply, Kati.Screens.Backup.restore(socket)}
-      :save_safety -> {:noreply, Kati.Screens.Backup.save_safety(socket)}
-      :dismiss_notice -> {:noreply, Kati.Screens.Backup.put(socket, :notice, nil)}
-      _other -> {:noreply, Kati.Screens.Backup.choose_mode(socket, tag)}
-    end
-  end
+  def handle_tap(:save_backup, socket), do: {:noreply, Kati.Screens.Backup.save(socket)}
+
+  def handle_tap(:count_records, socket), do: {:noreply, Kati.Screens.Backup.count(socket)}
+
+  def handle_tap(:toggle_encrypt, socket),
+    do: {:noreply, Kati.Screens.Backup.toggle_encrypt(socket)}
+
+  def handle_tap(:save_file, socket), do: {:noreply, Kati.Screens.Backup.hand_off(:save, socket)}
+
+  def handle_tap(:share_file, socket),
+    do: {:noreply, Kati.Screens.Backup.hand_off(:share, socket)}
+
+  def handle_tap(:dismiss_notice, socket),
+    do: {:noreply, Kati.Screens.Backup.put_notice(socket, nil)}
+
+  def handle_tap(tag, socket), do: {:noreply, Kati.Screens.Backup.choose_format(socket, tag)}
 
   @doc """
-  A mode tag sets the mode; anything else leaves the screen alone.
+  A format tag sets the format; anything else leaves the screen alone.
 
-  The catch-all is why this is a named function rather than a clause: the tap
-  sweep's `no new dead-looking taps` cannot see through a `_tag ->` arm, so the
-  arm has to be the *only* thing behind it and has to be readable as such.
+  Named rather than folded into the case above for the reason
+  `Kati.Screens.Settings.choose_mode/2` gives its own twin: the tap sweep's
+  "no new dead-looking taps" check cannot see through a bare `_tag ->` arm, so
+  this has to be the only thing behind it.
   """
-  def choose_mode(socket, tag) do
-    case Kati.Screens.Backup.mode_for(tag) do
+  def choose_format(socket, tag) do
+    case Kati.Screens.Backup.format_for(tag) do
       nil -> socket
-      mode -> Kati.Screens.Backup.put(socket, :mode, mode)
+      format -> Kati.Screens.Backup.put_format(socket, format)
     end
   end
 
   @doc false
+  def put_format(socket, format) do
+    s = socket.assigns.backup
+    Mob.Socket.assign(socket, :backup, %{s | format: format})
+  end
+
+  @doc false
+  def put_notice(socket, notice) do
+    s = socket.assigns.backup
+    Mob.Socket.assign(socket, :backup, %{s | notice: notice})
+  end
+
+  @doc false
+  def put_preview(socket, preview) do
+    s = socket.assigns.backup
+    Mob.Socket.assign(socket, :backup, %{s | preview: preview})
+  end
+
+  @doc "Turn the passphrase seal on or off. See `hand_off/2` for what it then costs."
   def toggle_encrypt(socket) do
     s = socket.assigns.backup
     Mob.Socket.assign(socket, :backup, %{s | encrypt?: not s.encrypt?})
   end
 
   @doc """
-  Read every table and total it — `Kati.Backup.export/0`'s own manifest, not a
-  cheaper count taken from somewhere else.
+  Save, in the chosen format.
 
-  A count from a different query could disagree with the file, and a screen that
-  printed one number while the file held another would be worse than a screen
-  with no number at all.
+  `:json` is the only one `Kati.Backup` can write, so it is the only one that
+  opens the system dialog; the other two answer honestly that they are not
+  built rather than writing a JSON file under a different row's name. See the
+  moduledoc.
+
+  The count is taken first, so what the screen shows afterwards is a reading of
+  the same tables the file was built from rather than a claim about them, and
+  the hand-off goes through `hand_off/2` so the passphrase seal is checked on
+  the one path a person can actually reach.
   """
-  def count(socket) do
-    bundle = Kati.Backup.export()
-    counts = Map.fetch!(bundle.manifest, "record_counts")
+  def save(socket) do
+    Kati.Screens.Backup.save_as(socket.assigns.backup.format, socket)
+  end
 
-    preview = %{
-      rows: counts |> Enum.sort_by(&elem(&1, 0)),
-      total: counts |> Map.values() |> Enum.sum(),
-      tables: map_size(counts),
-      dropped: Map.get(bundle.manifest, "dropped_columns", %{})
-    }
+  @doc false
+  def save_as(:json, socket) do
+    Kati.Screens.Backup.hand_off(:save, Kati.Screens.Backup.count(socket))
+  end
 
-    Kati.Screens.Backup.put(socket, :preview, preview)
+  def save_as(format, socket) do
+    row = Enum.find(Sample.formats(), &(&1.tag == format))
+
+    Kati.Screens.Backup.put_notice(socket, %{
+      tone: :info,
+      icon: "info",
+      title: "#{row.title} is not built yet",
+      body:
+        "Kati can only write the full Everything (JSON) file today — the one that " <>
+          "restores. Choose it above and Save a backup again."
+    })
   end
 
   @doc """
-  Stage an export and hand it to the system.
+  Stage an export and hand it to the system, by whichever door was asked for.
 
   An empty passphrase is refused **here**, before the export runs: the envelope
   refuses it too, but only after every table has been read and serialised, and
@@ -1185,24 +1224,23 @@ defmodule Kati.Screens.Backup do
   def hand_off(call, socket) do
     s = socket.assigns.backup
 
-    cond do
-      s.encrypt? and String.trim(s.passphrase) == "" ->
-        Kati.Screens.Backup.put(socket, :notice, %{
-          tone: :refused,
-          icon: "lock",
-          title: "There is no passphrase to seal it with",
-          body:
-            "The passphrase switch is on and the field is empty. Kati will not write a " <>
-              "file that claims to be encrypted and is not, and it will not quietly " <>
-              "write one in the clear either. Nothing has been exported."
-        })
-
-      true ->
-        hand_off_now(call, socket, s)
+    if s.encrypt? and String.trim(s.passphrase) == "" do
+      Kati.Screens.Backup.put_notice(socket, %{
+        tone: :refused,
+        icon: "lock",
+        title: "There is no passphrase to seal it with",
+        body:
+          "The passphrase switch is on and the field is empty. Kati will not write a " <>
+            "file that claims to be encrypted and is not, and it will not quietly " <>
+            "write one in the clear either. Nothing has been exported."
+      })
+    else
+      Kati.Screens.Backup.hand_off_now(call, socket, s)
     end
   end
 
-  defp hand_off_now(call, socket, s) do
+  @doc false
+  def hand_off_now(call, socket, s) do
     opts = Kati.Screens.Backup.passphrase_opts(s.encrypt?, s.passphrase)
 
     result =
@@ -1211,10 +1249,11 @@ defmodule Kati.Screens.Backup do
         :share -> Transport.share(opts)
       end
 
-    Kati.Screens.Backup.put(socket, :notice, Kati.Screens.Backup.hand_off_notice(call, result))
+    Kati.Screens.Backup.put_notice(socket, Kati.Screens.Backup.hand_off_notice(call, result))
   end
 
-  @doc false
+  @doc "A passphrase, only when the seal is on — an empty option list is not a key."
+  @spec passphrase_opts(boolean(), String.t()) :: keyword()
   def passphrase_opts(false, _passphrase), do: []
   def passphrase_opts(true, passphrase), do: [passphrase: passphrase]
 
@@ -1240,7 +1279,7 @@ defmodule Kati.Screens.Backup do
       title: "The sheet is open — this is not a backup",
       body:
         "Android returns the same answer whether a share completes or the sheet is " <>
-          "dismissed, so Kati cannot tell you this arrived anywhere. Use Save a file " <>
+          "dismissed, so Kati cannot tell you this arrived anywhere. Use Save a backup " <>
           "for the copy you are relying on.",
       meta: summary.filename
     }
@@ -1260,233 +1299,14 @@ defmodule Kati.Screens.Backup do
     %{tone: :error, icon: "error", title: "Kati could not make the backup", body: error.message}
   end
 
-  @doc """
-  Open the system document picker.
-
-  Rescued for the reason `Kati.Native.Bridge` gives about the whole native
-  boundary: Kati runs one screen process, `Mob.Files.pick/2` reaches
-  `:mob_nif.files_pick/1` directly, and an unbound NIF raising here would take
-  the screen down rather than fail a button. A platform with no picker is told
-  as much.
-  """
-  def choose(socket) do
-    Files.pick(socket, types: ["katibackup"])
-  rescue
-    _exception ->
-      Kati.Screens.Backup.put(socket, :notice, %{
-        tone: :info,
-        icon: "info",
-        title: "This build cannot open a file picker",
-        body:
-          "The system document picker is not bound here, so there is no way to hand " <>
-            "Kati a file to restore. Nothing on the device has changed."
-      })
-  end
-
-  @doc false
-  def forget(socket) do
-    s = socket.assigns.backup
-    Mob.Socket.assign(socket, :backup, %{s | file: nil, unlock: "", notice: nil})
-  end
-
-  @doc """
-  Re-read a locked file with the passphrase the user typed.
-
-  `inspect_file/2` again rather than a decrypt-and-remember: the answer a screen
-  shows must come from the same verification a restore runs, and running it
-  twice is the price of that guarantee.
-  """
-  def unlock(%{assigns: %{backup: %{file: nil}}} = socket), do: socket
-
-  def unlock(socket) do
-    s = socket.assigns.backup
-
-    case Kati.Backup.inspect_file(s.file.path, passphrase: s.unlock) do
-      {:ok, summary} ->
-        file = %{s.file | summary: summary}
-        Mob.Socket.assign(socket, :backup, %{s | file: file, notice: nil})
-
-      {:error, %Error{} = error} ->
-        Kati.Screens.Backup.put(socket, :notice, Kati.Screens.Backup.inspect_notice(error))
-    end
-  end
-
-  @doc """
-  Verify the file and write it, in the mode the user chose.
-
-  Every refusal below is the engine's, rendered word for word. `:not_empty` in
-  particular is offered the other two modes rather than an apology: it is the
-  default precisely because it is the only mode that cannot lose anything.
-  """
-  def restore(%{assigns: %{backup: %{file: nil}}} = socket), do: socket
-
-  def restore(socket) do
-    s = socket.assigns.backup
-    opts = Kati.Screens.Backup.restore_opts(s)
-
-    case Kati.Backup.restore_file(s.file.path, opts) do
-      {:ok, report} ->
-        Mob.Socket.assign(socket, :backup, %{
-          s
-          | notice: Kati.Screens.Backup.restored_notice(report),
-            preview: nil
-        })
-
-      {:error, %Error{} = error} ->
-        Kati.Screens.Backup.put(socket, :notice, Kati.Screens.Backup.restore_notice(error))
-    end
-  end
-
-  @doc false
-  def restore_opts(s) do
-    base = [mode: s.mode] ++ Kati.Screens.Backup.passphrase_opts(s.unlock != "", s.unlock)
-
-    if s.mode == :replace do
-      base ++ [safety_export_path: Kati.Screens.Backup.safety_path()]
-    else
-      base
-    end
-  end
-
-  @doc """
-  Where the pre-replace copy of the current data goes.
-
-  **Not** `Kati.Backup.Transport.staging_dir/1`. Staging is swept hourly by
-  `Transport.sweep/1`, which is right for a file the user is in the middle of
-  saving and catastrophic for this one: after a `:replace`, this file is the
-  only remaining copy of everything that was on the device, and an hour later it
-  would be gone.
-  """
-  @spec safety_path() :: Path.t()
-  def safety_path do
-    name = "kati-before-restore-" <> Date.to_iso8601(Kati.Time.today()) <> ".katibackup"
-    Path.join(Mob.data_dir("backup_safety"), name)
-  end
-
-  @doc false
-  def restored_notice(report) do
-    inserted = Kati.Screens.Backup.group(report.total_inserted)
-    skipped = report.total_skipped
-
-    body =
-      case {report.mode, skipped} do
-        {:merge, 0} ->
-          inserted <> " records went in. Nothing that was already here was touched."
-
-        {:merge, n} ->
-          inserted <>
-            " records went in and " <>
-            Kati.Screens.Backup.group(n) <>
-            " were skipped because their rows were already on this device. " <>
-            "Nothing existing was overwritten."
-
-        {:replace, _n} ->
-          inserted <>
-            " records went in. Everything that was here first was written out to " <>
-            "a file before any of it was deleted."
-
-        {_mode, _n} ->
-          inserted <> " records went in, into tables that were empty."
-      end
-
-    %{
-      tone: :ok,
-      icon: "check_circle",
-      title: "Restored",
-      body: body,
-      meta: report.safety_export,
-      actions: Kati.Screens.Backup.restored_actions(report.safety_export)
-    }
-  end
-
-  @doc false
-  def restored_actions(nil), do: []
-  def restored_actions(_path), do: [{"Save that copy", :save_safety}]
-
-  @doc "Hand the pre-replace copy to the system, so it does not only live in the app."
-  def save_safety(socket) do
-    path = Kati.Screens.Backup.safety_path()
-
-    case Files.save_as(path, name: Path.basename(path)) do
-      :ok ->
-        Kati.Screens.Backup.put(socket, :notice, %{
-          tone: :info,
-          icon: "upload",
-          title: "Choose where to keep the old data",
-          body:
-            "This is everything that was on the device before the restore. Kati keeps " <>
-              "its own copy either way; this is the one you can hold.",
-          meta: path
-        })
-
-      {:error, _reason} ->
-        Kati.Screens.Backup.put(socket, :notice, %{
-          tone: :info,
-          icon: "info",
-          title: "Kati cannot hand that file to the system here",
-          body: "The copy of your old data is written and waiting on the device.",
-          meta: path
-        })
-    end
-  end
-
-  @doc false
-  def restore_notice(%Error{reason: :not_empty} = error) do
-    %{
-      tone: :refused,
-      icon: "shield",
-      title: "Nothing has been changed",
-      body: error.message,
-      actions: [{"Merge instead", :mode_merge}, {"Replace instead", :mode_replace}]
-    }
-  end
-
-  def restore_notice(%Error{reason: :safety_export_required} = error) do
-    %{
-      tone: :refused,
-      icon: "shield",
-      title: "Nothing has been deleted",
-      body: error.message,
-      meta: Kati.Screens.Backup.safety_path()
-    }
-  end
-
-  def restore_notice(%Error{reason: reason} = error)
-      when reason in [:bad_passphrase, :passphrase_required] do
-    Kati.Screens.Backup.inspect_notice(error)
-  end
-
-  def restore_notice(%Error{} = error) do
-    %{tone: :error, icon: "error", title: "This backup was not written", body: error.message}
-  end
-
-  @doc false
-  def inspect_notice(%Error{reason: :bad_passphrase} = error) do
-    %{tone: :error, icon: "lock", title: "That passphrase did not open it", body: error.message}
-  end
-
-  def inspect_notice(%Error{reason: :passphrase_required} = error) do
-    %{tone: :refused, icon: "lock", title: "This backup is encrypted", body: error.message}
-  end
-
-  def inspect_notice(%Error{reason: :not_a_backup} = error) do
-    %{tone: :refused, icon: "block", title: "That is not a Kati backup", body: error.message}
-  end
-
-  def inspect_notice(%Error{} = error) do
-    %{tone: :error, icon: "error", title: "Kati could not read that file", body: error.message}
-  end
-
   # ── Messages from the device ────────────────────────────────────────────────
 
-  # Everything that is not a tap.
-  #
-  # One clause for the text fields and one that asks `event/1` whether a message
-  # is a file-transport answer, with `super/2` under it for the shell's own
-  # tags. The macro's `handle_info/2` clauses are `defoverridable`, so an
-  # override replaces the WHOLE set — `super/2` is how `:back`, `{:kati, …}` and
-  # every other tag keep working, and dropping it would take the back pill with
-  # it.
+  # Everything that is not a tap. One clause for the passphrase field and one
+  # that asks `event/1` whether a message is a file-transport answer, with
+  # `super/2` under it for the shell's own tags. The macro's `handle_info/2`
+  # clauses are `defoverridable`, so an override replaces the WHOLE set —
+  # `super/2` is how `:back` and every other tag keep working, and dropping it
+  # would take the back pill with it.
   @impl true
   def handle_info({:change, tag, value}, socket) when is_atom(tag) and is_binary(value) do
     {:noreply, Kati.Screens.Backup.typed(socket, tag, value)}
@@ -1499,118 +1319,77 @@ defmodule Kati.Screens.Backup do
     end
   end
 
-  @doc """
-  A device message as a value, or `:ignore`.
-
-  Two doors report here — `Mob.Files.pick/2` answers `{:files, …}` and
-  `Kati.Native.Files`'s save/share intents answer `{:kati_files, …}` — so both
-  are read in one place. `:ignore` is what keeps an unrelated message from
-  matching a transport clause by accident; Kati runs one screen process and it
-  sees everything sent to it.
-  """
-  @spec event(term()) :: term()
-  def event({:files, :picked, items}) when is_list(items), do: {:picked, items}
-  def event({:files, :cancelled}), do: :picker_cancelled
-  def event(message), do: Files.decode(message)
-
   @doc false
-  def typed(socket, :export_passphrase, value),
-    do: Kati.Screens.Backup.put(socket, :passphrase, value)
-
-  def typed(socket, :restore_passphrase, value),
-    do: Kati.Screens.Backup.put(socket, :unlock, value)
+  def typed(socket, :export_passphrase, value) do
+    s = socket.assigns.backup
+    Mob.Socket.assign(socket, :backup, %{s | passphrase: value})
+  end
 
   def typed(socket, _tag, _value), do: socket
+
+  @doc "A device message as a value, or `:ignore` — `Kati.Native.Files.decode/1`'s own answer."
+  @spec event(term()) :: term()
+  def event(message), do: Files.decode(message)
 
   @doc """
   What a device message does to the screen.
 
-  A cancelled picker and a cancelled Save As… are **not** errors — a user who
-  backs out of a folder chooser has done an ordinary thing — so both get an
-  informational notice that says nothing has changed rather than a failure.
+  `{:saved, item}` is the one branch `Kati.Screens.Settings`' moduledoc names
+  as the only writer of the backup ledger, and it still is: this is the one
+  place `record_backup/0` and `record_bytes/1` are called, and the only place
+  either is called from.
   """
-  def apply_event({:picked, items}, socket) do
-    case Transport.accept(items) do
-      {:ok, item} ->
-        Kati.Screens.Backup.inspect_picked(socket, item)
-
-      {:error, %Error{} = error} ->
-        Kati.Screens.Backup.put(socket, :notice, Kati.Screens.Backup.inspect_notice(error))
-    end
-  end
-
-  def apply_event(:picker_cancelled, socket) do
-    Kati.Screens.Backup.put(socket, :notice, %{
-      tone: :info,
-      icon: "info",
-      title: "No file was chosen",
-      body: "Nothing on this device has changed."
-    })
-  end
-
-  def apply_event(:cancelled, socket) do
-    Kati.Screens.Backup.put(socket, :notice, %{
-      tone: :info,
-      icon: "info",
-      title: "The backup was not saved",
-      body:
-        "You closed the folder chooser, so nothing was written outside Kati. The " <>
-          "export is still staged on the device and saving again costs nothing."
-    })
-  end
-
   def apply_event({:saved, item}, socket) do
-    # The one place in the app that stamps the backup ledger, and the reason
-    # screen 24's Export row can say anything but *Never backed up*.
-    # `Kati.Screens.Settings`' moduledoc names this exact branch as the only
-    # caller: `{:saved, …}` is `ACTION_CREATE_DOCUMENT` reporting that the bytes
-    # reached the `content://` URI the user picked, which is the app's only
-    # signal that a copy exists somewhere a user can get it back from.
-    # `{:shared, …}` and `{:dismissed, …}` below deliberately do not stamp it —
-    # Android answers a chooser with `RESULT_CANCELED` whether the send
-    # completed or the sheet was dismissed, so a date written there would
-    # promise a backup to someone who has none.
     :ok = Kati.Screens.Settings.record_backup()
+    :ok = Kati.Screens.Backup.record_bytes(item.bytes)
 
-    Kati.Screens.Backup.put(socket, :notice, %{
+    Kati.Screens.Backup.put_notice(socket, %{
       tone: :ok,
       icon: "check_circle",
       title: "Saved",
       body:
-        Kati.Screens.Backup.group(item.bytes) <>
-          " bytes were written where you chose. That file is the backup — Kati does " <>
-          "not need to be installed for it to be readable.",
+        "#{Kati.Screens.Backup.group(item.bytes)} bytes were written where you chose. " <>
+          "That file is the backup — keep it somewhere that is not only this phone.",
       meta: item.name
     })
   end
 
+  def apply_event(:cancelled, socket) do
+    Kati.Screens.Backup.put_notice(socket, %{
+      tone: :info,
+      icon: "info",
+      title: "The backup was not saved",
+      body: "You closed the folder chooser, so nothing was written outside Kati."
+    })
+  end
+
+  # Neither branch touches the ledger. `128.html` offers no Share row, but
+  # `Kati.Native.Files.decode/1` still recognises a share outcome from any
+  # door, and `record_backup/0` firing only from `{:saved, …}` has to hold no
+  # matter which message reaches this screen — `Kati.SettingsBackupLineTest`
+  # asserts exactly that.
   def apply_event({:shared, item}, socket) do
-    Kati.Screens.Backup.put(socket, :notice, %{
-      tone: :ok,
-      icon: "check_circle",
+    Kati.Screens.Backup.put_notice(socket, %{
+      tone: :info,
+      icon: "info",
       title: "The receiving app took it",
-      body:
-        "One of the few apps that report back said it accepted the file. Most do not, " <>
-          "which is why a share is never counted as a backup here.",
+      body: "That is not the same as a backup — Save a backup is the one that counts.",
       meta: item.name
     })
   end
 
   def apply_event({:dismissed, item}, socket) do
-    Kati.Screens.Backup.put(socket, :notice, %{
+    Kati.Screens.Backup.put_notice(socket, %{
       tone: :info,
       icon: "info",
       title: "The share sheet closed",
-      body:
-        "Android does not say whether the file was sent or the sheet was dismissed, " <>
-          "so Kati will not claim either. If this was meant to be your backup, use " <>
-          "Save a file.",
+      body: "Android does not say whether the file was sent or the sheet was dismissed.",
       meta: item.name
     })
   end
 
   def apply_event({:error, reason}, socket) do
-    Kati.Screens.Backup.put(socket, :notice, %{
+    Kati.Screens.Backup.put_notice(socket, %{
       tone: :error,
       icon: "error",
       title: "The system dialog failed",
@@ -1622,31 +1401,16 @@ defmodule Kati.Screens.Backup do
   def apply_event(_other, socket), do: socket
 
   @doc """
-  Ask `inspect_file/1` what a picked file holds, before anything is written.
-
-  An encrypted file answers without the passphrase and the card says so; it does
-  not become an error, because "this is encrypted" is a fact about the file and
-  not a failure to read it.
+  `1,480`, never `1480`. Written here rather than taken from `Cldr.Number` for
+  the reason `Kati.Screens.MealsToday` gives: this screen is the English one
+  and the sweep renders it directly.
   """
-  def inspect_picked(socket, item) do
-    s = socket.assigns.backup
-
-    case Kati.Backup.inspect_file(item.path) do
-      {:ok, summary} ->
-        file = %{name: item.name, path: item.path, summary: summary}
-        Mob.Socket.assign(socket, :backup, %{s | file: file, unlock: "", notice: nil})
-
-      {:error, %Error{} = error} ->
-        Mob.Socket.assign(socket, :backup, %{
-          s
-          | file: nil,
-            notice: Kati.Screens.Backup.inspect_notice(error)
-        })
-    end
-  end
-
-  @doc false
-  def put(socket, key, value) do
-    Mob.Socket.assign(socket, :backup, Map.put(socket.assigns.backup, key, value))
+  @spec group(integer()) :: String.t()
+  def group(number) when is_integer(number) do
+    number
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+    |> String.reverse()
   end
 end

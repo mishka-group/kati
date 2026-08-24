@@ -153,7 +153,46 @@ defmodule Kati.Screens.Gallery do
     {"127", "پول", Kati.Screens.MoneyFa, :push},
     {"63", "iOS home screen", Kati.Screens.MarkIos, :push},
     {"64", "Android home screen", Kati.Screens.MarkAndroid, :push},
-    {"65", "Launch screen", Kati.Screens.LaunchScreen, :push}
+    {"65", "Launch screen", Kati.Screens.LaunchScreen, :push},
+    # #25 — backup and restore, the two screens three others had been promising.
+    {"128", "Back up everything", Kati.Screens.Backup, :push},
+    {"129", "Restore from a backup", Kati.Screens.Restore, :push},
+    {"130", "Backup & restore — states", Kati.Screens.BackupStates, :push},
+    {"131", "Back up everything — dark", Kati.Screens.BackupDark, :push},
+    {"132", "بازگردانی", Kati.Screens.RestoreFa, :push},
+    {"133", "Back up & restore at 235%", Kati.Screens.BackupLarge, :push},
+    # #11 — the first run. 134 is the flow map and is deliberately absent from
+    # this list: it is a diagram at 1720px rather than a 402x874 screen, it has
+    # no `IOSDevice` frame to render, and there is nothing in the app for it to
+    # be. It lives in `.scratch/design/incoming/134.html` as the design record,
+    # and what it decides — the resume rule, 38's numbering correspondence — is
+    # carried by the screens below rather than by a screen of its own.
+    {"135", "Restore — first run", Kati.Screens.RestoreFirstRun, :push},
+    {"136", "Loudness → the OS prompt", Kati.Screens.LoudnessPrompt, :push},
+    {"137", "راه‌اندازی", Kati.Screens.OnboardingFa, :push},
+    {"138", "Onboarding at 235%", Kati.Screens.OnboardingLarge, :push},
+    {"139", "Home — nothing set up", Kati.Screens.HomeEmpty, :push},
+    # #12 — the importer's step 0, so a switcher is not asked to map nine
+    # columns before seeing a row of their own data arrive.
+    {"140", "Import — where are you coming from", Kati.Screens.ImportSources, :push},
+    {"141", "Import — recognised", Kati.Screens.ImportRecognised, :push},
+    {"142", "Import — source states", Kati.Screens.ImportStates, :push},
+    # #15 — per-episode rating.
+    {"143", "Episode rows — the rating column", Kati.Screens.EpisodeRatings, :push},
+    {"144", "Rate an episode", Kati.Screens.RateEpisode, :push},
+    # #19 — the shelves' escalation, above the four tabs that stay the default.
+    {"145", "Shelf filter sheet", Kati.Screens.ShelfFilters, :push},
+    {"146", "Shelf — selection mode", Kati.Screens.ShelfSelection, :push},
+    {"147", "Selection & filters at 235%", Kati.Screens.ShelfLarge, :push},
+    # #17 — one state machine for three media.
+    {"148", "Drop, DNF & abandon", Kati.Screens.DropStates, :push},
+    {"149", "Dropping — the sheet and after", Kati.Screens.DropSheet, :push},
+    # #20 — the music half of auto-detect.
+    {"150", "Auto-detect — music", Kati.Screens.AutoDetectMusic, :push},
+    {"151", "Notification access", Kati.Screens.NotificationAccess, :push},
+    # #21 — anime as a type rather than a section.
+    {"152", "Anime — a type, not a section", Kati.Screens.AnimeFilter, :push},
+    {"153", "Numbering — inherited and overridden", Kati.Screens.NumberingScheme, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.
@@ -182,7 +221,11 @@ defmodule Kati.Screens.Gallery do
   # Delete an entry the moment its drawing lands, and add it to `@screens` with
   # the number it was filed under.
   @undrawn [
-    {:open_undrawn_backup, "Backup", Kati.Screens.Backup},
+    # `Kati.Screens.Backup` left this list on 24 August: #25's drawings landed
+    # as 128-133 and it is filed under 128 above, which is the move this
+    # comment describes. `Kati.Screens.Sync` is still here — #54's screen has
+    # no artboard in the 152.
+    #
     # The two notification screens. Neither has an artboard: the 127 drawings
     # hold screen 29 (the lock screen showing a Kati notification) and screen 25
     # (the release watcher's loudness settings) and nothing between them, and

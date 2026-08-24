@@ -106,6 +106,13 @@ defmodule Kati.Theme.PaletteTest do
     dock_fill: {0xE6FBFAF8, 0xEB1E1D1B},
     chrome_disc: {0xD1FBFAF8, 0xD11E1D1B},
     tab_well: {0xFFEFECE7, 0xFF0E0D0C},
+    # ── Added 24 August with the 25 screens for #25 #11 #12 #15 #17 #19 #20 #21
+    tile_grey: {0xFFF1EEE9, 0xFF232220},
+    chip_text_disabled: {0xFFB5AEA3, 0xFF6E6860},
+    rule_full: {0x1F1A1917, 0x1FF5F2EE},
+    scrim_soft: {0x9EFBFAF8, 0x9E1E1D1B},
+    red_ring_strong: {0x66B4553C, 0x66B4553C},
+    green_wash_soft: {0x244E9A73, 0x244E9A73},
     fab_fill: {0xFF1A1917, 0xFFF5F2EE},
     fab_glyph: {0xFFFBFAF8, 0xFF16150F},
     transparent: {0x00FFFFFF, 0x00FFFFFF},
@@ -127,7 +134,7 @@ defmodule Kati.Theme.PaletteTest do
     lock_ground: {0xFF1C1A18, 0xFF1C1A18}
   }
 
-  @count 87
+  @count 93
 
   # Screen 28 (Home, dark) is the same page as screen 01, so these pairs are
   # read straight off the two drawings rather than derived. If a derivation
@@ -155,15 +162,15 @@ defmodule Kati.Theme.PaletteTest do
   }
 
   @sources %{
-    drawn: 24,
+    drawn: 27,
     theme: 3,
-    hue: 11,
+    hue: 13,
     media: 15,
     alpha: 18,
     ramp: 10,
     recession: 1,
     inversion: 3,
-    step: 2
+    step: 3
   }
 
   # Meant. Each is a light literal the screens use for more than one thing;
@@ -187,7 +194,12 @@ defmodule Kati.Theme.PaletteTest do
     0xFFF5F2EE => [:fab_fill, :ink],
     0xFFF7EFE4 => [:cream_ink, :ink_fill],
     0xFF4E9A73 => [:green, :green_text],
-    0xFFC98A3E => [:gold_icon, :gold_text]
+    0xFFC98A3E => [:gold_icon, :gold_text],
+    # `chip_text_disabled`'s dark value is `on_ink_meta`'s. The two are
+    # different jobs on the same grey — a label that cannot be tapped, and the
+    # meta line on an ink ground — and in dark they land on one another, which
+    # is what this map exists to declare rather than to prevent.
+    0xFF6E6860 => [:chip_text_disabled, :on_ink_meta]
   }
 
   @twins [[:cream_ink, :ink_fill], [:fab_fill, :ink]]
@@ -277,7 +289,7 @@ defmodule Kati.Theme.PaletteTest do
     0xFFEFECE7 => {:collision, ~w(settings states)},
     0xFFFBFAF8 =>
       {:collision,
-       ~w(habits language_pick meals_day meals_today onboarding pick_sections settings states today_fa)},
+       ~w(habits language_pick meals_day meals_today onboarding onboarding_fa pick_sections settings states today_fa)},
 
     # ── The value has a token; the token means something else ────────────
     # `0xA6FFFFFF` is `rgba(255,255,255,.65)`. On `lock.ex` it is `lock_ink_65`

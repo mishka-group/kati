@@ -634,8 +634,19 @@ defmodule Kati.Screens.Settings do
     "Release watcher" => Kati.Screens.ReleaseWatcher,
     "Calendars" => Kati.Screens.Calendars,
     "Auto-detect" => Kati.Screens.AutoDetect,
-    "Import" => Kati.Screens.Import,
+    # #12 put a step 0 in front of screen 37: a grid of named source tiles that
+    # pre-fills the mapping, so a switcher is not asked to map nine columns
+    # before seeing a row of their own data arrive. `Kati.Screens.Import` is
+    # still the manual mapper and is still where "Something else" lands.
+    "Import" => Kati.Screens.ImportSources,
     "Export everything" => Kati.Screens.Backup,
+    # The two rows #25's drawings added at the head of the Data group, above
+    # Import and Export. Restore and Import are separate destinations because
+    # they are separate acts — your own data coming home, and somebody else's
+    # arriving — which is the distinction #25 asks to be visible rather than
+    # folded into one row with two meanings.
+    "Back up everything" => Kati.Screens.Backup,
+    "Restore a Kati backup" => Kati.Screens.Restore,
     "Sync" => Kati.Screens.Sync,
     "Widgets" => Kati.Screens.Widgets,
     "This device" => Kati.Screens.Account,

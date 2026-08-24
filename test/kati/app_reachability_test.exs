@@ -90,6 +90,80 @@ defmodule Kati.AppReachabilityTest do
     {Screens.Lock,
      "a drawing of the OS lock screen showing Kati's notification. Nothing in " <>
        "an app can navigate to the lock screen."},
+    # ── The 24 August batch: #25, #11, #12, #15, #17, #19, #20, #21 ──────
+    #
+    # Every one below is 27's reason again in one of its three forms — a
+    # states sheet, a colourway, or a type size. None is a place the app can
+    # be in; each is a picture of places it can be in.
+    {Screens.BackupStates,
+     "screens 128 and 129's eight states at once, in 27's manner. As above."},
+    {Screens.BackupDark,
+     "screen 128 in the dark colourway. The same screen, not another one — " <>
+       "reached by changing the theme, exactly as 28, 68 and 102 are."},
+    {Screens.BackupLarge,
+     "screens 128 and 129 at 235% text size. The same screens at a system " <>
+       "setting, not other ones — reached by changing the setting, as 91 is."},
+    {Screens.RestoreFa,
+     "screen 129 in Persian. The same screen, not another one — reached by " <>
+       "choosing فارسی, exactly as every other Persian mirror is."},
+    {Screens.OnboardingFa, "the onboarding chain in Persian. As above."},
+    {Screens.OnboardingLarge, "the onboarding chain at 235%. As above."},
+    {Screens.ImportStates, "screen 140's edge states, in 27's manner. As above."},
+    {Screens.ShelfLarge, "screens 145 and 146 at 235%. As above."},
+    {Screens.DropStates,
+     "the drop, DNF and abandon states across all three media at once, in " <>
+       "27's manner — a board about five states rather than a sixth place."},
+    {Screens.AnimeFilter,
+     "a board about one change landing on four existing screens — 03's chip, " <>
+       "26's sub-choice, 37's two tiles, 35's numbering row. 96's reason: a " <>
+       "board about four screens rather than a fifth screen."},
+    {Screens.EpisodeRatings,
+     "screen 04's episode rows with the rating column added, drawn so the " <>
+       "before and after can be compared. A board about a change to 04, not a " <>
+       "screen beside it."},
+    # ── Drawn, built, and waiting on an entry point ──────────────────────
+    #
+    # These eight are NOT reference sheets. Each is a real destination whose
+    # own board draws the control that opens it — and that control belongs on a
+    # PARENT screen the 23 August export did not redraw. Adding it anyway would
+    # mean inventing a control on a board that does not have one, which is the
+    # one thing the design pipeline in this repo does not allow.
+    #
+    # Each entry names the edit it is waiting for, so this list stays a queue
+    # rather than becoming a graveyard.
+    {Screens.LoudnessPrompt,
+     "the three outcomes of 38·3's loudness choice. Its entry is 38·3 itself " <>
+       "routing forward, which needs 38 renumbered to five steps — the flow " <>
+       "map (134) names that as the build task."},
+    {Screens.RateEpisode,
+     "screen 33 in its episode variant. Its entry is a LONG PRESS on an " <>
+       "episode row in screen 04, and 04's board has not been redrawn to carry " <>
+       "the affordance hint that teaches it. #15."},
+    {Screens.ShelfFilters,
+     "the shelf filter sheet. Its entry is a trailing filter disc in the " <>
+       "header of screens 03, 20 and 21, and none of the three boards has been " <>
+       "redrawn with it. #19."},
+    {Screens.ShelfSelection,
+     "the shelf in selection mode. Its entry is a LONG PRESS on a poster " <>
+       "tile — the same gesture 04 uses for a different meaning, which #15 and " <>
+       "#19 agree has to be decided on both boards before either ships it."},
+    {Screens.DropSheet,
+     "the drop sheet. Its entry is a Drop action on a title, and the three " <>
+       "detail boards (04, 66, 74) have not been redrawn with it. #17."},
+    {Screens.AutoDetectMusic,
+     "auto-detect in music mode. #20 draws it as a MODE of screen 36 rather " <>
+       "than a second screen, so its entry is a mode switch at the top of 36 — " <>
+       "drawn on 150 and not yet on 36. `Kati.Screens.AutoDetect.handle_tap/2` " <>
+       "already answers `:open_music`; only the control is missing."},
+    {Screens.NotificationAccess,
+     "the special-access row. Reached from 150, which is itself waiting."},
+    {Screens.NumberingScheme,
+     "the per-show numbering row. Its entry is a row on screen 35, whose " <>
+       "board has not been redrawn. #21."},
+    {Screens.HomeEmpty,
+     "screen 01 with nothing set up. The same screen in the state a skipped " <>
+       "onboarding leaves it in — reached by skipping, not by navigating, " <>
+       "exactly as 105 and 117 are."},
     # 63, 64 and 65 — the three drawings of Kati seen from outside the app.
     # 29's reason, three more times: an app cannot navigate to the surface it
     # is being launched from.

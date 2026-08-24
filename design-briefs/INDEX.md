@@ -3,7 +3,14 @@
 One file per artboard Kati needs and has not drawn. Hand a single file to Claude Design;
 each one is self-contained and carries the house style.
 
-**63 briefs.** The app has 139 drawn screens (01–139); nothing may be numbered below 139.
+**63 briefs.** The app has 153 drawn screens (01–153); a new brief must ask for
+154 or higher.
+
+`D-22` … `D-29` were drawn in the 23 August export and **are built** — screens
+128–153, closing #25, #11, #12, #15, #17, #19, #20 and #21. They stay listed
+here as the record of what was asked for. `D-23b` asked for a board `D-23` had
+already produced; see `.scratch/design/incoming/README.md` for why it was kept
+rather than deleted.
 
 | Brief | Screen | Kind | Issue |
 |---|---|---|---|

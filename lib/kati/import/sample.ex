@@ -12,6 +12,12 @@ defmodule Kati.Import.Sample do
   rather than invented sample text, so the screen can be compared with its
   drawing line for line. When the reader lands, this module is replaced by the
   parse result — the screen reads a map and does not care where it came from.
+
+  `recognised/0` adds a second job for board 141 — a Goodreads export, one
+  step earlier than screen 37's Trakt backup: the source has just been
+  recognised and the mapping has not been opened yet. It is a different job on
+  a different source, not screen 37's job renamed, so it gets its own function
+  rather than a second call to `job/0` with a patched `file`.
   """
 
   @doc """
@@ -116,5 +122,84 @@ defmodule Kati.Import.Sample do
       choices: [{"Keep mine", true}, {"Take file", false}, {"Keep both", false}],
       progress: "1 of 6 · apply to all"
     }
+  end
+
+  @doc """
+  The job board 141 draws: a Goodreads export, the source just recognised.
+
+  `progress` is the step meter's own five bars, three of them filled — the
+  drawing's literal dot-line, kept as the booleans it paints rather than
+  reduced to a fraction. It answers to nobody's `step`/`steps` pair: board
+  141 draws it at three of five while the subtitle beside it reads `STEP 1 OF
+  4`, and the two do not reconcile — see `Kati.Screens.ImportRecognised`'s
+  moduledoc for why both are kept rather than one being quietly fixed.
+
+  `outcome/0` is reused rather than repeated: the drawing gives this job the
+  exact three counts and three colours screen 37's job already has — `384`
+  new, `28` merged in green, `6` conflicts in red — so a second copy of the
+  same three maps would be the literal without the honesty of naming the
+  coincidence.
+  """
+  @spec recognised() :: map()
+  def recognised do
+    %{
+      action: "Import 412",
+      source: "Goodreads",
+      step_label: "STEP 1 OF 4",
+      progress: [true, true, true, false, false],
+      file: "goodreads_library_export.csv",
+      shape: "418 ROWS · 9 COLUMNS",
+      matched: 7,
+      total_columns: 9,
+      skipped: 2,
+      columns: recognised_columns(),
+      outcome: outcome()
+    }
+  end
+
+  @doc """
+  The nine columns board 141's expanded mapping table draws.
+
+  Same shape as `columns/0` — `icon`, `field`, `note`, `skipped?` — but this
+  job's own set: nine columns rather than five, seven matched rather than
+  four, and no `sample` value, because this board's row never draws one.
+  """
+  @spec recognised_columns() :: [map()]
+  def recognised_columns do
+    [
+      %{column: "Title", note: nil, icon: "arrow_forward", field: "Title", skipped?: false},
+      %{column: "Author", note: nil, icon: "arrow_forward", field: "Author", skipped?: false},
+      %{
+        column: "My Rating",
+        note: "converts 10pt → 5★",
+        icon: "arrow_forward",
+        field: "Rating",
+        skipped?: false
+      },
+      %{
+        column: "Date Read",
+        note: nil,
+        icon: "arrow_forward",
+        field: "Finished on",
+        skipped?: false
+      },
+      %{
+        column: "Bookshelves",
+        note: "to-read → Wishlist",
+        icon: "arrow_forward",
+        field: "Status",
+        skipped?: false
+      },
+      %{column: "My Review", note: nil, icon: "arrow_forward", field: "Review", skipped?: false},
+      %{
+        column: "Number of Pages",
+        note: nil,
+        icon: "arrow_forward",
+        field: "Length",
+        skipped?: false
+      },
+      %{column: "Publisher", note: "skipped", icon: "block", field: "Skip", skipped?: true},
+      %{column: "Binding", note: "skipped", icon: "block", field: "Skip", skipped?: true}
+    ]
   end
 end

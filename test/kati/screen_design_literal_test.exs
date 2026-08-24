@@ -114,7 +114,6 @@ defmodule Kati.ScreenDesignLiteralTest do
   # between them, and #26 is a design ticket that names components rather than
   # supplying a frame. Both are built from those components and each says so.
   @undesigned [
-    Kati.Screens.Backup,
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
     Kati.Screens.NotificationsHelp,
@@ -125,7 +124,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 132 137)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
   # tier. Today: 7, all of them rating rows the drawing writes as one run of
@@ -160,6 +159,26 @@ defmodule Kati.ScreenDesignLiteralTest do
   # intent expressed in a date the schema actually holds.
   @retired_symbols [{"49", "auto_mode"}]
 
+  # Symbols a screen draws on a branch no test can reach. Different from
+  # `@retired_symbols` in the way that matters: the row is not gone, it is
+  # simply not the branch an empty install takes, so the entry is a statement
+  # that the symbol is asserted SOMEWHERE ELSE rather than that it is unused.
+  #
+  # `cloud_done` is screen 128's status card in its has-been-backed-up state.
+  # `Kati.Screens.Backup.status_card/0` reads
+  # `Kati.Screens.Settings.last_backup/0`, which is `nil` until a Save As
+  # completes, and `Mob.State` is empty in every render this file takes — so
+  # every render here draws `cloud_off` and the word `Never`. The moduledoc on
+  # `Kati.Screens.Backup` argues at length that this is the correct resting
+  # state of a fresh install and not a gap to be filled with the board's frozen
+  # date.
+  #
+  # The branch is covered by `Kati.ScreenBackupTest`'s "the status card once a
+  # backup exists", which seeds the ledger, renders the real screen and asserts
+  # `cloud_done`, the date and the size are all on the tree — and that
+  # `cloud_off` and `Never` are not. Delete this entry if that test goes.
+  @unreachable_symbols [{"128", "cloud_done"}]
+
   describe "the registry" do
     test "every drawing has a screen, and every screen but the gallery has a drawing" do
       # Rebuilt from three independent sources — the files on disk, the app's
@@ -169,8 +188,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 127,
-             "expected 127 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 152,
+             "expected 152 drawings under .scratch/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -315,6 +334,7 @@ defmodule Kati.ScreenDesignLiteralTest do
             glyph != nil,
             not MapSet.member?(glyphs, glyph),
             {screen.number, name} not in @retired_symbols,
+            {screen.number, name} not in @unreachable_symbols,
             do: "  #{screen.number} #{inspect(screen.module)} never draws #{name}"
 
       assert missing == [],
@@ -421,7 +441,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # today's column is on the right and the board's own bars put it on the
       # left. Its pattern insists on the corrected word, so the entry checks
       # something rather than merely excusing it.
-      assert length(device_values()) <= 26,
+      # Raised to 30 on 24 August for #25's and #11's boards. Two kinds, both
+      # already represented above: 128's pair is the backup ledger, which is
+      # exactly why 24 and 62 are here, and 139's pair is the device clock,
+      # which is exactly why 01's is. Neither is a new class of excuse — 139 IS
+      # screen 01 with an empty database, and 128 is the page 24's Export row
+      # links to. Every one of the four insists on the branch the screen
+      # actually takes, and 128's is asserted directly by
+      # `Kati.ScreenBackupTest`'s "the status card once a backup exists".
+      assert length(device_values()) <= 30,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -483,6 +511,36 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the Persian Schedule's subtitle is the selected day and the number of rows on it, " <>
          "and the selected day starts on the device's today",
        ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u},
+      # 139 is screen 01 rendered with nothing stored, so it prints the same two
+      # clock values 01 does, from the same function. Both entries are 01's,
+      # one screen over — see those for the argument. Restating the greeting's
+      # hour thresholds here would only make this fail when the product changed
+      # its mind about evening.
+      {"139", "sunday · 16 august",
+       "Home's eyebrow is `Kati.Screens.Home.today/0` over `Kati.Time.now/0`, and 139 is " <>
+         "that screen with an empty database rather than a second implementation",
+       ~r/^\p{L}+ · #{day} \p{L}+$/u},
+      {"139", "good evening",
+       "the greeting is picked from the device clock's hour by that same function; which " <>
+         "of the three it is belongs to `Kati.Screens.Home.today/0`",
+       ~r/^good (morning|afternoon|evening)$/},
+      # 128's status card in the state no empty install is in. The pair that
+      # 24 and 62 carry for the same ledger, on the page their Export row
+      # links to — and unlike those two, this branch is not merely excused:
+      # `Kati.ScreenBackupTest` seeds `Mob.State` and asserts the whole card.
+      {"128", "14 aug",
+       "the value line is `Kati.Screens.Backup.date_text/1` over " <>
+         "`Kati.Screens.Settings.last_backup/0`, which is `nil` until a Save As completes. " <>
+         "The resting state is the word `Never`, which `Kati.Screens.Backup`'s moduledoc " <>
+         "argues is the truth a fresh install should tell rather than the board's frozen " <>
+         "date. Both branches are asserted in `Kati.ScreenBackupTest`",
+       ~r/^(\d{1,2} \p{L}{3}|never)$/u},
+      {"128", "2 weeks ago · 214 mb",
+       "the caption is `Kati.Screens.Backup.caption/1` — `Kati.Screens.UpNext.age/1` and " <>
+         "the byte ledger, neither of which an empty `Mob.State` has. The resting caption " <>
+         "is `STILL ONLY ON THIS PHONE`, and the size half drops out on its own when only " <>
+         "the date was ever recorded",
+       ~r/^(today|yesterday|\d+ (days|weeks|months|years) ago|1 (week|month|year) ago)( · \d+ [km]b)?$|^still only on this phone$/},
       {"80", "connected as ines.k · 412 listens",
        "the account name and the listen count come from ListenBrainz, and Kati has no " <>
          "client for it yet. The row's contract is the alternation: what the provider " <>
