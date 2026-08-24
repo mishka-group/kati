@@ -3,7 +3,7 @@
 One file per artboard Kati needs and has not drawn. Hand a single file to Claude Design;
 each one is self-contained and carries the house style.
 
-**63 briefs.** The app has 153 drawn screens (01–153); a new brief must ask for
+**64 briefs.** The app has 153 drawn screens (01–153); a new brief must ask for
 154 or higher.
 
 `D-22` … `D-29` were drawn in the 23 August export and **are built** — screens
@@ -76,4 +76,9 @@ rather than deleted.
 | `D-27-drop-dnf-abandon.md` | Drop, DNF and abandon — one state machine | Reference board | #17 |
 | `D-28-auto-detect-music.md` | The music variant of Auto-detect | Screen mode | #20 |
 | `D-29-anime-as-a-filter.md` | Anime as a filter, not a section | Four edits | #21 |
+| `D-30-releases-beyond-television.md` | Releases beyond television — watcher & inbox | Two edits + a follow surface | #27 |
 | `D-23b-first-run-flow-map.md` | First run — the flow map | One diagram | #11 |
+
+`D-30` is the one brief here for a **closed** issue. #27 is closed as *not
+planned* because it cannot start until these boards exist and two questions in
+the brief's constraints section are answered; the brief is what reopens it.
