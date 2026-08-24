@@ -436,7 +436,7 @@ defmodule Kati.Screens.Settings do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 42)}
-        {SettingsList.title("Settings", s.synced, "help")}
+        {SettingsList.title("Settings", s.synced, "help", :meta_tight)}
         {Kati.Screens.Settings.account(s.account, s.sections)}
         {UI.eyebrow("Appearance")}
         {Kati.Screens.Settings.group(s.appearance, 14, 22)}

@@ -67,7 +67,7 @@ defmodule Kati.Screens.DataSources do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Data sources", "Where Kati’s posters, covers and facts come from.")}
+        {SettingsList.title("Data sources", "Where Kati’s posters, covers and facts come from.", nil, :name)}
         {UI.eyebrow("Working out of the box")}
         {Kati.Screens.DataSources.tier0()}
         {UI.eyebrow("Better artwork and metadata")}

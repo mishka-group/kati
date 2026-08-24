@@ -199,7 +199,7 @@ defmodule Kati.Screens.Calendars do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Calendars", c.connected)}
+        {SettingsList.title("Calendars", c.connected, nil, :meta_tight)}
         {UI.eyebrow("Accounts")}
         {Kati.Screens.Calendars.accounts(c)}
         {UI.eyebrow("Which calendars show")}

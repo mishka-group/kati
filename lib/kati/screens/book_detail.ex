@@ -270,7 +270,7 @@ defmodule Kati.Screens.BookDetail do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title(b.title, b.author)}
+        {SettingsList.title(b.title, b.author, nil, :name)}
         {Kati.Screens.BookDetail.hero(b)}
         {Kati.Screens.BookDetail.ratings(b)}
         {UI.eyebrow("Status")}

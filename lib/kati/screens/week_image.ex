@@ -224,7 +224,7 @@ defmodule Kati.Screens.WeekImage do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil)}
-        {MealPlan.title(Kati.Screens.WeekImage.heading())}
+        {MealPlan.title(Kati.Screens.WeekImage.heading(), :meta)}
         {Kati.Screens.WeekImage.page(pages.en)}
         {Kati.Screens.WeekImage.save_button()}
         {Kati.Screens.WeekImage.rtl_eyebrow()}

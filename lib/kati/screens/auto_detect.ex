@@ -78,7 +78,7 @@ defmodule Kati.Screens.AutoDetect do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Auto-detect", d.sources_line)}
+        {SettingsList.title("Auto-detect", d.sources_line, nil, :meta_tight)}
         {Kati.Screens.AutoDetect.banner(d.banner)}
         {UI.eyebrow("Now playing")}
         {Kati.Screens.AutoDetect.now_playing(d.now_playing)}

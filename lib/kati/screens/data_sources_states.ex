@@ -180,7 +180,7 @@ defmodule Kati.Screens.DataSourcesStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Data sources", "seven states")}
+        {SettingsList.title("Data sources", "seven states", nil, :name)}
         {UI.eyebrow("Provider failing")}
         {Kati.Screens.DataSourcesStates.failing()}
         {SettingsList.eyebrow_muted("Rate-limited — not an error")}

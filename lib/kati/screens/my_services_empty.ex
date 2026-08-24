@@ -117,7 +117,7 @@ defmodule Kati.Screens.MyServicesEmpty do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("My services", "So Kati only shows you what you can actually watch.")}
+        {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
         {UI.eyebrow("Region")}
         {Kati.Screens.MyServicesEmpty.region_group()}
         {Kati.Screens.MyServices.search_field()}

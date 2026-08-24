@@ -121,7 +121,7 @@ defmodule Kati.Screens.Attribution do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Where this comes from", "Posters, covers, air dates and facts")}
+        {SettingsList.title("Where this comes from", "Posters, covers, air dates and facts", nil, :name)}
         {Kati.Screens.Attribution.source_cards()}
         {UI.eyebrow("Open source")}
         {Kati.Screens.Attribution.open_source_card()}

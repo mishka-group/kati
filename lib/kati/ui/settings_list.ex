@@ -140,63 +140,109 @@ defmodule Kati.UI.SettingsList do
   end
 
   @doc """
-  The 28pt screen title over its mono subtitle.
+  The 28pt screen title over its subtitle.
 
   Screen 24 is the one that hangs a disc off this row instead of off the back
   pill's, so `disc` is an option rather than a second function.
-  """
-  def title(text, sub, disc \\ nil)
 
-  def title(text, sub, nil) do
+  ## Three subtitles, because the drawings draw three
+
+  This helper drew one shape — mono 11 over a 5pt gap — and 40 of the 52 boards
+  whose screen calls it draw something else. The three are not drift to be
+  averaged away; they sort cleanly, and the sort is legible:
+
+    * `:meta` — **mono 11.5, 6pt gap.** 24 boards, every one of them numbered
+      98 or higher. The current design language, and so the default.
+    * `:meta_tight` — **mono 11, 5pt gap.** 12 boards, all numbered 54 or
+      lower. What this helper used to hardcode, now stated by the screens that
+      actually want it.
+    * `:name` — **sans 13.5, 5pt gap.** 15 boards in between. Not a smaller
+      meta line but a different thing: a person or a subject, not a
+      measurement. 66's *Ines Karvel* under *The Salt Almanac* is the case to
+      picture — mono uppercase would read as a catalogue number.
+
+  `Kati.ScreenTitleSubtitleTest` pins each screen's choice against its own
+  board, so a wrong style is a failure rather than a thing someone notices in a
+  screenshot a month later.
+  """
+  def title(text, sub, disc \\ nil, style \\ :meta)
+
+  def title(text, sub, nil, style) do
     ~MOB"""
     <Column fill_width={true}>
-      <Text
-        text={text}
-        text_size={28}
-        max_font_scale={1.6}
-        font_weight="bold"
-        letter_spacing={-0.03}
-        text_color={:on_surface}
-      />
-      <Spacer size={5} />
-      <Text
-        text={sub}
-        font_family="mono"
-        text_size={11}
-        text_color={Kati.UI.SettingsList.subtitle_ink()}
-        max_lines={1}
-      />
+      {Kati.UI.SettingsList.title_text(text)}
+      {Kati.UI.SettingsList.subtitle(sub, style)}
       <Spacer size={20} />
     </Column>
     """
   end
 
-  def title(text, sub, icon) do
+  def title(text, sub, icon, style) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          <Text
-            text={text}
-            text_size={28}
-            max_font_scale={1.6}
-            font_weight="bold"
-            letter_spacing={-0.03}
-            text_color={:on_surface}
-          />
-          <Spacer size={5} />
-          <Text
-            text={sub}
-            font_family="mono"
-            text_size={11}
-            text_color={Kati.UI.SettingsList.subtitle_ink()}
-            max_lines={1}
-          />
+          {Kati.UI.SettingsList.title_text(text)}
+          {Kati.UI.SettingsList.subtitle(sub, style)}
         </Column>
         <Spacer size={9} />
         {Kati.UI.SettingsList.disc(icon)}
       </Row>
       <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def title_text(text) do
+    ~MOB"""
+    <Text
+      text={text}
+      text_size={28}
+      max_font_scale={1.6}
+      font_weight="bold"
+      letter_spacing={-0.03}
+      text_color={:on_surface}
+    />
+    """
+  end
+
+  @doc """
+  The line under the title, in one of `title/4`'s three shapes.
+
+  The gap belongs to the subtitle rather than to the title above it because the
+  three shapes disagree about it — 6pt under `:meta`, 5 under the other two —
+  and a caller that had to remember the spacer as well as the style would get
+  one of them wrong.
+  """
+  @spec subtitle(String.t(), :meta | :meta_tight | :name) :: map()
+  def subtitle(sub, :name) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={5} />
+      <Text
+        text={sub}
+        text_size={13.5}
+        text_color={Kati.UI.SettingsList.subtitle_ink()}
+        max_lines={1}
+      />
+    </Column>
+    """
+  end
+
+  def subtitle(sub, style) do
+    {gap, size} = if style == :meta_tight, do: {5, 11}, else: {6, 11.5}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={gap} />
+      <Text
+        text={sub}
+        font_family="mono"
+        text_size={size}
+        text_color={Kati.UI.SettingsList.subtitle_ink()}
+        max_lines={1}
+      />
     </Column>
     """
   end

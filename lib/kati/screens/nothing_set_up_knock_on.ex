@@ -142,7 +142,7 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Nothing set up", "What four screens look like on day one")}
+        {SettingsList.title("Nothing set up", "What four screens look like on day one", nil, :name)}
         {UI.eyebrow("08 Film detail · Where to watch")}
         {Kati.Screens.NothingSetUpKnockOn.prompt(
           "Set up your services to see where this is streaming",

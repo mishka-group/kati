@@ -155,7 +155,7 @@ defmodule Kati.Screens.ArtistDetailStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Artist detail", "seven states")}
+        {SettingsList.title("Artist detail", "seven states", nil, :name)}
         {UI.eyebrow("Nothing new — says so plainly")}
         {Kati.Screens.ArtistDetailStates.nothing_new()}
         {SettingsList.eyebrow_muted("Metadata-only — known by name, no albums resolved")}

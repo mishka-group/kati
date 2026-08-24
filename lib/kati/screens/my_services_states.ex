@@ -181,7 +181,7 @@ defmodule Kati.Screens.MyServicesStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("My services", "five states")}
+        {SettingsList.title("My services", "five states", nil, :name)}
         {UI.eyebrow("Region set, no services — a legitimate middle")}
         {Kati.Screens.MyServicesStates.region_set()}
         {SettingsList.eyebrow_muted("Search with no match")}

@@ -200,7 +200,7 @@ defmodule Kati.Screens.AttributionStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Attribution", "three states")}
+        {SettingsList.title("Attribution", "three states", nil, :name)}
         {UI.eyebrow("With a connected account — a sixth card appears")}
         {Attribution.source_card(s.connected)}
         <Spacer size={24} />

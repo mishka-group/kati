@@ -57,7 +57,7 @@ defmodule Kati.Screens.SearchSpec do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Scope & ranking", "What each scope searches, and in what order")}
+        {SettingsList.title("Scope & ranking", "What each scope searches, and in what order", nil, :name)}
         {UI.eyebrow("Fields searched, per scope")}
         {Kati.Screens.SearchSpec.scopes()}
         {UI.eyebrow("Group order — fixed, not relevance-sorted")}

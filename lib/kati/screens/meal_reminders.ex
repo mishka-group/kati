@@ -75,7 +75,7 @@ defmodule Kati.Screens.MealReminders do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Reminders", r.subtitle)}
+        {SettingsList.title("Reminders", r.subtitle, nil, :meta_tight)}
         {UI.eyebrow("The day before")}
         {Kati.Screens.MealReminders.day_before(r.day_before)}
         {UI.eyebrow("On the day")}

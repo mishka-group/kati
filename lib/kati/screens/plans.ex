@@ -57,7 +57,7 @@ defmodule Kati.Screens.Plans do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 42)}
-        {SettingsList.title("Plans", plans.subtitle, "add")}
+        {SettingsList.title("Plans", plans.subtitle, "add", :meta_tight)}
         {UI.eyebrow("Active")}
         {Kati.Screens.Plans.active(plans.active)}
         {SettingsList.eyebrow_muted("Saved plans")}

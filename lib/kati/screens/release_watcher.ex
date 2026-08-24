@@ -73,7 +73,7 @@ defmodule Kati.Screens.ReleaseWatcher do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Release watcher", w.checked)}
+        {SettingsList.title("Release watcher", w.checked, nil, :meta_tight)}
         {Kati.Screens.ReleaseWatcher.banner(w.banner)}
         {UI.eyebrow("Tell me about")}
         {Kati.Screens.ReleaseWatcher.group(w.kinds, "kind", 13, 22)}

@@ -216,7 +216,7 @@ defmodule Kati.Screens.SearchResultStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Search results", "four edge states")}
+        {SettingsList.title("Search results", "four edge states", nil, :name)}
         {UI.eyebrow("One scope only — seven zeroes are not a fault")}
         {SearchScreen.field(%{query: "quinoa"})}
         {Kati.Screens.SearchResultStates.chips(s.in_scope, "Meals")}

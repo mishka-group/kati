@@ -62,9 +62,10 @@ defmodule Kati.Screens.BackupDark do
   call either helper, so the change reaches precisely the three renders it
   was written for.
 
-  `title/0` below survives the fix, for a reason that has nothing to do with
-  colour: `title/3` draws the subtitle at 11 and this board draws it at 11.5.
-  See that function's own doc.
+  A local `title/0` survived the first pass, because `title/3` drew its
+  subtitle at 11 where this board draws 11.5. That is fixed at the source too —
+  `title/4` now carries the three subtitle shapes the drawings actually use and
+  defaults to this one — so the local is gone and this calls the helper.
 
   ## Two glyphs the board keeps at their light shade on purpose
 
@@ -223,7 +224,7 @@ defmodule Kati.Screens.BackupDark do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {Kati.Screens.BackupDark.title()}
+        {SettingsList.title("Back up everything", "ONE FILE, KEPT WHEREVER YOU LIKE")}
         {Kati.Screens.BackupDark.notice_block(assigns.notice)}
         {Kati.Screens.BackupDark.summary_card()}
         {Kati.Screens.BackupDark.section_label(Palette.accent(), "What travels with it")}
@@ -239,51 +240,6 @@ defmodule Kati.Screens.BackupDark do
   end
 
   # ── Title ────────────────────────────────────────────────────────────────
-
-  @doc """
-  `Kati.UI.SettingsList.title/3`'s markup at board 131's subtitle size.
-
-  This was written because that helper drew the mono line in
-  `Kati.Theme.Palette.muted/0`, which is `#6A6560` in dark where the board draws
-  `#8A837B`. That half is fixed at the source now —
-  `Kati.UI.SettingsList.subtitle_ink/0` branches on mode — and this no longer
-  differs from the helper by any colour.
-
-  It stays for a reason the colour fix does not touch: `title/3` draws the
-  subtitle at **11**, and `131.html` draws it at **11.5**, as do `102.html`,
-  `100.html` and `128.html`. Only `24.html` draws 11, and that is the size
-  `title/3` is pinned to across the light baseline frames. Calling the helper
-  here would trade a fixed colour for a wrong size, and no test would catch it —
-  `Kati.ScreenDesignLiteralTest` reads the words, not the type scale.
-
-  The board also puts 6pt under the title where this puts 5. That one is left
-  alone rather than quietly corrected; it is the same measurement question as
-  the size and belongs in whatever settles `title/3`'s two subtitle shapes.
-  """
-  @spec title() :: map()
-  def title do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text
-        text="Back up everything"
-        text_size={28}
-        max_font_scale={1.6}
-        font_weight="bold"
-        letter_spacing={-0.03}
-        text_color={Palette.ink()}
-      />
-      <Spacer size={5} />
-      <Text
-        text="ONE FILE, KEPT WHEREVER YOU LIKE"
-        font_family="mono"
-        text_size={11.5}
-        text_color={Palette.sub()}
-        max_lines={1}
-      />
-      <Spacer size={20} />
-    </Column>
-    """
-  end
 
   # ── The summary card ────────────────────────────────────────────────────
 

@@ -96,7 +96,7 @@ defmodule Kati.Screens.LogProgressStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Log progress", "five states")}
+        {SettingsList.title("Log progress", "five states", nil, :name)}
         {UI.eyebrow("Timer running — primary becomes Stop and save")}
         {Kati.Screens.LogProgressStates.timer_running()}
         {SettingsList.eyebrow_muted("First session — no comparison invented")}

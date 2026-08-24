@@ -305,7 +305,7 @@ defmodule Kati.Screens.MealPlan do
   end
 
   @doc false
-  def title(plan) do
+  def title(plan, style \\ :meta_tight) do
     ~MOB"""
     <Column fill_width={true}>
       <Text
@@ -317,14 +317,7 @@ defmodule Kati.Screens.MealPlan do
         text_color={:on_surface}
         max_lines={1}
       />
-      <Spacer size={5} />
-      <Text
-        text={plan.subtitle}
-        font_family="mono"
-        text_size={11}
-        text_color={Palette.muted()}
-        max_lines={1}
-      />
+      {Kati.UI.SettingsList.subtitle(plan.subtitle, style)}
       <Spacer size={20} />
     </Column>
     """

@@ -182,7 +182,7 @@ defmodule Kati.Screens.BookDetailStates do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Book detail", "six states")}
+        {SettingsList.title("Book detail", "six states", nil, :name)}
         {UI.eyebrow("Loading — skeleton, never a spinner")}
         {Kati.Screens.BookDetailStates.loading()}
         {SettingsList.eyebrow_muted("Partial metadata — no cover, no page count")}

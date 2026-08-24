@@ -103,7 +103,7 @@ defmodule Kati.Screens.Language do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title(h.title, h.subtitle)}
+        {SettingsList.title(h.title, h.subtitle, nil, :meta_tight)}
         {UI.eyebrow(h.interface_label)}
         {Kati.Screens.Language.picker(locale)}
         {UI.eyebrow(h.follows_label)}

@@ -92,7 +92,7 @@ defmodule Kati.Screens.States do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("States", "reference sheet")}
+        {SettingsList.title("States", "reference sheet", nil, :meta_tight)}
         {UI.eyebrow("Empty — nothing added yet")}
         {Kati.Screens.States.empty(s.empty)}
         {UI.eyebrow("Loading — skeleton, never a spinner")}

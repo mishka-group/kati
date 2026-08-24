@@ -45,7 +45,7 @@ defmodule Kati.Screens.PlanShare do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title(share.plan, share.subtitle)}
+        {SettingsList.title(share.plan, share.subtitle, nil, :meta_tight)}
         {Kati.Screens.PlanShare.qr_card(share)}
         {UI.eyebrow("What travels with it")}
         {Kati.Screens.PlanShare.travels(share.travels)}

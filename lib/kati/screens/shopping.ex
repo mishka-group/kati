@@ -217,7 +217,7 @@ defmodule Kati.Screens.Shopping do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz")}
-        {SettingsList.title("Shopping", list.subtitle)}
+        {SettingsList.title("Shopping", list.subtitle, nil, :meta_tight)}
         {Kati.Screens.Shopping.basket(list)}
         {Kati.Screens.Shopping.filters(list)}
         {Enum.map(list.aisles, fn aisle -> Kati.Screens.Shopping.aisle(aisle) end)}

@@ -122,7 +122,7 @@ defmodule Kati.Screens.SeriesSettings do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz", 44)}
-        {SettingsList.title(show.title, show.subtitle)}
+        {SettingsList.title(show.title, show.subtitle, nil, :meta_tight)}
         {UI.eyebrow(show.status_label)}
         {Kati.Screens.SeriesSettings.statuses()}
         {UI.eyebrow(show.season_pass_label)}
