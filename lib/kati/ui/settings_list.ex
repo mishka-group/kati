@@ -159,7 +159,13 @@ defmodule Kati.UI.SettingsList do
         text_color={:on_surface}
       />
       <Spacer size={5} />
-      <Text text={sub} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
+      <Text
+        text={sub}
+        font_family="mono"
+        text_size={11}
+        text_color={Kati.UI.SettingsList.subtitle_ink()}
+        max_lines={1}
+      />
       <Spacer size={20} />
     </Column>
     """
@@ -183,7 +189,7 @@ defmodule Kati.UI.SettingsList do
             text={sub}
             font_family="mono"
             text_size={11}
-            text_color={Palette.muted()}
+            text_color={Kati.UI.SettingsList.subtitle_ink()}
             max_lines={1}
           />
         </Column>
@@ -423,10 +429,54 @@ defmodule Kati.UI.SettingsList do
   `id`, and the glyph shorthand is skipped when children are given.
   """
   def icon_tile(name) do
+    {ground, glyph} = Kati.UI.SettingsList.icon_tile_ink(Palette.mode())
+
     Kati.Components.MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Kati.Theme.paper(Palette.mode()), size: 30, radius: 9},
-      [Kati.UI.symbol(name, size: 17, color: Palette.ink_soft())]
+      %{variant: :filled, color: ground, size: 30, radius: 9},
+      [Kati.UI.symbol(name, size: 17, color: glyph)]
     )
+  end
+
+  @doc """
+  The tile's ground and its glyph, per mode.
+
+  Light is `Kati.Theme.paper/1` and `Kati.Theme.Palette.ink_soft/0` — unchanged,
+  and deliberately so: those are pinned against every light baseline frame.
+
+  Dark was the same two calls and both were wrong. `Kati.Theme.paper(:dark)` is
+  `#121110`, which is the page the card sits on, so the tile was a 30pt square
+  of the background — drawn, and invisible. Boards 68, 102 and 131 all draw
+  `#2A2826`, which is `Kati.Theme.Palette.placeholder/0`'s dark value exactly.
+
+  The glyph is the one value here that is approximate. All three boards draw
+  `#A8A29A`; no token carries it, and `Kati.Theme.Palette.bar_ink/0`'s dark
+  `#A29C94` is the closest — six units off on every channel. That trade is
+  `chevron/0`'s in reverse and is taken for the same reason: a token six units
+  out beats a hex literal the palette cannot account for. It was first made
+  locally in `Kati.Screens.BackupDark.format_icon/1`, which this replaces.
+  """
+  @spec icon_tile_ink(:light | :dark) :: {integer(), integer()}
+  def icon_tile_ink(:dark), do: {Palette.placeholder(), Palette.bar_ink()}
+  def icon_tile_ink(_light), do: {Kati.Theme.paper(:light), Palette.ink_soft()}
+
+  @doc """
+  The mono line under a `title/3`, per mode.
+
+  Light is `Kati.Theme.Palette.muted/0` at `#A9A29A`, which is what boards 24,
+  92, 100 and 128 all draw. Dark is NOT `muted/0` — its dark value is `#6A6560`,
+  and boards 68, 102 and 131 all draw `#8A837B`, which is
+  `Kati.Theme.Palette.sub/0`'s dark value exactly.
+
+  One token reading right in light and wrong in dark is what a mode-blind call
+  looks like from the outside: it renders *a* colour, so it reads as correct
+  until the pixel is put beside the drawing.
+  """
+  @spec subtitle_ink() :: integer()
+  def subtitle_ink do
+    case Palette.mode() do
+      :dark -> Palette.sub()
+      _light -> Palette.muted()
+    end
   end
 
   @doc "The disclosure chevron, at the design's `#C4BDB3`."

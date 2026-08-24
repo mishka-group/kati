@@ -36,34 +36,35 @@ defmodule Kati.Screens.BackupDark do
   screens noticed, because a component call that renders *some* colour reads
   as correct until someone puts the pixel next to the drawing:
 
-    * **`Kati.UI.SettingsList.icon_tile/1`'s dark background is the page, not
-      a tile.** Its background is `Kati.Theme.paper(Palette.mode())`, which in
+    * **`Kati.UI.SettingsList.icon_tile/1`'s dark background was the page, not
+      a tile.** Its background was `Kati.Theme.paper(Palette.mode())`, which in
       dark is `Kati.Theme`'s `@paper_dark` — `#121110`, the same value as the
       page underneath the card the tile sits on. All three boards (68, 102,
-      131) draw `#2A2826` instead, which is
-      `Kati.Theme.Palette.placeholder/0`'s dark value exactly. The glyph is off
-      too: `icon_tile/1` hardcodes `Palette.ink_soft()` (`#CBC7C1` in dark);
-      all three boards draw `#A8A29A`, which sits six units below
-      `Kati.Theme.Palette.bar_ink/0`'s dark value (`#A29C94`) on every channel
-      — the closest named step, for the same reason screen 77's dark chart
-      took a token two units out over a hex literal nobody else could follow.
-      `format_icon/1` below is `icon_tile/1`'s 30×9×17 geometry with those two
-      values corrected locally rather than in the shared component, because a
-      fix there is a fix for two already-shipped screens this task was not
-      asked to re-audit.
-    * **`Kati.UI.SettingsList.title/3`'s dark subtitle is the wrong ramp
-      step.** Its mono line is `Palette.muted()`, whose dark value is
-      `#6A6560`. Both 68 and 102 draw `#8A837B` for the same line instead —
-      `Palette.sub()`'s value, not `muted()`'s. `title/0` below states the
-      block by hand with `Palette.sub()` in place of `Palette.muted()`, and is
-      otherwise `title/3`'s markup key for key.
+      131) draw `#2A2826`, which is `Kati.Theme.Palette.placeholder/0`'s dark
+      value exactly. The glyph was off too: `icon_tile/1` hardcoded
+      `Palette.ink_soft()` (`#CBC7C1` in dark); all three boards draw
+      `#A8A29A`, six units below `Kati.Theme.Palette.bar_ink/0`'s dark value
+      (`#A29C94`) on every channel — the closest named step, for the same
+      reason screen 77's dark chart took a token two units out over a hex
+      literal nobody else could follow.
+    * **`Kati.UI.SettingsList.title/3`'s dark subtitle was the wrong ramp
+      step.** Its mono line was `Palette.muted()`, whose dark value is
+      `#6A6560`. Boards 68, 102 and 131 all draw `#8A837B` for the same line —
+      `Palette.sub()`'s value, not `muted()`'s.
 
-  Neither fix is made in `Kati.UI.SettingsList` itself — that module is used
-  by every screen in the app, light included, and its light output is exactly
-  what 62 pinned frames check pixel for pixel. The two locals here are this
-  screen's insurance against carrying two more silently-wrong dark renders
-  forward; a follow-up task should give `icon_tile/1` and `title/3` a real
-  `:light | :dark` branch and delete both locals.
+  **Both are fixed in the shared component now**, in
+  `Kati.UI.SettingsList.icon_tile_ink/1` and
+  `Kati.UI.SettingsList.subtitle_ink/0`, each branching on `Palette.mode()`
+  and each leaving the light values exactly where they were — those are what
+  62 pinned frames check pixel for pixel. `format_icon/1` is gone from this
+  module; `icon_tile/1` now renders the node it used to build by hand. Only
+  four screens render in dark at all, and of those only this one, 68 and 102
+  call either helper, so the change reaches precisely the three renders it
+  was written for.
+
+  `title/0` below survives the fix, for a reason that has nothing to do with
+  colour: `title/3` draws the subtitle at 11 and this board draws it at 11.5.
+  See that function's own doc.
 
   ## Two glyphs the board keeps at their light shade on purpose
 
@@ -240,8 +241,24 @@ defmodule Kati.Screens.BackupDark do
   # ── Title ────────────────────────────────────────────────────────────────
 
   @doc """
-  `Kati.UI.SettingsList.title/3`'s markup, with the one prop that helper gets
-  wrong in dark — see the moduledoc.
+  `Kati.UI.SettingsList.title/3`'s markup at board 131's subtitle size.
+
+  This was written because that helper drew the mono line in
+  `Kati.Theme.Palette.muted/0`, which is `#6A6560` in dark where the board draws
+  `#8A837B`. That half is fixed at the source now —
+  `Kati.UI.SettingsList.subtitle_ink/0` branches on mode — and this no longer
+  differs from the helper by any colour.
+
+  It stays for a reason the colour fix does not touch: `title/3` draws the
+  subtitle at **11**, and `131.html` draws it at **11.5**, as do `102.html`,
+  `100.html` and `128.html`. Only `24.html` draws 11, and that is the size
+  `title/3` is pinned to across the light baseline frames. Calling the helper
+  here would trade a fixed colour for a wrong size, and no test would catch it —
+  `Kati.ScreenDesignLiteralTest` reads the words, not the type scale.
+
+  The board also puts 6pt under the title where this puts 5. That one is left
+  alone rather than quietly corrected; it is the same measurement question as
+  the size and belongs in whatever settles `title/3`'s two subtitle shapes.
   """
   @spec title() :: map()
   def title do
@@ -371,21 +388,6 @@ defmodule Kati.Screens.BackupDark do
   end
 
   # ── What travels with it ────────────────────────────────────────────────
-
-  @doc """
-  The 30×9×17 icon container `Kati.UI.SettingsList.icon_tile/1` should be in
-  dark and currently is not — see the moduledoc. `Kati.Theme.Palette.placeholder/0`
-  for the ground, `Kati.Theme.Palette.bar_ink/0` for the glyph: the closest
-  named token to the board's `#A8A29A`, six units off on every channel.
-  """
-  @spec format_icon(String.t()) :: map()
-  def format_icon(name) do
-    ~MOB"""
-    <Box width={30} height={30} corner_radius={9} background={Palette.placeholder()} align="center">
-      {UI.symbol(name, size: 17, color: Palette.bar_ink())}
-    </Box>
-    """
-  end
 
   @doc """
   The 24×8×14 disc a `What travels with it` / `Does not travel` row leads
@@ -600,7 +602,7 @@ defmodule Kati.Screens.BackupDark do
     tap = if selected?, do: nil, else: {self(), Kati.Screens.BackupDark.format_tag(format)}
 
     SettingsList.row(
-      Kati.Screens.BackupDark.format_icon(icon),
+      SettingsList.icon_tile(icon),
       SettingsList.body(title, sub),
       Kati.Screens.BackupDark.format_mark(selected?),
       padding: 13,
