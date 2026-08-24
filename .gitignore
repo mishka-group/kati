@@ -47,3 +47,4 @@ ios/DerivedData/
 # on the next clean install — silently replacing freshly deployed BEAMs with
 # whatever was compiled at release time. bin/deploy_native.sh deletes it.
 android/app/src/main/assets/otp.zip
+/ios/.zig-cache
