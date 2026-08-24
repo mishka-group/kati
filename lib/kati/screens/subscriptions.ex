@@ -569,10 +569,16 @@ defmodule Kati.Screens.Subscriptions do
   does not, and the capture device runs at 2.6875x. So the node is 3px tall and
   the antialiased stroke covers 2.6875 of them: the last row lands at 69%
   coverage instead of 100%. On this screen's `#FBFAF8` card that is about five
-  levels of grey along the bottom edge of every rule — under
-  `bin/diff_frames.py`'s tolerance of 12, and still a difference, and a
-  difference is not what this rule is. It vanishes at any density where 1dp is a
-  whole number of pixels, which is why it was invisible in a unit test.
+  levels of grey along the bottom edge of every rule — small enough that nothing
+  in the repo would report it, and still a difference, and a difference is not
+  what this rule is. Nothing measures these pixels at all now: the frame differ
+  that once did called anything under twelve levels a channel a match and would
+  have passed this, and it went with the rest of the device-capture tooling,
+  while the sweeps that outlived it — `Kati.ScreenDesignLiteralTest` and
+  `Kati.ScreenTapSweepTest` — assert literals, symbols and tap targets against
+  the rendered tree, where a hairline is none of the three. It vanishes at any
+  density where 1dp is a whole number of pixels, which is why it was invisible
+  in a unit test.
 
   `render: :box` is the way out, and it is why the default is not taken here:
   the port swaps the Material stroke for the background-filled `Box` it has

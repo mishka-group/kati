@@ -11,9 +11,14 @@ defmodule Kati.UI.SettingsList do
 
   This lives beside the screens rather than inside `Kati.UI` for the reason #44
   gives for Mishka: a shared component earns its place by being used, and this
-  one is used five times in one commit. `Kati.Shell` is the precedent for the
-  checker as well — `bin/check_screen.py` is passed the file that owns a
-  screen's shared chrome, which for these five is this module.
+  one is used five times in one commit. `Kati.Shell` is the precedent for that,
+  and it used to carry a second argument that has since gone away: the old grep
+  checker had to be aimed at one file, so the convention was to aim it at
+  whichever module owned a screen's shared chrome, which for these five is this
+  one. `Kati.ScreenDesignLiteralTest` reads the rendered tree and is aimed at
+  nothing, so a literal drawn through this module is checked as part of the
+  screen that mounts it, wherever the markup lives. Placement is the reuse
+  argument now and only that.
 
   ## What is a component and what is not
 
@@ -44,8 +49,12 @@ defmodule Kati.UI.SettingsList do
   `Box` and so has no metrics of its own to fight. `switch/1` is a component
   call now; its doc carries the proof that the pixels did not move.
 
-  Nothing here carries copy. Every string and every icon name is passed in, so
-  a screen's own file still holds every literal its drawing contains.
+  Nothing here carries copy. Every string and every icon name is passed in,
+  which is what lets one recipe serve five drawings. It also leaves every
+  literal in the screen's own file, and that was the stated reason back when
+  the checker grepped that file; since `Kati.ScreenDesignLiteralTest` finds
+  those strings in the rendered tree wherever they were written, it is now a
+  consequence of the rule rather than a reason for it.
   """
 
   import Mob.Sigil
@@ -487,7 +496,9 @@ defmodule Kati.UI.SettingsList do
   The tile's ground and its glyph, per mode.
 
   Light is `Kati.Theme.paper/1` and `Kati.Theme.Palette.ink_soft/0` — unchanged,
-  and deliberately so: those are pinned against every light baseline frame.
+  and deliberately so. `Kati.Theme.PaletteTest` writes the whole light column
+  out by hand as a second, independent copy of the palette, so moving a light
+  value fails there by name.
 
   Dark was the same two calls and both were wrong. `Kati.Theme.paper(:dark)` is
   `#121110`, which is the page the card sits on, so the tile was a 30pt square

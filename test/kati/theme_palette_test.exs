@@ -3,11 +3,16 @@ defmodule Kati.Theme.PaletteTest do
   Holds `Kati.Theme.Palette` to the one rule the refactor is under: **light
   mode must not change by a single pixel.**
 
-  The 62 frames in `.scratch/design/audit_v7/` are the baseline. So the light
-  column is written out here by hand, all 87 of it, as a second and
-  independent copy — if the table in the module moves, this fails, and the
-  failure names the token. A test that read the values back out of the module
-  it is testing would pass no matter what the module said.
+  62 captured frames established that baseline. They are no longer in the repo —
+  they lived under the old `.scratch/`, which was removed on 24 August 2026, and
+  `docs/DESIGN-ASSETS.md` records why — but nothing was lost from the check,
+  because the frames were never what enforced it.
+
+  **This is.** The light column is written out here by hand, all 87 of it, as a
+  second and independent copy — if the table in the module moves, this fails,
+  and the failure names the token. A test that read the values back out of the
+  module it is testing would pass no matter what the module said. A screenshot
+  cannot fail a build either; a duplicated literal can, and does.
 
   The other half is coverage, and it now runs the other way round. It used to
   assert that the screens still wrote **93** distinct `0xAARRGGBB` literals —

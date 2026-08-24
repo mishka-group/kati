@@ -51,17 +51,45 @@ Two things went that git never tracked:
     Python scripts nothing imported. The fonts Kati ships are in
     `android/app/src/main/res/font/`.
 
-## Captures go to `.captures/`, which is not tracked
+## The capture tooling is gone
 
-`bin/capture_all.py`, `compare_screen.py`, `check_screen.py`,
-`light_vs_dark.py` and `diff_frames.py` read the boards out of `test/design/screens/`
-and write everything they produce — device screenshots, comparison pages, the
-stashed device state — under `.captures/`.
+`bin/` held ten Python and shell scripts that drove a device over adb,
+photographed every screen, framed the PNGs and diffed one run against another.
+They are deleted, for two reasons.
 
-That split is the point. `.scratch/` held both, and its ignore rules ended in
-`!.scratch/design/`, so eleven rounds of device screenshots were committed
-alongside the specification and the tree reached 275MB. The boards are source
-and are tracked; captures are output and are not.
+**Three were superseded by Elixir.** `check_screen.py` grepped a screen's
+*source* for the drawing's literals; `Kati.ScreenDesignLiteralTest` asserts them
+against the *rendered tree*, which is the stronger claim and needs no device.
+`tap_check.py` tapped a control and photographed the result;
+`Kati.ScreenTapSweepTest` proves every drawn tag reaches a handler that changes
+something, for every screen in both locales, in nine seconds. `measure_boot.py`
+was replaced by `mix kati.boot`.
+
+**Seven needed a device** — `capture_all.py`, `capture_all.sh`,
+`compare_screen.py`, `diff_frames.py`, `frame_image.py`, `light_vs_dark.py` and
+`test_capture_dark.py`. They were also what filled `.scratch/` with 273MB. If
+device capture comes back it should come back as a mix task, not as a second
+language sitting beside the one the app is written in.
+
+`bin/deploy_native.sh` and `bin/mob_bridge_diff.sh` stay. Both are native-shell
+maintenance with no Elixir equivalent, and both are documented where they are
+used — `AGENTS.md` for the deploy, `native/README.md` for the three-way bridge
+diff that keeps `native/LEDGER.md`'s fences honest.
+
+## The light baseline outlived its screenshots
+
+Several moduledocs say light mode is pinned by *62 captured frames*. Those
+frames lived under `.scratch/design/audit_v7/` and went with the rest, and
+nothing was lost: the frames established the numbers, they never enforced them.
+
+`Kati.Theme.PaletteTest` writes the entire light column out by hand as a second,
+independent copy of `Kati.Theme.Palette` — move a light value in the module and
+that test fails by token name. `Kati.ThemeModeTest` holds the light palette as
+literals and asserts `Kati.Theme.light/0` is byte-identical to them. A
+screenshot cannot fail a build; a duplicated literal can, and these do.
+
+References to *the audit_v7 capture* are therefore kept as what they are — the
+vintage of the numbers, not a file to go and open.
 
 `test/design/material_symbols.codepoints` is not in the repo and never was;
 `mix kati.gen.icons` wants it and has wanted it for some time. The icon map it

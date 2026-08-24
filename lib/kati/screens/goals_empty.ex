@@ -30,9 +30,13 @@ defmodule Kati.Screens.GoalsEmpty do
   nothing can appear on the list that you could not then set a goal for. The
   rows read `34 books`, `84 films` and `418 albums`, and those three nouns are
   the same ones the chip field on screen 106 offers, because they come from the
-  same table. `bin/check_screen.py` will therefore report those three titles as
-  missing text — for the same reason it would report 104's `52 books this year`
-  against `Kati.Screens.Goals`, where `Kati.Goals.Goal.title/1` composes it.
+  same table. Composing a title the drawing draws whole used to cost something:
+  the old source grep reported all three as missing text, and 104's
+  `52 books this year` with them, since `Kati.Goals.Goal.title/1` builds that
+  one the same way and neither string is typed anywhere.
+  `Kati.ScreenDesignLiteralTest` asks the rendered tree instead, where the
+  interpolation has already happened and `34 books` is one `Text` like any
+  other, so taking the noun from the table no longer buys a false report.
 
   ## Every figure is the drawing's, and that is a compromise rather than a rule
 

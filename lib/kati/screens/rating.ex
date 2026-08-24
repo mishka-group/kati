@@ -18,8 +18,15 @@ defmodule Kati.Screens.Rating do
   Jakarta Sans carries no U+2605, so on the device those render as nothing at
   all: the defect screen 08 hit, and fixed the same way. Every star here is
   therefore the Material Symbols `star` glyph, which is definitely in Kati's
-  subset — so `bin/check_screen.py` finds those three lines in this comment
-  rather than in a `<Text>`, and that is the whole of the difference.
+  subset, and the substitution costs the drawing nothing:
+  `Kati.ScreenDesignLiteralTest` reads `★` and `☆` as that glyph before it
+  compares, and finds the row in the rendered tree once whitespace is thrown
+  away — the drawing writes the rating as one run where this screen draws a
+  separate `Text` per star, which is the reason that tier exists at all. The
+  three literals printed a few lines up are a leftover of the check that came
+  before: they were put in this comment so a grep over the *source* would find
+  them, and a test that reads the rendered tree has no use for a comment. They
+  stay because they are still the clearest way to say what the drawing prints.
 
   ## The half star is outlined, not halved — the font has no half
 

@@ -12,21 +12,23 @@ defmodule Kati.DesignLiterals do
   and supplies the other half of the comparison: `rendered/1`, which reads the
   same two things off a rendered view tree.
 
-  `bin/check_screen.py` extracts the same two lists and greps the screen's
-  **source file** for them. This module exists so `Kati.ScreenDesignLiteralTest`
-  can ask the **rendered tree** instead, which is a stronger question in two
-  ways: it survives markup moving between functions or into a component, and it
-  fails on a literal that is built somewhere in the module but never actually
-  mounted into the tree.
+  This module exists so `Kati.ScreenDesignLiteralTest` can ask the **rendered
+  tree** for these two lists, rather than grepping the screen's **source file**
+  for them the way the deleted capture tooling did — `docs/DESIGN-ASSETS.md`
+  records which script that was and why it went. The short of it is that the
+  tree is the stronger question in two ways. It survives markup moving between
+  functions or into a component, and it fails on a literal that is built
+  somewhere in the module but never actually mounted into the tree.
 
-  ## Where this deliberately differs from `bin/check_screen.py`
+  ## Three decisions about how a drawing is read
 
-    * **Long lines are kept.** `check_screen.py` drops any line over 90
-      characters as "probably the caption". The caption is already gone by then
-      — it is the `max-width:380px` block this splits the file at — so the only
-      lines that rule removed were real ones: the long body paragraphs, which
-      sit at the BOTTOM of the long screens and are exactly the copy no captured
-      frame has ever shown.
+    * **Long lines are kept.** A length rule is a tempting thing to add — the
+      deleted source-grepping script dropped every line over 90 characters as
+      "probably the caption" — and it should stay out. The caption is already
+      gone by then; it is the `max-width:380px` block this splits the file at.
+      So the only lines such a rule takes are real ones: the long body
+      paragraphs, which sit at the BOTTOM of the long screens and are exactly
+      the copy no captured frame has ever shown.
 
     * **Comparison is case-insensitive.** The drawing says
       `text-transform:uppercase` in CSS and writes the label in sentence case;
@@ -141,9 +143,9 @@ defmodule Kati.DesignLiterals do
   @doc """
   Every drawing on disk, as its zero-padded number.
 
-  `.scratch/design/` is tracked (see `.gitignore`), so this is not an optional
-  input — an empty answer means the checkout is broken, not that there is
-  nothing to check, and the test asserts the count rather than skipping.
+  `test/design/screens/` is tracked, so this is not an optional input — an
+  empty answer means the checkout is broken, not that there is nothing to
+  check, and the test asserts the count rather than skipping.
   """
   @spec numbers_on_disk() :: [String.t()]
   def numbers_on_disk do

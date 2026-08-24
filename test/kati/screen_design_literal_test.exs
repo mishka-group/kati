@@ -8,9 +8,9 @@ defmodule Kati.ScreenDesignLiteralTest do
 
   ## The blind spot this closes
 
-  A screen is verified by capturing a device frame and comparing it with
-  `test/design/screens/NN.html`. A captured frame shows **only what fits on
-  the screen**, so the bottom of a long screen has never been compared with
+  A screen used to be verified by photographing a device frame and comparing it
+  with `test/design/screens/NN.html`. A captured frame shows **only what fits on
+  the screen**, so the bottom of a long screen was never compared with
   anything. Ten screens are long enough for that to matter — 25, 36, 37, 38, 39,
   40, 47, 48, 49, 50 — and the failure mode is quiet: a section the drawing
   shows is simply not built, every frame looks right, and nothing says so.
@@ -18,15 +18,20 @@ defmodule Kati.ScreenDesignLiteralTest do
   This asks the question a screenshot cannot: is each literal the drawing draws
   **anywhere in the tree**, visible or not. Scroll position is irrelevant to a
   tree, so the last card of screen 48 is checked exactly as closely as the first.
+  The capture tooling has since been deleted — `docs/DESIGN-ASSETS.md` carries
+  that argument — which does not change what this file checks, only how much of
+  the comparison rests on it.
 
   ## Why the tree and not the source file
 
-  `bin/check_screen.py` already greps the screen's SOURCE for the drawing's
-  literals, and that is a weaker question in two directions:
+  The cheap version of this check greps the screen's SOURCE for the drawing's
+  literals — a Python script under `bin/` did exactly that until this file
+  replaced it, and `docs/DESIGN-ASSETS.md` records the swap. Grepping the source
+  is a weaker question in two directions:
 
     * it fails on a refactor that is not a defect — moving a card into
       `Kati.UI` or a Mishka component takes the string out of the file the
-      script was pointed at, and
+      grep was pointed at, and
 
     * it passes on a defect — a `defp` that builds the copy and is never called
       from `render/1` still contains the string. So does a comment quoting it.
@@ -35,9 +40,14 @@ defmodule Kati.ScreenDesignLiteralTest do
   ## What it does not check
 
   Presence, not placement. A literal drawn in the wrong card, at the wrong
-  size, in the wrong order or in the wrong colour passes here. That is the
-  frame diff's job, and this is deliberately the half of the comparison a frame
-  cannot do. `Kati.ScreenRenderSweepTest` owns "does it render at all";
+  size, in the wrong order or in the wrong colour passes here. That was the
+  frame diff's half, and this is deliberately the half of the comparison a
+  frame cannot do. With the diffing scripts gone, the only placement claim
+  anything still makes against a drawing is `Kati.ScreenTitleSubtitleTest`'s —
+  the size, family and gap of the line under a 28pt title, on the screens that
+  head themselves that way — so the rest of layout is read by eye or not at
+  all, which is an argument for widening that test rather than for loosening
+  this one. `Kati.ScreenRenderSweepTest` owns "does it render at all";
   `Kati.ScreenTapSweepTest` owns "does every control do something".
 
   ## The allow-list
@@ -213,7 +223,9 @@ defmodule Kati.ScreenDesignLiteralTest do
       #
       # A screen with no drawing cannot go in `Kati.Screens.Gallery`'s numbered
       # registry — the assertion above is exactly what would fail, and
-      # `bin/capture_all.py` would go looking for a frame that does not exist —
+      # `DesignLiterals.read!/1` would then raise on a frame that is not there,
+      # here in the drawings sweep below and again in
+      # `Kati.ScreenEmptyDatabaseTest`, which reads the same files —
       # so the gallery keeps a second, unnumbered list for them. Without this
       # pin, "it has no drawing" would quietly become "it is on no page", which
       # is how `Kati.Screens.Backup` and `Kati.Screens.Sync` arrived: two

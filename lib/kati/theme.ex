@@ -118,7 +118,8 @@ defmodule Kati.Theme do
   The palette for a mode.
 
   `for_mode(:light)` is `light/0` — the same struct, not a re-derivation — so
-  nothing routed through here can drift from the 62 baseline frames.
+  nothing routed through here can drift from the baseline `Kati.ThemeModeTest`
+  holds as literals and asserts `light/0` is byte-identical to.
   """
   @spec for_mode(:light | :dark) :: Mob.Theme.t()
   def for_mode(:light), do: light()

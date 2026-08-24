@@ -18,8 +18,13 @@ defmodule Kati.Screens.Meal do
     * **The rating is five Material Symbols stars, not five `&starf;`
       characters.** Plus Jakarta Sans carries no U+2605 — screen 08 shipped
       that once and the card rendered empty. So the glyph changes and the mark
-      does not, and `bin/check_screen.py` reports that one line as missing for
-      exactly this reason.
+      does not, and `Kati.ScreenDesignLiteralTest` reads that as a match rather
+      than a missing line: it maps `★` to the `star` glyph on both sides before
+      comparing, because holding the character against the glyph would report
+      all seven rating screens' deliberate substitution as an absence. The cost
+      is strictness rather than silence — the drawing writes the five as a
+      single run and this screen draws five separate `Text` nodes, so the row
+      is only found at the `:squashed` tier, with its spacing thrown away.
     * **The macro bar's ends are square inside a rounded track.** The drawing
       clips them with `overflow:hidden`; Mob does not clip children.
 

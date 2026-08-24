@@ -198,16 +198,20 @@ defmodule Kati.Screens.Gallery do
   # Screens with no drawing, kept **out** of `@screens` on purpose.
   #
   # `@screens` is not a list of screens; it is the app's number → drawing
-  # registry, and three readers treat an entry as the claim that
+  # registry, and two readers treat an entry as the claim that
   # `test/design/screens/NN.html` exists. `Kati.ScreenDesignLiteralTest`
   # pairs every entry with that file and asserts the numbers are exactly the ones
   # on disk. `Kati.ScreenEmptyDatabaseTest` asks this module whether a drawing
   # exists at all, and moves a screen out of its `@undrawn` the moment one does.
-  # `bin/capture_all.py` parses this file for `{"NN", label, module, kind}` and
-  # then opens the frame of that number to identify the capture. So inventing a
-  # "63" for a screen the design has never contained fails the first two and
-  # sends the capture harness looking for a file that is not there — the
-  # opposite of making a screen capturable.
+  # `Kati.ScreenTitleSubtitleTest` parses the same file by number as well, but
+  # reads a missing one as nothing to compare rather than as a failure, so it is
+  # the first two that a lie here actually breaks. There used to be a third
+  # asserting reader outside Elixir — the capture harness parsed this file for
+  # `{"NN", label, module, kind}` and opened the frame of that number to label
+  # each shot — and it is deleted along with the rest of the device tooling, for
+  # the reasons `docs/DESIGN-ASSETS.md` sets out. So inventing a "63" for a
+  # screen the design has never contained fails both of the readers that are
+  # left, and it was never what made a screen reachable in the first place.
   #
   # The gallery's own job is the other one in the moduledoc — every screen in
   # the app, in one list, each one tappable, so each can be *opened and looked
@@ -216,8 +220,17 @@ defmodule Kati.Screens.Gallery do
   # what `Kati.SettingsDataRoutesTest` pins; this list is so that the page which
   # claims to reach every screen is not lying about two of them.
   #
-  # A three-element shape, so the regex in `bin/capture_all.py` — which wants
-  # four elements beginning with two digits — cannot pick these up by accident.
+  # Three elements rather than four, because there is no number to put in the
+  # fourth slot: an entry here is a tag, a name and a module, and `undrawn_row/2`
+  # supplies the `"--"` marker at the point of drawing rather than storing a
+  # number the design has never issued. The shape used to be argued for on a
+  # second ground as well — the capture script's regex wanted four elements
+  # beginning with two digits, so a three-element entry could not be swept up as
+  # a numbered screen by accident — and that half of the argument is a leftover
+  # now that the script is gone. What pins the shape today is the Elixir that
+  # destructures it: `handle_tap/2` and `undrawn_row/2` below, and the tag check
+  # in `Kati.ScreenDesignLiteralTest`.
+  #
   # Delete an entry the moment its drawing lands, and add it to `@screens` with
   # the number it was filed under.
   @undrawn [
