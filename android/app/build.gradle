@@ -238,7 +238,14 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.7.0'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
     e2eImplementation 'androidx.compose.ui:ui-test-manifest'
+    // The Orchestrator needs BOTH APKs on the device. Without test-services it
+    // installs, reports no error, and every @Test after the first shares one
+    // process — which for Kati means the second `ActivityScenario.launch`
+    // re-enters `mob_start_beam` on a BEAM that is already running and the
+    // process takes SIGABRT. Found on device; it presents as "Process crashed"
+    // with no Elixir error, because it is not an Elixir error.
     androidTestUtil 'androidx.test:orchestrator:1.6.1'
+    androidTestUtil 'androidx.test.services:test-services:1.6.0'
     // KATI-END(K-36 e2e-test-deps)
 }
 

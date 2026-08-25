@@ -1,3 +1,8 @@
+# ── e2e runtime ─────────────────────────────────────────────────────────
+# The Erlang runtime the e2e APK carries, built by `mix kati.e2e.stage`.
+# 51MB and reproducible from the lock — the same reason `.scratch/` is gone.
+android/app/src/e2e/assets/otp.zip
+
 # ── Design ──────────────────────────────────────────────────────────────
 
 # ── Elixir ──────────────────────────────────────────────────────────────
