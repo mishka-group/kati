@@ -228,7 +228,7 @@ defmodule Kati.Screens.MyServicesFa do
      |> Mob.Socket.assign(:region, Kati.Screens.MyServicesFa.region())}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The page, in the order 97 stacks it.

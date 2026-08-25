@@ -98,6 +98,7 @@ defmodule Kati.Screens.HomeDark do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column

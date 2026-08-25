@@ -115,7 +115,7 @@ defmodule Kati.Screens.OnboardingFa do
 
   def render(assigns) do
     content = Kati.Screens.OnboardingFa.content(assigns.chosen)
-    Fa.pushed_frame(content)
+    Fa.pushed_frame(content, Kati.Screens.Identity.of(__MODULE__))
   end
 
   def handle_info({:tap, tag}, socket) do

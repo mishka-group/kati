@@ -113,7 +113,11 @@ defmodule Kati.Screens.ScheduleFa do
   end
 
   def render(assigns) do
-    Fa.frame(:calendar, Kati.Screens.ScheduleFa.content(assigns))
+    Fa.frame(
+      :calendar,
+      Kati.Screens.ScheduleFa.content(assigns),
+      Kati.Screens.Identity.of(__MODULE__)
+    )
   end
 
   @doc """

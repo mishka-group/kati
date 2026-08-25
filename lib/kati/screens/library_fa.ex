@@ -245,7 +245,11 @@ defmodule Kati.Screens.LibraryFa do
   end
 
   def render(assigns) do
-    Fa.frame(:library, Kati.Screens.LibraryFa.content(assigns))
+    Fa.frame(
+      :library,
+      Kati.Screens.LibraryFa.content(assigns),
+      Kati.Screens.Identity.of(__MODULE__)
+    )
   end
 
   @doc false

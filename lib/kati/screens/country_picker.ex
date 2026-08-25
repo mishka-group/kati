@@ -39,7 +39,8 @@ defmodule Kati.Screens.CountryPicker do
     {:ok, Mob.Socket.assign(socket, :region, Services.region())}
   end
 
-  def render(assigns), do: Sheet.sheet("Your country", body(assigns))
+  def render(assigns),
+    do: Sheet.sheet("Your country", body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do

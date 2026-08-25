@@ -43,7 +43,8 @@ defmodule Kati.Screens.AddIngredient do
      |> Mob.Socket.assign(:aisle, SampleLibrary.draft().aisle)}
   end
 
-  def render(assigns), do: Sheet.sheet("Add an ingredient", body(assigns))
+  def render(assigns),
+    do: Sheet.sheet("Add an ingredient", body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do

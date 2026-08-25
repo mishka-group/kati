@@ -309,7 +309,10 @@ defmodule Kati.Screens.SeriesFa do
   defp shamsi_date(_coarse, _zone), do: nil
 
   def render(assigns) do
-    Fa.pushed_frame(Kati.Screens.SeriesFa.page(assigns.series))
+    Fa.pushed_frame(
+      Kati.Screens.SeriesFa.page(assigns.series),
+      Kati.Screens.Identity.of(__MODULE__)
+    )
   end
 
   @doc false

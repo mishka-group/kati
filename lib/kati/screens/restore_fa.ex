@@ -226,7 +226,7 @@ defmodule Kati.Screens.RestoreFa do
   `font_family` — a left-pointing chevron beside a row of empty boxes.
   """
   @spec render(map()) :: map()
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc "The page, in the order 132 stacks it — 129's own order, unchanged."
   @spec content(map()) :: map()

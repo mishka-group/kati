@@ -665,6 +665,77 @@ defmodule Kati.ScreenTapSweepTest do
              Enum.join(malformed, "\n")
   end
 
+  test "every screen says which screen it is, exactly once" do
+    # What a device test waits on.
+    #
+    # Nothing else on a phone identifies a screen: the bridge's root state is a
+    # counter and a string, and asserting on visible text cannot substitute,
+    # because Kati draws the same words in an English screen and its Persian
+    # mirror, and again in a live screen and its `— states` sheet. So
+    # `Kati.Shell.render/1` and `Kati.Screens.Pushed.chrome/3` each stamp an
+    # `accessibility_id` of `screen:<name>`, which `K-35 test-tag` turns into a
+    # Compose `testTag` the harness can wait for.
+    #
+    # Exactly once, not at least once: two stamps on one tree is a screen
+    # wrapped in another screen's chrome, and a `waitUntil` that matched either
+    # would be waiting on the wrong thing.
+    counts =
+      for {number, _label, module, _kind} <- Kati.Screens.Gallery.screens(),
+          {:ok, _socket, tree} <- [ScreenSweep.render(module)] do
+        stamps =
+          tree
+          |> Mob.ScreenCase.flatten()
+          |> Enum.count(fn node ->
+            case Map.get(node.props || %{}, :accessibility_id) do
+              "screen:" <> _rest -> true
+              _other -> false
+            end
+          end)
+
+        {number, module, stamps}
+      end
+
+    wrong = for {n, m, c} <- counts, c != 1, do: "  #{n} #{inspect(m)} stamps #{c}"
+
+    assert wrong == [],
+           "these screens do not say which screen they are, or say it twice:\n" <>
+             Enum.join(wrong, "\n")
+  end
+
+  test "no two nodes in one screen carry the same accessibility_id" do
+    # A tag that names two things names neither. `onNodeWithTag` throws on a
+    # second match rather than picking one, so a duplicate is a device test that
+    # cannot be written rather than one that quietly passes.
+    #
+    # This is green today and is expected to go red as the app grows real data:
+    # `Kati.Screens.Library`'s poster grid tags every poster `:open_film` or
+    # `:open_series` and carries no per-title identity, so it collides as soon
+    # as a shelf holds two of a kind. It draws too few against an empty store to
+    # collide yet. When it does, the fix is a tag per title — the shape
+    # `Kati.Screens.ImportSources.tag/1` already uses — not an entry here.
+    clashes =
+      for {number, _label, module, _kind} <- Kati.Screens.Gallery.screens(),
+          {:ok, _socket, tree} <- [ScreenSweep.render(module)] do
+        ids =
+          tree
+          |> Mob.ScreenCase.flatten()
+          |> Enum.flat_map(fn node ->
+            case Map.get(node.props || %{}, :accessibility_id) do
+              id when is_binary(id) -> [id]
+              _other -> []
+            end
+          end)
+
+        {number, module, Enum.uniq(ids -- Enum.uniq(ids))}
+      end
+      |> Enum.reject(fn {_n, _m, dupes} -> dupes == [] end)
+      |> Enum.map(fn {n, m, dupes} -> "  #{n} #{inspect(m)} repeats #{inspect(dupes)}" end)
+
+    assert clashes == [],
+           "these screens give one name to more than one node, so no device test can " <>
+             "address either:\n" <> Enum.join(clashes, "\n")
+  end
+
   test "neither shell macro supplies a default handle_tap/2" do
     # The load-bearing assumption under this whole file. A
     # `def handle_tap(_tag, socket), do: {:noreply, socket}` in either macro

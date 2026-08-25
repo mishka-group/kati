@@ -229,7 +229,7 @@ defmodule Kati.Screens.HealthFa do
      |> Mob.Socket.assign(:range, :range_month)}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc "Every Persian string this screen owns, in one map — see the moduledoc."
   @spec labels() :: map()

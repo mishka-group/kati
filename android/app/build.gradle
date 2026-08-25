@@ -147,6 +147,46 @@ android {
     }
     // KATI-END(K-36 e2e-test-build-type)
 
+    // KATI-BEGIN(K-36 e2e-staleness-guard) mob_new=0.7.24
+    // Fails the e2e build when the runtime asset is older than the Elixir it is
+    // supposed to contain.
+    //
+    // This is not hypothetical. The `e2e` APK exists so its BEAMs come from the
+    // build rather than from `mix mob.deploy`, but that only holds while
+    // `src/e2e/assets/otp.zip` is current: `assembleE2e` rebuilds the APK and
+    // repackages whatever zip is on disk, so a screen added in Elixir and never
+    // re-staged is simply absent from the device while being present in the
+    // source. It happened during this fence's own development — a device test
+    // waited thirty seconds for a tag that existed in `lib/` and not in the
+    // APK — and the failure reads as a broken test rather than a stale build,
+    // which is the worst way for it to present.
+    //
+    // Fails rather than warns. A warning in a Gradle log is a thing nobody sees.
+    tasks.matching { it.name == 'preE2eBuild' }.configureEach {
+        doFirst {
+            def zip = file('src/e2e/assets/otp.zip')
+            if (!zip.exists()) {
+                throw new GradleException(
+                    "src/e2e/assets/otp.zip is missing. Run `mix kati.e2e.stage` — the e2e " +
+                    "build carries its own runtime and cannot borrow one from mix mob.deploy."
+                )
+            }
+            def ebin = file('../../_build/dev/lib/kati/ebin')
+            if (ebin.exists()) {
+                def newest = ebin.listFiles()?.findAll { it.name.endsWith('.beam') }
+                                  ?.collect { it.lastModified() }?.max() ?: 0
+                if (newest > zip.lastModified()) {
+                    throw new GradleException(
+                        "src/e2e/assets/otp.zip is older than _build/dev/lib/kati/ebin. The e2e " +
+                        "APK would ship stale BEAMs and every device test would be checking code " +
+                        "you did not write. Run `mix kati.e2e.stage`."
+                    )
+                }
+            }
+        }
+    }
+    // KATI-END(K-36 e2e-staleness-guard)
+
     // KATI-BEGIN(K-32 agp9-legacy-jnilibs) mob_new=0.4.20
     // The build-script home of what android:extractNativeLibs="true" used to
     // say in the manifest — see K-32 agp9-extract-native-libs. Required, not a

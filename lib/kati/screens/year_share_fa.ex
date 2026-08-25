@@ -252,7 +252,7 @@ defmodule Kati.Screens.YearShareFa do
   disprove. `Kati.Screens.Fa.pushed_frame/1` is that root and nothing else.
   """
   @spec render(map()) :: map()
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The page, in the order 103 stacks it — which is 98's order with the pager

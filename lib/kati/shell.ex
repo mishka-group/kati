@@ -95,8 +95,25 @@ defmodule Kati.Shell do
 
     direction = Kati.Locale.direction_prop()
 
+    # What the device calls this screen. Nothing else on a phone says which of
+    # the 152 is on top: the bridge's root state is a counter and a string, and
+    # asserting on visible text is not a substitute because Kati draws the same
+    # words in an English screen and its Persian mirror, and in a live screen
+    # and its `— states` sheet. `Mob.Renderer` serialises any prop it does not
+    # special-case, so this arrives in Kotlin under the key `K-35 test-tag`
+    # reads and becomes a Compose `testTag`.
+    # `active` is the root's atom — `:home`, `:calendar`, `:library`, `:stats` —
+    # not the struct `tab/3` receives.
+    screen = "screen:#{active}"
+
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={direction}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={direction}
+      accessibility_id={screen}
+    >
       {assigns.content}
       {scrim(mode)}
       {dock(active, mode)}

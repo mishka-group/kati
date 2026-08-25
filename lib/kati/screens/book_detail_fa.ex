@@ -97,7 +97,7 @@ defmodule Kati.Screens.BookDetailFa do
     }
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def content(assigns) do

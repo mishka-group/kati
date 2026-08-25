@@ -237,7 +237,8 @@ defmodule Kati.Screens.RetiredTile do
   headline underneath is where the sheet says what it is.
   """
   @spec render(map()) :: map()
-  def render(assigns), do: Sheet.sheet(assigns.subject.name, body(assigns))
+  def render(assigns),
+    do: Sheet.sheet(assigns.subject.name, body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The sheet's four blocks: what it is, why it is not here, what works, and out.

@@ -138,7 +138,13 @@ defmodule Kati.Screens.SettingsFa do
     settings = assigns.settings
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction="rtl"
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
       <Scroll>
         <Column
           fill_width={true}

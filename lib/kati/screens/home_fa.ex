@@ -98,7 +98,7 @@ defmodule Kati.Screens.HomeFa do
     content =
       Kati.Screens.HomeFa.content(assigns.moment, assigns.inbox, assigns.timeline)
 
-    Fa.frame(:home, content)
+    Fa.frame(:home, content, Kati.Screens.Identity.of(__MODULE__))
   end
 
   @doc """

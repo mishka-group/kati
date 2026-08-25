@@ -266,7 +266,7 @@ defmodule Kati.Screens.GoalsFa do
   end
 
   @doc false
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The goals on the page: screen 104's, with the Persian half added.

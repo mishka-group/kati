@@ -272,7 +272,14 @@ defmodule Kati.DesignLiterals do
       :text_align,
       :layout_direction,
       :gradient,
-      :axis
+      :axis,
+      # An identifier, never copy. `Mob.Renderer` emits it for every atom-tagged
+      # control and `K-35 test-tag` turns it into a Compose `testTag` so a device
+      # test can address the control by the name Elixir gave it. It is
+      # deliberately NOT a `contentDescription`: TalkBack speaks that one, and a
+      # screen reader announcing "choose en" over the visible label would be an
+      # accessibility regression traded for a testing convenience.
+      :accessibility_id
     ]
   end
 

@@ -81,7 +81,8 @@ defmodule Kati.Screens.LogListen do
   @spec album() :: map()
   def album, do: Kati.Screens.AlbumDetail.album()
 
-  def render(assigns), do: Sheet.sheet("Log a listen", body(assigns))
+  def render(assigns),
+    do: Sheet.sheet("Log a listen", body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do

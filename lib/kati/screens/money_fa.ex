@@ -297,7 +297,7 @@ defmodule Kati.Screens.MoneyFa do
   `content/1` still exists so the shape matches every other pushed screen.
   """
   @spec render(map()) :: map()
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc "The page, in the order 127 stacks it."
   @spec content(map()) :: map()

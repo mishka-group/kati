@@ -62,7 +62,8 @@ defmodule Kati.Screens.LogWeight do
     end
   end
 
-  def render(assigns), do: Sheet.sheet("Log weight", body(assigns))
+  def render(assigns),
+    do: Sheet.sheet("Log weight", body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do

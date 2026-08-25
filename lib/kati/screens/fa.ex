@@ -118,9 +118,15 @@ defmodule Kati.Screens.Fa do
   The Persian root frame: content, the 120pt fade, then the dock — all inside
   a root `Box` that declares `rtl`.
   """
-  def frame(active, content) do
+  def frame(active, content, screen \\ nil) do
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction="rtl"
+      accessibility_id={screen}
+    >
       {content}
       <Box fill_width={true} fill_height={true} align="bottom">
         {Kati.UI.paper_fade(120, 42)}
@@ -137,9 +143,15 @@ defmodule Kati.Screens.Fa do
   artwork — so unlike `Kati.Screens.Pushed` this adds nothing but the root
   node.
   """
-  def pushed_frame(content) do
+  def pushed_frame(content, screen \\ nil) do
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction="rtl"
+      accessibility_id={screen}
+    >
       {content}
     </Box>
     """

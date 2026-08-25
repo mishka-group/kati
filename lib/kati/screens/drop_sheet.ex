@@ -340,6 +340,7 @@ defmodule Kati.Screens.DropSheet do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">

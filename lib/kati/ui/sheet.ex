@@ -65,8 +65,8 @@ defmodule Kati.UI.Sheet do
   close button does something other than close is not a sheet.
   """
   @spec sheet(String.t(), term()) :: map()
-  def sheet(title, content) do
-    assigns = %{title: title, content: content}
+  def sheet(title, content, screen \\ nil) do
+    assigns = %{title: title, content: content, screen: screen}
 
     ~MOB"""
     <Box
@@ -74,6 +74,7 @@ defmodule Kati.UI.Sheet do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      accessibility_id={@screen}
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">

@@ -106,7 +106,7 @@ defmodule Kati.Screens.LogProgress do
   end
 
   def render(assigns) do
-    Sheet.sheet("Log progress", body(assigns))
+    Sheet.sheet("Log progress", body(assigns), Kati.Screens.Identity.of(__MODULE__))
   end
 
   @doc false

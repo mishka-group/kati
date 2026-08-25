@@ -103,8 +103,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 // KATI-BEGIN(K-35 test-tag-imports) mob_new=0.7.24
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
 // KATI-END(K-35 test-tag-imports)
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -4442,18 +4440,25 @@ private fun nodeModifier(props: Map<String, Any?>): Modifier {
     // address it, which is why the app has 1794 passing host tests and no test
     // that has ever tapped it on a phone.
     //
-    // Both are set, and they are not redundant. `testTag` is what
-    // `onNodeWithTag` matches and it is invisible to accessibility services.
-    // `contentDescription` is what TalkBack reads aloud and what surfaces as a
-    // `resource-id` in a `uiautomator dump`, which is how a UI Automator test
-    // reaches a node in another process's window — the OS permission dialogs
-    // among them.
+    // ONLY `testTag`, never `contentDescription`. Setting both was the first
+    // attempt and it is an accessibility regression: `contentDescription` is
+    // what TalkBack speaks, so every control in the app would announce its
+    // machine name — "choose en", "root library", "screen home" — over the
+    // label a person is meant to hear. In an app that carries a 235% Dynamic
+    // Type sweep and an RTL mirror for every screen, shipping that would be a
+    // poor trade for a test convenience.
+    //
+    // Nothing is lost. `testTagsAsResourceId` on the root `RenderNode`
+    // publishes every tag under the tree as an Android `resource-id`, which is
+    // what a `uiautomator dump` reads and how a test reaches another process's
+    // window. Verified on a device: the dump returns
+    // `resource-id="choose_en"` with no `contentDescription` set anywhere.
     //
     // Applied here rather than per-composable because every node type routes
     // its modifier through this one function, so one edit names all 152
     // screens' controls at once.
     (props["accessibility_id"] as? String)?.takeIf { it.isNotEmpty() }?.let { id ->
-        m = m.testTag(id).semantics { contentDescription = id }
+        m = m.testTag(id)
     }
     // KATI-END(K-35 test-tag)
 

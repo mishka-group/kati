@@ -151,7 +151,7 @@ defmodule Kati.Screens.ArtistDetailFa do
      |> Mob.Socket.assign(:dismissed?, false)}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   Everything the drawing says and nothing it computes.

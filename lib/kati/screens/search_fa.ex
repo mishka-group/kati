@@ -250,7 +250,7 @@ defmodule Kati.Screens.SearchFa do
   end
 
   @doc false
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The page, in the order 90 stacks it.

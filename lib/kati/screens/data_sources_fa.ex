@@ -212,7 +212,7 @@ defmodule Kati.Screens.DataSourcesFa do
      |> Mob.Socket.assign(:expanded, :listenbrainz)}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The page, in the order 82 stacks it.

@@ -59,7 +59,11 @@ defmodule Kati.Screens.Pushed do
       def load(socket), do: socket
 
       def render(assigns) do
-        Kati.Screens.Pushed.chrome(@back_label, content(assigns))
+        Kati.Screens.Pushed.chrome(
+          @back_label,
+          content(assigns),
+          Kati.Screens.Pushed.screen_name(__MODULE__)
+        )
       end
 
       def handle_info({:tap, :back}, socket) do
@@ -93,15 +97,43 @@ defmodule Kati.Screens.Pushed do
   @spec content_top() :: pos_integer()
   def content_top, do: 110
 
+  @doc """
+  A screen's name on the device, derived from its module.
+
+  `Kati.Screens.BookDetailFa` becomes `book_detail_fa`. Derived rather than
+  written by hand because 152 hand-written names is 152 chances to give two
+  screens the same one, and the whole point of the stamp is that it says which
+  screen you are on.
+  """
+  @spec screen_name(module()) :: String.t()
+  def screen_name(module) do
+    module
+    |> Module.split()
+    |> List.last()
+    |> Macro.underscore()
+  end
+
   @doc "The pushed-screen frame: a back pill over the content, no tab bar."
-  def chrome(back_label, content) do
+  def chrome(back_label, content, screen \\ nil) do
     direction = Kati.Locale.direction_prop()
-    assigns = %{content: content, back_label: back_label, direction: direction}
+
+    assigns = %{
+      content: content,
+      back_label: back_label,
+      direction: direction,
+      screen: screen && "screen:" <> screen
+    }
 
     import Mob.Sigil
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={@direction}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={@direction}
+      accessibility_id={@screen}
+    >
       {@content}
       {Kati.Screens.Pushed.back_pill(@back_label)}
     </Box>

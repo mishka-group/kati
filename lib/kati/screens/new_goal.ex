@@ -52,7 +52,8 @@ defmodule Kati.Screens.NewGoal do
      |> Mob.Socket.assign(:repeat, true)}
   end
 
-  def render(assigns), do: Sheet.sheet("New goal", body(assigns))
+  def render(assigns),
+    do: Sheet.sheet("New goal", body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do

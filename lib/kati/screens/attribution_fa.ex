@@ -206,7 +206,7 @@ defmodule Kati.Screens.AttributionFa do
     {:ok, socket}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   Kati's own strings on this page, in one map.
