@@ -49,6 +49,9 @@ android {
         minSdk 28
         targetSdk 36
         // KATI-END(K-02 api36)
+        // KATI-BEGIN(K-36 instrumentation-runner) mob_new=0.7.24
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // KATI-END(K-36 instrumentation-runner)
         versionCode 2026082301
         versionName "0.0.1"
 
@@ -106,7 +109,43 @@ android {
     buildTypes {
         release { minifyEnabled false }
         debug   { jniDebuggable true }
+
+        // KATI-BEGIN(K-36 e2e-build-type) mob_new=0.7.24
+        // The build the device tests run against, and the reason it is its own
+        // type rather than `debug`: a debug APK gets its BEAMs from
+        // `mix mob.deploy`, which pushes modules over adb after the install.
+        // A suite whose subject can be silently one deploy behind the source
+        // is not a gate on anything, so `e2e` carries its runtime inside the
+        // APK (see `src/e2e/assets/otp.zip`) and is built by `assembleE2e`.
+        e2e {
+            initWith debug
+            signingConfig signingConfigs.debug
+        }
+        // KATI-END(K-36 e2e-build-type)
     }
+
+    // KATI-BEGIN(K-36 e2e-test-build-type) mob_new=0.7.24
+    // AGP builds the androidTest variant for exactly ONE build type and it
+    // defaults to `debug`. Without this line `connectedE2eAndroidTest` does
+    // not exist and the harness runs against the debug APK — the one whose
+    // BEAMs come from outside the build, which is the thing `e2e` exists to
+    // avoid.
+    testBuildType "e2e"
+
+    testOptions {
+        // Orchestrator runs each @Test in its own process. That is not a
+        // tidiness preference: it is the only way to prove a write survived
+        // the death of the BEAM, which is the difference between a row in
+        // SQLite and an assign in a socket.
+        //
+        // Deliberately WITHOUT `clearPackageData`. That flag wipes the whole
+        // data directory, and `files/otp/` — the extracted Erlang runtime —
+        // lives there. Wiping it between tests would re-extract the runtime on
+        // every method. `KatiRule` deletes the store files by name instead.
+        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+        animationsDisabled = true
+    }
+    // KATI-END(K-36 e2e-test-build-type)
 
     // KATI-BEGIN(K-32 agp9-legacy-jnilibs) mob_new=0.4.20
     // The build-script home of what android:extractNativeLibs="true" used to
@@ -185,6 +224,22 @@ dependencies {
     // scheduler.
     implementation 'androidx.work:work-runtime-ktx:2.9.1'
     // KATI-END(K-22 work-manager)
+
+    // KATI-BEGIN(K-36 e2e-test-deps) mob_new=0.7.24
+    // Versions: the androidx.test artifacts carry their own, because the
+    // Compose BOM above does not cover them. `ui-test-junit4` takes none — it
+    // is in the BOM. `ui-test-manifest` is on `e2eImplementation` rather than
+    // `debugImplementation` because it must ship in the APK under test, and
+    // `e2e` is that APK.
+    androidTestImplementation composeBom
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
+    androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.3.0'
+    e2eImplementation 'androidx.compose.ui:ui-test-manifest'
+    androidTestUtil 'androidx.test:orchestrator:1.6.1'
+    // KATI-END(K-36 e2e-test-deps)
 }
 
 // KATI-BEGIN(K-32 kotlin2-jvmtarget) mob_new=0.4.20

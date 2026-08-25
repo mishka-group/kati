@@ -101,6 +101,11 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+// KATI-BEGIN(K-35 test-tag-imports) mob_new=0.7.24
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+// KATI-END(K-35 test-tag-imports)
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -4425,6 +4430,33 @@ private fun MobTabBar(node: MobNode, modifier: Modifier) {
 
 private fun nodeModifier(props: Map<String, Any?>): Modifier {
     var m: Modifier = Modifier
+
+    // KATI-BEGIN(K-35 test-tag) mob_new=0.7.24
+    // `accessibility_id` reaches the bridge and nothing reads it.
+    //
+    // `Mob.Renderer` emits the prop for every atom-tagged control — that is the
+    // whole reason Kati insists tap tags are atoms rather than tuples — and it
+    // arrives here in `props` under exactly that key. Before this fence the
+    // bridge dropped it on the floor, so a control the Elixir side had named
+    // was anonymous by the time Compose drew it: nothing on the device could
+    // address it, which is why the app has 1794 passing host tests and no test
+    // that has ever tapped it on a phone.
+    //
+    // Both are set, and they are not redundant. `testTag` is what
+    // `onNodeWithTag` matches and it is invisible to accessibility services.
+    // `contentDescription` is what TalkBack reads aloud and what surfaces as a
+    // `resource-id` in a `uiautomator dump`, which is how a UI Automator test
+    // reaches a node in another process's window — the OS permission dialogs
+    // among them.
+    //
+    // Applied here rather than per-composable because every node type routes
+    // its modifier through this one function, so one edit names all 152
+    // screens' controls at once.
+    (props["accessibility_id"] as? String)?.takeIf { it.isNotEmpty() }?.let { id ->
+        m = m.testTag(id).semantics { contentDescription = id }
+    }
+    // KATI-END(K-35 test-tag)
+
     val cornerRadius = floatProp(props, "corner_radius") ?: 0f
     val shape = if (cornerRadius > 0f) RoundedCornerShape(cornerRadius.dp) else null
 

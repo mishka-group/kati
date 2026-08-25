@@ -37,6 +37,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+// KATI-BEGIN(K-35 semantics-imports) mob_new=0.7.24
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+// KATI-END(K-35 semantics-imports)
 // KATI-BEGIN(K-12 rtl-imports) mob_new=0.4.20
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -305,6 +309,15 @@ class MainActivity : ComponentActivity() {
                                 root,
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    // KATI-BEGIN(K-35 test-tags-as-resource-id) mob_new=0.7.24
+                                    // Publishes every `testTag` under the tree as an Android
+                                    // `resource-id`. Compose keeps test tags to itself by
+                                    // default: `onNodeWithTag` sees them, a `uiautomator dump`
+                                    // does not. Set once at the root, it applies to the whole
+                                    // tree, and it is what lets a UI Automator test address a
+                                    // Kati control by the same name the Elixir side gave it.
+                                    .semantics { testTagsAsResourceId = true }
+                                    // KATI-END(K-35 test-tags-as-resource-id)
                                     .padding(
                                         bottom = WindowInsets.safeDrawing
                                             .asPaddingValues()
