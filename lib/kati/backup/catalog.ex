@@ -90,7 +90,6 @@ defmodule Kati.Backup.Catalog do
   # (`Kati.Runtime`'s moduledoc), so a device-side check would silently pass by
   # finding nothing.
   @domains [
-    Kati.Spike,
     Kati.Books,
     Kati.Calendars,
     Kati.Media,
@@ -205,11 +204,6 @@ defmodule Kati.Backup.Catalog do
       why:
         "The CC0 corpus shipped in priv/. Byte-identical on every install, so a copy " <>
           "in the backup is size for nothing."
-    },
-    %{
-      resource: Kati.Spike.Thing,
-      class: :internal,
-      why: "A migration spike. Holds no user data and is not drawn anywhere."
     },
     %{
       resource: Kati.Notifications.Pending,

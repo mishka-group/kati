@@ -111,4 +111,61 @@ defmodule Kati.ComponentPolicyTest do
       end
     end
   end
+
+  test "no component draws an indeterminate <Progress>" do
+    # `MobProgress` reads `value` and, when it is absent, draws an INFINITE
+    # `LinearProgressIndicator` (`MobBridge.kt:3612-3629`). An animation that
+    # never settles makes Compose's `waitForIdle()` never return, so a single
+    # bare `<Progress>` anywhere on a screen is enough to hang every device
+    # test that visits it — not fail it, hang it, until the harness kills the
+    # run and reports a timeout that names nothing.
+    #
+    # Kati has no drawn indeterminate bar. Every screen that wanted a bar found
+    # `<Progress>` unable to express it and drew Boxes instead — the reasoning
+    # is written out at `lib/kati/screens/books.ex:562`,
+    # `lib/kati/screens/series.ex:783` and `lib/kati/screens/auto_detect.ex:139`
+    # — and `Kati.Components.MishkaProgress` always sets `value`. So this ban
+    # costs nothing today and is also the correct design: a spinner Kati never
+    # drew cannot appear by accident.
+    #
+    # `Kati.Components.MishkaLoadingOverlay` is why the test exists rather than
+    # the comment. It carries a bare `<Progress color={color} />` with no caller
+    # anywhere in the app, which is exactly the shape that gets called one day.
+    offenders =
+      for path <- Path.wildcard("lib/**/*.ex"),
+          source = File.read!(path),
+          {line, text} <-
+            Enum.with_index(String.split(source, "\n"), 1) |> Enum.map(fn {t, l} -> {l, t} end),
+          String.contains?(text, "<Progress"),
+          not comment?(text),
+          not valued?(source, line),
+          do: "  #{path}:#{line} — #{String.trim(text)}"
+
+    assert offenders == [],
+           "a `<Progress>` with no `value` is Material's indeterminate bar, which animates " <>
+             "forever and makes `waitForIdle()` never return. Give it a value, or draw the " <>
+             "bar with Boxes the way every other Kati screen does:\n" <>
+             Enum.join(offenders, "\n")
+  end
+
+  # Whether this `<Progress>` is given a value. On the same line as an
+  # attribute, or within the next few by `put_prop/3` —
+  # `Kati.Components.MishkaProgress` builds the node and then fills it, which is
+  # the same claim written over two lines.
+  defp valued?(source, line) do
+    source
+    |> String.split("\n")
+    |> Enum.slice(max(line - 1, 0), 4)
+    |> Enum.any?(&String.contains?(&1, "value"))
+  end
+
+  # A line that only TALKS about `<Progress>` — and most of the matches in this
+  # repo do, because the decision not to use it is argued at length in four
+  # moduledocs.
+  defp comment?(text) do
+    trimmed = String.trim(text)
+
+    String.starts_with?(trimmed, "#") or String.starts_with?(trimmed, "*") or
+      String.contains?(trimmed, "`<Progress")
+  end
 end

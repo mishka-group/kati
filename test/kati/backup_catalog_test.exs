@@ -55,7 +55,11 @@ defmodule Kati.BackupCatalogTest do
         assert String.length(why) > 40, "#{inspect(resource)} needs a reason, not a label"
       end
 
-      assert length(Catalog.excluded()) == 8
+      # 8 until `Kati.Spike.Thing` was deleted with the rest of the migration
+      # spike. A number here is not ceremony: an exclusion is a resource whose
+      # rows a backup deliberately leaves behind, so one appearing without
+      # anybody noticing is user data silently dropped from every backup.
+      assert length(Catalog.excluded()) == 7
     end
 
     test "the domains it checks are the domains the app configures" do

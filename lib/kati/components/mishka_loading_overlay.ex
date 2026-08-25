@@ -110,6 +110,18 @@ defmodule Kati.Components.MishkaLoadingOverlay do
   # hugging panel is not expressible cross-platform. A Row hugs on both, but its
   # corner_radius is clipped only on Android — square on iOS. Fixed width is the
   # one construction that behaves the same on both.
+  # Kati draws no indeterminate bar, and `<Progress>` without a `value` is
+  # Material's infinite `LinearProgressIndicator` — an animation that never
+  # settles, which makes Compose's `waitForIdle()` never return and hangs every
+  # device test that visits the screen. `Kati.ComponentPolicyTest` bans it.
+  #
+  # This overlay has no caller anywhere in the app, so the honest options were
+  # to delete it or to make it determinate. It is left in place, drawing a full
+  # bar: a loading overlay with nothing to report is a covered screen, and the
+  # bar is chrome behind a caption rather than a claim about progress. A caller
+  # that knows a fraction should pass one through rather than reach for this.
+  @indeterminate_stand_in 1.0
+
   defp body(props, []) do
     label = Map.get(props, :label)
     color = Map.get(props, :color) || :primary
@@ -117,12 +129,13 @@ defmodule Kati.Components.MishkaLoadingOverlay do
     bar = @bar
     pad = @pad
     width = @bar + 2 * @pad
+    full = @indeterminate_stand_in
 
     ~MOB"""
     <Box width={width} padding={pad} align={:center} background={panel} corner_radius={:radius_lg}>
       <Column fill_width={true}>
         {centre(~MOB(<Box width={bar}>
-          <Progress color={color} />
+          <Progress color={color} value={full} />
         </Box>))}
         {caption(label)}
       </Column>

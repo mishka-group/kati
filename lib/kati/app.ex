@@ -102,7 +102,29 @@ defmodule Kati.App do
     # missing table renders as a frozen screen, because the screen GenServer
     # crashes on its first query with nothing on screen to say so.
     trace("migrations")
-    Kati.Runtime.assert!(~w(schema_migrations spike_things))
+    # Every table a screen queries, not a sample of two.
+    #
+    # This asserted `schema_migrations` and `spike_things` — one bookkeeping
+    # table and one throwaway whose own moduledoc asked to be deleted. A phone
+    # that had run two of eighteen migrations passed it, and all 36 real domain
+    # tables went unchecked, which makes the check worse than none: it reads as
+    # a schema guarantee and is not one. A missing table renders as a frozen
+    # screen, because the screen GenServer crashes on its first query with
+    # nothing on screen to say so — which is exactly what this was written to
+    # prevent.
+    #
+    # `Kati.ScreenEmptyDatabaseTest` pins the same list from the other side, so
+    # a table added to one and not the other fails on the host rather than on a
+    # phone.
+    Kati.Runtime.assert!(
+      ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients
+      recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods
+      licensed_foods media_watches media_content_warnings media_warning_preferences
+      tracked_titles cached_titles cached_seasons cached_episodes sync_outbox
+      sync_rejected_changes book_notes book_reading_sessions books music_listens music_tracks
+      music_albums music_artists services goals expenses health_doses health_readings
+      health_medications notification_pending)
+    )
 
     # The root screen starts UNDER Kati.Supervisor, not here. Mob's
     # start_root/3 is a bare GenServer.start_link, so an unsupervised screen

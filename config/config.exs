@@ -25,7 +25,6 @@ config :kati, ecto_repos: [Kati.Repo]
 # tasks (ash_sqlite.generate_migrations, ecto.migrate) can find the domains.
 config :kati,
   ash_domains: [
-    Kati.Spike,
     Kati.Books,
     Kati.Calendars,
     Kati.Media,
