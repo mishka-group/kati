@@ -130,7 +130,14 @@ defmodule Kati.Screens.PickSections do
         {:noreply, Mob.Socket.update(socket, :chosen, &toggle(&1, id))}
 
       "continue" ->
-        {:noreply, Kati.Screens.PickSections.ask_for_calendar(socket)}
+        # Refused with nothing chosen. The step's own copy promises the button
+        # counts — *"Continue with 2"* — and a run that walked past zero would
+        # leave someone with an app that shows everything, which is precisely
+        # the answer they were asked to narrow.
+        case Kati.Sections.put(MapSet.to_list(socket.assigns.chosen)) do
+          :ok -> {:noreply, Kati.Screens.PickSections.ask_for_calendar(socket)}
+          {:error, :none_chosen} -> {:noreply, socket}
+        end
 
       "import_backup" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFirstRun)}

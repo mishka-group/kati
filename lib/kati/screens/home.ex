@@ -481,16 +481,40 @@ defmodule Kati.Screens.Home do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.Home.tile("restaurant", "Meals", "Dinner 19:30", Palette.bronze(), :open_meals)}
-        <Spacer size={9} />
-        {Kati.Screens.Home.tile("bolt", "Habits", "2 left today", Palette.green(), :open_habits)}
-        <Spacer size={9} />
-        {Kati.Screens.Home.tile("tune", "Settings", nil, nil, :open_settings)}
+        {Kati.Screens.Home.tiles()}
       </Row>
       <Spacer size={26} />
     </Column>
     """
   end
+
+  @doc """
+  The home cards, minus the sections you turned off.
+
+  Only Habits is a section here — Meals and Settings are not things the first
+  run offers to keep, so they are always drawn. The rule this enforces is the
+  design's: a section turned off leaves the home screen, the calendar feed and
+  the shelf together, and a home card that outlived the choice would be the
+  first half of that rule failing quietly.
+  """
+  @spec tiles() :: [map()]
+  def tiles do
+    [
+      {nil, "restaurant", "Meals", "Dinner 19:30", Palette.bronze(), :open_meals},
+      {"habits", "bolt", "Habits", "2 left today", Palette.green(), :open_habits},
+      {nil, "tune", "Settings", nil, nil, :open_settings}
+    ]
+    |> Enum.filter(fn {section, _i, _t, _m, _d, _tag} ->
+      is_nil(section) or Kati.Sections.on?(section)
+    end)
+    |> Enum.map(fn {_s, icon, title, meta, dot, tag} ->
+      Kati.Screens.Home.tile(icon, title, meta, dot, tag)
+    end)
+    |> Enum.intersperse(Kati.Screens.Home.tile_gap())
+  end
+
+  @doc false
+  def tile_gap, do: ~MOB"<Spacer size={9} />"
 
   @doc false
   def tile(icon, title, meta, dot, tag) do

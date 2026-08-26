@@ -368,11 +368,7 @@ defmodule Kati.Screens.Library do
         padding={4}
         align="center"
       >
-        {Kati.Screens.Library.segment("movie", "Screen", active == "Screen")}
-        <Spacer size={4} />
-        {Kati.Screens.Library.segment("menu_book", "Books", active == "Books")}
-        <Spacer size={4} />
-        {Kati.Screens.Library.segment("graphic_eq", "Music", active == "Music")}
+        {Kati.Screens.Library.kept_segments(active)}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -400,6 +396,36 @@ defmodule Kati.Screens.Library do
   #
   # Either alone would move pixels, so the strip stays hand-rolled. Both are
   # upstream asks: a leading slot on an option, and a gap between segments.
+  @doc """
+  One segment per section you kept.
+
+  The design's rule is that turning a section off removes it everywhere at
+  once — the home card, the calendar feed and the shelf together — so a shelf
+  switcher that always offered three tabs was the shelf half of that rule going
+  unenforced. Someone who kept only Screen was still offered Books and Music,
+  both leading to a shelf that could never hold anything.
+
+  The separators are interspersed rather than written between fixed segments,
+  because with one section kept there is no gap to draw and with three there
+  are two.
+  """
+  @spec kept_segments(String.t()) :: [map()]
+  def kept_segments(active) do
+    [
+      {"screen", "movie", "Screen"},
+      {"books", "menu_book", "Books"},
+      {"music", "graphic_eq", "Music"}
+    ]
+    |> Enum.filter(fn {id, _icon, _label} -> Kati.Sections.on?(id) end)
+    |> Enum.map(fn {_id, icon, label} ->
+      Kati.Screens.Library.segment(icon, label, active == label)
+    end)
+    |> Enum.intersperse(Kati.Screens.Library.segment_gap())
+  end
+
+  @doc false
+  def segment_gap, do: ~MOB"<Spacer size={4} />"
+
   @doc false
   def segment(icon, label, on?) do
     tap = {self(), String.to_atom("shelf_" <> label)}

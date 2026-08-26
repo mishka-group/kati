@@ -153,15 +153,28 @@ class KatiRule : TestRule {
         // The calendar dialog, if this build asks for it.
         systemDialog("Allow", "While using the app", "Allow all the time")
 
+        finishRun()
+    }
+
+    /**
+     * Walks whatever is left of the first run, from wherever it currently is.
+     *
+     * Split out of [firstRun] so a journey that needs to ANSWER a step — pick
+     * sections, choose a language — can drive that step itself and then hand
+     * the rest back. Hand-rolling the tail instead is how a test ends up
+     * waiting thirty seconds for a shell it never asked the app to reach.
+     */
+    fun finishRun() {
         compose.waitUntil(30_000) {
             present("get_started") || present("finish") || present("continue") || present("fab")
         }
 
-        repeat(6) {
+        repeat(8) {
             if (present("fab")) return
+            systemDialog("Allow", "While using the app", "Allow all the time")
             tapAny("get_started", "finish", "continue")
             device.waitForIdle()
-            compose.waitUntil(10_000) { true }
+            compose.waitUntil(5_000) { true }
         }
     }
 

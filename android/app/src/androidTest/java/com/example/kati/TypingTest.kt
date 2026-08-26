@@ -118,4 +118,49 @@ class TypingTest {
             kati.scalar("select source from tracked_titles limit 1")
         )
     }
+
+    /**
+     * #86 — the sections you pick at the first run are still picked afterwards.
+     *
+     * The step asked "Pick two. More later from 24." and threw the answer away
+     * with the socket, so the app showed every section to everybody. A question
+     * asked and discarded is worse than one never asked.
+     *
+     * Asserted on the shelf switcher rather than the store, deliberately: the
+     * design's rule is that turning a section off removes it EVERYWHERE, and a
+     * row in `mob_state.dets` proves only that the answer was written down.
+     */
+    @Test
+    fun c_sections_picked_at_first_run_survive_it() {
+        kati.launch()
+        kati.compose.waitUntil(60_000) { kati.present("choose_en") }
+        kati.tap("continue")
+        kati.compose.waitUntil(20_000) { !kati.present("choose_en") }
+
+        // Turn Music and Books off, leaving Screen. The drawing arrives with
+        // Screen and Books on, so this is one tap on each.
+        kati.tapAny("section_books")
+        kati.device.waitForIdle()
+
+        // Hand the rest of the run back, rather than hand-rolling its tail.
+        kati.finishRun()
+
+        kati.compose.waitUntil(30_000) { kati.present("fab") }
+        kati.tap("root_library")
+        kati.compose.waitUntil(20_000) { kati.present("screen:library") }
+
+        // `shelf_Books`, capitalised: the tag is built as `"shelf_" <> label`
+        // and the label is the word on the segment. A lowercase guess here
+        // would assert the absence of a tag that never existed — a test that
+        // passes for the wrong reason, which is the whole failure mode this
+        // work is correcting.
+        assertTrue(
+            "the Books shelf was still offered after being turned off, and it can never hold anything",
+            !kati.present("shelf_Books")
+        )
+        assertTrue(
+            "the Screen shelf went missing, so this proved nothing about Books",
+            kati.present("shelf_Screen")
+        )
+    }
 }
