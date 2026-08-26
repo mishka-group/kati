@@ -63,6 +63,7 @@ defmodule Kati.Screens.Onboarding do
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+    Kati.Onboarding.reached!(:finish)
     {:ok, Mob.Socket.assign(socket, :flow, Sample.flow())}
   end
 

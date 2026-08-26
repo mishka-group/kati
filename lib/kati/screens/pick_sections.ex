@@ -74,7 +74,21 @@ defmodule Kati.Screens.PickSections do
     # the stored Auto/Light/Dark choice resolved against the device, and every
     # `Palette` token below reads the theme this installs.
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :chosen, Sample.chosen())}
+    Kati.Onboarding.reached!(:sections)
+
+    # The drawing's opening selection on a first arrival; what this person
+    # actually ticked when they are coming BACK to a run that was interrupted.
+    # `Kati.Sections.chosen/0` alone would be wrong here — it answers
+    # "everything" when nothing has been said, so a fresh run would open with
+    # all six ticked instead of the two the drawing opens on.
+    chosen =
+      if Kati.Sections.answered?() do
+        MapSet.new(Kati.Sections.chosen())
+      else
+        Sample.chosen()
+      end
+
+    {:ok, Mob.Socket.assign(socket, :chosen, chosen)}
   end
 
   def render(assigns) do

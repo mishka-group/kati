@@ -78,6 +78,7 @@ defmodule Kati.Screens.LanguagePick do
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+    Kati.Onboarding.reached!(:language)
     {:ok, Mob.Socket.assign(socket, :pick, Kati.Screens.LanguagePick.pick())}
   end
 

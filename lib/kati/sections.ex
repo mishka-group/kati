@@ -69,6 +69,26 @@ defmodule Kati.Sections do
     end
   end
 
+  @doc """
+  Whether the first run has answered this question yet.
+
+  Distinct from `chosen/0` returning something, which it always does —
+  everything, when nothing has been said. The first-run picker needs the other
+  question: a person who has never answered should see the DESIGN's opening
+  selection (`Kati.Screens.PickSections.Sample.chosen/0` — Screen and Books
+  ticked), while a person coming back to a run they were interrupted during
+  must see what THEY ticked. Seeding both from `chosen/0` would show a
+  returning person every section ticked, which is not what they chose and not
+  what the drawing opens on.
+  """
+  @spec answered?() :: boolean()
+  def answered? do
+    case Mob.State.get(@key) do
+      list when is_list(list) and list != [] -> true
+      _nothing_yet -> false
+    end
+  end
+
   @doc "Whether a section is kept."
   @spec on?(String.t()) :: boolean()
   def on?(id) when is_binary(id), do: id in chosen()
