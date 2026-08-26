@@ -55,6 +55,21 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val TAG = "Kati"
         init { System.loadLibrary("kati") }
+
+        // KATI-BEGIN(K-38 one-beam-per-process-flag) mob_new=0.7.24
+        // Companion to `K-38 one-beam-per-process`, and IN the companion object
+        // for the reason that fence exists: it has to outlive any single
+        // Activity. An instance field is recreated alongside the Activity it
+        // belongs to, so it would read `false` on exactly the second `onCreate`
+        // the guard is there to catch — a guard that is only ever true when it
+        // is not needed.
+        //
+        // Written after making that mistake: the field was first placed below
+        // `nativeStartBeam()`, which reads as though it were in this block and
+        // is not, because the companion closes two lines above it.
+        @JvmStatic
+        private val beamStarted = java.util.concurrent.atomic.AtomicBoolean(false)
+        // KATI-END(K-38 one-beam-per-process-flag)
     }
 
     // KATI-BEGIN(K-15 device-timezone-publish) mob_new=0.4.20
@@ -65,6 +80,7 @@ class MainActivity : ComponentActivity() {
 
     external fun nativeSetActivity(activity: Activity)
     external fun nativeStartBeam()
+
 
     // KATI-BEGIN(K-31 drop-camera-launchers) mob_new=0.4.20
     // The photo and video capture launchers went with androidx.camera (#75).
@@ -365,7 +381,33 @@ class MainActivity : ComponentActivity() {
 
         Log.i(TAG, "onCreate — handing off to BEAM")
         nativeSetActivity(this)
-        Thread({ nativeStartBeam() }, "beam-main").start()
+
+        // KATI-BEGIN(K-38 one-beam-per-process) mob_new=0.7.24
+        // Start the BEAM once per PROCESS, not once per Activity.
+        //
+        // `onCreate` runs again whenever Android recreates the Activity in a
+        // live process, and this line started a second `beam-main` thread every
+        // time. Two BEAMs in one process take SIGABRT in `beam-main` — no
+        // Elixir exception, because it is not an Elixir error — and the process
+        // dies with a `crash_dump helper` message that names nothing useful.
+        //
+        // `android:configChanges` in the manifest currently absorbs rotation,
+        // `fontScale` and `uiMode`, which is why this has not been seen in
+        // ordinary use. It does NOT absorb Android restoring a task from
+        // recents, a locale change, or an Activity recreated for any reason the
+        // manifest does not list — and every one of those is a real thing that
+        // happens to a real phone. It was found by a device test whose two
+        // methods shared a process (#96).
+        //
+        // `nativeSetActivity` stays OUTSIDE the guard: the new Activity is a
+        // different object and the running BEAM has to be told about it, or it
+        // draws into a window that is gone.
+        if (beamStarted.compareAndSet(false, true)) {
+            Thread({ nativeStartBeam() }, "beam-main").start()
+        } else {
+            Log.i(TAG, "onCreate — BEAM already running, re-attached only")
+        }
+        // KATI-END(K-38 one-beam-per-process)
     }
 
     private fun extractPythonAssetsIfNeeded() {
