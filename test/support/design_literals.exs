@@ -176,6 +176,64 @@ defmodule Kati.DesignLiterals do
     %{text: text_literals(frame), icons: icon_names(frame)}
   end
 
+  @doc """
+  One labelled band of a drawing, in the same shape `read!/1` answers.
+
+  ## Why a drawing sometimes has to be read in parts
+
+  Most drawings are one screen. A few are **reference sheets**: 27 (*States*)
+  draws four specimens — empty, loading, offline, undo — and 101 (*Year cards*)
+  draws five, each under its own uppercase eyebrow. A screen whose empty state
+  the design draws on such a sheet is drawn by ONE of those bands, and comparing
+  it with the whole file would demand it also render the other three specimens
+  and the commentary beside them. That is not a fidelity check; it is a
+  guaranteed failure that would end in the comparison being dropped.
+
+  So a band is named by the two eyebrows that bound it, and everything between
+  them is compared in full. Nothing is hand-listed: the design file is still the
+  only source, and a re-export that adds a line to the band adds it here too.
+
+  `from` and `to` are the drawing's own labels, **exactly as it writes them**
+  (the em dash included). A missing anchor raises rather than answering with an
+  empty band — a band nobody can find would otherwise turn into a comparison
+  against nothing, which is the failure mode every count assertion in
+  `Kati.ScreenDesignLiteralTest` exists to catch. `to` may be `nil` for the last
+  band in a file.
+  """
+  @spec band(String.t(), String.t(), String.t() | nil) :: %{
+          text: [String.t()],
+          icons: [String.t()]
+        }
+  def band(number, from, to) do
+    frame = number |> path() |> File.read!() |> frame() |> unescape()
+
+    start = anchor!(frame, number, from) + byte_size(from)
+    stop = if to, do: anchor!(frame, number, to), else: byte_size(frame)
+
+    if stop <= start do
+      raise ArgumentError,
+            "screen #{number}'s drawing puts #{inspect(to)} before #{inspect(from)}, " <>
+              "so the band between them is empty or inverted"
+    end
+
+    slice = binary_part(frame, start, stop - start)
+
+    %{text: text_literals(slice), icons: icon_names(slice)}
+  end
+
+  defp anchor!(frame, number, label) do
+    case :binary.match(frame, label) do
+      {at, _length} ->
+        at
+
+      :nomatch ->
+        raise ArgumentError,
+              "screen #{number}'s drawing does not contain the band label #{inspect(label)}. " <>
+                "The frame is a fixed artefact, so this is a re-export or a typo rather than " <>
+                "a reason to compare against less"
+    end
+  end
+
   defp frame(html) do
     html
     |> then(&(@caption_marker |> Regex.split(&1, parts: 2) |> hd()))

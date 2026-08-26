@@ -259,12 +259,6 @@ defmodule Kati.ScreenSweep do
   end
 
   @doc """
-  Call `fun`, turning any raise, throw or exit into `{:error, description}`.
-
-  A sweep has to survive the first offender to report the rest of them, and a
-  test that stops at screen 3 of 63 hides 60 screens' worth of answer.
-  """
-  @doc """
   Run `fun` with every database write it causes rolled back afterwards.
 
   **Every sweep that dispatches taps must go through this**, and the reason is
@@ -298,6 +292,12 @@ defmodule Kati.ScreenSweep do
     result
   end
 
+  @doc """
+  Call `fun`, turning any raise, throw or exit into `{:error, description}`.
+
+  A sweep has to survive the first offender to report the rest of them, and a
+  test that stops at screen 3 of 63 hides 60 screens' worth of answer.
+  """
   @spec safely((-> result)) :: {:ok, result} | {:error, String.t()} when result: term()
   def safely(fun) when is_function(fun, 0) do
     {:ok, fun.()}

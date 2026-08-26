@@ -10,10 +10,55 @@ defmodule Kati.Screens.Calendar do
   between similar and identical.
 
   The events are real — `Kati.Calendars.Today`, which is the device's own
-  calendar via `CalendarContract` — and on a device with nothing mirrored yet
-  TODAY falls back to `drawn_rows/0`, the five rows the drawing itself shows,
-  so the screen can still be compared with its frame. Any other day the user
-  taps shows its real emptiness.
+  calendar via `CalendarContract` — and every day the user selects, **today
+  included**, shows its real emptiness.
+
+  ## Today used to be dressed in the drawing, and that was the defect (#91)
+
+  `day_rows/1` fell TODAY back to `drawn_rows/0` on an empty store, on
+  FIDELITY's *missing data is not a reason for a blank screen*. On a device
+  that reading is wrong, and the owner said so after installing it: the first
+  thing a person saw on this screen was a dentist appointment, a passport
+  reminder and a renewal, none of which were theirs. A frame that can only be
+  compared with its drawing when the app is lying is not a comparison worth
+  keeping. `drawn_rows/0` is still here — it is the transcription of the board
+  and the sweeps read it — and nothing renders it.
+
+  ## Two different emptinesses, and a person can tell them apart
+
+  A calendar with nothing on it and a calendar Kati is not allowed to read are
+  not the same fact, and #82 made both reachable: `Kati.Calendars.DeviceImport`
+  only ever ingests what `Mob.Permissions` has been granted. `empty_reason/2`
+  is the pure split and `timeline/2` draws the two cards.
+
+  **No board draws either card.** 02 draws a day with five items on it, and no
+  artboard anywhere draws a Schedule that Kati cannot see. So both are built
+  from the boards that *do* write this copy, and from nothing else:
+
+    * 139 (*Home — nothing set up*) is the only board that words the calendar's
+      own emptiness — a `calendar_month` tile, a title, and
+      `Nothing scheduled — add anything with +` — and its caption is the
+      argument for drawing it at all: *the calendar and quick-add are
+      section-agnostic and stay live*. That row is transcribed here, minus its
+      chevron, because this card opens nothing and the house style says a
+      chevron means *leads elsewhere*.
+    * 40 (*Account & permissions*) writes the Calendars row: purpose before the
+      ask, *To show your appointments beside your episodes. Kati only reads
+      them.* That sentence is used verbatim.
+    * 151 (*Notification access*) fixes the ORDER a permission state is stated
+      in — purpose, then scope, then where the control is — and 136's caption
+      the reason there is no button here: *a button that silently does nothing
+      is worse than a sentence that tells the truth*. The Allow control is
+      drawn on 40 and only on 40, so this card names that place instead of
+      growing a second copy of it.
+    * 96 (*Nothing set up — knock-on*) is the rule both obey: *an empty state
+      should say what is missing and offer the one thing that fixes it — never
+      render a plausible-looking zero.*
+
+  `:unknown` — the native half absent, which is every host test and any device
+  whose bridge method has gone — is deliberately NOT read as denied. It means
+  *no answer*, and claiming Kati is locked out on no answer is the same class
+  of lie as claiming five events on no data.
 
   ## The route to screen 09
 
@@ -30,7 +75,10 @@ defmodule Kati.Screens.Calendar do
   `tag/1`: without the id, screen 31 could only re-query the day and take the
   first event back, which meant tapping the third row and editing the first.
   The drawn day's rows have no stored event to name and keep the bare tag,
-  which is what keeps screen 31's sample reachable.
+  which is what keeps screen 31's sample reachable. Nothing this screen renders
+  takes that branch any more — every row it draws comes from a stored event and
+  carries that event's id — which is what struck `row_event` off the tap
+  sweep's `@known_collisions`.
   """
   use Kati.Screens.Root, root: :calendar
 
@@ -44,36 +92,47 @@ defmodule Kati.Screens.Calendar do
   @impl true
   def load(socket) do
     date = Kati.Time.today()
-    Mob.Socket.assign(socket, date: date, rows: day_rows(date), filter: "All", menu?: false)
+
+    Mob.Socket.assign(socket,
+      date: date,
+      rows: day_rows(date),
+      filter: "All",
+      menu?: false,
+      # Read, never remembered. `Kati.Permissions` says why at length: a
+      # permission can be revoked in system settings while Kati is
+      # backgrounded, so a cached boolean becomes a lie exactly when it
+      # matters. Answered once per mount, which is once per arrival at the
+      # screen.
+      access: Kati.Permissions.status(:calendar)
+    )
   end
 
   @doc """
   The day's rows, each carrying the shape the drawing gives it.
 
   `Kati.Calendars.Today` answers with the device's own events, and on a device
-  with nothing mirrored it answers with nothing — which drew a single grey
-  "Nothing scheduled today" card where the design draws five rows in five
-  different shapes, so the screen could not be compared with its frame at all.
-  FIDELITY's rule covers this: *missing data is not a reason for a blank
-  screen*. TODAY therefore falls back to the drawn day; any other date the
-  user taps still shows its real emptiness, so the empty state stays reachable
-  and no other day is dressed up with events that are not there.
+  with nothing mirrored it answers with nothing. Nothing is what this returns,
+  for every date including today — see the moduledoc for why the today
+  exception was removed rather than narrowed.
   """
   @spec day_rows(Date.t()) :: [map()]
   def day_rows(date) do
-    case Kati.Calendars.Today.rows(date) do
-      [] -> if date == Kati.Time.today(), do: drawn_rows(), else: []
-      rows -> Enum.map(rows, &Kati.Screens.Calendar.shaped/1)
-    end
+    date
+    |> Kati.Calendars.Today.rows()
+    |> Enum.map(&Kati.Screens.Calendar.shaped/1)
   end
 
   @doc """
   The five rows of `test/design/screens/02.html`, in its own order.
 
-  Stand-in data, and marked as such — but the SHAPES are not stand-in: the
-  design draws a done habit, an appointment, a reminder, a renewal and an
-  airing group as five different cards, and every one of them is a state the
-  real timeline will need.
+  **The screen does not render these and no code path reaches them.** They are
+  the board's transcription, kept because that is a thing worth keeping: the
+  design sweeps read them to compare the board against something, and
+  `Kati.CalendarsTodayTest` reads them to check `kind/1` against every shape
+  the drawing spends a page proving are not one row repeated — a done habit, an
+  appointment, a reminder, a renewal and an airing group. Deleting them would
+  delete the record of the frame, not the defect; the defect was `day_rows/1`
+  handing them to a person as their own day, and that is gone.
   """
   @spec drawn_rows() :: [map()]
   def drawn_rows do
@@ -149,6 +208,12 @@ defmodule Kati.Screens.Calendar do
     date = assigns.date
     rows = assigns.rows
 
+    # Read off the UNFILTERED rows. A day that holds a renewal and nothing else
+    # goes empty under the Personal chip, and that emptiness is the filter's,
+    # not the calendar's — offering "Kati cannot see your calendar" there would
+    # be a second false statement in the place the first one was removed from.
+    reason = Kati.Screens.Calendar.empty_reason(rows, Map.get(assigns, :access, :unknown))
+
     ~MOB"""
     <Scroll>
       <Column
@@ -164,7 +229,7 @@ defmodule Kati.Screens.Calendar do
         {Kati.Screens.Calendar.rule()}
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
-        {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter))}
+        {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter), reason)}
       </Column>
     </Scroll>
     """
@@ -507,27 +572,110 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={7} />"
 
+  @doc """
+  Which of the two emptinesses the timeline is looking at.
+
+  Pure, and separate from the render for the reason
+  `Kati.Permissions.affordance/1` is: the choice between *your calendar is
+  empty* and *Kati cannot read your calendar* is the whole of what this screen
+  decides about a permission, and it should be settleable without a device. On
+  a host `Kati.Permissions.status/1` answers `:unknown` for want of a bridge,
+  so a test that could only go through `load/1` could never reach the second
+  card at all.
+
+  `:unknown` answers `:no_events`, and that is the careful half. Android's four
+  states are asymmetric (see `Kati.Permissions`) but they are all ANSWERS;
+  `:unknown` is the absence of one, and an absent answer is not a denial. Being
+  wrong the other way — a granted calendar told it is locked out — would send a
+  person into system settings to fix a permission they already gave.
+  """
+  @spec empty_reason([map()], Kati.Permissions.state()) :: :no_events | :no_permission
+  def empty_reason([], access) when access in [:unasked, :denied, :blocked], do: :no_permission
+  def empty_reason(_rows, _access), do: :no_events
+
   @doc false
-  def timeline([]) do
-    ~MOB"""
-    <Box
-      fill_width={true}
-      background={Palette.card()}
-      corner_radius={18}
-      shadow={Kati.Theme.shadow_card()}
-      padding={18}
-    >
-      <Text text="Nothing scheduled today" text_size={14} text_color={Palette.sub()} />
-    </Box>
-    """
+  def timeline(rows, reason \\ :no_events)
+
+  def timeline([], :no_permission) do
+    Kati.Screens.Calendar.empty_card("lock", "Kati cannot see your calendar", [
+      # Screen 40's Calendars row, word for word. Purpose first, then scope —
+      # 151's fixed order for stating a permission.
+      "To show your appointments beside your episodes. Kati only reads them.",
+      # Where the control is, rather than a second copy of it. 40 is the board
+      # that draws Allow, and 136's caption is why this is a sentence and not a
+      # button: for a permanently refused permission the button would do
+      # nothing, and a button that does nothing is worse than the truth.
+      "Allow Calendars in Settings, under This device."
+    ])
   end
 
-  def timeline(rows) do
+  def timeline([], :no_events) do
+    # Screen 139's row, which is the only place any board words this. Its
+    # em-dashed sentence is split at the dash into the row's own two lines, and
+    # its trailing chevron is dropped: that row pushes the calendar and this
+    # card IS the calendar.
+    Kati.Screens.Calendar.empty_card("calendar_month", "Nothing scheduled", [
+      "Add anything with +"
+    ])
+  end
+
+  def timeline(rows, _reason) do
     ~MOB"""
     <Column fill_width={true}>
       {rows
        |> Enum.map(fn row -> Kati.Screens.Calendar.event_row(row) end)
        |> Enum.intersperse(Kati.Screens.Calendar.row_gap())}
+    </Column>
+    """
+  end
+
+  # Screen 139's list row, built to its own numbers: a 30x30 paper tile at
+  # radius 9 with a 17pt `#5C574F` glyph, a 13.5/600 ink title, and 11.5pt
+  # `#8A8479` under it. The card is 139's too — radius 20 and the soft card
+  # shadow — rather than the timeline's 18 and lifted one, because 139 is the
+  # board this content is drawn on and 02 draws no card of this kind at all.
+  @doc false
+  def empty_card(icon, title, lines) do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={15}
+      padding_right={15}
+      padding_top={17}
+      padding_bottom={17}
+      align="top"
+    >
+      {Kati.Screens.Calendar.empty_tile(icon)}
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Text text={title} text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+        {Enum.map(lines, fn line -> Kati.Screens.Calendar.empty_line(line) end)}
+      </Column>
+    </Row>
+    """
+  end
+
+  # The same Theme Icon `payments_tile/0` uses, and for the same reason: a
+  # themed container around exactly one icon, and the card around it is not
+  # tappable either, so an Action Icon would be claiming an affordance that is
+  # not there.
+  @doc false
+  def empty_tile(icon) do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: Palette.paper(), size: 30, radius: 9],
+      [Kati.UI.symbol(icon, size: 17, color: Palette.ink_soft())]
+    )
+  end
+
+  @doc false
+  def empty_line(line) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      <Text text={line} text_size={11.5} line_height={1.5} text_color={Palette.sub()} />
     </Column>
     """
   end

@@ -151,113 +151,39 @@ defmodule Kati.ScreenLibraryShelfTest do
   end
 
   describe "an empty database" do
-    test "the shelf is empty and the screen still draws the design's nine titles" do
+    test "the shelf is empty, and so is the screen's own read" do
       assert Library.shelf() == [],
              "the shelf answered rows against an empty database, so nothing below " <>
-               "is measuring the fallback"
+               "is measuring what a fresh device sees"
 
-      drawn = Library.titles()
+      assert Library.titles() == [],
+             "titles/0 answered #{length(Library.titles())} rows against an empty " <>
+               "database. That is the defect #91 reports: the fallback to " <>
+               "Kati.Library.Sample is back."
 
-      assert length(drawn) == 9,
-             "expected the drawing's nine titles, got #{length(drawn)}"
-
-      assert Enum.map(drawn, & &1.title) == Enum.map(Sample.titles(), & &1.title)
-      assert Enum.map(drawn, & &1.seed) == Enum.map(Sample.titles(), & &1.seed)
-      assert Enum.map(drawn, & &1.progress) == Enum.map(Sample.titles(), & &1.progress)
-      assert Enum.map(drawn, & &1.kind) == Enum.map(Sample.titles(), & &1.kind)
+      # The fixture is untouched and still holds nine, so the pair above is
+      # about this screen's read and not about an emptied Sample module.
+      assert length(Sample.titles()) == 9
+      assert length(Library.drawn_titles()) == 9
     end
 
-    test "every one of them reaches the rendered tree, once each" do
+    test "not one of the drawing's nine reaches the tree" do
       tree = tree(mount_screen(Library))
 
-      for %{title: title} <- Sample.titles() do
-        assert length(find_all(tree, :text, text: title)) == 1,
-               "#{inspect(title)} is drawn #{length(find_all(tree, :text, text: title))} times, " <>
-                 "not once"
+      for %{title: invented} <- Sample.titles() do
+        assert find(tree, :text, text: invented) == nil,
+               "#{inspect(invented)} is on a fresh device's Library. It is a title " <>
+                 "nobody added, and drawing it is the whole of #91."
       end
 
-      assert length(tile_columns(tree)) == 9
+      assert tile_columns(tree) == [],
+             "a grid tile is drawn on a shelf with nothing on it"
 
-      # Five series and four films, and the tap routing is what says which:
-      # the design draws a film and a series as two different screens.
-      assert length(find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_series})) == 5
-      assert length(find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_film})) == 4
-    end
+      assert find_all(tree, :image, height: 158) == [],
+             "a poster is drawn with no title under it"
 
-    test "each poster is the photograph the drawing uses for that title" do
-      tree = tree(mount_screen(Library))
-      images = find_all(tree, :image, height: 158)
-
-      assert length(images) == 9,
-             "#{length(images)} posters for nine titles. An <Image> with an unknown " <>
-               "prop renders as nothing and says nothing, so the count is the only " <>
-               "evidence the artwork is there."
-
-      for %{seed: seed} <- Sample.titles() do
-        assert Enum.any?(images, &String.contains?(&1.props.src, seed)),
-               "no poster on the grid came from #{seed}"
-      end
-    end
-
-    test "the subtitle and the chip counts are the ones the Sample module produced" do
-      titles = Library.titles()
-
-      assert Library.subtitle(titles) == Sample.subtitle()
-      assert Library.subtitle(titles) == "9 titles · 4 in progress"
-      assert Library.chip_counts(titles) == Sample.chips()
-
-      assert Library.chip_counts(titles) == [
-               {"All", 9},
-               {"Watching", 4},
-               {"Not started", 3},
-               {"Finished", 2}
-             ]
-
-      assert subtitle_of(tree(mount_screen(Library))) == "9 titles · 4 in progress"
-    end
-
-    test "the mono line under each tile is the one the fraction spells out" do
-      tree = tree(mount_screen(Library))
-
-      # Every drawn state, read off the design's own progress values rather
-      # than typed in twice.
-      for %{title: title, progress: progress} <- Sample.titles() do
-        expected =
-          cond do
-            progress <= 0.0 -> "not started"
-            progress >= 1.0 -> "finished"
-            true -> "#{round(progress * 100)}% watched"
-          end
-
-        assert Library.tile_meta(%{
-                 status: status_for(progress),
-                 progress: progress
-               }) == expected
-
-        assert find(tree, :text, text: expected) != nil,
-               "#{inspect(title)}'s line (#{inspect(expected)}) is nowhere in the tree"
-      end
-
-      # All three states are exercised, so none of the branches above is dead.
-      assert length(find_all(tree, :text, text: "not started")) == 3
-      assert length(find_all(tree, :text, text: "finished")) == 2
-      assert length(find_all(tree, :text, text: "62% watched")) == 1
-    end
-
-    test "each chip filters the grid to its own count" do
-      view = mount_screen(Library)
-
-      # The drawing's own four counts, written out. Reading them back off
-      # `chip_counts/1` would let an empty shelf agree with itself.
-      for {label, count} <- [{"All", 9}, {"Watching", 4}, {"Not started", 3}, {"Finished", 2}] do
-        filtered = render_info(view, {:tap, String.to_atom("filter_" <> label)})
-
-        assert assigns(filtered).filter == label
-
-        assert length(tile_columns(tree(filtered))) == count,
-               "the #{inspect(label)} chip should leave #{count} tiles and the grid drew " <>
-                 "#{length(tile_columns(tree(filtered)))}"
-      end
+      assert subtitle_of(tree) == "0 titles · 0 in progress",
+             "the mono line counts something on a shelf holding nothing"
     end
 
     test "Books and Music push their own shelves rather than switching this one" do
@@ -285,6 +211,152 @@ defmodule Kati.ScreenLibraryShelfTest do
 
     test "renders a tree the native layer can draw" do
       assert_renderable(mount_screen(Library), extra: [:anchored])
+    end
+  end
+
+  # Screen 03 with the drawing's own shelf in the `titles` assign.
+  #
+  # `Kati.Screens.Library.render/1` is the function `mount_screen/1` ends up
+  # calling; the only difference here is that `load/1`'s `titles: titles()` is
+  # replaced by the fixture. So this is the whole render path — header,
+  # subtitle, chips, grid, tiles and artwork — over a nine-title shelf.
+  defp drawn_tree(filter \\ "All") do
+    tree(
+      Library.render(%{
+        filter: filter,
+        shelf: "Screen",
+        titles: Library.drawn_titles(),
+        menu?: false
+      })
+    )
+  end
+
+  # The nine titles screen 03 was captured from, rendered from the fixture
+  # rather than read out of a database.
+  #
+  # This was an `"an empty database"` block until #91. `titles/0` answered `[]`
+  # with `drawn_titles/0`, so mounting the screen on nothing drew the full grid
+  # and this file measured screen 03 that way. That fallback is the defect the
+  # ticket removes — a fresh device draws screen 27's card now, and the block
+  # above asserts it — so no database state produces a nine-title grid any
+  # more, and these can no longer be reached by mounting.
+  #
+  # They are not dropped with it. Every string screen 03 puts under a poster is
+  # checked here or nowhere (see the moduledoc): the drawing templates
+  # `{{ it.title }}`, `{{ it.meta }}`, `{{ libSubtitle }}` and `{{ t.count }}`,
+  # so `Kati.ScreenDesignLiteralTest` extracts none of them. What changed is
+  # only where the shelf comes from, and the block says so in its name — the
+  # fixture is handed over explicitly, never claimed to be what an empty store
+  # answers.
+  describe "the drawing's nine titles, rendered from the fixture" do
+    test "every one of them reaches the rendered tree, once each" do
+      tree = drawn_tree()
+
+      for %{title: title} <- Sample.titles() do
+        assert length(find_all(tree, :text, text: title)) == 1,
+               "#{inspect(title)} is drawn #{length(find_all(tree, :text, text: title))} times, " <>
+                 "not once"
+      end
+
+      assert length(tile_columns(tree)) == 9
+
+      # Five series and four films, and the tap routing is what says which:
+      # the design draws a film and a series as two different screens.
+      assert length(find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_series})) == 5
+      assert length(find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_film})) == 4
+    end
+
+    test "each poster is the photograph the drawing uses for that title" do
+      images = find_all(drawn_tree(), :image, height: 158)
+
+      assert length(images) == 9,
+             "#{length(images)} posters for nine titles. An <Image> with an unknown " <>
+               "prop renders as nothing and says nothing, so the count is the only " <>
+               "evidence the artwork is there."
+
+      for %{seed: seed} <- Sample.titles() do
+        assert Enum.any?(images, &String.contains?(&1.props.src, seed)),
+               "no poster on the grid came from #{seed}"
+      end
+    end
+
+    test "the subtitle and the chip counts are the ones the Sample module produced" do
+      titles = Library.drawn_titles()
+
+      assert Library.subtitle(titles) == Sample.subtitle()
+      assert Library.subtitle(titles) == "9 titles · 4 in progress"
+      assert Library.chip_counts(titles) == Sample.chips()
+
+      assert Library.chip_counts(titles) == [
+               {"All", 9},
+               {"Watching", 4},
+               {"Not started", 3},
+               {"Finished", 2}
+             ]
+
+      assert subtitle_of(drawn_tree()) == "9 titles · 4 in progress"
+    end
+
+    test "the mono line under each tile is the one the fraction spells out" do
+      tree = drawn_tree()
+
+      # Every drawn state, read off the design's own progress values rather
+      # than typed in twice.
+      for %{title: title, progress: progress} <- Sample.titles() do
+        expected =
+          cond do
+            progress <= 0.0 -> "not started"
+            progress >= 1.0 -> "finished"
+            true -> "#{round(progress * 100)}% watched"
+          end
+
+        assert Library.tile_meta(%{
+                 status: status_for(progress),
+                 progress: progress
+               }) == expected
+
+        assert find(tree, :text, text: expected) != nil,
+               "#{inspect(title)}'s line (#{inspect(expected)}) is nowhere in the tree"
+      end
+
+      # All three states are exercised, so none of the branches above is dead.
+      assert length(find_all(tree, :text, text: "not started")) == 3
+      assert length(find_all(tree, :text, text: "finished")) == 2
+      assert length(find_all(tree, :text, text: "62% watched")) == 1
+    end
+
+    test "each chip filters the grid to its own count" do
+      # The drawing's own four counts, written out. Reading them back off
+      # `chip_counts/1` would let a shelf agree with itself.
+      for {label, count} <- [{"All", 9}, {"Watching", 4}, {"Not started", 3}, {"Finished", 2}] do
+        assert length(tile_columns(drawn_tree(label))) == count,
+               "the #{inspect(label)} chip should leave #{count} tiles and the grid drew " <>
+                 "#{length(tile_columns(drawn_tree(label)))}"
+      end
+    end
+
+    test "the tap on each chip is what puts that filter in the assigns" do
+      # The block above renders each filter directly, so this is the half that
+      # says the chips are wired to it. Asserted on the empty store because the
+      # assign is set before anything is drawn from it.
+      view = mount_screen(Library)
+
+      for label <- ["All", "Watching", "Not started", "Finished"] do
+        filtered = render_info(view, {:tap, String.to_atom("filter_" <> label)})
+        assert assigns(filtered).filter == label
+      end
+    end
+
+    test "renders a tree the native layer can draw" do
+      assert_renderable(
+        Library.render(%{
+          filter: "All",
+          shelf: "Screen",
+          titles: Library.drawn_titles(),
+          menu?: false
+        }),
+        extra: [:anchored]
+      )
     end
   end
 

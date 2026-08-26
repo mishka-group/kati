@@ -1,4 +1,5 @@
 Code.require_file("../support/screen_sweep.exs", __DIR__)
+Code.require_file("../support/sync_fixtures.exs", __DIR__)
 
 defmodule Kati.AppReachabilityTest do
   @moduledoc """
@@ -22,11 +23,48 @@ defmodule Kati.AppReachabilityTest do
   first-run sequence is a second legitimate entry point rather than an orphan.
   The gallery is excluded on purpose — leaving it in makes the question
   unanswerable.
+
+  ## Two stores, because half the doors in this app are rows
+
+  A door is a rendered `on_tap`, and a rendered `on_tap` can depend on what is
+  in the database. Until issue #91 that was invisible here, because every root
+  answered an empty store with a `Sample` module: screen 03 drew nine invented
+  films whether or not anything was tracked, so `:open_series` and `:open_film`
+  were always on the tree and 04, 08, 14, 34 and 35 were always walkable. That
+  fallback was the defect — a fresh install showed somebody else's shelf — and
+  the roots now draw their real emptiness instead.
+
+  The walk went with it. Six drawn destinations went dark in one commit and not
+  one of them had moved: **04, 08, 14, 34, 35** behind screen 03's poster tiles,
+  and **31** behind screen 02's event rows. The inventory was not wrong and the
+  count was not wrong; the graph had stopped being the whole graph.
+
+  So this walks **two stores and unions the result**, which is what "reachable"
+  actually means — *there is a state this app can be in from which a user gets
+  there*:
+
+    * **a fresh install**, nothing stored. This is the only pass that sees the
+      doors an empty state draws: screen 27's `Add a title` and `or import a
+      backup` on the Library, which exist precisely because the shelf is empty.
+    * **a device in use**, `populate!/0`'s rows written into the store and rolled
+      back after. This is the only pass that sees the doors a row draws.
+
+  Neither pass alone is the app. The empty pass strands the six above; the
+  populated pass strands 21, 74 and 77, because a shelf with titles on it draws
+  poster tiles where the empty card drew its two invitations. The union is
+  exactly the 105 drawings a user can reach, against the 47 on `@no_route`.
+
+  Nothing on that inventory changed for this, and nothing should have: the
+  question "can a user get here" did not change its answer for a single screen.
+  Only the walk's idea of what a user's phone looks like did.
   """
   use Mob.ScreenCase, async: false
 
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.TrackedTitle
   alias Kati.Screens
   alias Kati.ScreenSweep
+  alias Kati.SyncFixtures
 
   @roots [Screens.LanguagePick | Enum.map(Kati.Shell.roots(), & &1.screen)]
 
@@ -255,16 +293,154 @@ defmodule Kati.AppReachabilityTest do
   # and the recursion is bounded by that rather than by a visited set.
   # Rolled back, because a few of the tags this dispatches are commits — see
   # `Kati.ScreenSweep.rolled_back/1` for the defect that made it necessary.
+  #
+  # Memoised for the run, because three of the four tests below ask the same
+  # question of the same graph and building it is two passes over 156 screens.
+  # Same mechanism and the same reason as `Kati.ScreenSweep.drawn_taps/1`: a
+  # graph depends only on code, which does not change inside a run.
   defp push_graph do
+    key = {__MODULE__, :push_graph}
+
+    case :persistent_term.get(key, :miss) do
+      :miss ->
+        graph = build_graph()
+        :persistent_term.put(key, graph)
+        graph
+
+      graph ->
+        graph
+    end
+  end
+
+  # The union of the two stores. See the moduledoc for why one of them is not
+  # enough — and note the direction of the merge does not matter, because a
+  # union is a union; `Enum.uniq/1` is tidiness, not correctness.
+  defp build_graph do
+    Map.merge(
+      with_stored_settings(&fresh_install_edges/0),
+      with_stored_settings(&in_use_edges/0),
+      fn _module, empty, in_use -> Enum.uniq(empty ++ in_use) end
+    )
+  end
+
+  # Nothing stored. `Kati.ScreenSweep.drawn_taps/1`'s memo IS this pass — it is
+  # what `Kati.ScreenTapSweepTest` and `Kati.MealsRoutesTest` both mount against
+  # — so this half is shared with them rather than paid for twice.
+  defp fresh_install_edges do
+    ScreenSweep.rolled_back(fn -> edges(ScreenSweep.drawn_taps(:en)) end)
+  end
+
+  # The same walk over a store with rows in it.
+  #
+  # Deliberately NOT through `Kati.ScreenSweep.drawn_taps/1`: that memo is keyed
+  # by locale alone and is handed to two other sweeps that mean it to be the
+  # empty store. Filling it from inside this transaction would hand them a
+  # populated one, and the rows would be gone by the time they read it.
+  defp in_use_edges do
     ScreenSweep.rolled_back(fn ->
-      ScreenSweep.with_locale(:en, fn ->
-        for {module, {socket, tags}} <- ScreenSweep.drawn_taps(:en),
-            module != Screens.Gallery,
-            into: %{} do
-          {module, targets(module, socket, tags) ++ opened_targets(module, socket, tags)}
-        end
-      end)
+      populate!()
+      edges(ScreenSweep.with_locale(:en, &drawn_taps_now/0))
     end)
+  end
+
+  defp drawn_taps_now do
+    for module <- ScreenSweep.screens(),
+        {:ok, socket, tree} <- [ScreenSweep.render(module)],
+        into: %{},
+        do: {module, {socket, ScreenSweep.tap_tags(tree)}}
+  end
+
+  defp edges(taps) do
+    ScreenSweep.with_locale(:en, fn ->
+      for {module, {socket, tags}} <- taps,
+          module != Screens.Gallery,
+          into: %{} do
+        {module, targets(module, socket, tags) ++ opened_targets(module, socket, tags)}
+      end
+    end)
+  end
+
+  # Rows a real device has, written by this test and rolled back with the rest
+  # of the pass. A fixture in the store, never a `Sample` module rendered to
+  # anybody — that distinction is the whole of issue #91, and the four roots'
+  # moduledocs spend their length on it.
+  #
+  # Every row here exists to open a door the empty store cannot draw, and the
+  # test that fails when one goes missing names the screen:
+  #
+  #   * a tracked **series** and a tracked **film** put two poster tiles on
+  #     screen 03's shelf. `Kati.Screens.Library.poster/1` picks the tag off the
+  #     kind — `:open_series` or `:open_film` — so it takes one of each to reach
+  #     04 and 08, and 04's overflow menu is the only route to 14, 34 and 35.
+  #   * one **event today** puts a row on screen 02's day. `row_event_*` is
+  #     the only route to 31.
+  #
+  # A cached title with no `title` is dropped by `Kati.Screens.Library.shelf/0`
+  # and a watch is not needed by any of it, so this is the smallest store that
+  # draws both tiles.
+  defp populate! do
+    track!(:tv, "The Long Hollow", "hollow71")
+    track!(:movie, "Blue Hour", "bluehour58")
+
+    today = Kati.Time.today()
+
+    SyncFixtures.event!(SyncFixtures.calendar!(), %{
+      summary: "Standup",
+      dtstart_utc: DateTime.new!(today, ~T[09:00:00.000000], "Etc/UTC"),
+      duration_iso: "PT30M"
+    })
+  end
+
+  defp track!(kind, title, seed) do
+    source_id = "reachability:#{System.unique_integer([:positive])}"
+
+    CachedTitle
+    |> Ash.Changeset.for_create(:create, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: kind,
+      title: title,
+      # `Kati.Seeds` stores the design's seed here, so the tile resolves its
+      # artwork through `Kati.Design.Images.poster/1` the way a seeded row does.
+      poster_path: seed,
+      fetched_at: Kati.Time.now()
+    })
+    |> Ash.create!()
+
+    TrackedTitle
+    |> Ash.Changeset.for_create(:create, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: kind,
+      status: :watching
+    })
+    |> Ash.create!()
+  end
+
+  # `Mob.State` is the third global a tap pass writes to, and the only one
+  # nothing was guarding.
+  #
+  # A pass presses every control every screen draws, and some of those controls
+  # are settings: screen 141's section toggles land in `Kati.Sections`, which is
+  # `Mob.State`. `Kati.Screens.Library.kept_segments/1` then draws a segment per
+  # section kept — so a first pass that switched Music off leaves the second
+  # pass looking at a shelf switcher with no `:shelf_Music` on it, and 21, 74
+  # and 77 vanish from a graph that has nothing to do with sections. Measured,
+  # not feared: that is exactly what the two passes did before this existed.
+  #
+  # `Kati.ScreenSweep.rolled_back/1` is this guard for the database and
+  # `with_theme/1` is it for the palette; the whole table goes back rather than
+  # one key, because the next setting a screen learns to write should not need
+  # anyone to remember this function.
+  defp with_stored_settings(fun) do
+    stored = Mob.State.match(:_)
+
+    try do
+      fun.()
+    after
+      for {key, _value} <- Mob.State.match(:_), do: Mob.State.delete(key)
+      for {key, value} <- stored, do: Mob.State.put(key, value)
+    end
   end
 
   defp targets(module, socket, tags) do

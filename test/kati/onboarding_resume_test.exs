@@ -153,4 +153,39 @@ defmodule Kati.OnboardingResumeTest do
     end
   end
 
+  describe "Home after the run, for somebody who answered" do
+    test "picking sections and finishing does not land on the nothing-chosen board" do
+      # Found by walking a clean install on a Pixel 9a, not by any test here.
+      # Screen 139 is `Kati.Screens.HomeEmpty` — its own moduledoc calls it
+      # "the state after *Skip, I will add*" — and it offers **Choose
+      # sections** as the one thing that fixes it. Drawing it to somebody who
+      # HAS chosen tells them their answer did not register and offers to redo
+      # the step they just finished.
+      #
+      # Nothing in the suite could catch this, and the reason is worth keeping:
+      # every empty-state test asks about an empty STORE. This is a person with
+      # an empty store WHO HAS ANSWERED — the state every real first run ends
+      # in, and the one state no fixture described.
+      Kati.Sections.put(["screen", "books"])
+
+      view = mount_screen(Kati.Screens.Home)
+
+      refute assigns(view).nothing_kept,
+             "Home drew screen 139 to somebody who had just chosen two sections"
+
+      refute text(view) =~ "Nothing chosen yet",
+             "Home told a person who chose Screen and Books that they had chosen nothing"
+    end
+
+    test "skipping sections does land on it" do
+      # The other half, so the fix above cannot be a blanket `false`. Somebody
+      # who kept nothing is exactly who 139 is drawn for.
+      Kati.Sections.forget!()
+
+      view = mount_screen(Kati.Screens.Home)
+
+      assert assigns(view).nothing_kept,
+             "a person who chose no sections was not shown the board drawn for them"
+    end
+  end
 end

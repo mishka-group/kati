@@ -3,7 +3,7 @@ Code.require_file("../support/design_literals.exs", __DIR__)
 
 defmodule Kati.ScreenEmptyDatabaseTest do
   @moduledoc """
-  The screens that moved onto Ash still draw their drawing on a fresh install.
+  The screens that moved onto Ash draw the right drawing on a fresh install.
 
   ## The blind spot this closes
 
@@ -18,11 +18,45 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   whether the screen fell back to its Sample module or read the seeded rows back
   out of Ash, and which of the two happened moves with `--seed`. A screen that
   lost its fallback would keep passing it, and the first thing to show the
-  defect would be a blank frame in the next capture — every drawing was captured
-  from the Sample values, so a device with nothing tracked must still draw them.
+  defect would be a blank frame in the next capture.
 
   This file pins the other half by rendering those screens against a database
   that is empty **for certain**.
+
+  ## Which drawing an empty screen is compared with
+
+  Until #91 there was one answer for every screen here: **its own**. Every
+  drawing was captured from a Sample module, so a screen with nothing stored had
+  to keep drawing that Sample or it could not be compared with anything.
+
+  That is still true of most of this list, and it is what `fallbacks/0` gates.
+  It is no longer true of the four roots. A fresh install that fabricates the
+  user's own content is the app lying about the one thing it exists to hold —
+  #91 is one sentence of the owner reading exactly that off his own phone — so
+  `Kati.Screens.Library`, `Kati.Screens.Home`, `Kati.Screens.Stats` and
+  `Kati.Screens.Calendar` now draw their real emptiness, and each screen's
+  moduledoc carries the argument.
+
+  A root therefore has **two** drawings, and this file compares it with the
+  second one. Three shapes, and every screen here is in exactly one of them:
+
+    * **it falls back** — the drawing it draws when empty is its own. The
+      original contract, and still the answer for over a hundred screens.
+    * **it has an empty board** — `@empty_boards`. Home draws screen 139 whole;
+      Library draws the *Empty — nothing added yet* band of screen 27, which is
+      a reference sheet of four specimens and is therefore read a band at a time
+      (`Kati.DesignLiterals.band/3`).
+    * **the design draws no empty board for it** — `@no_empty_board`. Screens 02
+      and 07: no artboard in the 152 draws a Schedule with nothing on it or a
+      year with nothing counted. Their cards are built out of the boards that
+      *do* word those states, so what is compared is the QUOTATION —
+      `@quoted` — plus the shape floor `@undrawn` uses. Their own suites,
+      `Kati.ScreenCalendarEmptyStateTest` and `Kati.ScreenStatsEmptyTest`, hold
+      the rest and are named in the entries.
+
+  The populated half of all four is not lost with the fallback:
+  `Kati.ScreenDesignLiteralTest.drawn_state/0` puts each one in the state its own
+  board draws and compares it there, which is the same tree it compared before.
 
   ## Which screens, and who decides
 
@@ -32,23 +66,29 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   list is checked against each screen's own compiled import table in both
   directions.
 
-  ## What "still draws its drawing" is asked twice
+  ## What "draws the right drawing" is asked twice
 
   Once of the tree — every literal and every Material Symbol the drawing holds
   is somewhere in what was rendered — and once of the screen's own entry point,
-  which must answer with the drawn value to the term. The first can be
-  satisfied by copy that happens to live in the chrome; the second cannot, and
-  it is what makes "the fallback exists" a claim a run settles rather than one
-  a moduledoc asserts.
+  which must answer to the term. The first can be satisfied by copy that happens
+  to live in the chrome; the second cannot, and it is what makes "the fallback
+  exists" a claim a run settles rather than one a moduledoc asserts.
 
-  Which means the second question is only asked of the screens `fallbacks/0`
-  lists, and a `for` over a list says nothing about a screen the list omits.
+  There are two entry-point gates, because there are now two right answers:
+
+    * `fallbacks/0` — the read must answer with the screen's **drawn** value.
+    * `empties/0` — the read must answer with its **empty** value, and must not
+      answer with the drawn one. That second half is the #91 guard: it is what
+      fails the day somebody puts `case shelf() do [] -> drawn_titles()` back.
+
+  Either way a `for` over a list says nothing about a screen the list omits.
   `@migrated` cannot go stale — it is pinned against the compiled call graph in
   both directions — so the way this file loses a guard is a screen that joins
-  `@migrated` on the round it migrates and is not given an entry-point gate:
-  rendered, passing every literal check, and its fallback taken on trust.
-  `fallbacks/0` is therefore pinned against `@migrated` in both directions too,
-  and by number, so a gate cannot drift onto the wrong screen either.
+  `@migrated` on the round it migrates and is given no gate at all: rendered,
+  passing every literal check, and its branch taken on trust. The two gate lists
+  are therefore pinned against `@migrated` in both directions too, and by
+  number, so a gate cannot drift onto the wrong screen either — and against each
+  other, so a screen cannot be in both.
 
   ## How the database is made empty
 
@@ -124,13 +164,19 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # therefore lay their real values over `drawn_*/0` rather than building a
   # fresh map, so the two branches cannot differ in a key neither side names.
   @migrated [
-    # 01 and 02 are the two that were reading the database before this round and
-    # were never in this file. Both take `Kati.Calendars.Today`, which answers
-    # `[]` on a device with nothing mirrored, and both substitute the drawing at
-    # that point — Home in `rest_of_today/1`'s `[]` clause, Schedule in
-    # `day_rows/1` for today only. Neither had anything asserting that, which is
-    # exactly the gap this file exists for: the screens most likely to be
-    # captured are the two the check was not covering.
+    # 01, 02, 03 and 07 are the four roots, and they are the four screens in
+    # this list that no longer answer an empty store with their own drawing —
+    # see the moduledoc's *Which drawing an empty screen is compared with*, and
+    # #91 for why. Each is still here for the reason every other screen is: it
+    # reaches the store, so what it draws when the store is empty is a thing
+    # that can regress. What changed is only which drawing it is compared with
+    # (`@empty_boards`, `@no_empty_board`) and which gate it answers to
+    # (`empties/0` rather than `fallbacks/0` — except 01, whose `rest_of_today/1`
+    # still substitutes and says so at its own definition).
+    #
+    # 01 and 02 were reading the database before that round and were never in
+    # this file until it was written; the screens most likely to be captured
+    # were the two the check was not covering.
     {"01", Kati.Screens.Home},
     {"02", Kati.Screens.Calendar},
     {"03", Kati.Screens.Library},
@@ -330,6 +376,105 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"06", Kati.Screens.AddTitle}
   ]
 
+  # ── Which drawing an empty screen is compared with ──────────────────────────
+
+  # `screen number => the drawings its EMPTY state is drawn from`. Absent means
+  # "its own", which is what every screen here answered before #91 and what all
+  # but four still answer.
+  #
+  # A **list**, because an empty root is not always one board: half of a page
+  # can go on being the page it always was. Every drawing named is compared in
+  # full and the literals are unioned, so naming a second one can only ever ask
+  # for more.
+  #
+  # `:whole` takes the board end to end. `{from, to}` takes one band of it and
+  # names the band by the drawing's own two eyebrows — see
+  # `Kati.DesignLiterals.band/3` for why a reference sheet has to be read that
+  # way and why a missing anchor raises instead of matching nothing.
+  #
+  #   * **01 → 139, and 139 alone.** `Kati.Screens.Home`'s empty branch is
+  #     `Kati.Screens.HomeEmpty.content/1` *called*, not copied — 139 is a board
+  #     in its own right, registered under its own number, and the module that
+  #     owns an artboard owns its copy. So Home with nothing stored and screen
+  #     139 are the same page, and this compares Home against it: 139's own
+  #     entry below then says the same thing about `Kati.Screens.HomeEmpty`, and
+  #     the pair is what would fail if Home ever grew a second copy of 139 that
+  #     drifted from the first. Board 01 is not named beside it because 139
+  #     replaces the whole page, its own search field and eyebrow included.
+  #   * **03 → 03 AND 27's first band.** The Library keeps its own board's
+  #     chrome and says so: `Kati.Screens.Library`'s moduledoc argues that the
+  #     header, the Screen/Books/Music switcher and the three quick tiles are
+  #     live with an empty shelf and *"stay exactly as screen 03 draws them"*,
+  #     and that only the row of filter chips goes — which the board templates
+  #     (`{{ t.label }}`), so no literal leaves with them. Board 03 is therefore
+  #     still compared in full. What is added is band one of
+  #     `test/design/screens/27.html` — *States*, a reference sheet of four
+  #     specimens, whose first is this screen's own emptiness: a `movie` glyph on
+  #     a paper square, *No titles yet*, the sentence, an ink *Add a title* pill
+  #     and *or import a backup*. The other three bands are loading, offline and
+  #     undo, which the Library does not draw and screen 27 itself does.
+  @empty_boards %{
+    "01" => [{"139", :whole}],
+    "03" => [
+      {"03", :whole},
+      {"27", {"Empty — nothing added yet", "Loading — skeleton, never a spinner"}}
+    ]
+  }
+
+  # Screens whose EMPTY state the design does not draw anywhere.
+  #
+  # `{screen number, why, the suite that holds the copy instead}`. This is the
+  # one list here that can make the literal comparison smaller, so it is pinned
+  # from both ends by `the screens with no empty board are migrated screens that
+  # really have none` below: an entry must be a screen this file renders, and it
+  # must not also claim an empty board.
+  #
+  # It buys exemption from the literal and symbol comparison and **nothing
+  # else**. Both screens are still rendered against the empty database, still
+  # held to the shape floor `@undrawn` uses, still gated at their own entry point
+  # by `empties/0`, and every line of their empty cards that IS quoted from a
+  # board is compared in `@quoted` directly below.
+  @no_empty_board [
+    {"02",
+     "no artboard draws a Schedule with nothing on it — 02 draws a day with five items — " <>
+       "and none draws one Kati is not allowed to read either. `Kati.Screens.Calendar`'s " <>
+       "moduledoc names the four boards its two cards are built from and quotes each",
+     Kati.ScreenCalendarEmptyStateTest},
+    {"07",
+     "no board in the 152 draws screen 07 with no history. `Kati.Screens.Stats`'s moduledoc " <>
+       "names the four that decided its card — 101's *Not enough data*, 27's geometry, 123's " <>
+       "rule for a statistic with nothing under it, and 110's refusal to draw a chart that " <>
+       "would mean nothing", Kati.ScreenStatsEmptyTest}
+  ]
+
+  # `{screen number, the board it is quoted from, the line}`.
+  #
+  # An empty state with no board of its own is still not free to say whatever it
+  # likes: both of these are built by quoting boards that DO word the state, and
+  # a quotation is a thing a test can check at both ends. Each entry asserts
+  #
+  #   * the board still contains the line — so a re-export that drops it fails
+  #     here rather than leaving an entry that exempts nothing, and
+  #   * the screen still renders it against an empty database.
+  #
+  # The line is matched as a substring of the board's literal, because a board
+  # sometimes writes as one em-dashed sentence what a screen draws as a title and
+  # a sub-line. 139 writes `Nothing scheduled — add anything with +` on one row;
+  # `Kati.Screens.Calendar.timeline/2` splits it at the dash and drops the
+  # chevron, and says why.
+  #
+  # Screen 02's permission card is deliberately absent: its sentence is board
+  # 40's Calendars row word for word, and the branch that draws it needs
+  # `Kati.Permissions.status(:calendar)` to answer a refusal, which on a host is
+  # `:unknown`. `Kati.ScreenCalendarEmptyStateTest`'s *the refusal states what
+  # Kati wanted it for* reaches it through `empty_reason/2` instead, which is
+  # pure for exactly that reason.
+  @quoted [
+    {"02", "139", "Nothing scheduled"},
+    {"02", "139", "add anything with +"},
+    {"07", "101", "Not much to show yet"}
+  ]
+
   # Screens that read the database and have **no drawing at all**.
   #
   # Every entry in `@migrated` above is a pair of a screen and the frame under
@@ -362,6 +507,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     Kati.Screens.NotificationsHelp,
     Kati.Screens.Sync
   ]
+
+  # The fewest strings a whole page can be. Thirteen is the bound the `@undrawn`
+  # render test below has always held those two screens to, written as the floor
+  # rather than as the number one below it, and it is named here because a second
+  # test now uses it for the same argument: a page that is mostly chrome is what
+  # a lost empty state looks like. It is the floor under every screen in this
+  # file, including the ones whose drawing holds fewer literals than this.
+  @chrome_floor 13
 
   # Every table an Ash resource in this app is backed by, child tables first so
   # the deletes below do not trip a foreign key. Written out rather than derived
@@ -536,7 +689,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"149", "undo"}
   ]
 
-  defp exempt_symbol?(number, name), do: {number, name} in @moment_symbols
+  # A screen may be held to more than one drawing (see `@empty_boards`), so the
+  # question is asked of every board it is compared with rather than of its own
+  # number.
+  defp exempt_symbol?(boards, name),
+    do: Enum.any?(@moment_symbols, fn {number, symbol} -> number in boards and symbol == name end)
 
   describe "which screens this file has to cover" do
     test "every screen that can reach the database is in the list, and every one listed does" do
@@ -656,7 +813,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
           |> Enum.map(&(&1.props[:text] || ""))
           |> Enum.reject(&(&1 == ""))
 
-        assert length(texts) > 12,
+        assert length(texts) >= @chrome_floor,
                "#{inspect(module)} rendered #{length(texts)} strings against an empty " <>
                  "database. A page that is mostly chrome is what a lost empty state looks " <>
                  "like, and this screen has no drawing for anything else to compare"
@@ -664,17 +821,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     end
 
     test "every migrated screen still draws every literal its drawing contains" do
+      # `screen.design` is the drawing this screen is compared with when nothing
+      # is stored — its own for all but the four roots, and for those the empty
+      # boards `@empty_boards` names. `screen.boards` are those drawings' numbers,
+      # and
+      # `nil` for the two screens the design draws no empty state for at all.
       missing =
         for screen <- render_migrated(),
+            screen.boards != [],
             literal <- screen.design.text,
-            not exempt?(screen.number, literal),
+            not exempt?(screen.boards, literal),
             DesignLiterals.locate(literal, screen.haystacks) == :missing,
-            do: "  #{screen.number} #{inspect(screen.module)} never draws #{inspect(literal)}"
+            do:
+              "  #{screen.number} #{inspect(screen.module)} never draws #{inspect(literal)} " <>
+                "(drawing #{Enum.join(screen.boards, " + ")})"
 
       assert missing == [],
-             "these screens read the database and no longer draw their own drawing when " <>
-               "nothing is stored. A fresh install renders this as a gap, and the next frame " <>
-               "capture is where it would have surfaced:\n" <> Enum.join(missing, "\n")
+             "these screens read the database and no longer draw the drawing they are held to " <>
+               "when nothing is stored. A fresh install renders this as a gap, and the next " <>
+               "frame capture is where it would have surfaced:\n" <> Enum.join(missing, "\n")
     end
 
     test "every migrated screen has an entry-point gate, and every gate a migrated screen" do
@@ -691,16 +856,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # trust. Verified by deleting screen 33's entry: the whole file still
       # passed, and 33 is the one whose moduledoc calls its own fallback the
       # subtlest here.
+      today = Kati.Time.today()
+      gates = gate_modules(today)
+
       listed = MapSet.new(@migrated, &elem(&1, 0))
-      gated = MapSet.new(fallbacks(Kati.Time.today()), &elem(&1, 0))
+      gated = MapSet.new(Map.keys(gates))
 
       ungated = listed |> MapSet.difference(gated) |> Enum.sort()
 
       assert ungated == [],
              "these screens are rendered against an empty database and their own read is " <>
-               "never asked what it answered, so their fallback is a claim rather than a " <>
+               "never asked what it answered, so what they draw is a claim rather than a " <>
                "result. Add each to `fallbacks/0` as `{number, module, what the screen " <>
-               "reads, what the drawing is}`:\n" <> Enum.map_join(ungated, "\n", &"  #{&1}")
+               "reads, what the drawing is}`, or — if the screen answers with its own " <>
+               "emptiness — to `empties/0`:\n" <> Enum.map_join(ungated, "\n", &"  #{&1}")
 
       stray = gated |> MapSet.difference(listed) |> Enum.sort()
 
@@ -711,17 +880,65 @@ defmodule Kati.ScreenEmptyDatabaseTest do
 
       # Both halves keyed by number, so the modules are checked too rather than
       # assumed to follow — a gate pointing at the wrong screen would otherwise
-      # satisfy every set comparison above.
+      # satisfy every set comparison above. Read across BOTH lists, so a screen
+      # that is in each of them has to name the same module in each.
       mismatched =
         for {number, module} <- @migrated,
-            {^number, gate_module, _live, _drawn} <-
-              fallbacks(Kati.Time.today()),
+            gate_module <- Map.get(gates, number, []),
             gate_module != module,
             do: "  #{number} is #{inspect(module)} in @migrated, #{inspect(gate_module)} here"
 
       assert mismatched == [],
              "an entry-point gate names a different module than the screen it is filed " <>
                "under:\n" <> Enum.join(mismatched, "\n")
+    end
+
+    test "a screen held to a different drawing is a screen this file renders" do
+      # `@empty_boards` and `@no_empty_board` are the two things here that change
+      # WHICH drawing a screen is compared with, and `@no_empty_board` is the one
+      # that can make the comparison smaller. Both are pinned from both ends, the
+      # way every allow-list in this file is.
+      numbers = MapSet.new(@migrated, &elem(&1, 0))
+      boarded = MapSet.new(Map.keys(@empty_boards))
+      unboarded = MapSet.new(@no_empty_board, &elem(&1, 0))
+
+      for set <- [boarded, unboarded], number <- MapSet.to_list(set) do
+        assert MapSet.member?(numbers, number),
+               "screen #{number} is given an empty-state drawing and is not in @migrated, so " <>
+                 "nothing renders it and the entry decides nothing"
+      end
+
+      assert MapSet.disjoint?(boarded, unboarded),
+             "a screen claims both an empty board and no empty board: " <>
+               inspect(MapSet.to_list(MapSet.intersection(boarded, unboarded)))
+
+      # An `@no_empty_board` entry is not a free pass. Each has to be held to the
+      # lines it quotes from the boards that DO word its state, so a screen
+      # cannot join that list and then say anything at all.
+      quoted = MapSet.new(@quoted, &elem(&1, 0))
+
+      assert MapSet.difference(unboarded, quoted) |> MapSet.to_list() == [],
+             "these screens are exempted from the literal comparison and quote nothing, so " <>
+               "no drawing constrains their empty state at all: " <>
+               inspect(MapSet.to_list(MapSet.difference(unboarded, quoted)))
+
+      assert MapSet.difference(quoted, unboarded) |> MapSet.to_list() == [],
+             "these screens quote another board and are not in @no_empty_board, so the " <>
+               "quotation is a second, looser check running beside a full comparison they " <>
+               "already pass: " <>
+               inspect(MapSet.to_list(MapSet.difference(quoted, unboarded)))
+
+      # And every named drawing resolves to something, one at a time rather than
+      # as the union — a band that sliced to nothing would otherwise hide behind
+      # the whole board named beside it, and screen 03 names both.
+      # `Kati.DesignLiterals.band/3` raises on a label it cannot find, so a
+      # re-exported reference sheet fails here rather than quietly comparing
+      # against less.
+      for {number, specs} <- @empty_boards, {board, _} = spec <- specs do
+        refute drawing(spec).text == [],
+               "screen #{number} is compared with drawing #{board}, which yielded no " <>
+                 "literals at all — a comparison against nothing passes for every screen"
+      end
     end
 
     test "each screen's own read answers empty, so it is the drawing that drew" do
@@ -736,6 +953,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # the assertion that the fallback exists AND is the branch an empty
       # database takes, which is the pair a moduledoc can claim and only a run
       # can settle.
+      #
+      # **This is one of two contracts now, not the only one.** It was written
+      # when every screen here answered an empty store with its Sample module,
+      # and it still holds for every screen `fallbacks/0` lists. The four roots
+      # answer with their emptiness instead, and the test below is that contract
+      # — same question, opposite right answer. Neither is the weaker: this one
+      # says a drawn value came back, that one says an empty value came back AND
+      # the drawn value it could have come back with is still there.
       today = Kati.Time.today()
 
       wrong =
@@ -751,15 +976,57 @@ defmodule Kati.ScreenEmptyDatabaseTest do
                "neither the user's data nor the design:\n" <> Enum.join(wrong, "\n")
     end
 
+    test "each root's own read answers its emptiness, and not the drawing it dropped" do
+      # The #91 guard, and the mirror of the test above. A root that answered an
+      # empty store with `Kati.Library.Sample` put nine films nobody had added on
+      # the first screen of a fresh phone, in the shape and colour of the user's
+      # own shelf, and the owner read it as exactly what it was. Every screen in
+      # `empties/0` is one that used to do that.
+      #
+      # Two claims, because either alone is satisfiable by a mistake — see
+      # `empties/0`. The second is what stops an emptied Sample module turning
+      # the first into two nothings agreeing.
+      today = Kati.Time.today()
+
+      {answered, vacuous} =
+        in_empty_database(fn ->
+          answered =
+            for {number, module, live, empty, _drawn} <- empties(today),
+                live.() != empty,
+                do:
+                  "  #{number} #{inspect(module)} answered #{inspect(live.(), limit: 3)} " <>
+                    "where an empty store should answer #{inspect(empty)}"
+
+          vacuous =
+            for {number, module, _live, empty, drawn} <- empties(today),
+                drawn.() == empty,
+                do: "  #{number} #{inspect(module)}'s drawn value is #{inspect(empty)} too"
+
+          {answered, vacuous}
+        end)
+
+      assert answered == [],
+             "these screens read an empty database and answered with something other than " <>
+               "nothing. A value where there is no data is the drawing being handed to a " <>
+               "person as their own, which is #91:\n" <> Enum.join(answered, "\n")
+
+      assert vacuous == [],
+             "these screens' transcriptions of their own drawing are empty, so the check " <>
+               "above compares nothing with nothing and would pass on a screen that had lost " <>
+               "both branches. `Kati.ScreenDesignLiteralTest` renders the board out of these " <>
+               "same functions and would fail with it:\n" <> Enum.join(vacuous, "\n")
+    end
+
     test "every migrated screen still draws every Material Symbol its drawing draws" do
       missing =
         for screen <- render_migrated(),
+            screen.boards != [],
             glyphs = DesignLiterals.rendered_glyphs(screen.tree),
             name <- screen.design.icons,
             glyph = Kati.Icons.glyph(name),
             glyph != nil,
             not MapSet.member?(glyphs, glyph),
-            not exempt_symbol?(screen.number, name),
+            not exempt_symbol?(screen.boards, name),
             do: "  #{screen.number} #{inspect(screen.module)} never draws #{name}"
 
       assert missing == [],
@@ -799,40 +1066,111 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # render can. `@moment_screens` names those and how many literals belong
       # to a moment the screen is not in, so the count still has to be right —
       # it is a smaller number, not an absent check.
+      #
+      # A screen compared with its OWN board keeps the floor it always had: the
+      # board's literal count, which for a screen the size of 114 is under a
+      # dozen and is still the right number, because it is a count of what that
+      # screen draws.
+      #
+      # A screen compared with an empty board or with none does not — screen
+      # 27's *Empty* band holds four literals, 139 holds twelve, and
+      # `@no_empty_board` holds none at all, so the drawing's own count would be
+      # a floor a nearly-blank page could clear. Those take `@chrome_floor`
+      # instead, which is `@undrawn`'s bound and the same argument.
       thin =
         for screen <- render_migrated(),
             allowance = Map.get(@moment_screens, screen.number, 0),
-            length(screen.texts) < length(screen.design.text) - allowance,
+            drawn_floor = length(screen.design.text) - allowance,
+            floor =
+              if(screen.boards == [screen.number],
+                do: drawn_floor,
+                else: max(drawn_floor, @chrome_floor)
+              ),
+            length(screen.texts) < floor,
             do:
               "  #{screen.number} #{inspect(screen.module)} rendered #{length(screen.texts)} " <>
-                "strings against a drawing holding #{length(screen.design.text)}"
+                "strings against a floor of #{floor}"
 
       assert thin == [],
-             "these screens render less copy than their drawing holds, which is what a lost " <>
-               "fallback looks like:\n" <> Enum.join(thin, "\n")
+             "these screens render less copy than the drawing they are held to, which is what " <>
+               "a lost empty state looks like:\n" <> Enum.join(thin, "\n")
+    end
+
+    test "the lines quoted from another board are still on it, and still on the screen" do
+      # The two screens the design draws no empty state for do not get to say
+      # whatever they like. Both build their card by quoting a board that DOES
+      # word the state, and a quotation can be checked at both ends — see
+      # `@quoted`. This is what they have instead of a literal comparison, and it
+      # is why an `@no_empty_board` entry is not an exemption from everything.
+      refute @quoted == [],
+             "the quotation list is empty, so @no_empty_board now buys total exemption. " <>
+               "Delete the mechanism rather than keeping one that checks nothing"
+
+      rendered = Map.new(render_migrated(), &{&1.number, &1.haystacks})
+
+      dead =
+        for {number, board, line} <- @quoted,
+            normalised = DesignLiterals.normalise(line),
+            not Enum.any?(DesignLiterals.read!(board).text, &String.contains?(&1, normalised)),
+            do: "  #{number} quotes #{inspect(line)} from board #{board}, which no longer has it"
+
+      assert dead == [],
+             "a quotation is exempted from nothing and asserts nothing once the board it " <>
+               "quotes has stopped saying it:\n" <> Enum.join(dead, "\n")
+
+      unspoken =
+        for {number, board, line} <- @quoted,
+            normalised = DesignLiterals.normalise(line),
+            DesignLiterals.locate(
+              normalised,
+              rendered[number] ||
+                %{
+                  nodes: [],
+                  flow: "",
+                  squashed: ""
+                }
+            ) == :missing,
+            do: "  #{number} never draws #{inspect(line)}, which it takes from board #{board}"
+
+      assert unspoken == [],
+             "these screens have no empty board of their own and are held to the lines they " <>
+               "quote from the boards that word the state instead. The quotation is gone from " <>
+               "the screen:\n" <> Enum.join(unspoken, "\n")
     end
   end
 
   # ── What each screen must answer with when nothing is stored ────────────────
 
+  # THE SCREENS THAT FALL BACK.
+  #
   # `{number, module, what the screen reads, what the drawing is}`. The two
   # halves are both the screen's own functions wherever it has a named one, so
   # this file holds no second copy of any drawn value — a Sample edited on one
   # side and not the other is the failure mode a literal list here would create.
   #
-  # 01 is the one that is not a pair of accessors: Home mounts the timeline raw
-  # and substitutes the drawing further in, at `rest_of_today/1`'s `[]` clause,
-  # so the comparison is made where the substitution is. That is the screen's
-  # real gate rather than a restatement of it — the clause is what would be
-  # deleted by a change that broke this, and deleting it makes these two differ.
+  # `empties/0` below is the other half of this: the screens whose read answers
+  # their emptiness rather than the drawing. Every screen in `@migrated` is in
+  # one list or the other, and the two may overlap only where both statements
+  # are true of the same screen — which today is 01 and 139 and nowhere else.
+  #
+  # 01 and 139 are NOT here any more, and that is this round's whole point.
+  #
+  # 01's entry used to be `rest_of_today(timeline())` compared with
+  # `rest_of_today(drawn_rows())` — the assertion that an empty day drew the
+  # drawing's `20:00 · The Long Hollow` and `21:30 · Call Mum`. It was written
+  # as a debt and kept as one: #91 put screen 139 in front of a device with
+  # nothing kept at all, so the substitution was only reachable by somebody who
+  # had one tracked title and an empty calendar. `Kati.Sections.answered?/0` is
+  # now the third term in `nothing_kept?/1`, which means everyone who answers
+  # the first run's sections question reaches screen 01 — and the debt would
+  # have been paid by every one of them, in invented rows. So the clause is
+  # gone, an empty day draws screen 139's own sentence, and both halves of 01
+  # are gated in `empties/0`. 139 has no rest-of-today card at all: it draws its
+  # `Today` row itself, and `nothing_kept?/1` is the read it is gated on there.
   defp fallbacks(today) do
     [
-      {"01", Kati.Screens.Home, fn -> Kati.Screens.Home.rest_of_today(timeline()) end,
-       fn -> Kati.Screens.Home.rest_of_today(Kati.Screens.Home.drawn_rows()) end},
-      {"02", Kati.Screens.Calendar, fn -> Kati.Screens.Calendar.day_rows(today) end,
-       &Kati.Screens.Calendar.drawn_rows/0},
-      {"03", Kati.Screens.Library, &Kati.Screens.Library.titles/0,
-       &Kati.Screens.Library.drawn_titles/0},
+      # 02, 03 and 07 are NOT here. Their reads answer their emptiness now, and
+      # `empties/0` is the gate that says so — see the moduledoc.
       # 04 gates the whole page rather than a card — either every value on it is
       # this user's or every value is the drawing's — so one pair covers the
       # title, the meta line, the season strip, the counter, the next airing and
@@ -847,17 +1185,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # a round that wired its count up on its own would show here as the two
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
-      # 07 has no single drawn accessor: `figures/0` answers a keyword list whose
-      # third element is a real read either way. The two the gate decides are
-      # taken, in the order the list holds them.
-      {"07", Kati.Screens.Stats,
-       fn -> Keyword.take(Kati.Screens.Stats.figures(), [:year, :grid]) end,
-       fn ->
-         [
-           year: Map.put(Kati.Stats.Sample.year(), :rising?, true),
-           grid: Kati.Stats.Sample.contributions()
-         ]
-       end},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
       # 09 is asked the question this file's renders ask: a bare push, the one
       # `Kati.Screens.ViewSwitcher` sends and the one `render_migrated/0` makes,
@@ -973,12 +1300,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # be the defect worth catching.
       {"06", Kati.Screens.AddTitle, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
-      {"139", Kati.Screens.HomeEmpty, fn -> Kati.Screens.Home.rest_of_today(timeline()) end,
-       fn -> Kati.Screens.Home.rest_of_today(Kati.Screens.Home.drawn_rows()) end},
       {"144", Kati.Screens.RateEpisode, &Kati.Screens.Rating.watch/0,
        &Kati.Screens.Rating.drawn_watch/0},
-      {"149", Kati.Screens.DropSheet, &Kati.Screens.Library.titles/0,
-       &Kati.Screens.Library.drawn_titles/0},
+      # 149 is NOT here: it gates on `Kati.Screens.Library.titles/0`, which #91
+      # made answer with the shelf and nothing else. Its gate is in `empties/0`,
+      # still through Library's own reader for the reason it always was.
       {"62", Kati.Screens.SettingsFa, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       {"94", Kati.Screens.CountryPicker, &Kati.Screens.MyServices.listed/0,
@@ -1137,6 +1463,120 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     ]
   end
 
+  # THE SCREENS THAT ANSWER WITH THEIR EMPTINESS.
+  #
+  # `{number, module, what the screen reads, what an empty store answers,
+  # what the drawing is}`, and both halves of the claim matter:
+  #
+  #   * `read == empty` — the screen's own entry point answers `[]`, `nil` or
+  #     `true` on a database with nothing in it. That is what a person's first
+  #     launch actually calls, and it is the assertion that fails the day
+  #     somebody puts `case shelf() do [] -> drawn_titles()` back.
+  #   * `drawn != empty` — the transcription the screen used to fall back to
+  #     still holds something. Without it the first claim goes vacuous the
+  #     moment a Sample module is emptied: two nothings agreeing proves nothing,
+  #     and every `drawn_*` here is still public precisely so that
+  #     `Kati.ScreenDesignLiteralTest` can render the board out of it.
+  #
+  # Both sides go through the screen's own functions, for the reason
+  # `fallbacks/0` gives: no second copy of any value lives in this file.
+  defp empties(today) do
+    [
+      # 01 and 139: `nothing_kept?/1` is the branch between the two boards. It
+      # counts `Kati.Media.TrackedTitle`, reads the timeline and asks
+      # `Kati.Sections.answered?/0`, and it decides which of the two pages a
+      # device with nothing on it is shown. Handed the timeline an empty device
+      # has it answers `true`; handed the one the drawing holds it answers
+      # `false`, which is what makes the first answer a result rather than a
+      # constant.
+      #
+      # It is no longer what stands between a person and a page of invented
+      # rows. The four entries under 01 below are, one per band, and they are
+      # the ones that fail the day somebody puts a literal back.
+      {"01", Kati.Screens.Home, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,
+       fn -> Kati.Screens.Home.nothing_kept?(Kati.Screens.Home.drawn_rows()) end},
+      {"139", Kati.Screens.HomeEmpty, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,
+       fn -> Kati.Screens.Home.nothing_kept?(Kati.Screens.Home.drawn_rows()) end},
+      # Screen 01's five bands, each asked its own question, because they had
+      # five different wrong answers and a single gate over the page would have
+      # let four of them through. Every `drawn_*` on the right is what
+      # `Kati.ScreenDesignLiteralTest.drawn_state/0` installs to compare screen
+      # 01 against its board, so the pair is: the board still holds this, and no
+      # device ever answers with it.
+      #
+      # `New this week`. `Kati.Screens.Inbox.releases/0` answers `nil` for a
+      # device that follows nothing, and `hero_summary/0` passes that on rather
+      # than announcing three episodes at somebody who follows none.
+      {"01", Kati.Screens.Home, &Kati.Screens.Home.hero_summary/0, nil,
+       &Kati.Screens.Home.drawn_hero/0},
+      # `Continue watching`, through `Kati.Screens.Library.shelf/0` — the same
+      # read screen 03 is gated on, so the two cannot disagree about what is on
+      # the shelf.
+      {"01", Kati.Screens.Home, &Kati.Screens.Home.continue_watching_rows/0, [],
+       &Kati.Screens.Home.drawn_continue_watching/0},
+      # `Watching`. The count only — the region beside it is a `Mob.State`
+      # preference with a default, not a row, so it is not a thing an empty
+      # database can be wrong about. The count was: it came through
+      # `Kati.Screens.MyServices.subscribed/0`, whose empty answer is the
+      # drawing's three services.
+      {"01", Kati.Screens.Home, fn -> Kati.Screens.Home.services().count end, 0,
+       fn -> Kati.Screens.Home.drawn_services().count end},
+      # `Sections`. The tiles themselves are navigation and are drawn either
+      # way; it is the two metas under them that claimed a dinner and two
+      # unfinished habits, and neither has a resource behind it anywhere.
+      {"01", Kati.Screens.Home, fn -> Enum.map(Kati.Screens.Home.tile_rows(), & &1.meta) end,
+       [nil, nil, nil], fn -> Enum.map(Kati.Screens.Home.drawn_tiles(), & &1.meta) end},
+      # `Rest of today`, asked of `Kati.Calendars.Today` rather than of the card
+      # it fills. That read was never the problem — the `[]` clause underneath
+      # it was, and the clause is gone, so what is left to assert is that the
+      # empty day really is empty and that the drawing it no longer reaches for
+      # is still there for the board to be compared against.
+      {"01", Kati.Screens.Home, fn -> timeline() end, [], &Kati.Screens.Home.drawn_rows/0},
+      # 02 answers `[]` for EVERY date now, today included. The old entry
+      # compared `day_rows(today)` with `drawn_rows/0` and passed because
+      # `day_rows/1` had a today-only clause that substituted the board's five
+      # cards; a person's first launch drew a dentist appointment, a passport
+      # reminder and a renewal that were not theirs.
+      {"02", Kati.Screens.Calendar, fn -> Kati.Screens.Calendar.day_rows(today) end, [],
+       &Kati.Screens.Calendar.drawn_rows/0},
+      {"03", Kati.Screens.Library, &Kati.Screens.Library.titles/0, [],
+       &Kati.Screens.Library.drawn_titles/0},
+      # 07 has no single accessor: `figures/0` answers a keyword list whose third
+      # element is a real read either way. The two the branch turns on are taken,
+      # in the order the list holds them — and `year: nil` rather than a map of
+      # zeroes is the whole signal, so the pair would fail a round that answered
+      # with `%{}` and drew a dashboard of noughts.
+      {"07", Kati.Screens.Stats,
+       fn -> Keyword.take(Kati.Screens.Stats.figures(), [:year, :grid]) end,
+       [year: nil, grid: []],
+       fn ->
+         [
+           year: Map.put(Kati.Stats.Sample.year(), :rising?, true),
+           grid: Kati.Stats.Sample.contributions()
+         ]
+       end},
+      # 149 reads Library's own shelf, for the reason 70 reads 66's: a sheet
+      # aimed at a different shelf from the screen that opened it would drop the
+      # wrong title.
+      {"149", Kati.Screens.DropSheet, &Kati.Screens.Library.titles/0, [],
+       &Kati.Screens.Library.drawn_titles/0}
+    ]
+  end
+
+  # Every gate in both lists, as `number => the modules gating it`. A list rather
+  # than a module, because a screen may legitimately be in both — `fallbacks/0`
+  # says which two are and why — and a `Map.new` would then hide one of the two
+  # from the module comparison above.
+  defp gate_modules(today) do
+    pairs =
+      Enum.map(fallbacks(today), fn {number, module, _live, _drawn} -> {number, module} end) ++
+        Enum.map(empties(today), fn {number, module, _live, _empty, _drawn} ->
+          {number, module}
+        end)
+
+    Enum.group_by(pairs, &elem(&1, 0), &elem(&1, 1))
+  end
+
   # What `Kati.Screens.Home.load/1` assigns, called the way the screen calls it.
   defp timeline, do: Kati.Calendars.Today.rows()
 
@@ -1171,6 +1611,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     word = "[\\p{L}\\x{200C}]+"
 
     [
+      # An entry is keyed by the DRAWING the line is in, and `exempt?/2` is
+      # asked with the drawings the screen is compared with — so 01's two are no
+      # longer exempting anything: Home with nothing stored is held to board 139,
+      # and 139 carries its own copy of this pair further down. They are kept
+      # because the staleness checks alone are worth having on them: the line
+      # must still be one board 01 contains, and screen 01 must still render
+      # something shaped like the device's clock where the board froze one. The
+      # same is true of 02's, whose screen is in `@no_empty_board` and is
+      # compared against no board's literals at all — the entry is what keeps
+      # `Wednesday 26 August · 0 items` a checked line rather than an unchecked
+      # one.
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
@@ -1267,8 +1718,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # Symbols whose row is a moment this screen is not in. Same reasoning as the
   # literal pairs above; see 144's and 149's moduledocs.
 
-  defp exempt?(number, literal) do
-    Enum.any?(device_values(), fn {n, l, _pattern} -> n == number and l == literal end)
+  defp exempt?(boards, literal) do
+    Enum.any?(device_values(), fn {n, l, _pattern} -> n in boards and l == literal end)
   end
 
   # ── Which screens read a store ──────────────────────────────────────────────
@@ -1442,13 +1893,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
         {:ok, _socket, tree} ->
           texts = DesignLiterals.rendered(tree)
 
+          {boards, design} = empty_drawing(number)
+
           %{
             number: number,
             module: module,
+            # The drawings this render is compared with, which is `[the screen's
+            # own number]` for everything but the four roots — see
+            # `@empty_boards` and `@no_empty_board`. `[]` means the design draws
+            # no empty state for this screen and the literal comparison does not
+            # run.
+            boards: boards,
             tree: tree,
             texts: texts,
             haystacks: DesignLiterals.haystacks(texts),
-            design: DesignLiterals.read!(number)
+            design: design
           }
 
         {:error, message} ->
@@ -1456,4 +1915,32 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       end
     end
   end
+
+  # The drawings a screen with nothing stored is held to, as
+  # `{[number], %{text:, icons:}}` — the second is their union, in the order
+  # they are named, so `locate/2` and the symbol check ask about all of them at
+  # once.
+  defp empty_drawing(number) do
+    for {board, _spec} = named <- specs(number), reduce: {[], %{text: [], icons: []}} do
+      {boards, union} ->
+        drawing = drawing(named)
+
+        {boards ++ [board],
+         %{
+           text: Enum.uniq(union.text ++ drawing.text),
+           icons: Enum.uniq(union.icons ++ drawing.icons)
+         }}
+    end
+  end
+
+  defp specs(number) do
+    cond do
+      number in Enum.map(@no_empty_board, &elem(&1, 0)) -> []
+      Map.has_key?(@empty_boards, number) -> Map.fetch!(@empty_boards, number)
+      true -> [{number, :whole}]
+    end
+  end
+
+  defp drawing({board, :whole}), do: DesignLiterals.read!(board)
+  defp drawing({board, {from, to}}), do: DesignLiterals.band(board, from, to)
 end

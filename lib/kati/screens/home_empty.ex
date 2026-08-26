@@ -34,7 +34,7 @@ defmodule Kati.Screens.HomeEmpty do
   and `Kati.Screens.Home.disc/3` is called for it directly rather than
   copied, at `badge?: false`, since it is the same 44pt card disc under the
   same `shadow_button/0` for the same reason. It reads as *Settings*, the one
-  meaning `tune` already carries on this page — `Kati.Screens.Home.tile/5`
+  meaning `tune` already carries on this page — `Kati.Screens.Home.tile/1`
   labels the identical glyph "Settings" in its Sections row — so the tag is
   `:open_settings` and not a filter sheet nothing here would filter.
 

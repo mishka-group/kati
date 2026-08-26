@@ -103,9 +103,24 @@ defmodule Kati.SectionsTest do
     end
 
     test "the home cards drop a section that is off" do
+      # #91 made Home two pages. With nothing kept at all it draws screen 139,
+      # which has no section tiles on it — and against that page BOTH lines
+      # below stop being about sections: `Habits` is absent from a page that
+      # never had a Habits card to drop, and `Settings` is a `tune` glyph with
+      # no label. This mounted on whatever the shared SQLite file happened to
+      # hold, so which of the two pages it got moved with `--seed`.
+      #
+      # One tracked title is what puts the mount on screen 01 — the page
+      # section tiles are drawn on — and the transaction takes the row back so
+      # no other file inherits it. `Kati.Screens.Home.nothing_kept?/1` is where
+      # the rule lives; `Kati.ScreenHomeEmptyStateTest` is where it is asserted.
       :ok = Kati.Sections.put(["screen"])
 
-      tree = tree(mount_screen(Kati.Screens.Home))
+      tree = with_something_kept(fn -> tree(mount_screen(Kati.Screens.Home)) end)
+
+      refute find(tree, :text, text: "Nothing chosen yet"),
+             "the mount drew screen 139, so neither assertion below is about a page that " <>
+               "has section cards on it at all"
 
       assert find(tree, :text, text: "Habits") == nil,
              "the home card outlived the choice, which is the design's rule failing quietly"
@@ -123,5 +138,28 @@ defmodule Kati.SectionsTest do
         assert find(tree, :text, text: shelf) != nil, "#{shelf} went missing"
       end
     end
+  end
+
+  # One tracked title, for the duration of `fun` and no longer. This module is
+  # `async: false` and `pool_size` is 1, so the test process holds the only
+  # connection and the mount inside reads through it; the rollback is what keeps
+  # a row this file wrote out of the seeds every other file shares.
+  defp with_something_kept(fun) do
+    {:error, {:done, result}} =
+      Kati.Repo.transaction(fn ->
+        {:ok, _title} =
+          Kati.Media.TrackedTitle
+          |> Ash.Changeset.for_create(:create, %{
+            source: :manual,
+            source_id: "kati:sections-test-#{System.unique_integer([:positive])}",
+            kind: :tv,
+            status: :watching
+          })
+          |> Ash.create()
+
+        Kati.Repo.rollback({:done, fun.()})
+      end)
+
+    result
   end
 end

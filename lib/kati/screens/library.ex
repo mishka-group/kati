@@ -38,12 +38,58 @@ defmodule Kati.Screens.Library do
   `shelf/0` for the query and `shaped/3` for the one row shape the header, the
   chips and the grid all read.
 
-  A database with no library falls back to `drawn_titles/0`, the nine titles
-  `Kati.Library.Sample` holds — the same move `Kati.Screens.Home.drawn_rows/0`
-  and `Kati.Screens.Calendar.drawn_rows/0` make, and for the same reason: this
-  screen is also the design reference, and a fresh install has no rows. The
-  Sample module stays exactly where it is; it is the fallback and the fixture,
-  not a stage this screen has passed through.
+  ## A database with no library draws the emptiness, not nine invented films
+
+  This screen used to answer an empty shelf with `drawn_titles/0` — the nine
+  titles `Kati.Library.Sample` holds — on the argument that *missing data is
+  not a reason for a blank screen* and that a Library rendered empty could not
+  be compared with the drawing. Both halves were wrong in the way that matters
+  to a person rather than to a capture:
+
+    * the first sight of the app on a fresh phone was nine films nobody had
+      added, in the shape and colour of the user's own shelf. #91's report of
+      it is one sentence — *"you all show dummy data and it is not connected to
+      database"* — and it is the correct reading of what the screen drew;
+
+    * an empty Library is not a blank screen. **The design draws this state.**
+      `test/design/screens/27.html`, *Empty, loading, offline*, opens with the
+      band `Empty — nothing added yet` and it is this screen's own emptiness it
+      draws: a `movie` glyph on a paper square, *No titles yet*, *Add one thing
+      you are watching and the calendar starts filling itself.*, one ink pill
+      reading *Add a title*, and *or import a backup* under it. Screen 139
+      names that geometry as the house recipe — *"glyph tile, sentence, one ink
+      action, one quiet alternative"* — and screen 96 states the rule the nine
+      films broke: *"an empty state should say what is missing and offer the
+      one thing that fixes it — never render a plausible-looking zero."*
+
+  So `titles/0` is the shelf and nothing else, and `shelf_body/3` puts screen
+  27's card where the chips and the grid go. `drawn_titles/0` and
+  `Kati.Library.Sample` are untouched and are no longer reachable from a
+  render: they are what screen 03's own drawing was captured from, and the
+  fixture the shelf tests build their "rows present" half against.
+
+  ### What the empty branch keeps, and why
+
+  Screen 139's caption is explicit that an empty board *"states which parts
+  still work, because an empty Home that looks broken sends a new user back
+  out"*. The header, the Screen/Books/Music switcher and the three quick tiles
+  are all still live with an empty Screen shelf — Books and Music are separate
+  domains with their own rows, and Discover and Lists do not need a shelf — so
+  they stay exactly as screen 03 draws them.
+
+  What goes is the row of filter chips. They would read `All 0 · Watching 0 ·
+  Not started 0 · Finished 0` directly above a card whose whole job is to say
+  there is nothing here, and screen 96 draws that decision for the empty ledger
+  in as many words — *"hides the delta badge, the per-service rows and the
+  Worth-a-look card entirely — a 'down 0%' chip would be noise"*. The board
+  templates the chips (`{{ t.label }}`, `{{ t.count }}`), so no drawn value is
+  dropped with them, and nothing is invented in their place.
+
+  The mono subtitle stays and reads `0 titles · 0 in progress`. It was
+  withheld for the same reason as the chips for one round, and the drawing said
+  otherwise: `03.html` puts an 11pt mono line 5pt under the title and
+  `Kati.ScreenTitleSubtitleTest` reads that off the board as the spec. See
+  `subtitle_line/1`, which records what withholding it actually rendered.
   """
   use Kati.Screens.Root, root: :library
 
@@ -69,21 +115,16 @@ defmodule Kati.Screens.Library do
     do: Mob.Socket.assign(socket, filter: "All", shelf: "Screen", titles: titles(), menu?: false)
 
   @doc """
-  The shelf the screen renders: the user's library, or the drawing's.
+  The shelf the screen renders: the user's library, and only ever that.
 
-  `shelf/0` answers with nothing on a fresh install, and a Library rendered
-  empty cannot be compared with `.scratch/design/audit/03.png` at all — nine
-  posters, three chip counts and a `9 titles · 4 in progress` subtitle would
-  all go unexercised. FIDELITY's rule applies here exactly as it does on Home:
-  *missing data is not a reason for a blank screen*.
+  A delegation rather than a branch, and deliberately so — this is the function
+  that used to answer `[]` with `drawn_titles/0`, and the whole of #91 is that
+  it must not. `shelf/0` answers with nothing on a fresh install; `content/1`
+  reads that nothing and draws screen 27's empty card, which is the state the
+  design gives this screen rather than the absence of one.
   """
   @spec titles() :: [map()]
-  def titles do
-    case shelf() do
-      [] -> drawn_titles()
-      rows -> rows
-    end
-  end
+  def titles, do: shelf()
 
   @doc """
   The Screen shelf, straight from `Kati.Media`.
@@ -214,6 +255,12 @@ defmodule Kati.Screens.Library do
   @doc """
   The nine titles `test/design/screens/03.html` draws, in its own order.
 
+  **No longer reachable from a render.** It was `titles/0`'s empty-shelf
+  answer until #91; it is now what the drawing was captured from and the
+  fixture the shelf tests build a full grid out of, and nothing on a device
+  reaches it. See the moduledoc for why an empty shelf draws screen 27's card
+  instead.
+
   Stand-in data, and marked as such — `Kati.Library.Sample`'s moduledoc says so
   at length. What is NOT stand-in is the set of states: three titles not
   started, four part-watched and two finished, which is every chip the design
@@ -259,10 +306,159 @@ defmodule Kati.Screens.Library do
         {Kati.Screens.Library.header(titles, assigns.menu?)}
         {Kati.Screens.Library.segments(shelf)}
         {Kati.Screens.Library.quick_tiles()}
-        {Kati.Screens.Library.chips(filter, titles)}
-        {Kati.Screens.Library.grid(filter, shelf, titles)}
+        {Kati.Screens.Library.shelf_body(filter, shelf, titles)}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc """
+  The shelf half of the page: the chips over the grid, or screen 27's card.
+
+  The branch is on the shelf being empty and not on the *filter* leaving
+  nothing visible. A filter that matches none of a real shelf draws an empty
+  grid under live chips, exactly as it did before — the design draws no state
+  for it, `visible/3` already answers `[]`, and the four counts beside the
+  chips say which one to tap next. Putting *No titles yet* under a shelf that
+  holds nine would be a second lie in place of the first.
+  """
+  @spec shelf_body(String.t(), String.t(), [map()]) :: map() | [map()]
+  def shelf_body(_filter, _shelf, []), do: Kati.Screens.Library.empty_state()
+
+  def shelf_body(filter, shelf, titles) do
+    [
+      Kati.Screens.Library.chips(filter, titles),
+      Kati.Screens.Library.grid(filter, shelf, titles)
+    ]
+  end
+
+  @doc """
+  Screen 27's `Empty — nothing added yet` card, which is this screen's own.
+
+  Built to `test/design/screens/27.html`, band one: a 64pt paper square
+  holding `movie` at `Kati.Theme.Palette.rail_idle/0`, the 17pt sentence, the
+  13pt paragraph at `line_height: 1.55`, a 44pt ink pill carrying `add` and a
+  13pt label, and a 12.5pt semibold line under it. Every number here is that
+  band's, not screen 105's or 139's — those two draw the same *recipe* at 17pt
+  of padding around a 54pt pill with no glyph, and `Kati.Screens.HomeEmpty`
+  and `Kati.Screens.GoalsEmpty` each write their own card out for exactly that
+  reason. This one is written out for the opposite reason: the numbers are
+  `Kati.Screens.States.empty/1`'s to the point, and the one thing that differs
+  is the one thing that matters here.
+
+  **The difference is the taps.** Screen 27 is a reference sheet and its own
+  moduledoc is explicit that each card is *a picture of a state, not a report
+  that the app is in it*; a specimen that navigated would be a specimen that
+  left the sheet. Here the card is the state, and screen 96 says what a state
+  in it owes the person looking at it — *"say what is missing and offer the
+  one thing that fixes it"*. A drawn pill that answered nothing would be the
+  half of this fix that shipped as decoration, so both lines are wired:
+  `Add a title` opens `Kati.Screens.AddTitle`, the sheet that writes a
+  `Kati.Media.CachedTitle` and a `Kati.Media.TrackedTitle` and is therefore
+  the one control on the page that can end this state.
+
+  `or import a backup` carries a tap for the reason
+  `Kati.Screens.HomeEmpty.restore_link/0` gives for its own near-identical
+  line: it names a screen this board does not draw, and screen 139's caption
+  calls the pair *"one ink action, one quiet alternative"* — two actions, not
+  one action and a footnote. It pushes `Kati.Screens.Restore`, and inherits
+  that screen's `‹ Settings` back pill, the papercut `Kati.Screens.HomeEmpty`
+  records rather than solving with a third copy of the screen.
+  """
+  @spec empty_state() :: map()
+  def empty_state do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Theme.shadow_card_soft()}
+        padding_left={22}
+        padding_right={22}
+        padding_top={30}
+        padding_bottom={30}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={64} height={64} corner_radius={20} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("movie", size: 28, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={18} />
+        <Text
+          text="No titles yet"
+          text_size={17}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_align="center"
+          text_color={:on_surface}
+        />
+        <Spacer size={8} />
+        <Text
+          text="Add one thing you are watching and the calendar starts filling itself."
+          text_size={13}
+          line_height={1.55}
+          text_align="center"
+          text_color={Palette.sub()}
+        />
+        <Spacer size={18} />
+        {Kati.Screens.Library.add_a_title()}
+        <Spacer size={14} />
+        {Kati.Screens.Library.import_link()}
+      </Column>
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The ink pill: 44 tall, radius 22, `add` at 18 then the label at 13 bold.
+
+  A `<Row>` rather than a `<Box>` with one child, because the drawing puts a
+  glyph before the label with a 7pt gap and a Box is a Z-stack — the glyph
+  would paint over the words rather than sit beside them.
+  """
+  @spec add_a_title() :: map()
+  def add_a_title do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      height={44}
+      corner_radius={22}
+      background={Palette.ink_fill()}
+      align="center"
+      on_tap={{self(), :add_title}}
+    >
+      <Spacer weight={1.0} />
+      {Kati.UI.symbol("add", size: 18, color: Palette.on_ink())}
+      <Spacer size={7} />
+      <Text
+        text="Add a title"
+        text_size={13}
+        font_weight="bold"
+        text_color={Palette.on_ink()}
+        max_lines={1}
+      />
+      <Spacer weight={1.0} />
+    </Row>
+    """
+  end
+
+  @doc "The quiet alternative under the pill. See `empty_state/0` for why it taps."
+  @spec import_link() :: map()
+  def import_link do
+    ~MOB"""
+    <Column fill_width={true} on_tap={{self(), :import_backup}}>
+      <Text
+        text="or import a backup"
+        text_size={12.5}
+        font_weight="semibold"
+        text_align="center"
+        text_color={Palette.sub()}
+      />
+    </Column>
     """
   end
 
@@ -277,10 +473,43 @@ defmodule Kati.Screens.Library do
     "#{length(titles)} titles · #{Enum.count(titles, &(&1.status == :watching))} in progress"
   end
 
-  @doc false
-  def header(titles, menu?) do
+  @doc """
+  The mono line under *Library*, drawn on every shelf including no shelf.
+
+  It reads `0 titles · 0 in progress` on a fresh install, and it was withheld
+  there for one round on screen 96's rule — *"never render a plausible-looking
+  zero"*. That was an inference and the drawing outranks it: `03.html` puts an
+  11pt mono line 5pt under the 28pt title, and `Kati.ScreenTitleSubtitleTest`
+  reads that pair off the board as a specification rather than a suggestion.
+  Withholding it does not leave a gap either — the parser walks the flattened
+  tree, so the next `Text` is the `search` disc's glyph and the screen reports
+  a 21pt symbol where the board asks for an 11pt mono. Measured, not guessed.
+
+  The four filter chips are a different case and stay withheld on an empty
+  shelf: the board templates them (`{{ t.label }}`, `{{ t.count }}`), so no
+  drawn value is being dropped, and four counts of zero over a card that says
+  there is nothing here is exactly what screen 96 draws hiding.
+  """
+  @spec subtitle_line([map()]) :: [map()]
+  def subtitle_line(titles) do
     subtitle = Kati.Screens.Library.subtitle(titles)
 
+    [
+      ~MOB"<Spacer size={5} />",
+      ~MOB"""
+      <Text
+        text={subtitle}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
+      """
+    ]
+  end
+
+  @doc false
+  def header(titles, menu?) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -293,14 +522,7 @@ defmodule Kati.Screens.Library do
             letter_spacing={-0.03}
             text_color={:on_surface}
           />
-          <Spacer size={5} />
-          <Text
-            text={subtitle}
-            font_family="mono"
-            text_size={11}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
+          {Kati.Screens.Library.subtitle_line(titles)}
         </Column>
         {Kati.Screens.Library.disc("search", :open_search)}
         <Spacer size={9} />
@@ -849,6 +1071,14 @@ defmodule Kati.Screens.Library do
 
   def handle_tap(:open_film, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
+
+  # The two controls on screen 27's empty card. Both only exist while the shelf
+  # is empty, which is the only time either has anything to do.
+  def handle_tap(:add_title, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+
+  def handle_tap(:import_backup, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}
 
   # One clause for every chip and every segment: the tag carries the label, so
   # a new filter is a data change rather than a code change.

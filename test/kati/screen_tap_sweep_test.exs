@@ -173,11 +173,28 @@ defmodule Kati.ScreenTapSweepTest do
   # of the row it belongs to. `Kati.Screens.ImportSources.tag/1` and
   # `Kati.Screens.AddIngredient`'s aisle chips are the same pattern.
   #
+  # 03 is off the list as of #91, and NOT by the fix above — its two tags are
+  # still one name over every poster in a full grid. This sweep renders against
+  # the empty store (see `setup`), and `Kati.Screens.Library` no longer answers
+  # an empty shelf with `Kati.Library.Sample`'s nine films: it draws screen
+  # 27's `No titles yet` card, which has no grid and therefore no repeated tag.
+  # The debt is unpaid and has moved out of this sweep's reach; it comes back
+  # the day a device test puts two titles on the shelf, and the fix is still
+  # `meal_tag/1`'s.
+  #
+  # 02 is off the list as of #91, and unlike 03 it is off for good rather than
+  # out of reach. `row_event` was the BARE tag — `Kati.Screens.Calendar.tag/1`'s
+  # no-id branch — and only `drawn_rows/0` ever produced one: two of the
+  # drawing's five cards are `kind: "event"` with no stored event to name, so
+  # one page carried the name twice. Nothing renders `drawn_rows/0` any more,
+  # and every row the timeline draws now comes from `Kati.Calendars.Today` and
+  # carries its event's own id, so a second `row_event` cannot be minted on a
+  # full shelf either. `Kati.ScreenCalendarEmptyStateTest` asserts the tag is
+  # absent, which is the claim that keeps this struck off.
+  #
   # This list may only SHRINK. The test enforces both directions — a new
   # collision fails it, and so does an entry here that no longer collides.
   @known_collisions %{
-    "02" => ["row_event"],
-    "03" => ["open_film", "open_series"],
     "20" => ["open_book"],
     "21" => ["open_album", "open_artist"],
     "28" => ["inbox", "root_calendar"],
@@ -575,7 +592,10 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Books, :open_search},
     {Kati.Screens.Books, :open_sort},
     {Kati.Screens.Health, :open_filters},
-    {Kati.Screens.Home, :open_calendar},
+    # (`{Kati.Screens.Home, :open_calendar}` was here. #91 wired it: screen
+    # 139's *Today* row carries the same tag as screen 01's header disc, and a
+    # page borrowed from `Kati.Screens.HomeEmpty` could not ship with it still
+    # dead. Struck off as this list's own header asks.)
     {Kati.Screens.Language, :add_language},
     {Kati.Screens.Library, :open_sort},
     {Kati.Screens.LibraryFa, :open_sort},
@@ -820,10 +840,12 @@ defmodule Kati.ScreenTapSweepTest do
     #
     # Its own comment predicted `Kati.Screens.Library` would collide "as soon as
     # a shelf holds two of a kind" and that it "draws too few against an empty
-    # store to collide yet". Both halves were wrong: 03 repeats `:open_film`
-    # AND `:open_series` today, against the empty store, and had since the
-    # screen was written. A guard that names the defect it is blind to is worse
-    # than no guard, because it is cited as cover.
+    # store to collide yet". Both halves were wrong: 03 repeated `:open_film`
+    # AND `:open_series` against the empty store, and had since the screen was
+    # written, because the empty store drew nine invented films. A guard that
+    # names the defect it is blind to is worse than no guard, because it is
+    # cited as cover. (#91 took the nine films away, so 03 is off the register
+    # below without the collision having been fixed — see the note there.)
     #
     # This reads the union of both: ids set by hand, and the ids the renderer
     # will derive. That is what the device addresses.

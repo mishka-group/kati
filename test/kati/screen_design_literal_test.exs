@@ -37,6 +37,24 @@ defmodule Kati.ScreenDesignLiteralTest do
       from `render/1` still contains the string. So does a comment quoting it.
       The tree contains only what was actually mounted.
 
+  ## Four screens have two drawings, and this file owns one of them
+
+  A screen used to reach its drawing's state just by being mounted: every
+  screen that could come up empty answered an empty store with its Sample
+  module, so a bare mount drew the board whatever the database held.
+
+  #91 ended that for the four roots. On a fresh install `Kati.Screens.Library`
+  now draws screen 27's *No titles yet* card, `Kati.Screens.Home` draws screen
+  139 whole, and `Kati.Screens.Stats` and `Kati.Screens.Calendar` each draw a
+  card built from the boards that word their emptiness — because nine invented
+  films on a phone that has tracked nothing is the app lying about the one thing
+  it exists to hold. Each screen's moduledoc carries that argument.
+
+  So those four have **two** drawings, and the one this file is named after is
+  the one they draw *once there is something to draw*. `drawn_state/0` is how
+  they are put in it; the empty half belongs to `Kati.ScreenEmptyDatabaseTest`,
+  which is the only file here that can make the database empty for certain.
+
   ## What it does not check
 
   Presence, not placement. A literal drawn in the wrong card, at the wrong
@@ -376,6 +394,57 @@ defmodule Kati.ScreenDesignLiteralTest do
              "these props hold a string and are neither known copy nor known styling. If one " <>
                "carries words a user reads, add it to `content_props/0` — until then this " <>
                "sweep is blind to it:\n" <> Enum.join(unknown, "\n")
+    end
+  end
+
+  describe "the screens with two drawings" do
+    test "each state replaces a real assign with a value the transcription still holds" do
+      # `drawn_state/0` is the one thing in this file that changes what a screen
+      # is asked, so it is pinned like every allow-list here. It cannot make the
+      # comparison weaker — the whole board is still compared — but it can make
+      # it *vacuous*, in two ways: a state that changes nothing leaves the screen
+      # wherever its mount left it, and a state that installs an emptied
+      # transcription compares the board against a blank page. Both are asserted
+      # against here, and both against the screen's real mounted assigns rather
+      # than against a description of them.
+      numbers = Enum.map(drawn_state(), &elem(&1, 0))
+
+      assert length(Enum.uniq(numbers)) == length(numbers),
+             "a screen number appears twice in drawn_state/0, so one of the two states is " <>
+               "dead code and which one wins depends on the order of a list"
+
+      registry = Map.new(@registry, fn {number, _label, module, _kind} -> {number, module} end)
+
+      for {number, module, state} <- drawn_state() do
+        assert registry[number] == module,
+               "drawn_state/0 files #{inspect(module)} under screen #{number}, which " <>
+                 "Kati.Screens.Gallery registers as #{inspect(registry[number])}. A state " <>
+                 "pointed at the wrong screen puts one screen's values on another's board"
+
+        mounted =
+          case ScreenSweep.mount(module) do
+            {:ok, socket} -> socket.assigns
+            {:error, message} -> flunk("#{inspect(module)} does not mount:\n  #{message}")
+          end
+
+        drawn = state.(mounted)
+        changed = for {key, value} <- drawn, Map.get(mounted, key) != value, do: {key, value}
+
+        refute changed == [],
+               "screen #{number}'s state leaves #{inspect(module)} exactly where its mount " <>
+                 "left it, so the board below is being compared against whatever the shared " <>
+                 "database happened to hold. Either the screen stopped branching on the " <>
+                 "store — in which case the entry goes — or the entry names an assign that " <>
+                 "is no longer the one the read fills"
+
+        blank = for {key, value} <- changed, value in [nil, [], %{}, ""], do: "  #{number} #{key}"
+
+        assert blank == [],
+               "these assigns are set to nothing by the state that is supposed to fill them, " <>
+                 "so the drawing would be compared against an empty page and would fail for " <>
+                 "a reason that is not the screen's. The transcription behind them has been " <>
+                 "emptied:\n" <> Enum.join(blank, "\n")
+      end
     end
   end
 
@@ -720,8 +789,9 @@ defmodule Kati.ScreenDesignLiteralTest do
   defp do_render_all do
     for {number, _label, module, _kind} <- @registry do
       locale = if number in @fa_screens, do: :fa, else: :en
+      state = Map.get(drawn_states(), number, & &1)
 
-      case ScreenSweep.with_locale(locale, fn -> ScreenSweep.render(module) end) do
+      case ScreenSweep.with_locale(locale, fn -> render_in(module, state) end) do
         {:ok, _socket, tree} ->
           texts = DesignLiterals.rendered(tree)
 
@@ -737,6 +807,110 @@ defmodule Kati.ScreenDesignLiteralTest do
         {:error, message} ->
           flunk("screen #{number} (#{inspect(module)}) does not render:\n  #{message}")
       end
+    end
+  end
+
+  # ── The four screens whose board is only half their story ───────────────────
+
+  # `{screen number, module, assigns -> assigns}`. The function is applied
+  # between `mount/3` and `render/1` and puts the screen in the state its board
+  # was captured in. Every other screen renders straight off its mount, which is
+  # what `Kati.ScreenSweep.render/1` does and what this file did for all 152.
+  #
+  # A function rather than an attribute for the reason `device_values/0` is one:
+  # an attribute cannot hold an anonymous function, and a state is a change to a
+  # map rather than a value.
+  #
+  # See the moduledoc for why these four need it. What each entry replaces is
+  # the assign the screen's own read fills, and what it replaces it with is the
+  # screen's own transcription of the board — `drawn_rows/0`, `drawn_titles/0`,
+  # `Kati.Stats.Sample`. Those functions are the same ones these screens fell
+  # back to before #91: still public, still documented as the board's
+  # transcription, and now reachable from a test rather than from a person's
+  # phone. **The tree compared here is therefore the tree this file compared
+  # before**, node for node. What changed is that the state is asked for rather
+  # than arrived at — which also makes these four independent of whatever rows
+  # the rest of the suite has left in the shared database, where before they
+  # were whichever way `--seed` happened to order the modules.
+  #
+  # ## Why not rows in the store
+  #
+  # Rows were the first shape tried and they cannot answer this question for two
+  # of the four:
+  #
+  #   * board 02's sub-lines are `Habit · 12-day streak` and `£8.99`, and
+  #     `Kati.Calendars.Today.meta/2` composes a row's sub-line out of an event's
+  #     location and its kind label. The only way a stored event renders those
+  #     two strings is to type them into its `location` — inventing data to
+  #     quiet a sweep, which is the class of thing #91 is about.
+  #   * board 07's `312h 40m`, `84 Films`, `19 Series` and `4.1 Avg ★` are 103
+  #     titles' worth of arithmetic, and its `Where the hours went` bars are
+  #     `Kati.Stats.Sample`'s on every device — `Kati.Media.CachedTitle.genres`
+  #     is one free-text column, and `Kati.Screens.Stats`'s moduledoc records
+  #     that as a debt rather than deriving hours from it.
+  #
+  # The read those rows would have exercised is not left unasked. Each of the
+  # four has its own suite that writes real rows and asserts the counted page
+  # comes back — `Kati.ScreenStatsEmptyTest`'s *comes back whole*,
+  # `Kati.ScreenCalendarEmptyStateTest`'s *one appointment on today*,
+  # `Kati.ScreenLibraryEmptyTest`'s *a shelf with one row on it*,
+  # `Kati.ScreenHomeEmptyStateTest`'s *one tracked title is enough* — and
+  # `Kati.ScreenEmptyDatabaseTest` is what stops this list becoming a way to keep
+  # the fallback, by asserting against a database it emptied itself that all four
+  # read `[]` or `nil` and NOT their drawn value.
+  defp drawn_state do
+    [
+      # Home is now five reads and a boolean, so this entry installs the board's
+      # own values into all five rather than flipping the flag over a page of
+      # literals. Every one of them used to be written out inside `content/1`
+      # and drew on a device whatever the store held — the hero's `3 new
+      # episodes`, two half-watched cards, `United Kingdom · 3 subscribed`,
+      # `Dinner 19:30`, and `rest_of_today/1`'s `[]` clause substituting
+      # `drawn_rows/0` for a day nobody had told Kati about.
+      #
+      # So the comparison against `test/design/screens/01.html` is unchanged
+      # and is now a comparison of the DRAWING against the drawing: each
+      # `drawn_*` function is the transcription the board was captured from, and
+      # `Kati.ScreenEmptyDatabaseTest`'s `empties/0` holds the other half — that
+      # a device answers with none of them.
+      {"01", Kati.Screens.Home,
+       &Map.merge(&1, %{
+         nothing_kept: false,
+         hero: Kati.Screens.Home.drawn_hero(),
+         continue: Kati.Screens.Home.drawn_continue_watching(),
+         services: Kati.Screens.Home.drawn_services(),
+         tiles: Kati.Screens.Home.drawn_tiles(),
+         timeline: Kati.Screens.Home.drawn_rows()
+       })},
+      {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
+      {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
+      # 07's four assigns are one keyword list out of `figures/0`, and all four
+      # are replaced together — a year with a `grid` from somewhere else would be
+      # two different years on one card. `range` is the board's own frozen
+      # `Jan – Aug 2026` rather than `Kati.Time.today()`'s: the board froze a
+      # device value there, this file has no exemption for it, and reading the
+      # clock instead would pass in August and fail in September.
+      {"07", Kati.Screens.Stats,
+       &Map.merge(&1, %{
+         year: Map.put(Kati.Stats.Sample.year(), :rising?, true),
+         grid: Kati.Stats.Sample.contributions(),
+         recent: Kati.Screens.Stats.recent(),
+         range: Kati.Stats.Sample.year().range
+       })}
+    ]
+  end
+
+  defp drawn_states, do: Map.new(drawn_state(), fn {number, _module, fun} -> {number, fun} end)
+
+  # `Kati.ScreenSweep.render/1` with one step inserted between the two calls it
+  # makes. `state` is the identity function for every screen but the four in
+  # `drawn_state/0`, so 148 of the 152 render exactly as they did — mounted, then
+  # rendered from the assigns their own `mount/3` built.
+  defp render_in(module, state) do
+    with {:ok, socket} <- ScreenSweep.mount(module),
+         assigns = state.(socket.assigns),
+         {:ok, tree} <- ScreenSweep.safely(fn -> module.render(assigns) end) do
+      {:ok, socket, tree}
     end
   end
 end

@@ -33,6 +33,35 @@ defmodule Kati.ScreenStatsTest do
   `CachedTitle.genres`, which is the free-text column the moduledoc refuses to
   parse, and it fails without anyone having to remember to come back here.
 
+  ## Where the empty history went
+
+  This file used to open with `describe "an empty history"`, and its three tests
+  said that a database with nothing in it answers with `Kati.Stats.Sample` —
+  grid, recent and year, whole, plus 182 squares drawn from it. That was true,
+  and it was the defect: issue #91 is that a person who had tracked nothing was
+  shown somebody else's year with their name on it. `Kati.Screens.Stats` now
+  answers an empty history with board 101's *Not much to show yet*, no hero
+  figure and no grid at all, and `Kati.ScreenStatsEmptyTest`'s fourteen tests
+  are that branch stated in full — including the absences, which is the half a
+  presence check cannot make.
+
+  So the three moved here, onto the fixture, and each says the counted half of
+  what it used to say:
+
+    * *answers on every key frame 07 draws* — the drawing's own field list is
+      still the card's field list, and **not one of its values** is the
+      drawing's. The equality that test used to make is now the refutation.
+    * *renders every figure frame 07 draws* — same sweep over the same frame,
+      reading the figures out of `Kati.Screens.Stats.figures/0` rather than out
+      of `Kati.Stats.Sample`, so it is now a claim about what this device
+      computed rather than about what the sample module holds.
+    * *draws 182 squares* — moved rather than dropped, because the empty screen
+      draws none: `Kati.Screens.Stats`'s moduledoc reads board 110's refusal of
+      "a chart with a single point ... that means nothing" onto a contribution
+      field at level zero. An empty grid would be honest; this screen's design
+      decision is that it is not drawn, and 182 squares is a claim about a grid
+      that has a night in it.
+
   ## The shared database
 
   One SQLite file for the whole suite (see `test/test_helper.exs`), so an empty
@@ -57,22 +86,39 @@ defmodule Kati.ScreenStatsTest do
     :ok
   end
 
-  describe "an empty history" do
-    test "answers with the drawing's own figures" do
+  describe "a history with watches in it" do
+    setup :seed_history
+
+    test "answers on every key frame 07 draws, and on the one no Sample has" do
+      # Was `an empty history answers with the drawing's own figures`. See the
+      # moduledoc: an empty history is now board 101's card and is asserted in
+      # `Kati.ScreenStatsEmptyTest`. What survives here is the half that keeps
+      # the counted card faithful to frame 07 — the same lines, none of the same
+      # numbers — and it bites harder than the equality it replaces, because a
+      # fallback satisfies the shape and fails the values.
       figures = Stats.figures()
+      year = figures[:year]
 
-      assert figures[:grid] == Sample.contributions()
-      assert figures[:recent] == Stats.recent()
-      assert Map.delete(figures[:year], :rising?) == Sample.year()
+      assert Enum.sort(Keyword.keys(figures)) == [:grid, :range, :recent, :year]
 
-      # The pill's arrow is a state the sample module has no field for, and the
-      # drawing has it pointing up.
-      assert figures[:year].rising? == true
+      # The drawing's own field list, plus the pill's arrow — a state
+      # `Kati.Stats.Sample` has no field for and the screen has to derive. A line
+      # dropped from the hero, the pill or the count cards fails here before it
+      # fails any literal.
+      assert Enum.sort(Map.keys(year)) == Enum.sort([:rising? | Map.keys(Sample.year())])
+      assert year.rising? == true
+
+      # Same frame, this device's numbers. `refute` rather than `assert` is the
+      # whole of issue #91 in one line: the day the screen falls back again, the
+      # card is the sample's again and this fails.
+      refute Map.delete(year, :rising?) == Sample.year()
+      refute figures[:grid] == Sample.contributions()
     end
 
     test "renders every figure frame 07 draws" do
       words = text(tree(mount_screen(Stats)))
-      year = Sample.year()
+      figures = Stats.figures()
+      year = figures[:year]
 
       assert words =~ year.range
       assert words =~ year.time
@@ -90,7 +136,7 @@ defmodule Kati.ScreenStatsTest do
         assert words =~ value
       end
 
-      for row <- Stats.recent() do
+      for row <- figures[:recent] do
         assert words =~ row.title
         assert words =~ row.meta
       end
@@ -100,12 +146,11 @@ defmodule Kati.ScreenStatsTest do
       squares = find_all(tree(mount_screen(Stats)), :box, width: 8, height: 8)
 
       assert length(squares) == 182
+      # The render and the reader cannot disagree about the span ...
+      assert length(Stats.figures()[:grid]) == 182
+      # ... and 182 is read off the drawing rather than typed here.
       assert length(Sample.contributions()) == 182
     end
-  end
-
-  describe "a history with watches in it" do
-    setup :seed_history
 
     test "sums this year's runtimes into the headline figure" do
       # 47 + 47 + 112 + 50, and NOT last year's 112.
