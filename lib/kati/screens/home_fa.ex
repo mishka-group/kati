@@ -32,7 +32,18 @@ defmodule Kati.Screens.HomeFa do
 
   ## Real data versus the drawing
 
-  The same two things screen 01 reads, read the same way:
+  **Every band on this page is a read**, which is the whole of what changed with
+  #91. It was not: until this round the cream card announced ۳ قسمت تازه, ادامه
+  تماشا drew two half-watched shows, the section tiles counted شام ۱۹:۳۰ and ۲
+  مورد مانده, and باقی امروز substituted `Sample.rest_of_today/0` for a calendar
+  nobody had mirrored — all of it on **the page a Persian user lands on after
+  their first run**, because `Kati.Onboarding.shell_root/1` answers this module
+  for `:fa`. The owner installed the app and read the English twin of exactly
+  that as what it was: *"you all show dummy data and it is not connected to
+  database"*.
+
+  `mount/3` fills one assign per band and `content/4` draws assigns and nothing
+  else:
 
     * **The header is the device's own clock**, in the Solar Hijri calendar.
       `Kati.Calendar.Shamsi.format/2` at `:long` produces the drawing's line to
@@ -41,16 +52,64 @@ defmodule Kati.Screens.HomeFa do
       it. `moment/0` keeps `Kati.Screens.Home.today/0`'s thresholds exactly and
       changes only the words: the hour that draws *Good evening* in English
       draws عصر بخیر here.
-    * **باقی امروز is `Kati.Calendars.Today`** — the device's real calendar —
-      and falls back to `Sample.rest_of_today/0` when nothing is mirrored yet,
-      the substitution `Kati.Screens.Home.rest_of_today/1` makes at its own
-      `[]` clause. A fresh install has no events and this page is also the
-      design reference, so *missing data is not a reason for a blank screen*.
+    * `:hero` — `hero_summary/0`, over `Kati.Screens.Home.hero_summary/0` and so
+      over `Kati.Screens.Inbox.releases/0`. Screen 01's reader rather than a
+      second copy of it: two answers to *how many episodes are out* would be
+      visible on two taps.
+    * `:continue` — `Kati.Screens.Home.continue_watching_rows/0`, over
+      `Kati.Screens.Library.shelf/0`.
+    * `:tiles` — `tile_rows/0`, filtered by `Kati.Sections`.
+    * **باقی امروز is `Kati.Calendars.Today`**, the device's real calendar.
 
-  Everything else on the page — the cream card, ادامه تماشا, the three section
-  tiles — is still the drawing's own copy, exactly as it is on screen 01, and
-  for the same reason: the Screen domain has no "up next" and no section counts
-  to supply them from.
+  `Kati.Screens.HomeFa.Sample` stays exactly where it is and **nothing on a
+  device reaches it**. It is the transcription board 55 was captured from and
+  the fixture `Kati.ScreenDesignLiteralTest.drawn_state/0` installs to compare
+  this page against `test/design/screens/55.html`; `drawn_hero/0` and
+  `drawn_tiles/0` beside their readers are that transcription in the shape the
+  render takes, the arrangement `Kati.Screens.Home` is in one screen over.
+
+  ## What an empty band draws, and the one sentence that had to be written
+
+  There is **no Persian artboard for an empty Home**. Screen 139 is the English
+  one and nothing in 55-62, 90, 97 or 103 mirrors it, so this page does not
+  branch the way `Kati.Screens.Home` branches: 55 with nothing stored is board
+  55 with its stand-in data gone, not a second board. Three of the four bands
+  need no words for that:
+
+    * تازه‌های این هفته and ادامه تماشا are **omitted whole, eyebrow and all** —
+      screen 96's rule, *"an empty state should say what is missing and offer
+      the one thing that fixes it — never render a plausible-looking zero"*, and
+      a section label over an omitted section is a heading for nothing.
+    * بخش‌ها keeps its three tiles, which are navigation and true either way,
+      and drops the two metas and dots under them. `شام ۱۹:۳۰` belongs to screen
+      43, which has its own active-plan gate, and `Kati.Screens.Habits`'s
+      moduledoc states outright that *"there is no resource anywhere in this app
+      that records a habit being kept"* — so `۲ مورد مانده` cannot be counted and
+      `۰ مورد مانده` is the plausible-looking zero 96 forbids.
+
+  باقی امروز is the fourth, and it is the one place omission would cost
+  something real: 139's whole argument is that **the calendar still works** with
+  nothing else set up, and the `+` that fills it is the FAB
+  `Kati.Screens.Fa.dock/1` draws over this page. So the card stays and says so,
+  in one sentence this file wrote — `empty_day/0`.
+
+  That sentence is the only Persian on this screen no artboard contains, and it
+  is written on `Kati.Screens.SettingsFa.backup_line/1`'s precedent, whose own
+  doc puts the rule plainly: *only the sentence is this file's, because only the
+  sentence is Persian*. It is deliberately **not** a translation of screen 139:
+  139 is a whole board — a glyph tile, a headline, a paragraph about what Kati
+  keeps, an ink pill, a quiet alternative and a footnote — and mirroring it here
+  would be inventing an artboard, which is what `Kati.Onboarding.screen_for_step/1`
+  refuses in as many words for the first run: *"a translation invented here"* is
+  not a substitute for a drawing. One sentence for a state the page is really in
+  is a different thing from a page nobody drew, and the alternative to it is a
+  Persian user being shown films that do not exist.
+
+  **What a designer is owed, stated so it is not mistaken for done**: a Persian
+  55 with nothing stored — the mirror of 139 — and, with it, the wording for an
+  empty day. Until it exists this screen draws board 55 honestly emptied and one
+  borrowed sentence, and `Kati.ScreenHomeFaEmptyStateTest` is where both halves
+  are pinned.
 
   ### The sub-line is rebuilt in Persian, not translated
 
@@ -89,16 +148,15 @@ defmodule Kati.Screens.HomeFa do
 
     socket
     |> Mob.Socket.assign(:moment, Kati.Screens.HomeFa.moment())
-    |> Mob.Socket.assign(:inbox, Sample.inbox())
+    |> Mob.Socket.assign(:hero, Kati.Screens.HomeFa.hero_summary())
+    |> Mob.Socket.assign(:continue, Kati.Screens.Home.continue_watching_rows())
+    |> Mob.Socket.assign(:tiles, Kati.Screens.HomeFa.tile_rows())
     |> Mob.Socket.assign(:timeline, Kati.Calendars.Today.rows())
     |> then(&{:ok, &1})
   end
 
   def render(assigns) do
-    content =
-      Kati.Screens.HomeFa.content(assigns.moment, assigns.inbox, assigns.timeline)
-
-    Fa.frame(:home, content, Kati.Screens.Identity.of(__MODULE__))
+    Fa.frame(:home, Kati.Screens.HomeFa.content(assigns), Kati.Screens.Identity.of(__MODULE__))
   end
 
   @doc """
@@ -127,7 +185,7 @@ defmodule Kati.Screens.HomeFa do
   end
 
   @doc false
-  def content(moment, inbox, timeline) do
+  def content(assigns) do
     ~MOB"""
     <Scroll>
       <Column
@@ -137,19 +195,132 @@ defmodule Kati.Screens.HomeFa do
         padding_top={64}
         padding_bottom={132}
       >
-        {Kati.Screens.HomeFa.header(moment)}
+        {Kati.Screens.HomeFa.header(assigns.moment)}
         {Kati.Screens.HomeFa.search()}
-        {Fa.eyebrow("تازه‌های این هفته")}
-        {Kati.Screens.HomeFa.hero(inbox)}
-        {Fa.eyebrow("ادامه تماشا")}
-        {Kati.Screens.HomeFa.continue()}
+        {Kati.Screens.HomeFa.new_this_week(assigns.hero)}
+        {Kati.Screens.HomeFa.continue_watching(assigns.continue)}
         {Fa.eyebrow("بخش‌ها")}
-        {Kati.Screens.HomeFa.sections()}
+        {Kati.Screens.HomeFa.sections(assigns.tiles)}
         {Fa.eyebrow("باقی امروز")}
-        {Kati.Screens.HomeFa.rest_of_today(timeline)}
+        {Kati.Screens.HomeFa.rest_of_today(assigns.timeline)}
       </Column>
     </Scroll>
     """
+  end
+
+  # ── What the store answers ──────────────────────────────────────────────────
+
+  @doc """
+  تازه‌های این هفته in the shape this page draws it, or `nil` when there is
+  nothing to announce.
+
+  `Kati.Screens.Home.hero_summary/0` is the read — screen 01's own, not a second
+  copy — and this reshapes its answer into the drawing's own headline. The
+  drawing breaks that headline with a `<br>` rather than letting 20/1.45 wrap,
+  so the break is content and the string carries it, exactly as
+  `Kati.Screens.HomeFa.Sample.inbox/0` does.
+
+  **The count is the only thing that moves.** Every word is board 55's own —
+  قسمت تازه, در انتظار شماست — and Persian does not inflect a noun after a
+  numeral, so one episode and three episodes take the same sentence and no
+  second piece of copy is written. `Kati.I18n.Digits.to_persian/1` renders the
+  numeral, which is the same conversion `fa_row/1` makes for a row's time and
+  for the same reason: the digits are Kati's, so they are Kati's to write.
+
+  `line` and `checked` are `nil` and stay `nil` on every device. They are the
+  drawing's two unsourceable values — availability, which screen 96 says needs a
+  subscribed service to count down from, and the watcher's last sweep, which
+  `Kati.Screens.Inbox`'s moduledoc records that nothing stores — and they exist
+  as keys only so `drawn_hero/0` can put the board's own copy back.
+  """
+  @spec hero_summary() :: map() | nil
+  def hero_summary do
+    case Kati.Screens.Home.hero_summary() do
+      nil ->
+        nil
+
+      %{count: count, seeds: seeds} ->
+        %{
+          headline: "#{Digits.to_persian(count)} قسمت تازه\nدر انتظار شماست",
+          line: nil,
+          checked: nil,
+          seeds: seeds
+        }
+    end
+  end
+
+  @doc """
+  The cream card exactly as `test/design/screens/55.html` draws it.
+
+  `Kati.Screens.HomeFa.Sample.inbox/0` itself, so no string of the board lives
+  in two places. Stand-in data, marked as such, and — since this round —
+  **unreachable from a render**: it is what
+  `Kati.ScreenDesignLiteralTest.drawn_state/0` installs into `:hero` to compare
+  this page with its board, and `hero_summary/0` is what a device answers with.
+
+  `hero/1` reads four of its five keys and writes the fifth, باز کردن صندوق,
+  itself: a button's label is chrome rather than data — it says the same thing
+  on a device with three episodes and on one with one — and reading it through
+  the Sample was the last thing keeping that module reachable from a render.
+  """
+  @spec drawn_hero() :: map()
+  def drawn_hero, do: Sample.inbox()
+
+  @doc """
+  The three بخش‌ها tiles, minus the sections you turned off.
+
+  Only عادت‌ها is a section here — وعده‌ها and تنظیمات are not things the first
+  run offers to keep, so they are always drawn. The rule this enforces is the
+  design's and `Kati.Screens.Home.tile_rows/0` enforces the same one: a section
+  turned off leaves the home screen, the calendar feed and the shelf together.
+
+  **No meta and no dot.** The drawing's شام ۱۹:۳۰ and ۲ مورد مانده have nothing
+  behind them — see the moduledoc — and a dot means *there is something here*,
+  which is a claim rather than decoration. `drawn_tiles/0` carries both for the
+  board.
+  """
+  @spec tile_rows() :: [map()]
+  def tile_rows do
+    all_tiles()
+    |> Enum.filter(&(is_nil(&1.section) or Kati.Sections.on?(&1.section)))
+  end
+
+  @doc """
+  The three tiles as the board draws them, metas and dots included.
+
+  Built by laying `Kati.Screens.HomeFa.Sample.sections/0`'s two stand-in values
+  over `all_tiles/0` rather than by writing a fresh list, so the icons, the taps
+  and the labels cannot differ between the two branches in a key neither side
+  names — the arrangement `Kati.Screens.Season.drawn_season/0` uses for the same
+  reason. Unreachable from a render, like every other `drawn_*` here.
+  """
+  @spec drawn_tiles() :: [map()]
+  def drawn_tiles do
+    drawn = Map.new(Sample.sections(), &{&1.icon, &1})
+
+    Enum.map(all_tiles(), fn tile ->
+      %{meta: meta, dot: dot} = Map.fetch!(drawn, tile.icon)
+      %{tile | meta: meta, dot: dot}
+    end)
+  end
+
+  # وعده‌ها and تنظیمات open the Persian screens; عادت‌ها opens nothing.
+  #
+  # Screen 55 draws all three tiles and, before `Kati.MealsRoutesTest`, none of
+  # them carried a tap — three correct destinations behind three tiles that drew
+  # perfectly and did nothing.
+  #
+  # عادت‌ها stays inert deliberately. There is no Persian habits screen in the
+  # 62, and pointing it at `Kati.Screens.Habits` is precisely the bug fixed in
+  # the آمار tab: one tap and the reader is in English, LTR, with no way back.
+  # An inert tile is visibly unfinished; a tile that changes the app's language
+  # is not.
+  defp all_tiles do
+    [
+      %{section: nil, icon: "restaurant", label: "وعده‌ها", meta: nil, dot: nil, tag: :open_meals},
+      %{section: "habits", icon: "bolt", label: "عادت‌ها", meta: nil, dot: nil, tag: nil},
+      %{section: nil, icon: "tune", label: "تنظیمات", meta: nil, dot: nil, tag: :open_settings}
+    ]
   end
 
   @doc false
@@ -220,6 +391,19 @@ defmodule Kati.Screens.HomeFa do
     """
   end
 
+  @doc """
+  تازه‌های این هفته: its eyebrow and its cream card, or nothing at all.
+
+  The eyebrow goes with the card rather than staying in `content/1`, for
+  `Kati.Screens.Home.new_this_week/1`'s reason: a section label over an omitted
+  section is a heading for nothing.
+  """
+  @spec new_this_week(map() | nil) :: map() | [map()]
+  def new_this_week(nil), do: ~MOB"<Spacer size={0} />"
+
+  def new_this_week(summary),
+    do: [Fa.eyebrow("تازه‌های این هفته"), Kati.Screens.HomeFa.hero(summary)]
+
   @doc false
   def hero(inbox) do
     tap = {self(), :open_inbox}
@@ -244,17 +428,9 @@ defmodule Kati.Screens.HomeFa do
                 line_height={1.45}
                 text_color={:on_surface}
               />
-              <Spacer size={8} />
-              <Text
-                text={inbox.line}
-                font_family="fa"
-                text_size={12.5}
-                line_height={1.6}
-                text_color={Palette.cream_sub()}
-              />
+              {Kati.Screens.HomeFa.hero_line(inbox.line)}
             </Column>
-            <Spacer size={14} />
-            {Kati.Screens.HomeFa.poster_stack(inbox.seeds)}
+            {Kati.Screens.HomeFa.hero_posters(inbox.seeds)}
           </Row>
           <Spacer size={17} />
           <Row align="center">
@@ -268,7 +444,7 @@ defmodule Kati.Screens.HomeFa do
               on_tap={tap}
             >
               <Text
-                text={inbox.action}
+                text="باز کردن صندوق"
                 font_family="fa"
                 font_weight="semibold"
                 text_size={13}
@@ -278,14 +454,7 @@ defmodule Kati.Screens.HomeFa do
               <Spacer size={7} />
               {UI.symbol("arrow_back", size: 17, color: Palette.on_ink())}
             </Row>
-            <Spacer size={10} />
-            <Text
-              text={inbox.checked}
-              font_family="fa"
-              text_size={11}
-              text_color={Palette.cream_meta()}
-              max_lines={1}
-            />
+            {Kati.Screens.HomeFa.hero_checked(inbox.checked)}
           </Row>
         </Column>
       </Box>
@@ -294,7 +463,65 @@ defmodule Kati.Screens.HomeFa do
     """
   end
 
-  # 46*3 - 16*2 = 106 wide, whichever way the page reads.
+  # The drawing's second line — availability, which screen 96 says needs a
+  # subscribed service to count down from and no column holds. Drawn when
+  # `drawn_hero/0` puts it back and omitted on every device.
+  @doc false
+  def hero_line(nil), do: ~MOB"<Spacer size={0} />"
+
+  def hero_line(text) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={8} />
+      <Text
+        text={text}
+        font_family="fa"
+        text_size={12.5}
+        line_height={1.6}
+        text_color={Palette.cream_sub()}
+      />
+    </Column>
+    """
+  end
+
+  # ۱۸:۰۲ — when the watcher last swept, which nothing records. The 10pt gutter
+  # goes with it rather than leaving a hole beside the button.
+  @doc false
+  def hero_checked(nil), do: ~MOB"<Spacer size={0} />"
+
+  def hero_checked(text) do
+    ~MOB"""
+    <Row align="center">
+      <Spacer size={10} />
+      <Text
+        text={text}
+        font_family="fa"
+        text_size={11}
+        text_color={Palette.cream_meta()}
+        max_lines={1}
+      />
+    </Row>
+    """
+  end
+
+  # The 14pt gutter belongs to the stack, so a card whose posters were all
+  # evicted closes up rather than leaving a hole where three of them were.
+  @doc false
+  def hero_posters([]), do: ~MOB"<Spacer size={0} />"
+
+  def hero_posters(seeds) do
+    ~MOB"""
+    <Row align="top">
+      <Spacer size={14} />
+      {Kati.Screens.HomeFa.poster_stack(seeds)}
+    </Row>
+    """
+  end
+
+  # 46*3 - 16*2 = 106 wide, whichever way the page reads — written as the
+  # arithmetic rather than as 106, for `Kati.Screens.Home.poster_stack/1`'s
+  # reason: a card announcing one episode draws one 46-wide poster instead of
+  # two thirds of an empty box. Three seeds still measure the drawing's 106.
   #
   # `align="center"` on the poster is load-bearing: `border_width` paints the
   # 2pt frame over the box's own edge without insetting its child, and a Box
@@ -303,8 +530,10 @@ defmodule Kati.Screens.HomeFa do
   # one. The drawing's frame is 2pt on all four sides.
   @doc false
   def poster_stack(seeds) do
+    width = 46 + 30 * (length(seeds) - 1)
+
     ~MOB"""
-    <Box width={106} height={64}>
+    <Box width={width} height={64}>
       {seeds |> Enum.with_index() |> Enum.map(fn {seed, i} -> Kati.Screens.HomeFa.poster(seed, i) end)}
     </Box>
     """
@@ -341,20 +570,51 @@ defmodule Kati.Screens.HomeFa do
     """
   end
 
-  @doc false
-  def continue do
-    [first, second] = Sample.continue()
+  @doc """
+  ادامه تماشا: its eyebrow and its cards, or nothing at all.
 
+  **Omitted rather than emptied.** No artboard draws an empty ادامه تماشا band
+  — 55 draws two cards and nothing in 55-62 draws the state where there are none
+  — and screen 96 states what that leaves: *"never render a plausible-looking
+  zero"*. Two cards with no titles behind them are that zero. Screen 57's own
+  emptiness is not the substitute either: it is the کتابخانه's, and a second copy
+  of it under this eyebrow would be the drift these mirrors exist to avoid.
+  """
+  @spec continue_watching([map()]) :: map() | [map()]
+  def continue_watching([]), do: ~MOB"<Spacer size={0} />"
+
+  def continue_watching(rows),
+    do: [Fa.eyebrow("ادامه تماشا"), Kati.Screens.HomeFa.continue(rows)]
+
+  @doc false
+  def continue(rows) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.HomeFa.watch_card(first)}
-        <Spacer size={13} />
-        {Kati.Screens.HomeFa.watch_card(second)}
+        {Kati.Screens.HomeFa.cards_in_row(rows)}
       </Row>
       <Spacer size={26} />
     </Column>
     """
+  end
+
+  # One title in progress is an ordinary state and the board draws no picture of
+  # it. A lone `weight: 1.0` card would stretch the full width — a card twice the
+  # drawn size — so the empty half of the row is held open and nothing is drawn
+  # into it. `Kati.Screens.Home.cards_in_row/1`, mirrored.
+  @doc false
+  def cards_in_row([row]) do
+    [
+      Kati.Screens.HomeFa.watch_card(row),
+      ~MOB"<Spacer size={13} />",
+      ~MOB"<Spacer weight={1.0} />"
+    ]
+  end
+
+  def cards_in_row(rows) do
+    rows
+    |> Enum.map(&Kati.Screens.HomeFa.watch_card/1)
+    |> Enum.intersperse(~MOB"<Spacer size={13} />")
   end
 
   @doc """
@@ -397,7 +657,7 @@ defmodule Kati.Screens.HomeFa do
   full one. Today's samples are `0.62` and `0.24`.
   """
   def watch_card(item) do
-    progress = item.progress
+    progress = item.progress || 0.0
 
     bar =
       MishkaProgress.progress(
@@ -432,19 +692,29 @@ defmodule Kati.Screens.HomeFa do
             text_color={:on_surface}
             max_lines={1}
           />
-          <Spacer size={3} />
-          <Text
-            text={item.meta}
-            font_family="fa"
-            text_size={11}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
+          {Kati.Screens.HomeFa.watch_meta(item.meta)}
           <Spacer size={10} />
           {bar}
         </Column>
       </Box>
     </Box>
+    """
+  end
+
+  # فصل ۲ · قسمت ۶ is the drawing's, and nothing writes either half of it:
+  # `Kati.Media.TrackedTitle` says of `progress_seconds` that "nothing writes it
+  # yet", and the same is true of `progress_season` and `progress_episode`. A
+  # real card carries the progress it does know as the bar and says nothing it
+  # cannot source.
+  @doc false
+  def watch_meta(nil), do: ~MOB"<Spacer size={0} />"
+
+  def watch_meta(meta) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      <Text text={meta} font_family="fa" text_size={11} text_color={Palette.muted()} max_lines={1} />
+    </Column>
     """
   end
 
@@ -463,30 +733,14 @@ defmodule Kati.Screens.HomeFa do
     end
   end
 
-  # وعده‌ها and تنظیمات open the Persian screens; عادت‌ها opens nothing.
-  #
-  # Screen 55 draws all three tiles and, until now, none of them carried a tap
-  # — the same defect `Kati.MealsRoutesTest` was written for, where three
-  # correct destinations sat behind three tiles that drew perfectly and did
-  # nothing. The Persian tiles had no destinations at all.
-  #
-  # عادت‌ها stays inert deliberately. There is no Persian habits screen in the
-  # 62, and pointing it at `Kati.Screens.Habits` is precisely the bug fixed in
-  # the آمار tab: one tap and the reader is in English, LTR, with no way back.
-  # An inert tile is visibly unfinished; a tile that changes the app's language
-  # is not.
   @doc false
-  def sections do
-    [meals, habits, settings] = Sample.sections()
-
+  def sections(tiles) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.HomeFa.tile(meals, :open_meals)}
-        <Spacer size={9} />
-        {Kati.Screens.HomeFa.tile(habits, nil)}
-        <Spacer size={9} />
-        {Kati.Screens.HomeFa.tile(settings, :open_settings)}
+        {tiles
+         |> Enum.map(fn tile -> Kati.Screens.HomeFa.tile(tile, tile.tag) end)
+         |> Enum.intersperse(~MOB"<Spacer size={9} />")}
       </Row>
       <Spacer size={26} />
     </Column>
@@ -568,17 +822,40 @@ defmodule Kati.Screens.HomeFa do
   end
 
   @doc """
-  The rest of the evening: the device's own calendar, or the drawing's.
+  The rest of the day: the device's own calendar, or `empty_day/0`.
 
-  The `[]` clause is the substitution itself, in the same place
-  `Kati.Screens.Home.rest_of_today/1` puts it — one clause, so a change that
-  deletes the fallback deletes something a test can point at.
+  The `[]` clause used to be the substitution — `Sample.rest_of_today/0`, in the
+  same place `Kati.Screens.Home.rest_of_today/1` used to put its own — and it is
+  how a Persian user whose calendar Kati has never been shown came to be told,
+  in the drawing's own words, to ring their mother at ۲۱:۳۰. An empty day is not
+  missing data; it is a day with nothing on it.
 
   `fa_row/1` runs over both kinds of row and is a no-op on the drawn ones,
   which is the property that keeps `timeline_row/2` unable to tell them apart.
   """
   @spec rest_of_today([map()]) :: map()
-  def rest_of_today([]), do: rest_of_today(Sample.rest_of_today())
+  def rest_of_today([]) do
+    ~MOB"""
+    <Box
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={15}
+      padding_right={15}
+      padding_top={20}
+      padding_bottom={20}
+    >
+      <Text
+        text={Kati.Screens.HomeFa.empty_day()}
+        font_family="fa"
+        text_size={12.5}
+        line_height={1.7}
+        text_color={Palette.sub()}
+      />
+    </Box>
+    """
+  end
 
   def rest_of_today(rows) do
     rows = Enum.map(rows, &Kati.Screens.HomeFa.fa_row/1)
@@ -603,6 +880,45 @@ defmodule Kati.Screens.HomeFa do
     </Box>
     """
   end
+
+  @doc """
+  What باقی امروز says on a day with nothing on it.
+
+  **The one string on this screen that no artboard contains, and it is a
+  function rather than a literal so that a test can point at it.** Screen 139
+  words this state in English — *Nothing scheduled — add anything with +* — and
+  the design draws no Persian mirror of 139 at all, so there is nothing to
+  transcribe. The three ways out and why this is the one taken:
+
+    * **Omit the card.** Cheapest, and it drops the one thing 139 insists on:
+      that the calendar and quick-add are section-agnostic and *stay live* with
+      nothing else set up. It would also leave the باقی امروز eyebrow — which
+      board 55 draws — standing over nothing, or take that with it and quietly
+      give the Persian Home less than the English one.
+    * **Translate screen 139.** Refused. 139 is a whole board and mirroring it
+      is inventing an artboard, which `Kati.Onboarding.screen_for_step/1`
+      refuses in as many words for the first-run sequence — *"a translation
+      invented here"* is not a substitute for a drawing that does not exist.
+    * **Write the sentence.** `Kati.Screens.SettingsFa.backup_line/1` is the
+      precedent and its doc states the rule this follows: *only the sentence is
+      this file's, because only the sentence is Persian*.
+      `Kati.Screens.DataSourcesFa`'s هنوز چیزی ذخیره نشده is the same shape one
+      screen over. What is borrowed from 139 is its *structure* — say what is
+      missing, then name the one control that fixes it — and the control it
+      names is real: `Kati.Screens.Fa.dock/1` draws the same 64pt `+` this page
+      sits under, and it is wired to `Kati.Screens.AddTitle`.
+
+  Every word is a word the Persian screens already use — امروز is this page's
+  own باقی امروز, and `+` is a glyph rather than a translation — so this
+  introduces no vocabulary either.
+
+  A designer is owed the real thing: a Persian 55 with nothing stored, the
+  mirror of 139. This sentence is what stands there until it is drawn, and it is
+  a smaller debt than the one it replaces, which was a page of films that do not
+  exist.
+  """
+  @spec empty_day() :: String.t()
+  def empty_day, do: "چیزی برای امروز نیست — هر چیزی را با + اضافه کنید"
 
   @doc """
   One timeline row with the parts Kati wrote rendered in Persian.

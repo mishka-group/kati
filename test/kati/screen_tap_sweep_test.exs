@@ -192,16 +192,31 @@ defmodule Kati.ScreenTapSweepTest do
   # full shelf either. `Kati.ScreenCalendarEmptyStateTest` asserts the tag is
   # absent, which is the claim that keeps this struck off.
   #
+  # 28's `inbox` and 55's `open_inbox` are off the list on the round the two
+  # Home mirrors stopped fabricating their spine, and they are off for the same
+  # reason 03 is: this sweep renders against the empty store, and each page's
+  # `New this week` hero — which carried the second copy of the tag, the first
+  # being the notification disc in the header — is now **omitted** when there is
+  # nothing to announce rather than drawn out of a Sample module. 55 leaves the
+  # map entirely; 28 keeps `root_calendar`, which is its header disc and its
+  # dock tab and is drawn on every branch.
+  #
+  # Like 03's, this debt is unpaid rather than fixed: a device that follows one
+  # show draws the hero again and the two nodes collide again. Unlike 03's it is
+  # worth naming where the fix goes — the header disc is the one with a second
+  # meaning available (`Kati.Screens.InboxNotifications`, which is what screen
+  # 01's own bell opens), and the hero's button is the one that means *the
+  # release inbox*.
+  #
   # This list may only SHRINK. The test enforces both directions — a new
   # collision fails it, and so does an entry here that no longer collides.
   @known_collisions %{
     "20" => ["open_book"],
     "21" => ["open_album", "open_artist"],
-    "28" => ["inbox", "root_calendar"],
+    "28" => ["root_calendar"],
     "38" => ["finish"],
     "42" => ["open_meals", "open_retired"],
     "52" => ["density"],
-    "55" => ["open_inbox"],
     "57" => ["open_series"],
     "77" => ["open_album"],
     "86" => ["repeat_query", "try_suggestion"],

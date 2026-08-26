@@ -46,12 +46,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       Library draws the *Empty — nothing added yet* band of screen 27, which is
       a reference sheet of four specimens and is therefore read a band at a time
       (`Kati.DesignLiterals.band/3`).
-    * **the design draws no empty board for it** — `@no_empty_board`. Screens 02
-      and 07: no artboard in the 152 draws a Schedule with nothing on it or a
-      year with nothing counted. Their cards are built out of the boards that
-      *do* word those states, so what is compared is the QUOTATION —
-      `@quoted` — plus the shape floor `@undrawn` uses. Their own suites,
-      `Kati.ScreenCalendarEmptyStateTest` and `Kati.ScreenStatsEmptyTest`, hold
+    * **the design draws no empty board for it** — `@no_empty_board`. Screens
+      02, 07, 28 and 55: no artboard in the 152 draws a Schedule with nothing on
+      it, a year with nothing counted, a **dark** Home with nothing kept, or a
+      **Persian** one. Their cards are built out of the boards that *do* word
+      those states, so what is compared is the QUOTATION — `@quoted` — plus the
+      shape floor `@undrawn` uses. Their own suites,
+      `Kati.ScreenCalendarEmptyStateTest`, `Kati.ScreenStatsEmptyTest`,
+      `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomeFaEmptyStateTest`, hold
       the rest and are named in the entries.
 
   The populated half of all four is not lost with the fallback:
@@ -444,7 +446,40 @@ defmodule Kati.ScreenEmptyDatabaseTest do
      "no board in the 152 draws screen 07 with no history. `Kati.Screens.Stats`'s moduledoc " <>
        "names the four that decided its card — 101's *Not enough data*, 27's geometry, 123's " <>
        "rule for a statistic with nothing under it, and 110's refusal to draw a chart that " <>
-       "would mean nothing", Kati.ScreenStatsEmptyTest}
+       "would mean nothing", Kati.ScreenStatsEmptyTest},
+    # 28 and 55 are screen 01 in dark and in Persian, and 139 — screen 01 with
+    # nothing kept — has neither a dark mirror nor a Persian one anywhere in the
+    # 152. So neither page branches the way 01 branches: each is its own board
+    # with the stand-in data gone, which is a real page in both cases — header,
+    # search, the calendar band, the dock and the FAB, plus 55's three section
+    # tiles. That is deliberately LESS than 01 does and it is the honest less:
+    # the alternative is a Persian 139 nobody drew.
+    #
+    # The asymmetry between the two is worth stating rather than smoothing over.
+    # 28's empty sentence is 139's own, verbatim, because 139 is English and 28
+    # is English — the `@quoted` pair below is the same pair screen 02 carries.
+    # 55's is not quotable from any board, because no board says it in Persian;
+    # `Kati.Screens.HomeFa.empty_day/0` is where that sentence lives and where
+    # the three ways out are argued. What constrains 55 here instead is board
+    # 55's own chrome, which the empty page must still draw in full — see
+    # `@quoted`.
+    {"28",
+     "no board draws a dark Home with nothing kept: 139 is screen 01's empty state in light " <>
+       "and the design has no dark mirror of it. 28's *Rest of today* takes 139's own " <>
+       "sentence, which is what the pair in @quoted holds; its two announcing bands are " <>
+       "omitted whole, on screen 96's rule. `Kati.Screens.HomeDark`'s moduledoc argues both, " <>
+       "and 28 is a gallery board rather than a root — `Kati.AppReachabilityTest` files it " <>
+       "as a colourway of 01, reached by changing the theme rather than by navigating",
+     Kati.ScreenDarkWidgetsTest},
+    {"55",
+     "no board draws a Persian Home with nothing kept, and this is the one screen here where " <>
+       "that matters to a real user: `Kati.Onboarding.shell_root/1` answers " <>
+       "`Kati.Screens.HomeFa` for `:fa`, so 55 is the page a Persian install opens on. Its " <>
+       "two announcing bands are omitted whole and its section tiles keep their labels and " <>
+       "lose their invented counts, on screen 96's rule; its empty day says " <>
+       "`Kati.Screens.HomeFa.empty_day/0`, the one Persian sentence in the app that no " <>
+       "artboard contains, written on `Kati.Screens.SettingsFa.backup_line/1`'s precedent " <>
+       "and argued at that function", Kati.ScreenHomeFaEmptyStateTest}
   ]
 
   # `{screen number, the board it is quoted from, the line}`.
@@ -469,10 +504,37 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # `:unknown`. `Kati.ScreenCalendarEmptyStateTest`'s *the refusal states what
   # Kati wanted it for* reaches it through `empty_reason/2` instead, which is
   # pure for exactly that reason.
+  #
+  # ## Screen 55 quotes its own board, and that is a different claim
+  #
+  # 02, 07 and 28 all quote a board that words the state they are in. 55 cannot:
+  # the state is *a Persian Home with nothing kept*, no board in the 152 says
+  # anything about it, and the one sentence it needs —
+  # `Kati.Screens.HomeFa.empty_day/0` — is therefore not a quotation at all. It
+  # is held by `Kati.ScreenHomeFaEmptyStateTest` instead, at both ends: that the
+  # screen draws it on an empty day, and that a real event replaces it.
+  #
+  # What is quotable is the other half, and it is the half this list can check:
+  # **55 with nothing stored is board 55 with its stand-in data gone**, so every
+  # line of that board which is NOT stand-in data has to survive. The six below
+  # are exactly those lines — the search placeholder, the two eyebrows whose
+  # bands remain, and the three section labels — and the entries assert both
+  # ends the same way every other entry here does: board 55 still contains the
+  # line, and the screen still renders it against an empty database. An empty
+  # Persian Home that quietly lost its section tiles, or its calendar band,
+  # fails here.
   @quoted [
     {"02", "139", "Nothing scheduled"},
     {"02", "139", "add anything with +"},
-    {"07", "101", "Not much to show yet"}
+    {"07", "101", "Not much to show yet"},
+    {"28", "139", "Nothing scheduled"},
+    {"28", "139", "add anything with +"},
+    {"55", "55", "جست‌وجوی فیلم، سریال، رویداد…"},
+    {"55", "55", "بخش‌ها"},
+    {"55", "55", "وعده‌ها"},
+    {"55", "55", "عادت‌ها"},
+    {"55", "55", "تنظیمات"},
+    {"55", "55", "باقی امروز"}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -1222,15 +1284,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # list would pass while one of the frozen parts quietly changed.
       {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
        &Kati.Screens.Season.drawn_season/0},
-      # 28 is 01's shape and is gated in the same place for the same reason: the
-      # dark Home mounts the timeline raw and substitutes the drawing at
-      # `rest_of_today/1`'s `[]` clause, so the comparison is made where the
-      # substitution is rather than at a restatement of it.
-      {"28", Kati.Screens.HomeDark,
-       fn -> Kati.Screens.HomeDark.rest_of_today(Kati.Calendars.Today.rows()) end,
-       fn ->
-         Kati.Screens.HomeDark.rest_of_today(Kati.Screens.HomeDark.Sample.rest_of_today())
-       end},
+      # 28 is NOT here any more, and neither is 55. Both used to compare
+      # `rest_of_today(Kati.Calendars.Today.rows())` with
+      # `rest_of_today(Sample.rest_of_today())` — the assertion that a device
+      # with nothing mirrored drew the drawing's 20:00 and 21:30. That is the
+      # substitution #91 is about, one colourway and one script over, and their
+      # gates are in `empties/0` now, one per band.
       # 29 answers with all four widgets at once, because it falls back one
       # widget at a time: three that still drew the drawing would hide a fourth
       # that had stopped being able to.
@@ -1438,15 +1497,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.Nutrition.drawn_figures/0},
       {"48", Kati.Screens.Shopping, fn -> Kati.Screens.Shopping.list(today) end,
        &Kati.Meals.SampleShopping.list/0},
-      # 55 is 01's shape, and gated in the same place for the same reason: the
-      # Persian Home mounts the timeline raw and substitutes the drawing at
-      # `rest_of_today/1`'s `[]` clause, so the comparison is made where the
-      # substitution is rather than at a restatement of it.
-      {"55", Kati.Screens.HomeFa,
-       fn -> Kati.Screens.HomeFa.rest_of_today(Kati.Calendars.Today.rows()) end,
-       fn ->
-         Kati.Screens.HomeFa.rest_of_today(Kati.Screens.HomeFa.Sample.rest_of_today())
-       end},
       # 56 answers with both halves of its day at once — the ordinary rows and
       # the evening's feature card — because only the drawn day has the second,
       # and a gate that looked at one half would pass while the other emptied.
@@ -1559,7 +1609,47 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # aimed at a different shelf from the screen that opened it would drop the
       # wrong title.
       {"149", Kati.Screens.DropSheet, &Kati.Screens.Library.titles/0, [],
-       &Kati.Screens.Library.drawn_titles/0}
+       &Kati.Screens.Library.drawn_titles/0},
+      # ── 28 and 55, band by band ───────────────────────────────────────────
+      #
+      # Screen 01's mirrors, gated the way 01 is: one entry per band, because
+      # each band had its own wrong answer and a single gate over either page
+      # would have let the others through. Every `drawn_*` on the right is what
+      # `Kati.ScreenDesignLiteralTest.drawn_state/0` installs to compare the
+      # board against itself, so the pair reads: the board still holds this, and
+      # no device ever answers with it.
+      #
+      # Both pages read through screen 01's own readers rather than through
+      # copies — `Kati.Screens.Home.hero_summary/0` and
+      # `continue_watching_rows/0` — so a mirror cannot come to disagree with
+      # the page it mirrors about how many episodes are out or what is on the
+      # shelf. That is why the `live` half of the hero entries is each screen's
+      # own reshaping function and not 01's: what is being asserted is that the
+      # reshaping passes `nil` through rather than filling a headline in.
+      #
+      # `Kati.Screens.HomeDark.Sample` and `Kati.Screens.HomeFa.Sample` stay
+      # exactly where they are. They are the transcriptions the two boards were
+      # captured from, and the `drawn != empty` half of every pair below is what
+      # stops an emptied Sample turning the first half into two nothings
+      # agreeing.
+      {"28", Kati.Screens.HomeDark, &Kati.Screens.HomeDark.hero_summary/0, nil,
+       &Kati.Screens.HomeDark.drawn_hero/0},
+      {"28", Kati.Screens.HomeDark, &Kati.Screens.Home.continue_watching_rows/0, [],
+       &Kati.Screens.HomeDark.Sample.continue/0},
+      {"28", Kati.Screens.HomeDark, fn -> timeline() end, [],
+       &Kati.Screens.HomeDark.Sample.rest_of_today/0},
+      {"55", Kati.Screens.HomeFa, &Kati.Screens.HomeFa.hero_summary/0, nil,
+       &Kati.Screens.HomeFa.drawn_hero/0},
+      {"55", Kati.Screens.HomeFa, &Kati.Screens.Home.continue_watching_rows/0, [],
+       &Kati.Screens.HomeFa.Sample.continue/0},
+      # The tiles themselves are navigation and are drawn either way; it is the
+      # two metas under them that claimed a dinner and two unfinished habits,
+      # and neither has a resource behind it anywhere. 01 carries the identical
+      # pair one screen over.
+      {"55", Kati.Screens.HomeFa, fn -> Enum.map(Kati.Screens.HomeFa.tile_rows(), & &1.meta) end,
+       [nil, nil, nil], fn -> Enum.map(Kati.Screens.HomeFa.drawn_tiles(), & &1.meta) end},
+      {"55", Kati.Screens.HomeFa, fn -> timeline() end, [],
+       &Kati.Screens.HomeFa.Sample.rest_of_today/0}
     ]
   end
 

@@ -128,17 +128,35 @@ defmodule Kati.Screens.Home do
   reaching across it from Home would be a second opinion about the same day.
   `tile_rows/0` draws the card and its tap, and no meta.
 
-  ### Still not fixed here, and named so it is not mistaken for done
+  ### The two mirrors followed, and what is still owed
 
-  **The Persian home is untouched.** `Kati.Onboarding.shell_root/1` answers
-  `Kati.Screens.HomeFa` for `:fa`, so a fresh install in Persian is still
-  opened on a page of fabricated rows — #91's defect, unfixed, on a root a real
-  user reaches by answering screen 53. It is not fixed here because **the design
-  draws no Persian 139**: 55 is the populated board and nothing in 55-62, 90, 97
-  or 103 draws its empty state, so the only way to ship one is to write Persian
-  copy no artboard contains. That is a drawing to ask for, not a translation to
-  guess at, and the same sentence applies to `Kati.Screens.HomeDark` (28) —
-  which is at least only a gallery board, not a root anyone launches on.
+  This section used to read *the Persian home is untouched*, and it was the
+  largest thing this file left behind. It is not true any more.
+  `Kati.Screens.HomeDark` (28) and `Kati.Screens.HomeFa` (55) are this page in
+  dark and in Persian, and the round after this one gave each of them the split
+  above: one assign per band, screen 01's own readers **called rather than
+  copied** — both take `hero_summary/0` and `continue_watching_rows/0` from here
+  — and each `Sample` left exactly where it is with nothing on a device reaching
+  it.
+
+  55 is the one that mattered. `Kati.Onboarding.shell_root/1` answers
+  `Kati.Screens.HomeFa` for `:fa`, so it is the page a Persian install opens on
+  after screen 53 — the same first launch this file was rewritten for, in the
+  other language, and leaving it was the defect being honest in one language and
+  invented in the other. 28 is a gallery board by comparison:
+  `Kati.Screens.Gallery` pushes it under its own number and neither
+  `Kati.Shell.roots/0` nor `shell_root/1` names it, so no fresh install opens on
+  it.
+
+  **The design still draws no Persian 139, and that debt is unpaid rather than
+  closed.** Nothing in 55-62, 90, 97 or 103 words an empty Persian Home, so 55
+  does not branch the way this page branches: it is board 55 with its stand-in
+  data gone — the two announcing bands omitted eyebrow and all, the section
+  tiles kept and their uncountable metas dropped — over one sentence this app
+  wrote, `Kati.Screens.HomeFa.empty_day/0`, which argues at its own doc why it
+  exists and what a designer is owed instead. 28 needs no such sentence: 139 is
+  English and so is 28, so its empty day takes 139's words verbatim, the way
+  `rest_of_today/1` does here.
 
   **Screen 24's own Watching row still reads a sample.**
   `Kati.Settings.Sample.watching/0` builds its subtitle out of

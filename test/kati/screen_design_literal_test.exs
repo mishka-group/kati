@@ -37,7 +37,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       from `render/1` still contains the string. So does a comment quoting it.
       The tree contains only what was actually mounted.
 
-  ## Four screens have two drawings, and this file owns one of them
+  ## Six screens have two drawings, and this file owns one of them
 
   A screen used to reach its drawing's state just by being mounted: every
   screen that could come up empty answered an empty store with its Sample
@@ -50,7 +50,16 @@ defmodule Kati.ScreenDesignLiteralTest do
   films on a phone that has tracked nothing is the app lying about the one thing
   it exists to hold. Each screen's moduledoc carries that argument.
 
-  So those four have **two** drawings, and the one this file is named after is
+  Screens 28 and 55 joined them on the round after. They are screen 01 in dark
+  and screen 01 in Persian, and their whole reason to exist is to be the same
+  page as 01 in another colourway and another script — so the moment 01's bands
+  became reads, a dark Home still announcing *3 new episodes are waiting* and a
+  Persian Home still drawing ۳ قسمت تازه were the two pages disagreeing with the
+  page they mirror about which half of themselves is real. 55 is the sharper of
+  the two: `Kati.Onboarding.shell_root/1` answers it for `:fa`, so it is the
+  page a Persian user lands on after their first run.
+
+  So those six have **two** drawings, and the one this file is named after is
   the one they draw *once there is something to draw*. `drawn_state/0` is how
   they are put in it; the empty half belongs to `Kati.ScreenEmptyDatabaseTest`,
   which is the only file here that can make the database empty for certain.
@@ -884,6 +893,35 @@ defmodule Kati.ScreenDesignLiteralTest do
        })},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
+      # 28 is screen 01 in dark and its three bands are the same three reads, so
+      # its state is 01's with one entry fewer: board 28 has no Watching row and
+      # no Sections band. `:moment` is deliberately NOT replaced — the date line
+      # and the greeting are pinned to the drawing's evening in `mount/3`
+      # itself, because screen 29 draws the lock screen of that same evening and
+      # the two have to agree; `Kati.Screens.HomeDark`'s moduledoc argues it and
+      # `Kati.ScreenDarkWidgetsTest` holds it. `last check 18:02` used to ride on
+      # that pin and now rides on `drawn_hero/0`, where the fact it stands for —
+      # nothing records when the watcher last swept — can be stated.
+      {"28", Kati.Screens.HomeDark,
+       &Map.merge(&1, %{
+         hero: Kati.Screens.HomeDark.drawn_hero(),
+         continue: Kati.Screens.HomeDark.Sample.continue(),
+         timeline: Kati.Screens.HomeDark.Sample.rest_of_today()
+       })},
+      # 55 is screen 01 in Persian, and its four bands are four reads. Every
+      # value installed here comes out of `Kati.Screens.HomeFa.Sample` — through
+      # `drawn_hero/0` and `drawn_tiles/0`, which are that module reshaped into
+      # what the render takes — so board 55 is still compared against the
+      # transcription it was captured from, node for node. `:moment` stays the
+      # device clock, as it always was: 55's two clock literals are exempted in
+      # `device_values/0` and have been since the screen was built.
+      {"55", Kati.Screens.HomeFa,
+       &Map.merge(&1, %{
+         hero: Kati.Screens.HomeFa.drawn_hero(),
+         continue: Kati.Screens.HomeFa.Sample.continue(),
+         tiles: Kati.Screens.HomeFa.drawn_tiles(),
+         timeline: Kati.Screens.HomeFa.Sample.rest_of_today()
+       })},
       # 07's four assigns are one keyword list out of `figures/0`, and all four
       # are replaced together — a year with a `grid` from somewhere else would be
       # two different years on one card. `range` is the board's own frozen
