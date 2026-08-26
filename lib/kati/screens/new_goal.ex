@@ -23,6 +23,15 @@ defmodule Kati.Screens.NewGoal do
   Because it is a property of the goal rather than a setting about goals. Screen
   104 shows it on the card you are looking at; this sets it on the one you are
   making. Two places, one fact.
+
+  ## A failed save keeps the sheet
+
+  Saving used to pop the screen whatever `Ash.create/2` said, and Goals draws a
+  sample when the table is empty — so a goal that never landed left behind a
+  screen full of goals, and nobody could tell it from one that had. The sheet
+  now stays up on `{:error, _}` and says so, which is also the only way the
+  chips and the target the person just set survive to be tried again. See
+  `Kati.Write`.
   """
 
   use Mob.Screen
@@ -49,7 +58,8 @@ defmodule Kati.Screens.NewGoal do
      |> Mob.Socket.assign(:kind, :films)
      |> Mob.Socket.assign(:target, 120)
      |> Mob.Socket.assign(:period, :period_year)
-     |> Mob.Socket.assign(:repeat, true)}
+     |> Mob.Socket.assign(:repeat, true)
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   def render(assigns),
@@ -69,6 +79,7 @@ defmodule Kati.Screens.NewGoal do
       <Spacer size={16} />
       {Kati.Screens.NewGoal.repeat_row(assigns.repeat, assigns.period)}
       <Spacer size={16} />
+      {Kati.Screens.NewGoal.save_notice(assigns.save_error)}
       {Sheet.commit("Save goal", :save)}
     </Column>
     """
@@ -192,6 +203,32 @@ defmodule Kati.Screens.NewGoal do
   def restart_line(:period_custom), do: "Restarts the day after it ends"
   def restart_line(_year), do: "Restarts 1 January"
 
+  @doc """
+  What a failed save says, drawn where the eye already is.
+
+  Above the commit button rather than below it: the button is the last thing in
+  the sheet, and a notice under it would land in the 34pt bottom padding or off
+  the edge on the phones this sheet already fills. Above it, the sentence is
+  between the person and the control they just pressed.
+
+  `nil` draws a zero Spacer instead of nothing, so the healthy sheet and the
+  failed one have the same node shape and the field above does not shift when
+  the notice appears.
+  """
+  @spec save_notice(String.t() | nil) :: map()
+  def save_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def save_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text text={@message} text_size={13} text_color={Palette.red()} />
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
   def handle_info({:tap, :step_up}, socket),
@@ -208,8 +245,16 @@ defmodule Kati.Screens.NewGoal do
       do: {:noreply, Mob.Socket.assign(socket, :period, period)}
 
   def handle_info({:tap, :save}, socket) do
-    save_goal(socket.assigns)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    case save_goal(socket.assigns) do
+      {:ok, _goal} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.pop_screen()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}
+    end
   end
 
   def handle_info({:tap, tag}, socket) do
@@ -229,13 +274,20 @@ defmodule Kati.Screens.NewGoal do
   The window is stored rather than derived at read time, for the reason
   `Kati.Goals.Goal`'s moduledoc gives: a goal set in March runs to 31 December,
   and deriving the window from the period would silently move its deadline.
+
+  Returns `Ash.create/2`'s own answer rather than `:ok`. There is no `rescue`
+  here because there was nothing to rescue: `Ash.create/2` reports a rejected
+  changeset as `{:error, _}` and does not raise, so the old rescue caught
+  nothing while the `:ok` beneath it threw the failure away. `Kati.Write.note/2`
+  puts the reason somewhere a device failure can still be read afterwards.
   """
-  @spec save_goal(map()) :: :ok
+  @spec save_goal(map()) :: {:ok, struct()} | {:error, term()}
   def save_goal(assigns) do
     today = Kati.Time.today()
     {starts_on, ends_on} = Kati.Screens.NewGoal.window(assigns.period, today)
 
-    Ash.create(Goal, %{
+    Goal
+    |> Ash.create(%{
       kind: assigns.kind,
       target: assigns.target,
       period: Kati.Screens.NewGoal.period_value(assigns.period),
@@ -243,10 +295,7 @@ defmodule Kati.Screens.NewGoal do
       ends_on: ends_on,
       repeat: assigns.repeat
     })
-
-    :ok
-  rescue
-    _error -> :ok
+    |> Kati.Write.note("new goal")
   end
 
   @doc "The dates a period covers, starting from today."

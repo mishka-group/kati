@@ -42,6 +42,20 @@ defmodule Kati.Screens.LogListen do
   then the per-track counts. A failure between them leaves a sitting that
   happened rather than counts with nothing behind them — the same ordering
   argument `Kati.Screens.LogProgress.save_session/1` makes.
+
+  ## And what it says when it does not touch them
+
+  `save_listen/1` used to end `:ok` and rescue to `:ok`, so this sheet closed on
+  a failed write exactly as it closed on a good one. That is worse here than on
+  most screens: the tracklist redraws from `Kati.Screens.AlbumDetail`, which
+  falls back to the sample, so a play that never landed still leaves a screen
+  full of plausible tracks. Nothing on the way back tells you which of the two
+  happened.
+
+  It returns `{:ok, listen}` or `{:error, reason}` now, per `Kati.Write`, and
+  the sheet stays open on the error with the reason drawn over the commit
+  button. Staying open is the point: the ticks you set are still ticked, so
+  trying again is one tap rather than a reconstruction from memory.
   """
 
   use Mob.Screen
@@ -68,7 +82,8 @@ defmodule Kati.Screens.LogListen do
      |> Mob.Socket.assign(:album, album())
      |> Mob.Socket.assign(:tracks, Kati.Screens.AlbumDetail.tracks())
      |> Mob.Socket.assign(:scope, :scope_selected)
-     |> Mob.Socket.assign(:ticked, counted_this_month())}
+     |> Mob.Socket.assign(:ticked, counted_this_month())
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   @doc """
@@ -99,6 +114,7 @@ defmodule Kati.Screens.LogListen do
       <Spacer size={14} />
       {Kati.Screens.LogListen.insight(assigns)}
       <Spacer size={14} />
+      {Kati.Screens.LogListen.save_notice(assigns)}
       {Sheet.commit("Save listen", :save)}
     </Column>
     """
@@ -364,6 +380,40 @@ defmodule Kati.Screens.LogListen do
   end
 
   @doc """
+  The line that says the save did not land, or nothing at all.
+
+  Above the commit button rather than under the title, because it is the answer
+  to the button and a person's eyes are already there when it appears. Red type
+  on the sheet's own paper and not a pill: `Kati.UI.SettingsList.note/2` is the
+  notice shape this sheet already uses, and it is bordered, `info`-led and
+  sized for a paragraph — a failure that borrowed it would read as one more
+  standing explanation like *ticked rows are already counted*, which is exactly
+  the wrong register for something that just went wrong once.
+
+  It carries its own trailing `Spacer`, so a sheet with nothing to report is
+  spaced to the pixel it was before.
+  """
+  @spec save_notice(map()) :: map() | []
+  def save_notice(%{save_error: message}) when is_binary(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.45}
+        text_color={Palette.red()}
+      />
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  def save_notice(_assigns), do: []
+
+  @doc """
   The tracks this album has already been played on this calendar month.
 
   What the sheet opens with ticked, and what makes the `info` line under the
@@ -486,8 +536,16 @@ defmodule Kati.Screens.LogListen do
       do: {:noreply, Mob.Socket.assign(socket, :scope, scope)}
 
   def handle_info({:tap, :save}, socket) do
-    save_listen(socket.assigns)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    case save_listen(socket.assigns) do
+      {:ok, _listen} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.pop_screen()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}
+    end
   end
 
   def handle_info({:tap, tag}, socket) do
@@ -513,29 +571,57 @@ defmodule Kati.Screens.LogListen do
   @doc """
   Write the listen, then the per-track counts, then the album's last-played.
 
-  Three writes in that order and all of them best-effort, for the reason the
-  moduledoc gives: a sitting that happened is a better partial state than counts
-  with nothing behind them, and a sheet that refuses to close because the disk
-  is full is a worse failure than a lost play.
+  Three writes in the moduledoc's order, and the **first one is the answer**:
+  this returns `{:ok, listen}` or `{:error, reason}` and never a bare `:ok`.
+  The old version ended `:ok` with a `rescue _error -> :ok` under it, which was
+  wrong twice over — `Ash.create/2` does not raise, so the rescue caught almost
+  nothing, and the `{:error, changeset}` it *does* return was dropped by the
+  line above. The rescue is gone with it.
+
+  ## Why the two writes after it stay best-effort
+
+  The earlier argument still holds, and only for the writes it was made about:
+  a sitting that happened with its counts missing is a partial state a person
+  can see and fix, where counts with no listen behind them is one they cannot.
+  So a failed bump or a failed `last_played_on` is logged and the save still
+  reports what it has — the play is recorded. What changed is that a failed
+  **listen** no longer reports that, because then there is no play.
+
+  An empty shelf answers `:nothing_to_save` rather than a silent `:ok`. There
+  is a sample album on this sheet whichever way that goes, so "nothing was
+  shelved" is precisely the case a person cannot tell from the drawing.
   """
-  @spec save_listen(map()) :: :ok
+  @spec save_listen(map()) :: {:ok, struct()} | {:error, term()}
   def save_listen(assigns) do
-    with %Album{} = album <- shelved() do
-      Ash.create(Listen, %{
-        album_id: album.id,
-        listened_on: Kati.Time.today(),
-        tracks: Kati.Screens.LogListen.chosen_count(assigns),
-        minutes: Kati.Screens.LogListen.chosen_minutes(assigns),
-        scope: scope_value(assigns.scope)
-      })
-
-      bump_tracks(album, assigns)
-      Ash.update(album, %{last_played_on: Kati.Time.today()})
+    case shelved() do
+      %Album{} = album -> save_against(album, assigns)
+      nil -> Kati.Write.note({:error, :nothing_to_save}, "log listen")
     end
+  end
 
-    :ok
-  rescue
-    _error -> :ok
+  defp save_against(%Album{} = album, assigns) do
+    Listen
+    |> Ash.create(%{
+      album_id: album.id,
+      listened_on: Kati.Time.today(),
+      tracks: Kati.Screens.LogListen.chosen_count(assigns),
+      minutes: Kati.Screens.LogListen.chosen_minutes(assigns),
+      scope: scope_value(assigns.scope)
+    })
+    |> Kati.Write.note("log listen")
+    |> case do
+      {:ok, listen} ->
+        bump_tracks(album, assigns)
+
+        album
+        |> Ash.update(%{last_played_on: Kati.Time.today()})
+        |> Kati.Write.note("log listen last played")
+
+        {:ok, listen}
+
+      {:error, _reason} = error ->
+        error
+    end
   end
 
   defp scope_value(:scope_selected), do: :selected
@@ -555,7 +641,9 @@ defmodule Kati.Screens.LogListen do
     |> Kati.Screens.AlbumDetail.tracks_of()
     |> Enum.filter(&MapSet.member?(chosen, &1.position))
     |> Enum.each(fn %Track{} = track ->
-      Ash.update(track, %{plays: track.plays + 1, last_played_on: today})
+      track
+      |> Ash.update(%{plays: track.plays + 1, last_played_on: today})
+      |> Kati.Write.note("log listen track count")
     end)
   end
 end

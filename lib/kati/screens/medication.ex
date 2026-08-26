@@ -30,6 +30,23 @@ defmodule Kati.Screens.Medication do
   Because its three actions — Taken, Skip, Snooze — are the whole reason
   arming it is worth anything, and a user deciding whether to turn it on needs
   to see them before they do.
+
+  ## A dose that did not record says so
+
+  `Taken` and `Skip` used to end in an `Ash.update/2` whose result went
+  nowhere, under a `rescue` that caught nothing — `Ash.update/2` returns
+  `{:error, changeset}` rather than raising. The page then re-read the day and
+  redrew either way, so a decision that landed and one that vanished dismissed
+  to identical pixels. On a fresh install they still would: this page draws the
+  drawing's four doses whatever the store holds, and none of the four is a row
+  anything can be written against.
+
+  Which is the case that matters most here. A medication page whose caption
+  already refuses to promise a reminder must not silently pretend to have
+  recorded a dose — of everything in this app, *did I take it* is the question
+  a wrong answer costs the most. So `save_dose/1` hands back the tuple,
+  `save_notice/1` draws the failure above the two buttons, and the list is
+  re-read only when there is something new to read.
   """
 
   use Kati.Screens.Pushed, back: "Health"
@@ -40,11 +57,13 @@ defmodule Kati.Screens.Medication do
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
+  alias Kati.Write
 
   def load(socket) do
     socket
     |> Mob.Socket.assign(:doses, doses())
     |> Mob.Socket.assign(:schedules, schedules())
+    |> Mob.Socket.assign(:save_error, nil)
   end
 
   @doc "Today's doses: what is stored, or the drawing's four."
@@ -120,7 +139,7 @@ defmodule Kati.Screens.Medication do
         {Kati.Screens.Goals.chrome()}
         {SettingsList.title("Medication", Kati.Screens.Medication.subtitle(assigns.doses))}
         {UI.eyebrow("Today")}
-        {Kati.Screens.Medication.today(assigns.doses)}
+        {Kati.Screens.Medication.today(assigns.doses, assigns[:save_error])}
         {UI.eyebrow("Schedules")}
         {Kati.Screens.Medication.schedule_group(assigns.schedules)}
         {UI.eyebrow("The reminder")}
@@ -156,18 +175,25 @@ defmodule Kati.Screens.Medication do
   A taken dose sits on the settled fill with a green tick; a missed one keeps
   card white and takes a close glyph, so *missed* reads as something that
   happened rather than as an error.
+
+  Takes the failed-write message as well as the doses, because the place it
+  belongs is inside this group: between the list it failed to change and the
+  buttons that were just pressed.
   """
-  @spec today([map()]) :: map()
-  def today(doses) do
+  @spec today([map()], String.t() | nil) :: map()
+  def today(doses, save_error \\ nil) do
     rows =
       doses
       |> Enum.map(&Kati.Screens.Medication.dose_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={8} />")
 
+    notice = Kati.Screens.Medication.save_notice(save_error)
+
     ~MOB"""
     <Column fill_width={true}>
       {rows}
       <Spacer size={12} />
+      {notice}
       {Kati.Screens.Medication.actions()}
       <Spacer size={24} />
     </Column>
@@ -281,6 +307,39 @@ defmodule Kati.Screens.Medication do
     """
   end
 
+  @doc """
+  What a dose that did not record leaves above the two buttons.
+
+  Directly above `actions/0` rather than at the top of the page: the buttons
+  are what was just pressed, so the eye is already there, and a notice level
+  with the title would read as a claim about the whole screen.
+
+  Not one of `footnotes/0`'s `info` pills, though the page has two of them and
+  reaching for a third is the obvious move. Those carry the two things that are
+  always true of this feature; a write that failed is true for one tap, and
+  dressing it as an `info` would both mute it and cast doubt on the pair it
+  copied. Red, and its own line.
+  """
+  @spec save_notice(String.t() | nil) :: map() | []
+  def save_notice(nil), do: []
+
+  def save_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.35}
+        text_color={Palette.red()}
+      />
+      <Spacer size={10} />
+    </Column>
+    """
+  end
+
   @doc "The schedules, each pushing nowhere yet — see `handle_tap/2`."
   @spec schedule_group([map()]) :: map()
   def schedule_group(schedules) do
@@ -380,25 +439,64 @@ defmodule Kati.Screens.Medication do
   end
 
   @doc false
-  def handle_tap(:mark_taken, socket), do: {:noreply, mark(socket, :taken)}
-  def handle_tap(:mark_skipped, socket), do: {:noreply, mark(socket, :skipped)}
-  def handle_tap(:toggle_dose, socket), do: {:noreply, mark(socket, :taken)}
+  def handle_tap(:mark_taken, socket), do: {:noreply, record(socket, :taken)}
+  def handle_tap(:mark_skipped, socket), do: {:noreply, record(socket, :skipped)}
+  def handle_tap(:toggle_dose, socket), do: {:noreply, record(socket, :taken)}
 
   # A medication's own page is not drawn anywhere in the 127 artboards, and the
   # row is honest about being a link. `Kati.ScreenTapSweepTest` carries it.
   def handle_tap(_tag, socket), do: {:noreply, socket}
 
-  # Marks the first unresolved dose of the day, which is the one the two buttons
-  # are about — they sit under the list, not on a row, so "which dose" is
-  # answered by *the next one you have not decided about*.
-  defp mark(socket, state) do
-    with %Dose{} = dose <- next_undecided() do
-      Ash.update(dose, %{state: state, recorded_at: Kati.Time.now() |> DateTime.truncate(:second)})
-    end
+  # The page re-reads the day because a dose was recorded, not because a button
+  # was pressed. Those were the same line until now.
+  #
+  # A failure leaves `:doses` untouched rather than re-reading: the store did
+  # not change, so re-reading would redraw the identical list underneath an
+  # error saying nothing was written — the same mixed message the bare `:ok`
+  # used to send, only louder.
+  defp record(socket, state) do
+    case save_dose(state) do
+      {:ok, _dose} ->
+        socket
+        |> Mob.Socket.assign(:doses, doses())
+        |> Mob.Socket.assign(:save_error, nil)
 
-    Mob.Socket.assign(socket, :doses, doses())
-  rescue
-    _error -> socket
+      {:error, _reason} = error ->
+        Mob.Socket.assign(socket, :save_error, Write.message(error))
+    end
+  end
+
+  @doc """
+  Record the day's next undecided dose as `state`.
+
+  Which dose that is, is the whole question: the two buttons sit under the
+  list rather than on a row, so *which one* is answered by *the next one you
+  have not decided about*.
+
+  No `rescue`. `Ash.update/2` returns `{:error, changeset}` rather than
+  raising, so the one this carried caught nothing while the line above it threw
+  the failure away; `Kati.Screens.Root.rescue_tap/3` is already around every
+  tap for the raises that are real.
+
+  A day with nothing left to decide — which includes every fresh install, where
+  the four doses on the page are the drawing's and belong to no row — is
+  `{:error, :nothing_to_save}` rather than a silent success. There is nothing
+  to write against, and that is a sentence `Kati.Write.message/1` already has.
+  """
+  @spec save_dose(:taken | :skipped) :: {:ok, Dose.t()} | {:error, term()}
+  def save_dose(state) do
+    case next_undecided() do
+      %Dose{} = dose ->
+        dose
+        |> Ash.update(%{
+          state: state,
+          recorded_at: Kati.Time.now() |> DateTime.truncate(:second)
+        })
+        |> Write.note("medication dose")
+
+      nil ->
+        Write.note({:error, :nothing_to_save}, "medication dose")
+    end
   end
 
   defp next_undecided do

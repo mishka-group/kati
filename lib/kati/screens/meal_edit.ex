@@ -30,6 +30,23 @@ defmodule Kati.Screens.MealEdit do
   *changes take effect next Monday*, and *past days keep the old numbers —
   nothing is recalculated.* A meal edit that silently rewrote last Tuesday's
   logged calories would be changing a record of something that happened.
+
+  ## A Save that did not land leaves the screen where it is
+
+  `Save` used to pop the screen whatever the write returned, which on this
+  screen is the worst place for that bug to live: with no recipe stored the
+  editor draws `SampleLibrary`'s meal anyway, so a slot that saved and a slot
+  that did not produced the same pixels on the way out. The screen was
+  reporting success by returning to Meals, and returning to Meals was
+  unconditional.
+
+  So the failure now stops the pop and prints, in `Palette.red()`, directly
+  under the button that caused it. Next to the control rather than in a toast,
+  because the toast would have been racing the pop it no longer does, and next
+  to the control is where the person is looking. *Under* and not over, because
+  the band over the `Save` pill belongs to the floating back pill and anything
+  drawn into it is drawn behind it — `chrome/1` has the measurements.
+  `Kati.Write` carries the argument in full.
   """
 
   use Kati.Screens.Pushed, back: "Meals"
@@ -39,6 +56,7 @@ defmodule Kati.Screens.MealEdit do
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
+  alias Kati.Write
 
   @slots ~w(Breakfast Lunch Dinner Snack)
 
@@ -49,6 +67,7 @@ defmodule Kati.Screens.MealEdit do
     |> Mob.Socket.assign(:meal, meal)
     |> Mob.Socket.assign(:slot, meal.slot)
     |> Mob.Socket.assign(:portion, 1.0)
+    |> Mob.Socket.assign(:save_error, nil)
   end
 
   @doc "The meal being edited: the library's first, or the drawing's."
@@ -176,7 +195,7 @@ defmodule Kati.Screens.MealEdit do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.MealEdit.chrome()}
+        {Kati.Screens.MealEdit.chrome(assigns.save_error)}
         {Kati.Screens.MealEdit.slots(assigns.slot)}
         {Kati.Screens.MealEdit.title_and_photo(assigns.meal)}
         {UI.eyebrow("Per portion")}
@@ -193,9 +212,37 @@ defmodule Kati.Screens.MealEdit do
     """
   end
 
-  @doc "The back-pill row with `Save` on the right."
-  @spec chrome() :: map()
-  def chrome do
+  @doc """
+  The back-pill row with `Save` on the right, under it the line that says a
+  save did not land.
+
+  Takes the message rather than reading it, so the one place that decides a
+  save failed is the handler that got the tuple — a second reader would be a
+  second chance to disagree with it.
+
+  ## The message goes UNDER the Save pill, and that is not a preference
+
+  `Kati.Screens.Pushed.chrome/3` is a `Box` — a z-stack (`MobBridge.kt`'s
+  `"box"` branch) — and it paints the floating back pill *over* the content, at
+  `padding_top={64}`, `padding_left={21}`, 44 tall. This screen's content
+  column opens at exactly the same `padding_top={64}`, `padding_left={21}`, so
+  the first thing drawn here shares its pixels with an opaque pill that has a
+  shadow and wins.
+
+  That is why the row below starts with `Spacer weight={1.0}`: the left half of
+  this band is not empty by accident, it is the back pill's, and the only thing
+  in the band is `Save`, hugging the right edge and level with the pill.
+
+  A `fill_width` line of red text placed above that row therefore did two
+  things at once — drew the message under the pill, where its first ~90pt read
+  `‹ Meals`, and pushed `Save` down out of level with the pill the instant a
+  save failed. Below the row the message clears the overlay, still touches the
+  control that caused it, and still sits above the slot chips it is about.
+  """
+  @spec chrome(String.t() | nil) :: map()
+  def chrome(save_error) do
+    assigns = %{save_error: save_error}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
@@ -218,7 +265,41 @@ defmodule Kati.Screens.MealEdit do
           />
         </Row>
       </Row>
+      {Kati.Screens.MealEdit.save_error_line(@save_error)}
       <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The sentence that says the slot did not save, or nothing.
+
+  Red and not muted: `Palette.red()` is the token for *destructive, stale,
+  over*, and a write that did not happen is all three. The same
+  `[]`-for-nothing shape `approx_note/1` uses, so the row collapses to no
+  height at all rather than reserving a gap for a message that is usually
+  absent.
+
+  The 10 leads rather than trails: this hangs below the `Save` pill, so the
+  gap it owes is the one between the pill and the sentence. `chrome/1`'s
+  existing 16 still separates it from the slot chips.
+  """
+  @spec save_error_line(String.t() | nil) :: map() | []
+  def save_error_line(nil), do: []
+
+  def save_error_line(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={10} />
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.55}
+        text_color={Palette.red()}
+      />
     </Column>
     """
   end
@@ -590,8 +671,16 @@ defmodule Kati.Screens.MealEdit do
     do: {:noreply, Mob.Socket.assign(socket, :portion, max(socket.assigns.portion - 0.5, 0.5))}
 
   def handle_tap(:save, socket) do
-    save_slot(socket.assigns.slot)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    case save_slot(socket.assigns.slot) do
+      {:ok, _recipe} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.pop_screen()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
   end
 
   def handle_tap(tag, socket) do
@@ -608,15 +697,26 @@ defmodule Kati.Screens.MealEdit do
   method and the ingredients are all fields Mob cannot yet take typed input for
   (#45), so writing them would mean writing values nobody could have changed.
   The slot chips are real controls and so the slot is a real write.
-  """
-  @spec save_slot(String.t() | nil) :: :ok
-  def save_slot(slot) do
-    with %Recipe{} = recipe <- newest() do
-      Ash.update(recipe, %{slot_name: slot})
-    end
 
-    :ok
-  rescue
-    _error -> :ok
+  Hands back `Ash.update/2`'s own tuple, where this used to end `:ok` and
+  `rescue` to `:ok`. Both halves of that were wrong and only one was the
+  rescue: `Ash.update/2` does not raise on a rejected changeset, so the rescue
+  caught nothing worth catching, and the trailing `:ok` had already thrown the
+  answer away a line above it.
+
+  No recipe stored is a failure too, not a quiet no-op. `Save` on an editor
+  showing `SampleLibrary`'s meal has nothing to write to, and the person needs
+  telling — a button that does nothing and says it worked is the same lie this
+  whole change is about.
+  """
+  @spec save_slot(String.t() | nil) :: {:ok, Recipe.t()} | {:error, term()}
+  def save_slot(slot) do
+    result =
+      case newest() do
+        %Recipe{} = recipe -> Ash.update(recipe, %{slot_name: slot})
+        nil -> {:error, :nothing_to_save}
+      end
+
+    Write.note(result, "meal slot")
   end
 end

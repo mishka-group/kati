@@ -23,6 +23,21 @@ defmodule Kati.Screens.QuickAddExpense do
 
   Orange means *new or now*, and the empty field is the only thing on the page
   that is asking for something. Nothing else here takes it.
+
+  ## A save that did not land does not close the sheet
+
+  This screen used to commit and pop in the same breath, and `save_expense/1`
+  returned `:ok` whether or not anything reached the database. The sheet closed,
+  screen 18 redrew its sample sentence behind it, and the two outcomes were
+  pixel-identical — the one place in the app where a lost expense looked exactly
+  like a saved one.
+
+  So the tap now branches on `Kati.Write`'s contract. A failure keeps the sheet
+  up with the amount still typed into the field, because the recovery is to
+  press the button again and the typed value is the thing that must survive to
+  make that worth doing. The sentence goes directly above the commit row: it is
+  the control that just failed, and an error anywhere else on a scrolling page
+  can be off-screen at the moment it appears.
   """
 
   use Mob.Screen
@@ -33,6 +48,7 @@ defmodule Kati.Screens.QuickAddExpense do
   alias Kati.Screens.QuickAdd.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
+  alias Kati.Write
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
@@ -40,11 +56,13 @@ defmodule Kati.Screens.QuickAddExpense do
     {:ok,
      socket
      |> Mob.Socket.assign(:draft, Kati.Screens.QuickAddExpense.draft())
-     |> Mob.Socket.assign(:saved?, false)}
+     |> Mob.Socket.assign(:saved?, false)
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   def render(assigns) do
     draft = assigns.draft
+    save_error = assigns[:save_error]
 
     ~MOB"""
     <Box
@@ -68,6 +86,7 @@ defmodule Kati.Screens.QuickAddExpense do
           {Kati.Screens.QuickAddExpense.parsed(draft)}
           {UI.eyebrow("Or file it as")}
           {QuickAdd.kinds(draft)}
+          {Kati.Screens.QuickAddExpense.save_notice(save_error)}
           {QuickAdd.actions(draft)}
         </Column>
       </Scroll>
@@ -201,11 +220,52 @@ defmodule Kati.Screens.QuickAddExpense do
     """
   end
 
+  @doc """
+  The one line that says the expense did not save.
+
+  A `Kati.UI` text line rather than a component, because the screen's own
+  design has nowhere a notice belongs: the cream card is *what Kati understood*
+  and putting a write failure inside it would claim the parse was wrong, which
+  it was not. Red is the only colour on the page that is not the orange ring —
+  and the ring means *asked for*, which is the opposite of what this says.
+
+  `nil` renders a zero spacer rather than nothing at all, so the row is a
+  constant in the tree and the button does not move between renders for any
+  reason other than the message arriving.
+  """
+  @spec save_notice(String.t() | nil) :: term()
+  def save_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def save_notice(message) when is_binary(message) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.rich_text([
+        {message,
+         [
+           text_size: 13,
+           font_weight: "semibold",
+           line_height: 1.45,
+           text_color: Palette.red()
+         ]}
+      ])}
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
   def handle_info({:tap, :add}, socket) do
-    save_expense(socket.assigns.draft)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    case save_expense(socket.assigns.draft) do
+      {:ok, _expense} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.pop_screen()}
+
+      error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
   end
 
   @doc """
@@ -237,20 +297,25 @@ defmodule Kati.Screens.QuickAddExpense do
   The section comes from what the sentence was parsed as — `EXPENSE · BOOKS` —
   and is the only classification stored, because `Kati.Money` has no categories
   and screen 122 says so.
+
+  Returns what `Ash.create/2` returned. It stood here as `:ok` over a
+  `rescue _error -> :ok`, which was wrong twice: `Ash.create/2` does not raise,
+  so the rescue caught nothing worth catching, and the `{:error, changeset}` it
+  does return was dropped a line earlier by the bare `:ok`. `Kati.Write.note/2`
+  puts the reason where a device failure can still be read afterwards, since a
+  phone has no console and the message a person sees is deliberately short.
   """
-  @spec save_expense(map()) :: :ok
+  @spec save_expense(map()) :: {:ok, struct()} | {:error, term()}
   def save_expense(draft) do
-    Ash.create(Kati.Money.Expense, %{
+    Kati.Money.Expense
+    |> Ash.create(%{
       description: draft.title,
       amount_pence: Kati.Screens.QuickAddExpense.pence(draft.amount),
       currency: Money.currency(),
       spent_on: Kati.Time.today(),
       section: :books
     })
-
-    :ok
-  rescue
-    _error -> :ok
+    |> Write.note("quick add expense")
   end
 
   @doc """

@@ -22,6 +22,19 @@ defmodule Kati.Screens.LogWeight do
   *0.4 kg down from your last reading, three days ago.* No target, no ideal
   range, no colour that means bad. `Kati.Health`'s moduledoc gives the rule this
   follows: Kati is not a medical device and records what it was told.
+
+  ## A reading that did not save keeps the sheet open
+
+  This sheet is the worst place in the app for a silent failure, because the
+  screen behind it draws the sample series when nothing is stored. Save,
+  close, and Weight still shows four readings dated 6-16 August — so a write
+  that never landed looks exactly like one that did, and the number you stood
+  on a scale to read is gone.
+
+  So `save_reading/1` answers `Kati.Write`'s contract: `{:ok, reading}` or
+  `{:error, reason}`, never a bare `:ok`. On a failure the sheet stays where it
+  is, with your grams still in the stepper, and says so in red above the button
+  you just pressed — the one place you are already looking.
   """
 
   use Mob.Screen
@@ -34,6 +47,7 @@ defmodule Kati.Screens.LogWeight do
   alias Kati.UI
   alias Kati.UI.Segmented
   alias Kati.UI.Sheet
+  alias Kati.Write
 
   @units [{"kg", :unit_kg}, {"lb", :unit_lb}, {"st", :unit_st}]
 
@@ -45,7 +59,8 @@ defmodule Kati.Screens.LogWeight do
     {:ok,
      socket
      |> Mob.Socket.assign(:unit, Health.unit())
-     |> Mob.Socket.assign(:grams, opening_grams())}
+     |> Mob.Socket.assign(:grams, opening_grams())
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   @doc """
@@ -77,7 +92,33 @@ defmodule Kati.Screens.LogWeight do
       <Spacer size={14} />
       {Kati.Screens.LogWeight.confirmation(assigns.grams)}
       <Spacer size={14} />
+      {Kati.Screens.LogWeight.save_notice(assigns.save_error)}
       {Sheet.commit("Save reading", :save)}
+    </Column>
+    """
+  end
+
+  @doc """
+  The line that says the reading did not save, directly above the button.
+
+  Above the commit rather than under the title, because that is where the eye
+  already is a tenth of a second after a tap — a notice at the top of a sheet
+  this tall is one a person can miss entirely while looking at the control they
+  just pressed.
+
+  `nil` draws a zero spacer rather than an empty `Text`, so nothing in the
+  sheet moves until there is something to say.
+  """
+  @spec save_notice(String.t() | nil) :: map()
+  def save_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def save_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text text={@message} text_size={12.5} line_height={1.45} text_color={Palette.red()} />
+      <Spacer size={12} />
     </Column>
     """
   end
@@ -404,24 +445,38 @@ defmodule Kati.Screens.LogWeight do
   def handle_info({:tap, :now}, socket), do: {:noreply, socket}
 
   def handle_info({:tap, :save}, socket) do
-    save_reading(socket.assigns.grams)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    case save_reading(socket.assigns.grams) do
+      {:ok, _reading} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.pop_screen()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  @doc "Write the reading, in grams, dated today."
-  @spec save_reading(integer()) :: :ok
+  @doc """
+  Write the reading, in grams, dated today.
+
+  Returns what `Ash.create/2` returned, noted on the way out — never a bare
+  `:ok`. There is no `rescue` here because there is nothing to catch:
+  `Ash.create/2` answers `{:error, changeset}` rather than raising, so the
+  rescue this replaced never ran, and the failure it was meant to cover had
+  already been thrown away by the `:ok` on the line above it. See `Kati.Write`.
+  """
+  @spec save_reading(integer()) :: {:ok, term()} | {:error, term()}
   def save_reading(grams) do
-    Ash.create(Reading, %{
+    Reading
+    |> Ash.create(%{
       grams: grams,
       taken_on: Kati.Time.today(),
       taken_at: Kati.Time.now() |> DateTime.truncate(:second)
     })
-
-    :ok
-  rescue
-    _error -> :ok
+    |> Write.note("log weight")
   end
 
   @doc """

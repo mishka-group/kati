@@ -49,6 +49,27 @@ defmodule Kati.Screens.BookDetail do
       caption and is not repeated here.
     * **The community rating**, for the reason above — and that one is frozen
       in both directions, because there is nothing to read.
+
+  ## A chip that does not write now says so
+
+  The seven status and edition chips are the only controls here that change the
+  row, and they used to swallow the answer. `apply_change/1` ended `:ok`
+  whatever `Ash.update/2` returned, the page re-read, and a chip that had
+  written nothing was indistinguishable from one that had. On a fresh install
+  it was worse than quiet: the shelf is empty, `book/0` falls through to
+  `Kati.Books.Sample.detail/0`, and the re-read hands back the same sample
+  either way — so the two outcomes were the same pixels.
+
+  `Kati.Write` is the contract now. The write answers `{:ok, book}` or
+  `{:error, reason}`, the tap either re-reads or reports, and the reason goes
+  to the log on its way past.
+
+  The report is drawn above the action row rather than beside the chip that
+  failed. One line serves both writes this screen makes — the chips and
+  `Finish` — and a second failure idiom in the chip band would be a second
+  thing to keep true. `Finish` is the write with the worse failure anyway: it
+  hands to screen 33, and handing over on a lost write asks someone to rate a
+  book the shelf still has them halfway through.
   """
 
   use Kati.Screens.Pushed, back: "Library"
@@ -60,6 +81,7 @@ defmodule Kati.Screens.BookDetail do
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
+  alias Kati.Write
 
   # The three secondary actions, in the drawing's order. `Log progress` is not
   # here: it is the ink button and is drawn by `actions/1` itself, so the list
@@ -70,7 +92,13 @@ defmodule Kati.Screens.BookDetail do
     {"bookmarks", "Add to list", :add_to_list}
   ]
 
-  def load(socket), do: Mob.Socket.assign(socket, :book, book())
+  # `:save_error` opens as `nil` so the notice has a value to be absent as, and
+  # so a re-mount never inherits the last failure a previous visit reported.
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:book, book())
+    |> Mob.Socket.assign(:save_error, nil)
+  end
 
   @doc """
   The book this screen is about: the shelf's first, or the drawing's.
@@ -259,6 +287,10 @@ defmodule Kati.Screens.BookDetail do
   @doc false
   def content(assigns) do
     b = assigns.book
+    # Read through `Access` rather than the dot: this screen's own mount always
+    # sets it, and a caller that builds assigns by hand to draw one band should
+    # not have to know about a key it is not asking for.
+    save_error = assigns[:save_error]
 
     ~MOB"""
     <Scroll>
@@ -282,6 +314,7 @@ defmodule Kati.Screens.BookDetail do
         {Kati.Screens.BookDetail.notes_section(b)}
         {Kati.Screens.BookDetail.series_section(b)}
         {Kati.Screens.BookDetail.history_section(b)}
+        {Kati.Screens.BookDetail.save_notice(save_error)}
         {Kati.Screens.BookDetail.actions(b)}
       </Column>
     </Scroll>
@@ -895,6 +928,37 @@ defmodule Kati.Screens.BookDetail do
     """
   end
 
+  @doc """
+  What a write that did not land says, in red, above the action row.
+
+  Red type on the page's own paper rather than a card: every other block on
+  this screen is a standing fact about the book, and a failure is not one — it
+  happened once, to the tap just made, and borrowing the cream card would give
+  it the same permanence as the edition facts.
+
+  It carries its own trailing `Spacer`, so a page with nothing to report is
+  spaced to the pixel it was before.
+  """
+  @spec save_notice(String.t() | nil) :: map() | []
+  def save_notice(nil), do: []
+
+  def save_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.35}
+        text_color={Palette.red()}
+      />
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
   @doc false
   def handle_tap(:log_progress, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
@@ -909,9 +973,22 @@ defmodule Kati.Screens.BookDetail do
   # hands to screen 33, which is the same handover screen 70's `Finished the
   # book` makes. Two controls, one consequence, and the consequence lives in
   # `Kati.Screens.LogProgress` so neither can drift from the other.
+  #
+  # The push waits on the write for the same reason screen 70's `Finished the
+  # book` does: screen 33 asks you to rate a book you just finished, and
+  # arriving there off a write that failed would ask you to rate one the shelf
+  # still has you halfway through.
   def handle_tap(:finish, socket) do
-    Kati.Screens.LogProgress.finish_book()
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
+    case Kati.Screens.LogProgress.finish_book() do
+      {:ok, _book} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.push_screen(Kati.Screens.Rating)}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
   end
 
   # Everything that is not a chip: the series row and the lending row. Answered
@@ -931,8 +1008,20 @@ defmodule Kati.Screens.BookDetail do
         {:noreply, socket}
 
       change ->
-        Kati.Screens.BookDetail.apply_change(change)
-        {:noreply, Mob.Socket.assign(socket, :book, Kati.Screens.BookDetail.book())}
+        case Kati.Screens.BookDetail.apply_change(change) do
+          {:ok, _book} ->
+            {:noreply,
+             socket
+             |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book())
+             |> Mob.Socket.assign(:save_error, nil)}
+
+          # No re-read on failure: the row did not move, so re-reading would
+          # redraw the same page under a message saying nothing was written —
+          # and on an empty shelf it would redraw the sample, which is the
+          # picture that hid this in the first place.
+          {:error, _reason} = error ->
+            {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+        end
     end
   end
 
@@ -954,14 +1043,34 @@ defmodule Kati.Screens.BookDetail do
     end
   end
 
-  @doc false
-  def apply_change({attribute, value}) do
-    with %Book{} = book <- newest() do
-      Ash.update(book, %{attribute => value})
-    end
+  @doc """
+  Set one attribute on the shelved book, and answer for it.
 
-    :ok
-  rescue
-    _error -> :ok
+  Answers `{:ok, book}` or `{:error, reason}`, never a bare `:ok` —
+  `Kati.Write`'s contract, and the whole of what was wrong here: the old body
+  discarded `Ash.update/2`'s answer, returned `:ok` regardless, and left the
+  caller no way to tell a chip that wrote from one that did not.
+
+  An empty shelf is `{:error, :nothing_to_save}` rather than a silent no-op.
+  The chips are drawn against `Kati.Books.Sample.detail/0` when nothing is
+  shelved, so they are tappable with no row behind them — and "Nothing to save
+  yet." is the true answer to that tap, where doing nothing quietly reads as a
+  change the page then fails to show.
+
+  No `rescue`. `Ash.update/2` returns `{:error, changeset}`; it does not raise,
+  which is why the rescue that used to sit here caught almost nothing while
+  looking like the failure was handled.
+  """
+  @spec apply_change({atom(), atom()}) :: {:ok, term()} | {:error, term()}
+  def apply_change({attribute, value}) do
+    case newest() do
+      %Book{} = book ->
+        book
+        |> Ash.update(%{attribute => value})
+        |> Write.note("book #{attribute}")
+
+      nil ->
+        Write.note({:error, :nothing_to_save}, "book #{attribute}")
+    end
   end
 end
