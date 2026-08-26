@@ -86,11 +86,34 @@ defmodule Kati.ScreenTapSweepTest do
   # `Kati.ScreenSweep.rolled_back/1` explains it in full and is what the other
   # two tap-dispatching sweeps go through. This one deletes instead, because
   # its dispatch is spread across several tests rather than gathered into one
-  # function call — three tables named explicitly, and the list grows the day a
+  # function call — the tables named explicitly, and the list grows the day a
   # new sheet starts committing.
+  #
+  # ## The day it grew, and how it was found
+  #
+  # `tracked_titles` and `cached_titles` are here because #87 gave
+  # `Kati.Screens.AddTitle` a real write, and this sweep taps every `add_<title>`
+  # control that screen draws: three rows in each table, `Kati.Library.Sample`'s
+  # own titles, left behind on every run since. The list did not grow with the
+  # write, which is the failure mode the paragraph above predicts word for word.
+  #
+  # It cost nothing until the module count changed. `Kati.ServicesTest` asserts
+  # `Kati.Screens.DataSources.cache_size/0` reads "Nothing cached yet", which is
+  # `Ash.count(CachedTitle) == 0` and nothing else, and it wipes no tables of its
+  # own — so it passes or fails purely on where the seed drops it relative to
+  # this file. Adding one test module reshuffles that, and #88's did: seed 7 went
+  # green before it and red after, on a leak neither file had anything to do
+  # with. Measured by counting `cached_titles` after every module.
+  #
+  # Watches are deliberately NOT in the list. This sweep creates none — screen
+  # 33's Save can only UPDATE, and on the empty database the sweep sees it
+  # refuses outright — so a `media_watches` row present here would be somebody
+  # else's leak, and a blanket DELETE would tidy away the evidence of it. SQLite
+  # enforces the foreign key, so it would announce itself rather than pass
+  # quietly: this callback raises on the `tracked_titles` delete.
   setup do
     on_exit(fn ->
-      for table <- ~w(goals expenses health_readings) do
+      for table <- ~w(goals expenses health_readings tracked_titles cached_titles) do
         Kati.Repo.query!("DELETE FROM " <> table, [])
       end
     end)
@@ -161,6 +184,22 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.Screens.LogListen`'s moduledoc for why that rather than `Whole
     # album` — so it is this one that sets the value it already has.
     {Kati.Screens.LogListen, :scope_selected},
+    # ── Screen 33's ninth point of ten, and only the ninth.
+    #
+    # The first category above, drawn as a row rather than a strip: the sheet's
+    # five stars carry ten half-star tap targets, `:star_1` to `:star_10`, and
+    # tapping one sets the rating it names. This sweep runs against a database
+    # with no logged watch in it — every test that writes one empties
+    # `media_watches` on the way out — so the sheet is `Kati.Rating.Sample`'s
+    # 4.5 stars, which is nine points, and `:star_9` is the point already set.
+    # The other nine all move the rating, which is what proves the family is
+    # wired rather than decorative.
+    #
+    # `:save` is deliberately NOT here. On the same empty database it answers
+    # `{:error, :nothing_to_save}` and puts that sentence on the sheet, which is
+    # a change this heuristic can see — and the reason it can is the whole of
+    # #85: a save that fails has to leave a mark.
+    {Kati.Screens.Rating, :star_9},
     # ── Screen 83's six link rows. Every card and the notices row opens a URL
     # in the platform browser, and Kati has no fence for that: nothing in
     # `native/LEDGER.md` opens an external link, and inventing one to make six

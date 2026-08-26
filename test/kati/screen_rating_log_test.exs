@@ -26,12 +26,24 @@ defmodule Kati.ScreenRatingLogTest do
 
   ## What is deliberately NOT asserted here: a write
 
-  Screen 33 reads. `Kati.Screens.Rating`'s moduledoc gives the reason at length
-  — the sheet draws exactly three tap targets and none of them can change a
-  value, so a `Save` wired today would write back what it had just read. When
-  the write lands, the tests it needs are not these: they are about a changeset,
-  and about `Kati.ScreenTapSweepTest` no longer being able to create rows in the
-  shared database by tapping `:save` on every run.
+  Screen 33 now writes — #88 gave it ten star targets and a real review field —
+  and none of that is asserted here. It is asserted in
+  `Kati.RatingWriteTest`, and the split is the one this file's own title makes:
+  everything below is about the sheet READING the right watch and shaping it
+  right, which is a question about a query and a map. A write is a question
+  about a changeset and about there still being one row afterwards.
+
+  The two halves meet in exactly one place, and it is the reason this paragraph
+  is not simply deleted: the draft the write commits is the map every test below
+  measures, so a shaping bug here becomes a wrong value in the store there.
+
+  ## The review is read out of a field, not a `Text`
+
+  `texts/1` reads `:text_field` as well as `:text` for that reason, and it is
+  the only accommodation the write cost this file. `Kati.DesignLiterals` made
+  the same one long ago — `content_props/0` lists `:value` beside `:text`
+  precisely so a drawing's copy is still found once the screen it belongs to
+  can be typed into.
   """
   use Mob.ScreenCase, async: false
 
@@ -110,7 +122,13 @@ defmodule Kati.ScreenRatingLogTest do
     tracked
   end
 
-  defp texts(tree), do: tree |> find_all(:text) |> Enum.map(&(&1.props[:text] || ""))
+  # Both nodes that carry copy. The review body is a `<TextField>` since #88,
+  # so a helper that read `:text` alone would report the user's own words as
+  # absent from a tree they are the largest thing in.
+  defp texts(tree) do
+    (find_all(tree, :text) ++ find_all(tree, :text_field))
+    |> Enum.map(&(&1.props[:text] || &1.props[:value] || ""))
+  end
 
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 

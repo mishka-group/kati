@@ -91,22 +91,34 @@ defmodule Kati.Screens.Rating do
        `font_family`. Handing the glyph in as the label would typeset it in
        Plus Jakarta Sans, which does not have it.
 
-  ## The caret sits on the next line
+  ## The caret is the field's own now
 
-  The review body ends with the design's 2x16 orange text cursor. There is no
-  inline node in this bridge — a `Box` beside a wrapping `Text` is a sibling,
-  not a run — so the caret is drawn at the start of the line below the body,
-  which is where a cursor lands when a line ends exactly at its edge. Recorded
-  rather than faked with an offset that would drift with every font metric.
+  The review body used to end with the design's 2x16 orange text cursor, drawn
+  as a `Box` on the line below — there is no inline node in this bridge, so a
+  caret beside a wrapping `Text` is a sibling rather than a run, and the line
+  below is where a cursor lands when a line ends exactly at its edge. It was a
+  picture of a caret in front of nothing that could type.
 
-  ## Which half of a write path this is: it READS a watch, it does not write one
+  The body is a `<TextField>`, so the caret is real and the drawn one is gone.
+  Two carets would have been one too many, and the drawn one is the one that
+  cannot move.
+
+  **What the field costs, stated:** `MobTextField` is `singleLine = true`
+  (`MobBridge.kt:3543`) and takes no multiline prop, and it paints Material's
+  own container rather than the cream this card is — the same two facts
+  `Kati.Screens.Backup.passphrase_field/1` records. So a long review scrolls
+  inside one line instead of wrapping into the paragraph the drawing shows.
+  That is a real loss of fidelity and it is taken deliberately: a review nobody
+  can type is not a review, and the alternative on offer was another picture.
+  Both are one prop on the bridge away and belong there, not here.
+
+  ## Which half of a write path this is: it reads a watch, and writes it back
 
   `Kati.Media.Watch` models this sheet column for column — rating, review,
   `contains_spoilers`, `rewatch_number`, `watched_on` beside `watched_at`,
   `service`, `place`, `companions`, `tags` — and its own moduledoc names screen
   33 four times over. So the question was not *whether* this screen belongs to
-  that resource but *which direction*, and the answer the screen itself gives is
-  **read**.
+  that resource but *which direction*, and the answer is now **both**.
 
   **The drawing is a filled-in sheet, and only a stored watch can fill it.** The
   rating is set, the review is typed, the spoiler toggle is on, three context
@@ -117,25 +129,39 @@ defmodule Kati.Screens.Rating do
   screen reads the newest one and shows it, which is what reopening a log to
   edit it looks like.
 
-  **Nothing on this sheet can change a value, so there is nothing to save.**
-  The whole screen draws exactly three tap targets — `close`, `save` and
-  `+ tag`. The five stars carry no `on_tap`, the `5★`/`10pt` toggle carries
-  none, the three context rows are `Kati.UI.SettingsList` rows with a chevron
-  and no handler, and the review body is a `Text` with a drawn caret rather than
-  a `TextField`. A `Save` wired today would write back, to the value, exactly
-  what it had just read. What the write half needs first is those controls: a
-  tap target per star (and per half), a real text field for the review, a picker
-  behind each context row, and `:add_tag` doing something — after which
-  `Kati.Media.Watch`'s `create: :*` and `update: :*` already accept every one of
-  these columns and the changeset is a dozen lines.
+  **So Save UPDATES that watch, and cannot create a second one.** A sheet that
+  reopens a log and commits a new row would answer "I changed my mind about the
+  rating" with two contradictory logs of one night, and screen 15's activity
+  list would show both. `save_watch/1` therefore starts from the id the sheet
+  mounted with, and `Kati.RatingWriteTest` pins the consequence directly:
+  rate, save, rate again, save again, one row.
 
-  One consequence worth writing down before that lands:
+  **Two of the sheet's values are editable, and the other five are not yet.**
+  Each star carries two tap targets — left half and right half, which is
+  precisely what the drawing's own `TAP LEFT OR RIGHT OF CENTRE` promises — so
+  the ten of them address `Kati.Media.Watch.rating`'s ten points one for one,
+  and the review is a real field. `contains_spoilers`, the three context rows
+  and `:add_tag` are still drawn and still inert; each needs a control this
+  screen does not draw (a switch, a date picker, a place picker, a tag field)
+  rather than a write path, and the write path they would use is the one that
+  now exists.
+
+  ## What the tap sweep does with a Save that writes
+
   `Kati.ScreenTapSweepTest` taps **every** control **every** screen draws, in
   both locales, against the one shared SQLite file — the suite has no Ecto
-  sandbox. The day `:save` writes, that sweep starts creating `Kati.Media.Watch`
-  rows that every other sweep then renders. The fix is for the write to go
-  through something the sweep can point at a scratch database, not for the sweep
-  to skip the tag.
+  sandbox. The version of this moduledoc that predicted `:save` would start
+  creating `Kati.Media.Watch` rows for every other sweep to render was right
+  about the risk and wrong about the fix: no scratch database is needed, because
+  a save that can only UPDATE has nothing to leave behind.
+
+  With nothing logged — which is what the sweep sees, since every test that
+  writes a watch empties the table on the way out — the sheet is the drawing,
+  there is no id, and `save_watch/1` answers `{:error, :nothing_to_save}`.
+  Refusing to write is the honest answer rather than a concession to the sweep:
+  the values on screen belong to `Kati.Rating.Sample`, and committing them would
+  file the drawing's own review under somebody's name. With a watch present the
+  sweep writes back to that watch what it had just read from it.
 
   ## Where the watch comes from
 
@@ -164,13 +190,17 @@ defmodule Kati.Screens.Rating do
       it as a first-release year would print next Tuesday's date as a film's
       year. The line degrades to `1H 52M`, which is `runtime_minutes` and
       nothing else.
-    * **`HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE`, and the `5★`/`10pt`
-      toggle.** Both are display preferences — which scale the user reads
-      ratings on — and no resource holds one. `Kati.Media.Watch.rating` is the
-      ten-point integer either way, and screen 35's settings are where a scale
-      preference would live. So both stay the drawing's, on a real watch as on
-      the fallback, and the note is taken from the one place that copy lives
-      rather than written out a second time here.
+    * **`HALF STARS ON`, and the `5★`/`10pt` toggle.** Both are display
+      preferences — which scale the user reads ratings on — and no resource
+      holds one. `Kati.Media.Watch.rating` is the ten-point integer either way,
+      and screen 35's settings are where a scale preference would live. So both
+      stay the drawing's, on a real watch as on the fallback, and the note is
+      taken from the one place that copy lives rather than written out a second
+      time here.
+
+      The second half of that same line, `TAP LEFT OR RIGHT OF CENTRE`, is not
+      a preference and is no longer a claim: it is what `star_cell/3` draws, and
+      the reason the ten targets are half-star wide rather than five stars wide.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -185,10 +215,62 @@ defmodule Kati.Screens.Rating do
   alias Kati.Rating.Sample
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
+  alias Kati.Write
 
+  @doc """
+  The sheet, opened on a watch and holding its id.
+
+  `watch` is the DRAFT from here on: the stars and the field write into it and
+  Save commits it, so it starts as what was read and diverges as it is edited.
+  `watch_id` is what makes the commit an update — it is the row the draft came
+  out of, and `nil` when the draft is the drawing's and there is no row.
+
+  The id is carried rather than re-derived at save time, and that is the whole
+  of what stops a second write landing on a different watch: `newest_log/0`
+  answers "the newest log" at the moment it is asked, and a sheet left open
+  while something else is logged would otherwise commit to whichever row won
+  that race.
+
+  ## The id and the draft come from the same place, or neither does
+
+  `draft_and_id/1` returns both together, and it is the only way to get an id.
+  Reading the row and shaping it are two steps that can fail *independently*:
+  `logged_record/0` can find a watch and `shape/1` can still answer `nil`,
+  because `shaped/3` reads a zone and a cache row and its rescue exists for
+  exactly that. When it does, the sheet falls back to `Kati.Rating.Sample` — and
+  an id carried past that point would leave the drawing's values sitting on the
+  socket with a real row's id beside them.
+
+  Measured, by making `shape/1` raise: the sheet drew "Blue Hour", Save reported
+  success, popped, and replaced the user's own rating and review with the
+  fixture's. Silently, because a save that lands is *supposed* to close. That is
+  the same rule `save_watch/1` states for the no-row case — the drawing is never
+  committed — and it has to hold for both ways of arriving at the drawing, not
+  just the empty-database one. `watch/0`'s gate says it for the render:
+  *either every value on it is this watch's or every value is the drawing's*.
+  The id is one of those values.
+  """
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :watch, watch())}
+    {draft, id} = draft_and_id(logged_record())
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:watch, draft)
+     |> Mob.Socket.assign(:watch_id, id)
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  # The draft and the id it may be committed under. `nil` for the id whenever
+  # the draft is the drawing's, by either route: no logged watch at all, or one
+  # that could not be shaped.
+  defp draft_and_id(nil), do: {drawn_watch(), nil}
+
+  defp draft_and_id(logged) do
+    case shape(logged) do
+      nil -> {drawn_watch(), nil}
+      shaped -> {shaped, logged.id}
+    end
   end
 
   @doc """
@@ -200,7 +282,7 @@ defmodule Kati.Screens.Rating do
   on it is this watch's or every value is the drawing's.
   """
   @spec watch() :: map()
-  def watch, do: logged_watch() || drawn_watch()
+  def watch, do: shaped_or_drawn(logged_record())
 
   @doc """
   Screen 33 exactly as it is drawn, from `Kati.Rating.Sample`.
@@ -222,10 +304,36 @@ defmodule Kati.Screens.Rating do
   """
   @spec logged_watch() :: map() | nil
   def logged_watch do
-    case newest_log() do
+    case logged_record() do
       nil -> nil
-      logged -> shaped(logged.tracked_title, cached_for(logged.tracked_title), logged)
+      logged -> shape(logged)
     end
+  end
+
+  @doc """
+  The newest logged watch as a ROW, or `nil` — the same answer `logged_watch/0`
+  gives, one step earlier.
+
+  `mount/3` needs the row and not only its shape, because the id is what makes
+  Save an update. Reading it once and shaping it here is what keeps that from
+  being a second query with a second chance to disagree.
+
+  The rescue is the one `logged_watch/0` carried: `Ash.read!` on a device
+  mid-migration raises, and a sheet that dies is strictly worse than a sheet
+  showing the values it was drawn from.
+  """
+  @spec logged_record() :: Watch.t() | nil
+  def logged_record do
+    newest_log()
+  rescue
+    _ -> nil
+  end
+
+  defp shaped_or_drawn(nil), do: drawn_watch()
+  defp shaped_or_drawn(logged), do: shape(logged) || drawn_watch()
+
+  defp shape(logged) do
+    shaped(logged.tracked_title, cached_for(logged.tracked_title), logged)
   rescue
     _ -> nil
   end
@@ -424,6 +532,7 @@ defmodule Kati.Screens.Rating do
 
   def render(assigns) do
     w = assigns.watch
+    save_error = assigns[:save_error]
 
     ~MOB"""
     <Box
@@ -442,6 +551,7 @@ defmodule Kati.Screens.Rating do
           padding_bottom={40}
         >
           {Kati.Screens.Rating.header()}
+          {Kati.Screens.Rating.save_notice(save_error)}
           {Kati.Screens.Rating.title_card(w)}
           {Kati.Screens.Rating.rating_card(w)}
           {Kati.Screens.Rating.review_card(w)}
@@ -562,6 +672,38 @@ defmodule Kati.Screens.Rating do
       align: :center,
       on_tap: tap
     )
+  end
+
+  @doc """
+  What a save that did not land says, directly under the button that failed.
+
+  Under rather than over, and that is not the placement
+  `Kati.Screens.QuickAddExpense.save_notice/1` argues for — it puts the sentence
+  immediately *above* its commit row, because an error anywhere else on a
+  scrolling page can be off-screen at the moment it appears. The reasoning is
+  the same here and it lands on the other side: this sheet's commit is the pill
+  in the header, at the top of the scroll, so the line adjacent to it and
+  reachable without scrolling is the one below.
+
+  Nothing at all when there is nothing to say. A `Spacer` of zero rather than
+  `nil`, because every branch of a `~MOB` interpolation has to be a node.
+  """
+  @spec save_notice(String.t() | nil) :: map()
+  def save_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def save_notice(message) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={message}
+        text_size={13}
+        font_weight="semibold"
+        line_height={1.45}
+        text_color={Palette.red()}
+      />
+      <Spacer size={16} />
+    </Column>
+    """
   end
 
   @doc false
@@ -688,7 +830,7 @@ defmodule Kati.Screens.Rating do
         </Row>
         <Spacer size={14} />
         <Row fill_width={true} align="center">
-          {Kati.Screens.Rating.stars(w.rating)}
+          {Kati.Screens.Rating.stars(w.rating, true)}
           <Spacer size={12} />
           <Text
             text={Kati.Screens.Rating.rating_label(w.rating)}
@@ -800,29 +942,159 @@ defmodule Kati.Screens.Rating do
     if value == whole, do: Integer.to_string(whole), else: "#{value}"
   end
 
-  # Five empty stars, which is what "you have not rated this" looks like —
-  # `Kati.Screens.Film.star_count/1` gives the same answer for the same reason.
-  @doc false
-  def stars(nil), do: stars(0)
+  @doc """
+  The five-star row, tappable or not.
 
-  def stars(value) do
+  Five empty stars for `nil`, which is what "you have not rated this" looks
+  like — `Kati.Screens.Film.star_count/1` gives the same answer for the same
+  reason.
+
+  **`tappable?` defaults to false, and the default is the one that matters.**
+  `Kati.Screens.RateEpisode` calls this function rather than redrawing the
+  half-star crop, and screen 144 has no rating write of its own: taps drawn
+  there would be ten controls answered by that screen's `handle_info(_msg, …)`
+  catch-all, which is a dead control the compiler cannot see and
+  `Kati.ScreenTapSweepTest` reports as inert. So the taps belong to the screen
+  that asks for them, and the shared drawing stays a drawing.
+  """
+  @spec stars(number() | nil, boolean()) :: map()
+  def stars(value, tappable? \\ false)
+
+  def stars(nil, tappable?), do: stars(0, tappable?)
+
+  def stars(value, tappable?) do
     full = trunc(value)
     half? = value - full >= 0.5
 
-    slots =
-      Enum.map(1..5, fn i ->
-        cond do
-          i <= full -> :full
-          i == full + 1 and half? -> :half
-          true -> :empty
-        end
+    cells =
+      1..5
+      |> Enum.map(fn i ->
+        slot =
+          cond do
+            i <= full -> :full
+            i == full + 1 and half? -> :half
+            true -> :empty
+          end
+
+        Kati.Screens.Rating.star_cell(slot, i, tappable?)
       end)
+      |> Enum.intersperse(Kati.Screens.Rating.star_gap())
 
     ~MOB"""
     <Row align="center">
-      {slots |> Enum.map(&Kati.Screens.Rating.star/1) |> Enum.intersperse(Kati.Screens.Rating.star_gap())}
+      {cells}
     </Row>
     """
+  end
+
+  @doc """
+  One star, with the two tap targets the drawing's own caption promises.
+
+  `HALF STARS ON · TAP LEFT OR RIGHT OF CENTRE` is printed under this row, and
+  until now it described nothing. It describes this: a transparent 13x26 `Box`
+  over each half of the glyph, the left one carrying the odd point and the
+  right one the even, so the five stars address `Kati.Media.Watch.rating`'s
+  **1..10** one target per point. Five targets would have made the ten-point
+  column reachable only at even values and quietly turned every half rating a
+  user had already stored into an unreachable one.
+
+  The targets are stacked over the glyph rather than replacing it, because a
+  half star is already two glyphs in one `Box` (see `star/1`) and the tap
+  geometry is not the paint geometry: the left target covers the left half of
+  the star whether that half is filled, outlined or empty. A `Box` renders its
+  children back to front and Compose hit-tests them front to back, so the
+  targets sit last.
+
+  No `background`, and it is not an oversight: `Modifier.clickable` makes a node
+  hit-testable by its bounds, not by its pixels, so an unpainted target is a
+  target. Painting one would put a rectangle over the star.
+
+  ## `fill_width={false}` on the wrapper, and no width — Dynamic Type
+
+  The obvious wrapper is `<Box width={26} height={26}>`, which is what
+  `star(:half)` already ships. It is also a cap: a `Box` coerces its children
+  into its own constraints, every `Text` in this bridge is built with
+  `TextOverflow.Ellipsis`, and `text_size` is **sp** while `width` is **dp** —
+  so at 235% Dynamic Type a 26sp glyph asks for ~61dp inside a 26dp box and is
+  ellipsised away to nothing. That is the failure `Kati.DynamicTypeTest` is
+  about, one step worse: not a truncated label, an absent star.
+
+  So the wrapper carries no width at all and hugs instead — `fill_width={false}`
+  is what makes a `Box` hug rather than fill (`K-17 box-hugs-when-told`;
+  without it a widthless Box takes the whole row and the rating card's stars
+  become five full-width rows). The glyph is then measured unbounded, exactly
+  as it was before it had a wrapper, and the cell is as wide as the star is at
+  whatever scale the phone is set to.
+
+  What is left is a tap area that does not grow with it: the two 13dp targets
+  stay 13dp, so at 235% they cover the leading half of a 61dp star rather than
+  all of it. Degraded, not broken — the halves are still in the right order and
+  still hit — and it is the honest end of what this bridge can express. Making
+  the targets track the glyph needs Compose's `matchParentSize`, which no Mob
+  prop reaches: `fill_width={true}` on the overlay would measure against the
+  card, not against its sibling, and blow the hugging `Box` out to full width.
+  """
+  @spec star_cell(:full | :half | :empty, 1..5, boolean()) :: map()
+  def star_cell(slot, _index, false), do: Kati.Screens.Rating.star(slot)
+
+  def star_cell(slot, index, true) do
+    glyph = Kati.Screens.Rating.star(slot)
+    left = {self(), Kati.Screens.Rating.star_tag(index * 2 - 1)}
+    right = {self(), Kati.Screens.Rating.star_tag(index * 2)}
+
+    ~MOB"""
+    <Box fill_width={false}>
+      {glyph}
+      <Row width={26} height={26}>
+        <Box width={13} height={26} on_tap={left} />
+        <Box width={13} height={26} on_tap={right} />
+      </Row>
+    </Box>
+    """
+  end
+
+  @doc """
+  The tap tag for one point of the ten-point scale.
+
+  An ATOM, built the way `Kati.Screens.ImportSources.tag/1` builds its own and
+  for the reason `Kati.ScreenTapSweepTest`'s last test gives: `Mob.Renderer`
+  registers `{pid, atom}` and emits the atom as the control's
+  `accessibility_id`, so a tag that is anything else is either inert or
+  anonymous — and an anonymous control is one no device test and no screen
+  reader can reach.
+
+  Guarded on the resource's own constraint rather than on 1..5 doubled.
+  `Kati.Media.Watch.rating` is `min: 1, max: 10`, so a tag outside it names a
+  rating the store would reject, and finding that out at the changeset is
+  finding out one screen too late.
+
+      iex> Kati.Screens.Rating.star_tag(9)
+      :star_9
+  """
+  @spec star_tag(1..10) :: atom()
+  def star_tag(point) when point in 1..10,
+    do: String.to_atom("star_" <> Integer.to_string(point))
+
+  @doc """
+  The ten-point rating a `star_*` tag names, or `nil` for a tag that is not one.
+
+  `nil` rather than a raise: this screen's `handle_info/2` runs every tag the
+  sheet draws through here, `:add_tag` included, and a tag that is not a star
+  is an ordinary answer rather than an error.
+
+      iex> Kati.Screens.Rating.point_of(:star_7)
+      7
+      iex> Kati.Screens.Rating.point_of(:add_tag)
+      nil
+  """
+  @spec point_of(atom()) :: 1..10 | nil
+  def point_of(tag) when is_atom(tag) do
+    with "star_" <> digits <- Atom.to_string(tag),
+         {point, ""} when point in 1..10 <- Integer.parse(digits) do
+      point
+    else
+      _other -> nil
+    end
   end
 
   @doc false
@@ -885,10 +1157,7 @@ defmodule Kati.Screens.Rating do
           {Kati.Screens.Rating.spoiler_toggle(w.spoilers)}
         </Row>
         <Spacer size={10} />
-        <Text text={w.review} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
-        <Row fill_width={true}>
-          <Box width={2} height={16} background={Palette.accent()} />
-        </Row>
+        {Kati.Screens.Rating.review_field(w.review)}
         <Spacer size={14} />
         <Box fill_width={true} height={1} background={Palette.cream_rule()} />
         <Spacer size={13} />
@@ -910,6 +1179,47 @@ defmodule Kati.Screens.Rating do
       </Column>
       <Spacer size={14} />
     </Column>
+    """
+  end
+
+  @doc """
+  The review, in a field that can be typed into.
+
+  It was a `<Text>` and a `<Box>` drawn to look like a caret — a picture of a
+  focused input, on the one card in this design that exists to hold the user's
+  own words. `Kati.Screens.AddTitle.field/1` records the belief that made that
+  seem reasonable, and it was false: `<TextField>` is in the pinned Mob and
+  `Kati.Screens.Backup` has used it for the passphrase all along.
+
+  `accessibility_id` is not decoration. `Mob.Renderer` emits one automatically
+  for an atom-tagged TAP, and a field has no tap tag — so without this the
+  bridge's `K-35 test-tag` fence has nothing to hang a `testTag` on and no
+  device test can address the field at all. `"review"` is what
+  `android/app/src/androidTest` types into.
+
+  `value` is passed back in rather than left to the field's own state, for the
+  reason `Kati.Screens.Backup.field/4` gives: `MobTextField` re-keys its
+  `remember` only when the string actually differs, so echoing back what was
+  just typed is a no-op and the caret does not move.
+
+  The placeholder is what an empty review card should say and the drawing never
+  had to: every value in `Kati.Rating.Sample` is filled in, because the drawing
+  is a sheet that has been written on.
+  """
+  @spec review_field(String.t()) :: map()
+  def review_field(review) do
+    change = {self(), :review}
+
+    ~MOB"""
+    <TextField
+      value={review}
+      placeholder="What did you make of it?"
+      return_key="done"
+      fill_width={true}
+      text_size={14}
+      accessibility_id="review"
+      on_change={change}
+    />
     """
   end
 
@@ -1054,6 +1364,124 @@ defmodule Kati.Screens.Rating do
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
-  def handle_info({:tap, :save}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  # Commit the draft, or keep the sheet up and say why not.
+  #
+  # The failure branch is the whole of #85 in one clause. This handler used to
+  # be `{:noreply, Mob.Socket.pop_screen(socket)}` with no write behind it at
+  # all, which is the extreme case of what that ticket found: the sheet closed
+  # on a rating nothing had recorded, and closing is what a sheet does when it
+  # has saved. A save that fails now leaves the sheet exactly as it was —
+  # the rating you tapped, the review you typed — because the recovery is to
+  # press Save again and the draft is the thing that has to survive for that to
+  # be worth doing.
+  def handle_info({:tap, :save}, socket) do
+    case save_watch(socket.assigns) do
+      {:ok, _watch} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.pop_screen()}
+
+      error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
+  end
+
+  # What was typed into the review, held as typed.
+  #
+  # `characters` moves with it, because the count under the field is a count of
+  # what is in the field. `Kati.Rating.Sample` stores the drawing's own 184
+  # against a body of a different length and says why — that is a fact about
+  # the drawing, and the moment a person types, the number is about them
+  # instead.
+  def handle_info({:change, :review, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     Mob.Socket.update(socket, :watch, fn w ->
+       Map.merge(w, %{review: typed, characters: characters_label(typed)})
+     end)}
+  end
+
+  # A star, half a star at a time.
+  #
+  # The draft carries the FIVE-point value because that is what `stars/2` and
+  # `rating_label/1` read, and the tag carries the ten-point one because that
+  # is what the column stores. Halving here and doubling in `save_watch/1`
+  # keeps both conversions at the edges, where each is a single line, rather
+  # than letting a screen invent a third scale in the middle.
+  #
+  # A tag that is not a star's — `:add_tag`, which is still drawn and still
+  # opens nothing — falls through unchanged. Every drawn tag reaches a clause
+  # either way, which is what `Kati.ScreenTapSweepTest` is checking.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    case point_of(tag) do
+      nil -> {:noreply, socket}
+      point -> {:noreply, Mob.Socket.update(socket, :watch, &Map.put(&1, :rating, point / 2))}
+    end
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  Write the draft back onto the watch the sheet opened on.
+
+  `Ash.update/1`, never `Ash.create/2`, and `watch_id` is what makes that
+  possible: the sheet is an editor for an existing log, so a second row would be
+  a second, contradicting account of one night — see the moduledoc.
+
+  **With no id there is nothing to update, and that is the whole answer.** The
+  draft on screen is then `Kati.Rating.Sample`'s and belongs to the drawing;
+  committing it would file "Blue Hour" and a review nobody wrote under the
+  user's own log. `{:error, :nothing_to_save}` is `Kati.Write`'s own term for
+  it and `Kati.Write.message/1` already renders it as *"Nothing to save yet."*
+
+  A blank review is stored as `nil` rather than `""`, because
+  `Kati.Media.Watch.review` is nullable and a review of nothing but whitespace
+  is not a review — `newest_log/0` filters on exactly that distinction, so
+  storing the empty string would leave a sheet reopening on a log it also
+  considers unlogged. What is not blank is stored **as typed**: trimming a
+  person's own words is an edit, and this function is not entitled to one.
+  """
+  @spec save_watch(map()) :: {:ok, struct()} | {:error, term()}
+  def save_watch(%{watch_id: nil}), do: Write.note({:error, :nothing_to_save}, "rate a watch")
+
+  def save_watch(%{watch_id: id, watch: w}) do
+    case Ash.get(Watch, id) do
+      {:ok, record} ->
+        record
+        |> Ash.Changeset.for_update(:update, %{
+          rating: ten_point(w.rating),
+          review: stored_review(w.review)
+        })
+        |> Ash.update()
+        |> Write.note("rate a watch")
+
+      error ->
+        Write.note(error, "rate a watch")
+    end
+  end
+
+  @doc """
+  The ten-point integer a five-point display value stands for.
+
+  `round/1` rather than `trunc/1`, and it costs nothing to be right about it:
+  a half is exact in binary floating point, so `4.5 * 2` is `9.0` on the nose
+  and both answer 9 — but a rating arriving as `6.999999` would truncate to 13
+  points of ten, which is a value the column rejects and a bug that would show
+  up as "that did not save" with no reason attached.
+
+      iex> Kati.Screens.Rating.ten_point(4.5)
+      9
+      iex> Kati.Screens.Rating.ten_point(nil)
+      nil
+  """
+  @spec ten_point(number() | nil) :: 1..10 | nil
+  def ten_point(nil), do: nil
+  def ten_point(value), do: round(value * 2)
+
+  defp stored_review(review) when is_binary(review) do
+    if String.trim(review) == "", do: nil, else: review
+  end
+
+  defp stored_review(_review), do: nil
 end

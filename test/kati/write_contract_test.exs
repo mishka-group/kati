@@ -34,7 +34,14 @@ defmodule Kati.WriteContractTest do
     {"lib/kati/screens/meal_edit.ex", "save_slot"},
     {"lib/kati/screens/log_progress.ex", "save_session"},
     {"lib/kati/screens/medication.ex", "save_dose"},
-    {"lib/kati/screens/book_detail.ex", "apply_change"}
+    {"lib/kati/screens/book_detail.ex", "apply_change"},
+    # Not one of #85's twelve — screen 33 had no write at all to rewrite, and
+    # #88 gave it one. It is here because this file's subject is the SHAPE of a
+    # write rather than the history of one ticket: a save added later that
+    # cannot report its own failure is the same defect arriving by a different
+    # door, and a ratchet that only guards the sites already fixed guards the
+    # past.
+    {"lib/kati/screens/rating.ex", "save_watch"}
   ]
 
   describe "the shape of a write" do
@@ -61,9 +68,8 @@ defmodule Kati.WriteContractTest do
       offenders =
         for {path, fun} <- @writers,
             source = File.read!(path),
-            body = writer_body(source, fun),
-            body != nil,
-            String.contains?(body, "rescue"),
+            clause <- writer_clauses(source, fun),
+            String.contains?(clause, "rescue"),
             do: "  #{path} — #{fun} rescues its own failure"
 
       assert offenders == [],
@@ -77,9 +83,8 @@ defmodule Kati.WriteContractTest do
       offenders =
         for {path, fun} <- @writers,
             source = File.read!(path),
-            body = writer_body(source, fun),
-            body != nil,
-            bare_ok?(body),
+            clause <- writer_clauses(source, fun),
+            bare_ok?(clause),
             do: "  #{path} — #{fun} can return a bare :ok"
 
       assert offenders == [],
@@ -95,9 +100,8 @@ defmodule Kati.WriteContractTest do
       missing =
         for {path, fun} <- @writers,
             source = File.read!(path),
-            body = writer_body(source, fun),
-            body != nil,
-            not String.contains?(body, "Write.note("),
+            clause <- writer_clauses(source, fun),
+            not String.contains?(clause, "Write.note("),
             do: "  #{path} — #{fun} does not log its failure"
 
       assert missing == [],
@@ -131,19 +135,40 @@ defmodule Kati.WriteContractTest do
     end
   end
 
-  # The source of a writer, from its `def` to the next top-level `def` or
-  # `@doc`. Crude, and deliberately so: a parser here would be a second thing
-  # to get wrong, and the shapes this reads are two lines apart.
-  defp writer_body(source, fun) do
-    case String.split(source, "def #{fun}(", parts: 2) do
-      [_before, rest] ->
-        rest
-        |> String.split(~r/\n  (?:@doc|def |defp )/, parts: 2)
-        |> List.first()
-
-      _none ->
-        nil
-    end
+  # EVERY clause of a writer, each from its own `def` to the next top-level
+  # `def`, `defp` or `@doc`. Crude, and deliberately so: a parser here would be
+  # a second thing to get wrong, and the shapes this reads are two lines apart.
+  #
+  # ## Why every clause and not the first
+  #
+  # This read the first clause only, and it was green over a `rescue _ -> :ok`
+  # sitting on a real write path — measured, by putting one there. Eight of the
+  # nine writers are single-clause, so nothing had ever exercised the
+  # difference; `Kati.Screens.Rating.save_watch/1` is the first to split its
+  # refusal into a head of its own:
+  #
+  #     def save_watch(%{watch_id: nil}), do: Write.note({:error, …}, …)
+  #     def save_watch(%{watch_id: id, watch: w}) do …the actual write… end
+  #
+  # A `parts: 2` split stops at the second `def`, so the seventy-eight
+  # characters that write nothing were the whole of what three assertions
+  # inspected, and the clause holding `Ash.update/1` was invisible to all of
+  # them. Splitting a guard clause out of a writer is ordinary Elixir and must
+  # not be a way through the ratchet — the shape this file exists to forbid
+  # would have arrived by exactly that door.
+  #
+  # Each clause is checked on its own rather than concatenated, which also
+  # makes `Write.note(` mean what it says: a writer whose second clause returns
+  # without reporting is the same defect as one that never reported at all.
+  defp writer_clauses(source, fun) do
+    source
+    |> String.split("def #{fun}(")
+    |> Enum.drop(1)
+    |> Enum.map(fn rest ->
+      rest
+      |> String.split(~r/\n  (?:@doc|def |defp )/, parts: 2)
+      |> List.first()
+    end)
   end
 
   # A `:ok` standing alone as a return value, rather than inside `{:ok, _}` or
