@@ -152,7 +152,8 @@ defmodule Kati.Screens.QuickAddExpense do
     assigns = %{
       symbol: Money.symbol(Money.currency()),
       placeholder: draft.amount_placeholder,
-      value: draft.amount
+      value: draft.amount,
+      on_change: {self(), :amount}
     }
 
     ~MOB"""
@@ -175,16 +176,17 @@ defmodule Kati.Screens.QuickAddExpense do
         padding_left={15}
         padding_right={15}
         align="center"
-        on_tap={{self(), :edit_amount}}
       >
         <Text text={@symbol} font_family="mono" text_size={17} text_color={Palette.cream_ink()} />
         <Spacer size={9} />
-        <Text
-          text={@value || @placeholder}
-          text_size={14}
-          text_color={Palette.cream_sub()}
+        <TextField
+          value={@value || ""}
+          placeholder={@placeholder}
+          keyboard="decimal"
+          return_key="done"
           weight={1.0}
-          max_lines={1}
+          accessibility_id="amount"
+          on_change={@on_change}
         />
       </Row>
       <Spacer size={11} />
@@ -206,11 +208,26 @@ defmodule Kati.Screens.QuickAddExpense do
     {:noreply, Mob.Socket.pop_screen(socket)}
   end
 
-  # The amount field has no keyboard behind it — Mob has no text input, which is
-  # why every field in this app is drawn rather than typed into. Marking the
-  # draft as touched is a real change and is what the sweep sees; typing is #45.
-  def handle_info({:tap, :edit_amount}, socket),
-    do: {:noreply, Mob.Socket.assign(socket, :saved?, false)}
+  @doc """
+  What was typed into the amount field.
+
+  This screen carried a comment saying Mob had no text input and that every
+  field in the app was therefore drawn rather than typed into. That was not
+  true when it was written: `<TextField>` is in the pinned Mob and
+  `Kati.Screens.Backup` has been using it for the passphrase all along. The
+  belief cost more than the feature would have — it is why nine screens draw a
+  caret nothing can type into.
+
+  Kept as a string rather than parsed on every keystroke: a half-typed "12."
+  is not a number and must not become one, and the field has to be able to show
+  what you actually typed while you are still typing it.
+  """
+  def handle_info({:change, :amount, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     socket
+     |> Mob.Socket.update(:draft, &Map.put(&1, :amount, typed))
+     |> Mob.Socket.assign(:saved?, false)}
+  end
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
@@ -225,7 +242,7 @@ defmodule Kati.Screens.QuickAddExpense do
   def save_expense(draft) do
     Ash.create(Kati.Money.Expense, %{
       description: draft.title,
-      amount_pence: draft.amount,
+      amount_pence: Kati.Screens.QuickAddExpense.pence(draft.amount),
       currency: Money.currency(),
       spent_on: Kati.Time.today(),
       section: :books
@@ -235,4 +252,41 @@ defmodule Kati.Screens.QuickAddExpense do
   rescue
     _error -> :ok
   end
+
+  @doc """
+  A typed amount as pence, or `nil`.
+
+  `nil` rather than zero for anything that is not a number, because the screen's
+  own copy makes the distinction load-bearing — *"an expense with no amount
+  still counts as a thing that happened"*. Zero would be a claim that something
+  cost nothing; `nil` is the absence the card is describing.
+
+  Rounded rather than truncated: `12.567` is 1257p, not 1256p. Nobody types
+  three decimal places on purpose, but silently losing a penny is the kind of
+  thing that is noticed much later and trusted much less.
+
+      iex> Kati.Screens.QuickAddExpense.pence("12.50")
+      1250
+      iex> Kati.Screens.QuickAddExpense.pence("8")
+      800
+      iex> Kati.Screens.QuickAddExpense.pence("12.")
+      1200
+      iex> Kati.Screens.QuickAddExpense.pence("")
+      nil
+      iex> Kati.Screens.QuickAddExpense.pence("abc")
+      nil
+  """
+  @spec pence(term()) :: non_neg_integer() | nil
+  def pence(amount) when is_integer(amount), do: amount
+
+  def pence(amount) when is_binary(amount) do
+    cleaned = amount |> String.replace(",", ".") |> String.trim()
+
+    case Float.parse(cleaned) do
+      {value, _rest} when value >= 0 -> round(value * 100)
+      _other -> nil
+    end
+  end
+
+  def pence(_other), do: nil
 end

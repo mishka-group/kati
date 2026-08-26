@@ -279,7 +279,14 @@ defmodule Kati.DesignLiterals do
       # deliberately NOT a `contentDescription`: TalkBack speaks that one, and a
       # screen reader announcing "choose en" over the visible label would be an
       # accessibility regression traded for a testing convenience.
-      :accessibility_id
+      :accessibility_id,
+      # A `<TextField>`'s behaviour, not its words. `keyboard` picks which
+      # keyboard the OS raises — `decimal` for an amount, `number`, `email` —
+      # and `return_key` names the action key. Neither is ever read by a person:
+      # the copy in a field is its `placeholder`, which `content_props/0`
+      # already covers.
+      :keyboard,
+      :return_key
     ]
   end
 

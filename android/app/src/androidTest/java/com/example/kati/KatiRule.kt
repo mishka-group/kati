@@ -3,6 +3,7 @@ package com.example.kati
 import android.app.Instrumentation
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -110,6 +111,60 @@ class KatiRule : TestRule {
         compose.waitUntil(timeoutMs) { present("screen:$name") }
     }
 
+    /**
+     * Taps whichever of [tags] is on screen, and says which.
+     *
+     * The first run does not draw one fixed set of controls — screen 38 offers
+     * `get_started` or `finish` depending on where it was entered — and a
+     * journey that hardcodes one of them fails on the other for no reason a
+     * reader could guess.
+     */
+    fun tapAny(vararg tags: String): String? {
+        for (tag in tags) {
+            if (!present(tag)) continue
+
+            // The check and the tap are two moments, and a screen driven by the
+            // BEAM can move between them: a control present when asked about is
+            // gone by the time it is pressed, and Compose throws rather than
+            // no-opping. That is a race in the test, never a defect in the app,
+            // so it is swallowed and the next tag tried.
+            try {
+                tap(tag)
+                return tag
+            } catch (_: Throwable) {
+                device.waitForIdle()
+            }
+        }
+        return null
+    }
+
+    /**
+     * Walks the first run to the shell.
+     *
+     * Every journey that is not itself about onboarding needs the app past it,
+     * and a fresh install always starts there. Kept here so #91's work on the
+     * first run changes one place rather than every test.
+     */
+    fun firstRun() {
+        compose.waitUntil(60_000) { present("choose_en") }
+        tap("continue")
+        compose.waitUntil(20_000) { !present("choose_en") }
+
+        // The calendar dialog, if this build asks for it.
+        systemDialog("Allow", "While using the app", "Allow all the time")
+
+        compose.waitUntil(30_000) {
+            present("get_started") || present("finish") || present("continue") || present("fab")
+        }
+
+        repeat(6) {
+            if (present("fab")) return
+            tapAny("get_started", "finish", "continue")
+            device.waitForIdle()
+            compose.waitUntil(10_000) { true }
+        }
+    }
+
     /** Taps a control by the tag its Elixir side already gave it. */
     fun tap(tag: String) {
         compose.onNodeWithTag(tag, useUnmergedTree = true).performClick()
@@ -137,6 +192,28 @@ class KatiRule : TestRule {
     }
 
     fun dbExists(): Boolean = File(filesDir, "kati.db").exists()
+
+    /**
+     * The text a node currently shows, or null.
+     *
+     * Reads `EditableText` first and falls back to `Text`: a `<TextField>`
+     * reports what has been typed into it under the editable key, while a
+     * plain label reports under the other. Asking for both is what lets one
+     * helper assert against either.
+     */
+    fun textOf(tag: String): String? =
+        try {
+            val node = compose.onNodeWithTag(tag, useUnmergedTree = true)
+                .fetchSemanticsNode()
+            val editable = node.config.getOrNull(
+                androidx.compose.ui.semantics.SemanticsProperties.EditableText
+            )?.text
+            editable ?: node.config.getOrNull(
+                androidx.compose.ui.semantics.SemanticsProperties.Text
+            )?.joinToString("") { it.text }
+        } catch (_: Throwable) {
+            null
+        }
 
     /** One value out of the store, or null when the query finds no row. */
     fun scalar(sql: String): String? {

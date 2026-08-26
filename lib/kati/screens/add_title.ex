@@ -96,7 +96,8 @@ defmodule Kati.Screens.AddTitle do
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
 
-    {:ok, Mob.Socket.assign(socket, results: Sample.search_results(), filter: "Everything")}
+    {:ok,
+     Mob.Socket.assign(socket, results: Sample.search_results(), filter: "Everything", query: "")}
   end
 
   def render(assigns) do
@@ -121,7 +122,7 @@ defmodule Kati.Screens.AddTitle do
           padding_bottom={40}
         >
           {Kati.Screens.AddTitle.header()}
-          {Kati.Screens.AddTitle.field()}
+          {Kati.Screens.AddTitle.field(assigns.query)}
           {Kati.Screens.AddTitle.chips(filter)}
           {UI.eyebrow(count)}
           {Kati.Screens.AddTitle.results(shown)}
@@ -133,6 +134,18 @@ defmodule Kati.Screens.AddTitle do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  @doc """
+  What was typed into the search field.
+
+  Held as typed. Nothing is searched yet — there is no provider client, which
+  the moduledoc explains at length — so this is the field remembering what you
+  wrote, which is the whole of what a field owes you before there is anything
+  to search.
+  """
+  def handle_info({:change, :title_query, typed}, socket) when is_binary(typed) do
+    {:noreply, Mob.Socket.assign(socket, :query, typed)}
+  end
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
@@ -217,8 +230,23 @@ defmodule Kati.Screens.AddTitle do
   # The focused field. `0 0 0 2px #1A1917` in the drawing is a ring, not a
   # shadow, so it is a 2px border here — a shadow at zero blur and zero offset
   # would be invisible under the card's own elevation.
-  @doc false
-  def field do
+  @doc """
+  The search field, which is now a field.
+
+  It was a `<Text>` reading "quiet" beside a 2×19 orange `<Box>` drawn to look
+  like a caret — a picture of a focused input. The moduledoc above still
+  describes the ring and the caret, and both are real; what was missing was
+  anything to type into.
+
+  Nine screens carry a comment saying Mob has no text input. It does:
+  `<TextField>` is in the pinned Mob and `Kati.Screens.Backup` has used it for
+  the passphrase all along. The belief cost more than the feature — every
+  search box in the app is a drawing because of it.
+  """
+  @spec field(String.t()) :: map()
+  def field(query) do
+    assigns = %{query: query, on_change: {self(), :title_query}}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -235,16 +263,14 @@ defmodule Kati.Screens.AddTitle do
       >
         {Kati.UI.symbol("search", size: 20)}
         <Spacer size={11} />
-        <Text
-          text="quiet"
-          text_size={14.5}
-          font_weight="medium"
-          text_color={:on_surface}
-          max_lines={1}
+        <TextField
+          value={@query}
+          placeholder="quiet"
+          return_key="search"
+          weight={1.0}
+          accessibility_id="title_query"
+          on_change={@on_change}
         />
-        <Spacer size={2} />
-        <Box width={2} height={19} background={Palette.accent()} />
-        <Spacer weight={1.0} />
         {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
       </Row>
       <Spacer size={16} />
