@@ -36,6 +36,21 @@ defmodule Kati.Screens.LogListen do
   The rows reuse screen 04's episode-row recipe, already-counted ones in the
   watched fill, so a second tick is visibly a second tick.
 
+  ## The sheet credits the album that opened it, and used not to
+
+  Sharing screen 74's reader was supposed to guarantee that, and did not: both
+  screens called it with no argument, so both answered *the shelf's first*.
+  Opened on the third album, this sheet drew that album's title and then wrote
+  the `Listen`, bumped the per-track `plays`, and moved `last_played_on` on the
+  first — and, worse, opened with the first album's ticks laid over the third's
+  track positions, so the `info` line's claim that a ticked row is already
+  counted was about a record nobody was looking at.
+
+  `mount/3` now takes `%{album_id: id}` and every read on the sheet takes it:
+  the album row, the tracklist, the opening ticks, the *nth time this month*
+  line and the save. Handed nothing, it is the shelf's first and then the
+  drawing — what the empty-database sweep renders. See #84.
+
   ## What one save touches
 
   Two tables, and this screen owns the order: the `Kati.Music.Listen` first,
@@ -74,27 +89,54 @@ defmodule Kati.Screens.LogListen do
     {"Minutes", :scope_minutes}
   ]
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
+
+    id = Map.get(params, :album_id)
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:album, album())
-     |> Mob.Socket.assign(:tracks, Kati.Screens.AlbumDetail.tracks())
+     |> Mob.Socket.assign(:album_id, id)
+     |> Mob.Socket.assign(:album, album(id))
+     |> Mob.Socket.assign(:tracks, Kati.Screens.AlbumDetail.tracks(id))
      |> Mob.Socket.assign(:scope, :scope_selected)
-     |> Mob.Socket.assign(:ticked, counted_this_month())
+     |> Mob.Socket.assign(:ticked, counted_this_month(id))
      |> Mob.Socket.assign(:save_error, nil)}
   end
 
   @doc """
+  The params that name an album to this sheet, built from a shaped album.
+
+  Here rather than at each caller so the key is spelled once. A shaped row
+  carries `:id`; the drawing does not, and an album with no id yields `%{}` —
+  the no-id mount the empty-database sweep renders.
+  """
+  @spec params_for(map()) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{album_id: id}
+  def params_for(_album), do: %{}
+
+  @doc """
   The album being logged against: the shelf's first, or the drawing's.
+
+  The no-id answer, and the one the sweep renders.
+  """
+  @spec album() :: map()
+  def album, do: album(nil)
+
+  @doc """
+  The album this sheet was handed, or — given no id — the shelf's first.
 
   Through screen 74's own reader, not a second one — a sheet aimed at a
   different album from the screen that opened it would write a play against the
   wrong record. Same rule, same reason, as screen 70.
+
+  Sharing a reader was never enough on its own, which is what #84 cost: 74 and
+  73 both called it with no argument, so both answered *the shelf's first* and
+  the promise held only while the shelf had one album. The id is what turns the
+  shared reader into a shared referent.
   """
-  @spec album() :: map()
-  def album, do: Kati.Screens.AlbumDetail.album()
+  @spec album(String.t() | nil) :: map()
+  def album(id), do: Kati.Screens.AlbumDetail.album(id)
 
   def render(assigns),
     do: Sheet.sheet("Log a listen", body(assigns), Kati.Screens.Identity.of(__MODULE__))
@@ -374,7 +416,7 @@ defmodule Kati.Screens.LogListen do
       {"#{tracks} #{if tracks == 1, do: "track", else: "tracks"}", strong},
       {" · ", body},
       {"#{minutes} minutes", strong},
-      {" · #{Kati.Screens.LogListen.ordinal(Kati.Screens.LogListen.times_this_month() + 1)} time this month",
+      {" · #{Kati.Screens.LogListen.ordinal(Kati.Screens.LogListen.times_this_month(assigns[:album_id]) + 1)} time this month",
        body}
     ])
   end
@@ -421,8 +463,20 @@ defmodule Kati.Screens.LogListen do
   month, not a default somebody chose.
   """
   @spec counted_this_month() :: MapSet.t(pos_integer())
-  def counted_this_month do
-    Kati.Screens.AlbumDetail.tracks()
+  def counted_this_month, do: counted_this_month(nil)
+
+  @doc """
+  The same set, for one named album.
+
+  It has to take the id the tracklist takes, or the sheet opens with another
+  record's ticks over this record's rows — positions that happen to overlap,
+  saying that track 3 of the album you are looking at is already counted when
+  what was counted is track 3 of something else.
+  """
+  @spec counted_this_month(String.t() | nil) :: MapSet.t(pos_integer())
+  def counted_this_month(id) do
+    id
+    |> Kati.Screens.AlbumDetail.tracks()
     |> Enum.filter(& &1.counted?)
     |> MapSet.new(& &1.position)
   end
@@ -489,8 +543,19 @@ defmodule Kati.Screens.LogListen do
 
   @doc "How many listens this album already has this calendar month."
   @spec times_this_month() :: non_neg_integer()
-  def times_this_month do
-    case shelved() do
+  def times_this_month, do: times_this_month(nil)
+
+  @doc """
+  The same count, for one named album.
+
+  The confirmation line reads *…the 4th time this month*, and the album it is
+  counting has to be the album named above it. Counting the shelf's first
+  instead is a sentence about a different record printed under this one's
+  title.
+  """
+  @spec times_this_month(String.t() | nil) :: non_neg_integer()
+  def times_this_month(album_id) do
+    case shelved(album_id) do
       nil ->
         3
 
@@ -520,14 +585,9 @@ defmodule Kati.Screens.LogListen do
   def ordinal(n) when rem(n, 10) == 3, do: "#{n}rd"
   def ordinal(n), do: "#{n}th"
 
-  defp shelved do
-    case Ash.read(Album, action: :shelf) do
-      {:ok, [album | _rest]} -> album
-      _other -> nil
-    end
-  rescue
-    _error -> nil
-  end
+  # Screen 74's reader, by id or by shelf head — this sheet keeps no query of
+  # its own, for the reason `album/1` gives.
+  defp shelved(id), do: Kati.Screens.AlbumDetail.shelved(id)
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
@@ -593,7 +653,7 @@ defmodule Kati.Screens.LogListen do
   """
   @spec save_listen(map()) :: {:ok, struct()} | {:error, term()}
   def save_listen(assigns) do
-    case shelved() do
+    case shelved(assigns[:album_id]) do
       %Album{} = album -> save_against(album, assigns)
       nil -> Kati.Write.note({:error, :nothing_to_save}, "log listen")
     end

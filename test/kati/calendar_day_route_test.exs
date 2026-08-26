@@ -168,6 +168,62 @@ defmodule Kati.CalendarDayRouteTest do
       assert assigns(opened).rows == before.rows
       assert assigns(opened).filter == before.filter
     end
+
+    test "what opens agrees with what was under it — the drawn day, not a blank page" do
+      # The failure this pins is the one a gesture test cannot see: the push
+      # lands, the date is right, and the page under it is empty while the
+      # Schedule behind it is drawing five cards for the same day.
+      #
+      # `Kati.Screens.Calendar.day_rows/1` falls TODAY back to `drawn_rows/0`
+      # on an empty store, and `Kati.Seeds` is not wired into
+      # `Kati.App.on_start/0`, so a first launch is exactly this state. Screen
+      # 09 has to make the same call for the same date or the app contradicts
+      # itself one tap apart.
+      view = mount_screen(Calendar)
+      date = assigns(view).date
+
+      assert date == Kati.Time.today()
+
+      assert Kati.Calendars.Today.occurrences(date) == [],
+             "this assertion needs a day with nothing stored on it; something seeded today"
+
+      assert length(assigns(view).rows) == 5, "the Schedule is not on its drawn day"
+
+      {:push, Day, params} = tapped(view, day_tag(date)).socket.__mob__.nav_action
+      opened = mount_screen(Day, params)
+
+      assert assigns(opened).date == date
+      assert assigns(opened).occurrences == Kati.Calendar.SampleDay.occurrences()
+      assert assigns(opened).drawn? == true
+
+      body = text(opened)
+      refute body =~ "Nothing scheduled"
+      assert body =~ Kati.Calendar.SampleDay.summary()
+
+      # The furniture `drawn?` gates, checked in the tree rather than off the
+      # flag: the band, the merged renewals row and the drawing's own chip
+      # counts all go together or the day is only half drawn.
+      assert body =~ "£22.98"
+      assert body =~ "Vellum — in cinemas"
+    end
+
+    test "any other empty day still opens empty, so the exception is today's alone" do
+      view = mount_screen(Calendar)
+      {tag, date} = other_day(view)
+
+      assert Kati.Calendars.Today.occurrences(date) == []
+
+      {:push, Day, params} =
+        view |> tapped(tag) |> tapped(tag) |> then(& &1.socket.__mob__.nav_action)
+
+      opened = mount_screen(Day, params)
+
+      assert assigns(opened).date == date
+      assert assigns(opened).occurrences == []
+      assert assigns(opened).drawn? == false
+      assert text(opened) =~ "Nothing scheduled"
+      refute text(opened) =~ "£22.98"
+    end
   end
 
   describe "the way back from screen 09" do

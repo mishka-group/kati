@@ -61,14 +61,26 @@ defmodule Kati.Screens.Day do
   and the members. A `<Column fill_width>` with one `fill_width` `<Row>` in it
   measures what the `<Row>` measured alone.
 
-  ## Why this screen is still on `Kati.Calendar.SampleDay`
+  ## Two days, and which one you get
 
-  Alone among the sample-bound screens, this one has its domain already: the
-  day IS in `Kati.Calendars.Event` — `Kati.Seeds` writes all fourteen of its
-  rows — and `Kati.Calendars.Today.occurrences/1` already returns them in the
-  shape `Kati.Calendar.Layout` takes. The screen still does not read them,
-  because five of the things the drawing draws are not on that resource and
-  cannot be derived from it.
+  A push carrying `%{date: date}` — which is what `Kati.Screens.Calendar`'s
+  open gesture sends — titles this screen with that date and draws that day's
+  own events out of `Kati.Calendars.Event`. A push carrying nothing draws
+  `Kati.Calendar.SampleDay`, the fourteen-item day every frame of
+  `test/design/screens/09.html` was captured from. `day/1` is the whole of
+  that decision and argues it at length.
+
+  ## Why a real day is thinner than the drawing
+
+  This screen has had its domain for longer than it has read it: the day IS in
+  `Kati.Calendars.Event` — `Kati.Seeds` writes all fourteen of its rows — and
+  `Kati.Calendars.Today.occurrences/1` returns them in the shape
+  `Kati.Calendar.Layout` takes, ids included. What it does not return is the
+  rest of the drawing, and the five things below are why. A handed date
+  therefore draws its cards, its lanes, its clashes and its own count, and
+  **draws none of the furniture that would have to be invented** — the all-day
+  band, the merged `£22.98` renewals row, the chips' 6/6/2 and the `14 items ·
+  2 clashes` headline all belong to the day that can honestly hold them.
 
     * **The episodes.** Not for want of an episode resource any more —
       `20260821231241_media_seasons_and_episodes` built
@@ -106,8 +118,16 @@ defmodule Kati.Screens.Day do
   An empty database was never the problem — a fallback covers that, and rule 2
   would be satisfied. A database holding the user's own day is: all five would
   come back blank or wrong on every real row, which is the case
-  `Kati.Screens.Library` answers with `nil` rather than a guess. So the whole
-  screen waits for the columns instead of shipping a half-real day.
+  `Kati.Screens.Library` answers with `nil` rather than a guess.
+
+  This paragraph used to end *"the whole screen waits for the columns instead
+  of shipping a half-real day"*, and that was one screen too far. The five
+  missing things are all **decoration on top of a row**; which rows the day has
+  is not one of them, and it is the only question the route was asking. So a
+  day the user opened shows the user's own day with those five absent, and the
+  drawing keeps every one of them on the branch it was drawn for. Waiting also
+  had a cost that was easy not to see: the date the drawing titles was whatever
+  the clock said, so tapping Thursday and tapping today drew the same page.
   """
   use Kati.Screens.Pushed, back: "Calendar"
 
@@ -135,7 +155,7 @@ defmodule Kati.Screens.Day do
   # — see `lit/2`.
   @impl true
   def load(socket) do
-    date = Kati.Time.today()
+    {date, occurrences, drawn?} = Kati.Screens.Day.day(socket.assigns.params)
 
     Mob.Socket.assign(socket,
       date: date,
@@ -145,14 +165,94 @@ defmodule Kati.Screens.Day do
       # meals at 12:30 and three episodes at 20:00 collapse independently — and
       # a single flag would open both at once.
       open_groups: [],
-      occurrences: Kati.Calendar.SampleDay.occurrences()
+      occurrences: occurrences,
+      # Which of the two days is on screen, carried rather than re-derived. The
+      # chips' counts, the all-day band, the merged renewals row and the mono
+      # subtitle are all the DRAWING's numbers, and every one of them is a lie
+      # over a real day — see `day/1`.
+      drawn?: drawn?
     )
+  end
+
+  @doc """
+  Which day this is, and where its rows come from: `{date, occurrences, drawn?}`.
+
+  ## The date is the route's, not the clock's
+
+  `%{date: date}` is what `Kati.Screens.Calendar`'s open gesture pushes — the
+  cell the user tapped — and this screen titles itself with it and draws that
+  day's own events. It used to assign `Kati.Time.today()` and never look at
+  `assigns.params`, so opening Thursday from a strip scrolled to Thursday gave
+  you today (#84), and the drawing's own title (`Thu 20 Aug`) was the one thing
+  on the screen that could never be wrong because it was never right.
+
+  ## No date still means the drawn day, and must
+
+  Screen 09 is reachable without one — `Kati.Screens.ViewSwitcher` pushes it
+  bare — and that is the state `test/design/screens/09.html` was captured in:
+  fourteen items, two clashes, a two-lane clash at 09:30, a three-way one
+  capped with `+1 MORE` at 13:00, three episodes collapsing at 20:00. The
+  empty-database sweep renders exactly this branch, so it is the one that has
+  to keep working when nothing is stored.
+
+  ## A real day is drawn as itself, gaps and all
+
+  `Kati.Calendars.Today.occurrences/1` answers the day's timed events in
+  `Kati.Calendar.Layout`'s own shape, ids included — the lane engine has always
+  needed them. What it cannot answer is the rest of the drawing, and the
+  screen's moduledoc lists why: the episode lines, the tick, the `£22.98`, the
+  meta lines and the two per-event colour overrides are joins and columns that
+  do not exist. So a handed date draws its cards and **drops the furniture that
+  would have to be invented** — the all-day band, the merged renewals row, the
+  chips' 6/6/2 and the `14 items · 2 clashes` headline. A day with nothing on
+  it renders as a day with nothing on it, which is the honest answer and the
+  one `Kati.Screens.Calendar` already gives for every date but today.
+
+  ## Today with nothing stored is the drawn day, on BOTH screens
+
+  "every date but today" is the whole of the exception, and it has to be made
+  here too. `Kati.Screens.Calendar.day_rows/1` falls TODAY back to
+  `drawn_rows/0` on an empty store — FIDELITY's *missing data is not a reason
+  for a blank screen* — and the only route into this screen is a second tap on
+  that screen's selected day cell. `Kati.Seeds` is not wired into
+  `Kati.App.on_start/0`, so a first launch really is an empty `events` table:
+  without this clause screen 02 draws five cards for today and the cell under
+  them opens a page reading `Nothing scheduled`. Two screens, one date, two
+  answers, one tap apart.
+
+  It is deliberately the same test 02 makes and no wider. Any other handed date
+  with nothing on it still renders empty, because 02 draws that date empty as
+  well and the two agree there already.
+  """
+  @spec day(map()) :: {Date.t(), [map()], boolean()}
+  def day(params) do
+    case Map.get(params, :date) do
+      %Date{} = date -> handed(date)
+      _no_date -> {Kati.Time.today(), Kati.Calendar.SampleDay.occurrences(), true}
+    end
+  end
+
+  defp handed(date) do
+    case Kati.Calendars.Today.occurrences(date) do
+      [] -> empty(date)
+      occurrences -> {date, occurrences, false}
+    end
+  end
+
+  # The drawn day keeps the DATE it was handed rather than `Kati.Time.today()`:
+  # the two are equal on this branch by construction, and reading the argument
+  # says which of them the heading is.
+  defp empty(date) do
+    if date == Kati.Time.today(),
+      do: {date, Kati.Calendar.SampleDay.occurrences(), true},
+      else: {date, [], false}
   end
 
   @doc false
   def content(assigns) do
     date = assigns.date
     filter = assigns.filter
+    drawn? = assigns.drawn?
 
     # Clustered from the FILTERED list, not filtered after clustering: a clash
     # between a meeting and a renewal is not a clash once the renewals are
@@ -163,14 +263,33 @@ defmodule Kati.Screens.Day do
     <Scroll>
       <Column fill_width={true} padding_top={64} padding_bottom={40}>
         <Column fill_width={true} padding_left={21} padding_right={21}>
-          {Kati.Screens.Day.header(date, clusters, filter)}
-          {Kati.Screens.Day.chips(filter)}
-          {Kati.Screens.Day.all_day(filter)}
+          {Kati.Screens.Day.header(date, clusters, filter, drawn?)}
+          {Kati.Screens.Day.chips(filter, Kati.Screens.Day.counts(assigns))}
+          {Kati.Screens.Day.all_day(filter, drawn?)}
         </Column>
-        {Kati.Screens.Day.timeline(clusters, filter)}
+        {Kati.Screens.Day.timeline(clusters, filter, drawn?)}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The three chips and their counts.
+
+  The drawn day's are `SampleDay.chips/0` — `6 + 6 + 2`, which count the
+  all-day release, both merged renewals and the members inside the collapsed
+  group, and so are not recoverable from the occurrence list alone. A real
+  day's are counted off its own rows through `bucket/1`, the same function that
+  decides which chip narrows to what, so a chip can never say `6` and then show
+  four.
+  """
+  @spec counts(map()) :: [{String.t(), non_neg_integer()}]
+  def counts(%{drawn?: true}), do: Kati.Calendar.SampleDay.chips()
+
+  def counts(%{occurrences: occurrences}) do
+    tally = Enum.frequencies_by(occurrences, &Kati.Screens.Day.bucket/1)
+
+    for {label, _drawn} <- Kati.Calendar.SampleDay.chips(), do: {label, Map.get(tally, label, 0)}
   end
 
   @doc """
@@ -179,22 +298,31 @@ defmodule Kati.Screens.Day do
   The renewals row is not a cluster — it is one line standing for two money
   events the day view refuses to draw twice — but it still belongs at its own
   minute. Appending it after the clusters put 18:00 below 23:15.
+
+  It is also the drawing's row and only the drawing's. `money_row/0` prints
+  `£22.98`, and no table in the app holds a price — the moduledoc has said so
+  since before this screen read anything — so a real day gets its money events
+  as ordinary cards through `bucket/1`'s `Money` and no merged total at all.
   """
-  def timeline(clusters, filter) do
+  def timeline(clusters, filter, drawn?) do
     money = @money_min
 
     rows = Enum.map(clusters, fn c -> {c.start_min, Kati.Screens.Day.cluster_block(c)} end)
-    rows = if money?(filter), do: [{money, Kati.Screens.Day.money_row()} | rows], else: rows
+
+    rows =
+      if drawn? and money?(filter),
+        do: [{money, Kati.Screens.Day.money_row()} | rows],
+        else: rows
 
     rows |> Enum.sort_by(&elem(&1, 0)) |> Enum.map(&elem(&1, 1))
   end
 
   @doc false
-  def header(date, clusters, filter) do
+  def header(date, clusters, filter, drawn?) do
     heading =
       "#{Kati.Time.day_name(date) |> String.slice(0, 3)} #{date.day} #{Kati.Time.month_name(date.month) |> String.slice(0, 3)}"
 
-    subtitle = subtitle(clusters, filter)
+    subtitle = subtitle(clusters, filter, drawn?)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -225,8 +353,7 @@ defmodule Kati.Screens.Day do
   end
 
   @doc false
-  def chips(filter) do
-    all = Kati.Calendar.SampleDay.chips()
+  def chips(filter, all) do
     lit = lit(all, filter)
 
     children =
@@ -326,11 +453,11 @@ defmodule Kati.Screens.Day do
   # same: a cinema release is a Screen item, so narrowing to Personal or Money
   # has to take the band with it or the filter is only half honest.
   @doc false
-  def all_day(filter) do
+  def all_day(filter, drawn?) do
     # An empty band draws nothing at all, not an empty Column — the 14dp that
     # separates it from the first card belongs to the band, and a filter that
     # removes the band has to take that gap with it.
-    case band(filter) do
+    case band(filter, drawn?) do
       [] ->
         ~MOB"<Spacer size={0} />"
 
@@ -350,11 +477,22 @@ defmodule Kati.Screens.Day do
   Everything the band holds is a release — the design's `release ·
   wishlisted` — and a release is a Screen item, so the whole band belongs to
   one chip.
+
+  A real day has no band, and the reason is a hole rather than a choice.
+  `Kati.Calendars.Today.occurrences/1` rejects all-day events by design — they
+  have no start minute and the lane engine has no concept of them — and nothing
+  else exposes them for a date. The row also wants a poster: `all_day_row/1`
+  draws a 26x37 thumb from a `seed`, and an `air_date` event still has no
+  `{source, source_id}` pair to reach `Kati.Media.CachedTitle` with, which is
+  the same missing join the moduledoc opens with. So the band waits for the
+  reader and the join together, and until then it belongs to the day that has
+  both: the drawn one.
   """
-  @spec band(String.t() | nil) :: [map()]
-  def band(nil), do: Kati.Calendar.SampleDay.all_day()
-  def band("Screen"), do: Kati.Calendar.SampleDay.all_day()
-  def band(_filter), do: []
+  @spec band(String.t() | nil, boolean()) :: [map()]
+  def band(_filter, false), do: []
+  def band(nil, true), do: Kati.Calendar.SampleDay.all_day()
+  def band("Screen", true), do: Kati.Calendar.SampleDay.all_day()
+  def band(_filter, true), do: []
 
   @doc false
   def all_day_row(item) do
@@ -553,19 +691,24 @@ defmodule Kati.Screens.Day do
   @doc """
   The mono line under the date.
 
-  Unfiltered it is the day's own headline, `14 items · 2 clashes` — the
-  design's number, which counts the all-day release, both merged renewals and
+  The DRAWN day, unfiltered, is the design's own headline: `14 items · 2
+  clashes`, a number that counts the all-day release, both merged renewals and
   the members inside the collapsed group, and so is not recoverable from the
   cluster maths alone. Narrowed to one kind it is counted from what is
   actually on screen, because a stale `14` over four rows is a worse lie than
   an approximate count.
-  """
-  @spec subtitle([map()], String.t() | nil) :: String.t()
-  def subtitle(_clusters, nil), do: Kati.Calendar.SampleDay.summary()
 
-  def subtitle(clusters, filter) do
-    renewals = if money?(filter), do: Kati.Calendar.SampleDay.money().count, else: 0
-    extra = length(band(filter)) + renewals
+  A real day is counted every time, including unfiltered — the drawing's
+  fourteen is a fact about the drawing, and printing it over the user's own
+  Tuesday would be the loudest possible version of the same lie. `Nothing
+  scheduled` is then a real answer rather than an unreachable branch.
+  """
+  @spec subtitle([map()], String.t() | nil, boolean()) :: String.t()
+  def subtitle(_clusters, nil, true), do: Kati.Calendar.SampleDay.summary()
+
+  def subtitle(clusters, filter, drawn?) do
+    renewals = if drawn? and money?(filter), do: Kati.Calendar.SampleDay.money().count, else: 0
+    extra = length(band(filter, drawn?)) + renewals
 
     items =
       Enum.reduce(clusters, extra, fn c, acc ->

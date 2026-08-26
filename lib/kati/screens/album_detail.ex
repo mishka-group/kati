@@ -55,7 +55,19 @@ defmodule Kati.Screens.AlbumDetail do
 
   @doc "The album this screen is about: the shelf's first, or the drawing's."
   @spec album() :: map()
-  def album, do: shelved_album() || Sample.album()
+  def album, do: album(nil)
+
+  @doc """
+  One album by id, shaped — the shelf's first when no id is named.
+
+  Screen 73's sheet reads through this rather than through a reader of its own,
+  and that only means anything if the two can be pointed at the same row. An id
+  is how they are: the sheet is handed one and asks for it here, so *the album
+  the page was showing* and *the album the sheet credits* are one read with one
+  argument rather than two calls that agree by luck. See #84.
+  """
+  @spec album(String.t() | nil) :: map()
+  def album(id), do: shelved_album(id) || Sample.album()
 
   @doc "The drawing's values, unconditionally."
   @spec drawn_album() :: map()
@@ -63,8 +75,18 @@ defmodule Kati.Screens.AlbumDetail do
 
   @doc "The tracklist: the shelved album's, or the drawing's five."
   @spec tracks() :: [map()]
-  def tracks do
-    case shelved() do
+  def tracks, do: tracks(nil)
+
+  @doc """
+  One album's tracklist, by id.
+
+  Takes the id for the reason `album/1` does, and the sheet needs it more: the
+  ticks screen 73 opens with are per-track, so a tracklist read off a different
+  album credits plays to rows that are not on the record in front of you.
+  """
+  @spec tracks(String.t() | nil) :: [map()]
+  def tracks(id) do
+    case shelved(id) do
       nil -> Sample.tracks()
       %Album{} = album -> Enum.map(tracks_of(album), &shape_track/1)
     end
@@ -73,7 +95,7 @@ defmodule Kati.Screens.AlbumDetail do
   @doc "The tracklist eyebrow, which carries the real count."
   @spec tracklist_label() :: String.t()
   def tracklist_label do
-    case shelved() do
+    case shelved(nil) do
       nil ->
         Sample.tracklist_label()
 
@@ -85,16 +107,37 @@ defmodule Kati.Screens.AlbumDetail do
 
   @doc "The shaped album, or `nil` when nothing is shelved."
   @spec shelved_album() :: map() | nil
-  def shelved_album do
-    case shelved() do
+  def shelved_album, do: shelved_album(nil)
+
+  @doc """
+  One shaped album by id, or `nil` — the shelf's first when no id is named.
+
+  An id that names no row answers `nil` rather than the shelf's head: a record
+  deleted under you is not the same fact as an empty shelf, and substituting a
+  different album is precisely the swap the id was added to stop.
+  """
+  @spec shelved_album(String.t() | nil) :: map() | nil
+  def shelved_album(id) do
+    case shelved(id) do
       nil -> nil
       %Album{} = album -> shaped(album, artist_of(album), tracks_of(album), listens_of(album))
     end
   end
 
-  defp shelved do
+  @doc false
+  @spec shelved(String.t() | nil) :: Album.t() | nil
+  def shelved(nil) do
     case Ash.read(Album, action: :shelf) do
       {:ok, [album | _rest]} -> album
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  def shelved(id) when is_binary(id) do
+    case Ash.get(Album, id) do
+      {:ok, %Album{} = album} -> album
       _other -> nil
     end
   rescue
@@ -143,6 +186,11 @@ defmodule Kati.Screens.AlbumDetail do
     today = Kati.Time.today()
 
     %{
+      # The row's own id, so the `Log a listen` button can name the record it is
+      # about instead of leaving screen 73 to re-read the shelf and guess.
+      # `Kati.Music.Sample.album/0` has no id and is not given a `nil` one, so
+      # `album[:id]` reads `nil` by absence and the sheet falls back.
+      id: album.id,
       title: album.title,
       initial: Album.initial(album),
       artist: artist && artist.name,
@@ -602,7 +650,7 @@ defmodule Kati.Screens.AlbumDetail do
   """
   @spec field() :: [non_neg_integer()]
   def field do
-    case shelved() do
+    case shelved(nil) do
       nil ->
         Sample.listen_field()
 
@@ -730,9 +778,18 @@ defmodule Kati.Screens.AlbumDetail do
     """
   end
 
+  # The sheet is handed the id of the album this page is drawing. Screen 73 used
+  # to re-read the shelf and take its first row, so a page opened on the third
+  # album credited the play — and bumped the track counts — on the first (#84).
   @doc false
   def handle_tap(:log_listen, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogListen)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogListen,
+         Kati.Screens.LogListen.params_for(socket.assigns.album)
+       )}
 
   def handle_tap(:open_artist, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ArtistDetail)}

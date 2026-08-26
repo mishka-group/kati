@@ -121,7 +121,8 @@ defmodule Kati.Screens.GoalsFa do
   Two differences are the drawings' own rather than anybody's drift, and they
   are reproduced rather than reconciled. 104 closes with the Repeat switch and
   the Habits row; **108 draws neither**, so `Kati.Screens.Goals.repeat_group/1`
-  and `repeat?/0` are deliberately not called and this screen owns no switch.
+  and `Kati.Screens.Goals.repeat_row/1` are deliberately not called and this
+  screen owns no switch.
   And `Kati.Goals.Goal.counts/1` guarantees a *what counts* sentence for all
   ten kinds, but 104 draws two of the three and **108 draws one** — the books
   card only. The other nine sentences exist and have no Persian yet; that is

@@ -578,8 +578,18 @@ defmodule Kati.Screens.BookDetailDark do
 
   @doc false
   @spec handle_tap(atom(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
+  # Screen 66's push, and named the same way: the sheet is handed the id of the
+  # book this page is drawing rather than left to re-read the shelf and take its
+  # first row (#84). The dark page draws `BookDetail.book/0`, so it is the same
+  # book and the same id.
   def handle_tap(:log_progress, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogProgress,
+         Kati.Screens.LogProgress.params_for(socket.assigns.book)
+       )}
 
   def handle_tap(:rate, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}

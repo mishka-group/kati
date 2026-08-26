@@ -64,11 +64,60 @@ defmodule Kati.Screens.EventDetail do
     * **`delete/0`**, the outlined destructive bar. It is a full-width button,
       not a token, and putting it through a pill would buy a `Box` and cost two
       wrapper nodes.
+
+  ## Which event this is about
+
+  `mount/3`'s params, and nothing else. `%{id: id}` is an
+  `Kati.Calendars.Event` primary key put there by the row that was tapped — see
+  `Kati.Screens.Calendar.tag/1` — and this screen loads THAT event.
+
+  It used to assign `Kati.Calendar.SampleEvent.event/0` unconditionally, which
+  is the defect issue #84 is named for: screen 02 could open this screen and
+  had no way to say which of the day's rows it had opened, so the third
+  appointment on a Thursday and the first one drew the same page. A detail
+  screen that cannot be told what it is detailing is a detail screen about
+  whatever the store hands back first.
+
+  **No id still means the sample, exactly as before.** That is the state every
+  frame of `test/design/screens/31.html` was captured in and the state the
+  empty-database sweep renders, and an id that names nothing stored — a
+  deleted event, a fresh install — falls back to the same place rather than to
+  a blank page.
+
+  ## What a stored event can and cannot fill in
+
+  Live, because the column exists: the title (`summary`), the date and clock
+  line and its duration (`dtstart_utc`, `dtend_utc`, `is_all_day`,
+  `dtstart_date`), the timezone row (`tzid`, `tz_behaviour`) and the location.
+
+  **Absent rather than borrowed** — this is the part worth arguing, because the
+  tempting thing is to lay the drawing's values under a real event and let the
+  page look complete:
+
+    * **the section chips.** No column anywhere says whether an event is
+      Personal or Work. Drawing `Work` filled over a dentist appointment is not
+      a placeholder, it is a false statement about this event, and the reader
+      has no way to tell which of the two it is.
+    * **the clash card.** `Overlaps Standup by 15 min` is a claim about the
+      day around this event, in minutes. It is computable and it is not
+      computed here; drawing it uncomputed would put a number on the screen
+      that is right about nothing.
+    * **the invitees.** `Kati.Calendars.Event` models timing, identity, kind
+      and sync bookkeeping. There is no attendee table, so a real event's guest
+      list is empty and the card says so with its own `Add someone` row.
+    * **Repeats and Alerts.** `rrule` is stored and there is no humaniser
+      anywhere in `lib/` — `Kati.Recurrence` expands rules, it does not
+      describe them — and printing `FREQ=WEEKLY;INTERVAL=2;BYDAY=TH` at a user
+      is a database row talking to itself. Alerts have no column at all.
+
+  The drawn event keeps all four, because the drawing is where those values
+  come from and it is the only thing they are true of.
   """
   use Mob.Screen
   import Mob.Sigil
 
   alias Kati.Calendar.SampleEvent
+  alias Kati.Calendars.Event
   alias Kati.Components.MishkaAvatar
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaCloseButton
@@ -80,13 +129,139 @@ defmodule Kati.Screens.EventDetail do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  def mount(_params, _session, socket) do
+  @spec mount(map(), map(), Mob.Socket.t()) :: {:ok, Mob.Socket.t()}
+  def mount(params, _session, socket) do
     # The resolved mode, not a hardcoded `light()`. `Kati.Theme.current/0` is
     # the stored Auto/Light/Dark choice resolved against the device, and every
     # `Palette` token below reads the theme this installs.
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :event, SampleEvent.event())}
+    {:ok, Mob.Socket.assign(socket, :event, Kati.Screens.EventDetail.event(params))}
   end
+
+  @doc """
+  The event this screen is about: the one the push named, or the drawing's.
+
+  Split out of `mount/3` and public because it is the whole of the screen's
+  read, and the pair the empty-database sweep asks — *what does this answer
+  with when nothing is stored* — can only be put to a named function. See the
+  moduledoc for what a stored event fills in and what it deliberately leaves
+  out.
+
+  Three ways in and two answers. An id that names a stored, un-tombstoned event
+  answers that event; no id at all, and an id that names nothing, both answer
+  the drawing. The second of those matters as much as the first: an event
+  deleted on another device is a push whose id is now a dead letter, and the
+  screen it opens has to be a page rather than a crash.
+  """
+  @spec event(map()) :: map()
+  def event(params \\ %{}) do
+    case Map.get(params, :id) do
+      id when is_binary(id) and id != "" -> stored(id) || SampleEvent.event()
+      _no_id -> SampleEvent.event()
+    end
+  end
+
+  # `Ash.get/2` answers a tombstone as happily as a live row — `deleted_at` is
+  # a column and not a base filter — so a soft-deleted event is read back and
+  # then refused here. Opening a row the user deleted would be the same defect
+  # as opening the wrong one, said more quietly.
+  defp stored(id) do
+    case Ash.get(Event, id) do
+      {:ok, %Event{deleted_at: nil} = event} -> shaped(event)
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  defp shaped(%Event{} = event) do
+    zone = Kati.Time.device_zone()
+
+    %{
+      title: event.summary || "Untitled",
+      sections: [],
+      fields: stored_fields(event, zone),
+      clash: nil,
+      invitees: []
+    }
+  end
+
+  # In the drawing's order, minus the rows no column can answer. A row dropped
+  # is a row the reader can see is not there; a row kept and filled with the
+  # drawing's words is one they cannot.
+  defp stored_fields(event, zone) do
+    Enum.reject([when_field(event, zone), zone_field(event), place_field(event)], &is_nil/1)
+  end
+
+  # An all-day event is date-valued and has no clock — `dtstart_date` is the
+  # column, and reading `dtstart_utc` for it would be reading a nil.
+  defp when_field(%Event{is_all_day: true, dtstart_date: %Date{} = date}, _zone),
+    do: %{icon: "schedule", title: day_line(date), sub: "All day", trailing: nil}
+
+  defp when_field(%Event{dtstart_utc: %DateTime{} = starts} = event, zone) do
+    local = Kati.Time.in_zone(starts, zone)
+    ends = event.dtend_utc && Kati.Time.in_zone(event.dtend_utc, zone)
+
+    %{
+      icon: "schedule",
+      title: day_line(DateTime.to_date(local)),
+      sub: clock_line(local, ends),
+      trailing: length_of(local, ends)
+    }
+  end
+
+  defp when_field(_event, _zone), do: nil
+
+  # `nil` tzid is FLOATING — "09:00 wherever you are" — and naming a zone for it
+  # would invent the one fact the column exists to leave unsaid.
+  defp zone_field(%Event{tzid: tzid, tz_behaviour: behaviour})
+       when is_binary(tzid) and tzid != "",
+       do: %{
+         icon: "public",
+         title: "Timezone",
+         sub: tzid <> " · " <> travel(behaviour),
+         trailing: {:switch, behaviour == :device}
+       }
+
+  defp zone_field(_event), do: nil
+
+  defp travel(:device), do: "follows travel"
+  defp travel(:floating), do: "floats where you are"
+  defp travel(_fixed), do: "stays fixed"
+
+  defp place_field(%Event{location: place}) when is_binary(place) and place != "",
+    do: %{icon: "place", title: "Location", sub: place, trailing: :chevron}
+
+  defp place_field(_event), do: nil
+
+  # `Thu 20 Aug` — the drawing's own line, three letters of the day and three of
+  # the month, so a real event and the drawn one read the same way.
+  defp day_line(date) do
+    day = Kati.Time.day_name(date) |> String.slice(0, 3)
+    month = Kati.Time.month_name(date.month) |> String.slice(0, 3)
+    "#{day} #{date.day} #{month}"
+  end
+
+  defp clock_line(local, nil), do: clock(local)
+  defp clock_line(local, ends), do: clock(local) <> " – " <> clock(ends)
+
+  defp clock(dt), do: Calendar.strftime(dt, "%H:%M")
+
+  # The drawing's `1h`, read off the two times rather than stored: `dtend_utc`
+  # is itself derived from `duration_iso` at write time, and an event with no
+  # end has no length to state.
+  defp length_of(_local, nil), do: nil
+
+  defp length_of(local, ends) do
+    case DateTime.diff(ends, local, :minute) do
+      minutes when minutes <= 0 -> nil
+      minutes -> {:value, span(div(minutes, 60), rem(minutes, 60))}
+    end
+  end
+
+  defp span(0, minutes), do: "#{minutes}m"
+  defp span(hours, 0), do: "#{hours}h"
+  defp span(hours, minutes), do: "#{hours}h #{minutes}m"
 
   def render(assigns) do
     event = assigns.event
@@ -110,7 +285,6 @@ defmodule Kati.Screens.EventDetail do
           {Kati.Screens.EventDetail.chrome()}
           {Kati.Screens.EventDetail.title_card(event)}
           {Kati.Screens.EventDetail.fields(event)}
-          {UI.eyebrow("Clash")}
           {Kati.Screens.EventDetail.clash(event)}
           {Kati.Screens.EventDetail.muted_eyebrow("Invitees")}
           {Kati.Screens.EventDetail.invitees(event)}
@@ -222,16 +396,36 @@ defmodule Kati.Screens.EventDetail do
           <Spacer size={3} />
           <Box width={2} height={22} background={Palette.accent()} />
         </Row>
-        <Spacer size={12} />
-        <Row fill_width={true} align="center">
-          {UI.symbol("label", size: 16, color: Palette.sub())}
-          <Spacer size={8} />
-          {event.sections
-           |> Enum.map(fn {label, on?} -> Kati.Screens.EventDetail.section_chip(label, on?) end)
-           |> Enum.intersperse(Kati.Screens.EventDetail.chip_gap())}
-        </Row>
+        {Kati.Screens.EventDetail.sections_row(event.sections)}
       </Column>
       <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The label glyph and the section chips, or nothing at all.
+
+  Nothing at all is the stored event's answer: no column says which section an
+  event is in, and a row holding only the `label` glyph would be a control with
+  its subject missing. The 12 of space above it belongs to the row, so it goes
+  with it — a gap under a title with nothing under the gap is the shape of
+  something that failed to render.
+  """
+  @spec sections_row([{String.t(), boolean()}]) :: map()
+  def sections_row([]), do: ~MOB"<Spacer size={0} />"
+
+  def sections_row(sections) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row fill_width={true} align="center">
+        {UI.symbol("label", size: 16, color: Palette.sub())}
+        <Spacer size={8} />
+        {sections
+         |> Enum.map(fn {label, on?} -> Kati.Screens.EventDetail.section_chip(label, on?) end)
+         |> Enum.intersperse(Kati.Screens.EventDetail.chip_gap())}
+      </Row>
     </Column>
     """
   end
@@ -383,7 +577,12 @@ defmodule Kati.Screens.EventDetail do
 
   def field_tap(_row), do: nil
 
+  # No trailing at all — an all-day event has no length to put on the right of
+  # its own row. Drawn as nothing rather than as an empty value, so the title
+  # and sub-line keep the full width they would have had.
   @doc false
+  def trailing(nil), do: ~MOB"<Spacer size={0} />"
+
   def trailing({:value, text}) do
     ~MOB"""
     <Text text={text} font_family="mono" text_size={11} text_color={Palette.muted()} max_lines={1} />
@@ -431,12 +630,19 @@ defmodule Kati.Screens.EventDetail do
 
   # On cream, and with no shadow: the design's warm card is where the app
   # speaks in its own voice rather than listing a field.
+  #
+  # The eyebrow moved inside because the two are one thing: `CLASH` over no
+  # clash card is a heading for an absence. A stored event has no clash — see
+  # the moduledoc on why an uncomputed one is worse than none — so both go.
   @doc false
+  def clash(%{clash: nil}), do: ~MOB"<Spacer size={0} />"
+
   def clash(event) do
     clash = event.clash
 
     ~MOB"""
     <Column fill_width={true}>
+      {UI.eyebrow("Clash")}
       <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
         <Row fill_width={true} align="center">
           {UI.symbol("call_split", size: 18, color: Palette.gold_icon())}

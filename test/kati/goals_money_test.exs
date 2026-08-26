@@ -172,17 +172,13 @@ defmodule Kati.GoalsMoneyTest do
       assert Goals.goals() == Goals.drawn_goals()
     end
 
-    test "repeat writes through to every live goal" do
-      goal = a_goal!(%{repeat: true})
-
-      view = mount_screen(Goals)
-      assert assigns(view).repeat == true
-
-      toggled = render_info(view, {:tap, :toggle_repeat})
-
-      assert assigns(toggled).repeat == false
-      assert Ash.get!(Goal, goal.id).repeat == false
-    end
+    # `repeat writes through to every live goal` stood here and asserted the
+    # defect: one `:toggle_repeat` switch, `Enum.each(stored(), …)`, every goal
+    # on the page rewritten to answer a question asked about one. The switch is
+    # now a row per goal carrying that goal's id, and
+    # `Kati.GoalRepeatRowTest` is where the replacement lives — it taps the
+    # SECOND row and asserts the first is untouched, which is the assertion the
+    # old test could not have made.
 
     test "with nothing stored the drawing renders, whole" do
       assert Goals.goals() == Goals.drawn_goals()

@@ -22,6 +22,15 @@ defmodule Kati.Screens.Calendar do
   seven cells the drawing already gives, so the resting frame is unchanged.
   The argument for that cell over the `Today` pill is at the `"day_" <> iso`
   clause of `handle_tap/2`, next to the code it decides.
+
+  ## A row names its own event
+
+  Every card on the timeline carries `row_<kind>_<event id>` rather than
+  `row_<kind>`, so the screen it opens is about the row that was tapped. See
+  `tag/1`: without the id, screen 31 could only re-query the day and take the
+  first event back, which meant tapping the third row and editing the first.
+  The drawn day's rows have no stored event to name and keep the bare tag,
+  which is what keeps screen 31's sample reachable.
   """
   use Kati.Screens.Root, root: :calendar
 
@@ -939,7 +948,47 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc false
-  def tap(row), do: {self(), String.to_atom("row_" <> row.kind)}
+  def tap(row), do: {self(), Kati.Screens.Calendar.tag(row)}
+
+  @doc """
+  The tag a timeline row's card carries: `row_<kind>_<event id>`.
+
+  ## Why the id is on the tag at all
+
+  A tap arrives as one atom and nothing else — `handle_info({:tap, tag})` is the
+  whole of what the bridge sends back — so whatever the destination screen needs
+  to know has to be IN it. Before this the tag was `row_<kind>`, which named the
+  destination and not the row, and screen 31 had no choice but to re-query and
+  take the first event of the day: tap the third row, edit the first (#84).
+
+  ## Why an atom and not a tuple
+
+  `{:row, "event", id}` would render — mob puts whatever term it is given on
+  `on_tap` — and it would draw a control with **no `accessibility_id`**, because
+  the id is derived from an atom tag. A row nothing can address by name is a row
+  no device test and no screen reader can reach, which is a worse defect than
+  the one being fixed. `Kati.Screens.ImportSources.tag/1` settled this shape
+  already and this is the same one.
+
+  The atom per event is the cost, and it is bounded by what the user has
+  actually looked at: a row re-rendered is the same string and therefore the
+  same atom, so a day browsed twice mints nothing the first pass did not.
+
+  ## Why the id is OPTIONAL
+
+  `drawn_rows/0` is the day the drawing shows, and its rows are not stored
+  anywhere — there is no event to name. Those keep the bare `row_<kind>` tag,
+  and screen 31 answers a push with no id with its own sample, which is what
+  the empty-database sweep renders. Splitting on the first `_` after the kind is
+  unambiguous in both directions: no kind contains one and a UUID contains none.
+  """
+  @spec tag(map()) :: atom()
+  def tag(row) do
+    case Map.get(row, :id) do
+      nil -> String.to_atom("row_" <> Kati.Screens.Calendar.kind(row))
+      id -> String.to_atom("row_" <> Kati.Screens.Calendar.kind(row) <> "_" <> to_string(id))
+    end
+  end
 
   @doc """
   Rows a filter leaves visible.
@@ -1039,8 +1088,15 @@ defmodule Kati.Screens.Calendar do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "row_" <> kind ->
-        {:noreply, Mob.Socket.push_screen(socket, Map.fetch!(@row_screens, kind))}
+      # The row's own event rides across as `%{id: id}`, so the screen that
+      # opens is about the row that was tapped rather than about whatever the
+      # destination's own query happens to return first. A row with no id — the
+      # drawn day — pushes with no params at all rather than with `%{id: nil}`:
+      # a destination that pattern-matches on the key would then take a nil for
+      # an answer, and the sample fallback is the branch that has to survive.
+      "row_" <> rest ->
+        {kind, id} = split_row(rest)
+        {:noreply, open_row(socket, Map.fetch!(@row_screens, kind), id)}
 
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
@@ -1094,14 +1150,11 @@ defmodule Kati.Screens.Calendar do
         date = Date.from_iso8601!(iso)
 
         if date == socket.assigns.date do
-          # The date rides along as a param even though `Kati.Screens.Day`
-          # currently throws it away — `day.ex`'s `load/1` assigns
-          # `date: Kati.Time.today()` and never reads `assigns.params`. Said
-          # out loud rather than left as a surprise: this is the route stating
-          # which day was opened, and the day the drawing titles (`Thu 20
-          # Aug`) is whichever cell was tapped. Teaching 09 to read it is a
-          # change to `day.ex`, which this screen does not own; passing
-          # nothing would mean changing both files instead of one.
+          # The date is the whole of what this route carries, and screen 09
+          # reads it now: `day.ex`'s `load/1` titles the page with the day it
+          # was handed and draws that day's own events. This comment used to
+          # record the opposite — the param was passed and thrown away — which
+          # is the same defect the row tags below had, one screen along.
           {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Day, %{date: date})}
         else
           {:noreply,
@@ -1115,6 +1168,21 @@ defmodule Kati.Screens.Calendar do
         {:noreply, socket}
     end
   end
+
+  # `row_event_9f3c…` → `{"event", "9f3c…"}`, `row_event` → `{"event", nil}`.
+  # `parts: 2` so the id is never split further; a UUID has no underscore, and
+  # neither has any of the four names `@row_screens` is keyed on, so the first
+  # separator is the only one that means anything.
+  defp split_row(rest) do
+    case String.split(rest, "_", parts: 2) do
+      [kind, id] when id != "" -> {kind, id}
+      [kind] -> {kind, nil}
+      [kind, _empty] -> {kind, nil}
+    end
+  end
+
+  defp open_row(socket, module, nil), do: Mob.Socket.push_screen(socket, module)
+  defp open_row(socket, module, id), do: Mob.Socket.push_screen(socket, module, %{id: id})
 
   # Close the menu, then go. The socket this returns is what `Mob.Screen` saves
   # onto the nav history, so a menu left open is a menu that reopens itself

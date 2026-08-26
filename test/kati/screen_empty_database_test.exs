@@ -138,6 +138,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"05", Kati.Screens.Inbox},
     {"07", Kati.Screens.Stats},
     {"08", Kati.Screens.Film},
+    # 09 and 31 joined on 26 August with #84, and both fall back on the same
+    # trigger: **the push said nothing about which one**. 09 draws the day it
+    # was handed and 31 the event it was handed, so a bare push — which is what
+    # this file's renders are, and what `Kati.Screens.ViewSwitcher` sends 09 —
+    # is the branch that answers with the drawing. That is a different trigger
+    # from every other screen here, whose fallback fires on the store being
+    # empty; the two gates below say which they are asking.
+    {"09", Kati.Screens.Day},
+    {"31", Kati.Screens.EventDetail},
     {"10", Kati.Screens.UpNext},
     {"15", Kati.Screens.Activity},
     # 32 moved its "which calendars show" group onto `Kati.Calendars.Calendar`
@@ -850,6 +859,31 @@ defmodule Kati.ScreenEmptyDatabaseTest do
          ]
        end},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 09 is asked the question this file's renders ask: a bare push, the one
+      # `Kati.Screens.ViewSwitcher` sends and the one `render_migrated/0` makes,
+      # must answer with the drawn day whole — its date, its fourteen
+      # occurrences and the flag that keeps the band, the renewals row and the
+      # `14 items · 2 clashes` headline drawn. Compared as the triple `day/1`
+      # answers rather than as its occurrences alone: the flag is what the other
+      # three read, so a gate that dropped it would pass while the day went
+      # bare.
+      #
+      # Deliberately NOT gated on a handed date against an empty store. That
+      # answers `[]`, and `[]` is the right answer — a day the user opened and
+      # that holds nothing is empty, and dressing it in the drawing's fourteen
+      # items is the lie every other entry in this list exists to prevent.
+      {"09", Kati.Screens.Day, fn -> Kati.Screens.Day.day(%{}) end,
+       fn -> {today, Kati.Calendar.SampleDay.occurrences(), true} end},
+      # 31 is gated on the branch that READS: an id that names nothing stored,
+      # which on an empty database is every id there is. That is the fallback a
+      # push can actually land on — an event deleted on another device, a
+      # restored backup, a fresh install — and it has to answer with the drawing
+      # rather than with a blank page. The no-id path is pinned in
+      # `Kati.EventRowIdentityTest` beside the tap that produces an id, where
+      # the two can be compared with each other.
+      {"31", Kati.Screens.EventDetail,
+       fn -> Kati.Screens.EventDetail.event(%{id: Ecto.UUID.generate()}) end,
+       &Kati.Calendar.SampleEvent.event/0},
       {"10", Kati.Screens.UpNext, &Kati.Screens.UpNext.queue/0,
        &Kati.Screens.UpNext.Sample.queue/0},
       {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, &Kati.Screens.Activity.drawn/0},
@@ -1140,6 +1174,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
+      # 09's heading, and it is here for the same reason it is in
+      # `Kati.ScreenDesignLiteralTest`'s twin of this list rather than for a new
+      # one: a bare push has no date to draw, so the heavy day titles itself
+      # with the device's own today in the drawing's short form. The frame froze
+      # one Thursday. This entry arrived with 09 itself, on the round the screen
+      # started reading the store (#84).
+      {"09", "thu 20 aug", ~r/^\p{L}{3} #{day} \p{L}{3}$/u},
       # 139 is 01 with nothing stored — the same greeting, from the same
       # `Kati.Screens.Home.today/0`. Its date line is not here because an empty
       # Home draws no timeline to date, so only the greeting survives to be

@@ -14,7 +14,7 @@ defmodule Kati.Screens.MealLibrary do
   shorter tiles in it stops being scannable, which was the whole reason for a
   grid.
 
-  So `Kati.Screens.MealLibrary.tile/1` draws the same rectangle either way, and
+  So `Kati.Screens.MealLibrary.tile/2` draws the same rectangle either way, and
   the no-photo case fills it with the `restaurant` glyph and the words *Meal
   photo* — which also tells the user the tile is missing something they could
   add.
@@ -82,6 +82,13 @@ defmodule Kati.Screens.MealLibrary do
     approximate? = Kati.Screens.MealLibrary.approximate?(recipe)
 
     %{
+      # The row's own id. A tile is the one control in this app that has to say
+      # *which* — six of them are drawn and every one used to push screen 118
+      # with nothing, which then re-read the table and edited its first row.
+      # `Kati.Meals.SampleLibrary`'s six carry no id and are not given a `nil`
+      # one, so `meal[:id]` reads `nil` by absence and the editor falls back to
+      # the drawing.
+      id: recipe.id,
       title: recipe.title,
       kcal: "#{if approximate?, do: "~", else: ""}#{recipe.total_kcal} kcal",
       slot: recipe.slot_name,
@@ -244,12 +251,21 @@ defmodule Kati.Screens.MealLibrary do
     end
   end
 
-  @doc "The grid, two across, filtered by the chip."
+  @doc """
+  The grid, two across, filtered by the chip.
+
+  Indexed **before** the filter, not after: the index a tile carries is its
+  position in `assigns.meals`, which is the list `handle_tap/2` reads back. An
+  index into the filtered list would name the third *Dinner* while the handler
+  looked up the third meal, and the two coincide exactly when the chip is `All`
+  — which is what a screenshot shows.
+  """
   @spec grid([map()], String.t()) :: map()
   def grid(meals, filter) do
     rows =
       meals
-      |> Enum.filter(&(filter == "All" or &1.slot == filter))
+      |> Enum.with_index()
+      |> Enum.filter(fn {meal, _index} -> filter == "All" or meal.slot == filter end)
       |> Enum.chunk_every(2)
       |> Enum.map(&Kati.Screens.MealLibrary.grid_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={12} />")
@@ -266,7 +282,7 @@ defmodule Kati.Screens.MealLibrary do
   def grid_row(row) do
     tiles =
       row
-      |> Enum.map(&Kati.Screens.MealLibrary.tile/1)
+      |> Enum.map(fn {meal, index} -> Kati.Screens.MealLibrary.tile(meal, index) end)
       |> Enum.intersperse(~MOB"<Spacer size={12} />")
 
     # A single-tile row still needs the second half of its width taken, or one
@@ -291,12 +307,12 @@ defmodule Kati.Screens.MealLibrary do
   glyph-and-label treatment is what makes the missing photo look like a gap
   worth filling rather than a broken image.
   """
-  @spec tile(map()) :: map()
-  def tile(meal) do
-    assigns = %{meal: meal}
+  @spec tile(map(), non_neg_integer()) :: map()
+  def tile(meal, index) do
+    assigns = %{meal: meal, tap: {self(), Kati.Screens.MealLibrary.tag(index)}}
 
     ~MOB"""
-    <Column weight={1.0} on_tap={{self(), :open_meal}}>
+    <Column weight={1.0} on_tap={@tap}>
       {Kati.Screens.MealLibrary.photo(@meal)}
       <Spacer size={9} />
       <Text
@@ -397,17 +413,48 @@ defmodule Kati.Screens.MealLibrary do
     """
   end
 
-  @doc false
-  def handle_tap(:open_meal, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealEdit)}
+  @doc """
+  A tile's tap tag: `:open_meal_2` for the third meal in `assigns.meals`.
 
+  An **atom**, and an atom built from a position rather than from the recipe's
+  id. Both halves are the house rule and both have a reason written down
+  elsewhere in this app. `Kati.Screens.ImportSources.tag/1` is the shape: a
+  tuple tag renders and fires but emits no `accessibility_id`, so nothing —
+  not a device test, not a screen reader — can address the control. And
+  `Kati.Screens.Sync.outbox_row/3` is why the payload is the index: a UUID in a
+  tag is `String.to_atom/1` over unbounded input, and the atom table is never
+  collected.
+
+  The index is enough because the handler reads it back out of the same
+  `assigns.meals` this render drew from, so the two cannot disagree about which
+  row `2` is.
+  """
+  @spec tag(non_neg_integer()) :: atom()
+  def tag(index) when is_integer(index) and index >= 0,
+    do: String.to_atom("open_meal_" <> Integer.to_string(index))
+
+  # `:add` is the one push that is deliberately given no meal: it opens the
+  # editor on a new meal, which is the drawing's own fallback.
+  @doc false
   def handle_tap(:add, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealEdit)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
+      "open_meal_" <> index -> {:noreply, open_meal(socket, index)}
       "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
       _other -> {:noreply, socket}
     end
+  end
+
+  # The tile's index into the list this render drew, resolved to the row's id
+  # and handed to screen 118. Every tile used to push `Kati.Screens.MealEdit`
+  # with nothing at all, and that screen answered by re-reading `recipes` and
+  # taking the head — tap the third meal, edit the first (#84). A sample tile
+  # has no id and pushes `%{}`, which is the editor's drawn fallback.
+  defp open_meal(socket, index) do
+    meal = Enum.at(socket.assigns.meals, String.to_integer(index))
+
+    Mob.Socket.push_screen(socket, Kati.Screens.MealEdit, Kati.Screens.MealEdit.params_for(meal))
   end
 end

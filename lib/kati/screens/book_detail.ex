@@ -122,14 +122,43 @@ defmodule Kati.Screens.BookDetail do
   for the same reason `Kati.Screens.Film` takes three: a band is not a query.
   """
   @spec shelved_book() :: map() | nil
-  def shelved_book do
-    case newest() do
+  def shelved_book, do: shelved_book(nil)
+
+  @doc """
+  One shelved book by id, shaped for the render — the shelf's first when no id
+  is named.
+
+  Both arities exist because two different questions are asked of this reader.
+  Screen 66 opened from nowhere in particular still has to draw *something*, and
+  the shelf's first is the standing answer to that; a sheet pushed **off a row**
+  is asking about that row and nothing else, and #84 is the whole class of
+  defect where the second question was answered with the first.
+
+  An id that names no row answers `nil` rather than falling back to the head of
+  the shelf. A row that has been deleted under you is not the same fact as an
+  empty shelf, and quietly substituting a different book would be the very
+  swap this reader now exists to prevent — the caller draws its sample instead.
+  """
+  @spec shelved_book(String.t() | nil) :: map() | nil
+  def shelved_book(id) do
+    case row(id) do
       nil ->
         nil
 
       %Book{} = book ->
         shaped(book, sessions_of(book), notes_of(book))
     end
+  end
+
+  defp row(nil), do: newest()
+
+  defp row(id) when is_binary(id) do
+    case Ash.get(Book, id) do
+      {:ok, %Book{} = book} -> book
+      _other -> nil
+    end
+  rescue
+    _error -> nil
   end
 
   defp newest do
@@ -174,6 +203,12 @@ defmodule Kati.Screens.BookDetail do
   @spec shaped(Book.t(), [ReadingSession.t()], [Note.t()]) :: map()
   def shaped(%Book{} = book, sessions, notes) do
     %{
+      # The row's own id, carried so a control on this page can name the book it
+      # is about rather than leaving the screen it pushes to guess. `Log
+      # progress` is the one that needs it; `Kati.Books.Sample.detail/0` has no
+      # id and is not given a `nil` one, so `book[:id]` is the read and the
+      # sample answers `nil` by absence.
+      id: book.id,
       title: book.title,
       author: book.author,
       seed: book.cover_seed,
@@ -959,9 +994,20 @@ defmodule Kati.Screens.BookDetail do
     """
   end
 
+  # The sheet is pushed with the id of the book this page is drawing, not with
+  # nothing. Screen 70 used to re-read the shelf and take its first row, so a
+  # page opened on the third book logged a session against the first — #84. The
+  # sample has no id, and a sheet handed none still falls back to the drawing,
+  # which is what the empty-database sweep renders.
   @doc false
   def handle_tap(:log_progress, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogProgress,
+         Kati.Screens.LogProgress.params_for(socket.assigns.book)
+       )}
 
   def handle_tap(:rate, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
