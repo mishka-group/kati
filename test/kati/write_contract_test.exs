@@ -41,7 +41,21 @@ defmodule Kati.WriteContractTest do
     # cannot report its own failure is the same defect arriving by a different
     # door, and a ratchet that only guards the sites already fixed guards the
     # past.
-    {"lib/kati/screens/rating.ex", "save_watch"}
+    {"lib/kati/screens/rating.ex", "save_watch"},
+    # Screen 119, added by #95 for the same reason screen 33 is here: its Save
+    # popped the sheet and wrote nothing at all, which is the bare-`:ok` defect
+    # with the write removed as well as the result. It is the first writer in
+    # this list that commits through a DOMAIN function
+    # (`Kati.Meals.Totals.write_ingredient/2`) rather than `Ash.create/2`
+    # directly, and the contract is unchanged by that: the clause still has to
+    # hand back a tuple and still has to route it through `Kati.Write.note/2`.
+    {"lib/kati/screens/add_ingredient.ex", "save_ingredient"},
+    # Screen 92, added by #95. Sharper again than screen 33's case:
+    # `Kati.Services.Service` shipped with `create: :*` and no caller anywhere
+    # in `lib/`, so there was no write to get wrong until this one. It joins on
+    # the day it is written rather than on the day it is found broken, which is
+    # the only day joining is cheap.
+    {"lib/kati/screens/my_services.ex", "save_service"}
   ]
 
   describe "the shape of a write" do

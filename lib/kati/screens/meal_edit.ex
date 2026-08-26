@@ -45,6 +45,15 @@ defmodule Kati.Screens.MealEdit do
   what the empty-database sweep does — it is the library's first and then
   `Kati.Meals.SampleLibrary`'s drawing, exactly as before. See #84.
 
+  ## The ingredient sheet is handed the same meal
+
+  `Add an ingredient` and every ingredient row's chevron push
+  `Kati.Screens.AddIngredient` with this editor's own `meal_id`, through
+  `params_for/1` so the key is spelled once. That sheet's Save writes now, and
+  a sheet pushed with nothing would have had to find a recipe for itself —
+  which is the defect above, one screen down and with a new row rather than an
+  edited field at the end of it.
+
   ## A Save that did not land leaves the screen where it is
 
   `Save` used to pop the screen whatever the write returned, which on this
@@ -92,11 +101,16 @@ defmodule Kati.Screens.MealEdit do
   end
 
   @doc """
-  The params that name a meal to this editor, built from a shaped meal.
+  The params that name a meal — to this editor, and on to screen 119.
 
   Here rather than at the grid so the key is spelled once. A shaped row carries
   `:id`; the drawing's six do not, and a meal with no id — or no meal at all,
   which is what `Add a meal` means — yields `%{}`.
+
+  Both doors use it: screen 116 names a meal to this editor from the tile that
+  was tapped, and this editor names the same meal to `Kati.Screens.AddIngredient`
+  from the id it is holding. One spelling of `:meal_id`, so the two cannot drift
+  apart and leave a sheet writing to a meal the page never mentioned.
   """
   @spec params_for(map() | nil) :: map()
   def params_for(%{id: id}) when is_binary(id), do: %{meal_id: id}
@@ -606,15 +620,57 @@ defmodule Kati.Screens.MealEdit do
     """
   end
 
-  @doc false
-  def ingredient_row(ingredient) do
+  @doc """
+  One ingredient line.
+
+  `tappable?` is false for screen 119's preview, which draws this same row to
+  show what Save will add. A preview is not a control: giving it a tap tag put
+  a live `accessibility_id` on a row that answers nothing, which is precisely
+  the dead-button shape `Kati.ScreenTapSweepTest` exists to catch — and did.
+  """
+  @spec ingredient_row(map(), boolean()) :: map()
+  def ingredient_row(ingredient, tappable? \\ true) do
+    opts =
+      if tappable? do
+        [on_tap: {self(), Kati.Screens.MealEdit.ingredient_tag(ingredient)}]
+      else
+        []
+      end
+
     SettingsList.row(
       Kati.Screens.MealEdit.state_glyph(ingredient.state),
       SettingsList.body(ingredient.name, ingredient.meta),
       SettingsList.trailing(Kati.Screens.MealEdit.trailing(ingredient.amount)),
-      on_tap: {self(), :edit_ingredient}
+      opts
     )
   end
+
+  @doc """
+  This ingredient line's own tap tag.
+
+  Every row carried `:edit_ingredient`, so a meal with four ingredients gave
+  four nodes one `accessibility_id` and `onNodeWithTag` threw on the second.
+  The rows were unaddressable on a device — which is why #95's ingredient
+  journey could not be written as a device test until they were named.
+
+  Naming them does not invent an edit screen. The comment on
+  `ingredient_sheet/1` still holds: the design draws none, and all these tags
+  open `Add an ingredient`. What changes is only that a test — and TalkBack's
+  ordering, and any future per-row action — can now tell the second line from
+  the first.
+
+      iex> Kati.Screens.MealEdit.ingredient_tag(%{name: "Olive oil"})
+      :ingredient_Olive_oil
+  """
+  @spec ingredient_tag(map()) :: atom()
+  def ingredient_tag(%{name: name}) when is_binary(name) do
+    case String.trim(name) do
+      "" -> :edit_ingredient
+      real -> String.to_atom("ingredient_" <> String.replace(real, " ", "_"))
+    end
+  end
+
+  def ingredient_tag(_ingredient), do: :edit_ingredient
 
   @doc """
   The leading glyph that marks an ingredient's state.
@@ -739,11 +795,9 @@ defmodule Kati.Screens.MealEdit do
   end
 
   @doc false
-  def handle_tap(:add_ingredient, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddIngredient)}
+  def handle_tap(:add_ingredient, socket), do: {:noreply, ingredient_sheet(socket)}
 
-  def handle_tap(:edit_ingredient, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddIngredient)}
+  def handle_tap(:edit_ingredient, socket), do: {:noreply, ingredient_sheet(socket)}
 
   def handle_tap(:portion_up, socket),
     do: {:noreply, Mob.Socket.assign(socket, :portion, socket.assigns.portion + 0.5)}
@@ -766,9 +820,42 @@ defmodule Kati.Screens.MealEdit do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "slot_" <> slot -> {:noreply, Mob.Socket.assign(socket, :slot, slot)}
-      _other -> {:noreply, socket}
+      "slot_" <> slot ->
+        {:noreply, Mob.Socket.assign(socket, :slot, slot)}
+
+      # Every ingredient line, by its own name — see `ingredient_tag/1`. They
+      # open the sheet `:edit_ingredient` opened, because that is still the only
+      # screen the design draws for an ingredient.
+      "ingredient_" <> _name ->
+        {:noreply, ingredient_sheet(socket)}
+
+      _other ->
+        {:noreply, socket}
     end
+  end
+
+  # Screen 119, carrying the meal it will add an ingredient to.
+  #
+  # The push used to take no params at all, which is the same defect #84 fixed
+  # one screen up: the sheet's Save now writes, and a sheet that had to find a
+  # recipe for itself would file the line against the head of a re-query rather
+  # than against the meal whose `Add an ingredient` row was tapped.
+  # `params_for/1` builds it, so the key is spelled in one place for both doors
+  # into this screen — the grid's push into the editor and the editor's push
+  # into the sheet.
+  #
+  # BOTH tags open the same sheet, and `:edit_ingredient` is the honest half of
+  # that: the design draws no edit-an-ingredient screen, and every ingredient
+  # row carries one shared `:edit_ingredient` tag, so nothing here could say
+  # WHICH line was tapped even if there were a screen to open with it. The
+  # chevron opens `Add an ingredient`, whose header says exactly that and whose
+  # preview shows the row it will add.
+  defp ingredient_sheet(socket) do
+    Mob.Socket.push_screen(
+      socket,
+      Kati.Screens.AddIngredient,
+      params_for(%{id: socket.assigns.meal_id})
+    )
   end
 
   @doc """

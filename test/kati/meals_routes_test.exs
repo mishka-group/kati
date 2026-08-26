@@ -67,7 +67,7 @@ defmodule Kati.MealsRoutesTest do
   # `{from, tag, to, why}` — `why` names the control in the drawing, so a
   # failure says which pixels it was supposed to belong to.
   @routes [
-    {Screens.MealsToday, :open_meal, Screens.Meal, "43's meal card → 45"},
+    {Screens.MealsToday, {:prefix, "meal_"}, Screens.Meal, "43's meal card → 45"},
     {Screens.MealsToday, :open_week, Screens.MealPlan, "43's Week tile → 44"},
     {Screens.MealsToday, :open_shopping, Screens.Shopping, "43's Shop tile → 48"},
     {Screens.MealsToday, :open_nutrition, Screens.Nutrition, "43's Nutrition tile → 47"},
@@ -179,7 +179,7 @@ defmodule Kati.MealsRoutesTest do
     orphans =
       for {from, tag, _to, why} <- @routes,
           {_socket, tags} = Map.fetch!(drawn, from),
-          tag not in tags do
+          resolve_tag(tag, tags) == nil do
         "  #{inspect(from)} answers #{inspect(tag)} (#{why}) but draws no control that sends it"
       end
 
@@ -191,8 +191,9 @@ defmodule Kati.MealsRoutesTest do
 
     wrong =
       for {from, tag, to, why} <- @routes,
-          {socket, _tags} = Map.fetch!(drawn, from),
-          landed = push_target(from, socket, tag),
+          {socket, tags} = Map.fetch!(drawn, from),
+          resolved = resolve_tag(tag, tags),
+          landed = resolved && push_target(from, socket, resolved),
           landed != to do
         "  #{inspect(from)} #{inspect(tag)} (#{why}) went to #{inspect(landed)}, not #{inspect(to)}"
       end
@@ -326,4 +327,23 @@ defmodule Kati.MealsRoutesTest do
       walk(graph, Map.get(graph, module, []) ++ rest, MapSet.put(seen, module))
     end
   end
+
+  # A route names either one tag or a FAMILY of them.
+  #
+  # `Kati.Screens.MealsToday` draws a tag per card — `meal_Breakfast_08:00` —
+  # because every card sharing `:open_meal` gave every card the same
+  # `accessibility_id`, and `onNodeWithTag` throws on the second match rather
+  # than picking one. The route is still one route; what changed is that the
+  # door has a name per card rather than one name for all of them.
+  #
+  # Resolving to the FIRST match rather than asserting on a literal keeps this
+  # test pointed at the route instead of at the sample data: renaming a meal in
+  # `Kati.Meals.Sample` must not turn a routing test red.
+  defp resolve_tag({:prefix, prefix}, drawn) do
+    Enum.find(drawn, fn tag ->
+      is_atom(tag) and String.starts_with?(Atom.to_string(tag), prefix)
+    end)
+  end
+
+  defp resolve_tag(tag, drawn), do: if(tag in drawn, do: tag)
 end

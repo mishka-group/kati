@@ -146,6 +146,60 @@ defmodule Kati.ScreenTapSweepTest do
   # Taps that reach a handler and change nothing, as of 2026-08-20. See `no new
   # dead-looking taps` for what this list is and, more importantly, what it is
   # not. Two groups, and the difference matters when you read a name here.
+  # The screens that still give one name to more than one node, with the tags
+  # they repeat. `Mob.Renderer` derives an `accessibility_id` from every atom
+  # `on_tap`, so a tag drawn twice is an id drawn twice, and
+  # `onNodeWithTag` throws on the second match rather than picking one. Every
+  # entry here is a control no device test can address.
+  #
+  # ## Why a list and not twenty-two fixes
+  #
+  # The check above was blind from the day it was written, so this is not new
+  # breakage — it is breakage that was always there and could not be seen. The
+  # honest move on finding twenty-four of them was to make them visible and fix
+  # the ones on the journey this ticket had to test, rather than to redraw
+  # twenty-four screens' tags in the same commit and verify none of it.
+  #
+  # 43 and 118 are absent because they were fixed: `Kati.Screens.MealsToday`
+  # names each card after its slot AND its clock — two `Snack` rows in one day
+  # made the slot alone collide, which this check caught — and
+  # `Kati.Screens.MealEdit` names each line after its ingredient. Those two are
+  # the meals journey's own doors, so they are the ones #95 had to open; the
+  # device test that walks through them still needs a meal to attach an
+  # ingredient to, which is #91's work, not this ticket's.
+  #
+  # The shape of the fix is the same every time and is written down in
+  # `Kati.Screens.MealsToday.meal_tag/1`: give the repeated control the identity
+  # of the row it belongs to. `Kati.Screens.ImportSources.tag/1` and
+  # `Kati.Screens.AddIngredient`'s aisle chips are the same pattern.
+  #
+  # This list may only SHRINK. The test enforces both directions — a new
+  # collision fails it, and so does an entry here that no longer collides.
+  @known_collisions %{
+    "02" => ["row_event"],
+    "03" => ["open_film", "open_series"],
+    "20" => ["open_book"],
+    "21" => ["open_album", "open_artist"],
+    "28" => ["inbox", "root_calendar"],
+    "38" => ["finish"],
+    "42" => ["open_meals", "open_retired"],
+    "52" => ["density"],
+    "55" => ["open_inbox"],
+    "57" => ["open_series"],
+    "77" => ["open_album"],
+    "86" => ["repeat_query", "try_suggestion"],
+    "92" => ["edit_service"],
+    "93" => ["edit_service"],
+    "96" => ["my_services"],
+    "112" => ["open_schedule"],
+    "113" => ["open_habits", "open_meals", "open_medication", "open_weight"],
+    "114" => ["close"],
+    "122" => ["open_subscriptions"],
+    "126" => ["toggle_density"],
+    "127" => ["open_services"],
+    "151" => ["open_settings"]
+  }
+
   @inert_taps [
     # ── Correct. The selected member of a family of controls: the filter that
     # is already showing, the shelf you are already on. Tapping it sets the
@@ -223,8 +277,15 @@ defmodule Kati.ScreenTapSweepTest do
     # by `Kati.ServicesTest`, which asserts the stored set actually moves.
     #
     # The two search fields and the service row are drawn, reachable and open
-    # nothing: neither a service search nor a per-service editor is drawn
-    # anywhere in the 127 artboards.
+    # nothing. `:search` is the field's ROW, and since #95 the row is no longer
+    # the whole control: screen 92's field is a `<TextField>`, because screen 95
+    # draws it mid-query and points what you type at the `Something else` row
+    # below it. Typing arrives as `{:change, :service_query, _}` and a sweep of
+    # taps cannot see it — `Kati.ServiceWriteTest` asserts the field holds what
+    # was typed and that the row writes it. What the row's own `on_tap` still
+    # opens is nothing, which is what keeps this entry honest, and
+    # `:edit_service` opens nothing because no per-service editor is drawn
+    # anywhere in the set.
     {Kati.Screens.MyServices, :rule_rentals},
     {Kati.Screens.MyServices, :rule_purchases},
     {Kati.Screens.MyServices, :rule_hide_unavailable},
@@ -746,33 +807,61 @@ defmodule Kati.ScreenTapSweepTest do
     # second match rather than picking one, so a duplicate is a device test that
     # cannot be written rather than one that quietly passes.
     #
-    # This is green today and is expected to go red as the app grows real data:
-    # `Kati.Screens.Library`'s poster grid tags every poster `:open_film` or
-    # `:open_series` and carries no per-title identity, so it collides as soon
-    # as a shelf holds two of a kind. It draws too few against an empty store to
-    # collide yet. When it does, the fix is a tag per title — the shape
-    # `Kati.Screens.ImportSources.tag/1` already uses — not an entry here.
-    clashes =
+    # ## This check was blind, and said so confidently
+    #
+    # It read `props[:accessibility_id]` off the pre-serialization tree. Almost
+    # nothing sets that by hand: `Mob.Renderer` DERIVES the id at serialization
+    # from `on_tap`, emitting `Atom.to_string(tag)` for a `{pid, atom}` tuple
+    # (`deps/mob/lib/mob/renderer.ex:313`). So the pre-serialization tree
+    # carried exactly one id on 148 of 152 screens — `Pushed.chrome/3`'s
+    # `screen:` stamp — and two on the four that also tag a `TextField` by
+    # hand. One id per screen cannot repeat, so the assertion could not go red,
+    # measured by histogram rather than argued.
+    #
+    # Its own comment predicted `Kati.Screens.Library` would collide "as soon as
+    # a shelf holds two of a kind" and that it "draws too few against an empty
+    # store to collide yet". Both halves were wrong: 03 repeats `:open_film`
+    # AND `:open_series` today, against the empty store, and had since the
+    # screen was written. A guard that names the defect it is blind to is worse
+    # than no guard, because it is cited as cover.
+    #
+    # This reads the union of both: ids set by hand, and the ids the renderer
+    # will derive. That is what the device addresses.
+    collisions =
       for {number, _label, module, _kind} <- Kati.Screens.Gallery.screens(),
-          {:ok, _socket, tree} <- [ScreenSweep.render(module)] do
-        ids =
-          tree
-          |> Mob.ScreenCase.flatten()
-          |> Enum.flat_map(fn node ->
-            case Map.get(node.props || %{}, :accessibility_id) do
-              id when is_binary(id) -> [id]
-              _other -> []
-            end
-          end)
+          {:ok, _socket, tree} <- [ScreenSweep.render(module)],
+          repeated = repeated_ids(tree),
+          repeated != [],
+          do: {number, module, repeated}
 
-        {number, module, Enum.uniq(ids -- Enum.uniq(ids))}
-      end
-      |> Enum.reject(fn {_n, _m, dupes} -> dupes == [] end)
-      |> Enum.map(fn {n, m, dupes} -> "  #{n} #{inspect(m)} repeats #{inspect(dupes)}" end)
+    found = Map.new(collisions, fn {number, _m, tags} -> {number, tags} end)
 
-    assert clashes == [],
+    # Grew: a screen that collides and is not written down below.
+    grew =
+      for {number, module, tags} <- collisions,
+          known = Map.get(@known_collisions, number, []),
+          new_tags = tags -- known,
+          new_tags != [],
+          do: "  #{number} #{inspect(module)} repeats #{inspect(new_tags)}"
+
+    assert grew == [],
            "these screens give one name to more than one node, so no device test can " <>
-             "address either:\n" <> Enum.join(clashes, "\n")
+             "address either — `onNodeWithTag` throws on the second match:\n" <>
+             Enum.join(grew, "\n")
+
+    # Went stale: written down below, but fixed. The list is a debt register,
+    # and a register nobody strikes entries off is a list of lies within a
+    # month — which is exactly how the check above came to be cited for four
+    # years of collisions it could not see.
+    stale =
+      for {number, tags} <- @known_collisions,
+          fixed = tags -- Map.get(found, number, []),
+          fixed != [],
+          do: "  #{number} no longer repeats #{inspect(fixed)}"
+
+    assert stale == [],
+           "these are fixed — strike them off `@known_collisions` so the ratchet " <>
+             "tightens:\n" <> Enum.join(stale, "\n")
   end
 
   test "neither shell macro supplies a default handle_tap/2" do
@@ -895,5 +984,39 @@ defmodule Kati.ScreenTapSweepTest do
       {:error, message} ->
         "#{inspect(module)} raised on {:tap, #{inspect(tag)}}:\n  #{message}"
     end
+  end
+
+  # Every id the DEVICE will see for this tree: the ones set by hand, plus the
+  # ones `Mob.Renderer` derives from an atom `on_tap` at serialization. Reading
+  # only the first is what made the duplicate check above vacuous for the life
+  # of the project.
+  defp emitted_ids(tree) do
+    tree
+    |> Mob.ScreenCase.flatten()
+    |> Enum.flat_map(fn node ->
+      props = node.props || %{}
+
+      explicit =
+        case Map.get(props, :accessibility_id) do
+          id when is_binary(id) -> [id]
+          _other -> []
+        end
+
+      derived =
+        case Map.get(props, :on_tap) do
+          {pid, tag} when is_pid(pid) and is_atom(tag) -> [Atom.to_string(tag)]
+          _other -> []
+        end
+
+      explicit ++ derived
+    end)
+  end
+
+  defp repeated_ids(tree) do
+    ids = emitted_ids(tree)
+
+    (ids -- Enum.uniq(ids))
+    |> Enum.uniq()
+    |> Enum.sort()
   end
 end

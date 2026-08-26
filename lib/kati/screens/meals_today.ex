@@ -430,7 +430,7 @@ defmodule Kati.Screens.MealsToday do
         # surface above the page, so it follows the ground into `#1E1D1B`.
         background: Palette.card(),
         shadow: Theme.shadow_button(),
-        on_tap: :open_week
+        on_tap: :open_week_disc
       ],
       [UI.symbol("calendar_view_week", size: 21)]
     )
@@ -780,6 +780,42 @@ defmodule Kati.Screens.MealsToday do
     """
   end
 
+  @doc """
+  This meal's own tap tag.
+
+  Every card on the timeline carried `:open_meal`, so `Mob.Renderer` stamped
+  every card with the same `accessibility_id` and `onNodeWithTag` throws on the
+  second match — the timeline was unaddressable on a device, not merely
+  untested.
+
+  ## Why the clock is in the tag and the slot alone is not
+
+  The slot name is what a person reads off the card, so `meal_Breakfast_08:00`
+  leads with it. It cannot stand alone: a day can hold two `Snack` rows, and
+  the first draft of this function named both of them `meal_Snack` — the same
+  defect one layer down, caught by the check above going red rather than by
+  anybody noticing. The clock is what separates two cards a person would also
+  tell apart by looking at.
+
+      iex> Kati.Screens.MealsToday.meal_tag(%{slot: "Breakfast", time: "08:00"})
+      :"meal_Breakfast_08:00"
+
+      iex> Kati.Screens.MealsToday.meal_tag(%{slot: "", time: "19:30"})
+      :"meal_19:30"
+  """
+  @spec meal_tag(map()) :: atom()
+  def meal_tag(meal) do
+    slot = meal |> Map.get(:slot, "") |> to_string() |> String.trim() |> String.replace(" ", "_")
+    time = meal |> Map.get(:time, "") |> to_string() |> String.trim()
+
+    case {slot, time} do
+      {"", ""} -> :open_meal
+      {"", clock} -> String.to_atom("meal_" <> clock)
+      {name, ""} -> String.to_atom("meal_" <> name)
+      {name, clock} -> String.to_atom("meal_" <> name <> "_" <> clock)
+    end
+  end
+
   @doc false
   def meal_row(meal) do
     gutter_top = if meal.state == :next, do: 17, else: 15
@@ -787,7 +823,7 @@ defmodule Kati.Screens.MealsToday do
     gutter_color = if meal.state == :next, do: Palette.ink(), else: Palette.muted()
     gutter_weight = if meal.state == :next, do: "medium", else: "regular"
 
-    tap = {self(), :open_meal}
+    tap = {self(), Kati.Screens.MealsToday.meal_tag(meal)}
 
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
@@ -1168,6 +1204,13 @@ defmodule Kati.Screens.MealsToday do
   def handle_tap(:open_meal, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
 
+  # The header disc and the first week tile are drawn with the same glyph and go
+  # to the same place, which is why they shared a tag. Sharing a tag also made
+  # both of them unaddressable, so they keep the one destination and take
+  # separate names.
+  def handle_tap(:open_week_disc, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
+
   def handle_tap(:open_library, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealLibrary)}
 
@@ -1201,6 +1244,23 @@ defmodule Kati.Screens.MealsToday do
      socket
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.push_screen(Kati.Screens.MealReminders)}
+  end
+
+  # Every timeline card, by its own name. `meal_row/1` gives each card a tag
+  # built from its slot, because four cards sharing `:open_meal` gave four nodes
+  # one `accessibility_id` and `onNodeWithTag` throws on the second match — the
+  # timeline was unaddressable on a device, not merely untested.
+  #
+  # They all open the same screen today: `Kati.Screens.Meal` takes no argument,
+  # so this is identity for the sake of being addressable rather than for
+  # routing. Carrying the slot through to the detail screen is screen 44's
+  # change, not this one's — and naming the cards is what has to happen first.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    if String.starts_with?(Atom.to_string(tag), "meal_") do
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}

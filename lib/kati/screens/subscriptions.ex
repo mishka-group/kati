@@ -57,14 +57,31 @@ defmodule Kati.Screens.Subscriptions do
 
   ## Why this screen is still on `Kati.Subscriptions.Sample`
 
-  There is no subscription resource, and this is the one screen in the app
-  where that is a statement about the schema rather than about the round it
-  landed in: **no table anywhere holds a price.** Not `Kati.Media`, not
-  `Kati.Calendars`, not `Kati.Meals`. Every figure this screen prints — the
-  `£46.47` hero, the four prices, the change since March — has nowhere to come
-  from.
+  This section used to open *no table anywhere holds a price*, and that stopped
+  being true. `Kati.Services.Service` carries `monthly_pence` and `currency`,
+  screen 92 owns them and says so on the page, and since #95 a person can put a
+  service into that table themselves — the `Something else` row, through
+  `Kati.Screens.MyServices.save_service/1`. So a price has a home and a door
+  now, and the paragraph claiming otherwise would have sent the next reader off
+  to build one that exists.
 
-  The nearest thing that exists is `Kati.Calendars.Event.kind`'s `:money`
+  What it does not have is a **figure**, and that is why this screen has not
+  moved. `Something else` writes a name and no price, because band 6 of ticket
+  `D-10` asks for an editable price and no artboard in the set draws the editor.
+  A service created today is a row with `monthly_pence: nil`, which screen 92
+  renders honestly as a name with a blank right-hand column and this screen
+  could only render as `£0.00` or as a hole. Neither is one of the four rows the
+  drawing has.
+
+  And there is no control on **this** screen to fix that with. 23.html holds one
+  `more_horiz` and no menu, sheet or popover anywhere in the export — see
+  `handle_tap/2`'s last clause — so a *New subscription* sheet here would be a
+  screen invented rather than built, which is the one thing 152 drawn artboards
+  exist to make unnecessary.
+
+  The rest of the gap is untouched by any of that, and it is the part the screen
+  is actually about. The nearest thing that exists is
+  `Kati.Calendars.Event.kind`'s `:money`
   value, and `Kati.Seeds` does write two renewal events with a price in the
   `description`. That is not a source and must not be treated as one:
 
@@ -83,11 +100,13 @@ defmodule Kati.Screens.Subscriptions do
   carries `runtime_minutes`, so hours per *service* would additionally need a
   provider→service mapping, which nothing holds either.
 
-  So the ask here is a domain, not a column: a service with a price and a
+  So the ask here was a domain, not a column: a service with a price and a
   cadence, a link from a tracked title to the service that carries it, and a
-  duration on a watch. Until all three exist, every row on this screen is the
-  drawing's, and a screen half-priced from calendar descriptions would be
-  worse than one that is honestly a drawing.
+  duration on a watch. The first of the three landed with `Kati.Services`; the
+  other two have not, and the rate is the one this screen exists for. Until they
+  do, every row here is the drawing's, and a screen half-priced from a table
+  that holds names without figures would be worse than one that is honestly a
+  drawing.
   """
   use Kati.Screens.Pushed, back: "Stats"
 

@@ -7,6 +7,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
@@ -178,9 +179,37 @@ class KatiRule : TestRule {
         }
     }
 
-    /** Taps a control by the tag its Elixir side already gave it. */
+    /**
+     * Taps a control by the tag its Elixir side already gave it.
+     *
+     * Scrolls to it first, and that is not a nicety. `Mob`'s `<Scroll>` is a
+     * plain `Column(verticalScroll(...))` (`MobBridge.kt:3026`), not a lazy
+     * list, so EVERY child composes whether or not it is on screen. A control
+     * below the fold is therefore present in the semantics tree — `present/1`
+     * says true, `onNodeWithTag` finds it — while `performClick` injects a real
+     * touch at the node's centre, which is off screen and reaches nothing.
+     *
+     * That combination cost a full afternoon on screen 92: the row tagged
+     * `add_service` sits under four groups, so `present("add_service")` was
+     * true, the tap silently did nothing, the row count stayed 0, and the
+     * failure looked exactly like a broken write. The assertion that was
+     * supposed to catch it — "an empty save wrote no row" — passed for the same
+     * reason it was wrong: a tap that never fires also writes no row.
+     *
+     * `performScrollTo` throws for a node in no scrollable ancestor, which is
+     * ordinary for a control already in view, so that case falls through to the
+     * click rather than failing.
+     */
     fun tap(tag: String) {
-        compose.onNodeWithTag(tag, useUnmergedTree = true).performClick()
+        val node = compose.onNodeWithTag(tag, useUnmergedTree = true)
+
+        try {
+            node.performScrollTo()
+        } catch (_: Throwable) {
+            // Not in a scrollable ancestor, or already fully visible.
+        }
+
+        node.performClick()
     }
 
     /**

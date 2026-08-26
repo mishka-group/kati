@@ -23,24 +23,103 @@ defmodule Kati.Screens.AddIngredient do
   *This is how the row will look in the meal.* An ingredient with no numbers
   still lands on the shopping list and still leaves the meal total approximate,
   and showing the row it will become is how the sheet says both at once.
+
+  ## Save writes the row the preview is showing
+
+  It popped the screen and wrote nothing, which on a sheet whose whole bottom
+  half is a picture of the row it is about to add is the worst possible place
+  for that: the preview said *this is how the row will look in the meal*, the
+  sheet closed as though it had landed, and the meal behind it was unchanged.
+  Screen 118 re-reads its ingredient list on every render, so the row's absence
+  was visible one frame later and there was nothing anywhere to say why.
+
+  `Kati.Meals.Totals.write_ingredient/2` is the only door in — not
+  `Ash.create/2` on `Kati.Meals.RecipeIngredient`. That module is the sole
+  writer of a recipe's cached macro totals and its three-step order (*bump the
+  rev, write the line, store the totals*) is what stops a stale cache being
+  frozen into a `Kati.Meals.MealLog`. A line inserted around it would leave
+  `totals_rev == ingredients_rev` over a recipe whose ingredients had changed,
+  which is the one ordering `Kati.Meals.Changes.FreezeNutrition` cannot
+  survive: it freezes what the cache claims, permanently, and a logged meal is
+  a record of something that was eaten.
+
+  ## Which meal, and why the sheet refuses when it was handed none
+
+  The meal that opened the sheet. Screen 118 pushes here with its own
+  `meal_id` — `Kati.Screens.MealEdit.params_for/1`, the same key and the same
+  spelling the editor itself mounts with — and this screen carries it from
+  `mount/3` to the write without asking the store for a meal in between. That
+  is #84 in one sentence: a sheet that re-queried for "a recipe" would file
+  your ingredient against whichever row the query happened to head with, and
+  the meal editor behind it would redraw showing no change at all.
+
+  Handed no id, **it does not write**. That is not the same decision screen
+  118's own `save_slot/2` makes, and the difference is the difference between
+  the two writes: a slot is a field of the meal the editor is *already drawing*,
+  so writing it back to the library's first is writing back to what is on
+  screen. An ingredient is a NEW ROW, and a new row filed against a meal nobody
+  named is a row in somebody else's dinner. So the sheet stays open and says
+  `Nothing to save yet.`
+
+  This is also what makes the sheet safe under `Kati.ScreenTapSweepTest`, which
+  taps `:save` on every screen against the shared database with no params at
+  all: no id, no write, nothing left behind for the next suite to trip over.
+  `Kati.Screens.Rating` reached the same answer from the same corner.
+
+  ## What Save does NOT write, and why that is not a missing write path
+
+  The aisle is a real control — five chips, one selected, and the chosen one is
+  what the row is filed under. The name, the quantity and the unit are the
+  draft's, because nothing on this sheet edits them: `:edit_name`,
+  `:edit_quantity` and `:edit_unit` are drawn rows that open nothing. So Save
+  commits exactly what the preview is showing, which is the honest reading of a
+  sheet that draws its own outcome, and the day a field lands on those three
+  rows the write path they will use is the one that now exists. Screen 118 says
+  the same thing about its title and method, and screen 33 about its five inert
+  context rows.
+
+  ## `Uncategorised` is this sheet's word for `Kati.Meals.Aisle`'s `:other`
+
+  Two of the five chips do not read as their stored label — the sheet draws
+  `Dairy` where `Kati.Meals.Aisle` prints `Dairy & eggs`, and `Uncategorised`
+  where it prints `Other`. The chips are the drawing's copy and the labels are
+  screen 48's, so neither can move to meet the other; `aisle_value/1` is where
+  the two vocabularies are mapped, once. The consequence is visible and worth
+  stating: the preview here says `UNCATEGORISED · FREE TEXT` and the row it
+  becomes reads `OTHER · FREE TEXT` in the meal. Same bucket, two words for it,
+  and the shopping list groups by the atom.
   """
 
   use Mob.Screen
   import Mob.Sigil
 
+  alias Kati.Meals.Recipe
   alias Kati.Meals.SampleLibrary
+  alias Kati.Meals.Totals
   alias Kati.Screens.MealEdit
   alias Kati.UI
   alias Kati.UI.SettingsList
   alias Kati.UI.Sheet
+  alias Kati.Write
 
-  def mount(_params, _session, socket) do
+  @doc """
+  The sheet, holding the draft and the meal it will be added to.
+
+  `meal_id` is the whole of #84 here: the row screen 118 named when it pushed,
+  carried rather than looked up again at save time. `nil` — pushed by an editor
+  that names no meal — is a sheet that will refuse rather than pick one.
+  """
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
+
+    draft = SampleLibrary.draft()
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:draft, SampleLibrary.draft())
-     |> Mob.Socket.assign(:aisle, SampleLibrary.draft().aisle)}
+     |> Mob.Socket.assign(:draft, draft)
+     |> Mob.Socket.assign(:aisle, draft.aisle)
+     |> Mob.Socket.assign(:meal_id, Map.get(params || %{}, :meal_id))
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   def render(assigns),
@@ -60,7 +139,42 @@ defmodule Kati.Screens.AddIngredient do
       <Spacer size={18} />
       {Kati.Screens.AddIngredient.preview(assigns.draft, assigns.aisle)}
       <Spacer size={16} />
+      {Kati.Screens.AddIngredient.save_notice(assigns.save_error)}
       {Sheet.commit("Save", :save)}
+    </Column>
+    """
+  end
+
+  @doc """
+  The sentence that says the ingredient did not save, or nothing.
+
+  Above the button rather than below it, which is `Kati.Screens.NewGoal`'s
+  argument on the same sheet frame: `Kati.UI.Sheet.sheet/3` closes with 34pt of
+  bottom padding and the commit pill is the last thing in it, so a notice under
+  the pill lands in that padding or off the edge of the phones this sheet
+  already fills. Above it, the sentence is between the person and the control
+  they just pressed.
+
+  `nil` draws a zero `Spacer` rather than nothing, so the healthy sheet and the
+  failed one have the same node shape and the preview above does not shift when
+  the notice appears.
+  """
+  @spec save_notice(String.t() | nil) :: map()
+  def save_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def save_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.45}
+        text_color={Kati.Theme.Palette.red()}
+      />
+      <Spacer size={12} />
     </Column>
     """
   end
@@ -220,12 +334,15 @@ defmodule Kati.Screens.AddIngredient do
 
     assigns = %{
       row:
-        MealEdit.ingredient_row(%{
-          name: draft.name,
-          meta: meta,
-          amount: draft.quantity,
-          state: :free_text
-        })
+        MealEdit.ingredient_row(
+          %{
+            name: draft.name,
+            meta: meta,
+            amount: draft.quantity,
+            state: :free_text
+          },
+          false
+        )
     }
 
     ~MOB"""
@@ -239,7 +356,23 @@ defmodule Kati.Screens.AddIngredient do
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
-  def handle_info({:tap, :save}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  # A save that landed closes the sheet; a save that did not KEEPS IT OPEN and
+  # says so. Closing on failure is the specific behaviour `Kati.Write` exists to
+  # forbid — a sheet that shuts is how a lost write looks like a completed one,
+  # and this sheet had nothing to distinguish the two because it never wrote at
+  # all.
+  def handle_info({:tap, :save}, socket) do
+    case save_ingredient(socket.assigns) do
+      {:ok, _ingredient} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.pop_screen()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
+  end
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
@@ -252,4 +385,172 @@ defmodule Kati.Screens.AddIngredient do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  Add the drafted line to the meal that opened this sheet.
+
+  Through `Kati.Meals.Totals.write_ingredient/2`, which is the only writer of a
+  recipe's cached totals — see the moduledoc for what going around it would
+  cost a frozen `Kati.Meals.MealLog`.
+
+  Two refusals, and neither is a quiet no-op:
+
+    * **No meal id** — the sheet was opened by an editor that names no meal, so
+      there is nothing to add to. `:nothing_to_save`, which the person reads as
+      *Nothing to save yet.*
+    * **An id whose row is gone** — a meal deleted while this sheet was open.
+      Not the same fact as the first, and not a reason to write the line
+      somewhere else.
+
+  Returns `{:ok, line}` or `{:error, reason}`, both through `Kati.Write.note/2`.
+  Never a bare `:ok`: the sheet's own drawing is identical whether a save landed
+  or not, so the tuple is the only thing that can tell them apart.
+  """
+  @spec save_ingredient(map()) :: {:ok, struct()} | {:error, term()}
+  def save_ingredient(%{meal_id: nil}),
+    do: Write.note({:error, :nothing_to_save}, "add an ingredient")
+
+  def save_ingredient(%{meal_id: id} = assigns) do
+    result =
+      case meal_record(id) do
+        %Recipe{} = recipe ->
+          {line, _totalled} = Totals.write_ingredient(recipe, line_attrs(recipe, assigns))
+          {:ok, line}
+
+        nil ->
+          {:error, :meal_is_gone}
+      end
+
+    Write.note(result, "add an ingredient")
+  end
+
+  defp meal_record(id) do
+    # The meal named, as a row, or `nil`.
+    #
+    # A READ, which is why it is a function of its own rather than a `case` in
+    # the writer above: the guard below is the one
+    # `Kati.Screens.MealEdit.recipe/1` carries for the same reason — a store
+    # that cannot be reached mid-migration must leave the sheet open saying the
+    # save did not land, not kill the screen process the person is looking at.
+    # On a WRITE the same construction would be the app deciding on your behalf
+    # that a failure did not happen, and `Kati.WriteContractTest` forbids it
+    # inside `save_ingredient/1` for exactly that reason.
+    case Ash.get(Recipe, id) do
+      {:ok, %Recipe{} = recipe} -> recipe
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc """
+  The line, in `Kati.Meals.RecipeIngredient` terms.
+
+  Everything the sheet knows and nothing it does not: no kcal and no macros,
+  because the two paths that would supply them carry `NOT IN V1` and the third
+  is a form Mob cannot draw yet. The defaults are all zero and the preview says
+  so out loud — *it adds no numbers, so the meal total stays approximate.*
+
+  `shop_for` is the resource's own default and is left alone deliberately: the
+  sheet's sharp end is that **a dropped ingredient vanishes from the shopping
+  list**, and an ingredient added here has never been ticked off one.
+  """
+  @spec line_attrs(Recipe.t(), map()) :: map()
+  def line_attrs(%Recipe{} = recipe, %{draft: draft, aisle: aisle}) do
+    %{
+      position: next_position(recipe),
+      name: draft.name,
+      amount_mg: Kati.Screens.AddIngredient.amount_mg(draft.quantity),
+      unit: Kati.Screens.AddIngredient.unit_value(draft.unit),
+      aisle: Kati.Screens.AddIngredient.aisle_value(aisle)
+    }
+  end
+
+  # The next free slot in this recipe's list, never a constant.
+  #
+  # `Kati.Meals.RecipeIngredient` carries a UNIQUE index on
+  # `{recipe_id, position}` — "already a line at this position" — so a sheet
+  # that wrote `position: 0` would add one ingredient to a meal and then reject
+  # every ingredient after it. Max-plus-one rather than a count, because a
+  # removed line leaves a hole and a count would land back on top of a row that
+  # is still there.
+  defp next_position(%Recipe{} = recipe) do
+    positions =
+      recipe
+      |> Kati.Screens.MealLibrary.ingredients_of()
+      |> Enum.map(& &1.position)
+
+    if positions == [], do: 0, else: Enum.max(positions) + 1
+  end
+
+  @doc """
+  A drawn quantity in thousandths of its unit, or zero when it is words.
+
+  Zero is not a failure to parse — it is the app's own way of storing *the
+  quantity is words*: `Kati.Screens.MealEdit.amount_line/1` matches it first and
+  prints `a few`, and `ingredient_state/1` reads a line with no amount and no
+  figures as `:free_text`, which is the state this sheet's preview draws. So
+  the drawing's `a few` round-trips to the row the preview promised rather than
+  to a `0 g` that claims a measurement nobody made.
+
+      iex> Kati.Screens.AddIngredient.amount_mg("180")
+      180000
+      iex> Kati.Screens.AddIngredient.amount_mg("1.5")
+      1500
+      iex> Kati.Screens.AddIngredient.amount_mg("a few")
+      0
+  """
+  @spec amount_mg(String.t()) :: non_neg_integer()
+  def amount_mg(quantity) when is_binary(quantity) do
+    case Float.parse(quantity) do
+      {number, _rest} when number > 0 -> round(number * 1000)
+      _other -> 0
+    end
+  end
+
+  def amount_mg(_quantity), do: 0
+
+  @doc """
+  The stored unit for a drawn one.
+
+  `free` is not a unit and the resource has no value for it — it is the
+  drawing's word for *the quantity is words*, which the row stores as
+  `amount_mg: 0`. The column is `allow_nil?: false`, so the line still needs a
+  unit, and the resource's own default is the honest one: nothing reads it
+  while the amount is zero.
+
+      iex> Kati.Screens.AddIngredient.unit_value("ml")
+      :ml
+      iex> Kati.Screens.AddIngredient.unit_value("free")
+      :g
+  """
+  @spec unit_value(String.t()) :: atom()
+  def unit_value(unit) when unit in ~w(g ml piece tsp tbsp pinch pack tub),
+    do: String.to_existing_atom(unit)
+
+  def unit_value(_free), do: :g
+
+  @doc """
+  The `Kati.Meals.Aisle` value a chip stands for.
+
+  The one place this sheet's vocabulary and the store's are mapped — see the
+  moduledoc for why `Dairy` and `Uncategorised` cannot simply be renamed to
+  match `Kati.Meals.Aisle.label/1`.
+
+  The catch-all is the sheet's stated rule rather than a shrug: **a missing
+  aisle becomes `Uncategorised`, never nothing**, because an ingredient filed
+  nowhere vanishes off the shopping list, and `:other` is the value that exists
+  so an aisle is always answerable.
+
+      iex> Kati.Screens.AddIngredient.aisle_value("Fish & meat")
+      :fish_and_meat
+      iex> Kati.Screens.AddIngredient.aisle_value("Uncategorised")
+      :other
+  """
+  @spec aisle_value(String.t()) :: atom()
+  def aisle_value("Produce"), do: :produce
+  def aisle_value("Cupboard"), do: :cupboard
+  def aisle_value("Fish & meat"), do: :fish_and_meat
+  def aisle_value("Dairy"), do: :dairy_and_eggs
+  def aisle_value(_uncategorised), do: :other
 end

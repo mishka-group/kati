@@ -44,9 +44,53 @@ defmodule Kati.Screens.Medication do
   Which is the case that matters most here. A medication page whose caption
   already refuses to promise a reminder must not silently pretend to have
   recorded a dose — of everything in this app, *did I take it* is the question
-  a wrong answer costs the most. So `save_dose/1` hands back the tuple,
+  a wrong answer costs the most. So `save_dose/2` hands back the tuple,
   `save_notice/1` draws the failure above the two buttons, and the list is
   re-read only when there is something new to read.
+
+  ## The dose that changes is the dose you touched
+
+  And that was the half still missing. Every control on this page — four rows
+  and two verbs — carried one of two shared tags, and the write behind them
+  re-queried the day and took the head of whatever came back. Three things were
+  wrong with that at once, and only the third is visible in a screenshot:
+
+    * **The row you tapped was not the row that changed.** Tapping the 21:00
+      card marked the 14:00 one, because the query answered first-undecided and
+      the tap carried no clue which card had been pressed. #84's rule, one
+      screen over: *act on the row you were handed, not on the head of a
+      re-query.*
+    * **Four rows shared one name.** `Mob.Renderer` emits `accessibility_id`
+      from the tag, so `:toggle_dose` on four cards is four nodes called the
+      same thing — `onNodeWithTag` throws on the second match rather than
+      picking one, and a screen reader announced four identical controls.
+      `Kati.ScreenTapSweepTest`'s own duplicate-id check names this exact fix.
+    * **The re-query could answer differently from the page.** A dose recorded
+      on another screen between draw and tap moves the head, so the verbs would
+      land somewhere the user was not looking.
+
+  So `tags/1` builds a row's three tags out of the row's own id, `doses/0` and
+  `drawn_doses/0` carry them, and `handle_tap/2` resolves a tag **against the
+  doses already on the socket** rather than parsing an id back out of it —
+  `Kati.Screens.Goals` fixed the same defect the same way, and the reason to
+  resolve rather than parse is that nothing can then name a row that is not on
+  the screen.
+
+  The drawing's four keep `id: nil` and are tagged by position, which for a
+  fixture is identity. Tapping one answers `Nothing to save yet.` rather than
+  moving a tick: screen 104 flips its drawn switch in place and is right to,
+  because a repeat toggle that lies costs a redrawn switch — here the same
+  courtesy would be the app telling someone they had taken a tablet.
+
+  ## `:mark_taken` and `:mark_skipped` survive, and only screen 115 uses them
+
+  Screen 115 is this page in Persian and draws its two verbs inside the due
+  card, with `Kati.Screens.HealthFa.doses/0` behind them — a list that keeps
+  the name, the line and the state and drops the id. So its chips have no row
+  in them to act on, and they come through `handle_tap/2` here to reach
+  `next_undecided/0`, which is what they have always reached. They are the
+  identity-less door, kept working rather than quietly broken; wiring them
+  properly means giving 115's own list ids, which is 115's change.
   """
 
   use Kati.Screens.Pushed, back: "Health"
@@ -71,26 +115,78 @@ defmodule Kati.Screens.Medication do
   def doses do
     case stored_doses() do
       [] ->
-        WeightSample.doses()
+        drawn_doses()
 
       doses ->
         now = Kati.Time.now()
 
         Enum.map(doses, fn dose ->
-          %{
-            time: dose.due_at,
-            name: dose.medication.name,
-            line: Medication.dose_line(dose.medication),
-            state: Dose.resolve(dose, now),
-            id: dose.id
-          }
+          Map.merge(
+            %{
+              time: dose.due_at,
+              name: dose.medication.name,
+              line: Medication.dose_line(dose.medication),
+              state: Dose.resolve(dose, now),
+              id: dose.id
+            },
+            tags(dose.id)
+          )
         end)
     end
   end
 
-  @doc "The drawing's four doses, unconditionally."
+  @doc """
+  The drawing's four doses, unconditionally — each with `id: nil`.
+
+  Built through the same merge a stored dose goes through, so the
+  empty-database gate still compares `doses/0` with this term for term and
+  `id: nil` is the whole of what separates them. It is also what `save_dose/2`
+  reads to decide there is nothing to write against.
+  """
   @spec drawn_doses() :: [map()]
-  def drawn_doses, do: WeightSample.doses()
+  def drawn_doses do
+    WeightSample.doses()
+    |> Enum.with_index(1)
+    |> Enum.map(fn {dose, position} ->
+      dose |> Map.put(:id, nil) |> Map.merge(tags("drawn_#{position}"))
+    end)
+  end
+
+  @doc """
+  A dose's three tap tags, named after the dose rather than after the control.
+
+  Atoms rather than `{:dose, id}` tuples for the reason
+  `Kati.Screens.ImportSources.tag/1` sets out at length: `Mob.Renderer` emits
+  `accessibility_id` only for the `is_atom(tag)` clause, so a tuple-tagged card
+  fires on the device and is invisible to every sweep and unnamed to a screen
+  reader.
+
+  Three, because a dose has three ways of being decided about — its own card,
+  and the two verbs that sit under the list — and all three have to name the
+  same row. The id rather than the row's position: `:for_day` sorts by clock
+  time, so a dose's position moves the moment another medication is taken at
+  09:00, and a tag that moves names a different dose tomorrow.
+
+  The drawing's rows have no id and cannot borrow one, so they take
+  `"drawn_1"`..`"drawn_4"` — held in the same `dose_` namespace so one
+  `handle_tap/2` reads both, and distinct from each other so the four cards on
+  a fresh install stop sharing one `accessibility_id`.
+
+  `String.to_atom/1` on a uuid is the shape screens 98, 03 and 104 already use,
+  and doses are the one place worth saying why it is still safe: this is the
+  only family in the app that grows every day rather than every time the user
+  adds something. Three atoms per dose and a handful of doses a day is a few
+  thousand a year against a table of a million, and the atoms are only ever
+  built for the doses of **one** day — `:for_day` never reads a second.
+  """
+  @spec tags(String.t()) :: %{tap: atom(), taken: atom(), skip: atom()}
+  def tags(key) when is_binary(key) do
+    %{
+      tap: String.to_atom("dose_" <> key),
+      taken: String.to_atom("dose_" <> key <> "_taken"),
+      skip: String.to_atom("dose_" <> key <> "_skip")
+    }
+  end
 
   @doc "The schedules: what is stored, or the drawing's four."
   @spec schedules() :: [map()]
@@ -188,17 +284,32 @@ defmodule Kati.Screens.Medication do
       |> Enum.intersperse(~MOB"<Spacer size={8} />")
 
     notice = Kati.Screens.Medication.save_notice(save_error)
+    actions = Kati.Screens.Medication.actions(Kati.Screens.Medication.undecided(doses))
 
     ~MOB"""
     <Column fill_width={true}>
       {rows}
       <Spacer size={12} />
       {notice}
-      {Kati.Screens.Medication.actions()}
+      {actions}
       <Spacer size={24} />
     </Column>
     """
   end
+
+  @doc """
+  The dose the two verbs belong to: the first on the page not decided about.
+
+  `:missed` counts as undecided, and that is the whole reason this is a
+  function rather than a `state == :due` test. A dose reads `:missed` the
+  minute after it was due — `Kati.Health.Dose.resolve/2` derives it from the
+  clock rather than storing it — so a page opened at 21:00 with an untouched
+  14:00 tablet on it has one thing left to answer and it is that one. A verb
+  that skipped past it would leave the only undecided dose of the day
+  unreachable from the two controls drawn for exactly that job.
+  """
+  @spec undecided([map()]) :: map() | nil
+  def undecided(doses), do: Enum.find(doses, &(&1.state in [:due, :missed]))
 
   @doc false
   def dose_row(dose) do
@@ -210,7 +321,7 @@ defmodule Kati.Screens.Medication do
       name: dose.name,
       line: line,
       background: Kati.Screens.Medication.fill(dose.state),
-      tap: {self(), :toggle_dose}
+      tap: {self(), dose.tap}
     }
 
     ~MOB"""
@@ -256,13 +367,27 @@ defmodule Kati.Screens.Medication do
   def mark(_due), do: UI.symbol("check", size: 20, color: Palette.border_strong())
 
   @doc """
-  The two verbs a dose takes.
+  The two verbs a dose takes, tagged with the dose they are about to decide.
 
   `Taken` and `Skip`, side by side rather than as a swipe: a dose is a thing you
   decide about once a day and a gesture with no affordance is not a control.
+
+  They take the row rather than reading for it, so *which dose* is answered at
+  draw time by the list the user is looking at. The board answers it visually,
+  by drawing this pair inside the one undecided card; this page keeps them
+  under the list, as it always has, and carries the same answer in the tag.
+
+  A day with nothing left to decide draws no verbs at all. Two buttons whose
+  only possible outcome is a red line saying there is nothing to save would be
+  a control that exists to fail — and a page listing four ticks has already
+  said what it has to say.
   """
-  @spec actions() :: map()
-  def actions do
+  @spec actions(map() | nil) :: map() | []
+  def actions(nil), do: []
+
+  def actions(dose) do
+    assigns = %{taken: {self(), dose.taken}, skip: {self(), dose.skip}}
+
     ~MOB"""
     <Row fill_width={true} align="center">
       <Row
@@ -271,7 +396,7 @@ defmodule Kati.Screens.Medication do
         corner_radius={20}
         background={Palette.ink_fill()}
         align="center"
-        on_tap={{self(), :mark_taken}}
+        on_tap={@taken}
       >
         <Spacer weight={1.0} />
         <Text
@@ -291,7 +416,7 @@ defmodule Kati.Screens.Medication do
         background={Palette.card()}
         shadow={Kati.Theme.shadow_button()}
         align="center"
-        on_tap={{self(), :mark_skipped}}
+        on_tap={@skip}
       >
         <Spacer weight={1.0} />
         <Text
@@ -439,13 +564,42 @@ defmodule Kati.Screens.Medication do
   end
 
   @doc false
-  def handle_tap(:mark_taken, socket), do: {:noreply, record(socket, :taken)}
-  def handle_tap(:mark_skipped, socket), do: {:noreply, record(socket, :skipped)}
-  def handle_tap(:toggle_dose, socket), do: {:noreply, record(socket, :taken)}
+  # Every tag this page draws for a dose is one of that dose's own three, so
+  # the doses already on the socket are what a tag is resolved against —
+  # rather than the id being parsed back out of the atom. `Kati.Screens.Goals`
+  # settled the same question the same way, and the reason is the same: nothing
+  # can then name a row that is not on the screen.
+  #
+  # `Map.get/3` rather than `socket.assigns.doses`, because screen 115 forwards
+  # its own two tags here with its own socket, which carries Persian doses
+  # under the same key and no ids in them.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case Enum.find_value(Map.get(socket.assigns, :doses, []), &decision(&1, tag)) do
+      nil -> other_tap(tag, socket)
+      {dose, state} -> {:noreply, record(socket, dose, state)}
+    end
+  end
+
+  defp decision(%{tap: tag} = dose, tag), do: {dose, :taken}
+  defp decision(%{taken: tag} = dose, tag), do: {dose, :taken}
+  defp decision(%{skip: tag} = dose, tag), do: {dose, :skipped}
+  defp decision(_dose, _tag), do: nil
+
+  # Screen 115's two chips, which carry no dose — see the moduledoc. They are
+  # the only callers left of `next_undecided/0`, and they are why it is still
+  # here.
+  defp other_tap(:mark_taken, socket),
+    do: {:noreply, record(socket, %{id: next_undecided()}, :taken)}
+
+  defp other_tap(:mark_skipped, socket),
+    do: {:noreply, record(socket, %{id: next_undecided()}, :skipped)}
 
   # A medication's own page is not drawn anywhere in the 127 artboards, and the
-  # row is honest about being a link. `Kati.ScreenTapSweepTest` carries it.
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  # row is honest about being a link. So is the `add` disc this page borrows
+  # from screen 104's chrome: no new-medication sheet is drawn either, and
+  # inventing one would be inventing a door. `Kati.ScreenTapSweepTest` carries
+  # both.
+  defp other_tap(_tag, socket), do: {:noreply, socket}
 
   # The page re-reads the day because a dose was recorded, not because a button
   # was pressed. Those were the same line until now.
@@ -454,8 +608,8 @@ defmodule Kati.Screens.Medication do
   # not change, so re-reading would redraw the identical list underneath an
   # error saying nothing was written — the same mixed message the bare `:ok`
   # used to send, only louder.
-  defp record(socket, state) do
-    case save_dose(state) do
+  defp record(socket, dose, state) do
+    case save_dose(dose, state) do
       {:ok, _dose} ->
         socket
         |> Mob.Socket.assign(:doses, doses())
@@ -467,45 +621,53 @@ defmodule Kati.Screens.Medication do
   end
 
   @doc """
-  Record the day's next undecided dose as `state`.
+  Record `dose` — the row a control was drawn for — as `state`.
 
-  Which dose that is, is the whole question: the two buttons sit under the
-  list rather than on a row, so *which one* is answered by *the next one you
-  have not decided about*.
+  Takes the row rather than looking one up, which is the whole of the fix. The
+  row is then read back **by its own id** and that row is updated: the page
+  hands over an id it drew, and the store answers about that id or about
+  nothing. A dose deleted or already decided underneath the page comes back as
+  the tuple rather than as a write landing on a neighbour.
 
   No `rescue`. `Ash.update/2` returns `{:error, changeset}` rather than
   raising, so the one this carried caught nothing while the line above it threw
   the failure away; `Kati.Screens.Root.rescue_tap/3` is already around every
   tap for the raises that are real.
 
-  A day with nothing left to decide — which includes every fresh install, where
-  the four doses on the page are the drawing's and belong to no row — is
-  `{:error, :nothing_to_save}` rather than a silent success. There is nothing
-  to write against, and that is a sentence `Kati.Write.message/1` already has.
+  `id: nil` — every row on a fresh install, where the four doses on the page
+  are the drawing's and belong to no row — is `{:error, :nothing_to_save}`
+  rather than a silent success. There is nothing to write against, and that is
+  a sentence `Kati.Write.message/1` already has.
   """
-  @spec save_dose(:taken | :skipped) :: {:ok, Dose.t()} | {:error, term()}
-  def save_dose(state) do
-    case next_undecided() do
-      %Dose{} = dose ->
-        dose
-        |> Ash.update(%{
-          state: state,
-          recorded_at: Kati.Time.now() |> DateTime.truncate(:second)
-        })
-        |> Write.note("medication dose")
-
-      nil ->
-        Write.note({:error, :nothing_to_save}, "medication dose")
-    end
+  @spec save_dose(map(), :taken | :skipped) :: {:ok, Dose.t()} | {:error, term()}
+  def save_dose(%{id: nil}, _state) do
+    Write.note({:error, :nothing_to_save}, "medication dose")
   end
 
+  def save_dose(%{id: id}, state) do
+    with {:ok, %Dose{} = dose} <- Ash.get(Dose, id) do
+      Ash.update(dose, %{
+        state: state,
+        recorded_at: Kati.Time.now() |> DateTime.truncate(:second)
+      })
+    end
+    |> Write.note("medication dose")
+  end
+
+  # The id of the day's first undecided dose, for the two Persian chips that
+  # carry none of their own — see the moduledoc. Stored `:due` rather than
+  # resolved `:due`, so a tablet that has gone missed is still the next thing
+  # to answer about.
   defp next_undecided do
     Dose
     |> Ash.Query.for_read(:for_day, %{day: Kati.Time.today()})
     |> Ash.read()
     |> case do
-      {:ok, doses} -> Enum.find(doses, &(&1.state == :due))
+      {:ok, doses} -> doses |> Enum.find(&(&1.state == :due)) |> id_of()
       _other -> nil
     end
   end
+
+  defp id_of(%Dose{id: id}), do: id
+  defp id_of(nil), do: nil
 end

@@ -31,6 +31,37 @@ defmodule Kati.Screens.MyServices do
 
   See `Kati.Services.Sample.monthly_total/0`. The two figures differ and the
   difference is real.
+
+  ## `Something else` is the only create path drawn for a service
+
+  `Kati.Services.Service` has had full CRUD since it was written and nothing in
+  `lib/` created one, so every service on this page was the drawing's. The door
+  the design draws is band 9 of ticket `D-10` — *an escape-hatch row for a
+  service TMDB does not list* — and it is on 92.html as an `add` tile reading
+  *Something else · Kati will remember it for your subscription total, but
+  cannot tell you what is on it*.
+
+  What the row adds is what the search field above it holds, and that pairing is
+  the design's rather than this module's. Screen 95 draws this very field with
+  `mubi plus` typed into it and answers: *No service called that. Kati uses
+  JustWatch's list through TMDB. If it is a real service they do not track, add
+  it as Something else.* So the field names the service and the row commits it,
+  which is why `search_field/1` became a `<TextField>` on this screen and stayed
+  a drawing on 93 — see both.
+
+  The row writes `tier: :subscribed` and `provider_id: nil`. Neither is a
+  choice this module made: `Kati.Services.Service`'s own comment reserves a nil
+  `provider_id` for *"one the user typed under `Something else`"*, and only
+  `:subscribed` is counted by `Kati.Services.Service.total/1`, which is the
+  *subscription total* the row's sub-line promises to remember it for.
+
+  It carries **no price**, and that is the honest half of the promise rather
+  than an omission. Band 6 of the ticket asks for an editable monthly price and
+  no artboard anywhere draws the editor — `Kati.ScreenTapSweepTest` records the
+  same absence against `:edit_service` — so a service typed in here appears in
+  the Subscribed group with its name and a blank right-hand column, which is
+  exactly what `service_row/1` already draws for a service with no
+  `monthly_pence`. It takes a figure the day a price field is drawn.
   """
 
   use Kati.Screens.Pushed, back: "Settings"
@@ -41,6 +72,7 @@ defmodule Kati.Screens.MyServices do
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
+  alias Kati.Write
 
   # Each rule with the sentence that says what it does. The sentence is not
   # optional copy — see the moduledoc.
@@ -53,10 +85,15 @@ defmodule Kati.Screens.MyServices do
      "Removes them from Discover, Up next and What fits tonight. Your library and wishlist keep everything."}
   ]
 
+  # `:query` and `:save_error` open empty and nil, so the resting page is the
+  # drawing to the pixel: an unfilled field showing its placeholder, and no
+  # notice under the catalogue card.
   def load(socket) do
     socket
     |> Mob.Socket.assign(:region, Services.region())
     |> Mob.Socket.assign(:rules, Services.rules())
+    |> Mob.Socket.assign(:query, "")
+    |> Mob.Socket.assign(:save_error, nil)
   end
 
   @doc "The services you pay for: what is stored, or the drawing's three."
@@ -108,6 +145,9 @@ defmodule Kati.Screens.MyServices do
 
   @doc false
   def content(assigns) do
+    query = assigns[:query] || ""
+    save_error = assigns[:save_error]
+
     ~MOB"""
     <Scroll>
       <Column
@@ -121,12 +161,12 @@ defmodule Kati.Screens.MyServices do
         {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
         {UI.eyebrow("Region")}
         {Kati.Screens.MyServices.region_group(assigns.region)}
-        {Kati.Screens.MyServices.search_field()}
+        {Kati.Screens.MyServices.search_field(query)}
         {UI.eyebrow(Kati.Screens.MyServices.subscribed_label())}
         {Kati.Screens.MyServices.service_group(Kati.Screens.MyServices.subscribed(), true)}
         {UI.eyebrow("Free with ads")}
         {Kati.Screens.MyServices.service_group(Kati.Screens.MyServices.free(), false)}
-        {Kati.Screens.MyServices.catalogue_group()}
+        {Kati.Screens.MyServices.catalogue_group(save_error)}
         {UI.eyebrow("Rules")}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
         {UI.eyebrow("Money")}
@@ -177,9 +217,36 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  @doc "The search field, which filters the list rather than opening a screen."
-  @spec search_field() :: map()
-  def search_field do
+  @doc """
+  The search field, which stays on this screen rather than opening one.
+
+  ## Two clauses, and 93 keeps the first
+
+  `search_field/0` is the drawing: a `<Text>` reading `Search services` beside
+  the glyph, which is a picture of a field. Nine screens carry a comment saying
+  Mob has no text input; `Kati.Screens.AddTitle.field/1` records that it does
+  and always did, and that the belief cost more than the feature.
+
+  `search_field/1` is the field, and it exists because of what the search is
+  *for* here. Screen 95 draws it mid-query — `mubi plus` typed, the list gone —
+  and answers *No service called that. Kati uses JustWatch's list through TMDB.
+  If it is a real service they do not track, add it as Something else.* That
+  sentence points the field at `catalogue_group/1`'s escape hatch, and the hatch
+  cannot add a service without a name to add it under.
+
+  Screen 93 stays on the drawn clause deliberately. It is the board with
+  nothing set up, and 93.html draws no `Something else` row at all — so a field
+  you could type into there would take a name and have nowhere to put it, which
+  is a worse field than one that is honestly a picture.
+
+  The `on_tap` stays on the row in both. It is the drawn hit area, and on the
+  typing clause it is what a tap on the glyph or the padding lands on rather
+  than on the field itself.
+  """
+  @spec search_field(String.t() | nil) :: map()
+  def search_field(query \\ nil)
+
+  def search_field(nil) do
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -201,6 +268,38 @@ defmodule Kati.Screens.MyServices do
           text_color={Palette.tertiary()}
           weight={1.0}
           max_lines={1}
+        />
+      </Row>
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  def search_field(query) when is_binary(query) do
+    assigns = %{query: query, on_change: {self(), :service_query}}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row
+        fill_width={true}
+        height={48}
+        corner_radius={24}
+        background={Palette.card()}
+        shadow={Kati.Theme.shadow_search()}
+        padding_left={17}
+        padding_right={17}
+        align="center"
+        on_tap={{self(), :search}}
+      >
+        {UI.symbol("search", size: 19, color: Palette.tertiary())}
+        <Spacer size={11} />
+        <TextField
+          value={@query}
+          placeholder="Search services"
+          return_key="search"
+          weight={1.0}
+          accessibility_id="service_query"
+          on_change={@on_change}
         />
       </Row>
       <Spacer size={24} />
@@ -297,8 +396,8 @@ defmodule Kati.Screens.MyServices do
   and a row that took the name and stayed quiet about that would be a promise
   it could not keep.
   """
-  @spec catalogue_group() :: map()
-  def catalogue_group do
+  @spec catalogue_group(String.t() | nil) :: map()
+  def catalogue_group(save_error \\ nil) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.eyebrow_muted("Not mine")}
@@ -316,7 +415,33 @@ defmodule Kati.Screens.MyServices do
           on_tap: {self(), :add_service}
         )
       ])}
+      {Kati.Screens.MyServices.save_notice(save_error)}
       <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc """
+  What a refused `Something else` says, under the row that refused.
+
+  Under the card rather than at the top of the page, because the control that
+  failed is the one whose sub-line promised to remember the service — a notice
+  a scroll away from it would be reporting on a row the reader cannot see.
+
+  `nil` draws a zero `Spacer` rather than nothing, for `hairline/1`'s reason on
+  screen 23: an absent notice must occupy the same slot as a present one so the
+  resting tree is the tree this screen produced before the row could write.
+  """
+  @spec save_notice(String.t() | nil) :: map()
+  def save_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def save_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={10} />
+      <Text text={@message} text_size={13} line_height={1.5} text_color={Palette.red()} />
     </Column>
     """
   end
@@ -410,8 +535,11 @@ defmodule Kati.Screens.MyServices do
   def handle_tap(:show_all, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServicesEmpty)}
 
+  # `Something else` used to push screen 23, which is a read-only page about
+  # money you already spend — the one place in the app that could not answer
+  # "add a service Kati has never heard of". It writes now; see `add_service/1`.
   def handle_tap(:add_service, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
+    do: {:noreply, Kati.Screens.MyServices.add_service(socket)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
@@ -422,6 +550,132 @@ defmodule Kati.Screens.MyServices do
 
       _other ->
         {:noreply, socket}
+    end
+  end
+
+  # The service search field. Held as typed, and the field is the only place
+  # the name of a service Kati has never heard of can come from — see
+  # `search_field/1` for the sentence on screen 95 that says so.
+  #
+  # Typing also drops the notice. `save_notice/1` reports on the FIELD as it was
+  # when the row was tapped, and the commonest failure here is the empty one:
+  # tap `Something else` with nothing typed, read *Nothing to save yet.*, then
+  # type a name — and the red line sat there contradicting a field that now held
+  # one. A notice about a state the screen has left is the same lie #85 is
+  # about, pointed the other way: this one reports a failure that is over.
+  # `Kati.Screens.QuickAddExpense`'s own change clause drops `:saved?` for the
+  # mirror-image reason — an edited field has no receipt yet either.
+  def handle_info({:change, :service_query, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:query, typed)
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  # `super/2` for everything else, because the macro's `handle_info/2` clauses
+  # are `defoverridable` and an override replaces the WHOLE set — dropping this
+  # would take `:back` and every tap on the page with it.
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc """
+  Add what the field holds, and say so when it does not land.
+
+  The sheet-open rule of `Kati.Write` in the one shape a screen without a sheet
+  can take it: a failure leaves the typed name **in the field** and puts
+  `Kati.Write.message/1` under the row that refused, so nothing is lost and
+  nothing looks finished. A success clears the field, which is the only receipt
+  worth printing here — the service itself appears in the Subscribed group four
+  rows up, under the name you typed, and the eyebrow's count follows it.
+
+  The notice lasts until the next tap **or the next keystroke** — see
+  `handle_info/2`'s `:service_query` clause. It is a sentence about what the
+  field held, so it cannot outlive the field holding it.
+  """
+  @spec add_service(Mob.Socket.t()) :: Mob.Socket.t()
+  def add_service(socket) do
+    case Kati.Screens.MyServices.save_service(socket.assigns[:query]) do
+      {:ok, _service} ->
+        socket
+        |> Mob.Socket.assign(:query, "")
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, _reason} = error ->
+        Mob.Socket.assign(socket, :save_error, Write.message(error))
+    end
+  end
+
+  @doc """
+  The write. A service the user typed, in the tier the row's own copy promises.
+
+  `:nothing_to_save` for an empty field rather than a row named `""`:
+  `name` is `allow_nil?: false` but a string of spaces satisfies that, and
+  `Kati.Write.message/1` already owns the sentence for a save with nothing in
+  it — *Nothing to save yet.*
+
+  A name already on the list answers `{:ok, existing}` and writes nothing.
+  Nothing in `services` is unique, so a second `Mubi` would be a second row: two
+  identical lines in the Subscribed group, a count of two, and — the day a price
+  editor exists — a subscription total charging you twice for one service.
+  `Kati.Screens.AddTitle.cache/1` reaches the same answer from the other
+  direction, and its reasoning holds here: re-adding something you already have
+  is the ordinary way somebody checks whether they already have it.
+
+  The read behind that check does not rescue and neither does the write. A store
+  this screen cannot reach answers `{:error, _}` at one end or the other, which
+  is a failure the row reports rather than one it swallows — the whole of #85.
+  """
+  @spec save_service(String.t() | nil) :: {:ok, Service.t()} | {:error, term()}
+  def save_service(name) when is_binary(name) do
+    case String.trim(name) do
+      "" ->
+        Write.note({:error, :nothing_to_save}, "add service")
+
+      typed ->
+        case Kati.Screens.MyServices.already_listed(typed) do
+          %Service{} = service ->
+            Write.note({:ok, service}, "add service #{typed}")
+
+          nil ->
+            Kati.Screens.MyServices.create_service(typed) |> Write.note("add service #{typed}")
+        end
+    end
+  end
+
+  def save_service(_nothing), do: Write.note({:error, :nothing_to_save}, "add service")
+
+  @doc """
+  The row itself, spelled out rather than left to the resource's defaults.
+
+  `tier` and `provider_id` both happen to be what `Kati.Services.Service`
+  defaults to, and both are written here anyway: they are the two columns this
+  screen's copy makes a promise about — *your subscription total*, which only
+  `:subscribed` is counted for, and *cannot tell you what is on it*, which is
+  what a nil `provider_id` means — and a promise resting on somebody else's
+  default is a promise nobody would think to check before changing it.
+  """
+  @spec create_service(String.t()) :: {:ok, Service.t()} | {:error, term()}
+  def create_service(name) do
+    Ash.create(Service, %{name: name, tier: :subscribed, provider_id: nil})
+  end
+
+  @doc """
+  The stored service of that name, or `nil` — case- and space-insensitively.
+
+  Case-insensitively because the field is a search field: somebody typing
+  `mubi` to look for `Mubi` and finding nothing has just been told by screen 95
+  to add it as `Something else`, and taking them at their word there would put
+  both spellings on the list.
+  """
+  @spec already_listed(String.t()) :: Service.t() | nil
+  def already_listed(name) do
+    folded = String.downcase(name)
+
+    case Ash.read(Service) do
+      {:ok, services} ->
+        Enum.find(services, &(String.downcase(String.trim(&1.name)) == folded))
+
+      _unreachable ->
+        nil
     end
   end
 end

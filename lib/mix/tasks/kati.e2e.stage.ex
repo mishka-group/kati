@@ -73,9 +73,7 @@ defmodule Mix.Tasks.Kati.E2e.Stage do
          {:ok, info} <- MobDev.OtpAssetBundle.build(staging, @zip, slim: true) do
       File.rm_rf!(staging)
 
-      Mix.shell().info(
-        "  #{@zip} — #{info.zipped_files} files, #{div(info.zip_size_kb, 1024)}MB"
-      )
+      Mix.shell().info("  #{@zip} — #{info.zipped_files} files, #{div(info.zip_size_kb, 1024)}MB")
 
       :ok
     else
@@ -175,7 +173,10 @@ defmodule Mix.Tasks.Kati.E2e.Stage do
       lib = Path.join(staging, "lib/exqlite-#{vsn}")
       File.mkdir_p!(Path.join(lib, "ebin"))
       File.mkdir_p!(Path.join(lib, "priv"))
-      System.cmd("cp", ["-r", "#{Path.expand(ebin)}/.", Path.join(lib, "ebin")], stderr_to_stdout: true)
+
+      System.cmd("cp", ["-r", "#{Path.expand(ebin)}/.", Path.join(lib, "ebin")],
+        stderr_to_stdout: true
+      )
     else
       _ -> :ok
     end
