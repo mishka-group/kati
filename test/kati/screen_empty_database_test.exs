@@ -314,7 +314,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # :granted}` — a permission answer, not a mount — and this list is derived
     # from the compiled import table precisely so a screen cannot opt itself out
     # by only touching the store on a message.
-    {"26", Kati.Screens.PickSections}
+    {"26", Kati.Screens.PickSections},
+    # 06 joined on 26 August with #87, when adding a title stopped toggling a
+    # boolean on a socket and started writing a `CachedTitle` and a
+    # `TrackedTitle`. It is the first writer the film and TV spine has ever had.
+    {"06", Kati.Screens.AddTitle}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -927,6 +931,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # that ingested a calendar into a Kati whose service list disagreed with
       # the page that sent it there would be the defect worth catching.
       {"26", Kati.Screens.PickSections, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 06 draws its own search results and writes on a tap; what it READS from
+      # the store on an empty database is nothing at all. Gated on 92's reader
+      # for the reason 106 is gated on 104's — a sheet that added a title into
+      # a Kati whose service list disagreed with the page that opened it would
+      # be the defect worth catching.
+      {"06", Kati.Screens.AddTitle, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       {"139", Kati.Screens.HomeEmpty, fn -> Kati.Screens.Home.rest_of_today(timeline()) end,
        fn -> Kati.Screens.Home.rest_of_today(Kati.Screens.Home.drawn_rows()) end},

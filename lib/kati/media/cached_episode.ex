@@ -100,8 +100,12 @@ defmodule Kati.Media.CachedEpisode do
     attribute :source, :atom,
       allow_nil?: false,
       public?: true,
+      # `:manual` — see `Kati.Media.CachedTitle`. Every resource in this domain
+      # names the same sources, and `Kati.Media.EpisodeTest` enforces it: a
+      # source one resource accepts and another rejects is a row that can be
+      # created and then not joined to.
       constraints: [
-        one_of: [:tmdb, :tvmaze, :anilist, :jikan, :openlibrary, :musicbrainz, :wikidata]
+        one_of: [:manual, :tmdb, :tvmaze, :anilist, :jikan, :openlibrary, :musicbrainz, :wikidata]
       ]
 
     # The provider's id for this episode. `Kati.Media.Watch.episode_source_id`

@@ -52,8 +52,17 @@ defmodule Kati.Media.CachedTitle do
     attribute :source, :atom,
       allow_nil?: false,
       public?: true,
+      # `:manual` is a title someone typed in, with no provider behind it.
+      #
+      # Every other member of this list is a place a row can be looked up
+      # again; `:manual` is the one that cannot, and that is the point. #60
+      # ships film and TV in v1, and until a provider client exists the only
+      # way a title enters Kati at all is by hand. A row with no source would
+      # have been the alternative, and `allow_nil?: false` here is load-bearing
+      # — a title that belongs to nothing cannot be reconciled with a provider
+      # row later, when there is one to reconcile against.
       constraints: [
-        one_of: [:tmdb, :tvmaze, :anilist, :jikan, :openlibrary, :musicbrainz, :wikidata]
+        one_of: [:manual, :tmdb, :tvmaze, :anilist, :jikan, :openlibrary, :musicbrainz, :wikidata]
       ]
 
     attribute :source_id, :string, allow_nil?: false, public?: true

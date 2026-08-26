@@ -97,7 +97,12 @@ defmodule Kati.Screens.AddTitle do
     Mob.Theme.set(Kati.Theme.current())
 
     {:ok,
-     Mob.Socket.assign(socket, results: Sample.search_results(), filter: "Everything", query: "")}
+     Mob.Socket.assign(socket,
+       results: Sample.search_results(),
+       filter: "Everything",
+       query: "",
+       save_error: nil
+     )}
   end
 
   def render(assigns) do
@@ -156,12 +161,7 @@ defmodule Kati.Screens.AddTitle do
       # user tapped is identified by its title, so which chip was on when they
       # tapped it cannot matter.
       "add_" <> title ->
-        results =
-          Enum.map(socket.assigns.results, fn r ->
-            if r.title == title, do: %{r | added: not r.added}, else: r
-          end)
-
-        {:noreply, Mob.Socket.assign(socket, :results, results)}
+        {:noreply, Kati.Screens.AddTitle.add(socket, title)}
 
       _ ->
         {:noreply, socket}
@@ -276,6 +276,152 @@ defmodule Kati.Screens.AddTitle do
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  Track a title, for real.
+
+  Until now this toggled a boolean on a socket and the row died with the
+  screen. #60 decided v1 ships film and TV, and film and TV was the one domain
+  in the app with no write path at all: nine screens queried `Kati.Media`
+  correctly and every one of them queried a table that could not hold a row.
+
+  Two rows, not one. `CachedTitle` is what a provider would have said about
+  this title and `TrackedTitle` is what you decided about it — the split is why
+  a provider can be reconciled in later without touching your rating or your
+  history, which `Kati.Media.TrackedTitle`'s own moduledoc argues at length.
+  Typing a title by hand is simply the first writer of both.
+
+  The source is `:manual` and the id is the title itself. There is no provider
+  to ask for a stable id, and inventing one would make the row unreconcilable
+  later — a `:manual` row is honest about being unlookupable.
+
+  Untracking deletes the `TrackedTitle` and leaves the `CachedTitle`: what you
+  decided is yours to undo, what a title IS is not a decision.
+  """
+  @spec add(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def add(socket, title) do
+    row = Enum.find(socket.assigns.results, &(&1.title == title))
+    tracked? = row && row.added
+
+    result =
+      if tracked? do
+        Kati.Screens.AddTitle.untrack(title)
+      else
+        Kati.Screens.AddTitle.track(title, row)
+      end
+
+    case result do
+      {:ok, _record} ->
+        socket
+        |> Mob.Socket.assign(:results, Kati.Screens.AddTitle.mark(socket.assigns.results, title))
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, _reason} = error ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
+    end
+  end
+
+  @doc false
+  @spec track(String.t(), map() | nil) :: {:ok, term()} | {:error, term()}
+  def track(title, row) do
+    kind = Kati.Screens.AddTitle.kind_of(row)
+
+    with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, kind),
+         {:ok, tracked} <-
+           Ash.create(Kati.Media.TrackedTitle, %{
+             source: :manual,
+             source_id: title,
+             kind: kind,
+             status: :watching
+           }) do
+      {:ok, tracked}
+    end
+    |> Kati.Write.note("track #{title}")
+  end
+
+  @doc """
+  The cached row for a title, creating it only if it is not already there.
+
+  Idempotent on purpose, and the reason is `untrack/1`: removing a title
+  deletes what you DECIDED and keeps what the title IS, so the cached row
+  outlives the tracking row. Re-adding a title you had removed would otherwise
+  violate the `[:source, :source_id]` unique index, fail, and — before this —
+  report "that did not save" for a title that saves perfectly well.
+
+  Found by the test that adds, removes and adds again. It is the ordinary way
+  someone changes their mind.
+  """
+  @spec cache(String.t(), :movie | :tv) :: {:ok, term()} | {:error, term()}
+  def cache(title, kind) do
+    existing =
+      case Ash.read(Kati.Media.CachedTitle) do
+        {:ok, rows} -> Enum.find(rows, &(&1.source == :manual and &1.source_id == title))
+        _error -> nil
+      end
+
+    if existing, do: {:ok, existing}, else: Kati.Screens.AddTitle.create_cache(title, kind)
+  end
+
+  @doc false
+  def create_cache(title, kind) do
+    Ash.create(Kati.Media.CachedTitle, %{
+      source: :manual,
+      source_id: title,
+      kind: kind,
+      title: title,
+      # `Kati.Time.now/0`, not `DateTime.utc_now/0` — `Kati.ScreenDateTest`
+      # forbids the latter in a screen, because a screen that reads the wall
+      # clock directly cannot be tested against a fixed day.
+      #
+      # `allow_nil?: false`, because the resource's own moduledoc says a row
+      # with no age cannot be evicted and would quietly break TMDB's six-month
+      # ceiling. A `:manual` row is never evicted — see
+      # `Kati.Media.CachePolicy`'s `manual: {:never, :never}` — but it still
+      # carries an honest timestamp rather than a placeholder, because "when
+      # did this enter Kati" is a real question with a real answer.
+      fetched_at: Kati.Time.now() |> DateTime.truncate(:second)
+    })
+  end
+
+  @doc false
+  @spec untrack(String.t()) :: {:ok, term()} | {:error, term()}
+  def untrack(title) do
+    case Ash.read(Kati.Media.TrackedTitle) do
+      {:ok, rows} ->
+        rows
+        |> Enum.find(&(&1.source == :manual and &1.source_id == title))
+        |> case do
+          nil -> {:ok, :already_gone}
+          row -> Ash.destroy(row) |> then(fn r -> if r == :ok, do: {:ok, :removed}, else: r end)
+        end
+
+      error ->
+        error
+    end
+    |> Kati.Write.note("untrack #{title}")
+  end
+
+  @doc """
+  What a result row is, read off the `meta` line the drawing writes.
+
+  `"2019 · FILM · 1h 48m"` is a film; `"2023 · SERIES · 2 SEASONS"` is tv.
+  Parsed rather than stored because the sample rows carry no kind of their own,
+  and a title typed by hand carries none either — a guess that reads the words
+  already on screen is better than a default nobody chose.
+  """
+  @spec kind_of(map() | nil) :: :movie | :tv
+  def kind_of(%{meta: meta}) when is_binary(meta) do
+    if String.contains?(String.upcase(meta), "SERIES"), do: :tv, else: :movie
+  end
+
+  def kind_of(_row), do: :movie
+
+  @doc false
+  def mark(results, title) do
+    Enum.map(results, fn r ->
+      if r.title == title, do: %{r | added: not r.added}, else: r
+    end)
   end
 
   @doc false

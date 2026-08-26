@@ -3,6 +3,7 @@ package com.example.kati
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -64,6 +65,57 @@ class TypingTest {
             "the field did not hold what was typed — it read " +
                 "'${kati.textOf("title_query")}'",
             kati.textOf("title_query")?.contains(typed) == true
+        )
+    }
+
+    /**
+     * #87 — a title added by hand is still there after the BEAM dies.
+     *
+     * Issue #60 decided v1 ships film and TV, and film and TV was the one
+     * domain with no write path at all: nine screens queried `Kati.Media`
+     * correctly and every one queried a table that could not hold a row.
+     * Adding a title toggled a boolean on a socket and the row died with the
+     * screen.
+     *
+     * Asserted against `kati.db`, never the screen — a shelf redrawing its
+     * Sample module looks exactly like a shelf redrawing a row.
+     */
+    @Test
+    fun b_a_title_added_by_hand_reaches_the_store() {
+        kati.launch()
+        kati.firstRun()
+
+        assertEquals("titles were tracked before anything was added", 0L, kati.count("tracked_titles"))
+
+        kati.compose.waitUntil(30_000) { kati.present("fab") }
+        kati.tap("fab")
+        kati.compose.waitUntil(20_000) { kati.present("title_query") }
+
+        // The add control on the first result row. Its tag carries the title,
+        // because the chips renumber the list and `add_1` would mean a
+        // different film under a different filter.
+        val added = kati.tapAny(
+            "add_The Quiet Coast",
+            "add_Quiet Earth"
+        )
+        assertTrue("no add control on any result row", added != null)
+
+        kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > 0 }
+
+        assertEquals(
+            "adding a title wrote no tracked row — the film and TV spine still cannot hold one",
+            1L,
+            kati.count("tracked_titles")
+        )
+        assertEquals(
+            "no cached row for the title that was added",
+            1L,
+            kati.count("cached_titles")
+        )
+        assertEquals(
+            "a hand-typed title claimed a provider it does not have",
+            "manual",
+            kati.scalar("select source from tracked_titles limit 1")
         )
     }
 }
