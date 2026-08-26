@@ -130,7 +130,7 @@ defmodule Kati.Screens.PickSections do
         {:noreply, Mob.Socket.update(socket, :chosen, &toggle(&1, id))}
 
       "continue" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Onboarding)}
+        {:noreply, Kati.Screens.PickSections.ask_for_calendar(socket)}
 
       "import_backup" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFirstRun)}
@@ -140,7 +140,65 @@ defmodule Kati.Screens.PickSections do
     end
   end
 
+  @doc """
+  Ingest the calendar as soon as it is granted, then move on.
+
+  `Kati.Calendars.DeviceImport.run/0` runs once, in `Kati.App`, before this
+  screen exists. Without this clause the permission is granted,
+  `MainActivity` re-publishes the files, and nothing reads them until the app
+  is next launched cold — which is the kind of gap someone reports as "I
+  allowed it and nothing happened".
+
+  A denial is a supported answer and does nothing loudly: `run/0` treats absent
+  data as normal, every calendar surface keeps drawing what it drew before, and
+  the run continues to the same next step. Nobody is held at a step for
+  declining.
+  """
+  def handle_info({:permission, :calendar, result}, socket) do
+    if result == :granted, do: Kati.Calendars.DeviceImport.run()
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Onboarding)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  Raise the OS calendar dialog, and wait on this screen for the answer.
+
+  The whole device-calendar pipe was already built and switched off for want of
+  this one call. `AndroidManifest.xml` declares `READ_CALENDAR`, `MobBridge`
+  maps the `"calendar"` capability in both directions,
+  `KatiCalendarReader.publish/1` writes the JSON and
+  `Kati.Calendars.DeviceImport.run/0` ingests it at every boot. Nothing ever
+  asked, so the reader published nothing, the import returned `{:ok, :no_data}`
+  forever, and the calendar drew a sample.
+
+  Asked here rather than at boot because a permission dialog on first launch,
+  before anything has explained itself, is the one people refuse. By this step
+  the app has said what it is for.
+
+  **The screen does not advance until the answer arrives.** That is not
+  politeness — `Mob.Permissions.request/2` delivers its result to the process
+  that asked, so pushing the next screen in the same breath sends the answer to
+  a screen that no longer exists and the re-ingest never runs. Found on a
+  device: the permission was granted, the files were re-published, and the
+  calendar stayed empty until the next cold start.
+
+  Where there is no bridge to raise a dialog with, the request raises and this
+  advances immediately — the host has no OS to answer.
+  """
+  @spec ask_for_calendar(Mob.Socket.t()) :: Mob.Socket.t()
+  def ask_for_calendar(socket) do
+    # Noted BEFORE the request, not after. `Mob.Permissions.request/2` raises
+    # where there is no bridge, and a `note_asked/1` sitting after it never
+    # runs — so the record of having asked is lost exactly where it is easiest
+    # to test for. Recording the intent first is also the truer order:
+    # `asked/0` is what tells a later `:blocked` from a never-asked `:unasked`,
+    # and both follow from having tried.
+    Kati.Permissions.note_asked(:calendar)
+    Mob.Permissions.request(socket, :calendar)
+  rescue
+    _error -> Mob.Socket.push_screen(socket, Kati.Screens.Onboarding)
+  end
 
   defp toggle(chosen, id) do
     if MapSet.member?(chosen, id), do: MapSet.delete(chosen, id), else: MapSet.put(chosen, id)

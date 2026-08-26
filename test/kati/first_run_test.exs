@@ -62,6 +62,44 @@ defmodule Kati.FirstRunTest do
       assert push_of(Screens.PickSections, :continue) == Screens.Onboarding
     end
 
+    test "26's Continue asks for the calendar on the way out" do
+      # The entire device-calendar pipe was built and switched off for want of
+      # this one call: the manifest declares `READ_CALENDAR`, `MobBridge` maps
+      # the capability both ways, `KatiCalendarReader.publish/1` writes the JSON
+      # and `Kati.Calendars.DeviceImport.run/0` ingests it at every boot.
+      # Nothing asked, so the reader published nothing and the calendar drew a
+      # sample forever.
+      #
+      # Asserted through `Kati.Permissions.asked/0` rather than by watching for
+      # a dialog, because there is no bridge on the host to raise one — which is
+      # also why `ask_for_calendar/1` rescues. The claim here is that the ask
+      # HAPPENS and is recorded; that the OS dialog appears is #82's e2e.
+      Kati.Permissions.forget_asked!()
+      refute :calendar in Kati.Permissions.asked()
+
+      _ = push_of(Screens.PickSections, :continue)
+
+      assert :calendar in Kati.Permissions.asked(),
+             "Continue left the sections step without ever asking for the calendar, " <>
+               "which is the state that made every calendar screen a drawing"
+    end
+
+    test "granting the calendar mid-session re-ingests rather than waiting for a cold start" do
+      # `Kati.Calendars.DeviceImport.run/0` runs once, in `Kati.App`, long
+      # before this screen exists. Without a clause for the permission result,
+      # someone grants access and nothing reads the freshly published files
+      # until the next cold start — "I allowed it and nothing happened".
+      view = mount_screen(Screens.PickSections)
+
+      assert {:noreply, %Mob.Socket{}} =
+               Screens.PickSections.handle_info({:permission, :calendar, :granted}, view.socket)
+
+      # A denial is an answer, not an error: the screen carries on and every
+      # calendar surface keeps drawing what it drew before.
+      assert {:noreply, %Mob.Socket{}} =
+               Screens.PickSections.handle_info({:permission, :calendar, :denied}, view.socket)
+    end
+
     test "26's escape hatch goes to the chromeless Restore, not straight to Import" do
       # This asserted `Screens.Import` until 24 August, and was right to: 135 did
       # not exist, so the only place a `Restore from a backup instead` tap could

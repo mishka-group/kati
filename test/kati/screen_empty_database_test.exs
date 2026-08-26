@@ -308,7 +308,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # derived from the compiled import table precisely so that a screen cannot
     # opt itself out by only touching the store on a tap.
     {"129", Kati.Screens.Restore},
-    {"135", Kati.Screens.RestoreFirstRun}
+    {"135", Kati.Screens.RestoreFirstRun},
+    # 26 joined on 26 August, with #82. It reaches the store through
+    # `Kati.Calendars.DeviceImport.run/0` on `{:permission, :calendar,
+    # :granted}` — a permission answer, not a mount — and this list is derived
+    # from the compiled import table precisely so a screen cannot opt itself out
+    # by only touching the store on a message.
+    {"26", Kati.Screens.PickSections}
   ]
 
   # Screens that read the database and have **no drawing at all**.
@@ -914,6 +920,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"129", Kati.Screens.Restore, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       {"135", Kati.Screens.RestoreFirstRun, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 26 writes rather than reads: what it draws is its own section tiles, and
+      # the database is only touched when someone answers the calendar dialog.
+      # Gated on 128's reader for the reason 106 is gated on 104's — a first run
+      # that ingested a calendar into a Kati whose service list disagreed with
+      # the page that sent it there would be the defect worth catching.
+      {"26", Kati.Screens.PickSections, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       {"139", Kati.Screens.HomeEmpty, fn -> Kati.Screens.Home.rest_of_today(timeline()) end,
        fn -> Kati.Screens.Home.rest_of_today(Kati.Screens.Home.drawn_rows()) end},

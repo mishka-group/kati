@@ -160,6 +160,30 @@ class MainActivity : ComponentActivity() {
         if (requestCode == 9001) {
             val granted = grantResults.isNotEmpty() &&
                 grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+
+            // KATI-BEGIN(K-37 republish-on-grant) mob_new=0.7.24
+            // Re-read the calendar the moment it is granted, before Elixir is
+            // told.
+            //
+            // `KatiCalendarReader.publish/1` runs in `onCreate` and nowhere
+            // else, and it writes an empty array when the permission is
+            // missing. So on the launch where someone grants access, the files
+            // on disk are the empty ones written seconds earlier, and
+            // `Kati.Calendars.DeviceImport.run/0` has nothing to ingest — the
+            // permission is granted and the calendar stays empty until the next
+            // cold start. Publishing here closes that gap; the ordering matters
+            // because the Elixir side re-runs the import as soon as it hears
+            // `{:permission, :calendar, :granted}`, and the files must already
+            // be current when it does.
+            if (granted) {
+                try {
+                    KatiCalendarReader.publish(this)
+                } catch (e: Throwable) {
+                    android.util.Log.w("Kati", "calendar re-publish after grant failed", e)
+                }
+            }
+            // KATI-END(K-37 republish-on-grant)
+
             MobBridge.onPermissionResult(granted)
         }
     }

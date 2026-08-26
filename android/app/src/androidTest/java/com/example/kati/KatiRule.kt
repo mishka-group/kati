@@ -80,6 +80,22 @@ class KatiRule : TestRule {
             .forEach { it.delete() }
     }
 
+    /**
+     * Takes a runtime permission back off the app under test.
+     *
+     * Android permissions persist per package, so a grant in one @Test is still
+     * in force in the next — which quietly falsifies the premise of any test
+     * whose subject is "what happens when this has not been granted". Found
+     * when a mid-session-grant test saw rows in the store before it had granted
+     * anything.
+     */
+    fun revoke(permission: String) {
+        instrumentation.uiAutomation.executeShellCommand(
+            "pm revoke ${instrumentation.targetContext.packageName} $permission"
+        ).close()
+        device.waitForIdle()
+    }
+
     /** Launches the real activity. */
     fun launch() {
         scenario = ActivityScenario.launch(MainActivity::class.java)
@@ -121,6 +137,61 @@ class KatiRule : TestRule {
     }
 
     fun dbExists(): Boolean = File(filesDir, "kati.db").exists()
+
+    /** One value out of the store, or null when the query finds no row. */
+    fun scalar(sql: String): String? {
+        val db = android.database.sqlite.SQLiteDatabase.openDatabase(
+            File(filesDir, "kati.db").absolutePath,
+            null,
+            android.database.sqlite.SQLiteDatabase.OPEN_READONLY
+        )
+        db.use {
+            it.rawQuery(sql, null).use { c ->
+                return if (c.moveToFirst() && !c.isNull(0)) c.getString(0) else null
+            }
+        }
+    }
+
+    /**
+     * Clicks a control in ANOTHER process's window — an OS permission dialog.
+     *
+     * Compose cannot see these: they belong to the permission controller, not
+     * to Kati, so `onNodeWithTag` has nothing to match. UI Automator addresses
+     * the whole screen instead, which is the only way a test can answer a
+     * dialog the OS raised.
+     */
+    fun systemDialog(vararg labels: String): Boolean {
+        device.waitForIdle()
+        for (label in labels) {
+            val byText = androidx.test.uiautomator.By.text(
+                java.util.regex.Pattern.compile(label, java.util.regex.Pattern.CASE_INSENSITIVE)
+            )
+            val found = device.wait(
+                androidx.test.uiautomator.Until.findObject(byText), 5_000
+            )
+            if (found != null) {
+                found.click()
+                device.waitForIdle()
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Free space on /data, in megabytes.
+     *
+     * The e2e APK is ~127MB because it carries its own Erlang runtime, and a
+     * stock AVD runs out. When it does, Gradle's install fails and
+     * `am instrument` runs the PREVIOUSLY installed APK — so the run reports a
+     * test failure, with a stack trace against line numbers the current source
+     * does not have. Checked here so that can never again be mistaken for a
+     * defect in the app.
+     */
+    fun freeMegabytes(): Long {
+        val stat = android.os.StatFs(filesDir.absolutePath)
+        return stat.availableBytes / (1024 * 1024)
+    }
 
     /**
      * Whether any node currently carries [tag].
