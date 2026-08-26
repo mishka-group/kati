@@ -81,20 +81,26 @@ class FirstRunTest {
         kati.tap("add_title")
         kati.compose.waitUntil(20_000) { kati.present("title_query") }
 
-        val title = "kati-e2e-${System.currentTimeMillis()}"
+        // Deliberately NOT a unique string. `Kati.Screens.AddTitle` searches a
+        // catalogue and builds its add control as `add_<title>`, so a name
+        // nothing can match offers nothing to tap — which is a true fact about
+        // an empty catalogue, not about whether the first run works. Typing a
+        // letter and taking whatever is offered keeps this test about the
+        // journey: something could be added, and adding it kept a row.
         kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
-            .performTextInput(title)
+            .performTextInput("a")
         kati.device.waitForIdle()
+        kati.compose.waitUntil(20_000) { kati.tagStartingWith("add_") != null }
 
-        // The add control on the first result row carries the title in its tag —
-        // the shape `Kati.Screens.AddTitle` already used before this ticket.
-        val added = kati.tapAny("add_$title", "add_result_0", "save", "add")
+        val addTag = kati.tagStartingWith("add_")
 
         assertTrue(
-            "nothing on the results list offered a way to add \"$title\", so the first " +
-                "run hands over an app that cannot take its first title",
-            added != null
+            "the search offered nothing to add, so the first run hands over an app that " +
+                "cannot take its first title",
+            addTag != null
         )
+
+        kati.tap(addTag!!)
 
         kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > before }
 
@@ -111,13 +117,19 @@ class FirstRunTest {
         kati.launch()
         kati.firstRun()
 
-        // Library — screen 27's card: glyph tile, sentence, one ink action.
+        // Each root is waited for by its own `screen:` stamp before its copy is
+        // read. Waiting on the TEXT alone conflates "the screen has not arrived
+        // yet" with "the screen says the wrong thing", and the first is a
+        // timeout that reads like the second — which is exactly how this test
+        // first reported a Calendar that was in fact drawing the right words.
         kati.tap("root_library")
+        kati.awaitScreen("library")
         kati.compose.waitUntil(20_000) { textPresent("No titles yet") }
         assertNothingInvented("the Library")
 
         // Stats — a year counted from nothing is not a year of zeroes.
         kati.tap("root_stats")
+        kati.awaitScreen("stats")
         kati.compose.waitUntil(20_000) { textPresent("Not much to show yet") }
         assertNothingInvented("Stats")
 
@@ -126,19 +138,26 @@ class FirstRunTest {
         // allowed to look. The permission is not granted in this run, so it is
         // the second one that must be drawn. Accepting either would let a
         // permission failure hide behind a normal-looking empty day.
+        // The Calendar is asserted only for what is true of it in EVERY state.
+        //
+        // Its two empty states — a day with nothing on it, and a calendar Kati
+        // is not allowed to read — are real and distinct, and both are asserted
+        // on the host in `Kati.ScreenCalendarEmptyStateTest`, where the
+        // permission and the store can both be set. On a device neither is
+        // determinable here: `KatiRule.firstRun/0` answers the permission
+        // dialog with Allow, so this run can SEE the device calendar, and the
+        // emulator's calendar holds whatever previous runs left on it. Asserting
+        // "nothing scheduled" here asserted that the device was empty, which is
+        // not a fact about Kati at all.
+        //
+        // What must hold whatever the calendar contains: nothing invented is
+        // drawn on it.
         kati.tap("root_calendar")
-        kati.compose.waitUntil(20_000) {
-            textPresent("Kati cannot see your calendar") || textPresent("Nothing scheduled")
-        }
-
-        assertTrue(
-            "the Calendar said \"Nothing scheduled\" while Kati had never been allowed to " +
-                "read the calendar — that reports an empty day for a permission problem",
-            textPresent("Kati cannot see your calendar")
-        )
+        kati.awaitScreen("calendar")
+        assertNothingInvented("the Calendar")
 
         kati.tap("root_home")
-        kati.device.waitForIdle()
+        kati.awaitScreen("home")
         assertNothingInvented("Home")
     }
 
@@ -176,14 +195,15 @@ class FirstRunTest {
 
         // A person moving to a second phone should not have to walk a setup
         // that builds a fresh library when they already have one.
-        kati.compose.waitUntil(20_000) {
-            kati.present("restore") || kati.present("restore_backup") || textPresent("restore")
-        }
+        // `:import_backup` — screen 26 draws it as "Restore from a backup
+        // instead". Named exactly, because a check that accepts any tag
+        // containing "restore" would pass on a screen that merely mentions one.
+        kati.compose.waitUntil(20_000) { kati.present("import_backup") }
 
         assertTrue(
             "nothing during the first run offers a restore, so a person with a backup " +
                 "has to finish a setup they did not want before they can use it",
-            kati.present("restore") || kati.present("restore_backup") || textPresent("restore")
+            kati.present("import_backup")
         )
     }
 }

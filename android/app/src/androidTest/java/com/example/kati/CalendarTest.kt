@@ -9,6 +9,7 @@ import androidx.test.rule.GrantPermissionRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -109,6 +110,36 @@ class CalendarTest {
     }
 
     // ── Planting a real event ──────────────────────────────────────────────
+
+    /**
+     * Take the planted events back out of the DEVICE's calendar.
+     *
+     * This test writes to `CalendarContract` — the real provider every other
+     * app on the phone shares — and without this it never took them out again.
+     * They accumulated one per run: seventeen `kati-e2e-…` events were sitting
+     * on the emulator's calendar when this was found, all of them imported
+     * into Kati and drawn on the Schedule, which is why
+     * `FirstRunTest.b_every_root_draws_its_own_emptiness` could not find an
+     * empty day to assert against.
+     *
+     * A test that leaves rows in a shared store is not isolated; it is just
+     * slow to fail. Deleting by the `kati-e2e-` prefix rather than by the id
+     * this run planted, because the leak has a history and the earlier ones
+     * have no id anybody still holds.
+     */
+    @After
+    fun removePlantedEvents() {
+        try {
+            instrumentation.targetContext.contentResolver.delete(
+                CalendarContract.Events.CONTENT_URI,
+                "${CalendarContract.Events.TITLE} LIKE ?",
+                arrayOf("kati-e2e-%")
+            )
+        } catch (_: Throwable) {
+            // WRITE_CALENDAR can be absent when the run failed before the rule
+            // granted it. A cleanup that throws would mask the real failure.
+        }
+    }
 
     private fun plantEvent(): Long? {
         val resolver = instrumentation.targetContext.contentResolver

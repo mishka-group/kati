@@ -92,8 +92,24 @@ class KatiRule : TestRule {
      * anything.
      */
     fun revoke(permission: String) {
+        // Only when it is actually held. `pm revoke` on a GRANTED permission
+        // force-stops the package, and instrumentation runs inside that same
+        // package — so the revoke kills the test with the app and the run
+        // reports "Test instrumentation process crashed" with nothing to read.
+        //
+        // This is not hypothetical and it is not deterministic, which is worse:
+        // the call is a harmless no-op while the permission is denied, so a
+        // suite passes for weeks and then dies the first time anything leaves
+        // the permission granted — a walk through the app by hand is enough.
+        // Found exactly that way.
+        val ctx = instrumentation.targetContext
+
+        if (ctx.checkSelfPermission(permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
         instrumentation.uiAutomation.executeShellCommand(
-            "pm revoke ${instrumentation.targetContext.packageName} $permission"
+            "pm revoke ${ctx.packageName} $permission"
         ).close()
         device.waitForIdle()
     }
@@ -200,6 +216,27 @@ class KatiRule : TestRule {
      * ordinary for a control already in view, so that case falls through to the
      * click rather than failing.
      */
+    /**
+     * The first tag on screen beginning with [prefix], or null.
+     *
+     * For controls whose tag carries DATA rather than a fixed name —
+     * `Kati.Screens.AddTitle` builds `add_<title>`, so the tag depends on what
+     * the catalogue answered, and a test that hardcodes one is really
+     * asserting the catalogue's contents. Discovering it keeps the test about
+     * the journey: something was offered, and taking it kept a row.
+     */
+    fun tagStartingWith(prefix: String): String? =
+        compose.onAllNodes(
+            androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(
+                androidx.compose.ui.semantics.SemanticsProperties.TestTag
+            ),
+            useUnmergedTree = true
+        ).fetchSemanticsNodes().firstNotNullOfOrNull { node ->
+            node.config
+                .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)
+                ?.takeIf { it.startsWith(prefix) }
+        }
+
     fun tap(tag: String) {
         val node = compose.onNodeWithTag(tag, useUnmergedTree = true)
 
