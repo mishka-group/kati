@@ -391,7 +391,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"154", Kati.Screens.AddByHand},
     {"155", Kati.Screens.AddByHandStates},
     {"156", Kati.Screens.AddByHandFa},
-    {"157", Kati.Screens.AddByHandDark}
+    {"157", Kati.Screens.AddByHandDark},
+    {"158", Kati.Screens.HomeFaEmpty}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -1407,6 +1408,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MyServices.drawn/0},
       {"157", Kati.Screens.AddByHandDark, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
+      # 158 IS the empty state — it is screen 55 with nothing kept, so it
+      # answers with its own emptiness rather than falling back to a drawing.
+      # `Kati.Screens.HomeEmpty` is gated the same way for the same reason.
+      {"158", Kati.Screens.HomeFaEmpty, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
       {"19", Kati.Screens.Search, &Kati.Screens.Search.results_for/0,
        &Kati.Screens.Search.Sample.results/0},
       {"89", Kati.Screens.SearchResultStates, &Kati.Screens.Search.results_for/0,
@@ -1783,6 +1789,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"55", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"55", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"56", "یکشنبه ۲۵ مرداد · ۵ مورد", ~r/^#{word} #{fa_day} #{word} · \p{N}+ مورد$/u},
+      # 158's pair, which are 55's: the Persian empty Home reads the same
+      # `Kati.Screens.HomeFa.moment/0`, so a board-frozen ۲۵ مرداد ۱۴۰۵ is the
+      # same frozen value on the same clock.
+      {"158", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"158", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       # 24 and 62's Export row: `Kati.Screens.Settings.last_backup/0` is `nil`
       # until something completes a Save As, and `Mob.State` is empty here.
       # `Kati.ScreenDesignLiteralTest` carries the same pair with the full

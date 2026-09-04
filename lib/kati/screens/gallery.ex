@@ -196,6 +196,7 @@ defmodule Kati.Screens.Gallery do
     {"154", "Add a title by hand", Kati.Screens.AddByHand, :push},
     {"155", "Add by hand — resting & refused", Kati.Screens.AddByHandStates, :push},
     {"156", "افزودن دستی — Add by hand, RTL", Kati.Screens.AddByHandFa, :push},
+    {"158", "خانه — nothing stored, RTL", Kati.Screens.HomeFaEmpty, :push},
     {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push}
   ]
 

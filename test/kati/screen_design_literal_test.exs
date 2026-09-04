@@ -225,8 +225,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 156,
-             "expected 156 drawings under test/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 157,
+             "expected 157 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -549,7 +549,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # pins this month and this year, which is stricter than the frozen
       # literal it replaces, because a screen that hardcoded the drawing's
       # month now fails eleven months in twelve instead of none.
-      assert length(device_values()) <= 31,
+      # Raised to 33 on 4 September for screen 158, the Persian empty Home. Not
+      # a new class of excuse: both entries are screen 55's, on the same
+      # `Kati.Screens.HomeFa.moment/0` and with the same patterns — 158 IS 55
+      # with nothing stored, exactly as 139 is 01 with nothing stored, and 01's
+      # pair is already here for that reason. Each pins today's Shamsi day, so
+      # a screen that hardcoded the board's ۲۵ مرداد ۱۴۰۵ still fails.
+      assert length(device_values()) <= 33,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -613,6 +619,14 @@ defmodule Kati.ScreenDesignLiteralTest do
          "`Kati.Calendar.Shamsi.format/2` at `:long` over `Kati.Time.today/0` — the mirror " <>
          "of 01's own exemption, in the calendar the screen is drawn in",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"158", "یکشنبه ۲۵ مرداد ۱۴۰۵",
+       "the Persian empty Home's date line is `Kati.Screens.HomeFa.moment/0`, the same " <>
+         "function screen 55's is — so 158 carries 55's exemption for the same reason and " <>
+         "with the same pattern, pinned to today's Shamsi day",
+       ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"158", "عصر بخیر",
+       "the greeting is that same function's, picked from the device clock's hour",
+       ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"55", "عصر بخیر",
        "the greeting is picked from the device clock's hour by that same function, on " <>
          "`Kati.Screens.Home.today/0`'s thresholds. Which of the three it is belongs there; " <>

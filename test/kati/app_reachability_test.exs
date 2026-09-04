@@ -92,6 +92,10 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
+    {Screens.HomeFaEmpty,
+     "screen 55 with nothing stored, and the Persian pair of 139. Reached by " <>
+       "having kept nothing, not by navigating — the same reason " <>
+       "`Kati.Screens.HomeEmpty` is here, and it sits beside it."},
     {Screens.AddByHandFa,
      "screen 154 in the mirror, stranded exactly as `Kati.Screens.RestoreFa` " <>
        "and `Kati.Screens.OnboardingFa` are: screen 89's row pushes the " <>
