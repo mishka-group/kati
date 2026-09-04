@@ -141,6 +141,16 @@ defmodule Kati.Screens.AddTitle do
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
+  # The escape hatch, finally wired. This row has been drawn on artboard 89
+  # since the screen was written and rendered with no `on_tap` at all, because
+  # no board drew what it would open — the moduledoc has carried that apology
+  # for as long. Board 154 is that form, and #91's "a clean install hands over
+  # a usable app" is what it answers: until the catalogue lands, every title
+  # this screen can find is invented, and this is the only way to put a real
+  # one in the library.
+  def handle_info({:tap, :add_by_hand}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
+
   @doc """
   What was typed into the search field, and the search it eventually runs.
 
@@ -730,6 +740,7 @@ defmodule Kati.Screens.AddTitle do
       padding_top={14}
       padding_bottom={14}
       align="center"
+      on_tap={{self(), :add_by_hand}}
     >
       <Spacer weight={1.0} />
       {Kati.UI.symbol("edit_note", size: 18, color: Palette.sub())}

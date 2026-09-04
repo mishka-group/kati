@@ -239,6 +239,13 @@ defmodule Kati.ScreenTapSweepTest do
     # member of its family. Both are covered properly by
     # `Kati.ScreenLanguagePickTest`, which asserts the locale actually moves
     # and the tick follows it.
+    # Screen 154's two resting choices. The board draws Series chosen so the
+    # episode field is visible, and Not started as the status a title you are
+    # adding has — so each is the already-selected member of its family, which
+    # is the first group above. `kind_Film` and the other two statuses all move
+    # the assign, which is what says the family is wired.
+    {Kati.Screens.AddByHand, :kind_Series},
+    {Kati.Screens.AddByHand, :"status_Not started"},
     {Kati.Screens.LanguagePick, :choose_en},
     {Kati.Screens.LanguagePick, :choose_fa},
     # ── Drawn, reachable, and pushing nothing because the design draws no

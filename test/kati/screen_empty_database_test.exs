@@ -383,7 +383,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # without one — so the comparison below is unchanged and what it now
     # guards is the fallback.
     {"19", Kati.Screens.Search},
-    {"89", Kati.Screens.SearchResultStates}
+    {"89", Kati.Screens.SearchResultStates},
+    # 154 writes rather than reads: what it draws is its own form, and the
+    # store is only touched when Add is pressed. It is here because this list
+    # is derived from the compiled import table, which is what stops a screen
+    # opting itself out by only writing on a tap.
+    {"154", Kati.Screens.AddByHand}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -1373,6 +1378,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # database, because screen 19 is the RESULTS page and the design never
       # puts a user on it without a query — 86 is the idle board, and it is
       # routed from Home.
+      # 154 draws its own form and reads nothing: it WRITES on Add, which is
+      # why it is on the migrated list at all. Gated on 92's reader for the
+      # reason 06 is — a form that added a title into a Kati whose service list
+      # disagreed with the page that opened it would be the defect worth
+      # catching.
+      {"154", Kati.Screens.AddByHand, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
       {"19", Kati.Screens.Search, &Kati.Screens.Search.results_for/0,
        &Kati.Screens.Search.Sample.results/0},
       {"89", Kati.Screens.SearchResultStates, &Kati.Screens.Search.results_for/0,

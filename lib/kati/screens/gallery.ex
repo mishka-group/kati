@@ -192,7 +192,8 @@ defmodule Kati.Screens.Gallery do
     {"151", "Notification access", Kati.Screens.NotificationAccess, :push},
     # #21 — anime as a type rather than a section.
     {"152", "Anime — a type, not a section", Kati.Screens.AnimeFilter, :push},
-    {"153", "Numbering — inherited and overridden", Kati.Screens.NumberingScheme, :push}
+    {"153", "Numbering — inherited and overridden", Kati.Screens.NumberingScheme, :push},
+    {"154", "Add a title by hand", Kati.Screens.AddByHand, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.
