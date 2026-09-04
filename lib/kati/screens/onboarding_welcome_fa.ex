@@ -42,7 +42,9 @@ defmodule Kati.Screens.OnboardingWelcomeFa do
     {:ok, socket}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
+  def render(assigns) do
+    Fa.pushed_frame(Fa.page(content(assigns)), Kati.Screens.Identity.of(__MODULE__))
+  end
 
   @doc false
   def content(_assigns) do

@@ -183,13 +183,19 @@ class KatiRule : TestRule {
      */
     fun finishRun() {
         compose.waitUntil(30_000) {
-            present("get_started") || present("finish") || present("continue") || present("fab")
+            present("get_started") || present("finish") || present("next") ||
+                present("continue") || present("fab")
         }
 
-        repeat(8) {
+        // `next` joined this list when D-33 split screen 38 into five steps.
+        // The steps' primary is `:next` where 38's was `:get_started`, so
+        // without it the walk stalls on step two and every journey that only
+        // wanted the app past its first run times out waiting for a shell.
+        // The repeat count is the number of steps plus slack, not a guess.
+        repeat(10) {
             if (present("fab")) return
             systemDialog("Allow", "While using the app", "Allow all the time")
-            tapAny("get_started", "finish", "continue")
+            tapAny("get_started", "finish", "next", "continue")
             device.waitForIdle()
             compose.waitUntil(5_000) { true }
         }

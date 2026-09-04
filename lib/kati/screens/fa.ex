@@ -281,6 +281,39 @@ defmodule Kati.Screens.Fa do
   end
 
   @doc """
+  The scrolling body of a pushed Persian screen: 21pt sides, 64 above, 40 below.
+
+  `pushed_frame/2` is the root `Box` and nothing else — it declares `rtl` and
+  paints the background, and every screen inside it has been writing this same
+  `Scroll` + padded `Column` by hand. Four written this round did not, and the
+  result is what a device shows and no test does: the step rail scrolled up
+  under the status bar and the headline ran off the leading edge, because a
+  `Column` with no padding starts at the pixel.
+
+  The numbers are the boards' own frame — `padding:64px 21px 40px` on every one
+  of them — and they are the same numbers `Kati.Screens.Pushed` uses for the
+  Latin screens.
+  """
+  @spec page(map()) :: map()
+  def page(content) do
+    assigns = %{content: content}
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
+        {@content}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc """
   `Kati.UI.Eyebrow.quiet/1`'s eyebrow, in Persian.
 
   Not the Latin one with the family swapped, for the same two reasons
