@@ -49,12 +49,12 @@ class SearchTest {
      * Puts one real row in the store, through the form a person would use, and
      * leaves the app back on a root.
      *
-     * The relaunch at the end is not tidiness. `add_by_hand` is a pushed screen
-     * and the dock is not drawn on one, so the next `root_home` finds no node
-     * and `performTouchInput` throws with a message about a TestTag rather than
-     * about where the app actually is. Recreating the Activity re-reads
-     * `Kati.Onboarding.first_screen/0`, which is the shell root once the run is
-     * complete.
+     * The pop at the end is not tidiness. `add_by_hand` is a pushed screen and
+     * the dock is not drawn on one, so the next `root_home` would find no node
+     * and throw with a message about a TestTag rather than about where the app
+     * actually is. Relaunching is not the way back either — a second
+     * `ActivityScenario.launch` while the first is still open leaves the new
+     * one unresumed, which is the same timeout one screen further on.
      */
     private fun addTitleByHand() {
         kati.tap("root_library")
@@ -71,8 +71,7 @@ class SearchTest {
         kati.tap("add")
         kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > 0 }
 
-        kati.launch()
-        kati.compose.waitUntil(30_000) { kati.present("root_home") }
+        kati.popToRoot()
     }
 
     /** Home's search box, and the idle page it opens. Screen 86 hands 19 the query. */

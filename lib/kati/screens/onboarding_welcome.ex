@@ -14,7 +14,12 @@ defmodule Kati.Screens.OnboardingWelcome do
   rule for every mirrored screen in the app and it is worth having drawn once,
   because reversing a column is the RTL mistake nobody catches by reading.
   """
-  use Kati.Screens.Pushed, back: "Back to language"
+  use Kati.Screens.Pushed, back: nil
+
+  # `back: nil` — the board draws no pill. Its back control is the row at
+  # the foot of the page, "Back to language", which `back_row/1` builds. A
+  # floating pill over this would be a second way back the design did not
+  # draw, sitting on top of the step rail.
 
   alias Kati.Screens.Onboarding
   alias Kati.Theme.Palette
@@ -28,50 +33,50 @@ defmodule Kati.Screens.OnboardingWelcome do
 
   @doc false
   def content(_assigns) do
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.Screens.OnboardingWelcome.rail(2)}
-      {Kati.Screens.OnboardingWelcome.mark()}
-      <Text
-        text="One place for"
-        text_size={28}
-        max_font_scale={1.6}
-        font_weight="bold"
-        letter_spacing={-0.03}
-        text_color={:on_surface}
-      />
-      <Text
-        text="what you keep"
-        text_size={28}
-        max_font_scale={1.6}
-        font_weight="bold"
-        letter_spacing={-0.03}
-        text_color={:on_surface}
-      />
-      <Spacer size={10} />
-      <Text
-        text="Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
-        text_size={13.5}
-        line_height={1.55}
-        text_color={Palette.ink_soft()}
-      />
-      <Spacer size={24} />
-      {Kati.Screens.OnboardingWelcome.forward("Get started", :next)}
-      <Spacer size={12} />
-      <Box fill_width={true} on_tap={{self(), :restore}}>
+    Kati.Screens.Pushed.page(~MOB"""
+      <Column fill_width={true}>
+        {Kati.Screens.OnboardingWelcome.rail(2)}
+        {Kati.Screens.OnboardingWelcome.mark()}
         <Text
-          text="Already have a Kati backup? Restore it"
-          text_size={13}
-          font_weight="semibold"
-          text_color={Palette.sub()}
-          text_align="center"
+          text="One place for"
+          text_size={28}
+          max_font_scale={1.6}
+          font_weight="bold"
+          letter_spacing={-0.03}
+          text_color={:on_surface}
         />
-      </Box>
-      <Spacer size={18} />
-      {SettingsList.note("info", "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below.")}
-      {Kati.Screens.OnboardingWelcome.back_row("Back to language")}
-    </Column>
-    """
+        <Text
+          text="what you keep"
+          text_size={28}
+          max_font_scale={1.6}
+          font_weight="bold"
+          letter_spacing={-0.03}
+          text_color={:on_surface}
+        />
+        <Spacer size={10} />
+        <Text
+          text="Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
+          text_size={13.5}
+          line_height={1.55}
+          text_color={Palette.ink_soft()}
+        />
+        <Spacer size={24} />
+        {Kati.Screens.OnboardingWelcome.forward("Get started", :next)}
+        <Spacer size={12} />
+        <Box fill_width={true} on_tap={{self(), :restore}}>
+          <Text
+            text="Already have a Kati backup? Restore it"
+            text_size={13}
+            font_weight="semibold"
+            text_color={Palette.sub()}
+            text_align="center"
+          />
+        </Box>
+        <Spacer size={18} />
+        {SettingsList.note("info", "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below.")}
+        {Kati.Screens.OnboardingWelcome.back_row("Back to language")}
+      </Column>
+    """)
   end
 
   @doc """

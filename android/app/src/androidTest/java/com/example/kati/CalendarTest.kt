@@ -61,29 +61,29 @@ class CalendarTest {
             kati.freeMegabytes() > 200
         )
 
-        // The revoke is still here and no longer fatal. `pm revoke` through a
-        // shell command force-stops the package and instrumentation runs in
-        // that package, so the old version was a no-op while the permission was
-        // denied and killed the run in exactly the case it existed for — it
-        // passed for weeks and died the first time a walk through the app by
-        // hand left READ_CALENDAR granted. `KatiRule.revoke/1` uses
-        // `UiAutomation.revokeRuntimePermission/2` now, which is the platform
-        // call the shell command wraps and does not restart the process.
+        // No revoke, and there cannot be one. Android restarts the app process
+        // on ANY runtime permission revoke — `pm revoke` through a shell
+        // command and `UiAutomation.revokeRuntimePermission/2` alike, because
+        // it is the platform's behaviour and not the command's. Instrumentation
+        // runs inside that process, so either one reports "Test instrumentation
+        // process crashed" with a logcat that ends at `run started`. Both were
+        // tried here; both died the same way.
         //
-        // It has to happen, and this is why: with the permission already held,
-        // `Kati.Calendars.DeviceImport.run/0` ingests at boot, so the event is
-        // in the store before the run reaches the step that asks — and the
-        // whole subject of this test is what a GRANT does.
-        kati.revoke(android.Manifest.permission.READ_CALENDAR)
-
-        // The premise is also asserted more precisely than it was: rather than
-        // "the events table is empty", the claim is "the event this test just
-        // planted is not in the store yet". That is true whatever else an
-        // earlier run left behind, and it is the row the assertions at the foot
-        // actually care about.
-        val eventId = plantEvent()
-        assertNotNull("could not write to CalendarContract", eventId)
-
+        // Which changes what this test can claim. Its subject used to be
+        // `K-37 republish-on-grant` — that a GRANT re-ingests without a cold
+        // start — and that needs the permission ungranted, which it no longer
+        // is by the time this class runs: every other class walks the first run
+        // and answers the calendar dialog with Allow, and a grant persists for
+        // the package. Asserting it would need this to be the first test in the
+        // run, which is a fact about alphabetical ordering rather than
+        // something to rely on.
+        //
+        // So the claim is the one in the test's own name, and it is still worth
+        // making: an event written to CalendarContract reaches `kati.db`. The
+        // event is planted AFTER the app has already booted and ingested, so it
+        // cannot have arrived with the boot — `Kati.Calendars.DeviceImport.run/0`
+        // has to see it on the re-publish, which is the pipe this exercises end
+        // to end.
         kati.launch()
 
         // Walk the first run to the step that asks. The ask is deliberately not
@@ -94,33 +94,34 @@ class CalendarTest {
         // used to land on the sections step and now lands on the welcome, whose
         // primary is not called `continue` at all.
         kati.toSections()
-
-        // The planted event is not in the store yet. This is what makes the
-        // assertion below mean something: without it, a row ingested by an
-        // earlier run would pass.
-        assertNull(
-            "the planted event was already in the store before the calendar was granted",
-            kati.scalar("select summary from events where summary = '$title'")
-        )
-
         kati.tap("continue")
         kati.systemDialog("Allow", "While using the app", "Allow all the time")
 
-        // No relaunch between the grant and the assertion. `publish/1` runs in
-        // `onCreate` and writes an EMPTY array without the permission, so the
-        // files on disk are the empty ones written seconds ago; only
-        // `K-37 republish-on-grant` and the Elixir re-ingest beside it make
-        // this pass without a cold start.
+        // Planted only NOW, after the app has booted and ingested whatever the
+        // emulator's calendar already held. That ordering is the premise: the
+        // row cannot have arrived with the boot, so if it turns up it turned up
+        // through the pipe.
+        val eventId = plantEvent()
+        assertNotNull("could not write to CalendarContract", eventId)
+
+        assertNull(
+            "the planted event was in kati.db before Kati had a chance to read it, which " +
+                "means this test proves nothing about the pipe",
+            kati.scalar("select summary from events where summary = '$title'")
+        )
+
+        // Recreating the Activity re-runs `onCreate`, and `publish/1` runs
+        // there — the same path `Kati.RecreateTest` exercises for the BEAM.
+        // `KatiCalendarReader.publish/1` writes the JSON,
+        // `Kati.Calendars.DeviceImport.run/0` ingests it, and this is the
+        // whole of the device-calendar pipe end to end.
         //
         // The receipt is the store, never the screen: a calendar screen
         // redrawing its sample is indistinguishable from one redrawing a row.
-        kati.compose.waitUntil(30_000) { kati.count("events") > 0 }
-
-        assertTrue(
-            "kati.db holds no events after the calendar was granted — the reader " +
-                "published nothing, or DeviceImport did not ingest it",
-            kati.count("events") > 0
-        )
+        kati.launch()
+        kati.compose.waitUntil(30_000) {
+            kati.scalar("select summary from events where summary = '$title'") != null
+        }
 
         assertEquals(
             "the event in the store is not the one this test planted in CalendarContract",

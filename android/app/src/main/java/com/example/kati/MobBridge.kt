@@ -112,6 +112,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontFamily
 // KATI-BEGIN(K-41 text-field-font-imports) mob_new=0.4.20
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
 // KATI-END(K-41 text-field-font-imports)
 // KATI-BEGIN(K-14 bundled-fonts-import) mob_new=0.4.20
 import androidx.compose.ui.text.font.Font
@@ -3537,23 +3540,69 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     // Arabic-script glyph, so both the typed text and the hint fell through
     // to Android's fallback face.
     //
-    // The placeholder needs it stated separately. Compose merges the field's
-    // `textStyle` into the value only; the placeholder slot is a plain
-    // composable and takes `LocalTextStyle`, which is the theme's, not the
-    // field's.
+    // The placeholder needs it stated separately — see the `decorationBox`
+    // below, which is this file's own and takes the same style.
     val family = fontFamilyProp(node.props)
     // KATI-END(K-41 text-field-font)
 
-    TextField(
+    // KATI-BEGIN(K-41 text-field-chrome) mob_new=0.4.20
+    // `BasicTextField`, not Material3's `TextField`, and this is the third
+    // thing wrong with the same twelve lines.
+    //
+    // The stock call is the FILLED variant. It brings a container painted in
+    // `surfaceVariant`, an indicator line, `contentPadding` of its own and a
+    // **56dp minimum height** — a whole second field, drawn underneath the one
+    // Kati had already drawn. Every field in this app sits inside a Kati
+    // container by construction: screen 154's is a white pill at radius 14 with
+    // the card shadow, screen 86's is a 52pt search bar. What a person saw was
+    // a near-black slab inside that pill on the hand-add form, and the same in
+    // every search box in the app.
+    //
+    // The 56dp minimum is why the placeholder was **not drawn at all** rather
+    // than merely mis-coloured. Kati's field is 48 tall, so Material's
+    // decoration box was laid out taller than its container and the hint fell
+    // outside it — `e.g. The Long Hollow` is on board 154 and was on no
+    // device. Sampled to be sure: the interior of that field was a uniform
+    // `#FBFAF8` across every pixel, so there was nothing faint to find.
+    //
+    // `BasicTextField` is the text and the cursor and nothing else, which is
+    // the whole of what a bridge should draw when the host draws its own
+    // chrome. The placeholder comes back as a decoration this file controls.
+    //
+    // It also lets the props Mob ALREADY SENDS be honoured. `Mob.Renderer`'s
+    // defaults for a `text_field` include `text_color`, `placeholder_color`
+    // and `text_size`; the stock call read none of them, which is the same
+    // class of silence as the missing `font_family` above.
+    val style = LocalTextStyle.current.copy(
+        fontFamily = family,
+        color = colorProp(node.props, "text_color").takeIf { it != Color.Unspecified }
+            ?: LocalContentColor.current,
+        fontSize = floatProp(node.props, "text_size")?.sp ?: LocalTextStyle.current.fontSize,
+    )
+
+    val hintColor = colorProp(node.props, "placeholder_color")
+        .takeIf { it != Color.Unspecified }
+        ?: style.color.copy(alpha = 0.5f)
+    // KATI-END(K-41 text-field-chrome)
+
+    BasicTextField(
         value         = localValue,
         onValueChange = { new ->
             localValue = new
             changeHandle?.let { MobBridge.nativeSendChangeStr(it, new) }
         },
-        // KATI-BEGIN(K-41 text-field-font-style) mob_new=0.4.20
-        textStyle     = LocalTextStyle.current.copy(fontFamily = family),
-        placeholder   = { Text(placeholder, fontFamily = family) },
-        // KATI-END(K-41 text-field-font-style)
+        // KATI-BEGIN(K-41 text-field-chrome-apply) mob_new=0.4.20
+        textStyle       = style,
+        cursorBrush     = SolidColor(style.color),
+        decorationBox   = { field ->
+            Box(contentAlignment = Alignment.CenterStart) {
+                if (localValue.isEmpty() && placeholder.isNotEmpty()) {
+                    Text(placeholder, style = style, color = hintColor, maxLines = 1)
+                }
+                field()
+            }
+        },
+        // KATI-END(K-41 text-field-chrome-apply)
         modifier      = tfModifier
             .onFocusChanged { state ->
                 if (state.isFocused) focusHandle?.let { MobBridge.nativeSendFocus(it) }

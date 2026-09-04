@@ -30,29 +30,33 @@ defmodule Kati.Screens.AddByHandStates do
 
   @doc false
   def content(_assigns) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text
-        text="Add by hand"
-        text_size={28}
-        max_font_scale={1.6}
-        font_weight="bold"
-        letter_spacing={-0.03}
-        text_color={:on_surface}
-      />
-      <Spacer size={7} />
-      <Text
-        text="TWO STATES"
-        text_size={13}
-        line_height={1.55}
-        text_color={Palette.sub()}
-      />
-      <Spacer size={20} />
-      {Kati.Screens.AddByHandStates.resting()}
-      {Kati.Screens.AddByHandStates.refused()}
-      {Kati.Screens.AddByHandStates.destination()}
-    </Column>
-    """
+    # The board draws its back pill in the flow at 64; the macro floats one
+    # at 54, 42 tall, so the content that follows starts at `content_top/0`
+    # to clear it. Before this the column had no padding at all and the
+    # form ran to the pixel with its heading under the pill.
+    Kati.Screens.Pushed.page(~MOB"""
+      <Column fill_width={true}>
+        <Text
+          text="Add by hand"
+          text_size={28}
+          max_font_scale={1.6}
+          font_weight="bold"
+          letter_spacing={-0.03}
+          text_color={:on_surface}
+        />
+        <Spacer size={7} />
+        <Text
+          text="TWO STATES"
+          text_size={13}
+          line_height={1.55}
+          text_color={Palette.sub()}
+        />
+        <Spacer size={20} />
+        {Kati.Screens.AddByHandStates.resting()}
+        {Kati.Screens.AddByHandStates.refused()}
+        {Kati.Screens.AddByHandStates.destination()}
+      </Column>
+    """, Kati.Screens.Pushed.content_top())
   end
 
   @doc "The first band: the form as it opens, with nothing assumed."

@@ -71,20 +71,24 @@ defmodule Kati.Screens.AddByHand do
 
   @doc false
   def content(assigns) do
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.Screens.AddByHand.heading()}
-      {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "e.g. The Long Hollow"))}
-      {Kati.Screens.AddByHand.labelled("Kind", Kati.Screens.AddByHand.kinds(assigns.kind))}
-      {Kati.Screens.AddByHand.labelled("Year", Kati.Screens.AddByHand.field(:year, assigns.year, "2024"), "optional")}
-      {Kati.Screens.AddByHand.labelled("Status", Kati.Screens.AddByHand.statuses(assigns.status))}
-      {Kati.Screens.AddByHand.episodes(assigns)}
-      {Kati.Screens.AddByHand.error(assigns.save_error)}
-      {Kati.UI.Sheet.commit("Add to library", :add)}
-      <Spacer size={14} />
-      {Kati.Screens.AddByHand.split_note("A hand-typed title carries", "no poster and no episode list", ". If Kati finds it later both arrive, and nothing you typed is overwritten.")}
-    </Column>
-    """
+    # The board draws its back pill in the flow at 64; the macro floats one
+    # at 54, 42 tall, so the content that follows starts at `content_top/0`
+    # to clear it. Before this the column had no padding at all and the
+    # form ran to the pixel with its heading under the pill.
+    Kati.Screens.Pushed.page(~MOB"""
+      <Column fill_width={true}>
+        {Kati.Screens.AddByHand.heading()}
+        {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "e.g. The Long Hollow"))}
+        {Kati.Screens.AddByHand.labelled("Kind", Kati.Screens.AddByHand.kinds(assigns.kind))}
+        {Kati.Screens.AddByHand.labelled("Year", Kati.Screens.AddByHand.field(:year, assigns.year, "2024"), "optional")}
+        {Kati.Screens.AddByHand.labelled("Status", Kati.Screens.AddByHand.statuses(assigns.status))}
+        {Kati.Screens.AddByHand.episodes(assigns)}
+        {Kati.Screens.AddByHand.error(assigns.save_error)}
+        {Kati.UI.Sheet.commit("Add to library", :add)}
+        <Spacer size={14} />
+        {Kati.Screens.AddByHand.split_note("A hand-typed title carries", "no poster and no episode list", ". If Kati finds it later both arrive, and nothing you typed is overwritten.")}
+      </Column>
+    """, Kati.Screens.Pushed.content_top())
   end
 
   @doc false

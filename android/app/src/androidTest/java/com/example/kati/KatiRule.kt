@@ -177,26 +177,23 @@ class KatiRule : TestRule {
     }
 
     /**
-     * Takes a runtime permission back off the app, without killing the run.
+     * Pops screens until a dock is on screen again.
      *
-     * `pm revoke` through a shell command force-stops the package, and
-     * instrumentation runs in that package — so the earlier version of this
-     * was a harmless no-op while the permission was denied and fatal in
-     * exactly the case it existed for. It passed for weeks and then died the
-     * first time a walk through the app by hand left one granted.
-     *
-     * `UiAutomation.revokeRuntimePermission/2` is the platform call the shell
-     * command wraps, and it does not restart the process.
+     * A pushed screen draws no dock, so `tap("root_home")` from one fails with
+     * "no node with TestTag root_home" — a message about a tag, which tells you
+     * nothing about where the app actually is. Relaunching is not the way back
+     * either: a second `ActivityScenario.launch` while the first is still open
+     * leaves the new one unresumed.
      */
-    fun revoke(permission: String) {
-        val ctx = instrumentation.targetContext
-
-        if (ctx.checkSelfPermission(permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            return
+    fun popToRoot(limit: Int = 4) {
+        repeat(limit) {
+            if (present("root_home")) return
+            device.pressBack()
+            device.waitForIdle()
+            compose.waitUntil(5_000) { true }
         }
 
-        instrumentation.uiAutomation.revokeRuntimePermission(ctx.packageName, permission)
-        device.waitForIdle()
+        compose.waitUntil(20_000) { present("root_home") }
     }
 
     fun finishRun() {

@@ -33,6 +33,9 @@ defmodule Kati.Screens.Pushed do
   """
 
   defmacro __using__(opts) do
+    # `Keyword.fetch!` still, so `back:` cannot be forgotten — but the value may
+    # be `nil`, which means "this board draws its own back control in the flow".
+    # See `back_pill/1`.
     back_label = Keyword.fetch!(opts, :back)
 
     quote do
@@ -140,7 +143,62 @@ defmodule Kati.Screens.Pushed do
     """
   end
 
-  @doc false
+  @doc """
+  The scrolling body of a pushed screen: 21pt sides, 40 below, `top` above.
+
+  `chrome/3` is the root `Box` and the floating pill, and nothing else — every
+  screen inside it has been writing this same `Scroll` and padded `Column` by
+  hand. Six written in one round did not, and what a device shows for one of
+  those is content starting at the pixel: the first line hard against the left
+  edge and the top of the page underneath the status bar.
+
+  Nothing in the suite had an opinion about that, which is why
+  `Kati.PushedFrameTest` now does.
+
+  `top` is the one number that varies, and the two values are the two shapes a
+  board draws:
+
+    * **`content_top/0`** — the board draws a back pill. The macro floats one
+      at 54, 42 tall, so content has to clear it. 154 and 155 are this shape.
+    * **64** — the board draws no pill and puts its back control in the flow,
+      which is what the five-step first run does. Those screens pass
+      `back: nil` and get no floating pill to clear.
+  """
+  @spec page(map(), pos_integer()) :: map()
+  def page(content, top \\ 64) do
+    import Mob.Sigil
+    assigns = %{content: content, top: top}
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={@top}
+        padding_bottom={40}
+      >
+        {@content}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc """
+  The floating back pill, or nothing when the screen draws its own.
+
+  `nil` is a real answer rather than a missing one. Boards 161, 162 and 163 put
+  their back control **in the flow at the foot of the page** — `Back to
+  language`, under the note — and draw no pill at the top at all. Floating one
+  over them would be a second way back that the design did not draw, sitting on
+  top of the step rail.
+  """
+  @spec back_pill(String.t() | nil) :: map()
+  def back_pill(nil) do
+    import Mob.Sigil
+    ~MOB"<Spacer size={0} />"
+  end
+
   def back_pill(label) do
     import Mob.Sigil
     tap = {self(), :back}

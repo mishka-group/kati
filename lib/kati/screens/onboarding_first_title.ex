@@ -18,7 +18,12 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   different picture. `Kati.Screens.LibraryFa` records the same rule for the
   shelf.
   """
-  use Kati.Screens.Pushed, back: "Back to loudness"
+  use Kati.Screens.Pushed, back: nil
+
+  # `back: nil` — the board draws no pill. Its back control is the row at
+  # the foot of the page, "Back to loudness", which `back_row/1` builds. A
+  # floating pill over this would be a second way back the design did not
+  # draw, sitting on top of the step rail.
 
   alias Kati.Screens.OnboardingWelcome
   alias Kati.Theme.Palette
@@ -34,36 +39,36 @@ defmodule Kati.Screens.OnboardingFirstTitle do
 
   @doc false
   def content(assigns) do
-    ~MOB"""
-    <Column fill_width={true}>
-      {OnboardingWelcome.rail(5)}
-      <Text text="Add your first title" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
-      <Spacer size={10} />
-      <Text
-        text="Pick something you are watching now — the calendar fills itself from there."
-        text_size={13.5}
-        line_height={1.55}
-        text_color={Palette.ink_soft()}
-      />
-      <Spacer size={20} />
-      {Kati.Screens.OnboardingFirstTitle.grid(assigns.picked)}
-      <Spacer size={18} />
-      {OnboardingWelcome.forward("Finish setup", :finish)}
-      <Spacer size={12} />
-      <Box fill_width={true} on_tap={{self(), :skip}}>
+    Kati.Screens.Pushed.page(~MOB"""
+      <Column fill_width={true}>
+        {OnboardingWelcome.rail(5)}
+        <Text text="Add your first title" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+        <Spacer size={10} />
         <Text
-          text="Skip — I’ll add things later"
-          text_size={13}
-          font_weight="semibold"
-          text_color={Palette.sub()}
-          text_align="center"
+          text="Pick something you are watching now — the calendar fills itself from there."
+          text_size={13.5}
+          line_height={1.55}
+          text_color={Palette.ink_soft()}
         />
-      </Box>
-      <Spacer size={18} />
-      {SettingsList.note("info", "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner.")}
-      {OnboardingWelcome.back_row("Back to loudness")}
-    </Column>
-    """
+        <Spacer size={20} />
+        {Kati.Screens.OnboardingFirstTitle.grid(assigns.picked)}
+        <Spacer size={18} />
+        {OnboardingWelcome.forward("Finish setup", :finish)}
+        <Spacer size={12} />
+        <Box fill_width={true} on_tap={{self(), :skip}}>
+          <Text
+            text="Skip — I’ll add things later"
+            text_size={13}
+            font_weight="semibold"
+            text_color={Palette.sub()}
+            text_align="center"
+          />
+        </Box>
+        <Spacer size={18} />
+        {SettingsList.note("info", "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner.")}
+        {OnboardingWelcome.back_row("Back to loudness")}
+      </Column>
+    """)
   end
 
   @doc false

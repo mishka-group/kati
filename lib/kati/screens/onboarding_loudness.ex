@@ -19,7 +19,12 @@ defmodule Kati.Screens.OnboardingLoudness do
   Choosing *Notify me* or *Weekly digest* raises the prompt on the **next**
   step, which is the band drawn on screen 136.
   """
-  use Kati.Screens.Pushed, back: "Back to sections"
+  use Kati.Screens.Pushed, back: nil
+
+  # `back: nil` — the board draws no pill. Its back control is the row at
+  # the foot of the page, "Back to sections", which `back_row/1` builds. A
+  # floating pill over this would be a second way back the design did not
+  # draw, sitting on top of the step rail.
 
   alias Kati.Screens.OnboardingWelcome
   alias Kati.Theme.Palette
@@ -40,28 +45,28 @@ defmodule Kati.Screens.OnboardingLoudness do
 
   @doc false
   def content(assigns) do
-    ~MOB"""
-    <Column fill_width={true}>
-      {OnboardingWelcome.rail(4)}
-      <Text text="How should we" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
-      <Text text="tell you?" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
-      <Spacer size={10} />
-      <Text
-        text="Kati checks for new episodes on its own. You choose how loudly it mentions them."
-        text_size={13.5}
-        line_height={1.55}
-        text_color={Palette.ink_soft()}
-      />
-      <Spacer size={20} />
-      {Kati.Screens.OnboardingLoudness.choices(assigns.choice)}
-      {Kati.Screens.OnboardingLoudness.quiet_note(assigns.choice)}
-      <Spacer size={18} />
-      {OnboardingWelcome.forward("Continue", :next)}
-      <Spacer size={14} />
-      {SettingsList.note("info", "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136")}
-      {OnboardingWelcome.back_row("Back to sections")}
-    </Column>
-    """
+    Kati.Screens.Pushed.page(~MOB"""
+      <Column fill_width={true}>
+        {OnboardingWelcome.rail(4)}
+        <Text text="How should we" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+        <Text text="tell you?" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
+        <Spacer size={10} />
+        <Text
+          text="Kati checks for new episodes on its own. You choose how loudly it mentions them."
+          text_size={13.5}
+          line_height={1.55}
+          text_color={Palette.ink_soft()}
+        />
+        <Spacer size={20} />
+        {Kati.Screens.OnboardingLoudness.choices(assigns.choice)}
+        {Kati.Screens.OnboardingLoudness.quiet_note(assigns.choice)}
+        <Spacer size={18} />
+        {OnboardingWelcome.forward("Continue", :next)}
+        <Spacer size={14} />
+        {SettingsList.note("info", "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136")}
+        {OnboardingWelcome.back_row("Back to sections")}
+      </Column>
+    """)
   end
 
   @doc false
