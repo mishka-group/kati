@@ -205,7 +205,17 @@ defmodule Kati.Screens.MealsToday do
       slot: slot.slot_name,
       title: recipe.title,
       calories: "#{Nutrition.scale(recipe_figures(recipe), slot.portion_milli).kcal} kcal",
-      seed: recipe.photo_seed
+      seed: recipe.photo_seed,
+      # Carried so **Mark eaten** can write. The row used to hold only what the
+      # card draws, so the button had nothing to write about and did nothing at
+      # all — and because a day can hold three upcoming meals, a bare
+      # `:mark_eaten` tag would have been ambiguous even once it did.
+      slot_id: slot.id,
+      recipe_id: recipe.id,
+      portion_milli: slot.portion_milli,
+      plan_id: slot.meal_plan_id,
+      slot_time: slot.slot_time,
+      slot_name: slot.slot_name
     }
   end
 
@@ -221,7 +231,17 @@ defmodule Kati.Screens.MealsToday do
       slot: log.slot_name || "",
       title: log.title,
       calories: calories(log),
-      seed: photo_seed(log.recipe)
+      seed: photo_seed(log.recipe),
+      # A logged meal has already been decided, so there is nothing for **Mark
+      # eaten** to write — `meal_card/1` only draws the button on a `:next`
+      # card. `nil` here rather than an absent key, so every row has the same
+      # shape and a screen reading one cannot raise on the other.
+      slot_id: nil,
+      recipe_id: nil,
+      portion_milli: nil,
+      plan_id: nil,
+      slot_time: log.slot_time,
+      slot_name: log.slot_name
     }
   end
 
@@ -1045,7 +1065,7 @@ defmodule Kati.Screens.MealsToday do
       </Row>
       <Spacer size={13} />
       <Row fill_width={true} padding_left={15} align="center">
-        {Kati.Screens.MealsToday.action("Mark eaten", :ink, :mark_eaten)}
+        {Kati.Screens.MealsToday.action("Mark eaten", :ink, Kati.Screens.MealsToday.tag("mark_eaten", meal))}
         <Spacer size={8} />
         {Kati.Screens.MealsToday.action("Swap", :paper, :swap)}
         <Spacer size={8} />
@@ -1053,6 +1073,61 @@ defmodule Kati.Screens.MealsToday do
       </Row>
     </Column>
     """
+  end
+
+  @doc """
+  A per-meal tap tag, or the bare one when the row cannot be written about.
+
+  A day holds up to three upcoming meals and the card is drawn once per meal,
+  so `:mark_eaten` on its own named none of them: whichever handler ran would
+  have had to guess. The slot's id makes each button address its own row, which
+  is also what stops two cards sharing an `accessibility_id` — the thing
+  `Kati.ScreenTapSweepTest` exists to catch.
+
+  The drawing's own fallback keeps the bare tag. `Kati.Meals.SampleToday` rows
+  have no slot id because they are a transcription of a board rather than rows
+  in a store, and a tag ending in `_nil` would be a worse name than no id at
+  all.
+  """
+  @spec tag(String.t(), map()) :: atom()
+  def tag(prefix, %{slot_id: id}) when is_binary(id), do: String.to_atom(prefix <> "_" <> id)
+  def tag(prefix, _meal), do: String.to_atom(prefix)
+
+  @doc """
+  Write that a planned meal was eaten.
+
+  `Kati.Meals.MealLog`'s `:log_recipe` freezes the figures at the moment of the
+  claim — that is the whole point of the resource, and why re-logging is a
+  destroy and a create rather than an update. So this hands it the slot's
+  recipe and portion and lets `Kati.Meals.Changes.FreezeNutrition` do the
+  arithmetic, rather than copying today's numbers into the row itself.
+
+  The day is re-read afterwards rather than patched in the socket: the card a
+  logged meal draws is `log_row/1`'s, not `slot_row/1`'s, and deriving it twice
+  in two places is how the two would come to disagree.
+  """
+  @spec mark_eaten(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def mark_eaten(socket, slot_id) do
+    meal = Enum.find(socket.assigns.day.meals, &(Map.get(&1, :slot_id) == slot_id))
+
+    if meal do
+      MealLog
+      |> Ash.Changeset.for_create(:log_recipe, %{
+        recipe_id: meal.recipe_id,
+        portion_milli: meal.portion_milli,
+        logged_on: Kati.Time.today(),
+        logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
+        state: :eaten,
+        meal_plan_id: meal.plan_id,
+        meal_plan_slot_id: meal.slot_id
+      })
+      |> Ash.create()
+      |> Kati.Write.note("mark eaten #{meal.title}")
+
+      Mob.Socket.assign(socket, :day, Kati.Screens.MealsToday.day(Kati.Time.today()))
+    else
+      socket
+    end
   end
 
   # The third action is a disc rather than a label, so it is the icon-only
@@ -1256,10 +1331,15 @@ defmodule Kati.Screens.MealsToday do
   # routing. Carrying the slot through to the detail screen is screen 44's
   # change, not this one's — and naming the cards is what has to happen first.
   def handle_tap(tag, socket) when is_atom(tag) do
-    if String.starts_with?(Atom.to_string(tag), "meal_") do
-      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
-    else
-      {:noreply, socket}
+    case Atom.to_string(tag) do
+      "mark_eaten_" <> slot_id ->
+        {:noreply, Kati.Screens.MealsToday.mark_eaten(socket, slot_id)}
+
+      "meal_" <> _rest ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
+
+      _other ->
+        {:noreply, socket}
     end
   end
 

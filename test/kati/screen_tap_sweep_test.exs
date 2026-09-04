@@ -258,6 +258,15 @@ defmodule Kati.ScreenTapSweepTest do
     # segment drawn without a tap at all would read as a broken control rather
     # than a settled one.
     {Kati.Screens.AutoDetect, :tv},
+    # Screen 43's **Mark eaten** on the DRAWN day, which is the only day the
+    # sweep sees. With a plan in the store the tag carries the slot's id and
+    # writes a `Kati.Meals.MealLog` — `Kati.MealsTodayWriteTest` asserts that
+    # against real rows. `Kati.Meals.SampleToday` is a transcription of board
+    # 43 rather than rows, so its meals have no slot to log against and
+    # `Kati.Screens.MealsToday.tag/2` hands back the bare tag rather than one
+    # ending in `_nil`. A button that wrote a log for a meal nobody planned
+    # would be inventing the row it then displayed.
+    {Kati.Screens.MealsToday, :mark_eaten},
     {Kati.Screens.Search, :clear},
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
     {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},
@@ -677,7 +686,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealSwap, :swap_forever},
     {Kati.Screens.MealSwap, :swap_once},
     {Kati.Screens.MealsToday, :done_prepping},
-    {Kati.Screens.MealsToday, :mark_eaten},
     {Kati.Screens.MealsToday, :open_week},
     {Kati.Screens.MealsToday, :see_tomorrow},
     {Kati.Screens.MealsToday, :swap},
