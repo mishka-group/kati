@@ -216,13 +216,35 @@ defmodule Kati.Screens.Money do
     """
   end
 
+  @doc """
+  One subscription row's tag, built from the service's name.
+
+  Every row of the ledger shared `:open_subscriptions`, so the card was one
+  `accessibility_id` repeated and `onNodeWithTag` throws on the second match
+  (#97). The name, because a service is what it is called — the same identity
+  `Kati.Screens.MyServices.service_tag/1` uses for the same rows on screen 92.
+
+      iex> Kati.Screens.Money.subscription_tag(%{name: "Orbit"})
+      :open_subscriptions_Orbit
+
+      iex> Kati.Screens.Money.subscription_tag(%{name: ""})
+      :open_subscriptions
+  """
+  @spec subscription_tag(map()) :: atom()
+  def subscription_tag(service) do
+    case service |> Map.get(:name, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+      "" -> :open_subscriptions
+      name -> String.to_atom("open_subscriptions_" <> name)
+    end
+  end
+
   @doc false
   def service_row(service) do
     SettingsList.row(
       Kati.Screens.MyServices.badge_tile(service.badge),
       SettingsList.body(service.name, service.line),
       SettingsList.trailing(Kati.Screens.Money.rate(service)),
-      on_tap: {self(), :open_subscriptions}
+      on_tap: {self(), Kati.Screens.Money.subscription_tag(service)}
     )
   end
 
@@ -433,6 +455,21 @@ defmodule Kati.Screens.Money do
 
   def handle_tap(:dismiss, socket),
     do: {:noreply, Mob.Socket.assign(socket, :dismissed?, true)}
+
+  # Every ledger row, by its own service name — see `subscription_tag/1`. They
+  # open the screen the bare tag opened: `Kati.Screens.Subscriptions` takes no
+  # argument, so this is identity for the sake of being addressable rather than
+  # for routing.
+  #
+  # Below the named clauses, above the catch-all: a prefix match placed before
+  # them makes every one of them unreachable, silently.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    if String.starts_with?(Atom.to_string(tag), "open_subscriptions_") do
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
+    else
+      {:noreply, socket}
+    end
+  end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

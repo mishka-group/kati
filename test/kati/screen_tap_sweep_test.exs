@@ -218,13 +218,10 @@ defmodule Kati.ScreenTapSweepTest do
     "57" => ["open_series"],
     "86" => ["repeat_query", "try_suggestion"],
     "96" => ["my_services"],
-    "112" => ["open_schedule"],
     "113" => ["open_habits", "open_meals", "open_medication", "open_weight"],
     "114" => ["close"],
-    "122" => ["open_subscriptions"],
     "126" => ["toggle_density"],
-    "127" => ["open_services"],
-    "151" => ["open_settings"]
+    "127" => ["open_services"]
   }
 
   @inert_taps [
@@ -399,7 +396,14 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Medication, :mark_taken},
     {Kati.Screens.Medication, :mark_skipped},
     {Kati.Screens.Medication, :add},
-    {Kati.Screens.Medication, :open_schedule},
+    # One entry per drawn schedule since #97 gave the rows their own names
+    # (`Kati.Screens.Medication.schedule_tag/1`). What they open is unchanged
+    # and is nothing: no medication page is drawn in the set, which the comment
+    # by `other_tap/2` in that screen says in as many words.
+    {Kati.Screens.Medication, :open_schedule_Levothyroxine},
+    {Kati.Screens.Medication, :open_schedule_Vitamin_D},
+    {Kati.Screens.Medication, :open_schedule_Iron},
+    {Kati.Screens.Medication, :open_schedule_Magnesium},
     # ── Screen 119's four.
     #
     # `aisle_Uncategorised` is the aisle the draft opens on, the same
@@ -447,6 +451,11 @@ defmodule Kati.ScreenTapSweepTest do
     # is NOT here: it pushes `Kati.Screens.LogListen`, because this sheet gates
     # auto-detecting a listen and hand-logging one is a screen Kati already has.
     {Kati.Screens.NotificationAccess, :open_settings},
+    # The revoked band's pill, renamed for the band it belongs to (#97). Both
+    # pills say *Open system settings* and both did it under one tag, so the
+    # two states of this board were one id. Neither opens anything: Mob has no
+    # route out to the system settings app.
+    {Kati.Screens.NotificationAccess, :open_settings_revoked},
     # ── Screen 136, the loudness prompt's `Continue`. Wired, and the change
     # lives outside the socket twice over: `Mob.Permissions.request/2` raises
     # the system dialog, and `Permissions.note_asked/1` writes `Mob.State` so a

@@ -465,6 +465,32 @@ defmodule Kati.Screens.Medication do
     """
   end
 
+  @doc """
+  One schedule row's tag, built from the medicine's name.
+
+  Every schedule shared `:open_schedule`, so the card gave one
+  `accessibility_id` to every row and `onNodeWithTag` throws on the second
+  match (#97). A schedule is the medicine it is for, which is what the row's
+  own first line says.
+
+      iex> Kati.Screens.Medication.schedule_tag(%{name: "Levothyroxine"})
+      :open_schedule_Levothyroxine
+
+      iex> Kati.Screens.Medication.schedule_tag(%{name: ""})
+      :open_schedule
+  """
+  @spec schedule_tag(map()) :: atom()
+  def schedule_tag(schedule) do
+    case schedule
+         |> Map.get(:name, "")
+         |> to_string()
+         |> String.trim()
+         |> String.replace(" ", "_") do
+      "" -> :open_schedule
+      name -> String.to_atom("open_schedule_" <> name)
+    end
+  end
+
   @doc "The schedules, each pushing nowhere yet — see `handle_tap/2`."
   @spec schedule_group([map()]) :: map()
   def schedule_group(schedules) do
@@ -474,7 +500,7 @@ defmodule Kati.Screens.Medication do
           SettingsList.icon_tile("medication"),
           SettingsList.body(schedule.name, schedule.line),
           SettingsList.trailing(SettingsList.chevron()),
-          on_tap: {self(), :open_schedule}
+          on_tap: {self(), Kati.Screens.Medication.schedule_tag(schedule)}
         )
       end)
 

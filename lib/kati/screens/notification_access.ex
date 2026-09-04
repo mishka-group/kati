@@ -309,7 +309,7 @@ defmodule Kati.Screens.NotificationAccess do
         </Row>
         <Spacer size={14} />
         <Row align="center">
-          <Column on_tap={{self(), :open_settings}}>
+          <Column on_tap={{self(), :open_settings_revoked}}>
             {SettingsList.action_pill("Open system settings")}
           </Column>
           <Spacer size={8} />
