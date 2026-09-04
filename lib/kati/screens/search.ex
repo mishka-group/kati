@@ -130,15 +130,6 @@ defmodule Kati.Screens.Search do
      )}
   end
 
-  @doc "Put a query where the next screen will look for it. See `handed_over/0`."
-  @spec hand_over(String.t()) :: :ok
-  def hand_over(query) do
-    Mob.State.put(:kati_search_query, query)
-    :ok
-  rescue
-    _error -> :ok
-  end
-
   @doc """
   The query screen 86 handed over, or `""`.
 
@@ -146,18 +137,12 @@ defmodule Kati.Screens.Search do
   divide idle from results, and this is the seam. Reached with nothing, this
   page opens idle, which is a state the screen now draws rather than a reason
   to substitute a drawing.
+
+  `Kati.Search.handed_over/0` is where the key itself lives, and that is
+  load-bearing rather than tidy: see `Kati.Search.hand_over/1`.
   """
   @spec handed_over() :: String.t()
-  def handed_over do
-    case Mob.State.get(:kati_search_query) do
-      query when is_binary(query) -> query
-      _nothing -> ""
-    end
-  rescue
-    # `Mob.State` is DETS and raises when its table is not open — a host test
-    # that has not started it, and the gallery on a cold boot.
-    _error -> ""
-  end
+  defdelegate handed_over(), to: Kati.Search
 
   @doc """
   The result set board 19 was captured with — one query, `hollow`, matched four
@@ -178,9 +163,9 @@ defmodule Kati.Screens.Search do
 
   Dates are typed as the drawing types them — `20 AUG`, with a leading zero on
   the second — because the column is 44pt wide and a ragged `6 AUG` would not
-  line up under `20 AUG`. `inline_words` is how many words of the note's tail
-  share the first line with the highlight: the browser wraps that paragraph and
-  a `Row` does not, so the break is declared where the drawing breaks.
+  line up under it. `inline_words` is how many words of the note's tail share
+  the first line with the highlight: the browser wraps that paragraph and a
+  `Row` does not, so the break is declared where the drawing breaks.
   """
   @spec drawn_results() :: map()
   def drawn_results do
@@ -202,7 +187,7 @@ defmodule Kati.Screens.Search do
         tail: "is a character, not a place. Watch E1 again before S3.",
         inline_words: 6
       },
-      recent: drawn_recent()
+      recent: Kati.Screens.Search.drawn_recent()
     }
   end
 
@@ -303,7 +288,7 @@ defmodule Kati.Screens.Search do
   # again — retyping a word the app has just shown you is what makes a dead
   # end feel like one.
   def handle_info({:tap, :look_up}, socket) do
-    Kati.Screens.Search.hand_over(socket.assigns.query)
+    Kati.Search.hand_over(socket.assigns.query)
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
   end
 

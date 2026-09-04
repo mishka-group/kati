@@ -143,6 +143,43 @@ defmodule Kati.Search do
       "queries, not seven per letter."
   end
 
+  @doc """
+  Put a query where the next screen will look for it.
+
+  Screen 86 is the idle board and screen 19 is the results board, and the two
+  are separate pages — so what was typed on one has to reach the other.
+  `Mob.Socket.push_screen/2` takes a module and nothing else, so it travels the
+  same road `Kati.Locale` does: a key in `Mob.State`.
+
+  It lives with the specification rather than on either screen, and that is not
+  tidiness. `Kati.ScreenEmptyDatabaseTest` derives which screens reach the
+  database from the compiled call graph, transitively — so a handover defined
+  on `Kati.Screens.Search`, which runs the query, made every screen that hands
+  a query over into a database reader, and then every screen that called one of
+  those. Two reference sheets joined the migration list that way in one edit.
+  This module runs nothing.
+  """
+  @spec hand_over(String.t()) :: :ok
+  def hand_over(query) when is_binary(query) do
+    Mob.State.put(:kati_search_query, query)
+    :ok
+  rescue
+    # `Mob.State` is DETS and raises when its table is not open — a host test
+    # that has not started it, and the gallery on a cold boot.
+    _error -> :ok
+  end
+
+  @doc "The query the last screen handed over, or `\"\"`. See `hand_over/1`."
+  @spec handed_over() :: String.t()
+  def handed_over do
+    case Mob.State.get(:kati_search_query) do
+      query when is_binary(query) -> query
+      _nothing -> ""
+    end
+  rescue
+    _error -> ""
+  end
+
   @doc "How many recent queries are kept."
   @spec recent_kept() :: pos_integer()
   def recent_kept, do: 8

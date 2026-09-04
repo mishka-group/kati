@@ -83,7 +83,7 @@ defmodule Kati.Screens.SearchIdle do
   """
   @spec field() :: map()
   def field(query \\ "") do
-    assigns = %{query: query, on_change: {self(), :search_query}}
+    assigns = %{query: query, on_change: {self(), :search_query}, on_submit: {self(), :look}}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -107,6 +107,7 @@ defmodule Kati.Screens.SearchIdle do
             weight={1.0}
             accessibility_id="search_query"
             on_change={@on_change}
+            on_submit={@on_submit}
           />
         </Row>
         <Spacer size={10} />
@@ -304,12 +305,42 @@ defmodule Kati.Screens.SearchIdle do
   """
   @spec look(Mob.Socket.t()) :: Mob.Socket.t()
   def look(socket) do
-    Mob.State.put(:kati_search_query, socket.assigns.query)
+    Search.hand_over(socket.assigns.query)
+    Kati.Search.Recent.remember(socket.assigns.query)
     Mob.Socket.push_screen(socket, Kati.Screens.Search)
+  end
+
+  @doc """
+  Open the results page on `line`, a query read back out of a tap tag.
+
+  `query_tag/2` replaces spaces with underscores so the tag is an atom a
+  device test can type, so this puts them back. A round trip rather than a
+  lookup because the shelf and the suggestions are two different lists and
+  both arrive here.
+  """
+  @spec open(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def open(socket, line) do
+    query = String.replace(line, "_", " ")
+    Search.hand_over(query)
+
+    socket
+    |> Mob.Socket.assign(:query, query)
+    |> Mob.Socket.push_screen(Kati.Screens.Search)
   end
 
   def handle_tap(:filters, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec)}
+
+  @doc """
+  The search key on the keyboard, which is what finally connects the two boards.
+
+  `look/1` has existed since this screen was built and nothing called it: the
+  field remembered what was typed and there was no way out of the page. Board
+  86's own field draws `return_key="search"`, so the key is the handover the
+  design already specified — `Kati.ScreenTapSweepTest` never saw it, because a
+  keyboard action is not a tap.
+  """
+  def handle_tap(:look, socket), do: {:noreply, Kati.Screens.SearchIdle.look(socket)}
 
   def handle_tap(:repeat_query, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
@@ -328,11 +359,16 @@ defmodule Kati.Screens.SearchIdle do
       #
       # Answered inside this case rather than in a clause above it: a prefix
       # clause placed earlier shadows `:try_suggestion` and every scope chip.
-      "repeat_query_" <> _line ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+      # Both carry their own line across, so the results page opens on the
+      # query that was tapped rather than on whatever was last typed. Before
+      # `Kati.Search.Query.run/1` existed there was nothing to carry it to and
+      # both pushed bare; a shortcut that opens somebody else's results is
+      # worse than one that does nothing.
+      "repeat_query_" <> line ->
+        {:noreply, Kati.Screens.SearchIdle.open(socket, line)}
 
-      "try_suggestion_" <> _line ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+      "try_suggestion_" <> line ->
+        {:noreply, Kati.Screens.SearchIdle.open(socket, line)}
 
       _other ->
         {:noreply, socket}
