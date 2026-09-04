@@ -101,7 +101,8 @@ defmodule Kati.Screens.AddTitle do
        results: Sample.search_results(),
        filter: "Everything",
        query: "",
-       save_error: nil
+       save_error: nil,
+       search_error: nil
      )}
   end
 
@@ -141,15 +142,108 @@ defmodule Kati.Screens.AddTitle do
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
   @doc """
-  What was typed into the search field.
+  What was typed into the search field, and the search it eventually runs.
 
-  Held as typed. Nothing is searched yet — there is no provider client, which
-  the moduledoc explains at length — so this is the field remembering what you
-  wrote, which is the whole of what a field owes you before there is anything
-  to search.
+  **Not debounced, and deliberately not.** The obvious shape is a timer —
+  bump a counter, `Process.send_after` a `{:search, n}`, run only the newest —
+  and `Kati.SupervisionRuleTest` forbids it in as many words: a screen is
+  transient, Mob keeps one alive at a time and it dies on every root switch, so
+  a timer a screen sets outlives the screen that set it. Written that way
+  first; the lint is what caught it.
+
+  So the search runs in the change handler, under a three-character floor. Two
+  consequences worth naming rather than discovering:
+
+    * one request per keystroke past the floor, where a debounce would make one
+      per pause;
+    * the handler blocks while the request is in flight, so the field lags by
+      the round trip.
+
+  Both are fixed by the same thing — a supervised worker that owns the
+  debounce and hands answers back — and neither is fixed by a timer here.
+  `handle_info/2` is sequential, so at least the answers cannot arrive out of
+  order and overwrite a newer list with an older one.
   """
+  @min_query 3
+
   def handle_info({:change, :title_query, typed}, socket) when is_binary(typed) do
-    {:noreply, Mob.Socket.assign(socket, :query, typed)}
+    socket = Mob.Socket.assign(socket, :query, typed)
+    query = String.trim(typed)
+
+    if String.length(query) < @min_query do
+      # Back to the drawing, not to nothing. Board 06 is drawn mid-query and no
+      # board draws this screen before anyone has typed — the rule
+      # `Kati.Screens.Library` moved off its Sample under is that the design
+      # must draw the emptiness first, and here it does not. `D-31` is the
+      # brief that would settle it.
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:results, Sample.search_results())
+       |> Mob.Socket.assign(:search_error, nil)}
+    else
+      {:noreply, Kati.Screens.AddTitle.searched(socket, query)}
+    end
+  end
+
+  @doc """
+  Run one search and put its answer on the socket.
+
+  A failure is **shown**, not swallowed: #89's fourth criterion is that a
+  failed or rate-limited request is visible to the user, and
+  `Kati.Media.Tmdb.message/1` is where the wording lives. The results already
+  on screen are cleared with it — a stale list under an error message reads as
+  though the error were about something else.
+  """
+  @spec searched(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def searched(socket, query) do
+    case Kati.Media.Tmdb.search(query) do
+      {:ok, rows} ->
+        socket
+        |> Mob.Socket.assign(:results, Enum.map(rows, &Kati.Screens.AddTitle.row/1))
+        |> Mob.Socket.assign(:search_error, nil)
+
+      {:error, reason} ->
+        socket
+        |> Mob.Socket.assign(:results, [])
+        |> Mob.Socket.assign(:search_error, Kati.Media.Tmdb.message(reason))
+        |> Mob.Socket.assign(:save_error, nil)
+    end
+  end
+
+  @doc """
+  One TMDB result in the shape this screen draws.
+
+  `seed` stays nil. A seed is `Kati.Library.Sample`'s key for a drawing's
+  photograph, and a TMDB `poster_path` is a URL on someone else's CDN —
+  `thumb/1` already draws the paper placeholder for a row it has no picture
+  for, which is the honest answer until posters are fetched.
+
+  `source_id` and `kind` ride along because `track/2` needs them: a row added
+  from TMDB is tracked under its TMDB id, not under its title.
+  """
+  @spec row(map()) :: map()
+  def row(result) do
+    %{
+      title: result.title,
+      seed: nil,
+      meta: Kati.Screens.AddTitle.meta_line(result),
+      note: result.overview,
+      added: false,
+      source: :tmdb,
+      source_id: result.source_id,
+      kind: result.kind
+    }
+  end
+
+  @doc false
+  @spec meta_line(map()) :: String.t()
+  def meta_line(result) do
+    kind = if result.kind == :movie, do: "FILM", else: "SERIES"
+
+    case result.year do
+      nil -> kind
+      year -> year <> " · " <> kind
+    end
   end
 
   def handle_info({:tap, tag}, socket) do
@@ -324,6 +418,28 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   @spec track(String.t(), map() | nil) :: {:ok, term()} | {:error, term()}
+  def track(title, %{source: :tmdb, source_id: source_id, kind: kind}) do
+    # The detail call, and the only place it is made. It fills
+    # `Kati.Media.CachedTitle`, `CachedSeason` and `CachedEpisode` — the
+    # episodes are the point, because nothing can be ticked before they exist,
+    # and a series tracked without them is a row with no progress possible.
+    #
+    # A tracked row under the TMDB id rather than under the title: the cached
+    # episodes reference `title_source_id`, so a `:manual` row keyed on a
+    # string would sit beside its own episode list and never join to it.
+    with {:ok, _filled} <- Kati.Media.Tmdb.fetch(source_id, tmdb_kind(kind)),
+         {:ok, tracked} <-
+           Ash.create(Kati.Media.TrackedTitle, %{
+             source: :tmdb,
+             source_id: source_id,
+             kind: kind,
+             status: :watching
+           }) do
+      {:ok, tracked}
+    end
+    |> Kati.Write.note("track #{title}")
+  end
+
   def track(title, row) do
     kind = Kati.Screens.AddTitle.kind_of(row)
 
@@ -339,6 +455,13 @@ defmodule Kati.Screens.AddTitle do
     end
     |> Kati.Write.note("track #{title}")
   end
+
+  # `Kati.Media.TrackedTitle` calls a show `:tv` and so does TMDB; anime and
+  # books are Kati's own kinds and have no TMDB endpoint, so they fetch as
+  # films — the detail call still answers, and the episode walk is what a
+  # series gets that they do not.
+  defp tmdb_kind(:tv), do: :tv
+  defp tmdb_kind(_other), do: :movie
 
   @doc """
   The cached row for a title, creating it only if it is not already there.
