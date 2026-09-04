@@ -227,6 +227,22 @@ defmodule Kati.Screens.OnboardingLoudnessFa do
 
   def quiet_note(_other), do: ~MOB"<Spacer size={0} />"
 
+  @doc """
+  Straight on to step five, whatever was chosen — and the asymmetry with the
+  English step is deliberate rather than missed.
+
+  `Kati.Screens.OnboardingLoudness` sends a loud choice through board 136,
+  `Kati.Screens.LoudnessPrompt`, which states the scope before the system
+  dialog appears. **136 has no Persian mirror anywhere in the boards**, and
+  pushing it here would put an English page in the middle of a Persian run —
+  the failure this whole renumbering exists to end, and the one
+  `Kati.Screens.HomeFa` leaves عادت‌ها inert rather than commit.
+
+  So a Persian reader who chooses خبرم کن gets the OS dialog without the
+  purpose card that precedes it in English. That is a real gap and it is a
+  drawing that does not exist, not a clause that was forgotten: a Persian 136
+  is the ask, and `HANDOFF.md` carries it.
+  """
   def handle_info({:tap, :next}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingFirstTitleFa)}
 

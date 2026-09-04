@@ -151,9 +151,34 @@ defmodule Kati.Screens.OnboardingLoudness do
 
   def quiet_note(_other), do: ~MOB"<Spacer size={0} />"
 
+  @doc """
+  Where Continue goes, which is the whole of what this step decides.
+
+  A loud choice takes the OS prompt on the way — board 136, which this screen's
+  own dashed note names: *"Choosing Notify me or Weekly digest raises the OS
+  prompt on the next step."* `Kati.Screens.LoudnessPrompt` is that band, and
+  its entry has been *"38·3 itself routing forward, which needs 38 renumbered
+  to five steps"* since `Kati.AppReachabilityTest`'s inventory was written.
+  This is that step, and this is it routing forward.
+
+  Quietly goes straight on, and that is the decision the board makes rather
+  than a shortcut: Kati raises no notification prompt at all for a reader who
+  chose it. A dialog asking for a permission the choice does not need is how
+  an app teaches people to refuse them.
+  """
   @impl true
-  def handle_tap(:next, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingFirstTitle)}
+  def handle_tap(:next, socket) do
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudness.after_choice(socket))}
+  end
+
+  @doc false
+  @spec after_choice(Mob.Socket.t()) :: module()
+  def after_choice(socket) do
+    case socket.assigns[:choice] do
+      "Quietly" -> Kati.Screens.OnboardingFirstTitle
+      _loud -> Kati.Screens.LoudnessPrompt
+    end
+  end
 
   def handle_tap(:step_back, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

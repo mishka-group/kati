@@ -180,10 +180,6 @@ defmodule Kati.AppReachabilityTest do
     #
     # Each entry names the edit it is waiting for, so this list stays a queue
     # rather than becoming a graveyard.
-    {Screens.LoudnessPrompt,
-     "the three outcomes of 38·3's loudness choice. Its entry is 38·3 itself " <>
-       "routing forward, which needs 38 renumbered to five steps — the flow " <>
-       "map (134) names that as the build task."},
     {Screens.RateEpisode,
      "screen 33 in its episode variant. Its entry is a LONG PRESS on an " <>
        "episode row in screen 04, and 04's board has not been redrawn to carry " <>

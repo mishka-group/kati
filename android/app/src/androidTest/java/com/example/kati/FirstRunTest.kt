@@ -225,4 +225,49 @@ class FirstRunTest {
             kati.present("import_backup")
         )
     }
+
+    /**
+     * #93 — the loudness step routes forward into board 136.
+     *
+     * `Kati.Screens.LoudnessPrompt` sat on `Kati.AppReachabilityTest`'s
+     * stranded inventory with its own entry naming the blocker: *"its entry is
+     * 38·3 itself routing forward, which needs 38 renumbered to five steps"*.
+     * `D-33` renumbered it. This is the tap that proves the door is open, which
+     * is the criterion — reachable **by tapping from a root**, on a device.
+     *
+     * The quiet option is asserted too, and it is the half that matters more:
+     * Kati raises no notification prompt at all for a reader who chose it, and
+     * a screen that took everybody through the permission band would satisfy
+     * "reachable" while breaking the decision the board makes.
+     */
+    @Test
+    fun e_a_loud_choice_takes_the_permission_band_and_a_quiet_one_does_not() {
+        kati.launch()
+        kati.toSections()
+        kati.tap("continue")
+        kati.systemDialog("Allow", "While using the app", "Allow all the time")
+
+        kati.awaitScreen("onboarding_loudness")
+
+        // Quietly is where the board opens, so Continue from here must NOT
+        // reach 136. Asserted by arriving at step five instead.
+        kati.tap("next")
+        kati.awaitScreen("onboarding_first_title")
+
+        assertTrue(
+            "the quiet choice was taken through the OS permission band, which is the one " +
+                "thing this step promises not to do",
+            !kati.present("screen:loudness_prompt")
+        )
+
+        // Back to step four and choose a loud one.
+        kati.tap("step_back")
+        kati.awaitScreen("onboarding_loudness")
+        kati.tap("choose_Weekly digest")
+        kati.device.waitForIdle()
+
+        kati.tap("next")
+        kati.awaitScreen("loudness_prompt")
+    }
+
 }

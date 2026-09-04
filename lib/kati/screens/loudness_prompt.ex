@@ -393,6 +393,24 @@ defmodule Kati.Screens.LoudnessPrompt do
     {:noreply, Kati.Screens.LoudnessPrompt.continue(socket)}
   end
 
+  @doc """
+  The OS answered, so the run goes on.
+
+  **The screen does not advance until the answer arrives**, and that is not
+  politeness — `Mob.Permissions.request/2` delivers its result to the process
+  that asked, so pushing the next step in the same breath sends the answer to a
+  screen that no longer exists. `Kati.Screens.PickSections` records finding
+  exactly that on a device with the calendar: the permission was granted, and
+  nothing downstream of it ran until the next cold start.
+
+  A refusal advances too. Android will not re-prompt once refused — this board
+  draws that as a sentence rather than a button for the same reason — so
+  holding someone here would be holding them at a question that can no longer
+  be asked.
+  """
+  def handle_info({:permission, :notifications, _result}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingFirstTitle)}
+
   def handle_info({:tap, :back_to_sections}, socket) do
     {:noreply, Mob.Socket.pop_screen(socket)}
   end
