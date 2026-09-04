@@ -77,6 +77,21 @@ defmodule Kati.App do
     trace("priv probe")
     {:ok, _} = Application.ensure_all_started(:ecto_sqlite3)
     trace("ecto_sqlite3")
+
+    # Req owns a Finch pool, and a pool is a supervision tree — so it has to be
+    # started, and on a device nothing else starts it. `mix` starts every
+    # application in the project's closure on the host, which is why this is
+    # invisible there; Mob boots `start_clean` with an empty `.app` env and
+    # walks nothing, so an application Kati depends on is merely LOADED unless
+    # a line like this one starts it. `start_ash!/0` below is the same problem
+    # solved the same way for Ash's closure.
+    #
+    # Without it the first HTTPS call on a phone dies with `unknown registry:
+    # Req.Finch` — Finch's pool never having been supervised — and it takes
+    # every HTTP caller with it: TMDB and CalDAV sync both. Found by calling
+    # `Kati.Media.Tmdb.search/1` over distribution against the emulator.
+    {:ok, _} = Application.ensure_all_started(:req)
+    trace("req")
     start_ash!()
     trace("ash")
     {:ok, _} = Kati.Repo.start_link()
