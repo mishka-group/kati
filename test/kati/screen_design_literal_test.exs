@@ -539,7 +539,17 @@ defmodule Kati.ScreenDesignLiteralTest do
       # links to. Every one of the four insists on the branch the screen
       # actually takes, and 128's is asserted directly by
       # `Kati.ScreenBackupTest`'s "the status card once a backup exists".
-      assert length(device_values()) <= 30,
+      # Raised to 31 on 4 September 2026 for screen 02's month title, and this
+      # one is a different kind from the thirty above it: every other entry was
+      # added because a literal could not be asserted, while this was added
+      # because the suite had already gone red. `Kati.Screens.Calendar` draws
+      # the device's month and the board froze `August 2026`, so the assertion
+      # passed for as long as it was August and has failed every day since —
+      # a test that rots on a date nobody set. Not checking less: the pattern
+      # pins this month and this year, which is stricter than the frozen
+      # literal it replaces, because a screen that hardcoded the drawing's
+      # month now fails eleven months in twelve instead of none.
+      assert length(device_values()) <= 31,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -569,6 +579,9 @@ defmodule Kati.ScreenDesignLiteralTest do
   # and `\p{N}+` rather than `\d+` (the digits are U+06F0-U+06F9).
   defp device_values do
     day = Integer.to_string(Kati.Time.now().day)
+    today = Kati.Time.today()
+    month = today.month |> Kati.Time.month_name() |> String.downcase()
+    year = Integer.to_string(today.year)
     {_year, _month, shamsi_day} = Kati.Calendar.Shamsi.from_gregorian(Kati.Time.today())
     fa_day = Kati.Calendar.Shamsi.fa(shamsi_day)
     word = "[\\p{L}\\x{200C}]+"
@@ -585,6 +598,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"02", "sunday 16 august · 5 items",
        "Schedule's subtitle is the selected day, which starts on the device's today",
        ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
+      {"02", "august 2026",
+       "the month title is `Kati.Screens.Calendar.month_row/1` over the selected day, which " <>
+         "starts on the device's today. The board froze the month it was drawn in, so this " <>
+         "entry is the only one of the thirty-one that was added because the suite had " <>
+         "already gone red rather than before it could: every run from 1 September 2026 " <>
+         "failed on it, and every run in August had passed. The pattern pins THIS month and " <>
+         "THIS year, so a screen that hardcoded the drawing's `August 2026` still fails here",
+       ~r/^#{month} #{year}$/u},
       {"09", "thu 20 aug", "the heavy day's header is the device's today, in the same short form",
        ~r/^\p{L}{3} #{day} \p{L}{3}$/u},
       {"55", "یکشنبه ۲۵ مرداد ۱۴۰۵",
