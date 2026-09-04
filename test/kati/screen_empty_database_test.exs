@@ -375,7 +375,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 06 joined on 26 August with #87, when adding a title stopped toggling a
     # boolean on a socket and started writing a `CachedTitle` and a
     # `TrackedTitle`. It is the first writer the film and TV spine has ever had.
-    {"06", Kati.Screens.AddTitle}
+    {"06", Kati.Screens.AddTitle},
+    # 19 and 89 joined on 4 September with #92, when screen 19 stopped mounting
+    # `Kati.Screens.Search.Sample` unconditionally and started running the
+    # query screen 86 hands it. With no query it still draws the board — no
+    # board draws screen 19 empty, because the design never puts a user here
+    # without one — so the comparison below is unchanged and what it now
+    # guards is the fallback.
+    {"19", Kati.Screens.Search},
+    {"89", Kati.Screens.SearchResultStates}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -1359,6 +1367,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # be the defect worth catching.
       {"06", Kati.Screens.AddTitle, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
+      # 19 and 89 read the store through `Kati.Search.Query.run/1` and fall back
+      # to the board when no query arrived from screen 86. The gate is that
+      # fallback itself: `results_for/0` must answer the drawing on an empty
+      # database, because screen 19 is the RESULTS page and the design never
+      # puts a user on it without a query — 86 is the idle board, and it is
+      # routed from Home.
+      {"19", Kati.Screens.Search, &Kati.Screens.Search.results_for/0,
+       &Kati.Screens.Search.Sample.results/0},
+      {"89", Kati.Screens.SearchResultStates, &Kati.Screens.Search.results_for/0,
+       &Kati.Screens.Search.Sample.results/0},
       {"144", Kati.Screens.RateEpisode, &Kati.Screens.Rating.watch/0,
        &Kati.Screens.Rating.drawn_watch/0},
       # 149 is NOT here: it gates on `Kati.Screens.Library.titles/0`, which #91

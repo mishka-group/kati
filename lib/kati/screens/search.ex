@@ -118,7 +118,37 @@ defmodule Kati.Screens.Search do
   # search picked out of the shelf.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, results: Sample.results(), filter: "All", recent: nil)}
+    # The store when a query arrived with us, the drawing when none did.
+    #
+    # Screen 86 puts what was typed in `Mob.State` and pushes here — the two
+    # boards divide idle from results, and this is the seam. With no query
+    # this page is only ever reached from the gallery, where the board's own
+    # mid-query drawing is the honest thing to show: no board draws screen 19
+    # empty, because the design never puts a user here without one.
+    {:ok, Mob.Socket.assign(socket, results: Kati.Screens.Search.results_for(), filter: "All", recent: nil)}
+  end
+
+  @doc """
+  What this page draws: the query screen 86 handed over, run against the store.
+
+  `Kati.Search.Query.run/1` answers the same shape
+  `Kati.Screens.Search.Sample.results/0` holds, so the render is unchanged and
+  only its source moved.
+  """
+  @spec results_for() :: map()
+  def results_for do
+    query = Mob.State.get(:kati_search_query)
+
+    if is_binary(query) and Kati.Search.long_enough?(query) do
+      Kati.Search.Query.run(query)
+    else
+      Sample.results()
+    end
+  rescue
+    # `Mob.State` is DETS and raises when its table is not open — a host test
+    # that has not started it, and the gallery on a cold boot. The drawing is
+    # the right answer to "no query", and an unopened table is that.
+    _error -> Sample.results()
   end
 
   def render(assigns) do

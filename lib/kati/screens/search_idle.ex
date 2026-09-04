@@ -45,7 +45,8 @@ defmodule Kati.Screens.SearchIdle do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  def load(socket), do: Mob.Socket.assign(socket, :scope, "All")
+  def load(socket),
+    do: socket |> Mob.Socket.assign(:scope, "All") |> Mob.Socket.assign(:query, "")
 
   @doc false
   def content(assigns) do
@@ -59,7 +60,7 @@ defmodule Kati.Screens.SearchIdle do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {Kati.Screens.SearchIdle.field()}
+        {Kati.Screens.SearchIdle.field(assigns.query)}
         {Kati.Screens.SearchIdle.chips(assigns.scope)}
         {Kati.Screens.SearchIdle.recent()}
         {Kati.Screens.SearchIdle.suggestions()}
@@ -77,7 +78,9 @@ defmodule Kati.Screens.SearchIdle do
   to put there.
   """
   @spec field() :: map()
-  def field do
+  def field(query \\ "") do
+    assigns = %{query: query, on_change: {self(), :search_query}}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -93,12 +96,13 @@ defmodule Kati.Screens.SearchIdle do
         >
           {UI.symbol("search", size: 20, color: Palette.tertiary())}
           <Spacer size={11} />
-          <Text
-            text={Kati.Search.Sample.placeholder()}
-            text_size={14.5}
-            text_color={Palette.tertiary()}
+          <TextField
+            value={@query}
+            placeholder={Kati.Search.Sample.placeholder()}
+            return_key="search"
             weight={1.0}
-            max_lines={1}
+            accessibility_id="search_query"
+            on_change={@on_change}
           />
         </Row>
         <Spacer size={10} />
@@ -225,6 +229,44 @@ defmodule Kati.Screens.SearchIdle do
   def counts_note, do: SettingsList.note("info", Kati.Search.Sample.counts_note())
 
   @doc false
+  @doc """
+  What was typed, and where it goes.
+
+  The field was a resting `<Text>` — a drawing of a search box — on the belief
+  that Mob had no text input. `Kati.Screens.AddTitle`'s own docs record that
+  belief as false and costly: `<TextField>` is in the pinned Mob and
+  `Kati.Screens.Backup` has used it for the passphrase all along.
+
+  Held here rather than searched here. Screen 86 is the **idle** board and
+  draws recent queries and suggestions; the results belong to screen 19, which
+  is drawn mid-query. So this remembers what was typed and
+  `Kati.Screens.SearchIdle.look/1` is what hands it on — the same division the
+  three boards already draw.
+  """
+  def handle_info({:change, :search_query, typed}, socket) when is_binary(typed) do
+    {:noreply, Mob.Socket.assign(socket, :query, typed)}
+  end
+
+  # `Kati.Screens.Pushed` marks `handle_info/2` overridable and defines four
+  # clauses on it, one of which routes every `{:tap, tag}` to `handle_tap/2`.
+  # Defining one clause here replaces all four — so the Filters disc stopped
+  # reaching its handler and screen 88 went unreachable, which is how the tap
+  # sweep and the reachability inventory both found it in the same run.
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc """
+  Carry the query to the results screen.
+
+  Through `Mob.State` rather than a push argument, because `push_screen/2`
+  takes a module and nothing else — the same route `Kati.Locale` takes for a
+  value that has to survive a screen boundary.
+  """
+  @spec look(Mob.Socket.t()) :: Mob.Socket.t()
+  def look(socket) do
+    Mob.State.put(:kati_search_query, socket.assigns.query)
+    Mob.Socket.push_screen(socket, Kati.Screens.Search)
+  end
+
   def handle_tap(:filters, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec)}
 
