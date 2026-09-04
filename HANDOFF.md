@@ -28,11 +28,14 @@ fc93b3a  thirteen boards arrive for D-31 through D-34
 d7150fa  the Add title field searches TMDB instead of a Sample module
 ```
 
-**Green as of handoff:** host `mix test` → **2091 passing**.
+**Green as of handoff:** host `mix test` → **2101 passing**. Device
+`./gradlew connectedE2eAndroidTest` on **Pixel_9a** → **21 tests, 0 failures**.
+
+**#91 and #92 are closed**, both with the device evidence in their closing comments.
 
 ---
 
-## Two findings worth reading before anything else
+## Four findings worth reading before anything else
 
 Both were invisible to the whole suite and both were found by installing the app and
 looking at it. That is now the third round running in which that was the only thing that
@@ -55,14 +58,52 @@ would file. This you can look at for a year.
 `Kati.PersianFontTest` is the guard, and it re-derives the font coverage from the shipped
 `cmap` tables rather than trusting the claim above.
 
-### 2. Four Persian screens drew with no page frame at all
+### 2. Six screens drew with no page frame at all
 
-`Kati.Screens.Fa.pushed_frame/2` is the root `Box` and nothing else. Every Persian screen
-inside it had been writing the same `Scroll` and padded `Column` by hand; four written in
-one round did not, and on a device the step rail scrolled under the status bar and the
-headline ran off the leading edge. Every host test passed on all four — a layout had no
-assertion in any of them. `Kati.Screens.Fa.page/1` is that frame now and
-`Kati.PushedFrameTest` holds it.
+**Neither frame is built for you.** `Kati.Screens.Fa.pushed_frame/2` is the root `Box`, and
+`Kati.Screens.Pushed.chrome/3` is the root `Box` plus a back pill that *floats over* the
+content. In both, `{@content}` goes in unpadded and unscrolled — every screen inside writes
+that itself, and six written in one round did not. On a device: a first line hard against
+the edge, a page starting under the status bar, and on the English three a heading beneath
+the floating pill.
+
+Every host test passed on all six. A layout has no assertion in any of them.
+`Kati.Screens.Fa.page/1` and `Kati.Screens.Pushed.page/2` are the frame now.
+
+**And the guard caught half of them.** `Kati.PushedFrameTest`'s first version identified a
+pushed screen by its root declaring `rtl` — a fact about the Persian mirrors, not about
+pushed screens — so it checked six and reported the other twenty green. The owner found the
+other half by looking at the app, one round after the last two. It reads the source for the
+macro now, and carries a floor so a discriminator that stops matching fails rather than
+passing over the app.
+
+### 3. Every text field in the app drew a second field underneath itself
+
+Material3's `TextField` is the FILLED variant: a container in `surfaceVariant`, an indicator
+line, its own `contentPadding` and a **56dp minimum height**. Every field in Kati is inside a
+Kati container by construction — screen 154's white pill, screen 86's search bar — so a
+person saw a near-black slab inside it.
+
+The 56dp minimum is why the placeholder was **not drawn at all** rather than mis-coloured:
+Kati's field is 48 tall, so the decoration box laid out past its own container and the hint
+fell outside. `e.g. The Long Hollow` is on board 154 and was on no device. Sampled rather
+than assumed — the interior of that field was a uniform `#FBFAF8` across every pixel.
+
+`K-41` replaces it with `BasicTextField`: the text and the cursor and nothing else, which is
+the whole of what a bridge should draw when the host draws its own chrome. It also honours
+the props Mob **already sends** — `Mob.Renderer`'s defaults for a `text_field` include
+`text_color`, `placeholder_color` and `text_size`, and the stock call read none of them.
+
+### 4. A title added by hand was invisible in the library it was added to
+
+`Kati.Media.TrackedTitle` holds what you DECIDED about a title. It does not hold the name —
+that is on `Kati.Media.CachedTitle`, and `Kati.Screens.Library`'s own rule is that a row with
+no cached title is dropped. `Kati.Search.Query.run/1` reads the same row, so the shelf and
+the search failed together. Screen 154 is the only path from a fresh install to a library
+with anything in it, and it produced a row nobody could see.
+
+Every test passed. All of them counted `tracked_titles`, which was never the question. When
+a test asserts a write, assert the **surface a person looks at**, not the row.
 
 ---
 
@@ -125,8 +166,8 @@ chat window when it was supplied, so rotating it at some point is advisable.
 
 | # | State |
 |---|---|
-| **#91** | All five criteria met and verified on device — see below. Closeable. |
-| **#92** | All five criteria met. The device half is `SearchTest`. |
+| ~~#91~~ | **Closed.** All five criteria asserted on the Pixel_9a. |
+| ~~#92~~ | **Closed.** All five criteria asserted on the Pixel_9a. |
 | #93 | Its actionable set was empty and its blocker was named in its own analysis: `LoudnessPrompt`'s entry is 38·3 routing forward, which needed 38 renumbered. `D-33` did that and 162/165 are the step. The rest of #93 is a design ask, not code. |
 | #94 | Blocked by #93, in its own text. |
 | #89 / #90 | TMDB is built, keyed and verified live on device. |
