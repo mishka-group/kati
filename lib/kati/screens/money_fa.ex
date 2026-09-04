@@ -552,13 +552,18 @@ defmodule Kati.Screens.MoneyFa do
   because Vazirmatn carries the Latin alphabet perfectly; nothing about a trade
   name asks for mono.
   """
+  # The tag is `Kati.Screens.Money.subscription_tag/1`'s, not a Persian one of
+  # its own: every row drew `:open_services`, so the ledger was one
+  # accessibility_id repeated (#97), and an id is addressed by a device test
+  # rather than read by a person — the mirror of screen 122 addresses its rows
+  # by the same names screen 122 does.
   @spec service_row(map(), String.t()) :: map()
   def service_row(service, word \\ word()) do
     SettingsList.row(
       MyServices.badge_tile(service.badge),
       MyServicesFa.body(service.name, Map.fetch!(@services, service.badge)),
       SettingsList.trailing(Kati.Screens.MoneyFa.rate(service, word)),
-      on_tap: {self(), :open_services}
+      on_tap: {self(), Kati.Screens.Money.subscription_tag(service)}
     )
   end
 
@@ -1053,6 +1058,18 @@ defmodule Kati.Screens.MoneyFa do
 
   def handle_info({:tap, :dismiss}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :dismissed?, true)}
+
+  # Every ledger row, by its own service name — see
+  # `Kati.Screens.Money.subscription_tag/1`. Last, inside the clause that
+  # already swallowed everything else: written as a clause of its own above,
+  # it shadowed `:remind_me` and `:dismiss` and neither would have fired.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    if String.starts_with?(Atom.to_string(tag), "open_subscriptions_") do
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SubscriptionsFa)}
+    else
+      {:noreply, socket}
+    end
+  end
 
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}

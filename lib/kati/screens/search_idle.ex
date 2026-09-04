@@ -153,6 +153,28 @@ defmodule Kati.Screens.SearchIdle do
   destructive control below eight rows is a control you reach by scrolling past
   the thing it destroys.
   """
+  @doc """
+  One row's tag: which list it is in, and which line it is.
+
+  Every recent query drew `:repeat_query` and every suggestion
+  `:try_suggestion`, so each card was one `accessibility_id` repeated down its
+  own rows and `onNodeWithTag` throws on the second match (#97). A row here IS
+  its text — there is nothing else to be — so the text is the identity.
+
+      iex> Kati.Screens.SearchIdle.query_tag("repeat_query", "the long hollow")
+      :repeat_query_the_long_hollow
+
+      iex> Kati.Screens.SearchIdle.query_tag("try_suggestion", "")
+      :try_suggestion
+  """
+  @spec query_tag(String.t(), String.t()) :: atom()
+  def query_tag(prefix, text) do
+    case text |> to_string() |> String.trim() |> String.replace(" ", "_") do
+      "" -> String.to_atom(prefix)
+      line -> String.to_atom(prefix <> "_" <> line)
+    end
+  end
+
   @spec recent() :: map()
   def recent do
     rows =
@@ -162,7 +184,7 @@ defmodule Kati.Screens.SearchIdle do
           SettingsList.icon_tile("history"),
           SettingsList.body(query, nil),
           SettingsList.trailing(nil),
-          on_tap: {self(), :repeat_query}
+          on_tap: {self(), Kati.Screens.SearchIdle.query_tag("repeat_query", query)}
         )
       end)
 
@@ -185,7 +207,7 @@ defmodule Kati.Screens.SearchIdle do
           SettingsList.icon_tile("auto_awesome"),
           SettingsList.body(suggestion, nil),
           SettingsList.trailing(nil),
-          on_tap: {self(), :try_suggestion}
+          on_tap: {self(), Kati.Screens.SearchIdle.query_tag("try_suggestion", suggestion)}
         )
       end)
 
@@ -214,8 +236,23 @@ defmodule Kati.Screens.SearchIdle do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "scope_" <> label -> {:noreply, Mob.Socket.assign(socket, :scope, label)}
-      _other -> {:noreply, socket}
+      "scope_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :scope, label)}
+
+      # A recent query or a suggestion, by its own line — see `query_tag/2`.
+      # Both open the search screen, which is what the two bare tags above did
+      # and still do for the drawing's own single-row states.
+      #
+      # Answered inside this case rather than in a clause above it: a prefix
+      # clause placed earlier shadows `:try_suggestion` and every scope chip.
+      "repeat_query_" <> _line ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
+      "try_suggestion_" <> _line ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
+      _other ->
+        {:noreply, socket}
     end
   end
 end

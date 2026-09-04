@@ -478,13 +478,15 @@ defmodule Kati.Screens.MealsDay do
     """
   end
 
-  # The `expand_more` chevron is the density control's other face, so it sends
-  # the same tag. The glyph does not flip with the state: the drawing draws it
+  # The `expand_more` chevron is the density control's other face and does the
+  # same thing, under its own name: the same tag on both made the disc and the
+  # row one accessibility_id, and `onNodeWithTag` throws on the second match
+  # (#97). The glyph does not flip with the state: the drawing draws it
   # pointing down, and the drawing is the resting screen.
   @doc false
   def collapsed(day) do
     collapsed = day.collapsed
-    tap = {self(), :density}
+    tap = {self(), :density_collapsed}
 
     ~MOB"""
     <Row
@@ -545,7 +547,7 @@ defmodule Kati.Screens.MealsDay do
   end
 
   @impl true
-  def handle_tap(:density, socket) do
+  def handle_tap(tag, socket) when tag in [:density, :density_collapsed] do
     next = if socket.assigns.density == :dense, do: :comfortable, else: :dense
     {:noreply, Mob.Socket.assign(socket, :density, next)}
   end

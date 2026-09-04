@@ -213,10 +213,7 @@ defmodule Kati.ScreenTapSweepTest do
   @known_collisions %{
     "28" => ["root_calendar"],
     "38" => ["finish"],
-    "52" => ["density"],
-    "86" => ["repeat_query", "try_suggestion"],
-    "114" => ["close"],
-    "127" => ["open_services"]
+    "114" => ["close"]
   }
 
   @inert_taps [
