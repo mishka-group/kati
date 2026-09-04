@@ -147,13 +147,6 @@ defmodule Kati.Screens.SearchIdle do
   end
 
   @doc """
-  The last eight queries, and the row that forgets them.
-
-  `Clear` sits on the eyebrow rather than at the foot of the list, because a
-  destructive control below eight rows is a control you reach by scrolling past
-  the thing it destroys.
-  """
-  @doc """
   One row's tag: which list it is in, and which line it is.
 
   Every recent query drew `:repeat_query` and every suggestion
@@ -175,6 +168,13 @@ defmodule Kati.Screens.SearchIdle do
     end
   end
 
+  @doc """
+  The last eight queries, and the row that forgets them.
+
+  `Clear` sits on the eyebrow rather than at the foot of the list, because a
+  destructive control below eight rows is a control you reach by scrolling past
+  the thing it destroys.
+  """
   @spec recent() :: map()
   def recent do
     rows =

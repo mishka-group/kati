@@ -287,13 +287,6 @@ defmodule Kati.Screens.MoneyDay do
   def card(row, _expanded?), do: [Kati.Screens.MoneyDay.commitment(row, false)]
 
   @doc """
-  A commitment: a solid card, a time, an amount you will owe.
-
-  The bronze rule is money's lane colour, the same one screen 52 gives meals —
-  a section is identified by its stripe on every calendar surface, so a reader
-  who has learned it once has learned it everywhere.
-  """
-  @doc """
   A merged group's own unfold tag, built from the row's title.
 
   The header's density disc and every merged row's chevron drew
@@ -316,6 +309,13 @@ defmodule Kati.Screens.MoneyDay do
     end
   end
 
+  @doc """
+  A commitment: a solid card, a time, an amount you will owe.
+
+  The bronze rule is money's lane colour, the same one screen 52 gives meals —
+  a section is identified by its stripe on every calendar surface, so a reader
+  who has learned it once has learned it everywhere.
+  """
   @spec commitment(map(), boolean()) :: map()
   def commitment(row, expanded?) do
     assigns = %{

@@ -43,4 +43,11 @@ Ecto.Migrator.run(Kati.Repo, Path.join(:code.priv_dir(:kati), "repo/migrations")
 # that out of every test that is not about it. `Kati.FirstRunTest` re-arms it.
 :persistent_term.put({Kati.Screens.Root, :launched}, true)
 
-ExUnit.start()
+# `:live` reaches a third-party API over the network with somebody's key.
+# Excluded by default, because a test that fails when TMDB is slow, or when
+# the machine running it has no key, is a test that reports something other
+# than whether the code is right. Run them deliberately:
+#
+#     set -a; . ~/.config/kati/tmdb.env; set +a
+#     mix test --include live
+ExUnit.start(exclude: [:live])
