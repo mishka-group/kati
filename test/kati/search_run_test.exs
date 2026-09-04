@@ -139,4 +139,86 @@ defmodule Kati.SearchRunTest do
     end
   end
 
+
+  describe "the results page draws what the query actually returned" do
+    setup do
+      Kati.Search.Recent.forget!()
+      :ok
+    end
+
+    test "a query that matches a title and nothing else renders" do
+      # Board 19 is drawn with a hit in all three groups, so the screen drew
+      # all three unconditionally and `note_lines/1` raised `BadMapError` on the
+      # nil note the moment a real query matched a title and nothing else.
+      #
+      # Which is the FIRST query anybody runs: a title added by hand has no note
+      # about it yet. The whole page went down, so it never stamped its name, so
+      # the device test timed out waiting for a screen rather than failing on a
+      # missing row — a render crash reads exactly like a navigation that never
+      # happened, and that is what made it expensive to find.
+      Kati.Screens.AddByHand.save(%Mob.Socket{
+        Mob.Socket.new(Kati.Screens.AddByHand)
+        | assigns: %{title: "Estuary Nights", kind: :movie, status: "Not started", save_error: nil}
+      })
+
+      results = Kati.Search.Query.run("estuary")
+
+      assert results.note == nil, "the fixture no longer sets up the case this test is about"
+      assert %{type: :box} = render(results, "All")
+    end
+
+    test "every scope renders against a result set that only has titles" do
+      # One assertion per chip, because the crash was in the group the filter
+      # chose and any one of them could grow the same hole.
+      Kati.Screens.AddByHand.save(%Mob.Socket{
+        Mob.Socket.new(Kati.Screens.AddByHand)
+        | assigns: %{title: "Estuary Nights", kind: :movie, status: "Not started", save_error: nil}
+      })
+
+      results = Kati.Search.Query.run("estuary")
+
+      for scope <- ["All", "Screen", "Calendar", "Notes"] do
+        assert %{type: :box} = render(results, scope),
+               "screen 19 could not render with the #{scope} chip on"
+      end
+    end
+
+    test "narrowing to a scope with nothing in it says so rather than drawing a blank" do
+      # An empty page under a query reads as a search that broke. Omitting the
+      # empty group is screen 96's rule; saying nothing at all when every group
+      # is omitted is not.
+      Kati.Screens.AddByHand.save(%Mob.Socket{
+        Mob.Socket.new(Kati.Screens.AddByHand)
+        | assigns: %{title: "Estuary Nights", kind: :movie, status: "Not started", save_error: nil}
+      })
+
+      results = Kati.Search.Query.run("estuary")
+      drawn = rendered_text(render(results, "Notes"))
+
+      assert Enum.any?(drawn, &String.contains?(&1, "Nothing here for")),
+             "the Notes chip with no notes drew neither results nor a state: " <> inspect(drawn)
+    end
+  end
+
+  defp render(results, filter) do
+    Kati.Screens.Search.render(%{
+      results: results,
+      filter: filter,
+      recent: nil,
+      query: results.query,
+      history: []
+    })
+  end
+
+  defp rendered_text(tree) do
+    tree
+    |> Mob.ScreenCase.flatten()
+    |> Enum.flat_map(fn node ->
+      case Map.get(node, :props) || %{} do
+        %{text: text} when is_binary(text) -> [text]
+        _other -> []
+      end
+    end)
+  end
+
 end

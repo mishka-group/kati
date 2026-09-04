@@ -530,10 +530,41 @@ defmodule Kati.Screens.Search do
   def state_or_groups(results, filter, history) do
     cond do
       Map.get(results, :idle?, false) -> Kati.Screens.Search.waiting(history)
-      Kati.Screens.Search.empty?(results) -> Kati.Screens.Search.no_matches(results.query)
+      Kati.Screens.Search.visible_groups(results, filter) == [] ->
+        Kati.Screens.Search.no_matches(results.query)
+
       true -> Kati.Screens.Search.groups(results, filter)
     end
   end
+
+  @doc """
+  The groups a filter leaves that have anything in them.
+
+  Both halves matter and the second one was missing. Board 19 is drawn with a
+  hit in all three groups, so the screen drew all three unconditionally — and
+  `note_lines/1` raised `BadMapError` on the `nil` note the moment a real query
+  matched a title and nothing else. Which is the FIRST query anybody runs: a
+  title added by hand has no note about it yet.
+
+  The whole page went down, so it never stamped its name, so the device test
+  timed out waiting for a screen rather than failing on a missing row — a
+  render crash reads exactly like a navigation that did not happen.
+
+  Empty groups are omitted rather than worded, which is screen 96's rule and
+  the one `Kati.Screens.Home` follows for its own sections: a heading over
+  nothing reads as something that failed to load.
+  """
+  @spec visible_groups(map(), String.t()) :: [{String.t(), atom()}]
+  def visible_groups(results, filter) do
+    [{"Screen", :titles}, {"Calendar", :calendar}, {"Notes", :note}]
+    |> Enum.filter(fn {label, _key} -> filter == "All" or filter == label end)
+    |> Enum.reject(fn {_label, key} -> Kati.Screens.Search.blank?(results, key) end)
+  end
+
+  @doc false
+  @spec blank?(map(), atom()) :: boolean()
+  def blank?(results, :note), do: is_nil(results.note)
+  def blank?(results, key), do: (Map.get(results, key) || []) == []
 
   @doc "Whether a result set matched nothing at all."
   @spec empty?(map()) :: boolean()
@@ -610,10 +641,7 @@ defmodule Kati.Screens.Search do
   """
   @spec groups(map(), String.t()) :: term()
   def groups(results, filter) do
-    visible =
-      [{"Screen", :titles}, {"Calendar", :calendar}, {"Notes", :note}]
-      |> Enum.filter(fn {label, _key} -> filter == "All" or filter == label end)
-      |> Enum.with_index()
+    visible = results |> Kati.Screens.Search.visible_groups(filter) |> Enum.with_index()
 
     ~MOB"""
     <Column fill_width={true}>

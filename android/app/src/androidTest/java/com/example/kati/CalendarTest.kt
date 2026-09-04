@@ -8,7 +8,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Rule
@@ -65,25 +64,29 @@ class CalendarTest {
         // on ANY runtime permission revoke — `pm revoke` through a shell
         // command and `UiAutomation.revokeRuntimePermission/2` alike, because
         // it is the platform's behaviour and not the command's. Instrumentation
-        // runs inside that process, so either one reports "Test instrumentation
+        // runs inside that process, so either reports "Test instrumentation
         // process crashed" with a logcat that ends at `run started`. Both were
-        // tried here; both died the same way.
+        // tried; both died the same way.
         //
-        // Which changes what this test can claim. Its subject used to be
-        // `K-37 republish-on-grant` — that a GRANT re-ingests without a cold
-        // start — and that needs the permission ungranted, which it no longer
-        // is by the time this class runs: every other class walks the first run
-        // and answers the calendar dialog with Allow, and a grant persists for
-        // the package. Asserting it would need this to be the first test in the
-        // run, which is a fact about alphabetical ordering rather than
-        // something to rely on.
+        // Which settles what this test can claim, and it is the claim in its
+        // own name: an event written to CalendarContract reaches `kati.db`.
         //
-        // So the claim is the one in the test's own name, and it is still worth
-        // making: an event written to CalendarContract reaches `kati.db`. The
-        // event is planted AFTER the app has already booted and ingested, so it
-        // cannot have arrived with the boot — `Kati.Calendars.DeviceImport.run/0`
-        // has to see it on the re-publish, which is the pipe this exercises end
-        // to end.
+        // `Kati.Calendars.DeviceImport.run/0` has exactly two triggers — the
+        // BEAM booting, and `K-37 republish-on-grant` when the permission is
+        // newly granted. An Activity recreate is neither: `K-38
+        // one-beam-per-process` keeps the BEAM alive across it on purpose, so
+        // `onCreate` republishes the JSON and nothing re-reads it. A version of
+        // this test that recreated the Activity and waited for the row waited
+        // the full thirty seconds for something that was never going to happen.
+        //
+        // So the trigger here is the boot. The event is planted before the
+        // app's first launch in this test method — the orchestrator gives each
+        // one a fresh process, and `KatiRule`'s wipe empties the store first —
+        // and the title carries `System.currentTimeMillis()`, so a row bearing
+        // it cannot have come from an earlier run.
+        val eventId = plantEvent()
+        assertNotNull("could not write to CalendarContract", eventId)
+
         kati.launch()
 
         // Walk the first run to the step that asks. The ask is deliberately not
@@ -97,28 +100,8 @@ class CalendarTest {
         kati.tap("continue")
         kati.systemDialog("Allow", "While using the app", "Allow all the time")
 
-        // Planted only NOW, after the app has booted and ingested whatever the
-        // emulator's calendar already held. That ordering is the premise: the
-        // row cannot have arrived with the boot, so if it turns up it turned up
-        // through the pipe.
-        val eventId = plantEvent()
-        assertNotNull("could not write to CalendarContract", eventId)
-
-        assertNull(
-            "the planted event was in kati.db before Kati had a chance to read it, which " +
-                "means this test proves nothing about the pipe",
-            kati.scalar("select summary from events where summary = '$title'")
-        )
-
-        // Recreating the Activity re-runs `onCreate`, and `publish/1` runs
-        // there — the same path `Kati.RecreateTest` exercises for the BEAM.
-        // `KatiCalendarReader.publish/1` writes the JSON,
-        // `Kati.Calendars.DeviceImport.run/0` ingests it, and this is the
-        // whole of the device-calendar pipe end to end.
-        //
         // The receipt is the store, never the screen: a calendar screen
         // redrawing its sample is indistinguishable from one redrawing a row.
-        kati.launch()
         kati.compose.waitUntil(30_000) {
             kati.scalar("select summary from events where summary = '$title'") != null
         }

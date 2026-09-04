@@ -411,6 +411,29 @@ defmodule Kati.Screens.AddByHand do
   `source: :manual` and the title as `source_id`, which is what
   `Kati.Screens.AddTitle.track/2` writes for a title nobody could find — one
   shape for a hand-typed row, not two.
+
+  ## Two rows, and the second one is the name
+
+  A `Kati.Media.TrackedTitle` holds what you DECIDED about a title — the kind,
+  the status, how far in you are. It does not hold what the title IS, and that
+  includes its name: the shelf reads the name off `Kati.Media.CachedTitle`, and
+  `Kati.Screens.Library`'s own moduledoc says **a row with no cached title is
+  dropped** — "a tile captioned `nil` is worse than a tile that is not there".
+
+  So writing only the tracked row put a title in the library that the library
+  did not draw, and that `Kati.Search.Query.run/1` could not find either, since
+  it reads the cache too. The one path from a fresh install to a library with
+  anything in it produced a row nobody could see. It survived every test here
+  because they all counted `tracked_titles`, which was never the question.
+
+  `Kati.Screens.AddTitle.cache/2` is the same call screen 06 makes for a title
+  nobody could find, and it is idempotent for the reason its own docs give:
+  removing a title deletes what you decided and keeps what the title is, so
+  re-adding one you had removed must not collide.
+
+  The cache row goes first. If it fails, nothing is written — a tracked row
+  with no name is the state this is fixing, and it would be perverse to create
+  one while handling the error that says we cannot.
   """
   @spec save(Mob.Socket.t()) :: Mob.Socket.t()
   def save(socket) do
@@ -419,21 +442,55 @@ defmodule Kati.Screens.AddByHand do
     if title == "" do
       Mob.Socket.assign(socket, :save_error, "A title is the one thing this needs.")
     else
-      Kati.Media.TrackedTitle
-      |> Ash.Changeset.for_create(:create, %{
-        source: :manual,
-        source_id: title,
-        kind: socket.assigns.kind,
-        status: Kati.Screens.AddByHand.status_atom(socket.assigns.status)
-      })
-      |> Ash.create()
-      |> Kati.Write.note("add by hand #{title}")
-      |> case do
-        {:ok, _row} -> Mob.Socket.pop_screen(socket)
-        {:error, _reason} = error -> Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
+      with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, socket.assigns.kind),
+           {:ok, _tracked} <- Kati.Screens.AddByHand.track(title, socket.assigns) do
+        Mob.Socket.pop_screen(socket)
+      else
+        error ->
+          Mob.Socket.assign(socket, :save_error, Kati.Screens.AddByHand.refusal(error, title))
       end
     end
   end
+
+  @doc false
+  @spec track(String.t(), map()) :: {:ok, term()} | {:error, term()}
+  def track(title, assigns) do
+    Kati.Media.TrackedTitle
+    |> Ash.Changeset.for_create(:create, %{
+      source: :manual,
+      source_id: title,
+      kind: assigns.kind,
+      status: Kati.Screens.AddByHand.status_atom(assigns.status)
+    })
+    |> Ash.create()
+    |> Kati.Write.note("add by hand #{title}")
+  end
+
+  @doc """
+  Why a write was refused, in words.
+
+  Adding a title you already have is refused, and rightly — two rows for one
+  title is not a state the shelf can draw. But the tracked row's uniqueness is
+  a database constraint, and Ash reports it as *"Has already been taken"*,
+  which is a sentence about a column. Someone who has just typed a name they
+  already own needs to be told THAT, not to be shown the index that noticed.
+
+  Everything else goes to `Kati.Write.message/1`, which is where the general
+  cases and the untranslated-template guard live.
+  """
+  @spec refusal(term(), String.t()) :: String.t()
+  def refusal({:error, %{errors: errors}} = error, title) do
+    taken? =
+      Enum.any?(errors, fn e ->
+        e |> Map.get(:message, "") |> to_string() |> String.contains?("already been taken")
+      end)
+
+    if taken?,
+      do: "“" <> title <> "” is already in your library.",
+      else: Kati.Write.message(error)
+  end
+
+  def refusal(error, _title), do: Kati.Write.message(error)
 
   @doc false
   @spec status_atom(String.t()) :: atom()
