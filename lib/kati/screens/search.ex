@@ -293,7 +293,7 @@ defmodule Kati.Screens.Search do
   end
 
   def handle_info({:tap, :add_by_hand}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand.for_locale())}
 
   def handle_info({:tap, :clear}, socket) do
     {:noreply,

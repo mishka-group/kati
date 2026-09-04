@@ -99,11 +99,6 @@ defmodule Kati.AppReachabilityTest do
     {Screens.HomeFaEmptyDark,
      "158 in the dark colourway — the same page in another colourway, " <>
        "reached by having dark on and having kept nothing."},
-    {Screens.AddByHandFa,
-     "screen 154 in the mirror, stranded exactly as `Kati.Screens.RestoreFa` " <>
-       "and `Kati.Screens.OnboardingFa` are: screen 89's row pushes the " <>
-       "English form, and routing every mirror by locale is #93's third " <>
-       "criterion rather than one `if` per row that opens one."},
     {Screens.AddByHandDark,
      "screen 154 in the dark colourway. The same page in another colourway, " <>
        "reached by having dark on rather than by navigating — screen 28's " <>
@@ -333,48 +328,47 @@ defmodule Kati.AppReachabilityTest do
       with_stored_settings(&in_use_edges/0),
       fn _module, empty, in_use -> Enum.uniq(empty ++ in_use) end
     )
-    |> Map.merge(with_stored_settings(&language_fork/0), fn _m, a, b -> Enum.uniq(a ++ b) end)
+    |> Map.merge(with_stored_settings(&locale_forks/0), fn _m, a, b -> Enum.uniq(a ++ b) end)
   end
 
-  # Screen 53 is a fork, and the walk has to take both prongs.
+  # The three taps whose destination is the locale, taken both ways.
   #
-  # It is the only screen in the app whose tap rewrites `Kati.Locale`, and
-  # since `D-33` renumbered the first run, every step after it routes on that
-  # setting. So its Continue has two destinations — 161 and 164 — and the pass
-  # above, which runs in one locale, can only see one.
+  # The pass above runs in one locale, which is the right shape for a graph of
+  # a single app — but three controls answer `Kati.Locale` rather than a
+  # module, and in one locale the walk sees one of their two destinations.
   #
-  # Which one it saw was decided by tag ORDER, which is worse. The tags come
-  # off the tree as `[:choose_en, :choose_fa, :continue]` and each was
-  # evaluated against the store the tag before it left, so `continue` was
-  # answered after `choose_fa` had already written فارسی: 164 reachable, 161
-  # stranded, from the one screen that offers both. Nothing said so. 161 was
-  # on `@no_route` for an unrelated reason, so the graph was smaller than the
-  # app and the count still balanced.
+  # Which one it saw used to be decided by tag ORDER, which is worse. Screen
+  # 53's tags come off the tree as `[:choose_en, :choose_fa, :continue]` and
+  # each was evaluated against the store the tag before it left, so `continue`
+  # answered after `choose_fa` had written فارسی — and every module rendered
+  # after 53 in the same comprehension inherited that. `pinned/1` below is what
+  # stopped a tap deciding the next tap's answer; this is what puts back the
+  # branch it removed.
   #
-  # Both prongs, evaluated from a freshly mounted socket so neither is
-  # answering the other's leftovers. A whole second pass in `:fa` is the
-  # general form of this and costs a pass over every screen; one screen needs
-  # it, and it is named here rather than swept for.
-  defp language_fork do
-    for locale <- [:en, :fa], reduce: %{} do
+  # A whole second pass in `:fa` is the general form and costs a render of
+  # every screen in the app. Three controls need it, and they are named here
+  # rather than swept for.
+  @locale_forks [
+    {Screens.LanguagePick, :continue},
+    {Screens.AddTitle, :add_by_hand},
+    {Screens.Search, :add_by_hand}
+  ]
+
+  defp locale_forks do
+    for {module, tag} <- @locale_forks, locale <- [:en, :fa], reduce: %{} do
       acc ->
         edges =
           ScreenSweep.rolled_back(fn ->
             ScreenSweep.with_locale(locale, fn ->
-              case ScreenSweep.render(Screens.LanguagePick) do
+              case ScreenSweep.render(module) do
                 {:ok, socket, tree} ->
-                  # Continue ONLY, and from a socket mounted in this locale.
+                  # This tag only, and from a socket mounted in this locale.
                   # Handing the whole tag list to `targets/3` would defeat the
-                  # point: `choose_fa` sits before `continue` in draw order and
-                  # writes the setting `continue` then reads, so both prongs
-                  # would answer فارسی. `choose_en` and `choose_fa` navigate
-                  # nowhere in any case — they are the fork, not an edge out of
-                  # it.
-                  if :continue in ScreenSweep.tap_tags(tree) do
-                    targets(Screens.LanguagePick, socket, [:continue])
-                  else
-                    []
-                  end
+                  # point on screen 53: `choose_fa` sits before `continue` in
+                  # draw order and writes the setting `continue` reads.
+                  if tag in ScreenSweep.tap_tags(tree),
+                    do: targets(module, socket, [tag]),
+                    else: []
 
                 _unrenderable ->
                   []
@@ -382,13 +376,10 @@ defmodule Kati.AppReachabilityTest do
             end)
           end)
 
-        Map.update(acc, Screens.LanguagePick, edges, &Enum.uniq(&1 ++ edges))
+        Map.update(acc, module, edges, &Enum.uniq(&1 ++ edges))
     end
   end
 
-  # Nothing stored. `Kati.ScreenSweep.drawn_taps/1`'s memo IS this pass — it is
-  # what `Kati.ScreenTapSweepTest` and `Kati.MealsRoutesTest` both mount against
-  # — so this half is shared with them rather than paid for twice.
   defp fresh_install_edges do
     ScreenSweep.rolled_back(fn -> edges(ScreenSweep.drawn_taps(:en)) end)
   end
@@ -506,18 +497,41 @@ defmodule Kati.AppReachabilityTest do
     end
   end
 
+  # The locale is re-pinned around EVERY tap, not once around the pass.
+  #
+  # Screen 53's taps write `Kati.Locale`, and the tags come off a tree in draw
+  # order — `[:choose_en, :choose_fa, :continue]` — so `continue` was answered
+  # against a store `choose_fa` had just written, and every module rendered
+  # after 53 in the same comprehension inherited it. Anything that routes on
+  # the locale then answered for a reader who had not chosen: the first run's
+  # five steps, and `Kati.Screens.AddByHand.for_locale/0`. The graph was
+  # smaller than the app and the count still balanced, because the screens it
+  # lost were on `@no_route` for unrelated reasons.
+  #
+  # Cheap, because it is a comparison and only writes when the answer moved.
   defp targets(module, socket, tags) do
     for tag <- tags,
-        {:ok, dest} <- [ScreenSweep.safely(fn -> push_target(module, socket, tag) end)],
+        {:ok, dest} <- [ScreenSweep.safely(fn -> pinned(fn -> push_target(module, socket, tag) end) end)],
         is_atom(dest),
         dest != nil,
         uniq: true,
         do: dest
   end
 
+  defp pinned(fun) do
+    before = Kati.Locale.current()
+
+    try do
+      fun.()
+    after
+      if Kati.Locale.current() != before, do: Kati.Locale.put(before)
+    end
+  end
+
   defp opened_targets(module, socket, tags) do
     for tag <- tags,
-        {:ok, opened} <- [ScreenSweep.safely(fn -> open_only(module, socket, tag) end)],
+        {:ok, opened} <-
+          [ScreenSweep.safely(fn -> pinned(fn -> open_only(module, socket, tag) end) end)],
         opened != nil,
         {:ok, tree} <- [ScreenSweep.safely(fn -> module.render(opened.assigns) end)],
         dest <- targets(module, opened, ScreenSweep.tap_tags(tree)),

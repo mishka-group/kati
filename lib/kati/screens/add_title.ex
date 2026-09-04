@@ -167,7 +167,7 @@ defmodule Kati.Screens.AddTitle do
   # during it" — and it wants one answer for all of them rather than a
   # different `if` on each row that opens one.
   def handle_info({:tap, :add_by_hand}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand.for_locale())}
 
   @doc """
   What was typed into the search field, and the search it eventually runs.

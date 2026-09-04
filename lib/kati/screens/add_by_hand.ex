@@ -111,6 +111,29 @@ defmodule Kati.Screens.AddByHand do
     """
   end
 
+  @doc """
+  This form in the reader's own script.
+
+  Screen 89's row pushed the English one whatever the locale was, and
+  `Kati.Screens.AddByHandFa` sat on `Kati.AppReachabilityTest`'s inventory with
+  exactly that as its reason — the last Persian mirror in the app a person
+  could not reach. Both callers go through here now, which is #93's third
+  criterion answered for this screen: *Persian screens are reachable after
+  onboarding, not only during it.*
+
+  A function rather than an `if` at each call site, for the reason
+  `Kati.Onboarding.screen_for_step/2` is one: two call sites deciding the same
+  thing separately eventually disagree, and the disagreement shows up as a
+  screen in the wrong language rather than as an error.
+  """
+  @spec for_locale() :: module()
+  def for_locale do
+    case Kati.Locale.current() do
+      :fa -> Kati.Screens.AddByHandFa
+      _en -> Kati.Screens.AddByHand
+    end
+  end
+
   @doc "A field under its own label, with the board's `optional` marker when it has one."
   @spec labelled(String.t(), map(), String.t() | nil) :: map()
   def labelled(label, body, marker \\ nil, face \\ "mono") do
