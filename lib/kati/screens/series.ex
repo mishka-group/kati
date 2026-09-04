@@ -261,6 +261,10 @@ defmodule Kati.Screens.Series do
     %{
       title: cached && cached.title,
       seed: seed_of(tracked, cached),
+      # The row a tick belongs to. Carried on the assembled map rather than
+      # re-read in the handler, so the page cannot write a tick against a
+      # different title from the one it is drawing.
+      tracked_id: tracked.id,
       genres: cached && cached.genres,
       # The inventory's count, never `length(numbers)` — see the moduledoc.
       season_count: CachedSeason.count(seasons),
@@ -319,7 +323,11 @@ defmodule Kati.Screens.Series do
       runtime: episode.runtime_minutes,
       air: air,
       airing: Release.airing(air, now),
-      watched: CachedEpisode.ticked?(episode, ticked)
+      watched: CachedEpisode.ticked?(episode, ticked),
+      # What a tick is written against. `Kati.Media.Watch` names an episode by
+      # `episode_source_id` and nothing else, so a row drawn without one can be
+      # flipped on screen and never persisted — which is what #90 opened on.
+      source_id: episode.source_id
     }
   end
 
@@ -1059,7 +1067,7 @@ defmodule Kati.Screens.Series do
         {:noreply, Mob.Socket.assign(socket, :series, switch(socket.assigns.series, label))}
 
       "episode_" <> index ->
-        {:noreply, Mob.Socket.assign(socket, :series, toggle(socket.assigns.series, index))}
+        {:noreply, Kati.Screens.Series.tick(socket, index)}
 
       _ ->
         {:noreply, socket}
@@ -1089,9 +1097,82 @@ defmodule Kati.Screens.Series do
     end
   end
 
-  defp toggle(s, index) do
-    flip = fn ep -> %{ep | watched: not ep.watched} end
-    recount(%{s | episodes: List.update_at(s.episodes, String.to_integer(index), flip)})
+  @doc """
+  Tick or untick one episode, and write it.
+
+  This moved a boolean on the socket and nothing else, which is the sentence
+  #90 opens with. What it writes is a `Kati.Media.Watch` row, and what it
+  deletes on a second tap is that same row — the resource says so itself:
+  *"an episode is watched when a row for it exists, so unticking destroys and
+  rewatching simply adds another"*. Untick therefore removes rather than
+  writing a second row saying "not watched", which is the third criterion.
+
+  The screen follows the store rather than leading it: the assign flips only
+  after the write answers `:ok`, so a refused write leaves the tick where it
+  was instead of showing a state the database does not hold. That is the same
+  rule `Kati.Screens.MealsToday` keeps for a dose.
+
+  An episode with no `source_id` and a page with no `tracked_id` cannot be
+  written against anything, so they flip nothing and say so — a drawn series
+  that nobody has tracked is exactly that case.
+  """
+  @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def tick(socket, index) do
+    series = socket.assigns.series
+    position = String.to_integer(index)
+    episode = Enum.at(series.episodes, position)
+
+    case Kati.Screens.Series.write_tick(Map.get(series, :tracked_id), episode) do
+      :ok ->
+        flip = fn ep -> %{ep | watched: not ep.watched} end
+
+        socket
+        |> Mob.Socket.assign(:series, recount(%{series | episodes: List.update_at(series.episodes, position, flip)}))
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+    end
+  end
+
+  @doc false
+  @spec write_tick(binary() | nil, map() | nil) :: :ok | {:error, term()}
+  def write_tick(nil, _episode), do: {:error, :not_tracked}
+  def write_tick(_tracked_id, nil), do: {:error, :no_episode}
+
+  def write_tick(tracked_id, %{source_id: nil}) when is_binary(tracked_id),
+    do: {:error, :no_episode_id}
+
+  def write_tick(tracked_id, %{source_id: source_id, watched: watched?}) do
+    if watched? do
+      Kati.Media.Watch
+      |> Ash.Query.for_read(:for_episode, %{
+        tracked_title_id: tracked_id,
+        episode_source_id: source_id
+      })
+      |> Ash.read!()
+      |> Enum.each(&Ash.destroy!/1)
+
+      :ok
+    else
+      Kati.Media.Watch
+      |> Ash.Changeset.for_create(:create, %{
+        tracked_title_id: tracked_id,
+        episode_source_id: source_id,
+        # `Kati.Time` and not `DateTime.utc_now/0`: a tick is stamped in the
+        # device's zone, which is what `Kati.ScreenDateTest` enforces and what
+        # makes "watched today" mean the user's today rather than UTC's.
+        watched_at: Kati.Time.now(),
+        watched_on: Kati.Time.today()
+      })
+      |> Ash.create()
+      |> case do
+        {:ok, _watch} -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  rescue
+    error -> {:error, error}
   end
 
   @doc """
