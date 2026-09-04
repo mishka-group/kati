@@ -211,17 +211,12 @@ defmodule Kati.ScreenTapSweepTest do
   # This list may only SHRINK. The test enforces both directions — a new
   # collision fails it, and so does an entry here that no longer collides.
   @known_collisions %{
-    "20" => ["open_book"],
-    "21" => ["open_album", "open_artist"],
     "28" => ["root_calendar"],
     "38" => ["finish"],
     "42" => ["open_meals", "open_retired"],
     "52" => ["density"],
     "57" => ["open_series"],
-    "77" => ["open_album"],
     "86" => ["repeat_query", "try_suggestion"],
-    "92" => ["edit_service"],
-    "93" => ["edit_service"],
     "96" => ["my_services"],
     "112" => ["open_schedule"],
     "113" => ["open_habits", "open_meals", "open_medication", "open_weight"],
@@ -322,7 +317,16 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MyServices, :rule_purchases},
     {Kati.Screens.MyServices, :rule_hide_unavailable},
     {Kati.Screens.MyServices, :search},
-    {Kati.Screens.MyServices, :edit_service},
+    # One entry per drawn service since #97 gave the rows their own names
+    # (`Kati.Screens.MyServices.service_tag/1`). They are listed rather than
+    # matched by prefix because that is what this list is: a control named here
+    # is a control somebody looked at. Naming them changes nothing about what
+    # they open, which is still nothing — the paragraph above is unaltered.
+    {Kati.Screens.MyServices, :"edit_service_Lumen+"},
+    {Kati.Screens.MyServices, :edit_service_Orbit},
+    {Kati.Screens.MyServices, :edit_service_Kino},
+    {Kati.Screens.MyServices, :edit_service_Aria_Free},
+    {Kati.Screens.MyServices, :edit_service_Dispatch},
     {Kati.Screens.CountryPicker, :search},
     # ── Screen 66's status and edition chips.
     #
@@ -538,7 +542,10 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.ServicesTest`. The two on 93 open no keyboard (#45).
     {Kati.Screens.DataSourcesFa, :key_own},
     {Kati.Screens.MyServicesEmpty, :search},
-    {Kati.Screens.MyServicesEmpty, :edit_service},
+    # Two, not five: 93 draws only the free card — having no subscriptions is
+    # the whole subject of the board. Same `service_tag/1`, same reason.
+    {Kati.Screens.MyServicesEmpty, :edit_service_Aria_Free},
+    {Kati.Screens.MyServicesEmpty, :edit_service_Dispatch},
     # Screen 99's scope chips. The board has one section's figures on it and
     # cannot follow them anywhere — relighting a chip over a card that did not
     # move is the one thing it exists to argue against. Its own moduledoc says

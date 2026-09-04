@@ -330,13 +330,42 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
+  @doc """
+  One service row's tag, built from the service's name.
+
+  Every row of both cards shared `:edit_service`, so five rows carried one
+  `accessibility_id` and `onNodeWithTag` throws on the second match (#97).
+
+  The name, because it is what the row is: `Kati.Services.Sample`'s five are
+  distinct, and `Kati.Services.Service`'s `:listed` read is a list of named
+  services rather than a set of anonymous rows. A service with no name keeps
+  the bare tag rather than being given one that means nothing.
+
+  This function serves screen 93 as well as 92 — `Kati.Screens.MyServicesEmpty`
+  draws its rows through this same `service_row/1`, which is why both boards
+  carried the collision and why one fix clears both.
+
+      iex> Kati.Screens.MyServices.service_tag(%{name: "Aria Free"})
+      :edit_service_Aria_Free
+
+      iex> Kati.Screens.MyServices.service_tag(%{name: ""})
+      :edit_service
+  """
+  @spec service_tag(map()) :: atom()
+  def service_tag(service) do
+    case service |> Map.get(:name, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+      "" -> :edit_service
+      name -> String.to_atom("edit_service_" <> name)
+    end
+  end
+
   @doc false
   def service_row(service) do
     SettingsList.row(
       Kati.Screens.MyServices.badge_tile(service.badge),
       SettingsList.body(service.name, nil),
       SettingsList.trailing(Kati.Screens.MyServices.price(service.price)),
-      on_tap: {self(), :edit_service}
+      on_tap: {self(), Kati.Screens.MyServices.service_tag(service)}
     )
   end
 
@@ -547,6 +576,13 @@ defmodule Kati.Screens.MyServices do
         key = String.to_existing_atom(rule)
         Services.toggle_rule(key)
         {:noreply, Mob.Socket.assign(socket, :rules, Services.rules())}
+
+      # Every service row, by its own name — see `service_tag/1`. It changes
+      # nothing, exactly as the bare `:edit_service` changed nothing before it:
+      # there is no edit sheet to push, and #97 is about being addressable
+      # rather than about wiring a destination this board does not draw.
+      "edit_service_" <> _name ->
+        {:noreply, socket}
 
       _other ->
         {:noreply, socket}

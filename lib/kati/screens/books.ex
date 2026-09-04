@@ -505,10 +505,37 @@ defmodule Kati.Screens.Books do
 
   # Weighted rather than 112 wide: three equal shares of the real content width
   # fill the row on any device, where a fixed 112 only fills the drawing's frame.
+  @doc """
+  One grid tile's tag, built from the book's seed.
+
+  Six tiles sharing `:open_book` gave six nodes one `accessibility_id`, and
+  `onNodeWithTag` throws on the second match — the shelf was unaddressable on a
+  device rather than merely untested (#97).
+
+  The seed and not the title: `Kati.Books.Sample`'s seeds are unique per row
+  where a title need not be, and #97's first trap is that a name which is not
+  unique is not an identity. The hero keeps the bare `:open_book` because it is
+  one node, and because it draws `reading_now/0` — whose seed is `bookaa1`, the
+  same seed as the first tile. Tagging both by seed would collide again.
+
+      iex> Kati.Screens.Books.book_tag(%{seed: "bookcc3"})
+      :open_book_bookcc3
+
+      iex> Kati.Screens.Books.book_tag(%{})
+      :open_book
+  """
+  @spec book_tag(map()) :: atom()
+  def book_tag(book) do
+    case book |> Map.get(:seed, "") |> to_string() |> String.trim() do
+      "" -> :open_book
+      seed -> String.to_atom("open_book_" <> seed)
+    end
+  end
+
   @doc false
   def tile(book) do
     ~MOB"""
-    <Column weight={1.0} on_tap={{self(), :open_book}}>
+    <Column weight={1.0} on_tap={{self(), Kati.Screens.Books.book_tag(book)}}>
       <Box
         fill_width={true}
         height={158}
@@ -594,6 +621,24 @@ defmodule Kati.Screens.Books do
 
   def handle_tap(:open_screen, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
+
+  # Every grid tile, by its own seed — see `book_tag/1`. They all open the same
+  # screen today: `Kati.Screens.BookDetail` takes no argument, so this is
+  # identity for the sake of being addressable rather than for routing.
+  #
+  # The prefix carries its trailing underscore on purpose. `"open_book"` alone
+  # also matches `:open_books`, the Books segment at the top of this screen,
+  # and swallowing it here would send the segment to a book detail.
+  #
+  # Below the named clauses, above the catch-all: a prefix match placed before
+  # them makes every one of them unreachable, silently.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    if String.starts_with?(Atom.to_string(tag), "open_book_") do
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetail)}
+    else
+      {:noreply, socket}
+    end
+  end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

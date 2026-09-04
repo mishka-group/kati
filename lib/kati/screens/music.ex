@@ -255,10 +255,55 @@ defmodule Kati.Screens.Music do
   def album_gap, do: ~MOB"<Spacer size={12} />"
 
   # Weighted rather than 112 wide — the export's own `flex:1`. See the moduledoc.
+  @doc """
+  One album tile's tag, built from the row's seed.
+
+  Three tiles sharing `:open_album` gave three nodes one `accessibility_id`,
+  and `onNodeWithTag` throws on the second match (#97).
+
+  The seed and not the title: seeds are unique per row where a title need not
+  be, and #97's first trap is that a name which is not unique is not an
+  identity.
+
+      iex> Kati.Screens.Music.album_tag(%{seed: "albm2"})
+      :open_album_albm2
+
+      iex> Kati.Screens.Music.album_tag(%{})
+      :open_album
+  """
+  @spec album_tag(map()) :: atom()
+  def album_tag(item) do
+    case item |> Map.get(:seed, "") |> to_string() |> String.trim() do
+      "" -> :open_album
+      seed -> String.to_atom("open_album_" <> seed)
+    end
+  end
+
+  @doc """
+  One release row's tag, built from the row's seed.
+
+  The same fix as `album_tag/1` for the *New from artists you follow* rows,
+  which shared `:open_artist`. The two prefixes differ, so an album seed and a
+  release seed cannot collide with each other even if they ever matched.
+
+      iex> Kati.Screens.Music.artist_tag(%{seed: "albm4"})
+      :open_artist_albm4
+
+      iex> Kati.Screens.Music.artist_tag(%{})
+      :open_artist
+  """
+  @spec artist_tag(map()) :: atom()
+  def artist_tag(row) do
+    case row |> Map.get(:seed, "") |> to_string() |> String.trim() do
+      "" -> :open_artist
+      seed -> String.to_atom("open_artist_" <> seed)
+    end
+  end
+
   @doc false
   def album(item) do
     ~MOB"""
-    <Column weight={1.0} on_tap={{self(), :open_album}}>
+    <Column weight={1.0} on_tap={{self(), Kati.Screens.Music.album_tag(item)}}>
       {Kati.Screens.Music.cover(item)}
       <Spacer size={9} />
       <Text
@@ -418,7 +463,7 @@ defmodule Kati.Screens.Music do
       padding_top={10}
       padding_bottom={10}
       align="center"
-      on_tap={{self(), :open_artist}}
+      on_tap={{self(), Kati.Screens.Music.artist_tag(row)}}
     >
       {Kati.Screens.Music.release_art(row)}
       <Spacer size={12} />
@@ -464,6 +509,29 @@ defmodule Kati.Screens.Music do
 
   def handle_tap(:segment_screen, socket) do
     {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
+  end
+
+  # Every album tile and every release row, by its own seed — see `album_tag/1`
+  # and `artist_tag/1`. They open the same two screens the bare tags did:
+  # neither `Kati.Screens.AlbumDetail` nor `Kati.Screens.ArtistDetail` takes an
+  # argument, so this is identity for the sake of being addressable rather than
+  # for routing.
+  #
+  # Below the named clauses, above the catch-all: a prefix match placed before
+  # them makes every one of them unreachable, silently.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    name = Atom.to_string(tag)
+
+    cond do
+      String.starts_with?(name, "open_album_") ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetail)}
+
+      String.starts_with?(name, "open_artist_") ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ArtistDetail)}
+
+      true ->
+        {:noreply, socket}
+    end
   end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}

@@ -279,13 +279,55 @@ defmodule Kati.Screens.ArtistDetail do
     """
   end
 
+  @doc """
+  One rail row's tag, built from the album's title and year.
+
+  Every row in the discography rail shared `:open_album`, so the rail was one
+  `accessibility_id` repeated and `onNodeWithTag` throws on the second match
+  (#97).
+
+  **Not the seed**, which is the obvious choice and the wrong one: every row of
+  `Kati.Music.Sample.artist_albums/0` carries `seed: nil`, so a seed-derived
+  tag collapses all four back onto `:open_album` and the rail collides exactly
+  as before. `Kati.Screens.Music` can key on the seed because its rows have
+  one; this rail cannot. Caught by the sweep, not by reading.
+
+  Title *and* year for #97's first trap — a name that is not unique is not an
+  identity — and both shapes carry the pair: `shape_album/1` maps it off
+  `Kati.Music.Album` and the sample rows spell it out. A record with no year
+  keeps its title alone, which is what the drawing's *Unheard* row is.
+
+      iex> Kati.Screens.ArtistDetail.album_tag(%{title: "Low Country", year: 2023})
+      :"open_album_Low_Country_2023"
+
+      iex> Kati.Screens.ArtistDetail.album_tag(%{title: "Estuary Tapes", year: nil})
+      :"open_album_Estuary_Tapes"
+
+      iex> Kati.Screens.ArtistDetail.album_tag(%{})
+      :open_album
+  """
+  @spec album_tag(map()) :: atom()
+  def album_tag(album) do
+    title =
+      album |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_")
+
+    year = album |> Map.get(:year) |> to_string() |> String.trim()
+
+    case {title, year} do
+      {"", ""} -> :open_album
+      {"", y} -> String.to_atom("open_album_" <> y)
+      {t, ""} -> String.to_atom("open_album_" <> t)
+      {t, y} -> String.to_atom("open_album_" <> t <> "_" <> y)
+    end
+  end
+
   @doc false
   def rail_row(album) do
     SettingsList.row(
       Kati.Screens.ArtistDetail.rail_art(album),
       SettingsList.body(album.title, album.line),
       SettingsList.trailing(nil),
-      on_tap: {self(), :open_album}
+      on_tap: {self(), Kati.Screens.ArtistDetail.album_tag(album)}
     )
   end
 
@@ -566,6 +608,20 @@ defmodule Kati.Screens.ArtistDetail do
   # time, which is correct: the record is still unheard.
   def handle_tap(:dismiss_release, socket),
     do: {:noreply, Mob.Socket.assign(socket, :dismissed?, true)}
+
+  # Every rail row, by its own seed — see `album_tag/1`. They all open the same
+  # screen today: `Kati.Screens.AlbumDetail` takes no argument, so this is
+  # identity for the sake of being addressable rather than for routing.
+  #
+  # Below the named clauses, above the catch-all: a prefix match placed before
+  # them makes every one of them unreachable, silently.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    if String.starts_with?(Atom.to_string(tag), "open_album_") do
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetail)}
+    else
+      {:noreply, socket}
+    end
+  end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

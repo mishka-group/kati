@@ -408,6 +408,13 @@ defmodule Kati.Screens.MyServicesEmpty do
       "rule_" <> rule ->
         {:noreply, flip(socket, String.to_existing_atom(rule))}
 
+      # The same two-tags-borrowed-from-92 argument as the clause above, for the
+      # per-row form `Kati.Screens.MyServices.service_tag/1` now gives them
+      # (#97). Answered here rather than left to fall through, because the
+      # clause below reports what it does not recognise and this is recognised.
+      "edit_service_" <> _name ->
+        {:noreply, socket}
+
       _other ->
         # Reported, not swallowed. A bare `{:noreply, socket}` here would be the
         # disappearing act `Kati.Screens.Pushed` refuses to build in, done by
