@@ -948,6 +948,42 @@ defmodule Kati.Screens.Library do
     """
   end
 
+  @doc """
+  One grid tile's tag: which screen it opens, and which title it is.
+
+  `:open_film` and `:open_series` alone were a kind, not an identity — every
+  film on the shelf drew the same tag, so `Mob.Renderer` gave every film tile
+  the same `accessibility_id` and `onNodeWithTag` throws on the second match.
+  #97 quotes this screen's own comment predicting it would collide "as soon as
+  a shelf holds two of a kind", and it has since it was written.
+
+  It survived the ratchet because the shelf is empty in every test: with no
+  rows there are no tiles, and a collision that needs two tiles cannot be seen.
+  Nothing about that made it not happen on a phone with two films on it.
+
+  The title, because it is what the tile is captioned with and what
+  `Kati.Screens.Library.shelf/0` drops a row for lacking — a row with no title
+  never reaches the grid, so there is no untitled tile to name.
+
+      iex> Kati.Screens.Library.poster_tag(%{kind: :film, title: "Low Water"})
+      :open_film_Low_Water
+
+      iex> Kati.Screens.Library.poster_tag(%{kind: :series, title: "The Long Hollow"})
+      :open_series_The_Long_Hollow
+
+      iex> Kati.Screens.Library.poster_tag(%{kind: :film, title: ""})
+      :open_film
+  """
+  @spec poster_tag(map()) :: atom()
+  def poster_tag(item) do
+    base = if Map.get(item, :kind) == :film, do: "open_film", else: "open_series"
+
+    case item |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+      "" -> String.to_atom(base)
+      title -> String.to_atom(base <> "_" <> title)
+    end
+  end
+
   @doc false
   def grid_gap, do: ~MOB"<Spacer size={12} />"
 
@@ -956,8 +992,9 @@ defmodule Kati.Screens.Library do
 
   def poster(item) do
     # A film opens the film screen and a series the series screen — the design
-    # draws them as two different screens, so the grid has to know which.
-    tap = {self(), if(item.kind == :film, do: :open_film, else: :open_series)}
+    # draws them as two different screens, so the grid has to know which. The
+    # title comes with it because two films are two nodes: see `poster_tag/1`.
+    tap = {self(), Kati.Screens.Library.poster_tag(item)}
 
     # Weighted rather than 112 wide: three equal shares of the real content
     # width fill the row on any device, where a fixed 112 only fills the
@@ -1144,9 +1181,28 @@ defmodule Kati.Screens.Library do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
-      "shelf_" <> label -> {:noreply, Mob.Socket.assign(socket, :shelf, label)}
-      _ -> {:noreply, socket}
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      "shelf_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :shelf, label)}
+
+      # Every grid tile, by its own title — see `poster_tag/1`. The two bare
+      # tags above still have their own clauses because the drawing's own
+      # single-tile states use them; these are the shelf's many.
+      #
+      # Answered here rather than in a clause of its own, which is where the
+      # first attempt put it — above `:open_film` and `:add_title`, silently
+      # making both unreachable. This screen's grid and its empty card are
+      # never on screen together, so nothing would have shown it.
+      "open_film_" <> _title ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
+
+      "open_series_" <> _title ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
+
+      _ ->
+        {:noreply, socket}
     end
   end
 end

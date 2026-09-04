@@ -138,9 +138,32 @@ defmodule Kati.ScreenLibraryShelfTest do
   # that carries both `weight: 1.0` and the tap that opens its title; the short
   # last row's padding is a childless `<Box weight={1.0} />` and is excluded by
   # the tap, which is also what makes this a check on the film/series routing.
+  # The tap is per title since #97 — `Kati.Screens.Library.poster_tag/1` — so
+  # this matches the prefix rather than the two bare atoms it used to name.
+  # Matching the bare pair was what let the grid collide unseen: every film
+  # carried one tag, this helper found them all under it, and nothing here
+  # could tell one node from five.
   defp tile_columns(tree) do
-    find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_series}) ++
-      find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_film})
+    tree
+    |> find_all(:column, weight: 1.0)
+    |> Enum.filter(fn node ->
+      case node.props[:on_tap] do
+        {_pid, tag} when is_atom(tag) ->
+          name = Atom.to_string(tag)
+          String.starts_with?(name, "open_film") or String.starts_with?(name, "open_series")
+
+        _other ->
+          false
+      end
+    end)
+  end
+
+  defp tiles_tagged(tree, prefix) do
+    tree
+    |> tile_columns()
+    |> Enum.filter(fn node ->
+      node.props[:on_tap] |> elem(1) |> Atom.to_string() |> String.starts_with?(prefix)
+    end)
   end
 
   defp subtitle_of(tree) do
@@ -261,9 +284,17 @@ defmodule Kati.ScreenLibraryShelfTest do
       assert length(tile_columns(tree)) == 9
 
       # Five series and four films, and the tap routing is what says which:
-      # the design draws a film and a series as two different screens.
-      assert length(find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_series})) == 5
-      assert length(find_all(tree, :column, weight: 1.0, on_tap: {self(), :open_film})) == 4
+      # the design draws a film and a series as two different screens. The
+      # prefix carries the routing and the suffix the title, so counting by
+      # prefix asks the same question the two bare atoms used to.
+      assert length(tiles_tagged(tree, "open_series")) == 5
+      assert length(tiles_tagged(tree, "open_film")) == 4
+
+      # And nine tiles carry nine different names. This is the assertion the
+      # bare tags could not make: nine nodes under two ids is what #97 is, and
+      # `onNodeWithTag` throws on the second match rather than picking one.
+      tags = tree |> tile_columns() |> Enum.map(&elem(&1.props[:on_tap], 1))
+      assert length(Enum.uniq(tags)) == 9
     end
 
     test "each poster is the photograph the drawing uses for that title" do

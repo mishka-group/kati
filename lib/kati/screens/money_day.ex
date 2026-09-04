@@ -293,12 +293,35 @@ defmodule Kati.Screens.MoneyDay do
   a section is identified by its stripe on every calendar surface, so a reader
   who has learned it once has learned it everywhere.
   """
+  @doc """
+  A merged group's own unfold tag, built from the row's title.
+
+  The header's density disc and every merged row's chevron drew
+  `:toggle_density`, so the disc and the rows were one `accessibility_id` and
+  `onNodeWithTag` threw on the second match (#97). The disc keeps the bare tag
+  because it is one node and it is the control the name describes; a row that
+  unfolds is named for the commitment it unfolds.
+
+      iex> Kati.Screens.MoneyDay.expand_tag(%{title: "Streaming"})
+      :toggle_density_Streaming
+
+      iex> Kati.Screens.MoneyDay.expand_tag(%{})
+      :toggle_density
+  """
+  @spec expand_tag(map()) :: atom()
+  def expand_tag(row) do
+    case row |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+      "" -> :toggle_density
+      title -> String.to_atom("toggle_density_" <> title)
+    end
+  end
+
   @spec commitment(map(), boolean()) :: map()
   def commitment(row, expanded?) do
     assigns = %{
       row: row,
       chevron: if(Map.has_key?(row, :members), do: "expand_more", else: nil),
-      tap: if(Map.has_key?(row, :members), do: {self(), :toggle_density}, else: nil),
+      tap: if(Map.has_key?(row, :members), do: {self(), Kati.Screens.MoneyDay.expand_tag(row)}, else: nil),
       expanded: expanded?
     }
 
@@ -536,8 +559,17 @@ defmodule Kati.Screens.MoneyDay do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
-      _other -> {:noreply, socket}
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      # A merged row's own chevron — see `expand_tag/1`. It flips the same
+      # assign the header disc flips, which is what the drawing shows: the
+      # chevron and the disc are two ways into one collapsed/expanded state.
+      "toggle_density_" <> _title ->
+        {:noreply, Mob.Socket.assign(socket, :expanded?, not socket.assigns.expanded?)}
+
+      _other ->
+        {:noreply, socket}
     end
   end
 end

@@ -215,12 +215,9 @@ defmodule Kati.ScreenTapSweepTest do
     "38" => ["finish"],
     "42" => ["open_meals", "open_retired"],
     "52" => ["density"],
-    "57" => ["open_series"],
     "86" => ["repeat_query", "try_suggestion"],
-    "96" => ["my_services"],
     "113" => ["open_habits", "open_meals", "open_medication", "open_weight"],
     "114" => ["close"],
-    "126" => ["toggle_density"],
     "127" => ["open_services"]
   }
 

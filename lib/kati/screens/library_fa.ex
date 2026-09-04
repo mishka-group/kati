@@ -132,14 +132,6 @@ defmodule Kati.Screens.LibraryFa do
   def shelf, do: Enum.map(Library.shelf(), &shaped/1)
 
   @doc """
-  One shelf row as the grid draws it.
-
-  `progress` goes through `Kati.Screens.Library.fraction/1` so it is always a
-  float the rail can sweep: an unknown ratio is an empty track and a finished
-  title a full one, and neither invents a percentage — `meta/1` says so in
-  words in exactly the case this returns `0.0`.
-  """
-  @doc """
   The *بعدی* tile's count in Persian digits, or `nil` when nothing is next.
 
   `Kati.Screens.Library.up_next_badge/1`'s answer put through
@@ -162,6 +154,14 @@ defmodule Kati.Screens.LibraryFa do
     end
   end
 
+  @doc """
+  One shelf row as the grid draws it.
+
+  `progress` goes through `Kati.Screens.Library.fraction/1` so it is always a
+  float the rail can sweep: an unknown ratio is an empty track and a finished
+  title a full one, and neither invents a percentage — `meta/1` says so in
+  words in exactly the case this returns `0.0`.
+  """
   @spec shaped(map()) :: map()
   def shaped(row) do
     %{
@@ -717,11 +717,36 @@ defmodule Kati.Screens.LibraryFa do
   @doc false
   def grid_gap, do: ~MOB"<Spacer size={12} />"
 
+  @doc """
+  One grid tile's tag, built from the title the tile is captioned with.
+
+  The mirror of `Kati.Screens.Library.poster_tag/1` and collided for the same
+  reason: every poster drew `:open_series`, so the whole grid was one
+  `accessibility_id` and `onNodeWithTag` throws on the second match (#97).
+
+  The prefix stays `open_series` in both scripts — a tag is an id, not copy,
+  and a Persian screen whose ids were Persian would be addressable only by a
+  test that could type them.
+
+      iex> Kati.Screens.LibraryFa.poster_tag(%{title: "گودال بلند"})
+      :"open_series_گودال_بلند"
+
+      iex> Kati.Screens.LibraryFa.poster_tag(%{title: ""})
+      :open_series
+  """
+  @spec poster_tag(map()) :: atom()
+  def poster_tag(item) do
+    case item |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+      "" -> :open_series
+      title -> String.to_atom("open_series_" <> title)
+    end
+  end
+
   @doc false
   def poster(nil), do: ~MOB"<Box weight={1.0} />"
 
   def poster(item) do
-    tap = {self(), :open_series}
+    tap = {self(), Kati.Screens.LibraryFa.poster_tag(item)}
 
     # Weighted rather than 112 wide: three equal shares of the real content
     # width fill the row on any device, where a fixed 112 only fills the
@@ -845,6 +870,15 @@ defmodule Kati.Screens.LibraryFa do
       # 127 hold no Persian music SHELF.
       "shelf_2" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetailFa)}
+
+      # Every grid tile, by its own title — see `poster_tag/1`. Answered inside
+      # this case rather than in a clause above it: a second
+      # `handle_info({:tap, tag}, socket) when is_atom(tag)` placed earlier
+      # shadows this one entirely, taking the search disc, every chip and every
+      # segment with it. Written that way first, and nothing but reading the
+      # clause order showed it.
+      "open_series_" <> _title ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa)}
 
       "shelf_" <> index ->
         {:noreply, Mob.Socket.assign(socket, :shelf, String.to_integer(index))}

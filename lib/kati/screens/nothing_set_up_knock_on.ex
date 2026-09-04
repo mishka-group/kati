@@ -146,18 +146,21 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
         {UI.eyebrow("08 Film detail · Where to watch")}
         {Kati.Screens.NothingSetUpKnockOn.prompt(
           "Set up your services to see where this is streaming",
-          "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for."
+          "Kati knows this film exists. It cannot say whether you can watch it tonight until it knows what you pay for.",
+          :my_services_where_to_watch
         )}
         {SettingsList.eyebrow_muted("11 Discover · Leaving soon")}
         {Kati.Screens.NothingSetUpKnockOn.prompt(
           "Nothing to leave yet",
-          "Leaving-soon warnings need at least one subscribed service — there is nothing to count down from."
+          "Leaving-soon warnings need at least one subscribed service — there is nothing to count down from.",
+          :my_services_leaving_soon
         )}
         {SettingsList.eyebrow_muted("13 What fits tonight")}
         {WhatFits.window(assigns.tonight)}
         {Kati.Screens.NothingSetUpKnockOn.prompt(
           "11 episodes fit — 0 you can watch",
-          "Kati can size the gap but not fill it. Set up your services and this becomes a shortlist instead of a count."
+          "Kati can size the gap but not fill it. Set up your services and this becomes a shortlist instead of a count.",
+          :my_services_what_fits
         )}
         {SettingsList.eyebrow_muted("23 Subscriptions · an empty ledger")}
         {Kati.Screens.NothingSetUpKnockOn.ledger()}
@@ -183,8 +186,8 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
   three-line paragraph rather than floating to the middle of the block; it is
   the same fix `note/2` needed and got as `content_align: :top`.
   """
-  @spec prompt(String.t(), String.t()) :: map()
-  def prompt(title, body) do
+  @spec prompt(String.t(), String.t(), atom()) :: map()
+  def prompt(title, body, tag) do
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -204,7 +207,7 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
           </Column>
         </Row>
         <Spacer size={14} />
-        {Kati.Screens.NothingSetUpKnockOn.my_services_button(40, 12.5)}
+        {Kati.Screens.NothingSetUpKnockOn.my_services_button(40, 12.5, tag)}
       </Column>
       <Spacer size={22} />
     </Column>
@@ -286,7 +289,7 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
           text_align="center"
         />
         <Spacer size={16} />
-        {Kati.Screens.NothingSetUpKnockOn.my_services_button(44, 13)}
+        {Kati.Screens.NothingSetUpKnockOn.my_services_button(44, 13, :my_services_ledger)}
       </Column>
       <Spacer size={11} />
     </Column>
@@ -300,14 +303,19 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
   the radius is always half the height in this design, so it is computed rather
   than passed — two numbers that must agree are one number.
 
-  Every instance carries the same `:my_services` tag. That is not a shortcut: a
-  per-band tag would imply the four bands go somewhere different, and the whole
-  point of the sheet is that one screen answers all four.
+  Every instance used to carry the same `:my_services` tag, argued for here as
+  "not a shortcut" because a per-band tag would imply the four bands went
+  somewhere different. #97 is that argument's counter-example: `Mob.Renderer`
+  derives an `accessibility_id` from the atom, so one tag on four buttons was
+  one id on four nodes, `onNodeWithTag` threw on the second, and TalkBack read
+  four identical names down the sheet. A tag is what a control *is*, not where
+  it goes — all four still push `Kati.Screens.MyServices`, and `handle_tap/2`
+  sends them there in one clause.
   """
-  @spec my_services_button(pos_integer(), number()) :: map()
-  def my_services_button(height, text_size) do
+  @spec my_services_button(pos_integer(), number(), atom()) :: map()
+  def my_services_button(height, text_size, tag) do
     radius = div(height, 2)
-    tap = {self(), :my_services}
+    tap = {self(), tag}
 
     ~MOB"""
     <Row
@@ -354,6 +362,14 @@ defmodule Kati.Screens.NothingSetUpKnockOn do
   end
 
   @impl true
-  def handle_tap(:my_services, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, MyServices)}
+  # One clause for all four buttons. #97 gave them separate names so a device
+  # test and TalkBack can tell them apart; where they go was never in question,
+  # and the sheet's whole point is that one screen answers all four.
+  def handle_tap(tag, socket) when tag in ~w(
+        my_services_where_to_watch
+        my_services_leaving_soon
+        my_services_what_fits
+        my_services_ledger
+      )a,
+      do: {:noreply, Mob.Socket.push_screen(socket, MyServices)}
 end
