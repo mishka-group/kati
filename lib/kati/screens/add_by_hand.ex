@@ -53,7 +53,6 @@ defmodule Kati.Screens.AddByHand do
 
   alias Kati.Components.MishkaChip
   alias Kati.Theme.Palette
-  alias Kati.UI.SettingsList
 
   @kinds [{"Film", :movie, "movie"}, {"Series", :tv, "live_tv"}]
   @statuses ["Not started", "Watching", "Finished"]
@@ -114,22 +113,28 @@ defmodule Kati.Screens.AddByHand do
 
   @doc "A field under its own label, with the board's `optional` marker when it has one."
   @spec labelled(String.t(), map(), String.t() | nil) :: map()
-  def labelled(label, body, marker \\ nil) do
-    assigns = %{label: label, body: body, marker: marker}
+  def labelled(label, body, marker \\ nil, face \\ "mono") do
+    # Persian takes Vazirmatn at 11/600 with no tracking, which is
+    # `Kati.Screens.Fa.eyebrow/1`'s recipe rather than this one with the family
+    # swapped: DM Mono's 10.5 at .16em is a Latin small-caps effect and the
+    # Arabic script has neither case nor a tradition of letter-spacing.
+    persian? = face == "fa"
+    assigns = %{label: label, body: body, marker: marker, face: face, persian?: persian?}
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         <Text
           text={@label}
-          font_family="mono"
-          text_size={10.5}
-          letter_spacing={0.16}
+          font_family={@face}
+          text_size={if @persian?, do: 11, else: 10.5}
+          font_weight={if @persian?, do: "semibold", else: "normal"}
+          letter_spacing={if @persian?, do: 0, else: 0.16}
           text_color={Palette.muted()}
           max_lines={1}
         />
         <Spacer weight={1.0} />
-        {Kati.Screens.AddByHand.marker(@marker)}
+        {Kati.Screens.AddByHand.marker(@marker, @face)}
       </Row>
       <Spacer size={8} />
       {@body}
@@ -139,13 +144,15 @@ defmodule Kati.Screens.AddByHand do
   end
 
   @doc false
-  def marker(nil), do: ~MOB"<Spacer size={0} />"
+  def marker(text, face \\ "sans")
 
-  def marker(text) do
-    assigns = %{text: text}
+  def marker(nil, _face), do: ~MOB"<Spacer size={0} />"
+
+  def marker(text, face) do
+    assigns = %{text: text, face: face}
 
     ~MOB"""
-    <Text text={@text} text_size={11.5} text_color={Palette.tertiary()} max_lines={1} />
+    <Text text={@text} font_family={@face} text_size={11.5} text_color={Palette.tertiary()} max_lines={1} />
     """
   end
 
@@ -197,8 +204,14 @@ defmodule Kati.Screens.AddByHand do
   end
 
   @doc false
-  def kind_chip(label, icon, on?) do
-    assigns = %{label: label, icon: icon, on?: on?, tap: {self(), String.to_atom("kind_" <> label)}}
+  def kind_chip(label, icon, on?, face \\ "sans") do
+    assigns = %{
+      label: label,
+      icon: icon,
+      on?: on?,
+      face: face,
+      tap: {self(), String.to_atom("kind_" <> label)}
+    }
 
     ~MOB"""
     <Row
@@ -214,6 +227,7 @@ defmodule Kati.Screens.AddByHand do
       <Spacer size={7} />
       <Text
         text={@label}
+        font_family={@face}
         text_size={12.5}
         font_weight="semibold"
         text_color={if @on?, do: Palette.on_ink(), else: Palette.ink_soft()}
@@ -286,8 +300,8 @@ defmodule Kati.Screens.AddByHand do
   one even when it reads the same.
   """
   @spec split_note(String.t(), String.t(), String.t()) :: map()
-  def split_note(lead, emphasis, tail) do
-    assigns = %{lead: lead, emphasis: emphasis, tail: tail}
+  def split_note(lead, emphasis, tail, face \\ "sans") do
+    assigns = %{lead: lead, emphasis: emphasis, tail: tail, face: face}
 
     ~MOB"""
     <Row
@@ -300,15 +314,16 @@ defmodule Kati.Screens.AddByHand do
       {Kati.UI.symbol("info", size: 16, color: Palette.bronze())}
       <Spacer size={9} />
       <Column weight={1.0}>
-        <Text text={@lead} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+        <Text text={@lead} font_family={@face} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
         <Text
           text={@emphasis}
+          font_family={@face}
           text_size={12}
           line_height={1.5}
           font_weight="semibold"
           text_color={Palette.ink()}
         />
-        <Text text={@tail} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+        <Text text={@tail} font_family={@face} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
       </Column>
     </Row>
     """
@@ -344,6 +359,7 @@ defmodule Kati.Screens.AddByHand do
   refused every time — found by the device test, which is the only thing that
   could have found it.
   """
+  @impl true
   def handle_info({:change, field, typed}, socket)
       when field in [:title, :year, :episodes] and is_binary(typed),
       do: {:noreply, Mob.Socket.assign(socket, field, typed)}

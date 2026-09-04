@@ -57,7 +57,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
         {Kati.Screens.HomeFaOmittedSections.search()}
         {Kati.Screens.HomeFaOmittedSections.omitted("تازه‌های این هفته", "با هیچ عنوانی برای پیگیری، این بخش", "نمایش داده نمی‌شود", "— نه با یک جمله خالی، بلکه اصلاً.")}
         {Kati.Screens.HomeFaOmittedSections.omitted("ادامه تماشا", "همین‌طور. یک ردیف خالی می‌گوید چیزی خراب است؛", "نبودن ردیف", "می‌گوید هنوز شروع نکرده‌اید.")}
-        {Kati.UI.Eyebrow.quiet("بخش‌ها")}
+        {Kati.Screens.Fa.quiet_eyebrow("بخش‌ها")}
         {Kati.Screens.HomeFaOmittedSections.section_cards()}
         {Kati.Screens.HomeFaOmittedSections.footnote()}
       </Column>
@@ -75,6 +75,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
         <Column weight={1.0}>
           <Text
             text={@moment.date}
+            font_family="fa"
             text_size={11.5}
             font_weight="medium"
             text_color={Palette.tertiary()}
@@ -83,6 +84,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
           <Spacer size={7} />
           <Text
             text={@moment.greeting}
+            font_family="fa"
             text_size={26}
             max_font_scale={1.6}
             font_weight="bold"
@@ -116,6 +118,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
         <Spacer size={11} />
         <Text
           text="جست‌وجوی فیلم، سریال، رویداد…"
+          font_family="fa"
           text_size={14.5}
           text_color={Palette.tertiary()}
           weight={1.0}
@@ -140,20 +143,21 @@ defmodule Kati.Screens.HomeFaOmittedSections do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.Eyebrow.quiet(@title)}
+      {Kati.Screens.Fa.quiet_eyebrow(@title)}
       <Row fill_width={true} align="top">
         {UI.symbol("block", size: 17, color: Palette.tertiary())}
         <Spacer size={9} />
         <Column weight={1.0}>
-          <Text text={@lead} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+          <Text font_family="fa" text={@lead} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
           <Text
             text={@emphasis}
+            font_family="fa"
             text_size={12.5}
             line_height={1.55}
             font_weight="semibold"
             text_color={Palette.ink()}
           />
-          <Text text={@tail} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+          <Text font_family="fa" text={@tail} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -195,7 +199,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
     >
       {UI.symbol(@icon, size: 22)}
       <Spacer size={10} />
-      <Text text={@title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text font_family="fa" text={@title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
       {Kati.Screens.HomeFaOmittedSections.line(@line)}
     </Column>
     """
@@ -210,7 +214,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={5} />
-      <Text text={@text} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+      <Text font_family="fa" text={@text} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -230,12 +234,14 @@ defmodule Kati.Screens.HomeFaOmittedSections do
       <Column weight={1.0}>
         <Text
           text="یک بخش بدون محتوا حذف می‌شود، نه اینکه خالی نوشته شود — اما"
+          font_family="fa"
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}
         />
         <Text
           text="باقی امروز"
+          font_family="fa"
           text_size={12}
           line_height={1.5}
           font_weight="semibold"
@@ -243,12 +249,14 @@ defmodule Kati.Screens.HomeFaOmittedSections do
         />
         <Text
           text="همیشه می‌ماند، چون تقویم به بخش‌ها وابسته نیست و «امروز چیزی نیست» خودش یک خبر است."
+          font_family="fa"
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}
         />
         <Text
           text="این تصمیم برای انگلیسی هم همین است."
+          font_family="fa"
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}

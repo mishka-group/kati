@@ -202,6 +202,9 @@ defmodule Kati.Screens.Gallery do
     {"161", "Welcome — step 2 of 5", Kati.Screens.OnboardingWelcome, :push},
     {"162", "Loudness — step 4 of 5", Kati.Screens.OnboardingLoudness, :push},
     {"163", "First title — step 5 of 5", Kati.Screens.OnboardingFirstTitle, :push},
+    {"164", "خوش‌آمد — welcome, RTL", Kati.Screens.OnboardingWelcomeFa, :push},
+    {"165", "اعلان‌ها — loudness, RTL", Kati.Screens.OnboardingLoudnessFa, :push},
+    {"166", "اولین عنوان — first title, RTL", Kati.Screens.OnboardingFirstTitleFa, :push},
     {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push}
   ]
 
@@ -425,6 +428,23 @@ defmodule Kati.Screens.Gallery do
   def undrawn_row({tag, name, module}, rule?),
     do: Kati.Screens.Gallery.row({"--", name, module, :push}, rule?, tag)
 
+  @doc """
+  The face a registry label is set in: Vazirmatn once it carries any Persian.
+
+  Twenty-two of these rows are named in Persian, and three name a Persian
+  screen in both scripts at once. Left unmarked they came out in Android's
+  own fallback Arabic face — legible, and not the one the rest of the app is
+  set in, which is the failure `Kati.PersianFontTest` exists to make loud.
+
+  Vazirmatn covers Latin and the em dash as well, so the mixed rows take it
+  whole rather than being split into two `Text`s to keep three English words
+  in Plus Jakarta Sans.
+  """
+  @spec face(String.t()) :: String.t()
+  def face(label) do
+    if String.match?(label, ~r/[\x{0600}-\x{06FF}]/u), do: "fa", else: "sans"
+  end
+
   @doc false
   def row(entry, rule?), do: Kati.Screens.Gallery.row(entry, rule?, nil)
 
@@ -447,6 +467,7 @@ defmodule Kati.Screens.Gallery do
         <Column weight={1.0}>
           <Text
             text={name}
+            font_family={Kati.Screens.Gallery.face(name)}
             text_size={14}
             font_weight="semibold"
             text_color={:on_surface}

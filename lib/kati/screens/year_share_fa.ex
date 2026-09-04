@@ -496,7 +496,7 @@ defmodule Kati.Screens.YearShareFa do
         <Spacer size={6} />
         <Text
           text={Kati.Screens.YearShareFa.drawn().wordmark}
-          font_family="mono"
+          font_family="fa"
           text_size={10.5}
           text_color={Kati.Theme.Palette.sub()}
           max_lines={1}

@@ -359,7 +359,7 @@ defmodule Kati.Screens.TodayFa do
         <Column width={44} padding_top={Kati.Screens.TodayFa.gutter_top(meal.state)}>
           <Text
             text={meal.time}
-            font_family="mono"
+            font_family="fa"
             text_size={12}
             font_weight={Kati.Screens.TodayFa.gutter_weight(meal.state)}
             text_color={Kati.Screens.TodayFa.gutter_color(meal.state)}

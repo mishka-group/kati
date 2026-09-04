@@ -20,8 +20,19 @@ defmodule Kati.Screens.Fa do
 
     * **Every Persian string needs `font_family="fa"`.** Plus Jakarta Sans —
       the default for an unstyled `Text` — has no Arabic-script glyphs at all
-      (checked: `kati_sans_400.ttf` carries none of U+0600–U+06FF), so a
-      Persian label without the prop is a row of empty boxes, not a fallback.
+      (checked: `kati_sans_400.ttf` carries none of U+0600–U+06FF).
+
+      This file used to finish that sentence *"so a Persian label without the
+      prop is a row of empty boxes, not a fallback"*, and that was wrong.
+      Photographed on the Pixel_9a: Compose falls through a `FontFamily` that
+      lacks the glyph to the platform's own chain, so Android substitutes its
+      system Arabic face and the label renders, shaped and joined and
+      perfectly readable. The rule is unchanged and the reason is worse. A
+      blank box is a bug anyone would file; Kati's Persian quietly set in
+      somebody else's typeface, one paragraph at a time, next to paragraphs
+      that are not, is a thing you can look straight at for a year.
+      `Kati.PersianFontTest` is what says it out loud now, because nobody
+      else was going to.
 
     * **Persian digits cannot go in the mono face.** The drawings ask for DM
       Mono on times, day numbers and episode numbers, and 58's own caption
@@ -32,6 +43,13 @@ defmodule Kati.Screens.Fa do
       are right, which is the better half of an unwinnable trade — and it goes
       away the day the mono subset is regenerated with the Persian digits in
       it.
+
+      Stated here since these screens were written, and disobeyed by four of
+      them until `Kati.PersianFontTest` counted: `Kati.Screens.StatsFa`'s
+      figures, `Kati.Screens.TodayFa`'s and `Kati.Screens.MealsMatrixFa`'s
+      meal times and `Kati.Screens.YearShareFa`'s wordmark were all still
+      asking mono for glyphs it does not have. A rule a module states about
+      itself is not a rule the module keeps.
 
   The eyebrow is the same case one level up: the design's Latin eyebrow is DM
   Mono 10.5 at .16em, and the Persian one is **Vazirmatn 11 / 600 / no
@@ -259,6 +277,88 @@ defmodule Kati.Screens.Fa do
       </Row>
       <Spacer size={11} />
     </Column>
+    """
+  end
+
+  @doc """
+  `Kati.UI.Eyebrow.quiet/1`'s eyebrow, in Persian.
+
+  Not the Latin one with the family swapped, for the same two reasons
+  `eyebrow/1` gives: `String.upcase/1` is a no-op on a script with no case,
+  and DM Mono's 10.5 at .16em is a Latin small-caps effect that sets Persian
+  letters adrift from each other. Vazirmatn 11/600 with no tracking, which is
+  what all four Persian drawings measure.
+
+  The dash is `rail_idle` rather than `accent`, which is the whole difference
+  between this and `eyebrow/1`: it is the drawing saying *present, but not
+  now* about a section, in the same grey the timeline rail uses to say it
+  about an hour.
+  """
+  @spec quiet_eyebrow(String.t()) :: map()
+  def quiet_eyebrow(label) do
+    dash = Palette.rail_idle()
+    label_color = Palette.eyebrow()
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
+        <Box width={13} height={2} corner_radius={1} background={dash} />
+        <Spacer size={9} />
+        <Text
+          text={label}
+          font_family="fa"
+          font_weight="semibold"
+          text_size={11}
+          text_color={label_color}
+        />
+      </Row>
+      <Spacer size={11} />
+    </Column>
+    """
+  end
+
+  @doc """
+  `Kati.UI.SettingsList.note/2`'s dashed aside, typeset in Persian.
+
+  The Latin one cannot be reused, and the reason is the whole subject of this
+  module's second section: the pill hands its paragraph to a `Text` it builds
+  itself, with no `font_family`, so a Persian note drawn through it asks Plus
+  Jakarta Sans for glyphs that face does not contain. `Kati.PersianFontTest`
+  is what now says so out loud.
+
+  Same numbers as the Latin note — 18pt radius, 1.5pt dashed border, 16pt
+  padding, an 18pt leading glyph 11pt from the text — because the difference
+  between the two is the face and nothing else.
+  """
+  @spec note(String.t(), String.t()) :: map()
+  def note(icon, text) do
+    Kati.Components.MishkaPill.pill(
+      %{
+        background: :none,
+        corner_radius: 18,
+        border_color: Palette.border(),
+        border_width: 1.5,
+        padding: 16,
+        fill_width: true,
+        content_align: :top,
+        content_fill_width: true,
+        leading: Kati.UI.symbol(icon, size: 18, color: Palette.sub()),
+        leading_gap: 11
+      },
+      [note_text(text)]
+    )
+  end
+
+  defp note_text(text) do
+    ~MOB"""
+    <Text
+      text={text}
+      font_family="fa"
+      text_size={12.5}
+      line_height={1.55}
+      text_color={Palette.ink_soft()}
+      weight={1.0}
+    />
     """
   end
 

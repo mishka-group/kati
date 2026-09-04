@@ -14,7 +14,6 @@ defmodule Kati.Screens.HomeFaEmptyDark do
   `Kati.Shell` carries rather than a page of its own.
   """
   use Mob.Screen
-  import Mob.Sigil
 
   alias Kati.Screens.Fa
   alias Kati.Screens.HomeFaEmpty

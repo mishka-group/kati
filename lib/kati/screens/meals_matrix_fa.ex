@@ -359,7 +359,7 @@ defmodule Kati.Screens.MealsMatrixFa do
           <Spacer size={2} />
           <Text
             text={row.time}
-            font_family="mono"
+            font_family="fa"
             text_size={9.5}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -611,7 +611,7 @@ defmodule Kati.Screens.MealsMatrixFa do
         <Spacer size={13} />
         <Text
           text={meal.calories}
-          font_family="mono"
+          font_family="fa"
           text_size={11}
           text_color={Palette.muted()}
           max_lines={1}

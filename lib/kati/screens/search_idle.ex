@@ -228,7 +228,6 @@ defmodule Kati.Screens.SearchIdle do
   @spec counts_note() :: map()
   def counts_note, do: SettingsList.note("info", Kati.Search.Sample.counts_note())
 
-  @doc false
   @doc """
   What was typed, and where it goes.
 

@@ -213,6 +213,24 @@ defmodule Kati.Screens.AddTitle do
     end
   end
 
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      # The toggle runs over the FULL list, not the filtered one: the row the
+      # user tapped is identified by its title, so which chip was on when they
+      # tapped it cannot matter.
+      "add_" <> title ->
+        {:noreply, Kati.Screens.AddTitle.add(socket, title)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_info(_msg, socket), do: {:noreply, socket}
+
   @doc """
   Run one search and put its answer on the socket.
 
@@ -274,23 +292,6 @@ defmodule Kati.Screens.AddTitle do
     end
   end
 
-  def handle_info({:tap, tag}, socket) do
-    case Atom.to_string(tag) do
-      "filter_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :filter, label)}
-
-      # The toggle runs over the FULL list, not the filtered one: the row the
-      # user tapped is identified by its title, so which chip was on when they
-      # tapped it cannot matter.
-      "add_" <> title ->
-        {:noreply, Kati.Screens.AddTitle.add(socket, title)}
-
-      _ ->
-        {:noreply, socket}
-    end
-  end
-
-  def handle_info(_msg, socket), do: {:noreply, socket}
 
   @doc """
   The results a chip leaves visible.

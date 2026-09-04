@@ -14,12 +14,24 @@ defmodule Kati.Screens.AddByHandFa do
     * **The segmented trough reverses**, so فیلم sits at the leading right
       edge. A `Row` under `dir="rtl"` does that by itself; nothing here
       reverses a list by hand.
-    * **Year and episode count keep DM Mono with Persian digits**, so the two
-      numeric fields still align in a column the way the Latin ones do.
+    * **Year and episode count are Persian digits**, so the two numeric fields
+      still align in a column the way the Latin ones do — set in Vazirmatn at
+      the mono size rather than in DM Mono, which carries none of
+      U+06F0–U+06F9. `Kati.Screens.Fa` has said so since it was written.
     * **The year is Shamsi.** `۱۴۰۳` and not `2024` — a Persian screen showing
       a Gregorian year is the same class of mistake as a mirrored screen
       keeping its left chevron, and this one is quieter because the digits
       still look right.
+
+  ## The status chips are the one control built twice
+
+  Every other piece of this form is screen 154's with `"fa"` handed to it. The
+  status chips are not, because `Kati.Components.MishkaChip` takes its label as
+  a **prop** and builds the `Text` itself with no `font_family` — the exact
+  shape `Kati.Screens.Fa` names as the reason the mirrors adopt so little of
+  the set, and the one upstream ask that module makes. `status_chip/2` here is
+  that component's recipe, number for number, with a face on the label. It
+  goes away the day the chip grows a content slot its siblings already have.
 
   ## What it does not own
 
@@ -60,16 +72,16 @@ defmodule Kati.Screens.AddByHandFa do
     <Column fill_width={true}>
       {Kati.Screens.AddByHandFa.back_pill()}
       {Kati.Screens.AddByHandFa.heading()}
-      {AddByHand.labelled("عنوان", Kati.Screens.AddByHandFa.field(:title, assigns.title, "گودال بلند"))}
-      {AddByHand.labelled("نوع", Kati.Screens.AddByHandFa.kinds(assigns.kind))}
-      {AddByHand.labelled("سال", Kati.Screens.AddByHandFa.field(:year, assigns.year, "۱۴۰۳"), "اختیاری")}
-      {AddByHand.labelled("وضعیت", Kati.Screens.AddByHandFa.statuses(assigns.status))}
-      {AddByHand.labelled("تعداد قسمت‌ها", Kati.Screens.AddByHandFa.field(:episodes, assigns.episodes, "۷"), "اختیاری")}
-      {Kati.UI.SettingsList.note("info", "بدون این عدد سریال ردیابی می‌شود اما نوار پیشرفتش مخرج ندارد — کاتی همین را صادقانه نشان می‌دهد.")}
+      {AddByHand.labelled("عنوان", Kati.Screens.AddByHandFa.field(:title, assigns.title, "گودال بلند"), nil, "fa")}
+      {AddByHand.labelled("نوع", Kati.Screens.AddByHandFa.kinds(assigns.kind), nil, "fa")}
+      {AddByHand.labelled("سال", Kati.Screens.AddByHandFa.field(:year, assigns.year, "۱۴۰۳"), "اختیاری", "fa")}
+      {AddByHand.labelled("وضعیت", Kati.Screens.AddByHandFa.statuses(assigns.status), nil, "fa")}
+      {AddByHand.labelled("تعداد قسمت‌ها", Kati.Screens.AddByHandFa.field(:episodes, assigns.episodes, "۷"), "اختیاری", "fa")}
+      {Fa.note("info", "بدون این عدد سریال ردیابی می‌شود اما نوار پیشرفتش مخرج ندارد — کاتی همین را صادقانه نشان می‌دهد.")}
       <Spacer size={18} />
-      {Kati.UI.Sheet.commit("افزودن به کتابخانه", :add)}
+      {Kati.UI.Sheet.commit("افزودن به کتابخانه", :add, "fa")}
       <Spacer size={14} />
-      {AddByHand.split_note("عنوان دست‌نویس", "پوستر و فهرست قسمت ندارد", ". اگر کاتی بعداً آن را پیدا کند، هر دو می‌آیند و چیزی که نوشته‌اید دست‌نخورده می‌ماند.")}
+      {AddByHand.split_note("عنوان دست‌نویس", "پوستر و فهرست قسمت ندارد", ". اگر کاتی بعداً آن را پیدا کند، هر دو می‌آیند و چیزی که نوشته‌اید دست‌نخورده می‌ماند.", "fa")}
     </Column>
     """
   end
@@ -99,7 +111,7 @@ defmodule Kati.Screens.AddByHandFa do
         >
           {Kati.UI.symbol("arrow_forward_ios", size: 17)}
           <Spacer size={6} />
-          <Text text="افزودن عنوان" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+          <Text text="افزودن عنوان" font_family="fa" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
         </Row>
         <Spacer weight={1.0} />
       </Row>
@@ -114,6 +126,7 @@ defmodule Kati.Screens.AddByHandFa do
     <Column fill_width={true}>
       <Text
         text="افزودن دستی"
+        font_family="fa"
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
@@ -123,6 +136,7 @@ defmodule Kati.Screens.AddByHandFa do
       <Spacer size={7} />
       <Text
         text="برای چیزی که کاتی پیدا نکرد. عنوان تنها چیز لازم است."
+        font_family="fa"
         text_size={13}
         line_height={1.55}
         text_color={Palette.sub()}
@@ -149,11 +163,49 @@ defmodule Kati.Screens.AddByHandFa do
     >
       <TextField
         value={@value}
+        font_family="fa"
         placeholder={@placeholder}
         return_key="done"
         weight={1.0}
         accessibility_id={@id}
         on_change={@on_change}
+      />
+    </Row>
+    """
+  end
+
+  @doc """
+  `Kati.Screens.AddByHand.status_chip/2`, drawn here so the label can carry a
+  face.
+
+  `Kati.Components.MishkaChip.chip/1` paints its own label from a `label:`
+  prop and accepts no `font_family`, so a Persian status through it is set in
+  Plus Jakarta Sans — which has no Arabic-script glyph, so Android substitutes
+  its own face and three chips come out in a typeface the rest of the screen
+  is not. Same 32pt height, 15pt inset, 16pt radius and 12.5/600 label as the
+  component; only the family is added.
+  """
+  @spec status_chip(String.t(), boolean()) :: map()
+  def status_chip(label, on?) do
+    assigns = %{label: label, on?: on?, tap: {self(), String.to_atom("status_" <> label)}}
+
+    ~MOB"""
+    <Row
+      height={32}
+      corner_radius={16}
+      background={if @on?, do: Palette.ink_fill(), else: Palette.card()}
+      padding_left={15}
+      padding_right={15}
+      align="center"
+      on_tap={@tap}
+    >
+      <Text
+        text={@label}
+        font_family="fa"
+        text_size={12.5}
+        font_weight="semibold"
+        text_color={if @on?, do: Palette.on_ink(), else: Palette.ink_soft()}
+        max_lines={1}
       />
     </Row>
     """
@@ -170,7 +222,7 @@ defmodule Kati.Screens.AddByHandFa do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHandFa.kind_list(), fn {label, kind, icon} ->
-        AddByHand.kind_chip(label, icon, kind == active)
+        AddByHand.kind_chip(label, icon, kind == active, "fa")
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
@@ -182,7 +234,7 @@ defmodule Kati.Screens.AddByHandFa do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHandFa.status_list(), fn label ->
-        AddByHand.status_chip(label, label == active)
+        Kati.Screens.AddByHandFa.status_chip(label, label == active)
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>

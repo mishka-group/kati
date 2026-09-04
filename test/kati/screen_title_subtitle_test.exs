@@ -104,7 +104,18 @@ defmodule Kati.ScreenTitleSubtitleTest do
     end
   end
 
-  defp family(style), do: if(style =~ "Mono", do: "mono", else: nil)
+  # Three families, not two. The Persian boards set their type in Vazirmatn and
+  # the screens say so with `font_family="fa"`; reading only for "Mono" made
+  # every Persian board claim the default face, so a Persian subtitle drawn
+  # correctly failed and one drawn in Plus Jakarta Sans — which carries no
+  # Arabic glyph at all — would have passed. See `Kati.PersianFontTest`.
+  defp family(style) do
+    cond do
+      style =~ "Mono" -> "mono"
+      style =~ "Vazirmatn" -> "fa"
+      true -> nil
+    end
+  end
 
   defp gap(style) do
     case Regex.run(~r/margin-top:(\d+)px/, style) do

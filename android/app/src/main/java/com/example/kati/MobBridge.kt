@@ -110,6 +110,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontFamily
+// KATI-BEGIN(K-41 text-field-font-imports) mob_new=0.4.20
+import androidx.compose.material3.LocalTextStyle
+// KATI-END(K-41 text-field-font-imports)
 // KATI-BEGIN(K-14 bundled-fonts-import) mob_new=0.4.20
 import androidx.compose.ui.text.font.Font
 // KATI-END(K-14 bundled-fonts-import)
@@ -3525,13 +3528,32 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     val fillWidth = boolProp(node.props, "fill_width") ?: false
     val tfModifier = if (fillWidth) modifier.fillMaxWidth() else modifier
 
+    // KATI-BEGIN(K-41 text-field-font) mob_new=0.4.20
+    // The stock field reads no font at all, so `font_family` on a text_field
+    // was a prop the bridge silently dropped — the failure `fontFamilyProp`'s
+    // own comment above calls the most expensive kind in this codebase. It
+    // matters here because Kati's Persian form (screen 156) is three fields
+    // and an empty one is all placeholder: Plus Jakarta Sans carries no
+    // Arabic-script glyph, so both the typed text and the hint fell through
+    // to Android's fallback face.
+    //
+    // The placeholder needs it stated separately. Compose merges the field's
+    // `textStyle` into the value only; the placeholder slot is a plain
+    // composable and takes `LocalTextStyle`, which is the theme's, not the
+    // field's.
+    val family = fontFamilyProp(node.props)
+    // KATI-END(K-41 text-field-font)
+
     TextField(
         value         = localValue,
         onValueChange = { new ->
             localValue = new
             changeHandle?.let { MobBridge.nativeSendChangeStr(it, new) }
         },
-        placeholder   = { Text(placeholder) },
+        // KATI-BEGIN(K-41 text-field-font-style) mob_new=0.4.20
+        textStyle     = LocalTextStyle.current.copy(fontFamily = family),
+        placeholder   = { Text(placeholder, fontFamily = family) },
+        // KATI-END(K-41 text-field-font-style)
         modifier      = tfModifier
             .onFocusChanged { state ->
                 if (state.isFocused) focusHandle?.let { MobBridge.nativeSendFocus(it) }

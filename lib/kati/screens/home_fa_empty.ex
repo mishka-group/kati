@@ -33,7 +33,6 @@ defmodule Kati.Screens.HomeFaEmpty do
   alias Kati.Screens.HomeFa
   alias Kati.Theme.Palette
   alias Kati.UI
-  alias Kati.UI.SettingsList
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
@@ -56,7 +55,7 @@ defmodule Kati.Screens.HomeFaEmpty do
         {Kati.Screens.HomeFaEmpty.header()}
         {Kati.Screens.HomeFaEmpty.search()}
         {Kati.Screens.HomeFaEmpty.invitation()}
-        {SettingsList.eyebrow_muted("تقویم همچنان کار می‌کند")}
+        {Fa.quiet_eyebrow("تقویم همچنان کار می‌کند")}
         {Kati.Screens.HomeFaEmpty.today_card()}
         {Kati.Screens.HomeFaEmpty.footnote()}
       </Column>
@@ -75,6 +74,7 @@ defmodule Kati.Screens.HomeFaEmpty do
         <Column weight={1.0}>
           <Text
             text={@moment.date}
+            font_family="fa"
             text_size={11.5}
             font_weight="medium"
             text_color={Palette.tertiary()}
@@ -83,6 +83,7 @@ defmodule Kati.Screens.HomeFaEmpty do
           <Spacer size={7} />
           <Text
             text={@moment.greeting}
+            font_family="fa"
             text_size={26}
             max_font_scale={1.6}
             font_weight="bold"
@@ -135,6 +136,7 @@ defmodule Kati.Screens.HomeFaEmpty do
         <Spacer size={11} />
         <Text
           text="جست‌وجوی هر چیزی که نگه می‌دارید"
+          font_family="fa"
           text_size={14.5}
           text_color={Palette.tertiary()}
           weight={1.0}
@@ -172,6 +174,7 @@ defmodule Kati.Screens.HomeFaEmpty do
         <Spacer size={18} />
         <Text
           text="هنوز چیزی اینجا نیست"
+          font_family="fa"
           text_size={16.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -180,17 +183,19 @@ defmodule Kati.Screens.HomeFaEmpty do
         <Spacer size={8} />
         <Text
           text="کاتی همان چیزی را نگه می‌دارد که به آن بسپارید. یک بخش را انتخاب کنید و این صفحه با چیزهایی که تماشا و مطالعه می‌کنید پر می‌شود."
+          font_family="fa"
           text_size={12.5}
           line_height={1.6}
           text_color={Palette.ink_soft()}
           text_align="center"
         />
         <Spacer size={16} />
-        {Kati.UI.Sheet.commit("انتخاب بخش‌ها", :pick_sections)}
+        {Kati.UI.Sheet.commit("انتخاب بخش‌ها", :pick_sections, "fa")}
         <Spacer size={11} />
         <Box fill_width={true} on_tap={{self(), :import_backup}}>
           <Text
             text="یا بازگردانی از پشتیبان"
+            font_family="fa"
             text_size={13}
             font_weight="semibold"
             text_color={Palette.sub()}
@@ -221,10 +226,11 @@ defmodule Kati.Screens.HomeFaEmpty do
         </Box>
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text text="امروز" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+          <Text font_family="fa" text="امروز" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
           <Spacer size={4} />
           <Text
             text="چیزی برنامه‌ریزی نشده — با + هر چیزی اضافه کنید"
+            font_family="fa"
             text_size={11.5}
             text_color={Palette.sub()}
           />
@@ -259,12 +265,14 @@ defmodule Kati.Screens.HomeFaEmpty do
       <Column weight={1.0}>
         <Text
           text="خانه صفحه‌ای از کارت‌های بخش‌هاست، پس بدون بخش چیزی برای نشان‌دادن ندارد."
+          font_family="fa"
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}
         />
         <Text
           text="تقویم و افزودن سریع به بخش وابسته نیستند"
+          font_family="fa"
           text_size={12}
           line_height={1.5}
           font_weight="semibold"
@@ -272,6 +280,7 @@ defmodule Kati.Screens.HomeFaEmpty do
         />
         <Text
           text="و همیشه زنده می‌مانند — پیش از آنکه برنامه تنظیم شود هم می‌شود از آن استفاده کرد."
+          font_family="fa"
           text_size={12}
           line_height={1.5}
           text_color={Palette.ink_soft()}

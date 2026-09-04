@@ -164,8 +164,8 @@ defmodule Kati.Screens.Currency do
         SettingsList.trailing(Kati.Screens.Currency.example(code, "en"))
       ),
       SettingsList.row(
-        Kati.Screens.Currency.locale_tile("فا"),
-        SettingsList.body("فارسی", nil),
+        Kati.Screens.Currency.locale_tile("فا", "fa"),
+        Kati.Screens.Currency.persian_body("فارسی"),
         SettingsList.trailing(Kati.Screens.Currency.example(code, "fa"))
       )
     ]
@@ -181,13 +181,14 @@ defmodule Kati.Screens.Currency do
   end
 
   @doc false
-  def locale_tile(label) do
-    assigns = %{label: label}
+  def locale_tile(label, face \\ "sans") do
+    assigns = %{label: label, face: face}
 
     ~MOB"""
     <Box width={40} height={40} corner_radius={12} background={Palette.paper()} align="center">
       <Text
         text={@label}
+        font_family={@face}
         text_size={13}
         font_weight="semibold"
         text_align="center"
@@ -197,15 +198,54 @@ defmodule Kati.Screens.Currency do
     """
   end
 
-  @doc "`£1,234.56`, in the named locale, straight from CLDR."
+  @doc """
+  The row title of the Persian locale, in the Persian face.
+
+  `Kati.UI.SettingsList.body/2` builds its own `Text` and takes no
+  `font_family` — the shape `Kati.Screens.Fa` calls the reason the mirrors
+  adopt so little of `Kati.Components` — so the one Persian title on this
+  screen is built here instead of translated into a prop the component does
+  not have.
+  """
+  @spec persian_body(String.t()) :: map()
+  def persian_body(title) do
+    assigns = %{title: title}
+
+    ~MOB"""
+    <Column weight={1.0}>
+      <Text
+        text={@title}
+        font_family="fa"
+        text_size={14.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  `£1,234.56`, in the named locale, straight from CLDR.
+
+  The Persian example leaves the mono face, and it is the same trade
+  `Kati.Screens.Fa` records for every Persian numeral in the app:
+  `kati_mono.ttf` carries none of U+06F0–U+06F9 and none of the words, so
+  `۱٬۲۳۴٫۵۶ پوند بریتانیا` in mono is drawn by Android's fallback face beside
+  the English row's real DM Mono. Vazirmatn at the same size is the wrong face
+  and the right glyphs, which is the better half of it.
+  """
   @spec example(String.t(), String.t()) :: map()
   def example(code, locale) do
-    assigns = %{text: Kati.Screens.Currency.formatted_example(code, locale)}
+    assigns = %{
+      text: Kati.Screens.Currency.formatted_example(code, locale),
+      face: if(locale == "fa", do: "fa", else: "mono")
+    }
 
     ~MOB"""
     <Text
       text={@text}
-      font_family="mono"
+      font_family={@face}
       text_size={12.5}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}

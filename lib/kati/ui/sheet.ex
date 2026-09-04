@@ -169,8 +169,8 @@ defmodule Kati.UI.Sheet do
   finished rather than what it did.
   """
   @spec commit(String.t(), atom()) :: map()
-  def commit(label, tag) do
-    assigns = %{label: label, tag: tag}
+  def commit(label, tag, face \\ "sans") do
+    assigns = %{label: label, tag: tag, face: face}
 
     ~MOB"""
     <Row
@@ -184,6 +184,7 @@ defmodule Kati.UI.Sheet do
       <Spacer weight={1.0} />
       <Text
         text={@label}
+        font_family={@face}
         text_size={14.5}
         font_weight="bold"
         text_color={Palette.on_ink()}
