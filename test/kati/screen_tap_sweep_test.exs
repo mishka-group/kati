@@ -213,10 +213,8 @@ defmodule Kati.ScreenTapSweepTest do
   @known_collisions %{
     "28" => ["root_calendar"],
     "38" => ["finish"],
-    "42" => ["open_meals", "open_retired"],
     "52" => ["density"],
     "86" => ["repeat_query", "try_suggestion"],
-    "113" => ["open_habits", "open_meals", "open_medication", "open_weight"],
     "114" => ["close"],
     "127" => ["open_services"]
   }
@@ -577,7 +575,12 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.YearShareFa, :aspect_square},
     # Screen 113 draws screen 42's Meals tile as one of the states it is about.
     # A picture of a tile, not a tile.
-    {Kati.Screens.HealthEmptyStates, :open_meals},
+    # Once per grid since #97 banded the tags — this board draws the same four
+    # sections twice, so the Meals tile is two nodes. Both are inert for the
+    # reason the single entry was: the tile is drawn OFF in both states, and a
+    # switched-off section has nothing to open.
+    {Kati.Screens.HealthEmptyStates, :open_meals_nothing_set_up},
+    {Kati.Screens.HealthEmptyStates, :open_meals_meals_off},
     # Screen 115's dose buttons and its opening range. The two writes land on
     # the first undecided dose of the day and there are none on an empty
     # database, which is the same no-op screen 112's English entries record.

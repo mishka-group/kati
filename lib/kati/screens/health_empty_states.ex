@@ -210,7 +210,9 @@ defmodule Kati.Screens.HealthEmptyStates do
   """
   @spec nothing_set_up() :: [map()]
   def nothing_set_up do
-    Enum.map(buildable(), fn tile -> %{tile | on?: false, line: "Not set up"} end)
+    Enum.map(buildable(), fn tile ->
+      tile |> Map.merge(%{on?: false, line: "Not set up"}) |> Map.put(:band, "nothing_set_up")
+    end)
   end
 
   @doc """
@@ -229,8 +231,9 @@ defmodule Kati.Screens.HealthEmptyStates do
   def meals_off do
     {meals, running} = Enum.split_with(buildable(), &(&1.icon == "restaurant"))
 
-    Enum.map(running, &live/1) ++
-      Enum.map(meals, fn tile -> %{tile | on?: false, line: "Switched off"} end)
+    (Enum.map(running, &live/1) ++
+       Enum.map(meals, fn tile -> %{tile | on?: false, line: "Switched off"} end))
+    |> Enum.map(&Map.put(&1, :band, "meals_off"))
   end
 
   @doc """
@@ -570,14 +573,21 @@ defmodule Kati.Screens.HealthEmptyStates do
   # The board draws screen 42's Meals tile, so it draws that tile's tag. It is
   # a picture of a tile rather than a tile — 27's reason — and answering it
   # quietly is what keeps a press from raising into `rescue_tap/3`.
-  def handle_tap(:open_meals, socket), do: {:noreply, socket}
+  # The tags arrive banded since #97 — `open_habits_nothing_set_up`,
+  # `open_habits_meals_off` and so on — because this board draws the same grid
+  # twice and one tag on two grids was one accessibility_id on two nodes. The
+  # band is dropped here: which of the two grids a tile was pressed in changes
+  # nothing about where it goes, and the moduledoc's argument for answering
+  # these at all is unchanged.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case tag |> Atom.to_string() |> String.split("_") do
+      ["open", "meals" | _band] -> {:noreply, socket}
+      ["open", "habits" | _band] -> {:noreply, push(socket, Kati.Screens.Habits)}
+      ["open", "weight" | _band] -> {:noreply, push(socket, Kati.Screens.Weight)}
+      ["open", "medication" | _band] -> {:noreply, push(socket, Kati.Screens.Medication)}
+      _other -> {:noreply, socket}
+    end
+  end
 
-  def handle_tap(:open_habits, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
-
-  def handle_tap(:open_weight, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Weight)}
-
-  def handle_tap(:open_medication, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Medication)}
+  defp push(socket, screen), do: Mob.Socket.push_screen(socket, screen)
 end
