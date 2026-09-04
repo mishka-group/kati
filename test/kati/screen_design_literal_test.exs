@@ -225,8 +225,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 153,
-             "expected 153 drawings under test/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 154,
+             "expected 154 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -912,6 +912,12 @@ defmodule Kati.ScreenDesignLiteralTest do
          tiles: Kati.Screens.Home.drawn_tiles(),
          timeline: Kati.Screens.Home.drawn_rows()
        })},
+      # 154 is drawn with Series chosen, and its own caption says why: the
+      # episode-count field is only visible for a series. Board 155 states the
+      # screen's actual default — "Resting — empty, Film, nothing assumed" — so
+      # the board and the load disagree on purpose and this is the seam.
+      {"154", Kati.Screens.AddByHand,
+       &(&1 |> Map.put(:kind, :tv) |> Map.put(:title, "The Long Hollow") |> Map.put(:year, "2024") |> Map.put(:episodes, "7"))},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so

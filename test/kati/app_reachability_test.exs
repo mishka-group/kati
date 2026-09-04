@@ -92,6 +92,10 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
+    {Screens.AddByHandStates,
+     "screen 154's two states and the three decisions behind them, in 27's " <>
+       "manner. A picture of two situations rather than a situation the app " <>
+       "can be in."},
     {Screens.YearCardsStates, "screen 100's states, in 27's manner. As above."},
     {Screens.MoneyStates, "screen 122's states, in 27's manner. As above."},
     {Screens.MealLibraryEmpty,

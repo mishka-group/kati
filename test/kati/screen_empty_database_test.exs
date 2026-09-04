@@ -388,7 +388,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # store is only touched when Add is pressed. It is here because this list
     # is derived from the compiled import table, which is what stops a screen
     # opting itself out by only writing on a tap.
-    {"154", Kati.Screens.AddByHand}
+    {"154", Kati.Screens.AddByHand},
+    {"155", Kati.Screens.AddByHandStates}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -430,6 +431,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     undo, which the Library does not draw and screen 27 itself does.
   @empty_boards %{
     "01" => [{"139", :whole}],
+    # 154 draws its form in whatever state the socket holds, and its load state
+    # is Film — board 155 says so: "Resting — empty, Film, nothing assumed".
+    # Board 154 is drawn with Series chosen so the episode-count field is
+    # visible, which is a state a user reaches and not the one the screen opens
+    # in, so the resting comparison is 155's first band rather than 154 whole.
+    "154" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
     "03" => [
       {"03", :whole},
       {"27", {"Empty — nothing added yet", "Loading — skeleton, never a spinner"}}
@@ -1384,6 +1391,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # disagreed with the page that opened it would be the defect worth
       # catching.
       {"154", Kati.Screens.AddByHand, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 155 reads nothing at all — it is a picture of 154's two states, and it
+      # is on the migrated list only because it calls 154's own helpers and the
+      # list is derived from the compiled import table. Gated the same way 154
+      # is, for the same reason.
+      {"155", Kati.Screens.AddByHandStates, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       {"19", Kati.Screens.Search, &Kati.Screens.Search.results_for/0,
        &Kati.Screens.Search.Sample.results/0},

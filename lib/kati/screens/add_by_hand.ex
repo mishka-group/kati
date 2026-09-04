@@ -20,6 +20,17 @@ defmodule Kati.Screens.AddByHand do
   so in as many words rather than drawing a placeholder that implies one is
   coming.
 
+  ## Film is the default, and board 154 is not drawn in it
+
+  Board 155 says so in as many words — *"Resting — empty, Film, nothing
+  assumed"* — and 154's own caption explains why it shows the other one: it is
+  drawn *"with Series chosen so the episode-count field is visible"*. A form
+  that assumed Series would be assuming the answer to its own second question.
+
+  So this screen loads as Film and `Kati.ScreenDesignLiteralTest`'s
+  `drawn_state/0` puts it in 154's state for the comparison, which is the same
+  arrangement screens 01, 02 and 03 use for a board drawn with rows in it.
+
   ## The two optional fields, and why the board marks them
 
   **Year** narrows nothing today. It is on the board because a person typing a
@@ -51,7 +62,7 @@ defmodule Kati.Screens.AddByHand do
   def load(socket) do
     Mob.Socket.assign(socket,
       title: "",
-      kind: :tv,
+      kind: :movie,
       year: "",
       status: "Not started",
       episodes: "",
@@ -64,7 +75,7 @@ defmodule Kati.Screens.AddByHand do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.AddByHand.heading()}
-      {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "The Long Hollow"))}
+      {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "e.g. The Long Hollow"))}
       {Kati.Screens.AddByHand.labelled("Kind", Kati.Screens.AddByHand.kinds(assigns.kind))}
       {Kati.Screens.AddByHand.labelled("Year", Kati.Screens.AddByHand.field(:year, assigns.year, "2024"), "optional")}
       {Kati.Screens.AddByHand.labelled("Status", Kati.Screens.AddByHand.statuses(assigns.status))}
