@@ -317,6 +317,28 @@ defmodule Kati.Screens.AddByHand do
     """
   end
 
+  @doc """
+  What was typed, in whichever of the three fields.
+
+  Each `<TextField>` carries its own assign name as its change tag, so this is
+  one clause rather than three — `field/3` builds the tag from the same atom it
+  puts in `accessibility_id`, which is what lets a device test address the field
+  it typed into.
+
+  **The catch-all delegates to `super/2`.** `Kati.Screens.Pushed` marks
+  `handle_info/2` overridable and defines four clauses on it, one of which
+  routes every `{:tap, tag}` to `handle_tap/2`; replacing all four is how screen
+  88 went unreachable earlier on this branch. This file was written with no
+  change handler at all, so nothing typed ever reached the assign and Add
+  refused every time — found by the device test, which is the only thing that
+  could have found it.
+  """
+  def handle_info({:change, field, typed}, socket)
+      when field in [:title, :year, :episodes] and is_binary(typed),
+      do: {:noreply, Mob.Socket.assign(socket, field, typed)}
+
+  def handle_info(message, socket), do: super(message, socket)
+
   @impl true
   def handle_tap(:add, socket), do: {:noreply, Kati.Screens.AddByHand.save(socket)}
 
