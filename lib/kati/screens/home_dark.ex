@@ -256,6 +256,14 @@ defmodule Kati.Screens.HomeDark do
   def handle_info({:tap, :fab}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
 
+  # The header's `calendar_month` disc, which drew the dock's own
+  # `:root_calendar` until #97 — so the disc and the Calendar tab were one
+  # accessibility_id on one screen, and `onNodeWithTag` throws on the second
+  # match. `:open_calendar` is what screen 01 and screen 55 have always called
+  # the same disc; this board was the one of the three that differed.
+  def handle_info({:tap, :open_calendar}, socket),
+    do: {:noreply, leave(socket, "calendar")}
+
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
       "root_home" -> {:noreply, socket}
@@ -296,7 +304,7 @@ defmodule Kati.Screens.HomeDark do
         </Column>
         {Kati.Screens.HomeDark.disc("notifications", :inbox)}
         <Spacer size={9} />
-        {Kati.Screens.HomeDark.disc("calendar_month", :root_calendar)}
+        {Kati.Screens.HomeDark.disc("calendar_month", :open_calendar)}
       </Row>
       <Spacer size={20} />
     </Column>

@@ -257,7 +257,7 @@ defmodule Kati.Screens.RetiredTile do
       {Kati.Screens.RetiredTile.hero(subject)}
       {Kati.Screens.RetiredTile.explainer(subject.why, subject.noun)}
       {Kati.Screens.RetiredTile.instead(subject.instead)}
-      {Kati.UI.Sheet.commit("Fair enough", :close)}
+      {Kati.UI.Sheet.commit("Fair enough", :close_acknowledged)}
     </Column>
     """
   end
@@ -506,7 +506,8 @@ defmodule Kati.Screens.RetiredTile do
   `Kati.Screens.LogProgress` pushes screen 33 out of a sheet the same way.
   """
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, tag}, socket) when tag in [:close, :close_acknowledged],
+    do: {:noreply, Mob.Socket.pop_screen(socket)}
 
   def handle_info({:tap, :open_habits}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}

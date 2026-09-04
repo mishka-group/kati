@@ -210,11 +210,21 @@ defmodule Kati.ScreenTapSweepTest do
   #
   # This list may only SHRINK. The test enforces both directions — a new
   # collision fails it, and so does an entry here that no longer collides.
-  @known_collisions %{
-    "28" => ["root_calendar"],
-    "38" => ["finish"],
-    "114" => ["close"]
-  }
+  # Empty, and the ratchet is what keeps it that way: a new collision fails
+  # `no two nodes in one screen carry the same accessibility_id`, and an entry
+  # that no longer collides fails it too, so this map cannot rot in either
+  # direction.
+  #
+  # It held twenty-four when #97 opened and nineteen when the last of them was
+  # picked up. Screen 03 is the one to read about before adding an entry here
+  # rather than a fix: it left this map early, on the grounds that the sweep
+  # saw no collision — and the sweep saw none because the shelf is empty in
+  # every test, so the grid had no tiles to collide. `Kati.Screens.Library`
+  # then carried one tag per KIND on a real phone's shelf for as long as it
+  # took someone to look. An empty register is evidence of nothing on its own;
+  # what it means is that every screen with two of a kind on it has been drawn
+  # with two of a kind on it.
+  @known_collisions %{}
 
   @inert_taps [
     # ── Correct. The selected member of a family of controls: the filter that

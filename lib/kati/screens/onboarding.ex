@@ -400,7 +400,7 @@ defmodule Kati.Screens.Onboarding do
         />
       </Box>
       <Spacer size={14} />
-      <Box fill_width={true} on_tap={{self(), :finish}}>
+      <Box fill_width={true} on_tap={{self(), :finish_skip}}>
         <Text
           text={f.skip}
           text_size={13}
@@ -525,7 +525,7 @@ defmodule Kati.Screens.Onboarding do
   #
   # The root follows the locale chosen on screen 53, so a user who picked
   # فارسی lands on screen 55 and not on an English home page.
-  def handle_info({:tap, tag}, socket) when tag in [:get_started, :finish] do
+  def handle_info({:tap, tag}, socket) when tag in [:get_started, :finish, :finish_skip] do
     Kati.Onboarding.complete!()
     {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.first_screen())}
   end
