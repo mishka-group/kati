@@ -194,7 +194,9 @@ defmodule Kati.Screens.Gallery do
     {"152", "Anime — a type, not a section", Kati.Screens.AnimeFilter, :push},
     {"153", "Numbering — inherited and overridden", Kati.Screens.NumberingScheme, :push},
     {"154", "Add a title by hand", Kati.Screens.AddByHand, :push},
-    {"155", "Add by hand — resting & refused", Kati.Screens.AddByHandStates, :push}
+    {"155", "Add by hand — resting & refused", Kati.Screens.AddByHandStates, :push},
+    {"156", "افزودن دستی — Add by hand, RTL", Kati.Screens.AddByHandFa, :push},
+    {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

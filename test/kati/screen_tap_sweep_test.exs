@@ -245,6 +245,13 @@ defmodule Kati.ScreenTapSweepTest do
     # is the first group above. `kind_Film` and the other two statuses all move
     # the assign, which is what says the family is wired.
     {Kati.Screens.AddByHand, :kind_Film},
+    # 157 and 156 are 154 in another colourway and another script, and each is
+    # drawn in the state its own board shows — Series chosen so the episode
+    # field is visible. The resting member of a family again, three times.
+    {Kati.Screens.AddByHandDark, :kind_Series},
+    {Kati.Screens.AddByHandDark, :"status_Not started"},
+    {Kati.Screens.AddByHandFa, :"kind_سریال"},
+    {Kati.Screens.AddByHandFa, :"status_شروع نشده"},
     {Kati.Screens.AddByHand, :"status_Not started"},
     {Kati.Screens.LanguagePick, :choose_en},
     {Kati.Screens.LanguagePick, :choose_fa},

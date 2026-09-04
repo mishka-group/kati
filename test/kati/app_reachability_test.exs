@@ -92,6 +92,15 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
+    {Screens.AddByHandFa,
+     "screen 154 in the mirror, stranded exactly as `Kati.Screens.RestoreFa` " <>
+       "and `Kati.Screens.OnboardingFa` are: screen 89's row pushes the " <>
+       "English form, and routing every mirror by locale is #93's third " <>
+       "criterion rather than one `if` per row that opens one."},
+    {Screens.AddByHandDark,
+     "screen 154 in the dark colourway. The same page in another colourway, " <>
+       "reached by having dark on rather than by navigating — screen 28's " <>
+       "reason, and it waits on the same fix."},
     {Screens.AddByHandStates,
      "screen 154's two states and the three decisions behind them, in 27's " <>
        "manner. A picture of two situations rather than a situation the app " <>

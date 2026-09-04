@@ -148,6 +148,24 @@ defmodule Kati.Screens.AddTitle do
   # a usable app" is what it answers: until the catalogue lands, every title
   # this screen can find is invented, and this is the only way to put a real
   # one in the library.
+  # The locale's own form, not the English one. A Persian reader who taps this
+  # row and lands on an English page has been dropped out of the mirror
+  # mid-journey — `Kati.Onboarding.shell_root/1` answers the same question the
+  # same way for where a first run lands.
+  # Screen 154, unconditionally. Branching on the locale here was the obvious
+  # thing and it is wrong for a reason worth recording: `Kati.AppReachabilityTest`
+  # builds its graph by dispatching real taps and MEMOISES it in
+  # `:persistent_term`, so a locale-dependent edge makes the graph answer
+  # differently depending on which test file built it first — 156 reachable in
+  # one run and stranded in the next, from the same code.
+  #
+  # 156 is therefore on that file's inventory, which is where every other
+  # Persian mirror already sits: `Kati.Screens.RestoreFa` and
+  # `Kati.Screens.OnboardingFa` are stranded in exactly the same way and for
+  # exactly the same reason. Routing the mirrors properly is #93's third
+  # criterion — "Persian screens are reachable after onboarding, not only
+  # during it" — and it wants one answer for all of them rather than a
+  # different `if` on each row that opens one.
   def handle_info({:tap, :add_by_hand}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
 

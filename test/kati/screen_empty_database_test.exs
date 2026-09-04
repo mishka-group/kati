@@ -389,7 +389,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # is derived from the compiled import table, which is what stops a screen
     # opting itself out by only writing on a tap.
     {"154", Kati.Screens.AddByHand},
-    {"155", Kati.Screens.AddByHandStates}
+    {"155", Kati.Screens.AddByHandStates},
+    {"156", Kati.Screens.AddByHandFa},
+    {"157", Kati.Screens.AddByHandDark}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -1397,6 +1399,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # list is derived from the compiled import table. Gated the same way 154
       # is, for the same reason.
       {"155", Kati.Screens.AddByHandStates, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 156 and 157 are 154 in another script and another colourway, and read
+      # exactly what it reads — nothing. On this list because they call its
+      # helpers and the list is derived from the compiled import table.
+      {"156", Kati.Screens.AddByHandFa, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"157", Kati.Screens.AddByHandDark, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       {"19", Kati.Screens.Search, &Kati.Screens.Search.results_for/0,
        &Kati.Screens.Search.Sample.results/0},
