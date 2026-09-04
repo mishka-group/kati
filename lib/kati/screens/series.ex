@@ -699,7 +699,19 @@ defmodule Kati.Screens.Series do
         Kati.UI.Menu.item("info", "Show details", :show_details),
         Kati.UI.Menu.item("checklist", "Episode order", :episode_order),
         Kati.UI.Menu.rule(),
-        Kati.UI.Menu.item("tune", "Show settings", :open_settings)
+        Kati.UI.Menu.item("tune", "Show settings", :open_settings),
+        # #94's two. `Kati.Screens.RateEpisode`'s drawn entry is a LONG PRESS
+        # on an episode row and `Kati.Screens.DropSheet`'s is a Drop action on
+        # this board — neither gesture is drawn on 04, 66 or 74, so both were
+        # reachable only from the developer gallery that #94 deletes. Menu rows
+        # rather than dead code, on the precedent
+        # `Kati.Screens.Library.menu/1` argues at length: the alternative was
+        # leaving a finished screen unreachable forever.
+        #
+        # Placeholders for a drawing. When 04 is redrawn with the long press,
+        # `RateEpisode` moves to it and leaves this menu.
+        Kati.UI.Menu.item("star", "Rate an episode", :open_rate_episode),
+        Kati.UI.Menu.item("do_not_disturb_on", "Drop this show", :open_drop_sheet)
       ],
       dismiss: :close_menu
     )
@@ -1060,6 +1072,14 @@ defmodule Kati.Screens.Series do
 
   def handle_info({:tap, :open_settings}, socket),
     do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesSettings)}
+
+  # #94's two. See the menu above for why they are rows rather than the
+  # gestures the design intends, and for what takes them out of it.
+  def handle_info({:tap, :open_rate_episode}, socket),
+    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.RateEpisode)}
+
+  def handle_info({:tap, :open_drop_sheet}, socket),
+    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.DropSheet)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do

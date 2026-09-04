@@ -553,13 +553,37 @@ defmodule Kati.Screens.Library do
   forever, or hanging it off `sort`, which promises an ordering and would
   deliver a recommender.
 
-  One item, so the panel is small on purpose. It grows when 03 grows.
+  One item, so the panel is small on purpose. It grows when 03 grows, and it
+  has: the two below are #94's doing.
+
+  ## The two that joined it, and what they are waiting for
+
+  `Kati.Screens.ShelfFilters` and `Kati.Screens.ShelfSelection` are finished
+  screens whose drawn entries do not exist. 145's is *"a trailing filter disc
+  in the header of screens 03, 20 and 21"* and none of the three boards has one;
+  146's is a **long press** on a poster tile, and 04 uses that gesture for
+  something else without either board drawing it.
+
+  They are here for the reason the ⋯ disc itself is here, in the paragraph
+  above: the alternative was leaving a finished screen unreachable forever.
+  #94 asked for the developer gallery to be deleted, and deleting it without
+  these two rows would have made two working screens dead code.
+
+  **Both are placeholders for a drawing.** When 03 is redrawn with its filter
+  disc, `ShelfFilters` moves to it and comes out of this menu; the same for a
+  long press on a tile. Until then a menu row is the honest door — it is
+  reachable, it is named, and it does not pretend to be the gesture the design
+  intends.
   """
   def menu(open?) do
     Kati.UI.Menu.overflow(
       Kati.Screens.Library.disc("more_horiz", :toggle_menu),
       open?,
-      [Kati.UI.Menu.item("schedule", "What fits?", :open_what_fits)],
+      [
+        Kati.UI.Menu.item("schedule", "What fits?", :open_what_fits),
+        Kati.UI.Menu.item("tune", "Filter shelf", :open_shelf_filters),
+        Kati.UI.Menu.item("checklist", "Select titles", :open_shelf_selection)
+      ],
       dismiss: :close_menu
     )
   end
@@ -1168,6 +1192,22 @@ defmodule Kati.Screens.Library do
      socket
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.push_screen(Kati.Screens.WhatFits)}
+  end
+
+  # The two rows #94 added. See `menu/1` for why they are menu rows rather than
+  # the gestures the design intends, and for what takes them out of here.
+  def handle_tap(:open_shelf_filters, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.ShelfFilters)}
+  end
+
+  def handle_tap(:open_shelf_selection, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.ShelfSelection)}
   end
 
   # Books and Music push their own shelves; Screen is the shelf you are already

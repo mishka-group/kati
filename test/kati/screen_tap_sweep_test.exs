@@ -252,6 +252,12 @@ defmodule Kati.ScreenTapSweepTest do
     # Clearing an empty field is correctly a no-op; the sweep reaches 19
     # without a query because 86 is what hands it one, and there is no board
     # that draws 19 mid-query AND its clear having been pressed.
+    # Screen 36's own mode segment. `Kati.Screens.AutoDetectMusic` answers its
+    # already-selected one the same way and says why: there is no second state
+    # for a screen to move to when you tap the mode you are already in, and a
+    # segment drawn without a tap at all would read as a broken control rather
+    # than a settled one.
+    {Kati.Screens.AutoDetect, :tv},
     {Kati.Screens.Search, :clear},
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
     {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},

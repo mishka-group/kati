@@ -79,6 +79,8 @@ defmodule Kati.Screens.AutoDetect do
       >
         {SettingsList.chrome("more_horiz")}
         {SettingsList.title("Auto-detect", d.sources_line, nil, :meta_tight)}
+        {Kati.UI.Segmented.plain(Kati.Screens.AutoDetectMusic.modes(), :tv)}
+        <Spacer size={20} />
         {Kati.Screens.AutoDetect.banner(d.banner)}
         {UI.eyebrow("Now playing")}
         {Kati.Screens.AutoDetect.now_playing(d.now_playing)}
@@ -451,6 +453,27 @@ defmodule Kati.Screens.AutoDetect do
   # second screen — the sources, rules and disambiguation card are shared, and
   # two boards would drift within a release. The switch itself is drawn on 150.
   @impl true
+  @doc """
+  The music mode, which this screen had a handler for and no control.
+
+  `Kati.Screens.AutoDetectMusic` is board 150, and its own caption calls the
+  entry a *"segmented control under the title"* — TV & film against Music. 150
+  draws that control; 36 did not, so `:open_music` sat here answering a tag
+  nothing emitted and `Kati.ScreenTapSweepTest` never saw it, because a handler
+  with no control is not a control the sweep can tap.
+
+  The pair is now drawn on both sides, which is what the design says: one
+  segmented control, two modes, either of which can be the one you are on.
+  """
+  def handle_tap(:music, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
+
+  # The already-selected segment. `Kati.Screens.AutoDetectMusic` answers its own
+  # the same way and says why: there is no second state for a screen to move to
+  # when you tap the mode you are already in, and a segment that did nothing at
+  # all would read as a broken control rather than as a settled one.
+  def handle_tap(:tv, socket), do: {:noreply, socket}
+
   def handle_tap(:open_music, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
 

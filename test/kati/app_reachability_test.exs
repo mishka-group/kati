@@ -180,26 +180,6 @@ defmodule Kati.AppReachabilityTest do
     #
     # Each entry names the edit it is waiting for, so this list stays a queue
     # rather than becoming a graveyard.
-    {Screens.RateEpisode,
-     "screen 33 in its episode variant. Its entry is a LONG PRESS on an " <>
-       "episode row in screen 04, and 04's board has not been redrawn to carry " <>
-       "the affordance hint that teaches it. #15."},
-    {Screens.ShelfFilters,
-     "the shelf filter sheet. Its entry is a trailing filter disc in the " <>
-       "header of screens 03, 20 and 21, and none of the three boards has been " <>
-       "redrawn with it. #19."},
-    {Screens.ShelfSelection,
-     "the shelf in selection mode. Its entry is a LONG PRESS on a poster " <>
-       "tile — the same gesture 04 uses for a different meaning, which #15 and " <>
-       "#19 agree has to be decided on both boards before either ships it."},
-    {Screens.DropSheet,
-     "the drop sheet. Its entry is a Drop action on a title, and the three " <>
-       "detail boards (04, 66, 74) have not been redrawn with it. #17."},
-    {Screens.AutoDetectMusic,
-     "auto-detect in music mode. #20 draws it as a MODE of screen 36 rather " <>
-       "than a second screen, so its entry is a mode switch at the top of 36 — " <>
-       "drawn on 150 and not yet on 36. `Kati.Screens.AutoDetect.handle_tap/2` " <>
-       "already answers `:open_music`; only the control is missing."},
     {Screens.NotificationAccess,
      "the special-access row. Reached from 150, which is itself waiting."},
     {Screens.NumberingScheme,
