@@ -622,6 +622,35 @@ defmodule Kati.Screens.Books do
   def handle_tap(:open_screen, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
 
+  @doc """
+  The other two shelves, and the search and sort discs beside them.
+
+  The three shelves are one control drawn three times — screens 03, 20 and 21
+  carry the same segmented row — and only 03 answered all of it. From here
+  **Books** was the segment you were already on and **Music** did nothing at
+  all, so a reader who came Screen → Books was stuck with one way back and no
+  way across. That is the shape of a tab that does not work.
+
+  **Push, and `:open_screen` above still resets** — the asymmetry is the
+  difference between a peer and a root. `Kati.Screens.Library` is a dock root
+  and these two are pushed from it, so returning to Screen has to reset the
+  stack or the dock would sit under a pushed page; crossing to Music pushes,
+  which is exactly what 03's own `shelf_Music` does. One rule read off the
+  screen that already had it, rather than a second rule invented here.
+
+  Search is `Kati.Screens.Search` — the same screen 03's disc opens — and sort
+  has nowhere to go: no board in the 165 draws a sort sheet for any shelf, and
+  03's own disc is on `Kati.ScreenTapSweepTest`'s backlog for that reason. It
+  is left there rather than pointed at a screen that would be invented here.
+  """
+  def handle_tap(:open_music, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+
+  def handle_tap(:open_books, socket), do: {:noreply, socket}
+
+  def handle_tap(:open_search, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
   # Every grid tile, by its own seed — see `book_tag/1`. They all open the same
   # screen today: `Kati.Screens.BookDetail` takes no argument, so this is
   # identity for the sake of being addressable rather than for routing.

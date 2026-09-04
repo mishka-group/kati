@@ -511,6 +511,26 @@ defmodule Kati.Screens.Music do
     {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
   end
 
+  @doc """
+  The other two shelves, and the search disc beside them.
+
+  Same as `Kati.Screens.Books`: the three shelves are one control drawn three
+  times, and only 03 answered all of it. From here **Books** did nothing, so
+  Screen → Music → Books was not a journey a reader could make.
+
+  Push, while `:segment_screen` above resets: `Kati.Screens.Library` is a dock
+  root and this screen is pushed from it, so returning to Screen has to reset
+  the stack while crossing to Books pushes — which is what 03's own
+  `shelf_Books` does.
+  """
+  def handle_tap(:segment_books, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
+
+  def handle_tap(:segment_music, socket), do: {:noreply, socket}
+
+  def handle_tap(:open_search, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
   # Every album tile and every release row, by its own seed — see `album_tag/1`
   # and `artist_tag/1`. They open the same two screens the bare tags did:
   # neither `Kati.Screens.AlbumDetail` nor `Kati.Screens.ArtistDetail` takes an

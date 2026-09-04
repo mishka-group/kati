@@ -647,6 +647,13 @@ defmodule Kati.ScreenTapSweepTest do
     # something to narrow.
     {Kati.Screens.Weight, :range_month},
     {Kati.Screens.Library, :shelf_Screen},
+    # The same segment on the other two shelves. Screens 03, 20 and 21 draw one
+    # control three times, and on each of them one segment is the shelf you are
+    # already looking at. The other two now move — see
+    # `Kati.Screens.Books.handle_tap/2` — which is what makes these two the
+    # resting member of a family rather than two more dead tabs.
+    {Kati.Screens.Books, :open_books},
+    {Kati.Screens.Music, :segment_music},
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},
     {Kati.Screens.MealsDay, :filter_All},
@@ -669,9 +676,6 @@ defmodule Kati.ScreenTapSweepTest do
     # every tag its screen draws` cannot see them. Delete a line as you wire it.
     {Kati.Screens.Activity, :open_filters},
     {Kati.Screens.Activity, :open_search},
-    {Kati.Screens.Books, :open_books},
-    {Kati.Screens.Books, :open_music},
-    {Kati.Screens.Books, :open_search},
     {Kati.Screens.Books, :open_sort},
     {Kati.Screens.Health, :open_filters},
     # (`{Kati.Screens.Home, :open_calendar}` was here. #91 wired it: screen
@@ -690,10 +694,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealsToday, :see_tomorrow},
     {Kati.Screens.MealsToday, :swap},
     {Kati.Screens.MealsToday, :switch_plan},
-    {Kati.Screens.Music, :open_search},
     {Kati.Screens.Music, :open_sort},
-    {Kati.Screens.Music, :segment_books},
-    {Kati.Screens.Music, :segment_music},
     {Kati.Screens.Nutrition, :share},
     {Kati.Screens.Rating, :add_tag},
     {Kati.Screens.ScheduleFa, :open_menu},
