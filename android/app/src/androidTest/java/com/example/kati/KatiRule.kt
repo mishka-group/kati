@@ -82,38 +82,6 @@ class KatiRule : TestRule {
             .forEach { it.delete() }
     }
 
-    /**
-     * Takes a runtime permission back off the app under test.
-     *
-     * Android permissions persist per package, so a grant in one @Test is still
-     * in force in the next — which quietly falsifies the premise of any test
-     * whose subject is "what happens when this has not been granted". Found
-     * when a mid-session-grant test saw rows in the store before it had granted
-     * anything.
-     */
-    fun revoke(permission: String) {
-        // Only when it is actually held. `pm revoke` on a GRANTED permission
-        // force-stops the package, and instrumentation runs inside that same
-        // package — so the revoke kills the test with the app and the run
-        // reports "Test instrumentation process crashed" with nothing to read.
-        //
-        // This is not hypothetical and it is not deterministic, which is worse:
-        // the call is a harmless no-op while the permission is denied, so a
-        // suite passes for weeks and then dies the first time anything leaves
-        // the permission granted — a walk through the app by hand is enough.
-        // Found exactly that way.
-        val ctx = instrumentation.targetContext
-
-        if (ctx.checkSelfPermission(permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            return
-        }
-
-        instrumentation.uiAutomation.executeShellCommand(
-            "pm revoke ${ctx.packageName} $permission"
-        ).close()
-        device.waitForIdle()
-    }
-
     /** Launches the real activity. */
     fun launch() {
         scenario = ActivityScenario.launch(MainActivity::class.java)
@@ -181,6 +149,33 @@ class KatiRule : TestRule {
      * the rest back. Hand-rolling the tail instead is how a test ends up
      * waiting thirty seconds for a shell it never asked the app to reach.
      */
+    /**
+     * Walks the first run as far as the sections step and stops there.
+     *
+     * `D-33` renumbered the run to five steps, and the sections question moved
+     * from step two to step three: Continue on screen 53 now opens the welcome
+     * panel, 161, which screen 38 used to draw stacked above the rest. Two
+     * tests answered the sections step by tapping a tile straight after
+     * Continue, and both went on passing the tap to a screen with no tiles on
+     * it — [tapAny] answers null rather than throwing, so the run simply
+     * carried on with the question unanswered.
+     *
+     * Kept here so the next renumbering is one edit rather than a hunt.
+     */
+    fun toSections() {
+        compose.waitUntil(60_000) { present("choose_en") }
+        tap("continue")
+        compose.waitUntil(20_000) { !present("choose_en") }
+        systemDialog("Allow", "While using the app", "Allow all the time")
+
+        // 161, the welcome panel. Its primary is `next`.
+        compose.waitUntil(20_000) { present("next") || present("section_books") }
+        if (present("next")) tap("next")
+
+        systemDialog("Allow", "While using the app", "Allow all the time")
+        compose.waitUntil(20_000) { present("section_books") }
+    }
+
     fun finishRun() {
         compose.waitUntil(30_000) {
             present("get_started") || present("finish") || present("next") ||

@@ -101,6 +101,48 @@ defmodule Kati.Search do
   @spec rows_per_group() :: pos_integer()
   def rows_per_group, do: 3
 
+  @doc """
+  The field's placeholder.
+
+  Copy rather than data, which is why it lives with the specification and not
+  in a fixture: it says what the field will look in, and the answer is
+  everything — the scope chips narrow, the field does not.
+  """
+  @spec placeholder() :: String.t()
+  def placeholder, do: "Search anything you keep"
+
+  @doc """
+  The two suggestions, and there are only ever two.
+
+  Screen 86's caption: *Try suggestions ship, but only two, drawn from what you
+  actually have.* Two, because a suggestion list long enough to browse is a
+  second search — and drawn from your own library, because a suggestion for
+  something you do not keep is an advert.
+
+  Fixed strings for now, and the boards' own. Deriving them wants a notion of
+  what a person has been near lately that nothing in Kati stores; the pair
+  here are shaped like the two the design chose — one about time, one about a
+  place in the library — so the screen that draws them will not have to change
+  when they are derived.
+  """
+  @spec suggestions() :: [String.t()]
+  def suggestions, do: ["what leaves this week", "notes about the estuary"]
+
+  @doc """
+  The sentence explaining why the chips carry no counts until something is typed.
+
+  The three numbers in it are `debounce_ms/0`, `minimum/1` and this module's
+  own rule about zero, so it is written beside them rather than in a fixture
+  where the two could drift apart silently.
+  """
+  @spec counts_note() :: String.t()
+  def counts_note do
+    "Counts stay off the chips until a query exists — eight zeroes on open would read as an " <>
+      "empty app. Searching starts at 2 characters, or 1 for Persian, Arabic and CJK, where one " <>
+      "character is a word. Keystrokes debounce at 180 ms, so one pause costs seven counted " <>
+      "queries, not seven per letter."
+  end
+
   @doc "How many recent queries are kept."
   @spec recent_kept() :: pos_integer()
   def recent_kept, do: 8

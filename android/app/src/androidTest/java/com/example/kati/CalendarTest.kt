@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.After
 import org.junit.Rule
@@ -60,27 +61,41 @@ class CalendarTest {
             kati.freeMegabytes() > 200
         )
 
-        kati.revoke(android.Manifest.permission.READ_CALENDAR)
-
+        // No revoke here any more, and `KatiRule.revoke/1` is gone with it. Its
+        // own comment described the trap and the code walked into it: `pm
+        // revoke` on a HELD permission force-stops the package, instrumentation
+        // runs in that package, and the run reports "Test instrumentation
+        // process crashed" with nothing to read. It was a harmless no-op while
+        // the permission was denied and fatal in exactly the case it existed
+        // for — so it passed for weeks and then died the first time a walk
+        // through the app by hand left READ_CALENDAR granted. Which is how it
+        // died.
+        //
+        // The premise it was arranging is arranged below instead, and more
+        // precisely: rather than "the events table is empty", the claim is
+        // "the event this test just planted is not in the store yet". That is
+        // true whatever else a previous run ingested, and it is the row the
+        // assertions at the foot actually care about.
         val eventId = plantEvent()
         assertNotNull("could not write to CalendarContract", eventId)
 
         kati.launch()
-        kati.compose.waitUntil(60_000) { kati.present("choose_en") }
 
         // Walk the first run to the step that asks. The ask is deliberately not
         // at launch: a permission dialog before the app has explained itself is
-        // the one people refuse.
-        kati.tap("continue")
-        kati.compose.waitUntil(20_000) { !kati.present("choose_en") }
+        // the one people refuse. Since `D-33` renumbered the run that is step
+        // three rather than step two, which is why this goes through
+        // `toSections` rather than pressing Continue twice — the second press
+        // used to land on the sections step and now lands on the welcome, whose
+        // primary is not called `continue` at all.
+        kati.toSections()
 
-        // Nothing has been granted yet, so nothing can have been ingested. This
-        // is what makes the assertion below mean something: without it, a row
-        // that had been in the store all along would pass.
-        assertEquals(
-            "events existed before the calendar was ever granted",
-            0L,
-            kati.count("events")
+        // The planted event is not in the store yet. This is what makes the
+        // assertion below mean something: without it, a row ingested by an
+        // earlier run would pass.
+        assertNull(
+            "the planted event was already in the store before the calendar was granted",
+            kati.scalar("select summary from events where summary = '$title'")
         )
 
         kati.tap("continue")

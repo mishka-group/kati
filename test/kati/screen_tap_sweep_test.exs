@@ -248,6 +248,11 @@ defmodule Kati.ScreenTapSweepTest do
     # Steps 4 and 5's resting choices — the loudness the board opens on and the
     # title it opens with picked. Every other choice in each family moves the
     # assign, which is what says the family is wired.
+    # Screen 19's clear disc, on a page the sweep opens with nothing typed.
+    # Clearing an empty field is correctly a no-op; the sweep reaches 19
+    # without a query because 86 is what hands it one, and there is no board
+    # that draws 19 mid-query AND its clear having been pressed.
+    {Kati.Screens.Search, :clear},
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
     {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},
     # The same two, in the mirror. Their tags are positional rather than

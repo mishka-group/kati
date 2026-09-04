@@ -462,6 +462,26 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # by `empties/0`, and every line of their empty cards that IS quoted from a
   # board is compared in `@quoted` directly below.
   @no_empty_board [
+    # 19 and 89 are results pages and no board draws one with nothing typed,
+    # for a reason that was true until this round: until the field was real the
+    # design never put a person on 19 without a query. A person can clear the
+    # field now, so the state exists.
+    #
+    # What it draws is not a third wording of the same idea. Board 87's
+    # *Nothing searched yet* card and board 88's paragraph about why the chips
+    # carry no counts are both already owned by screens that draw the specs —
+    # `Kati.Screens.SearchTyping.nothing_yet/0` and `Kati.Search.counts_note/0`
+    # — and 19 draws those. `Kati.SearchRunTest` holds what the read itself
+    # answers on a store with rows and without.
+    {"19",
+     "no board draws the results page with nothing typed: 19 is drawn mid-query and its " <>
+       "whole subject is one query matched four ways. Its idle state is board 87's card and " <>
+       "board 88's note, drawn through the screens that own them, and its no-match state is " <>
+       "board 89's card wired to the two ways out", Kati.SearchRunTest},
+    {"89",
+     "89 is the four edge states of 19 side by side, so it has no empty state of its own — " <>
+       "it IS the drawing of them. On this list because it reads what 19 reads",
+     Kati.SearchRunTest},
     {"02",
      "no artboard draws a Schedule with nothing on it — 02 draws a day with five items — " <>
        "and none draws one Kati is not allowed to read either. `Kati.Screens.Calendar`'s " <>
@@ -549,6 +569,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # Persian Home that quietly lost its section tiles, or its calendar band,
   # fails here.
   @quoted [
+    # 19 and 89 are results pages with nothing typed, and what constrains them
+    # is the chrome that survives whatever the query answered: the field's own
+    # placeholder, the four scope chips, and the shelf's heading. A results
+    # page that quietly lost its chips would still have looked like a page.
+    #
+    # Both are quoted from board 87, which is where the idle field is drawn.
+    # `All` is board 19's own — it is the chip that reads as selected on every
+    # one of the four boards — and it is the one literal here that says the
+    # scope row survived.
+    {"19", "87", "Search anything you keep"},
+    {"19", "19", "All"},
+    {"19", "19", "Recent"},
+    {"89", "87", "Search anything you keep"},
+    {"89", "89", "All"},
     {"02", "139", "Nothing scheduled"},
     {"02", "139", "add anything with +"},
     {"07", "101", "Not much to show yet"},
@@ -1384,12 +1418,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # be the defect worth catching.
       {"06", Kati.Screens.AddTitle, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
-      # 19 and 89 read the store through `Kati.Search.Query.run/1` and fall back
-      # to the board when no query arrived from screen 86. The gate is that
-      # fallback itself: `results_for/0` must answer the drawing on an empty
-      # database, because screen 19 is the RESULTS page and the design never
-      # puts a user on it without a query — 86 is the idle board, and it is
-      # routed from Home.
       # 154 draws its own form and reads nothing: it WRITES on Add, which is
       # why it is on the migrated list at all. Gated on 92's reader for the
       # reason 06 is — a form that added a title into a Kati whose service list
@@ -1419,10 +1447,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MyServices.drawn/0},
       {"160", Kati.Screens.HomeFaOmittedSections, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
-      {"19", Kati.Screens.Search, &Kati.Screens.Search.results_for/0,
-       &Kati.Screens.Search.Sample.results/0},
-      {"89", Kati.Screens.SearchResultStates, &Kati.Screens.Search.results_for/0,
-       &Kati.Screens.Search.Sample.results/0},
       {"144", Kati.Screens.RateEpisode, &Kati.Screens.Rating.watch/0,
        &Kati.Screens.Rating.drawn_watch/0},
       # 149 is NOT here: it gates on `Kati.Screens.Library.titles/0`, which #91
@@ -1607,6 +1631,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # It is no longer what stands between a person and a page of invented
       # rows. The four entries under 01 below are, one per band, and they are
       # the ones that fail the day somebody puts a literal back.
+      # 19 and 89 read the store through `Kati.Search.Query.run/1`, and there is
+      # nothing to fall back to any more: `Kati.Screens.Search.Sample` is gone
+      # and the screen draws its own idle and no-match states instead. So the
+      # gate is the read itself — a query against an empty database answers
+      # with empty groups, and the same query against a store with the row in
+      # it does not.
+      {"19", Kati.Screens.Search, fn -> Kati.Search.Query.run("hollow").titles end, [],
+       fn -> Kati.Screens.Search.drawn_results().titles end},
+      {"89", Kati.Screens.SearchResultStates, fn -> Kati.Search.Query.run("hollow").titles end,
+       [], fn -> Kati.Screens.Search.drawn_results().titles end},
       {"01", Kati.Screens.Home, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,
        fn -> Kati.Screens.Home.nothing_kept?(Kati.Screens.Home.drawn_rows()) end},
       {"139", Kati.Screens.HomeEmpty, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,

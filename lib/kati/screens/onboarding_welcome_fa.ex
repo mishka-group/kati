@@ -48,13 +48,21 @@ defmodule Kati.Screens.OnboardingWelcomeFa do
 
   @doc false
   def content(_assigns) do
+    # The headline is one Text with a line break in it, the way board 164 draws
+    # it — a single `<div>` with a `<br>`. Two Texts would put the second one
+    # where `Kati.ScreenTitleSubtitleTest` looks for the line under the title,
+    # and it would read the heading's own second line as a 28pt subtitle. The
+    # break is built here rather than in the sigil because `~MOB` is an
+    # uppercase sigil: it takes no escapes, so `\n` inside it is a backslash
+    # and an n.
+    assigns = %{heading: "یک جا برای\nهر چه نگه می‌دارید"}
+
     ~MOB"""
     <Column fill_width={true}>
       {OnboardingWelcome.rail(2)}
       {OnboardingWelcome.mark()}
       <Text
-        text="یک جا برای
-هر چه نگه می‌دارید"
+        text={@heading}
         font_family="fa"
         text_size={28}
         max_font_scale={1.6}

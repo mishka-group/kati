@@ -193,16 +193,28 @@ class FirstRunTest {
         kati.compose.waitUntil(20_000) { !kati.present("choose_en") }
         kati.systemDialog("Allow", "While using the app", "Allow all the time")
 
-        // A person moving to a second phone should not have to walk a setup
-        // that builds a fresh library when they already have one.
-        // `:import_backup` — screen 26 draws it as "Restore from a backup
-        // instead". Named exactly, because a check that accepts any tag
-        // containing "restore" would pass on a screen that merely mentions one.
-        kati.compose.waitUntil(20_000) { kati.present("import_backup") }
+        // Step two offers it first. Board 161 draws "Already have a Kati
+        // backup? Restore it" under its own button — a decision the board makes
+        // explicitly, and the earliest point in the run a person with a backup
+        // can act on it.
+        kati.compose.waitUntil(20_000) { kati.present("restore") || kati.present("import_backup") }
 
         assertTrue(
-            "nothing during the first run offers a restore, so a person with a backup " +
-                "has to finish a setup they did not want before they can use it",
+            "the welcome step offers no restore, so a person with a backup has to walk " +
+                "further into a setup they did not want before they can use it",
+            kati.present("restore") || kati.present("import_backup")
+        )
+
+        // And step three offers it again, which is the one this criterion was
+        // written against. `:import_backup` — screen 26 draws it as "Restore
+        // from a backup instead". Named exactly, because a check that accepts
+        // any tag containing "restore" would pass on a screen that merely
+        // mentions one.
+        kati.toSections()
+
+        assertTrue(
+            "nothing on the sections step offers a restore, so a person who walked past " +
+                "the welcome has no second chance at it",
             kati.present("import_backup")
         )
     }

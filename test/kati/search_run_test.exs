@@ -85,4 +85,58 @@ defmodule Kati.SearchRunTest do
 
     assert %{titles: [], calendar: [], note: nil} = Query.run("hollow")
   end
+
+  describe "the history the field keeps" do
+    setup do
+      Kati.Search.Recent.forget!()
+      :ok
+    end
+
+    test "a fresh install has none, which is a state and not a placeholder" do
+      # `Kati.Search.Sample.recent/0` used to answer `dentist`, `leaving soon`,
+      # `ines karvel`, `4 stars` and `miso salmon` on every device — five words
+      # nobody had typed, presented as their own search history. That is the
+      # defect #91 reports about the shelves, one screen further in.
+      assert Kati.Search.Recent.all() == []
+    end
+
+    test "a query that ran is remembered, newest first" do
+      Kati.Search.Recent.remember("hollow")
+      Kati.Search.Recent.remember("estuary")
+
+      assert Kati.Search.Recent.all() == ["estuary", "hollow"]
+    end
+
+    test "searching the same thing twice moves it to the front rather than doubling it" do
+      Kati.Search.Recent.remember("hollow")
+      Kati.Search.Recent.remember("estuary")
+      Kati.Search.Recent.remember("hollow")
+
+      assert Kati.Search.Recent.all() == ["hollow", "estuary"]
+    end
+
+    test "a query too short to run is not remembered" do
+      # The shelf would otherwise fill with the first letter of everything ever
+      # typed. `Kati.Search.long_enough?/1` is what says a query ran at all.
+      Kati.Search.Recent.remember("h")
+
+      assert Kati.Search.Recent.all() == []
+    end
+
+    test "it keeps the number screen 88 specifies and no more" do
+      for i <- 1..12, do: Kati.Search.Recent.remember("query#{i}")
+
+      assert length(Kati.Search.Recent.all()) == Kati.Search.recent_kept()
+      assert hd(Kati.Search.Recent.all()) == "query12"
+    end
+
+    test "nothing is folded, because they are your words" do
+      # Screen 88's own row: *never translated, they are your words*. So the
+      # normalisation that ranks a query does not touch the one that is stored.
+      Kati.Search.Recent.remember("Café")
+
+      assert Kati.Search.Recent.all() == ["Café"]
+    end
+  end
+
 end

@@ -940,6 +940,23 @@ defmodule Kati.ScreenDesignLiteralTest do
       # the board and the load disagree on purpose and this is the seam.
       {"154", Kati.Screens.AddByHand,
        &(&1 |> Map.put(:kind, :tv) |> Map.put(:title, "The Long Hollow") |> Map.put(:year, "2024") |> Map.put(:episodes, "7"))},
+      # 19 is drawn mid-query and its whole subject is one query matched four
+      # ways, so its state is a result set rather than a row: `drawn_results/0`
+      # is the transcription board 19 was read from, and a device gets
+      # `Kati.Search.Query.run/1`. The recent shelf rides on it, because the
+      # drawing pre-chunks that shelf into the rows its `flex-wrap` produces
+      # and a device's own history goes through `chunk/1` instead.
+      {"19", Kati.Screens.Search,
+       &(&1
+         |> Map.put(:results, Kati.Screens.Search.drawn_results())
+         |> Map.put(:query, "hollow")
+         |> Map.put(:history, []))},
+      # 86 is the idle page and its shelf is this reader's search history —
+      # empty on a fresh install, which board 87 words rather than omits. The
+      # five queries are 86's own, and never translated: *they are your words*,
+      # in screen 88's row.
+      {"86", Kati.Screens.SearchIdle,
+       &Map.put(&1, :history, Kati.Screens.SearchIdle.drawn_recent())},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so

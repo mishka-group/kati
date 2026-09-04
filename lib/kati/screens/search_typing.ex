@@ -272,7 +272,7 @@ defmodule Kati.Screens.SearchTyping do
   """
   @spec field(String.t() | nil) :: map()
   def field(nil) do
-    assigns = %{placeholder: Search.Sample.placeholder()}
+    assigns = %{placeholder: Search.placeholder()}
 
     ~MOB"""
     <Column fill_width={true}>

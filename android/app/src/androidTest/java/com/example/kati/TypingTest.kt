@@ -133,13 +133,22 @@ class TypingTest {
     @Test
     fun c_sections_picked_at_first_run_survive_it() {
         kati.launch()
-        kati.compose.waitUntil(60_000) { kati.present("choose_en") }
-        kati.tap("continue")
-        kati.compose.waitUntil(20_000) { !kati.present("choose_en") }
 
-        // Turn Music and Books off, leaving Screen. The drawing arrives with
-        // Screen and Books on, so this is one tap on each.
-        kati.tapAny("section_books")
+        // Through the welcome panel to the sections step. Before `D-33`
+        // renumbered the run this test tapped a section tile straight after
+        // Continue; the tile was one screen further on by then, `tapAny`
+        // answers null rather than throwing, and the run carried on with Books
+        // still turned on — a test walking past the question it exists to ask.
+        kati.toSections()
+
+        // Turn Books off, leaving Screen. The drawing arrives with Screen and
+        // Books on, so this is one tap.
+        val turnedOff = kati.tapAny("section_books")
+
+        assertTrue(
+            "the sections step drew no Books tile to turn off, so this test proves nothing",
+            turnedOff != null
+        )
         kati.device.waitForIdle()
 
         // Hand the rest of the run back, rather than hand-rolling its tail.

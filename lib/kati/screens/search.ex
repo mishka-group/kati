@@ -109,7 +109,6 @@ defmodule Kati.Screens.Search do
 
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
-  alias Kati.Screens.Search.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
@@ -118,43 +117,131 @@ defmodule Kati.Screens.Search do
   # search picked out of the shelf.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    # The store when a query arrived with us, the drawing when none did.
-    #
-    # Screen 86 puts what was typed in `Mob.State` and pushes here — the two
-    # boards divide idle from results, and this is the seam. With no query
-    # this page is only ever reached from the gallery, where the board's own
-    # mid-query drawing is the honest thing to show: no board draws screen 19
-    # empty, because the design never puts a user here without one.
-    {:ok, Mob.Socket.assign(socket, results: Kati.Screens.Search.results_for(), filter: "All", recent: nil)}
+    query = Kati.Screens.Search.handed_over()
+    results = Kati.Search.Query.run(query)
+
+    {:ok,
+     Mob.Socket.assign(socket,
+       query: query,
+       results: results,
+       filter: "All",
+       recent: nil,
+       history: Kati.Search.Recent.all()
+     )}
+  end
+
+  @doc "Put a query where the next screen will look for it. See `handed_over/0`."
+  @spec hand_over(String.t()) :: :ok
+  def hand_over(query) do
+    Mob.State.put(:kati_search_query, query)
+    :ok
+  rescue
+    _error -> :ok
   end
 
   @doc """
-  What this page draws: the query screen 86 handed over, run against the store.
+  The query screen 86 handed over, or `""`.
 
-  `Kati.Search.Query.run/1` answers the same shape
-  `Kati.Screens.Search.Sample.results/0` holds, so the render is unchanged and
-  only its source moved.
+  Screen 86 puts what was typed in `Mob.State` and pushes here — the two boards
+  divide idle from results, and this is the seam. Reached with nothing, this
+  page opens idle, which is a state the screen now draws rather than a reason
+  to substitute a drawing.
   """
-  @spec results_for() :: map()
-  def results_for do
-    query = Mob.State.get(:kati_search_query)
-
-    if is_binary(query) and Kati.Search.long_enough?(query) do
-      Kati.Search.Query.run(query)
-    else
-      Sample.results()
+  @spec handed_over() :: String.t()
+  def handed_over do
+    case Mob.State.get(:kati_search_query) do
+      query when is_binary(query) -> query
+      _nothing -> ""
     end
   rescue
     # `Mob.State` is DETS and raises when its table is not open — a host test
-    # that has not started it, and the gallery on a cold boot. The drawing is
-    # the right answer to "no query", and an unopened table is that.
-    _error -> Sample.results()
+    # that has not started it, and the gallery on a cold boot.
+    _error -> ""
   end
+
+  @doc """
+  The result set board 19 was captured with — one query, `hollow`, matched four
+  ways.
+
+  Kept on the screen rather than in a fixture module, for the reason
+  `Kati.Screens.Home.drawn_hero/0` is: it is the transcription the drawing was
+  read from, and `Kati.ScreenDesignLiteralTest` installs it to compare the
+  drawing against the drawing. What a device shows is
+  `Kati.Search.Query.run/1`, and `Kati.ScreenEmptyDatabaseTest` is what says so
+  — that a store with nothing in it answers with empty groups and not with
+  this.
+
+  The split is the whole point of the screen: a title, an episode, two calendar
+  entries and a note about the same word are four different shapes, and the
+  design keeps them four different shapes rather than flattening them into one
+  list.
+
+  Dates are typed as the drawing types them — `20 AUG`, with a leading zero on
+  the second — because the column is 44pt wide and a ragged `6 AUG` would not
+  line up under `20 AUG`. `inline_words` is how many words of the note's tail
+  share the first line with the highlight: the browser wraps that paragraph and
+  a `Row` does not, so the break is declared where the drawing breaks.
+  """
+  @spec drawn_results() :: map()
+  def drawn_results do
+    %{
+      query: "hollow",
+      idle?: false,
+      titles: [
+        %{title: "The Long Hollow", sub: "Series · S2 · watching", seed: "hollow71"},
+        %{title: "Hollow Season", sub: "Episode · S2E5 · watched 12 Aug", seed: "hollow71"}
+      ],
+      calendar: [
+        %{date: "20 AUG", title: "The Long Hollow S2E6 airs", time: "20:00"},
+        %{date: "06 AUG", title: "Hollow Season — watched", time: "21:12"}
+      ],
+      note: %{
+        eyebrow: "NOTE · 6 AUG · THE LONG HOLLOW",
+        lead: "…the",
+        match: "hollow",
+        tail: "is a character, not a place. Watch E1 again before S3.",
+        inline_words: 6
+      },
+      recent: drawn_recent()
+    }
+  end
+
+  @doc """
+  The chip counts board 19 types: `6 / 3 / 2 / 1`.
+
+  The drawing means them. It prints **Screen 3** over two drawn rows, the same
+  way the shelf on screen 20 says *64 books* over six covers — a chip counts
+  what the query matched, and the group under it shows the ones that fit above
+  the fold. Deriving them from `drawn_results/0` turns the drawing's 6 and 3
+  into 5 and 2, which is a literal on the screen not matching its frame.
+
+  A device does derive them, from the matched set, which is what they already
+  claim to be: `Kati.Search.Query.chip_counts/1`.
+  """
+  @spec drawn_chips() :: [{String.t(), non_neg_integer()}]
+  def drawn_chips, do: [{"All", 6}, {"Screen", 3}, {"Calendar", 2}, {"Notes", 1}]
+
+  @doc """
+  The recent shelf board 19 draws, pre-chunked into the rows its `flex-wrap`
+  produces.
+
+  Three then one, which is what 402pt gives at these widths — and worth
+  keeping, because it is what says the field remembers more than fits.
+  `chunk/1` is what a device's own history goes through.
+  """
+  @spec drawn_recent() :: [[String.t()]]
+  def drawn_recent, do: [["dentist", "leaving soon", "ines karvel"], ["4 stars"]]
+
+  @doc "This reader's own history, in the rows the drawing wraps it into."
+  @spec chunk([String.t()]) :: [[String.t()]]
+  def chunk(queries), do: Enum.chunk_every(queries, 3)
 
   def render(assigns) do
     results = assigns.results
     filter = assigns.filter
     recent = assigns.recent
+    query = Map.get(assigns, :query, results.query)
+    history = Map.get(assigns, :history, [])
 
     ~MOB"""
     <Box
@@ -173,11 +260,11 @@ defmodule Kati.Screens.Search do
           padding_bottom={40}
         >
           {Kati.Screens.Search.back()}
-          {Kati.Screens.Search.field(results)}
-          {Kati.Screens.Search.chips(filter)}
-          {Kati.Screens.Search.groups(results, filter)}
+          {Kati.Screens.Search.field(query)}
+          {Kati.Screens.Search.chips(filter, results)}
+          {Kati.Screens.Search.state_or_groups(results, filter, history)}
           {Kati.Screens.Search.section("Recent")}
-          {Kati.Screens.Search.recent(results, recent)}
+          {Kati.Screens.Search.recent(results, history, recent)}
         </Column>
       </Scroll>
     </Box>
@@ -185,6 +272,50 @@ defmodule Kati.Screens.Search do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  @doc """
+  Every keystroke, run.
+
+  No debounce, and `Kati.Search.debounce_ms/0` is not being ignored: the 180ms
+  it specifies is the interval between *counted* queries, which is a statement
+  about a network-backed index. This one reads SQLite on the device and
+  `Kati.Search.Query.run/1` narrows in Elixir, so the cost of a keystroke is a
+  scan of a personal library — a debounce would buy latency rather than spend
+  it. It goes in the day a query costs a request.
+
+  The history is written here rather than on submit, because there is no
+  submit. A field that only remembered what you pressed Enter on would
+  remember almost nothing: the results arrive while you type, and you stop
+  typing when you can see them.
+  """
+  def handle_info({:change, :query, typed}, socket) when is_binary(typed) do
+    Kati.Search.Recent.remember(typed)
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:query, typed)
+     |> Mob.Socket.assign(:results, Kati.Search.Query.run(typed))
+     |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
+  end
+
+  # Both ways out of a query that found nothing. The lookup carries what was
+  # typed, so screen 06 opens already searching for it rather than asking
+  # again — retyping a word the app has just shown you is what makes a dead
+  # end feel like one.
+  def handle_info({:tap, :look_up}, socket) do
+    Kati.Screens.Search.hand_over(socket.assigns.query)
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+  end
+
+  def handle_info({:tap, :add_by_hand}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
+
+  def handle_info({:tap, :clear}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:query, "")
+     |> Mob.Socket.assign(:results, Kati.Search.Query.run(""))}
+  end
 
   # One clause for every chip on the screen: the tag carries the label, so a
   # fifth filter or a fifth recent search is a change to the sample, not here.
@@ -247,7 +378,19 @@ defmodule Kati.Screens.Search do
   # `0 8px 18px -14px rgba(26,25,23,.6)` is a single layer and darker than
   # `Kati.Theme.shadow_search/0`, so it is written out rather than borrowed.
   @doc false
-  def field(results) do
+  def field(query, live? \\ true) do
+    # `live?: false` is board 89, which draws this field four times over — once
+    # per edge state. Four live fields on one page means four nodes called
+    # `search_query` and four called `clear`, and `onNodeWithTag` throws on the
+    # second match: a device test could address none of them. A reference sheet
+    # draws a picture of a control, so the picture carries no name and no tap.
+    assigns =
+      if live? do
+        %{query: query, id: "search_query", on_change: {self(), :query}, clear: {self(), :clear}}
+      else
+        %{query: query, id: nil, on_change: nil, clear: nil}
+      end
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -264,33 +407,42 @@ defmodule Kati.Screens.Search do
       >
         {Kati.UI.symbol("search", size: 20)}
         <Spacer size={11} />
-        <Text
-          text={results.query}
-          text_size={14.5}
-          font_weight="medium"
-          text_color={:on_surface}
-          max_lines={1}
+        <TextField
+          value={@query}
+          placeholder={Kati.Search.placeholder()}
+          return_key="search"
+          weight={1.0}
+          accessibility_id={@id}
+          on_change={@on_change}
         />
-        <Spacer size={2} />
-        <Box width={2} height={19} background={Palette.accent()} />
-        <Spacer weight={1.0} />
-        {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
+        <Spacer size={8} />
+        <Box on_tap={@clear}>
+          {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
+        </Box>
       </Row>
       <Spacer size={18} />
     </Column>
     """
   end
 
-  # The sample's own `on?` is ignored and selection comes from the assign, so
-  # there is one place that knows which chip is lit. It starts on "All", which
-  # is the chip the sample marks and the chip the drawing fills.
-  @doc false
-  def chips(active) do
+  @doc """
+  The four counted chips, counting the result set.
+
+  Which is what screen 88 specifies them as and what they have always claimed
+  to be — `Kati.Search.Query.chip_counts/1` derives them from the rows rather
+  than from a typed list, so a chip saying 4 over a list of 3 is now
+  impossible rather than merely discouraged.
+
+  Selection comes from the assign, so one place knows which chip is lit. It
+  starts on `All`, which is the chip the drawing fills.
+  """
+  @spec chips(String.t(), map()) :: map()
+  def chips(active, results) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        {Kati.Screens.Search.Sample.chips()
-         |> Enum.map(fn {label, count, _on?} ->
+        {Kati.Search.Query.chip_counts(results)
+         |> Enum.map(fn {label, count} ->
            Kati.Screens.Search.chip(label, count, label == active)
          end)
          |> Enum.intersperse(Kati.Screens.Search.gap())}
@@ -372,6 +524,93 @@ defmodule Kati.Screens.Search do
     />
     """
   end
+
+  @doc """
+  The results, or the state that stands in for them.
+
+  Three answers, and the screen has to tell them apart because a person can:
+
+    * **nothing typed** — the field is waiting. Board 86 is the whole page for
+      this, so here it is one line rather than a second idle screen.
+    * **typed, matched nothing** — the app has looked. This is the one a
+      results page must never draw as plain emptiness, because an empty list
+      under a query reads as a search that broke.
+    * **hits** — the drawing.
+
+  `Kati.Search.Query.run/1` carries `:idle?` for exactly this: a query under
+  `Kati.Search.minimum/1` is the screen waiting, and a long-enough one that
+  matched nothing is the screen having looked.
+  """
+  @spec state_or_groups(map(), String.t(), [String.t()]) :: map()
+  def state_or_groups(results, filter, history) do
+    cond do
+      Map.get(results, :idle?, false) -> Kati.Screens.Search.waiting(history)
+      Kati.Screens.Search.empty?(results) -> Kati.Screens.Search.no_matches(results.query)
+      true -> Kati.Screens.Search.groups(results, filter)
+    end
+  end
+
+  @doc "Whether a result set matched nothing at all."
+  @spec empty?(map()) :: boolean()
+  def empty?(results) do
+    (results.titles || []) == [] and (results.calendar || []) == [] and results.note == nil
+  end
+
+  @doc """
+  The page with nothing typed in the field.
+
+  Board 19 is drawn mid-query and no board draws it empty, because until the
+  field was real the design never put a person here without one. A person can
+  now clear it, so the state exists and has to say something.
+
+  What it says is the two sentences the idle boards already own —
+  `Kati.Screens.SearchTyping.nothing_yet/0` is board 87's *Nothing searched
+  yet* card and `Kati.Search.counts_note/0` is board 88's paragraph about why
+  the chips carry no counts. Neither is invented here; a third wording of the
+  same idea is how two screens end up disagreeing about what an empty search
+  means.
+
+  With a history, the card gives way to the shelf below it, which is the
+  shortcut back into a query rather than an explanation of why there is none.
+  """
+  @spec waiting([String.t()]) :: map()
+  def waiting(history) do
+    assigns = %{card: if(history == [], do: Kati.Screens.SearchTyping.nothing_yet(), else: nil)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@card}
+      {Kati.UI.SettingsList.note("search", Kati.Search.counts_note())}
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc """
+  What a query that matched nothing says — board 89's own card, wired.
+
+  Not a card of this screen's own. `Kati.Screens.SearchResultStates.nothing/2`
+  is the drawing of exactly this state, down to naming the query back inside
+  its quotation marks, and 89's caption carries the reasoning: `Kati.Search`'s
+  scopes are all things you keep, so an empty result is not a failure to find
+  — it is a correct report that you do not have it, and the sentence says so
+  before offering the lookup.
+
+  What 89 could not have is the two destinations, and both exist now. The add
+  pill goes outward to `Kati.Screens.AddTitle`, which searches TMDB for real
+  since `Kati.Media.Tmdb` landed; the line under it goes to
+  `Kati.Screens.AddByHand`, board 154, which is the path that works without a
+  catalogue at all. In that order, because a title Kati has never heard of is
+  likelier to be findable than to be worth typing out.
+  """
+  @spec no_matches(String.t()) :: map()
+  def no_matches(query) do
+    Kati.Screens.SearchResultStates.nothing(query,
+      lookup: {self(), :look_up},
+      by_hand: {self(), :add_by_hand}
+    )
+  end
+
 
   @doc """
   The result groups a filter leaves standing, in the drawing's order.
@@ -672,10 +911,20 @@ defmodule Kati.Screens.Search do
   end
 
   @doc false
-  def recent(results, picked) do
+  def recent(results, history, picked) do
+    # The drawing's shelf arrives on `results.recent` — it is what
+    # `drawn_results/0` carries and what `Kati.ScreenDesignLiteralTest`
+    # installs. A device's results carry none, so the shelf is this reader's
+    # own history, chunked into the rows the drawing wraps it into.
+    rows =
+      case results.recent do
+        [] -> Kati.Screens.Search.chunk(history)
+        drawn -> drawn
+      end
+
     ~MOB"""
     <Column fill_width={true}>
-      {results.recent
+      {rows
        |> Enum.map(fn row -> Kati.Screens.Search.recent_row(row, picked) end)
        |> Enum.intersperse(Kati.Screens.Search.gap())}
     </Column>

@@ -77,7 +77,6 @@ defmodule Kati.ScreenSampleOnlyTest do
     {"06", Kati.Screens.AddTitle},
     {"11", Kati.Screens.Discover},
     {"18", Kati.Screens.QuickAdd},
-    {"19", Kati.Screens.Search},
     {"22", Kati.Screens.Habits},
     {"23", Kati.Screens.Subscriptions}
   ]

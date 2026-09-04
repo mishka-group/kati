@@ -45,8 +45,12 @@ defmodule Kati.Screens.SearchIdle do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  def load(socket),
-    do: socket |> Mob.Socket.assign(:scope, "All") |> Mob.Socket.assign(:query, "")
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:scope, "All")
+    |> Mob.Socket.assign(:query, "")
+    |> Mob.Socket.assign(:history, Kati.Search.Recent.all())
+  end
 
   @doc false
   def content(assigns) do
@@ -62,7 +66,7 @@ defmodule Kati.Screens.SearchIdle do
         {SettingsList.chrome(nil, 44)}
         {Kati.Screens.SearchIdle.field(assigns.query)}
         {Kati.Screens.SearchIdle.chips(assigns.scope)}
-        {Kati.Screens.SearchIdle.recent()}
+        {Kati.Screens.SearchIdle.recent(assigns.history)}
         {Kati.Screens.SearchIdle.suggestions()}
         {Kati.Screens.SearchIdle.counts_note()}
       </Column>
@@ -98,7 +102,7 @@ defmodule Kati.Screens.SearchIdle do
           <Spacer size={11} />
           <TextField
             value={@query}
-            placeholder={Kati.Search.Sample.placeholder()}
+            placeholder={Search.placeholder()}
             return_key="search"
             weight={1.0}
             accessibility_id="search_query"
@@ -179,10 +183,10 @@ defmodule Kati.Screens.SearchIdle do
   destructive control below eight rows is a control you reach by scrolling past
   the thing it destroys.
   """
-  @spec recent() :: map()
-  def recent do
+  @spec recent([String.t()]) :: map()
+  def recent(queries) do
     rows =
-      Kati.Search.Sample.recent()
+      queries
       |> Enum.map(fn query ->
         SettingsList.row(
           SettingsList.icon_tile("history"),
@@ -192,20 +196,58 @@ defmodule Kati.Screens.SearchIdle do
         )
       end)
 
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.eyebrow("Recent · last #{Search.recent_kept()}", trailing: "Clear")}
-      {Kati.UI.SettingsList.card(rows)}
-      <Spacer size={22} />
-    </Column>
-    """
+    # An empty history is WORDED, not omitted, and board 87 is where that was
+    # decided: `Kati.Screens.SearchTyping.nothing_yet/0` carries the reasoning
+    # in full — "dropping the section entirely on a first run would make the
+    # shelf appear from nowhere after the first search; stating that it is
+    # empty and what will fill it keeps the shape of the screen constant."
+    #
+    # 86's own caption says the same in four words: *Recent is empty by
+    # definition* on a first run. So the eyebrow stays and the card under it
+    # explains itself.
+    if rows == [] do
+      assigns = %{kept: Search.recent_kept()}
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.eyebrow("Recent · last #{@kept}")}
+        {Kati.Screens.SearchTyping.nothing_yet()}
+      </Column>
+      """
+    else
+      assigns = %{rows: rows, kept: Search.recent_kept()}
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.eyebrow("Recent · last #{@kept}", trailing: "Clear")}
+        {Kati.UI.SettingsList.card(@rows)}
+        <Spacer size={22} />
+      </Column>
+      """
+    end
   end
+
+  @doc """
+  The five queries board 86 was captured with.
+
+  Kept on the screen rather than in a fixture module, for the reason
+  `Kati.Screens.Home.drawn_rows/0` is: it is the transcription the drawing was
+  read from, and `Kati.ScreenDesignLiteralTest` installs it to compare the
+  drawing against the drawing. What a device shows is
+  `Kati.Search.Recent.all/0`, and `Kati.ScreenEmptyDatabaseTest` is what says
+  so — that a store nobody has searched answers `[]` and not this.
+
+  Never translated, in 88's own words: *they are your words*. So the Persian
+  mirror draws the same five.
+  """
+  @spec drawn_recent() :: [String.t()]
+  def drawn_recent, do: ["dentist", "leaving soon", "ines karvel", "4 stars", "miso salmon"]
 
   @doc "Two suggestions, drawn from what you have. Never more — see the moduledoc."
   @spec suggestions() :: map()
   def suggestions do
     rows =
-      Kati.Search.Sample.suggestions()
+      Search.suggestions()
       |> Enum.map(fn suggestion ->
         SettingsList.row(
           SettingsList.icon_tile("auto_awesome"),
@@ -226,7 +268,7 @@ defmodule Kati.Screens.SearchIdle do
 
   @doc "The sentence that explains the three numbers this screen rests on."
   @spec counts_note() :: map()
-  def counts_note, do: SettingsList.note("info", Kati.Search.Sample.counts_note())
+  def counts_note, do: SettingsList.note("info", Search.counts_note())
 
   @doc """
   What was typed, and where it goes.
