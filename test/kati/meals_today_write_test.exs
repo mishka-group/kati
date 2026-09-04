@@ -17,7 +17,25 @@ defmodule Kati.MealsTodayWriteTest do
 
   alias Kati.Meals.MealLog
 
+  # Cleared BEFORE and AFTER, and the second half is not tidiness.
+  #
+  # This file shares one database with every other test in the suite, and the
+  # rows it writes are a plan with a slot on today — which is exactly what
+  # `Kati.Screens.MealsToday` and `Kati.Screens.Meal` look for before they fall
+  # back to their drawings. Left behind, they make screens 43 and 45 draw real
+  # data during `Kati.ScreenDesignLiteralTest`, which then fails to find the
+  # board's own literals.
+  #
+  # It failed on some seeds and passed on others, which is the worst version of
+  # this: the suite was green twice out of three runs and the cause was a file
+  # that had already finished.
   setup do
+    clear!()
+    on_exit(&clear!/0)
+    :ok
+  end
+
+  defp clear! do
     for resource <- [
           MealLog,
           Kati.Meals.MealPlanSlot,
@@ -27,8 +45,6 @@ defmodule Kati.MealsTodayWriteTest do
         ] do
       resource |> Ash.read!() |> Enum.each(&Ash.destroy!/1)
     end
-
-    :ok
   end
 
   test "marking a planned meal eaten writes a log with the frozen figures" do
@@ -88,6 +104,43 @@ defmodule Kati.MealsTodayWriteTest do
     meal = Enum.find(drawn.meals, &(&1.state == :next))
 
     assert Kati.Screens.MealsToday.tag("mark_eaten", meal) == :mark_eaten
+  end
+
+
+  describe "screen 45 marks the same meal the same way" do
+    test "Mark eaten on the detail page writes a log, not a socket flag" do
+      # It used to flip `:eaten` on the socket — a tick that drew, survived
+      # until the screen was popped, and left nothing behind. A control that
+      # looks like it worked is worse than one that plainly does not.
+      #
+      # Asserted through the same action screen 43 uses, because two screens
+      # that mean "I ate this" must not be able to disagree about what it does.
+      %{slot: slot} = planned_dinner()
+
+      view = mount_screen(Kati.Screens.Meal)
+      assert view.socket.assigns.meal[:slot_id] == slot.id, "45 did not find the planned slot"
+
+      {:noreply, moved} = Kati.Screens.Meal.handle_info({:tap, :mark_eaten}, view.socket)
+
+      logs = Ash.read!(MealLog)
+      assert length(logs) == 1, "the detail page wrote #{length(logs)} rows"
+      assert hd(logs).state == :eaten
+      assert hd(logs).meal_plan_slot_id == slot.id
+      assert moved.assigns.meal.eaten
+    end
+
+    test "with no plan it is the drawing, and the tick stays local" do
+      # `Kati.Meals.SampleRecipe` is a transcription of board 45, not rows.
+      # Writing a log for a meal nobody planned would be inventing the row it
+      # then displayed.
+      view = mount_screen(Kati.Screens.Meal)
+      refute view.socket.assigns.meal[:slot_id]
+
+      {:noreply, moved} = Kati.Screens.Meal.handle_info({:tap, :mark_eaten}, view.socket)
+
+      assert Ash.read!(MealLog) == []
+      assert moved.assigns.meal.eaten, "the drawn page stopped acknowledging the tap at all"
+    end
   end
 
   defp planned_dinner(opts \\ []) do

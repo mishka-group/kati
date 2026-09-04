@@ -154,6 +154,15 @@ defmodule Kati.Screens.Meal do
       title: recipe.title,
       seed: recipe.photo_seed,
       portion: portion_label(portion / Nutrition.one_portion()),
+      # Carried so **Mark eaten** can write one. Without them the button had
+      # nothing to log against, so it toggled a flag on the socket instead —
+      # which drew a tick, survived until the screen was popped, and left
+      # nothing behind. A control that looks like it worked is worse than one
+      # that plainly does not.
+      slot_id: slot.id,
+      recipe_id: recipe.id,
+      portion_milli: portion,
+      plan_id: slot.meal_plan_id,
       calories: "#{figures.kcal}",
       unit: " kcal",
       split: split(figures),
@@ -1052,14 +1061,59 @@ defmodule Kati.Screens.Meal do
      Mob.Socket.assign(socket, :meal, %{meal | portion: Kati.Screens.Meal.portion_label(factor)})}
   end
 
-  def handle_info({:tap, :mark_eaten}, socket) do
-    meal = socket.assigns.meal
+  @doc """
+  Mark the meal eaten, for real.
 
-    {:noreply,
-     Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))}
+  This used to flip `:eaten` on the socket — a tick that drew, survived until
+  the screen was popped, and left nothing in the store. Screen 43's button had
+  the same shape and `Kati.MealsTodayWriteTest` is what settled it; this is the
+  same write from the detail page, through the same action, so the two cannot
+  come to disagree about what marking a meal means.
+
+  `Kati.Meals.MealLog`'s `:log_recipe` freezes the figures at the moment of the
+  claim, which is why the portion goes in as the slot's rather than as this
+  screen's label: `portion_label/1` is for reading and `portion_milli` is what
+  the arithmetic is done on.
+
+  With no active plan the screen is `Kati.Meals.SampleRecipe`'s drawing and
+  there is no slot to log against, so the tap keeps its old local toggle. A
+  drawn meal is not a planned one, and writing a log for a meal nobody planned
+  would be inventing the row it then displayed.
+  """
+  def handle_info({:tap, :mark_eaten}, socket) do
+    {:noreply, Kati.Screens.Meal.mark_eaten(socket)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc false
+  @spec mark_eaten(Mob.Socket.t()) :: Mob.Socket.t()
+  def mark_eaten(socket) do
+    meal = socket.assigns.meal
+
+    case meal do
+      %{slot_id: slot_id, recipe_id: recipe_id} when is_binary(slot_id) and is_binary(recipe_id) ->
+        Kati.Meals.MealLog
+        |> Ash.Changeset.for_create(:log_recipe, %{
+          recipe_id: recipe_id,
+          portion_milli: meal.portion_milli,
+          logged_on: Kati.Time.today(),
+          logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
+          state: :eaten,
+          meal_plan_id: meal.plan_id,
+          meal_plan_slot_id: slot_id
+        })
+        |> Ash.create()
+        |> Kati.Write.note("mark eaten #{meal.title}")
+        |> case do
+          {:ok, _log} -> Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, true))
+          {:error, _reason} -> socket
+        end
+
+      _drawn ->
+        Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))
+    end
+  end
 
   @doc false
   @spec portion_factor(String.t()) :: float()
