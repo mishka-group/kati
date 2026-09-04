@@ -48,6 +48,7 @@ defmodule Kati.Media.Tmdb do
   alias Kati.Media.CachedTitle
 
   @host "https://api.themoviedb.org/3"
+  @dns_host "api.themoviedb.org"
   @timeout 15_000
 
   # Test seam, and the only one. `:tmdb_req_options` is merged into every
@@ -314,6 +315,19 @@ defmodule Kati.Media.Tmdb do
   # because the wording belongs to the screen and the reason belongs here.
   defp get(key, path, params) do
     Kati.Net.Tls.ensure!()
+
+    # Android's resolver lives behind a Java API the BEAM cannot reach, so the
+    # pure-BEAM resolver `Kati.Net.Tls.ensure!/0` configures gets nowhere on a
+    # phone: `:inet_res.gethostbyname/1` answers `:nxdomain` for a host the
+    # same device pings without trouble, and every request here dies as a
+    # transport error. `Mob.DNS.resolve/1` asks the platform through a NIF and
+    # seeds `:inet_db`, which is where Req/Finch/Mint look.
+    #
+    # Idempotent, so it costs a cache read after the first call. On the host
+    # the NIF is absent and it answers `{:error, :nif_not_loaded}` — ignored,
+    # because ordinary DNS already works there, which is exactly why this was
+    # invisible until the emulator.
+    _resolved = Mob.DNS.resolve(@dns_host)
 
     [
       url: @host <> path,
