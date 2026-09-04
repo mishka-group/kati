@@ -305,7 +305,7 @@ defmodule Kati.Screens.Library do
       >
         {Kati.Screens.Library.header(titles, assigns.menu?)}
         {Kati.Screens.Library.segments(shelf)}
-        {Kati.Screens.Library.quick_tiles()}
+        {Kati.Screens.Library.quick_tiles(titles)}
         {Kati.Screens.Library.shelf_body(filter, shelf, titles)}
       </Column>
     </Scroll>
@@ -676,19 +676,57 @@ defmodule Kati.Screens.Library do
   end
 
   @doc false
-  def quick_tiles do
+  def quick_tiles(titles) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.Library.quick_tile("playlist_play", "Up next", "12", :open_up_next)}
+        {Kati.Screens.Library.quick_tile("playlist_play", "Up next", Kati.Screens.Library.up_next_badge(titles), :open_up_next)}
         <Spacer size={9} />
         {Kati.Screens.Library.quick_tile("explore", "Discover", nil, :open_discover)}
         <Spacer size={9} />
-        {Kati.Screens.Library.quick_tile("bookmarks", "Lists", "7", :open_lists)}
+        {Kati.Screens.Library.quick_tile("bookmarks", "Lists", nil, :open_lists)}
       </Row>
       <Spacer size={18} />
     </Column>
     """
+  end
+
+  @doc """
+  The count on the *Up next* tile, or `nil` when there is nothing next.
+
+  The tiles stay on an empty shelf and this moduledoc argues why. What could
+  not stay is their **counts**: `12` and `7` were the board's own numbers,
+  written out, so a phone that had tracked nothing announced twelve things to
+  watch and seven lists above a card whose whole job is to say the shelf is
+  empty. That is the same lie #91 took the nine invented films off this screen
+  for, in two smaller numbers, and it is what the owner saw first on a real
+  install.
+
+  The filter chips two paragraphs down were withheld for a weaker version of
+  the same reason — `All 0 · Watching 0` would be noise — and that argument
+  ends *"nothing is invented in their place"*. The counts above them were.
+
+  `nil` rather than `0`: the tile draws no badge for `nil`, which is what
+  Discover has always passed, so an empty shelf gets the drawing's own
+  no-count tile rather than a zero the board never draws.
+
+  **Lists gets `nil` unconditionally.** There is no list resource anywhere in
+  `lib/kati` — `Kati.Screens.Lists` assigns `Sample.lists/0` outright — so
+  there is no number to be right. A count invented for a feature with no store
+  behind it cannot become true by being recomputed.
+
+      iex> Kati.Screens.Library.up_next_badge([])
+      nil
+
+      iex> Kati.Screens.Library.up_next_badge([%{status: :watching}, %{status: :finished}])
+      "1"
+  """
+  @spec up_next_badge([map()]) :: String.t() | nil
+  def up_next_badge(titles) do
+    case Enum.count(titles, &(&1.status == :watching)) do
+      0 -> nil
+      n -> Integer.to_string(n)
+    end
   end
 
   @doc false

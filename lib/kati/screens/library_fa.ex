@@ -139,6 +139,29 @@ defmodule Kati.Screens.LibraryFa do
   title a full one, and neither invents a percentage — `meta/1` says so in
   words in exactly the case this returns `0.0`.
   """
+  @doc """
+  The *بعدی* tile's count in Persian digits, or `nil` when nothing is next.
+
+  `Kati.Screens.Library.up_next_badge/1`'s answer put through
+  `Kati.Calendar.Shamsi.to_persian_digits/1`, so the mirror counts the same
+  rows the English shelf counts and prints them in the script this screen
+  reads in. `nil` stays `nil`: the tile then draws no badge, which is what the
+  board's own Discover tile has always done.
+
+      iex> Kati.Screens.LibraryFa.up_next_badge([])
+      nil
+
+      iex> Kati.Screens.LibraryFa.up_next_badge([%{status: :watching}])
+      "۱"
+  """
+  @spec up_next_badge([map()]) :: String.t() | nil
+  def up_next_badge(titles) do
+    case Kati.Screens.Library.up_next_badge(titles) do
+      nil -> nil
+      count -> Kati.Calendar.Shamsi.to_persian_digits(count)
+    end
+  end
+
   @spec shaped(map()) :: map()
   def shaped(row) do
     %{
@@ -271,7 +294,7 @@ defmodule Kati.Screens.LibraryFa do
       >
         {Kati.Screens.LibraryFa.header(header)}
         {Kati.Screens.LibraryFa.segments(shelf)}
-        {Kati.Screens.LibraryFa.quick_tiles()}
+        {Kati.Screens.LibraryFa.quick_tiles(assigns.titles)}
         {Kati.Screens.LibraryFa.chips(filter, counts)}
         {Kati.Screens.LibraryFa.grid(titles)}
       </Column>
@@ -461,9 +484,23 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
-  @doc false
-  def quick_tiles do
+  @doc """
+  The Persian tiles, with the two counts read rather than drawn.
+
+  `Kati.Screens.Library.up_next_badge/1`'s argument, in the script this screen
+  is written in: the labels and icons stay `Kati.Screens.LibraryFa.Sample`'s,
+  because those are the drawing's words and the drawing is where Persian copy
+  comes from — but `۱۲` and `۷` were the board's numbers, and a Persian phone
+  with nothing tracked announced them exactly as the English one did.
+
+  The digits go through `Kati.Calendar.Shamsi.to_persian_digits/1`, which is
+  how every other number on this screen is written.
+  """
+  def quick_tiles(titles) do
     [up_next, discover, lists] = Sample.quick_tiles()
+
+    up_next = %{up_next | count: Kati.Screens.LibraryFa.up_next_badge(titles)}
+    lists = %{lists | count: nil}
 
     ~MOB"""
     <Column fill_width={true}>
