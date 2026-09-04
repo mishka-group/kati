@@ -92,6 +92,13 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
+    {Screens.HomeFaOmittedSections,
+     "the decision that an empty section is omitted rather than worded, drawn " <>
+       "on a Persian Home so both cases can be seen at once. A board about a " <>
+       "rule rather than a place in the app — screen 96's reason."},
+    {Screens.HomeFaEmptyDark,
+     "158 in the dark colourway — the same page in another colourway, " <>
+       "reached by having dark on and having kept nothing."},
     {Screens.HomeFaEmpty,
      "screen 55 with nothing stored, and the Persian pair of 139. Reached by " <>
        "having kept nothing, not by navigating — the same reason " <>

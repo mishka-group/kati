@@ -392,7 +392,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"155", Kati.Screens.AddByHandStates},
     {"156", Kati.Screens.AddByHandFa},
     {"157", Kati.Screens.AddByHandDark},
-    {"158", Kati.Screens.HomeFaEmpty}
+    {"158", Kati.Screens.HomeFaEmpty},
+    {"159", Kati.Screens.HomeFaEmptyDark},
+    {"160", Kati.Screens.HomeFaOmittedSections}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -1413,6 +1415,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.Screens.HomeEmpty` is gated the same way for the same reason.
       {"158", Kati.Screens.HomeFaEmpty, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
+      {"159", Kati.Screens.HomeFaEmptyDark, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"160", Kati.Screens.HomeFaOmittedSections, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
       {"19", Kati.Screens.Search, &Kati.Screens.Search.results_for/0,
        &Kati.Screens.Search.Sample.results/0},
       {"89", Kati.Screens.SearchResultStates, &Kati.Screens.Search.results_for/0,
@@ -1794,6 +1800,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # same frozen value on the same clock.
       {"158", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"158", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
+      {"159", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"159", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
+      {"160", "یکشنبه ۲۵ مرداد ۱۴۰۵", ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"160", "عصر بخیر", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       # 24 and 62's Export row: `Kati.Screens.Settings.last_backup/0` is `nil`
       # until something completes a Save As, and `Mob.State` is empty here.
       # `Kati.ScreenDesignLiteralTest` carries the same pair with the full

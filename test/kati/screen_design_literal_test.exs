@@ -225,8 +225,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 157,
-             "expected 157 drawings under test/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 159,
+             "expected 159 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -555,7 +555,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # with nothing stored, exactly as 139 is 01 with nothing stored, and 01's
       # pair is already here for that reason. Each pins today's Shamsi day, so
       # a screen that hardcoded the board's ۲۵ مرداد ۱۴۰۵ still fails.
-      assert length(device_values()) <= 33,
+      assert length(device_values()) <= 37,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -619,6 +619,14 @@ defmodule Kati.ScreenDesignLiteralTest do
          "`Kati.Calendar.Shamsi.format/2` at `:long` over `Kati.Time.today/0` — the mirror " <>
          "of 01's own exemption, in the calendar the screen is drawn in",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"160", "یکشنبه ۲۵ مرداد ۱۴۰۵",
+       "160 is a Persian Home too, on the same `Kati.Screens.HomeFa.moment/0`",
+       ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"160", "عصر بخیر", "the same greeting, the same hour", ~r/^(صبح|ظهر|عصر) بخیر$/u},
+      {"159", "یکشنبه ۲۵ مرداد ۱۴۰۵",
+       "159 is 158 in the dark colourway and reads the same clock",
+       ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
+      {"159", "عصر بخیر", "the same greeting, the same hour", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"158", "یکشنبه ۲۵ مرداد ۱۴۰۵",
        "the Persian empty Home's date line is `Kati.Screens.HomeFa.moment/0`, the same " <>
          "function screen 55's is — so 158 carries 55's exemption for the same reason and " <>
