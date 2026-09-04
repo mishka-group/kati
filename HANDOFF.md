@@ -29,9 +29,9 @@ d7150fa  the Add title field searches TMDB instead of a Sample module
 ```
 
 **Green as of handoff:** host `mix test` → **2101 passing**. Device
-`./gradlew connectedE2eAndroidTest` on **Pixel_9a** → **21 tests, 0 failures**.
+`./gradlew connectedE2eAndroidTest` on **Pixel_9a** → **22 tests, 0 failures**.
 
-**#91 and #92 are closed**, both with the device evidence in their closing comments.
+**#91, #92 and #93 are closed**, each with the device evidence in its closing comment.
 
 ---
 
@@ -168,8 +168,8 @@ chat window when it was supplied, so rotating it at some point is advisable.
 |---|---|
 | ~~#91~~ | **Closed.** All five criteria asserted on the Pixel_9a. |
 | ~~#92~~ | **Closed.** All five criteria asserted on the Pixel_9a. |
-| #93 | Its actionable set was empty and its blocker was named in its own analysis: `LoudnessPrompt`'s entry is 38·3 routing forward, which needed 38 renumbered. `D-33` did that and 162/165 are the step. The rest of #93 is a design ask, not code. |
-| #94 | Blocked by #93, in its own text. |
+| ~~#93~~ | **Closed.** Its own text scopes it to *"the ones that need only a control and a handler clause"*, and its blocker was in its own inventory entry: `LoudnessPrompt`'s entry is 38·3 routing forward, which needed 38 renumbered. #91 did that; the loudness step routes into board 136 now. |
+| **#94** | **Its four criteria cannot all be met today**, and the analysis is a comment on the issue. Removing the Settings door fails criterion 3 for ~9 screens whose entry is a control no board draws; deleting them is not what criterion 2 covers. Needs a design round or an explicit decision to delete built screens. |
 | #89 / #90 | TMDB is built, keyed and verified live on device. |
 | #80 | **Left open by the owner's decision** — Apple/iCloud, deferred to the next version. |
 
@@ -227,7 +227,14 @@ no advisory. `mob 0.7.24 → 0.7.39` is pinned for the reason `mix.exs` gives: t
 is forked at generation time and `native/LEDGER.md` is the merge cost. The vendored baseline
 is 0.4.20; a bump is a three-way merge across 41 fences.
 
-**4. The Persian mirrors adopt very little of `Kati.Components`,** and the reason is one
+**4. A Persian board 136.** The loudness step routes an English run through the pre-prompt
+purpose card and a Persian run straight past it, because 136 has no Persian mirror anywhere.
+A Persian reader who chooses خبرم کن gets the OS dialog with no card before it. Pushing the
+English one would be the cross-shell failure #91 spent a round ending, so this is a drawing
+that does not exist rather than a clause that was forgotten —
+`Kati.Screens.OnboardingLoudnessFa` argues it at the call site.
+
+**5. The Persian mirrors adopt very little of `Kati.Components`,** and the reason is one
 upstream ask: `MishkaChip`, `MishkaSegmentedControl` and `MishkaNavLink` take their label
 as a prop and build the `Text` themselves, so a Persian label through them cannot carry a
 face. `Kati.Screens.AddByHandFa.status_chip/2` is the third hand-rolled workaround.
