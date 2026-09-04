@@ -199,6 +199,9 @@ defmodule Kati.Screens.Gallery do
     {"158", "خانه — nothing stored, RTL", Kati.Screens.HomeFaEmpty, :push},
     {"159", "خانه — nothing stored, dark RTL", Kati.Screens.HomeFaEmptyDark, :push},
     {"160", "The two empty sections — omitted, decided", Kati.Screens.HomeFaOmittedSections, :push},
+    {"161", "Welcome — step 2 of 5", Kati.Screens.OnboardingWelcome, :push},
+    {"162", "Loudness — step 4 of 5", Kati.Screens.OnboardingLoudness, :push},
+    {"163", "First title — step 5 of 5", Kati.Screens.OnboardingFirstTitle, :push},
     {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push}
   ]
 

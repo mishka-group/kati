@@ -245,6 +245,11 @@ defmodule Kati.ScreenTapSweepTest do
     # is the first group above. `kind_Film` and the other two statuses all move
     # the assign, which is what says the family is wired.
     {Kati.Screens.AddByHand, :kind_Film},
+    # Steps 4 and 5's resting choices — the loudness the board opens on and the
+    # title it opens with picked. Every other choice in each family moves the
+    # assign, which is what says the family is wired.
+    {Kati.Screens.OnboardingLoudness, :choose_Quietly},
+    {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},
     # 157 and 156 are 154 in another colourway and another script, and each is
     # drawn in the state its own board shows — Series chosen so the episode
     # field is visible. The resting member of a family again, three times.

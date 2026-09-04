@@ -92,6 +92,17 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
+    {Screens.OnboardingWelcome,
+     "step 2 of the five-step first run boards 161-166 renumber screen 38 " <>
+       "into. Drawn and built; `Kati.Onboarding.screen_for_step/1` still walks " <>
+       "the old four, and moving it is #91's own criterion rather than a " <>
+       "change to make beside the drawing."},
+    {Screens.OnboardingLoudness,
+     "step 4 — the board `Kati.Screens.LoudnessPrompt` waits on, since 38·3 " <>
+       "routing forward is that screen's entry. Same reason as step 2: drawn " <>
+       "and built, not yet the flow."},
+    {Screens.OnboardingFirstTitle,
+     "step 5. Same reason as steps 2 and 4."},
     {Screens.HomeFaOmittedSections,
      "the decision that an empty section is omitted rather than worded, drawn " <>
        "on a Persian Home so both cases can be seen at once. A board about a " <>
