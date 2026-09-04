@@ -41,13 +41,33 @@ defmodule Kati.OnboardingResumeTest do
     end
 
     test "a run interrupted on the last step reopens there" do
-      Onboarding.reached!(:finish)
+      Onboarding.reached!(:first_title)
 
-      assert Onboarding.first_screen() == Kati.Screens.Onboarding
+      assert Onboarding.first_screen() == Kati.Screens.OnboardingFirstTitle
+    end
+
+    test "a Persian run reopens on the Persian drawing of the step it stopped on" do
+      # The point of `D-33`'s six boards. Before them a Persian run resumed
+      # into the English screen 38 — mirrored, with its punctuation on the
+      # wrong side — because no Persian artboard for the step existed.
+      Kati.Locale.put(:fa)
+      Onboarding.reached!(:loudness)
+
+      assert Onboarding.first_screen() == Kati.Screens.OnboardingLoudnessFa
+    end
+
+    test "a run interrupted before the split resumes on the last of the five steps" do
+      # `:finish` is what the three-step run recorded, and an install
+      # interrupted on it is still out there. It must resume at the end of the
+      # sequence rather than be sent back to the language question.
+      Mob.State.put(:onboarding_step, :finish)
+
+      assert Onboarding.step() == :first_title
+      assert Onboarding.first_screen() == Kati.Screens.OnboardingFirstTitle
     end
 
     test "a completed run opens the app, not the run" do
-      Onboarding.reached!(:finish)
+      Onboarding.reached!(:first_title)
       Onboarding.complete!()
 
       assert Onboarding.first_screen() == Kati.Screens.Home
@@ -68,17 +88,17 @@ defmodule Kati.OnboardingResumeTest do
       # back gesture is one, Mob remounting a screen is another. A resume that
       # either could drag backwards would be worse than no resume: it would
       # reopen on a step the person had already passed.
-      Onboarding.reached!(:finish)
+      Onboarding.reached!(:first_title)
       Onboarding.reached!(:language)
 
-      assert Onboarding.step() == :finish,
+      assert Onboarding.step() == :first_title,
              "going back a screen rewound the run"
     end
 
     test "re-arming a first run forgets the step it had reached" do
       # Without this, `reset!/0` re-arms a run that immediately reopens on its
       # LAST step and finishes — a reset that resets nothing a person can see.
-      Onboarding.reached!(:finish)
+      Onboarding.reached!(:first_title)
       Onboarding.reset!()
 
       assert Onboarding.step() == :language
@@ -132,9 +152,34 @@ defmodule Kati.OnboardingResumeTest do
     end
 
     test "opening the last step records it" do
-      _view = mount_screen(Kati.Screens.Onboarding)
+      _view = mount_screen(Kati.Screens.OnboardingFirstTitle)
 
-      assert Onboarding.step() == :finish
+      assert Onboarding.step() == :first_title
+    end
+
+    test "every step of the five records itself, in both scripts" do
+      # One assertion per screen rather than a walk, because the failure this
+      # catches is a screen that draws correctly and records nothing — which
+      # only shows up as a resume landing a step early, months later, on
+      # somebody's phone.
+      for {step, locale} <- [
+            {:welcome, :en},
+            {:loudness, :en},
+            {:first_title, :en},
+            {:welcome, :fa},
+            {:sections, :fa},
+            {:loudness, :fa},
+            {:first_title, :fa}
+          ] do
+        Onboarding.reset!()
+        Kati.Locale.put(locale)
+        screen = Onboarding.screen_for_step(step)
+
+        _view = mount_screen(screen)
+
+        assert Onboarding.step() == step,
+               "#{inspect(screen)} drew the #{step} step and recorded #{inspect(Onboarding.step())}"
+      end
     end
   end
 

@@ -54,12 +54,44 @@ defmodule Kati.FirstRunTest do
   end
 
   describe "walking the sequence" do
-    test "53 Continue opens 26" do
-      assert push_of(Screens.LanguagePick, :continue) == Screens.PickSections
+    test "53 Continue opens 161, the welcome step" do
+      # 26 until `D-33` split screen 38 into its three panels. The welcome is
+      # now a step of its own, which is what gives it a Persian address.
+      Kati.Locale.put(:en)
+      assert push_of(Screens.LanguagePick, :continue) == Screens.OnboardingWelcome
     end
 
-    test "26 Continue opens 38" do
-      assert push_of(Screens.PickSections, :continue) == Screens.Onboarding
+    test "53 Continue opens 164 for a reader who just chose فارسی" do
+      # The tap that reached this handler WAS the language choice, so this is
+      # the first push that can honour it — and the one that used to send a
+      # Persian run into the English drawings for the whole middle of the
+      # sequence. #91's fourth criterion, in one assertion.
+      Kati.Locale.put(:fa)
+      assert push_of(Screens.LanguagePick, :continue) == Screens.OnboardingWelcomeFa
+    end
+
+    test "161 Continue opens 26" do
+      assert push_of(Screens.OnboardingWelcome, :next) == Screens.PickSections
+    end
+
+    test "164 Continue opens 137, which is screen 26 in Persian" do
+      assert push_of(Screens.OnboardingWelcomeFa, :next) == Screens.OnboardingFa
+    end
+
+    test "26 Continue opens 162, the loudness step" do
+      assert push_of(Screens.PickSections, :continue) == Screens.OnboardingLoudness
+    end
+
+    test "137's ادامه pill opens 165 rather than nothing at all" do
+      # It drew no `on_tap` for as long as the screen existed: there was no
+      # Persian step four to push it to, and a dead button reads as a bug
+      # where an untranslated screen reads as unfinished. 165 is that step.
+      assert push_of(Screens.OnboardingFa, :continue) == Screens.OnboardingLoudnessFa
+    end
+
+    test "162 Continue opens 163, and 165 opens 166" do
+      assert push_of(Screens.OnboardingLoudness, :next) == Screens.OnboardingFirstTitle
+      assert push_of(Screens.OnboardingLoudnessFa, :next) == Screens.OnboardingFirstTitleFa
     end
 
     test "26's Continue asks for the calendar on the way out" do
@@ -126,17 +158,25 @@ defmodule Kati.FirstRunTest do
   end
 
   describe "finishing" do
-    for tag <- [:get_started, :finish] do
-      test "#{tag} records completion and resets the stack to the shell" do
+    # Both ways out of the last step finish the run. Skip is a way past adding
+    # a title, not a way to abandon setup: someone who takes it has still
+    # chosen a language and their sections, and the board sends them to the
+    # empty Home — the page that says which parts still work — rather than to
+    # a half-set-up one.
+    for {tag, landing} <- [finish: Screens.Home, skip: Screens.HomeEmpty] do
+      test "#{tag} records completion and resets the stack to #{inspect(landing)}" do
         Kati.Onboarding.reset!()
         Kati.Locale.put(:en)
 
         {:noreply, moved} =
-          Screens.Onboarding.handle_info({:tap, unquote(tag)}, socket_for(Screens.Onboarding))
+          Screens.OnboardingFirstTitle.handle_info(
+            {:tap, unquote(tag)},
+            socket_for(Screens.OnboardingFirstTitle)
+          )
 
         assert Kati.Onboarding.complete?()
 
-        assert moved.__mob__.nav_action == {:reset, Screens.Home, %{}},
+        assert moved.__mob__.nav_action == {:reset, unquote(landing), %{}},
                "must reset, not push: pushing leaves the whole first run under Home " <>
                  "and the back gesture walks straight back into it"
       end
@@ -147,9 +187,28 @@ defmodule Kati.FirstRunTest do
       Kati.Locale.put(:fa)
 
       {:noreply, moved} =
-        Screens.Onboarding.handle_info({:tap, :finish}, socket_for(Screens.Onboarding))
+        Screens.OnboardingFirstTitleFa.handle_info(
+          {:tap, :finish},
+          socket_for(Screens.OnboardingFirstTitleFa)
+        )
 
       assert moved.__mob__.nav_action == {:reset, Screens.HomeFa, %{}}
+    end
+
+    test "skipping a Persian run lands on 158, the Persian empty home" do
+      # Screen 139 is the English one. Landing there would end an entirely
+      # Persian run on an English page — the pairing `D-32` and `D-33`
+      # complete between them.
+      Kati.Onboarding.reset!()
+      Kati.Locale.put(:fa)
+
+      {:noreply, moved} =
+        Screens.OnboardingFirstTitleFa.handle_info(
+          {:tap, :skip},
+          socket_for(Screens.OnboardingFirstTitleFa)
+        )
+
+      assert moved.__mob__.nav_action == {:reset, Screens.HomeFaEmpty, %{}}
     end
   end
 

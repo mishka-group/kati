@@ -88,7 +88,14 @@ defmodule Kati.Onboarding do
 
   @step_key :onboarding_step
 
-  @steps [:language, :sections, :finish]
+  @steps [:language, :welcome, :sections, :loudness, :first_title]
+
+  # `:finish` is what the three-step run recorded for its last step, and an
+  # install interrupted on it is still out there. Mapped rather than kept in
+  # `@steps`, so it resumes at the last step of the five rather than being
+  # sent back to the language question — which is the one thing `step/0`
+  # exists to prevent.
+  @retired %{finish: :first_title}
 
   @doc """
   The first-run step this install last reached.
@@ -115,10 +122,11 @@ defmodule Kati.Onboarding do
   Defaults to `:language`, so a store that has never been written — a fresh
   install — starts at the beginning rather than somewhere in the middle.
   """
-  @spec step() :: :language | :sections | :finish
+  @spec step() :: atom()
   def step do
     case Mob.State.get(@step_key) do
       s when s in @steps -> s
+      s when is_map_key(@retired, s) -> Map.fetch!(@retired, s)
       _never_recorded -> :language
     end
   end
@@ -131,7 +139,7 @@ defmodule Kati.Onboarding do
   another — and a resume that could be dragged back a step by either would be
   a worse bug than no resume at all.
   """
-  @spec reached!(:language | :sections | :finish) :: :ok
+  @spec reached!(atom()) :: :ok
   def reached!(step) when step in @steps do
     if position(step) > position(step()) do
       Mob.State.put(@step_key, step)
@@ -140,31 +148,54 @@ defmodule Kati.Onboarding do
     :ok
   end
 
-  @doc false
-  @spec screen_for_step(atom()) :: module()
-  def screen_for_step(:sections), do: Kati.Screens.PickSections
+  @doc """
+  The screen a first-run step opens, in the locale the reader chose.
 
-  # Deliberately NOT locale-aware, and the reason is worth writing down because
-  # the obvious change here is wrong.
-  #
-  # Artboard 137 (`Kati.Screens.OnboardingFa`) is named "onboarding" and reads
-  # like the Persian mirror of 38. It is not. Its own moduledoc is explicit:
-  # *"Structurally this is `Kati.Screens.PickSections` (screen 26) read in
-  # Persian"* — a step meter, six section tiles, a commit pill. Routing the
-  # FINISH step there would send a Persian run back to the sections question,
-  # and strand it: 137's ادامه pill carries no `on_tap` at all, by an earlier
-  # decision recorded in that same moduledoc — there was no Persian step four
-  # to push it to, and *"a dead button reads as a bug where an untranslated
-  # screen reads as unfinished, which is the truth."*
-  #
-  # So a Persian run today walks the English drawings for steps 2 and 3 and
-  # lands on `Kati.Screens.HomeFa`. The locale reaches the app; it does not yet
-  # reach the middle of the run. Closing that needs Persian artboards that do
-  # not exist, which is a question for whoever draws them, not a translation
-  # invented here.
-  def screen_for_step(:finish), do: Kati.Screens.Onboarding
+  ## This was deliberately NOT locale-aware, and the comment saying so was right
 
-  def screen_for_step(_language), do: Kati.Screens.LanguagePick
+  Until 164, 165 and 166 were drawn, the Persian half of this table did not
+  exist. Artboard 137 is named "onboarding" and reads like the mirror of 38;
+  it is not — its own moduledoc says *"structurally this is
+  `Kati.Screens.PickSections` (screen 26) read in Persian"*. Routing the last
+  step there would have sent a Persian run back to the sections question and
+  stranded it, because 137's ادامه pill carried **no `on_tap` at all**: there
+  was no Persian step four to push it to, and *"a dead button reads as a bug
+  where an untranslated screen reads as unfinished, which is the truth."*
+
+  So a Persian run walked the English drawings for the middle of the sequence
+  and it looked exactly as bad as that sounds — screen 38 mirrored, with
+  `?How should we tell you` and `.add the rest whenever` punctuated on the
+  wrong side. That is #91's fourth criterion, and this table is what closes
+  it.
+
+  ## Five steps, because 38 draws three panels in one scroll
+
+  Screen 38 stacks the welcome, the loudness question and the first-title
+  prompt in a single page — which is why `Kati.ScreenTapSweepTest` once found
+  `finish` on two nodes at once, and why the flow map (134) has named the split
+  as a build task since it was drawn. `D-33` delivered the six boards that
+  split it, and the run is now five addressable steps in either script.
+
+  137 finally sits where it belongs: it is Persian screen 26, so it is the
+  Persian `:sections` step, and its pill has somewhere to go.
+  """
+  @spec screen_for_step(atom(), :en | :fa) :: module()
+  def screen_for_step(step, locale \\ nil) do
+    case {step, locale || Kati.Locale.current()} do
+      {:welcome, :fa} -> Kati.Screens.OnboardingWelcomeFa
+      {:welcome, _en} -> Kati.Screens.OnboardingWelcome
+      {:sections, :fa} -> Kati.Screens.OnboardingFa
+      {:sections, _en} -> Kati.Screens.PickSections
+      {:loudness, :fa} -> Kati.Screens.OnboardingLoudnessFa
+      {:loudness, _en} -> Kati.Screens.OnboardingLoudness
+      {:first_title, :fa} -> Kati.Screens.OnboardingFirstTitleFa
+      {:first_title, _en} -> Kati.Screens.OnboardingFirstTitle
+      # The language question is the one step with no Persian mirror, and it
+      # should not have one: screen 53 asks in both scripts at once, because
+      # nobody who needs it can be assumed to read the other.
+      {_language, _locale} -> Kati.Screens.LanguagePick
+    end
+  end
 
   defp position(step), do: Enum.find_index(@steps, &(&1 == step)) || 0
 

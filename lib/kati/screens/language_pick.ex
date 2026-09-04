@@ -534,7 +534,11 @@ defmodule Kati.Screens.LanguagePick do
         {:noreply, choose(code, socket)}
 
       "continue" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}
+        # Through the router rather than at `Kati.Screens.PickSections`
+        # directly: the tap the reader just made was the language, so this is
+        # the first push that can honour it. A Persian run went from here into
+        # the English drawings for the whole middle of the sequence.
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Onboarding.screen_for_step(:welcome))}
 
       _ ->
         {:noreply, socket}

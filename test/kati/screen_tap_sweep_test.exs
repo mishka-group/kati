@@ -250,6 +250,11 @@ defmodule Kati.ScreenTapSweepTest do
     # assign, which is what says the family is wired.
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
     {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},
+    # The same two, in the mirror. Their tags are positional rather than
+    # named — `Kati.Screens.OnboardingLoudnessFa.tag/1` says why: an atom made
+    # of Persian words is a name no device test can type.
+    {Kati.Screens.OnboardingLoudnessFa, :choose_quiet},
+    {Kati.Screens.OnboardingFirstTitleFa, :pick_1},
     # 157 and 156 are 154 in another colourway and another script, and each is
     # drawn in the state its own board shows — Series chosen so the episode
     # field is visible. The resting member of a family again, three times.

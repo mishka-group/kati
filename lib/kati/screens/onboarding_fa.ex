@@ -74,15 +74,19 @@ defmodule Kati.Screens.OnboardingFa do
   tile draws reaches a named `handle_info/2` clause — none of the six fall
   through to the catch-all.
 
-  ادامه با X بخش draws no `on_tap` at all. There is no Persian step four in
-  this round to push it to, `Kati.Screens.Onboarding` is English, and pushing
-  an English screen from a Persian root is exactly the failure
-  `Kati.Screens.HomeFa` leaves عادت‌ها inert to avoid: "a dead button reads as
-  a bug where an untranslated screen reads as unfinished, which is the truth."
-  `Kati.ScreenSweep.tap_tags/1` only collects nodes that carry `on_tap` in the
-  first place, so a button drawn without one is not a tap answered by a
-  catch-all — it is a control the sweep never asked about, which is the
-  honest state of the fourth step today.
+  ادامه با X بخش now pushes `Kati.Screens.OnboardingLoudnessFa`. For as long
+  as this screen existed before that it drew **no `on_tap` at all**, and the
+  reason is worth keeping: there was no Persian step four to push it to,
+  `Kati.Screens.Onboarding` is English, and pushing an English screen from a
+  Persian root is exactly the failure `Kati.Screens.HomeFa` leaves عادت‌ها
+  inert to avoid — "a dead button reads as a bug where an untranslated screen
+  reads as unfinished, which is the truth." `D-33` delivered 165, so the
+  button leads somewhere and the apology can go.
+
+  With it, this screen takes its real place in the run:
+  `Kati.Onboarding.screen_for_step/1` reads it as the **`:sections`** step for
+  a Persian reader — which is what it always was, structurally screen 26 — and
+  not as a mirror of 38 that would have sent the run backwards.
 
   The two footer links both do real, mismatch-free things. بازگردانی از
   پشتیبان pushes `Kati.Screens.RestoreFa` — screen 132, which did not exist
@@ -110,7 +114,7 @@ defmodule Kati.Screens.OnboardingFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
-    Kati.Onboarding.reached!(:finish)
+    Kati.Onboarding.reached!(:sections)
     {:ok, Mob.Socket.assign(socket, :chosen, Sample.chosen())}
   end
 
@@ -126,6 +130,14 @@ defmodule Kati.Screens.OnboardingFa do
 
       "restore_backup" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFa)}
+
+      # The ادامه pill, which carried no `on_tap` for as long as this screen
+      # has existed. Its moduledoc says why: there was no Persian step four to
+      # push it to, and "a dead button reads as a bug where an untranslated
+      # screen reads as unfinished, which is the truth." Screen 165 is that
+      # step, so the button is a button.
+      "continue" ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudnessFa)}
 
       "back_to_welcome" ->
         {:noreply, Mob.Socket.pop_screen(socket)}
@@ -321,6 +333,7 @@ defmodule Kati.Screens.OnboardingFa do
   @doc false
   def cta(chosen) do
     label = "ادامه با #{Digits.to_persian(MapSet.size(chosen))} بخش"
+    tap = {self(), :continue}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -331,6 +344,7 @@ defmodule Kati.Screens.OnboardingFa do
         background={Palette.ink_fill()}
         shadow="0 14 28 -12 #801A1917"
         align="center"
+        on_tap={tap}
       >
         <Text
           text={label}

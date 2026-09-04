@@ -61,9 +61,14 @@ defmodule Kati.Screens.Onboarding do
   alias Kati.Onboarding.Sample
   alias Kati.Theme.Palette
 
+  # Records no step. This screen left the first run when `D-33`'s boards split
+  # its three panels into screens 161, 162 and 163 — it is the original
+  # drawing, kept because `Kati.Screens.Gallery` is the app's number → drawing
+  # register and 38 is still a drawing. `Kati.Onboarding.reached!/1` would now
+  # raise on the `:finish` it used to write, which is the right shape: a step
+  # that no longer exists should not be quietly accepted.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    Kati.Onboarding.reached!(:finish)
     {:ok, Mob.Socket.assign(socket, :flow, Sample.flow())}
   end
 

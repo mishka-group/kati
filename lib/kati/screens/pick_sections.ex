@@ -177,7 +177,7 @@ defmodule Kati.Screens.PickSections do
   """
   def handle_info({:permission, :calendar, result}, socket) do
     if result == :granted, do: Kati.Calendars.DeviceImport.run()
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Onboarding)}
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudness)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -218,7 +218,7 @@ defmodule Kati.Screens.PickSections do
     Kati.Permissions.note_asked(:calendar)
     Mob.Permissions.request(socket, :calendar)
   rescue
-    _error -> Mob.Socket.push_screen(socket, Kati.Screens.Onboarding)
+    _error -> Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudness)
   end
 
   defp toggle(chosen, id) do

@@ -33,7 +33,10 @@ defmodule Kati.Screens.OnboardingLoudness do
   ]
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :choice, "Quietly")
+  def load(socket) do
+    Kati.Onboarding.reached!(:loudness)
+    Mob.Socket.assign(socket, :choice, "Quietly")
+  end
 
   @doc false
   def content(assigns) do
@@ -56,7 +59,7 @@ defmodule Kati.Screens.OnboardingLoudness do
       {OnboardingWelcome.forward("Continue", :next)}
       <Spacer size={14} />
       {SettingsList.note("info", "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136")}
-  {OnboardingWelcome.back_row("Back to sections")}
+      {OnboardingWelcome.back_row("Back to sections")}
     </Column>
     """
   end
@@ -122,7 +125,14 @@ defmodule Kati.Screens.OnboardingLoudness do
   @spec quiet_note(String.t()) :: map()
   def quiet_note("Quietly") do
     ~MOB"""
-    <Row fill_width={true} align="top">
+    <Row
+      fill_width={true}
+      background={Kati.Theme.Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding={16}
+      align="top"
+    >
       {Kati.UI.symbol("check_circle", size: 17, color: Kati.Theme.Palette.green())}
       <Spacer size={9} />
       <Column weight={1.0}>

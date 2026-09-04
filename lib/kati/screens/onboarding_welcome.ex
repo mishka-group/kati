@@ -20,11 +20,18 @@ defmodule Kati.Screens.OnboardingWelcome do
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
 
+  @impl true
+  def load(socket) do
+    Kati.Onboarding.reached!(:welcome)
+    socket
+  end
+
   @doc false
   def content(_assigns) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.OnboardingWelcome.rail(2)}
+      {Kati.Screens.OnboardingWelcome.mark()}
       <Text
         text="One place for"
         text_size={28}
@@ -63,6 +70,27 @@ defmodule Kati.Screens.OnboardingWelcome do
       <Spacer size={18} />
       {SettingsList.note("info", "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below.")}
       {Kati.Screens.OnboardingWelcome.back_row("Back to language")}
+    </Column>
+    """
+  end
+
+  @doc """
+  The Kati mark: a 56pt ink tile with the accent dot centred in it.
+
+  The same object `Kati.Screens.Onboarding.welcome/1` draws at the head of
+  screen 38's first panel — 161 is that panel renumbered, so it keeps the
+  mark. Shared with the Persian twin, 164, which draws it identically:
+  a dot in a square has no handedness and mirroring it would be motion for
+  its own sake.
+  """
+  @spec mark() :: map()
+  def mark do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Box width={56} height={56} corner_radius={18} background={Palette.ink()} align="center">
+        <Box width={13} height={13} corner_radius={7} background={Kati.Theme.accent()} />
+      </Box>
+      <Spacer size={20} />
     </Column>
     """
   end

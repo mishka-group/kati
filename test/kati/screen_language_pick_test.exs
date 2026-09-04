@@ -226,7 +226,7 @@ defmodule Kati.ScreenLanguagePickTest do
     {:noreply, moved} =
       LanguagePick.handle_info({:tap, :continue}, mount_socket(LanguagePick))
 
-    assert moved.__mob__.nav_action == {:push, Kati.Screens.PickSections, %{}}
+    assert moved.__mob__.nav_action == {:push, Kati.Screens.OnboardingWelcome, %{}}
   end
 
   # `mount_screen/1` returns the rendered tree; the handlers need the socket.

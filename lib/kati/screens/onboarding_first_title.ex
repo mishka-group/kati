@@ -27,7 +27,10 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   @suggestions ["The Long Hollow", "Ashfall", "Marram", "Nightbirds"]
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :picked, "The Long Hollow")
+  def load(socket) do
+    Kati.Onboarding.reached!(:first_title)
+    Mob.Socket.assign(socket, :picked, "The Long Hollow")
+  end
 
   @doc false
   def content(assigns) do
@@ -58,7 +61,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       </Box>
       <Spacer size={18} />
       {SettingsList.note("info", "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner.")}
-  {OnboardingWelcome.back_row("Back to loudness")}
+      {OnboardingWelcome.back_row("Back to loudness")}
     </Column>
     """
   end
@@ -66,52 +69,141 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   @doc false
   def suggestion_list, do: @suggestions
 
-  @doc false
+  @doc """
+  The four suggestions, two to a row, as 2:3 posters.
+
+  A grid rather than a list because that is what the board draws, and the
+  shape carries the meaning: a poster wall is a thing you pick from by looking,
+  which is the question this step asks. `aspect_ratio` holds the 2:3 on a
+  device wider or narrower than the 402pt frame — the same lock
+  `Kati.Screens.Library`'s shelf would want and does not have, because it
+  predates the prop being noticed.
+  """
+  @spec grid(String.t()) :: map()
   def grid(picked) do
+    [first, second, third, fourth] = @suggestions
+
+    assigns = %{
+      row_one: Kati.Screens.OnboardingFirstTitle.pair(first, second, picked),
+      row_two: Kati.Screens.OnboardingFirstTitle.pair(third, fourth, picked)
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.OnboardingFirstTitle.suggestion_list()
-       |> Enum.map(fn title -> Kati.Screens.OnboardingFirstTitle.tile(title, title == picked) end)
-       |> Enum.intersperse(Kati.Screens.OnboardingFirstTitle.gap())}
+      {@row_one}
+      <Spacer size={11} />
+      {@row_two}
     </Column>
     """
   end
 
   @doc false
-  def gap, do: ~MOB"<Spacer size={9} />"
-
-  @doc false
-  def tile(title, on?) do
-    assigns = %{title: title, on?: on?, tap: {self(), String.to_atom("pick_" <> String.replace(title, " ", "_"))}}
+  def pair(left, right, picked) do
+    assigns = %{
+      left: Kati.Screens.OnboardingFirstTitle.tile(left, left == picked),
+      right: Kati.Screens.OnboardingFirstTitle.tile(right, right == picked)
+    }
 
     ~MOB"""
-    <Row
-      fill_width={true}
-      background={if @on?, do: Palette.ink_fill(), else: Palette.card()}
-      corner_radius={18}
-      shadow={Kati.Theme.shadow_card_soft()}
-      padding={15}
-      align="center"
-      on_tap={@tap}
-    >
-      <Text text={@title} weight={1.0} text_size={13.5} font_weight="semibold" text_color={if @on?, do: Palette.on_ink(), else: :on_surface} max_lines={1} />
-      {Kati.Screens.OnboardingFirstTitle.tick(@on?)}
+    <Row fill_width={true} align="top">
+      {@left}
+      <Spacer size={11} />
+      {@right}
     </Row>
     """
   end
 
-  @doc false
-  def tick(false), do: ~MOB"<Spacer size={0} />"
-  def tick(true), do: Kati.UI.symbol("check", size: 18, color: Palette.on_ink())
+  @doc """
+  One poster and its title.
 
+  The selected one takes a 2.5pt ink outline and the accent tick in its
+  **leading** corner — top-right here, top-left in the Persian twin, 166. That
+  is the only thing that crosses in the mirror: the artwork itself never
+  does, because a poster is a photograph and a mirrored photograph is a
+  different picture.
+  """
+  @spec tile(String.t(), boolean()) :: map()
+  def tile(title, on?) do
+    assigns = %{
+      title: title,
+      on?: on?,
+      tap: {self(), String.to_atom("pick_" <> String.replace(title, " ", "_"))}
+    }
+
+    ~MOB"""
+    <Column weight={1.0} on_tap={@tap}>
+      <Box
+        fill_width={true}
+        aspect_ratio={0.667}
+        corner_radius={13}
+        background={Palette.placeholder()}
+        shadow={Kati.Theme.shadow_card_soft()}
+        border_width={if @on?, do: 2.5, else: 0}
+        border_color={Palette.ink()}
+      >
+        {Kati.Screens.OnboardingFirstTitle.tick(@on?)}
+      </Box>
+      <Spacer size={9} />
+      <Text
+        text={@title}
+        text_size={12.5}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  The accent tick on the chosen poster, in the **trailing** top corner.
+
+  `top_trailing` maps to Compose's `Alignment.TopEnd`, which is
+  direction-aware, so one implementation lands it top-right in English and
+  top-left in Persian — which is what 163 and 166 draw, `right:9px` and
+  `left:9px` respectively.
+
+  Board 163's own note says *"the leading corner"* and 166's caption says
+  *"the trailing top-left corner, since leading in RTL is the right"*. The two
+  drawings agree with the second: the tick is trailing in both. The note's
+  wording is kept verbatim because it is the drawing's sentence and
+  `Kati.ScreenDesignLiteralTest` compares it; this is the correction, recorded
+  where someone reading the code would otherwise trust the copy over the
+  measurement.
+  """
+  @spec tick(boolean()) :: map()
+  def tick(false), do: ~MOB"<Spacer size={0} />"
+
+  def tick(true) do
+    ~MOB"""
+    <Box fill_width={true} fill_height={true} align="top_trailing" padding={9}>
+      <Box width={24} height={24} corner_radius={12} background={Kati.Theme.accent()} align="center">
+        {Kati.UI.symbol("check", size: 15, color: Palette.on_ink())}
+      </Box>
+    </Box>
+    """
+  end
+
+  # Both ways out FINISH the run, and `reset_to/2` rather than `push_screen/2`
+  # so Home is the bottom of the stack — pushing would leave the whole first
+  # run underneath it and the back gesture would walk back into onboarding
+  # that has just been completed. Screen 38 settled both points; this is the
+  # last of the five steps it split into, so it inherits them.
   @impl true
-  def handle_tap(:finish, socket),
-    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Home)}
+  def handle_tap(:finish, socket) do
+    Kati.Onboarding.complete!()
+    {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Home)}
+  end
 
   # Skipping is a real answer, so it lands on the state the app draws for
-  # having nothing — board 139, which states which parts still work.
-  def handle_tap(:skip, socket),
-    do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.HomeEmpty)}
+  # having nothing — board 139, which states which parts still work. It
+  # finishes setup too: the board offers it as a way past adding a title, not
+  # as a way to abandon the run, and someone who takes it has still chosen a
+  # language and their sections.
+  def handle_tap(:skip, socket) do
+    Kati.Onboarding.complete!()
+    {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.HomeEmpty)}
+  end
 
   def handle_tap(:step_back, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

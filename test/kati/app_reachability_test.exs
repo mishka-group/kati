@@ -92,17 +92,6 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
-    {Screens.OnboardingWelcome,
-     "step 2 of the five-step first run boards 161-166 renumber screen 38 " <>
-       "into. Drawn and built; `Kati.Onboarding.screen_for_step/1` still walks " <>
-       "the old four, and moving it is #91's own criterion rather than a " <>
-       "change to make beside the drawing."},
-    {Screens.OnboardingLoudness,
-     "step 4 — the board `Kati.Screens.LoudnessPrompt` waits on, since 38·3 " <>
-       "routing forward is that screen's entry. Same reason as step 2: drawn " <>
-       "and built, not yet the flow."},
-    {Screens.OnboardingFirstTitle,
-     "step 5. Same reason as steps 2 and 4."},
     {Screens.HomeFaOmittedSections,
      "the decision that an empty section is omitted rather than worded, drawn " <>
        "on a Persian Home so both cases can be seen at once. A board about a " <>
@@ -110,10 +99,6 @@ defmodule Kati.AppReachabilityTest do
     {Screens.HomeFaEmptyDark,
      "158 in the dark colourway — the same page in another colourway, " <>
        "reached by having dark on and having kept nothing."},
-    {Screens.HomeFaEmpty,
-     "screen 55 with nothing stored, and the Persian pair of 139. Reached by " <>
-       "having kept nothing, not by navigating — the same reason " <>
-       "`Kati.Screens.HomeEmpty` is here, and it sits beside it."},
     {Screens.AddByHandFa,
      "screen 154 in the mirror, stranded exactly as `Kati.Screens.RestoreFa` " <>
        "and `Kati.Screens.OnboardingFa` are: screen 89's row pushes the " <>
@@ -176,10 +161,6 @@ defmodule Kati.AppReachabilityTest do
     {Screens.BackupLarge,
      "screens 128 and 129 at 235% text size. The same screens at a system " <>
        "setting, not other ones — reached by changing the setting, as 91 is."},
-    {Screens.RestoreFa,
-     "screen 129 in Persian. The same screen, not another one — reached by " <>
-       "choosing فارسی, exactly as every other Persian mirror is."},
-    {Screens.OnboardingFa, "the onboarding chain in Persian. As above."},
     {Screens.OnboardingLarge, "the onboarding chain at 235%. As above."},
     {Screens.ImportStates, "screen 140's edge states, in 27's manner. As above."},
     {Screens.ShelfLarge, "screens 145 and 146 at 235%. As above."},
@@ -233,10 +214,6 @@ defmodule Kati.AppReachabilityTest do
     {Screens.NumberingScheme,
      "the per-show numbering row. Its entry is a row on screen 35, whose " <>
        "board has not been redrawn. #21."},
-    {Screens.HomeEmpty,
-     "screen 01 with nothing set up. The same screen in the state a skipped " <>
-       "onboarding leaves it in — reached by skipping, not by navigating, " <>
-       "exactly as 105 and 117 are."},
     # 63, 64 and 65 — the three drawings of Kati seen from outside the app.
     # 29's reason, three more times: an app cannot navigate to the surface it
     # is being launched from.
@@ -356,6 +333,57 @@ defmodule Kati.AppReachabilityTest do
       with_stored_settings(&in_use_edges/0),
       fn _module, empty, in_use -> Enum.uniq(empty ++ in_use) end
     )
+    |> Map.merge(with_stored_settings(&language_fork/0), fn _m, a, b -> Enum.uniq(a ++ b) end)
+  end
+
+  # Screen 53 is a fork, and the walk has to take both prongs.
+  #
+  # It is the only screen in the app whose tap rewrites `Kati.Locale`, and
+  # since `D-33` renumbered the first run, every step after it routes on that
+  # setting. So its Continue has two destinations — 161 and 164 — and the pass
+  # above, which runs in one locale, can only see one.
+  #
+  # Which one it saw was decided by tag ORDER, which is worse. The tags come
+  # off the tree as `[:choose_en, :choose_fa, :continue]` and each was
+  # evaluated against the store the tag before it left, so `continue` was
+  # answered after `choose_fa` had already written فارسی: 164 reachable, 161
+  # stranded, from the one screen that offers both. Nothing said so. 161 was
+  # on `@no_route` for an unrelated reason, so the graph was smaller than the
+  # app and the count still balanced.
+  #
+  # Both prongs, evaluated from a freshly mounted socket so neither is
+  # answering the other's leftovers. A whole second pass in `:fa` is the
+  # general form of this and costs a pass over every screen; one screen needs
+  # it, and it is named here rather than swept for.
+  defp language_fork do
+    for locale <- [:en, :fa], reduce: %{} do
+      acc ->
+        edges =
+          ScreenSweep.rolled_back(fn ->
+            ScreenSweep.with_locale(locale, fn ->
+              case ScreenSweep.render(Screens.LanguagePick) do
+                {:ok, socket, tree} ->
+                  # Continue ONLY, and from a socket mounted in this locale.
+                  # Handing the whole tag list to `targets/3` would defeat the
+                  # point: `choose_fa` sits before `continue` in draw order and
+                  # writes the setting `continue` then reads, so both prongs
+                  # would answer فارسی. `choose_en` and `choose_fa` navigate
+                  # nowhere in any case — they are the fork, not an edge out of
+                  # it.
+                  if :continue in ScreenSweep.tap_tags(tree) do
+                    targets(Screens.LanguagePick, socket, [:continue])
+                  else
+                    []
+                  end
+
+                _unrenderable ->
+                  []
+              end
+            end)
+          end)
+
+        Map.update(acc, Screens.LanguagePick, edges, &Enum.uniq(&1 ++ edges))
+    end
   end
 
   # Nothing stored. `Kati.ScreenSweep.drawn_taps/1`'s memo IS this pass — it is
