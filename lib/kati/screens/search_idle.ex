@@ -289,6 +289,22 @@ defmodule Kati.Screens.SearchIdle do
     {:noreply, Mob.Socket.assign(socket, :query, typed)}
   end
 
+  @doc """
+  The search key on the keyboard, which is what finally connects the two boards.
+
+  `look/1` has existed since this screen was built and nothing called it: the
+  field remembered what was typed and there was no way out of the page.
+
+  **A submit is not a tap**, and that is the whole reason nothing caught it.
+  `mob_send_submit/1` sends `{:submit, tag}` where a tap sends `{:tap, tag}`,
+  so a `handle_tap/2` clause for this never fires and
+  `Kati.ScreenTapSweepTest` — which walks the `on_tap` tags a tree draws —
+  cannot see a keyboard action at all. Written as a `handle_tap` clause first,
+  and found by reading the NIF rather than by any test.
+  """
+  def handle_info({:submit, :look}, socket),
+    do: {:noreply, Kati.Screens.SearchIdle.look(socket)}
+
   # `Kati.Screens.Pushed` marks `handle_info/2` overridable and defines four
   # clauses on it, one of which routes every `{:tap, tag}` to `handle_tap/2`.
   # Defining one clause here replaces all four — so the Filters disc stopped
@@ -330,17 +346,6 @@ defmodule Kati.Screens.SearchIdle do
 
   def handle_tap(:filters, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec)}
-
-  @doc """
-  The search key on the keyboard, which is what finally connects the two boards.
-
-  `look/1` has existed since this screen was built and nothing called it: the
-  field remembered what was typed and there was no way out of the page. Board
-  86's own field draws `return_key="search"`, so the key is the handover the
-  design already specified — `Kati.ScreenTapSweepTest` never saw it, because a
-  keyboard action is not a tap.
-  """
-  def handle_tap(:look, socket), do: {:noreply, Kati.Screens.SearchIdle.look(socket)}
 
   def handle_tap(:repeat_query, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}

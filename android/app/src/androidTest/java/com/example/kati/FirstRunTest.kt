@@ -210,7 +210,14 @@ class FirstRunTest {
         // from a backup instead". Named exactly, because a check that accepts
         // any tag containing "restore" would pass on a screen that merely
         // mentions one.
-        kati.toSections()
+        //
+        // Stepped by hand rather than through `KatiRule.toSections`: that
+        // helper starts from screen 53 and this test is already past it, so it
+        // would sit out its own timeout waiting for a language question that
+        // has been answered.
+        kati.tap("next")
+        kati.systemDialog("Allow", "While using the app", "Allow all the time")
+        kati.compose.waitUntil(30_000) { kati.present("import_backup") }
 
         assertTrue(
             "nothing on the sections step offers a restore, so a person who walked past " +

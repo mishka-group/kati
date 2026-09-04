@@ -61,21 +61,26 @@ class CalendarTest {
             kati.freeMegabytes() > 200
         )
 
-        // No revoke here any more, and `KatiRule.revoke/1` is gone with it. Its
-        // own comment described the trap and the code walked into it: `pm
-        // revoke` on a HELD permission force-stops the package, instrumentation
-        // runs in that package, and the run reports "Test instrumentation
-        // process crashed" with nothing to read. It was a harmless no-op while
-        // the permission was denied and fatal in exactly the case it existed
-        // for — so it passed for weeks and then died the first time a walk
-        // through the app by hand left READ_CALENDAR granted. Which is how it
-        // died.
+        // The revoke is still here and no longer fatal. `pm revoke` through a
+        // shell command force-stops the package and instrumentation runs in
+        // that package, so the old version was a no-op while the permission was
+        // denied and killed the run in exactly the case it existed for — it
+        // passed for weeks and died the first time a walk through the app by
+        // hand left READ_CALENDAR granted. `KatiRule.revoke/1` uses
+        // `UiAutomation.revokeRuntimePermission/2` now, which is the platform
+        // call the shell command wraps and does not restart the process.
         //
-        // The premise it was arranging is arranged below instead, and more
-        // precisely: rather than "the events table is empty", the claim is
-        // "the event this test just planted is not in the store yet". That is
-        // true whatever else a previous run ingested, and it is the row the
-        // assertions at the foot actually care about.
+        // It has to happen, and this is why: with the permission already held,
+        // `Kati.Calendars.DeviceImport.run/0` ingests at boot, so the event is
+        // in the store before the run reaches the step that asks — and the
+        // whole subject of this test is what a GRANT does.
+        kati.revoke(android.Manifest.permission.READ_CALENDAR)
+
+        // The premise is also asserted more precisely than it was: rather than
+        // "the events table is empty", the claim is "the event this test just
+        // planted is not in the store yet". That is true whatever else an
+        // earlier run left behind, and it is the row the assertions at the foot
+        // actually care about.
         val eventId = plantEvent()
         assertNotNull("could not write to CalendarContract", eventId)
 

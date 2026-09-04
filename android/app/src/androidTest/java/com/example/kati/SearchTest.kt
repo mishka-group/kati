@@ -2,6 +2,7 @@ package com.example.kati
 
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -44,7 +45,17 @@ class SearchTest {
             .fetchSemanticsNodes()
             .isNotEmpty()
 
-    /** Puts one real row in the store, through the form a person would use. */
+    /**
+     * Puts one real row in the store, through the form a person would use, and
+     * leaves the app back on a root.
+     *
+     * The relaunch at the end is not tidiness. `add_by_hand` is a pushed screen
+     * and the dock is not drawn on one, so the next `root_home` finds no node
+     * and `performTouchInput` throws with a message about a TestTag rather than
+     * about where the app actually is. Recreating the Activity re-reads
+     * `Kati.Onboarding.first_screen/0`, which is the shell root once the run is
+     * complete.
+     */
     private fun addTitleByHand() {
         kati.tap("root_library")
         kati.awaitScreen("library")
@@ -59,6 +70,18 @@ class SearchTest {
 
         kati.tap("add")
         kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > 0 }
+
+        kati.launch()
+        kati.compose.waitUntil(30_000) { kati.present("root_home") }
+    }
+
+    /** Home's search box, and the idle page it opens. Screen 86 hands 19 the query. */
+    private fun openSearch() {
+        kati.tap("root_home")
+        kati.awaitScreen("home")
+        kati.tap("open_search")
+        kati.awaitScreen("search_idle")
+        kati.compose.waitUntil(20_000) { kati.present("search_query") }
     }
 
     @Test
@@ -68,18 +91,22 @@ class SearchTest {
 
         addTitleByHand()
 
-        kati.tap("root_home")
-        kati.awaitScreen("home")
-        kati.tap("search")
-        kati.compose.waitUntil(20_000) { kati.present("search_query") }
+        openSearch()
 
         // A word out of the title that was just written, not the whole title:
         // a field that only matched a query equal to a row would pass on the
         // full string and be no use to anybody.
+        //
+        // The search key is the handover: 86 is the idle board and 19 is the
+        // results board, and `Kati.Screens.SearchIdle.look/1` is what carries
+        // the query across.
         kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput("estuary")
         kati.device.waitForIdle()
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
+            .performImeAction()
 
+        kati.awaitScreen("search")
         kati.compose.waitUntil(20_000) { textPresent(title) }
 
         assertTrue(
@@ -96,14 +123,15 @@ class SearchTest {
 
         addTitleByHand()
 
-        kati.tap("root_home")
-        kati.awaitScreen("home")
-        kati.tap("search")
-        kati.compose.waitUntil(20_000) { kati.present("search_query") }
+        openSearch()
 
         kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
             .performTextInput("vellichor")
         kati.device.waitForIdle()
+        kati.compose.onNodeWithTag("search_query", useUnmergedTree = true)
+            .performImeAction()
+
+        kati.awaitScreen("search")
 
         // Board 89's card, and it names the query back. An empty list under a
         // query reads as a search that broke; this reads as a correct report

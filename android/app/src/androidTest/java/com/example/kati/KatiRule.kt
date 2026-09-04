@@ -176,6 +176,29 @@ class KatiRule : TestRule {
         compose.waitUntil(20_000) { present("section_books") }
     }
 
+    /**
+     * Takes a runtime permission back off the app, without killing the run.
+     *
+     * `pm revoke` through a shell command force-stops the package, and
+     * instrumentation runs in that package — so the earlier version of this
+     * was a harmless no-op while the permission was denied and fatal in
+     * exactly the case it existed for. It passed for weeks and then died the
+     * first time a walk through the app by hand left one granted.
+     *
+     * `UiAutomation.revokeRuntimePermission/2` is the platform call the shell
+     * command wraps, and it does not restart the process.
+     */
+    fun revoke(permission: String) {
+        val ctx = instrumentation.targetContext
+
+        if (ctx.checkSelfPermission(permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+
+        instrumentation.uiAutomation.revokeRuntimePermission(ctx.packageName, permission)
+        device.waitForIdle()
+    }
+
     fun finishRun() {
         compose.waitUntil(30_000) {
             present("get_started") || present("finish") || present("next") ||
