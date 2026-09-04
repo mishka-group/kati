@@ -83,7 +83,10 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 9
+  #   * **10** — `recipes` gained `bookmarked` with screen 45's disc. Nothing
+  #     moves, for the same reason 8 -> 9 moves nothing: a missing column takes
+  #     the attribute default, where a missing table would raise.
+  @schema_version 10
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

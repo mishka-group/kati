@@ -161,6 +161,7 @@ defmodule Kati.Screens.Meal do
       # that plainly does not.
       slot_id: slot.id,
       recipe_id: recipe.id,
+      bookmarked: recipe.bookmarked,
       portion_milli: portion,
       plan_id: slot.meal_plan_id,
       calories: "#{figures.kcal}",
@@ -345,7 +346,7 @@ defmodule Kati.Screens.Meal do
             padding_bottom={40}
           >
             {Kati.Screens.Meal.portion_card(meal)}
-            {Kati.Screens.Meal.actions()}
+            {Kati.Screens.Meal.actions(meal)}
             {UI.eyebrow("Ingredients · 1 portion")}
             {Kati.Screens.Meal.ingredients(meal.ingredients)}
             {Kati.Screens.Meal.muted_eyebrow("Method")}
@@ -724,7 +725,7 @@ defmodule Kati.Screens.Meal do
   # The shadow keeps the drawing's own recipe; dark's card treatment is
   # `Kati.Theme`'s business, not a colour table's.
   @doc false
-  def actions do
+  def actions(meal) do
     eat = {self(), :mark_eaten}
 
     ~MOB"""
@@ -758,7 +759,7 @@ defmodule Kati.Screens.Meal do
         <Spacer size={10} />
         {Kati.Screens.Meal.disc("swap_horiz", :swap)}
         <Spacer size={10} />
-        {Kati.Screens.Meal.disc("bookmark", :save)}
+        {Kati.Screens.Meal.bookmark(meal)}
       </Row>
       <Spacer size={24} />
     </Column>
@@ -772,6 +773,47 @@ defmodule Kati.Screens.Meal do
   # does not interpret it, it hands the string to the container.
   #
   # `shape: :circle` computes 50 / 2 = 25.0, the radius that was written here.
+  @doc false
+  @doc """
+  The bookmark disc, filled when the recipe is bookmarked.
+
+  The disc drew and did nothing for as long as the screen existed, because
+  `Kati.Meals.Recipe` had no column to hold the answer —
+  `Kati.ScreenTapSweepTest`'s backlog listed it under *a button that never
+  marks anything*. It has one now.
+
+  Filled rather than merely darker, because the glyph is the state: an outline
+  bookmark and a solid one are what the Material set gives for exactly this,
+  and a disc that changed only its background would be saying the same thing in
+  a way that has to be learned.
+
+  On the drawing — no plan, so no recipe — it stays outlined and inert. There
+  is nothing to bookmark, and inventing a row to record the tap against would
+  be inventing the meal it belongs to.
+  """
+  @spec bookmark(map()) :: map()
+  def bookmark(meal) do
+    on? = Map.get(meal, :bookmarked, false)
+
+    MishkaActionIcon.action_icon(
+      [
+        size: 50,
+        shape: :circle,
+        variant: :filled,
+        background: if(on?, do: Palette.ink_fill(), else: Palette.card()),
+        shadow: Kati.Theme.shadow_card_soft(),
+        on_tap: :save
+      ],
+      [
+        Kati.UI.symbol("bookmark",
+          size: 21,
+          fill: on?,
+          color: if(on?, do: Palette.on_ink(), else: Palette.ink())
+        )
+      ]
+    )
+  end
+
   @doc false
   def disc(icon, tag) do
     MishkaActionIcon.action_icon(
@@ -1080,11 +1122,44 @@ defmodule Kati.Screens.Meal do
   drawn meal is not a planned one, and writing a log for a meal nobody planned
   would be inventing the row it then displayed.
   """
+  @doc """
+  Bookmark the recipe, or take the bookmark off.
+
+  A toggle on the row rather than an add-only action: the disc is the same disc
+  either way, and a control that can only ever be pressed once is a control
+  that lies the second time.
+
+  On the drawing there is no recipe, so nothing is written and nothing is
+  toggled — see `bookmark/1`.
+  """
+  def handle_info({:tap, :save}, socket) do
+    {:noreply, Kati.Screens.Meal.toggle_bookmark(socket)}
+  end
+
   def handle_info({:tap, :mark_eaten}, socket) do
     {:noreply, Kati.Screens.Meal.mark_eaten(socket)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc false
+  @spec toggle_bookmark(Mob.Socket.t()) :: Mob.Socket.t()
+  def toggle_bookmark(socket) do
+    meal = socket.assigns.meal
+    wanted = not Map.get(meal, :bookmarked, false)
+
+    with id when is_binary(id) <- meal[:recipe_id],
+         {:ok, recipe} <- Ash.get(Kati.Meals.Recipe, id),
+         {:ok, _updated} <-
+           recipe
+           |> Ash.Changeset.for_update(:update, %{bookmarked: wanted})
+           |> Ash.update()
+           |> Kati.Write.note("bookmark #{meal.title}") do
+      Mob.Socket.assign(socket, :meal, Map.put(meal, :bookmarked, wanted))
+    else
+      _drawn_or_failed -> socket
+    end
+  end
 
   @doc false
   @spec mark_eaten(Mob.Socket.t()) :: Mob.Socket.t()

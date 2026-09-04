@@ -97,6 +97,40 @@ defmodule Kati.MealSwapTest do
     assert Ash.read!(Kati.Meals.MealLog) == []
   end
 
+
+  describe "screen 45's bookmark disc" do
+    test "bookmarks the recipe, and un-bookmarks it" do
+      # The board has drawn this disc since the screen was built and
+      # `Kati.Meals.Recipe` had no column to hold the answer, so the tap sat on
+      # the sweep's backlog under "a button that never marks anything". A
+      # toggle rather than an add-only action: the disc is the same disc either
+      # way, and a control that can only be pressed once lies the second time.
+      %{slot: slot, dinner: dinner} = plan_with(dinner: 620, others: [])
+      _ = slot
+
+      view = mount_screen(Kati.Screens.Meal)
+      refute view.socket.assigns.meal.bookmarked
+
+      {:noreply, on} = Kati.Screens.Meal.handle_info({:tap, :save}, view.socket)
+      assert on.assigns.meal.bookmarked
+      assert Ash.get!(Kati.Meals.Recipe, dinner.id).bookmarked
+
+      {:noreply, off} = Kati.Screens.Meal.handle_info({:tap, :save}, on)
+      refute off.assigns.meal.bookmarked
+      refute Ash.get!(Kati.Meals.Recipe, dinner.id).bookmarked
+    end
+
+    test "on the drawing there is no recipe, so nothing is written" do
+      view = mount_screen(Kati.Screens.Meal)
+      refute view.socket.assigns.meal[:recipe_id]
+
+      {:noreply, moved} = Kati.Screens.Meal.handle_info({:tap, :save}, view.socket)
+
+      refute moved.assigns.meal[:bookmarked],
+             "the drawn page pretended to bookmark a meal that does not exist"
+    end
+  end
+
   defp plan_with(opts) do
     plan = Ash.create!(Kati.Meals.MealPlan, %{name: "Cutting v3", status: :active})
     dinner = recipe!("Dinner recipe", Keyword.fetch!(opts, :dinner))

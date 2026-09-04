@@ -48,6 +48,13 @@ defmodule Kati.Backup.Upgrade do
     * **7 -> 8** — `health_medications`, `health_readings` and `health_doses`
       joined with screens 109 and 112.
 
+    * **9 -> 10** — `recipes` gained `bookmarked`, which is what screen 45's
+      bookmark disc writes. Nothing moves, for the reason the step below it
+      gives in full: a version-9 archive has every member a version-10 app
+      expects and its recipe rows simply lack one key, which `Ash.Seed.seed!/2`
+      fills with the attribute default — `false`, which is what an unbookmarked
+      recipe is.
+
     * **8 -> 9** — `recipes` gained `slot_name` with screen 116. **Nothing
       moves**, and that is the point of the step existing: a version-8 archive
       has every member a version-9 app expects, and its recipe rows simply lack
@@ -82,7 +89,8 @@ defmodule Kati.Backup.Upgrade do
       {5, 6, &add_services/1},
       {6, 7, &add_goals_and_expenses/1},
       {7, 8, &add_health/1},
-      {8, 9, &unchanged/1}
+      {8, 9, &unchanged/1},
+      {9, 10, &unchanged/1}
     ]
 
   @doc """

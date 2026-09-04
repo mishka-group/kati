@@ -273,6 +273,13 @@ defmodule Kati.ScreenTapSweepTest do
     # rows, including that neither does the other's job. Reached from the
     # gallery there is no slot, so the page is `Kati.Meals.SampleSwap`'s
     # drawing and committing would be committing a swap of nothing.
+    # Screen 45's bookmark disc, on the drawn page. With a plan there is a
+    # recipe and the disc toggles `Kati.Meals.Recipe.bookmarked` —
+    # `Kati.MealSwapTest` asserts it both ways round. `Kati.Meals.SampleRecipe`
+    # is a transcription of board 45 rather than a row, so there is nothing to
+    # bookmark and the tap changes nothing rather than inventing the recipe it
+    # would have to write against.
+    {Kati.Screens.Meal, :save},
     {Kati.Screens.MealSwap, :swap_once},
     {Kati.Screens.MealSwap, :swap_forever},
     {Kati.Screens.MealsToday, :mark_eaten},
@@ -702,7 +709,6 @@ defmodule Kati.ScreenTapSweepTest do
     # what this list exists to prevent.
     {Kati.Screens.MealsToday, :done_prepping},
     {Kati.Screens.Meal, :more},
-    {Kati.Screens.Meal, :save},
     {Kati.Screens.Music, :open_sort},
     {Kati.Screens.Nutrition, :share},
     {Kati.Screens.Rating, :add_tag},
