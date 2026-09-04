@@ -266,6 +266,15 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.Screens.MealsToday.tag/2` hands back the bare tag rather than one
     # ending in `_nil`. A button that wrote a log for a meal nobody planned
     # would be inventing the row it then displayed.
+    # Screen 46's two commitments, on the drawn page — which is the only page
+    # this sweep sees. With a slot handed over by screen 43 they write:
+    # **Swap just today** logs the candidate as `:planned` and **Every week**
+    # moves the slot onto it, and `Kati.MealSwapTest` asserts both against real
+    # rows, including that neither does the other's job. Reached from the
+    # gallery there is no slot, so the page is `Kati.Meals.SampleSwap`'s
+    # drawing and committing would be committing a swap of nothing.
+    {Kati.Screens.MealSwap, :swap_once},
+    {Kati.Screens.MealSwap, :swap_forever},
     {Kati.Screens.MealsToday, :mark_eaten},
     {Kati.Screens.Search, :clear},
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
@@ -694,8 +703,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealsToday, :done_prepping},
     {Kati.Screens.Meal, :more},
     {Kati.Screens.Meal, :save},
-    {Kati.Screens.MealSwap, :swap_forever},
-    {Kati.Screens.MealSwap, :swap_once},
     {Kati.Screens.Music, :open_sort},
     {Kati.Screens.Nutrition, :share},
     {Kati.Screens.Rating, :add_tag},

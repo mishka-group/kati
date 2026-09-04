@@ -34,13 +34,162 @@ defmodule Kati.Screens.MealSwap do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
+  require Ash.Query
+
+  alias Kati.Meals.Nutrition
   alias Kati.Meals.SampleSwap, as: Sample
   alias Kati.Theme
   alias Kati.Theme.Palette
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :candidates, Sample.candidates())}
+    swap = Kati.Screens.MealSwap.swap()
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:candidates, swap.candidates)
+     |> Mob.Socket.assign(:replacing, swap.replacing)
+     |> Mob.Socket.assign(:slot_id, swap.slot_id)
+     |> Mob.Socket.assign(:picked, swap.picked)}
+  end
+
+  @doc """
+  The swap this screen is a swap OF, read from the store.
+
+  Screen 43 hands the slot over the way screen 86 hands a query to 19 — a key
+  in `Mob.State`, because `push_screen/2` takes a module and nothing else. With
+  no slot, or no plan, this is `Kati.Meals.SampleSwap`'s drawing, which is what
+  the gallery shows and what the design sweeps compare against.
+
+  ## The candidates are the meal library, ranked by what the swap costs
+
+  The design's caption is the specification: *"A swap is only useful if it
+  tells you what it costs."* So a candidate is any other recipe you keep, and
+  the delta is the difference in energy between it and the meal being replaced
+  — computed here rather than typed, which is what makes the number true of the
+  two rows it sits between.
+
+  Ranked by absolute distance, nearest first, and capped at three because that
+  is what the board draws. `BEST` goes on the first and only because it IS the
+  closest; the drawing does not decorate the others.
+  """
+  @spec swap() :: map()
+  def swap do
+    with slot_id when is_binary(slot_id) <- handed_over(),
+         %{} = slot <- slot_for(slot_id),
+         %Kati.Meals.Recipe{} = recipe <- slot.recipe do
+      figures = Nutrition.scale(recipe_figures(recipe), slot.portion_milli)
+
+      %{
+        slot_id: slot.id,
+        replacing: %{
+          label: "Replacing",
+          title: recipe.title,
+          macros: macro_line(figures),
+          seed: recipe.photo_seed
+        },
+        candidates: candidates_for(recipe, figures),
+        picked: nil
+      }
+    else
+      _drawn ->
+        %{
+          slot_id: nil,
+          replacing: Sample.replacing(),
+          candidates: Sample.candidates(),
+          picked: nil
+        }
+    end
+  end
+
+  @doc """
+  The slot screen 43 handed over. See `swap/0`.
+
+  `catch :exit` as well as `rescue`, and the difference is not academic.
+  `Mob.State` is a GenServer: when it is not running, a call to it **exits**
+  rather than raising, and `rescue` does not catch an exit. On the host that is
+  a test whose harness has already torn the store down; on a device it is the
+  window between the BEAM starting and `Mob.State` opening its table, which is
+  a window a screen can be rendered in.
+  """
+  @spec handed_over() :: String.t() | nil
+  def handed_over do
+    case Mob.State.get(:kati_swap_slot) do
+      id when is_binary(id) and id != "" -> id
+      _nothing -> nil
+    end
+  rescue
+    _error -> nil
+  catch
+    :exit, _reason -> nil
+  end
+
+  @doc "Put a slot where this screen will look for it. See `handed_over/0`."
+  @spec hand_over(String.t()) :: :ok
+  def hand_over(slot_id) do
+    Mob.State.put(:kati_swap_slot, slot_id)
+    :ok
+  rescue
+    _error -> :ok
+  catch
+    :exit, _reason -> :ok
+  end
+
+  defp slot_for(id) do
+    Kati.Meals.MealPlanSlot
+    |> Ash.Query.filter(id == ^id)
+    |> Ash.Query.load(:recipe)
+    |> Ash.read_one()
+    |> case do
+      {:ok, slot} -> slot
+      _error -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  defp candidates_for(replacing, figures) do
+    Kati.Meals.Recipe
+    |> Ash.read!()
+    |> Enum.reject(&(&1.id == replacing.id))
+    |> Enum.map(fn recipe ->
+      theirs = Nutrition.scale(recipe_figures(recipe), Nutrition.one_portion())
+      {abs(theirs.kcal - figures.kcal), recipe, theirs}
+    end)
+    |> Enum.sort_by(&elem(&1, 0))
+    |> Enum.take(3)
+    |> Enum.with_index()
+    |> Enum.map(fn {{_distance, recipe, theirs}, i} ->
+      %{
+        id: recipe.id,
+        title: recipe.title,
+        badge: if(i == 0, do: "BEST"),
+        macros: String.downcase(macro_line(theirs)),
+        delta: delta_label(theirs.kcal - figures.kcal),
+        delta_color: if(theirs.kcal <= figures.kcal, do: @green, else: @red),
+        selected?: i == 0,
+        seed: recipe.photo_seed
+      }
+    end)
+  rescue
+    _error -> []
+  end
+
+  # The drawing writes a signed number with a MINUS SIGN, not a hyphen — the
+  # same character `Kati.Meals.SampleSwap` types, and the reason the two agree
+  # is that this is where a real delta has to look like the drawn one.
+  defp delta_label(0), do: "same"
+  defp delta_label(diff) when diff < 0, do: "−#{abs(diff)} kcal"
+  defp delta_label(diff), do: "+#{diff} kcal"
+
+  defp macro_line(f) do
+    "#{f.kcal} KCAL · #{grams(f.protein_mg)}P #{grams(f.carbs_mg)}C #{grams(f.fat_mg)}F"
+  end
+
+  defp grams(mg), do: round(mg / 1000)
+
+  defp recipe_figures(recipe) do
+    Map.new(Nutrition.fields(), fn field -> {field, Map.fetch!(recipe, :"total_#{field}")} end)
   end
 
   def render(assigns) do
@@ -527,5 +676,85 @@ defmodule Kati.Screens.MealSwap do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  @doc """
+  The two commitments, which drew and committed nothing.
+
+  The board's own words are the specification and so is
+  `Kati.Meals.MealLog`'s: its moduledoc already says a `:planned` log "is what
+  screen 46's *swap just today* writes". So the two buttons are two different
+  writes rather than one write with a flag:
+
+    * **Swap just today** logs the candidate as `:planned` against this slot.
+      Today's plan changes and next week's does not, which is what "just today"
+      means — and it is a claim about a day, so it belongs in the day's log.
+    * **Every week** moves the slot itself onto the new recipe. The plan is
+      what repeats, so a permanent swap is a change to the plan.
+
+  A tap picks a candidate first; with none picked the first is the one in
+  force, which is what the drawing shows selected. On the drawn screen — no
+  plan, no slot — both are no-ops, because there is no slot to swap and the
+  candidates are `Kati.Meals.SampleSwap`'s rather than rows.
+  """
+  def handle_info({:tap, :swap_once}, socket),
+    do: {:noreply, Kati.Screens.MealSwap.commit_swap(socket, :once)}
+
+  def handle_info({:tap, :swap_forever}, socket),
+    do: {:noreply, Kati.Screens.MealSwap.commit_swap(socket, :forever)}
+
+  @doc false
+  @spec commit_swap(Mob.Socket.t(), :once | :forever) :: Mob.Socket.t()
+  def commit_swap(socket, how) do
+    slot_id = socket.assigns[:slot_id]
+    picked = Kati.Screens.MealSwap.picked(socket)
+
+    if is_binary(slot_id) and picked do
+      Kati.Screens.MealSwap.write(slot_id, picked, how)
+      Mob.Socket.pop_screen(socket)
+    else
+      socket
+    end
+  end
+
+  @doc "The candidate in force: the one tapped, or the one the drawing selects."
+  @spec picked(Mob.Socket.t()) :: map() | nil
+  def picked(socket) do
+    candidates = socket.assigns[:candidates] || []
+
+    Enum.find(candidates, &(&1[:id] && &1.id == socket.assigns[:picked])) ||
+      Enum.find(candidates, & &1[:selected?])
+  end
+
+  @doc false
+  @spec write(String.t(), map(), :once | :forever) :: :ok
+  def write(slot_id, picked, :once) do
+    with %{} = slot <- slot_for(slot_id), true <- is_binary(picked[:id]) do
+      Kati.Meals.MealLog
+      |> Ash.Changeset.for_create(:log_recipe, %{
+        recipe_id: picked.id,
+        portion_milli: slot.portion_milli,
+        logged_on: Kati.Time.today(),
+        logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
+        state: :planned,
+        meal_plan_id: slot.meal_plan_id,
+        meal_plan_slot_id: slot.id
+      })
+      |> Ash.create()
+      |> Kati.Write.note("swap today #{picked.title}")
+    end
+
+    :ok
+  end
+
+  def write(slot_id, picked, :forever) do
+    with %{} = slot <- slot_for(slot_id), true <- is_binary(picked[:id]) do
+      slot
+      |> Ash.Changeset.for_update(:update, %{recipe_id: picked.id})
+      |> Ash.update()
+      |> Kati.Write.note("swap every week #{picked.title}")
+    end
+
+    :ok
+  end
   def handle_info(_message, socket), do: {:noreply, socket}
 end

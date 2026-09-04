@@ -1305,8 +1305,17 @@ defmodule Kati.Screens.MealsToday do
   `meal_` tags settled: naming the cards is what has to happen before carrying
   one through them can.
   """
-  def handle_tap(:swap, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
+  def handle_tap(:swap, socket) do
+    # The slot goes with it, the way screen 86 hands a query to 19: a key in
+    # `Mob.State`, because `push_screen/2` takes a module and nothing else.
+    # Screen 46 without it is the drawing, which is a swap of nothing.
+    case Enum.find(socket.assigns.day.meals, &(&1.state == :next and Map.get(&1, :slot_id))) do
+      %{slot_id: slot_id} -> Kati.Screens.MealSwap.hand_over(slot_id)
+      _drawn -> :ok
+    end
+
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
+  end
 
   def handle_tap(:see_tomorrow, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsDay)}

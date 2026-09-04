@@ -388,6 +388,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # store is only touched when Add is pressed. It is here because this list
     # is derived from the compiled import table, which is what stops a screen
     # opting itself out by only writing on a tap.
+    # 46 joined when its two commit buttons stopped drawing and doing nothing.
+    # It reads the slot screen 43 hands it and ranks the meal library against
+    # what that slot costs; with no plan there is no slot, and the page is
+    # `Kati.Meals.SampleSwap`'s drawing — which is what the comparison below
+    # holds it to.
+    {"46", Kati.Screens.MealSwap},
     {"154", Kati.Screens.AddByHand},
     {"155", Kati.Screens.AddByHandStates},
     {"156", Kati.Screens.AddByHandFa},
@@ -1637,6 +1643,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # gate is the read itself — a query against an empty database answers
       # with empty groups, and the same query against a store with the row in
       # it does not.
+      # 46's read is the slot screen 43 hands over, and an empty store has no
+      # plan to take one from — so the gate is that handover answering nothing,
+      # which is what puts the page on `Kati.Meals.SampleSwap`'s drawing.
+      {"46", Kati.Screens.MealSwap, &Kati.Screens.MealSwap.handed_over/0, nil,
+       fn -> "a-slot-id" end},
       {"19", Kati.Screens.Search, fn -> Kati.Search.Query.run("hollow").titles end, [],
        fn -> Kati.Screens.Search.drawn_results().titles end},
       {"89", Kati.Screens.SearchResultStates, fn -> Kati.Search.Query.run("hollow").titles end,
@@ -1810,6 +1821,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # compared against no board's literals at all — the entry is what keeps
       # `Wednesday 26 August · 0 items` a checked line rather than an unchecked
       # one.
+      # 46's third filter. `Kati.ScreenDesignLiteralTest` carries the same pair
+      # and the argument in full: *In my fridge* needs a pantry — stock,
+      # depletion, expiry — and Kati has none, so the filter row draws
+      # *Recently eaten* instead. The rule is that a filter is only offered if
+      # the app can apply it, and a pantry that is 60 per cent accurate would
+      # quietly stop offering meals you could cook.
+      #
+      # Here because 46 joined the migrated list when its two commit buttons
+      # started writing; the line was exempt before and is exempt for the same
+      # reason on both sides.
+      {"46", "in my fridge", ~r/^recently eaten$/},
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},
