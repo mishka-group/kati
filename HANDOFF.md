@@ -1,11 +1,20 @@
 # Handoff
 
-Branch `dev`, five commits ahead of the last handoff point. Nothing pushed; no PR opened.
+Branch `dev`, nine commits ahead of the last handoff point. Nothing pushed; no PR opened.
 
 Read the commit messages before the code — they carry the reasoning, and this document
 deliberately does not repeat it.
 
 ```
+f9f7f48  the last three boards name their controls, closing the register
+8147e99  the day sheet, the search idle page and the Persian ledger name their rows
+f2c25d5  the Health hub and its reference sheet name each tile once
+4440c43  the shelves, the day sheet and the knock-on sheet name each control
+cb449d0  the ledger, the schedules and the two settings pills name themselves
+a89736f  the Library's quick tiles count the shelf instead of the drawing
+ab81e7b  the Schedule's month title is the device's, not the drawing's
+670b569  the shelves and the service rows name each control once   (closes #97)
+f96aac8  pin zig to the version that links on this macOS
 c82807c  the Persian and dark homes stop drawing invented data too
 96d4d6b  walk the first run on a device, and stop the calendar test leaking
 c893072  every root screen reads the database instead of drawing samples
@@ -15,6 +24,29 @@ caf7e74  give meals, services and medication a way in     (closes #95)
 
 **Green as of handoff:** host `mix test` → 2035 passing. Device
 `./gradlew connectedE2eAndroidTest` on **Pixel_9a** → 13 tests, 0 failures.
+
+## Setting this repo up on a new Mac costs a day if you do not read this
+
+Everything below was found the slow way on a fresh machine.
+
+- **`mob.exs` is gitignored, and it holds `:static_nifs`.** Recreate it from
+  the generator's defaults and you lose `kati_secure_store` and `kati_bridge`:
+  the next build regenerates `priv/generated/driver_tab_android.zig` without
+  them, the app still builds and launches, and every credential operation
+  reports the store absent. Caught by `git diff`, not by a test.
+- **zig 0.15.2 cannot run on macOS 26.** `zig build` on an EMPTY build.zig
+  fails to link its own build runner. `SDKROOT` is not a way out — see
+  `.tool-versions`, which now pins 0.16.0 and says why.
+- **`../igniter_js` and `../igniter_css` are at ash-project, not mishka-group**
+  (`mix.exs`'s comment says otherwise). They build their NIFs from source, and
+  their own `.tool-versions` pin rust 1.97.1.
+- **A dev `--native` deploy and `connectedE2eAndroidTest` cannot share an
+  install.** The e2e install reassigns the app UID and orphans the pushed OTP
+  tree; all 13 tests then fail in `MobBridge.extractOtpIfNeeded` with an EACCES
+  that looks nothing like a UID conflict. `mix mob.uninstall` first — it
+  reports `DELETE_FAILED_INTERNAL_ERROR` while succeeding.
+- **`adb` and `java` must be on PATH** for `mix mob.doctor` and
+  `mix kati.e2e.stage`; both resolve them by name.
 
 ---
 
@@ -50,14 +82,14 @@ screenshots, not assertions.
 
 ## Issue state
 
-Closed this stretch: **#95**. Filed: **#97**.
+Closed this stretch: **#97**. Previously: **#95**.
 
 | # | State |
 |---|---|
-| **#91** | 4 of 5 criteria done — see below. Not closeable yet. |
-| **#97** | 22 screens repeat a tap tag. Register is in `screen_tap_sweep_test.exs` `@known_collisions`, enforced in both directions; **may only shrink**. |
+| **#91** | 3 of 5 criteria done — see below. Not closeable yet. Criterion 2 regressed and was refixed: the Library drew `Up next 12` and `Lists 7` on an empty shelf. |
 | #92 | Search. Blocked in practice by #89 — see "AddTitle" below. |
-| #93 / #94 | Blocked on design briefs. |
+| #93 | Actionable set is **empty** — the analysis is a comment on the issue. Needs one design brief covering the affordances on boards 03, 04, 20, 21, 35, 36, 66 and 74, plus #91 for `LoudnessPrompt`. |
+| #94 | Blocked by #93, in its own text. |
 | #89 / #90 | **Blocked on the owner**: needs a TMDB API key he must register. |
 | #80 | **Blocked on the owner**: Apple/iCloud decision, deferred to next version. |
 
@@ -65,7 +97,7 @@ Closed this stretch: **#95**. Filed: **#97**.
 
 | Criterion | State |
 |---|---|
-| Every root shows a real empty state | ✅ verified on device |
+| Every root shows a real empty state | ✅ verified on device — *after* `a89736f`. It was recorded ✅ once before while the Library still drew `Up next 12` and `Lists 7`; `Kati.DesignLiterals` drops numeric-only lines, so no test compared them. |
 | Resumes at the step it was killed on | ✅ `7be3eb9` |
 | Restore reachable during first run | ✅ `:import_backup`, seen on device |
 | Persian carries through | ⚠️ lands on `HomeFa` correctly and it no longer fabricates, but steps 2–3 are walked on the **English** drawings |
@@ -98,13 +130,32 @@ in Persian, not 38, and routing the finish step there would strand a Persian run
 
 **5. `HomeDark`'s header is still pinned to `Sample.moment/0`** — the one render-reachable
 Sample call left. Unpinning needs two more entries in `ScreenDesignLiteralTest`'s device-values
-allow-list, which is capped at 30 and holds exactly 30. Raising that bound is a decision to
+allow-list, which is capped at **31** and holds exactly 31. Raising that bound is a decision to
 check less. 28 is gallery-only, so it is named rather than fixed.
+
+The cap moved from 30 to 31 in `ab81e7b`, for screen 02's month title rather than for 28: the
+board froze `August 2026` and the screen draws the device's month, so the suite went red on
+1 September and stayed red. That entry pins this month and this year, which is stricter than
+the frozen literal it replaced — a test that rots on a date nobody set is the one kind of
+allow-list growth that checks *more*.
 
 ---
 
 ## Traps this codebase has actually sprung (all cost real time)
 
+- **A guard can be defeated by an empty fixture, not only by a bad assertion.** Screen 03 left
+  `@known_collisions` because the sweep saw no collision, and the sweep saw none because the
+  shelf is empty in every test — no rows, no tiles, nothing to collide. `Kati.Screens.Library`
+  then carried one tag per *kind* on a real phone's shelf for months. An empty register proves
+  nothing unless the screen was drawn with two of a kind on it.
+- **A prefix clause above a named one makes it unreachable, and compiles.** Hit three times in
+  one afternoon — in 03 above `:open_film` and `:add_title`, in 57 above the search disc and
+  every chip, in 86 above `:try_suggestion` and every scope. Each would have shipped a screen
+  whose other controls silently stopped working. Put the prefix branch inside the existing
+  catch-all, and grep for named clauses below it before believing the diff.
+- **`String.to_atom` on a nil field collapses every row onto one tag.** Keying the discography
+  rail on `seed` looked obvious; every row of `Kati.Music.Sample.artist_albums/0` carries
+  `seed: nil`, so all four fell back to `:open_album` and the collision survived the fix.
 - **A test that cannot fail.** The duplicate-`accessibility_id` check read `props[:accessibility_id]`,
   but `Mob.Renderer` *derives* that id from `on_tap` at serialization — so it was vacuous for the
   life of the project while 24 screens collided. Before trusting any guard, mutate the code and
