@@ -1295,6 +1295,22 @@ defmodule Kati.Screens.MealsToday do
   def handle_tap(:open_shopping, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Shopping)}
 
+  @doc """
+  Swap, and see tomorrow — two controls that drew and did nothing.
+
+  Both had a screen waiting the whole time. **Swap** is board 46, which is
+  named *Meal swap* and draws the two answers to it; **See tomorrow** is board
+  52, the day view. Neither takes an argument yet, so this is the door rather
+  than the routing — the same honest half `Kati.Screens.MealsToday`'s own
+  `meal_` tags settled: naming the cards is what has to happen before carrying
+  one through them can.
+  """
+  def handle_tap(:swap, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
+
+  def handle_tap(:see_tomorrow, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsDay)}
+
   def handle_tap(:open_nutrition, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Nutrition)}
 

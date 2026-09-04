@@ -675,7 +675,6 @@ defmodule Kati.ScreenTapSweepTest do
     # `handle_info(_message, socket)` one), which is why `handle_tap/2 answers
     # every tag its screen draws` cannot see them. Delete a line as you wire it.
     {Kati.Screens.Activity, :open_filters},
-    {Kati.Screens.Activity, :open_search},
     {Kati.Screens.Books, :open_sort},
     {Kati.Screens.Health, :open_filters},
     # (`{Kati.Screens.Home, :open_calendar}` was here. #91 wired it: screen
@@ -685,15 +684,18 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Language, :add_language},
     {Kati.Screens.Library, :open_sort},
     {Kati.Screens.LibraryFa, :open_sort},
+    # Screen 43's **Done prepping**. `Kati.Meals.Recipe` stores a method, a
+    # duration and an oven temperature, and nothing anywhere records that a
+    # prep was DONE — screen 43's own moduledoc says the card stays on
+    # `Kati.Meals.SampleToday.prep/0` rather than being faked for exactly that
+    # reason. The button is drawn because the board draws it; it marks nothing
+    # because there is no column to mark, and inventing one to quiet a sweep is
+    # what this list exists to prevent.
+    {Kati.Screens.MealsToday, :done_prepping},
     {Kati.Screens.Meal, :more},
     {Kati.Screens.Meal, :save},
     {Kati.Screens.MealSwap, :swap_forever},
     {Kati.Screens.MealSwap, :swap_once},
-    {Kati.Screens.MealsToday, :done_prepping},
-    {Kati.Screens.MealsToday, :open_week},
-    {Kati.Screens.MealsToday, :see_tomorrow},
-    {Kati.Screens.MealsToday, :swap},
-    {Kati.Screens.MealsToday, :switch_plan},
     {Kati.Screens.Music, :open_sort},
     {Kati.Screens.Nutrition, :share},
     {Kati.Screens.Rating, :add_tag},

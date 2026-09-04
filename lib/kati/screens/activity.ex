@@ -612,10 +612,24 @@ defmodule Kati.Screens.Activity do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
-  # One clause for all four chips: the tag carries the label. The two discs
-  # fall through deliberately — search and the filter sheet are screens this
-  # one does not own, and the drawing gives neither a destination.
+  @doc """
+  The search disc, which drew and opened nothing.
+
+  Screen 19 is where a query goes from everywhere else in the app — 03's disc,
+  20's and 21's — and there is no second search to point this one at. It said
+  *"the drawing gives neither a destination"*, which was true of the drawing
+  and not of the app: 19 has existed the whole time and every other header disc
+  already opened it.
+
+  The filter disc stays on `Kati.ScreenTapSweepTest`'s backlog. No board in the
+  165 draws an activity filter sheet, so it has nowhere to go that would not be
+  invented here.
+  """
   @impl true
+  def handle_tap(:open_search, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+
+  # One clause for all four chips: the tag carries the label.
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
