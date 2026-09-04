@@ -161,8 +161,30 @@ less. 28 is gallery-only, so it is named rather than fixed.
 a real reason stated in `Kati.ScreenSampleOnlyTest`: nothing records that a habit was
 **kept**, and no table holds a **price**. Those are schema questions, not screen questions.
 
-**3. `mix hex.outdated` has not been run this round.** The owner's standing rule is to keep
-dependencies current.
+**3. The Ash stack carries security advisories and is deliberately pinned.** `mix hex.audit`
+reports 16 against `ash 3.31.3` and several against `ash_sql 0.6.9` and `ash_sqlite 0.2.17`.
+`mix.exs` pins all three exactly and says why: *"Kati appears to be the first public user of
+AshSqlite on a device BEAM, so a silent minor bump is not something to discover on a user's
+phone."* That reason still holds, so the bump was NOT taken here — it is a round of its own,
+with a device walk at the end of it.
+
+The exposure was checked rather than assumed. The two advisories that name a specific API —
+`exists/2` dropped on a limited relationship with a `parent()` filter, and JSON path
+injection through unescaped `get_path` segments — are against calls this app does not make:
+neither `exists(` nor `get_path` appears anywhere in `lib/`. Of the sixteen against `ash`,
+all but a handful are authorization, multi-tenancy, `Ash.Reactor`, vectors, `update_many/4`
+or the ETS and Mnesia data layers, and Kati has none of those: it is one person's data, on
+their own device, with no policies and no actor. What is left is input validation on types
+whose only input is that same person's typing.
+
+That is an argument for taking the bump deliberately, not for taking it in a hurry.
+
+**5. `mix hex.outdated` is otherwise clean.** `req` went 0.7.3 → 0.7.4 this round (and
+`mint` 1.9.3 → 1.10.0 with it). `ex_cldr_calendars` reports 2.4.4 available and will not
+resolve to it — something in the CLDR tree holds it at 2.4.3, and it is a patch release with
+no advisory. `mob 0.7.24 → 0.7.39` is pinned for the reason `mix.exs` gives: the native shell
+is forked at generation time and `native/LEDGER.md` is the merge cost. The vendored baseline
+is 0.4.20; a bump is a three-way merge across 41 fences.
 
 **4. The Persian mirrors adopt very little of `Kati.Components`,** and the reason is one
 upstream ask: `MishkaChip`, `MishkaSegmentedControl` and `MishkaNavLink` take their label
