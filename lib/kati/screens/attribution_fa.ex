@@ -748,7 +748,7 @@ defmodule Kati.Screens.AttributionFa do
 
   # Every card opens the site it names, through screen 83's own table.
   #
-  # The four taps were answered-and-inert until `D-62` built `K-43`: the
+  # The four taps were answered-and-inert until `K-43 open-url` was built: the
   # control was drawn, it was reachable, and what it would open was the
   # platform's browser through a fence that did not exist. It exists now, and
   # the URL comes from `Kati.Screens.Attribution.site_for/1` rather than from a

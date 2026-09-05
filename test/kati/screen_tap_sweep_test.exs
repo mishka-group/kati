@@ -426,7 +426,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AddByHandRecord, :kind_Album},
     {Kati.Screens.AddTitleMusic, :filter_Albums},
     # (Screen 83's six link rows were here, and screen 85's four below them.
-    # `D-62` built `K-43 open-url` and they all open the site they name now —
+    # `K-43 open-url` was built and they all open the site they name now —
     # `Kati.Screens.Attribution.site_for/1` is the table and
     # `Kati.Screens.Attribution.follow/2` is the tap. The reason on file was
     # *every one opens a URL in the platform browser, and Kati has no fence

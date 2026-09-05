@@ -160,7 +160,7 @@ defmodule Kati.ConnectedPagesTest do
   describe "the source cards open the sites they name" do
     test "every card and the notices row resolves to a real address" do
       # Ten controls across screens 83 and 85 were drawn, reachable and dead
-      # until `D-62` built the `K-43 open-url` fence. The table is screen 83's
+      # until the `K-43 open-url` fence was built. The table is screen 83's
       # and the Persian page reads it rather than keeping a second one: the
       # licence conditions are the same conditions, and a Persian page pointing
       # somewhere else would be a licence problem rather than a copy one.

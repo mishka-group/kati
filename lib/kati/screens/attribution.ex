@@ -332,7 +332,7 @@ defmodule Kati.Screens.Attribution do
   @doc """
   Every card and the notices row open the site they name.
 
-  Six controls on this board were drawn, reachable and dead until `D-62` gave
+  Six controls on this board were drawn, reachable and dead until `K-43 open-url` gave
   Kati a way to open a link. `Kati.ScreenTapSweepTest` carried each with the
   same sentence — *every one opens a URL in the platform browser, and Kati has
   no fence that does* — and that was true for as long as

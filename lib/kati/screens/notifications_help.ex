@@ -335,7 +335,7 @@ defmodule Kati.Screens.NotificationsHelp do
   @doc """
   The battery row opens the phone's battery-optimisation list.
 
-  Drawn, reachable and dead until `D-62` built `K-44`. The research beside
+  Drawn, reachable and dead until `K-44 open-settings` was built. The research beside
   this row is explicit that the exemption must be reached by the user rather
   than granted, and this reaches it: `Kati.Native.Links.settings(:battery)`
   opens the LIST, not `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, which is

@@ -483,7 +483,7 @@ defmodule Kati.Screens.NotificationAccess do
   # A comment rather than a second `@doc`: these are clauses of one
   # `handle_tap/2` and the clause above already carries the doc.
   #
-  # They were drawn, reachable and dead until `D-62` built `K-44`:
+  # They were drawn, reachable and dead until `K-44 open-settings` was built:
   # `Kati.ScreenTapSweepTest` carried each with the same reason — *no fence in
   # `native/LEDGER.md` launches an Android settings intent* — and that was the
   # whole of what stood between them and the one screen this sheet exists to

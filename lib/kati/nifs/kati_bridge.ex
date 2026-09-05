@@ -124,7 +124,7 @@ defmodule Kati.Nifs.KatiBridge do
   @spec permission_status(binary()) :: binary()
   def permission_status(_capability), do: :erlang.nif_error(:nif_not_loaded)
 
-  # ── D-62: opening a link the app does not own ───────────────────────────
+  # ── K-43: opening a link the app does not own ───────────────────────────
 
   @doc """
   `"ok"`, or `"error:<reason>"`, for handing one URL to the platform browser.

@@ -142,7 +142,7 @@ static ERL_NIF_TERM kb_permission_status(ErlNifEnv *env, int argc, const ERL_NIF
     return reply;
 }
 
-/* ── #D-62: opening a link the app does not own ──────────────────────────── */
+/* ── K-43: opening a link the app does not own ───────────────────────────── */
 
 static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     char *url;
