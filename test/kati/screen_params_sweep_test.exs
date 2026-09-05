@@ -280,29 +280,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # changing the door screen 46 was built around.
     {Kati.Screens.MealsToday, :swap, Kati.Screens.MealSwap},
 
-    # ── Screen 21's albums and its new-releases band.
-    #
-    # No album or artist identity exists at the tap. `music.ex:238-240` maps
-    # `Kati.Music.Sample.albums/0` — three frozen literals whose only unique
-    # field is `seed: "albm1"|"albm2"|"albm3"`, an ARTWORK seed for
-    # `Kati.Design.Images.poster/1` and not a row id — and the releases band
-    # carries a seed, a display NAME (`Kell Ostrand`) and a line. Two artists
-    # can share a name; carrying one would be the failure the round is about
-    # rather than a fix for it.
-    #
-    # Screen 21 never reads `Kati.Music.Album`, and nothing anywhere in `lib/`
-    # creates one. `%{album_id: "albm1"}` would name a row `Ash.get/2` can never
-    # find, and the render would be identical TODAY — which is exactly what
-    # makes it dangerous: a fabricated identity passes every sweep in this repo
-    # and is wrong the first day the table has rows. Both destinations are
-    # willing (`use Kati.Screens.Pushed`); the source is not. Prerequisite is a
-    # data-source change to a root screen, not a params change.
-    {Kati.Screens.Music, :open_album_albm1, Kati.Screens.AlbumDetail},
-    {Kati.Screens.Music, :open_album_albm2, Kati.Screens.AlbumDetail},
-    {Kati.Screens.Music, :open_album_albm3, Kati.Screens.AlbumDetail},
-    {Kati.Screens.Music, :open_artist_albm4, Kati.Screens.ArtistDetail},
-    {Kati.Screens.Music, :open_artist_albm5, Kati.Screens.ArtistDetail},
-
     # ── Screen 151's `Log by hand`, and correctly bare.
     #
     # 151 is a permission board about the notification listener
@@ -513,6 +490,38 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.Books, :open_book_bookdd4, Kati.Screens.BookDetail},
     {Kati.Screens.Books, :open_book_bookee5, Kati.Screens.BookDetail},
     {Kati.Screens.Books, :open_book_bookff6, Kati.Screens.BookDetail},
+
+    # ── Screen 21's three tiles and its two release rows.
+    #
+    # These five CROSSED from `@bare_pushes` on 5 September, the way screen 20's
+    # `Log progress` pill did an hour earlier, and the entry they replace is
+    # worth quoting because it was true when it was written: *no album or artist
+    # identity exists at the tap … screen 21 never reads `Kati.Music.Album`, and
+    # nothing anywhere in `lib/` creates one.* It reads it now. `music.ex`'s
+    # `page/0` is one entry point over `Kati.Music.Album`'s `:shelf`,
+    # `Kati.Music.Artist`'s `:followed` and `Kati.Music.Listen`, its rows carry
+    # the album's own id and the artist's, and `open_album/2` and `open_artist/2`
+    # resolve a tapped tag back to the row the render drew and hand it to the
+    # destination's own builder.
+    #
+    # So the source names its subject, and what empties the argument is the
+    # drawing: with nothing shelved the three tiles are
+    # `Kati.Music.Sample.albums/0` (`music/sample.ex:20-28`) and the two rows are
+    # `releases/0` (`music/sample.ex:71-77`), literal maps whose only unique
+    # field is an ARTWORK seed — `albm1`…`albm5`, for
+    # `Kati.Design.Images.poster/1` — and no row in either has an `:id` or an
+    # `:artist_id`. `album_detail.ex`'s `params_for/1` and
+    # `artist_detail.ex`'s answer `%{}`.
+    #
+    # The tags are the drawing's seeds because that is what the sweep renders. A
+    # shelved row's tag is its uuid — `album_tag/1` takes the id first and the
+    # seed second, because `art_seed` is nullable and two pressings can share
+    # one.
+    {Kati.Screens.Music, :open_album_albm1, Kati.Screens.AlbumDetail},
+    {Kati.Screens.Music, :open_album_albm2, Kati.Screens.AlbumDetail},
+    {Kati.Screens.Music, :open_album_albm3, Kati.Screens.AlbumDetail},
+    {Kati.Screens.Music, :open_artist_albm4, Kati.Screens.ArtistDetail},
+    {Kati.Screens.Music, :open_artist_albm5, Kati.Screens.ArtistDetail},
 
     # ── Screen 45's `Swap`.
     #

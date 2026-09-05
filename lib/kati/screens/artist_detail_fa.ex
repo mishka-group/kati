@@ -223,6 +223,17 @@ defmodule Kati.Screens.ArtistDetailFa do
     d = drawn()
 
     %{
+      # The id of the artist this page RESOLVED, and `nil` when it resolved
+      # none. Screen 77's `shaped/2` carries the same key for the same reason:
+      # the Following switch writes through `ArtistDetail.target/1`, which asks
+      # the page who it drew. Without it the page drew a real artist, could not
+      # name them, and the write fell back to re-reading the shelf — so the
+      # switch followed whoever led the shelf at the instant the finger landed
+      # rather than the person on screen.
+      #
+      # A page drawing `Kati.Music.SampleFa` has no artist to name and keeps
+      # `nil`, which is what makes the write a refusal rather than a guess.
+      id: stored && Map.get(base, :id),
       name: if(stored, do: base.name, else: d.name),
       subtitle: if(stored, do: base.subtitle || "", else: d.subtitle),
       photo_seed: base.photo_seed,

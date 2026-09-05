@@ -66,6 +66,32 @@ defmodule Kati.Screens.AlbumDetail do
     |> Mob.Socket.assign(:album, album(id))
   end
 
+  @doc """
+  The album a write opened from this screen must act on.
+
+  The id the push NAMED, when it named one, and otherwise the id of the album
+  that was resolved — which is the shelf's first, and the right target for a
+  screen nobody told which record to open. `Map.get/2` on both, because the
+  Persian twin builds its own socket and need not carry `:album_id`.
+
+  Copied from `Kati.Screens.BookDetail.target/1`, and it closes the same hole
+  one domain over. `album/1` collapses two facts into one value — *nobody named
+  an album* and *the named album is gone* both answer `Kati.Music.Sample.album/0`,
+  which has no id — so `Log a listen` built from `assigns.album` alone handed
+  the sheet `%{}` in BOTH cases, and `%{}` means *the shelf's first* to
+  `Kati.Screens.LogListen`. A page drawing the fixture because the record it
+  was opened on had been deleted would then credit a play, bump per-track
+  counts and move `last_played_on` on a real album the reader is not looking
+  at. Keeping the NAMED id separate is what lets that refuse:
+  `Kati.Screens.LogListen.save_listen/1` reads `shelved(assigns[:album_id])`,
+  and a named-and-missing id is `nil` from `Ash.get/2` and a refusal, where
+  named-nothing is still the shelf's first and still correct.
+  """
+  @spec target(map()) :: String.t() | nil
+  def target(assigns) do
+    Map.get(assigns, :album_id) || Map.get(assigns, :album, %{})[:id]
+  end
+
   @doc "The album this screen is about: the shelf's first, or the drawing's."
   @spec album() :: map()
   def album, do: album(nil)
@@ -195,6 +221,24 @@ defmodule Kati.Screens.AlbumDetail do
   rescue
     _error -> nil
   end
+
+  @doc """
+  One album's play count: the sum of its tracklist's own counts.
+
+  The one place that arithmetic is done, because three screens draw it and they
+  are one tap apart. Screen 74 prints `41 plays · 4 this month` under the
+  record, screen 77's rail prints `2025 · 41 plays` beside it, and screen 21's
+  tile prints `41 PLAYS` over the cover that opens both. A second way of
+  counting — the number of `Kati.Music.Listen` rows, say, which is a count of
+  *sittings* and not of plays — would put two different numbers on one record
+  in one journey, which is `Kati.Screens.Books.rail/2`'s defect in this domain.
+
+  `Kati.Music.Album.plays/1` is the sum; this is the sum plus the read, so a
+  caller holding only the row does not have to know which table the counts are
+  in.
+  """
+  @spec play_count(Album.t()) :: non_neg_integer()
+  def play_count(%Album{} = album), do: Album.plays(tracks_of(album))
 
   @doc false
   def tracks_of(%Album{id: id}) do
@@ -857,6 +901,12 @@ defmodule Kati.Screens.AlbumDetail do
   # The sheet is handed the id of the album this page is drawing. Screen 73 used
   # to re-read the shelf and take its first row, so a page opened on the third
   # album credited the play — and bumped the track counts — on the first (#84).
+  #
+  # Through `target/1` and not off `socket.assigns.album`, which is the second
+  # half of that fix and the one the first build missed: the album this page
+  # RESOLVED is the drawing whenever the id it was NAMED has been deleted, the
+  # drawing has no `:id`, and `%{}` sends the sheet back to the shelf's first.
+  # `target/1`'s doc has the whole of it.
   @doc false
   def handle_tap(:log_listen, socket),
     do:
@@ -864,7 +914,7 @@ defmodule Kati.Screens.AlbumDetail do
        Mob.Socket.push_screen(
          socket,
          Kati.Screens.LogListen,
-         Kati.Screens.LogListen.params_for(socket.assigns.album)
+         Kati.Screens.LogListen.params_for(%{id: Kati.Screens.AlbumDetail.target(socket.assigns)})
        )}
 
   # The artist row names the person the page is drawing. Screen 77 used to

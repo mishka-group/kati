@@ -266,9 +266,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"20", Kati.Screens.Books},
     {"66", Kati.Screens.BookDetail},
     {"70", Kati.Screens.LogProgress},
-    # The Music domain's three. 74 and 77 gate the whole page as 66 does; 73
+    # The Music domain's four. 74 and 77 gate the whole page as 66 does; 73
     # gates the album it is about to write a play against, through 74's reader
     # for the reason 70 uses 66's.
+    #
+    # 21 is the shelf the other three hang off, and it joined on 5 September
+    # when its tiles moved onto `Kati.Music.Album`. Same shape as 20 one shelf
+    # over: one branch for the whole page, because a rail of the user's own
+    # covers under the drawing's `9h 12m` would be the half-migration the
+    # screen's own moduledoc argues against.
+    {"21", Kati.Screens.Music},
     {"73", Kati.Screens.LogListen},
     {"74", Kati.Screens.AlbumDetail},
     {"77", Kati.Screens.ArtistDetail},
@@ -1408,6 +1415,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # it is 66's.
       {"70", Kati.Screens.LogProgress, &Kati.Screens.LogProgress.book/0,
        &Kati.Screens.BookDetail.drawn_book/0},
+      # 21 gates the whole page as 20 does, and for the reason its own moduledoc
+      # gives: the three tiles, the listening card, the release band and the
+      # header's count are four views of one shelf, so one pair covers all four
+      # and a gate that looked only at the tiles would pass while the card
+      # totalled hours nobody listened to.
+      {"21", Kati.Screens.Music, &Kati.Screens.Music.page/0, &Kati.Screens.Music.drawn_page/0},
       # 74 and 77 gate the whole page for the reason 66 does. 73 gates the album
       # rather than the tracklist, and through 74's own reader: a sheet aimed at
       # a different album from the screen that opened it would credit the wrong

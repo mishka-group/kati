@@ -2,7 +2,10 @@ defmodule Kati.SheetRowIdentityTest do
   @moduledoc """
   Three sheets act on the row that opened them — screens 70, 73 and 118 — and,
   since screen 20's shelf moved onto `Kati.Books.Book`, so does the page a
-  cover tap opens: screen 66.
+  cover tap opens: screen 66. Screen 21's shelf moved onto `Kati.Music.Album`
+  the same day and brings two more of those pages with it, 74 and 77, which is
+  why this file asks the same two questions of a cover on the music shelf and
+  of a row in its **New from artists you follow** band.
 
   ## The defect, and why every other test in this repo was blind to it
 
@@ -71,12 +74,14 @@ defmodule Kati.SheetRowIdentityTest do
   alias Kati.Music.Listen
   alias Kati.Music.Track
   alias Kati.Screens.AlbumDetail
+  alias Kati.Screens.ArtistDetail
   alias Kati.Screens.BookDetail
   alias Kati.Screens.Books
   alias Kati.Screens.LogListen
   alias Kati.Screens.LogProgress
   alias Kati.Screens.MealEdit
   alias Kati.Screens.MealLibrary
+  alias Kati.Screens.Music
 
   @prefix "row-identity-test-"
 
@@ -439,6 +444,170 @@ defmodule Kati.SheetRowIdentityTest do
 
       assert mount_screen(LogListen, %{album_id: dead.id}) |> assigns() |> Map.fetch!(:album) ==
                AlbumDetail.drawn_album()
+    end
+  end
+
+  # ── screen 21's shelf, into screens 74 and 77 ──────────────────────────────
+
+  describe "screen 21 opens the record whose cover was tapped" do
+    test "the second tile pushes the second album, and screen 74 loads it" do
+      artist = an_artist!()
+      one = an_album!(artist, %{title: @prefix <> "Tidal Works"})
+      two = an_album!(artist, %{title: @prefix <> "Low Country"})
+
+      # Hung after the shelf has been read, never on the insert that happens to
+      # be second — `two_albums/2`'s own reason.
+      {first, second} = two_albums(one, two)
+      tracks!(first, [{1, "On the shelf's first album", 252, 3}])
+      tracks!(second, [{1, "On the second album", 190, 4}])
+
+      view = mount_screen(Music)
+
+      # The second row of the list the SCREEN read, never `Enum.at(1)` of a
+      # fresh query: the band sorts on *played this week* over `:shelf`, and the
+      # tile somebody pressed is a fact about the render.
+      rows = view |> assigns() |> Map.fetch!(:page) |> Map.fetch!(:albums)
+      [_head, row | _rest] = Enum.filter(rows, &(&1.id in [first.id, second.id]))
+      assert row.id == second.id
+
+      view = render_info(view, {:tap, Music.album_tag(row)})
+
+      assert {:push, AlbumDetail, %{album_id: id}} = pushed(view)
+      assert id == second.id
+
+      page = mount_screen(AlbumDetail, %{album_id: id})
+
+      assert assigns(page).album.title == second.title
+      refute assigns(page).album.title == first.title
+      refute assigns(page).album.title == AlbumDetail.drawn_album().title
+
+      # The whole page and not only its title. The tile said `4 PLAYS` over this
+      # cover and the page says `4 plays` under it, because both are
+      # `Kati.Screens.AlbumDetail.play_count/1` — the shelf's first has three,
+      # and three under a record the reader chose for its four is the shape of
+      # this defect.
+      assert row.plays == "4 PLAYS"
+      assert assigns(page).album.plays_line == "4 plays · 0 this month"
+    end
+
+    test "a release row pushes its artist, and screen 77 loads them" do
+      followed = Ash.create!(Artist, %{name: @prefix <> "Kell Ostrand", following: true})
+      other = Ash.create!(Artist, %{name: @prefix <> "Aud Marne", following: true})
+
+      # Unheard: no track on it has a play — which is screen 77's own rule for
+      # the card this band is the many-artists form of.
+      unheard = an_album!(followed, %{title: @prefix <> "Estuary Tapes"})
+      heard = an_album!(other, %{title: @prefix <> "Nine Rooms"})
+      tracks!(heard, [{1, "Played once", 240, 1}])
+
+      view = mount_screen(Music)
+      rows = view |> assigns() |> Map.fetch!(:page) |> Map.fetch!(:releases)
+
+      assert Enum.map(rows, & &1.id) == [unheard.id],
+             "a record that has been played is not new, and a record by somebody you do " <>
+               "not follow is not in this band"
+
+      [row] = rows
+      assert row.artist_id == followed.id
+      assert row.line == "#{@prefix}Estuary Tapes · you have not heard it"
+
+      view = render_info(view, {:tap, Music.artist_tag(row)})
+
+      assert {:push, ArtistDetail, %{artist_id: id}} = pushed(view)
+
+      assert id == followed.id,
+             "the row is tagged by the ALBUM's id and must carry the ARTIST's"
+
+      page = mount_screen(ArtistDetail, %{artist_id: id})
+
+      assert assigns(page).artist.name == followed.name
+      refute assigns(page).artist.name == other.name
+      refute assigns(page).artist.name == ArtistDetail.drawn_artist().name
+    end
+
+    test "the drawing's rows name nothing, and have no key to name it with" do
+      # The state every capture of screen 21 was taken in: three tiles and two
+      # rows whose only unique field is an artwork seed, so both builders answer
+      # `%{}` — and answer it by ABSENCE. A row carrying `%{id: nil}` would let a
+      # destination that matches on the key take a `nil` for an answer.
+      for row <- Music.drawn_page().albums do
+        refute Map.has_key?(row, :id)
+        assert AlbumDetail.params_for(row) == %{}
+      end
+
+      for row <- Music.drawn_page().releases do
+        refute Map.has_key?(row, :id)
+        refute Map.has_key?(row, :artist_id)
+        assert ArtistDetail.params_for(row) == %{}
+      end
+
+      assert AlbumDetail.params_for(nil) == %{}
+      assert ArtistDetail.params_for(nil) == %{}
+
+      # And the tags the drawing draws are still the drawing's seeds, which is
+      # what `Kati.ScreenParamsSweepTest` renders and files.
+      assert Enum.map(Music.drawn_page().albums, &Music.album_tag/1) ==
+               [:open_album_albm1, :open_album_albm2, :open_album_albm3]
+
+      assert Enum.map(Music.drawn_page().releases, &Music.artist_tag/1) ==
+               [:open_artist_albm4, :open_artist_albm5]
+    end
+
+    test "a page named an album that is gone draws the drawing and refuses the listen" do
+      # The wrong-row write, in the domain screen 20 found it in. Screen 74
+      # built `Log a listen` from `socket.assigns.album`, which is the DRAWING
+      # for a record deleted under you — no `:id`, so `%{}`, so the sheet took
+      # the shelf's first and a play, its per-track counts and `last_played_on`
+      # landed on a record the reader was not looking at.
+      artist = an_artist!()
+      newest = an_album!(artist, %{title: @prefix <> "Tidal Works"})
+      tracks!(newest, [{1, "Untouched", 252, 3}])
+
+      dead = an_album!(artist, %{title: @prefix <> "Gone"})
+      Ash.destroy!(dead)
+
+      view = mount_screen(AlbumDetail, %{album_id: dead.id})
+
+      assert assigns(view).album == AlbumDetail.drawn_album(),
+             "a named-but-gone album is the drawing"
+
+      tapped = render_info(view, {:tap, :log_listen})
+
+      assert {:push, LogListen, %{album_id: id}} = pushed(tapped)
+      assert id == dead.id, "the sheet is named what the page was named, not the shelf's first"
+
+      sheet = mount_screen(LogListen, %{album_id: dead.id})
+      assert assigns(sheet).album == AlbumDetail.drawn_album()
+
+      saved = render_info(sheet, {:tap, :save})
+
+      refute pushed(saved) == {:pop}, "a save with nothing to save must not close the sheet"
+      assert assigns(saved).save_error != nil
+
+      assert listens_of(newest) == [],
+             "the listen reached the shelf's newest album while the page drew the drawing"
+
+      assert [%Track{plays: 3}] = tracks_of(newest)
+      assert Ash.get!(Album, newest.id).last_played_on == nil
+    end
+
+    test "a page that named nothing still acts on the shelf's first" do
+      # The other half, and the reason the fix is not *refuse when the album has
+      # no id*: a bare push means *no particular record*, and the shelf's first
+      # is the right target for it. The board index and screen 151's
+      # `Log by hand` both depend on this.
+      artist = an_artist!()
+      album = an_album!(artist, %{title: @prefix <> "Tidal Works"})
+      tracks!(album, [{1, "Low Water", 252, 0}])
+
+      view = mount_screen(AlbumDetail)
+      refute assigns(view).album_id
+      assert assigns(view).album.id == album.id
+
+      tapped = render_info(view, {:tap, :log_listen})
+
+      assert {:push, LogListen, %{album_id: id}} = pushed(tapped)
+      assert id == album.id
     end
   end
 

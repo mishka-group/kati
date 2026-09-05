@@ -88,8 +88,21 @@ defmodule Kati.Music.Listen do
   having changed.
   """
   @spec this_month([t()], Date.t()) :: non_neg_integer()
-  def this_month(listens, %Date{year: year, month: month}) do
-    Enum.count(listens, fn %__MODULE__{listened_on: on} ->
+  def this_month(listens, %Date{} = today), do: length(in_month(listens, today))
+
+  @doc """
+  The same sittings, rather than how many of them there are.
+
+  Screen 21's listening card totals their minutes where screens 73 and 74 count
+  them, and the two questions must not have two answers about where a month
+  begins: a card headed **This month** over a total from a rolling thirty days,
+  beside a page saying `4 this month` from the calendar one, is one app with
+  two calendars in it. So the boundary is written once, here, and `this_month/2`
+  above is this list's length.
+  """
+  @spec in_month([t()], Date.t()) :: [t()]
+  def in_month(listens, %Date{year: year, month: month}) do
+    Enum.filter(listens, fn %__MODULE__{listened_on: on} ->
       on.year == year and on.month == month
     end)
   end

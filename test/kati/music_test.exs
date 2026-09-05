@@ -28,6 +28,23 @@ defmodule Kati.MusicTest do
   alias Kati.Screens.AlbumDetail
   alias Kati.Screens.ArtistDetail
   alias Kati.Screens.LogListen
+  alias Kati.Screens.Music
+
+  # The pure functions screen 21's shelf is arithmetic in. Nothing here touches
+  # the store, and each was documented with an example before it was run as one
+  # — which is the whole difference between a doc and a doctest.
+  doctest Kati.Screens.Music,
+    only: [
+      album_tag: 1,
+      artist_tag: 1,
+      clock: 1,
+      oclock: 1,
+      plays_label: 1,
+      subtitle: 2,
+      window: 1
+    ]
+
+  doctest Kati.Screens.ArtistDetail, only: [unheard_line: 0]
 
   @prefix "music-test-"
 
@@ -185,6 +202,11 @@ defmodule Kati.MusicTest do
       ]
 
       assert Listen.this_month(listens, today) == 2
+
+      # And the count is the length of the list screen 21's card totals the
+      # minutes of, so the two screens cannot disagree about the boundary.
+      assert Enum.map(Listen.in_month(listens, today), & &1.listened_on) ==
+               [~D[2026-08-01], ~D[2026-08-16]]
     end
 
     test "untimed sittings are skipped rather than counted as zero" do
@@ -284,6 +306,69 @@ defmodule Kati.MusicTest do
       # Not `0 plays`: the count is not the point, never having heard it is —
       # and it is the fact the unheard card acts on.
       assert lines[@prefix <> "Estuary Tapes"] == "Unheard"
+    end
+
+    test "Following writes to the artist on screen, not to whoever heads the shelf" do
+      # The wrong-record write, one domain over from screen 66's. Screen 79
+      # draws a real artist when one is shelved, and its map used to carry no
+      # `:id` — so `ArtistDetail.target/1` had nothing to pin to and the write
+      # fell through to re-reading the shelf AT TAP TIME. Follow somebody, and
+      # whoever led the shelf when your finger landed got followed instead.
+      x = an_artist!(%{name: @prefix <> "On Screen"})
+      y = an_artist!(%{name: @prefix <> "Somebody Else"})
+      first = an_album!(x, %{title: @prefix <> "Theirs"})
+      an_album!(y, %{title: @prefix <> "Not Theirs"})
+
+      Ash.update!(first, %{last_played_on: Kati.Time.today()})
+
+      {:ok, socket} =
+        Kati.Screens.ArtistDetailFa.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.ArtistDetailFa))
+
+      assert socket.assigns.artist.name == x.name, "the fixture no longer sets this up"
+      assert socket.assigns.artist.id == x.id, "the page must be able to name who it drew"
+
+      was_x = Ash.get!(Artist, x.id).following
+      was_y = Ash.get!(Artist, y.id).following
+
+      {:noreply, _moved} =
+        Kati.Screens.ArtistDetailFa.handle_info({:tap, :toggle_following}, socket)
+
+      # The flip, not a fixed value: what matters is WHICH row moved.
+      assert Ash.get!(Artist, x.id).following == not was_x,
+             "the artist on screen did not move"
+
+      assert Ash.get!(Artist, y.id).following == was_y,
+             "somebody the reader never saw was followed instead"
+    end
+
+    test "a page drawing the fixture follows nobody, and still moves its switch" do
+      # The other half. A page drawing `Kati.Music.SampleFa` has no artist to
+      # name, so the write is a refusal rather than a guess — and the switch
+      # still moves, because a control that looked broken on a device with
+      # nothing shelved would be the least explicable thing on it.
+      #
+      # The fixture state is CONSTRUCTED rather than assumed: this block's setup
+      # shelves artists, so a bare mount resolves a real one. Overwriting the
+      # assign is the same thing the screen does when it has nothing to resolve.
+      shelved = an_artist!(%{name: @prefix <> "Untouched"})
+      an_album!(shelved, %{title: @prefix <> "Untouched Record"})
+      was = Ash.get!(Artist, shelved.id).following
+
+      {:ok, mounted} =
+        Kati.Screens.ArtistDetailFa.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.ArtistDetailFa))
+
+      drawn = Map.delete(mounted.assigns.artist, :id)
+      socket = Mob.Socket.assign(mounted, :artist, drawn)
+
+      refute ArtistDetail.target(socket.assigns), "the fixture case needs no id to pin to"
+
+      {:noreply, moved} =
+        Kati.Screens.ArtistDetailFa.handle_info({:tap, :toggle_following}, socket)
+
+      assert moved.assigns.artist.following == not drawn.following, "the switch did not move"
+
+      assert Ash.get!(Artist, shelved.id).following == was,
+             "a page with nobody to name still wrote to a real artist"
     end
 
     test "the unheard card names the album with no plays", %{unheard: unheard} do
@@ -461,11 +546,220 @@ defmodule Kati.MusicTest do
     end
   end
 
+  describe "screen 21 with a shelf" do
+    test "one album on the shelf is one tile, and the drawing's three are gone" do
+      artist = an_artist!()
+      album = an_album!(artist, %{title: @prefix <> "Estuary Nights"})
+      tracks!(album, [{1, "Low Water", 252, 9}, {2, "The Cull", 228, 3}])
+
+      page = Music.page()
+
+      assert [%{title: @prefix <> "Estuary Nights", plays: "12 PLAYS"}] = page.albums
+
+      # Not merely "the band is short": the fixture's own records must be off
+      # the screen entirely. A rail drawing the user's album AND the drawing's
+      # three would satisfy every count above.
+      drawn = MapSet.new(Music.drawn_page().albums, & &1.title)
+      assert Enum.all?(page.albums, &(not MapSet.member?(drawn, &1.title)))
+
+      # And the header counts the shelf it is over. `418` is the drawing's
+      # window onto a library of 418 and stops being a defence the moment there
+      # is a real shelf to count.
+      assert page.subtitle == "1 albums · 0h this year"
+      refute page.subtitle == Kati.Music.Sample.subtitle()
+    end
+
+    test "the tile's count is the number screen 74 prints under the same record" do
+      # One rule, and the reason it is one: the tile says `41 PLAYS` over a
+      # cover that is one tap from a page saying `41 plays` under it. Both go
+      # through `Kati.Screens.AlbumDetail.play_count/1`, so the shelf and the
+      # detail cannot answer a reader differently inside one journey.
+      artist = an_artist!()
+      album = an_album!(artist, %{title: @prefix <> "Tidal Works"})
+      tracks!(album, [{1, "Low Water", 252, 9}, {2, "The Cull", 228, 7}])
+
+      [tile] = Music.page().albums
+
+      assert tile.plays == "16 PLAYS"
+      assert AlbumDetail.album(album.id).plays_line == "16 plays · 0 this month"
+      assert Map.new(ArtistDetail.albums(artist.id), &{&1.title, &1.plays})[album.title] == 16
+    end
+
+    test "the tiles are the records played this week, then the shelf's own order" do
+      artist = an_artist!()
+      old = an_album!(artist, %{title: @prefix <> "Nine Rooms"})
+      # Written second, so it heads `:shelf` on `updated_at` — and it has not
+      # been played this week, so the eyebrow's own word puts the other first.
+      an_album!(artist, %{title: @prefix <> "Low Country"})
+
+      Ash.create!(Listen, %{album_id: old.id, listened_on: Kati.Time.today(), tracks: 11})
+
+      assert [%{title: @prefix <> "Nine Rooms"}, %{title: @prefix <> "Low Country"}] =
+               Music.page().albums
+    end
+
+    test "the listening card totals the sittings rather than the drawing's 9h 12m" do
+      artist = an_artist!()
+      album = an_album!(artist)
+      today = Kati.Time.today()
+
+      Ash.create!(Listen, %{
+        album_id: album.id,
+        listened_on: today,
+        tracks: 11,
+        minutes: 47,
+        started_at: DateTime.new!(today, ~T[21:30:00])
+      })
+
+      Ash.create!(Listen, %{
+        album_id: album.id,
+        listened_on: Date.add(today, -3),
+        tracks: 4,
+        minutes: 20,
+        started_at: DateTime.new!(Date.add(today, -3), ~T[21:05:00])
+      })
+
+      card = Music.page().listening
+
+      assert card.label == "This month"
+      assert card.window == "mostly 21:00–23:00"
+      assert length(card.bars) == 20
+
+      # 67 minutes of listening, and the twentieth bar is today's — the tallest,
+      # so it is the field's full height and above the run of ordinary days.
+      assert card.total == "1h 7m"
+      assert List.last(card.bars) == {40.0, Kati.Music.Sample.tone(3)}
+      # A day with nothing draws nothing rather than a floor this file invented.
+      assert Enum.count(card.bars, &(elem(&1, 0) == 0.0)) == 18
+    end
+
+    test "the release band is what screen 77 calls unheard, for everyone you follow" do
+      followed = an_artist!(%{name: @prefix <> "Kell Ostrand", following: true})
+      ignored = an_artist!(%{name: @prefix <> "Vesper Line", following: false})
+
+      unheard = an_album!(followed, %{title: @prefix <> "Estuary Tapes"})
+      heard = an_album!(followed, %{title: @prefix <> "Tidal Works"})
+      tracks!(heard, [{1, "Low Water", 252, 9}])
+      an_album!(ignored, %{title: @prefix <> "Low Country"})
+
+      assert [row] = Music.page().releases
+      assert row.id == unheard.id
+      assert row.artist_id == followed.id
+      assert row.artist == followed.name
+      assert row.line == "#{@prefix}Estuary Tapes · you have not heard it"
+
+      # And it is the same list screen 77's own card is drawn from, which is
+      # what stops a record being new in the band and heard on the page it
+      # opens.
+      assert Enum.map(ArtistDetail.unheard_albums(followed), & &1.id) == [unheard.id]
+      assert ArtistDetail.unheard_release(followed.id).title == unheard.title
+    end
+
+    test "a shelf row is named by its id and a drawn row by nothing" do
+      artist = an_artist!()
+      album = an_album!(artist, %{title: @prefix <> "Estuary Nights"})
+
+      [row] = Music.page().albums
+
+      assert row.id == album.id
+      assert Music.album_tag(row) == String.to_atom("open_album_" <> album.id)
+      assert AlbumDetail.params_for(row) == %{album_id: album.id}
+      assert LogListen.params_for(row) == %{album_id: album.id}
+
+      # The other half, and the one that has to keep working: a fixture row has
+      # no id and must yield `%{}`, never `%{album_id: nil}`. A destination that
+      # matched on the key would otherwise take a `nil` for an answer.
+      for drawn <- Music.drawn_page().albums, do: assert(AlbumDetail.params_for(drawn) == %{})
+      for drawn <- Music.drawn_page().releases, do: assert(ArtistDetail.params_for(drawn) == %{})
+    end
+
+    test "the page renders the row's copy and none of the drawing's" do
+      artist = an_artist!()
+      album = an_album!(artist, %{title: @prefix <> "Estuary Nights"})
+      tracks!(album, [{1, "Low Water", 252, 9}])
+
+      tree = tree(mount_screen(Music))
+
+      assert find(tree, :text, text: @prefix <> "Estuary Nights") != nil
+      assert find(tree, :text, text: "9 PLAYS") != nil
+      assert find(tree, :text, text: "1 albums · 0h this year") != nil
+
+      for drawn <- Music.drawn_page().albums do
+        assert find(tree, :text, text: drawn.title) == nil,
+               "the drawing's #{drawn.title} is still on a shelf that holds one real album"
+      end
+
+      assert find(tree, :text, text: Kati.Music.Sample.subtitle()) == nil
+      assert find(tree, :text, text: Kati.Music.Sample.listening().total) == nil
+    end
+
+    test "a shelf with nothing played renders a tree the native layer can draw" do
+      # The bars are the reason this is asserted on the REAL branch rather than
+      # on the drawing: a day with no listening is `0.0` tall, which is a node
+      # the drawing never produces — its own field has no zero in it.
+      an_album!(an_artist!())
+
+      assert Enum.all?(Music.page().listening.bars, &(elem(&1, 0) == 0.0))
+      assert_renderable(mount_screen(Music))
+    end
+
+    test "a write on screen 77 acts on the artist it was NAMED, not on the shelf's" do
+      # Screen 66's defect in this domain: `artist/1` collapses *nobody named an
+      # artist* and *the named artist is gone* into the drawing, which has no
+      # id, so a toggle recovering its subject from the drawn map would follow
+      # whoever heads the shelf. `Following` is a statement about a shelf and an
+      # alert type, so the wrong one is a real change to the app's behaviour.
+      artist = an_artist!(%{name: @prefix <> "Kell Ostrand", following: true})
+      an_album!(artist)
+
+      gone = an_artist!(%{name: @prefix <> "Deleted", following: true})
+      Ash.destroy!(gone)
+
+      view = mount_screen(ArtistDetail, %{artist_id: gone.id})
+
+      assert assigns(view).artist == ArtistDetail.drawn_artist(),
+             "a named-but-gone artist is the drawing"
+
+      toggled = render_info(view, {:tap, :toggle_following})
+
+      assert assigns(toggled).artist.following == false,
+             "the switch still moves, or the control looks broken on the one device where " <>
+               "nothing else is wrong"
+
+      assert Ash.get!(Artist, artist.id).following == true,
+             "the write reached another artist while the page drew the drawing"
+    end
+  end
+
+  describe "screen 21 with nothing shelved" do
+    test "the drawing is what the screen reads, whole" do
+      # The values `test/design/screens/21.html` was captured from, and the
+      # branch `Kati.ScreenDesignLiteralTest` renders. Compared as the whole map
+      # rather than as the tiles alone: a listening card that had stopped
+      # falling back would pass a check on the three covers.
+      assert Music.page() == Music.drawn_page()
+      assert Music.drawn_page().albums == Sample.albums()
+      assert Music.drawn_page().listening == Sample.listening()
+      assert Music.drawn_page().releases == Sample.releases()
+      assert Music.drawn_page().subtitle == Sample.subtitle()
+    end
+
+    test "the empty store's own arithmetic is still the honest answer" do
+      # Not the drawing's: these are what `page/0` would have said had the
+      # branch gone the other way, and they are the reason it does not.
+      assert Music.subtitle([], []) == "0 albums · 0h this year"
+      assert Music.listening([]).total == "0h 0m"
+      assert Music.listening([]).window == ""
+      assert Music.new_releases() == []
+    end
+  end
+
   describe "with nothing stored" do
     test "each screen falls back to its own drawing, whole" do
       assert AlbumDetail.album() == AlbumDetail.drawn_album()
       assert ArtistDetail.artist() == ArtistDetail.drawn_artist()
       assert LogListen.album() == AlbumDetail.drawn_album()
+      assert Music.page() == Music.drawn_page()
     end
 
     test "the sheet still ticks the month's tracks" do

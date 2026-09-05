@@ -73,6 +73,34 @@ defmodule Kati.Screens.ArtistDetail do
   def params_for(%{artist_id: id}) when is_binary(id), do: %{artist_id: id}
   def params_for(_album), do: %{}
 
+  @doc """
+  The artist a write on this screen must act on.
+
+  The id the push NAMED, when it named one, and otherwise the id of the artist
+  that was resolved — the shelf album's, which is who a page opened from
+  nowhere in particular is about. `Map.get/2` on both, because the Persian twin
+  builds its own socket and need not carry `:artist_id`.
+
+  Copied from `Kati.Screens.BookDetail.target/1`. `artist/1` collapses two
+  facts into one value — *nobody named an artist* and *the named artist is
+  gone* both answer `Kati.Music.Sample.artist/0`, which has no id — so a write
+  recovering its subject from the drawn map would get `nil` for both, and `nil`
+  down at `stored/1` means *the shelf album's artist*. `Following` is one tap
+  and it is a statement about a shelf and an alert type, so a page drawing the
+  fixture would have followed, or unfollowed, a real person the reader is not
+  looking at.
+
+  It also pins the resolved case to the RENDER. This used to read
+  `stored(assigns[:artist_id])` at tap time, which re-ran the shelf query: with
+  no id named, the artist written to was whoever headed the shelf when the
+  finger landed rather than whoever the page had drawn. Screen 20's
+  `open_book/2` states the same rule for the same reason.
+  """
+  @spec target(map()) :: String.t() | nil
+  def target(assigns) do
+    Map.get(assigns, :artist_id) || Map.get(assigns, :artist, %{})[:id]
+  end
+
   @doc "The artist this screen is about: the shelf album's, or the drawing's."
   @spec artist() :: map()
   def artist, do: artist(nil)
@@ -195,6 +223,11 @@ defmodule Kati.Screens.ArtistDetail do
     minutes = Enum.sum(Enum.map(albums, & &1.minutes))
 
     %{
+      # The row's own id, so `target/1` can name the person this page drew
+      # without asking the shelf a second time. `Kati.Music.Sample.artist/0` has
+      # no id and is not given a `nil` one, so `artist[:id]` reads `nil` by
+      # absence and a write on a drawn page has nothing to reach.
+      id: artist.id,
       name: artist.name,
       subtitle: Artist.subtitle(artist),
       photo_seed: artist.photo_seed,
@@ -207,6 +240,9 @@ defmodule Kati.Screens.ArtistDetail do
   end
 
   defp shape_album(%Album{} = album) do
+    # Screen 74's own count, not a second sum here — see
+    # `Kati.Screens.AlbumDetail.play_count/1`. The rail, the page it opens and
+    # screen 21's tile all print this number, one tap apart.
     tracks = Kati.Screens.AlbumDetail.tracks_of(album)
     plays = Album.plays(tracks)
 
@@ -224,6 +260,10 @@ defmodule Kati.Screens.ArtistDetail do
       plays: plays,
       line: album_line(album.released_year, plays),
       seed: album.art_seed,
+      # Not drawn. `unheard_albums/1` reads it to tell *nobody has played this*
+      # from *the app knows no tracks to play* — a hand-typed album sums to zero
+      # plays for the second reason and is not unheard. See there.
+      track_count: length(tracks),
       minutes: 0
     }
   end
@@ -654,15 +694,67 @@ defmodule Kati.Screens.ArtistDetail do
         Sample.unheard()
 
       %Artist{} = artist ->
-        artist
-        |> stored_albums()
-        |> Enum.find(&(&1.plays == 0))
-        |> case do
-          nil -> nil
-          album -> %{title: album.title, line: "You have not heard it"}
+        case unheard_albums(artist) do
+          [] -> nil
+          [album | _rest] -> %{title: album.title, line: String.capitalize(unheard_line())}
         end
     end
   end
+
+  @doc """
+  Every record by this artist that has never been played, newest release first.
+
+  *Unheard* means no track on it has a play, which is `Kati.Music.Track.plays`
+  through `Kati.Screens.AlbumDetail.play_count/1` and not the absence of a
+  `Kati.Music.Listen` — a scrobble import supplies counts with no sittings
+  behind them, so the two questions have different answers on a real shelf.
+
+  Public because screen 21's **New from artists you follow** band is this list,
+  for every artist you follow, and it must not be a second definition: a record
+  this band called new and this page's own card did not would be one journey
+  disagreeing with itself in two taps. Takes the row rather than an id, because
+  that band already holds the artists it read.
+
+  `Kati.Screens.ArtistDetail.albums/1`'s cap does not apply here. The cap is
+  the drawing's, on a rail and a chart that compare four things; whether a
+  record has been heard is not a comparison and truncating it would hide one.
+  """
+  @spec unheard_albums(Artist.t() | String.t() | nil) :: [map()]
+  def unheard_albums(%Artist{} = artist) do
+    # `plays == 0`, and that is the whole rule. `Unheard` is the drawing's own
+    # word for a record with no plays and it is true of one you typed in
+    # yourself: you have not played it.
+    #
+    # Left open deliberately. Screen 21 reads this list for its band, and that
+    # band is titled **New from artists you follow** — which an album you typed
+    # in is not: it is not new and it is not from anyone. Narrowing the filter
+    # to albums that have a tracklist was tried and is the wrong instrument: it
+    # would also drop a real release whose tracks have not been fetched yet,
+    # and it changes what screen 77's card says in order to fix what screen 21's
+    # heading claims. The two readings want different things from one list, and
+    # which one gives is a decision for the board rather than for a filter.
+    artist |> stored_albums() |> Enum.filter(&(&1.plays == 0))
+  end
+
+  def unheard_albums(id) do
+    case stored(id) do
+      nil -> []
+      %Artist{} = artist -> unheard_albums(artist)
+    end
+  end
+
+  @doc """
+  The words this app uses for a record you have never played.
+
+  One phrase, two screens: this page's card writes it as a sentence and screen
+  21's band writes it after the record's title. Spelled once so the two cannot
+  drift into saying the same thing differently on either side of one tap.
+
+      iex> Kati.Screens.ArtistDetail.unheard_line()
+      "you have not heard it"
+  """
+  @spec unheard_line() :: String.t()
+  def unheard_line, do: "you have not heard it"
 
   @doc "Three figures, in screen 07's stat typography."
   @spec totals(map()) :: map()
@@ -696,7 +788,21 @@ defmodule Kati.Screens.ArtistDetail do
     artist = socket.assigns.artist
     now = not artist.following
 
-    with %Artist{} = stored <- stored(Map.get(socket.assigns, :artist_id)) do
+    # `target/1` and then a NIL CHECK, rather than handing nil to `stored/1`.
+    # `stored(nil)` re-reads the shelf and answers its head, which is right when
+    # the page is DRAWING that head and wrong the moment it is not: screen 79
+    # opened bare draws `Kati.Music.SampleFa`'s artist, and this write then
+    # followed whoever happened to lead the shelf at the instant the finger
+    # landed — a person the reader had never seen. Screen 66's wrong-row write
+    # was the same shape one domain over.
+    #
+    # A page that resolved a real artist carries its id (`shaped/2` puts it
+    # there), so `target/1` is non-nil and this writes to the artist on screen.
+    # A page drawing a fixture has no id and writes nothing — and the switch
+    # still moves, because a control that looked broken on a device with
+    # nothing shelved would be the least explicable thing here.
+    with id when is_binary(id) <- Kati.Screens.ArtistDetail.target(socket.assigns),
+         %Artist{} = stored <- stored(id) do
       Ash.update(stored, %{following: now})
     end
 

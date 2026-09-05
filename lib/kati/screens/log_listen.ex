@@ -92,12 +92,24 @@ defmodule Kati.Screens.LogListen do
   def mount(params, _session, socket) do
     Kati.Theme.activate()
 
-    id = Map.get(params, :album_id)
+    named = Map.get(params, :album_id)
+
+    # The id the sheet RESOLVED, not only the one it was named. Opened bare,
+    # `album(nil)` reads the shelf and draws its head — and `save_listen/1`
+    # used to read the shelf AGAIN at save time, so a sheet that drew A
+    # credited the play to B if B reached the head of the shelf in between. The
+    # window is small and the write is silent, which is the worst pair.
+    #
+    # `shelved/1` answers the same album `album/1` drew, so pinning it here
+    # makes the save act on what the reader is looking at. A sheet drawing
+    # `Kati.Music.Sample` resolves nothing, keeps `nil`, and saves nothing —
+    # which is what the sheet's own moduledoc already promises.
+    id = named || resolved_id()
 
     {:ok,
      socket
      |> Mob.Socket.assign(:album_id, id)
-     |> Mob.Socket.assign(:album, album(id))
+     |> Mob.Socket.assign(:album, album(named))
      |> Mob.Socket.assign(:tracks, Kati.Screens.AlbumDetail.tracks(id))
      |> Mob.Socket.assign(:scope, :scope_selected)
      |> Mob.Socket.assign(:ticked, counted_this_month(id))
@@ -655,6 +667,18 @@ defmodule Kati.Screens.LogListen do
   is a sample album on this sheet whichever way that goes, so "nothing was
   shelved" is precisely the case a person cannot tell from the drawing.
   """
+  # The shelf's head at MOUNT time, as an id, or `nil` when nothing is shelved.
+  # Read through screen 74's own reader so the sheet and the page it opens from
+  # cannot disagree about which album that is.
+  defp resolved_id do
+    case Kati.Screens.AlbumDetail.shelved(nil) do
+      %Album{id: id} -> id
+      _nothing -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
   @spec save_listen(map()) :: {:ok, struct()} | {:error, term()}
   def save_listen(assigns) do
     case shelved(assigns[:album_id]) do
