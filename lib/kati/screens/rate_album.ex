@@ -201,7 +201,7 @@ defmodule Kati.Screens.RateAlbum do
             corner_radius={26}
             padding_left={21}
             padding_right={21}
-            padding_top={18}
+            padding_top={64}
             padding_bottom={34}
           >
             {Kati.Screens.RateAlbum.header()}
@@ -639,67 +639,7 @@ defmodule Kati.Screens.RateAlbum do
           text_color={Palette.ink()}
         />
         <Text
-          text="no spoiler toggle — a record has no plot to spoil; no"
-          text_size={12.5}
-          line_height={1.65}
-          text_color={Palette.ink_soft()}
-        />
-        <Text
-          text="Where"
-          text_size={12.5}
-          line_height={1.65}
-          font_weight="semibold"
-          text_color={Palette.ink()}
-        />
-        <Text text="and no" text_size={12.5} line_height={1.65} text_color={Palette.ink_soft()} />
-        <Text
-          text="With"
-          text_size={12.5}
-          line_height={1.65}
-          font_weight="semibold"
-          text_color={Palette.ink()}
-        />
-        <Text
-          text="— nothing in a listen records a service, a room or a companion; no rewatch count — the plays pill says it better."
-          text_size={12.5}
-          line_height={1.65}
-          text_color={Palette.ink_soft()}
-        />
-        <Text
-          text="No tag pills"
-          text_size={12.5}
-          line_height={1.65}
-          font_weight="semibold"
-          text_color={Palette.ink()}
-        />
-        <Text
-          text="either: 33’s + tag is already inert, and a brand-new board should not ship a second one. The half star is"
-          text_size={12.5}
-          line_height={1.65}
-          text_color={Palette.ink_soft()}
-        />
-        <Text
-          text="star at FILL 0"
-          text_size={12.5}
-          line_height={1.65}
-          font_weight="semibold"
-          text_color={Palette.ink()}
-        />
-        <Text
-          text=", never a cropped glyph. The body edits"
-          text_size={12.5}
-          line_height={1.65}
-          text_color={Palette.ink_soft()}
-        />
-        <Text
-          text="the same note"
-          text_size={12.5}
-          line_height={1.65}
-          font_weight="semibold"
-          text_color={Palette.ink()}
-        />
-        <Text
-          text="74’s cream card draws — two review fields would be two truths about one record."
+          text={Kati.Screens.RateAlbum.omissions_body()}
           text_size={12.5}
           line_height={1.65}
           text_color={Palette.ink_soft()}
@@ -707,6 +647,32 @@ defmodule Kati.Screens.RateAlbum do
       </Column>
     </Row>
     """
+  end
+
+  @doc """
+  The note's body, as one sentence.
+
+  Board 180 emphasises six phrases INSIDE this paragraph — `Where`, `With`,
+  `No tag pills`, `star at FILL 0`, `the same note` — and it was first built
+  the way the export writes it: one `<Text>` per run, stacked in the Column.
+  A device showed what that is. `Mob.Renderer`'s `Text` takes a `String` and
+  the bridge hands it to Compose's `Text`, which has no span list, so stacked
+  runs are not a paragraph with bold in it — they are a paragraph broken at
+  every bold, four words to a line, mid-clause. `Kati.Screens.MedicationEmpty`
+  draws its own annotations flat for this reason and is 2 literals short of
+  board 190's count because of it; that is the price and it is the right one.
+
+  Every word the board writes is still here and in its order, so
+  `Kati.ScreenDesignLiteralTest` finds each run inside this one node.
+  """
+  @spec omissions_body() :: String.t()
+  def omissions_body do
+    "no spoiler toggle — a record has no plot to spoil; no Where and no With — " <>
+      "nothing in a listen records a service, a room or a companion; no rewatch " <>
+      "count — the plays pill says it better. No tag pills either: 33’s + tag is " <>
+      "already inert, and a brand-new board should not ship a second one. The half " <>
+      "star is star at FILL 0, never a cropped glyph. The body edits the same note " <>
+      "74’s cream card draws — two review fields would be two truths about one record."
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
