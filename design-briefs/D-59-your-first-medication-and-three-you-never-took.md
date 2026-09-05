@@ -1,6 +1,11 @@
 # Your first medication, and three you never took
 
-> **One board — a state of screen 112** · ticket `D-59`
+> **Two boards — states of screens 112 and 69** · ticket `D-59`
+
+Two pages, one defect: a screen whose halves come from two sources, invisible
+for as long as one of those sources could never have anything in it. `D-38`,
+`D-39` and `D-43` gave three domains their first writers on 5 September, and
+both pages started contradicting themselves the same afternoon.
 
 Found on a Pixel 9a, on the first device on which anybody could add a
 medication. Board 188 shipped, the sheet saved, the page came back — and this
@@ -82,6 +87,49 @@ destinations: a control that cannot act is worse than no control.
 If **derived** is chosen, this board is still wanted and is a rarer state — the
 day every one of your medications is a Mon/Wed/Fri that is not today.
 
+## The same defect, on screen 69, found the same afternoon
+
+`D-38` shipped board 176 and with it the only control in the app that creates a
+`Kati.Books.Book`. A book was typed on a Pixel 9a — a title and nothing else,
+status *Not started* — and screen 69 opened on it reading:
+
+* the title, correctly, and the author line correctly absent;
+* **در حال خواندن** in the status pill, and the *reading* chip lit;
+* **۱۴۰۳ · ۳۸۰ صفحه** under it;
+* a progress bar past half, and **ص. ۲۱۴ / ۳۸۰ · ۲۳ دقیقه در روز**;
+* **۴٫۵** stars, four of them filled;
+* a series line, a lending line and three content warnings.
+
+One fact on that page is the reader's. `Kati.Screens.BookDetailFa.own/1` is
+explicit about it — *a title, an author, a cover and an ISBN … everything else
+on the page is Kati's copy* — and that was a fair reading of the situation when
+it was written, because no Persian book could exist and the page was only ever
+its own drawing. It is not a fair reading now: the page tells someone they are
+214 pages into a book they added ten seconds ago as unstarted, and gives it a
+rating they did not award.
+
+**Most of this needs no design at all.** The shapers already exist:
+`Kati.Screens.BooksFa.line/1` writes the Persian position line for a real book
+and board 176's grid was drawing them correctly on the same screenshot;
+`Kati.Books.SampleFa.statuses/0` is the status→word map the chips already use;
+`Kati.Screens.Books.rail/2` is the fraction. So `own/1` should carry the
+status, the selected status chip, the fraction, the position line, the rating
+and the page count, and the chips should stop hard-coding `:reading` and
+`:paperback`.
+
+**Three parts of it do need a board**, and they are why this is written here
+rather than patched:
+
+  1. **The year.** The fixture prints `۱۴۰۳`, which is the Shamsi year for
+     2024. Whether a book *published* in 2024 is a ۱۴۰۳ book is a question
+     about what the number means, not about digits, and `D-55` is where the
+     Persian-calendar decisions live.
+  2. **The series, the lending and the warnings.** Three cards with nothing
+     to put in them for a hand-typed book. Blanked, they are three eyebrows
+     over nothing — `D-58` again.
+  3. **The rating card with no rating.** Screen 66 draws a dash; 69's card is
+     drawn only in its filled state.
+
 ## Acceptance
 
   * Screen 112 answers one question about whether it is drawing the user's
@@ -91,3 +139,6 @@ day every one of your medications is a Mon/Wed/Fri that is not today.
   * A medication added on screen 188 appears on the same page it was added
     from, without a fixture beside it.
   * `Kati.Health.Dose` has a writer in `lib/`, whichever answer is taken.
+  * Screen 69 states no fact about a book that the book does not carry. A
+    hand-typed title opens a page that is empty where the app knows nothing,
+    never a page filled in with somebody else's reading.

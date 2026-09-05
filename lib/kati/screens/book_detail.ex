@@ -720,7 +720,20 @@ defmodule Kati.Screens.BookDetail do
   end
 
   @doc false
-  def mono(nil), do: Kati.Screens.BookDetail.value(nil)
+  # `Add ISBN`, not `value(nil)`'s `Add page count`. The two rows are drawn by
+  # one card and shared one empty affordance, so a book with neither offered
+  # **Add page count** twice, on the Length row and on the ISBN row under it.
+  # Only visible on a device with a book that has no ISBN, which is to say only
+  # since screen 177 shipped.
+  def mono(nil) do
+    ~MOB"""
+    <Row align="center">
+      {Kati.UI.symbol("add", size: 17, color: Kati.Theme.Palette.muted())}
+      <Spacer size={6} />
+      <Text text="Add ISBN" text_size={13} text_color={Kati.Theme.Palette.muted()} />
+    </Row>
+    """
+  end
 
   def mono(text) do
     ~MOB"""

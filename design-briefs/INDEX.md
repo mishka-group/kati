@@ -117,7 +117,7 @@ rather than deleted.
 | `D-56-the-dead-tiles-on-every-persian-root.md` | The dead tiles on every Persian root | Mixed | — |
 | `D-57-sheets-that-change-language-mid-gesture.md` | The sheets that change language mid-gesture | Modal sheet | — |
 | `D-58-a-title-with-nothing-under-it.md` | A title with nothing under it | Full screen | — |
-| `D-59-your-first-medication-and-three-you-never-took.md` | Your first medication, and three you never took | One state | — |
+| `D-59-your-first-medication-and-three-you-never-took.md` | Your first medication, and three you never took | Two states | — |
 
 `D-30` is the one brief here for a **closed** issue. #27 is closed as *not
 planned* because it cannot start until these boards exist and two questions in

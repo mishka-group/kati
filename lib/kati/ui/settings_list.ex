@@ -225,6 +225,13 @@ defmodule Kati.UI.SettingsList do
   one of them wrong.
   """
   @spec subtitle(String.t(), :meta | :meta_tight | :name) :: map()
+  # A page with nothing to say under its title says nothing. `text={nil}` is
+  # not an empty line: the prop reaches the bridge as the atom and Compose
+  # draws the word **nil** under the heading, which is what screen 66 printed
+  # under the first book anybody added without an author. Found on a device;
+  # `Kati.ScreenNilTextTest` is the sweep that keeps it found.
+  def subtitle(nil, _style), do: ~MOB"<Spacer size={0} />"
+
   def subtitle(sub, :name) do
     ~MOB"""
     <Column fill_width={true}>
