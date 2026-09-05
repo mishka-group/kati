@@ -1,3 +1,5 @@
+Code.require_file("../support/screen_sweep.exs", __DIR__)
+
 defmodule Kati.ServicesTest do
   @moduledoc """
   What you pay for, what country Kati answers *available* for, and where the
@@ -260,8 +262,20 @@ defmodule Kati.ServicesTest do
     end
 
     test "an empty cache says so rather than reporting nought megabytes" do
-      assert DataSources.cache_size() == "Nothing cached yet"
-      assert DataSources.oldest_entry() == "NOTHING TO REFRESH"
+      # Inside a rolled-back transaction that empties the table first, because
+      # otherwise this test is a lottery on the seed. `cached_titles` is shared
+      # by every test module in the run, several sweeps press controls that
+      # fill it — screen 154's `Add to library` is one — and this file wipes no
+      # table of its own. It went red on seed 7 the day a module was ADDED, on
+      # a leak it had nothing to do with, and the sweeps grew a `DELETE` list
+      # in answer. A test that asserts a table is empty should be the thing
+      # that empties it; then no ordering can decide whether it means anything.
+      Kati.ScreenSweep.rolled_back(fn ->
+        Kati.Repo.query!("DELETE FROM cached_titles", [])
+
+        assert DataSources.cache_size() == "Nothing cached yet"
+        assert DataSources.oldest_entry() == "NOTHING TO REFRESH"
+      end)
     end
 
     test "an age is written in the units the row uses" do

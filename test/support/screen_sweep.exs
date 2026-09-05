@@ -363,15 +363,29 @@ defmodule Kati.ScreenSweep do
     # screens twice over is the slow half of the sweep. `:persistent_term`
     # rather than the process dictionary or ETS: each ExUnit test runs in its
     # own process and `Mob.ScreenCase` restarts `Mob.State` around each one, so
-    # a cache tied to either dies between the tests that share the work. The
-    # trees only depend on code, which does not change inside a run.
-    key = {__MODULE__, :drawn_taps, locale}
+    # a cache tied to either dies between the tests that share the work.
+    #
+    # **Both locales are drawn on the first miss**, and that is the whole of why
+    # this is not two independent memos. A sweep mounts, then presses, then
+    # mounts the second locale — and pressing is no longer read-only: screen
+    # 179's `add_<title>` discs shelve a `Kati.Music.Album`, screen 106's `New
+    # goal` writes a goal. So the second locale used to be drawn against a store
+    # the FIRST locale's taps had already changed, and a screen whose fixture
+    # rows had grown real ids in between drew a different tree in Persian than
+    # it drew in English for no reason a reader could see. It surfaced as
+    # `Kati.ScreenParamsSweepTest` calling one of its own backlog entries stale:
+    # screen 77's `Tidal Works` door built empty params in English and full ones
+    # in Persian, in the same run, off one fixture. Drawing both before any tap
+    # is dispatched is what makes the two comparable.
+    keys = Map.new([:en, :fa], &{&1, {__MODULE__, :drawn_taps, &1}})
 
-    case :persistent_term.get(key, :miss) do
+    case :persistent_term.get(keys[locale], :miss) do
       :miss ->
-        taps = with_locale(locale, &draw_taps/0)
-        :persistent_term.put(key, taps)
-        taps
+        for {each, key} <- keys, :persistent_term.get(key, :miss) == :miss do
+          :persistent_term.put(key, with_locale(each, &draw_taps/0))
+        end
+
+        :persistent_term.get(keys[locale])
 
       taps ->
         taps

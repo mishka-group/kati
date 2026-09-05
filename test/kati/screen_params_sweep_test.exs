@@ -245,7 +245,14 @@ defmodule Kati.ScreenParamsSweepTest do
     # `Kati.Screens.Series` are the control: they push the same screen and DO
     # name a title, which is what says 33's contract is wired and these five
     # doors are the ones with nothing to put in it.
-    {Kati.Screens.AlbumDetail, :rate, Kati.Screens.Rating},
+    # (`{Kati.Screens.AlbumDetail, :rate, Kati.Screens.Rating}` was here. `D-39`
+    # built the screen this paragraph said was the only fix — board 180, an
+    # album rating sheet in 144's manner — and screen 74's Rate row now pushes
+    # `Kati.Screens.RateAlbum` naming the album the page drew. The door moved to
+    # `@empty_builders`, because the clause names its subject and the builder
+    # answers `%{}` only while the page is drawing `Kati.Music.Sample.album/0`.
+    # The Persian twin below is untouched: no board reserves a Persian rating
+    # sheet for music, and 297 is `D-57`'s.)
     {Kati.Screens.AlbumDetailFa, :rate, Kati.Screens.Rating},
     {Kati.Screens.BookDetail, :rate, Kati.Screens.Rating},
     {Kati.Screens.BookDetailDark, :rate, Kati.Screens.Rating},
@@ -458,6 +465,15 @@ defmodule Kati.ScreenParamsSweepTest do
     # down, and it is not this file's.
     {Kati.Screens.AlbumDetail, :log_listen, Kati.Screens.LogListen},
     {Kati.Screens.AlbumDetail, :open_artist, Kati.Screens.ArtistDetail},
+    # Screen 74's `Rate`, which since `D-39` names an album to screen 180
+    # instead of naming nothing to screen 33. `album_detail.ex`'s clause pushes
+    # `Kati.Screens.RateAlbum.params_for(%{id: target(socket.assigns)})` —
+    # through `target/1`, so a page drawing the fixture because the record it
+    # was opened on has been deleted cannot fall through to somebody else's
+    # album. With nothing shelved that target is `nil`, because
+    # `Kati.Music.Sample.album/0` has no `:id`, so the builder answers `%{}`
+    # exactly as the two doors above it do and clears with the same rows.
+    {Kati.Screens.AlbumDetail, :rate, Kati.Screens.RateAlbum},
     {Kati.Screens.AlbumDetailFa, :log_listen, Kati.Screens.LogListen},
     {Kati.Screens.AlbumDetailFa, :open_artist, Kati.Screens.ArtistDetailFa},
 
@@ -486,6 +502,20 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.BookDetailDark, :log_progress, Kati.Screens.LogProgress},
     {Kati.Screens.BookDetailFa, :log_progress, Kati.Screens.LogProgressFa},
     {Kati.Screens.Books, :log_progress, Kati.Screens.LogProgress},
+    # Screen 176's ثبت پیشرفت pill — screen 20's, one script over, and it
+    # arrives on this list rather than in `@bare_pushes` for the reason the
+    # paragraph above gives about screen 20: `books_fa.ex` names its subject
+    # and hands `socket.assigns.page.hero` to `Kati.Screens.LogProgress`'s own
+    # builder, the same builder 20, 66, 68 and 69 use, so the English sheet and
+    # the Persian one cannot drift about what `:book_id` means. With nothing
+    # shelved the hero is `Kati.Books.SampleFa.reading_now/0`, which is
+    # `detail/0` reshaped and carries no `:id`, so `log_progress.ex:105-106`
+    # answers `%{}`.
+    #
+    # `:start_timer` beside it is NOT here and is not missing: it merges
+    # `timing?: true` onto the same builder's answer, so the argument is
+    # non-empty even over a fixture. Screen 20's pair splits the same way.
+    {Kati.Screens.BooksFa, :log_progress, Kati.Screens.LogProgressFa},
 
     # ── Screen 20's grid and its hero cover, into screen 66.
     #
@@ -554,7 +584,31 @@ defmodule Kati.ScreenParamsSweepTest do
     # `@bare_pushes`, and the pair is not a contradiction: 43 hands its slot
     # over through `Mob.State` on purpose, 45 names it on the push. Two doors
     # into 46, two mechanisms, two lists.
-    {Kati.Screens.Meal, :swap, Kati.Screens.MealSwap}
+    {Kati.Screens.Meal, :swap, Kati.Screens.MealSwap},
+
+    # ── Screen 112's four Schedules chevrons, into screen 189.
+    #
+    # `medication.ex`'s `other_tap/2` finds the row back by rebuilding every
+    # schedule's own tag against the list THIS RENDER drew — the shape #84
+    # settled on the doses above them — and pushes
+    # `Kati.Screens.MedicationDetail.params_for(schedule)`. The tags are the
+    # medicines' own names (`schedule_tag/1`, #97), which is also why they are
+    # four lines here rather than one.
+    #
+    # They were in `Kati.ScreenTapSweepTest`'s inert list until D-43, with the
+    # reason that no per-medication page was drawn anywhere. Board 189 is that
+    # page. What empties the argument now is the same thing that empties every
+    # line above: with nothing stored, `Kati.Screens.Medication.schedules/0`
+    # answers with `Kati.Health.WeightSample.schedules/0`, four literal maps
+    # that carry no `:id` at all, so `params_for/1` answers `%{}`.
+    #
+    # These four clear the day a medication is stored, and screen 188 is the
+    # first thing in the app that can store one — so unlike most of this list,
+    # the change that ends them is a tap rather than a migration.
+    {Kati.Screens.Medication, :open_schedule_Levothyroxine, Kati.Screens.MedicationDetail},
+    {Kati.Screens.Medication, :open_schedule_Vitamin_D, Kati.Screens.MedicationDetail},
+    {Kati.Screens.Medication, :open_schedule_Iron, Kati.Screens.MedicationDetail},
+    {Kati.Screens.Medication, :open_schedule_Magnesium, Kati.Screens.MedicationDetail}
   ]
 
   # Keys a reader takes that are a VALUE rather than a reference to a row, with
@@ -1042,6 +1096,18 @@ defmodule Kati.ScreenParamsSweepTest do
   # Left behind, those rows stop screens 104, 109, 111 and 122 falling back to
   # their drawings, and the failure lands on a file this one never touched.
   #
+  # **One rollback per tap, not one around the sweep**, and the difference is
+  # what this file measures. A door is classified by what its handler builds,
+  # and several handlers resolve their row by READING the store at tap time
+  # rather than off the tree the page drew — `Kati.Screens.ArtistDetail`'s
+  # discography rail is one, `artist_detail.ex:842-853`. Under a single outer
+  # transaction, screen 179's `add_<title>` discs shelve `Tidal Works` early in
+  # the sweep and that rail then finds a row with a real id later in the same
+  # sweep, so one fixture door was empty or full depending on which order the
+  # two screens came out of a map. Rolling back around each dispatch judges
+  # every door against the same store, which is the only way the two
+  # inventories below mean anything.
+  #
   # NOT through `in_empty_store/1`, though the numbers below would be steadier
   # for it. `Kati.ScreenSweep.drawn_taps/1` memoises the mounted trees in
   # `:persistent_term` for the whole run (`screen_sweep.exs:361-379`), so
@@ -1053,24 +1119,27 @@ defmodule Kati.ScreenParamsSweepTest do
   # written beside the floors above.
   defp pushes do
     memo(:pushes, fn ->
-      ScreenSweep.rolled_back(fn ->
-        @locales
-        |> ScreenSweep.per_locale(fn locale ->
-          for {module, {socket, tags}} <- ScreenSweep.drawn_taps(locale),
-              tag <- tags,
-              {:push, dest, params} <- [nav_action(module, socket, tag)],
-              is_atom(dest) do
-            {module, tag, dest, params}
-          end
-        end)
-        |> Enum.uniq()
-        |> Enum.sort()
+      @locales
+      |> ScreenSweep.per_locale(fn locale ->
+        for {module, {socket, tags}} <- ScreenSweep.drawn_taps(locale),
+            tag <- tags,
+            {:push, dest, params} <- [nav_action(module, socket, tag)],
+            is_atom(dest) do
+          {module, tag, dest, params}
+        end
       end)
+      |> Enum.uniq()
+      |> Enum.sort()
     end)
   end
 
   defp nav_action(module, socket, tag) do
-    case ScreenSweep.safely(fn -> module.handle_info({:tap, tag}, socket) end) do
+    dispatched =
+      ScreenSweep.rolled_back(fn ->
+        ScreenSweep.safely(fn -> module.handle_info({:tap, tag}, socket) end)
+      end)
+
+    case dispatched do
       {:ok, {:noreply, %Mob.Socket{} = updated}} -> Map.get(updated.__mob__, :nav_action)
       _unreached -> nil
     end
