@@ -195,6 +195,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # empty; the two gates below say which they are asking.
     {"09", Kati.Screens.Day},
     {"31", Kati.Screens.EventDetail},
+    # 52 joined on 5 September with the same trigger and for the same reason.
+    # It read `Kati.Calendar.SampleMealDay` unconditionally, so every route in
+    # landed on `Mon 17 Aug` and the page's own title was the one thing on it
+    # that could never be wrong because it was never right. Now `day/1` reads
+    # the date `Kati.Screens.Calendar` hands it, and a bare push — this file's
+    # renders, and the ⋯ menu's own row until it carries one — is the branch
+    # that answers with the drawing.
+    {"52", Kati.Screens.MealsDay},
     {"10", Kati.Screens.UpNext},
     {"15", Kati.Screens.Activity},
     # 32 moved its "which calendars show" group onto `Kati.Calendars.Calendar`
@@ -1338,6 +1346,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"31", Kati.Screens.EventDetail,
        fn -> Kati.Screens.EventDetail.event(%{id: Ecto.UUID.generate()}) end,
        &Kati.Calendar.SampleEvent.event/0},
+      # 52 is gated the way 09 is, on the branch a bare push lands on, because it
+      # is the same branch: `day/1` with no `:date` answers the drawn day whole
+      # — the heading, the spine and the `drawn?` flag the collapse row and the
+      # chips read. Not gated on a handed date against an empty store, for 09's
+      # reason: a day that holds nothing is empty, and drawing five meals on it
+      # would be the substitution this file exists to catch.
+      {"52", Kati.Screens.MealsDay, fn -> Kati.Screens.MealsDay.day(%{}) end,
+       &Kati.Screens.MealsDay.drawn_day/0},
       {"10", Kati.Screens.UpNext, &Kati.Screens.UpNext.queue/0,
        &Kati.Screens.UpNext.Sample.queue/0},
       {"15", Kati.Screens.Activity, &Kati.Screens.Activity.log/0, &Kati.Screens.Activity.drawn/0},

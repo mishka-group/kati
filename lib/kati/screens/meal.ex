@@ -30,11 +30,12 @@ defmodule Kati.Screens.Meal do
 
   ## Where the data comes from
 
-  `Kati.Meals`, through `meal/1` — the day's earliest unlogged slot and its
-  recipe, ingredient lines loaded, because nothing hands this screen an id.
-  Every figure is that recipe's own cached total at the slot's portion, and the
-  three history rows are drawn one per fact the recipe can answer for. With no
-  active plan the screen falls back to `Kati.Meals.SampleRecipe`.
+  `Kati.Meals`, through `meal/2` — the slot the push named, or, handed nothing,
+  the day's earliest unlogged slot; either way with its recipe's ingredient
+  lines loaded. Every figure is that recipe's own cached total at the slot's
+  portion, and the three history rows are drawn one per fact the recipe can
+  answer for. With no active plan the screen falls back to
+  `Kati.Meals.SampleRecipe`.
 
   The drawing's rating row reads `★★★★★ · a keeper`, and the two words are
   lost: *"a keeper"* is an adjective for a five rather than a column. The stars
@@ -59,31 +60,74 @@ defmodule Kati.Screens.Meal do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  def mount(_params, _session, socket) do
+  # `use Mob.Screen` rather than `Kati.Screens.Pushed`, so there is no `load/1`
+  # and no `:params` assign — the push's params arrive here, one step earlier,
+  # and this is the screen reading them.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :meal, meal(Kati.Time.today()))}
+    {:ok, Mob.Socket.assign(socket, :meal, meal(Kati.Time.today(), params))}
   end
 
   @doc """
-  The meal this screen opens on: the day's next one, or the drawing's.
+  The meal this screen opens on when it was handed nothing: the day's next one,
+  or the drawing's.
 
-  Nothing hands this screen an id — `Kati.Screens.MealsToday` pushes it from a
-  row that carries the tag `:open_meal` and no meal with it — so the referent
-  is the one the drawing itself names in its eyebrow: *"Dinner · 19:30 ·
-  today"*, the earliest slot today that has not been logged yet. Failing that
-  (a day already fully logged) it is the day's first planned meal.
+  Named no slot, the referent is the one the drawing itself names in its
+  eyebrow — *"Dinner · 19:30 · today"*, the earliest slot today that has not
+  been logged yet. Failing that (a day already fully logged) it is the day's
+  first planned meal.
 
   With no active plan there is no such meal, and `Kati.Meals.SampleRecipe` is
   drawn instead — the values `test/design/screens/45.html` was captured
   from. FIDELITY's rule: *missing data is not a reason for a blank screen*.
   """
   @spec meal(Date.t()) :: map()
-  def meal(date) do
-    case next_meal(date) do
+  def meal(date), do: meal(date, %{})
+
+  @doc """
+  The meal a push named, or — named nothing — `meal/1`'s answer.
+
+  `%{slot_id: id}` is what a card on screen 43 now pushes.
+  `Kati.Screens.MealsToday.meal_tag/1` gives every card a tag and
+  `Kati.Screens.MealsToday.open_meal/2` resolves that tag back to the row it was
+  drawn from, so tapping the 13:00 lunch opens the 13:00 lunch rather than the
+  day's next unlogged meal — the same #84 that `Kati.Screens.MealEdit.meal/1`
+  records on the editor, arriving here from the timeline rather than from the
+  grid.
+
+  A slot that has gone since the timeline was drawn resolves to nothing and
+  falls through to exactly the no-id answer, rather than to a blank screen.
+
+  ## No id is the drawn path and has to stay it
+
+  `Kati.Screens.Gallery` opens this screen with nothing, and
+  `test/design/screens/45.html` was captured in that state. So `%{}` is
+  `next_meal/1` and then `Kati.Meals.SampleRecipe`, untouched.
+  """
+  @spec meal(Date.t(), map() | nil) :: map()
+  def meal(date, params) do
+    case named_slot(params) || next_meal(date) do
       {slot, recipe} -> cooked(slot, recipe)
       nil -> drawn_meal()
     end
   end
+
+  @doc """
+  The params that name a meal to this screen, from a screen 43 timeline row.
+
+  Here rather than at the timeline so the key is spelled once — the reason
+  `Kati.Screens.MealEdit.params_for/1` sits on the editor and not on the grid.
+  `:slot_id` and not `:meal_id`: what a timeline row identifies is the plan
+  slot, which is what `Kati.Screens.MealSwap` already calls a swap's subject and
+  what `mark_eaten/1` already writes against.
+
+  A `Kati.Meals.SampleToday` row carries no slot id, and neither does a logged
+  one — `Kati.Screens.MealsToday`'s `log_row/1` sets `slot_id: nil` on purpose —
+  so both yield `%{}` and the bare push this replaced.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{slot_id: id}) when is_binary(id) and id != "", do: %{slot_id: id}
+  def params_for(_meal), do: %{}
 
   @doc "Screen 45 exactly as it is drawn, from `Kati.Meals.SampleRecipe`."
   @spec drawn_meal() :: map()
@@ -97,6 +141,43 @@ defmodule Kati.Screens.Meal do
       method: Sample.method(),
       history: Sample.history()
     })
+  end
+
+  # The slot a push named, loaded with the recipe behind it. `nil` for no id,
+  # for an id that names nothing, and for a slot whose recipe has gone — each of
+  # which leaves `meal/2` on `next_meal/1`, which is where it was before any of
+  # this. A caller that names a row deleted under it must not fall through to
+  # somebody else's dinner, and `next_meal/1` is not somebody else's: it is the
+  # screen's own no-argument answer.
+  #
+  # Every named slot comes off screen 43's timeline, which is a timeline of
+  # today — which is what keeps `cooked/2`'s eyebrow honest, since it writes
+  # *"· today"* as a literal. A screen that one day opens a slot from another
+  # day has to derive that word before it can.
+  defp named_slot(params) do
+    with id when is_binary(id) and id != "" <- Map.get(params || %{}, :slot_id),
+         %MealPlanSlot{} = slot <- slot_for(id),
+         %Recipe{} = recipe <- with_ingredients(slot.recipe_id) do
+      {slot, recipe}
+    else
+      _none -> nil
+    end
+  end
+
+  # `Ash.Query.filter` + `read_one`, the shape `Kati.Screens.MealSwap`'s own
+  # `slot_for/1` already uses for the same lookup, rather than `Ash.get/2`.
+  # `rescue` because a screen can be rendered before the repo is up, which is
+  # the window `Kati.Screens.MealSwap.handed_over/0` documents at length.
+  defp slot_for(id) do
+    MealPlanSlot
+    |> Ash.Query.filter(id == ^id)
+    |> Ash.read_one()
+    |> case do
+      {:ok, slot} -> slot
+      _error -> nil
+    end
+  rescue
+    _error -> nil
   end
 
   defp next_meal(date) do
@@ -1076,8 +1157,20 @@ defmodule Kati.Screens.Meal do
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
-  def handle_info({:tap, :swap}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
+  # The meal on screen goes with the tap. Screen 43 hands its slot to 46 through
+  # `Mob.State` — `Kati.Screens.MealSwap.hand_over/1` — and this disc handed over
+  # nothing at all, so 46 opened on whatever slot the store still held from an
+  # earlier tap on a different screen, or on `Kati.Meals.SampleSwap`. Named in
+  # the push rather than in the store because the push is the thing that cannot
+  # go stale: it is written and read inside one navigation.
+  #
+  # A drawn meal has no slot id and pushes `%{}`, which leaves 46 reading the
+  # store exactly as it does today.
+  def handle_info({:tap, :swap}, socket) do
+    params = Kati.Screens.MealSwap.params_for(socket.assigns.meal)
+
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap, params)}
+  end
 
   # The stepper moves in quarters and stops at 0.5x, which is what the drawing
   # implies by muting `remove` at 1.0x rather than hiding it: there is a floor,
@@ -1167,7 +1260,8 @@ defmodule Kati.Screens.Meal do
     meal = socket.assigns.meal
 
     case meal do
-      %{slot_id: slot_id, recipe_id: recipe_id} when is_binary(slot_id) and is_binary(recipe_id) ->
+      %{slot_id: slot_id, recipe_id: recipe_id}
+      when is_binary(slot_id) and is_binary(recipe_id) ->
         Kati.Meals.MealLog
         |> Ash.Changeset.for_create(:log_recipe, %{
           recipe_id: recipe_id,

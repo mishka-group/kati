@@ -1130,6 +1130,26 @@ defmodule Kati.Screens.MealsToday do
     end
   end
 
+  @doc """
+  Open screen 45 on the card that was tapped.
+
+  The tag is matched by rebuilding every row's own tag rather than by splitting
+  this one back apart: `meal_tag/1` replaces the spaces in a slot name with
+  underscores, so `meal_Post_workout_16:00` has no first separator that means
+  anything, and the row is the thing that owns its name anyway. Same lookup
+  shape as `mark_eaten/2` one function above.
+
+  A row with no slot id — every `Kati.Meals.SampleToday` row, and every logged
+  one — gives `%{}` through `Kati.Screens.Meal.params_for/1`, which is the push
+  this screen made before and the screen 45 the drawing shows.
+  """
+  @spec open_meal(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def open_meal(socket, tag) do
+    meal = Enum.find(socket.assigns.day.meals, &(Kati.Screens.MealsToday.meal_tag(&1) == tag))
+
+    Mob.Socket.push_screen(socket, Kati.Screens.Meal, Kati.Screens.Meal.params_for(meal))
+  end
+
   # The third action is a disc rather than a label, so it is the icon-only
   # button component. No `shadow` here — the drawing gives this one none, it
   # sits inside the lifted card rather than on the paper — and `variant:
@@ -1300,15 +1320,20 @@ defmodule Kati.Screens.MealsToday do
 
   Both had a screen waiting the whole time. **Swap** is board 46, which is
   named *Meal swap* and draws the two answers to it; **See tomorrow** is board
-  52, the day view. Neither takes an argument yet, so this is the door rather
-  than the routing — the same honest half `Kati.Screens.MealsToday`'s own
-  `meal_` tags settled: naming the cards is what has to happen before carrying
-  one through them can.
+  52, the day view.
+
+  Both now say which. Swap hands its slot over through `Mob.State`, because
+  that is the door screen 46 has always read and `Kati.MealSwapTest` covers;
+  See tomorrow carries the date in the push, because a control labelled
+  *tomorrow* that opened whatever day the destination chose for itself was
+  naming a day it had no part in picking.
   """
   def handle_tap(:swap, socket) do
     # The slot goes with it, the way screen 86 hands a query to 19: a key in
-    # `Mob.State`, because `push_screen/2` takes a module and nothing else.
-    # Screen 46 without it is the drawing, which is a swap of nothing.
+    # `Mob.State`. The store rather than the push because this is the door
+    # screen 46 was built around and `Kati.MealSwapTest` drives it directly —
+    # `Kati.Screens.MealSwap.swap/1` reads a named slot first and falls back to
+    # this. Screen 46 with neither is the drawing, which is a swap of nothing.
     case Enum.find(socket.assigns.day.meals, &(&1.state == :next and Map.get(&1, :slot_id))) do
       %{slot_id: slot_id} -> Kati.Screens.MealSwap.hand_over(slot_id)
       _drawn -> :ok
@@ -1317,8 +1342,15 @@ defmodule Kati.Screens.MealsToday do
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
   end
 
+  # This screen's own day is `Kati.Time.today/0`, so tomorrow is that plus one.
+  # Named here rather than derived there: the control says *tomorrow*, and
+  # tomorrow-relative-to-what is a fact the screen that drew the pill holds.
   def handle_tap(:see_tomorrow, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsDay)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.MealsDay, %{
+         date: Date.add(Kati.Time.today(), 1)
+       })}
 
   def handle_tap(:open_nutrition, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Nutrition)}
@@ -1351,17 +1383,20 @@ defmodule Kati.Screens.MealsToday do
   # one `accessibility_id` and `onNodeWithTag` throws on the second match — the
   # timeline was unaddressable on a device, not merely untested.
   #
-  # They all open the same screen today: `Kati.Screens.Meal` takes no argument,
-  # so this is identity for the sake of being addressable rather than for
-  # routing. Carrying the slot through to the detail screen is screen 44's
-  # change, not this one's — and naming the cards is what has to happen first.
+  # Each card now names its own meal on the way through. Naming them was the
+  # step that had to come first and it has been taken: the tag `meal_tag/1`
+  # built is the row's own name, so `open_meal/2` finds the row by rebuilding
+  # each row's tag rather than by taking this one apart, and
+  # `Kati.Screens.Meal.params_for/1` turns that row into the push's params. A
+  # `Kati.Meals.SampleToday` row has no slot id and yields `%{}`, which is the
+  # bare push this replaced and the drawn screen 45.
   def handle_tap(tag, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
       "mark_eaten_" <> slot_id ->
         {:noreply, Kati.Screens.MealsToday.mark_eaten(socket, slot_id)}
 
       "meal_" <> _rest ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Meal)}
+        {:noreply, Kati.Screens.MealsToday.open_meal(socket, tag)}
 
       _other ->
         {:noreply, socket}

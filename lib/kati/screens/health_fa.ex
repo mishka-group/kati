@@ -404,7 +404,7 @@ defmodule Kati.Screens.HealthFa do
         {Kati.Screens.HealthFa.title(subtitle)}
         {Kati.Screens.HealthFa.hero(reading)}
         {Kati.Screens.HealthFa.range_row(range)}
-        {Kati.Screens.HealthFa.chart()}
+        {Kati.Screens.HealthFa.chart(range)}
         {Kati.Screens.Fa.eyebrow(eyebrow)}
         {Kati.Screens.HealthFa.dose_list(doses)}
         {Kati.Screens.HealthFa.note()}
@@ -682,11 +682,15 @@ defmodule Kati.Screens.HealthFa do
   `Kati.Screens.WeightStates.gridlines/1`, which is where 109's chart's rules
   are written down; the `Box` stacks them behind the bars, which is the same
   thing `Kati.Screens.Pushed.chrome/2` relies on to float a back pill.
+
+  The segment is the one the range row above the card is lighting. 115 and 109
+  are the same chart, so a chip means the same thing on both boards or the
+  mirror is a second opinion rather than a translation.
   """
-  @spec chart() :: map()
-  def chart do
+  @spec chart(atom()) :: map()
+  def chart(range) do
     {oldest, newest} = @axis
-    bars = Kati.Screens.HealthFa.bars()
+    bars = Kati.Screens.HealthFa.bars(range)
     rules = WeightStates.gridlines(Palette.mode())
     track = @track
 
@@ -720,15 +724,17 @@ defmodule Kati.Screens.HealthFa do
   @doc """
   One bar per reading, oldest first, with the newest tipped in ink.
 
-  `Kati.Screens.Weight.bars/0` supplies the fractions and
+  `Kati.Screens.Weight.bars/1` supplies the fractions — for the segment this
+  board is lighting, so the narrowing is 109's and not a second one — and
   `Kati.Screens.Weight.bar/1` draws all but the last, so this chart and 109's
   are the same chart and not two series that happen to agree. The last one is
   by position rather than by value: the newest reading is the newest whatever
-  it weighed.
+  it weighed. An empty window leaves `last` at `-1`, which no bar's index can
+  equal, and the row draws nothing rather than tipping something.
   """
-  @spec bars() :: [map()]
-  def bars do
-    fractions = Weight.bars()
+  @spec bars(atom()) :: [map()]
+  def bars(range) do
+    fractions = Weight.bars(range)
     last = length(fractions) - 1
 
     fractions

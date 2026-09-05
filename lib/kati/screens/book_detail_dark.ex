@@ -601,8 +601,13 @@ defmodule Kati.Screens.BookDetailDark do
   # screen 66 makes and the one screen 70 makes from the other direction. The
   # write itself lives in `Kati.Screens.LogProgress` so that three controls on
   # three screens cannot drift about what finishing a book means.
+  # And it names the book, for the reason the push above it does. The comment
+  # over this clause promises three controls that cannot drift about what
+  # finishing a book means; finishing the shelf's head from a page drawing
+  # something else is that drift, arriving through the argument rather than
+  # through the write. `book[:id]` because the drawing has no id to read.
   def handle_tap(:finish, socket) do
-    Kati.Screens.LogProgress.finish_book()
+    Kati.Screens.LogProgress.finish_book(socket.assigns.book[:id])
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
   end
 

@@ -51,7 +51,20 @@ defmodule Kati.Screens.AlbumDetail do
 
   @secondary [{"star", "Rate", :rate}, {"bookmarks", "Add to list", :add_to_list}]
 
-  def load(socket), do: Mob.Socket.assign(socket, :album, album())
+  # `Kati.Screens.Pushed` puts the push's params on `:params`, and this is the
+  # screen reading them. The id is kept in its own assign beside the album, for
+  # the reason `Kati.Screens.MealEdit.load/1` keeps `:meal_id`: the album a
+  # caller named and the album that was found are two different facts, and the
+  # tracklist, its eyebrow and the listen field all have to follow the NAMED
+  # one — a row deleted under you draws the drawing and must not fall through
+  # to somebody else's tracks.
+  def load(socket) do
+    id = Map.get(socket.assigns.params || %{}, :album_id)
+
+    socket
+    |> Mob.Socket.assign(:album_id, id)
+    |> Mob.Socket.assign(:album, album(id))
+  end
 
   @doc "The album this screen is about: the shelf's first, or the drawing's."
   @spec album() :: map()
@@ -68,6 +81,24 @@ defmodule Kati.Screens.AlbumDetail do
   """
   @spec album(String.t() | nil) :: map()
   def album(id), do: shelved_album(id) || Sample.album()
+
+  @doc """
+  The params that name an album — to this screen, and on to screen 73.
+
+  Here rather than at each caller so the key is spelled once, and here rather
+  than on the sheet because two screens now receive it: screen 77's rail names
+  an album to this page, and this page names the same album to
+  `Kati.Screens.LogListen`. `Kati.Screens.LogListen.params_for/1` delegates, so
+  the two cannot drift apart and leave a sheet writing to an album the page
+  never mentioned.
+
+  A shaped row carries `:id`; `Kati.Music.Sample.album/0` and the four rows of
+  `Kati.Music.Sample.artist_albums/0` do not, and a row with no id — or no row
+  at all, which is what a tag matching nothing means — yields `%{}`.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{album_id: id}
+  def params_for(_album), do: %{}
 
   @doc "The drawing's values, unconditionally."
   @spec drawn_album() :: map()
@@ -92,10 +123,20 @@ defmodule Kati.Screens.AlbumDetail do
     end
   end
 
-  @doc "The tracklist eyebrow, which carries the real count."
+  @doc "The tracklist eyebrow, which carries the real count. The no-id answer."
   @spec tracklist_label() :: String.t()
-  def tracklist_label do
-    case shelved(nil) do
+  def tracklist_label, do: tracklist_label(nil)
+
+  @doc """
+  One album's tracklist eyebrow, by id.
+
+  Takes the id for the reason `tracks/1` does. The count in the eyebrow and the
+  rows under it are the same tracklist, and an eyebrow read off a different
+  album says `Tracklist · 11 tracks` over three of them.
+  """
+  @spec tracklist_label(String.t() | nil) :: String.t()
+  def tracklist_label(id) do
+    case shelved(id) do
       nil ->
         Sample.tracklist_label()
 
@@ -191,6 +232,16 @@ defmodule Kati.Screens.AlbumDetail do
       # `Kati.Music.Sample.album/0` has no id and is not given a `nil` one, so
       # `album[:id]` reads `nil` by absence and the sheet falls back.
       id: album.id,
+      # The artist this record points at, carried for the reason `id` above is:
+      # the artist row — screen 74's own `Open artist`, and screen 76's هنرمند —
+      # has to name the musician the page is about rather than leaving screen 77
+      # to take the artist of the shelf's first album. The COLUMN, not
+      # `artist.id`: `artist` below is a NAME, which is a label and not an
+      # identity — two people can share one, and a screen routed on one would
+      # open the wrong page for the pair that did. `Kati.Music.Sample.album/0`
+      # has neither field and is not given `nil` ones, so both read `nil` by
+      # absence and screen 77 falls back.
+      artist_id: album.artist_id,
       title: album.title,
       initial: Album.initial(album),
       artist: artist && artist.name,
@@ -291,6 +342,12 @@ defmodule Kati.Screens.AlbumDetail do
   @doc false
   def content(assigns) do
     a = assigns.album
+    # The NAMED album, not `a.id`. An id whose row has been deleted answers with
+    # the drawing, which carries no id, and re-deriving the id from `a` there
+    # would send the tracklist and the field back to the shelf's head — the
+    # exact swap the id was added to stop. `Kati.Screens.MealEdit.load/1` keeps
+    # `:meal_id` separate for the same reason.
+    id = assigns.album_id
 
     ~MOB"""
     <Scroll>
@@ -305,11 +362,11 @@ defmodule Kati.Screens.AlbumDetail do
         {Kati.Screens.AlbumDetail.hero(a)}
         {Kati.Screens.AlbumDetail.artist_row(a)}
         {Kati.Screens.AlbumDetail.dates(a)}
-        {UI.eyebrow(Kati.Screens.AlbumDetail.tracklist_label())}
-        {Kati.Screens.AlbumDetail.tracklist()}
+        {UI.eyebrow(Kati.Screens.AlbumDetail.tracklist_label(id))}
+        {Kati.Screens.AlbumDetail.tracklist(id)}
         {Kati.Screens.AlbumDetail.dot_note()}
         {UI.eyebrow("Listen history · 13 weeks")}
-        {Kati.Screens.AlbumDetail.history(a)}
+        {Kati.Screens.AlbumDetail.history(a, id)}
         {Kati.Screens.AlbumDetail.note(a)}
         {Kati.Screens.AlbumDetail.actions()}
       </Column>
@@ -501,10 +558,17 @@ defmodule Kati.Screens.AlbumDetail do
     """
   end
 
-  @doc "The tracklist, in running order."
+  @doc "The tracklist, in running order. The no-id answer."
   @spec tracklist() :: map()
-  def tracklist do
-    rows = Enum.map(Kati.Screens.AlbumDetail.tracks(), &Kati.Screens.AlbumDetail.track_row/1)
+  def tracklist, do: tracklist(nil)
+
+  @doc "One album's tracklist, in running order, by id."
+  @spec tracklist(String.t() | nil) :: map()
+  def tracklist(id) do
+    rows =
+      id
+      |> Kati.Screens.AlbumDetail.tracks()
+      |> Enum.map(&Kati.Screens.AlbumDetail.track_row/1)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -605,7 +669,11 @@ defmodule Kati.Screens.AlbumDetail do
   different units of "recently" in one app.
   """
   @spec history(map()) :: map()
-  def history(a) do
+  def history(a), do: history(a, nil)
+
+  @doc "The same band for one album by id — `history/1` when no id is named."
+  @spec history(map(), String.t() | nil) :: map()
+  def history(a, id) do
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -615,7 +683,7 @@ defmodule Kati.Screens.AlbumDetail do
         padding={15}
         shadow={Kati.Theme.shadow_card()}
       >
-        {Kati.Screens.AlbumDetail.field_rows()}
+        {Kati.Screens.AlbumDetail.field_rows(id)}
         <Spacer size={11} />
         <Row fill_width={true} align="center">
           <Text
@@ -649,8 +717,12 @@ defmodule Kati.Screens.AlbumDetail do
   what `Kati.Music.Sample` is for.
   """
   @spec field() :: [non_neg_integer()]
-  def field do
-    case shelved(nil) do
+  def field, do: field(nil)
+
+  @doc "One album's field, by id — `field/0`'s answer when no id is named."
+  @spec field(String.t() | nil) :: [non_neg_integer()]
+  def field(id) do
+    case shelved(id) do
       nil ->
         Sample.listen_field()
 
@@ -747,8 +819,12 @@ defmodule Kati.Screens.AlbumDetail do
   drawing.
   """
   @spec field_rows() :: map()
-  def field_rows do
-    rows = Enum.chunk_every(Kati.Screens.AlbumDetail.field(), 27)
+  def field_rows, do: field_rows(nil)
+
+  @doc "One album's field, chunked — `field_rows/0`'s answer when no id is named."
+  @spec field_rows(String.t() | nil) :: map()
+  def field_rows(id) do
+    rows = Enum.chunk_every(Kati.Screens.AlbumDetail.field(id), 27)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -791,8 +867,18 @@ defmodule Kati.Screens.AlbumDetail do
          Kati.Screens.LogListen.params_for(socket.assigns.album)
        )}
 
+  # The artist row names the person the page is drawing. Screen 77 used to
+  # re-derive its subject from `Ash.read(Album, action: :shelf)`'s head, so an
+  # album detail opened on the third record sent you to the FIRST record's
+  # artist — #84's defect one row up from the sheet it was found in.
   def handle_tap(:open_artist, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ArtistDetail)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.ArtistDetail,
+         Kati.Screens.ArtistDetail.params_for(socket.assigns.album)
+       )}
 
   def handle_tap(:rate, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}

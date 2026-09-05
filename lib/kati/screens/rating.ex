@@ -226,7 +226,7 @@ defmodule Kati.Screens.Rating do
   out of, and `nil` when the draft is the drawing's and there is no row.
 
   The id is carried rather than re-derived at save time, and that is the whole
-  of what stops a second write landing on a different watch: `newest_log/0`
+  of what stops a second write landing on a different watch: `newest_log/1`
   answers "the newest log" at the moment it is asked, and a sheet left open
   while something else is logged would otherwise commit to whichever row won
   that race.
@@ -249,10 +249,17 @@ defmodule Kati.Screens.Rating do
   just the empty-database one. `watch/0`'s gate says it for the render:
   *either every value on it is this watch's or every value is the drawing's*.
   The id is one of those values.
+
+  ## Which title the sheet is a log of
+
+  `:tracked_title_id` in the push's params names it — `Kati.Screens.Film`'s
+  "Log a watch" row puts the film on screen there, through `params_for/1`.
+  Without the key, which is the gallery's door and every sweep's, the sheet
+  draws the newest log in the library: the one answer it has ever given.
   """
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {draft, id} = draft_and_id(logged_record())
+    {draft, id} = draft_and_id(logged_record(Map.get(params || %{}, :tracked_title_id)))
 
     {:ok,
      socket
@@ -321,13 +328,39 @@ defmodule Kati.Screens.Rating do
   The rescue is the one `logged_watch/0` carried: `Ash.read!` on a device
   mid-migration raises, and a sheet that dies is strictly worse than a sheet
   showing the values it was drawn from.
+
+  `title_id` narrows it to that title's newest log. No id is the question this
+  function was always asked, and it answers what it always did.
   """
-  @spec logged_record() :: Watch.t() | nil
-  def logged_record do
-    newest_log()
+  @spec logged_record(String.t() | nil) :: Watch.t() | nil
+  def logged_record(title_id \\ nil) do
+    newest_log(title_id)
   rescue
     _ -> nil
   end
+
+  @doc """
+  The params that name a film to this sheet.
+
+  Here rather than at screen 08 so the key is spelled once, the way
+  `Kati.Screens.MealEdit` spells `:meal_id` once for its two doors.
+  `:tracked_title_id` and not `:id`, because the id is not this sheet's own
+  subject — a sheet is about a `Kati.Media.Watch`, and this names the title it
+  must be a watch OF — and because that is the spelling `Kati.Media.Watch`
+  itself uses.
+
+  A film with no tracked row — the drawing's — yields `%{}`, which is what
+  `Mob.Socket.push_screen/3` defaults to and what every bare push already sends.
+
+      iex> Kati.Screens.Rating.params_for(%{tracked_id: "abc"})
+      %{tracked_title_id: "abc"}
+
+      iex> Kati.Screens.Rating.params_for(Kati.Screens.Film.drawn_film())
+      %{}
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{tracked_id: id}) when is_binary(id), do: %{tracked_title_id: id}
+  def params_for(_film), do: %{}
 
   defp shaped_or_drawn(nil), do: drawn_watch()
   defp shaped_or_drawn(logged), do: shape(logged) || drawn_watch()
@@ -343,15 +376,23 @@ defmodule Kati.Screens.Rating do
   # night the log is about; `inserted_at` behind it so a watch recorded with no
   # instant ("I have seen this, I do not remember when") still orders by when it
   # was written down rather than arbitrarily.
-  defp newest_log do
+  defp newest_log(title_id) do
     Watch
     |> Ash.Query.filter(not is_nil(rating) or (not is_nil(review) and review != ""))
+    |> of_title(title_id)
     |> Ash.Query.sort(watched_at: :desc, inserted_at: :desc)
     |> Ash.Query.load(:tracked_title)
     |> Ash.Query.limit(1)
     |> Ash.read!()
     |> List.first()
   end
+
+  # The narrowing, as a second `filter` rather than a third term inside the
+  # first one: chained filters are ANDed, so the no-id query stays character for
+  # character the query this sheet has always run and the `or` above keeps its
+  # own parentheses instead of being re-nested around a new `and`.
+  defp of_title(query, nil), do: query
+  defp of_title(query, title_id), do: Ash.Query.filter(query, tracked_title_id == ^title_id)
 
   # One read, by the VALUE PAIR the durable half references the cache by. A
   # missing row is the evicted case and is ordinary — see `shaped/3`.
@@ -1437,7 +1478,7 @@ defmodule Kati.Screens.Rating do
 
   A blank review is stored as `nil` rather than `""`, because
   `Kati.Media.Watch.review` is nullable and a review of nothing but whitespace
-  is not a review — `newest_log/0` filters on exactly that distinction, so
+  is not a review — `newest_log/1` filters on exactly that distinction, so
   storing the empty string would leave a sheet reopening on a log it also
   considers unlogged. What is not blank is stored **as typed**: trimming a
   person's own words is an edit, and this function is not entitled to one.

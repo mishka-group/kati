@@ -43,6 +43,7 @@ defmodule Kati.Screens.MealsDay do
   use Kati.Screens.Pushed, back: "Calendar"
 
   alias Kati.Calendar.SampleMealDay
+  alias Kati.Meals.MealLog
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -61,11 +62,202 @@ defmodule Kati.Screens.MealsDay do
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket,
-      day: SampleMealDay.day(),
+      day: Kati.Screens.MealsDay.day(socket.assigns.params),
       filter: "All",
       density: :comfortable
     )
   end
+
+  @doc """
+  The day this page is about: the one the push named, or the drawing's.
+
+  ## The date is the route's, not the fixture's
+
+  `%{date: date}` is what `Kati.Screens.Calendar` pushes — the day its strip is
+  on, and the day whose meals row was tapped. This screen assigned
+  `Kati.Calendar.SampleMealDay.day/0` unconditionally, so every route in landed
+  on `Mon 17 Aug`, and the page's own title was the one thing on it that could
+  never be wrong because it was never right. That is the same defect
+  `Kati.Screens.Day` fixed one screen along, and the fix has the same shape.
+
+  ## No date still means the drawn day, and must
+
+  52 is reachable without one — `Kati.Screens.Gallery` opens it bare and every
+  sweep mounts it with `%{}` — and that is the state
+  `test/design/screens/52.html` was captured in: eight expanded rows, five of
+  them meals, then the collapsed summary underneath. **That branch asks the
+  database nothing**, which is what keeps the empty-database sweep rendering
+  the drawing rather than a page that merely happens to be empty.
+
+  ## Today with nothing stored is the drawn day
+
+  `Kati.Screens.Day.day/1` makes exactly this exception and states why at
+  length: the routes in are taps on screens that have already drawn today from
+  their own rows, and two screens one tap apart must not disagree about one
+  date. Any other empty date renders empty, because that is the honest answer
+  and the one screen 02 already gives for every date but today.
+  """
+  @spec day(map() | nil) :: map()
+  def day(params) do
+    case Map.get(params || %{}, :date) do
+      %Date{} = date -> handed(date)
+      _no_date -> drawn_day()
+    end
+  end
+
+  @doc """
+  Screen 52 exactly as `test/design/screens/52.html` draws it.
+
+  `drawn?` is stamped on here rather than inside `Kati.Calendar.SampleMealDay`,
+  so the fixture stays a transcription of the board and the flag stays this
+  screen's own bookkeeping.
+  """
+  @spec drawn_day() :: map()
+  def drawn_day, do: Map.put(SampleMealDay.day(), :drawn?, true)
+
+  defp handed(date) do
+    case spine(date) do
+      [] -> if date == Kati.Time.today(), do: drawn_day(), else: empty(date)
+      rows -> stored_day(date, rows)
+    end
+  end
+
+  # A day the user opened that holds nothing renders as a day that holds
+  # nothing. The collapsed summary and the note go with it: the note is the
+  # design's caption about density and the summary is a summary of no meals, so
+  # both would be furniture invented over an empty day. The same call
+  # `Kati.Screens.Day` makes about its all-day band and its headline.
+  defp empty(date) do
+    %{
+      title: Calendar.strftime(date, "%a %-d %b"),
+      subtitle: "NOTHING ON THIS DAY",
+      chips: [{"All", nil}],
+      rows: [],
+      collapsed: nil,
+      note: nil,
+      drawn?: false
+    }
+  end
+
+  defp stored_day(date, rows) do
+    meals = Enum.filter(rows, &(Kati.Screens.MealsDay.kind(&1) == "Meals"))
+    others = length(rows) - length(meals)
+
+    %{
+      title: Calendar.strftime(date, "%a %-d %b"),
+      subtitle: "#{tally(length(meals), "meal")} · #{tally(others, "other item")}",
+      chips: chips_for(rows),
+      rows: rows,
+      collapsed: collapsed_for(meals),
+      note: nil,
+      drawn?: false
+    }
+  end
+
+  defp tally(1, noun), do: "1 #{noun}"
+  defp tally(n, noun), do: "#{n} #{noun}s"
+
+  # Only the sections that have something in them. A chip that empties the
+  # spine is a control that looks broken, and the drawing never draws one.
+  defp chips_for(rows) do
+    counted =
+      for label <- ~w(Meals Screen Personal),
+          n = Enum.count(rows, &(Kati.Screens.MealsDay.kind(&1) == label)),
+          n > 0,
+          do: {label, "#{n}"}
+
+    [{"All", nil} | counted]
+  end
+
+  # The same meals as one row — computed from them rather than invented,
+  # because the density control folds the spine's meals into exactly this row
+  # and the two must agree. No meals means nothing to collapse, and the block
+  # is dropped rather than drawn as `0 meals · 0 kcal`.
+  defp collapsed_for([]), do: nil
+
+  defp collapsed_for(meals) do
+    kcal = Enum.reduce(meals, 0, &(&2 + Map.get(&1, :kcal, 0)))
+    eaten = Enum.count(meals, &(&1.check == :eaten))
+
+    sub =
+      case Enum.find(meals, &(&1.check == :todo)) do
+        %{time: time} when time != "" -> "#{eaten} EATEN · NEXT AT #{time}"
+        _none -> "#{eaten} EATEN"
+      end
+
+    %{rule: @meal, title: "#{tally(length(meals), "meal")} · #{kcal} kcal", sub: sub}
+  end
+
+  # The day's meals and everything else on the calendar, in one clock order —
+  # which is the screen's whole claim, that meals need no lane of their own.
+  defp spine(date) do
+    Enum.sort_by(meal_rows(date) ++ event_rows(date), &{&1.time == "", &1.time})
+  end
+
+  defp meal_rows(date) do
+    MealLog
+    |> Ash.Query.for_read(:on_day, %{on: date})
+    |> Ash.read!()
+    |> Enum.map(fn log ->
+      # A skipped meal has no calories, so printing a number would be a lie —
+      # `Kati.Screens.MealsToday`'s own reasoning, and the reason it contributes
+      # nothing to the collapsed row's total either.
+      {state, check, sub, kcal} =
+        case log.state do
+          :eaten -> {:past, :eaten, "#{log.kcal} kcal", log.kcal}
+          :skipped -> {:past, :none, "SKIPPED", 0}
+          _planned -> {:live, :todo, "#{log.kcal} kcal", log.kcal}
+        end
+
+      %{
+        time: clock(log.slot_time),
+        rule: @meal,
+        title: meal_title(log),
+        sub: sub,
+        state: state,
+        check: check,
+        kcal: kcal
+      }
+    end)
+  rescue
+    _error -> []
+  end
+
+  defp meal_title(log) do
+    [log.slot_name, log.title]
+    |> Enum.reject(&(is_nil(&1) or &1 == ""))
+    |> Enum.join(" — ")
+  end
+
+  defp event_rows(date) do
+    date
+    |> Kati.Calendars.Today.rows()
+    |> Enum.map(fn row ->
+      %{
+        time: row.time,
+        rule: rule(row.kind),
+        title: row.title,
+        sub: row.meta,
+        state: if(row.now?, do: :live, else: :past),
+        check: :none
+      }
+    end)
+  rescue
+    _error -> []
+  end
+
+  # `@meal` and `@screen` are literals because `kind/1` matches a row's rule
+  # against them and a pattern cannot hold a function call. The other two lanes
+  # need no literal at all: a habit's green and an appointment's ink both fall
+  # to `kind/1`'s catch-all, so they can be asked for by name — which is also
+  # the only way the appointment stripe stays visible on near-black, `ink`
+  # being `#F5F2EE` in dark where the fixture's `#1A1917` would vanish.
+  defp rule(:air_date), do: @screen
+  defp rule(:habit), do: Palette.green()
+  defp rule(_kind), do: Palette.ink()
+
+  defp clock(nil), do: ""
+  defp clock(%Time{} = time), do: Calendar.strftime(time, "%H:%M")
 
   @doc false
   def content(assigns) do
@@ -87,7 +279,7 @@ defmodule Kati.Screens.MealsDay do
         {Kati.Screens.MealsDay.title(day)}
         {Kati.Screens.MealsDay.chips(day, filter)}
         {Kati.Screens.MealsDay.timeline(rows)}
-        {Kati.Screens.MealsDay.muted_eyebrow("Collapse meals")}
+        {Kati.Screens.MealsDay.collapse_eyebrow(day)}
         {Kati.Screens.MealsDay.collapsed(day)}
         {Kati.Screens.MealsDay.note(day)}
       </Column>
@@ -478,12 +670,20 @@ defmodule Kati.Screens.MealsDay do
     """
   end
 
+  # The eyebrow labels the row beneath it, so it goes when that row goes. A
+  # heading over nothing is worse than no heading.
+  @doc false
+  def collapse_eyebrow(%{collapsed: nil}), do: ~MOB"<Spacer size={0} />"
+  def collapse_eyebrow(_day), do: Kati.Screens.MealsDay.muted_eyebrow("Collapse meals")
+
   # The `expand_more` chevron is the density control's other face and does the
   # same thing, under its own name: the same tag on both made the disc and the
   # row one accessibility_id, and `onNodeWithTag` throws on the second match
   # (#97). The glyph does not flip with the state: the drawing draws it
   # pointing down, and the drawing is the resting screen.
   @doc false
+  def collapsed(%{collapsed: nil}), do: ~MOB"<Spacer size={0} />"
+
   def collapsed(day) do
     collapsed = day.collapsed
     tap = {self(), :density_collapsed}
@@ -526,7 +726,11 @@ defmodule Kati.Screens.MealsDay do
     """
   end
 
+  # The note is the design's caption — an argument about the drawing rather
+  # than a fact about anyone's day — so a stored day does not carry one.
   @doc false
+  def note(%{note: nil}), do: ~MOB"<Spacer size={0} />"
+
   def note(day) do
     ~MOB"""
     <Column fill_width={true}>

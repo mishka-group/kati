@@ -47,23 +47,59 @@ defmodule Kati.Screens.ArtistDetail do
   @cap 4
 
   def load(socket) do
+    id = Map.get(socket.assigns.params || %{}, :artist_id)
+
     socket
-    |> Mob.Socket.assign(:artist, artist())
+    |> Mob.Socket.assign(:artist_id, id)
+    |> Mob.Socket.assign(:artist, artist(id))
     |> Mob.Socket.assign(:dismissed?, false)
   end
 
+  @doc """
+  The params that name an artist to this screen, built from a shaped album.
+
+  Here rather than at each caller so the key is spelled once — screens 74 and 76
+  both open this page off an album row, exactly as
+  `Kati.Screens.LogListen.params_for/1` spells `:album_id` for the sheet on the
+  other side of this page. `Kati.Screens.AlbumDetail.shaped/4` carries
+  `:artist_id`; the drawing does not, and an album with no artist — or no album
+  at all — yields `%{}`, which is the no-id mount every sweep renders.
+
+  Not the artist's NAME, which is the other thing screen 74 has in hand: two
+  people can share one, and a page routed on a name would be right until the
+  day it was silently wrong.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{artist_id: id}) when is_binary(id), do: %{artist_id: id}
+  def params_for(_album), do: %{}
+
   @doc "The artist this screen is about: the shelf album's, or the drawing's."
   @spec artist() :: map()
-  def artist, do: stored_artist() || Sample.artist()
+  def artist, do: artist(nil)
+
+  @doc """
+  One artist by id, shaped — the shelf album's artist when no id is named.
+
+  `Kati.Screens.AlbumDetail.album/1`'s shape, on the other side of the artist
+  row. An id that names no row answers the drawing rather than somebody else,
+  which is `Kati.Screens.AlbumDetail.shelved_album/1`'s rule and is the half of
+  it that matters.
+  """
+  @spec artist(String.t() | nil) :: map()
+  def artist(id), do: stored_artist(id) || Sample.artist()
 
   @doc "The drawing's values, unconditionally."
   @spec drawn_artist() :: map()
   def drawn_artist, do: Sample.artist()
 
-  @doc "The albums, capped — see the moduledoc."
+  @doc "The albums, capped — see the moduledoc. The no-id answer."
   @spec albums() :: [map()]
-  def albums do
-    case stored() do
+  def albums, do: albums(nil)
+
+  @doc "One artist's albums, capped."
+  @spec albums(String.t() | nil) :: [map()]
+  def albums(id) do
+    case stored(id) do
       nil -> Enum.take(Sample.artist_albums(), @cap)
       %Artist{} = artist -> artist |> stored_albums() |> Enum.take(@cap)
     end
@@ -71,9 +107,20 @@ defmodule Kati.Screens.ArtistDetail do
 
   @doc "How many albums were left out of the cap. Zero when none were."
   @spec truncated() :: non_neg_integer()
-  def truncated do
+  def truncated, do: truncated(nil)
+
+  @doc """
+  The same count, about the named artist.
+
+  It takes the id for a reason worth stating: this number and `albums/1` are two
+  reads of one list, and a page that showed one artist's three tiles over
+  another artist's *and 1 more* would be a new defect introduced by half-fixing
+  the old one.
+  """
+  @spec truncated(String.t() | nil) :: non_neg_integer()
+  def truncated(id) do
     total =
-      case stored() do
+      case stored(id) do
         nil -> length(Sample.artist_albums())
         %Artist{} = artist -> length(stored_albums(artist))
       end
@@ -83,22 +130,47 @@ defmodule Kati.Screens.ArtistDetail do
 
   @doc "The shaped artist, or `nil` when nothing is stored."
   @spec stored_artist() :: map() | nil
-  def stored_artist do
-    case stored() do
+  def stored_artist, do: stored_artist(nil)
+
+  @doc """
+  One shaped artist by id, or `nil` — the shelf album's when no id is named.
+
+  An id that names no row answers `nil` rather than the shelf's artist, exactly
+  as `Kati.Screens.AlbumDetail.shelved_album/1` does: a record deleted under
+  you is not the same fact as an empty shelf.
+  """
+  @spec stored_artist(String.t() | nil) :: map() | nil
+  def stored_artist(id) do
+    case stored(id) do
       nil -> nil
       %Artist{} = artist -> shaped(artist, stored_albums(artist))
     end
   end
 
-  # The artist of the shelf's first album, which is the artist you would have
-  # arrived here from. Not "the first artist in the table": this screen is
-  # pushed from screen 74 and must be about the same record.
-  defp stored do
+  # The artist this page is about. Handed nothing, the artist of the shelf's
+  # first album, which is the artist you would have arrived here from. Not
+  # "the first artist in the table": this screen is pushed from screen 74 and
+  # must be about the same record.
+  #
+  # Two clauses, in `Kati.Screens.AlbumDetail.shelved/1`'s order and for its
+  # reason: an id that names no row answers `nil` rather than falling back to
+  # the shelf's head, because substituting a different person is precisely the
+  # swap the id was added to stop.
+  defp stored(nil) do
     with {:ok, [%Album{artist_id: id} | _rest]} when not is_nil(id) <-
            Ash.read(Album, action: :shelf),
          {:ok, artist} <- Ash.get(Artist, id) do
       artist
     else
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  defp stored(id) when is_binary(id) do
+    case Ash.get(Artist, id) do
+      {:ok, %Artist{} = artist} -> artist
       _other -> nil
     end
   rescue
@@ -139,6 +211,14 @@ defmodule Kati.Screens.ArtistDetail do
     plays = Album.plays(tracks)
 
     %{
+      # The row's own id, so a rail row can name the record it draws instead of
+      # leaving screen 74 to re-read the shelf and take its head. The rail's TAG
+      # cannot do it: `album_tag/1` is built from title and year because the
+      # drawing's four rows carry `seed: nil`, and that makes it an
+      # accessibility identity, not a database one. `Kati.Music.Sample`'s rows
+      # have no id and are not given a `nil` one, so `row[:id]` reads `nil` by
+      # absence and screen 74 falls back.
+      id: album.id,
       title: album.title,
       year: album.released_year,
       plays: plays,
@@ -162,6 +242,11 @@ defmodule Kati.Screens.ArtistDetail do
   @doc false
   def content(assigns) do
     a = assigns.artist
+    # The NAMED artist, for the reason `Kati.Screens.AlbumDetail.content/1`
+    # keeps `:album_id`: an id whose row has been deleted draws the drawing,
+    # which has no id, and re-deriving from `a` there would send the rail back
+    # to the shelf head's discography under this page's title.
+    id = assigns.artist_id
 
     ~MOB"""
     <Scroll>
@@ -175,11 +260,11 @@ defmodule Kati.Screens.ArtistDetail do
         {SettingsList.chrome(nil, 44)}
         {Kati.Screens.ArtistDetail.hero(a)}
         {Kati.Screens.ArtistDetail.following_row(a)}
-        {UI.eyebrow(Kati.Screens.ArtistDetail.albums_label())}
-        {Kati.Screens.ArtistDetail.rail()}
+        {UI.eyebrow(Kati.Screens.ArtistDetail.albums_label(id))}
+        {Kati.Screens.ArtistDetail.rail(id)}
         {UI.eyebrow("Plays by album")}
-        {Kati.Screens.ArtistDetail.chart()}
-        {Kati.Screens.ArtistDetail.unheard(assigns.dismissed?)}
+        {Kati.Screens.ArtistDetail.chart(id)}
+        {Kati.Screens.ArtistDetail.unheard(assigns.dismissed?, id)}
         {UI.eyebrow("Totals")}
         {Kati.Screens.ArtistDetail.totals(a)}
       </Column>
@@ -252,11 +337,15 @@ defmodule Kati.Screens.ArtistDetail do
     """
   end
 
-  @doc "The albums eyebrow, carrying the real count."
+  @doc "The albums eyebrow, carrying the real count. The no-id answer."
   @spec albums_label() :: String.t()
-  def albums_label do
+  def albums_label, do: albums_label(nil)
+
+  @doc "One artist's albums eyebrow, carrying the real count."
+  @spec albums_label(String.t() | nil) :: String.t()
+  def albums_label(id) do
     count =
-      case stored() do
+      case stored(id) do
         nil -> length(Sample.artist_albums())
         %Artist{} = artist -> length(stored_albums(artist))
       end
@@ -266,9 +355,14 @@ defmodule Kati.Screens.ArtistDetail do
 
   @doc "The album rail: art, title, and the line that says whether you have heard it."
   @spec rail() :: map()
-  def rail do
+  def rail, do: rail(nil)
+
+  @doc "One artist's album rail."
+  @spec rail(String.t() | nil) :: map()
+  def rail(id) do
     rows =
-      Kati.Screens.ArtistDetail.albums()
+      id
+      |> Kati.Screens.ArtistDetail.albums()
       |> Enum.map(&Kati.Screens.ArtistDetail.rail_row/1)
 
     ~MOB"""
@@ -370,8 +464,12 @@ defmodule Kati.Screens.ArtistDetail do
   fixed axis would flatten four similar records into four similar bars.
   """
   @spec chart() :: map()
-  def chart do
-    albums = Kati.Screens.ArtistDetail.albums()
+  def chart, do: chart(nil)
+
+  @doc "One artist's plays-by-album chart."
+  @spec chart(String.t() | nil) :: map()
+  def chart(id) do
+    albums = Kati.Screens.ArtistDetail.albums(id)
     top = albums |> Enum.map(& &1.plays) |> Enum.max(fn -> 0 end)
 
     bars =
@@ -389,7 +487,7 @@ defmodule Kati.Screens.ArtistDetail do
         shadow={Kati.Theme.shadow_card()}
       >
         {bars}
-        {Kati.Screens.ArtistDetail.truncation()}
+        {Kati.Screens.ArtistDetail.truncation(id)}
       </Column>
       <Spacer size={24} />
     </Column>
@@ -440,8 +538,12 @@ defmodule Kati.Screens.ArtistDetail do
   is worse than an uncaptioned one.
   """
   @spec truncation() :: map() | []
-  def truncation do
-    case Kati.Screens.ArtistDetail.truncated() do
+  def truncation, do: truncation(nil)
+
+  @doc "The same line for one artist by id."
+  @spec truncation(String.t() | nil) :: map() | []
+  def truncation(id) do
+    case Kati.Screens.ArtistDetail.truncated(id) do
       0 ->
         []
 
@@ -470,10 +572,14 @@ defmodule Kati.Screens.ArtistDetail do
   something and takes the ink; `Dismiss` takes the card away and is plain text.
   """
   @spec unheard(boolean()) :: map() | []
-  def unheard(true), do: []
+  def unheard(dismissed?), do: unheard(dismissed?, nil)
 
-  def unheard(false) do
-    case Kati.Screens.ArtistDetail.unheard_release() do
+  @doc "The same card for one artist by id."
+  @spec unheard(boolean(), String.t() | nil) :: map() | []
+  def unheard(true, _id), do: []
+
+  def unheard(false, id) do
+    case Kati.Screens.ArtistDetail.unheard_release(id) do
       nil ->
         []
 
@@ -538,8 +644,12 @@ defmodule Kati.Screens.ArtistDetail do
   first time one arrived.
   """
   @spec unheard_release() :: map() | nil
-  def unheard_release do
-    case stored() do
+  def unheard_release, do: unheard_release(nil)
+
+  @doc "The same release for one artist by id."
+  @spec unheard_release(String.t() | nil) :: map() | nil
+  def unheard_release(id) do
+    case stored(id) do
       nil ->
         Sample.unheard()
 
@@ -586,7 +696,7 @@ defmodule Kati.Screens.ArtistDetail do
     artist = socket.assigns.artist
     now = not artist.following
 
-    with %Artist{} = stored <- stored() do
+    with %Artist{} = stored <- stored(Map.get(socket.assigns, :artist_id)) do
       Ash.update(stored, %{following: now})
     end
 
@@ -609,15 +719,34 @@ defmodule Kati.Screens.ArtistDetail do
   def handle_tap(:dismiss_release, socket),
     do: {:noreply, Mob.Socket.assign(socket, :dismissed?, true)}
 
-  # Every rail row, by its own seed — see `album_tag/1`. They all open the same
-  # screen today: `Kati.Screens.AlbumDetail` takes no argument, so this is
-  # identity for the sake of being addressable rather than for routing.
+  # Every rail row, by its own title and year — see `album_tag/1` — and now for
+  # routing as well as for being addressable.
+  #
+  # The tag is not the id and cannot become one: `album_tag/1` is built from
+  # title and year precisely because the drawing's four rows carry `seed: nil`,
+  # and a title is a label rather than an identity. So the row is found back in
+  # the list this page drew and the row's own id is what travels.
+  #
+  # A tag matching nothing, and every `Kati.Music.Sample` row, both answer `%{}`
+  # through `params_for/1` — screen 74's shelf-first-then-drawing path,
+  # unchanged.
   #
   # Below the named clauses, above the catch-all: a prefix match placed before
   # them makes every one of them unreachable, silently.
   def handle_tap(tag, socket) when is_atom(tag) do
     if String.starts_with?(Atom.to_string(tag), "open_album_") do
-      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetail)}
+      row =
+        socket.assigns
+        |> Map.get(:artist_id)
+        |> albums()
+        |> Enum.find(&(album_tag(&1) == tag))
+
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.AlbumDetail,
+         Kati.Screens.AlbumDetail.params_for(row)
+       )}
     else
       {:noreply, socket}
     end

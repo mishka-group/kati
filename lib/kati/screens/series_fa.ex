@@ -115,9 +115,11 @@ defmodule Kati.Screens.SeriesFa do
   # name the episode at all.
   @unnumbered "قسمت بعدی را دیده‌ام"
 
-  def mount(_params, _session, socket) do
+  # `use Mob.Screen` with its own `mount/3`, not `Kati.Screens.Root` — so this
+  # page can take the push's params, and simply discarded them.
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
-    {:ok, Mob.Socket.assign(socket, :series, series())}
+    {:ok, Mob.Socket.assign(socket, :series, series(Map.get(params || %{}, :id)))}
   end
 
   @doc """
@@ -127,10 +129,16 @@ defmodule Kati.Screens.SeriesFa do
   empty store answers `drawn_series/0` to the term, which is what keeps this
   page comparable with `.scratch/design/audit/58.png` on a device that has
   never synced anything.
+
+  `id` is the tracked row a Persian poster carried here. The mirror asks screen
+  04's read the same question the English page asks rather than filtering a
+  second list of its own — an id it does not have, and an id that names nothing,
+  both land on `drawn_series/0`, which is the state `test/design/screens/58.html`
+  was captured in.
   """
-  @spec series() :: map()
-  def series do
-    case Series.tracked_series() do
+  @spec series(String.t() | nil) :: map()
+  def series(id \\ nil) do
+    case Series.tracked_series(id) do
       nil -> drawn_series()
       facts -> shaped(facts)
     end

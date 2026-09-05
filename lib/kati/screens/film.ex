@@ -87,9 +87,17 @@ defmodule Kati.Screens.Film do
   # fixture, which would be a lie about where a real render's copy came from.
   @actions [{"replay", "Log rewatch"}, {"event", "Schedule"}, {"ios_share", "Share"}]
 
-  def mount(_params, _session, socket) do
+  # `use Mob.Screen` and not `Kati.Screens.Root`, so this screen's own `mount/3`
+  # takes the push's params directly where a pushed screen reads them off
+  # `assigns.params`. `Map.get/2` and not a pattern match on the key, so a bare
+  # push — the gallery's, every sweep's — still takes the drawing's branch.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, socket |> Mob.Socket.assign(:film, film()) |> Mob.Socket.assign(:menu?, false)}
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:film, film(Map.get(params || %{}, :id)))
+     |> Mob.Socket.assign(:menu?, false)}
   end
 
   @doc """
@@ -99,10 +107,14 @@ defmodule Kati.Screens.Film do
   `Kati.Screens.Series` gives for not moving half of itself: a page whose title
   is a real film and whose note is somebody else's evening reads as entirely
   real. Either every value is this user's or every value is the drawing's.
+
+  `id` names the shelf row the caller meant. Without one — the gallery's door,
+  and every arrival before there was anything to name — it is the top of the
+  film shelf, which is what this screen has always drawn.
   """
-  @spec film() :: map()
-  def film do
-    tracked_film() || drawn_film()
+  @spec film(String.t() | nil) :: map()
+  def film(id \\ nil) do
+    tracked_film(id) || drawn_film()
   end
 
   @doc """
@@ -123,15 +135,38 @@ defmodule Kati.Screens.Film do
   `Ash.read!` on a device mid-migration raises, and a screen that dies is
   strictly worse than a screen showing the values it was drawn from — the same
   degradation `Kati.Screens.Library.shelf/0` and `Kati.Calendars.Today` make.
+
+  An id that names no shelf row answers `nil` as well, rather than the top of
+  the shelf. That is `Kati.Screens.BookDetail.shelved_book/1`'s rule and its
+  reason: a row archived or deleted under the user is not the same fact as an
+  empty shelf, and substituting a different film is the swap the argument exists
+  to prevent.
   """
-  @spec tracked_film() :: map() | nil
-  def tracked_film do
-    case newest_film() do
+  @spec tracked_film(String.t() | nil) :: map() | nil
+  def tracked_film(id \\ nil) do
+    case film_record(id) do
       nil -> nil
       tracked -> shaped(tracked, cached_for(tracked), watches_of(tracked))
     end
   rescue
     _ -> nil
+  end
+
+  # The film the caller named, or — given no id — the top of the shelf, which is
+  # what every arrival at this screen used to get and what a bare push still
+  # gets. Read THROUGH `:shelf` rather than with `Ash.get/2` for the reason
+  # `newest_film/0` states below: `:shelf` is where *keeps history, hides from
+  # shelf* is enforced, so an id fetched around it would open a title the user
+  # archived.
+  defp film_record(nil), do: newest_film()
+
+  defp film_record(title_id) do
+    TrackedTitle
+    |> Ash.Query.for_read(:shelf, %{kind: :movie})
+    |> Ash.Query.filter(id == ^title_id)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> List.first()
   end
 
   # The top of the film shelf. `:shelf` rather than a filter written out here:
@@ -188,6 +223,11 @@ defmodule Kati.Screens.Film do
     noted = Enum.find(dated, &noted?/1)
 
     %{
+      # The row a log is written against. Carried for the same reason
+      # `Kati.Screens.Series` carries `tracked_id`: the film on screen and the
+      # film a sheet's own query returns first are two different facts, and
+      # `:log_watch` is the tap that has to know which.
+      tracked_id: tracked.id,
       title: title_of(cached),
       seed: seed_of(tracked, cached),
       meta: meta_line(cached),
@@ -877,11 +917,17 @@ defmodule Kati.Screens.Film do
   def handle_info({:tap, :close_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
 
+  # The sheet is about a watch OF this film, so it is told which. Bare, "Log a
+  # watch" on one film opened whatever the newest logged watch in the whole
+  # library happened to be.
   def handle_info({:tap, :log_watch}, socket) do
     {:noreply,
      socket
      |> Mob.Socket.assign(:menu?, false)
-     |> Mob.Socket.push_screen(Kati.Screens.Rating)}
+     |> Mob.Socket.push_screen(
+       Kati.Screens.Rating,
+       Kati.Screens.Rating.params_for(socket.assigns.film)
+     )}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}

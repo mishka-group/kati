@@ -86,10 +86,17 @@ defmodule Kati.Screens.BookDetailFa do
   Deliberately short: a title, an author, a cover and an ISBN. Everything else
   on the page — the status word, the eyebrows, the row labels — is Kati's copy
   and stays in the language the screen is drawn in.
+
+  The id comes with them, and it is not drawn anywhere: it is what lets ثبت
+  پیشرفت name the book it is about instead of leaving screen 72 to take the head
+  of the shelf. `Kati.Screens.BookDetail.shaped/3` carries it for the same
+  reason. `Kati.Books.SampleFa.detail/0` has no id and is not given a `nil` one,
+  so the fixture answers `nil` by absence.
   """
   @spec own(map()) :: map()
   def own(shelved) do
     %{
+      id: shelved.id,
       title: shelved.title,
       author: shelved.author || "",
       seed: shelved.seed,
@@ -639,8 +646,18 @@ defmodule Kati.Screens.BookDetailFa do
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
+  # The sheet is handed the id of the book this page is drawing — screen 66's
+  # own door does the same through `Kati.Screens.LogProgress.params_for/1`, and
+  # the key is spelled there rather than here so the English sheet and the
+  # Persian one cannot drift apart about what `:book_id` means.
   def handle_info({:tap, :log_progress}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgressFa)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogProgressFa,
+         Kati.Screens.LogProgress.params_for(socket.assigns.book)
+       )}
 
   def handle_info({:tap, :rate}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}

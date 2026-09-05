@@ -161,10 +161,16 @@ defmodule Kati.Screens.LibraryFa do
   float the rail can sweep: an unknown ratio is an empty track and a finished
   title a full one, and neither invents a percentage — `meta/1` says so in
   words in exactly the case this returns `0.0`.
+
+  `id` is `Kati.Screens.Library.shaped/3`'s, carried through rather than
+  dropped: the mirror's poster has to be able to name the same title the English
+  grid names, and a Persian screen that looked the row up again would be the
+  second query this file exists not to write.
   """
   @spec shaped(map()) :: map()
   def shaped(row) do
     %{
+      id: row.id,
       title: row.title,
       seed: row.seed,
       status: row.status,
@@ -736,10 +742,30 @@ defmodule Kati.Screens.LibraryFa do
   """
   @spec poster_tag(map()) :: atom()
   def poster_tag(item) do
-    case item |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+    case item
+         |> Map.get(:title, "")
+         |> to_string()
+         |> String.trim()
+         |> String.replace(" ", "_") do
       "" -> :open_series
       title -> String.to_atom("open_series_" <> title)
     end
+  end
+
+  @doc """
+  The grid row a poster tag names, or `nil` when it names none.
+
+  The tag carries a TITLE, and a title is a caption rather than an identity —
+  two shelved titles spelled the same collide, and a caption is the one field on
+  this row a provider can change under you. So the tag is matched back against
+  the rows this screen actually drew, through `poster_tag/1` itself rather than
+  by parsing the prefix off, and what travels to screen 58 is the row's `:id`
+  and not its name. `nil` is an ordinary answer: a tag from the dock, or a grid
+  redrawn under a tap in flight.
+  """
+  @spec tapped(atom(), [map()]) :: map() | nil
+  def tapped(tag, titles) do
+    Enum.find(titles, &(Kati.Screens.LibraryFa.poster_tag(&1) == tag))
   end
 
   @doc false
@@ -846,11 +872,31 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
+  # `:open_series` is the tag `poster_tag/1` falls back to for a row with no
+  # caption, so it is one tile like any other and is looked up the same way.
   def handle_info({:tap, :open_series}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.SeriesFa,
+         Kati.Screens.Series.params_for(
+           Kati.Screens.LibraryFa.tapped(:open_series, socket.assigns.titles)
+         )
+       )}
 
+  # کتابخانه, this screen's own name, because that is where `pop_screen/1` goes.
+  # The page it opens is still English — there is no Persian screen 19 in the
+  # 127 drawings — so this is the pill naming a Persian screen truthfully rather
+  # than the whole page changing language, and `Kati.Screens.OnboardingFa`
+  # already sets the precedent for a Persian back label. `query: ""` is the disc
+  # saying what it has, which is nothing typed: bare, screen 19 fell through to
+  # `Kati.Search.handed_over/0`, a DETS key nothing clears, so the disc opened
+  # somebody's last search from a previous launch.
   def handle_info({:tap, :open_search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "کتابخانه"})}
 
   # One clause for every chip and every segment, because the tag carries the
   # index: a fifth chip is a change to `Sample.chips/0` and nothing else.
@@ -878,7 +924,14 @@ defmodule Kati.Screens.LibraryFa do
       # segment with it. Written that way first, and nothing but reading the
       # clause order showed it.
       "open_series_" <> _title ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa)}
+        {:noreply,
+         Mob.Socket.push_screen(
+           socket,
+           Kati.Screens.SeriesFa,
+           Kati.Screens.Series.params_for(
+             Kati.Screens.LibraryFa.tapped(tag, socket.assigns.titles)
+           )
+         )}
 
       "shelf_" <> index ->
         {:noreply, Mob.Socket.assign(socket, :shelf, String.to_integer(index))}

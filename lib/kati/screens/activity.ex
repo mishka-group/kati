@@ -626,8 +626,13 @@ defmodule Kati.Screens.Activity do
   invented here.
   """
   @impl true
+  # `back: "Activity"` and not `"Stats"`: this screen is itself pushed, so
+  # opening 19 from here is a second push and its back pill pops onto this page
+  # rather than onto the one above it.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Activity"})}
 
   # One clause for all four chips: the tag carries the label.
   def handle_tap(tag, socket) do

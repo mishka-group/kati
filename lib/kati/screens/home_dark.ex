@@ -250,8 +250,12 @@ defmodule Kati.Screens.HomeDark do
   def handle_info({:tap, :inbox}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
 
+  # `query: ""` and no `back:`. This IS Home, so 19's own default pill is right
+  # from here and only from here — naming it again would hide which doors
+  # actually needed the label. The empty query still has to be said, or the
+  # field opens on whatever `Kati.Search.hand_over/1` last wrote.
   def handle_info({:tap, :search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
 
   def handle_info({:tap, :fab}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}

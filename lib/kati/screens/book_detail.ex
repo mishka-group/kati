@@ -1024,8 +1024,17 @@ defmodule Kati.Screens.BookDetail do
   # book` does: screen 33 asks you to rate a book you just finished, and
   # arriving there off a write that failed would ask you to rate one the shelf
   # still has you halfway through.
+  # It finishes the book this page is drawing, for the reason `:log_progress`
+  # above names one: `finish_book/1` defaults to the shelf's head, so a page
+  # opened on the third book marked the first as finished and then handed the
+  # reader to screen 33 to rate it. The two controls on this row now name the
+  # same book, which is the book on the page.
+  #
+  # `book[:id]` and not `book.id`: `Kati.Books.Sample.detail/0` has no id and is
+  # not given a `nil` one, so the sample answers `nil` by absence — the same
+  # read `shaped/3` documents at the top of this file.
   def handle_tap(:finish, socket) do
-    case Kati.Screens.LogProgress.finish_book() do
+    case Kati.Screens.LogProgress.finish_book(socket.assigns.book[:id]) do
       {:ok, _book} ->
         {:noreply,
          socket

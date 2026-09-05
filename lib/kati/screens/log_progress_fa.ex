@@ -43,15 +43,53 @@ defmodule Kati.Screens.LogProgressFa do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:sheet, SampleFa.sheet())
+     |> Mob.Socket.assign(:sheet, sheet(Map.get(params || %{}, :book_id)))
      |> Mob.Socket.assign(:unit, :unit_page)
      |> Mob.Socket.assign(:page, 260)}
   end
+
+  @doc """
+  The sheet this screen draws: the drawing's, with the named book's own fields
+  over it.
+
+  `nil` is the whole of today's behaviour and stays literally that —
+  `Kati.Books.SampleFa.sheet/0` and nothing else — because screen 72 is compared
+  against its drawing through `Kati.Screens.Gallery`, which pushes it with no
+  params. An id that names no row answers the same, which is
+  `Kati.Screens.BookDetail.shelved_book/1`'s rule: a book deleted under you
+  draws the drawing, never somebody else's.
+
+  A named book replaces exactly what `own/1` lists, and no more. The position
+  line and the timer face stay the drawing's for the reason the moduledoc gives
+  about the copy: shaping `ص. ۲۱۴ از ۳۸۰` out of a page count is Persian copy
+  this board's caption calls a proposal, and it belongs beside the Gregorian
+  shaping in `Kati.Books` rather than being invented on a screen.
+  """
+  @spec sheet(String.t() | nil) :: map()
+  def sheet(nil), do: SampleFa.sheet()
+
+  def sheet(id) when is_binary(id) do
+    case Kati.Screens.BookDetail.shelved_book(id) do
+      nil -> SampleFa.sheet()
+      shelved -> Map.merge(SampleFa.sheet(), own(shelved))
+    end
+  end
+
+  @doc """
+  The parts of a shelved book that this sheet can say without translating them.
+
+  `Kati.Screens.BookDetailFa.own/1`'s doctrine, and deliberately shorter: a
+  title and a cover. Both are the user's own and neither is a word Kati wrote,
+  so neither is touched. Everything else on the sheet is chrome and stays in the
+  language the board is drawn in.
+  """
+  @spec own(map()) :: map()
+  def own(shelved), do: %{book: shelved.title, seed: shelved.seed}
 
   def render(assigns) do
     s = assigns.sheet
@@ -122,12 +160,17 @@ defmodule Kati.Screens.LogProgressFa do
 
   @doc false
   def book_row(s) do
-    assigns = %{s: s}
+    # The drawing's cover seed is the DEFAULT rather than the value: a sheet
+    # handed a book draws that book's cover, and a sheet handed nothing draws
+    # `bookaa1`, which is what the board was captured with. Bound out here
+    # rather than written inside the sigil so the fallback is one expression
+    # and not a branch in the markup.
+    assigns = %{s: s, cover: %{seed: Map.get(s, :seed, "bookaa1")}}
 
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
-        {Kati.Screens.LogProgress.cover(%{seed: "bookaa1"})}
+        {Kati.Screens.LogProgress.cover(@cover)}
         <Spacer size={13} />
         <Column weight={1.0}>
           {Kati.Screens.BookDetailFa.fa(@s.book, 14.5, :on_surface, weight: "bold")}

@@ -59,7 +59,7 @@ defmodule Kati.Screens.YearShare do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title("Your year, shared", ShareSample.subtitle())}
         {Kati.Screens.YearShare.scopes(assigns.scope)}
-        {Kati.Screens.YearShare.card()}
+        {Kati.Screens.YearShare.card(assigns.aspect)}
         {UI.eyebrow("Aspect")}
         {Kati.UI.Segmented.plain(Kati.Screens.YearShare.aspects(), assigns.aspect)}
         <Spacer size={16} />
@@ -106,10 +106,33 @@ defmodule Kati.Screens.YearShare do
   something else.
   """
   @spec card() :: map()
-  def card do
-    hours = ShareSample.hours()
+  def card, do: card(:aspect_square)
 
-    assigns = %{hours: hours}
+  @doc """
+  The preview at one of the two ratios — screen 100's `scale`, on this page.
+
+  The Aspect segments used to set `:aspect` and nothing read it, so the preview
+  the caption calls *as they will be saved* was one ratio whichever segment was
+  lit. `scale/1` reads `Kati.Screens.YearCards`'s own two numbers — 1.0 and
+  1.25 — rather than starting a second table: a Story preview that re-scaled by
+  a different number from the file Story is cut at would be a preview of
+  something else.
+
+  `sized/2` returns the size UNCHANGED at 1.0 rather than multiplying by it.
+  `10 * 1.0` is `10.0` where the drawing's tree carries `10`, and the square
+  ratio is what every capture, every sweep and the gallery render.
+  """
+  @spec card(atom()) :: map()
+  def card(aspect) do
+    hours = ShareSample.hours()
+    scale = scale(aspect)
+
+    assigns = %{
+      hours: hours,
+      label_size: sized(10, scale),
+      figure_size: sized(34, scale),
+      titles_size: sized(10, scale)
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -123,7 +146,7 @@ defmodule Kati.Screens.YearShare do
         <Text
           text={String.upcase(@hours.label)}
           font_family="mono"
-          text_size={10}
+          text_size={@label_size}
           letter_spacing={0.14}
           text_color={Palette.muted()}
         />
@@ -131,7 +154,7 @@ defmodule Kati.Screens.YearShare do
         <Row fill_width={true} align="bottom">
           <Text
             text={@hours.figure}
-            text_size={34}
+            text_size={@figure_size}
             font_weight="extrabold"
             letter_spacing={-0.035}
             text_color={:on_surface}
@@ -151,7 +174,7 @@ defmodule Kati.Screens.YearShare do
         <Text
           text="Top titles"
           font_family="mono"
-          text_size={10}
+          text_size={@titles_size}
           letter_spacing={0.14}
           text_color={Palette.muted()}
         />
@@ -164,6 +187,19 @@ defmodule Kati.Screens.YearShare do
     </Column>
     """
   end
+
+  # The two ratios, and the number each multiplies the type by — the same table
+  # `Kati.Screens.YearCards` cuts the files at (`@ratios`, year_cards.ex:45),
+  # read here rather than copied as sizes. An aspect this page does not draw
+  # takes the square, so a stale tag cannot silently re-scale the preview.
+  defp scale(:aspect_story), do: 1.25
+  defp scale(_square), do: 1.0
+
+  # Identity at 1.0, deliberately. `10 * 1.0` is `10.0` and the drawing's tree
+  # carries `10`; the square is the ratio every capture was taken at, so it has
+  # to come out of here untouched rather than merely equal.
+  defp sized(size, 1.0), do: size
+  defp sized(size, scale), do: size * scale
 
   @doc false
   def posters do

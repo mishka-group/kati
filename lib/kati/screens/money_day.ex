@@ -22,6 +22,21 @@ defmodule Kati.Screens.MoneyDay do
   by a colour. Inventing a tint for *past* would have meant a fifth lane hue on
   a screen that already has four, and a reader would have to learn it.
 
+  ## The day is the route's, not the clock's
+
+  A `money` row on screen 02's timeline pushes here carrying `%{date: date}` —
+  the day the strip is on, which is the day the tapped row sits on — and so
+  does the Schedule menu's *Money on the calendar*. This page used to drop that
+  and ask `Kati.Time.today()` three separate times over, so a renewal tapped on
+  a Thursday opened Tuesday's money: #84's defect exactly, one screen along.
+
+  A date rather than the row's own event id, though the tag carries one:
+  nothing joins a `Kati.Calendars.Event` to a `Kati.Money.Expense`, so the id
+  could only ever have been a way of asking which day the row was on, and the
+  question this page answers is *what does this day cost*. See `date/1` for the
+  one spelling of the key and `rows/1` for what a handed day with nothing on it
+  draws.
+
   ## Where the rows come from
 
   `Kati.Money.Expense` for what was spent and `Kati.Services.Service.renews_on`
@@ -40,8 +55,15 @@ defmodule Kati.Screens.MoneyDay do
   alias Kati.UI.SettingsList
 
   def load(socket) do
+    # The day the push named, or `nil` for a push that named none. Carried on
+    # the socket rather than re-derived: the title, the mono subtitle and the
+    # spine are three readings of ONE day, and a second derivation is a second
+    # chance for them to disagree.
+    date = Kati.Screens.MoneyDay.date(socket.assigns.params)
+
     socket
-    |> Mob.Socket.assign(:rows, rows())
+    |> Mob.Socket.assign(:date, date)
+    |> Mob.Socket.assign(:rows, rows(date))
     |> Mob.Socket.assign(:filter, "All")
     # Expanded, because the drawing draws both states at once so a reader can
     # compare them — and the collapsed one is the state you get by pressing the
@@ -50,11 +72,49 @@ defmodule Kati.Screens.MoneyDay do
     |> Mob.Socket.assign(:expanded?, true)
   end
 
-  @doc "The day's rows: what is stored, or the drawing's four."
-  @spec rows() :: [map()]
-  def rows do
-    case stored() do
-      [] -> DaySample.rows()
+  @doc """
+  The day a push named, or `nil` when it named none.
+
+  One spelling of `:date`, matching what `Kati.Screens.Calendar` already hands
+  screen 09 rather than a second convention for the same fact. Public for the
+  reason `Kati.Screens.Day.day/1` is: the question the empty-database sweep
+  asks — what does this answer with when nothing was handed over — can only be
+  put to a named function.
+
+  `nil` rather than today, so that every reader below is the one place its own
+  fallback is written. The gallery, both design sweeps and a bare
+  `mount_screen/1` all arrive that way, and each of the three readers turns
+  `nil` into `Kati.Time.today()` — which is what all three of them did
+  unconditionally before any of them could be told otherwise.
+  """
+  @spec date(map() | nil) :: Date.t() | nil
+  def date(params \\ %{}) do
+    case Map.get(params || %{}, :date) do
+      %Date{} = date -> date
+      _no_date -> nil
+    end
+  end
+
+  @doc """
+  The day's rows: what is stored, or the drawing's four.
+
+  A HANDED day with nothing stored on it renders empty, and only the day the
+  clock is on keeps the sample — the split `Kati.Screens.Day.day/1` already
+  makes, and for its reason: the drawing's four rows handed to a person as
+  their own Tuesday is a page of invented money, and a page that can only be
+  compared with its board while the app is lying is not a comparison worth
+  keeping.
+
+  `rows/0` is the no-date path and is unchanged to the term: it is today, and
+  today with an empty store is `Kati.Money.DaySample.rows/0`.
+  """
+  @spec rows(Date.t() | nil) :: [map()]
+  def rows(date \\ nil) do
+    today = Kati.Time.today()
+    day = date || today
+
+    case stored(day) do
+      [] -> if day == today, do: DaySample.rows(), else: []
       expenses -> Enum.map(expenses, &shape/1)
     end
   end
@@ -63,14 +123,12 @@ defmodule Kati.Screens.MoneyDay do
   @spec drawn_rows() :: [map()]
   def drawn_rows, do: DaySample.rows()
 
-  defp stored do
-    today = Kati.Time.today()
-
+  defp stored(day) do
     Expense
     |> Ash.Query.for_read(:recent)
     |> Ash.read()
     |> case do
-      {:ok, expenses} -> Enum.filter(expenses, &(Date.compare(&1.spent_on, today) == :eq))
+      {:ok, expenses} -> Enum.filter(expenses, &(Date.compare(&1.spent_on, day) == :eq))
       _other -> []
     end
   rescue
@@ -98,6 +156,12 @@ defmodule Kati.Screens.MoneyDay do
 
   @doc false
   def content(assigns) do
+    # Hoisted out of the sigil rather than inlined: both now take the day as
+    # well, and the interpolation was already the longest line in the file.
+    date = assigns.date
+    day_title = Kati.Screens.MoneyDay.title(date)
+    day_subtitle = Kati.Screens.MoneyDay.subtitle(assigns.rows, date)
+
     ~MOB"""
     <Scroll>
       <Column
@@ -108,7 +172,7 @@ defmodule Kati.Screens.MoneyDay do
         padding_bottom={40}
       >
         {Kati.Screens.MoneyDay.chrome()}
-        {SettingsList.title(Kati.Screens.MoneyDay.title(), Kati.Screens.MoneyDay.subtitle(assigns.rows))}
+        {SettingsList.title(day_title, day_subtitle)}
         {Kati.Screens.MoneyDay.chips(assigns.filter)}
         {Kati.Screens.MoneyDay.spine(assigns.rows, assigns.filter, assigns.expanded?)}
         {Kati.Screens.MoneyDay.notes()}
@@ -141,20 +205,44 @@ defmodule Kati.Screens.MoneyDay do
     """
   end
 
-  @doc "The day this page is about."
-  @spec title() :: String.t()
-  def title do
-    case stored() do
-      [] -> DaySample.day().title
-      _stored -> Calendar.strftime(Kati.Time.today(), "%a %-d %b")
-    end
+  @doc """
+  The day this page is about.
+
+  The drawing's own heading (`Mon 24 Aug`) is kept for exactly one case — the
+  day the clock is on, with nothing stored — which is the case every captured
+  frame of `test/design/screens/126.html` holds and the one the empty-database
+  sweep renders. Any other day is headed with its own name, stored rows or
+  not: a real Thursday titled `Mon 24 Aug` would be the one thing on the page
+  that could never be wrong because it was never right.
+
+  `Calendar` here is Elixir's own, not `Kati.Screens.Calendar` — this module
+  aliases neither.
+  """
+  @spec title(Date.t() | nil) :: String.t()
+  def title(date \\ nil) do
+    today = Kati.Time.today()
+    day = date || today
+
+    if stored(day) == [] and day == today,
+      do: DaySample.day().title,
+      else: Calendar.strftime(day, "%a %-d %b")
   end
 
-  @doc "How many renewals and how many other items — the drawing's own split."
-  @spec subtitle([map()]) :: String.t()
-  def subtitle(rows) do
-    case stored() do
-      [] ->
+  @doc """
+  How many renewals and how many other items — the drawing's own split.
+
+  The board's own line survives on the one branch `title/1` keeps its heading
+  on: today, with nothing stored. A handed day counts what it actually holds,
+  including when that is nothing — `0 RENEWALS · 0 OTHER ITEMS` is a true
+  sentence about an empty Thursday and `3 RENEWALS · 5 OTHER ITEMS` is not.
+  """
+  @spec subtitle([map()], Date.t() | nil) :: String.t()
+  def subtitle(rows, date \\ nil) do
+    today = Kati.Time.today()
+    day = date || today
+
+    case stored(day) do
+      [] when day == today ->
         DaySample.day().subtitle
 
       _stored ->
@@ -321,7 +409,11 @@ defmodule Kati.Screens.MoneyDay do
     assigns = %{
       row: row,
       chevron: if(Map.has_key?(row, :members), do: "expand_more", else: nil),
-      tap: if(Map.has_key?(row, :members), do: {self(), Kati.Screens.MoneyDay.expand_tag(row)}, else: nil),
+      tap:
+        if(Map.has_key?(row, :members),
+          do: {self(), Kati.Screens.MoneyDay.expand_tag(row)},
+          else: nil
+        ),
       expanded: expanded?
     }
 

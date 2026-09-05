@@ -528,8 +528,13 @@ defmodule Kati.Screens.Music do
 
   def handle_tap(:segment_music, socket), do: {:noreply, socket}
 
+  # The disc says which page it is: one control drawn three times, so it names
+  # itself three times rather than leaving 19 to guess for all three. The empty
+  # query is said out loud because a disc has nothing typed behind it, and
+  # silence is what lets 19 open on whatever was last handed over.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Music"})}
 
   # Every album tile and every release row, by its own seed — see `album_tag/1`
   # and `artist_tag/1`. They open the same two screens the bare tags did:

@@ -140,14 +140,30 @@ defmodule Kati.Screens.ArtistDetailFa do
   # so the drawing's ۱۴۰۲ is converted rather than transcribed.
   @first_heard_on ~D[2024-03-03]
 
-  def mount(_params, _session, socket) do
+  # This board is `use Mob.Screen` with a `mount/3` of its own rather than a
+  # root, so it can be told which artist it is about — and it used to throw the
+  # answer away. Screen 76's هنرمند row names one now, and everything below
+  # follows that name instead of the artist of the shelf's first album.
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
+    id = Map.get(params || %{}, :artist_id)
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:artist, artist())
-     |> Mob.Socket.assign(:albums, albums())
-     |> Mob.Socket.assign(:release, unheard_release())
+     # Kept beside the artist, and read by nothing on this render. The toggle
+     # is what needs it: `handle_info({:tap, :toggle_following}, _)` hands the
+     # socket straight to screen 77's handler, which writes through to whatever
+     # `:artist_id` names, and a mirror that flipped the switch on a different
+     # musician would be a worse defect than the one this round is fixing.
+     |> Mob.Socket.assign(:artist_id, id)
+     |> Mob.Socket.assign(:artist, artist(id))
+     |> Mob.Socket.assign(:albums, albums(id))
+     # The dropped count is read HERE and carried, rather than re-read inside
+     # `chart/2` and `albums_label/2`. Those two run at render time with only the
+     # album list in hand, so a store read from inside them would answer for the
+     # shelf's first artist while the rail beside it showed the named one.
+     |> Mob.Socket.assign(:truncated, ArtistDetail.truncated(id))
+     |> Mob.Socket.assign(:release, unheard_release(id))
      |> Mob.Socket.assign(:dismissed?, false)}
   end
 
@@ -197,8 +213,12 @@ defmodule Kati.Screens.ArtistDetailFa do
   because a Persian fixture's artist is a Persian artist.
   """
   @spec artist() :: map()
-  def artist do
-    stored = ArtistDetail.stored_artist()
+  def artist, do: artist(nil)
+
+  @doc "The same page, about the artist the album named."
+  @spec artist(String.t() | nil) :: map()
+  def artist(id) do
+    stored = ArtistDetail.stored_artist(id)
     base = stored || ArtistDetail.drawn_artist()
     d = drawn()
 
@@ -223,10 +243,14 @@ defmodule Kati.Screens.ArtistDetailFa do
   Persian for the same reason the artist's name is.
   """
   @spec albums() :: [map()]
-  def albums do
-    case ArtistDetail.stored_artist() do
+  def albums, do: albums(nil)
+
+  @doc "The same list, for the artist the album named."
+  @spec albums(String.t() | nil) :: [map()]
+  def albums(id) do
+    case ArtistDetail.stored_artist(id) do
       nil -> drawn_albums()
-      _stored -> ArtistDetail.albums()
+      _stored -> ArtistDetail.albums(id)
     end
   end
 
@@ -262,13 +286,17 @@ defmodule Kati.Screens.ArtistDetailFa do
   the title is written here.
   """
   @spec unheard_release() :: map() | nil
-  def unheard_release do
-    case ArtistDetail.stored_artist() do
+  def unheard_release, do: unheard_release(nil)
+
+  @doc "The same cream card, for the artist the album named."
+  @spec unheard_release(String.t() | nil) :: map() | nil
+  def unheard_release(id) do
+    case ArtistDetail.stored_artist(id) do
       nil ->
         %{title: "نوارهای خور", line: drawn().unheard_line}
 
       _stored ->
-        case ArtistDetail.unheard_release() do
+        case ArtistDetail.unheard_release(id) do
           nil -> nil
           release -> %{title: release.title, line: drawn().unheard_line}
         end
@@ -279,6 +307,7 @@ defmodule Kati.Screens.ArtistDetailFa do
   def content(assigns) do
     a = assigns.artist
     albums = assigns.albums
+    dropped = assigns.truncated
     d = drawn()
 
     ~MOB"""
@@ -293,10 +322,10 @@ defmodule Kati.Screens.ArtistDetailFa do
         {Kati.Screens.ArtistDetailFa.chrome()}
         {Kati.Screens.ArtistDetailFa.hero(a)}
         {Kati.Screens.ArtistDetailFa.following_row(a)}
-        {Fa.eyebrow(Kati.Screens.ArtistDetailFa.albums_label(albums))}
+        {Fa.eyebrow(Kati.Screens.ArtistDetailFa.albums_label(albums, dropped))}
         {Kati.Screens.ArtistDetailFa.rail(albums)}
         {StatsFa.quiet_eyebrow(d.chart_label)}
-        {Kati.Screens.ArtistDetailFa.chart(albums)}
+        {Kati.Screens.ArtistDetailFa.chart(albums, dropped)}
         {Kati.Screens.ArtistDetailFa.unheard(assigns.release, assigns.dismissed?)}
         {StatsFa.quiet_eyebrow(d.totals_label)}
         {Kati.Screens.ArtistDetailFa.totals(a)}
@@ -452,10 +481,15 @@ defmodule Kati.Screens.ArtistDetailFa do
   kept plus what it dropped — because `Kati.Screens.ArtistDetail.albums_label/0`
   hands back a finished English string and a mirror that parsed a number out of
   a sentence would break the first time the sentence changed.
+
+  `dropped` is handed in rather than read here, because this runs at render
+  time with only the capped list in hand: a store read from inside it would
+  answer for the shelf's first artist while the rail beside it drew the one the
+  album named. `mount/3` reads it once, about the right person.
   """
-  @spec albums_label([map()]) :: String.t()
-  def albums_label(albums) do
-    total = length(albums) + ArtistDetail.truncated()
+  @spec albums_label([map()], non_neg_integer()) :: String.t()
+  def albums_label(albums, dropped) do
+    total = length(albums) + dropped
 
     drawn().albums_label <> " · " <> Shamsi.fa(total)
   end
@@ -545,8 +579,8 @@ defmodule Kati.Screens.ArtistDetailFa do
   play*, and two drawings of one chart that disagreed about their axis would not
   be one chart.
   """
-  @spec chart([map()]) :: map()
-  def chart(albums) do
+  @spec chart([map()], non_neg_integer()) :: map()
+  def chart(albums, dropped) do
     top = albums |> Enum.map(& &1.plays) |> Enum.max(fn -> 0 end)
 
     bars =
@@ -565,7 +599,7 @@ defmodule Kati.Screens.ArtistDetailFa do
         shadow={Kati.Theme.shadow_card()}
       >
         {bars}
-        {Kati.Screens.ArtistDetailFa.truncation(Kati.Screens.ArtistDetail.truncated())}
+        {Kati.Screens.ArtistDetailFa.truncation(dropped)}
       </Column>
       <Spacer size={24} />
     </Column>

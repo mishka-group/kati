@@ -207,6 +207,11 @@ defmodule Kati.Screens.Library do
   @doc """
   One tracked title in the shape the grid, the chips and the subtitle all read.
 
+  `id` is the tracked row's own, and it is the only field here that is an
+  identity rather than a caption: it is what a tapped tile carries to the screen
+  it opens. `Kati.Library.Sample`'s rows do not pass through here and so do not
+  have one, which is how `open_tile/3` tells a shelf tile from a drawn one.
+
   `cached` may be `nil` and `ticks` may be zero; both are ordinary states and
   neither is allowed to invent a number:
 
@@ -229,6 +234,11 @@ defmodule Kati.Screens.Library do
   @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer()) :: map()
   def shaped(tracked, cached, ticks) do
     %{
+      # The row a tile opens. Carried on the shape rather than looked up again
+      # in the tap handler, for the reason `Kati.Screens.Series` gives for
+      # `tracked_id`: the title the user tapped and the title a second query
+      # happens to return first are two different facts.
+      id: tracked.id,
       title: cached && cached.title,
       seed: cached && cached.poster_path,
       kind: if(tracked.kind == :movie, do: :film, else: :series),
@@ -1002,9 +1012,39 @@ defmodule Kati.Screens.Library do
   def poster_tag(item) do
     base = if Map.get(item, :kind) == :film, do: "open_film", else: "open_series"
 
-    case item |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+    case item
+         |> Map.get(:title, "")
+         |> to_string()
+         |> String.trim()
+         |> String.replace(" ", "_") do
       "" -> String.to_atom(base)
       title -> String.to_atom(base <> "_" <> title)
+    end
+  end
+
+  @doc """
+  Open `module` on the tile that carries `tag`.
+
+  The tag is resolved back to its row by running `poster_tag/1` over the very
+  list the grid was built from, rather than by reversing the string:
+  `poster_tag/1` replaces spaces with underscores, which makes "Low Water" and
+  "Low_Water" the same tag and the reverse direction a guess. Two rows that
+  produce one tag already share one tap target on the wire, so collapsing them
+  here loses nothing that was not already lost.
+
+  A row with no id — `Kati.Library.Sample`'s nine, and a tag that matches
+  nothing — pushes with **no params at all** rather than with `%{id: nil}`.
+  That is `Kati.Screens.Calendar`'s rule for its own rows and its reason: a
+  destination that pattern-matches on the key would otherwise take a `nil` for
+  an answer, and the drawing's fallback is the branch that has to survive.
+  """
+  @spec open_tile(Mob.Socket.t(), atom(), module()) :: Mob.Socket.t()
+  def open_tile(socket, tag, module) do
+    row = Enum.find(socket.assigns.titles, &(Kati.Screens.Library.poster_tag(&1) == tag))
+
+    case row && Map.get(row, :id) do
+      nil -> Mob.Socket.push_screen(socket, module)
+      id -> Mob.Socket.push_screen(socket, module, %{id: id})
     end
   end
 
@@ -1153,8 +1193,15 @@ defmodule Kati.Screens.Library do
   end
 
   @impl true
+  # `query: ""` is the disc saying what it has, which is nothing typed. Bare,
+  # the push said nothing at all and screen 19 fell through to
+  # `Kati.Search.handed_over/0` — a DETS key nothing clears — so the Library's
+  # disc opened somebody's last search, from a previous launch. `back:` because
+  # 19's pill read `Home`, and Home is the one screen that does not open it.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Library"})}
 
   def handle_tap(:open_up_next, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNext)}
@@ -1236,10 +1283,10 @@ defmodule Kati.Screens.Library do
       # making both unreachable. This screen's grid and its empty card are
       # never on screen together, so nothing would have shown it.
       "open_film_" <> _title ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Film)}
+        {:noreply, Kati.Screens.Library.open_tile(socket, tag, Kati.Screens.Film)}
 
       "open_series_" <> _title ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Series)}
+        {:noreply, Kati.Screens.Library.open_tile(socket, tag, Kati.Screens.Series)}
 
       _ ->
         {:noreply, socket}

@@ -171,8 +171,17 @@ defmodule Kati.Screens.Season do
   # moduledoc: the other half renumbers one particular season.
   @general_note "Your ticks follow the episode, not the number."
 
+  # No `require Ash.Query`, for the reason `Kati.Screens.Series` states beside
+  # its own aliases: every read here is an action by name, and `series_record/1`
+  # narrows with `Enum.find` rather than a `filter` expression so it stays that
+  # way.
+
+  # `Kati.Screens.Pushed` puts the push's params on `:params`, and this is the
+  # screen reading them — the two lines `Kati.Screens.Day` and
+  # `Kati.Screens.MealEdit` are built on. A bare push assigns `%{}`, which
+  # `season/1` reads as the question this screen was always asked.
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :season, season())
+  def load(socket), do: Mob.Socket.assign(socket, :season, season(socket.assigns.params))
 
   @doc """
   The season this screen draws: the user's, or the drawing's.
@@ -182,9 +191,13 @@ defmodule Kati.Screens.Season do
   the moduledoc) and are the design's in both branches. What moves together is
   the header, the count and the rows, and those are one season or they are the
   drawing's.
+
+  `params` is the push's, taken whole rather than as two positional arguments,
+  because both keys are optional and either can be absent on its own: a caller
+  may know the series and not which season, and `%{}` knows neither.
   """
-  @spec season() :: map()
-  def season, do: tracked_season() || drawn_season()
+  @spec season(map() | nil) :: map()
+  def season(params \\ %{}), do: tracked_season(params) || drawn_season()
 
   @doc """
   Screen 34 exactly as it is drawn, from `Kati.Season.Sample`.
@@ -198,6 +211,42 @@ defmodule Kati.Screens.Season do
   def drawn_season, do: Sample.season()
 
   @doc """
+  The params that name a season — the series, and which of its seasons.
+
+  Here rather than at screen 04 so the two keys are spelled once, the way
+  `Kati.Screens.MealEdit` spells `:meal_id` once for its doors. This is more
+  than a bare id, which is exactly when a builder earns its place: a season is
+  a title AND a number, and screen 04 holds the number as the strip's label
+  (`S2`) where this screen counts in integers.
+
+  `:title_id` and not `:id`, because `:id` beside `:season` would read as the
+  season's own id and no such row exists — `Kati.Media.CachedSeason` is keyed by
+  `{source, title_source_id, season_number}`. Naming the noun is what
+  `:meal_id`, `:book_id` and `:album_id` already do everywhere an id is not the
+  destination's own subject.
+
+  A series with no tracked row — the drawing's — yields `%{}`, and a label that
+  is not `S<integer>` yields the title alone, which falls back to the bookmark.
+
+      iex> Kati.Screens.Season.params_for(%{tracked_id: "abc", current_season: "S2"})
+      %{title_id: "abc", season: 2}
+
+      iex> Kati.Screens.Season.params_for(%{current_season: "S2"})
+      %{}
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{tracked_id: id, current_season: label})
+      when is_binary(id) and is_binary(label) do
+    case Integer.parse(String.trim_leading(label, "S")) do
+      {number, ""} -> %{title_id: id, season: number}
+      _other -> %{title_id: id}
+    end
+  end
+
+  def params_for(%{tracked_id: id}) when is_binary(id), do: %{title_id: id}
+  def params_for(_series), do: %{}
+
+  @doc """
   The season the user is bookmarked in, shaped for the markup, or `nil`.
 
   `nil` is the ordinary answer three times over — nothing tracked, no
@@ -207,18 +256,58 @@ defmodule Kati.Screens.Season do
   mid-migration raises, and a screen that dies is strictly worse than a screen
   showing the values it was drawn from — the same degradation
   `Kati.Screens.Library.shelf/0` and `Kati.Calendars.Today` make.
+
+  Both halves of the referent are the caller's when it names them: `:title_id`
+  is which show, `:season` is which of its seasons. Neither named is the
+  question this screen was always asked — the most recently touched series, at
+  its own bookmark.
   """
-  @spec tracked_season() :: map() | nil
-  def tracked_season do
-    case newest_series() do
-      %TrackedTitle{progress_season: number} = tracked when is_integer(number) ->
-        episodes(tracked, number)
+  @spec tracked_season(map() | nil) :: map() | nil
+  def tracked_season(params \\ %{}) do
+    asked = params || %{}
+
+    case series_record(Map.get(asked, :title_id)) do
+      %TrackedTitle{} = tracked ->
+        case season_number(tracked, Map.get(asked, :season)) do
+          nil -> nil
+          number -> episodes(tracked, number)
+        end
 
       _none ->
         nil
     end
   rescue
     _ -> nil
+  end
+
+  # The season the caller named, or the bookmark. Both `nil` answers mean what
+  # the old `when is_integer(number)` guard meant when it failed: not a season
+  # this screen can draw, so `season/1` falls back whole rather than drawing a
+  # heading with no running order under it.
+  defp season_number(_tracked, number) when is_integer(number), do: number
+
+  defp season_number(%TrackedTitle{progress_season: number}, _asked) when is_integer(number),
+    do: number
+
+  defp season_number(_tracked, _asked), do: nil
+
+  # The series the caller named, or — given no id — the most recently touched
+  # one, which is what a bare push still gets. `Enum.find` over the same
+  # `:shelf` reads rather than an `Ash.Query.filter` expression: see the note
+  # above `load/1`. Reading through `:shelf` is also what keeps the season of a
+  # show the user hid unreachable by id. The per-kind `limit(1)` is gone from
+  # this direction on purpose — the named row need not be the newest of its
+  # kind — and `newest_series/0`, which does need it, is left alone below.
+  defp series_record(nil), do: newest_series()
+
+  defp series_record(title_id) do
+    @series_kinds
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Enum.find(&(&1.id == title_id))
   end
 
   # The most recently touched series, across both kinds that have seasons.

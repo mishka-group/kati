@@ -923,8 +923,12 @@ defmodule Kati.Screens.Health do
     suffix = band |> to_string() |> String.trim() |> String.replace(" ", "_")
 
     case suffix do
-      "" -> {self(), base_tag(name)}
-      s -> {self(), name |> base_tag() |> Atom.to_string() |> Kernel.<>("_" <> s) |> String.to_atom()}
+      "" ->
+        {self(), base_tag(name)}
+
+      s ->
+        {self(),
+         name |> base_tag() |> Atom.to_string() |> Kernel.<>("_" <> s) |> String.to_atom()}
     end
   end
 
@@ -945,6 +949,32 @@ defmodule Kati.Screens.Health do
     case unbuilt |> to_string() |> String.trim() |> String.replace(" ", "_") do
       "" -> :open_retired
       name -> String.to_atom("open_retired_" <> name)
+    end
+  end
+
+  @doc """
+  The section an `open_retired_*` tag names, or `nil` for any other tag.
+
+  The exact inverse of `base_tag/1`'s underscore substitution, and it lives
+  beside it for that reason: one of the two turns `"Workouts"` into
+  `:open_retired_Workouts`, this one turns it back, and 42 stays the single
+  place that decides both — the same argument `tile_tap/1`'s own doc makes
+  about where a tile goes.
+
+  Screen 114 takes `%{section: name}` and has since it was written:
+  `Kati.Screens.States`, `Kati.Screens.AutoDetect` and
+  `Kati.Screens.NotificationAccess` all push it that way. This grid did not, so
+  both dashed tiles opened `Kati.Screens.RetiredTile`'s default subject and
+  pressing **Workouts** was answered with *Sleep isn't in this version* — a
+  wrong answer delivered confidently, which is the one thing the sheet's own
+  `subject/1` doc says it must not do.
+  """
+  @spec retired_section(atom()) :: String.t() | nil
+  def retired_section(tag) do
+    name = Atom.to_string(tag)
+
+    if String.starts_with?(name, "open_retired_") do
+      name |> String.replace_prefix("open_retired_", "") |> String.replace("_", " ")
     end
   end
 
@@ -1100,14 +1130,19 @@ defmodule Kati.Screens.Health do
   # error on every press, which reads like a bug rather than an unbuilt control.
   # Sleep and Workouts, each by its own name — see `tile_tap/1`. Both open the
   # explainer the single `:open_retired` opened; naming them is what lets a
-  # device test press one rather than whichever `onNodeWithTag` reached first.
+  # device test press one rather than whichever `onNodeWithTag` reached first,
+  # and it is also what lets the tap say *which* tile was pressed:
+  # `retired_section/1` reads the name back out of the tag and 114 is pushed
+  # about that section rather than about the one it was drawn for.
   #
   # Below the named clauses, above the catch-all.
   def handle_tap(tag, socket) when is_atom(tag) do
-    if String.starts_with?(Atom.to_string(tag), "open_retired_") do
-      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile)}
-    else
-      {:noreply, socket}
+    case retired_section(tag) do
+      nil ->
+        {:noreply, socket}
+
+      section ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: section})}
     end
   end
 

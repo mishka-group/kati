@@ -313,17 +313,30 @@ defmodule Kati.Screens.SearchIdle do
   def handle_info(message, socket), do: super(message, socket)
 
   @doc """
-  Carry the query to the results screen.
+  Carry both facts this page holds to the results screen.
 
-  Through `Mob.State` rather than a push argument, because `push_screen/2`
-  takes a module and nothing else — the same route `Kati.Locale` takes for a
-  value that has to survive a screen boundary.
+  The query rode across in `Mob.State` because `push_screen/2` was believed to
+  take a module and nothing else — the route `Kati.Locale` takes for a value
+  that has to survive a screen boundary. It takes a params map, so the query is
+  named in the push and the results page opens on what was actually typed here
+  rather than on whatever `Kati.Search.hand_over/1` last wrote.
+
+  The scope never rode at all: eight chips, and picking one moved an assign on
+  this page and nothing else. `Kati.Search.narrowable/1`, applied on 19, is what
+  decides which of the eight that page can honour.
+
+  `hand_over/1` still runs. It is what a push naming no query falls back to, and
+  this page is not the only door into 19.
   """
   @spec look(Mob.Socket.t()) :: Mob.Socket.t()
   def look(socket) do
     Search.hand_over(socket.assigns.query)
     Kati.Search.Recent.remember(socket.assigns.query)
-    Mob.Socket.push_screen(socket, Kati.Screens.Search)
+
+    Mob.Socket.push_screen(socket, Kati.Screens.Search, %{
+      query: socket.assigns.query,
+      scope: socket.assigns.scope
+    })
   end
 
   @doc """
@@ -333,6 +346,11 @@ defmodule Kati.Screens.SearchIdle do
   device test can type, so this puts them back. A round trip rather than a
   lookup because the shelf and the suggestions are two different lists and
   both arrive here.
+
+  The line is named in the push as well as written to `Mob.State`, which is the
+  difference between the results page opening on this row and opening on
+  whatever was handed over last. The lit scope rides with it — a person who
+  narrowed to Calendar and then tapped a recent query meant both.
   """
   @spec open(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def open(socket, line) do
@@ -341,17 +359,32 @@ defmodule Kati.Screens.SearchIdle do
 
     socket
     |> Mob.Socket.assign(:query, query)
-    |> Mob.Socket.push_screen(Kati.Screens.Search)
+    |> Mob.Socket.push_screen(Kati.Screens.Search, %{query: query, scope: socket.assigns.scope})
   end
 
   def handle_tap(:filters, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec)}
 
+  # `query_tag/2` answers a bare tag only for a row whose text is empty — the
+  # drawing's own single-row states. There is no line to carry, so these two say
+  # `""` rather than staying silent: silence is what lets the stale `Mob.State`
+  # key answer, which is the defect the two prefixed clauses below were written
+  # for.
   def handle_tap(:repeat_query, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{
+         query: "",
+         scope: socket.assigns.scope
+       })}
 
   def handle_tap(:try_suggestion, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{
+         query: "",
+         scope: socket.assigns.scope
+       })}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

@@ -147,9 +147,15 @@ defmodule Kati.Search do
   Put a query where the next screen will look for it.
 
   Screen 86 is the idle board and screen 19 is the results board, and the two
-  are separate pages — so what was typed on one has to reach the other.
-  `Mob.Socket.push_screen/2` takes a module and nothing else, so it travels the
-  same road `Kati.Locale` does: a key in `Mob.State`.
+  are separate pages — so what was typed on one has to reach the other. It
+  travelled the road `Kati.Locale` takes, a key in `Mob.State`, on the belief
+  that `Mob.Socket.push_screen/2` took a module and nothing else. It takes a
+  params map, and 86 now names its query in the push.
+
+  The key is kept, and it is not a leftover. A push that names no query at all
+  still has to open on something — the gallery's is one, and any door built
+  before 86 has run is another — and this is what
+  `Kati.Screens.Search.opening_query/1` reads when nothing was named.
 
   It lives with the specification rather than on either screen, and that is not
   tidiness. `Kati.ScreenEmptyDatabaseTest` derives which screens reach the
@@ -179,6 +185,46 @@ defmodule Kati.Search do
   rescue
     _error -> ""
   end
+
+  # The four scopes screen 19 can actually narrow to. They are the labels
+  # `Kati.Search.Query.chip_counts/1` builds, written out here rather than
+  # derived, for the reason that module's own moduledoc gives at length: this
+  # module runs nothing, and a call into the query executor from here would make
+  # every screen that merely mentions the specification — boards 86, 88, 89 and
+  # 91 among them — a database reader in `Kati.ScreenEmptyDatabaseTest`'s
+  # derived list. `narrowable_scopes/0` is what lets the two lists be checked
+  # against each other instead.
+  @narrowable ["All", "Screen", "Calendar", "Notes"]
+
+  @doc """
+  The scope screen 19 can narrow to, given one of the eight screen 86 offers.
+
+  86 draws a chip per `chip_labels/0` — All and the seven `@scopes` — and 19
+  draws four, because `Kati.Search.Query.run/1` builds three groups. So Books,
+  Music, Meals and Money are choosable on 86 and cannot exist on 19, and a scope
+  carried across unchecked is worse than one dropped:
+  `Kati.Screens.Search.visible_groups/2` filters on `filter == label`, so
+  `"Books"` leaves no group standing at all and the page draws its *matched
+  nothing* card — a correct-looking report of nothing found, over a query that
+  found things.
+
+  Opening on All is the honest degradation: the reader sees everything that
+  matched rather than a lie about nothing matching. The four scopes 19 does have
+  narrow as chosen.
+  """
+  @spec narrowable(String.t()) :: String.t()
+  def narrowable(scope) when scope in @narrowable, do: scope
+  def narrowable(_unnarrowable), do: "All"
+
+  @doc """
+  The four scopes `narrowable/1` passes through.
+
+  Public so the claim can be checked rather than trusted — these are meant to be
+  exactly the labels `Kati.Search.Query.chip_counts/1` returns, and this module
+  is deliberately unable to ask it. See `@narrowable`.
+  """
+  @spec narrowable_scopes() :: [String.t()]
+  def narrowable_scopes, do: @narrowable
 
   @doc "How many recent queries are kept."
   @spec recent_kept() :: pos_integer()

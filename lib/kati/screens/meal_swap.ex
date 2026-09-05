@@ -41,9 +41,9 @@ defmodule Kati.Screens.MealSwap do
   alias Kati.Theme
   alias Kati.Theme.Palette
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    swap = Kati.Screens.MealSwap.swap()
+    swap = Kati.Screens.MealSwap.swap(params)
 
     {:ok,
      socket
@@ -54,12 +54,27 @@ defmodule Kati.Screens.MealSwap do
   end
 
   @doc """
-  The swap this screen is a swap OF, read from the store.
+  The swap this screen is a swap OF when the push named nothing: the store's.
 
   Screen 43 hands the slot over the way screen 86 hands a query to 19 — a key
-  in `Mob.State`, because `push_screen/2` takes a module and nothing else. With
-  no slot, or no plan, this is `Kati.Meals.SampleSwap`'s drawing, which is what
-  the gallery shows and what the design sweeps compare against.
+  in `Mob.State` — and this is the reader of that key. With no slot, or no
+  plan, it is `Kati.Meals.SampleSwap`'s drawing, which is what the gallery
+  shows and what the design sweeps compare against.
+  """
+  @spec swap() :: map()
+  def swap, do: swap(%{})
+
+  @doc """
+  The swap this screen is a swap OF, given the push's own params.
+
+  `%{slot_id: id}` is what screen 45's `swap_horiz` disc pushes — the meal that
+  was on screen — rather than whatever `Mob.State` still held from an earlier
+  tap somewhere else. Screen 43 still hands its slot over through the store, so
+  a push that names nothing is exactly `handed_over/0`, and `swap/0` is that
+  call unchanged.
+
+  The two doors are ordered, and the order is the point: the push is written and
+  read inside one navigation and cannot be stale, the store can.
 
   ## The candidates are the meal library, ranked by what the swap costs
 
@@ -73,9 +88,9 @@ defmodule Kati.Screens.MealSwap do
   is what the board draws. `BEST` goes on the first and only because it IS the
   closest; the drawing does not decorate the others.
   """
-  @spec swap() :: map()
-  def swap do
-    with slot_id when is_binary(slot_id) <- handed_over(),
+  @spec swap(map() | nil) :: map()
+  def swap(params) do
+    with slot_id when is_binary(slot_id) <- named(params),
          %{} = slot <- slot_for(slot_id),
          %Kati.Meals.Recipe{} = recipe <- slot.recipe do
       figures = Nutrition.scale(recipe_figures(recipe), slot.portion_milli)
@@ -133,6 +148,27 @@ defmodule Kati.Screens.MealSwap do
     _error -> :ok
   catch
     :exit, _reason -> :ok
+  end
+
+  @doc """
+  The params that name a slot to this screen, from a screen 45 meal.
+
+  Here rather than at screen 45 so `:slot_id` is spelled once on this side of
+  the push, the way `Kati.Screens.MealEdit.params_for/1` spells `:meal_id` once
+  on its own. A drawn meal has no slot id and yields `%{}`, which sends this
+  screen back to `handed_over/0` — the door it has always had.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{slot_id: id}) when is_binary(id) and id != "", do: %{slot_id: id}
+  def params_for(_meal), do: %{}
+
+  # The push's own slot, and the store only when the push named none. See
+  # `swap/1` for why that order and not the other.
+  defp named(params) do
+    case Map.get(params || %{}, :slot_id) do
+      id when is_binary(id) and id != "" -> id
+      _none -> handed_over()
+    end
   end
 
   defp slot_for(id) do
@@ -756,5 +792,6 @@ defmodule Kati.Screens.MealSwap do
 
     :ok
   end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 end

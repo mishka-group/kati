@@ -613,8 +613,26 @@ defmodule Kati.Screens.Books do
   def handle_tap(:log_progress, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
 
+  # The disc is the hero's second control and the sheet's timer state is what
+  # makes it one: `hero_actions/0` calls it *the same sheet with its timer
+  # already running*, and it pushed exactly what `:log_progress` pushed — so the
+  # two controls were the same destination in the same state, one button drawn
+  # twice.
+  #
+  # The map is written out here rather than built by a `params_for`-style call
+  # into `Kati.Screens.LogProgress`, which is where the key is read. That is not
+  # a preference: this screen reads no store at all — its shelf is
+  # `Kati.Books.Sample`, see the moduledoc — and a call into the sheet's module
+  # would put it in the compiled call graph `Kati.ScreenEmptyDatabaseTest`
+  # derives its coverage from, as a database reader with no database read.
+  # `Kati.Screens.Library`'s search disc spells its params the same way.
+  #
+  # No book id goes with it, and that is this screen's own limit rather than an
+  # oversight: the shelf's rows carry a `cover_seed` and name no
+  # `Kati.Books.Book`. So the sheet still answers with the shelf's first, which
+  # is what it answers today.
   def handle_tap(:start_timer, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress, %{timing?: true})}
 
   def handle_tap(:open_book, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetail)}
@@ -648,8 +666,16 @@ defmodule Kati.Screens.Books do
 
   def handle_tap(:open_books, socket), do: {:noreply, socket}
 
+  # See `Kati.Screens.Library`'s own clause: the disc carries the empty query it
+  # actually has, so 19 stops opening on whatever `Kati.Search.handed_over/0`
+  # was still holding from a previous launch, and carries its own name so the
+  # pill leads back to the shelf you left.
+  #
+  # `Books` and not `Library`: `pop_screen/1` returns to screen 20, which is a
+  # root of its own rather than a page inside 03.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Books"})}
 
   # Every grid tile, by its own seed — see `book_tag/1`. They all open the same
   # screen today: `Kati.Screens.BookDetail` takes no argument, so this is

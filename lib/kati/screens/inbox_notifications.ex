@@ -221,18 +221,32 @@ defmodule Kati.Screens.InboxNotifications do
         Kati.Screens.InboxNotifications.sub(candidate, kind)
       ),
       SettingsList.trailing(Kati.Screens.InboxNotifications.trailing(candidate, kind)),
-      on_tap: {self(), Kati.Screens.InboxNotifications.tag_for(candidate.domain)}
+      # The candidate, not `candidate.domain`. The row knows which reminder it is
+      # drawing and threw that away one field before the tap was built, so ten
+      # calendar reminders drew ten identical taps.
+      on_tap: {self(), Kati.Screens.InboxNotifications.tag_for(candidate)}
     )
   end
 
   @doc """
-  Which screen a row opens: the one that owns that kind of reminder.
+  Which screen a row opens: its own event, or the screen that owns that kind of
+  reminder.
 
-  A row on this page is a reminder from somewhere else, and the useful thing to
-  do with it is go to where it is configured — a held meal reminder is a
-  question about screen 51, not about this page. So the tap carries the
-  **domain** rather than the candidate, because the domain is the thing that has
-  a screen; a candidate has an id, and an id has no destination.
+  A row on this page is a reminder from somewhere else, and for five of the six
+  domains the useful thing to do with it is go to where it is configured — a
+  held meal reminder is a question about screen 51, not about tonight's dal.
+  Those five carry the **domain**, because the domain is the thing that has a
+  screen: a habit, a meal reminder, an air date and a subscription have no
+  per-row board in the 165 to open.
+
+  A calendar reminder does have one. Screen 31 takes `%{id: id}` and
+  `Kati.Notifications.Sources.Calendar` carries the event's primary key on the
+  candidate, so that row opens the event it is actually about rather than the
+  Calendar root every calendar reminder used to share. The id travels **in the
+  tag** because a tap has no other channel: an `on_tap` is `{pid, atom}` and
+  `handle_tap/2` sees the atom alone. Screen 02 settled the spelling —
+  `row_event_<uuid>`, decoded in its own catch-all — and this is that shape with
+  this page's prefix.
 
   The tag is per domain rather than one `:open_source` for all six. That was
   the shape until every domain had a collector, and it could not survive one:
@@ -240,7 +254,16 @@ defmodule Kati.Screens.InboxNotifications do
   and `Kati.ScreenTapSweepTest` reports a tag that reaches nothing — correctly,
   because a tap answered by a catch-all is a tap that does nothing.
   """
-  @spec tag_for(Kati.Notifications.Budget.domain()) :: atom()
+  @spec tag_for(Candidate.t() | Kati.Notifications.Budget.domain()) :: atom()
+  def tag_for(%Candidate{domain: :calendar, meta: %{event_id: id}})
+      when is_binary(id) and id != "",
+      do: String.to_atom("open_calendar_" <> id)
+
+  # Everything else falls through to the domain it was already answered by — the
+  # five domains with nowhere of their own to go, and a calendar candidate built
+  # before its source carried the key, or from an event that has none.
+  def tag_for(%Candidate{domain: domain}), do: tag_for(domain)
+
   def tag_for(:calendar), do: :open_calendar
   def tag_for(:tv), do: :open_tv
   def tag_for(:habits), do: :open_habits
@@ -413,5 +436,22 @@ defmodule Kati.Screens.InboxNotifications do
   def handle_tap(:open_money, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
 
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  # Below the named clauses and not above them: a prefix clause placed first
+  # shadows the bare tag it starts with, and `:open_calendar` above is still the
+  # answer for a calendar reminder that names no event.
+  #
+  # `%{id: id}` is the key screen 31 reads and the key screen 02's own timeline
+  # pushes, so a reminder and a timeline row cannot disagree about what names an
+  # event. `Kati.Screens.EventDetail.event/1` refuses an id that names nothing
+  # and answers the drawing, so a reminder for an event deleted on another
+  # device opens a page rather than crashing.
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "open_calendar_" <> id ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
 end

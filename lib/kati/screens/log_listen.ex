@@ -107,13 +107,17 @@ defmodule Kati.Screens.LogListen do
   @doc """
   The params that name an album to this sheet, built from a shaped album.
 
-  Here rather than at each caller so the key is spelled once. A shaped row
-  carries `:id`; the drawing does not, and an album with no id yields `%{}` —
-  the no-id mount the empty-database sweep renders.
+  Two screens receive `%{album_id: id}` now — this sheet and screen 74 itself,
+  which the artist page's rail opens by id — so the key is spelled once, on the
+  reader both of them share, and this delegates there. Two copies of the same
+  two clauses would be one rename away from a sheet writing to an album the
+  page it opened from never mentioned, which is the whole of #84.
+
+  A shaped row carries `:id`; the drawing does not, and an album with no id
+  yields `%{}` — the no-id mount the empty-database sweep renders.
   """
-  @spec params_for(map()) :: map()
-  def params_for(%{id: id}) when is_binary(id), do: %{album_id: id}
-  def params_for(_album), do: %{}
+  @spec params_for(map() | nil) :: map()
+  def params_for(album), do: Kati.Screens.AlbumDetail.params_for(album)
 
   @doc """
   The album being logged against: the shelf's first, or the drawing's.

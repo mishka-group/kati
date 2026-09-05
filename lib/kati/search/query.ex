@@ -85,19 +85,67 @@ defmodule Kati.Search.Query do
     ]
   end
 
-  # Everything in the media cache whose title matches, best tier first, then
-  # alphabetically so an equal tier is not ordered by insertion accident.
+  # Everything in the media cache AND on the book shelf whose title matches,
+  # best tier first, then alphabetically so an equal tier is not ordered by
+  # insertion accident.
+  #
+  # Books were unfindable until now, and silently: `kind_label/1` has had a
+  # `:book` arm since this module was written and nothing ever reached it,
+  # because `Kati.Books.Book` is its own resource and never lands in
+  # `Kati.Media.CachedTitle`. So a title on your shelf, and the author who wrote
+  # it, matched nothing, and only a note body did — which is what screen 20's
+  # search disc opens onto.
+  #
+  # Merged BEFORE the take rather than concatenated after it: two lists each cut
+  # to `rows_per_group/0` and then joined would put a substring-tier book above
+  # an exact-tier film.
   defp titles_for(query) do
+    (cached_for(query) ++ books_for(query))
+    |> Enum.sort_by(fn {tier, title, _row} -> {tier, title} end)
+    |> Enum.take(rows_per_group())
+    |> Enum.map(fn {_tier, _title, row} -> row end)
+  end
+
+  # Each read rescues on its own, so an unreadable cache still answers with the
+  # shelf and the other way round — one rescue around both would let either
+  # failure empty the whole group.
+  defp cached_for(query) do
     Kati.Media.CachedTitle
     |> Ash.read!()
-    |> Enum.map(&{tier(query, &1.title || "", &1.overview || ""), &1})
-    |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
-    |> Enum.sort_by(fn {tier, row} -> {tier, row.title} end)
-    |> Enum.take(rows_per_group())
-    |> Enum.map(fn {_tier, row} -> title_row(row) end)
+    |> Enum.map(&{tier(query, &1.title || "", &1.overview || ""), &1.title, &1})
+    |> Enum.reject(fn {tier, _title, _row} -> is_nil(tier) end)
+    |> Enum.map(fn {tier, title, row} -> {tier, title, title_row(row)} end)
   rescue
     _error -> []
   end
+
+  # The author is the secondary field, where a cached title's is its overview.
+  # Searching `Karvel` and finding nothing is the half of this a reader notices
+  # first, and a book is the one kind here whose second line is a person.
+  defp books_for(query) do
+    Kati.Books.Book
+    |> Ash.read!()
+    |> Enum.map(&{tier(query, &1.title || "", &1.author || ""), &1.title, &1})
+    |> Enum.reject(fn {tier, _title, _row} -> is_nil(tier) end)
+    |> Enum.map(fn {tier, title, row} -> {tier, title, book_row(row)} end)
+  rescue
+    _error -> []
+  end
+
+  defp book_row(row) do
+    %{
+      title: row.title,
+      sub: kind_label(:book) <> book_suffix(row),
+      seed: row.cover_seed
+    }
+  end
+
+  # The author when there is one, because that is what tells two books with the
+  # same title apart — the job the episode count does for a series.
+  defp book_suffix(%{author: author}) when is_binary(author) and author != "",
+    do: " · " <> author
+
+  defp book_suffix(_row), do: ""
 
   defp title_row(row) do
     %{

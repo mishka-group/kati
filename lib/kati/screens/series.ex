@@ -131,26 +131,33 @@ defmodule Kati.Screens.Series do
   # #60 draws inactive, so these two are the whole of it.
   @series_kinds [:tv, :anime]
 
-  def mount(_params, _session, socket) do
+  # `use Mob.Screen` and not `Kati.Screens.Root`, so this screen's own `mount/3`
+  # takes the push's params directly. `Map.get/2` rather than a pattern match on
+  # the key, so a bare push — the gallery's, every sweep's — still gets the top
+  # of the shelf, which is what this screen has always drawn.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:series, series())
+     |> Mob.Socket.assign(:series, series(Map.get(params || %{}, :id)))
      |> Mob.Socket.assign(:menu?, false)}
   end
 
   @doc """
   The series this screen draws: the user's, or the drawing's.
 
-  The English page. `tracked_series/0` is the half that reads the store and it
+  The English page. `tracked_series/1` is the half that reads the store and it
   answers in no language at all; everything below this line is presentation,
   which is what lets `Kati.Screens.SeriesFa` share the reads without sharing
   the wording.
+
+  `id` is the tracked row a poster carried here. Without one the referent is
+  the top of the shelf, which is what every arrival used to get.
   """
-  @spec series() :: map()
-  def series do
-    case tracked_series() do
+  @spec series(String.t() | nil) :: map()
+  def series(id \\ nil) do
+    case tracked_series(id) do
       nil -> drawn_series()
       facts -> shaped(facts)
     end
@@ -201,14 +208,19 @@ defmodule Kati.Screens.Series do
   names, or which episodes are ticked, and the first eviction would be the day
   it did.
 
-  **Which series.** Nothing hands this screen an id — `Kati.Screens.Library`
-  taps a poster and pushes this module with no title attached, exactly as
-  `Kati.Screens.Film` is pushed. So the referent is the one the shelf itself
-  puts first, and `:shelf` is what decides that: it is the action
+  **Which series.** The one the caller names, and otherwise the one the shelf
+  itself puts first. `:shelf` decides both: it is the action
   `Kati.Media.TrackedTitle` names for "screens 03, 20 and 21" and it is where
-  *keeps history, hides from shelf* is enforced. Two reads because `:tv` and
-  `:anime` are two sections of one shelf, re-sorted as one because
+  *keeps history, hides from shelf* is enforced, so a title read around it
+  would be a title the user archived, reachable again by id. Two reads because
+  `:tv` and `:anime` are two sections of one shelf, re-sorted as one because
   `last_touched_at` is the order and it does not restart per kind.
+
+  An id that names no shelf row answers `nil` rather than the shelf's head.
+  That is `Kati.Screens.BookDetail.shelved_book/1`'s rule and its reason:
+  a title archived or deleted under the user is not the same fact as an empty
+  shelf, and quietly showing a different show is the swap this argument exists
+  to prevent.
 
   `nil` is the ordinary answer on a fresh install, and a database that cannot
   be read at all answers `nil` too: `Ash.read!` on a device mid-migration
@@ -216,14 +228,52 @@ defmodule Kati.Screens.Series do
   values it was drawn from — the same degradation `Kati.Screens.Film` and
   `Kati.Calendars.Today` make.
   """
-  @spec tracked_series() :: map() | nil
-  def tracked_series do
-    case newest_series() do
+  @spec tracked_series(String.t() | nil) :: map() | nil
+  def tracked_series(id \\ nil) do
+    case series_record(id) do
       nil -> nil
       tracked -> facts(tracked)
     end
   rescue
     _ -> nil
+  end
+
+  @doc """
+  The params that name a series to screen 04, or to its Persian twin.
+
+  Here rather than at each caller so the key is spelled once. The argument is a
+  shelf row — `Kati.Screens.Library.shaped/3`'s, or `Kati.Screens.LibraryFa`'s
+  copy of it — and the only field on it that is an identity rather than a
+  caption is `:id`. A row without one is `Kati.Library.Sample`'s, and it yields
+  `%{}`: the drawing has no tracked row to name, and a title carried as a name
+  would be a caption pretending to be an identity.
+
+      iex> Kati.Screens.Series.params_for(%{id: "abc", title: "The Long Hollow"})
+      %{id: "abc"}
+
+      iex> Kati.Screens.Series.params_for(%{title: "The Long Hollow"})
+      %{}
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{id: id}
+  def params_for(_row), do: %{}
+
+  # The series the caller named, or — given no id — the top of the shelf.
+  # `Enum.find` over the SAME `:shelf` reads rather than an `Ash.Query.filter`
+  # expression, so this screen goes on reading by action name only and the note
+  # beside the aliases stays true. The per-kind `limit(1)` is deliberately gone
+  # from this direction: the row the caller named need not be the newest of its
+  # kind, and `newest_series/0` — which does need it — is left alone below.
+  defp series_record(nil), do: newest_series()
+
+  defp series_record(title_id) do
+    @series_kinds
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Enum.find(&(&1.id == title_id))
   end
 
   # The top of the series shelf, newest touch first across both kinds.
@@ -379,6 +429,13 @@ defmodule Kati.Screens.Series do
     view = Map.fetch!(by_season, current)
 
     %{
+      # `assembled/5` puts `tracked_id` on the facts and this map used to drop
+      # it, which is why `tick/2`'s `Map.get(series, :tracked_id)` was always
+      # `nil` and no tick on a real series ever reached `write_tick/2`. It is
+      # also what the ⋯ menu needs: a row that opens screen 34 has to name the
+      # series the page is drawing. `Map.get/2` rather than `facts.tracked_id`
+      # so a facts map built without the key raises nothing.
+      tracked_id: Map.get(facts, :tracked_id),
       title: facts.title || "Untitled",
       seed: facts.seed,
       meta: meta_line(facts),
@@ -1067,8 +1124,17 @@ defmodule Kati.Screens.Series do
   def handle_info({:tap, :show_details}, socket),
     do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesMeta)}
 
+  # The page knows both halves of what screen 34 is about: which series it is
+  # drawing, and which pill on the season strip is lit. Bare, "Episode order"
+  # opened whichever season the newest title's bookmark happened to name.
   def handle_info({:tap, :episode_order}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.Season)}
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.Season,
+         Kati.Screens.Season.params_for(socket.assigns.series)
+       )}
 
   def handle_info({:tap, :open_settings}, socket),
     do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesSettings)}
@@ -1147,7 +1213,10 @@ defmodule Kati.Screens.Series do
         flip = fn ep -> %{ep | watched: not ep.watched} end
 
         socket
-        |> Mob.Socket.assign(:series, recount(%{series | episodes: List.update_at(series.episodes, position, flip)}))
+        |> Mob.Socket.assign(
+          :series,
+          recount(%{series | episodes: List.update_at(series.episodes, position, flip)})
+        )
         |> Mob.Socket.assign(:save_error, nil)
 
       {:error, reason} ->
@@ -1202,10 +1271,14 @@ defmodule Kati.Screens.Series do
   panel being on screen again when the user comes back — this socket is what
   `Mob.Screen` saves onto the nav history, so a menu left open is a menu that
   reopens itself on every return from the screen it opened.
+
+  `params` defaults to `%{}`, which is what `Mob.Socket.push_screen/3` sends
+  when nobody passes any: one menu row can name its destination's subject
+  without the other four gaining an argument they have nothing to fill.
   """
-  def pick(socket, module) do
+  def pick(socket, module, params \\ %{}) do
     socket
     |> Mob.Socket.assign(:menu?, false)
-    |> Mob.Socket.push_screen(module)
+    |> Mob.Socket.push_screen(module, params)
   end
 end

@@ -658,8 +658,17 @@ defmodule Kati.Screens.ScheduleFa do
     end
   end
 
+  # The label is Persian and the page it opens is not. Screen 19 is English
+  # throughout and has no mirror wired to a query — board 90 is a different
+  # drawing — so a reader crossing from here lands on an English results page
+  # whichever word the pill carries, and the pill may as well name the page they
+  # actually came from. It is set in 19's own sans face, which has no Persian
+  # glyphs and falls through to Android's, so this label is the shape of the gap
+  # rather than a finished crossing: it goes away when 90 takes a query.
   def handle_info({:tap, :open_search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "برنامه"})}
 
   def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :calendar, socket)
   def handle_info(_message, socket), do: {:noreply, socket}

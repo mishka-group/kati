@@ -43,8 +43,12 @@ defmodule Kati.Screens.Search do
   with its own `#FBFAF8` fill and button shadow — not floating over the
   content at 54pt like the shared pushed chrome. Using the shared chrome would
   draw a second, differently styled pill on top of the search field, so this
-  screen owns its frame and its dismissal, the way screens 06 and 08 do. Back
-  goes to Home.
+  screen owns its frame and its dismissal, the way screens 06 and 08 do. It
+  owns the pill's *label* too, and that one is the push's. It read `Home` from
+  every door, and only one of the doors is Home — screen 28. Home's own search
+  bar opens board 86, so the pill named the one screen it could not have been
+  reached from. `Home` is still what a push naming nothing gets, because it is
+  the word board 19 draws.
 
   ## Why this screen still reads `Kati.Screens.Search.Sample`
 
@@ -112,37 +116,70 @@ defmodule Kati.Screens.Search do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  # `filter` is "All" and `recent` is nil because that is the state the drawing
-  # is in: the All chip filled, all three groups on the page, and no recent
-  # search picked out of the shelf.
-  def mount(_params, _session, socket) do
+  # The label the drawing's back pill carries, and the answer for a push that
+  # names no other. Board 19 draws `Home`, so a bare push still draws `Home`.
+  @drawn_back "Home"
+
+  # `recent` is nil because that is the state the drawing is in: no recent
+  # search picked out of the shelf. `query` and `filter` were the drawing's too
+  # and are now the push's, defaulting to exactly what they were — see
+  # `opening_query/1` and `Kati.Search.narrowable/1`. A push that says nothing
+  # is the gallery's and the sweeps', and it takes the same three values it
+  # always took.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    query = Kati.Screens.Search.handed_over()
+    params = params || %{}
+    query = Kati.Screens.Search.opening_query(params)
     results = Kati.Search.Query.run(query)
 
     {:ok,
      Mob.Socket.assign(socket,
        query: query,
        results: results,
-       filter: "All",
+       filter: Kati.Search.narrowable(Map.get(params, :scope, "All")),
        recent: nil,
+       back: Map.get(params, :back, @drawn_back),
        history: Kati.Search.Recent.all()
      )}
   end
 
   @doc """
-  The query screen 86 handed over, or `""`.
+  The query screen 86 last put in `Mob.State`, or `""`.
 
-  Screen 86 puts what was typed in `Mob.State` and pushes here — the two boards
-  divide idle from results, and this is the seam. Reached with nothing, this
-  page opens idle, which is a state the screen now draws rather than a reason
-  to substitute a drawing.
+  It was the seam between the two boards — 86 is idle, 19 is results — and it is
+  now the answer for a push that names no query of its own; `opening_query/1` is
+  the seam. Reached with nothing, this page opens idle, which is a state the
+  screen draws rather than a reason to substitute a drawing.
 
   `Kati.Search.handed_over/0` is where the key itself lives, and that is
   load-bearing rather than tidy: see `Kati.Search.hand_over/1`.
   """
   @spec handed_over() :: String.t()
   defdelegate handed_over(), to: Kati.Search
+
+  @doc """
+  The query this page opens on: the push's, or the one `Mob.State` still holds.
+
+  A push that names a query wins, and every door into this screen now names
+  one. That is the whole of the defect it closes: `Kati.Search.hand_over/1`
+  writes `:kati_search_query` and nothing ever clears it — `Mob.State` is DETS,
+  so the key outlives the launch — while every header search disc in the app
+  pushed here bare. A disc has nothing typed behind it, so opening one showed
+  results for a word somebody typed on screen 86 yesterday, under a field that
+  agreed with them.
+
+  A disc therefore names `""` rather than staying silent: silence is what lets
+  the stale key answer. Silence is still a real answer for a door that has no
+  query to name — `Kati.Screens.Gallery`, and any push made before 86 has run —
+  and for those the key is exactly what it always was.
+  """
+  @spec opening_query(map()) :: String.t()
+  def opening_query(params) do
+    case Map.get(params, :query) do
+      query when is_binary(query) -> query
+      _unnamed -> handed_over()
+    end
+  end
 
   @doc """
   The result set board 19 was captured with — one query, `hollow`, matched four
@@ -227,6 +264,11 @@ defmodule Kati.Screens.Search do
     recent = assigns.recent
     query = Map.get(assigns, :query, results.query)
     history = Map.get(assigns, :history, [])
+    # `Map.get` and not `assigns.back`, for the reason the two lines above are
+    # written that way: `Kati.SearchRunTest` builds this map by hand and holds
+    # five keys, so a required sixth would be a `KeyError` raised in a file that
+    # has nothing to do with back pills.
+    back = Map.get(assigns, :back, @drawn_back)
 
     ~MOB"""
     <Box
@@ -244,7 +286,7 @@ defmodule Kati.Screens.Search do
           padding_top={64}
           padding_bottom={40}
         >
-          {Kati.Screens.Search.back()}
+          {Kati.Screens.Search.back(back)}
           {Kati.Screens.Search.field(query)}
           {Kati.Screens.Search.chips(filter, results)}
           {Kati.Screens.Search.state_or_groups(results, filter, history)}
@@ -322,11 +364,16 @@ defmodule Kati.Screens.Search do
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  # A Row, not a Box: the pill hugs "Home" and the drawing's asymmetric
+  # A Row, not a Box: the pill hugs its label and the drawing's asymmetric
   # `padding:0 16px 0 12px` keeps the chevron optically centred against text
   # that has no left bearing.
+  #
+  # The label is the caller's because back goes wherever this screen was pushed
+  # from, and `Home` was the one screen that could not push it — home.ex sends
+  # its own search bar to `Kati.Screens.SearchIdle`. The default keeps board
+  # 19's word for a push that names no other.
   @doc false
-  def back do
+  def back(label \\ @drawn_back) do
     tap = {self(), :back}
 
     ~MOB"""
@@ -345,7 +392,7 @@ defmodule Kati.Screens.Search do
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
           <Spacer size={6} />
           <Text
-            text="Home"
+            text={label}
             text_size={13.5}
             font_weight="semibold"
             letter_spacing={-0.01}
@@ -529,11 +576,14 @@ defmodule Kati.Screens.Search do
   @spec state_or_groups(map(), String.t(), [String.t()]) :: map()
   def state_or_groups(results, filter, history) do
     cond do
-      Map.get(results, :idle?, false) -> Kati.Screens.Search.waiting(history)
+      Map.get(results, :idle?, false) ->
+        Kati.Screens.Search.waiting(history)
+
       Kati.Screens.Search.visible_groups(results, filter) == [] ->
         Kati.Screens.Search.no_matches(results.query)
 
-      true -> Kati.Screens.Search.groups(results, filter)
+      true ->
+        Kati.Screens.Search.groups(results, filter)
     end
   end
 
@@ -626,7 +676,6 @@ defmodule Kati.Screens.Search do
       by_hand: {self(), :add_by_hand}
     )
   end
-
 
   @doc """
   The result groups a filter leaves standing, in the drawing's order.

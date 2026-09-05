@@ -180,10 +180,35 @@ defmodule Kati.Screens.AlbumDetailFa do
   @spec album() :: map()
   def album do
     case AlbumDetail.shelved_album() do
-      nil -> Map.merge(drawn(), own(AlbumDetail.drawn_album()))
-      shelved -> Map.merge(drawn(), Map.merge(own(shelved), words(shelved)))
+      nil ->
+        Map.merge(drawn(), own(AlbumDetail.drawn_album()))
+
+      shelved ->
+        drawn()
+        |> Map.merge(own(shelved))
+        |> Map.merge(words(shelved))
+        |> Map.merge(refs(shelved))
     end
   end
+
+  @doc """
+  The two references a shelved album carries, and neither is a word.
+
+  Their own function rather than a line in `own/1`, because `own/1` is called
+  with `Kati.Screens.AlbumDetail.drawn_album/0` too and the drawing has no ids
+  at all — its four fields are facts about a picture and a rating, and an id is
+  neither. Kept out of `words/1` for the opposite reason: nothing here is
+  language.
+
+  `id` names the record to screen 73, which **writes** — the ثبت یک شنیدن
+  button opened a sheet that re-read the shelf and credited the play to
+  whichever album came back first. `artist_id` names the musician to screen 79,
+  so the هنرمند row opens the person this page is drawing. Both are read
+  straight through: the shelved row is `Kati.Screens.AlbumDetail.shaped/4`'s and
+  always carries the pair.
+  """
+  @spec refs(map()) :: map()
+  def refs(shelved), do: %{id: shelved.id, artist_id: shelved.artist_id}
 
   @doc "The drawing's Persian copy, unconditionally."
   @spec drawn() :: map()
@@ -882,14 +907,35 @@ defmodule Kati.Screens.AlbumDetailFa do
   # `Kati.Screens.Rating`, and `Kati.Screens.Fa`'s moduledoc names the cost: a
   # push that changes the app's language out from under the reader, and RTL with
   # it. Screen 77's Persian mirror pays down the artist row's share of it.
+  #
+  # The sheet is handed the id of the album this page is drawing, through the
+  # same builder screen 74 uses, so the mirror and the original cannot disagree
+  # about which record a play is credited to. This was the worst of the five
+  # bare pushes because screen 73 WRITES: the page said کارهای جزر و مد and the
+  # count moved on whichever album the shelf returned first (#84).
   def handle_info({:tap, :log_listen}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogListen)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogListen,
+         Kati.Screens.LogListen.params_for(socket.assigns.album)
+       )}
 
   # The Persian artist page, not the English one. A mirror that pushed its
   # LTR sibling would change the app's language out from under the reader —
   # the same failure `Kati.Screens.Fa` records for the آمار tab's stand-in.
+  #
+  # And the artist this album points at, not the artist of the shelf's first:
+  # the row draws `a.artist` and `a.artist_line` and then opened somebody else.
   def handle_info({:tap, :open_artist}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ArtistDetailFa)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.ArtistDetailFa,
+         Kati.Screens.ArtistDetail.params_for(socket.assigns.album)
+       )}
 
   def handle_info({:tap, :rate}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}

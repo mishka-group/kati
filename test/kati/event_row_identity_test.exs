@@ -223,6 +223,75 @@ defmodule Kati.EventRowIdentityTest do
     end
   end
 
+  # The same defect, one screen over. A reminder row on the notifications inbox
+  # built its tap from `candidate.domain`, so every calendar reminder on the
+  # page drew the tag `:open_calendar` and opened the Calendar ROOT — the day
+  # you are already looking at, rather than the event the reminder was about.
+  # The row had the whole candidate in hand and passed one field of it.
+  #
+  # Asserted on the second of three for `row_tags/1`'s reason: with two rows,
+  # "the second" and "the last" are the same row.
+  describe "a notification row names its own event" do
+    test "each calendar candidate's tag carries that event's primary key" do
+      in_a_day_of_three(fn %{events: events} ->
+        candidates = calendar_candidates()
+
+        assert length(candidates) == 3,
+               "the calendar source answered #{length(candidates)} candidates, not the day's " <>
+                 "three: " <> inspect(Enum.map(candidates, & &1.id))
+
+        for {candidate, event} <- Enum.zip(candidates, events) do
+          tag = Kati.Screens.InboxNotifications.tag_for(candidate)
+
+          assert Atom.to_string(tag) == "open_calendar_" <> event.id
+
+          refute tag == :open_calendar,
+                 "the row still draws the domain's bare tag, so all three reminders share " <>
+                   "one accessibility_id and all three open the Calendar root"
+        end
+      end)
+    end
+
+    test "the second reminder pushes the second event, not the first and not the root" do
+      in_a_day_of_three(fn %{events: [first, second, _third]} ->
+        view = mount_screen(Kati.Screens.InboxNotifications)
+        tag = Kati.Screens.InboxNotifications.tag_for(Enum.at(calendar_candidates(), 1))
+        opened = render_info(view, {:tap, tag})
+
+        assert navigated_to(opened) == EventDetail
+        assert opened.socket.__mob__.nav_action == {:push, EventDetail, %{id: second.id}}
+
+        refute opened.socket.__mob__.nav_action == {:push, EventDetail, %{id: first.id}}
+        refute navigated_to(opened) == Schedule
+      end)
+    end
+
+    test "a calendar candidate carrying no event id still opens where it always did" do
+      # The fallback the five other domains take, and the one a candidate built
+      # before its source carried the key takes too. `:open_calendar` is still a
+      # clause on the screen and still reaches the Calendar root.
+      bare =
+        Kati.Notifications.Candidate.absolute(
+          "cal:no-key",
+          :calendar,
+          DateTime.utc_now(),
+          meta: %{uid: "u"}
+        )
+
+      assert Kati.Screens.InboxNotifications.tag_for(bare) == :open_calendar
+    end
+
+    test "a domain with nowhere of its own to go is unchanged, candidate or atom" do
+      meal =
+        Kati.Notifications.Candidate.absolute("meal:1", :meals, DateTime.utc_now(),
+          meta: %{slot_id: "s"}
+        )
+
+      assert Kati.Screens.InboxNotifications.tag_for(meal) == :open_meals
+      assert Kati.Screens.InboxNotifications.tag_for(:meals) == :open_meals
+    end
+  end
+
   # ── the day these tests run against ────────────────────────────────────────
 
   # Three events today and two tomorrow, in a database emptied of every other
@@ -319,5 +388,19 @@ defmodule Kati.EventRowIdentityTest do
     day = Kati.Time.day_name(date) |> String.slice(0, 3)
     month = Kati.Time.month_name(date.month) |> String.slice(0, 3)
     "#{day} #{date.day} #{month}"
+  end
+
+  # The day's calendar candidates, in the order the source answers them —
+  # `dtstart_utc` ascending, which is the order the timeline draws too. Built
+  # through the source rather than assembled here, for `row_tags/1`'s reason: a
+  # helper that wrote its own `meta` would agree with a broken source about what
+  # a candidate carries.
+  defp calendar_candidates do
+    zone = Kati.Time.device_zone()
+    day = Kati.Time.today()
+
+    day
+    |> Kati.Notifications.Sources.Calendar.events(zone)
+    |> Kati.Notifications.Sources.Calendar.candidates(zone: zone)
   end
 end

@@ -1214,8 +1214,14 @@ defmodule Kati.Screens.Calendar do
     {:noreply, Mob.Socket.assign(socket, airing_open?: open?, rows: rows)}
   end
 
+  # `%{query: "", back: "Calendar"}` for `open_row/3`'s own reason two hundred
+  # lines down: the push names what the tap knows. Here that is an empty field
+  # and this root's name — 19's pill read `Home` from every one of its doors,
+  # and none of them is Home.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Calendar"})}
 
   def handle_tap(:open_month, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MonthGrid)}
@@ -1329,6 +1335,21 @@ defmodule Kati.Screens.Calendar do
     end
   end
 
+  # Two of `@row_screens`' four destinations are about a DAY and two are about a
+  # ROW, and the tag carries the wrong one of those for half of them. 52 and 126
+  # title themselves with a date and read no id at all, so handing them the
+  # tapped event's uuid named nothing either of them could look up — it was
+  # thrown away on arrival and the page opened on its own fixture's day. 08 and
+  # 31 are the other way round and keep the id.
+  #
+  # The date is `assigns.date`, the day the strip is on — the same value the
+  # `day_` branch above hands screen 09 — so a meals row opened from a Tuesday
+  # opens Tuesday's page rather than the drawing's Monday.
+  @day_screens [Kati.Screens.MealsDay, Kati.Screens.MoneyDay]
+
+  defp open_row(socket, module, _id) when module in @day_screens,
+    do: Mob.Socket.push_screen(socket, module, %{date: socket.assigns.date})
+
   defp open_row(socket, module, nil), do: Mob.Socket.push_screen(socket, module)
   defp open_row(socket, module, id), do: Mob.Socket.push_screen(socket, module, %{id: id})
 
@@ -1338,6 +1359,16 @@ defmodule Kati.Screens.Calendar do
   defp pick(socket, module) do
     socket
     |> Mob.Socket.assign(:menu?, false)
-    |> Mob.Socket.push_screen(module)
+    |> Mob.Socket.push_screen(module, pick_params(socket, module))
   end
+
+  # `Meals on the calendar` and `Money on the calendar` mean THIS calendar — the
+  # day the strip is on — and the menu was sending neither of them which day
+  # that was. Agenda and Quick add take nothing: 30 is a root, whose mount
+  # discards params outright (`Kati.Screens.Root`), and 18 draws a frozen parse
+  # with no date anywhere on it.
+  defp pick_params(socket, module) when module in @day_screens,
+    do: %{date: socket.assigns.date}
+
+  defp pick_params(_socket, _module), do: %{}
 end
