@@ -115,6 +115,38 @@ defmodule Kati.SearchRunTest do
       assert Kati.Search.Recent.all() == ["hollow", "estuary"]
     end
 
+    test "the keystrokes on the way to a word are not five searches" do
+      # Screen 19 records on every keystroke and says why: the results arrive
+      # while you type, so there is no submit to record on. On a device that
+      # left `Ash`, `Ashf`, `Ashfa`, `Ashfal` and `Ashfall` in a list that
+      # keeps eight — one search holding five of the eight slots and pushing
+      # out everything typed before it.
+      Kati.Search.Recent.remember("estuary")
+
+      for typed <- ["Ash", "Ashf", "Ashfa", "Ashfal", "Ashfall"] do
+        Kati.Search.Recent.remember(typed)
+      end
+
+      assert Kati.Search.Recent.all() == ["Ashfall", "estuary"]
+    end
+
+    test "a shorter search after a longer one is its own search" do
+      # The rule is one-way on purpose. `Ash` typed after `Ashfall` has been
+      # searched is a person looking for something else, not the abandoned
+      # start of the word they already found.
+      Kati.Search.Recent.remember("Ashfall")
+      Kati.Search.Recent.remember("Ash")
+
+      assert Kati.Search.Recent.all() == ["Ash", "Ashfall"]
+    end
+
+    test "case is not a second search" do
+      Kati.Search.Recent.remember("ash")
+      Kati.Search.Recent.remember("Ashfall")
+
+      assert Kati.Search.Recent.all() == ["Ashfall"]
+    end
+
     test "a query too short to run is not remembered" do
       # The shelf would otherwise fill with the first letter of everything ever
       # typed. `Kati.Search.long_enough?/1` is what says a query ran at all.

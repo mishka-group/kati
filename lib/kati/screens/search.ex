@@ -409,6 +409,17 @@ defmodule Kati.Screens.Search do
   # `0 0 0 2px #1A1917` is a ring, so it is a border; the drawing's remaining
   # `0 8px 18px -14px rgba(26,25,23,.6)` is a single layer and darker than
   # `Kati.Theme.shadow_search/0`, so it is written out rather than borrowed.
+  #
+  # The clear disc says `fill_width={false}` and has to. A box with no numeric
+  # width is force-filled — upstream Mob's behaviour, which `K-17
+  # box-hugs-when-told` in `native/LEDGER.md` exists to give an opt-out from —
+  # so the disc took 774 of the row's 876 pixels and the weighted field beside
+  # it measured 63. Weighted children are laid out after unweighted ones, so
+  # the field got whatever the disc left. Nothing caught it: the design sweeps
+  # compare a tree against the board and neither has a width, and the field was
+  # always empty on open, so an invisible value and an invisible placeholder
+  # looked the same. It showed the moment screen 19 started opening on the
+  # query it was pushed with.
   @doc false
   def field(query, live? \\ true) do
     # `live?: false` is board 89, which draws this field four times over — once
@@ -448,7 +459,7 @@ defmodule Kati.Screens.Search do
           on_change={@on_change}
         />
         <Spacer size={8} />
-        <Box on_tap={@clear}>
+        <Box on_tap={@clear} fill_width={false}>
           {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
         </Box>
       </Row>

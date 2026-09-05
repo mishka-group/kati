@@ -62,6 +62,21 @@ defmodule Kati.Search.Recent do
   Short queries are dropped rather than stored: `Kati.Search.long_enough?/1`
   is what says a query has run at all, and a shelf that filled with every
   first keystroke would be a list of single letters.
+
+  ## A query you were on the way to is not a query you made
+
+  `Kati.Screens.Search` records on every keystroke and says why — the results
+  arrive while you type, so there is no submit to record on. The cost showed up
+  the first time anyone typed a whole word on a device: searching *Ashfall*
+  left `Ash`, `Ashf`, `Ashfa`, `Ashfal` and `Ashfall` in a list that keeps
+  eight, so one search filled five of the eight slots with its own keystrokes
+  and pushed out every earlier search.
+
+  So an entry the new query **starts with** is dropped along with an exact
+  repeat: it is a word you passed through rather than one you stopped on. The
+  reverse is not true and must not be — typing `Ash` after having searched
+  `Ashfall` is a shorter search, not an abandoned longer one, and both are kept
+  with the newer first.
   """
   @spec remember(String.t()) :: :ok
   def remember(query) when is_binary(query) do
@@ -69,7 +84,7 @@ defmodule Kati.Search.Recent do
 
     if Kati.Search.long_enough?(trimmed) do
       kept =
-        [trimmed | Enum.reject(all(), &(&1 == trimmed))]
+        [trimmed | Enum.reject(all(), &passed_through?(trimmed, &1))]
         |> Enum.take(Kati.Search.recent_kept())
 
       Mob.State.put(@key, kept)
@@ -78,6 +93,14 @@ defmodule Kati.Search.Recent do
     :ok
   rescue
     _error -> :ok
+  end
+
+  # An exact repeat, or a word the new query was typed through. Compared
+  # case-insensitively for the reason the search itself is: `ash` and `Ash` are
+  # one word to a person, and keeping both would put the shift key in the
+  # history.
+  defp passed_through?(now, stored) do
+    String.starts_with?(String.downcase(now), String.downcase(stored))
   end
 
   @doc "Forget everything. For the tests, and for a future *Clear history* row."

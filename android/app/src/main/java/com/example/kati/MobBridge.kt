@@ -3520,9 +3520,43 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
         else     -> ImeAction.Done
     }
 
-    var localValue by remember(node.props["value"]) {
-        mutableStateOf(node.props["value"] as? String ?: "")
+    // KATI-BEGIN(K-42 text-field-echo) mob_new=0.4.20
+    // The stock line is `remember(node.props["value"]) { mutableStateOf(...) }`,
+    // which resets what the user has typed every time the host re-renders with
+    // a new value. That is fine when the host echoes synchronously. Kati's
+    // echo is a NIF round trip into the BEAM and back, and it loses the race:
+    // typing `Marram` into screen 154 produced `Mamr`, and twelve backspaces
+    // left an `r` in the field that could not be deleted, because the host was
+    // still re-asserting a value the field had already moved past.
+    //
+    // So keep the local value authoritative and reconcile against what we have
+    // SENT. Every keystroke is appended to `outstanding`. An incoming value
+    // found in that list is our own echo, possibly a stale one — drop it and
+    // everything queued before it, and leave what the user typed alone. An
+    // incoming value that is NOT in the list came from the host deciding
+    // something, which is the clear disc on screen 19 and the refusal path on
+    // 154, and that one wins outright.
+    //
+    // `outstanding` cannot grow without bound: every echo drains it to the
+    // matching entry, and a host-set value clears it.
+    val incoming = node.props["value"] as? String ?: ""
+    var localValue by remember { mutableStateOf(incoming) }
+    // A plain list and not `mutableStateListOf`: nothing reads it to draw
+    // with, and a snapshot list mutated during composition would schedule a
+    // recomposition for a bookkeeping change nobody is looking at.
+    val outstanding = remember { mutableListOf<String>() }
+
+    if (incoming != localValue) {
+        val echoed = outstanding.indexOf(incoming)
+
+        if (echoed >= 0) {
+            repeat(echoed + 1) { outstanding.removeAt(0) }
+        } else {
+            localValue = incoming
+            outstanding.clear()
+        }
     }
+    // KATI-END(K-42 text-field-echo)
 
     // Only fill width when explicitly asked. The unconditional fillMaxWidth
     // we used to apply broke layouts like ImperialInput's row of three
@@ -3589,6 +3623,11 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
         value         = localValue,
         onValueChange = { new ->
             localValue = new
+            // KATI-BEGIN(K-42 text-field-echo-send) mob_new=0.4.20
+            // Recorded before it is sent, so the echo that comes back can be
+            // recognised as ours. See the block above `BasicTextField`.
+            outstanding.add(new)
+            // KATI-END(K-42 text-field-echo-send)
             changeHandle?.let { MobBridge.nativeSendChangeStr(it, new) }
         },
         // KATI-BEGIN(K-41 text-field-chrome-apply) mob_new=0.4.20
