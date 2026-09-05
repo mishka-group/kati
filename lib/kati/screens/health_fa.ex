@@ -339,12 +339,31 @@ defmodule Kati.Screens.HealthFa do
       @doses
     else
       Enum.map(stored, fn dose ->
-        %{
+        # `:id` and screen 112's three tap tags travel with the row.
+        #
+        # They used to be dropped, and `Kati.Screens.Medication`'s moduledoc
+        # spelled out the consequence: *its chips have no row in them to act
+        # on, and they come through `handle_tap/2` here to reach
+        # `next_undecided/0`* — so pressing **خورده شد** on the 21:00 dose
+        # recorded whichever dose the day had not decided about yet, which on
+        # any day with more than one is a different tablet. The same moduledoc
+        # named the fix: *wiring them properly means giving 115's own list ids,
+        # which is 115's change.* This is that change.
+        #
+        # `Medication.tags/1` is the English screen's own builder, so both pages
+        # name a dose identically and `decision/2` there finds this row without
+        # a second clause. The drawing's three rows keep no id — `@doses` above
+        # has no `:id` key — so a page drawing the fixture still reaches
+        # `next_undecided/0`, which is the honest answer when nothing is stored.
+        dose
+        |> Map.take([:id])
+        |> Map.merge(Medication.tags(dose.id))
+        |> Map.merge(%{
           time: persian(dose.time),
           name: dose.name,
           line: persian(dose.line),
           state: dose.state
-        }
+        })
       end)
     end
   end
@@ -869,7 +888,7 @@ defmodule Kati.Screens.HealthFa do
         {Kati.Screens.HealthFa.ring(:due)}
       </Row>
       <Spacer size={13} />
-      {Kati.Screens.HealthFa.actions()}
+      {Kati.Screens.HealthFa.actions(dose)}
     </Column>
     """
   end
@@ -963,16 +982,28 @@ defmodule Kati.Screens.HealthFa do
   them in the card, which answers it by sitting there. The write is still 112's
   — see `handle_info/2` — so both pages mark a dose the same way.
   """
-  @spec actions() :: map()
-  def actions do
+  @spec actions(map()) :: map()
+  def actions(dose \\ %{}) do
     taken = @labels.taken
     skip = @labels.skip
 
+    # The dose's own two tags when the row has them, and screen 115's old pair
+    # when it does not — which is the drawing, whose three rows carry no id.
+    #
+    # The pair used to be unconditional, so both verbs named the CARD rather
+    # than the dose in it and `Kati.Screens.Medication.handle_tap/2` fell
+    # through to `next_undecided/0`: pressing *taken* on the 21:00 tablet
+    # recorded whichever dose the day had not decided about. `doses/0` carries
+    # `Medication.tags/1` now, so these are the same atoms screen 112 draws and
+    # the same `decision/2` clause answers them.
+    yes = Map.get(dose, :taken, :mark_taken)
+    no = Map.get(dose, :skip, :mark_skipped)
+
     ~MOB"""
     <Row fill_width={true} align="center" padding_left={15}>
-      {Kati.Screens.HealthFa.pill(taken, Palette.ink_fill(), Palette.on_ink(), :mark_taken)}
+      {Kati.Screens.HealthFa.pill(taken, Palette.ink_fill(), Palette.on_ink(), yes)}
       <Spacer size={8} />
-      {Kati.Screens.HealthFa.pill(skip, Palette.paper(), Palette.ink_soft(), :mark_skipped)}
+      {Kati.Screens.HealthFa.pill(skip, Palette.paper(), Palette.ink_soft(), no)}
     </Row>
     """
   end
@@ -1046,9 +1077,23 @@ defmodule Kati.Screens.HealthFa do
   # screen's own reader, because 112 leaves English doses on the socket behind
   # it. Marking a dose from the mirror and marking it from 112 must be the same
   # act, and this is the only way to say that without a second copy of it.
-  def handle_info({:tap, tag}, socket) when tag in [:mark_taken, :mark_skipped] do
-    {:noreply, written} = Medication.handle_tap(tag, socket)
-    {:noreply, Mob.Socket.assign(written, :doses, doses())}
+  # `dose_<id>_taken` and `dose_<id>_skip` as well as the two old bare tags: the
+  # first pair is what a real dose draws now, the second what the drawing still
+  # draws. Both go to screen 112's writer, which finds the row by tag in
+  # `socket.assigns.doses` — this screen's own list, in Persian, with ids.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    if tag in [:mark_taken, :mark_skipped] or dose_verb?(socket, tag) do
+      {:noreply, written} = Medication.handle_tap(tag, socket)
+      {:noreply, Mob.Socket.assign(written, :doses, doses())}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp dose_verb?(socket, tag) do
+    Enum.any?(Map.get(socket.assigns, :doses, []), fn dose ->
+      Map.get(dose, :taken) == tag or Map.get(dose, :skip) == tag
+    end)
   end
 
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}

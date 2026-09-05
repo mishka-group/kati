@@ -50,7 +50,20 @@ defmodule Kati.Screens.LogProgressFa do
     # `Kati.Screens.BookDetailFa` pushes `%{book_id: id}` — and the session this
     # sheet writes has to land on the book it drew, which is the whole of #84
     # and the reason `Kati.Screens.LogProgress.mount/3` keeps its own.
-    id = Map.get(params || %{}, :book_id)
+    # The id the sheet RESOLVES, not only the one it was named.
+    #
+    # Named nothing, `sheet(nil)` draws `Kati.Books.SampleFa` while `Save`
+    # called `save_session(page, nil)` — and `current_book(nil)` is the head of
+    # the shelf, so a session landed on a book this sheet never drew and
+    # `move_position/2` walked that book's `current_page` to whatever the
+    # stepper showed. Screen 70 does not have it: its `book/1` resolves the head
+    # and carries the id, so drawing and writing are one row. Screen 73 was the
+    # same defect and took the same fix.
+    #
+    # Reachable from `Kati.Screens.Gallery` on a device with books on the shelf:
+    # screen 71 hands an id whenever it has one, so the bare mount is the
+    # catalogue's.
+    id = Map.get(params || %{}, :book_id) || shelf_head()
 
     {:ok,
      socket
@@ -78,6 +91,16 @@ defmodule Kati.Screens.LogProgressFa do
   this board's caption calls a proposal, and it belongs beside the Gregorian
   shaping in `Kati.Books` rather than being invented on a screen.
   """
+  # The shelf's head as an id, or `nil` when nothing is shelved. Through screen
+  # 66's own reader, so this sheet and the page that opens it cannot disagree
+  # about which book that is.
+  defp shelf_head do
+    case Kati.Screens.BookDetail.shelved_book(nil) do
+      %{id: id} when is_binary(id) -> id
+      _nothing -> nil
+    end
+  end
+
   @spec sheet(String.t() | nil) :: map()
   def sheet(nil), do: SampleFa.sheet()
 

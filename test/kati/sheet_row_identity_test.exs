@@ -1275,16 +1275,33 @@ defmodule Kati.SheetRowIdentityTest do
       refute assigns(sheet).sheet.book == Kati.Screens.LogProgressFa.sheet(nil).book
     end
 
-    test "no id is the drawing, and an id with no row is the drawing too" do
-      a_book!(%{title: @prefix <> "The Salt Almanac"})
+    test "a bare mount draws the book it is about to write to" do
+      book = a_book!(%{title: @prefix <> "The Salt Almanac"})
 
-      # The whole of today's behaviour, and what every sweep mounts: screen 72
-      # is pushed with no params and draws `Kati.Books.SampleFa.sheet/0`
-      # untouched — the shelf's head is NOT substituted for a sheet nobody
-      # handed anything to, because this board is a fixture rather than a page.
-      assert mount_screen(Kati.Screens.LogProgressFa) |> assigns() |> Map.fetch!(:sheet) ==
-               Kati.Screens.LogProgressFa.sheet(nil)
+      # This test used to assert the opposite, and the opposite was a defect.
+      #
+      # A bare mount drew `Kati.Books.SampleFa.sheet/0` while **Save** called
+      # `save_session(page, nil)` — and `current_book(nil)` is the head of the
+      # shelf. So the sheet showed the fixture and wrote a session against a
+      # real book, walking its `current_page` to whatever the stepper showed.
+      # Screen 70 never had it: its `book/1` resolves the head and carries the
+      # id, so drawing and writing are one row. `mount/3` pins the resolved id
+      # now, and this is that claim.
+      #
+      # Found by `Kati.ScreenWriteTargetTest`, which sweeps every screen with no
+      # domain knowledge — a suite of 2252 was silent on it.
+      mounted = mount_screen(Kati.Screens.LogProgressFa) |> assigns()
 
+      assert mounted.book_id == book.id, "the sheet cannot name what Save will write to"
+      assert mounted.sheet.book == book.title, "the sheet draws a different book than it writes"
+
+      # With nothing shelved there is nothing to resolve, and the fixture is the
+      # honest answer — the state every design sweep mounts.
+      Ash.destroy!(book)
+      bare = mount_screen(Kati.Screens.LogProgressFa) |> assigns()
+
+      refute bare.book_id
+      assert bare.sheet == Kati.Books.SampleFa.sheet()
       assert Kati.Screens.LogProgressFa.sheet(nil) == Kati.Books.SampleFa.sheet()
 
       dead = a_book!(%{title: @prefix <> "Low Water"})

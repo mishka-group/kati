@@ -4,13 +4,29 @@ defmodule Kati.ScreenWriteTargetTest do
   @moduledoc """
   **A write acts on the row the page drew, never on a fresh query.**
 
-  That sentence has been carried in prose by three rounds of review and has
-  been broken four times anyway. This file is the sentence as a check.
+  A net with no domain knowledge, cast over every screen the app has. That is
+  the claim this file can support, and it is narrower than the one it shipped
+  with — which said it was the defence against the four commits below. It is
+  not, and the correction is worth keeping because it is the kind of claim a
+  test file talks itself into.
+
+  **Measured, by reintroducing all four:** this file goes red on two of them,
+  and on all four the domain tests that landed WITH the fixes go red too, with
+  a better message — `Kati.BooksTest`, `Kati.MusicTest`,
+  `Kati.MealsTodayWriteTest`. Its detection value over that history is zero.
+
+  What it is actually worth is the other direction. It sweeps ~160 screens and
+  ~2300 taps knowing nothing about any of them, so it reaches the screens
+  nobody thought to write a domain test for — and there it found **four live
+  wrong-row writes on two screens**, in a suite of 2252 that was silent on all
+  four. Both were Persian mirrors, which is exactly where per-domain coverage
+  thins out. `@writes_a_stranger` is where they were recorded and it is empty
+  now; the note there says what they were.
 
   ## The one shape, four times
 
-  Each of these shipped green, and each was found by an agent told to break
-  the domain rather than by anything in this suite:
+  The history the rule comes from. Each shipped green, and each was found by an
+  agent told to break the domain — this file catches the first two:
 
     * `7a45424` — screen 66 wrote to the shelf's newest BOOK while the page
       drew the fixture. `book/1` collapses *nobody named one* and *the named
@@ -433,50 +449,34 @@ defmodule Kati.ScreenWriteTargetTest do
   # carries the fix so the next person does not have to find it again.
   #
   # Ratcheted both ways, like `@writes_anyway`, so it may only shrink.
-  @writes_a_stranger [
-    # ── Screen 115, the Persian mirror of the medication page.
-    #
-    # `Kati.Screens.HealthFa.doses/0` shapes each dose as time, name, line and
-    # state and DROPS the id — `health_fa.ex:341-348`. So the two verbs inside
-    # the due card carry no row, `Kati.Screens.Medication.handle_tap/2` finds
-    # nothing to decide, and `other_tap/2` falls through to `next_undecided/0`,
-    # which re-reads the day AT TAP TIME and takes the first `:due` dose it
-    # sees. That is screen 79's defect exactly — a page that drew one thing
-    # writing to whatever a fresh query answers — and here it says somebody
-    # took a tablet.
-    #
-    # Already named in prose, and by nothing else: `medication.ex:85-93` calls
-    # these *the identity-less door, kept working rather than quietly broken*
-    # and says the fix is *giving 115's own list ids, which is 115's change*.
-    # The prose has been right and untested since it was written; this is the
-    # assertion that makes it fail. Fixing it is one line in `doses/0` plus the
-    # `tap`/`taken`/`skip` tags screen 112's rows already carry.
-    {Kati.Screens.HealthFa, :mark_taken, {:db, "health_doses"}},
-    {Kati.Screens.HealthFa, :mark_skipped, {:db, "health_doses"}},
+  @writes_a_stranger []
 
-    # ── Screen 72's `ثبت پیشرفت` save, and the one nothing had noticed.
-    #
-    # `sheet(nil)` answers `Kati.Books.SampleFa.sheet/0` — the fixture, with no
-    # id — where `sheet(id)` merges the named book's own fields over it
-    # (`log_progress_fa.ex:82-89`). `Save` then calls
-    # `Kati.Screens.LogProgress.save_session(page, nil)`, and `current_book(nil)`
-    # is the head of the shelf: a session is written against a book the sheet
-    # never drew, and `move_position/2` walks that book's `current_page` forward
-    # to whatever the stepper was showing.
-    #
-    # The English sheet is not here and the difference is the whole finding.
-    # Screen 70 assigns `:book` from `book(nil)`, which RESOLVES the shelf's
-    # head and carries its id, so what it draws and what it writes are one row.
-    # Screen 72 resolves nothing and writes anyway.
-    #
-    # Reachable: screen 71 hands an id whenever it has one, so the bare mount is
-    # `Kati.Screens.Gallery`'s — board 72 opened from the catalogue on a device
-    # with books on the shelf, where `Save` moves a real book. The fix is
-    # `sheet/1`'s `nil` clause merging `shelved_book(nil)` the way screen 70's
-    # `book/1` does, so the sheet draws the book it is about to write to.
-    {Kati.Screens.LogProgressFa, :save, {:db, "book_reading_sessions"}},
-    {Kati.Screens.LogProgressFa, :save, {:db, "books"}}
-  ]
+  # It is EMPTY, and that is the state this file was written to reach.
+  #
+  # It shipped with four entries, all found by the assertion above and none by
+  # anything else in a 2252-test suite. Two screens, both Persian mirrors, which
+  # is where per-domain tests thin out:
+  #
+  #   * **Screen 115.** `Kati.Screens.HealthFa.doses/0` shaped each dose as
+  #     time, name, line and state and dropped the id, so the two verbs in the
+  #     due card named the CARD rather than the dose in it and
+  #     `Kati.Screens.Medication.handle_tap/2` fell through to
+  #     `next_undecided/0` — which re-reads the day AT TAP TIME. Pressing
+  #     *خورده شد* on the 21:00 tablet recorded whichever dose the day had not
+  #     decided about. `medication.ex:85` had called these *the identity-less
+  #     door, kept working rather than quietly broken* and named the fix;
+  #     the prose had been right and untested since it was written.
+  #   * **Screen 72.** `Save` called `save_session(page, nil)` on a bare mount
+  #     and `current_book(nil)` is the head of the shelf, so a session landed on
+  #     a book the sheet never drew and `move_position/2` walked that book's
+  #     `current_page` to whatever the stepper showed. Screen 70 never had it:
+  #     its `book/1` resolves the head and carries the id.
+  #
+  # An entry here is a defect with a fix written beside it, never an exemption —
+  # `@empty_builders` in `Kati.ScreenParamsSweepTest` is the precedent. While
+  # the list has entries this file is a ratchet on known defects; empty, it is a
+  # guard. Adding a line is how a new one is recorded, and deleting it is the
+  # commit that fixes it.
 
   # Floors for assertion 3's pass, and they may only go up. Measured on
   # 2026-09-05 over the two locales — 169 screens, 2465 taps — and set just
