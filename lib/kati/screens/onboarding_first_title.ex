@@ -40,34 +40,41 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   @doc false
   def content(assigns) do
     Kati.Screens.Pushed.page(~MOB"""
-      <Column fill_width={true}>
-        {OnboardingWelcome.rail(5)}
-        <Text text="Add your first title" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
-        <Spacer size={10} />
+    <Column fill_width={true}>
+      {OnboardingWelcome.rail(5)}
+      <Text
+        text="Add your first title"
+        text_size={28}
+        max_font_scale={1.6}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
+      <Spacer size={10} />
+      <Text
+        text="Pick something you are watching now — the calendar fills itself from there."
+        text_size={13.5}
+        line_height={1.55}
+        text_color={Palette.ink_soft()}
+      />
+      <Spacer size={20} />
+      {Kati.Screens.OnboardingFirstTitle.grid(assigns.picked)}
+      <Spacer size={18} />
+      {OnboardingWelcome.forward("Finish setup", :finish)}
+      <Spacer size={12} />
+      <Box fill_width={true} on_tap={{self(), :skip}}>
         <Text
-          text="Pick something you are watching now — the calendar fills itself from there."
-          text_size={13.5}
-          line_height={1.55}
-          text_color={Palette.ink_soft()}
+          text="Skip — I’ll add things later"
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.sub()}
+          text_align="center"
         />
-        <Spacer size={20} />
-        {Kati.Screens.OnboardingFirstTitle.grid(assigns.picked)}
-        <Spacer size={18} />
-        {OnboardingWelcome.forward("Finish setup", :finish)}
-        <Spacer size={12} />
-        <Box fill_width={true} on_tap={{self(), :skip}}>
-          <Text
-            text="Skip — I’ll add things later"
-            text_size={13}
-            font_weight="semibold"
-            text_color={Palette.sub()}
-            text_align="center"
-          />
-        </Box>
-        <Spacer size={18} />
-        {SettingsList.note("info", "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner.")}
-        {OnboardingWelcome.back_row("Back to loudness")}
-      </Column>
+      </Box>
+      <Spacer size={18} />
+      {SettingsList.note("info", "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner.")}
+      {OnboardingWelcome.back_row("Back to loudness")}
+    </Column>
     """)
   end
 
@@ -260,8 +267,11 @@ defmodule Kati.Screens.OnboardingFirstTitle do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "pick_" <> title -> {:noreply, Mob.Socket.assign(socket, :picked, String.replace(title, "_", " "))}
-      _other -> {:noreply, socket}
+      "pick_" <> title ->
+        {:noreply, Mob.Socket.assign(socket, :picked, String.replace(title, "_", " "))}
+
+      _other ->
+        {:noreply, socket}
     end
   end
 end

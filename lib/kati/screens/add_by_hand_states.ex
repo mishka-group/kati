@@ -34,7 +34,8 @@ defmodule Kati.Screens.AddByHandStates do
     # at 54, 42 tall, so the content that follows starts at `content_top/0`
     # to clear it. Before this the column had no padding at all and the
     # form ran to the pixel with its heading under the pill.
-    Kati.Screens.Pushed.page(~MOB"""
+    Kati.Screens.Pushed.page(
+      ~MOB"""
       <Column fill_width={true}>
         <Text
           text="Add by hand"
@@ -45,18 +46,15 @@ defmodule Kati.Screens.AddByHandStates do
           text_color={:on_surface}
         />
         <Spacer size={7} />
-        <Text
-          text="TWO STATES"
-          text_size={13}
-          line_height={1.55}
-          text_color={Palette.sub()}
-        />
+        <Text text="TWO STATES" text_size={13} line_height={1.55} text_color={Palette.sub()} />
         <Spacer size={20} />
         {Kati.Screens.AddByHandStates.resting()}
         {Kati.Screens.AddByHandStates.refused()}
         {Kati.Screens.AddByHandStates.destination()}
       </Column>
-    """, Kati.Screens.Pushed.content_top())
+      """,
+      Kati.Screens.Pushed.content_top()
+    )
   end
 
   @doc "The first band: the form as it opens, with nothing assumed."
@@ -169,19 +167,25 @@ defmodule Kati.Screens.AddByHandStates do
     assigns = %{lead: lead, mid: mid, emphasis: emphasis, tail: tail}
 
     ~MOB"""
-    <Row
-      fill_width={true}
-      background={Palette.cream()}
-      corner_radius={16}
-      padding={13}
-      align="top"
-    >
+    <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding={13} align="top">
       {Kati.UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={9} />
       <Column weight={1.0}>
-        <Text text={@lead} text_size={12} line_height={1.5} font_weight="semibold" text_color={Palette.ink()} />
+        <Text
+          text={@lead}
+          text_size={12}
+          line_height={1.5}
+          font_weight="semibold"
+          text_color={Palette.ink()}
+        />
         <Text text={@mid} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
-        <Text text={@emphasis} text_size={12} line_height={1.5} font_weight="semibold" text_color={Palette.ink()} />
+        <Text
+          text={@emphasis}
+          text_size={12}
+          line_height={1.5}
+          font_weight="semibold"
+          text_color={Palette.ink()}
+        />
         <Text text={@tail} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
       </Column>
     </Row>
@@ -275,7 +279,13 @@ defmodule Kati.Screens.AddByHandStates do
       padding_right={15}
       align="center"
     >
-      <Text text={@placeholder} text_size={14} text_color={Palette.tertiary()} weight={1.0} max_lines={1} />
+      <Text
+        text={@placeholder}
+        text_size={14}
+        text_color={Palette.tertiary()}
+        weight={1.0}
+        max_lines={1}
+      />
     </Row>
     """
   end

@@ -113,7 +113,13 @@ defmodule Kati.Screens.AddByHandFa do
         >
           {Kati.UI.symbol("arrow_forward_ios", size: 17)}
           <Spacer size={6} />
-          <Text text="افزودن عنوان" font_family="fa" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+          <Text
+            text="افزودن عنوان"
+            font_family="fa"
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+          />
         </Row>
         <Spacer weight={1.0} />
       </Row>
@@ -150,7 +156,12 @@ defmodule Kati.Screens.AddByHandFa do
 
   @doc false
   def field(tag, value, placeholder) do
-    assigns = %{value: value, placeholder: placeholder, on_change: {self(), tag}, id: Atom.to_string(tag)}
+    assigns = %{
+      value: value,
+      placeholder: placeholder,
+      on_change: {self(), tag},
+      id: Atom.to_string(tag)
+    }
 
     ~MOB"""
     <Row

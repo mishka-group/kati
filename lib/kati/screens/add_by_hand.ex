@@ -75,7 +75,8 @@ defmodule Kati.Screens.AddByHand do
     # at 54, 42 tall, so the content that follows starts at `content_top/0`
     # to clear it. Before this the column had no padding at all and the
     # form ran to the pixel with its heading under the pill.
-    Kati.Screens.Pushed.page(~MOB"""
+    Kati.Screens.Pushed.page(
+      ~MOB"""
       <Column fill_width={true}>
         {Kati.Screens.AddByHand.heading()}
         {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "e.g. The Long Hollow"))}
@@ -88,7 +89,9 @@ defmodule Kati.Screens.AddByHand do
         <Spacer size={14} />
         {Kati.Screens.AddByHand.split_note("A hand-typed title carries", "no poster and no episode list", ". If Kati finds it later both arrive, and nothing you typed is overwritten.")}
       </Column>
-    """, Kati.Screens.Pushed.content_top())
+      """,
+      Kati.Screens.Pushed.content_top()
+    )
   end
 
   @doc false
@@ -179,13 +182,24 @@ defmodule Kati.Screens.AddByHand do
     assigns = %{text: text, face: face}
 
     ~MOB"""
-    <Text text={@text} font_family={@face} text_size={11.5} text_color={Palette.tertiary()} max_lines={1} />
+    <Text
+      text={@text}
+      font_family={@face}
+      text_size={11.5}
+      text_color={Palette.tertiary()}
+      max_lines={1}
+    />
     """
   end
 
   @doc false
   def field(tag, value, placeholder) do
-    assigns = %{value: value, placeholder: placeholder, on_change: {self(), tag}, id: Atom.to_string(tag)}
+    assigns = %{
+      value: value,
+      placeholder: placeholder,
+      on_change: {self(), tag},
+      id: Atom.to_string(tag)
+    }
 
     ~MOB"""
     <Row
@@ -331,17 +345,17 @@ defmodule Kati.Screens.AddByHand do
     assigns = %{lead: lead, emphasis: emphasis, tail: tail, face: face}
 
     ~MOB"""
-    <Row
-      fill_width={true}
-      background={Palette.cream()}
-      corner_radius={16}
-      padding={13}
-      align="top"
-    >
+    <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding={13} align="top">
       {Kati.UI.symbol("info", size: 16, color: Palette.bronze())}
       <Spacer size={9} />
       <Column weight={1.0}>
-        <Text text={@lead} font_family={@face} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+        <Text
+          text={@lead}
+          font_family={@face}
+          text_size={12}
+          line_height={1.5}
+          text_color={Palette.ink_soft()}
+        />
         <Text
           text={@emphasis}
           font_family={@face}
@@ -350,7 +364,13 @@ defmodule Kati.Screens.AddByHand do
           font_weight="semibold"
           text_color={Palette.ink()}
         />
-        <Text text={@tail} font_family={@face} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+        <Text
+          text={@tail}
+          font_family={@face}
+          text_size={12}
+          line_height={1.5}
+          text_color={Palette.ink_soft()}
+        />
       </Column>
     </Row>
     """

@@ -135,7 +135,12 @@ defmodule Kati.MediaTmdbTest do
               "number_of_episodes" => 19,
               "genres" => [%{"name" => "Drama"}, %{"name" => "Mystery"}],
               "seasons" => [
-                %{"id" => 1, "season_number" => 1, "episode_count" => 2, "air_date" => "2022-02-17"}
+                %{
+                  "id" => 1,
+                  "season_number" => 1,
+                  "episode_count" => 2,
+                  "air_date" => "2022-02-17"
+                }
               ]
             })
 

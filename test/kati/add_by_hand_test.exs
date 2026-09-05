@@ -132,5 +132,4 @@ defmodule Kati.AddByHandTest do
       | assigns: Map.merge(%{save_error: nil}, assigns)
     })
   end
-
 end

@@ -232,7 +232,11 @@ defmodule Kati.Screens.Money do
   """
   @spec subscription_tag(map()) :: atom()
   def subscription_tag(service) do
-    case service |> Map.get(:name, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+    case service
+         |> Map.get(:name, "")
+         |> to_string()
+         |> String.trim()
+         |> String.replace(" ", "_") do
       "" -> :open_subscriptions
       name -> String.to_atom("open_subscriptions_" <> name)
     end

@@ -97,7 +97,6 @@ defmodule Kati.MealSwapTest do
     assert Ash.read!(Kati.Meals.MealLog) == []
   end
 
-
   describe "screen 45's bookmark disc" do
     test "bookmarks the recipe, and un-bookmarks it" do
       # The board has drawn this disc since the screen was built and

@@ -183,7 +183,6 @@ defmodule Kati.SearchRunTest do
     end
   end
 
-
   describe "the results page draws what the query actually returned" do
     setup do
       Kati.Search.Recent.forget!()
@@ -202,7 +201,12 @@ defmodule Kati.SearchRunTest do
       # happened, and that is what made it expensive to find.
       Kati.Screens.AddByHand.save(%Mob.Socket{
         Mob.Socket.new(Kati.Screens.AddByHand)
-        | assigns: %{title: "Estuary Nights", kind: :movie, status: "Not started", save_error: nil}
+        | assigns: %{
+            title: "Estuary Nights",
+            kind: :movie,
+            status: "Not started",
+            save_error: nil
+          }
       })
 
       results = Kati.Search.Query.run("estuary")
@@ -216,7 +220,12 @@ defmodule Kati.SearchRunTest do
       # chose and any one of them could grow the same hole.
       Kati.Screens.AddByHand.save(%Mob.Socket{
         Mob.Socket.new(Kati.Screens.AddByHand)
-        | assigns: %{title: "Estuary Nights", kind: :movie, status: "Not started", save_error: nil}
+        | assigns: %{
+            title: "Estuary Nights",
+            kind: :movie,
+            status: "Not started",
+            save_error: nil
+          }
       })
 
       results = Kati.Search.Query.run("estuary")
@@ -233,7 +242,12 @@ defmodule Kati.SearchRunTest do
       # is omitted is not.
       Kati.Screens.AddByHand.save(%Mob.Socket{
         Mob.Socket.new(Kati.Screens.AddByHand)
-        | assigns: %{title: "Estuary Nights", kind: :movie, status: "Not started", save_error: nil}
+        | assigns: %{
+            title: "Estuary Nights",
+            kind: :movie,
+            status: "Not started",
+            save_error: nil
+          }
       })
 
       results = Kati.Search.Query.run("estuary")
@@ -264,5 +278,4 @@ defmodule Kati.SearchRunTest do
       end
     end)
   end
-
 end

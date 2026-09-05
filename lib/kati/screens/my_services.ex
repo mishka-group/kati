@@ -353,7 +353,11 @@ defmodule Kati.Screens.MyServices do
   """
   @spec service_tag(map()) :: atom()
   def service_tag(service) do
-    case service |> Map.get(:name, "") |> to_string() |> String.trim() |> String.replace(" ", "_") do
+    case service
+         |> Map.get(:name, "")
+         |> to_string()
+         |> String.trim()
+         |> String.replace(" ", "_") do
       "" -> :edit_service
       name -> String.to_atom("edit_service_" <> name)
     end

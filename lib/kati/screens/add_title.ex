@@ -292,7 +292,6 @@ defmodule Kati.Screens.AddTitle do
     end
   end
 
-
   @doc """
   The results a chip leaves visible.
 

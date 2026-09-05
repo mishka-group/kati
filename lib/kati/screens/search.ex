@@ -937,13 +937,7 @@ defmodule Kati.Screens.Search do
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
-        align="center"
-        padding_top={13}
-        padding_bottom={13}
-        on_tap={tap}
-      >
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13} on_tap={tap}>
         <Column width={44}>
           <Text
             text={row.date}

@@ -168,7 +168,13 @@ defmodule Kati.Screens.HomeFaEmpty do
         padding={20}
         align="center"
       >
-        <Box width={56} height={56} corner_radius={16} background={Palette.placeholder()} align="center">
+        <Box
+          width={56}
+          height={56}
+          corner_radius={16}
+          background={Palette.placeholder()}
+          align="center"
+        >
           {UI.symbol("grid_view", size: 28, color: Palette.tertiary())}
         </Box>
         <Spacer size={18} />
@@ -221,12 +227,24 @@ defmodule Kati.Screens.HomeFaEmpty do
         align="center"
         on_tap={{self(), :open_calendar}}
       >
-        <Box width={38} height={38} corner_radius={12} background={Palette.placeholder()} align="center">
+        <Box
+          width={38}
+          height={38}
+          corner_radius={12}
+          background={Palette.placeholder()}
+          align="center"
+        >
           {UI.symbol("calendar_month", size: 19, color: Palette.ink_soft())}
         </Box>
         <Spacer size={12} />
         <Column weight={1.0}>
-          <Text font_family="fa" text="امروز" text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+          <Text
+            font_family="fa"
+            text="امروز"
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={:on_surface}
+          />
           <Spacer size={4} />
           <Text
             text="چیزی برنامه‌ریزی نشده — با + هر چیزی اضافه کنید"
@@ -253,13 +271,7 @@ defmodule Kati.Screens.HomeFaEmpty do
   @spec footnote() :: map()
   def footnote do
     ~MOB"""
-    <Row
-      fill_width={true}
-      background={Palette.cream()}
-      corner_radius={16}
-      padding={13}
-      align="top"
-    >
+    <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding={13} align="top">
       {UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={9} />
       <Column weight={1.0}>

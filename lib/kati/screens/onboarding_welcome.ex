@@ -34,48 +34,48 @@ defmodule Kati.Screens.OnboardingWelcome do
   @doc false
   def content(_assigns) do
     Kati.Screens.Pushed.page(~MOB"""
-      <Column fill_width={true}>
-        {Kati.Screens.OnboardingWelcome.rail(2)}
-        {Kati.Screens.OnboardingWelcome.mark()}
+    <Column fill_width={true}>
+      {Kati.Screens.OnboardingWelcome.rail(2)}
+      {Kati.Screens.OnboardingWelcome.mark()}
+      <Text
+        text="One place for"
+        text_size={28}
+        max_font_scale={1.6}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
+      <Text
+        text="what you keep"
+        text_size={28}
+        max_font_scale={1.6}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
+      <Spacer size={10} />
+      <Text
+        text="Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
+        text_size={13.5}
+        line_height={1.55}
+        text_color={Palette.ink_soft()}
+      />
+      <Spacer size={24} />
+      {Kati.Screens.OnboardingWelcome.forward("Get started", :next)}
+      <Spacer size={12} />
+      <Box fill_width={true} on_tap={{self(), :restore}}>
         <Text
-          text="One place for"
-          text_size={28}
-          max_font_scale={1.6}
-          font_weight="bold"
-          letter_spacing={-0.03}
-          text_color={:on_surface}
+          text="Already have a Kati backup? Restore it"
+          text_size={13}
+          font_weight="semibold"
+          text_color={Palette.sub()}
+          text_align="center"
         />
-        <Text
-          text="what you keep"
-          text_size={28}
-          max_font_scale={1.6}
-          font_weight="bold"
-          letter_spacing={-0.03}
-          text_color={:on_surface}
-        />
-        <Spacer size={10} />
-        <Text
-          text="Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
-          text_size={13.5}
-          line_height={1.55}
-          text_color={Palette.ink_soft()}
-        />
-        <Spacer size={24} />
-        {Kati.Screens.OnboardingWelcome.forward("Get started", :next)}
-        <Spacer size={12} />
-        <Box fill_width={true} on_tap={{self(), :restore}}>
-          <Text
-            text="Already have a Kati backup? Restore it"
-            text_size={13}
-            font_weight="semibold"
-            text_color={Palette.sub()}
-            text_align="center"
-          />
-        </Box>
-        <Spacer size={18} />
-        {SettingsList.note("info", "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below.")}
-        {Kati.Screens.OnboardingWelcome.back_row("Back to language")}
-      </Column>
+      </Box>
+      <Spacer size={18} />
+      {SettingsList.note("info", "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below.")}
+      {Kati.Screens.OnboardingWelcome.back_row("Back to language")}
+    </Column>
     """)
   end
 
@@ -121,7 +121,13 @@ defmodule Kati.Screens.OnboardingWelcome do
       on_tap={@tap}
     >
       <Spacer weight={1.0} />
-      <Text text={@label} text_size={14.5} font_weight="bold" text_color={Palette.on_ink()} max_lines={1} />
+      <Text
+        text={@label}
+        text_size={14.5}
+        font_weight="bold"
+        text_color={Palette.on_ink()}
+        max_lines={1}
+      />
       <Spacer size={9} />
       {Kati.UI.symbol("arrow_forward", size: 18, color: Palette.on_ink())}
       <Spacer weight={1.0} />
@@ -145,7 +151,13 @@ defmodule Kati.Screens.OnboardingWelcome do
       <Row align="center" on_tap={@tap}>
         {Kati.UI.symbol("arrow_back", size: 17, color: Palette.sub())}
         <Spacer size={8} />
-        <Text text={@label} text_size={12.5} font_weight="semibold" text_color={Palette.sub()} max_lines={1} />
+        <Text
+          text={@label}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={Palette.sub()}
+          max_lines={1}
+        />
       </Row>
     </Column>
     """

@@ -148,7 +148,13 @@ defmodule Kati.Screens.HomeFaOmittedSections do
         {UI.symbol("block", size: 17, color: Palette.tertiary())}
         <Spacer size={9} />
         <Column weight={1.0}>
-          <Text font_family="fa" text={@lead} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+          <Text
+            font_family="fa"
+            text={@lead}
+            text_size={12.5}
+            line_height={1.55}
+            text_color={Palette.ink_soft()}
+          />
           <Text
             text={@emphasis}
             font_family="fa"
@@ -157,7 +163,13 @@ defmodule Kati.Screens.HomeFaOmittedSections do
             font_weight="semibold"
             text_color={Palette.ink()}
           />
-          <Text font_family="fa" text={@tail} text_size={12.5} line_height={1.55} text_color={Palette.ink_soft()} />
+          <Text
+            font_family="fa"
+            text={@tail}
+            text_size={12.5}
+            line_height={1.55}
+            text_color={Palette.ink_soft()}
+          />
         </Column>
       </Row>
       <Spacer size={22} />
@@ -199,7 +211,14 @@ defmodule Kati.Screens.HomeFaOmittedSections do
     >
       {UI.symbol(@icon, size: 22)}
       <Spacer size={10} />
-      <Text font_family="fa" text={@title} text_size={13.5} font_weight="semibold" text_color={:on_surface} max_lines={1} />
+      <Text
+        font_family="fa"
+        text={@title}
+        text_size={13.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
       {Kati.Screens.HomeFaOmittedSections.line(@line)}
     </Column>
     """
@@ -222,13 +241,7 @@ defmodule Kati.Screens.HomeFaOmittedSections do
   @doc false
   def footnote do
     ~MOB"""
-    <Row
-      fill_width={true}
-      background={Palette.cream()}
-      corner_radius={16}
-      padding={13}
-      align="top"
-    >
+    <Row fill_width={true} background={Palette.cream()} corner_radius={16} padding={13} align="top">
       {UI.symbol("info", size: 17, color: Palette.sub())}
       <Spacer size={9} />
       <Column weight={1.0}>
