@@ -983,24 +983,13 @@ defmodule Kati.Screens.Medication do
   copied. Red, and its own line.
   """
   @spec save_notice(String.t() | nil) :: map() | []
-  def save_notice(nil), do: []
-
-  def save_notice(message) do
-    assigns = %{message: message}
-
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text
-        text={@message}
-        text_size={12.5}
-        font_weight="semibold"
-        line_height={1.35}
-        text_color={Palette.red()}
-      />
-      <Spacer size={10} />
-    </Column>
-    """
-  end
+  # `Kati.UI.notice/1` holds the band now, because three screens draw it and
+  # this module reads Ash: a page calling in here for a sentence was inheriting
+  # a database dependency it does not have. See that function for the whole of
+  # it. Kept as a name rather than inlined at the call sites, so this page's
+  # own vocabulary — *a dose that did not record says so* — still points at
+  # something.
+  def save_notice(message), do: UI.notice(message)
 
   @doc """
   One schedule row's tag, built from the medicine's name.

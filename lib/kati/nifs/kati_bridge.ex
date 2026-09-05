@@ -124,6 +124,23 @@ defmodule Kati.Nifs.KatiBridge do
   @spec permission_status(binary()) :: binary()
   def permission_status(_capability), do: :erlang.nif_error(:nif_not_loaded)
 
+  # ── D-62: opening a link the app does not own ───────────────────────────
+
+  @doc """
+  `"ok"`, or `"error:<reason>"`, for handing one URL to the platform browser.
+
+  The capability fifteen drawn controls were waiting on — screen 83's six
+  source cards and its notices row, 84's two, 85's four, and the three *Open
+  system settings* pills. Each of them named a place and went nowhere, and
+  `Kati.ScreenTapSweepTest` recorded the same sentence against every one:
+  *Kati has no fence that opens an external link.*
+
+  `http` and `https` only; the Kotlin side refuses everything else rather than
+  becoming a way to launch arbitrary intents from a string.
+  """
+  @spec open_url(binary()) :: binary()
+  def open_url(_url), do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """

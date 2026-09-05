@@ -164,7 +164,7 @@ defmodule Kati.Screens.AddTitle do
   @spec search_notice(String.t() | nil) :: map() | []
   def search_notice(nil), do: []
 
-  def search_notice(message), do: Kati.Screens.Medication.save_notice(message)
+  def search_notice(message), do: Kati.UI.notice(message)
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

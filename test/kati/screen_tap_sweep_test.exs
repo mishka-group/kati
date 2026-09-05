@@ -425,18 +425,15 @@ defmodule Kati.ScreenTapSweepTest do
     # and the other three push screen 06.
     {Kati.Screens.AddByHandRecord, :kind_Album},
     {Kati.Screens.AddTitleMusic, :filter_Albums},
-    # ── Screen 83's six link rows. Every card and the notices row opens a URL
-    # in the platform browser, and Kati has no fence for that: nothing in
-    # `native/LEDGER.md` opens an external link, and inventing one to make six
-    # taps look alive would be shipping a native change for a test. The rows
-    # are drawn, reachable, and honest about being links; what they would open
-    # is the browser, through a bridge that does not exist yet.
-    {Kati.Screens.Attribution, :open_tmdb},
-    {Kati.Screens.Attribution, :open_justwatch},
-    {Kati.Screens.Attribution, :open_tvmaze},
-    {Kati.Screens.Attribution, :open_open_library},
-    {Kati.Screens.Attribution, :open_musicbrainz},
-    {Kati.Screens.Attribution, :open_notices},
+    # (Screen 83's six link rows were here, and screen 85's four below them.
+    # `D-62` built `K-43 open-url` and they all open the site they name now —
+    # `Kati.Screens.Attribution.site_for/1` is the table and
+    # `Kati.Screens.Attribution.follow/2` is the tap. The reason on file was
+    # *every one opens a URL in the platform browser, and Kati has no fence
+    # that does*, which was true for as long as nobody built the fence. Struck
+    # out rather than deleted, because a list that only grows is a list nobody
+    # believes.)
+
     # ── Screen 92's three rule switches and both search fields.
     #
     # The rules ARE wired: each writes through `Kati.Services.toggle_rule/1` and
@@ -685,12 +682,7 @@ defmodule Kati.ScreenTapSweepTest do
     # platform browser, and Kati has no fence that does.
     {Kati.Screens.AttributionStates, :open_tmdb},
     {Kati.Screens.AttributionStates, :open_listenbrainz},
-    # Screen 85's link rows, the Persian mirror of 83's. Same reason: every one
-    # opens a URL in the platform browser and Kati has no fence that does.
-    {Kati.Screens.AttributionFa, :open_tmdb},
-    {Kati.Screens.AttributionFa, :open_tvmaze},
-    {Kati.Screens.AttributionFa, :open_open_library},
-    {Kati.Screens.AttributionFa, :open_musicbrainz},
+
     # Screen 82's TMDB key choice, opening on Kati's own — the already-selected
     # member of a family whose other half does move.
     {Kati.Screens.DataSourcesFa, :key_kati},

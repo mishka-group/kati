@@ -156,4 +156,53 @@ defmodule Kati.ConnectedPagesTest do
       assert drawn.plays_line == "۴۱ پخش"
     end
   end
+
+  describe "the source cards open the sites they name" do
+    test "every card and the notices row resolves to a real address" do
+      # Ten controls across screens 83 and 85 were drawn, reachable and dead
+      # until `D-62` built the `K-43 open-url` fence. The table is screen 83's
+      # and the Persian page reads it rather than keeping a second one: the
+      # licence conditions are the same conditions, and a Persian page pointing
+      # somewhere else would be a licence problem rather than a copy one.
+      for source <- Kati.Screens.Attribution.sources() do
+        tag = String.to_atom("open_#{source.id}")
+        url = Kati.Screens.Attribution.site_for(tag)
+
+        assert is_binary(url), "#{tag} names no address"
+        assert Kati.Native.Links.http?(url), "#{tag} resolves to #{inspect(url)}"
+
+        assert String.ends_with?(url, source.site),
+               "#{tag} does not open the site the card prints"
+      end
+
+      assert Kati.Native.Links.http?(Kati.Screens.Attribution.site_for(:open_notices))
+      refute Kati.Screens.Attribution.site_for(:something_else)
+    end
+
+    test "a tap reaches the handler and a refusal is drawn rather than swallowed" do
+      # On the host there is no bridge, so every open refuses — which is the
+      # case worth pinning: the page must SAY so. Screen 06's silent search is
+      # the defect this is written against.
+      view = render_info(mount_screen(Kati.Screens.Attribution), {:tap, :open_tmdb})
+
+      assert assigns(view).link_error == Kati.Native.Links.message(:no_bridge)
+
+      drawn =
+        view
+        |> assigns()
+        |> Kati.Screens.Attribution.content()
+        |> Mob.ScreenCase.flatten()
+        |> Enum.map(&Map.get(&1.props || %{}, :text))
+
+      assert assigns(view).link_error in drawn,
+             "the refusal was put on the socket and never drawn — screen 06's bug again"
+    end
+
+    test "and only http addresses are carried" do
+      refute Kati.Native.Links.http?("intent://evil")
+      refute Kati.Native.Links.http?("file:///etc/passwd")
+      refute Kati.Native.Links.http?("https://")
+      assert {:error, :unsupported_scheme} = Kati.Native.Links.open("intent://evil")
+    end
+  end
 end

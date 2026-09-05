@@ -806,4 +806,44 @@ defmodule Kati.UI do
     </Column>
     """
   end
+
+  @doc """
+  A refusal, in red, above whatever it is about — or nothing.
+
+  One band, three callers, and it lives here because of what happened when it
+  did not. It was `Kati.Screens.Medication.save_notice/1`, which is the right
+  place for the page it was written for and the wrong place for anyone else:
+  `Kati.Screens.Medication` reads Ash, so screen 83 calling it to draw a
+  failed link put screen 83 inside `Kati.ScreenEmptyDatabaseTest`'s transitive
+  closure of screens that reach the store — a page whose entire content is a
+  literal table of licences, suddenly required to prove an empty state it does
+  not have. The same false edge cost a round earlier this week when
+  `Kati.Screens.Root`'s FAB called into `Kati.Screens.AddTitle`.
+
+  `Kati.UI` reaches nothing, so a screen that draws a sentence stays a screen
+  that draws a sentence.
+
+  The band itself is unchanged: 12.5 semibold in `Palette.red()` with a 10pt
+  gap under it, above the thing it is about, because a failure below the list
+  it failed to change is a failure nobody reads.
+  """
+  @spec notice(String.t() | nil) :: map() | []
+  def notice(nil), do: []
+
+  def notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.35}
+        text_color={Kati.Theme.Palette.red()}
+      />
+      <Spacer size={10} />
+    </Column>
+    """
+  end
 end

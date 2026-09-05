@@ -110,7 +110,7 @@ defmodule Kati.Screens.Attribution do
   def open_source, do: @open_source
 
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
     ~MOB"""
     <Scroll>
       <Column
@@ -122,6 +122,7 @@ defmodule Kati.Screens.Attribution do
       >
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title("Where this comes from", "Posters, covers, air dates and facts", nil, :name)}
+        {Kati.UI.notice(assigns[:link_error])}
         {Kati.Screens.Attribution.source_cards()}
         {UI.eyebrow("Open source")}
         {Kati.Screens.Attribution.open_source_card()}
@@ -328,11 +329,58 @@ defmodule Kati.Screens.Attribution do
     """
   end
 
-  # Every card and the notices row open a URL, and Kati has no in-app browser.
-  # Answering them rather than leaving them dead: the control is drawn, it is
-  # reachable, and what it would open is the platform's browser through a fence
-  # that does not exist yet. `Kati.ScreenTapSweepTest` carries them with that
-  # reason.
-  @doc false
+  @doc """
+  Every card and the notices row open the site they name.
+
+  Six controls on this board were drawn, reachable and dead until `D-62` gave
+  Kati a way to open a link. `Kati.ScreenTapSweepTest` carried each with the
+  same sentence — *every one opens a URL in the platform browser, and Kati has
+  no fence that does* — and that was true for as long as
+  `native/LEDGER.md` had no `K-43`.
+
+  The URL is built from the `:site` the card already prints, so the address in
+  the browser is the address the reader was shown; a second column holding a
+  full URL would be a second thing to keep in step with the first.
+
+  A refusal is drawn rather than swallowed. `Kati.Native.Links.message/1` has a
+  sentence for each — no browser on the phone, no bridge at all on a host —
+  and screen 06's silent search is the reason this page does not repeat it:
+  a control that appears to act and then says nothing is worse than one that
+  never moved.
+  """
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case Kati.Screens.Attribution.site_for(tag) do
+      nil -> {:noreply, socket}
+      url -> {:noreply, Kati.Screens.Attribution.follow(socket, url)}
+    end
+  end
+
   def handle_tap(_tag, socket), do: {:noreply, socket}
+
+  @doc """
+  The URL one of this page's tap tags names, or `nil`.
+
+  `:open_notices` is the licences of Kati's own dependencies rather than a
+  source, and it goes to the same place `open_source/0`'s rows are about.
+  """
+  @spec site_for(atom()) :: String.t() | nil
+  def site_for(:open_notices), do: "https://github.com/mishka-group/kati"
+
+  def site_for(tag) do
+    Enum.find_value(@sources, fn source ->
+      if String.to_atom("open_#{source.id}") == tag, do: "https://" <> source.site
+    end)
+  end
+
+  @doc false
+  @spec follow(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def follow(socket, url) do
+    case Kati.Native.Links.open(url) do
+      :ok ->
+        Mob.Socket.assign(socket, :link_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :link_error, Kati.Native.Links.message(reason))
+    end
+  end
 end

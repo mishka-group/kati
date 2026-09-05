@@ -142,6 +142,22 @@ static ERL_NIF_TERM kb_permission_status(ErlNifEnv *env, int argc, const ERL_NIF
     return reply;
 }
 
+/* ── #D-62: opening a link the app does not own ──────────────────────────── */
+
+static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *url;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    url = kati_take_cstr(env, argv[0]);
+    if (url == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call(env, "katiOpenUrl", "(Ljava/lang/String;)Ljava/lang/String;",
+                             url, NULL);
+    kati_free_cstr(url);
+    return reply;
+}
+
 /* ── #58: the periodic refresh worker ────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -231,6 +247,12 @@ static ERL_NIF_TERM kb_notify_status(ErlNifEnv *env, int argc, const ERL_NIF_TER
     return kb_unavailable(env);
 }
 
+static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     (void)argc;
     (void)argv;
@@ -253,6 +275,7 @@ static ErlNifFunc nif_funcs[] = {
     {"notify_cancel", 1, kb_notify_cancel, 0},
     {"notify_status", 0, kb_notify_status, 0},
     {"permission_status", 1, kb_permission_status, 0},
+    {"open_url", 1, kb_open_url, 0},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

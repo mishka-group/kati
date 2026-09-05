@@ -779,6 +779,60 @@ object MobBridge {
     // The `denied:false` + asked case is the one that matters on screen: once
     // permanently denied, `request/2` will not re-prompt, so the row has to
     // offer system settings instead of an Allow button that does nothing.
+    // KATI-BEGIN(K-43 open-url) mob_new=0.4.20
+    /**
+     * Hand a URL to whatever the phone opens URLs with.
+     *
+     * Fifteen controls in Kati were drawn, reachable and dead for want of this
+     * one method: screen 83's six source cards and its notices row, screen
+     * 84's two, screen 85's four in Persian, and the three *Open system
+     * settings* pills on the battery and notification-listener sheets. Every
+     * one of them says the name of a place and then does not go there.
+     * `Kati.ScreenTapSweepTest` listed them with the same sentence each time —
+     * *Kati has no fence that opens an external link* — which was true and is
+     * the reason this exists.
+     *
+     * `FLAG_ACTIVITY_NEW_TASK` because the call arrives on the BEAM's thread
+     * with an application context, not an Activity: without it Android throws
+     * rather than opening anything.
+     *
+     * A URL with no handler — no browser installed, or a scheme nothing claims
+     * — is `ActivityNotFoundException` and comes back as `error:no_handler`
+     * rather than a crash. `Kati.Native.Links` turns that into a sentence the
+     * screen can draw, which is the half that makes this honest: a link that
+     * cannot open should say so, not fail silently the way the search did.
+     *
+     * Only `http` and `https`. A bridge that opened any scheme would open
+     * `intent:` and `file:` too, and the strings reaching it come from
+     * `Kati.Services.Attribution` today but are one refactor away from coming
+     * from a cached API response.
+     */
+    @JvmStatic
+    fun katiOpenUrl(url: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        val parsed = try {
+            android.net.Uri.parse(url)
+        } catch (e: Exception) {
+            return "error:unparseable"
+        }
+
+        val scheme = parsed.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") return "error:unsupported_scheme"
+
+        return try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, parsed)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+            "ok"
+        } catch (e: android.content.ActivityNotFoundException) {
+            "error:no_handler"
+        } catch (e: Exception) {
+            "error:" + (e.message ?: "open_failed")
+        }
+    }
+    // KATI-END(K-43 open-url)
+
     @JvmStatic
     fun katiPermissionStatus(cap: String): String {
         val ctx = katiContext() ?: return "error:no_context"
