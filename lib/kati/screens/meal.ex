@@ -95,20 +95,47 @@ defmodule Kati.Screens.Meal do
   records on the editor, arriving here from the timeline rather than from the
   grid.
 
-  A slot that has gone since the timeline was drawn resolves to nothing and
-  falls through to exactly the no-id answer, rather than to a blank screen.
+  ## Named-and-missing is NOT the same as named-nothing
 
-  ## No id is the drawn path and has to stay it
+  This paragraph used to say a slot that had gone *falls through to exactly the
+  no-id answer*, and that was the defect. The two are different questions and
+  `next_meal/1` only answers one of them: it is the earliest unlogged slot
+  TODAY, so a card whose dinner had been removed from the plan opened on the
+  LUNCH, drew the lunch's title and macros, and — because `mark_eaten/1` writes
+  whatever this page resolved — logged the lunch when the reader pressed the
+  button. You named one meal and the app ate another.
 
-  `Kati.Screens.Gallery` opens this screen with nothing, and
-  `test/design/screens/45.html` was captured in that state. So `%{}` is
-  `next_meal/1` and then `Kati.Meals.SampleRecipe`, untouched.
+  Screen 66 carries the same distinction for the same reason, in
+  `Kati.Screens.BookDetail.book/1`'s own words: *named-and-missing refuses,
+  named-nothing is still the newest and still correct*. So:
+
+    * **no `:slot_id` at all** — the gallery, the board, the dock — is
+      `next_meal/1` and then the drawing. Unchanged, and it has to stay
+      unchanged: `test/design/screens/45.html` was captured in exactly that
+      state.
+    * **a `:slot_id` that names nothing** is the DRAWING, straight away. It
+      carries no `slot_id` and no `recipe_id`, so
+      `Kati.Meals.MealLog.log_eaten/1` refuses it and the button writes
+      nothing. A page that cannot name what it drew must not be able to write.
+
+  Falling to the drawing rather than to a blank screen is still FIDELITY's
+  rule; what changed is that it no longer falls to somebody else's dinner on
+  the way.
   """
   @spec meal(Date.t(), map() | nil) :: map()
   def meal(date, params) do
-    case named_slot(params) || next_meal(date) do
-      {slot, recipe} -> cooked(slot, recipe)
-      nil -> drawn_meal()
+    case Map.get(params || %{}, :slot_id) do
+      id when is_binary(id) and id != "" ->
+        case named_slot(params) do
+          {slot, recipe} -> cooked(slot, recipe)
+          nil -> drawn_meal()
+        end
+
+      _unnamed ->
+        case next_meal(date) do
+          {slot, recipe} -> cooked(slot, recipe)
+          nil -> drawn_meal()
+        end
     end
   end
 
@@ -245,6 +272,14 @@ defmodule Kati.Screens.Meal do
       bookmarked: recipe.bookmarked,
       portion_milli: portion,
       plan_id: slot.meal_plan_id,
+      # The eyebrow above is a SENTENCE — `Dinner · 19:30 · today` — and a
+      # sentence cannot be written to a log. These two are the same two facts
+      # unjoined, carried for `Kati.Meals.MealLog.log_eaten/1` so a meal logged
+      # here keeps the name and the clock it keeps when it is logged from
+      # screen 43's card. Parsing them back out of `:slot` would be a second
+      # implementation of the format one line above.
+      slot_name: slot.slot_name,
+      slot_time: slot.slot_time,
       calories: "#{figures.kcal}",
       unit: " kcal",
       split: split(figures),
@@ -1254,33 +1289,40 @@ defmodule Kati.Screens.Meal do
     end
   end
 
-  @doc false
+  @doc """
+  Write that this page's meal was eaten.
+
+  **Through `Kati.Meals.MealLog.log_eaten/1`, which screen 43's timeline card
+  also calls.** The two used to spell the same seven attributes out separately,
+  and both spellings were missing `slot_name` and `slot_time` — so a meal
+  logged from either screen came back with no clock and no eyebrow. Two copies
+  of one write is two chances to lose the same field, which is what happened,
+  and one function is the fix `Kati.Screens.Books.rail/2` records for a value
+  read twice.
+
+  The row is `socket.assigns.meal` — what `meal/2` RESOLVED at mount and this
+  page has been drawing since. `log_eaten/1` reads its ids and queries for
+  nothing, so there is no path from this button to a slot the reader is not
+  looking at, and a page showing `Kati.Meals.SampleRecipe` has no ids to give:
+  the store is left alone and only the tick moves, which is what
+  `Kati.MealsTodayWriteTest` pins.
+  """
   @spec mark_eaten(Mob.Socket.t()) :: Mob.Socket.t()
   def mark_eaten(socket) do
     meal = socket.assigns.meal
 
-    case meal do
-      %{slot_id: slot_id, recipe_id: recipe_id}
-      when is_binary(slot_id) and is_binary(recipe_id) ->
-        Kati.Meals.MealLog
-        |> Ash.Changeset.for_create(:log_recipe, %{
-          recipe_id: recipe_id,
-          portion_milli: meal.portion_milli,
-          logged_on: Kati.Time.today(),
-          logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
-          state: :eaten,
-          meal_plan_id: meal.plan_id,
-          meal_plan_slot_id: slot_id
-        })
-        |> Ash.create()
-        |> Kati.Write.note("mark eaten #{meal.title}")
-        |> case do
-          {:ok, _log} -> Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, true))
-          {:error, _reason} -> socket
-        end
+    case Kati.Meals.MealLog.log_eaten(meal) do
+      {:ok, _log} ->
+        Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, true))
 
-      _drawn ->
+      :error ->
+        # The drawing. It has no slot and no recipe, so there is nothing to log
+        # — the tick is local and dies with the screen, which is the honest
+        # thing a board-shaped page can do with the tap.
         Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))
+
+      {:error, _reason} ->
+        socket
     end
   end
 

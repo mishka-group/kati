@@ -232,14 +232,26 @@ defmodule Kati.Screens.MealsToday do
       title: log.title,
       calories: calories(log),
       seed: photo_seed(log.recipe),
-      # A logged meal has already been decided, so there is nothing for **Mark
-      # eaten** to write — `meal_card/1` only draws the button on a `:next`
-      # card. `nil` here rather than an absent key, so every row has the same
-      # shape and a screen reading one cannot raise on the other.
-      slot_id: nil,
-      recipe_id: nil,
-      portion_milli: nil,
-      plan_id: nil,
+      # The row names itself, and the comment that used to sit here was wrong in
+      # a way three separate probes found.
+      #
+      # It said: *a logged meal has already been decided, so there is nothing
+      # for Mark eaten to write — `meal_card/1` only draws the button on a
+      # `:next` card.* The second half is the false part. `card_state/1` answers
+      # `:next` for anything that is not `:eaten` or `:skipped`, and a
+      # `:planned` log is exactly that — it is what screen 46's *swap just
+      # today* writes. So a swapped meal draws as upcoming, draws **Mark eaten**
+      # and **Swap**, and with the ids blanked neither button could name the row
+      # under it: `Mark eaten` found nothing and did nothing, and `Swap` handed
+      # over whatever `Mob.State` happened to be holding.
+      #
+      # Blanked ids are not a way to make a control unreachable. If a card must
+      # not offer a write, the card decides that; a row that exists tells the
+      # truth about which row it is.
+      slot_id: log.meal_plan_slot_id,
+      recipe_id: log.recipe_id,
+      portion_milli: log.portion_milli,
+      plan_id: log.meal_plan_id,
       slot_time: log.slot_time,
       slot_name: log.slot_name
     }
@@ -824,6 +836,23 @@ defmodule Kati.Screens.MealsToday do
       :"meal_19:30"
   """
   @spec meal_tag(map()) :: atom()
+  # The slot's own id when the row has one, which every real row now does.
+  #
+  # The clause below builds the tag out of the slot word and the clock, and it
+  # was not enough: a day can hold two `Snack` rows AT THE SAME TIME, and it
+  # named both `meal_Snack_16:00` — so the second card opened the first, which
+  # is the defect this whole phase is about, one layer down from the push. An
+  # eaten card and the planned slot it came from collided the same way.
+  #
+  # `tag/2` has always keyed **Mark eaten** and **Swap** on the id; this brings
+  # the card's own tap in line with them, and the two-nodes-one-name problem
+  # goes with it. `log_row/1` blanking `slot_id` is what used to make this
+  # impossible — see the note there.
+  #
+  # The word-and-clock form stays for the fixture, whose rows have no id, and it
+  # is what `test/design/screens/43.html` is captured with.
+  def meal_tag(%{slot_id: id}) when is_binary(id), do: String.to_atom("meal_" <> id)
+
   def meal_tag(meal) do
     slot = meal |> Map.get(:slot, "") |> to_string() |> String.trim() |> String.replace(" ", "_")
     time = meal |> Map.get(:time, "") |> to_string() |> String.trim()
@@ -1067,7 +1096,7 @@ defmodule Kati.Screens.MealsToday do
       <Row fill_width={true} padding_left={15} align="center">
         {Kati.Screens.MealsToday.action("Mark eaten", :ink, Kati.Screens.MealsToday.tag("mark_eaten", meal))}
         <Spacer size={8} />
-        {Kati.Screens.MealsToday.action("Swap", :paper, :swap)}
+        {Kati.Screens.MealsToday.action("Swap", :paper, Kati.Screens.MealsToday.tag("swap", meal))}
         <Spacer size={8} />
         {Kati.Screens.MealsToday.overflow()}
       </Row>
@@ -1084,10 +1113,26 @@ defmodule Kati.Screens.MealsToday do
   is also what stops two cards sharing an `accessibility_id` — the thing
   `Kati.ScreenTapSweepTest` exists to catch.
 
+  **Both buttons on the lifted card go through here.** `Mark eaten` did from
+  the day it learned to write; `Swap` did not, and stayed `:swap` on every card
+  until 2026-09-05 — so a day with lunch and dinner still ahead drew two Swap
+  buttons under one name, and `handle_tap(:swap, …)` resolved them by taking
+  the first upcoming meal it could find. Tapping dinner's swapped the lunch.
+  One prefix, one rule, and neither button can now reach a row the reader was
+  not pressing.
+
   The drawing's own fallback keeps the bare tag. `Kati.Meals.SampleToday` rows
   have no slot id because they are a transcription of a board rather than rows
   in a store, and a tag ending in `_nil` would be a worse name than no id at
-  all.
+  all. Both bare tags are recorded against this screen in
+  `Kati.ScreenParamsSweepTest` and in `Kati.ScreenTapSweepTest`, so the fixture
+  path is pinned from the outside as well.
+
+      iex> Kati.Screens.MealsToday.tag("swap", %{slot_id: "abc"})
+      :swap_abc
+
+      iex> Kati.Screens.MealsToday.tag("swap", %{slot_id: nil})
+      :swap
   """
   @spec tag(String.t(), map()) :: atom()
   def tag(prefix, %{slot_id: id}) when is_binary(id), do: String.to_atom(prefix <> "_" <> id)
@@ -1096,11 +1141,23 @@ defmodule Kati.Screens.MealsToday do
   @doc """
   Write that a planned meal was eaten.
 
-  `Kati.Meals.MealLog`'s `:log_recipe` freezes the figures at the moment of the
+  `Kati.Meals.MealLog.log_eaten/1` freezes the figures at the moment of the
   claim — that is the whole point of the resource, and why re-logging is a
   destroy and a create rather than an update. So this hands it the slot's
   recipe and portion and lets `Kati.Meals.Changes.FreezeNutrition` do the
-  arithmetic, rather than copying today's numbers into the row itself.
+  arithmetic, rather than copying today's numbers into the row itself. Screen
+  45's own **Mark eaten** calls the same function, because two screens that
+  mean *I ate this* must not be able to write two different rows.
+
+  **The row is the one this page drew, found by the id the button carried.**
+  `Enum.find` over `socket.assigns.day.meals` and never a fresh read: a query
+  here would answer with the day as it stands at TAP time, and a plan edited in
+  another tab between the render and the finger would log a meal the reader was
+  not looking at. That is screen 73's defect, which credited a play to whoever
+  led the shelf at save. A tag whose slot is no longer in the drawn day finds
+  nothing and this function returns the socket untouched — the page refuses
+  rather than guessing, which is also what every `Kati.Meals.SampleToday` row
+  gets, since none of them has a slot id to be found by.
 
   The day is re-read afterwards rather than patched in the socket: the card a
   logged meal draws is `log_row/1`'s, not `slot_row/1`'s, and deriving it twice
@@ -1111,23 +1168,36 @@ defmodule Kati.Screens.MealsToday do
     meal = Enum.find(socket.assigns.day.meals, &(Map.get(&1, :slot_id) == slot_id))
 
     if meal do
-      MealLog
-      |> Ash.Changeset.for_create(:log_recipe, %{
-        recipe_id: meal.recipe_id,
-        portion_milli: meal.portion_milli,
-        logged_on: Kati.Time.today(),
-        logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
-        state: :eaten,
-        meal_plan_id: meal.plan_id,
-        meal_plan_slot_id: meal.slot_id
-      })
-      |> Ash.create()
-      |> Kati.Write.note("mark eaten #{meal.title}")
+      MealLog.log_eaten(meal)
 
       Mob.Socket.assign(socket, :day, Kati.Screens.MealsToday.day(Kati.Time.today()))
     else
       socket
     end
+  end
+
+  @doc """
+  Hand screen 46 the slot whose **Swap** was pressed.
+
+  The slot goes over through `Mob.State` — `Kati.Screens.MealSwap.hand_over/1`,
+  the way screen 86 hands a query to 19 — rather than on the push, because that
+  is the door screen 46 was built around and `Kati.MealSwapTest` drives
+  directly: `Kati.Screens.MealSwap.swap/1` reads a named slot first and falls
+  back to the store.
+
+  The id is resolved against `socket.assigns.day.meals` — the rows THIS render
+  drew — and not against a fresh read, so a slot deleted or re-planned since
+  the render hands nothing over instead of handing over a stale name. Same
+  lookup, same list and same refusal as `mark_eaten/2`.
+  """
+  @spec swap(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def swap(socket, slot_id) do
+    case Enum.find(socket.assigns.day.meals, &(Map.get(&1, :slot_id) == slot_id)) do
+      %{slot_id: id} when is_binary(id) -> Kati.Screens.MealSwap.hand_over(id)
+      _gone -> :ok
+    end
+
+    Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)
   end
 
   @doc """
@@ -1328,19 +1398,25 @@ defmodule Kati.Screens.MealsToday do
   *tomorrow* that opened whatever day the destination chose for itself was
   naming a day it had no part in picking.
   """
-  def handle_tap(:swap, socket) do
-    # The slot goes with it, the way screen 86 hands a query to 19: a key in
-    # `Mob.State`. The store rather than the push because this is the door
-    # screen 46 was built around and `Kati.MealSwapTest` drives it directly —
-    # `Kati.Screens.MealSwap.swap/1` reads a named slot first and falls back to
-    # this. Screen 46 with neither is the drawing, which is a swap of nothing.
-    case Enum.find(socket.assigns.day.meals, &(&1.state == :next and Map.get(&1, :slot_id))) do
-      %{slot_id: slot_id} -> Kati.Screens.MealSwap.hand_over(slot_id)
-      _drawn -> :ok
-    end
-
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
-  end
+  # The drawn day's Swap, and the ONLY page that can still reach this clause.
+  #
+  # It used to be every card's tag, and it guessed:
+  # `Enum.find(meals, &(&1.state == :next and &1.slot_id))` is the FIRST
+  # upcoming meal, not the one whose button was pressed. A day with lunch and
+  # dinner both ahead of you drew two **Swap** buttons, both tagged `:swap`,
+  # and tapping dinner's handed screen 46 the lunch — screen 79's defect
+  # exactly, where a page that drew one artist followed whoever led the shelf.
+  # It also stamped the two cards with one `accessibility_id`, which is the
+  # thing `Kati.ScreenTapSweepTest` exists to catch.
+  #
+  # `tag("swap", meal)` gives every real card its own name, so a real row never
+  # reaches here. What does is `Kati.Meals.SampleToday`, whose rows have no slot
+  # id — and a page that resolved nothing hands nothing over. The guess is gone
+  # rather than narrowed: screen 46 with no slot is the drawing, which is a swap
+  # of nothing, and that is the honest answer for a day that is a transcription
+  # of a board.
+  def handle_tap(:swap, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
 
   # This screen's own day is `Kati.Time.today/0`, so tomorrow is that plus one.
   # Named here rather than derived there: the control says *tomorrow*, and
@@ -1394,6 +1470,9 @@ defmodule Kati.Screens.MealsToday do
     case Atom.to_string(tag) do
       "mark_eaten_" <> slot_id ->
         {:noreply, Kati.Screens.MealsToday.mark_eaten(socket, slot_id)}
+
+      "swap_" <> slot_id ->
+        {:noreply, Kati.Screens.MealsToday.swap(socket, slot_id)}
 
       "meal_" <> _rest ->
         {:noreply, Kati.Screens.MealsToday.open_meal(socket, tag)}

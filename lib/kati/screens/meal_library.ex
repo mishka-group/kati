@@ -52,21 +52,80 @@ defmodule Kati.Screens.MealLibrary do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  # The page is read once, here, and carried on the socket. `handle_tap/2` reads
+  # it back to resolve a tapped tile to its row — see `open_meal/2` — and a
+  # second query at tap time could answer with a library that had moved under
+  # the tile the person actually pressed.
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:meals, meals())
+    |> Mob.Socket.assign(:page, page())
     |> Mob.Socket.assign(:filter, "All")
     |> Mob.Socket.assign(:query, "")
   end
 
-  @doc "The library: what is stored, or the drawing's six."
-  @spec meals() :: [map()]
-  def meals do
+  @doc """
+  Everything this screen reads, in one map: the grid, the header's subtitle and
+  the chip counts.
+
+  **One entry point and one branch, which is what this function is for.** The
+  three blocks used to read the table separately — `load/1` called `meals/0`,
+  the header called `subtitle/1` which asked `stored/0` again, and the chip row
+  called `chip_counts/0` which asked `stored/0` a third time and then re-shaped
+  the whole library a fourth. Three answers to one question, and they disagreed
+  the moment anything landed in `recipes` between the mount and a redraw: a
+  library holding one real meal drew the fixture's SIX tiles under a subtitle
+  saying `6 MEALS · 2 WITHOUT A PHOTO` beside a chip saying `All 1`. One
+  screen, one render, three different libraries.
+
+  That is screen 20's defect — a grid and a hero disagreeing about one book —
+  and `Kati.Screens.Books.page/0` is the arrangement that fixed it, for the
+  reason its own doc gives: either every value on the page is this reader's or
+  every value is the drawing's. A real grid under the drawing's counts is a
+  worse screen than an honest fixture.
+  """
+  @spec page() :: map()
+  def page do
     case stored() do
-      [] -> SampleLibrary.meals()
-      recipes -> Enum.map(recipes, &shaped/1)
+      [] ->
+        drawn_page()
+
+      recipes ->
+        meals = shape_all(recipes)
+
+        %{
+          meals: meals,
+          subtitle: Kati.Screens.MealLibrary.subtitle(meals),
+          chips: Kati.Screens.MealLibrary.chip_counts(meals)
+        }
     end
   end
+
+  @doc """
+  The drawing's values, unconditionally — the fixture, not a fallback path.
+
+  `test/design/screens/116.html` was captured from exactly this map, and
+  `Kati.ScreenEmptyDatabaseTest` compares it with what `page/0` answers when
+  nothing is stored.
+  """
+  @spec drawn_page() :: map()
+  def drawn_page do
+    %{
+      meals: SampleLibrary.meals(),
+      subtitle: SampleLibrary.subtitle(),
+      chips: SampleLibrary.chips()
+    }
+  end
+
+  @doc """
+  The library: what is stored, or the drawing's six.
+
+  `page/0`'s grid, reachable on its own for the callers that want only the
+  rows — `Kati.Screens.MealLibraryEmpty` and the empty-database sweep. Inside
+  this screen nothing calls it: every block reads `assigns.page`, so they
+  cannot answer from two different reads.
+  """
+  @spec meals() :: [map()]
+  def meals, do: page().meals
 
   @doc "The drawing's six, unconditionally."
   @spec drawn_meals() :: [map()]
@@ -84,12 +143,41 @@ defmodule Kati.Screens.MealLibrary do
     _error -> []
   end
 
+  # Every recipe shaped against ONE read of the ingredient table.
+  #
+  # `shaped/1` asks `approximate?/1`, which reads the ingredients of the recipe
+  # it is given — fine for one row and a query per tile for a library. Worse
+  # than slow: `chip_counts/0` used to re-derive the whole list, so a
+  # twelve-meal library ran the ingredient query twenty-four times per render
+  # and could get two different answers about the same tile if a line was
+  # edited in between. One read, grouped, and every tile in a render is
+  # `APPROX` or not by the same evidence.
+  defp shape_all(recipes) do
+    by_recipe =
+      Kati.Meals.RecipeIngredient
+      |> Ash.read()
+      |> case do
+        {:ok, ingredients} -> Enum.group_by(ingredients, & &1.recipe_id)
+        _other -> %{}
+      end
+
+    Enum.map(recipes, fn recipe ->
+      shaped(recipe, Map.get(by_recipe, recipe.id, []))
+    end)
+  rescue
+    _error -> Enum.map(recipes, &shaped/1)
+  end
+
   @doc """
   One recipe as the grid wants it. Pure, so `approximate?/1` can be tested.
   """
   @spec shaped(Recipe.t()) :: map()
-  def shaped(%Recipe{} = recipe) do
-    approximate? = Kati.Screens.MealLibrary.approximate?(recipe)
+  def shaped(%Recipe{} = recipe), do: shaped(recipe, ingredients_of(recipe))
+
+  @doc "One recipe, against ingredients already read. See `shape_all/1`."
+  @spec shaped(Recipe.t(), [struct()]) :: map()
+  def shaped(%Recipe{} = recipe, ingredients) when is_list(ingredients) do
+    approximate? = Kati.Screens.MealLibrary.approximate?(recipe, ingredients)
 
     %{
       # The row's own id. A tile is the one control in this app that has to say
@@ -116,12 +204,23 @@ defmodule Kati.Screens.MealLibrary do
   not approximate; it is empty, and its total of zero is exactly right.
   """
   @spec approximate?(Recipe.t()) :: boolean()
-  def approximate?(%Recipe{} = recipe) do
-    case ingredients_of(recipe) do
-      [] -> false
-      ingredients -> Enum.any?(ingredients, &(&1.kcal == 0 and &1.amount_mg > 0))
-    end
-  end
+  def approximate?(%Recipe{} = recipe), do: approximate?(recipe, ingredients_of(recipe))
+
+  @doc """
+  The same question, against ingredients already read.
+
+  Public and shared for `Kati.Screens.Books.rail/2`'s reason: the grid asks it
+  once per tile through `shape_all/1`'s single read, and
+  `Kati.Screens.MealEdit` asks it about one recipe at a time. Two
+  implementations of *is this total built from partial data* is two chances for
+  screen 116's tile and screen 118's header to disagree about one meal in the
+  same breath, and `APPROX` is the one mark this domain says must travel.
+  """
+  @spec approximate?(Recipe.t(), [struct()]) :: boolean()
+  def approximate?(%Recipe{}, []), do: false
+
+  def approximate?(%Recipe{}, ingredients) when is_list(ingredients),
+    do: Enum.any?(ingredients, &(&1.kcal == 0 and &1.amount_mg > 0))
 
   @doc false
   def ingredients_of(%Recipe{id: id}) do
@@ -149,10 +248,10 @@ defmodule Kati.Screens.MealLibrary do
         padding_bottom={40}
       >
         {Kati.Screens.Goals.chrome()}
-        {SettingsList.title("Meal library", Kati.Screens.MealLibrary.subtitle(assigns.meals))}
+        {SettingsList.title("Meal library", assigns.page.subtitle)}
         {Kati.Screens.MealLibrary.search_field(assigns.query)}
-        {Kati.Screens.MealLibrary.chips(assigns.filter)}
-        {Kati.Screens.MealLibrary.grid(assigns.meals, assigns.filter, assigns.query)}
+        {Kati.Screens.MealLibrary.chips(assigns.filter, assigns.page.chips)}
+        {Kati.Screens.MealLibrary.grid(assigns.page.meals, assigns.filter, assigns.query)}
         {Kati.Screens.MealLibrary.notes()}
       </Column>
     </Scroll>
@@ -165,21 +264,28 @@ defmodule Kati.Screens.MealLibrary do
   The second figure is not decoration — it is the number of tiles the grid is
   drawing as glyphs, and it is what the *Add a meal photo* affordance on screen
   118 exists to reduce.
+
+  **Arithmetic over the list it is handed, and no fixture clause.** It used to
+  ask `stored/0` whether to answer with `Kati.Meals.SampleLibrary.subtitle/0`
+  instead — a second read of the table inside a function whose only argument is
+  already the answer, and the read that let the header count one library while
+  the grid drew another. The drawing's `24 MEALS · 6 WITHOUT A PHOTO` is a
+  LITERAL and belongs to `drawn_page/0`, which is the only place the fixture's
+  own numbers appear: 24 meals behind six tiles is a count this function cannot
+  derive from six rows and must not try to. `Kati.Screens.Books.subtitle/1`
+  draws the same line for the same reason.
+
+      iex> Kati.Screens.MealLibrary.subtitle([%{seed: "a"}, %{seed: nil}])
+      "2 MEALS · 1 WITHOUT A PHOTO"
   """
   @spec subtitle([map()]) :: String.t()
   def subtitle(meals) do
-    case stored() do
-      [] ->
-        SampleLibrary.subtitle()
+    without = Enum.count(meals, &is_nil(&1.seed))
 
-      _stored ->
-        without = Enum.count(meals, &is_nil(&1.seed))
-
-        String.upcase(
-          "#{length(meals)} #{if length(meals) == 1, do: "meal", else: "meals"} · " <>
-            "#{without} without a photo"
-        )
-    end
+    String.upcase(
+      "#{length(meals)} #{if length(meals) == 1, do: "meal", else: "meals"} · " <>
+        "#{without} without a photo"
+    )
   end
 
   @doc """
@@ -238,10 +344,10 @@ defmodule Kati.Screens.MealLibrary do
   end
 
   @doc "The filter chips, each with its count."
-  @spec chips(String.t()) :: map()
-  def chips(active) do
+  @spec chips(String.t(), [{String.t(), String.t()}]) :: map()
+  def chips(active, counts) do
     chips =
-      Kati.Screens.MealLibrary.chip_counts()
+      counts
       |> Enum.map(fn {label, count} ->
         UI.chip(label,
           selected: label == active,
@@ -264,33 +370,38 @@ defmodule Kati.Screens.MealLibrary do
   end
 
   @doc """
-  The chip counts: the library's own, or the drawing's.
+  The chip counts, over the library `page/0` drew.
 
   Counted over the whole library rather than over the filtered grid, which is
   what a filter count means — the number of things the chip would show you, not
   the number it is showing.
+
+  **Over the list, and never over a read of its own.** This took no argument
+  until 2026-09-05: it asked `stored/0` whether the library was empty and then
+  called `meals/0`, which read the table a second time and re-shaped every row.
+  So the chips and the grid were two independent answers to *what is in this
+  library*, and a recipe landing between the mount and a redraw made them
+  disagree out loud — six fixture tiles under a chip reading **All 1**. That is
+  screen 20's grid-and-hero defect, and `page/0` is where it is now settled:
+  one read, one list, and every block on the page counts the same rows.
+
+  The drawing's own counts — `All 24` over six tiles — are a literal on
+  `Kati.Meals.SampleLibrary.chips/0` and reach the page through `drawn_page/0`,
+  for `subtitle/1`'s reason.
   """
-  @spec chip_counts() :: [{String.t(), String.t()}]
-  def chip_counts do
-    case stored() do
-      [] ->
-        SampleLibrary.chips()
-
-      _stored ->
-        meals = Kati.Screens.MealLibrary.meals()
-
-        [{"All", Integer.to_string(length(meals))}] ++
-          for slot <- ~w(Breakfast Lunch Dinner Snack) do
-            {slot, Integer.to_string(Enum.count(meals, &(&1.slot == slot)))}
-          end
-    end
+  @spec chip_counts([map()]) :: [{String.t(), String.t()}]
+  def chip_counts(meals) do
+    [{"All", Integer.to_string(length(meals))}] ++
+      for slot <- ~w(Breakfast Lunch Dinner Snack) do
+        {slot, Integer.to_string(Enum.count(meals, &(&1.slot == slot)))}
+      end
   end
 
   @doc """
   The grid, two across, filtered by the chip and by what is typed.
 
   Indexed **before** either filter, not after: the index a tile carries is its
-  position in `assigns.meals`, which is the list `handle_tap/2` reads back. An
+  position in `assigns.page.meals`, which is the list `handle_tap/2` reads back. An
   index into the filtered list would name the third *Dinner* while the handler
   looked up the third meal, and the two coincide exactly when the chip is `All`
   and the field is empty — which is what a screenshot shows.
@@ -472,7 +583,7 @@ defmodule Kati.Screens.MealLibrary do
   end
 
   @doc """
-  A tile's tap tag: `:open_meal_2` for the third meal in `assigns.meals`.
+  A tile's tap tag: `:open_meal_2` for the third meal in `assigns.page.meals`.
 
   An **atom**, and an atom built from a position rather than from the recipe's
   id. Both halves are the house rule and both have a reason written down
@@ -484,8 +595,8 @@ defmodule Kati.Screens.MealLibrary do
   collected.
 
   The index is enough because the handler reads it back out of the same
-  `assigns.meals` this render drew from, so the two cannot disagree about which
-  row `2` is.
+  `assigns.page.meals` this render drew from, so the two cannot disagree about
+  which row `2` is.
   """
   @spec tag(non_neg_integer()) :: atom()
   def tag(index) when is_integer(index) and index >= 0,
@@ -511,7 +622,7 @@ defmodule Kati.Screens.MealLibrary do
   # taking the head — tap the third meal, edit the first (#84). A sample tile
   # has no id and pushes `%{}`, which is the editor's drawn fallback.
   defp open_meal(socket, index) do
-    meal = Enum.at(socket.assigns.meals, String.to_integer(index))
+    meal = Enum.at(socket.assigns.page.meals, String.to_integer(index))
 
     Mob.Socket.push_screen(socket, Kati.Screens.MealEdit, Kati.Screens.MealEdit.params_for(meal))
   end

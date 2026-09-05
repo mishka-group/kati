@@ -819,7 +819,18 @@ defmodule Kati.Screens.MealSwap do
         logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
         state: :planned,
         meal_plan_id: slot.meal_plan_id,
-        meal_plan_slot_id: slot.id
+        meal_plan_slot_id: slot.id,
+        # The slot's own eyebrow and clock, off the slot this function already
+        # RESOLVED. Without them screen 43 redrew the swapped meal with a blank
+        # time gutter and no slot name — `timeline_rows/2` lays a log over the
+        # slot it belongs to, so the log's blanks replaced the card's `Dinner`
+        # and `19:30` — and then sorted it to the bottom of the day, because a
+        # timeless row orders last. `Kati.Meals.MealLog.log_eaten/1` carries the
+        # same two for the same reason; this is the third writer of
+        # `:log_recipe` and the rule has to hold at all three or the timeline
+        # keeps a hole one path wide.
+        slot_name: slot.slot_name,
+        slot_time: slot.slot_time
       })
       |> Ash.create()
       |> Kati.Write.note("swap today #{picked.title}")

@@ -155,9 +155,36 @@ defmodule Kati.Meals.MealLog do
 
     # The freeze. Figures are NOT accepted — they are computed from the recipe
     # inside the action, so a caller cannot pass numbers that never existed.
+    # `:slot_name` and `:slot_time` are on this list and the six figures are
+    # not, and the difference is where the value comes from. A figure is
+    # DERIVED from the recipe, so accepting one would let a caller pass a
+    # number that never existed — that is what `Kati.Meals.Changes.FreezeNutrition`
+    # is for. The slot's name and clock are derived from nothing: they live on
+    # `Kati.Meals.MealPlanSlot`, which this action never reads, and only the
+    # caller holds the slot the log is being written against.
+    #
+    # They were absent until 2026-09-05, and the two screens that write this
+    # action both lost them. `Kati.Screens.MealsToday`'s **Mark eaten** turned
+    # a `Dinner · 19:30` card into a card with a blank time gutter and no slot
+    # eyebrow, which then sorted to the bottom of the day (`timeline_rows/2`
+    # orders a timeless row last) and answered `meal_tag/1` with the bare
+    # `:open_meal` — so the row stopped being able to name itself the instant
+    # it was logged. `:log_manual` has accepted both all along, which is what
+    # made the asymmetry a slip rather than a decision.
     create :log_recipe do
       primary? true
-      accept [:logged_on, :logged_at, :state, :meal_plan_id, :meal_plan_slot_id, :note, :rating]
+
+      accept [
+        :logged_on,
+        :logged_at,
+        :state,
+        :meal_plan_id,
+        :meal_plan_slot_id,
+        :slot_name,
+        :slot_time,
+        :note,
+        :rating
+      ]
 
       argument :recipe_id, :uuid, allow_nil?: false
       argument :portion_milli, :integer, default: 1000
@@ -214,4 +241,63 @@ defmodule Kati.Meals.MealLog do
       filter expr(logged_on >= ^arg(:from) and logged_on <= ^arg(:to))
     end
   end
+
+  @doc """
+  Log that a planned slot was eaten, from the row the page drew.
+
+  **Two screens mean "I ate this" and this is the one thing they do.** Screen
+  43's timeline card and screen 45's `Mark eaten` both write this action, and
+  before this function they each spelled the attributes out — the same seven
+  keys, twice, and both spellings were missing the same two. So a meal logged
+  from either screen came back with no clock and no slot name, and the two
+  screens could have started disagreeing about the eighth key the day one of
+  them grew it. `Kati.Screens.Books.rail/2` exists for the same reason one
+  layer up: one value, one implementation, or two readers will eventually
+  print two answers.
+
+  ## It writes about the row it is handed, and refuses anything else
+
+  `row` is a timeline row or a screen 45 page — whichever the page RESOLVED
+  and is drawing — and this function reads its `:slot_id` and `:recipe_id` and
+  nothing else. It never queries for "the next meal" or "the plan's head", so
+  there is no path by which the log lands on a meal the reader was not looking
+  at. A row without both ids is a drawn one, and a drawn one is not a row:
+  `:error` comes back and the caller leaves the store alone.
+
+  The figures are deliberately absent from the map below —
+  `Kati.Meals.Changes.FreezeNutrition` computes them from the recipe at this
+  instant, which is the whole point of the resource.
+  """
+  @spec log_eaten(map()) :: {:ok, struct()} | :error | {:error, term()}
+  def log_eaten(row) when is_map(row) do
+    slot_id = Map.get(row, :slot_id)
+    recipe_id = Map.get(row, :recipe_id)
+
+    if is_binary(slot_id) and is_binary(recipe_id) do
+      __MODULE__
+      |> Ash.Changeset.for_create(:log_recipe, %{
+        recipe_id: recipe_id,
+        portion_milli: Map.get(row, :portion_milli) || Kati.Meals.Nutrition.one_portion(),
+        logged_on: Kati.Time.today(),
+        logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
+        state: :eaten,
+        meal_plan_id: Map.get(row, :plan_id),
+        meal_plan_slot_id: slot_id,
+        # The card's own eyebrow and time gutter, carried onto the snapshot so
+        # the logged card keeps the name and the clock the planned card had.
+        # Off the ROW rather than off a fresh read of the slot, for the same
+        # reason the ids are: the page drew these two strings, and re-reading
+        # the slot here would let a swap that landed in between rename a meal
+        # the reader has just said they ate.
+        slot_name: Map.get(row, :slot_name),
+        slot_time: Map.get(row, :slot_time)
+      })
+      |> Ash.create()
+      |> Kati.Write.note("mark eaten #{Map.get(row, :title)}")
+    else
+      :error
+    end
+  end
+
+  def log_eaten(_row), do: :error
 end

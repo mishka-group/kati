@@ -268,16 +268,32 @@ defmodule Kati.ScreenParamsSweepTest do
     # the first*.
     {Kati.Screens.MealLibrary, :add, Kati.Screens.MealEdit},
 
-    # ── Screen 43's `Swap`, where the argument travels and does not travel on
-    # the push.
+    # ── Screen 43's `Swap`, ON THE DRAWN DAY, which is the only day this
+    # sweep sees. Bare because the board has no slot, not because the screen
+    # has no id to send.
     #
-    # `meals_today.ex:1331-1343` hands the slot over through `Mob.State` —
-    # `Kati.Screens.MealSwap.hand_over/1` — the way screen 86 hands a query to
+    # This entry's reason changed on 2026-09-05 and the change is worth having
+    # written down, because the tag it names is no longer the tag a real card
+    # draws. **Swap** used to be `:swap` on EVERY card, and the clause
+    # answering it took the first upcoming meal it could find — so a day with
+    # lunch and dinner still ahead drew two Swap buttons under one name and
+    # tapping dinner's swapped the lunch. `Kati.Screens.MealsToday.tag/2` now
+    # builds `:swap_<slot id>` the way it already built `:mark_eaten_<slot id>`,
+    # and `swap/2` resolves that id against the rows THIS render drew.
+    #
+    # So a real card never reaches the clause this line is about. What does is
+    # `Kati.Meals.SampleToday`, whose rows have no slot id — the same absence
+    # that puts the five cards above in `@empty_builders` — and the clause is
+    # bare because a transcription of a board has no slot to name. It is not
+    # `%{}` standing in for a lost argument; there is no argument in the room.
+    #
+    # The argument still travels by the other channel when there IS one:
+    # `swap/2` hands the slot over through `Mob.State`
+    # (`Kati.Screens.MealSwap.hand_over/1`), the way screen 86 hands a query to
     # 19, and `Kati.Screens.MealSwap.swap/1` reads a named slot first and falls
-    # back to that. `Kati.MealSwapTest` drives that door directly. So this is
-    # not a connection that carries nothing; it is one that carries its
-    # argument by the other channel, and moving it onto the push would be
-    # changing the door screen 46 was built around.
+    # back to that. `Kati.MealSwapTest` drives that door directly, and
+    # `Kati.MealsTodayWriteTest` drives the per-card tags. Moving it onto the
+    # push would be changing the door screen 46 was built around.
     {Kati.Screens.MealsToday, :swap, Kati.Screens.MealSwap},
 
     # ── Screen 151's `Log by hand`, and correctly bare.
@@ -356,15 +372,17 @@ defmodule Kati.ScreenParamsSweepTest do
 
     # ── Screen 43's five timeline cards.
     #
-    # `meals_today.ex:1147-1151` finds the row back by rebuilding every row's
-    # own tag and pushes `Kati.Screens.Meal.params_for(meal)`. With no plan
-    # stored the day is `Kati.Meals.SampleToday`'s (`meals_today.ex:140-146`)
-    # and no sample row has a `:slot_id`, which `meals_today.ex:1142-1144`
-    # states in the function's own doc, so `meal.ex:129-130` answers `%{}`.
+    # `Kati.Screens.MealsToday.open_meal/2` finds the row back by rebuilding
+    # every row's own tag and pushes `Kati.Screens.Meal.params_for(meal)`. With
+    # no plan stored the day is `Kati.Meals.SampleToday`'s and no sample row has
+    # a `:slot_id`, which `Kati.Screens.MealsToday.tag/2` states in its own doc,
+    # so `Kati.Screens.Meal.params_for/1` answers `%{}`.
     #
-    # `:swap` on the same screen is in `@bare_pushes` for a different reason
-    # again — it hands its slot over through `Mob.State` — so screen 43 has one
-    # door in each list and they are three separate facts.
+    # `:swap` on the same screen is in `@bare_pushes` for a related reason and
+    # not the same one: these five carry an argument that is empty, and that
+    # one has no argument to carry. Both come off the same fixture, which is
+    # why one domain's rows will clear all six lines at once — and neither is
+    # fixable from the push.
     {Kati.Screens.MealsToday, :"meal_Breakfast_07:30", Kati.Screens.Meal},
     {Kati.Screens.MealsToday, :"meal_Dinner_19:30", Kati.Screens.Meal},
     {Kati.Screens.MealsToday, :"meal_Lunch_13:00", Kati.Screens.Meal},
