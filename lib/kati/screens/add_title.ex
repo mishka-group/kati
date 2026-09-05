@@ -130,6 +130,7 @@ defmodule Kati.Screens.AddTitle do
           {Kati.Screens.AddTitle.header()}
           {Kati.Screens.AddTitle.field(assigns.query)}
           {Kati.Screens.AddTitle.chips(filter)}
+          {Kati.Screens.AddTitle.search_notice(assigns[:search_error])}
           {UI.eyebrow(count)}
           {Kati.Screens.AddTitle.results(shown)}
           {Kati.Screens.AddTitle.by_hand()}
@@ -138,6 +139,32 @@ defmodule Kati.Screens.AddTitle do
     </Box>
     """
   end
+
+  @doc """
+  Why the search came back with nothing, when there is a reason to give.
+
+  `search/1` has assigned `:search_error` since it was written and **nothing
+  drew it**, which was found on a device: typing `matrix` on a phone answers
+  `RESULTS 0` and says nothing at all, because a release carries no
+  `TMDB_READ_TOKEN` and `Kati.Media.Tmdb.key/0` answers `{:error,
+  :no_api_key}`. The sentence that would have explained it — *No TMDB key
+  yet. Add one in Settings → Data sources.* — was composed on line 254,
+  put on the socket, and thrown away by a render that never read the key.
+
+  A search that fails silently is indistinguishable from a catalogue with
+  nothing in it, and the difference is the whole of what a person needs to
+  know: one is fixed in Settings and the other is not fixable at all.
+
+  Above the count rather than below it, because the count is `0 results` and
+  the reason has to reach the reader before they believe it.
+  `Kati.Screens.Medication.save_notice/1` is the same band on the same
+  argument — a failure reported into a tree with nowhere to render it is a
+  silence — and this borrows its type rather than restating it.
+  """
+  @spec search_notice(String.t() | nil) :: map() | []
+  def search_notice(nil), do: []
+
+  def search_notice(message), do: Kati.Screens.Medication.save_notice(message)
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 

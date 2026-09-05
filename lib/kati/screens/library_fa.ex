@@ -930,11 +930,26 @@ defmodule Kati.Screens.LibraryFa do
       "shelf_1" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BooksFa)}
 
-      # Index 2 is موسیقی, and it opens the one Persian album page that exists —
-      # the same reasoning as the Books segment above, and the same absence: the
-      # 127 hold no Persian music SHELF.
+      # Index 2 is موسیقی, and it opens the music SHELF — screen 21, in English,
+      # because no board in the set draws a Persian one.
+      #
+      # It used to push screen 76, the one Persian album page that exists, and
+      # that was the Books segment's old mistake with a different noun: you
+      # pressed *Music* and arrived at ONE record, with a back pill saying
+      # کتابخانه and no way to reach any other. Reported from a device in
+      # exactly those words — *when I click on the music tab the library tab
+      # opens* — and the reporter was right about the symptom and generous
+      # about the cause.
+      #
+      # A shelf in the wrong language beats one album in the right one: the
+      # destination is what the control names, and screen 21 lists everything
+      # the reader owns, opens each record, and carries the `+` that adds one.
+      # `Kati.Screens.HealthFa` makes the same trade for the same reason and
+      # says so — *111 has no Persian mirror in the 127, so the disc opens the
+      # English sheet rather than going nowhere.* `D-57` is the standing
+      # ticket for the language half; `D-61` is the board this segment wants.
       "shelf_2" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetailFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
 
       # Every grid tile, by its own title — see `poster_tag/1`. Answered inside
       # this case rather than in a clause above it: a second

@@ -252,10 +252,39 @@ defmodule Kati.Screens.AlbumDetailFa do
   @spec words(map()) :: map()
   def words(shelved) do
     %{
+      # The two ids, so every write-bearing control on this page names the
+      # record the page is about. `Kati.Screens.AlbumDetail.shaped/4` carries
+      # them for the reason it gives — the sheet must not re-read the shelf and
+      # guess — and a mirror that dropped them sent screen 73's Save and screen
+      # 77's هنرمند row to the shelf's head instead.
+      id: shelved[:id],
+      artist_id: shelved[:artist_id],
       title: shelved.title,
       byline: shelved.byline,
       artist: shelved.artist,
-      note: shelved.note
+      note: shelved.note,
+      # **Absent, not the drawing's.** These five are facts about a record and
+      # the frame's are facts about a DIFFERENT record: `دیروز`, `۱۳ اسفند
+      # ۱۴۰۲`, `۴ آلبوم · ۶۱ ساعت`, `۴۱ پخش`. Merged over a real row they told
+      # a reader who had typed one album a minute earlier that they last played
+      # it yesterday, first heard it in Esfand 1402, and that its artist has
+      # four records and six hundred and ten hours behind them — which is
+      # `D-59`'s defect, reported from a device on screen 76 the way it was
+      # reported on screen 69.
+      #
+      # Absent rather than composed, because each of the five is a Persian
+      # sentence no board writes for a real row: the two dates want a Shamsi
+      # rendering that belongs in `Kati.Music` beside the Gregorian one (see
+      # below, and it has not moved), and the two count lines are worded
+      # SHORTER on this board than on screen 74 — `۴ آلبوم · ۶۱ ساعت` against
+      # *4 albums · 61h listened* — so composing them here would be inventing
+      # the short form rather than quoting it. `stat_tile/2` already draws `—`
+      # for a nil and the two body lines take their own node with them.
+      first_heard: nil,
+      last_played: nil,
+      note_on: nil,
+      artist_line: nil,
+      plays_line: nil
     }
   end
 
@@ -515,7 +544,40 @@ defmodule Kati.Screens.AlbumDetailFa do
     )
   end
 
-  @doc "The artist's name over the two totals the row exists to carry."
+  @doc """
+  A second line under a name, with the 3pt gap that belongs to it — or neither.
+
+  `words/1` answers `nil` for `artist_line` on a real album, because the
+  frame's `۴ آلبوم · ۶۱ ساعت` is a fact about a different record and this board
+  words the line more briefly than screen 74 does, so there is nothing to quote
+  and nothing to compose. A nil handed to `fa/4` is the word **nil** on a
+  device — `Kati.ScreenNilTextTest` sweeps for exactly that — and an empty
+  line under a name is `D-58`'s hole, so the gap goes with the words.
+  """
+  @spec second_line(String.t() | nil) :: map() | []
+  def second_line(line) when line in [nil, ""], do: []
+
+  def second_line(line) do
+    assigns = %{line: line}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      {Kati.Screens.BookDetailFa.fa(@line, 11.5, Kati.Theme.Palette.sub())}
+    </Column>
+    """
+  end
+
+  @doc "The plays caption, or nothing — `second_line/1`'s argument, in the tracklist's type."
+  @spec plays_node(String.t() | nil) :: map() | []
+  def plays_node(line) when line in [nil, ""], do: []
+
+  # `fa/4` answers a node already, so this hands it back rather than wrapping
+  # it: `~MOB` needs one root element and a bare interpolation is not one.
+  def plays_node(line),
+    do: Kati.Screens.BookDetailFa.fa(line, 10, Kati.Theme.Palette.tertiary())
+
+  @doc "The artist's name, over the totals the row carries when it has any."
   @spec artist_body(map()) :: map()
   def artist_body(a) do
     assigns = %{a: a}
@@ -523,8 +585,7 @@ defmodule Kati.Screens.AlbumDetailFa do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.BookDetailFa.fa(@a.artist, 13, :on_surface, weight: "semibold")}
-      <Spacer size={3} />
-      {Kati.Screens.BookDetailFa.fa(@a.artist_line, 11.5, Palette.sub())}
+      {Kati.Screens.AlbumDetailFa.second_line(@a.artist_line)}
     </Column>
     """
   end
@@ -783,7 +844,7 @@ defmodule Kati.Screens.AlbumDetailFa do
         <Row fill_width={true} align="center">
           {Kati.Screens.BookDetailFa.fa(@a.month, 10, Palette.tertiary())}
           <Spacer weight={1.0} />
-          {Kati.Screens.BookDetailFa.fa(@a.plays_line, 10, Palette.tertiary())}
+          {Kati.Screens.AlbumDetailFa.plays_node(@a.plays_line)}
         </Row>
       </Column>
       <Spacer size={24} />

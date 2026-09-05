@@ -309,7 +309,33 @@ defmodule Kati.Media.Tmdb do
 
   # The environment, and nothing committed. A checkout has no bundled key, so a
   # developer's own key is the only one there is until a release supplies one.
-  defp bundled_key, do: System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN")
+  #
+  # **This is where a release supplies one.** `System.get_env/1` is read on the
+  # machine the code is RUNNING on, and the machine a Kati release runs on is a
+  # phone, which has no shell and no environment: every device build answered
+  # `{:error, :no_api_key}` and every search for a film came back empty. Found
+  # by typing `matrix` into screen 06 on a Pixel 9a and getting `RESULTS 0`.
+  #
+  # So the value is also captured at COMPILE time, into `@bundled_key`, and
+  # travels in the BEAM that `mix kati.e2e.stage` pushes. The runtime read
+  # still wins, so a developer's shell still overrides a stale build.
+  #
+  # **Never in `:test`**, and that is the whole reason for the `Mix.env/0`
+  # guard rather than a bare capture: `Kati.MediaTmdbTest`'s *no key is not a
+  # failed request* deletes both variables and asserts the refusal, and a key
+  # baked into the test binary would answer past it and quietly delete that
+  # coverage. A test binary must not carry anybody's credentials either.
+  #
+  # The token reaches the build from `~/.config/kati/tmdb.env`, which is
+  # outside the repository and mode 600. Nothing here is committed: the value
+  # lives in `_build`, which is ignored, and in the pushed artefact.
+  @bundled_key if Mix.env() == :test,
+                 do: nil,
+                 else: System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN")
+
+  defp bundled_key do
+    System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") || @bundled_key
+  end
 
   # Every failure the user can be shown, named. A tuple rather than a message,
   # because the wording belongs to the screen and the reason belongs here.

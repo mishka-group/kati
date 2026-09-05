@@ -3546,14 +3546,32 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     // recomposition for a bookkeeping change nobody is looking at.
     val outstanding = remember { mutableListOf<String>() }
 
+    //
+    // **A host value is only taken when nothing is in flight**, and that is the
+    // half this fence was missing. The rule above assumed every value the host
+    // sends is either our own echo or a decision; it is neither when the host
+    // simply re-renders a screen whose `:query` assign is a keystroke or two
+    // behind. Then `indexOf` misses, `localValue` is clobbered back, the
+    // keystroke that arrives next is appended to the OLD value, and both are
+    // sent — which is how `matrix` typed one character at a time, two seconds
+    // apart, came out as `mamrtriix` on a Pixel 9a and then stopped accepting
+    // input at all: every subsequent keystroke was overwritten by the same
+    // stale re-render before it could be echoed, and the clear disc could not
+    // get a word in either.
+    //
+    // So an unrecognised value wins ONLY when `outstanding` is empty. With
+    // something in flight it is ignored and our own echo — which is coming —
+    // drains the queue. The two cases the paragraph above names still work,
+    // because both are the host answering a tap rather than a keystroke: by
+    // the time a disc is pressed the field's last keystroke has long since
+    // echoed and the queue is empty.
     if (incoming != localValue) {
         val echoed = outstanding.indexOf(incoming)
 
         if (echoed >= 0) {
             repeat(echoed + 1) { outstanding.removeAt(0) }
-        } else {
+        } else if (outstanding.isEmpty()) {
             localValue = incoming
-            outstanding.clear()
         }
     }
     // KATI-END(K-42 text-field-echo)
