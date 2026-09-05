@@ -176,7 +176,13 @@ defmodule Kati.Screens.OnboardingFirstTitleFa do
     String.to_atom("pick_#{index + 1}")
   end
 
+  # Through screen 163's writer rather than one of its own: the two screens are
+  # one step in two scripts, and a second copy of the two writes is a second
+  # place to forget one of them. The title stored is the Persian one the
+  # person chose — `Kati.Media.CachedTitle.title` is what the shelf draws, and
+  # a Persian run should not put an English name on a Persian shelf.
   def handle_info({:tap, :finish}, socket) do
+    Kati.Screens.OnboardingFirstTitle.shelve(socket.assigns.picked)
     Kati.Onboarding.complete!()
     {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.HomeFa)}
   end

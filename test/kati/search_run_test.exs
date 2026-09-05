@@ -13,8 +13,20 @@ defmodule Kati.SearchRunTest do
   alias Kati.Search.Query
 
   setup do
+    # `tracked_titles` is on this list because three tests below call
+    # `Kati.Screens.AddByHand.save/1`, and that writes BOTH rows — a
+    # `Kati.Media.CachedTitle` for search to find and a
+    # `Kati.Media.TrackedTitle` to put it on the shelf. Only the first was
+    # cleaned, so every run of this file left `Estuary Nights` tracked as a
+    # manual movie, and screens 05 and 08 then drew a stored title where their
+    # drawing has one — a failure that lands on
+    # `Kati.ScreenDesignLiteralTest`, a file this one never touched, on the
+    # seeds that order them the wrong way round.
+    #
+    # `Kati.ScreenTapSweepTest`'s own cleanup comment predicts this failure
+    # word for word: *the list did not grow with the write*.
     on_exit(fn ->
-      for table <- ~w(cached_titles events book_notes) do
+      for table <- ~w(media_watches tracked_titles cached_titles events book_notes) do
         Kati.Repo.query!("DELETE FROM " <> table, [])
       end
     end)

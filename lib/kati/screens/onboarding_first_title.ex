@@ -189,6 +189,51 @@ defmodule Kati.Screens.OnboardingFirstTitle do
     """
   end
 
+  @doc """
+  Put the chosen title on the shelf.
+
+  This screen's moduledoc claimed *a first run that ends here has added one*,
+  and for the whole of #91 it had not: `:picked` was assigned by the tap, read
+  by the grid to draw a tick, and dropped on the way out. A person chose a
+  title, pressed **Finish setup**, and arrived at a Home with an empty library —
+  the state screen 139 exists to describe, reached by the one path that is
+  supposed to avoid it.
+
+  Both rows, in the order screen 154 writes them: `Kati.Media.CachedTitle` is
+  what search reads and what gives the shelf a name to draw, and
+  `Kati.Media.TrackedTitle` is what puts it on the shelf at all. Writing only
+  the first is what a device showed — the title was findable in search and
+  absent from the Library.
+
+  Here rather than in `Kati.Onboarding`, which is where first-run state
+  otherwise lives, because that module is imported by a dozen screens and
+  `Kati.ScreenEmptyDatabaseTest` derives *reaches the store* from the compiled
+  import table: a write there makes every screen that asks whether onboarding
+  is done answer yes to a question about reads. Screen 154 is the precedent for
+  a screen that writes and reads nothing, and both are gated the same way.
+
+  `:tv` and `:watching` are the board's own words rather than a guess. The page
+  says *pick something you are watching now*, and *the calendar fills itself
+  from there* is a claim about air dates, which is a series.
+
+  A refusal is swallowed on purpose. There is one ordinary reason for one — the
+  title is already tracked, which is what a second run through onboarding does —
+  and trapping someone in setup over a row that already exists would be worse
+  than the defect this fixes. `Kati.Write.note/2` has recorded it by then.
+  """
+  @spec shelve(String.t() | nil) :: :ok
+  def shelve(title) when is_binary(title) do
+    with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, :tv),
+         {:ok, _tracked} <-
+           Kati.Screens.AddByHand.track(title, %{kind: :tv, status: "Watching"}) do
+      :ok
+    else
+      _refused -> :ok
+    end
+  end
+
+  def shelve(_nothing), do: :ok
+
   # Both ways out FINISH the run, and `reset_to/2` rather than `push_screen/2`
   # so Home is the bottom of the stack — pushing would leave the whole first
   # run underneath it and the back gesture would walk back into onboarding
@@ -196,6 +241,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   # last of the five steps it split into, so it inherits them.
   @impl true
   def handle_tap(:finish, socket) do
+    Kati.Screens.OnboardingFirstTitle.shelve(socket.assigns.picked)
     Kati.Onboarding.complete!()
     {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Home)}
   end

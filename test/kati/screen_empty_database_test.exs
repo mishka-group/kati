@@ -403,6 +403,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # holds it to.
     {"46", Kati.Screens.MealSwap},
     {"154", Kati.Screens.AddByHand},
+    # 163 and 166 are the last step of the first run, and they are here for
+    # exactly 154's reason: they WRITE on Finish and read nothing. Until
+    # 5 September they wrote nothing either — the picked title was drawn with a
+    # tick and dropped — so a first run ended on a Home with an empty library,
+    # which is the one thing screen 163 exists to prevent.
+    {"163", Kati.Screens.OnboardingFirstTitle},
+    {"166", Kati.Screens.OnboardingFirstTitleFa},
     {"155", Kati.Screens.AddByHandStates},
     {"156", Kati.Screens.AddByHandFa},
     {"157", Kati.Screens.AddByHandDark},
@@ -1446,6 +1453,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # disagreed with the page that opened it would be the defect worth
       # catching.
       {"154", Kati.Screens.AddByHand, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 163 and 166 draw four posters and a tick and read nothing; they are on
+      # the migrated list because Finish writes the picked title. Gated the way
+      # 154 is, for 154's reason — a first run that shelved a title into a Kati
+      # whose service list disagreed with the page that sent it there would be
+      # the defect worth catching.
+      {"163", Kati.Screens.OnboardingFirstTitle, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"166", Kati.Screens.OnboardingFirstTitleFa, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
       # 155 reads nothing at all — it is a picture of 154's two states, and it
       # is on the migrated list only because it calls 154's own helpers and the

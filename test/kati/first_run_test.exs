@@ -165,34 +165,131 @@ defmodule Kati.FirstRunTest do
     # a half-set-up one.
     for {tag, landing} <- [finish: Screens.Home, skip: Screens.HomeEmpty] do
       test "#{tag} records completion and resets the stack to #{inspect(landing)}" do
-        Kati.Onboarding.reset!()
-        Kati.Locale.put(:en)
+        # Rolled back because `:finish` now WRITES — it shelves the picked
+        # title, which is the whole point of the step. Left committed, this
+        # test would put `The Long Hollow` in the library for every file that
+        # runs after it, and the design sweeps compare a screen's render with
+        # its drawing: a shelf with something on it draws the something.
+        rolled_back(fn ->
+          Kati.Onboarding.reset!()
+          Kati.Locale.put(:en)
 
-        {:noreply, moved} =
-          Screens.OnboardingFirstTitle.handle_info(
-            {:tap, unquote(tag)},
-            socket_for(Screens.OnboardingFirstTitle)
-          )
+          {:noreply, moved} =
+            Screens.OnboardingFirstTitle.handle_info(
+              {:tap, unquote(tag)},
+              socket_for(Screens.OnboardingFirstTitle)
+            )
 
-        assert Kati.Onboarding.complete?()
+          assert Kati.Onboarding.complete?()
 
-        assert moved.__mob__.nav_action == {:reset, unquote(landing), %{}},
-               "must reset, not push: pushing leaves the whole first run under Home " <>
-                 "and the back gesture walks straight back into it"
+          assert moved.__mob__.nav_action == {:reset, unquote(landing), %{}},
+                 "must reset, not push: pushing leaves the whole first run under Home " <>
+                   "and the back gesture walks straight back into it"
+        end)
       end
     end
 
+    test "finishing puts the chosen title on the shelf" do
+      # The defect this replaced: `:picked` was assigned by the tap, read by
+      # the grid to draw a tick, and dropped. A person chose a title, pressed
+      # Finish setup, and landed on a Home with an empty library — the state
+      # screen 139 exists to describe, reached by the one path meant to avoid
+      # it. Screen 163's own moduledoc claimed the opposite in prose, which is
+      # why the claim is asserted here rather than left as prose.
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:en)
+
+        socket = socket_for(Screens.OnboardingFirstTitle)
+        picked = socket.assigns.picked
+
+        # The board's four are the suite's own fixture names — `The Long
+        # Hollow` is written by `Kati.AddByHandTest` as the same `:manual` row
+        # this writes — so the precondition is MADE rather than assumed. Inside
+        # the rollback, so nothing else sees it.
+        clear_manual!(picked)
+        refute tracked(picked)
+
+        {:noreply, _moved} =
+          Screens.OnboardingFirstTitle.handle_info({:tap, :finish}, socket)
+
+        assert %{status: :watching, source: :manual} = tracked(picked)
+
+        # Both rows. The cache row is what search reads and what gives the
+        # shelf a name to draw; writing only it is what a device showed —
+        # findable in search, absent from the Library.
+        assert %{title: ^picked} = cached(picked)
+      end)
+    end
+
+    test "skipping adds nothing, because skipping is an answer" do
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:en)
+
+        socket = socket_for(Screens.OnboardingFirstTitle)
+        clear_manual!(socket.assigns.picked)
+
+        {:noreply, _moved} = Screens.OnboardingFirstTitle.handle_info({:tap, :skip}, socket)
+
+        refute tracked(socket.assigns.picked)
+      end)
+    end
+
+    test "a second run is not refused over a title already kept" do
+      # The one ordinary refusal: the tracked row's uniqueness. Trapping
+      # someone in setup over a row that already exists would be worse than
+      # the defect the write fixes, so the refusal is swallowed and the run
+      # still finishes.
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:en)
+
+        socket = socket_for(Screens.OnboardingFirstTitle)
+        clear_manual!(socket.assigns.picked)
+
+        {:noreply, _first} = Screens.OnboardingFirstTitle.handle_info({:tap, :finish}, socket)
+        Kati.Onboarding.reset!()
+        {:noreply, again} = Screens.OnboardingFirstTitle.handle_info({:tap, :finish}, socket)
+
+        assert Kati.Onboarding.complete?()
+        assert again.__mob__.nav_action == {:reset, Screens.Home, %{}}
+      end)
+    end
+
+    test "a Persian first run shelves the Persian title it drew" do
+      # `Kati.Media.CachedTitle.title` is what the shelf draws, so a Persian
+      # run must not put an English name on a Persian shelf.
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:fa)
+
+        socket = socket_for(Screens.OnboardingFirstTitleFa)
+        picked = socket.assigns.picked
+        clear_manual!(picked)
+
+        {:noreply, _moved} =
+          Screens.OnboardingFirstTitleFa.handle_info({:tap, :finish}, socket)
+
+        assert %{title: ^picked} = cached(picked)
+        refute picked =~ ~r/^[[:ascii:]]+$/
+      end)
+    end
+
     test "a Persian first run finishes on screen 55, not on the English home" do
-      Kati.Onboarding.reset!()
-      Kati.Locale.put(:fa)
+      # Rolled back for the reason the pair above is: finishing shelves a title.
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:fa)
 
-      {:noreply, moved} =
-        Screens.OnboardingFirstTitleFa.handle_info(
-          {:tap, :finish},
-          socket_for(Screens.OnboardingFirstTitleFa)
-        )
+        {:noreply, moved} =
+          Screens.OnboardingFirstTitleFa.handle_info(
+            {:tap, :finish},
+            socket_for(Screens.OnboardingFirstTitleFa)
+          )
 
-      assert moved.__mob__.nav_action == {:reset, Screens.HomeFa, %{}}
+        assert moved.__mob__.nav_action == {:reset, Screens.HomeFa, %{}}
+      end)
     end
 
     test "skipping a Persian run lands on 158, the Persian empty home" do
@@ -271,6 +368,53 @@ defmodule Kati.FirstRunTest do
       refute_received :kati_locale_root
     after
       Kati.Screens.Root.launching?()
+    end
+  end
+
+  # A transaction that is always rolled back, the shape
+  # `Kati.ScreenSweep.rolled_back/1` uses. Written out rather than required,
+  # because that helper is loaded by the sweeps and this file is not one — and
+  # the alternative, prefixed rows deleted in `on_exit`, cannot be used here:
+  # the titles are the board's own four and this file does not get to choose
+  # them.
+  defp rolled_back(fun) when is_function(fun, 0) do
+    {:error, {:rolled_back, result}} =
+      Kati.Repo.transaction(fn -> Kati.Repo.rollback({:rolled_back, fun.()}) end)
+
+    result
+  end
+
+  # Remove any `:manual` row for `title`, children first. Only ever called
+  # inside `rolled_back/1`.
+  defp clear_manual!(title) do
+    Kati.Repo.query!(
+      "DELETE FROM media_watches WHERE tracked_title_id IN " <>
+        "(SELECT id FROM tracked_titles WHERE source = 'manual' AND source_id = ?1)",
+      [title]
+    )
+
+    Kati.Repo.query!("DELETE FROM tracked_titles WHERE source = 'manual' AND source_id = ?1", [
+      title
+    ])
+
+    Kati.Repo.query!("DELETE FROM cached_titles WHERE source = 'manual' AND source_id = ?1", [
+      title
+    ])
+
+    :ok
+  end
+
+  defp tracked(title) do
+    case Ash.read(Kati.Media.TrackedTitle) do
+      {:ok, rows} -> Enum.find(rows, &(&1.source == :manual and &1.source_id == title))
+      _error -> nil
+    end
+  end
+
+  defp cached(title) do
+    case Ash.read(Kati.Media.CachedTitle) do
+      {:ok, rows} -> Enum.find(rows, &(&1.source == :manual and &1.source_id == title))
+      _error -> nil
     end
   end
 
