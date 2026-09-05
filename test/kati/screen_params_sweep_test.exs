@@ -538,6 +538,25 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.Books, :open_book_bookdd4, Kati.Screens.BookDetail},
     {Kati.Screens.Books, :open_book_bookee5, Kati.Screens.BookDetail},
     {Kati.Screens.Books, :open_book_bookff6, Kati.Screens.BookDetail},
+    #
+    # Screen 176's six, the Persian mirror of the block above, joined on
+    # 5 September when `D-59` gave that shelf's tiles the id they had been
+    # throwing away: `books_fa.ex`'s `open_book_` clause matched the tag and
+    # discarded it, and screen 69's `mount/3` took no params at all, so tapping
+    # the second cover opened a page about the first book. Both halves are
+    # wired now and land here for the reason the six above do — with nothing
+    # shelved the grid is `Kati.Books.SampleFa.books/0`
+    # (`books/sample_fa.ex:72-81`) and the hero is `reading_now/0`, and no row
+    # in either carries an `:id`. The bare `:open_book` is the hero's, whose
+    # tag `Kati.Screens.Books.book_tag/1` falls back to when a row has neither
+    # id nor seed.
+    {Kati.Screens.BooksFa, :open_book, Kati.Screens.BookDetailFa},
+    {Kati.Screens.BooksFa, :open_book_bookaa1, Kati.Screens.BookDetailFa},
+    {Kati.Screens.BooksFa, :open_book_bookbb2, Kati.Screens.BookDetailFa},
+    {Kati.Screens.BooksFa, :open_book_bookcc3, Kati.Screens.BookDetailFa},
+    {Kati.Screens.BooksFa, :open_book_bookdd4, Kati.Screens.BookDetailFa},
+    {Kati.Screens.BooksFa, :open_book_bookee5, Kati.Screens.BookDetailFa},
+    {Kati.Screens.BooksFa, :open_book_bookff6, Kati.Screens.BookDetailFa},
 
     # ── Screen 21's three tiles and its two release rows.
     #
@@ -649,6 +668,12 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.LogListen, :album_id},
     {Kati.Screens.BookDetail, :book_id},
     {Kati.Screens.LogProgress, :book_id},
+    # The Persian pair, D-59. Board 176's covers had been matching the id on
+    # the tag and discarding it while screen 69's `mount/3` took no params at
+    # all, so a shelf of two opened the second cover onto the first book —
+    # `book_detail_fa.ex`'s `book/1` and `log_progress_fa.ex`'s `mount/3`.
+    {Kati.Screens.BookDetailFa, :book_id},
+    {Kati.Screens.LogProgressFa, :book_id},
     {Kati.Screens.RetiredTile, :section},
     # The five the comment below used to name as pinned NOWHERE. A count that
     # may only go up catches a reader leaving; it does not catch one leaving
@@ -683,11 +708,14 @@ defmodule Kati.ScreenParamsSweepTest do
   # Lowering it is allowed only beside the reason a screen stopped reading its
   # params, in the commit that stopped it.
   #
-  # 21 → 22 on 5 September: `Kati.Screens.BookDetail` reads `:book_id` now, so
-  # screen 20's grid can name the book a tile opens rather than leaving 66 to
-  # take the shelf's head. Re-arming it is the point of a ratchet — left at 21
+  # 21 → 22 → 25 on 5 September. `Kati.Screens.BookDetail` reads `:book_id`
+  # now, so screen 20's grid can name the book a tile opens rather than leaving
+  # 66 to take the shelf's head — and D-59 gave the Persian mirror the same
+  # reader for the same reason, because board 176's covers were matching the id
+  # on the tag and throwing it away — and D-43's medication pages read their own
+  # ids in the same round. Re-arming it is the point of a ratchet — left at 21
   # it would have absorbed the next reader to go missing.
-  @derived_readers 22
+  @derived_readers 25
 
   # Screens whose CODE says `params` and which `reader?/1` deliberately does not
   # count. The coarse half of guard A.

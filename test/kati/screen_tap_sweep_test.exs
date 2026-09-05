@@ -532,10 +532,17 @@ defmodule Kati.ScreenTapSweepTest do
     # ── Screen 112's two.
     #
     # `mark_taken` and `mark_skipped` write, and the write lands on the first
-    # dose of the day that has not been decided about. This sweep runs against
-    # an empty database, where there are no doses at all and the page is the
-    # drawing's — so the write is a no-op, which is correct rather than dead.
-    # `Kati.HealthTest` asserts both with doses stored.
+    # dose of the day that has not been decided about — resolved against the
+    # socket each screen was mounted with, since D-59, rather than re-queried
+    # at tap time.
+    #
+    # This sweep runs against an empty database, so that list is
+    # `drawn_doses/0` and the row it hands `save_dose/2` carries no
+    # `:medication_id`: the write is REFUSED rather than absent. It sets
+    # `:save_error` and writes no row, which is why these two stay here — the
+    # tag is answered and the store is untouched — and why the old word
+    # *no-op* has been dropped. `Kati.HealthTest` asserts both with doses
+    # stored.
     #
     # It was four until D-43. `add` and the four `open_schedule` tags were
     # here with the reason *"neither a new-medication sheet nor a
@@ -731,8 +738,11 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.HealthEmptyStates, :open_meals_nothing_set_up},
     {Kati.Screens.HealthEmptyStates, :open_meals_meals_off},
     # Screen 115's dose buttons and its opening range. The two writes land on
-    # the first undecided dose of the day and there are none on an empty
-    # database, which is the same no-op screen 112's English entries record.
+    # the first undecided dose of the day, resolved against the socket this
+    # screen was mounted with; on an empty database that is the drawing's list,
+    # whose rows carry no `:medication_id`, so the write is refused and no row
+    # is created — the same answer, in the same words, as screen 112's English
+    # entries above.
     {Kati.Screens.HealthFa, :mark_taken},
     {Kati.Screens.HealthFa, :mark_skipped},
     {Kati.Screens.HealthFa, :range_month},

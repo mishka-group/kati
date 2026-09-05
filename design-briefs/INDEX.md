@@ -3,7 +3,7 @@
 One file per artboard Kati needs and has not drawn. Hand a single file to Claude Design;
 each one is self-contained and carries the house style.
 
-**93 briefs.** The app has 173 drawn screens (01–166 with no 134, plus 176–180
+**94 briefs.** The app has 173 drawn screens (01–166 with no 134, plus 176–180
 and 188–190 built on 5 September); a new brief must ask for a number the
 gallery does not already hold.
 
@@ -118,6 +118,7 @@ rather than deleted.
 | `D-57-sheets-that-change-language-mid-gesture.md` | The sheets that change language mid-gesture | Modal sheet | — |
 | `D-58-a-title-with-nothing-under-it.md` | A title with nothing under it | Full screen | — |
 | `D-59-your-first-medication-and-three-you-never-took.md` | Your first medication, and three you never took | Two states | — |
+| `D-60-a-persian-screen-cannot-say-a-save-failed.md` | A Persian screen cannot say a save failed | Copy | — |
 
 `D-30` is the one brief here for a **closed** issue. #27 is closed as *not
 planned* because it cannot start until these boards exist and two questions in
@@ -128,7 +129,7 @@ the brief's constraints section are answered; the brief is what reopens it.
 hint on 04 are still undrawn, and the second pass of the September survey found
 those claims again and sent them back here rather than filing them twice.
 
-`D-35` … `D-59` have no issue numbers because there are none to give: only #94
+`D-35` … `D-60` have no issue numbers because there are none to give: only #94
 and #80 are open. Each brief carries its own acceptance criteria instead.
 
 `D-59` is the first brief in this set written from a DEVICE rather than from a

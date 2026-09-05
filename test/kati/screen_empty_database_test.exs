@@ -303,11 +303,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # read is the pixel field it borrows from screen 74, which is where its
     # gate points.
     {"100", Kati.Screens.YearCards},
-    # The Persian book pair. 69 reads screen 66's own shelf and supplies only
-    # the Persian chrome — see `Kati.Screens.BookDetailFa.book/0` — so its
-    # fallback is a real branch. 72 draws the fixture and reaches the store only
-    # through 66's cover helper, so it gates on the same pair for the reason 70
-    # gates on 66's.
+    # The Persian book pair. 69 reads the shelf ITSELF — `book/1` resolves the
+    # `:book_id` it was pushed with through `Kati.Books.Book`'s `:shelf` action
+    # — and supplies every value its page draws rather than the Persian chrome
+    # over 66's, which is what D-59 changed and what stopped it printing one
+    # book's reading under another book's title. Its fallback is a real branch:
+    # nothing shelved, or an id that names no row, and both answer with
+    # `Kati.Books.SampleFa.detail/0`. 72 resolves its own `:book_id` the same
+    # way now, so both gate on the same pair for the reason 70 gates on 66's.
     {"69", Kati.Screens.BookDetailFa},
     {"72", Kati.Screens.LogProgressFa},
     # The five states-and-dark sheets. Each renders its primary's own reader

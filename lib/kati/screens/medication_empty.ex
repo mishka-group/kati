@@ -26,6 +26,16 @@ defmodule Kati.Screens.MedicationEmpty do
   the frame that change will be compared against. The board now exists; the
   swap is one edit away and is not this one.
 
+  D-59 later changed WHICH question that gate asks — the medications and the
+  day together, rather than the dose alone — and deliberately did not move 112
+  off `fallbacks/0`: with nothing stored `Kati.Screens.Medication.doses/0` still
+  answers `drawn_doses/0` term for term, so this board and the frame it is a
+  picture of are untouched. `subtitle/0`'s `NO DOSES` moved in the other
+  direction. Screen 112 quotes it now — through
+  `Kati.Screens.Medication.count_clause/1` — for the day when medications are
+  stored and none is due, so the word this board had to invent for an empty
+  page is the word the live page uses for a quiet one.
+
   ## Both destinations are live, on this board too
 
   The header `add` disc and the empty card's ink pill both open

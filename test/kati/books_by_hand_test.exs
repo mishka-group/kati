@@ -47,6 +47,7 @@ defmodule Kati.BooksByHandTest do
   alias Kati.Screens.AddByHand
   alias Kati.Screens.AddByHandBook
   alias Kati.Screens.BookDetail
+  alias Kati.Screens.BookDetailFa
   alias Kati.Screens.Books
   alias Kati.Screens.BooksFa
   alias Kati.Screens.LibraryFa
@@ -360,6 +361,84 @@ defmodule Kati.BooksByHandTest do
       assert [%{status: :not_started}] = BooksFa.visible(books, 3)
     end
 
+    test "the Reading-now eyebrow is the card's name and never the head book's status" do
+      # `D-59`, finding 7 and the regression that answering it produced.
+      #
+      # The complaint was real: the caption was
+      # `Kati.Books.SampleFa.detail/0`'s `status_label` — the fixture's literal
+      # در حال خواندن — printed over whatever row `hero/1` had picked, and
+      # `hero/1` falls back to the shelf's head when nothing is being read.
+      #
+      # The answer was not to word the head's status here. `label` is the
+      # SECTION's name: board 176's own caption calls this node «کارت «در حال
+      # خواندن»» — *the Reading now card* — and screen 20, the page this
+      # mirrors, hard-codes the same two words. Building it from the status put
+      # the identical string twice on one card for an unstarted book, and two
+      # different spellings of *finished* for a finished one, which is exactly
+      # the defect this ticket found on screen 69 one screen over.
+      #
+      # So the caption is a constant and the STATUS is worded once, under the
+      # rail, by the row's own line — and for the two statuses `line/1` words
+      # rather than positions, not even there.
+      to_read = a_book!(%{title: @prefix <> "A to read"})
+
+      hero = BooksFa.page().hero
+
+      assert hero.title == to_read.title
+      assert hero.label == SampleFa.labels().reading_now
+      assert hero.label == "در حال خواندن"
+
+      refute hero.label == BookDetailFa.book().status_label,
+             "the card's name moved with the head book's status"
+
+      refute hero.pace,
+             "شروع نشده is the pill's word on 69 and the caption's neighbour here; " <>
+               "printed under the rail as well it is the same status twice on one card"
+
+      # A book actually being read: the caption does not move, and the line
+      # under the rail is a POSITION rather than a status word.
+      reading =
+        a_book!(%{
+          title: @prefix <> "B reading",
+          status: :reading,
+          page_count: 380,
+          current_page: 214
+        })
+
+      hero = BooksFa.page().hero
+
+      assert hero.title == reading.title
+      assert hero.label == SampleFa.labels().reading_now
+      assert hero.pace == "ص. ۲۱۴ / ۳۸۰"
+    end
+
+    test "a tapped cover opens screen 69 on that cover's book, and the hero on the hero's" do
+      # The other half of `D-59`'s worst finding. The tile's tag has carried the
+      # row's id since #97, and this screen threw it away — `"open_book_" <> _key`
+      # pushed screen 69 bare, and 69 answered with the head of the shelf. With
+      # `own/3` total over twenty-two keys that tap drew the head's status, its
+      # position, its rating, its ISBN, its series, its borrower, its notes and
+      # its sittings under the title of the book you pressed.
+      first = a_book!(%{title: @prefix <> "A first"})
+      second = a_book!(%{title: @prefix <> "B second"})
+
+      view = mount_screen(BooksFa)
+      tile = Enum.find(BooksFa.page().books, &(&1.title == first.title))
+
+      opened = render_info(view, {:tap, Books.book_tag(tile)})
+
+      assert {:push, Kati.Screens.BookDetailFa, %{book_id: id}} = pushed(opened)
+      assert id == first.id
+      refute id == second.id
+
+      # The hero's cover is the same builder over the row the card drew —
+      # `Kati.Screens.Books.handle_tap(:open_book, …)` in the other language.
+      hero = render_info(mount_screen(BooksFa), {:tap, :open_book})
+
+      assert {:push, Kati.Screens.BookDetailFa, %{book_id: hero_id}} = pushed(hero)
+      assert hero_id == BooksFa.page().hero.id
+    end
+
     test "a cover's tap tag carries the row's id, so the grid is addressable" do
       # #97: six tiles sharing one tag gave six nodes one `accessibility_id`,
       # and `onNodeWithTag` throws on the second match.
@@ -451,6 +530,17 @@ defmodule Kati.BooksByHandTest do
         refute Map.has_key?(row, :id)
         assert Books.book_tag(row) == String.to_atom("open_book_" <> row.seed)
       end
+
+      # And so a drawn cover pushes screen 69 with NO params rather than with
+      # `%{book_id: nil}` — through the destination's own builder, so the empty
+      # answer is spelled in one place. That is the branch every sweep in this
+      # directory renders, and it is why screen 69 keeps a no-id path at all.
+      view = mount_screen(BooksFa)
+      opened = render_info(view, {:tap, :open_book_bookaa1})
+
+      assert {:push, Kati.Screens.BookDetailFa, params} = pushed(opened)
+      assert params == %{}
+      assert BookDetail.params_for(hd(BooksFa.drawn_books())) == %{}
     end
   end
 

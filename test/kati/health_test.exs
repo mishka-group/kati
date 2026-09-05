@@ -10,6 +10,11 @@ defmodule Kati.HealthTest do
       log is untouched.
     * **`:missed` is derived.** A dose due at 14:00 is due at 13:59 and missed
       at 14:01, and nothing has to run at midnight for that to be true.
+    * **The whole day is derived.** D-59. Today's doses are composed from each
+      active medication's `times` — the field `Kati.Notifications.Sources.Health`
+      already arms the reminder from — and a `health_doses` row is written the
+      first time somebody marks one. So a row means *somebody decided about
+      this*, and its absence means nothing more than *not yet*.
   """
   use Mob.ScreenCase, async: false
 
@@ -20,6 +25,10 @@ defmodule Kati.HealthTest do
   alias Kati.Screens.LogWeight
   alias Kati.Screens.Medication, as: MedicationScreen
   alias Kati.Screens.Weight
+
+  # `clock?/1` is what bounds the atom family screen 112 builds for a derived
+  # dose, so its three answers are worth running rather than only reading.
+  doctest Kati.Health.Dose, only: [clock?: 1]
 
   setup do
     on_exit(fn ->
@@ -223,6 +232,144 @@ defmodule Kati.HealthTest do
     end
   end
 
+  describe "a day composed from the schedules — D-59" do
+    test "one row per medication AND clock time, in clock order" do
+      # Per medication would leave the 21:00 tablet unreachable all day, on a
+      # page whose two verbs only ever answer about a row that is drawn.
+      rows = Dose.derive([iron(), vitamin_d()], ~D[2026-09-05])
+
+      assert Enum.map(rows, &{&1.due_at, &1.medication_id}) == [
+               {"08:00", "med-iron"},
+               {"08:00", "med-d"},
+               {"21:00", "med-iron"}
+             ]
+
+      # Unsaved, dated for the day asked about, and undecided — a plan, not a
+      # record.
+      assert Enum.all?(rows, &(&1.id == nil and &1.state == :due))
+      assert Enum.all?(rows, &(&1.due_on == ~D[2026-09-05]))
+
+      # And the medication rides with the row, so one shaper on screen 112 can
+      # read a derived row and a loaded one without telling them apart.
+      assert Enum.map(rows, & &1.medication.name) == ["Iron", "Vitamin D", "Iron"]
+    end
+
+    test "a clock time that does not parse contributes no row, and a repeat contributes one" do
+      # `Kati.Notifications.Sources.Health.wall/2`'s decision, quoted: a row
+      # whose time does not parse is dropped rather than guessed at. It is also
+      # what keeps `Kati.Screens.Medication.tags/1`'s atom family bounded, and
+      # what stops two identical cards sharing one `accessibility_id`.
+      messy = %Medication{
+        id: "med-messy",
+        name: "Iron",
+        times: ["08:00", "08:00", "morning", "25:00", ""]
+      }
+
+      assert [%Dose{due_at: "08:00"}] = Dose.derive([messy], Kati.Time.today())
+      assert Dose.clock?("08:00")
+      refute Dose.clock?("morning")
+    end
+
+    test "a medication with no times contributes nothing at all" do
+      # Which is the quiet day screen 112 words rather than falls back on, and
+      # the ordinary result of board 188 saving a prescription with no clock on
+      # it.
+      assert Dose.derive([%Medication{id: "m", name: "Metformin", times: []}], Kati.Time.today()) ==
+               []
+    end
+
+    test "the stored dose wins its derived twin" do
+      day = Kati.Time.today()
+
+      stored = %Dose{
+        id: "row-1",
+        medication_id: "med-iron",
+        medication: iron(),
+        due_on: day,
+        due_at: "08:00",
+        state: :taken
+      }
+
+      merged = Dose.merge([stored], Dose.derive([iron()], day))
+
+      # Two rows, not three, and the 08:00 one is still taken: a derived twin
+      # replacing a stored one un-ticks a tick on the next reload, which is the
+      # one failure a medication page cannot have.
+      assert [%Dose{id: "row-1", state: :taken}, %Dose{id: nil, due_at: "21:00"}] = merged
+    end
+
+    test "a stored dose at a time the medication no longer lists survives the merge" do
+      # Edit `times` on screen 189 after marking a dose and the record of what
+      # you actually took is still the record: the derived side is the plan and
+      # the stored side is what happened.
+      day = Kati.Time.today()
+      moved = %Medication{id: "med-iron", name: "Iron", times: ["21:00"]}
+
+      stored = %Dose{
+        id: "row-1",
+        medication_id: "med-iron",
+        medication: moved,
+        due_on: day,
+        due_at: "08:00",
+        state: :taken
+      }
+
+      assert [%Dose{due_at: "08:00", state: :taken}, %Dose{due_at: "21:00", id: nil}] =
+               Dose.merge([stored], Dose.derive([moved], day))
+    end
+
+    test "a derived dose is not missed for a clock time before its medication existed" do
+      # The reported flow, with the clock written down: board 188 opened at
+      # 15:00 and Save pressed on the draft it opens with — Levothyroxine,
+      # `times: ["08:00"]`. Nothing in the app knew anything about that 08:00.
+      # The row did not exist, `Kati.Notifications.Sources.Health` arms wall
+      # clock candidates FORWARD so no reminder was ever sent, and drawing
+      # `· MISSED` against it asserts a failure that could not have happened —
+      # on the page whose own moduledoc says *did I take it* is the question a
+      # wrong answer costs the most.
+      day = ~D[2026-09-05]
+      zone = Kati.Time.device_zone()
+
+      [dose] = Dose.derive([typed(day, ~T[15:00:00])], day)
+
+      assert Dose.resolve(dose, DateTime.new!(day, ~T[15:30:00], zone)) == :due
+    end
+
+    test "and it IS missed once a time the medication was already there for passes" do
+      # The other direction, and it is what keeps `:missed` worth anything: the
+      # same tablet, typed in yesterday, at the same clock time today.
+      day = ~D[2026-09-05]
+      zone = Kati.Time.device_zone()
+
+      [dose] = Dose.derive([typed(Date.add(day, -1), ~T[21:00:00])], day)
+
+      assert dose.due_at == "08:00"
+      assert Dose.resolve(dose, DateTime.new!(day, ~T[15:30:00], zone)) == :missed
+    end
+
+    test "a STORED row at that time keeps the plain clock reading" do
+      # `resolve/2`'s original argument is an argument about a row: it existed
+      # at 08:00 and nobody answered. That premise holds for anything in
+      # `health_doses` whatever its medication's `inserted_at` says — a row is
+      # written when somebody decides, and `merge/2` lets it win its derived
+      # twin precisely because it is the record rather than the plan.
+      day = ~D[2026-09-05]
+      zone = Kati.Time.device_zone()
+      medication = typed(day, ~T[15:00:00])
+
+      stored = %Dose{
+        id: "row-1",
+        medication_id: medication.id,
+        medication: medication,
+        due_on: day,
+        due_at: "08:00",
+        state: :due
+      }
+
+      assert Dose.resolve(stored, DateTime.new!(day, ~T[15:30:00], zone)) == :missed
+    end
+  end
+
   describe "screen 112" do
     setup do
       medication =
@@ -305,6 +452,27 @@ defmodule Kati.HealthTest do
       end
     end
   end
+
+  # Structs rather than rows: `Kati.Health.Dose.derive/2` reads nothing and
+  # writes nothing, and a test that stored them first could not tell that apart
+  # from one that reads.
+  # Levothyroxine as board 188 stores it, with the moment it was stored written
+  # in. `inserted_at` is UTC in the store — `Ash`'s `timestamps()` — and
+  # `DateTime.compare/2` reads instants, so the zone the test thinks in and the
+  # zone the column holds cannot disagree.
+  defp typed(day, time) do
+    at = DateTime.new!(day, time, Kati.Time.device_zone()) |> DateTime.shift_zone!("Etc/UTC")
+
+    %Medication{
+      id: "med-levo",
+      name: "Levothyroxine",
+      times: ["08:00"],
+      inserted_at: at
+    }
+  end
+
+  defp iron, do: %Medication{id: "med-iron", name: "Iron", times: ["21:00", "08:00"]}
+  defp vitamin_d, do: %Medication{id: "med-d", name: "Vitamin D", times: ["08:00"]}
 
   defp shifted(days) do
     Kati.Time.today() |> Date.add(days) |> Calendar.strftime("%d %b") |> String.upcase()

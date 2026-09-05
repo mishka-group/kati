@@ -72,18 +72,24 @@ defmodule Kati.Screens.BooksFa do
       `Kati.Components.MishkaProgress`'s `render: :box` — so start is the right
       edge and the fill lands there with nothing reversed.
 
-  ## What a cover opens, and the argument it cannot carry yet
+  ## What a cover opens, and the book it opens on
 
   A tile's tag is the row's own id — `Kati.Screens.Books.book_tag/1`, one
   spelling for both shelves — so every cover has an `accessibility_id` of its
-  own and #97's collision cannot come back. The push is **bare**, and that is
-  the destination's limit rather than a forgotten argument:
-  `Kati.Screens.BookDetailFa.mount/3` matches `_params` and resolves the
-  shelf's head, so naming a book here would be writing an argument the screen
-  does not read — which `Kati.Screens.Books` calls *an argument nobody can
-  check* about the same class of push. When 69 learns `:book_id` the way
-  `Kati.Screens.LogProgressFa` already has, these six pushes gain their third
-  argument together and the tag is already carrying it.
+  own and #97's collision cannot come back.
+
+  The push used to be **bare**, and this file said so and said why: 69 matched
+  `_params`, so naming a book here would have been writing an argument the
+  screen does not read. `D-59` retired that justification and then made it
+  expensive. Screen 69 fills its whole page from the row now — status, position,
+  rating, ISBN, series, borrower, notes, sittings — so a cover that named
+  nothing opened a complete, authoritative record of **the head of the shelf**
+  under the title of the book you pressed. One wrong string became twenty, and
+  تمام شد wrote against the wrong book. `open_book/2` is the fix and it is the
+  same shape `Kati.Screens.Books.open_book/2` has: the tag is resolved back over
+  the list THIS RENDER drew, and the row goes to the destination's own builder.
+  The two halves — this one and 69's `mount/3` — shipped together, because
+  either alone still lands on the wrong book.
   """
   use Mob.Screen
   import Mob.Sigil
@@ -253,8 +259,22 @@ defmodule Kati.Screens.BooksFa do
   touched last is at least yours* — taken over the list this page already read
   rather than through a second query.
 
-  The eyebrow is `Kati.Books.SampleFa.detail/0`'s own status word, so the card
-  and screen 69 cannot come to call the state two different things.
+  ## The eyebrow is the row's own status word, and used to be a constant
+
+  It read `Kati.Books.SampleFa.detail/0.status_label` — the literal در حال
+  خواندن — for whatever row the card had picked, and this doc gave the reason:
+  *so the card and screen 69 cannot come to call the state two different
+  things.* `D-59` made that sentence false on the ordinary case. `hero/1` falls
+  back to `hd(books)` when nothing is being read, so a shelf of hand-typed
+  books captioned its head **reading** while screen 69, which now words the
+  status off the row, called the same book **شروع نشده** — the two pages
+  disagreeing about one book, one screen apart, which is the acceptance
+  sentence `D-59` is written around.
+
+  So it goes through `Kati.Screens.BookDetailFa.status_label/1`, which is the
+  function 69's pill uses. One reader, one word: the card cannot say a book is
+  being read unless the book says so. With a reading book on the shelf the
+  eyebrow is still در حال خواندن, which is what board 176 draws.
   """
   @spec hero([map()]) :: map()
   def hero([]), do: SampleFa.reading_now()
@@ -264,13 +284,44 @@ defmodule Kati.Screens.BooksFa do
 
     %{
       id: row.id,
-      label: SampleFa.detail().status_label,
+      label: SampleFa.labels().reading_now,
       title: row.title,
       author: row.author,
       seed: row.seed,
       progress: row.progress,
-      pace: row.line
+      pace: pace(row)
     }
+  end
+
+  # The line under the rail: a POSITION, or nothing. `line/1`'s first two
+  # clauses word a status rather than a position — تمام‌شده, شروع نشده — and
+  # this card already has a caption above the title saying what the section is,
+  # so a shelf of unstarted books printed the same words twice, sixty points
+  # apart, and a finished head printed them in two spellings. Screen 69's
+  # `position_line/2` makes exactly this split for exactly this reason and this
+  # is the shelf's half of it. `reading_now/1` drops the node and its gap when
+  # the answer is nothing, which is house rule 5.
+  defp pace(%{status: status}) when status in [:finished, :not_started], do: nil
+  defp pace(row), do: row.line
+
+  @doc false
+  def pace_node(pace) when pace in [nil, ""], do: []
+
+  def pace_node(pace) do
+    assigns = %{pace: pace}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={8} />
+      <Text
+        text={@pace}
+        font_family="fa"
+        text_size={11}
+        text_color={Kati.Theme.Palette.muted()}
+        max_lines={1}
+      />
+    </Column>
+    """
   end
 
   @doc """
@@ -474,14 +525,7 @@ defmodule Kati.Screens.BooksFa do
             />
             <Spacer size={12} />
             {Kati.Screens.Books.reading_bar(r.progress)}
-            <Spacer size={8} />
-            <Text
-              text={r.pace}
-              font_family="fa"
-              text_size={11}
-              text_color={Palette.muted()}
-              max_lines={1}
-            />
+            {Kati.Screens.BooksFa.pace_node(r.pace)}
           </Column>
         </Row>
         {Kati.Screens.BooksFa.hero_actions()}
@@ -885,10 +929,17 @@ defmodule Kati.Screens.BooksFa do
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgressFa, timing)}
   end
 
-  # The hero's cover, and every grid tile — see the moduledoc for why the push
-  # is bare and what makes it nameable.
+  # The hero's cover. The same book as the eyebrow beside it, through screen
+  # 69's own builder — `Kati.Screens.Books.handle_tap(:open_book, …)` is this
+  # clause in the other language, and `open_book/2` below is the grid's half.
   def handle_info({:tap, :open_book}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetailFa)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.BookDetailFa,
+         Kati.Screens.BookDetail.params_for(socket.assigns.page.hero)
+       )}
 
   def handle_info({:tap, :open_search}, socket),
     do:
@@ -920,7 +971,7 @@ defmodule Kati.Screens.BooksFa do
         {:noreply, socket}
 
       "open_book_" <> _key ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetailFa)}
+        {:noreply, Kati.Screens.BooksFa.open_book(socket, tag)}
 
       "filter_" <> index ->
         {:noreply, Mob.Socket.assign(socket, :filter, String.to_integer(index))}
@@ -932,4 +983,40 @@ defmodule Kati.Screens.BooksFa do
 
   def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :library, socket)
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  Open screen 69 on the tile that carries `tag`.
+
+  `Kati.Screens.Books.open_book/2` in the mirror, and its two arguments are
+  quoted here because both are load-bearing and neither is obvious.
+
+  The tag is resolved back to its row by running `Kati.Screens.Books.book_tag/1`
+  over **the very list the grid was built from**, rather than by reversing the
+  string: a seed is not a key anything can be looked up by, so the string would
+  have to be trusted rather than matched. And it is read off `socket.assigns.page`
+  and not off a fresh query, because the shelf sorts on `updated_at` and a read
+  at tap time can hand back an order the person never saw — *the tile they
+  pressed* is a fact about the render.
+
+  A row with no id — `Kati.Books.SampleFa`'s six, and a tag matching nothing —
+  pushes with **no params at all** rather than with `%{book_id: nil}`, through
+  the destination's own builder so the empty answer is spelled in one place.
+  That is the fixture path every sweep in `test/` renders, and it is why screen
+  69 keeps a no-id branch at all.
+
+  The builder is `Kati.Screens.BookDetail.params_for/1` and not a Persian copy
+  of it, for the reason `Kati.Screens.LogProgress.params_for/1` is shared by the
+  English sheet and the Persian one: two spellings of `:book_id` is one more
+  thing to keep true.
+  """
+  @spec open_book(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def open_book(socket, tag) do
+    row = Enum.find(socket.assigns.page.books, &(Kati.Screens.Books.book_tag(&1) == tag))
+
+    Mob.Socket.push_screen(
+      socket,
+      Kati.Screens.BookDetailFa,
+      Kati.Screens.BookDetail.params_for(row)
+    )
+  end
 end

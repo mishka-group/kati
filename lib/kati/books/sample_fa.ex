@@ -32,24 +32,72 @@ defmodule Kati.Books.SampleFa do
   66 calls `16 AUG`. Both are the drawing's, frozen for the same reason every
   other fixture's dates are frozen: a fixture whose dates move cannot be
   compared with the frame it was captured from.
+
+  ### And a real book's year is **not** ۱۴۰۳, which is the one asymmetry here
+
+  `D-59` asked the question and screen 69 had to answer it to draw a book
+  somebody typed: a book published in 2024 prints **۲۰۲۴** — the Gregorian year
+  with its digits folded — and is never converted.
+  `Kati.Screens.ArtistDetailFa` argues it in full for the same class of number
+  and the argument is not repeated here: a Gregorian year straddles two Shamsi
+  years because the year turns at Nowruz, `Kati.Calendar.Shamsi` converts
+  *dates* and has no year-to-year function at all, and choosing one of ۱۴۰۲/۱۴۰۳
+  means inventing a day inside a year nobody gave. Board 76 already draws a
+  Gregorian release year in Persian digits (`کل اوستراند · ۲۰۲۵`) and screens 04
+  and 58 keep their first-air ۲۰۲۴, so this is a drawn convention rather than a
+  new one.
+
+  So the drawing says ۱۴۰۳ and a real book says ۲۰۲۴, and both are right about
+  what they are: this fixture is a drawing captured from an artboard whose
+  author wrote a Shamsi year, and a stored `published_year` is an integer a
+  publisher printed on an edition and screen 177 typed in ASCII. `D-55` is where
+  that ratification belongs; until it lands, do not "fix" one of the two to
+  match the other.
   """
 
-  @doc "Screen 69's book, in Persian."
+  @doc """
+  Screen 69's book, in Persian.
+
+  ## `status`, `format` and `owned` arrived with `D-59`, and their absence was
+  the defect
+
+  `Kati.Books.Sample.detail/0` has carried all three since it was written, which
+  is exactly why screen 66's status chips, format chips and ownership switch
+  could read `b.status`, `b.format` and `b.owned` — while screen 69's asserted
+  `:reading`, `:paperback` and `true` in its own markup. A page that asserts a
+  fact in markup is a page a real book cannot correct, and on 5 September, when
+  board 177 gave books their first writer, a title typed on a Pixel 9a opened
+  under a lit *در حال خواندن* chip and an ownership switch turned on for an
+  edition nobody said they had. The Persian fixture was the English fixture
+  minus three keys, and the three missing keys were three of the lies. Nothing
+  rendered changes: the same chip lights, the same format lights, the same
+  switch is on.
+
+  `warning_count` is the **integer** its English twin has always been, not the
+  string `"۳"`. The fixture stores the number and the screen draws the digits,
+  because the screen is the only thing that knows which digit table its face has
+  — `kati_mono.ttf` carries none of U+06F0–U+06F9. Two types through one
+  `warning_trailing/1` is how a `Text` ends up handed a bare `0` from a shelved
+  book, and `Kati.Calendar.Shamsi.fa(3)` is this board's own `۳`.
+  """
   @spec detail() :: map()
   def detail do
     %{
       title: "سالنامه نمک",
       author: "اینس کارول",
       seed: "bookaa1",
+      status: :reading,
       status_label: "در حال خواندن",
       meta: "۱۴۰۳ · ۳۸۰ صفحه",
       progress: 0.56,
       progress_line: "ص. ۲۱۴ / ۳۸۰ · ۲۳ دقیقه در روز",
       rating: 9,
       rating_label: "4.5",
+      format: :paperback,
       extent_label: "۳۸۰ صفحه",
       isbn: "978–0–571–33915–2",
-      warning_count: "۳",
+      owned: true,
+      warning_count: 3,
       series_line: "#۳ از ۷ — دفترهای ساحلی",
       series_next: "بعدی: آب کم",
       lent_to: "قرض داده به جو",
@@ -135,7 +183,7 @@ defmodule Kati.Books.SampleFa do
     book = detail()
 
     %{
-      label: book.status_label,
+      label: labels().reading_now,
       title: book.title,
       author: book.author,
       seed: book.seed,
@@ -220,6 +268,15 @@ defmodule Kati.Books.SampleFa do
       yours: "شما",
       others: "دیگران",
       length: "تعداد صفحه",
+      # Board 176's own name for the hero card — `176.html:31` calls it
+      # «کارت «در حال خواندن»», the *Reading now* card — and it is the card's
+      # SECTION word rather than the head book's status. The two coincide on
+      # the fixture, whose head book is reading, and that coincidence is what
+      # let `Kati.Screens.BooksFa.hero/1` briefly build this caption out of
+      # `status_label/1`: a shelf with one unstarted book then captioned its
+      # hero **شروع نشده** and printed the same two words again under the rail.
+      # Screen 20 hard-codes *Reading now* for this reason; so does this.
+      reading_now: "در حال خواندن",
       owned: "نسخه‌ای که دارم",
       warnings: "هشدارها",
       primary: "ثبت پیشرفت",
@@ -241,6 +298,15 @@ defmodule Kati.Books.SampleFa do
     %{
       title: "ثبت پیشرفت",
       book: "سالنامه نمک",
+      # The cover, which the drawing has always drawn and this map has never
+      # named. `Kati.Screens.LogProgressFa.cover/1` reached it through a
+      # `Map.get(s, :seed, "bookaa1")` default, so the fixture branch and the
+      # named-book branch answered with different key sets — and that is the
+      # shape `own/1`'s own doc calls load-bearing: *a key that goes missing is
+      # a `KeyError` in the suite, where a key that goes missing from a MERGE
+      # is the fixture's value on a device.* It is `detail/0`'s seed, because
+      # 69 and 72 are one book.
+      seed: "bookaa1",
       position: "ص. ۲۱۴ از ۳۸۰",
       page: "۲۶۰",
       unit_label: "اکنون در صفحه",

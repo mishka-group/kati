@@ -27,6 +27,24 @@ defmodule Kati.MedicationDoseWriteTest do
   untouched. That test fails on every version of this screen that reads for its
   own subject.
 
+  ## The second defect, D-59: a dose with no row yet
+
+  Nothing in `lib/` ever created a `Kati.Health.Dose`, so every test above
+  stores its own rows first and every one of them was, until D-59, a test of a
+  state no real device could reach. Screen 112 composes today's list from each
+  active medication's `times` now — `Kati.Health.Dose.derive/2` — and writes a
+  row the first time somebody marks one, so the ordinary state of a person who
+  has just used board 188 is a page of doses with `id: nil` and a
+  `:medication_id`.
+
+  `a_medication!/2` and `two_schedules!/0` set that state up, and the tests
+  under *a dose derived from a schedule* are the ones that would have caught
+  the report: four fixture tablets over one real schedule. They act on the
+  **third** row and on two medications sharing 08:00, for the same reason the
+  tests above act on the second — a derivation that keyed a row by clock time
+  alone, or one that wrote whatever the day's first undecided dose was, passes
+  a one-medication test and fails these.
+
   ## Dates and clocks
 
   Fixtures are dated off `Kati.Time.today/0` — never `DateTime.utc_now/0`,
@@ -81,6 +99,21 @@ defmodule Kati.MedicationDoseWriteTest do
       due_on: Kati.Time.today(),
       due_at: at
     })
+  end
+
+  # A medication and NO dose rows — the ordinary state of somebody who has just
+  # added a prescription on board 188, and the state in which screen 112 used
+  # to draw four tablets belonging to nobody. D-59.
+  defp a_medication!(name, times) do
+    Ash.create!(Medication, %{name: name, dose: "50 mcg", schedule: "daily", times: times})
+  end
+
+  # Two of them, sharing 08:00 on purpose: a key built from the clock time
+  # alone would collapse those two cards onto one `accessibility_id`. The
+  # derived list is in `{due_at, name}` order, so Iron comes before
+  # Levothyroxine at 08:00.
+  defp two_schedules! do
+    {a_medication!("Levothyroxine", ["08:00", "21:00"]), a_medication!("Iron", ["08:00"])}
   end
 
   defp rows(view), do: view |> assigns() |> Map.fetch!(:doses)
@@ -241,6 +274,164 @@ defmodule Kati.MedicationDoseWriteTest do
 
       assert {:ok, %Dose{state: :skipped}} = MedicationScreen.save_dose(%{id: first.id}, :skipped)
       assert {:error, :nothing_to_save} = MedicationScreen.save_dose(%{id: nil}, :taken)
+    end
+
+    test "a nil id with no medication behind it is still nothing to write against" do
+      # D-59 made `id: nil` mean two things — *derived, not materialised yet*
+      # when a `:medication_id` rides with it and *this is the drawing* when
+      # nothing does. This is the second, and the row shape is the drawing's:
+      # `Kati.Health.WeightSample.doses/0` has no `:medication_id` key at all.
+      assert {:error, :nothing_to_save} =
+               MedicationScreen.save_dose(
+                 %{id: nil, due_at: "08:00", due_on: Kati.Time.today()},
+                 :taken
+               )
+
+      assert Ash.read!(Dose) == []
+    end
+  end
+
+  describe "a dose derived from a schedule" do
+    test "the page draws the reader's own doses, at their own clock times" do
+      {levo, iron} = two_schedules!()
+
+      rows = rows(mount_screen(MedicationScreen))
+
+      assert Enum.map(rows, &{&1.time, &1.name}) == [
+               {"08:00", "Iron"},
+               {"08:00", "Levothyroxine"},
+               {"21:00", "Levothyroxine"}
+             ]
+
+      # No row yet, and each one carries what a write needs to make one.
+      assert Enum.all?(rows, &(&1.id == nil))
+      assert Enum.map(rows, & &1.medication_id) == [iron.id, levo.id, levo.id]
+      assert Enum.all?(rows, &(&1.due_on == Kati.Time.today()))
+      assert Ash.read!(Dose) == []
+    end
+
+    test "each derived row has its own three tags, and no tag names two rows" do
+      # Two medications share 08:00 here deliberately: a key built from the
+      # clock time alone collapses them onto one `accessibility_id`, which
+      # `onNodeWithTag` throws on and a screen reader announces twice.
+      two_schedules!()
+
+      rows = rows(mount_screen(MedicationScreen))
+      tags = Enum.flat_map(rows, &[&1.tap, &1.taken, &1.skip])
+
+      assert Enum.all?(tags, &is_atom/1)
+      assert Enum.uniq(tags) == tags
+
+      # And the namespaces are held apart: neither a stored dose's `dose_<uuid>`
+      # nor the drawing's `dose_drawn_N`.
+      for tag <- tags, do: refute(String.starts_with?(Atom.to_string(tag), "dose_drawn_"))
+    end
+
+    test "tapping one writes a dose carrying that row's medication, day, time and state" do
+      {levo, _iron} = two_schedules!()
+
+      view = mount_screen(MedicationScreen)
+      [_first, _second, third] = rows(view)
+
+      render_info(view, {:tap, third.skip})
+
+      assert [%Dose{} = written] = Ash.read!(Dose)
+
+      # The row the page DREW, not the clock at tap time: a page drawn at 23:59
+      # and tapped at 00:01 has to record the dose it was drawing.
+      assert written.medication_id == levo.id
+      assert written.due_on == Kati.Time.today()
+      assert written.due_at == "21:00"
+
+      # Decided, never the `:due` default — the row exists only because
+      # somebody decided about it — and stamped with when.
+      assert written.state == :skipped
+      assert %DateTime{} = written.recorded_at
+    end
+
+    test "the tick survives a fresh mount, and a second tap makes no second row" do
+      two_schedules!()
+
+      view = mount_screen(MedicationScreen)
+      [first | _rest] = rows(view)
+
+      render_info(view, {:tap, first.tap})
+
+      # A fresh mount rather than the socket: the claim is that it LANDED and
+      # that the merge lets the stored row win its derived twin, and a struct
+      # in memory cannot say either.
+      reopened = rows(mount_screen(MedicationScreen))
+
+      assert length(reopened) == 3, "the derived twin redrew over the row that was written"
+      assert [%{state: :taken, name: "Iron"} = stored | _rest] = reopened
+      assert is_binary(stored.id), "the written row did not come back with its id"
+
+      render_info(mount_screen(MedicationScreen), {:tap, stored.tap})
+
+      assert length(Ash.read!(Dose)) == 1,
+             "a second decision about one dose made a second row rather than moving the first"
+    end
+
+    test "the two verbs reach the first undecided derived dose" do
+      {_levo, iron} = two_schedules!()
+
+      view = mount_screen(MedicationScreen)
+      verbs = MedicationScreen.undecided(rows(view))
+
+      render_info(view, {:tap, verbs.taken})
+
+      assert [%Dose{medication_id: id, due_at: "08:00", state: :taken}] = Ash.read!(Dose)
+      assert id == iron.id, "the verbs wrote a dose the page had not drawn them on"
+    end
+  end
+
+  describe "screen 115 on a day with nothing stored yet" do
+    test "it mounts at all, which it did not once a dose could be derived" do
+      # `Kati.Screens.HealthFa.doses/0` rebuilt each row's tags with
+      # `Medication.tags(dose.id)`, and `tags/1` guards on `is_binary(key)` —
+      # so the first derived row on a Persian device was a FunctionClauseError
+      # inside `mount/3`, and screen 115 did not open for anybody with a
+      # medication.
+      a_medication!("Levothyroxine", ["08:00"])
+
+      view = mount_screen(Kati.Screens.HealthFa)
+
+      assert [row] = assigns(view).doses
+      assert row.name == "Levothyroxine"
+
+      # The tags are 112's own, carried rather than rebuilt.
+      assert is_atom(row.tap) and is_atom(row.taken) and is_atom(row.skip)
+    end
+
+    test "its chips mark the dose they were drawn for, in ASCII" do
+      medication = a_medication!("Levothyroxine", ["08:00"])
+
+      view = mount_screen(Kati.Screens.HealthFa)
+      [row] = assigns(view).doses
+
+      render_info(view, {:tap, row.taken})
+
+      assert [%Dose{} = written] = Ash.read!(Dose)
+      assert written.medication_id == medication.id
+      assert written.state == :taken
+
+      # The clock time the page DREW is Persian — ۰۸:۰۰ — and the one the store
+      # holds is not: `Kati.Health.Dose.resolve/2` and `:for_day`'s sort cannot
+      # read Persian digits.
+      assert written.due_at == "08:00"
+      refute row.time == written.due_at
+    end
+
+    test "the two bare Persian verbs still write on a derived day" do
+      # `next_undecided/0` read `health_doses` at tap time until D-59, so on a
+      # day whose doses are composed it answered nothing and both chips
+      # reported `Nothing to save yet.` to every real user.
+      medication = a_medication!("Levothyroxine", ["08:00"])
+
+      render_info(mount_screen(Kati.Screens.HealthFa), {:tap, :mark_skipped})
+
+      assert [%Dose{medication_id: id, state: :skipped}] = Ash.read!(Dose)
+      assert id == medication.id
     end
   end
 

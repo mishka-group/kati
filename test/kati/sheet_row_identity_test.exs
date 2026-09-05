@@ -1259,8 +1259,12 @@ defmodule Kati.SheetRowIdentityTest do
 
       {first, second} = two_books()
 
-      # What `Kati.Screens.BookDetailFa.book/0` builds for a shelved row is the
-      # fixture with the row's own fields over it, and the id is one of them.
+      # The assign screen 69 holds for a shelved row, built here rather than
+      # read, because this test is about which id a tap CARRIES and not about
+      # what a page composes. `book/1` builds the whole map off the row now —
+      # D-59 ended the fixture-with-fields-over-it merge this comment used to
+      # describe — and `drawn_book/0` plus the id is still the right stand-in,
+      # because `target/1` reads exactly that key.
       page = Map.put(Kati.Screens.BookDetailFa.drawn_book(), :id, second.id)
 
       view = tap_on_page(Kati.Screens.BookDetailFa, :book, page, :log_progress)

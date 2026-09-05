@@ -238,8 +238,12 @@ defmodule Kati.Screens.AlbumDetailFa do
   @doc """
   The parts of a shelved album that are the user's rather than the chrome's.
 
-  Deliberately short, and shorter than `Kati.Screens.BookDetailFa.own/1` by one
-  kind of field: the dates are not here. A shelved album's `first_heard` and
+  Deliberately short. `Kati.Screens.BookDetailFa.own/3` is the same idea on the
+  book page and is no longer a fair comparison for length — D-59 grew it from
+  five keys to every key its page draws, because a page carrying a few of a
+  row's fields over a fixture's is the defect that ticket is named after. This
+  one is still short, and its shortness is a parked question rather than a
+  settled one: the dates are not here. A shelved album's `first_heard` and
   `last_played` arrive as `Date` structs wanting a Shamsi rendering, and
   shaping a date belongs in `Kati.Music` next to the Gregorian shaping
   `Kati.Screens.AlbumDetail.shaped/4` already does — not on a screen. Until it

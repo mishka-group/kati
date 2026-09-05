@@ -73,6 +73,13 @@ defmodule Kati.Screens.AddMedication do
   behalf — the one question screen 112's own moduledoc says a wrong answer
   costs the most.
 
+  D-59 is what makes that refusal cost nothing on the page. Screen 112 composes
+  today's list from `times` — `Kati.Health.Dose.derive/2` — so a medication
+  saved here appears under TODAY at its own clock times immediately, with no
+  row written anywhere, and a row is created the first time somebody marks one.
+  A medication saved with no times draws no dose and the page says so rather
+  than falling back to a fixture, which is `Kati.Screens.Medication.nothing_due/1`.
+
   Save with no name refuses in words and writes nothing, which is
   `Kati.Write`'s contract and what `Kati.WriteContractTest` enforces. The
   sheet stays open and Save stays live, because a dead button explains
