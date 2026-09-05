@@ -398,6 +398,31 @@ exists.
 Phase 3 depends on Phase 1: a screen cannot show the right row until it is told
 which row it is about.
 
+### The 35 doors that are already wired and still name nothing
+
+`Kati.ScreenParamsSweepTest`'s `@empty_builders` is this phase's work as a list,
+and it is a list nobody has to keep by hand. Each entry is a door that **is**
+wired — the tap resolves the row it was drawn from and hands it to the
+destination's `params_for/1` — where the row is the screen's own fixture and
+carries no id, so the builder answers `%{}` and the reader is handed nothing.
+
+    MealLibrary        6 tiles → MealEdit          Kati.Meals.SampleLibrary has no :id
+    MealsToday         5 cards → Meal              Kati.Meals.SampleToday has no :slot_id
+    MealEdit           6 rows  → AddIngredient     borrowed: the editor itself opened on %{}
+    LibraryFa          6 tiles → SeriesFa          six literals with an artwork seed
+    ArtistDetail       4 rows  → AlbumDetail       Kati.Music.Sample.artist_albums/0
+    AlbumDetail(+Fa)   4 doors → LogListen/Artist  Kati.Music.Sample.album/0
+    BookDetail ×3      3 doors → LogProgress       Kati.Books.Sample.detail/0
+    Meal               1 door  → MealSwap          a drawn meal has no :slot_id
+
+**No edit to any push can shorten this list.** It ends one domain at a time, as
+each shelf stops drawing a fixture and starts reading its table — which is
+exactly what this phase is. `{Kati.Screens.Books, :log_progress, LogProgress}`
+sits in the *other* inventory, `@bare_pushes`, and the pair is the clearest
+statement in the codebase of what the two lists mean: same hero, same missing
+id, one door that never tried to name it and three that tried and got `%{}`.
+Both end on the day screen 20's shelf moves onto `Kati.Books.Book`.
+
 
 ---
 
