@@ -332,6 +332,24 @@ defmodule Kati.Screens.NotificationsHelp do
   # for: nothing in `native/LEDGER.md` launches an Android settings intent.
   # Drawn, reachable, and honest about waiting on that — the same state screen
   # 83's six link rows are in.
+  @doc """
+  The battery row opens the phone's battery-optimisation list.
+
+  Drawn, reachable and dead until `D-62` built `K-44`. The research beside
+  this row is explicit that the exemption must be reached by the user rather
+  than granted, and this reaches it: `Kati.Native.Links.settings(:battery)`
+  opens the LIST, not `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, which is
+  a prompt Google's policy restricts and which an app of this kind should not
+  be firing. Kati grants itself nothing.
+  """
+  def handle_tap(:open_battery, socket) do
+    result = Kati.Native.Links.settings(:battery)
+
+    message = if result == :ok, do: nil, else: Kati.Native.Links.message(elem(result, 1))
+
+    {:noreply, Mob.Socket.assign(socket, :link_error, message)}
+  end
+
   def handle_tap(_tag, socket), do: {:noreply, socket}
 
   @doc """

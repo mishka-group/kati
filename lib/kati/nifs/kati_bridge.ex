@@ -141,6 +141,18 @@ defmodule Kati.Nifs.KatiBridge do
   @spec open_url(binary()) :: binary()
   def open_url(_url), do: :erlang.nif_error(:nif_not_loaded)
 
+  @doc """
+  `"ok"`, or `"error:<reason>"`, for opening one of the phone's own settings
+  screens by Kati name — `"battery"`, `"notification_listener"`, `"app"`.
+
+  A closed set rather than an action string, because `startActivity` with a
+  caller-supplied action is a way to launch anything on the device from a
+  string, and the strings in this app come from screens. `Kati.Native.Links`
+  refuses non-http URLs for the same reason.
+  """
+  @spec open_settings(binary()) :: binary()
+  def open_settings(_which), do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """

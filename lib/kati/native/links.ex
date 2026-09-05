@@ -39,7 +39,13 @@ defmodule Kati.Native.Links do
   alias Kati.Native.Bridge
 
   @type reason ::
-          :no_bridge | :no_handler | :unsupported_scheme | :unparseable | :no_context | :failed
+          :no_bridge
+          | :no_handler
+          | :unsupported_scheme
+          | :unparseable
+          | :no_context
+          | :unknown_destination
+          | :failed
 
   @doc """
   Open `url` in whatever the phone opens links with.
@@ -101,19 +107,51 @@ defmodule Kati.Native.Links do
   rather than naming a bridge nobody outside this repo has heard of.
 
       iex> Kati.Native.Links.message(:no_handler)
-      "No app on this phone opens links."
+      "Nothing on this phone can open that."
 
       iex> Kati.Native.Links.message(:unsupported_scheme)
       "That is not a web address."
   """
   @spec message(reason()) :: String.t()
-  def message(:no_handler), do: "No app on this phone opens links."
+  def message(:no_handler), do: "Nothing on this phone can open that."
+  def message(:unknown_destination), do: "Kati does not know that settings screen."
   def message(:unsupported_scheme), do: "That is not a web address."
   def message(:unparseable), do: "That is not a web address."
-  def message(:no_bridge), do: "Links do not open here yet."
-  def message(:no_context), do: "Links do not open here yet."
-  def message(_other), do: "That link did not open. Nothing else changed."
+  def message(:no_bridge), do: "That does not open here yet."
+  def message(:no_context), do: "That does not open here yet."
+  def message(_other), do: "That did not open. Nothing else changed."
 
+  @doc """
+  Open one of the phone's own settings screens.
+
+  Three controls needed this and had nowhere to go: the battery row on the
+  notifications diagnostic and both *Open system settings* pills on the
+  notification-listener sheet. `Kati.ScreenTapSweepTest` carried each with the
+  same reason — *no fence in `native/LEDGER.md` launches an Android settings
+  intent* — and `K-44` is that fence.
+
+  A Kati word rather than an Android action string, and the Kotlin side
+  refuses an unknown one: an intent launcher taking a caller-supplied action
+  is a way to start anything on the device from a string, and the strings here
+  come from screens.
+
+      iex> Kati.Native.Links.settings(:nowhere_in_particular)
+      {:error, :unknown_destination}
+  """
+  @spec settings(:battery | :notification_listener | :app) :: :ok | {:error, reason()}
+  def settings(which) when which in [:battery, :notification_listener, :app] do
+    case Bridge.reply(:open_settings, [Atom.to_string(which)]) do
+      {:ok, "ok"} -> :ok
+      {:ok, "error:" <> reason} -> {:error, reason(reason)}
+      {:ok, _other} -> {:error, :failed}
+      {:error, :no_bridge} -> {:error, :no_bridge}
+      {:error, _other} -> {:error, :failed}
+    end
+  end
+
+  def settings(_other), do: {:error, :unknown_destination}
+
+  defp reason("unknown_destination"), do: :unknown_destination
   defp reason("no_handler"), do: :no_handler
   defp reason("unsupported_scheme"), do: :unsupported_scheme
   defp reason("unparseable"), do: :unparseable

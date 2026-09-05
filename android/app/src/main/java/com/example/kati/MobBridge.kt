@@ -779,6 +779,63 @@ object MobBridge {
     // The `denied:false` + asked case is the one that matters on screen: once
     // permanently denied, `request/2` will not re-prompt, so the row has to
     // offer system settings instead of an Allow button that does nothing.
+    // KATI-BEGIN(K-44 open-settings) mob_new=0.4.20
+    /**
+     * Open one of the phone's own settings screens, by name.
+     *
+     * Three controls needed it and had nowhere to go: the battery row on the
+     * notifications diagnostic, and both *Open system settings* pills on the
+     * notification-listener sheet. `Kati.ScreenTapSweepTest` recorded the same
+     * reason against each — *no fence in `native/LEDGER.md` launches an
+     * Android settings intent* — and the research beside them is explicit that
+     * the battery exemption has to be reached by the user rather than granted.
+     * Reaching it is exactly what this does; it grants nothing.
+     *
+     * **A closed set of names, never a caller-supplied action string.** The
+     * whole hazard of a settings bridge is that `startActivity` with an
+     * arbitrary action is a way to launch anything on the device from a
+     * string, and strings in this app come from screens. So the argument is a
+     * Kati word — `battery`, `notification_listener`, `app` — and an unknown
+     * one is refused rather than passed through. `K-43` refuses non-http
+     * schemes for the same reason and says so in the same words.
+     *
+     * `battery` goes to the LIST of battery-optimised apps rather than to
+     * `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, which is a permission
+     * prompt Google's policy restricts and which an app of this kind should
+     * not be firing. The list is where a person turns it off deliberately,
+     * which is the honest route and the one the diagnostic's own copy
+     * describes.
+     */
+    @JvmStatic
+    fun katiOpenSettings(which: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        val action = when (which) {
+            "battery" -> android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+            "notification_listener" ->
+                android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
+            "app" -> android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            else -> return "error:unknown_destination"
+        }
+
+        return try {
+            val intent = android.content.Intent(action)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            if (which == "app") {
+                intent.data = android.net.Uri.fromParts("package", ctx.packageName, null)
+            }
+
+            ctx.startActivity(intent)
+            "ok"
+        } catch (e: android.content.ActivityNotFoundException) {
+            "error:no_handler"
+        } catch (e: Exception) {
+            "error:" + (e.message ?: "open_failed")
+        }
+    }
+    // KATI-END(K-44 open-settings)
+
     // KATI-BEGIN(K-43 open-url) mob_new=0.4.20
     /**
      * Hand a URL to whatever the phone opens URLs with.

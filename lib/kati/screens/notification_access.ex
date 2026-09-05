@@ -479,5 +479,37 @@ defmodule Kati.Screens.NotificationAccess do
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogListen)}
   end
 
+  # Both *Open system settings* pills open the notification-listener screen.
+  # A comment rather than a second `@doc`: these are clauses of one
+  # `handle_tap/2` and the clause above already carries the doc.
+  #
+  # They were drawn, reachable and dead until `D-62` built `K-44`:
+  # `Kati.ScreenTapSweepTest` carried each with the same reason — *no fence in
+  # `native/LEDGER.md` launches an Android settings intent* — and that was the
+  # whole of what stood between them and the one screen this sheet exists to
+  # send a reader to.
+  #
+  # Two tags for one destination, because #97 gave the revoked band's pill its
+  # own name: both said *Open system settings* under one id and the two states
+  # of this board were one node to `onNodeWithTag`. They do the same thing and
+  # are meant to.
+  #
+  # Kati cannot grant the access and does not try — `Kati.Native.Links.settings/1`
+  # opens the list and the reader turns it on. The refusal is drawn rather than
+  # swallowed, for screen 06's reason.
+  #
+  def handle_tap(tag, socket) when tag in [:open_settings, :open_settings_revoked] do
+    {:noreply, Kati.Screens.NotificationAccess.open_listener_settings(socket)}
+  end
+
   def handle_tap(_tag, socket), do: {:noreply, socket}
+
+  @doc false
+  @spec open_listener_settings(Mob.Socket.t()) :: Mob.Socket.t()
+  def open_listener_settings(socket) do
+    case Kati.Native.Links.settings(:notification_listener) do
+      :ok -> Mob.Socket.assign(socket, :link_error, nil)
+      {:error, why} -> Mob.Socket.assign(socket, :link_error, Kati.Native.Links.message(why))
+    end
+  end
 end

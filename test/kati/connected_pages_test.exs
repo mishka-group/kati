@@ -205,4 +205,44 @@ defmodule Kati.ConnectedPagesTest do
       assert {:error, :unsupported_scheme} = Kati.Native.Links.open("intent://evil")
     end
   end
+
+  describe "the settings pills reach the phone's own screens" do
+    test "each pill names a destination Kati knows, and an unknown one is refused" do
+      # `K-44`'s whole safety argument: a Kati word, never an Android action
+      # string. `startActivity` with a caller-supplied action is a way to
+      # launch anything on the device, and the strings in this app come from
+      # screens.
+      assert {:error, :unknown_destination} = Kati.Native.Links.settings(:anything_at_all)
+      assert {:error, :unknown_destination} = Kati.Native.Links.settings("battery")
+
+      # On a host there is no bridge, so the three real destinations refuse
+      # with the honest reason rather than the unknown-word one.
+      for which <- [:battery, :notification_listener, :app] do
+        assert {:error, :no_bridge} = Kati.Native.Links.settings(which)
+      end
+    end
+
+    test "both pills on screen 151 act, and say so when they cannot" do
+      for tag <- [:open_settings, :open_settings_revoked] do
+        {:noreply, socket} =
+          Kati.Screens.NotificationAccess.handle_tap(
+            tag,
+            Mob.Socket.new(Kati.Screens.NotificationAccess)
+          )
+
+        assert socket.assigns.link_error == Kati.Native.Links.message(:no_bridge),
+               "#{tag} refused silently"
+      end
+    end
+
+    test "and the battery row on the diagnostic does too" do
+      {:noreply, socket} =
+        Kati.Screens.NotificationsHelp.handle_tap(
+          :open_battery,
+          Mob.Socket.new(Kati.Screens.NotificationsHelp)
+        )
+
+      assert socket.assigns.link_error == Kati.Native.Links.message(:no_bridge)
+    end
+  end
 end

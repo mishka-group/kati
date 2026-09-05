@@ -158,6 +158,20 @@ static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM arg
     return reply;
 }
 
+static ERL_NIF_TERM kb_open_settings(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *which;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    which = kati_take_cstr(env, argv[0]);
+    if (which == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call(env, "katiOpenSettings", "(Ljava/lang/String;)Ljava/lang/String;",
+                             which, NULL);
+    kati_free_cstr(which);
+    return reply;
+}
+
 /* ── #58: the periodic refresh worker ────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -253,6 +267,12 @@ static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM arg
     return kb_unavailable(env);
 }
 
+static ERL_NIF_TERM kb_open_settings(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     (void)argc;
     (void)argv;
@@ -276,6 +296,7 @@ static ErlNifFunc nif_funcs[] = {
     {"notify_status", 0, kb_notify_status, 0},
     {"permission_status", 1, kb_permission_status, 0},
     {"open_url", 1, kb_open_url, 0},
+    {"open_settings", 1, kb_open_settings, 0},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

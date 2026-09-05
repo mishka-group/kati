@@ -591,19 +591,19 @@ defmodule Kati.ScreenTapSweepTest do
     # `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` carries Play-policy risk. The row
     # is drawn, reachable and honest about waiting on that fence — the same
     # state screen 83's six link rows are in.
-    {Kati.Screens.NotificationsHelp, :open_battery},
+
     # ── Screen 151, the notification-listener sheet. Both `Open system
     # settings` rows want the Android notification-listener settings intent,
     # which no fence in `native/LEDGER.md` launches — the same missing fence
     # `:open_battery` above is waiting on, one permission over. `:log_by_hand`
     # is NOT here: it pushes `Kati.Screens.LogListen`, because this sheet gates
     # auto-detecting a listen and hand-logging one is a screen Kati already has.
-    {Kati.Screens.NotificationAccess, :open_settings},
+
     # The revoked band's pill, renamed for the band it belongs to (#97). Both
     # pills say *Open system settings* and both did it under one tag, so the
     # two states of this board were one id. Neither opens anything: Mob has no
     # route out to the system settings app.
-    {Kati.Screens.NotificationAccess, :open_settings_revoked},
+
     # ── Screen 136, the loudness prompt's `Continue`. Wired, and the change
     # lives outside the socket twice over: `Mob.Permissions.request/2` raises
     # the system dialog, and `Permissions.note_asked/1` writes `Mob.State` so a
