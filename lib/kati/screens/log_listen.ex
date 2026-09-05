@@ -667,6 +667,14 @@ defmodule Kati.Screens.LogListen do
   is a sample album on this sheet whichever way that goes, so "nothing was
   shelved" is precisely the case a person cannot tell from the drawing.
   """
+  @spec save_listen(map()) :: {:ok, struct()} | {:error, term()}
+  def save_listen(assigns) do
+    case shelved(assigns[:album_id]) do
+      %Album{} = album -> save_against(album, assigns)
+      nil -> Kati.Write.note({:error, :nothing_to_save}, "log listen")
+    end
+  end
+
   # The shelf's head at MOUNT time, as an id, or `nil` when nothing is shelved.
   # Read through screen 74's own reader so the sheet and the page it opens from
   # cannot disagree about which album that is.
@@ -677,14 +685,6 @@ defmodule Kati.Screens.LogListen do
     end
   rescue
     _error -> nil
-  end
-
-  @spec save_listen(map()) :: {:ok, struct()} | {:error, term()}
-  def save_listen(assigns) do
-    case shelved(assigns[:album_id]) do
-      %Album{} = album -> save_against(album, assigns)
-      nil -> Kati.Write.note({:error, :nothing_to_save}, "log listen")
-    end
   end
 
   defp save_against(%Album{} = album, assigns) do

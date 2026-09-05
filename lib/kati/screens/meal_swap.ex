@@ -202,7 +202,7 @@ defmodule Kati.Screens.MealSwap do
         badge: if(i == 0, do: "BEST"),
         macros: String.downcase(macro_line(theirs)),
         delta: delta_label(theirs.kcal - figures.kcal),
-        delta_color: if(theirs.kcal <= figures.kcal, do: @green, else: @red),
+        delta_color: if(theirs.kcal <= figures.kcal, do: Sample.green(), else: Sample.red()),
         selected?: i == 0,
         seed: recipe.photo_seed
       }
@@ -770,6 +770,8 @@ defmodule Kati.Screens.MealSwap do
     end
   end
 
+  def handle_info(_message, socket), do: {:noreply, socket}
+
   @doc false
   @spec commit_swap(Mob.Socket.t(), :once | :forever) :: Mob.Socket.t()
   def commit_swap(socket, how) do
@@ -849,6 +851,4 @@ defmodule Kati.Screens.MealSwap do
 
     :ok
   end
-
-  def handle_info(_message, socket), do: {:noreply, socket}
 end

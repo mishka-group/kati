@@ -292,19 +292,19 @@ defmodule Kati.Screens.SearchIdle do
     {:noreply, Mob.Socket.assign(socket, :query, typed)}
   end
 
-  @doc """
-  The search key on the keyboard, which is what finally connects the two boards.
-
-  `look/1` has existed since this screen was built and nothing called it: the
-  field remembered what was typed and there was no way out of the page.
-
-  **A submit is not a tap**, and that is the whole reason nothing caught it.
-  `mob_send_submit/1` sends `{:submit, tag}` where a tap sends `{:tap, tag}`,
-  so a `handle_tap/2` clause for this never fires and
-  `Kati.ScreenTapSweepTest` — which walks the `on_tap` tags a tree draws —
-  cannot see a keyboard action at all. Written as a `handle_tap` clause first,
-  and found by reading the NIF rather than by any test.
-  """
+  # The search key on the keyboard, which is what finally connects the two
+  # boards. A comment rather than a second `@doc`, because these are clauses of
+  # one `handle_info/2` and the first clause already holds the doc.
+  #
+  # `look/1` has existed since this screen was built and nothing called it: the
+  # field remembered what was typed and there was no way out of the page.
+  #
+  # **A submit is not a tap**, and that is the whole reason nothing caught it.
+  # `mob_send_submit/1` sends `{:submit, tag}` where a tap sends `{:tap, tag}`,
+  # so a `handle_tap/2` clause for this never fires and
+  # `Kati.ScreenTapSweepTest` — which walks the `on_tap` tags a tree draws —
+  # cannot see a keyboard action at all. Written as a `handle_tap` clause first,
+  # and found by reading the NIF rather than by any test.
   def handle_info({:submit, :look}, socket),
     do: {:noreply, Kati.Screens.SearchIdle.look(socket)}
 

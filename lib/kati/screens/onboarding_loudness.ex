@@ -46,26 +46,40 @@ defmodule Kati.Screens.OnboardingLoudness do
   @doc false
   def content(assigns) do
     Kati.Screens.Pushed.page(~MOB"""
-      <Column fill_width={true}>
-        {OnboardingWelcome.rail(4)}
-        <Text text="How should we" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
-        <Text text="tell you?" text_size={28} max_font_scale={1.6} font_weight="bold" letter_spacing={-0.03} text_color={:on_surface} />
-        <Spacer size={10} />
-        <Text
-          text="Kati checks for new episodes on its own. You choose how loudly it mentions them."
-          text_size={13.5}
-          line_height={1.55}
-          text_color={Palette.ink_soft()}
-        />
-        <Spacer size={20} />
-        {Kati.Screens.OnboardingLoudness.choices(assigns.choice)}
-        {Kati.Screens.OnboardingLoudness.quiet_note(assigns.choice)}
-        <Spacer size={18} />
-        {OnboardingWelcome.forward("Continue", :next)}
-        <Spacer size={14} />
-        {SettingsList.note("info", "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136")}
-        {OnboardingWelcome.back_row("Back to sections")}
-      </Column>
+    <Column fill_width={true}>
+      {OnboardingWelcome.rail(4)}
+      <Text
+        text="How should we"
+        text_size={28}
+        max_font_scale={1.6}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
+      <Text
+        text="tell you?"
+        text_size={28}
+        max_font_scale={1.6}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
+      <Spacer size={10} />
+      <Text
+        text="Kati checks for new episodes on its own. You choose how loudly it mentions them."
+        text_size={13.5}
+        line_height={1.55}
+        text_color={Palette.ink_soft()}
+      />
+      <Spacer size={20} />
+      {Kati.Screens.OnboardingLoudness.choices(assigns.choice)}
+      {Kati.Screens.OnboardingLoudness.quiet_note(assigns.choice)}
+      <Spacer size={18} />
+      {OnboardingWelcome.forward("Continue", :next)}
+      <Spacer size={14} />
+      {SettingsList.note("info", "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136")}
+      {OnboardingWelcome.back_row("Back to sections")}
+    </Column>
     """)
   end
 
@@ -91,7 +105,13 @@ defmodule Kati.Screens.OnboardingLoudness do
 
   @doc false
   def row(label, line, icon, on?) do
-    assigns = %{label: label, line: line, icon: icon, on?: on?, tap: {self(), String.to_atom("choose_" <> label)}}
+    assigns = %{
+      label: label,
+      line: line,
+      icon: icon,
+      on?: on?,
+      tap: {self(), String.to_atom("choose_" <> label)}
+    }
 
     ~MOB"""
     <Row
@@ -106,9 +126,18 @@ defmodule Kati.Screens.OnboardingLoudness do
       {UI.symbol(@icon, size: 19, color: if(@on?, do: Palette.on_ink(), else: Palette.ink_soft()))}
       <Spacer size={12} />
       <Column weight={1.0}>
-        <Text text={@label} text_size={13.5} font_weight="semibold" text_color={if @on?, do: Palette.on_ink(), else: :on_surface} />
+        <Text
+          text={@label}
+          text_size={13.5}
+          font_weight="semibold"
+          text_color={if @on?, do: Palette.on_ink(), else: :on_surface}
+        />
         <Spacer size={4} />
-        <Text text={@line} text_size={11.5} text_color={if @on?, do: Palette.on_ink(), else: Palette.sub()} />
+        <Text
+          text={@line}
+          text_size={11.5}
+          text_color={if @on?, do: Palette.on_ink(), else: Palette.sub()}
+        />
       </Column>
       {Kati.Screens.OnboardingLoudness.tick(@on?)}
     </Row>
@@ -141,9 +170,25 @@ defmodule Kati.Screens.OnboardingLoudness do
       {Kati.UI.symbol("check_circle", size: 17, color: Kati.Theme.Palette.green())}
       <Spacer size={9} />
       <Column weight={1.0}>
-        <Text text="Kati" text_size={12.5} line_height={1.5} text_color={Kati.Theme.Palette.ink_soft()} />
-        <Text text="won’t ask" text_size={12.5} line_height={1.5} font_weight="semibold" text_color={Kati.Theme.Palette.ink()} />
-        <Text text="for notification permission. Everything arrives in your inbox." text_size={12.5} line_height={1.5} text_color={Kati.Theme.Palette.ink_soft()} />
+        <Text
+          text="Kati"
+          text_size={12.5}
+          line_height={1.5}
+          text_color={Kati.Theme.Palette.ink_soft()}
+        />
+        <Text
+          text="won’t ask"
+          text_size={12.5}
+          line_height={1.5}
+          font_weight="semibold"
+          text_color={Kati.Theme.Palette.ink()}
+        />
+        <Text
+          text="for notification permission. Everything arrives in your inbox."
+          text_size={12.5}
+          line_height={1.5}
+          text_color={Kati.Theme.Palette.ink_soft()}
+        />
       </Column>
     </Row>
     """
@@ -168,16 +213,8 @@ defmodule Kati.Screens.OnboardingLoudness do
   """
   @impl true
   def handle_tap(:next, socket) do
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudness.after_choice(socket))}
-  end
-
-  @doc false
-  @spec after_choice(Mob.Socket.t()) :: module()
-  def after_choice(socket) do
-    case socket.assigns[:choice] do
-      "Quietly" -> Kati.Screens.OnboardingFirstTitle
-      _loud -> Kati.Screens.LoudnessPrompt
-    end
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudness.after_choice(socket))}
   end
 
   def handle_tap(:step_back, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
@@ -186,6 +223,15 @@ defmodule Kati.Screens.OnboardingLoudness do
     case Atom.to_string(tag) do
       "choose_" <> label -> {:noreply, Mob.Socket.assign(socket, :choice, label)}
       _other -> {:noreply, socket}
+    end
+  end
+
+  @doc false
+  @spec after_choice(Mob.Socket.t()) :: module()
+  def after_choice(socket) do
+    case socket.assigns[:choice] do
+      "Quietly" -> Kati.Screens.OnboardingFirstTitle
+      _loud -> Kati.Screens.LoudnessPrompt
     end
   end
 end

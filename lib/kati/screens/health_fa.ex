@@ -1090,12 +1090,12 @@ defmodule Kati.Screens.HealthFa do
     end
   end
 
+  def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
+  def handle_info(_message, socket), do: {:noreply, socket}
+
   defp dose_verb?(socket, tag) do
     Enum.any?(Map.get(socket.assigns, :doses, []), fn dose ->
       Map.get(dose, :taken) == tag or Map.get(dose, :skip) == tag
     end)
   end
-
-  def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
-  def handle_info(_message, socket), do: {:noreply, socket}
 end

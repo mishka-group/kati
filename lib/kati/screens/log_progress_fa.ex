@@ -91,16 +91,6 @@ defmodule Kati.Screens.LogProgressFa do
   this board's caption calls a proposal, and it belongs beside the Gregorian
   shaping in `Kati.Books` rather than being invented on a screen.
   """
-  # The shelf's head as an id, or `nil` when nothing is shelved. Through screen
-  # 66's own reader, so this sheet and the page that opens it cannot disagree
-  # about which book that is.
-  defp shelf_head do
-    case Kati.Screens.BookDetail.shelved_book(nil) do
-      %{id: id} when is_binary(id) -> id
-      _nothing -> nil
-    end
-  end
-
   @spec sheet(String.t() | nil) :: map()
   def sheet(nil), do: SampleFa.sheet()
 
@@ -108,6 +98,16 @@ defmodule Kati.Screens.LogProgressFa do
     case Kati.Screens.BookDetail.shelved_book(id) do
       nil -> SampleFa.sheet()
       shelved -> Map.merge(SampleFa.sheet(), own(shelved))
+    end
+  end
+
+  # The shelf's head as an id, or `nil` when nothing is shelved. Through screen
+  # 66's own reader, so this sheet and the page that opens it cannot disagree
+  # about which book that is.
+  defp shelf_head do
+    case Kati.Screens.BookDetail.shelved_book(nil) do
+      %{id: id} when is_binary(id) -> id
+      _nothing -> nil
     end
   end
 

@@ -889,7 +889,6 @@ defmodule Kati.Screens.Meal do
   # does not interpret it, it hands the string to the container.
   #
   # `shape: :circle` computes 50 / 2 = 25.0, the radius that was written here.
-  @doc false
   @doc """
   The bookmark disc, filled when the recipe is bookmarked.
 
@@ -1232,25 +1231,6 @@ defmodule Kati.Screens.Meal do
   end
 
   @doc """
-  Mark the meal eaten, for real.
-
-  This used to flip `:eaten` on the socket — a tick that drew, survived until
-  the screen was popped, and left nothing in the store. Screen 43's button had
-  the same shape and `Kati.MealsTodayWriteTest` is what settled it; this is the
-  same write from the detail page, through the same action, so the two cannot
-  come to disagree about what marking a meal means.
-
-  `Kati.Meals.MealLog`'s `:log_recipe` freezes the figures at the moment of the
-  claim, which is why the portion goes in as the slot's rather than as this
-  screen's label: `portion_label/1` is for reading and `portion_milli` is what
-  the arithmetic is done on.
-
-  With no active plan the screen is `Kati.Meals.SampleRecipe`'s drawing and
-  there is no slot to log against, so the tap keeps its old local toggle. A
-  drawn meal is not a planned one, and writing a log for a meal nobody planned
-  would be inventing the row it then displayed.
-  """
-  @doc """
   Bookmark the recipe, or take the bookmark off.
 
   A toggle on the row rather than an add-only action: the disc is the same disc
@@ -1264,6 +1244,25 @@ defmodule Kati.Screens.Meal do
     {:noreply, Kati.Screens.Meal.toggle_bookmark(socket)}
   end
 
+  # Mark the meal eaten, for real. A comment rather than a second `@doc`,
+  # because these are clauses of one `handle_info/2` and the clause above
+  # already carries the doc.
+  #
+  # This used to flip `:eaten` on the socket — a tick that drew, survived until
+  # the screen was popped, and left nothing in the store. Screen 43's button had
+  # the same shape and `Kati.MealsTodayWriteTest` is what settled it; this is the
+  # same write from the detail page, through the same action, so the two cannot
+  # come to disagree about what marking a meal means.
+  #
+  # `Kati.Meals.MealLog`'s `:log_recipe` freezes the figures at the moment of the
+  # claim, which is why the portion goes in as the slot's rather than as this
+  # screen's label: `portion_label/1` is for reading and `portion_milli` is what
+  # the arithmetic is done on.
+  #
+  # With no active plan the screen is `Kati.Meals.SampleRecipe`'s drawing and
+  # there is no slot to log against, so the tap keeps its old local toggle. A
+  # drawn meal is not a planned one, and writing a log for a meal nobody planned
+  # would be inventing the row it then displayed.
   def handle_info({:tap, :mark_eaten}, socket) do
     {:noreply, Kati.Screens.Meal.mark_eaten(socket)}
   end
