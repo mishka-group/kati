@@ -1,6 +1,8 @@
 defmodule Kati.SheetRowIdentityTest do
   @moduledoc """
-  Three sheets act on the row that opened them — screens 70, 73 and 118.
+  Three sheets act on the row that opened them — screens 70, 73 and 118 — and,
+  since screen 20's shelf moved onto `Kati.Books.Book`, so does the page a
+  cover tap opens: screen 66.
 
   ## The defect, and why every other test in this repo was blind to it
 
@@ -70,6 +72,7 @@ defmodule Kati.SheetRowIdentityTest do
   alias Kati.Music.Track
   alias Kati.Screens.AlbumDetail
   alias Kati.Screens.BookDetail
+  alias Kati.Screens.Books
   alias Kati.Screens.LogListen
   alias Kati.Screens.LogProgress
   alias Kati.Screens.MealEdit
@@ -276,6 +279,85 @@ defmodule Kati.SheetRowIdentityTest do
       Ash.destroy!(dead)
 
       assert mount_screen(LogProgress, %{book_id: dead.id}) |> assigns() |> Map.fetch!(:book) ==
+               BookDetail.drawn_book()
+    end
+  end
+
+  # ── screen 20's grid, into screen 66 ───────────────────────────────────────
+
+  describe "screen 20 opens the book whose cover was tapped" do
+    test "the second tile pushes the second book, and screen 66 loads it" do
+      a_book!(%{title: @prefix <> "The Salt Almanac", current_page: 214, page_count: 380})
+      a_book!(%{title: @prefix <> "Marram Grass", current_page: 40, page_count: 120})
+
+      {first, second} = two_books()
+
+      view = mount_screen(Books)
+
+      # The second row of the list the SCREEN read, never `Enum.at(1)` of a
+      # fresh query: `:shelf` sorts on `updated_at` and the tile someone pressed
+      # is a fact about the render.
+      [_head, row | _rest] = view |> assigns() |> Map.fetch!(:page) |> Map.fetch!(:books)
+      assert row.id == second.id
+
+      view = render_info(view, {:tap, Books.book_tag(row)})
+
+      assert {:push, BookDetail, %{book_id: id}} = pushed(view)
+      assert id == second.id
+
+      page = mount_screen(BookDetail, %{book_id: id})
+
+      assert assigns(page).book.title == second.title
+      refute assigns(page).book.title == first.title
+      refute assigns(page).book.title == BookDetail.drawn_book().title
+
+      # The whole page, not only its title: the position is what a reader would
+      # act on, and page 214 of a 120-page book is the shape of this defect.
+      # Read off the row the shelf put second rather than off a literal, for the
+      # reason `two_books/0` gives — which of the two is second is the shelf's
+      # answer and not this test's.
+      assert assigns(page).book.progress_line ==
+               "p. #{second.current_page} / #{second.page_count}"
+    end
+
+    test "a status chip writes to the book the page was opened on" do
+      # The other half, and the worse one. Screen 66's chips wrote to the
+      # shelf's newest whatever the page was showing, which was undetectable
+      # while nothing could name a book to it — see
+      # `Kati.Screens.BookDetail.apply_change/2`.
+      a_book!(%{title: @prefix <> "The Salt Almanac", status: :reading})
+      a_book!(%{title: @prefix <> "Marram Grass", status: :reading})
+
+      {first, second} = two_books()
+
+      view =
+        BookDetail
+        |> mount_screen(%{book_id: second.id})
+        |> render_info({:tap, :status_paused})
+
+      assert Ash.get!(Book, second.id).status == :paused
+      assert Ash.get!(Book, first.id).status == :reading
+
+      # And the page re-read the book it is on, rather than the shelf's head.
+      assert assigns(view).book.id == second.id
+      assert assigns(view).book.status == :paused
+    end
+
+    test "the drawing's tiles name nothing, and a book that is gone is the drawing" do
+      # The state every capture of screen 20 was taken in: six rows with a cover
+      # seed and no id, so the grid pushes `%{}` and screen 66 answers with
+      # `Kati.Books.Sample.detail/0`.
+      for row <- Books.drawn_page().books, do: assert(BookDetail.params_for(row) == %{})
+      assert BookDetail.params_for(Books.drawn_page().hero) == %{}
+      assert BookDetail.params_for(nil) == %{}
+
+      a_book!(%{title: @prefix <> "The Salt Almanac"})
+      dead = a_book!(%{title: @prefix <> "Marram Grass"})
+      Ash.destroy!(dead)
+
+      # A row deleted under you is not the same fact as an empty shelf, so it
+      # draws the drawing rather than quietly showing a different book.
+      assert mount_screen(BookDetail, %{book_id: dead.id}) |> assigns() |> Map.fetch!(:book) ==
                BookDetail.drawn_book()
     end
   end

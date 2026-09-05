@@ -28,12 +28,13 @@ defmodule Kati.Screens.BookDetail do
 
   ## Where the data comes from
 
-  `Kati.Books`, through `book/0`. Same shape as `Kati.Screens.Film`: the shelf's
-  own order decides the referent, because nothing hands this screen an id — a
-  poster tap on screen 20 pushes this module and no more, exactly as screen 43
-  pushes `Kati.Screens.Meal`. So the book is the one the shelf puts first, and
-  with nothing shelved `Kati.Books.Sample.detail/0` is drawn instead, which is
-  the values `test/design/screens/66.html` was captured from.
+  `Kati.Books`, through `book/1`. Same shape as `Kati.Screens.Film`: the push
+  names the book and the shelf's own order is what answers when it does not. A
+  cover tap on screen 20 pushes `%{book_id: id}` — that shelf reads
+  `Kati.Books.Book` now, so its rows have ids to push — and a bare push, which
+  is what the gallery and the sweeps make, is still the shelf's first. With
+  nothing shelved `Kati.Books.Sample.detail/0` is drawn instead, which is the
+  values `test/design/screens/66.html` was captured from.
 
   FIDELITY's rule, again: missing data is not a reason for a blank screen.
 
@@ -94,21 +95,77 @@ defmodule Kati.Screens.BookDetail do
 
   # `:save_error` opens as `nil` so the notice has a value to be absent as, and
   # so a re-mount never inherits the last failure a previous visit reported.
+  #
+  # `:book_id` is read here rather than in `book/0` because the id arrives on
+  # the push and nowhere else. Screen 20's grid pushes one — its rows carry the
+  # book's own id now — and everything else that opens this screen still pushes
+  # nothing, which is the shelf's-first path `book/0` keeps.
+  #
+  # `:book_id` is assigned as well as spent, and the difference between the two
+  # is a write to the wrong row. `book/1` collapses two facts into one value —
+  # *nobody named a book* and *the named book is gone* both answer
+  # `Sample.detail()`, which has no id — so a write recovering its target from
+  # `assigns.book[:id]` gets `nil` for both, and `apply_change/2`'s `nil` means
+  # *the shelf's newest*. A page showing the drawing would then pause, own or
+  # finish a real book the reader is not looking at. Keeping the NAMED id
+  # separate is what lets a write refuse: named-and-missing is `nil` from
+  # `Ash.get/2` and a refusal, where named-nothing is still the shelf's newest
+  # and still correct.
   def load(socket) do
+    named = Map.get(socket.assigns.params || %{}, :book_id)
+
     socket
-    |> Mob.Socket.assign(:book, book())
+    |> Mob.Socket.assign(:book_id, named)
+    |> Mob.Socket.assign(:book, book(named))
     |> Mob.Socket.assign(:save_error, nil)
   end
 
   @doc """
+  The book a write on this screen must act on.
+
+  The id the push NAMED, when it named one, and otherwise the id of the book
+  that was resolved — which is the shelf's newest, and the right target for a
+  screen nobody told which book to open. `Map.get/2` on both, because the dark
+  and Persian twins build their own sockets and neither carries `:book_id`.
+  """
+  @spec target(map()) :: String.t() | nil
+  def target(assigns) do
+    Map.get(assigns, :book_id) || Map.get(assigns, :book, %{})[:id]
+  end
+
+  @doc """
+  The params that name a book to this screen, built from a shaped book.
+
+  The push site's half of the contract, spelled once here rather than at each
+  caller — the same arrangement `Kati.Screens.LogProgress.params_for/1` has,
+  and the same key, because the sheet and the page are about the same row and
+  two spellings of one id is one more thing to keep true. A row with no id
+  yields `%{}` and never `%{book_id: nil}`: `Kati.Books.Sample`'s rows have no
+  id, and the fallback is the branch that has to survive.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{book_id: id}
+  def params_for(_book), do: %{}
+
+  @doc """
   The book this screen is about: the shelf's first, or the drawing's.
 
-  Public because `Kati.ScreenEmptyDatabaseTest` asks a screen what it would
-  show, and because the dark twin (screen 68) is this screen under a different
-  theme rather than a second reader.
+  The no-id answer, and the one `Kati.ScreenEmptyDatabaseTest` renders. Public
+  also because the dark twin (screen 68) is this screen under a different theme
+  rather than a second reader.
   """
   @spec book() :: map()
-  def book, do: shelved_book() || Sample.detail()
+  def book, do: book(nil)
+
+  @doc """
+  The book this screen was handed, or — given no id — the shelf's first.
+
+  An id that names no row answers with the drawing rather than with the head of
+  the shelf, for `shelved_book/1`'s reason: a row deleted under you is not the
+  same fact as an empty shelf.
+  """
+  @spec book(String.t() | nil) :: map()
+  def book(id), do: shelved_book(id) || Sample.detail()
 
   @doc "The drawing's values, unconditionally. The fixture, not a fallback path."
   @spec drawn_book() :: map()
@@ -1041,7 +1098,7 @@ defmodule Kati.Screens.BookDetail do
   # not given a `nil` one, so the sample answers `nil` by absence — the same
   # read `shaped/3` documents at the top of this file.
   def handle_tap(:finish, socket) do
-    case Kati.Screens.LogProgress.finish_book(socket.assigns.book[:id]) do
+    case Kati.Screens.LogProgress.finish_book(target(socket.assigns)) do
       {:ok, _book} ->
         {:noreply,
          socket
@@ -1073,11 +1130,13 @@ defmodule Kati.Screens.BookDetail do
   # `:toggle_owned` and the catch-all would then eat it silently, which is the
   # exact defect this control was.
   def handle_tap(:toggle_owned, socket) do
-    case Kati.Screens.BookDetail.apply_change({:owned, not socket.assigns.book[:owned]}) do
+    id = target(socket.assigns)
+
+    case Kati.Screens.BookDetail.apply_change(id, {:owned, not socket.assigns.book[:owned]}) do
       {:ok, _book} ->
         {:noreply,
          socket
-         |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book())
+         |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book(id))
          |> Mob.Socket.assign(:save_error, nil)}
 
       {:error, _reason} = error ->
@@ -1102,11 +1161,13 @@ defmodule Kati.Screens.BookDetail do
         {:noreply, socket}
 
       change ->
-        case Kati.Screens.BookDetail.apply_change(change) do
+        id = target(socket.assigns)
+
+        case Kati.Screens.BookDetail.apply_change(id, change) do
           {:ok, _book} ->
             {:noreply,
              socket
-             |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book())
+             |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book(id))
              |> Mob.Socket.assign(:save_error, nil)}
 
           # No re-read on failure: the row did not move, so re-reading would
@@ -1140,6 +1201,14 @@ defmodule Kati.Screens.BookDetail do
   @doc """
   Set one attribute on the shelved book, and answer for it.
 
+  **The book the page is on**, which is what `id` is for. It defaulted to the
+  shelf's newest and could not do otherwise while nothing named a book to this
+  screen; screen 20's grid names one now, so a chip pressed on the third book
+  would have moved the first book's status — `handle_tap(:finish, …)`'s own
+  comment describes that defect, one control along, and this is the same one.
+  `nil` is still the shelf's newest, which is what a page opened from nowhere
+  in particular is about.
+
   Answers `{:ok, book}` or `{:error, reason}`, never a bare `:ok` —
   `Kati.Write`'s contract, and the whole of what was wrong here: the old body
   discarded `Ash.update/2`'s answer, returned `:ok` regardless, and left the
@@ -1155,9 +1224,9 @@ defmodule Kati.Screens.BookDetail do
   which is why the rescue that used to sit here caught almost nothing while
   looking like the failure was handled.
   """
-  @spec apply_change({atom(), atom()}) :: {:ok, term()} | {:error, term()}
-  def apply_change({attribute, value}) do
-    case newest() do
+  @spec apply_change(String.t() | nil, {atom(), atom()}) :: {:ok, term()} | {:error, term()}
+  def apply_change(id \\ nil, {attribute, value}) do
+    case row(id) do
       %Book{} = book ->
         book
         |> Ash.update(%{attribute => value})

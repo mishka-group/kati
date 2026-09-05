@@ -257,22 +257,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # reading, so its `Finish` pushes on every path.
     {Kati.Screens.BookDetailDark, :finish, Kati.Screens.Rating},
 
-    # ── Screen 20's `Log progress` ink pill.
-    #
-    # `Kati.Screens.LogProgress.mount/3` reads `%{book_id: id}` already and
-    # `params_for/1` is the builder — the block is at the source. The hero this
-    # pill sits on is `Kati.Books.Sample.reading_now/0` (`sample.ex:49-58`), a
-    # literal map with a cover seed and no `:id`, so
-    # `LogProgress.params_for(Sample.reading_now())` is `%{}` and the push
-    # would be byte-identical to the bare one it replaced. Writing it would be
-    # ceremony that reads as a fix.
-    #
-    # The timer disc beside it is the control: `books.ex:635` pushes
-    # `%{timing?: true}`, a fact the tap genuinely holds, and so is not here.
-    # This unblocks when screen 20's shelf moves onto `Kati.Books.Book`, which
-    # `books.ex:47-53` argues must happen whole or not at all.
-    {Kati.Screens.Books, :log_progress, Kati.Screens.LogProgress},
-
     # ── Screen 117's `New meal`, and correct forever.
     #
     # `meal_library.ex:437-440` says it in the source: `:add` is the one push
@@ -493,14 +477,42 @@ defmodule Kati.ScreenParamsSweepTest do
     # twin — and neither holds an `:id`, so `log_progress.ex:105-106` answers
     # `%{}`. `book_detail.ex:997-1001` says exactly this.
     #
-    # `{Kati.Screens.Books, :log_progress, Kati.Screens.LogProgress}` in
-    # `@bare_pushes` is the same pill on the shelf screen, over the same
-    # id-less hero, with the argument NOT written — which is the clearest pair
-    # of entries in this file for what the two lists are for. Both end on the
-    # same day, when screen 20's shelf moves onto `Kati.Books.Book`.
+    # `{Kati.Screens.Books, :log_progress, Kati.Screens.LogProgress}` used to sit
+    # in `@bare_pushes` as the same pill on the shelf screen, over the same
+    # id-less hero, with the argument NOT written — the clearest pair of entries
+    # in this file for what the two lists are for. Screen 20's shelf moved onto
+    # `Kati.Books.Book` on 5 September and the argument is written now, so that
+    # door crossed from that list to this one. It did not leave both, and the
+    # difference between the two days is exactly what these lists measure: the
+    # source names its subject, and with nothing shelved the subject is still
+    # the drawing's hero and the builder still answers `%{}`. The entries below
+    # it are that same pill's four other doors.
     {Kati.Screens.BookDetail, :log_progress, Kati.Screens.LogProgress},
     {Kati.Screens.BookDetailDark, :log_progress, Kati.Screens.LogProgress},
     {Kati.Screens.BookDetailFa, :log_progress, Kati.Screens.LogProgressFa},
+    {Kati.Screens.Books, :log_progress, Kati.Screens.LogProgress},
+
+    # ── Screen 20's grid and its hero cover, into screen 66.
+    #
+    # `books.ex` resolves a tapped tile back to the row the grid drew and pushes
+    # `Kati.Screens.BookDetail.params_for(row)`; the hero cover pushes the same
+    # builder over the hero. Screen 66 reads `:book_id` since the same round, so
+    # the contract is wired end to end and the drawing is what empties it: with
+    # nothing shelved the six rows are `Kati.Books.Sample.books/0`
+    # (`books/sample.ex:24-31`) and the hero is `reading_now/0`, and no row in
+    # either has an `:id`.
+    #
+    # Seven tags rather than one clause's worth, because the six tile tags are
+    # built at render time from each row's identity — `books.ex`'s `book_tag/1`
+    # — and a shelved row's tag is its uuid. These six are the drawing's seeds,
+    # which is what the sweep renders and what it will keep rendering.
+    {Kati.Screens.Books, :open_book, Kati.Screens.BookDetail},
+    {Kati.Screens.Books, :open_book_bookaa1, Kati.Screens.BookDetail},
+    {Kati.Screens.Books, :open_book_bookbb2, Kati.Screens.BookDetail},
+    {Kati.Screens.Books, :open_book_bookcc3, Kati.Screens.BookDetail},
+    {Kati.Screens.Books, :open_book_bookdd4, Kati.Screens.BookDetail},
+    {Kati.Screens.Books, :open_book_bookee5, Kati.Screens.BookDetail},
+    {Kati.Screens.Books, :open_book_bookff6, Kati.Screens.BookDetail},
 
     # ── Screen 45's `Swap`.
     #
@@ -554,6 +566,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # `def mount(params, …)` plus `Map.get(params, …)`, the hand-rolled shape.
     {Kati.Screens.EventDetail, :id},
     {Kati.Screens.LogListen, :album_id},
+    {Kati.Screens.BookDetail, :book_id},
     {Kati.Screens.LogProgress, :book_id},
     {Kati.Screens.RetiredTile, :section},
     # The five the comment below used to name as pinned NOWHERE. A count that
@@ -588,7 +601,12 @@ defmodule Kati.ScreenParamsSweepTest do
   #
   # Lowering it is allowed only beside the reason a screen stopped reading its
   # params, in the commit that stopped it.
-  @derived_readers 21
+  #
+  # 21 → 22 on 5 September: `Kati.Screens.BookDetail` reads `:book_id` now, so
+  # screen 20's grid can name the book a tile opens rather than leaving 66 to
+  # take the shelf's head. Re-arming it is the point of a ratchet — left at 21
+  # it would have absorbed the next reader to go missing.
+  @derived_readers 22
 
   # Screens whose CODE says `params` and which `reader?/1` deliberately does not
   # count. The coarse half of guard A.

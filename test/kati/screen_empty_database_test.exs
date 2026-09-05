@@ -252,11 +252,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"57", Kati.Screens.LibraryFa},
     # 58 is 04 in Persian and reads through 04 — see the note above.
     {"58", Kati.Screens.SeriesFa},
-    # The Books domain's two screens, and they are the pair this file was
+    # The Books domain's three screens, and 66 and 70 are the pair this file was
     # written for: 66 falls back to `Kati.Books.Sample.detail/0` for the whole
     # page, and 70 falls back for the book it is about to write a session
     # against. 70 is also the first screen here that can WRITE — its fallback
     # is what stops a save being aimed at a book that does not exist.
+    #
+    # 20 is the shelf those two hang off, and it joined on 5 September when its
+    # grid moved onto `Kati.Books.Book`. It falls back the way 66 does and for
+    # the same reason — one branch for the whole page — because a real grid
+    # under the drawing's hero would be the half-migration its own moduledoc
+    # argues against.
+    {"20", Kati.Screens.Books},
     {"66", Kati.Screens.BookDetail},
     {"70", Kati.Screens.LogProgress},
     # The Music domain's three. 74 and 77 gate the whole page as 66 does; 73
@@ -1384,6 +1391,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"29", Kati.Screens.Lock, &Kati.Screens.Lock.widgets/0, &Kati.Screens.Lock.drawn_widgets/0},
       {"33", Kati.Screens.Rating, &Kati.Screens.Rating.watch/0,
        &Kati.Screens.Rating.drawn_watch/0},
+      # 20 gates the whole page as 66 does, and for the reason its own moduledoc
+      # gives: the grid, the hero, the subtitle and the chip counts are four
+      # views of one shelf, so one pair covers all four and a gate that looked
+      # only at the grid would pass while the hero named a book nobody owns.
+      {"20", Kati.Screens.Books, &Kati.Screens.Books.page/0, &Kati.Screens.Books.drawn_page/0},
       # 66 gates the whole page, as 04 does: either every value on it is this
       # reader's book or every value is the drawing's, so one pair covers the
       # hero, the ratings, the edition facts, the notes and the history band.

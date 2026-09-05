@@ -21,50 +21,55 @@ defmodule Kati.Screens.Books do
   The drawing keeps the 22%-ink rail under a book you have not opened, which
   is what makes "to read" read as a state rather than as missing data.
 
-  ## Why this screen still reads `Kati.Books.Sample`
+  ## Where the data comes from
 
-  Screen 03 moved onto `Kati.Media` (see `Kati.Screens.Library.shelf/0`), and
-  most of this one could follow it. `Kati.Media.TrackedTitle` already takes
-  `kind: :book`; its `:shelf` action carries an index documented as serving
-  "screens 03, 20 and 21"; and `Kati.Media.CachedTitle`'s own moduledoc names
-  *this* screen for the `p.214/380` line — `progress_page` on the durable row
-  over `page_count` on the cache row, put back together at render time by
-  `progress/2`, which answers a bare position rather than inventing a total
-  when the cache is gone. The grid, the chips and the counting half of the
-  header are all reachable today.
+  `Kati.Books.Book`, through `page/0` — one entry point for the whole screen,
+  because the grid, the hero and the header's counts are three views of one
+  shelf and three entry points could show three different shelves. The grid,
+  the subtitle and the chips are all shaped from the single `:shelf` read; the
+  hero costs three more, which is what reading it through screen 66's own
+  `shelved_book/1` buys.
 
-  The **Reading now** hero is what keeps the screen whole, because two of the
-  four things it says have no column anywhere in `Kati.Media`:
+  This file used to argue at length that the move had to wait on `Kati.Media`
+  growing an author column and a per-sitting history. Both exist, and not on
+  `Kati.Media`: `Kati.Books.Book` holds `author`, and
+  `Kati.Books.ReadingSession` holds the minutes a pace is a rate of. So the
+  hero's two blocked values — `Ines Karvel` and `23 MIN/DAY PACE` — are read
+  now, and read through screen 66's own `shelved_book/1` rather than through a
+  second reader, so the shelf and the detail page cannot disagree about the
+  book they are both drawing.
 
-    * **`Ines Karvel`** — a byline. `Kati.Media.CachedTitle` holds `title`,
-      `title_original`, `overview`, `poster_path`, `backdrop_path`,
-      `runtime_minutes` and `genres`, and not one of them is an author. The
-      same absence blocks screen 21's artist, so this is one missing column
-      rather than two.
-    * **`23 MIN/DAY PACE`** — a rate, and nothing stores the minutes it is a
-      rate of. `Kati.Media.Watch` records that something was read and when,
-      never for how long, and `Kati.Media.TrackedTitle.progress_page` is one
-      current position with no history behind it, so a per-day pace cannot be
-      computed from anything stored. The `p. 214 / 380` in front of it *is*
-      expressible; the clause after the dot is not.
+  ## The drawing is the floor, not a stage this screen has passed
 
-  Half-moving it is the thing not to do. The grid could be read today, but a
-  screen whose six covers are the user's own and whose hero names a book they
-  do not own is a worse lie than one that is stand-in throughout and says so —
-  and the hero is the largest object on the screen.
+  With nothing shelved the screen draws `Kati.Books.Sample` exactly — the six
+  covers, the hero, `64 books · 2 reading` and the `All 64` chip — which is the
+  values `test/design/screens/20.html` was captured from. FIDELITY's rule:
+  missing data is not a reason for a blank screen.
 
-  The shelf is also empty by decision rather than by accident: #60 scoped v1 to
-  one media domain, Screen, which is why screen 03 draws Books and Music
-  inactive and `Kati.Screens.Library.visible/3` answers `[]` for them. Nothing
-  in v1 writes a `kind: :book` row, so a query here would return nothing on
-  every device and the fallback would be carrying the screen regardless.
+  A shelf holding one book shows **one** book. The counts move with it, and the
+  `64` that `Kati.Books.Sample` defends as a literal is defended for the
+  *drawing* — a shelf is a window onto a library of 64 — and stops being a
+  defence the moment there is a real shelf to count. Half-moving is still the
+  thing not to do, for the reason this file gave when it could not move at all:
+  six covers that are the user's own under a hero naming a book they do not own
+  would be a worse lie than a screen that is stand-in throughout. So `page/0`
+  branches once, on the shelf, and every value on the screen goes with it.
 
-  `64 books` and the `All 64` chip stay literals for the drawing's own reason,
-  recorded in `Kati.Books.Sample`: a shelf is a window onto a library, and
-  counting the six covers would quietly turn 64 into 6.
+  ## Which book the hero is
+
+  `Kati.Books.Book`'s `read :reading`, newest first, and its head — the card
+  says *Reading now* and that action is the shelf's own definition of what is
+  being read (`book.ex:145`).
+
+  With nothing marked `:reading` but books on the shelf, it is the shelf's head
+  — `read :shelf`, most recently touched. That is a stretch of the card's
+  label and it is the smaller of the two available stretches: the alternative
+  is the drawing's hero, a book that is not on their shelf, over a grid that
+  is. A book you have and touched last is at least yours.
   """
   use Kati.Screens.Root, root: :library
 
+  alias Kati.Books.Book
   alias Kati.Books.Sample
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
@@ -76,11 +81,245 @@ defmodule Kati.Screens.Books do
   # The shelf opens on `All`, which is the chip the drawing draws selected.
   # `Kati.Screens.Library.load/1` opens on the same word for the same reason:
   # screens 03, 20 and 21 are one control drawn three times.
-  def load(socket), do: Mob.Socket.assign(socket, :filter, "All")
+  #
+  # The page is read once, here, and carried on the socket. `handle_tap/2` reads
+  # it back to resolve a tapped tile to its row — see `open_book/2` — and a
+  # second query at tap time could answer with a shelf that had moved under the
+  # tile the person actually pressed.
+  def load(socket), do: Mob.Socket.assign(socket, filter: "All", page: page())
+
+  @doc """
+  Everything this screen reads, in one map: the shelf, the hero, the header's
+  subtitle and the chips.
+
+  One branch and not four. Either every value on the page is this reader's or
+  every value is the drawing's — the arrangement `Kati.Screens.BookDetail.book/0`
+  uses for screen 66, and for the reason the moduledoc gives: a real grid under
+  a drawn hero is a worse screen than an honest fixture.
+  """
+  @spec page() :: map()
+  def page do
+    case shelved() do
+      [] ->
+        drawn_page()
+
+      books ->
+        %{
+          books: books,
+          hero: hero(books),
+          subtitle: Kati.Screens.Books.subtitle(books),
+          chips: Kati.Screens.Books.chip_counts(books)
+        }
+    end
+  end
+
+  @doc """
+  The drawing's values, unconditionally — the fixture, not a fallback path.
+
+  `test/design/screens/20.html` was captured from exactly this map, and
+  `Kati.ScreenEmptyDatabaseTest` compares it with what `page/0` answers when
+  nothing is shelved.
+  """
+  @spec drawn_page() :: map()
+  def drawn_page do
+    %{
+      books: Kati.Screens.Books.drawn_books(),
+      hero: Sample.reading_now(),
+      subtitle: Sample.subtitle(),
+      chips: Sample.chips()
+    }
+  end
+
+  # The shelf, most recently touched first — `Kati.Books.Book`'s own `:shelf`,
+  # which is documented as screen 20's order.
+  #
+  # Same degradation `Kati.Screens.Library.shelf/0` makes: a screen that cannot
+  # reach its store answers `[]` and draws the drawing, rather than taking the
+  # activity down.
+  defp shelved do
+    case Ash.read(Book, action: :shelf) do
+      {:ok, books} -> Enum.map(books, &Kati.Screens.Books.shaped/1)
+      _other -> []
+    end
+  rescue
+    _error -> []
+  end
+
+  @doc """
+  One book in the shape the grid, the chips and the counts all read.
+
+  `id` is the row's own, and it is the only field here that is an identity
+  rather than a caption — it is what a tapped tile carries to the screen it
+  opens. `Kati.Library.shaped/3` says the same of its own, and
+  `Kati.Books.Sample`'s rows do not pass through here and so do not have one,
+  which is how `open_book/2` tells a shelf tile from a drawn one.
+
+  `progress` is a float and never `nil`, because the drawing keeps the rail
+  under **every** cover including the two at 0% — see the moduledoc. A book
+  with no denominator has no fraction (`Kati.Books.Book.fraction/1` answers
+  `nil` rather than a zero that would claim you have read none of it), so the
+  rail falls back to the one thing its status does say: a finished book is
+  full, anything else is empty. The line under the cover carries the honest
+  version — `Kati.Books.Book.shelf_line/1` prints `p.214` with no total.
+  """
+  @spec shaped(Book.t()) :: map()
+  def shaped(%Book{} = book) do
+    %{
+      id: book.id,
+      title: book.title,
+      seed: book.cover_seed,
+      status: book.status,
+      progress: rail(book),
+      line: Book.shelf_line(book)
+    }
+  end
+
+  @doc """
+  The fraction a cover's rail is drawn at, for a row of either kind.
+
+  Public and shared because the grid and the hero draw the same book, and the
+  first version of this screen let them disagree: the grid shaped a row through
+  `shaped/1` and the hero through `Kati.Screens.BookDetail.shelved_book/1`,
+  whose `progress` is `nil` for a book with no denominator. A finished
+  audiobook was then drawn **full in the grid and empty in the hero, in one
+  render** — the same book, twice, at 100% and 0%.
+
+  One rule, and it is the honest one: a book with no fraction has none
+  (`Kati.Books.Book.fraction/1` answers `nil` rather than a zero that would
+  claim you have read none of it), so the rail falls back to the one thing its
+  status does say. Finished is full; anything else is empty. The line under the
+  cover carries the truth either way — `shelf_line/1` prints `p. 214` with no
+  total.
+  """
+  @spec rail(float() | nil, atom()) :: float()
+  def rail(nil, :finished), do: 1.0
+  def rail(nil, _status), do: 0.0
+  def rail(fraction, _status) when is_float(fraction), do: fraction
+
+  defp rail(%Book{} = book), do: rail(Book.fraction(book), book.status)
+
+  @doc """
+  The six books `test/design/screens/20.html` draws, in its own order.
+
+  Stand-in data and marked as such — `Kati.Books.Sample`'s moduledoc says so at
+  length. Each row is given the `status` a real one carries, so `visible/2` and
+  the counts ask one question of both kinds of row and cannot answer it two
+  different ways. `Kati.Screens.Library.drawn_titles/0` does exactly this, and
+  the mapping is the one this file used to make inline: 0 is to read, 1 is
+  finished, anything between is reading. The drawing agrees with that
+  arithmetic — two of the six are strictly between the ends, and the chip above
+  them says **Reading 2**.
+  """
+  @spec drawn_books() :: [map()]
+  def drawn_books, do: Enum.map(Sample.books(), &with_status/1)
+
+  defp with_status(%{progress: progress} = row) do
+    status =
+      cond do
+        progress <= 0.0 -> :not_started
+        progress >= 1.0 -> :finished
+        true -> :reading
+      end
+
+    Map.put(row, :status, status)
+  end
+
+  @doc """
+  The hero, shaped as `reading_now/1` draws it — or the drawing's.
+
+  Read through `Kati.Screens.BookDetail.shelved_book/1` rather than through a
+  second reader, which is the rule `Kati.Screens.LogProgress.book/1` follows
+  for the same book: the pace line is arithmetic over
+  `Kati.Books.ReadingSession`, and two implementations of it is two chances for
+  the shelf and the detail page to print different numbers under one title.
+
+  A `nil` back from that reader means the row went between the two queries. It
+  answers with the drawing rather than with some other book, which is
+  `shelved_book/1`'s own rule arriving one caller along.
+  """
+  @spec hero([map()]) :: map()
+  def hero([]), do: Sample.reading_now()
+
+  def hero(books) do
+    case Kati.Screens.BookDetail.shelved_book(hero_id(books)) do
+      nil -> Sample.reading_now()
+      book -> from_detail(book)
+    end
+  end
+
+  # The book being read, and the shelf's head when nothing says one is — see the
+  # moduledoc for why that is the smaller of the two available stretches.
+  defp hero_id(books) do
+    case Ash.read(Book, action: :reading) do
+      {:ok, [%Book{id: id} | _rest]} -> id
+      _other -> books |> hd() |> Map.get(:id)
+    end
+  rescue
+    _error -> books |> hd() |> Map.get(:id)
+  end
+
+  # Screen 66's shape, narrowed to the six values this card draws. `label` is
+  # copy — the drawing's own word for what the card is — and `pace` is 66's
+  # `progress_line`, which is the same string in the same format: `p. 214 / 380`
+  # and, when a week of sittings can answer it, `· 23 MIN/DAY PACE`.
+  #
+  # `author` degrades to the empty string rather than to a name: a book typed by
+  # hand may have none, and `Kati.Books.Book.author` is nullable for that.
+  defp from_detail(book) do
+    %{
+      id: book.id,
+      label: "Reading now",
+      title: book.title,
+      author: book.author || "",
+      seed: book.seed,
+      # `rail/2` and not `|| 0.0`: the grid draws this same book through
+      # `shaped/1`, and a zero here where the grid has a one is the same book
+      # at two different fractions in one render. See `rail/2`.
+      progress: Kati.Screens.Books.rail(book.progress, book.status),
+      pace: book.progress_line
+    }
+  end
+
+  @doc """
+  The header's mono line: `12 books · 2 reading`.
+
+  Counted, where `Kati.Books.Sample.subtitle/0` is a literal — see the
+  moduledoc on why the drawing's `64` is not arithmetic and a real shelf's
+  count is. `Kati.Screens.Library.subtitle/1` is the same line for screen 03.
+
+      iex> Kati.Screens.Books.subtitle([%{status: :reading}, %{status: :finished}])
+      "2 books · 1 reading"
+  """
+  @spec subtitle([map()]) :: String.t()
+  def subtitle(books) do
+    "#{length(books)} books · #{Enum.count(books, &(&1.status == :reading))} reading"
+  end
+
+  @doc """
+  The four chips and the counts beside two of them.
+
+  The asymmetry is the drawing's and is kept: *All* and *Reading* carry a
+  number, *Finished* and *To read* do not — `Kati.Books.Sample.chips/0` records
+  why. Counts are strings because that is what the drawing's mono slot takes
+  and what `chip_count/2` draws.
+
+      iex> Kati.Screens.Books.chip_counts([%{status: :reading}, %{status: :finished}])
+      [{"All", "2"}, {"Reading", "1"}, {"Finished", nil}, {"To read", nil}]
+  """
+  @spec chip_counts([map()]) :: [{String.t(), String.t() | nil}]
+  def chip_counts(books) do
+    [
+      {"All", Integer.to_string(length(books))},
+      {"Reading", books |> Enum.count(&(&1.status == :reading)) |> Integer.to_string()},
+      {"Finished", nil},
+      {"To read", nil}
+    ]
+  end
 
   @doc false
   def content(assigns) do
     filter = assigns.filter
+    page = assigns.page
 
     ~MOB"""
     <Scroll>
@@ -91,11 +330,11 @@ defmodule Kati.Screens.Books do
         padding_top={64}
         padding_bottom={132}
       >
-        {Kati.Screens.Books.header()}
+        {Kati.Screens.Books.header(page.subtitle)}
         {Kati.Screens.Books.segments()}
-        {Kati.Screens.Books.reading_now()}
-        {Kati.Screens.Books.chips(filter)}
-        {Kati.Screens.Books.grid(filter)}
+        {Kati.Screens.Books.reading_now(page.hero)}
+        {Kati.Screens.Books.chips(filter, page.chips)}
+        {Kati.Screens.Books.grid(filter, page.books)}
       </Column>
     </Scroll>
     """
@@ -106,7 +345,7 @@ defmodule Kati.Screens.Books do
   # the reason is the taller title block: the two discs hang from the top of
   # "Library" rather than floating beside its midpoint.
   @doc false
-  def header do
+  def header(subtitle) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -121,7 +360,7 @@ defmodule Kati.Screens.Books do
           />
           <Spacer size={5} />
           <Text
-            text={Kati.Books.Sample.subtitle()}
+            text={subtitle}
             font_family="mono"
             text_size={11}
             text_color={Palette.muted()}
@@ -239,9 +478,7 @@ defmodule Kati.Screens.Books do
   # picked from a rail, so the drawing gives the space to the one in progress
   # and prints the pace it is being read at.
   @doc false
-  def reading_now do
-    r = Sample.reading_now()
-
+  def reading_now(r) do
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -398,12 +635,12 @@ defmodule Kati.Screens.Books do
   end
 
   @doc false
-  def chips(active) do
+  def chips(active, chips) do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
         <Row>
-          {Kati.Books.Sample.chips()
+          {chips
            |> Enum.map(fn {label, count} ->
              Kati.Screens.Books.chip(label, count, label == active)
            end)
@@ -428,8 +665,9 @@ defmodule Kati.Screens.Books do
   screen in another state, which is exactly what screen 03's identical chips
   do: `library.ex:896-898` passes the same `on_toggle`, answered at
   `library.ex:1270-1271`, and 20 is 03 rebuilt from the identical parts. The
-  tag carries the label, so a fifth chip is a change to
-  `Kati.Books.Sample.chips/0` and not to this file.
+  tag carries the label, so a fifth chip is a change to `chip_counts/1` — and
+  to `Kati.Books.Sample.chips/0`, which is the same four for the drawing — and
+  not to this file.
 
   **Why the pixels do not move.** The chip was a `Row`; the port builds a `Box`
   that hugs by `fill_width={false}` (read by the bridge since fence K-17), and
@@ -452,9 +690,9 @@ defmodule Kati.Screens.Books do
     MishkaChip.chip(
       label: label,
       checked: on?,
-      # The label and not the index: `Kati.Books.Sample.chips/0` is the order
-      # the drawing draws, and a tag built from a position rots the moment that
-      # order changes. `Kati.Screens.Library.chip/3` spells it the same way.
+      # The label and not the index: `chip_counts/1` is the order the drawing
+      # draws, and a tag built from a position rots the moment that order
+      # changes. `Kati.Screens.Library.chip/3` spells it the same way.
       on_toggle: String.to_atom("filter_" <> label),
       color: Palette.ink_fill(),
       text_color: Palette.on_ink(),
@@ -489,9 +727,9 @@ defmodule Kati.Screens.Books do
   # The 18pt gap goes *between* rows: interspersed rather than trailed off each
   # row, so the last row does not push 18pt of dead space above the dock.
   @doc false
-  def grid(filter) do
+  def grid(filter, books) do
     rows =
-      Sample.books()
+      books
       |> Kati.Screens.Books.visible(filter)
       |> Enum.chunk_every(3)
       |> Enum.map(&Kati.Screens.Books.grid_row/1)
@@ -507,37 +745,43 @@ defmodule Kati.Screens.Books do
   @doc """
   The books a chip leaves on the shelf.
 
-  Read off the fraction, because there is nothing else to read it off:
-  `Kati.Books.Sample`'s rows carry a `progress` and the line the tile prints,
-  and no `status` column — so *Reading* is a book between the two ends rather
-  than a row that says so. The drawing agrees with that arithmetic, which is
-  what says it is the right read: two of the six are strictly between 0 and 1,
-  and the chip above them says **Reading 2**.
+  Read off `status`, which every row carries: a real one from
+  `Kati.Books.Book.status`, a drawn one from `drawn_books/0`, which derives it
+  from the fraction the fixture has instead. One question of both kinds of row,
+  so the two cannot be answered differently — `Kati.Screens.Library.visible/3`
+  is the same arrangement for screen 03.
 
-  The chips keep their drawn counts and do not count this. `All 64` is a window
-  onto a library of 64 — `Kati.Books.Sample`'s moduledoc — and counting the six
-  visible would turn 64 into 6, which is the same reason the header says
-  `64 books` over six covers.
+  Two of `Kati.Books.Book`'s five statuses are not a chip: a paused book and an
+  abandoned one appear under **All** and under nothing else. The drawing offers
+  four chips and inventing a fifth here would be this file drawing a control.
 
   A filter that leaves nothing draws an empty grid under live chips rather than
   an empty state: `Kati.Screens.Library.shelf_body/3` branches on the SHELF
   being empty and never on the filter, for the reason written out there.
 
-      iex> Kati.Screens.Books.visible(Kati.Books.Sample.books(), "Reading") |> length()
+      iex> Kati.Screens.Books.visible(Kati.Screens.Books.drawn_books(), "Reading") |> length()
       2
   """
   @spec visible([map()], String.t()) :: [map()]
-  def visible(books, "Reading"),
-    do: Enum.filter(books, &(&1.progress > 0.0 and &1.progress < 1.0))
+  def visible(books, "Reading"), do: Enum.filter(books, &(&1.status == :reading))
 
-  def visible(books, "Finished"), do: Enum.filter(books, &(&1.progress >= 1.0))
+  def visible(books, "Finished"), do: Enum.filter(books, &(&1.status == :finished))
 
-  def visible(books, "To read"), do: Enum.filter(books, &(&1.progress == 0.0))
+  def visible(books, "To read"), do: Enum.filter(books, &(&1.status == :not_started))
 
   def visible(books, _all), do: books
 
+  # A short last row must still be padded to three. The tiles are weighted, so
+  # weights divide whatever is there and a row holding one book gives it the
+  # whole width — which is what a shelf of one looked like. Screen 03's
+  # `grid_row/1` pads for the same reason and with the same nothing.
+  #
+  # The drawing's six fill both rows exactly, so nothing is padded on the
+  # fallback and its tree is unchanged.
   @doc false
   def grid_row(row) do
+    row = row ++ List.duplicate(nil, 3 - length(row))
+
     ~MOB"""
     <Row fill_width={true} align="top">
       {row |> Enum.map(&Kati.Screens.Books.tile/1) |> Enum.intersperse(Kati.Screens.Books.grid_gap())}
@@ -556,17 +800,25 @@ defmodule Kati.Screens.Books do
   # Weighted rather than 112 wide: three equal shares of the real content width
   # fill the row on any device, where a fixed 112 only fills the drawing's frame.
   @doc """
-  One grid tile's tag, built from the book's seed.
+  One grid tile's tag: the book's id, or — for a drawn row — its seed.
 
   Six tiles sharing `:open_book` gave six nodes one `accessibility_id`, and
   `onNodeWithTag` throws on the second match — the shelf was unaddressable on a
   device rather than merely untested (#97).
 
-  The seed and not the title: `Kati.Books.Sample`'s seeds are unique per row
-  where a title need not be, and #97's first trap is that a name which is not
-  unique is not an identity. The hero keeps the bare `:open_book` because it is
-  one node, and because it draws `reading_now/0` — whose seed is `bookaa1`, the
-  same seed as the first tile. Tagging both by seed would collide again.
+  **The id first, because it is the only field that is one.** A shelf row's
+  `cover_seed` is nullable and nothing stops two books sharing one, so a shelf
+  tagged by seed puts #97 back the moment somebody types two books by hand.
+  `Kati.Books.Sample`'s rows have no id and their seeds *are* unique per row,
+  which is why the seed stays as the second answer rather than being dropped:
+  it keeps the drawing's six tags exactly what they were.
+
+  The hero keeps the bare `:open_book` because it is one node, and because it
+  draws the same book the first tile often draws — tagging both by the same
+  identity would collide again.
+
+      iex> Kati.Screens.Books.book_tag(%{id: "3f2a", seed: "bookaa1"})
+      :open_book_3f2a
 
       iex> Kati.Screens.Books.book_tag(%{seed: "bookcc3"})
       :open_book_bookcc3
@@ -576,13 +828,17 @@ defmodule Kati.Screens.Books do
   """
   @spec book_tag(map()) :: atom()
   def book_tag(book) do
-    case book |> Map.get(:seed, "") |> to_string() |> String.trim() do
+    identity = Map.get(book, :id) || Map.get(book, :seed, "")
+
+    case identity |> to_string() |> String.trim() do
       "" -> :open_book
-      seed -> String.to_atom("open_book_" <> seed)
+      key -> String.to_atom("open_book_" <> key)
     end
   end
 
   @doc false
+  def tile(nil), do: ~MOB"<Column weight={1.0} />"
+
   def tile(book) do
     ~MOB"""
     <Column weight={1.0} on_tap={{self(), Kati.Screens.Books.book_tag(book)}}>
@@ -660,8 +916,26 @@ defmodule Kati.Screens.Books do
   end
 
   @impl true
+  # The hero's own book, by name. `params_for/1` is the sheet's builder and the
+  # key is spelled there, once, so the pill and the timer disc beside it cannot
+  # disagree about what `:book_id` means.
+  #
+  # This clause used to push bare, and the reason it gave was true when it was
+  # written: the hero was `Kati.Books.Sample.reading_now/0`, a literal map with
+  # a cover seed and no id, so an argument built from it would have been `%{}`
+  # and the ceremony would have read as a fix.
+  # `Kati.ScreenParamsSweepTest`'s two inventories are the record of that, and
+  # this file is the other half of the pair they describe. With nothing shelved
+  # the hero is still that map and the push is still `%{}` — which is why the
+  # door moves from one inventory to the other rather than off both.
   def handle_tap(:log_progress, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogProgress,
+         Kati.Screens.LogProgress.params_for(socket.assigns.page.hero)
+       )}
 
   # The disc is the hero's second control and the sheet's timer state is what
   # makes it one: `hero_actions/0` calls it *the same sheet with its timer
@@ -669,23 +943,33 @@ defmodule Kati.Screens.Books do
   # two controls were the same destination in the same state, one button drawn
   # twice.
   #
-  # The map is written out here rather than built by a `params_for`-style call
-  # into `Kati.Screens.LogProgress`, which is where the key is read. That is not
-  # a preference: this screen reads no store at all — its shelf is
-  # `Kati.Books.Sample`, see the moduledoc — and a call into the sheet's module
-  # would put it in the compiled call graph `Kati.ScreenEmptyDatabaseTest`
-  # derives its coverage from, as a database reader with no database read.
-  # `Kati.Screens.Library`'s search disc spells its params the same way.
-  #
-  # No book id goes with it, and that is this screen's own limit rather than an
-  # oversight: the shelf's rows carry a `cover_seed` and name no
-  # `Kati.Books.Book`. So the sheet still answers with the shelf's first, which
-  # is what it answers today.
-  def handle_tap(:start_timer, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress, %{timing?: true})}
+  # The timer flag is merged onto the same builder's answer rather than written
+  # out beside a hand-spelled key: a timer started on the hero and a session
+  # logged from it are the same sitting on the same book, and two spellings of
+  # the id would be one more thing to keep true.
+  def handle_tap(:start_timer, socket) do
+    # Named `timing` and not `params`: `Kati.ScreenParamsSweepTest` derives the
+    # list of screens that READ a push from the word `params` appearing in a
+    # screen's code, and a local on the pushing side would file this screen as
+    # a reader it is not.
+    timing =
+      socket.assigns.page.hero
+      |> Kati.Screens.LogProgress.params_for()
+      |> Map.put(:timing?, true)
 
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress, timing)}
+  end
+
+  # The hero cover. Same book as the pill above it, through screen 66's own
+  # builder — see `open_book/2` for the grid's half of this.
   def handle_tap(:open_book, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetail)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.BookDetail,
+         Kati.Screens.BookDetail.params_for(socket.assigns.page.hero)
+       )}
 
   def handle_tap(:open_screen, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Library)}
@@ -757,9 +1041,9 @@ defmodule Kati.Screens.Books do
   def handle_tap(:open_sort, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
 
-  # Every grid tile, by its own seed — see `book_tag/1`. They all open the same
-  # screen today: `Kati.Screens.BookDetail` takes no argument, so this is
-  # identity for the sake of being addressable rather than for routing.
+  # Every grid tile, by its own identity — see `book_tag/1`. The tag is now used
+  # for routing and not only for being addressable: `open_book/2` resolves it
+  # back to the row the grid drew and names that book to screen 66.
   #
   # The prefix carries its trailing underscore on purpose. `"open_book"` alone
   # also matches `:open_books`, the Books segment at the top of this screen,
@@ -775,8 +1059,8 @@ defmodule Kati.Screens.Books do
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
 
-      "open_book_" <> _seed ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetail)}
+      "open_book_" <> _key ->
+        {:noreply, Kati.Screens.Books.open_book(socket, tag)}
 
       _other ->
         {:noreply, socket}
@@ -784,4 +1068,32 @@ defmodule Kati.Screens.Books do
   end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
+
+  @doc """
+  Open screen 66 on the tile that carries `tag`.
+
+  The tag is resolved back to its row by running `book_tag/1` over the very list
+  the grid was built from, rather than by reversing the string —
+  `Kati.Screens.Library.open_tile/3` gives the reason, and it is sharper here:
+  a seed is not a key anything can be looked up by, so the string would have to
+  be trusted rather than matched.
+
+  Read off `socket.assigns.page` and not off a fresh query. The shelf sorts on
+  `updated_at`, so a read at tap time can hand back an order the person never
+  saw, and "the tile they pressed" is a fact about the render.
+
+  A row with no id — `Kati.Books.Sample`'s six, and a tag matching nothing —
+  pushes with **no params at all** rather than with `%{book_id: nil}`, through
+  the destination's own builder so the empty answer is spelled in one place.
+  """
+  @spec open_book(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def open_book(socket, tag) do
+    row = Enum.find(socket.assigns.page.books, &(Kati.Screens.Books.book_tag(&1) == tag))
+
+    Mob.Socket.push_screen(
+      socket,
+      Kati.Screens.BookDetail,
+      Kati.Screens.BookDetail.params_for(row)
+    )
+  end
 end
