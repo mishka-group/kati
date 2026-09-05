@@ -55,7 +55,36 @@ defmodule Kati.WriteContractTest do
     # in `lib/`, so there was no write to get wrong until this one. It joins on
     # the day it is written rather than on the day it is found broken, which is
     # the only day joining is cheap.
-    {"lib/kati/screens/my_services.ex", "save_service"}
+    {"lib/kati/screens/my_services.ex", "save_service"},
+    # `D-39`'s three, added on the day they were written for the reason screen
+    # 92's line gives: joining on the day a writer is written is the only day
+    # joining is cheap. All three are the music domain's first writers —
+    # `Kati.Music.Album`, `Artist` and `Track` were migrated, indexed and read
+    # by four screens with nothing anywhere creating one, so screen 21 was
+    # permanently on its fixture and screen 73's Save answered
+    # `{:error, :nothing_to_save}` on every device that has ever existed.
+    #
+    # `Kati.Screens.AddTitleMusic` is deliberately absent: its `shelve/1` is a
+    # call into `Kati.Screens.AddByHandRecord.write/3` rather than a writer of
+    # its own, which is the point — two writers for one shape is how a sheet
+    # and the form behind it come to disagree about what a hand-added album is.
+    {"lib/kati/screens/add_by_hand_record.ex", "write"},
+    {"lib/kati/screens/rate_album.ex", "save_rating"},
+    # `D-43`'s three, joined on the day they were written, and the sharpest
+    # instance yet of screen 92's reason: `Kati.Health.Medication` shipped with
+    # `create: :*` and **nothing in `lib/` called it**, so screen 112 drew four
+    # tablets belonging to nobody on every install and the only writer that had
+    # ever existed was `Kati.Backup.Catalog`'s restore. There was no write to
+    # get wrong until these.
+    #
+    # `Kati.Screens.MedicationDetail` contributes two rather than one, because
+    # a page that can change a row and destroy it has two results to report and
+    # they fail differently: `update/2` is refused when the page is drawing a
+    # fixture it cannot name, and `delete/1` has doses to take with it and can
+    # fail halfway through them.
+    {"lib/kati/screens/add_medication.ex", "save"},
+    {"lib/kati/screens/medication_detail.ex", "update"},
+    {"lib/kati/screens/medication_detail.ex", "delete"}
   ]
 
   describe "the shape of a write" do

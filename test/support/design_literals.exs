@@ -133,7 +133,13 @@ defmodule Kati.DesignLiterals do
     "&divide;" => "÷",
     # Screen 109's delta column sets a true minus sign rather than a hyphen: the
     # column is numeric and U+2212 aligns with the digits where U+002D does not.
-    "&minus;" => "−"
+    "&minus;" => "−",
+    # Board 188's note about the Times stepper: `a row of common times plus
+    # &plusmn;5 minutes`. The first entity the 5-September export brought that
+    # the earlier boards had not — and the failure mode if it is missing is not
+    # a crash: the literal keeps the raw `&plusmn;` and no screen can ever
+    # match it, so the sweep reports copy the screen draws correctly as absent.
+    "&plusmn;" => "±"
   }
 
   @doc "Absolute path of screen `number`'s drawing. `number` is zero-padded."

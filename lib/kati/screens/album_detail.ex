@@ -930,8 +930,23 @@ defmodule Kati.Screens.AlbumDetail do
          Kati.Screens.ArtistDetail.params_for(socket.assigns.album)
        )}
 
+  # Screen 180, and the album this page is drawing — through `target/1` for the
+  # reason `:log_listen` above goes through it, and to screen 180 rather than
+  # screen 33 because 33 is a sheet about a `Kati.Media.Watch`.
+  #
+  # `Kati.ScreenParamsSweepTest` carried this door on `@bare_pushes` with the
+  # whole argument written out: *the only key `Kati.Screens.Rating` reads is
+  # `:tracked_title_id`, and an album id put in that key would name a row
+  # `Ash.get/2` can never find — making 33 rate an album is a screen build, not
+  # a params fix.* This is that build, so the line comes off that list.
   def handle_tap(:rate, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.RateAlbum,
+         Kati.Screens.RateAlbum.params_for(%{id: Kati.Screens.AlbumDetail.target(socket.assigns)})
+       )}
 
   def handle_tap(:add_to_list, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}

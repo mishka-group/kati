@@ -32,7 +32,10 @@ defmodule Kati.Screens.Music do
   `aspect_ratio={1.0}` rather than a declared 112, because a capture measured
   the covers 115 wide and 112 tall — the drawing's squares, drawn oblong. The
   modifier chain is weight → aspect_ratio, so the square is taken off the width
-  the Row actually granted, at any frame.
+  the Row actually granted, at any frame. A rail of fewer than three is padded
+  to three with empty weighted columns, because *equal share* is only the
+  drawing's arrangement while there are three of them: one album alone took the
+  whole 369dp and drew a square the height of the page.
 
   ## Where the data comes from
 
@@ -640,10 +643,20 @@ defmodule Kati.Screens.Music do
     """
   end
 
+  # A short rail must still be padded to three. The tiles are weighted, so
+  # weights divide whatever is there and a rail holding one album gives it the
+  # whole width — a 369dp square where the drawing has a 112 one, which is what
+  # a shelf of one album looked like on a device the first time anybody could
+  # put one album on it. `Kati.Screens.Books.grid_row/1` pads for this reason
+  # and with the same nothing, and screen 03's does too.
+  #
+  # The drawing's three fill the rail exactly, so nothing is padded on the
+  # fallback and its tree is unchanged.
   @doc false
   def tiles(albums) do
     tiles =
       albums
+      |> Kernel.++(List.duplicate(nil, max(0, @tiles - length(albums))))
       |> Enum.map(&album/1)
       |> Enum.intersperse(album_gap())
 
@@ -732,6 +745,8 @@ defmodule Kati.Screens.Music do
   end
 
   @doc false
+  def album(nil), do: ~MOB"<Column weight={1.0} />"
+
   def album(item) do
     ~MOB"""
     <Column weight={1.0} on_tap={{self(), Kati.Screens.Music.album_tag(item)}}>
@@ -1059,4 +1074,17 @@ defmodule Kati.Screens.Music do
       Kati.Screens.ArtistDetail.params_for(row)
     )
   end
+
+  @doc """
+  The state of the add sheet this shelf's `+` opens: board 179, with **Albums**
+  lit.
+
+  `Kati.Screens.Root` gives every shelf `Kati.Screens.AddTitle` and marks this
+  overridable; this is the one shelf that overrides it. `D-39` is explicit that
+  the music door is a STATE of the sheet screen 06 already draws rather than a
+  new control — a second add control on this screen would be a second door to a
+  sheet that already has one.
+  """
+  @spec add_sheet() :: module()
+  def add_sheet, do: Kati.Screens.AddTitleMusic
 end

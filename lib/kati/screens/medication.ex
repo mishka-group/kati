@@ -82,6 +82,22 @@ defmodule Kati.Screens.Medication do
   because a repeat toggle that lies costs a redrawn switch — here the same
   courtesy would be the app telling someone they had taken a tablet.
 
+  ## The `add` disc and the four chevrons open something now
+
+  Both were drawn, reachable and inert from the day this page shipped, and
+  `Kati.ScreenTapSweepTest` listed all five by name with the reason: *neither
+  a new-medication sheet nor a per-medication page is drawn anywhere in the
+  artboards*. D-43 drew both. `add` opens `Kati.Screens.AddMedication` — the
+  first writer of `health_medications` in `lib/` — and a Schedules row opens
+  `Kati.Screens.MedicationDetail` **for the row this render drew**, resolved
+  by rebuilding each row's own tag rather than by re-reading the day. That is
+  the same rule the doses above them follow and for the same reason: nothing
+  can then name a medication that is not on the screen.
+
+  So `schedules/0` carries `:id` on a stored row and omits it entirely on the
+  drawing's four, which is what lets the sheet tell *the row you tapped* from
+  *a row nobody named*.
+
   ## `:mark_taken` and `:mark_skipped` survive, and only screen 115 uses them
 
   Screen 115 is this page in Persian and draws its two verbs inside the due
@@ -199,7 +215,13 @@ defmodule Kati.Screens.Medication do
         WeightSample.schedules()
 
       {:ok, medications} ->
-        Enum.map(medications, fn m -> %{name: m.name, line: Medication.schedule_line(m)} end)
+        # `id:` is on a STORED row and absent from the drawing's, never `nil`:
+        # `Kati.Screens.MedicationDetail.params_for/1` reads it to decide
+        # whether it can name the medication it is being pushed with, and a
+        # `nil` id is a name a write could be handed.
+        Enum.map(medications, fn m ->
+          %{id: m.id, name: m.name, line: Medication.schedule_line(m)}
+        end)
 
       _other ->
         WeightSample.schedules()
@@ -491,7 +513,7 @@ defmodule Kati.Screens.Medication do
     end
   end
 
-  @doc "The schedules, each pushing nowhere yet — see `handle_tap/2`."
+  @doc "The schedules, each pushing `Kati.Screens.MedicationDetail` — see `handle_tap/2`."
   @spec schedule_group([map()]) :: map()
   def schedule_group(schedules) do
     rows =
@@ -620,12 +642,38 @@ defmodule Kati.Screens.Medication do
   defp other_tap(:mark_skipped, socket),
     do: {:noreply, record(socket, %{id: next_undecided()}, :skipped)}
 
-  # A medication's own page is not drawn anywhere in the 127 artboards, and the
-  # row is honest about being a link. So is the `add` disc this page borrows
-  # from screen 104's chrome: no new-medication sheet is drawn either, and
-  # inventing one would be inventing a door. `Kati.ScreenTapSweepTest` carries
-  # both.
-  defp other_tap(_tag, socket), do: {:noreply, socket}
+  # The `add` disc, drawn and inert since this page shipped. Board 188 is the
+  # sheet behind it, and D-43 is the ticket that ends three rounds of this
+  # page having no way to own a prescription.
+  defp other_tap(:add, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddMedication)}
+
+  # A Schedules chevron. Resolved against the schedules THIS RENDER DREW —
+  # each row's own tag rebuilt and compared — rather than by parsing a name
+  # back out of the atom or by re-reading the store, so nothing can name a
+  # medication that is not on the screen. `Kati.Screens.Goals` settled the
+  # same question the same way.
+  #
+  # The drawing's four carry no id, so `params_for/1` hands the page nothing
+  # and it draws its own fixture; `Kati.ScreenParamsSweepTest`'s
+  # `@empty_builders` records those four doors until a real medication is
+  # stored, which screen 188 is now the way to do.
+  defp other_tap(tag, socket) do
+    schedules = Map.get(socket.assigns, :schedules, [])
+
+    case Enum.find(schedules, &(Kati.Screens.Medication.schedule_tag(&1) == tag)) do
+      nil ->
+        {:noreply, socket}
+
+      schedule ->
+        {:noreply,
+         Mob.Socket.push_screen(
+           socket,
+           Kati.Screens.MedicationDetail,
+           Kati.Screens.MedicationDetail.params_for(schedule)
+         )}
+    end
+  end
 
   # The page re-reads the day because a dose was recorded, not because a button
   # was pressed. Those were the same line until now.

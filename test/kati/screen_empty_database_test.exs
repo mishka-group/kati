@@ -429,7 +429,42 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"157", Kati.Screens.AddByHandDark},
     {"158", Kati.Screens.HomeFaEmpty},
     {"159", Kati.Screens.HomeFaEmptyDark},
-    {"160", Kati.Screens.HomeFaOmittedSections}
+    {"160", Kati.Screens.HomeFaOmittedSections},
+    # D-43's three. 188 WRITES and reads nothing — it is 154's case exactly,
+    # and it is here because this list is derived from the compiled import
+    # table, which is what stops a screen opting itself out by only writing on
+    # a tap. 189 reads the medication screen 112 named and falls back to its
+    # own drawing when that names nothing, which is the branch `fallbacks/0`
+    # holds it to. 190 reads nothing at all — it is a picture of screen 112's
+    # empty frame and its two destinations — and is on this list only because
+    # it draws screen 104's chrome, which reaches Ash; 155 is here for exactly
+    # that reason.
+    {"188", Kati.Screens.AddMedication},
+    {"189", Kati.Screens.MedicationDetail},
+    {"190", Kati.Screens.MedicationEmpty},
+    # 176 is the Persian Books shelf and it READS: `page/0` is one read of
+    # `Kati.Books.Book`'s `:shelf`, and the grid, the header's count line, the
+    # four chips and the Reading-now hero are four views of that one answer.
+    # Gated as screen 20 is and for its reason — either every value on the page
+    # is this reader's or every value is the drawing's.
+    {"176", Kati.Screens.BooksFa},
+    # 177 WRITES rather than reads: what it draws is its own form, and the
+    # store is only touched when Add to library is pressed. It is here for
+    # 154's reason — this list is derived from the compiled import table, which
+    # is what stops a screen opting itself out by only writing on a tap.
+    {"177", Kati.Screens.AddByHandBook},
+    # D-39's three. 178 and 179 WRITE rather than read — each draws its own
+    # form or its own transcription of a board, and the store is only touched
+    # when Add is pressed. Both are here for 154's reason: this list is derived
+    # from the compiled import table, which is what stops a screen opting
+    # itself out by only writing on a tap. 180 both reads and writes — it opens
+    # on the album screen 74 named it and edits that record's rating and note —
+    # so it is gated on 74's own reader for the reason screen 73 is: a sheet
+    # aimed at a different album from the screen that opened it would rate the
+    # wrong record.
+    {"178", Kati.Screens.AddByHandRecord},
+    {"179", Kati.Screens.AddTitleMusic},
+    {"180", Kati.Screens.RateAlbum}
   ]
 
   # ── Which drawing an empty screen is compared with ──────────────────────────
@@ -477,6 +512,23 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # visible, which is a state a user reaches and not the one the screen opens
     # in, so the resting comparison is 155's first band rather than 154 whole.
     "154" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
+    # 188 is 154's case with both states on ONE board: the sheet is drawn
+    # resting, with a value in every trough, and again refused, with the card
+    # that names what is missing. The refusal is a state a user reaches by
+    # pressing Save on an empty name, not the one the sheet opens in — a sheet
+    # that opened announcing a failed save would be telling someone their save
+    # failed before they pressed anything — so this compares the resting band
+    # and `Kati.ScreenDesignLiteralTest.drawn_state/0` compares the refusal.
+    #
+    # The band is bounded by the sheet's own title and the last clause of the
+    # note above the refusal, rather than by two eyebrows: board 188 draws one
+    # eyebrow, and `Kati.DesignLiterals.band/3` anchors on any literal the
+    # frame contains. It stops THERE rather than at the refusal's first line
+    # because this file compares symbols as well as words, and the refusal
+    # card's `error` glyph sits before its first word — a band that ended at
+    # the sentence would demand a resting sheet draw the glyph of a failure
+    # that has not happened.
+    "188" => [{"188", {"Add a medication", "what you cannot type, you can at least see."}}],
     "03" => [
       {"03", :whole},
       {"27", {"Empty — nothing added yet", "Loading — skeleton, never a spinner"}}
@@ -834,9 +886,24 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     end
   end
 
-  # How many of a board's literals belong to a moment the live screen is not in.
-  # See the pairs in `device_values/0` for which they are.
-  @moment_screens %{"144" => 5, "149" => 3}
+  # How many of a board's literals no render of it can produce, and why. The
+  # floor below subtracts this from the board's count, so it is a smaller
+  # number rather than an absent check.
+  #
+  #   * 144 and 149 draw a moment the live screen is not in. See the pairs in
+  #     `device_values/0` for which literals those are.
+  #
+  #   * 190 is an annotation board, and its two long notes are prose with
+  #     phrases emphasised INSIDE the sentence — `4 doses`, `clock times
+  #     armed`, `one`, `dose · instruction`. `Kati.DesignLiterals` yields each
+  #     emphasised run as its own literal, so one drawn paragraph arrives here
+  #     as eight. A screen cannot answer that count: `Mob.Renderer`'s `Text`
+  #     takes a `String` and the bridge hands it to Compose's `Text`, which has
+  #     no span list — so a sentence with a bold phrase in the middle of it is
+  #     one node in this app or it is a broken line wrap. Every literal is
+  #     still checked for by the test above, and found; this is the count, and
+  #     the count is 2 short of what no implementation can reach.
+  @floor_allowance %{"144" => 5, "149" => 3, "190" => 2}
 
   @moment_symbols [
     {"128", "cloud_done"},
@@ -1219,9 +1286,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # if the drawing's copy happened to sit in the chrome. Counting what was
       # actually rendered catches the shape of that before it needs a frame.
       # A board that draws several moments at once holds more copy than any one
-      # render can. `@moment_screens` names those and how many literals belong
-      # to a moment the screen is not in, so the count still has to be right —
-      # it is a smaller number, not an absent check.
+      # render can, and so does one whose prose emphasises phrases inside a
+      # sentence. `@floor_allowance` names both and says how many literals each
+      # loses that way, so the count still has to be right — it is a smaller
+      # number, not an absent check.
       #
       # A screen compared with its OWN board keeps the floor it always had: the
       # board's literal count, which for a screen the size of 114 is under a
@@ -1235,7 +1303,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # instead, which is `@undrawn`'s bound and the same argument.
       thin =
         for screen <- render_migrated(),
-            allowance = Map.get(@moment_screens, screen.number, 0),
+            allowance = Map.get(@floor_allowance, screen.number, 0),
             drawn_floor = length(screen.design.text) - allowance,
             floor =
               if(screen.boards == [screen.number],
@@ -1403,6 +1471,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # views of one shelf, so one pair covers all four and a gate that looked
       # only at the grid would pass while the hero named a book nobody owns.
       {"20", Kati.Screens.Books, &Kati.Screens.Books.page/0, &Kati.Screens.Books.drawn_page/0},
+      # 176 gates the whole page exactly as 20 does, through the same pair of
+      # names: the Persian shelf reads `Kati.Books.Book`'s `:shelf` once and the
+      # grid, the hero, the header line and the four chip counts all come out of
+      # that one answer, so one pair covers all four and a gate that looked only
+      # at the grid would pass while the hero named a book nobody owns.
+      {"176", Kati.Screens.BooksFa, &Kati.Screens.BooksFa.page/0,
+       &Kati.Screens.BooksFa.drawn_page/0},
       # 66 gates the whole page, as 04 does: either every value on it is this
       # reader's book or every value is the drawing's, so one pair covers the
       # hero, the ratings, the edition facts, the notes and the history band.
@@ -1479,6 +1554,31 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # catching.
       {"154", Kati.Screens.AddByHand, &Kati.Screens.MyServices.listed/0,
        &Kati.Screens.MyServices.drawn/0},
+      # D-39's add path. 178 draws its own form and 179 its own transcription of
+      # board 179's three rows; neither reads the store at all, and both are on
+      # the migrated list because they WRITE on a tap. Gated on 92's reader the
+      # way 154 and 06 are, and for their reason — a form that shelved a record
+      # into a Kati whose service list disagreed with the page that opened it
+      # would be the defect worth catching.
+      {"178", Kati.Screens.AddByHandRecord, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      {"179", Kati.Screens.AddTitleMusic, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
+      # 180 is gated on screen 74's own reader, not on a second one, for the
+      # reason screen 73 is: the sheet and the page that opened it must be
+      # about one record, and an id is what turns a shared reader into a shared
+      # referent. With nothing shelved both answer the drawing, which is the
+      # branch that makes `save_rating/1` refuse rather than commit the
+      # fixture's rating onto somebody's shelf.
+      {"180", Kati.Screens.RateAlbum, &Kati.Screens.AlbumDetail.album/0,
+       &Kati.Screens.AlbumDetail.drawn_album/0},
+      # 177 is 154 in its Book kind: it draws its own form and reads nothing,
+      # and it is on the migrated list because Add to library writes a
+      # `Kati.Books.Book`. Gated the way 154 is, for 154's reason — a form that
+      # put a book on the shelf of a Kati whose service list disagreed with the
+      # page that opened it would be the defect worth catching.
+      {"177", Kati.Screens.AddByHandBook, &Kati.Screens.MyServices.listed/0,
+       &Kati.Screens.MyServices.drawn/0},
       # 163 and 166 draw four posters and a tick and read nothing; they are on
       # the migrated list because Finish writes the picked title. Gated the way
       # 154 is, for 154's reason — a first run that shelved a title into a Kati
@@ -1552,6 +1652,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"111", Kati.Screens.LogWeight, &Kati.Screens.Weight.entries/0,
        &Kati.Screens.Weight.drawn_entries/0},
       {"112", Kati.Screens.Medication, &Kati.Screens.Medication.doses/0,
+       &Kati.Screens.Medication.drawn_doses/0},
+      # 189 has a reader of its own and it is the one that matters: handed an
+      # id that names nothing — which is every id on an empty database — the
+      # page must answer with its own drawing, whose absent `:id` is what stops
+      # every control on it writing to a stranger.
+      {"189", Kati.Screens.MedicationDetail, &Kati.Screens.MedicationDetail.medication/0,
+       &Kati.Screens.MedicationDetail.drawn_medication/0},
+      # 188 writes and reads nothing; 190 reads nothing at all and is on the
+      # migrated list because it draws screen 104's chrome. Both gate on 112's
+      # doses for the reason 119 gates on 118's meal and 106 on 104's goals: a
+      # sheet that added a medication into a Kati whose Today group disagreed
+      # with the page that opened it would be the defect worth catching.
+      {"188", Kati.Screens.AddMedication, &Kati.Screens.Medication.doses/0,
+       &Kati.Screens.Medication.drawn_doses/0},
+      {"190", Kati.Screens.MedicationEmpty, &Kati.Screens.Medication.doses/0,
        &Kati.Screens.Medication.drawn_doses/0},
       # 116 gates the whole grid, 118 the meal it is editing. 119 reads nothing
       # of its own — it is a form over a draft — so it gates on 118's meal, for

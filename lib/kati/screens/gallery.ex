@@ -198,14 +198,35 @@ defmodule Kati.Screens.Gallery do
     {"156", "افزودن دستی — Add by hand, RTL", Kati.Screens.AddByHandFa, :push},
     {"158", "خانه — nothing stored, RTL", Kati.Screens.HomeFaEmpty, :push},
     {"159", "خانه — nothing stored, dark RTL", Kati.Screens.HomeFaEmptyDark, :push},
-    {"160", "The two empty sections — omitted, decided", Kati.Screens.HomeFaOmittedSections, :push},
+    {"160", "The two empty sections — omitted, decided", Kati.Screens.HomeFaOmittedSections,
+     :push},
     {"161", "Welcome — step 2 of 5", Kati.Screens.OnboardingWelcome, :push},
     {"162", "Loudness — step 4 of 5", Kati.Screens.OnboardingLoudness, :push},
     {"163", "First title — step 5 of 5", Kati.Screens.OnboardingFirstTitle, :push},
     {"164", "خوش‌آمد — welcome, RTL", Kati.Screens.OnboardingWelcomeFa, :push},
     {"165", "اعلان‌ها — loudness, RTL", Kati.Screens.OnboardingLoudnessFa, :push},
     {"166", "اولین عنوان — first title, RTL", Kati.Screens.OnboardingFirstTitleFa, :push},
-    {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push}
+    {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push},
+    # #D-38 — the shelf, and how a book reaches it, in both languages. 176 is
+    # the destination screen 57's کتاب‌ها segment has never had; 177 is the only
+    # control in the app that creates a `Kati.Books.Book`.
+    {"176", "کتاب‌ها — the Persian Books shelf", Kati.Screens.BooksFa, :push},
+    {"177", "Add by hand — Book", Kati.Screens.AddByHandBook, :push},
+    # D-43 — the three boards that let a medication be owned rather than only
+    # read. 188 is the sheet behind screen 112's `add` disc, 189 the page
+    # behind its four chevrons, and 190 the empty frame `D-19-medication.md`
+    # asked for in 2026 and nobody drew.
+    {"188", "Add a medication", Kati.Screens.AddMedication, :push},
+    {"189", "One medication", Kati.Screens.MedicationDetail, :push},
+    {"190", "Medication — empty and annotated", Kati.Screens.MedicationEmpty, :push},
+    # D-39 — the read-only music shelf gets a way in, and a way to rate what is
+    # already there. 178 and 179 are the add path: nothing in `lib/` wrote a
+    # `Kati.Music.Album` before them, so screen 21 was permanently on its
+    # fixture. 180 is the album rating sheet screen 74's Rate row had been
+    # pushing screen 33's film sheet for.
+    {"178", "Add by hand — a record", Kati.Screens.AddByHandRecord, :push},
+    {"179", "Add a title — the music state", Kati.Screens.AddTitleMusic, :push},
+    {"180", "Rate an album", Kati.Screens.RateAlbum, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.

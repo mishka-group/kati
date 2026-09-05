@@ -113,7 +113,39 @@ defmodule Kati.ScreenTapSweepTest do
   # quietly: this callback raises on the `tracked_titles` delete.
   setup do
     on_exit(fn ->
-      for table <- ~w(goals expenses health_readings tracked_titles cached_titles) do
+      # `health_doses` before `health_medications`: a dose `belongs_to` its
+      # medication with `allow_nil? false`, so the child table goes first or
+      # SQLite refuses the parent delete. Both joined the list when screen 188
+      # gave this app its first way to create a medication — the sweep taps
+      # `Save` on every sheet, and that sheet's draft has a name in it, so a
+      # row lands exactly as screen 106's `New goal` lands one in `goals`.
+      #
+      # `music_tracks`, `music_albums` and `music_artists` joined on
+      # 5 September with `D-39`: screens 178 and 179 are the first writers the
+      # music domain has ever had, and this sweep presses every `add_<title>`
+      # disc screen 179 draws. Left behind, those rows stop
+      # `Kati.Screens.Music.page/0` falling back to `Kati.Music.Sample`, and the
+      # failure surfaces on `Kati.ScreenDesignLiteralTest`'s board 21 — a file
+      # this one never touched — for the seeds that order them the wrong way
+      # round. That is the paragraph above happening again, so the list grew
+      # with the write rather than after it.
+      #
+      # Child first here too: `music_tracks` and `music_listens` both reference
+      # `music_albums`, which references `music_artists`.
+      #
+      # `music_listens` was left out on the argument `media_watches` is left
+      # out on — *this sweep creates none, so a listen here is somebody else's
+      # leak and the foreign key should announce it.* The foreign key
+      # immediately did, and the argument was wrong on the very run that made
+      # it: screen 111's `Save reading` refuses on an empty shelf, and the
+      # shelf is no longer empty by the time the sweep reaches it, because
+      # screen 179's `add_<title>` discs shelved albums earlier in the same
+      # sweep. A screen that no-ops against an empty table stops no-opping the
+      # moment another screen in the sweep can fill that table, so the two
+      # arguments are not the same argument: `media_watches` has no writer in
+      # this sweep at all, and `music_listens` now has one at one remove.
+      for table <-
+            ~w(goals expenses health_readings health_doses health_medications tracked_titles cached_titles music_tracks music_listens music_albums music_artists) do
         Kati.Repo.query!("DELETE FROM " <> table, [])
       end
     end)
@@ -310,6 +342,19 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AddByHandFa, :kind_سریال},
     {Kati.Screens.AddByHandFa, :"status_شروع نشده"},
     {Kati.Screens.AddByHand, :"status_Not started"},
+    # Screen 177's three resting choices — the Kind the screen IS, the Edition
+    # the form opens on and the status a book you are adding has. The
+    # already-selected member of its family, three times, and every other
+    # member of each family moves the assign or navigates, which is what says
+    # the family is wired.
+    {Kati.Screens.AddByHandBook, :kind_Book},
+    {Kati.Screens.AddByHandBook, :edition_Paperback},
+    {Kati.Screens.AddByHandBook, :"status_Not started"},
+    # Screen 176's lit segment and lit chip, for the same reason: کتاب‌ها is the
+    # shelf you are on and همه is the filter already showing. نمایش and موسیقی
+    # both navigate and the other three chips all move the filter.
+    {Kati.Screens.BooksFa, :shelf_1},
+    {Kati.Screens.BooksFa, :filter_0},
     {Kati.Screens.LanguagePick, :choose_en},
     {Kati.Screens.LanguagePick, :choose_fa},
     # ── Drawn, reachable, and pushing nothing because the design draws no
@@ -321,6 +366,16 @@ defmodule Kati.ScreenTapSweepTest do
     # drawn. Delete these the moment either is.
     {Kati.Screens.BookDetail, :open_series},
     {Kati.Screens.BookDetail, :open_lending},
+    # Screen 177's Album and Artist Kind chips. Board 177 draws five chips —
+    # Film, Series, Book, Album, Artist — and the first three all navigate or
+    # are the screen you are on. The record form is `D-39`'s board 178 and is
+    # not built by this ticket, so these two are drawn and reach nothing: a
+    # push at a module that does not exist is not available, and dropping the
+    # chips would take two literals off a board the sweep is pinned to. The
+    # honest state, and the same shape as screen 66's two rows above. Delete
+    # both the moment 178 lands.
+    {Kati.Screens.AddByHandBook, :kind_Album},
+    {Kati.Screens.AddByHandBook, :kind_Artist},
     {Kati.Screens.Activity, :filter_All},
     {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_All},
@@ -354,6 +409,22 @@ defmodule Kati.ScreenTapSweepTest do
     # a change this heuristic can see — and the reason it can is the whole of
     # #85: a save that fails has to leave a mark.
     {Kati.Screens.Rating, :star_9},
+    # ── Screen 180's ninth point, for exactly the reason above, one domain
+    # over. `Kati.Screens.RateAlbum` opens on the album screen 74 was about,
+    # which on an empty shelf is `Kati.Music.Sample.album/0` — rating 9, which
+    # is 4.5 stars. `:save` is deliberately not here either: it answers
+    # `{:error, :nothing_to_save}` and draws the sentence.
+    {Kati.Screens.RateAlbum, :star_9},
+    # ── Screens 178 and 179's already-chosen members, the first category above.
+    # Board 178 is drawn with **Album** chosen and the form loads in it, so
+    # `:kind_Album` sets the kind it already has; `:kind_Artist` moves it, and
+    # `:kind_Film`, `:kind_Series` and `:kind_Book` push the form that owns
+    # those three, which is what says the family is wired. Board 179 is drawn
+    # with **Albums** lit because it is the state screen 21's FAB opens, so
+    # `:filter_Albums` is that row's settled member; `:filter_Artists` narrows
+    # and the other three push screen 06.
+    {Kati.Screens.AddByHandRecord, :kind_Album},
+    {Kati.Screens.AddTitleMusic, :filter_Albums},
     # ── Screen 83's six link rows. Every card and the notices row opens a URL
     # in the platform browser, and Kati has no fence for that: nothing in
     # `native/LEDGER.md` opens an external link, and inventing one to make six
@@ -458,7 +529,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.LogWeight, :unit_kg},
     {Kati.Screens.LogWeight, :unit_st},
     {Kati.Screens.LogWeight, :now},
-    # ── Screen 112's four.
+    # ── Screen 112's two.
     #
     # `mark_taken` and `mark_skipped` write, and the write lands on the first
     # dose of the day that has not been decided about. This sweep runs against
@@ -466,20 +537,17 @@ defmodule Kati.ScreenTapSweepTest do
     # drawing's — so the write is a no-op, which is correct rather than dead.
     # `Kati.HealthTest` asserts both with doses stored.
     #
-    # `add` and `open_schedule` are drawn and reachable and open nothing:
-    # neither a new-medication sheet nor a per-medication page is drawn
-    # anywhere in the 127 artboards.
+    # It was four until D-43. `add` and the four `open_schedule` tags were
+    # here with the reason *"neither a new-medication sheet nor a
+    # per-medication page is drawn anywhere in the artboards"*; boards 188 and
+    # 189 are those two drawings, and the disc and the chevrons push
+    # `Kati.Screens.AddMedication` and `Kati.Screens.MedicationDetail` now. The
+    # four chevrons still hand the page `%{}` on an empty store, because the
+    # drawing's four schedules carry no id — that fact lives on
+    # `Kati.ScreenParamsSweepTest`'s `@empty_builders`, which is where a door
+    # that names something empty belongs rather than here.
     {Kati.Screens.Medication, :mark_taken},
     {Kati.Screens.Medication, :mark_skipped},
-    {Kati.Screens.Medication, :add},
-    # One entry per drawn schedule since #97 gave the rows their own names
-    # (`Kati.Screens.Medication.schedule_tag/1`). What they open is unchanged
-    # and is nothing: no medication page is drawn in the set, which the comment
-    # by `other_tap/2` in that screen says in as many words.
-    {Kati.Screens.Medication, :open_schedule_Levothyroxine},
-    {Kati.Screens.Medication, :open_schedule_Vitamin_D},
-    {Kati.Screens.Medication, :open_schedule_Iron},
-    {Kati.Screens.Medication, :open_schedule_Magnesium},
     # ── Screen 119's four.
     #
     # `aisle_Uncategorised` is the aisle the draft opens on, the same

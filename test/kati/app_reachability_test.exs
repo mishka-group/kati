@@ -118,6 +118,12 @@ defmodule Kati.AppReachabilityTest do
        "another one — reached by having no goals, not by navigating."},
     {Screens.WeightStates, "screen 109's states, in 27's manner. As above."},
     {Screens.HealthEmptyStates, "screen 42's empty states, in 27's manner. As above."},
+    {Screens.MedicationEmpty,
+     "screen 112 empty, with its two destinations, its reminder caption and " <>
+       "the failure line annotated beside it — a board about one page rather " <>
+       "than a second page. 27's reason, and 96's: reached by having no " <>
+       "medications, not by navigating. The two destinations it names are " <>
+       "both live from 112 itself."},
     {Screens.SearchTyping, "screen 86's three states before results, in 27's manner. As above."},
     {Screens.SearchResultStates,
      "screen 86's four result edge states, in 27's manner. As above."},
@@ -487,7 +493,9 @@ defmodule Kati.AppReachabilityTest do
   # Cheap, because it is a comparison and only writes when the answer moved.
   defp targets(module, socket, tags) do
     for tag <- tags,
-        {:ok, dest} <- [ScreenSweep.safely(fn -> pinned(fn -> push_target(module, socket, tag) end) end)],
+        {:ok, dest} <- [
+          ScreenSweep.safely(fn -> pinned(fn -> push_target(module, socket, tag) end) end)
+        ],
         is_atom(dest),
         dest != nil,
         uniq: true,

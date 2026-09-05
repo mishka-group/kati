@@ -916,13 +916,19 @@ defmodule Kati.Screens.LibraryFa do
   # Anything left over is the dock's.
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
-      # Index 1 is کتاب — the Books shelf — and it pushes screen 69 rather than
-      # switching the assign, exactly as screen 03's Books segment pushes screen
-      # 20. There is no Persian Books SHELF in the 127 drawings, so the segment
-      # opens the one Persian book page that exists; screen 69's own caption
-      # records that its parent was inferred for the same reason.
+      # Index 1 is کتاب‌ها — the Books shelf — and it pushes screen 176, exactly
+      # as screen 03's Books segment pushes screen 20.
+      #
+      # It used to push screen 69, and the reason it gave was true when it was
+      # written: *there is no Persian Books SHELF in the 127 drawings, so the
+      # segment opens the one Persian book page that exists.* `D-38` drew one.
+      # Until it did, a Persian reader tapping this segment was dropped into
+      # one fixture book — سالنامه نمک — with no grid, no chips, no
+      # Reading-now hero and no list to come back to. 69 is now reached from
+      # 176's covers, which is where a book detail is reached from on every
+      # other shelf in the app.
       "shelf_1" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetailFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BooksFa)}
 
       # Index 2 is موسیقی, and it opens the one Persian album page that exists —
       # the same reasoning as the Books segment above, and the same absence: the

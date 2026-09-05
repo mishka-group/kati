@@ -50,9 +50,9 @@ is how the re-render difference above was found.
 | 175 | Log a read | `D-37` |
 | 176 | کتاب‌ها — the Persian Books shelf | `D-38` |
 | 177 | Add by hand — Book | `D-38` |
-| 178 | Add by hand — a record | `D-39` |
-| 179 | Add a title — the music state | `D-39` |
-| 180 | Rate an album | `D-39` |
+| 178 | Add by hand — a record | `D-39` — built, moved to `screens/` |
+| 179 | Add a title — the music state | `D-39` — built, moved to `screens/` |
+| 180 | Rate an album | `D-39` — built, moved to `screens/` |
 | 181 | List detail | `D-40` |
 | 182 | Add to list | `D-40` |
 | 183 | Plan editor | `D-41` |
@@ -60,9 +60,9 @@ is how the re-render difference above was found.
 | 185 | Meal overflow | `D-42` |
 | 186 | Meal overflow — states | `D-42` |
 | 187 | Edit an ingredient | `D-42` |
-| 188 | Add a medication | `D-43` |
-| 189 | One medication | `D-43` |
-| 190 | Medication — empty and annotated | `D-43` |
+| 188 | Add a medication | `D-43` — built, moved to `screens/` |
+| 189 | One medication | `D-43` — built, moved to `screens/` |
+| 190 | Medication — empty and annotated | `D-43` — built, moved to `screens/` |
 | 191 | One weight reading | `D-44` |
 | 192 | One goal | `D-44` |
 | 193 | The affordance, the window, the empties | `D-44` |

@@ -161,14 +161,20 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 132 137)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 132 137 176)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
-  # tier. Today: 7, all of them rating rows the drawing writes as one run of
-  # `★` and the app draws as separate glyph nodes. Raising this bound admits
-  # more copy that is only checked with its spacing thrown away, which is a
-  # decision rather than a fix.
-  @squashed_budget 20
+  # tier. Today: 21, and twenty of them are rating rows the drawing writes as
+  # one run of `★` and the app draws as separate glyph nodes. Raising this
+  # bound admits more copy that is only checked with its spacing thrown away,
+  # which is a decision rather than a fix.
+  #
+  # 20 → 21 on 5 September for board 180's `5★`, which is board 33's `5★` on a
+  # different noun: the album rating sheet is screen 33's film sheet with an
+  # album behind it, and its star run is drawn the same way and read the same
+  # way. The failure names its offenders now (see the test below), so the next
+  # rise can be judged on the line rather than on the arithmetic.
+  @squashed_budget 21
 
   # The floor above is 5 because a frame that yields fewer than five strings is
   # almost always the extractor having matched nothing. One drawing genuinely
@@ -225,8 +231,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       numbered = Enum.map(@registry, &elem(&1, 0))
       registered = Enum.map(@registry, &elem(&1, 2))
 
-      assert length(on_disk) == 165,
-             "expected 165 drawings under test/design/screens, found #{length(on_disk)} — " <>
+      # 165 until 5 September, when the first of the 5-September export's
+      # ninety-one boards were built. `test/design/incoming/README.md` states
+      # the rule this number follows: a board moves into `screens/` in the same
+      # commit that builds its screen and registers it here, and this count
+      # moves with it.
+      assert length(on_disk) == 173,
+             "expected 173 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 
@@ -345,18 +356,25 @@ defmodule Kati.ScreenDesignLiteralTest do
     end
 
     test "most of that is found inside one Text, not by joining nodes" do
-      tiers =
+      # Named rather than counted. A budget that reports only its own arithmetic
+      # tells whoever trips it to go and find the offender by hand, and the
+      # offender is one literal out of some sixteen hundred.
+      located =
         for screen <- render_all(),
             literal <- screen.design.text,
-            do: DesignLiterals.locate(literal, screen.haystacks)
+            do: {DesignLiterals.locate(literal, screen.haystacks), screen, literal}
 
-      squashed = Enum.count(tiers, &(&1 == :squashed))
+      tiers = Enum.map(located, &elem(&1, 0))
 
-      assert squashed <= @squashed_budget,
-             "#{squashed} literals are only found once whitespace is thrown away, over a " <>
-               "budget of #{@squashed_budget}. That tier exists for the rating rows the " <>
-               "drawings write as `★★★★☆`; copy arriving there is copy whose spacing nothing " <>
-               "checks"
+      squashed =
+        for {:squashed, screen, literal} <- located,
+            do: "  #{screen.number} #{inspect(screen.module)} #{inspect(literal)}"
+
+      assert length(squashed) <= @squashed_budget,
+             "#{length(squashed)} literals are only found once whitespace is thrown away, " <>
+               "over a budget of #{@squashed_budget}. That tier exists for the rating rows " <>
+               "the drawings write as `★★★★☆`; copy arriving there is copy whose spacing " <>
+               "nothing checks:\n" <> Enum.join(squashed, "\n")
 
       assert Enum.count(tiers, &(&1 == :node)) >= div(length(tiers) * 95, 100),
              "only #{Enum.count(tiers, &(&1 == :node))} of #{length(tiers)} literals are found " <>
@@ -623,8 +641,7 @@ defmodule Kati.ScreenDesignLiteralTest do
        "160 is a Persian Home too, on the same `Kati.Screens.HomeFa.moment/0`",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"160", "عصر بخیر", "the same greeting, the same hour", ~r/^(صبح|ظهر|عصر) بخیر$/u},
-      {"159", "یکشنبه ۲۵ مرداد ۱۴۰۵",
-       "159 is 158 in the dark colourway and reads the same clock",
+      {"159", "یکشنبه ۲۵ مرداد ۱۴۰۵", "159 is 158 in the dark colourway and reads the same clock",
        ~r/^#{word} #{fa_day} #{word} \p{N}+$/u},
       {"159", "عصر بخیر", "the same greeting, the same hour", ~r/^(صبح|ظهر|عصر) بخیر$/u},
       {"158", "یکشنبه ۲۵ مرداد ۱۴۰۵",
@@ -939,7 +956,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # screen's actual default — "Resting — empty, Film, nothing assumed" — so
       # the board and the load disagree on purpose and this is the seam.
       {"154", Kati.Screens.AddByHand,
-       &(&1 |> Map.put(:kind, :tv) |> Map.put(:title, "The Long Hollow") |> Map.put(:year, "2024") |> Map.put(:episodes, "7"))},
+       &(&1
+         |> Map.put(:kind, :tv)
+         |> Map.put(:title, "The Long Hollow")
+         |> Map.put(:year, "2024")
+         |> Map.put(:episodes, "7"))},
       # 19 is drawn mid-query and its whole subject is one query matched four
       # ways, so its state is a result set rather than a row: `drawn_results/0`
       # is the transcription board 19 was read from, and a device gets
@@ -1000,7 +1021,17 @@ defmodule Kati.ScreenDesignLiteralTest do
          grid: Kati.Stats.Sample.contributions(),
          recent: Kati.Screens.Stats.recent(),
          range: Kati.Stats.Sample.year().range
-       })}
+       })},
+      # 188 is board 154's seam again. The sheet is drawn resting AND refused —
+      # the card at its foot names what is missing and says nothing was
+      # written — and a sheet that opened already announcing a failed save
+      # would be telling someone their save failed before they pressed
+      # anything. So the refusal is the state this puts it in, and
+      # `Kati.ScreenEmptyDatabaseTest` compares the resting band.
+      # `Kati.Screens.AddMedication.refusal/0` is the same function the tap
+      # sets, so the board's sentence and the screen's cannot drift.
+      {"188", Kati.Screens.AddMedication,
+       &Map.put(&1, :save_error, Kati.Screens.AddMedication.refusal())}
     ]
   end
 

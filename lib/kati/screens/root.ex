@@ -208,8 +208,28 @@ defmodule Kati.Screens.Root do
       # The FAB opens the add sheet from every root — screen 06's note calls it
       # "one sheet reached from the + button", so it belongs here rather than
       # in four copies.
+      #
+      # Which STATE of that sheet opens is the shelf's own business, so it is
+      # answered by an overridable function ON the shelf rather than by a
+      # lookup table the shelf is passed to. Board 179 is board 06 with the
+      # `Albums` chip lit and it is what the Music shelf's `+` opens — `D-39`
+      # is explicit that this is a state rather than a new control, because a
+      # second add control on screen 21 would be a second door to a sheet that
+      # already has one.
+      #
+      # A table on `Kati.Screens.AddTitle` was written first and had to be
+      # withdrawn, which is worth recording because the defect is invisible:
+      # `Kati.Screens.AddTitle` reads `Kati.Media`, so a CALL to it from this
+      # macro put every root inside `Kati.ScreenEmptyDatabaseTest`'s transitive
+      # closure of screens that reach the store — and screens 16, 17 and 30
+      # read nothing at all and were suddenly demanded to prove an empty state
+      # they do not have. A module named in a `def` body is an atom and not a
+      # call, so this answer costs no edge.
+      def add_sheet, do: Kati.Screens.AddTitle
+      defoverridable add_sheet: 0
+
       def handle_info({:tap, :fab}, socket) do
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+        {:noreply, Mob.Socket.push_screen(socket, add_sheet())}
       end
 
       def handle_info({:tap, tag}, socket) do

@@ -141,18 +141,36 @@ defmodule Kati.Notifications.Sources.Health do
     end
   end
 
-  defp title([%Medication{name: name}]), do: name
-  defp title(group), do: "#{length(group)} doses"
+  @doc """
+  What the notification's title says for one clock time's group.
 
-  defp body([%Medication{} = one]) do
-    [one.dose, one.instruction]
-    |> Enum.reject(&(is_nil(&1) or &1 == ""))
-    |> Enum.join(" · ")
-    |> case do
+  Public because screen 189 draws a picture of this notification, and a
+  preview that composed its own title would be a second sentence able to
+  disagree with the one the scheduler sends.
+
+      iex> Kati.Notifications.Sources.Health.title([%Kati.Health.Medication{name: "Iron"}])
+      "Iron"
+  """
+  @spec title([Medication.t()]) :: String.t()
+  def title([%Medication{name: name}]), do: name
+  def title(group), do: "#{length(group)} doses"
+
+  @doc """
+  What its body says: `dose · instruction`, or the names when several share
+  the time.
+
+  The single-medication line is `Kati.Health.Medication.dose_line/1` — the
+  same function screen 112 prints under a dose — rather than a second copy of
+  *join the non-empty parts with a middot*. `Due now` is what a medication
+  with neither a dose nor an instruction leaves.
+  """
+  @spec body([Medication.t()]) :: String.t()
+  def body([%Medication{} = one]) do
+    case Medication.dose_line(one) do
       "" -> "Due now"
       line -> line
     end
   end
 
-  defp body(group), do: group |> Enum.map_join(", ", & &1.name)
+  def body(group), do: group |> Enum.map_join(", ", & &1.name)
 end
