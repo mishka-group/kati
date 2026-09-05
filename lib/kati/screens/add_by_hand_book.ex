@@ -489,13 +489,26 @@ defmodule Kati.Screens.AddByHandBook do
   @impl true
   def handle_tap(:add, socket), do: {:noreply, Kati.Screens.AddByHandBook.save(socket)}
 
-  # Film and Series are the same form in its other two kinds, so the chip is a
-  # navigation. Album and Artist reach nothing and say so in the moduledoc.
+  # Every Kind chip is a navigation: the row is one control that reveals five
+  # forms, and four of them are somewhere else.
+  #
+  # Film and Series are screen 154, this form in its other two kinds. Album and
+  # Artist are board 178, which did not exist when this screen was written —
+  # `Kati.ScreenTapSweepTest` carried both with the instruction *delete both the
+  # moment 178 lands*, and it landed with `D-39`. A chip that lights like a
+  # control and reaches nothing is what that note was against.
+  #
+  # `Kati.Screens.AddByHandRecord` opens on Album and its own Kind row moves to
+  # Artist, which is why both chips push the one screen: the record form is one
+  # form in two kinds, exactly as this one is.
   def handle_tap(:kind_Film, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
 
   def handle_tap(:kind_Series, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
+
+  def handle_tap(kind, socket) when kind in [:kind_Album, :kind_Artist],
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHandRecord)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

@@ -332,11 +332,9 @@ defmodule Kati.ScreenTapSweepTest do
     # gesture is defined that way — *a row that cannot be ticked is a row that
     # was never in the set* — so an empty inbox is the smallest case of that,
     # not a failure of it.
-    {Kati.Screens.Inbox, :mark_all},
     {Kati.Screens.Search, :clear},
     # Screen 06's clear disc, for screen 19's reason one line up: the field it
     # empties is already empty on a bare mount.
-    {Kati.Screens.AddTitle, :clear},
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
     {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},
     # The same two, in the mirror. Their tags are positional rather than
@@ -376,22 +374,16 @@ defmodule Kati.ScreenTapSweepTest do
     # drawn. Delete these the moment either is.
     {Kati.Screens.BookDetail, :open_series},
     {Kati.Screens.BookDetail, :open_lending},
-    # Screen 177's Album and Artist Kind chips. Board 177 draws five chips —
-    # Film, Series, Book, Album, Artist — and the first three all navigate or
-    # are the screen you are on. The record form is `D-39`'s board 178 and is
-    # not built by this ticket, so these two are drawn and reach nothing: a
-    # push at a module that does not exist is not available, and dropping the
-    # chips would take two literals off a board the sweep is pinned to. The
-    # honest state, and the same shape as screen 66's two rows above. Delete
-    # both the moment 178 lands.
-    {Kati.Screens.AddByHandBook, :kind_Album},
-    {Kati.Screens.AddByHandBook, :kind_Artist},
+    # (Screen 177's Album and Artist Kind chips were here, with the instruction
+    # *delete both the moment 178 lands*. It landed with `D-39`, and both now
+    # push `Kati.Screens.AddByHandRecord` — the record form, which opens on
+    # Album and whose own Kind row moves to Artist. Struck out rather than
+    # deleted, because a list that only grows is a list nobody believes.)
     {Kati.Screens.Activity, :filter_All},
     {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_All},
     {Kati.Screens.Discover, :"filter_For you"},
     {Kati.Screens.EventDetail, :section_Work},
-    {Kati.Screens.Library, :filter_All},
     # Screen 20's, which joined the day its chip rail was wired: `All` is the
     # chip `load/1` opens on, so tapping it re-selects what is selected.
     {Kati.Screens.Books, :filter_All},
@@ -519,7 +511,6 @@ defmodule Kati.ScreenTapSweepTest do
     # selected one: you are already looking at what it files the sentence as.
     # On screen 18 the same chip pushes here, which is what makes the family
     # live.
-    {Kati.Screens.QuickAddExpense, :edit_amount},
     {Kati.Screens.QuickAddExpense, :file_as_expense},
     # ── Screen 111's three.
     #
@@ -560,8 +551,6 @@ defmodule Kati.ScreenTapSweepTest do
     # drawing's four schedules carry no id — that fact lives on
     # `Kati.ScreenParamsSweepTest`'s `@empty_builders`, which is where a door
     # that names something empty belongs rather than here.
-    {Kati.Screens.Medication, :mark_taken},
-    {Kati.Screens.Medication, :mark_skipped},
     # ── Screen 119's four.
     #
     # `aisle_Uncategorised` is the aisle the draft opens on, the same
@@ -574,7 +563,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AddIngredient, :aisle_Uncategorised},
     {Kati.Screens.AddIngredient, :edit_name},
     {Kati.Screens.AddIngredient, :edit_quantity},
-    {Kati.Screens.AddIngredient, :edit_ingredient},
     {Kati.Screens.AddIngredient, :edit_unit},
     # `Type it in` is the built path and opens a form Mob cannot draw yet — the
     # same #45 gap. The row is honest: the two beside it carry `NOT IN V1`, and
@@ -750,7 +738,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.HealthFa, :range_month},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
-    {Kati.Screens.Medication, :toggle_dose},
     # Screen 109's current range. The chart draws every reading whatever the
     # segment says — the range is drawn and not yet applied, because a series
     # of four readings has no month to narrow to. It narrows when there is
@@ -772,8 +759,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.ReleaseWatcher, :"cadence_Every 6h"},
     {Kati.Screens.Search, :filter_All},
     {Kati.Screens.Series, :season_S2},
-    {Kati.Screens.Settings, :theme_Auto},
-    {Kati.Screens.SettingsFa, :theme_0},
 
     # (`Kati.Screens.Calendar`'s selected day cell belongs in the group above
     # and cannot be written here: its tag carries today's ISO date, so a
@@ -893,6 +878,38 @@ defmodule Kati.ScreenTapSweepTest do
              "#{Path.relative_to_cwd(__ENV__.file)} so the list keeps meaning " <>
              "what it says:\n" <>
              Enum.map_join(stale, "\n", fn {module, tag} ->
+               "  {#{inspect(module)}, #{inspect(tag)}}"
+             end)
+  end
+
+  test "the inert list names no tag that is not drawn" do
+    # `@inert_taps` had no stale check, and a list with no stale check is a
+    # list that accumulates fiction. It is documented as a FLOOR rather than an
+    # inventory — an entry that comes good costs nothing — but an entry naming
+    # a tag no screen draws at all is a different thing: it is a sentence about
+    # a control that does not exist, and the next person to read the list
+    # believes it.
+    #
+    # Found by counting. `{Kati.Screens.QuickAddExpense, :edit_amount}` carried
+    # a paragraph about Mob having no text input, on a screen that no longer
+    # draws that tag at all — and by then every add form in the app had a real
+    # `<TextField>` in it.
+    #
+    # Both locales, because a tag drawn only in Persian is still drawn.
+    drawn =
+      for locale <- @locales,
+          {module, {_socket, tags}} <- ScreenSweep.drawn_taps(locale),
+          tag <- tags,
+          into: MapSet.new(),
+          do: {module, tag}
+
+    phantom = Enum.reject(@inert_taps, &MapSet.member?(drawn, &1))
+
+    assert phantom == [],
+           "these entries name a tag no screen draws, in either locale. The control was " <>
+             "renamed or removed and the entry outlived it — delete each one, so the list " <>
+             "stays a description of the app rather than of an app that used to exist:\n" <>
+             Enum.map_join(phantom, "\n", fn {module, tag} ->
                "  {#{inspect(module)}, #{inspect(tag)}}"
              end)
   end
