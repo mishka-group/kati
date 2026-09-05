@@ -683,7 +683,14 @@ defmodule Kati.Screens.BookDetail do
       SettingsList.row(
         SettingsList.icon_tile("inventory_2"),
         SettingsList.body("This is the edition I own", nil),
-        SettingsList.trailing(SettingsList.switch(owned?))
+        SettingsList.trailing(SettingsList.switch(owned?)),
+        # The whole row and not the track. `Kati.UI.SettingsList.switch/1`'s own
+        # doc offers `on_toggle` for this and says wiring it adds a `clickable`
+        # to the track — a 46x28 target where the row is the full card width,
+        # and the row already carries the label a person is aiming at.
+        # `row/4`'s `:on_tap` exists for exactly this: *a row that names a
+        # screen should open it*.
+        on_tap: {self(), :toggle_owned}
       )
     ])
   end
@@ -1040,6 +1047,38 @@ defmodule Kati.Screens.BookDetail do
          socket
          |> Mob.Socket.assign(:save_error, nil)
          |> Mob.Socket.push_screen(Kati.Screens.Rating)}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
+  end
+
+  # The edition switch, which is a write like the chips below and takes their
+  # path: `apply_change/1` sets one attribute and answers for it, and the page
+  # re-reads afterwards rather than assigning the new value on its own — the
+  # hero band, the extent and the meta line are all derived from the row, and
+  # this row is no different for being a boolean.
+  #
+  # `true` and `false` are atoms, so `{:owned, not owned?}` is the same
+  # `{attribute, value}` pair `chip_change/1` produces and needs no second
+  # writer.
+  #
+  # Read through `Access`: `Kati.Books.Sample.detail/0` carries `owned: true`
+  # and a shaped row carries `book.owned` — `Kati.Books.Book.owned` is
+  # `allow_nil?: false` — so the key is always there, and a caller that builds
+  # assigns by hand to draw one band still reads it the way `content/1`
+  # documents at the top of this file.
+  #
+  # Above the catch-all, because `chip_change/1` answers `nil` for
+  # `:toggle_owned` and the catch-all would then eat it silently, which is the
+  # exact defect this control was.
+  def handle_tap(:toggle_owned, socket) do
+    case Kati.Screens.BookDetail.apply_change({:owned, not socket.assigns.book[:owned]}) do
+      {:ok, _book} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book())
+         |> Mob.Socket.assign(:save_error, nil)}
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}

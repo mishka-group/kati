@@ -235,6 +235,24 @@ sweeps stop:
   * **Recents filled with abandoned prefixes.** One search for *Ashfall* held
     five of the eight slots. Visible only after typing a whole word on a device.
 
+### And one Phase 2 found, which is a drawing rather than a defect
+
+**A hand-added series opens the drawing.** Add *Nightbirds* by hand, tap it on
+the shelf, and screen 04 draws *The Long Hollow*. The door is correct — the tile
+carries the id and `series/1` reads it — but `facts/1` answers `nil` when a
+title has no cached seasons or episodes (`series.ex:299`), and a hand-added
+title has neither. So the screen takes its no-argument branch, which is the
+drawing.
+
+The gate itself is right: a series page whose whole spine is a season bar and an
+episode list cannot draw a title that has no episodes. What is missing is the
+state in between — **screen 04 with a title and nothing under it**, saying so.
+No board draws it, so it is a design gap and not a wiring one, and it is the
+same shape as the thing screen 154's caption already admits: *a hand-typed title
+carries no poster and no episode list*. Until that board exists, the substitution
+stands and it is the one place in the app where Phase 1's promise still reads as
+broken to a person.
+
 
 ---
 

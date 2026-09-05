@@ -1214,7 +1214,7 @@ defmodule Kati.Screens.Calendar do
     {:noreply, Mob.Socket.assign(socket, airing_open?: open?, rows: rows)}
   end
 
-  # `%{query: "", back: "Calendar"}` for `open_row/3`'s own reason two hundred
+  # `%{query: "", back: "Calendar"}` for `open_row/4`'s own reason two hundred
   # lines down: the push names what the tap knows. Here that is an empty field
   # and this root's name — 19's pill read `Home` from every one of its doors,
   # and none of them is Home.
@@ -1248,9 +1248,13 @@ defmodule Kati.Screens.Calendar do
       # drawn day — pushes with no params at all rather than with `%{id: nil}`:
       # a destination that pattern-matches on the key would then take a nil for
       # an answer, and the sample fallback is the branch that has to survive.
-      "row_" <> rest ->
-        {kind, id} = split_row(rest)
-        {:noreply, open_row(socket, Map.fetch!(@row_screens, kind), id)}
+      #
+      # The routing itself is `open_timeline_row/3` and is public, because this
+      # is not the only screen that draws these rows — see its own doc. The day
+      # it passes is the day the strip is on, which is what this branch has
+      # always used and is the whole of what changed here.
+      "row_" <> _rest ->
+        {:noreply, Kati.Screens.Calendar.open_timeline_row(socket, tag, socket.assigns.date)}
 
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
@@ -1341,17 +1345,41 @@ defmodule Kati.Screens.Calendar do
   # tapped event's uuid named nothing either of them could look up — it was
   # thrown away on arrival and the page opened on its own fixture's day. 08 and
   # 31 are the other way round and keep the id.
-  #
-  # The date is `assigns.date`, the day the strip is on — the same value the
-  # `day_` branch above hands screen 09 — so a meals row opened from a Tuesday
-  # opens Tuesday's page rather than the drawing's Monday.
   @day_screens [Kati.Screens.MealsDay, Kati.Screens.MoneyDay]
 
-  defp open_row(socket, module, _id) when module in @day_screens,
-    do: Mob.Socket.push_screen(socket, module, %{date: socket.assigns.date})
+  @doc """
+  Open the screen a timeline-row tag names, for a row drawn on `date`.
 
-  defp open_row(socket, module, nil), do: Mob.Socket.push_screen(socket, module)
-  defp open_row(socket, module, id), do: Mob.Socket.push_screen(socket, module, %{id: id})
+  Public because this screen is not the only one that draws these rows. Screen
+  01's *Rest of today* card and screen 56's timeline are the same
+  `Kati.Calendars.Today` shape carrying the same `tag/1`, and the mapping from
+  a row's kind to a screen is a fact about the app rather than about this page.
+  Restating it per screen is how `kind/1` came to be derived twice and disagree
+  with itself — the defect that doc spends a section on — and a second copy of
+  `@row_screens` is that same shape one level up.
+
+  `date` is a parameter rather than a read off `socket.assigns`: the two other
+  callers have no day strip, so their day is today, and this screen's is
+  whichever day the strip is on. Passing it makes the difference the caller's
+  to state and keeps `%{date: …}` honest on both.
+
+  The split between the two push shapes is `@day_screens`': 52 and 126 title
+  themselves with a date and read no id, so they take the day; 08 and 31 are
+  about the row and take its id. A row with no id — the drawn day — pushes with
+  no params at all, which is what keeps each destination's sample reachable.
+  """
+  @spec open_timeline_row(Mob.Socket.t(), atom(), Date.t()) :: Mob.Socket.t()
+  def open_timeline_row(socket, tag, date) do
+    {kind, id} = tag |> Atom.to_string() |> String.replace_prefix("row_", "") |> split_row()
+
+    open_row(socket, Map.fetch!(@row_screens, kind), id, date)
+  end
+
+  defp open_row(socket, module, _id, date) when module in @day_screens,
+    do: Mob.Socket.push_screen(socket, module, %{date: date})
+
+  defp open_row(socket, module, nil, _date), do: Mob.Socket.push_screen(socket, module)
+  defp open_row(socket, module, id, _date), do: Mob.Socket.push_screen(socket, module, %{id: id})
 
   # Close the menu, then go. The socket this returns is what `Mob.Screen` saves
   # onto the nav history, so a menu left open is a menu that reopens itself

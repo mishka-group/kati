@@ -976,6 +976,7 @@ defmodule Kati.Screens.Day do
     pad_h = if split?, do: 12, else: 13
     title_size = if split?, do: 12.5, else: 13
     meta_gap = if split?, do: 4, else: 3
+    tap = Kati.Screens.Day.card_tap(event)
 
     ~MOB"""
     <Box weight={weight}>
@@ -989,6 +990,7 @@ defmodule Kati.Screens.Day do
         padding_top={pad_v}
         padding_bottom={pad_v}
         align="center"
+        on_tap={tap}
       >
         {Kati.Screens.Day.kind_rail(event, split?, meta)}
         {Kati.Screens.Day.leading_state(event)}
@@ -1524,6 +1526,29 @@ defmodule Kati.Screens.Day do
     :io_lib.format("~2..0B:~2..0B", [div(minutes, 60), rem(minutes, 60)]) |> to_string()
   end
 
+  @doc """
+  The tag a timeline card carries: `event_<occurrence id>`, or none.
+
+  An atom rather than a tuple, for `Kati.Screens.Calendar.tag/1`'s reason —
+  `Mob.Renderer` derives an `accessibility_id` only from an atom, so a
+  tuple-tagged card fires on device and is invisible to every sweep and unnamed
+  to a screen reader.
+
+  `nil` for anything whose id is not a scalar. `Kati.Calendar.Layout` keys a
+  collapsed occurrence `{:collapsed, kind, [ids]}`, which is not a name; that
+  cluster is drawn by `grouped_card/2` and carries the cluster's own
+  `group_<minute>` tag instead.
+
+  The whole card is the target. The ring inside a todo row keeps its own
+  `todo_<id>` and wins for its own 24pt, which is the split
+  `grouped_card/2` already makes between a card and the disc on it.
+  """
+  @spec card_tap(map()) :: {pid(), atom()} | nil
+  def card_tap(%{id: id}) when is_binary(id) or is_integer(id),
+    do: {self(), String.to_atom("event_" <> to_string(id))}
+
+  def card_tap(_event), do: nil
+
   # One clause for all three chips: the tag carries the label, so a fourth kind
   # is a change to `SampleDay.chips/0` and to `bucket/1`, not to this.
   #
@@ -1533,6 +1558,26 @@ defmodule Kati.Screens.Day do
   @impl true
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
+      # The card opens the event it is about. `Kati.Calendars.Today.occurrences/1`
+      # has carried `:id` since it was written — `Kati.Calendar.Layout` cannot
+      # lane rows it cannot tell apart — so the handle was already on every row
+      # and only the wire was missing. Board 31 draws *Design review*,
+      # *Thu 20 Aug*, *09:30 – 10:30* and *Overlaps Standup by 15 min*, which is
+      # this day's 09:30 pair: 31 is drawn as the page one of these cards opens.
+      #
+      # The id is passed on EVERY branch, including the drawn day, whose
+      # occurrences `Kati.Calendar.SampleDay` numbers 1..11 for the layout
+      # engine's benefit. Those are not `Kati.Calendars.Event` keys and screen
+      # 31 will not find them — which is the branch its own `stored/1` is built
+      # around: *"an id that names nothing stored falls back to the drawing"*.
+      # Pushing bare instead would take the same branch by a different door and
+      # would make every card on the drawn day a push into a params reader
+      # carrying nothing, which is the shape `Kati.ScreenParamsSweepTest`'s
+      # `@bare_pushes` exists to hold and this is not an instance of: the tap
+      # genuinely knows which row it is.
+      "event_" <> id ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
+
       "filter_" <> label ->
         filter = if socket.assigns.filter == label, do: nil, else: label
         {:noreply, Mob.Socket.assign(socket, :filter, filter)}

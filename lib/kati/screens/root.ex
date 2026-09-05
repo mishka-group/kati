@@ -216,11 +216,25 @@ defmodule Kati.Screens.Root do
         case Atom.to_string(tag) do
           "root_" <> id ->
             target = String.to_existing_atom(id)
+            screen = Kati.Shell.screen_for(target)
 
-            if target == @root do
+            # The test used to be `target == @root`, and that made the tab dead
+            # on every root screen that is not its root's own page. Screens 16,
+            # 17 and 30 all declare `root: :calendar` and are PUSHED over 02 by
+            # `Kati.Screens.ViewSwitcher`, so the Calendar tab resolved to "you
+            # are already here" on three pages the Schedule could not be reached
+            # from at all — they draw a dock rather than a back pill, so the OS
+            # gesture was the only way home. 20/21 under Library and 139 under
+            # Home are the same shape one root over.
+            #
+            # Comparing the SCREEN keeps the no-op exactly where it belongs —
+            # the root's own page, where re-entering the root you are on would
+            # throw away the scroll position for nothing — and makes the tab a
+            # way home everywhere else.
+            if screen == __MODULE__ do
               {:noreply, socket}
             else
-              {:noreply, Mob.Socket.reset_to(socket, Kati.Shell.screen_for(target))}
+              {:noreply, Mob.Socket.reset_to(socket, screen)}
             end
 
           _ ->

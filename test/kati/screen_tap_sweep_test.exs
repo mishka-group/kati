@@ -283,7 +283,18 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealSwap, :swap_once},
     {Kati.Screens.MealSwap, :swap_forever},
     {Kati.Screens.MealsToday, :mark_eaten},
+    # Screen 05's **Mark all**, which joined this group the round it was wired.
+    # It writes one tick per row in `out_now` and re-reads; on the empty store
+    # this sweep mounts against there are no rows, so the write set is empty
+    # and the re-read answers the drawing again. Its own moduledoc says the
+    # gesture is defined that way — *a row that cannot be ticked is a row that
+    # was never in the set* — so an empty inbox is the smallest case of that,
+    # not a failure of it.
+    {Kati.Screens.Inbox, :mark_all},
     {Kati.Screens.Search, :clear},
+    # Screen 06's clear disc, for screen 19's reason one line up: the field it
+    # empties is already empty on a bare mount.
+    {Kati.Screens.AddTitle, :clear},
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
     {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},
     # The same two, in the mirror. Their tags are positional rather than
@@ -296,7 +307,7 @@ defmodule Kati.ScreenTapSweepTest do
     # field is visible. The resting member of a family again, three times.
     {Kati.Screens.AddByHandDark, :kind_Series},
     {Kati.Screens.AddByHandDark, :"status_Not started"},
-    {Kati.Screens.AddByHandFa, :"kind_سریال"},
+    {Kati.Screens.AddByHandFa, :kind_سریال},
     {Kati.Screens.AddByHandFa, :"status_شروع نشده"},
     {Kati.Screens.AddByHand, :"status_Not started"},
     {Kati.Screens.LanguagePick, :choose_en},
@@ -316,6 +327,9 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Discover, :"filter_For you"},
     {Kati.Screens.EventDetail, :section_Work},
     {Kati.Screens.Library, :filter_All},
+    # Screen 20's, which joined the day its chip rail was wired: `All` is the
+    # chip `load/1` opens on, so tapping it re-selects what is selected.
+    {Kati.Screens.Books, :filter_All},
     # Screen 70's unit segments. `Page` is the one the sheet opens on, so
     # tapping it sets the unit it already has; `unit_percent` and
     # `unit_minutes` both move, which is what proves the family is wired.
@@ -691,15 +705,20 @@ defmodule Kati.ScreenTapSweepTest do
     # `handle_info(_message, socket)` one), which is why `handle_tap/2 answers
     # every tag its screen draws` cannot see them. Delete a line as you wire it.
     {Kati.Screens.Activity, :open_filters},
-    {Kati.Screens.Books, :open_sort},
+    # (The four `:open_sort` discs were here — screens 03, 20, 21 and 57. Board
+    # 145 is captioned *One sheet for screens 03, 20 and 21* and has been in
+    # `test/design/screens/` since the shelf wave, so the reason on file —
+    # `books.ex:642`'s *no board in the 165 draws a sort sheet for any shelf* —
+    # had outlived itself. All four now push `Kati.Screens.ShelfFilters`, and
+    # all four push it BARE: `shelf_filters.ex:79` discards params, so a
+    # `%{shelf: …}` would be an argument nobody reads. Struck together, because
+    # three of four would be the inconsistency the sheet's own caption names.)
     {Kati.Screens.Health, :open_filters},
     # (`{Kati.Screens.Home, :open_calendar}` was here. #91 wired it: screen
     # 139's *Today* row carries the same tag as screen 01's header disc, and a
     # page borrowed from `Kati.Screens.HomeEmpty` could not ship with it still
     # dead. Struck off as this list's own header asks.)
     {Kati.Screens.Language, :add_language},
-    {Kati.Screens.Library, :open_sort},
-    {Kati.Screens.LibraryFa, :open_sort},
     # Screen 43's **Done prepping**. `Kati.Meals.Recipe` stores a method, a
     # duration and an oven temperature, and nothing anywhere records that a
     # prep was DONE — screen 43's own moduledoc says the card stays on
@@ -709,7 +728,6 @@ defmodule Kati.ScreenTapSweepTest do
     # what this list exists to prevent.
     {Kati.Screens.MealsToday, :done_prepping},
     {Kati.Screens.Meal, :more},
-    {Kati.Screens.Music, :open_sort},
     {Kati.Screens.Nutrition, :share},
     {Kati.Screens.Rating, :add_tag},
     {Kati.Screens.ScheduleFa, :open_menu},

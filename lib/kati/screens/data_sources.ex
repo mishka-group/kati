@@ -170,9 +170,9 @@ defmodule Kati.Screens.DataSources do
       ])}
       <Spacer size={12} />
       <Row fill_width={true}>
-        {Kati.UI.chip("Use Kati’s key", selected: choice == :kati)}
+        {Kati.Screens.DataSources.key_chip("Use Kati’s key", :key_kati, choice == :kati)}
         <Spacer size={7} />
-        {Kati.UI.chip("Use my own key", selected: choice == :own)}
+        {Kati.Screens.DataSources.key_chip("Use my own key", :key_own, choice == :own)}
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={12} />
@@ -181,6 +181,37 @@ defmodule Kati.Screens.DataSources do
     </Column>
     """
   end
+
+  @doc """
+  One of the two TMDB key chips.
+
+  Both were decoration until this round: `Kati.UI.chip/2` reads `:on_toggle`
+  out of its opts and emits no tap at all without one, so the page drew a
+  choice it could not be told. The destination is not invented — the Persian
+  mirror of this exact card has answered `:key_kati` and `:key_own` through
+  `Kati.Sources.put_tmdb_key/1` since screen 82 landed
+  (`Kati.Screens.DataSourcesFa`), and this is the half of a mirrored pair that
+  was never connected.
+
+  **The chip in force carries no tag**, which is the one place this diverges
+  from 82. It is the shape `Kati.Screens.Settings.segment/2` keeps for the
+  theme trough one screen up — *only the unselected tiles are choices* — and
+  the reason is the same: this is an exclusive pair, not a filter family, so
+  tapping the chip that is already lit can only set the value it already has.
+  Drawing a tag for that is drawing a control that answers nothing, which is
+  what `Kati.ScreenTapSweepTest`'s `no new dead-looking taps` reports and what
+  `@inert_taps` then has to carry a line about. 82 pays that line
+  (`{Kati.Screens.DataSourcesFa, :key_kati}`); this page does not have to.
+
+  Nothing visible moves either way: a chip's pill and label are the component's
+  and do not depend on `:on_toggle`. What the unselected chip gains is an
+  `accessibility_id` — `key_kati` or `key_own`, each unique on screen 80.
+  """
+  @spec key_chip(String.t(), atom(), boolean()) :: term()
+  def key_chip(label, _tag, true), do: Kati.UI.chip(label, selected: true)
+
+  def key_chip(label, tag, false),
+    do: Kati.UI.chip(label, selected: false, on_toggle: {self(), tag})
 
   @doc """
   The three you can connect, one of them expanded if you tapped it.
@@ -514,12 +545,50 @@ defmodule Kati.Screens.DataSources do
     {:noreply, Mob.Socket.assign(socket, :expanded, nil)}
   end
 
+  # Store first, then relight the chip — the same order screen 24's theme
+  # trough keeps, and for the same reason: the chip and `Sources.tmdb_key/0`
+  # are one fact drawn twice and must not be able to disagree. Byte for byte
+  # what `Kati.Screens.DataSourcesFa` has answered since screen 82 landed.
+  #
+  # Both clauses stay even though `key_chip/3` only ever draws the tag for the
+  # chip that is NOT in force. A handler that exists for a tag the resting
+  # screen does not draw costs nothing; a tag drawn on some other state with no
+  # handler behind it is the defect this whole round is about.
+  def handle_tap(:key_kati, socket) do
+    Sources.put_tmdb_key(:kati)
+    {:noreply, Mob.Socket.assign(socket, :tmdb, :kati)}
+  end
+
+  def handle_tap(:key_own, socket) do
+    Sources.put_tmdb_key(:own)
+    {:noreply, Mob.Socket.assign(socket, :tmdb, :own)}
+  end
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "connect_" <> id ->
         source = String.to_existing_atom(id)
-        now = if socket.assigns.expanded == source, do: nil, else: source
-        {:noreply, Mob.Socket.assign(socket, :expanded, now)}
+
+        # One tag, two rows, because `tier2_row/2` puts it on every row whatever
+        # its state — and the row's own trailing control already says which of
+        # the two it is. A connected row draws `Disconnect`
+        # (`connect_control/2`'s first clause), and expanding a pairing card
+        # underneath it was the control doing the opposite of what it read:
+        # there is nothing to pair, the token is already there. `tier2/1`'s doc
+        # states the intent outright — connected "offers `Disconnect` — which is
+        # the whole reason only revocable-token providers are on this list" —
+        # and 80.html draws the word twice.
+        #
+        # Collapses to `nil` rather than leaving `:expanded` alone: the row is
+        # about to redraw as a disconnected one, and leaving it expanded would
+        # spring a pairing card open on a tap that meant to close an account.
+        if Sources.connected?(source) do
+          Sources.disconnect(source)
+          {:noreply, Mob.Socket.assign(socket, :expanded, nil)}
+        else
+          now = if socket.assigns.expanded == source, do: nil, else: source
+          {:noreply, Mob.Socket.assign(socket, :expanded, now)}
+        end
 
       _other ->
         {:noreply, socket}

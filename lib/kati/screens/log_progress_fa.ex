@@ -46,10 +46,18 @@ defmodule Kati.Screens.LogProgressFa do
   def mount(params, _session, socket) do
     Kati.Theme.activate()
 
+    # The id is kept and not only spent on `sheet/1`. It arrives —
+    # `Kati.Screens.BookDetailFa` pushes `%{book_id: id}` — and the session this
+    # sheet writes has to land on the book it drew, which is the whole of #84
+    # and the reason `Kati.Screens.LogProgress.mount/3` keeps its own.
+    id = Map.get(params || %{}, :book_id)
+
     {:ok,
      socket
-     |> Mob.Socket.assign(:sheet, sheet(Map.get(params || %{}, :book_id)))
+     |> Mob.Socket.assign(:book_id, id)
+     |> Mob.Socket.assign(:sheet, sheet(id))
      |> Mob.Socket.assign(:unit, :unit_page)
+     |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:page, 260)}
   end
 
@@ -415,7 +423,33 @@ defmodule Kati.Screens.LogProgressFa do
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
-  def handle_info({:tap, :save}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  # The Persian mirror of screen 70's Save, and the same write — not a second
+  # one. `Kati.Screens.LogProgress.save_session/2` is public for the reason
+  # `finish_book/1` beside it is: two copies of "what logging a session means"
+  # would be two things to keep in step, and `Kati.Screens.BookDetailFa` already
+  # hands `Kati.Screens.LogProgress.params_for/1` the same job for the push.
+  #
+  # This used to pop and write nothing, which is the failure `Kati.Write` exists
+  # for, in its worst form: the sheet closed exactly as if the session had
+  # landed, and on a fresh install the page behind redraws its fixture either
+  # way, so a Persian reader's session vanished with nothing anywhere saying so.
+  # The sheet now closes because the session is stored.
+  #
+  # The failure is kept and not drawn. `Kati.Write.message/1` answers in English
+  # and this sheet is Vazirmatn throughout — a Persian error line is copy board
+  # 72's caption calls a proposal, and it belongs in `Kati.Books.SampleFa`
+  # beside the rest rather than being invented in a handler. What the failure
+  # buys today is the half that matters most: the sheet stays open and the page
+  # you stepped to is still there.
+  def handle_info({:tap, :save}, socket) do
+    case Kati.Screens.LogProgress.save_session(socket.assigns.page, socket.assigns.book_id) do
+      {:ok, _session} ->
+        {:noreply, socket |> Mob.Socket.assign(:save_error, nil) |> Mob.Socket.pop_screen()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}
+    end
+  end
 
   def handle_info({:tap, unit}, socket) when unit in [:unit_page, :unit_percent, :unit_minutes],
     do: {:noreply, Mob.Socket.assign(socket, :unit, unit)}

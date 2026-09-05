@@ -32,10 +32,13 @@ defmodule Kati.Screens.Search do
   them: it is a shortcut into a new search, not a result, and hiding the user's
   own history because they filtered to Calendar would be an odd punishment.
 
-  A recent chip fills to show it is picked and stops there. Writing it into the
-  field would leave six hits for `hollow` sitting under a query that says
-  `dentist`, and until an index exists the screen cannot answer the new
-  question — so it does not pretend to have been asked.
+  A recent chip fills to show it is picked **and runs**. It did neither for a
+  while, and the reason it gave was conditional rather than permanent: writing
+  the word into the field would have left six hits for `hollow` sitting under a
+  query that said `dentist`, because until an index existed the screen could
+  not answer the new question. `Kati.Search.Query.run/1` is that index and this
+  screen already re-runs it on every keystroke, so the field and the hits move
+  together — which is the whole of what the old reasoning was protecting.
 
   ## Not `Kati.Screens.Pushed`
 
@@ -344,18 +347,53 @@ defmodule Kati.Screens.Search do
      |> Mob.Socket.assign(:results, Kati.Search.Query.run(""))}
   end
 
-  # One clause for every chip on the screen: the tag carries the label, so a
-  # fifth filter or a fifth recent search is a change to the sample, not here.
+  # One clause per PREFIX rather than per control: the tag carries the label,
+  # the event or the title, so a fifth filter, a fifth recent search or a
+  # seventh hit is a change to the result set and not to this case.
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
 
-      # A second tap on the same recent search puts it back — the shelf is a
-      # shortcut, not a mode, so there has to be a way out of it.
+      # A Calendar hit, by its own event. Screen 31 answers an id that names
+      # nothing with its own drawing rather than a crash, which is what makes
+      # a row deleted on another device a page instead of a dead letter.
+      "event_" <> id ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
+
+      # A Screen hit, by its own title — `hit_tag/1`, resolved against the very
+      # list the group was drawn from, which is `Kati.Screens.Library`'s rule
+      # for the identical two prefixes.
+      "open_film_" <> _title ->
+        {:noreply, Kati.Screens.Search.open_hit(socket, tag, Kati.Screens.Film)}
+
+      "open_series_" <> _title ->
+        {:noreply, Kati.Screens.Search.open_hit(socket, tag, Kati.Screens.Series)}
+
+      # The shelf is a shortcut INTO a query, which is what screen 86's own
+      # recent rows are — `Kati.Screens.SearchIdle.open/2` opens this page on
+      # the line that was tapped. Here the page is already open, so the query
+      # is re-run in place.
+      #
+      # This used to fill the chip and stop, and the comment by `recent_chip/2`
+      # said why: "until an index exists the screen cannot answer the new
+      # question". `Kati.Search.Query.run/1` is that index, and
+      # `handle_info({:change, :query, …})` above already re-runs it on every
+      # keystroke — so the field and the hits move together, which is the exact
+      # thing that reasoning was protecting.
+      #
+      # Remembered as well as run, for the reason typing is: the shelf is the
+      # last eight queries you actually made, and one you reached for by name
+      # is one of them.
       "recent_" <> label ->
-        picked = if socket.assigns.recent == label, do: nil, else: label
-        {:noreply, Mob.Socket.assign(socket, :recent, picked)}
+        Kati.Search.Recent.remember(label)
+
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:query, label)
+         |> Mob.Socket.assign(:results, Kati.Search.Query.run(label))
+         |> Mob.Socket.assign(:recent, label)
+         |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
 
       _other ->
         {:noreply, socket}
@@ -363,6 +401,26 @@ defmodule Kati.Screens.Search do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  Open `module` on the hit that carries `tag`.
+
+  `Kati.Screens.Library.open_tile/3`'s rule again, over this screen's own
+  group: the tag is resolved by re-running `hit_tag/1` over `results.titles`
+  rather than by reversing the string, and a hit with no id pushes with **no
+  params at all**. A cached title nobody keeps is a real hit — it matched —
+  and there is no shelf row for it to open, so the destination draws its own
+  branch rather than being handed a `nil` to take for an answer.
+  """
+  @spec open_hit(Mob.Socket.t(), atom(), module()) :: Mob.Socket.t()
+  def open_hit(socket, tag, module) do
+    row = Enum.find(socket.assigns.results.titles, &(Kati.Screens.Search.hit_tag(&1) == tag))
+
+    case row && Map.get(row, :id) do
+      nil -> Mob.Socket.push_screen(socket, module)
+      id -> Mob.Socket.push_screen(socket, module, %{id: id})
+    end
+  end
 
   # A Row, not a Box: the pill hugs its label and the drawing's asymmetric
   # `padding:0 16px 0 12px` keeps the chevron optically centred against text
@@ -762,8 +820,40 @@ defmodule Kati.Screens.Search do
     """
   end
 
+  @doc """
+  One hit's tag, or `nil` for a hit with nowhere to go.
+
+  The title, because a hit IS its title on this card and two nodes cannot share
+  an `accessibility_id` — the same identity `Kati.Screens.Library.poster_tag/1`
+  picks, and refused for the same reason: reversing the string is a guess, so
+  the tag is resolved by re-running this function over the list the group was
+  built from.
+
+  `nil` for a book and for the drawing's own rows. A book has no destination
+  that reads an id (`Kati.Screens.BookDetail.load/1` discards params), and
+  `nil` is what `Kati.ScreenTapSweepTest` documents as "not tappable" rather
+  than "broken".
+
+      iex> Kati.Screens.Search.hit_tag(%{kind: :series, title: "The Long Hollow"})
+      :open_series_The_Long_Hollow
+
+      iex> Kati.Screens.Search.hit_tag(%{kind: :book, title: "Estuary"})
+      nil
+  """
+  @spec hit_tag(map()) :: atom() | nil
+  def hit_tag(row) do
+    case Map.get(row, :kind) do
+      :film -> Kati.Screens.Library.poster_tag(row)
+      :series -> Kati.Screens.Library.poster_tag(row)
+      _no_door -> nil
+    end
+  end
+
   @doc false
   def title_row(row) do
+    tag = Kati.Screens.Search.hit_tag(row)
+    tap = tag && {self(), tag}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -776,6 +866,7 @@ defmodule Kati.Screens.Search do
         padding_top={10}
         padding_bottom={10}
         align="center"
+        on_tap={tap}
       >
         {Kati.Screens.Search.thumb(row)}
         <Spacer size={12} />
@@ -838,9 +929,21 @@ defmodule Kati.Screens.Search do
 
   @doc false
   def calendar_row(row, rule?) do
+    # `event_<id>` rather than `row_<kind>_<id>`: every hit in this group is a
+    # `Kati.Calendars.Event` and there is no kind to route on — screen 19 draws
+    # one Calendar group, not screen 02's four. A row with no id is the
+    # drawing's and carries no tap.
+    tap = Map.get(row, :id) && {self(), String.to_atom("event_" <> to_string(row.id))}
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
+      <Row
+        fill_width={true}
+        align="center"
+        padding_top={13}
+        padding_bottom={13}
+        on_tap={tap}
+      >
         <Column width={44}>
           <Text
             text={row.date}
@@ -1016,9 +1119,11 @@ defmodule Kati.Screens.Search do
   end
 
   # Picking a recent search fills the chip the way the filter chips fill —
-  # ink, paper text, the clock at .6 of it. It does not rewrite the query,
-  # because the hits below still describe "hollow" and a field that said
-  # "dentist" over them would be the screen lying about its own results.
+  # ink, paper text, the clock at .6 of it. It now rewrites the query and
+  # re-runs it: the objection this comment used to carry — that the hits below
+  # still describe "hollow" and a field saying "dentist" over them would be the
+  # screen lying about its own results — is answered by moving both, which is
+  # what `handle_info({:tap, "recent_" <> label})` does.
   @doc false
   def recent_chip(label, on?) do
     tap = {self(), String.to_atom("recent_" <> label)}

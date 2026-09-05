@@ -536,6 +536,27 @@ defmodule Kati.Screens.Music do
     do:
       {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Music"})}
 
+  # The sort disc, and the sheet it was drawn for. Board 145 is titled **Sort &
+  # filter** and its caption is explicit: *one sheet for screens 03, 20 and 21 —
+  # three sheets would end the "identical parts" claim within a release.* This
+  # screen is 21, and the trailing header disc beside search is the door that
+  # caption describes. `Kati.Screens.ShelfFilters` is finished, registered at
+  # `gallery.ex:184` as `:push`, and `Kati.Screens.Library` already pushes it
+  # (`library.ex:1246-1251`) — from a ⋯ menu row, which 03 grew only because no
+  # shelf had claimed its disc yet.
+  #
+  # **Bare, and that is the sheet's limit rather than a forgotten argument.**
+  # 145's caption ends *only the section-specific sort label changes: Runtime,
+  # Pages, Length*, and Length is this screen's — but
+  # `Kati.Screens.ShelfFilters.mount/3` matches `_params` and its five sort rows
+  # come from `Kati.Library.ShelfFiltersSample.sort_options/0`, where `Runtime`
+  # is a literal. There is no key to name a shelf in, and writing one the sheet
+  # does not read is an argument nobody can check. When 145 learns which shelf
+  # opened it, this push gains its third argument and
+  # `Kati.ScreenParamsSweepTest` starts holding it to it.
+  def handle_tap(:open_sort, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
+
   # Every album tile and every release row, by its own seed — see `album_tag/1`
   # and `artist_tag/1`. They open the same two screens the bare tags did:
   # neither `Kati.Screens.AlbumDetail` nor `Kati.Screens.ArtistDetail` takes an

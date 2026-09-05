@@ -183,6 +183,59 @@ defmodule Kati.Screens.Season do
   @impl true
   def load(socket), do: Mob.Socket.assign(socket, :season, season(socket.assigns.params))
 
+  # Screen 34's first tag. `Kati.Screens.Pushed` deliberately defines no
+  # `handle_tap/2` — its moduledoc says why — so this screen had none, because
+  # until now it drew no control at all: the order strip and the two switches
+  # are pictures (see the moduledoc), and the episode rows were pictures of
+  # screen 04's rows.
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "episode_" <> index -> {:noreply, Kati.Screens.Season.tick(socket, index)}
+      _other -> {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Tick or untick one episode of the season on screen, and write it.
+
+  `Kati.Screens.Series.write_tick/2` and not a second writer: what a tick IS —
+  a `Kati.Media.Watch` row that exists, destroyed rather than contradicted on
+  the way back — is `Kati.Media.Watch`'s own rule, and two screens holding two
+  copies of it is how they come to disagree. This screen and screen 04 tick the
+  same episodes; they must tick them the same way.
+
+  The screen follows the store rather than leading it: the assign flips only
+  after the write answers `:ok`, so a refused write leaves the ring where it
+  was instead of showing a state the database does not hold.
+
+  A season with no `:tracked_id` — the drawing's, which is what a fresh install
+  and every sweep renders — writes nothing and says so. That is the same
+  all-or-nothing gate `season/1` already applies to the list itself: there is no
+  episode row behind `Kati.Season.Sample`, so there is nothing to tick.
+  """
+  @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def tick(socket, index) do
+    s = socket.assigns.season
+    position = String.to_integer(index)
+    episode = Enum.at(s.episodes, position)
+
+    case Kati.Screens.Series.write_tick(Map.get(s, :tracked_id), episode) do
+      :ok ->
+        flip = fn ep -> %{ep | watched: not ep.watched} end
+
+        socket
+        |> Mob.Socket.assign(
+          :season,
+          %{s | episodes: List.update_at(s.episodes, position, flip)}
+        )
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+    end
+  end
+
   @doc """
   The season this screen draws: the user's, or the drawing's.
 
@@ -354,6 +407,7 @@ defmodule Kati.Screens.Season do
         episodes: rows,
         note: @general_note
     }
+    |> Map.put(:tracked_id, tracked.id)
   end
 
   # One read, by the triple `Kati.Media.CachedSeason` is keyed on. `nil` is the
@@ -385,11 +439,24 @@ defmodule Kati.Screens.Season do
   # one column rather than being decided twice.
   defp row(%CachedEpisode{} = episode, ticked) do
     %{
+      # What a tick is written against. `Kati.Media.Watch` names an episode by
+      # `episode_source_id` and nothing else, and this row carried the NUMBER —
+      # which is the one thing this screen's own footnote says a tick must not
+      # follow.
+      source_id: episode.source_id,
       number: number_label(episode),
       title: title_of(episode),
       sub: sub_line(episode),
       watched: CachedEpisode.ticked?(episode, ticked),
       special: episode.special,
+      # `airing != :upcoming`, which is `Kati.Screens.Series.episode_row/2`'s
+      # rule and its comment: `Kati.Media.Release.airing/2`'s `:unknown` is
+      # grouped with `:aired`, because withholding the tick is a claim the user
+      # has not seen it, and the thing Kati does not know is when it went out.
+      # `air_prefix/1` has already resolved this episode once; resolving it a
+      # second time here rather than threading the value through keeps the two
+      # readings of `Release` beside the two things they decide.
+      aired: Release.airing(Release.air(episode), Kati.Time.now()) != :upcoming,
       badge: badge_for(episode)
     }
   end
@@ -575,11 +642,19 @@ defmodule Kati.Screens.Season do
     """
   end
 
+  # The tag carries the row's POSITION in the list, not its number — the same
+  # move, for the same reason, as `Kati.Screens.Series.episodes/1`: this screen
+  # renumbers the same episodes under three schemes and `number_label/1` answers
+  # `""` for a special a source never placed, so the number is a label and never
+  # an identity. `:index` goes onto the row rather than into a second argument
+  # so `episode/1` keeps the arity it has.
   @doc false
   def episodes(s) do
+    rows = s.episodes |> Enum.with_index() |> Enum.map(fn {ep, i} -> Map.put(ep, :index, i) end)
+
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(s.episodes, fn ep -> Kati.Screens.Season.episode(ep) end)}
+      {Enum.map(rows, fn ep -> Kati.Screens.Season.episode(ep) end)}
     </Column>
     """
   end
@@ -593,9 +668,22 @@ defmodule Kati.Screens.Season do
     number_color =
       if Map.get(ep, :special, false), do: Palette.gold_icon(), else: Palette.tertiary()
 
+    # An episode that has not aired cannot be marked watched, so it gets no tap
+    # at all rather than a tap that silently does nothing — the rule
+    # `Kati.Screens.Series.episode/1` keeps one screen over. A row that reached
+    # here without going through `episodes/1` has no position to name and gets
+    # none either. The check disc is unchanged in both cases: board 34 draws two
+    # ring states and not three, and E6 and E7 are drawn the same, so this
+    # screen does not gain a visual distinction the drawing declines to make.
+    tap =
+      case {Map.get(ep, :aired, true), Map.get(ep, :index)} do
+        {true, i} when is_integer(i) -> {self(), String.to_atom("episode_#{i}")}
+        _unaired_or_unplaced -> nil
+      end
+
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.Season.episode_row(ep, bg, title_color, number_color, watched?)}
+      {Kati.Screens.Season.episode_row(ep, bg, title_color, number_color, watched?, tap)}
       <Spacer size={8} />
     </Column>
     """
@@ -605,11 +693,20 @@ defmodule Kati.Screens.Season do
   # row sits flat in the paper and an unaired one is lifted off it — that is
   # the difference the drawing uses to say "there is still something to do
   # here", and a nil shadow prop would quietly flatten both.
+  #
+  # The tap goes on the whole Row and not on the check disc: a card whose ring
+  # is tappable and whose title is not reads as two controls.
+  # `Kati.Screens.Series.episode/1` puts it in the same place, and
+  # `nil` is the legal "not tappable" value `Kati.ScreenSweep.tap_tags/1`
+  # documents. The sixth argument is defaulted so `episode_row/5` still answers.
   @doc false
-  def episode_row(ep, bg, title_color, number_color, true) do
+  def episode_row(ep, bg, title_color, number_color, watched?, tap \\ nil)
+
+  def episode_row(ep, bg, title_color, number_color, true, tap) do
     ~MOB"""
     <Row
       fill_width={true}
+      on_tap={tap}
       background={bg}
       corner_radius={17}
       padding_left={15}
@@ -624,10 +721,11 @@ defmodule Kati.Screens.Season do
     """
   end
 
-  def episode_row(ep, bg, title_color, number_color, false) do
+  def episode_row(ep, bg, title_color, number_color, false, tap) do
     ~MOB"""
     <Row
       fill_width={true}
+      on_tap={tap}
       background={bg}
       corner_radius={17}
       shadow={Kati.Theme.shadow_card_soft()}

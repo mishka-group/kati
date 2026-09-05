@@ -621,6 +621,47 @@ defmodule Kati.Screens.Account do
   end
 
   @doc """
+  Raise the OS dialog for the permission row at `index`.
+
+  Only where Android will still show it. `Kati.Permissions.affordance/1`
+  answers `:settings` for a permanently refused permission and
+  `permission_rows/1` already draws that row a *Settings* pill instead of an
+  *Allow* one — and nothing launches a system-settings intent, the same wall
+  `Kati.Screens.NotificationsHelp` states. So that row stays a row that says
+  where to go rather than a button that silently does nothing, which is the
+  distinction this screen's own permission group was built around.
+
+  `Kati.Permissions.note_asked/1` runs BEFORE the request, for
+  `Kati.Screens.PickSections.ask_for_calendar/1`'s reason:
+  `Mob.Permissions.request/2` raises where there is no bridge, and a note
+  written after it never runs — losing the record exactly where it is easiest
+  to lose. That record is what tells `:unasked` from `:blocked`.
+
+  Nothing is assigned. The answer arrives as `{:permission, capability, _}`,
+  the rows are read from the platform on every render, and the shell's
+  generated `handle_info(_message, socket)` catch-all is what receives it — a
+  re-render off the current status rather than a remembered boolean, which is
+  `Kati.Permissions`' whole argument.
+  """
+  @spec ask(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def ask(socket, index) do
+    row = Enum.at(socket.assigns.account.permissions, String.to_integer(index))
+
+    case row && Kati.Permissions.affordance(Kati.Permissions.status(row.capability)) do
+      :allow ->
+        Kati.Permissions.note_asked(row.capability)
+        Mob.Permissions.request(socket, row.capability)
+
+      _other ->
+        socket
+    end
+  rescue
+    # The host has no OS to answer, and `request/2` raises there. Screen 40 is
+    # rendered by four sweeps on a laptop; a raising tap would fail them all.
+    _error -> socket
+  end
+
+  @doc """
   What one row becomes when it is tapped.
 
   Granting a never-asked permission turns the pill into the switch the drawing
@@ -659,9 +700,20 @@ defmodule Kati.Screens.Account do
     a = socket.assigns.account
 
     case Atom.to_string(tag) do
+      # The Allow pill, which until now flipped a `Kati.Account.Sample` row that
+      # `permission_rows/1` then threw away: that function rebuilds every row
+      # from `Kati.Permissions.status/1` on each render and keeps none of the
+      # `:pill`/`:toggle` the flip wrote, so the only control on this page that
+      # is supposed to change what Kati may do changed nothing at all — not the
+      # OS, and not even the picture of the OS.
+      #
+      # The call is `Kati.Screens.PickSections.ask_for_calendar/1`'s, which has
+      # made it since #82. This matters more than one row: screen 02's
+      # locked-out card sends a user who declined during onboarding here and
+      # nowhere else, so with this dead there was no way back into the calendar
+      # at all.
       "perm_" <> i ->
-        rows = Kati.Screens.Account.flip(a.permissions, i)
-        {:noreply, Mob.Socket.assign(socket, :account, %{a | permissions: rows})}
+        {:noreply, Kati.Screens.Account.ask(socket, i)}
 
       "data_" <> i ->
         rows = Kati.Screens.Account.flip(a.data, i)

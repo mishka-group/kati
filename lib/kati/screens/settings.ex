@@ -201,33 +201,44 @@ defmodule Kati.Screens.Settings do
   Save As, and both settings screens then draw *Never backed up*. That is not a
   placeholder but the truth about that device.
 
-  ## The Sections switches change something that ought to persist, and cannot yet
+  ## The Sections switches persist, and the two things that stopped them no longer do
 
-  A tap flips a switch in this screen's assigns and the flip dies with the
-  socket, which is the same defect the Theme control had before
-  `Kati.Theme.Mode`. It is **not** fixed the same way here, and the reason is
-  not effort:
+  A tap here used to flip a switch in this screen's assigns and die with the
+  socket. The reason was never effort — it was that both halves of the answer
+  were missing, and both have since landed:
 
-    * Nothing in the app reads which sections are on. `Kati.Screens.Home`'s
-      Sections grid is three hardcoded tiles (Meals, Habits, Settings) and
-      `Kati.Screens.Library`'s shelf is a fixed `@screen_kinds`. A stored set
-      would be a preference with no consumer — and a switch that says *"Music ·
-      Shelf only"* and then leaves the shelf standing is worse persisted than
-      forgotten, because the lie survives the restart.
-    * The app cannot yet say what a section *is*. This screen offers five
-      (Screen, Books, Music, Habits, Money) with four on; screen 26
-      (`Kati.Screens.PickSections`) offers six — it adds **Notes** — with two
-      chosen. Two drawings, two different section sets and two different
-      defaults, and both are baseline frames that may not move. One store
-      behind them has to pick a canonical list and a canonical default, which
-      is a product decision rather than a migration.
+    * **Something reads which sections are on.** `Kati.Screens.Home.tile_rows/0`,
+      `Kati.Screens.HomeFa.tile_rows/0` and `Kati.Screens.Library.kept_segments/1`
+      all filter through `Kati.Sections.on?/1`, so turning Music off now takes
+      the shelf with it. That was the condition the old note set — *landing
+      together with the first surface that actually hides itself* — and three
+      surfaces met it.
+    * **The app can say what a section is.** `Kati.Sections` holds the canonical
+      six (`screen books music habits money notes`) and the canonical default
+      (`all/0`, when nothing has been said), so screen 26's set and this
+      screen's five are two views of one list rather than two lists.
 
-  What it needs, named precisely: a `Kati.Sections` preference over `Mob.State`
-  in the shape of `Kati.Theme.Mode` — `choices/0`, `enabled/0`, `put/1`, with an
-  unset default so each screen still falls back to its own drawn state — landing
-  together with the first surface that actually hides itself when a section is
-  off. `Kati.Screens.PickSections.Sample` names the same module from the other
-  end.
+  So the switches write through, in the shape `Kati.Theme.Mode` set for the
+  Theme control one section above: the store is written first, and the thumb
+  only moves on `:ok`.
+
+  ## Why the drawing still opens on its own state
+
+  `settle_sections/1` reads the store only when `Kati.Sections.answered?/0` says
+  somebody has answered it. `chosen/0` alone would be wrong for exactly the
+  reason `Kati.Screens.PickSections` gives at its own mount: it answers
+  *everything* when nothing has been said, and everything is not what this board
+  draws — 24 draws four on with **Money** off. An install that has never been
+  asked therefore keeps `Kati.Settings.Sample.sections/0`, which is what
+  `test/design/screens/24.html` was captured from, and the first flip is what
+  commits that drawn state as the truth.
+
+  ## Notes is kept even though this page cannot draw it
+
+  `Kati.Sections.put/1` replaces the whole list, and screen 24 has five rows to
+  screen 26's six. `kept_after/2` carries anything kept that this page does not
+  draw straight through, so somebody who chose Notes during the first run does
+  not lose it by touching a switch here.
   """
   use Kati.Screens.Pushed, back: "Home"
 
@@ -242,7 +253,7 @@ defmodule Kati.Screens.Settings do
       account: Sample.account(),
       appearance: Kati.Screens.Settings.settle(Sample.appearance()),
       watching: Sample.watching(),
-      sections: Sample.sections(),
+      sections: Kati.Screens.Settings.settle_sections(Sample.sections()),
       data: Sample.data(),
       sources: Sample.sources(),
       about: Sample.about()
@@ -420,6 +431,40 @@ defmodule Kati.Screens.Settings do
       row ->
         row
     end)
+  end
+
+  @doc """
+  Point the Sections switches at the store, once somebody has answered it.
+
+  `answered?/0` and not `chosen/0`, for the reason `Kati.Screens.PickSections`
+  writes out at its own mount: `chosen/0` answers *everything* when nothing has
+  been said, so a fresh install would open with all five on and screen 24 draws
+  **Money** off. An unanswered store therefore keeps the sample's own state —
+  which is what `test/design/screens/24.html` was captured from — and the first
+  flip is what turns that drawn state into a stored one.
+
+  Only a switch whose title names a section is rewritten. `Reduce motion` sits
+  in Appearance and never reaches this function, but a section group that grew a
+  switch which is not a section would otherwise be forced off by `on?/1`
+  answering `false` for a name it has never heard.
+  """
+  @spec settle_sections([map()]) :: [map()]
+  def settle_sections(rows) do
+    if Kati.Sections.answered?() do
+      Enum.map(rows, fn
+        %{control: {:switch, _}, title: title} = row ->
+          id = String.downcase(title)
+
+          if id in Kati.Sections.all(),
+            do: %{row | control: {:switch, Kati.Sections.on?(id)}},
+            else: row
+
+        row ->
+          row
+      end)
+    else
+      rows
+    end
   end
 
   @doc false
@@ -650,11 +695,8 @@ defmodule Kati.Screens.Settings do
     "Sync" => Kati.Screens.Sync,
     "Widgets" => Kati.Screens.Widgets,
     "This device" => Kati.Screens.Account,
-    "Account" => Kati.Screens.Account,
-    "Accessibility" => Kati.Screens.Accessibility,
     "Language" => Kati.Screens.Language,
     "Text size" => Kati.Screens.Accessibility,
-    "States" => Kati.Screens.States,
     # The three the second wave of drawings added, and each one is a screen that
     # existed nowhere until its row did.
     "My services" => Kati.Screens.MyServices,
@@ -798,7 +840,7 @@ defmodule Kati.Screens.Settings do
         end
 
       "switch_" <> title ->
-        {:noreply, put_rows(socket, &flip(&1, title))}
+        {:noreply, flip_switch(socket, title)}
 
       "theme_" <> label ->
         {:noreply, choose_theme(socket, label)}
@@ -823,6 +865,57 @@ defmodule Kati.Screens.Settings do
       %{title: ^title, control: {:switch, on?}} = row -> %{row | control: {:switch, not on?}}
       row -> row
     end)
+  end
+
+  # A switch that names a section writes through; every other switch is local.
+  #
+  # `Reduce motion` is the only other one, and it stays local for the reason
+  # `Kati.Screens.Accessibility` writes out at length: Mob has no animation
+  # primitive, so there is nothing for a stored boolean to change.
+  #
+  # The store is written FIRST and the thumb only follows an `:ok`.
+  # `Kati.Sections.put/1` refuses an empty list — screen 26's *Cannot continue
+  # with zero*, enforced in the store so no call site has to remember it — and a
+  # thumb that moved anyway would leave a section drawn off that is still on
+  # everywhere else, which is the one lie this group exists to avoid.
+  defp flip_switch(socket, title) do
+    id = String.downcase(title)
+
+    if id in Kati.Sections.all() do
+      case Kati.Sections.put(kept_after(socket.assigns.settings.sections, id)) do
+        :ok -> put_rows(socket, &flip(&1, title))
+        {:error, :none_chosen} -> socket
+      end
+    else
+      put_rows(socket, &flip(&1, title))
+    end
+  end
+
+  # Which sections are kept once `id` has flipped.
+  #
+  # Two halves, and the second is the one this page cannot see. `Kati.Sections`
+  # keeps six ids and screen 24 draws five rows — Notes is screen 26's and not
+  # here — so a list built only out of what is on this page would silently turn
+  # Notes off for anyone who chose it during the first run. Anything kept that
+  # this page does not draw is carried through untouched.
+  #
+  # On an install that has never answered, `chosen/0` is everything, so the
+  # carried-through half is Notes alone and the drawn four-on/Money-off state is
+  # what the first flip commits. That is the drawing becoming the truth at the
+  # moment somebody first disagrees with it, which is the only reading of a
+  # switch that opens on a state nobody chose.
+  defp kept_after(rows, id) do
+    drawn =
+      for %{control: {:switch, on?}, title: title} <- rows,
+          section = String.downcase(title),
+          section in Kati.Sections.all(),
+          do: {section, if(section == id, do: not on?, else: on?)}
+
+    shown = Enum.map(drawn, &elem(&1, 0))
+    on_here = for {section, true} <- drawn, do: section
+    elsewhere = Enum.reject(Kati.Sections.chosen(), &(&1 in shown))
+
+    on_here ++ elsewhere
   end
 
   defp choose(rows, label) do

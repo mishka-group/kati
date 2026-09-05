@@ -100,16 +100,39 @@ defmodule Kati.Screens.ScheduleFa do
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
 
-    date = Kati.Time.today()
+    {:ok, Kati.Screens.ScheduleFa.select(socket, Kati.Time.today())}
+  end
+
+  @doc """
+  Put the page on `date` — the strip, the header's count and the day's rows.
+
+  Named and public because mounting and tapping a cell are the same question
+  asked twice. The header's `۵ مورد`, the seven cells' `selected?` and the
+  timeline are three readings of one day, and a cell tap that moved one of them
+  without the others would leave the page stating two days at once — which is
+  the defect `Kati.Screens.MealsDay` and `Kati.Screens.Day` each fixed by
+  reading the date they were handed rather than the clock.
+
+  `day/1`'s own `[]` clause has been waiting for this: it dresses TODAY in the
+  drawing and answers any other empty day with nothing, and its comment said in
+  as many words that it was the branch that never runs, kept because it is the
+  rule `Kati.Screens.Calendar.day_rows/1` states and the one the first day tap
+  will need. This is that tap. No board draws 56 on another day, and none needs
+  to: screen 02 makes the same substitution under the same rule, so selecting a
+  day with nothing on it shows its real emptiness here exactly as it does
+  there.
+  """
+  @spec select(Mob.Socket.t(), Date.t()) :: Mob.Socket.t()
+  def select(socket, %Date{} = date) do
     day = Kati.Screens.ScheduleFa.day(date)
     count = length(day.events) + if(day.feature, do: 1, else: 0)
 
     socket
+    |> Mob.Socket.assign(:date, date)
     |> Mob.Socket.assign(:header, Kati.Screens.ScheduleFa.header_line(date, count))
     |> Mob.Socket.assign(:days, Kati.Screens.ScheduleFa.days(date))
     |> Mob.Socket.assign(:events, day.events)
     |> Mob.Socket.assign(:feature, day.feature)
-    |> then(&{:ok, &1})
   end
 
   def render(assigns) do
@@ -174,6 +197,12 @@ defmodule Kati.Screens.ScheduleFa do
     {tone, lead} = chrome(Kati.Screens.Calendar.kind(row), row.now?)
 
     %{
+      # The handle, kept rather than rendered — this page composes every other
+      # field out of the row and cannot compose its way back to which event it
+      # was. `Kati.Screens.ScheduleFa.Sample` has no such key and is not given
+      # one: its five rows are stand-in copy, so `event_tap/1` draws them no
+      # tap and the drawn page stays exactly the page board 56 shows.
+      id: Map.get(row, :id),
       time: Digits.to_persian(row.time),
       tone: tone,
       lead: lead,
@@ -210,7 +239,12 @@ defmodule Kati.Screens.ScheduleFa do
       %{
         name: Shamsi.weekday_short(Shamsi.weekday_index(cell)),
         num: Shamsi.fa(day),
-        selected?: cell == date
+        selected?: cell == date,
+        # The Gregorian date behind the Shamsi numeral, because the tag has to
+        # survive a round trip through `String.to_atom/1` and `۲۵` is a
+        # rendering rather than a handle. Screen 02's strip tags its cells the
+        # same way.
+        date: cell
       }
     end
   end
@@ -307,8 +341,10 @@ defmodule Kati.Screens.ScheduleFa do
   # same node as no shadow.
   @doc false
   def day_cell(%{selected?: true} = day) do
+    tap = Kati.Screens.ScheduleFa.day_tap(day)
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Column
         fill_width={true}
         background={Palette.card()}
@@ -340,8 +376,10 @@ defmodule Kati.Screens.ScheduleFa do
   end
 
   def day_cell(day) do
+    tap = Kati.Screens.ScheduleFa.day_tap(day)
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Column fill_width={true} corner_radius={16} padding_top={9} padding_bottom={11}>
         <Text
           text={day.name}
@@ -447,6 +485,7 @@ defmodule Kati.Screens.ScheduleFa do
   def event_row(row) do
     bg = if row.tone == :done, do: Palette.card_settled(), else: Palette.card()
     shadow = if row.tone == :done, do: nil, else: Kati.Theme.shadow_card_soft()
+    tap = Kati.Screens.ScheduleFa.event_tap(row)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -463,6 +502,7 @@ defmodule Kati.Screens.ScheduleFa do
         <Spacer size={12} />
         <Box weight={1.0}>
           <Row
+            on_tap={tap}
             fill_width={true}
             background={bg}
             corner_radius={18}
@@ -670,6 +710,55 @@ defmodule Kati.Screens.ScheduleFa do
       {:noreply,
        Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "برنامه"})}
 
-  def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :calendar, socket)
+  # Both of this page's own tags first, then the shell's. `Fa.dock_tap/3` is
+  # what answers `root_*` and `:fab` on a hand-rolled mirror, so it stays the
+  # last word rather than being replaced by one.
+  def handle_info({:tap, tag}, socket) do
+    case Atom.to_string(tag) do
+      "day_" <> iso ->
+        {:noreply, Kati.Screens.ScheduleFa.select(socket, Date.from_iso8601!(iso))}
+
+      # 31 is English and this page is not, which is the same crossing
+      # `:open_search` above already makes and argues. The row is Persian
+      # because the row is the user's own event; the editor is the one screen
+      # in the set, and pushing a second copy of it in another script is a
+      # design decision no board has made.
+      "event_" <> id ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
+
+      _other ->
+        Fa.dock_tap(tag, :calendar, socket)
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  A day cell's tap: the Gregorian date it stands for, as screen 02 tags its own
+  strip — or none, for the cell already selected.
+
+  The selected cell carries `nil` rather than its own tag, which
+  `Kati.ScreenSweep.tap_tags/1` documents as the shape *the selected segment of
+  a switcher* takes: selecting the day you are on recomputes the same four
+  assigns from the same date and moves nothing, so a tag there would be a
+  control this app's own heuristic cannot tell from a dead one. Screen 02's
+  strip does tag its selected cell and pays for it with a
+  `Kati.ScreenTapSweepTest` baseline entry rebuilt from the clock every run,
+  because a literal `day_2026-08-20` would rot overnight; that is a cost for
+  the strip that is already wired rather than one worth taking on here.
+
+  The other six all move the page, which is what says the family is live.
+  """
+  @spec day_tap(map()) :: {pid(), atom()} | nil
+  def day_tap(%{selected?: true}), do: nil
+
+  def day_tap(%{date: %Date{} = date}),
+    do: {self(), String.to_atom("day_" <> Date.to_iso8601(date))}
+
+  def day_tap(_day), do: nil
+
+  @doc "A timeline row's tap, as the event it is about — or none, for a drawn row."
+  @spec event_tap(map()) :: {pid(), atom()} | nil
+  def event_tap(%{id: id}) when is_binary(id), do: {self(), String.to_atom("event_" <> id)}
+  def event_tap(_row), do: nil
 end

@@ -521,7 +521,20 @@ defmodule Kati.Screens.SettingsFa do
     # translation table between them.
     "subscriptions" => Kati.Screens.MyServicesFa,
     "dns" => Kati.Screens.DataSourcesFa,
-    "info" => Kati.Screens.AttributionFa
+    "info" => Kati.Screens.AttributionFa,
+    # 62's own caption is *Settings rows mirror wholesale*, and these two were
+    # the mirror stopping short: screen 24's Import row reaches
+    # `Kati.Screens.ImportSources` and its Text size row reaches
+    # `Kati.Screens.Accessibility`, while درون‌ریزی and اندازه متن drew a
+    # chevron over `tap_for(_row, _si, _ri), do: nil`.
+    #
+    # Neither destination has a Persian mirror, which is the trade `upload` and
+    # `sync` above already make and is the right way round: an English screen a
+    # Persian reader can reach beats a chevron that points at nothing. Both
+    # carry `back: "Settings"`, so the pill over them reads English until the
+    # mirrors exist.
+    "download" => Kati.Screens.ImportSources,
+    "format_size" => Kati.Screens.Accessibility
   }
 
   @doc false

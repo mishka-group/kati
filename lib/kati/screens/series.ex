@@ -892,8 +892,18 @@ defmodule Kati.Screens.Series do
     )
   end
 
+  # `test/design/screens/04.html:33` draws this button as `onClick="{{ markNext
+  # }}"` — one of only five onClick attributes in the whole board set, so the
+  # drawing names the handler rather than leaving it to be inferred. The tag is
+  # built into a variable first, the way `Kati.Screens.SeriesFa.actions/1`
+  # already does for the mirror of this same button.
+  #
+  # `actions/0` keeps arity 0: the tag carries no subject, because the button
+  # acts on the season already on the socket.
   @doc false
   def actions do
+    mark = {self(), :mark_next}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -904,6 +914,7 @@ defmodule Kati.Screens.Series do
             corner_radius={25}
             background={Palette.ink_fill()}
             align="center"
+            on_tap={mark}
           >
             <Spacer weight={1.0} />
             {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
@@ -1144,8 +1155,36 @@ defmodule Kati.Screens.Series do
   def handle_info({:tap, :open_rate_episode}, socket),
     do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.RateEpisode)}
 
+  # Named, since `Kati.Screens.DropSheet` reads an argument now. Bare, this row
+  # opened the sheet on the newest PAUSED title in the store, which is not the
+  # show the page is drawing and may be nothing to do with it — a Drop that
+  # dropped somebody else's series. The page holds `tracked_id`, so it can say
+  # which show the menu row was opened over.
   def handle_info({:tap, :open_drop_sheet}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.DropSheet)}
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.DropSheet,
+         Kati.Screens.DropSheet.params_for(socket.assigns.series)
+       )}
+
+  # Board 04's `{{ markNext }}`. "Next" is the first episode of the season on
+  # screen that has aired and is not ticked — the same list, in the same order,
+  # that a tap on a row ticks, so the button and the rows cannot disagree about
+  # which episode is next. It goes through `tick/2` rather than writing its own
+  # `Kati.Media.Watch`: one write path, and one place the `:ok`-before-the-assign
+  # rule is kept.
+  #
+  # A season with nothing left to mark answers by doing nothing rather than by
+  # wrapping round to the first episode — `Kati.Screens.SeriesFa`'s clause for
+  # the mirror of this button answers the same way.
+  def handle_info({:tap, :mark_next}, socket) do
+    case Kati.Screens.Series.next_unwatched(socket.assigns.series) do
+      nil -> {:noreply, socket}
+      index -> {:noreply, Kati.Screens.Series.tick(socket, Integer.to_string(index))}
+    end
+  end
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
@@ -1182,6 +1221,28 @@ defmodule Kati.Screens.Series do
         s
     end
   end
+
+  @doc """
+  The position of the first aired, unticked episode of the season on screen, or
+  `nil` when there is none.
+
+  A POSITION and not an episode number, because that is what `tick/2` takes and
+  what `episodes/1` tags a row with — `Kati.Media.Watch` is explicit that a tick
+  follows the episode and not the number, and a real episode's number is
+  nullable.
+
+  `Map.get(ep, :aired, true)` is `episode/1`'s own read, so **Mark next
+  watched** cannot mark something the row beside it refuses to: an episode that
+  has not aired draws no tap at all, and a button that skipped over that rule
+  would be marking an episode nobody could have seen. `:unknown` is grouped with
+  `:aired` by `episode_row/2` above, for the reason its comment gives.
+  """
+  @spec next_unwatched(map()) :: non_neg_integer() | nil
+  def next_unwatched(%{episodes: episodes}) when is_list(episodes) do
+    Enum.find_index(episodes, fn ep -> not ep.watched and Map.get(ep, :aired, true) end)
+  end
+
+  def next_unwatched(_series), do: nil
 
   @doc """
   Tick or untick one episode, and write it.

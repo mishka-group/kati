@@ -216,7 +216,11 @@ defmodule Kati.Screens.MealsDay do
         sub: sub,
         state: state,
         check: check,
-        kcal: kcal
+        kcal: kcal,
+        # The one handle a meal row needs and had none of: the log the ring
+        # marks. `slot_id` is deliberately NOT carried beside it — see
+        # `row_tag/1` for why a meal row on this screen opens nothing.
+        log_id: log.id
       }
     end)
   rescue
@@ -239,7 +243,12 @@ defmodule Kati.Screens.MealsDay do
         title: row.title,
         sub: row.meta,
         state: if(row.now?, do: :live, else: :past),
-        check: :none
+        check: :none,
+        # `Kati.Calendars.Today.rows/1` has carried `:id` since screen 02's rows
+        # started naming their own events; this reader was dropping it on the
+        # floor, so the dentist appointment on the spine could be drawn and not
+        # opened.
+        event_id: row.id
       }
     end)
   rescue
@@ -497,11 +506,20 @@ defmodule Kati.Screens.MealsDay do
     |> Enum.reject(fn row -> density == :dense and Kati.Screens.MealsDay.kind(row) == "Meals" end)
   end
 
-  @doc false
+  @doc """
+  One spine row.
+
+  The whole card is the tap and the ring inside it is its own: a non-meal row
+  opens the event it is about, and an unlogged meal's ring logs the meal. A row
+  the drawing produced carries neither handle and draws neither tap —
+  `Kati.Calendar.SampleMealDay` is a transcription of board 52, and a row with
+  no stored event behind it has no page to open and no log to write.
+  """
   def row(row) do
     background = if row.state == :past, do: Palette.card_settled(), else: Palette.card()
     shadow = if row.state == :past, do: nil, else: Theme.shadow_card_soft()
     color = if row.state == :past, do: Palette.settled_ink(), else: Palette.ink()
+    tap = Kati.Screens.MealsDay.row_tag(row)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -518,6 +536,7 @@ defmodule Kati.Screens.MealsDay do
         <Spacer size={12} />
         <Box weight={1.0}>
           <Row
+            on_tap={tap}
             fill_width={true}
             background={background}
             corner_radius={17}
@@ -547,7 +566,7 @@ defmodule Kati.Screens.MealsDay do
                 max_lines={1}
               />
             </Column>
-            {Kati.Screens.MealsDay.check(row.check)}
+            {Kati.Screens.MealsDay.check(row.check, Kati.Screens.MealsDay.check_tag(row))}
           </Row>
         </Box>
       </Row>
@@ -558,10 +577,18 @@ defmodule Kati.Screens.MealsDay do
 
   # In a Row, after the text. As a sibling inside the Box it would stack over
   # the title instead of sitting beside it.
+  #
+  # The tap goes on this wrapper rather than on the ring: the ring is 24pt and
+  # the wrapper is the ring plus its 11pt of lead-in, which is nearer the 44
+  # screen 41 asks for. A logged meal's ring is not a control — there is
+  # nothing left to mark — so only `:todo` takes one, which is also why the
+  # board draws five of them and not eleven.
   @doc false
-  def check(:none), do: ~MOB"<Spacer size={0} />"
+  def check(state, tap \\ nil)
 
-  def check(:eaten) do
+  def check(:none, _tap), do: ~MOB"<Spacer size={0} />"
+
+  def check(:eaten, _tap) do
     ~MOB"""
     <Row align="center">
       <Spacer size={11} />
@@ -570,9 +597,9 @@ defmodule Kati.Screens.MealsDay do
     """
   end
 
-  def check(:todo) do
+  def check(:todo, tap) do
     ~MOB"""
-    <Row align="center">
+    <Row align="center" on_tap={tap}>
       <Spacer size={11} />
       {Kati.Screens.MealsDay.ring(:todo)}
     </Row>
@@ -758,8 +785,76 @@ defmodule Kati.Screens.MealsDay do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
-      _ -> {:noreply, socket}
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      "event_" <> id ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.EventDetail, %{id: id})}
+
+      # Marked, then the day is READ BACK — the ring, the row's fill, the chips'
+      # counts and the collapsed summary's `n EATEN · NEXT AT …` are five
+      # readings of one log, and `stored_day/2` is what keeps them agreeing.
+      # Moving the ring alone would leave the summary above it counting the old
+      # number.
+      "log_" <> id ->
+        {:noreply, mark_eaten(socket, id)}
+
+      _ ->
+        {:noreply, socket}
     end
+  end
+
+  @doc """
+  The tag a spine row's card carries: the event it is about, or none.
+
+  ## A meal row opens nothing, and that is the constraint rather than the gap
+
+  Screen 45 is where a meal opens and it takes a slot id, which
+  `Kati.Meals.MealLog` carries. It is deliberately not wired here.
+  `Kati.Screens.Meal.cooked/2` writes *"· today"* into its eyebrow as a
+  literal, and `named_slot/1` says in as many words that *a screen that one day
+  opens a slot from another day has to derive that word before it can*. **This
+  screen is that screen**: `day/1` draws whatever date it was pushed with, and
+  `Kati.Screens.MealsToday`'s *See tomorrow* pushes it `Date.add(today(), 1)`.
+  Wiring the meal rows would print *today* over tomorrow's dinner — a control
+  that lies, which is worse than one that does nothing. It stops being inert
+  the day 45 derives its own day, and not before.
+
+  So a meal row falls to the last clause and draws no tap at all: `nil` rather
+  than a no-op tag, because `Kati.ScreenTapSweepTest` reports a tag that
+  reaches nothing and a tag it must never report is one that is correct to be
+  silent.
+
+  Everything else on the spine — an appointment, a habit, a reminder — opens
+  screen 31, tagged by the event's own id exactly as screen 02's timeline tags
+  the rows it reads from the same `Kati.Calendars.Today` call, so two rows on
+  one day cannot share an `accessibility_id`.
+  """
+  @spec row_tag(map()) :: {pid(), atom()} | nil
+  def row_tag(%{rule: @meal}), do: nil
+
+  def row_tag(%{event_id: id}) when is_binary(id), do: {self(), String.to_atom("event_" <> id)}
+
+  def row_tag(_row), do: nil
+
+  @doc "An unlogged meal's ring, as the log it marks — or none, for a row with no log."
+  @spec check_tag(map()) :: {pid(), atom()} | nil
+  def check_tag(%{check: :todo, log_id: id}) when is_binary(id),
+    do: {self(), String.to_atom("log_" <> id)}
+
+  def check_tag(_row), do: nil
+
+  defp mark_eaten(socket, id) do
+    with {:ok, log} <- Ash.get(MealLog, id) do
+      Ash.update(log, %{state: :eaten}, action: :mark)
+    end
+    |> Kati.Write.note("meal log eaten")
+
+    Mob.Socket.assign(socket, :day, Kati.Screens.MealsDay.day(socket.assigns.params))
+  rescue
+    # No store at all — the same state `meal_rows/1` rescues, one write later.
+    error ->
+      Kati.Write.note({:error, error}, "meal log eaten")
+      socket
   end
 end

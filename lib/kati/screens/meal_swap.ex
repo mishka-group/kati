@@ -230,6 +230,7 @@ defmodule Kati.Screens.MealSwap do
 
   def render(assigns) do
     candidates = assigns.candidates
+    picked = assigns.picked
 
     ~MOB"""
     <Box
@@ -251,7 +252,7 @@ defmodule Kati.Screens.MealSwap do
           {Kati.Screens.MealSwap.replacing()}
           {Kati.Screens.MealSwap.arrow()}
           {Kati.Screens.MealSwap.filters()}
-          {Kati.Screens.MealSwap.candidates(candidates)}
+          {Kati.Screens.MealSwap.candidates(candidates, picked)}
           {Kati.Screens.MealSwap.muted_eyebrow("Effect on today")}
           {Kati.Screens.MealSwap.effect()}
           {Kati.Screens.MealSwap.commit()}
@@ -441,21 +442,39 @@ defmodule Kati.Screens.MealSwap do
   end
 
   @doc false
-  def candidates(candidates) do
+  def candidates(candidates, picked \\ nil) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(candidates, fn row -> Kati.Screens.MealSwap.candidate(row) end)}
+      {candidates
+       |> Enum.with_index()
+       |> Enum.map(fn {row, i} -> Kati.Screens.MealSwap.candidate(row, i, picked) end)}
       <Spacer size={12} />
     </Column>
     """
   end
 
-  @doc false
-  def candidate(row) do
-    border = if row.selected?, do: 2, else: 0
+  @doc """
+  One candidate, and the 2pt ring that says it is the one in force.
+
+  The screen has assigned `:picked` and read it since it was written, and the
+  doc on the two commit clauses further down this file says *"A tap picks a
+  candidate first"* — no control ever sent one, so the ring could only sit where
+  `candidates_for/2` put it, and `commit_swap/2` could only ever commit the
+  first.
+
+  `picked` is the INDEX rather than the recipe id, because
+  `Kati.Meals.SampleSwap`'s three cards are a transcription of board 46 and
+  carry no id at all; indexing is what keeps all three tappable on the drawn
+  page, and it keeps the tag off `String.to_atom/1`-over-a-stored-id. With none
+  picked the ring falls back to `selected?`, which is the drawing.
+  """
+  def candidate(row, index, picked \\ nil) do
+    on? = if is_integer(picked), do: index == picked, else: row.selected?
+    border = if on?, do: 2, else: 0
+    tap = {self(), String.to_atom("pick_" <> Integer.to_string(index))}
 
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row
         fill_width={true}
         background={Palette.card()}
@@ -738,6 +757,19 @@ defmodule Kati.Screens.MealSwap do
   def handle_info({:tap, :swap_forever}, socket),
     do: {:noreply, Kati.Screens.MealSwap.commit_swap(socket, :forever)}
 
+  # The three candidate cards, which drew a ring they could not move. AFTER the
+  # three named clauses above and BEFORE the catch-all below, or it swallows
+  # them: `:back`, `:swap_once` and `:swap_forever` are atoms too.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    case Atom.to_string(tag) do
+      "pick_" <> index ->
+        {:noreply, Mob.Socket.assign(socket, :picked, String.to_integer(index))}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
   @doc false
   @spec commit_swap(Mob.Socket.t(), :once | :forever) :: Mob.Socket.t()
   def commit_swap(socket, how) do
@@ -752,13 +784,27 @@ defmodule Kati.Screens.MealSwap do
     end
   end
 
-  @doc "The candidate in force: the one tapped, or the one the drawing selects."
+  @doc """
+  The candidate in force: the one tapped, or the one the drawing selects.
+
+  An INTEGER `:picked` is a position in the same `:candidates` this render drew
+  from, which is what a card's `pick_N` tag carries and why — see
+  `candidate/3`. The id branch is kept for a `:picked` that names a row, so a
+  caller that hands this screen a recipe id still resolves; neither `swap/1`
+  clause sets one today.
+  """
   @spec picked(Mob.Socket.t()) :: map() | nil
   def picked(socket) do
     candidates = socket.assigns[:candidates] || []
 
-    Enum.find(candidates, &(&1[:id] && &1.id == socket.assigns[:picked])) ||
-      Enum.find(candidates, & &1[:selected?])
+    tapped =
+      case socket.assigns[:picked] do
+        index when is_integer(index) -> Enum.at(candidates, index)
+        nil -> nil
+        id -> Enum.find(candidates, &(&1[:id] && &1.id == id))
+      end
+
+    tapped || Enum.find(candidates, & &1[:selected?])
   end
 
   @doc false

@@ -36,6 +36,11 @@ defmodule Kati.Screens.Shopping do
 
   ## The struck line
 
+  A line is ticked by tapping the row — `tick_tap/1` and `toggle/2`, through
+  `Kati.Meals.ShoppingListItem`'s own `toggle_got`. A line the drawing supplies
+  has no row behind it and carries no tap at all, so the screen every sweep
+  renders is exactly the screen it was.
+
   The design greys a bought item and strikes it through. The bridge's `Text`
   has no text-decoration prop and nothing measures text, so the strike is a
   hairline of **declared** width drawn over the label inside a `Box` — the same
@@ -116,8 +121,19 @@ defmodule Kati.Screens.Shopping do
     end)
   end
 
+  # `id` is the handle, not a rendering: without it a tick can draw and cannot
+  # write, which is what nine dead checkboxes on a shopping list looked like.
+  # `Kati.Meals.SampleShopping`'s rows carry none — they are a transcription of
+  # board 48 rather than rows — and `tick_tap/1` reads that as "nothing to
+  # toggle" rather than inventing a line to write against.
   defp item_row(item) do
-    %{name: item.name, meals: meals_label(item), amount: amount_line(item), got: item.got}
+    %{
+      id: item.id,
+      name: item.name,
+      meals: meals_label(item),
+      amount: amount_line(item),
+      got: item.got
+    }
   end
 
   # The label is stored because the phrasing varies with what the meals have in
@@ -394,9 +410,37 @@ defmodule Kati.Screens.Shopping do
       Kati.Screens.Shopping.item_body(item),
       Kati.Screens.Shopping.amount(item),
       padding: 12,
-      rule: rule?
+      rule: rule?,
+      on_tap: Kati.Screens.Shopping.tick_tap(item)
     )
   end
+
+  @doc """
+  The tap a line carries, or `nil` for a line that names no stored row.
+
+  The whole row is the target rather than the 22pt box: board 48 is a list you
+  work through with a thumb in a shop, and a 22pt hit area is the wrong size for
+  that.
+
+  `nil` rather than a no-op tag on purpose, which is
+  `Kati.Screens.PlanShare.tile_tap/1`'s rule stated once already —
+  `Kati.ScreenTapSweepTest` reports a tag that reaches nothing, and a
+  `Kati.Meals.SampleShopping` line has nothing to reach. That is also why every
+  sweep sees this screen exactly as it was: they render against an empty store,
+  which is the drawing, which is nine lines with no id.
+
+  Tagged by the row's id and not by its position, the way
+  `Kati.Screens.Calendar.tag/1` tags an event. `aisles/1` walks
+  `Kati.Meals.Aisle.values/0` rather than the read order, so a positional tag
+  would not agree with the read it is resolved against; and the atom per line is
+  bounded by the lines a person has actually looked at, which is the argument
+  `Kati.Screens.Calendar.tag/1` makes at length.
+  """
+  @spec tick_tap(map()) :: {pid(), atom()} | nil
+  def tick_tap(%{id: id}) when is_binary(id) and id != "",
+    do: {self(), String.to_atom("tick_" <> id)}
+
+  def tick_tap(_item), do: nil
 
   @doc false
   def item_body(item) do
@@ -542,5 +586,58 @@ defmodule Kati.Screens.Shopping do
       ],
       [Kati.UI.symbol("add", size: 21)]
     )
+  end
+
+  @doc """
+  Tick a line into the basket, or back out of it.
+
+  `Kati.Meals.ShoppingListItem`'s own `toggle_got` action — the resource
+  specifies the behaviour in as many words: *"it does not remove the row. The
+  design keeps a struck line in place so the list does not reflow under a thumb
+  in a shop."* The screen drew both states (`tick/1`, and `label/1`'s struck
+  clause) and had no way to move between them.
+
+  This is the screen's first `handle_tap/2`. `Kati.Screens.Pushed` declares the
+  callback optional and defines no default on purpose, which is why nine tick
+  boxes could draw for as long as they did without anything going red — and the
+  cost of the `_other` clause below is that a control wired here later will no
+  longer be reported as a DEAD TAP. `Kati.ScreenTapSweepTest`'s `no new
+  dead-looking taps` is the net under it.
+  """
+  @impl true
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case Atom.to_string(tag) do
+      "tick_" <> id -> {:noreply, Kati.Screens.Shopping.toggle(socket, id)}
+      _other -> {:noreply, socket}
+    end
+  end
+
+  @doc """
+  The write behind `handle_tap/2`, and the re-read that keeps the card honest.
+
+  The whole list is re-read rather than the row patched in place, because the
+  basket line, the bar and the estimate above it are all derived from the same
+  rows — a screen that struck the line and left `9 of 24` standing would be
+  showing two answers to one question.
+
+  Through `Kati.Write.note/2` like every other write in the app: a toggle that
+  failed and drew as if it had succeeded is the defect `Kati.WriteContractTest`
+  exists for. `Ash.get/2` answering anything else returns the socket untouched —
+  a line deleted under you is not the same fact as a line you meant to tick.
+  """
+  @spec toggle(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def toggle(socket, id) do
+    case Ash.get(ShoppingListItem, id) do
+      {:ok, item} ->
+        item
+        |> Ash.Changeset.for_update(:toggle_got, %{got: not item.got})
+        |> Ash.update()
+        |> Kati.Write.note("shopping tick #{item.name}")
+
+        Mob.Socket.assign(socket, :list, Kati.Screens.Shopping.list(Kati.Time.today()))
+
+      _gone ->
+        socket
+    end
   end
 end

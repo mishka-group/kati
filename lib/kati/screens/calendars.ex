@@ -149,13 +149,27 @@ defmodule Kati.Screens.Calendars do
   def drawn_calendars, do: Sample.calendars()
 
   @doc """
-  One calendar in the shape `calendar_row/2`, `calendar_title/1` and `swatch/1`
-  all read — the same three keys `Kati.Settings.CalendarsSample.calendars/0`
-  produces, so both halves of `calendar_list/0` answer one question one way.
+  One calendar in the shape `calendar_row/3`, `calendar_title/1` and `swatch/1`
+  all read — the three keys `Kati.Settings.CalendarsSample.calendars/0`
+  produces, plus the handle a stored row has and a drawing does not.
+
+  `:id` is what makes this row's switch a switch about THIS calendar rather
+  than about calendars in general, which is the same argument
+  `Kati.Screens.Goals` makes for the same key on the same kind of control. The
+  drawing's rows have no id and cannot borrow one, so `row_tag/2` falls back to
+  their position and `Kati.Settings.CalendarsSample.calendars/0` is left
+  exactly as it is — which is what keeps `calendar_list/0` equal to
+  `drawn_calendars/0` term for term on an empty store, and keeps
+  `Kati.ScreenCalendarsTest`'s `calendar_list() == Sample.calendars()` true.
   """
   @spec shaped(CalendarRow.t()) :: map()
   def shaped(row) do
-    %{color: swatch_colour(row.colour_token), title: row.display_name, on: row.visible}
+    %{
+      id: row.id,
+      color: swatch_colour(row.colour_token),
+      title: row.display_name,
+      on: row.visible
+    }
   end
 
   @doc """
@@ -303,7 +317,7 @@ defmodule Kati.Screens.Calendars do
     body =
       rows
       |> Enum.with_index()
-      |> Enum.map(fn {row, i} -> Kati.Screens.Calendars.calendar_row(row, i < last) end)
+      |> Enum.map(fn {row, i} -> Kati.Screens.Calendars.calendar_row(row, i, i < last) end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -314,15 +328,39 @@ defmodule Kati.Screens.Calendars do
   end
 
   @doc false
-  def calendar_row(row, rule?) do
+  def calendar_row(row, index, rule?) do
     SettingsList.row(
       Kati.Screens.Calendars.swatch(row.color),
       Kati.Screens.Calendars.calendar_title(row),
       SettingsList.switch(row.on),
       padding: 13,
-      rule: rule?
+      rule: rule?,
+      on_tap: {self(), Kati.Screens.Calendars.row_tag(row, index)}
     )
   end
+
+  @doc """
+  A calendar's switch, as an atom naming the calendar it belongs to.
+
+  On the row rather than on the control: `Kati.UI.SettingsList.switch/1` takes
+  a boolean and nothing else, and its own doc says why — `on_toggle` is the
+  prop to reach for when these rows go live, and reaching for it would put a
+  tap target on a 46x28 track, under the 44x44 screen 41 promises. The row is
+  taller than that and `Kati.UI.SettingsList.row/4` already takes the tap.
+
+  An atom rather than a tuple, for the reason `Kati.Screens.Goals`'s repeat
+  switch states: `Mob.Renderer` emits an `accessibility_id` only for an atom
+  tag, so a tuple-tagged switch fires on device and is invisible to every
+  sweep.
+
+  The drawing's four have no id and are tagged by the position the drawing
+  draws them in, held in their own `calendar_drawn_` namespace so a device test
+  can tell which page it is looking at.
+  """
+  @spec row_tag(map(), non_neg_integer()) :: atom()
+  def row_tag(%{id: id}, _index) when is_binary(id), do: String.to_atom("calendar_" <> id)
+
+  def row_tag(_row, index), do: String.to_atom("calendar_drawn_" <> Integer.to_string(index))
 
   @doc false
   def swatch(color) do
@@ -363,5 +401,60 @@ defmodule Kati.Screens.Calendars do
       padding: 13,
       rule: rule?
     )
+  end
+
+  # The middle group is the one with a resource behind it — the moduledoc says
+  # so at length — so it is the one group that answers a tap. The accounts and
+  # the Write back rows are still `Kati.Settings.CalendarsSample`'s and still
+  # carry no tap of their own, which is why there is nothing above this clause.
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      # A drawn row has nothing to write to, so its switch is moved in place —
+      # `Kati.Screens.Goals`' exact call on the same question, and for its exact
+      # reason: the alternative is a control that visibly does nothing on the
+      # page most people meet first, since a fresh install has no calendars.
+      # Board 32 draws both states already — Birthdays is the row it draws off,
+      # greyed label and all — so every state this can reach is a state the
+      # board words.
+      "calendar_drawn_" <> index ->
+        {:noreply, flip_drawn(socket, String.to_integer(index))}
+
+      # A stored row is written and then the page is READ BACK, rather than the
+      # switch being moved on the strength of having asked. That is `Kati.Write`'s
+      # contract as a page: a switch that snaps back to whatever the store
+      # actually says, and a row deleted underneath the screen dropping out of
+      # the list rather than leaving a switch that toggles a calendar nobody has.
+      "calendar_" <> id ->
+        {:noreply, write_visible(socket, id)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  defp flip_drawn(socket, index) do
+    c = socket.assigns.calendars
+    rows = List.update_at(c.calendars, index, fn row -> %{row | on: not row.on} end)
+
+    Mob.Socket.assign(socket, :calendars, %{c | calendars: rows})
+  end
+
+  defp write_visible(socket, id) do
+    with {:ok, row} <- Ash.get(CalendarRow, id) do
+      Ash.update(row, %{visible: not row.visible})
+    end
+    |> Kati.Write.note("calendar visible")
+
+    c = socket.assigns.calendars
+    rows = Kati.Screens.Calendars.calendar_list()
+
+    Mob.Socket.assign(socket, :calendars, %{c | calendars: rows})
+  rescue
+    # No store at all — the same state `stored_calendars/0` rescues, one write
+    # later. `Kati.Screens.Goals.write_repeat/2` is the shape.
+    error ->
+      Kati.Write.note({:error, error}, "calendar visible")
+      socket
   end
 end

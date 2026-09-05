@@ -47,7 +47,7 @@ defmodule Kati.Screens.EventDetail do
 
     * `close_disc/1` — `Kati.Components.MishkaCloseButton`, filled, with the
       `shadow` that is what makes a disc float rather than sit flat.
-    * `save_pill/0`, `action/2` — `Kati.Components.MishkaPill`.
+    * `save_pill/1`, `action/2` — `Kati.Components.MishkaPill`.
     * `section_chip/2` — `Kati.Components.MishkaChip`, whose `checked` carries
       the one-of-two state exactly.
     * `tile/1`, `add_ring/0` — `Kati.Components.MishkaThemeIcon`, filled and
@@ -61,7 +61,7 @@ defmodule Kati.Screens.EventDetail do
       Compose's Material `Switch`, whose metrics are fixed in material3 (52x32
       track, 24/16 handles, a 2dp outline) with only the colours parameterised.
       No prop reshapes it into the design's 46x28 with a 22pt thumb.
-    * **`delete/0`**, the outlined destructive bar. It is a full-width button,
+    * **`delete/1`**, the outlined destructive bar. It is a full-width button,
       not a token, and putting it through a pill would buy a `Box` and cost two
       wrapper nodes.
 
@@ -178,6 +178,14 @@ defmodule Kati.Screens.EventDetail do
     zone = Kati.Time.device_zone()
 
     %{
+      # The handle, not a rendering. Save and Delete are both writes about THIS
+      # row, and everything else in this map is a projection of the event that
+      # cannot be turned back into it. `Kati.Calendar.SampleEvent.event/0` has
+      # no such key and is deliberately not given one: it is a transcription of
+      # board 31, there is no row behind it, and `Map.get(event, :id)` reading
+      # `nil` is what tells the two apart — and what keeps both controls
+      # untapped on the page every sweep sees. See `save_pill/1`.
+      id: event.id,
       title: event.summary || "Untitled",
       sections: [],
       fields: stored_fields(event, zone),
@@ -282,13 +290,13 @@ defmodule Kati.Screens.EventDetail do
           padding_top={64}
           padding_bottom={40}
         >
-          {Kati.Screens.EventDetail.chrome()}
+          {Kati.Screens.EventDetail.chrome(event)}
           {Kati.Screens.EventDetail.title_card(event)}
           {Kati.Screens.EventDetail.fields(event)}
           {Kati.Screens.EventDetail.clash(event)}
           {Kati.Screens.EventDetail.muted_eyebrow("Invitees")}
           {Kati.Screens.EventDetail.invitees(event)}
-          {Kati.Screens.EventDetail.delete()}
+          {Kati.Screens.EventDetail.delete(event)}
         </Column>
       </Scroll>
     </Box>
@@ -296,7 +304,7 @@ defmodule Kati.Screens.EventDetail do
   end
 
   @doc false
-  def chrome do
+  def chrome(event) do
     close = {self(), :close}
 
     ~MOB"""
@@ -312,7 +320,7 @@ defmodule Kati.Screens.EventDetail do
           max_lines={1}
         />
         <Spacer weight={1.0} />
-        {Kati.Screens.EventDetail.save_pill()}
+        {Kati.Screens.EventDetail.save_pill(event)}
       </Row>
       <Spacer size={22} />
     </Column>
@@ -348,18 +356,38 @@ defmodule Kati.Screens.EventDetail do
   end
 
   @doc """
-  The Save pill. Inert by design — the drawing's Save is drawn, and this screen
-  has no commit to make until an event is a real record — so no `on_tap`, which
-  a pill omits entirely rather than sending as a null.
+  The Save pill.
+
+  It used to carry no `on_tap` at all, on the grounds that *"this screen has no
+  commit to make until an event is a real record"*. An event IS a real record
+  now: `mount/3` takes `%{id: id}`, `stored/1` reads that row and `shaped/1`
+  keeps its `:id`, so the sentence stopped being true the round screen 02's
+  timeline started naming its own events.
+
+  **It is still inert on the drawn event, and by the same clause rather than
+  by a second one.** `Kati.Calendar.SampleEvent.event/0` has no `:id`, so
+  `save_tap/1` answers `nil` and `Kati.Components.MishkaPill` omits the prop
+  entirely — the drawn pill is the node it always was, down to the absent key,
+  and it draws no `accessibility_id` for a control that would have nothing to
+  write. A tap that silently does nothing is worse than no tap, which is
+  `Kati.Screens.Account.row_tap/3`'s rule on the same kind of decision.
+
+  What it commits is one field, and that is not a shortfall being hidden — it
+  is the whole of what this page can edit. The title is a `Text`, not a
+  `TextField`; the section chips have no column and are empty on a stored
+  event; the clash buttons are inert by a design decision this file argues
+  separately. The timezone row's switch is the one control here whose state a
+  column holds, so it is the one thing Save has to save. See `save/1`.
 
   `padding: 0` is not decoration: a pill always writes a `padding` key
   defaulting to `:space_sm`, and `MobBridge.kt` resolves an unspecified edge
   against that uniform (`pad(v) = (v ?: uniform ?: 0)`), so the two horizontal
   edges alone would leave the pill padded top and bottom as well.
   """
-  def save_pill do
+  def save_pill(event) do
     MishkaPill.pill(
       label: "Save",
+      on_tap: Kati.Screens.EventDetail.save_tap(event),
       background: Palette.ink_fill(),
       color: Palette.on_ink(),
       height: 38,
@@ -854,10 +882,40 @@ defmodule Kati.Screens.EventDetail do
     )
   end
 
+  @doc """
+  The two writes this page can make, as the tags their controls carry — or
+  `nil` on the drawn event, which is no row and has nothing to write.
+
+  One predicate for both, because it is one fact: `shaped/1` keeps the stored
+  row's `:id` and `Kati.Calendar.SampleEvent.event/0` has none. That is also
+  what keeps the page the design gates and both tap sweeps see byte-identical
+  to the page they have always seen — a `nil` tap draws no `accessibility_id`
+  and `Kati.ScreenSweep.tap_tags/1` does not collect it, so neither control can
+  join `@inert_taps` by being drawn over nothing.
+
+  Separate from the section chips and the timezone switch, which are socket
+  state on both branches and stay live either way.
+  """
+  @spec save_tap(map()) :: atom() | nil
+  def save_tap(event), do: if(writable?(event), do: :save)
+
+  @doc false
+  @spec delete_tap(map()) :: {pid(), atom()} | nil
+  def delete_tap(event), do: if(writable?(event), do: {self(), :delete_event})
+
+  defp writable?(event) do
+    case Map.get(event, :id) do
+      id when is_binary(id) and id != "" -> true
+      _no_row -> false
+    end
+  end
+
   # Outlined in red rather than filled: destructive, and one tap away from
   # nothing. The design gives it no background at all.
   @doc false
-  def delete do
+  def delete(event) do
+    tap = Kati.Screens.EventDetail.delete_tap(event)
+
     ~MOB"""
     <Box
       fill_width={true}
@@ -866,6 +924,7 @@ defmodule Kati.Screens.EventDetail do
       border_color={Palette.red_ring()}
       border_width={1.5}
       align="center"
+      on_tap={tap}
     >
       <Row align="center">
         {UI.symbol("delete", size: 18, color: Palette.red())}
@@ -883,6 +942,11 @@ defmodule Kati.Screens.EventDetail do
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+
+  def handle_info({:tap, :save}, socket), do: {:noreply, Kati.Screens.EventDetail.save(socket)}
+
+  def handle_info({:tap, :delete_event}, socket),
+    do: {:noreply, Kati.Screens.EventDetail.delete_event(socket)}
 
   # One clause for every chip and every switch on the screen: the tag carries
   # the label, so a third section or a second switch is a change to
@@ -918,4 +982,75 @@ defmodule Kati.Screens.EventDetail do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  Commit the one field this page can edit: whether the event follows travel.
+
+  `tz_behaviour` is the column behind the timezone row's switch, and the switch
+  is the only control on a stored event whose state anything stores — see
+  `save_pill/1`. Off is `:fixed` rather than `:floating`, and the row itself
+  says why: `zone_field/1` only draws at all when `tzid` is a real zone, and
+  `:floating` is the value that means there is none.
+
+  The page is then READ BACK rather than left holding what it asked for, which
+  is `Kati.Screens.Goals.toggle_repeat/2`'s contract as a page: a switch that
+  snaps back to whatever the store actually says, and a row deleted underneath
+  the screen falling to the drawing rather than staying editable.
+
+  The drawn event never reaches here — `save_tap/1` draws it no tap — so there
+  is no branch for it and no saved-nothing message on a page that draws no
+  place for one.
+  """
+  @spec save(Mob.Socket.t()) :: Mob.Socket.t()
+  def save(socket) do
+    event = socket.assigns.event
+
+    with id when is_binary(id) <- Map.get(event, :id),
+         %{trailing: {:switch, travels?}} <-
+           Enum.find(event.fields, &match?(%{trailing: {:switch, _on?}}, &1)),
+         {:ok, stored} <- Ash.get(Event, id) do
+      stored
+      |> Ash.update(%{tz_behaviour: if(travels?, do: :device, else: :fixed)})
+      |> Kati.Write.note("event timezone")
+
+      Mob.Socket.assign(socket, :event, Kati.Screens.EventDetail.event(%{id: id}))
+    else
+      _nothing_to_save -> socket
+    end
+  rescue
+    # No store at all — the same state `stored/1` rescues, one write later.
+    # `Kati.Screens.Goals.write_repeat/2` is the precedent for the shape: the
+    # failure is reported to the log rather than swallowed, and the page is
+    # left as it stands.
+    error ->
+      Kati.Write.note({:error, error}, "event timezone")
+      socket
+  end
+
+  @doc """
+  Tombstone this event and leave.
+
+  `:soft_delete` rather than `:destroy`, which is the resource's own decision
+  and its own words: *"A synced row that vanishes cannot be told apart from one
+  that never existed, and the other end would resurrect it."*
+
+  The screen closes only if the write landed. A page that dismissed itself over
+  a failed delete would be the sheet-closing-on-failure defect `Kati.Write`
+  exists to name, said with a whole screen instead of a sheet.
+  """
+  @spec delete_event(Mob.Socket.t()) :: Mob.Socket.t()
+  def delete_event(socket) do
+    with id when is_binary(id) <- Map.get(socket.assigns.event, :id),
+         {:ok, stored} <- Ash.get(Event, id),
+         {:ok, _tombstone} <-
+           Kati.Write.note(Ash.update(stored, %{}, action: :soft_delete), "event delete") do
+      Mob.Socket.pop_screen(socket)
+    else
+      _no_write -> socket
+    end
+  rescue
+    error ->
+      Kati.Write.note({:error, error}, "event delete")
+      socket
+  end
 end

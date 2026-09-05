@@ -662,6 +662,44 @@ defmodule Kati.Screens.BookDetailFa do
   def handle_info({:tap, :rate}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
+  # تمام شد is a write and then a handover, which is screen 66's `:finish` one
+  # language over. The consequence stays in
+  # `Kati.Screens.LogProgress.finish_book/1` so the two pages cannot drift
+  # about what finishing a book means, and the book named is the book on the
+  # page: `finish_book/1` defaults to the head of the shelf, so a page opened
+  # on the third book used to finish the first — the defect #84 fixed one
+  # screen over.
+  #
+  # `book[:id]` and not `book.id`, for the reason `own/1` gives above:
+  # `Kati.Books.SampleFa.detail/0` has no id and answers `nil` by absence,
+  # which `finish_book/1` reads as nothing to save.
+  #
+  # The push waits on the write for screen 66's reason: screen 33 asks you to
+  # rate a book you just finished, and arriving there off a refused write asks
+  # you to rate one the shelf still has you halfway through. `:rate` beside it
+  # pushes the same English screen, so that debt is this file's already and is
+  # not deepened here.
+  #
+  # A refused write leaves the page as it was and says nothing, which is the
+  # one place this mirror is quieter than 66. 66 draws a red notice from
+  # `Kati.Write.message/1`; board 69 draws none, and it cannot borrow 66's,
+  # because that message answers in English ("Nothing to save yet.") and an
+  # English sentence under a Persian title is the failure `Kati.Screens.Fa`
+  # records for the آمار tab's stand-in. It closes when a board draws the
+  # notice in Persian, not by printing 66's.
+  #
+  # It therefore stays on `Kati.ScreenTapSweepTest`'s `@inert_taps`, and moves
+  # category rather than coming off: not *unwired* any more, but a no-op
+  # against the empty shelf that sweep mounts, which is exactly the reason the
+  # status and edition chips above it are on that list. 66's own `:finish` is
+  # absent from it only because its error branch assigns `:save_error`.
+  def handle_info({:tap, :finish}, socket) do
+    case Kati.Screens.LogProgress.finish_book(socket.assigns.book[:id]) do
+      {:ok, _book} -> {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
+
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}
 end

@@ -142,10 +142,20 @@ defmodule Kati.UI do
   punctuation rather than status.
 
   `:trailing` adds a right-aligned label, which the design uses for "See all".
+  `:trailing_tap` makes that label the control it is drawn as; without one it
+  stays the `<Text>` it has always been.
   """
   @spec eyebrow(String.t(), keyword()) :: term()
   def eyebrow(label, opts \\ []) do
     trailing = Keyword.get(opts, :trailing)
+
+    # The trailing label is a CONTROL on both boards that draw one — 01's *See
+    # all* and 86's *Clear* — and it was rendered as a bare `<Text>`, so it was
+    # decoration at every call site that used it. Optional, and defaulting to
+    # `nil`, which `Kati.ScreenTapSweepTest` documents as the one value a
+    # control can carry that means "not tappable" rather than "broken" — so an
+    # eyebrow that names no tap draws exactly the node it drew before.
+    trailing_tap = Keyword.get(opts, :trailing_tap)
 
     # The dash is not always the accent, and hardcoding it made three screens
     # write their own eyebrow to say so. Orange means new/now in this design —
@@ -175,17 +185,22 @@ defmodule Kati.UI do
           text_color={label_color}
         />
         <Spacer weight={1.0} />
-        {Kati.UI.eyebrow_trailing(trailing)}
+        {Kati.UI.eyebrow_trailing(trailing, trailing_tap)}
       </Row>
       <Box fill_width={true} height={gap} />
     </Column>
     """
   end
 
+  # Arity 2 with a default rather than a second function, so the arity-1 call
+  # shape stays a real function — `Kati.Screens.LaunchScreen`'s moduledoc cites
+  # `Kati.UI.eyebrow_trailing/1` by name for its `Palette.sub/0` argument.
   @doc false
-  def eyebrow_trailing(nil), do: ~MOB"<Spacer size={0} />"
+  def eyebrow_trailing(label, tap \\ nil)
 
-  def eyebrow_trailing(label) do
+  def eyebrow_trailing(nil, _tap), do: ~MOB"<Spacer size={0} />"
+
+  def eyebrow_trailing(label, tap) do
     # "See all". `0xFF8A8479` is `Palette.sub/0`'s light value and no other
     # token's, so the mapping is forced rather than chosen — the name says
     # "second line under a row's title" and this is a trailing action, but the
@@ -193,8 +208,10 @@ defmodule Kati.UI do
     # own to be wrong about.
     color = Palette.sub()
 
+    # The tap lands on the label the design draws rather than on a node beside
+    # it, so no geometry moves and `nil` leaves the node as it was.
     ~MOB"""
-    <Text text={label} text_size={12.5} font_weight="semibold" text_color={color} />
+    <Text text={label} text_size={12.5} font_weight="semibold" text_color={color} on_tap={tap} />
     """
   end
 

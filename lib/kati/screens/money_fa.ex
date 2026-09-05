@@ -1041,17 +1041,14 @@ defmodule Kati.Screens.MoneyFa do
   @doc """
   The taps.
 
-  Three destinations, and only one of them leaves Persian — see the moduledoc
-  for why the service rows go to screen 97 rather than to 122's own
+  Two destinations, and one of them leaves Persian — see the moduledoc for why
+  the service rows go to screen 97 rather than to 122's own
   `Kati.Screens.Subscriptions`, and why the reminder still pushes an English
   screen instead of going dead. Anything unrecognised leaves the screen as it
   was rather than raising in a tap handler, which Mob does not catch.
   """
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
   def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
-
-  def handle_info({:tap, :open_services}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServicesFa)}
 
   def handle_info({:tap, :remind_me}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher)}
@@ -1063,9 +1060,35 @@ defmodule Kati.Screens.MoneyFa do
   # `Kati.Screens.Money.subscription_tag/1`. Last, inside the clause that
   # already swallowed everything else: written as a clause of its own above,
   # it shadowed `:remind_me` and `:dismiss` and neither would have fired.
+  #
+  # Screen 97, not a Persian screen 23. `Kati.Screens.SubscriptionsFa` was
+  # written here and has never existed: no such file, no `Kati.Screens.Gallery`
+  # entry, and the name appeared nowhere else in `lib/` or `test/`. Nothing on
+  # the host could say so — `Mob.Socket.push_screen/2` only records
+  # `{:push, dest, params}`, so the tap sweep saw a well-formed nav action and
+  # the reachability walk saw a graph node it then intersected away for not
+  # being a drawing. `Mob.Screen.apply_nav_action/3` is what calls
+  # `mount/3`, and it does it on the device, so the ledger died there and
+  # nowhere else.
+  #
+  # The destination is the one the moduledoc names at 168-175 and the one
+  # screen 62's سرویس‌ها row already opens (`settings_fa.ex:522`):
+  # `Kati.Screens.MyServicesFa`, gallery screen 97 and 92's Persian mirror,
+  # which is what 122's own `info` line means when it says prices are owned by
+  # 92. It carries nothing, the same way 122's rows carry nothing —
+  # `MyServicesFa.mount/3` ignores its params, and the per-row tag is identity
+  # for the sake of being addressable rather than for routing
+  # (`money.ex:459-464`).
+  #
+  # The clause that used to sit two above this one — `:open_services` →
+  # `MyServicesFa` — is deleted with this change. It was the pre-rename
+  # handler: #97 gave every row its own name through
+  # `Kati.Screens.Money.subscription_tag/1`, so nothing on 127 has drawn
+  # `:open_services` since, and a correct push to the right screen sitting on a
+  # path no tap takes is what kept this line looking answered.
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     if String.starts_with?(Atom.to_string(tag), "open_subscriptions_") do
-      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SubscriptionsFa)}
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServicesFa)}
     else
       {:noreply, socket}
     end

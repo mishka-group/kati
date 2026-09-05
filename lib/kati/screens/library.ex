@@ -1260,6 +1260,19 @@ defmodule Kati.Screens.Library do
   # Books and Music push their own shelves; Screen is the shelf you are already
   # on and only moves the assign. See the moduledoc for why the first two
   # stopped being inert.
+  # The sort disc, which board 145 has drawn a destination for since the shelf
+  # wave landed. Bare, like screens 20 and 21's: `shelf_filters.ex:79` is
+  # `def mount(_params, _session, socket)` and its five sort rows come from
+  # `Kati.Library.ShelfFiltersSample.sort_options/0`, where `Runtime` is a
+  # literal — there is no key to name a shelf in, and writing one the sheet
+  # does not read is an argument nobody can check. When 145 learns which shelf
+  # opened it, all four pushes gain a third argument together.
+  #
+  # 145's caption names *screens 03, 20 and 21*, 03 first, so this disc and
+  # 57's are the two that make the sheet what its own board says it is.
+  def handle_tap(:open_sort, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
+
   def handle_tap(:shelf_Books, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
 

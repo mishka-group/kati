@@ -171,6 +171,23 @@ defmodule Kati.Sources do
     end
   end
 
+  @doc """
+  Forget one provider's token.
+
+  What the `Disconnect` on a connected tier-2 row does, and the whole reason
+  only revocable-token providers are on that list — see the moduledoc. Deleting
+  the token IS the disconnection: `connected?/1` asks `Kati.SecureStore` rather
+  than keeping a second list, so no row can still say *Connected* afterwards,
+  and there is no second place for the two to drift apart.
+  """
+  @spec disconnect(atom()) :: :ok
+  def disconnect(id) when is_atom(id) do
+    SecureStore.delete(key_for(id))
+    :ok
+  rescue
+    _error -> :ok
+  end
+
   @doc "Forget every provider token on this device."
   @spec disconnect_all() :: :ok
   def disconnect_all do

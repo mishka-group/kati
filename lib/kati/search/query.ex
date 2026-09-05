@@ -100,21 +100,46 @@ defmodule Kati.Search.Query do
   # to `rows_per_group/0` and then joined would put a substring-tier book above
   # an exact-tier film.
   defp titles_for(query) do
-    (cached_for(query) ++ books_for(query))
+    (cached_for(query, tracked_ids()) ++ books_for(query))
     |> Enum.sort_by(fn {tier, title, _row} -> {tier, title} end)
     |> Enum.take(rows_per_group())
     |> Enum.map(fn {_tier, _title, row} -> row end)
   end
 
+  # Which cache rows this person actually KEEPS, keyed by the pair the durable
+  # row references the cache by.
+  #
+  # One read, before the take, because a hit is not a door on its own: screens
+  # 04 and 08 open a `Kati.Media.TrackedTitle`, and the cache holds rows for
+  # every title anybody has ever looked up as well as the ones on the shelf. A
+  # hit with no tracked row is still drawn — it matched — and carries no id, so
+  # its card carries no tap rather than a tap onto somebody else's title.
+  #
+  # Read through `:shelf` and not `Ash.read!/1`, for the reason
+  # `Kati.Screens.Film.film_record/1` gives: `:shelf` is where *keeps history,
+  # hides from shelf* is enforced, so an id taken around it would open a title
+  # the user archived.
+  defp tracked_ids do
+    [:movie, :tv, :anime]
+    |> Enum.flat_map(fn kind ->
+      Kati.Media.TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Map.new(&{{&1.source, &1.source_id}, &1.id})
+  rescue
+    _error -> %{}
+  end
+
   # Each read rescues on its own, so an unreadable cache still answers with the
   # shelf and the other way round — one rescue around both would let either
   # failure empty the whole group.
-  defp cached_for(query) do
+  defp cached_for(query, tracked) do
     Kati.Media.CachedTitle
     |> Ash.read!()
     |> Enum.map(&{tier(query, &1.title || "", &1.overview || ""), &1.title, &1})
     |> Enum.reject(fn {tier, _title, _row} -> is_nil(tier) end)
-    |> Enum.map(fn {tier, title, row} -> {tier, title, title_row(row)} end)
+    |> Enum.map(fn {tier, title, row} -> {tier, title, title_row(row, tracked)} end)
   rescue
     _error -> []
   end
@@ -136,7 +161,15 @@ defmodule Kati.Search.Query do
     %{
       title: row.title,
       sub: kind_label(:book) <> book_suffix(row),
-      seed: row.cover_seed
+      seed: row.cover_seed,
+      # Named, and deliberately not yet a door — see
+      # `Kati.Screens.Search.hit_tag/1`. `Kati.Screens.BookDetail.load/1` calls
+      # `book/0`, which discards the push's params, so a book hit has nowhere
+      # to go that is about this book. The id is carried anyway because it is
+      # true and because the day 66 reads its params is the day this becomes
+      # one line.
+      kind: :book,
+      id: row.id
     }
   end
 
@@ -147,13 +180,18 @@ defmodule Kati.Search.Query do
 
   defp book_suffix(_row), do: ""
 
-  defp title_row(row) do
+  defp title_row(row, tracked) do
     %{
       title: row.title,
       # Which kind it is, in the words screen 19 already draws — the second
       # criterion is that each result says which it is.
       sub: row.kind |> kind_label() |> then(&(&1 <> status_suffix(row))),
-      seed: row.poster_path
+      seed: row.poster_path,
+      # Which of the two screens the chevron opens, and the row it opens them
+      # on. `Kati.Screens.Library.shaped/3` collapses the same way: a film is
+      # its own screen and everything else is the series screen.
+      kind: if(row.kind == :movie, do: :film, else: :series),
+      id: Map.get(tracked, {row.source, row.source_id})
     }
   end
 
@@ -182,6 +220,11 @@ defmodule Kati.Search.Query do
 
   defp event_row(row) do
     %{
+      # The handle, not a rendering — `Kati.Calendars.Today.row/2` says it in
+      # as many words: a row that cannot name its own event is a row a screen
+      # can draw and cannot open. This function held the whole
+      # `%Kati.Calendars.Event{}` and dropped the one field screen 31 reads.
+      id: row.id,
       date: day_label(row.dtstart_utc),
       title: row.summary,
       time: time_label(row.dtstart_utc)

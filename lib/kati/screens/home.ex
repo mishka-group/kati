@@ -292,7 +292,10 @@ defmodule Kati.Screens.Home do
         {Kati.Screens.Home.watching(assigns.services)}
         {UI.eyebrow("Sections")}
         {Kati.Screens.Home.sections(assigns.tiles)}
-        {UI.eyebrow("Rest of today", trailing: "See all")}
+        {UI.eyebrow("Rest of today",
+           trailing: "See all",
+           trailing_tap: {self(), :see_all_today}
+         )}
         {Kati.Screens.Home.rest_of_today(timeline)}
       </Column>
     </Scroll>
@@ -367,7 +370,20 @@ defmodule Kati.Screens.Home do
     Kati.Screens.Library.shelf()
     |> Enum.filter(&(&1.status == :watching))
     |> Enum.take(@continue_cards)
-    |> Enum.map(&%{title: &1.title, seed: &1.seed, progress: &1.progress, meta: nil})
+    |> Enum.map(
+      &%{
+        # The row a card opens, and which of the two screens opens it.
+        # `Kati.Screens.Library.shaped/3` has carried both since #91 — this
+        # function dropped them, which is why a card that draws a title could
+        # not name it. Same pair, same reason, as the grid tile one screen over.
+        id: &1.id,
+        kind: &1.kind,
+        title: &1.title,
+        seed: &1.seed,
+        progress: &1.progress,
+        meta: nil
+      }
+    )
   end
 
   @doc """
@@ -865,8 +881,15 @@ defmodule Kati.Screens.Home do
     card = Palette.card()
     shadow = Theme.shadow_card()
 
+    # `Kati.Screens.Library.poster_tag/1` and not a tag of this screen's own:
+    # a card and a grid tile are the same door onto the same row, and two
+    # spellings of it would be two names for one destination. It answers
+    # `open_series_<Title>` for a row with no `:kind` — which is every row of
+    # `drawn_continue_watching/0`, and correct for both of them.
+    tap = {self(), Kati.Screens.Library.poster_tag(row)}
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Box fill_width={true} background={card} corner_radius={20} shadow={shadow} padding={11}>
         <Column fill_width={true}>
           <Box fill_width={true} height={112} corner_radius={12} background={Palette.placeholder()}>
@@ -1119,9 +1142,22 @@ defmodule Kati.Screens.Home do
         time: "20:00",
         title: "The Long Hollow — S2E6",
         meta: "Airs tonight · Lumen+",
+        # The kind the board draws, which the transcription had been missing:
+        # `Airs tonight` is an air date and `Repeats weekly` is a reminder, and
+        # `Kati.Calendars.Today.row/2` puts that field on every real row. It was
+        # absent while nothing read it; a row's tag is read off it now, and
+        # `Kati.Screens.Calendar.kind/1` matches on the key rather than
+        # defaulting, so a row without one is a FunctionClauseError.
+        kind: :air_date,
         now?: true
       },
-      %{time: "21:30", title: "Call Mum", meta: "Repeats weekly", now?: false}
+      %{
+        time: "21:30",
+        title: "Call Mum",
+        meta: "Repeats weekly",
+        kind: :reminder,
+        now?: false
+      }
     ]
   end
 
@@ -1197,9 +1233,16 @@ defmodule Kati.Screens.Home do
     accent = if row.now?, do: Palette.accent(), else: Palette.rail_idle()
     icon = if row.now?, do: "notifications_active", else: "radio_button_unchecked"
 
+    # Screen 02 draws these rows and opens them, off the same
+    # `Kati.Calendars.Today` shape; this card is that timeline with the day's
+    # spent hours dropped. `Kati.Screens.Calendar.tag/1` is borrowed rather
+    # than restated so one row cannot have two names — see that function's own
+    # doc for why the id is in the atom and why it is optional.
+    tap = {self(), Kati.Screens.Calendar.tag(row)}
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
+      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14} on_tap={tap}>
         <Box width={40}>
           <Text
             text={row.time}
@@ -1319,5 +1362,65 @@ defmodule Kati.Screens.Home do
   def handle_tap(:open_search, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchIdle)}
 
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  # *See all* over the day's own card. Screen 02 with no params opens on
+  # `Kati.Time.today()` by its own `load/1`, which is the day this card is —
+  # so the date the survey asks this tap to carry is carried by the
+  # destination rather than dropped. It cannot be named in the push either
+  # way: 02 is a root and `Kati.Screens.Root.mount/3` discards params.
+  #
+  # The header's `calendar_month` disc opens the same root, and that is the
+  # board's arrangement rather than a duplicate: 01 draws both, and a page
+  # reached two ways from one screen is what a section label and a header
+  # control are for.
+  def handle_tap(:see_all_today, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Calendar)}
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      # A Rest-of-today row, routed exactly as screen 02 routes the same row —
+      # see `Kati.Screens.Calendar.open_timeline_row/3`. The card is today, so
+      # today is the date a meals or money row is opened on.
+      "row_" <> _rest ->
+        {:noreply, Kati.Screens.Calendar.open_timeline_row(socket, tag, Kati.Time.today())}
+
+      # A continue-watching card, by its own title. `Kati.Screens.Library`
+      # answers the identical two prefixes for the identical rows; the only
+      # difference is which assign the tag is resolved against.
+      "open_film_" <> _title ->
+        {:noreply, Kati.Screens.Home.open_watching(socket, tag, Kati.Screens.Film)}
+
+      "open_series_" <> _title ->
+        {:noreply, Kati.Screens.Home.open_watching(socket, tag, Kati.Screens.Series)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Open `module` on the continue-watching card that carries `tag`.
+
+  `Kati.Screens.Library.open_tile/3`'s rule, over this screen's own assign: the
+  tag is resolved back to its row by running `poster_tag/1` over the very list
+  the band was built from rather than by reversing the string, and a row with
+  no id — every row of `drawn_continue_watching/0` — pushes with **no params at
+  all** rather than with `%{id: nil}`, so the destination's drawing is the
+  branch that survives.
+  """
+  @spec open_watching(Mob.Socket.t(), atom(), module()) :: Mob.Socket.t()
+  def open_watching(socket, tag, module) do
+    # `Map.get` and not `socket.assigns.continue`: this is dispatched from
+    # sweeps and from `Kati.ScreenHomeEmptyStateTest`, which press a tag against
+    # a socket built by hand, and a `KeyError` raised inside a tap handler is a
+    # crash where the honest answer is *no row of that name*. A missing assign
+    # and an empty band mean the same thing here, and both take the bare push
+    # the doc below describes.
+    rows = Map.get(socket.assigns, :continue, [])
+    row = Enum.find(rows, &(Kati.Screens.Library.poster_tag(&1) == tag))
+
+    case row && Map.get(row, :id) do
+      nil -> Mob.Socket.push_screen(socket, module)
+      id -> Mob.Socket.push_screen(socket, module, %{id: id})
+    end
+  end
 end

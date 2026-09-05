@@ -19,6 +19,15 @@ defmodule Kati.Screens.MealLibrary do
   photo* — which also tells the user the tile is missing something they could
   add.
 
+  ## The field is a field
+
+  The caption's argument is that a photo is recognised faster than a name, and
+  it holds for a grid you are scanning. It stops holding at the length this
+  screen is built for: past two screenfuls there is nothing to scan, and the
+  fastest way to a meal you can already name is to type it. So the drawn field
+  is a `<TextField>` rather than a picture of one, and the grid narrows on the
+  title as you type — see `search_field/1` and `matches?/2`.
+
   ## `APPROX` travels
 
   A meal whose total is built from partial ingredient data is marked here, on
@@ -47,6 +56,7 @@ defmodule Kati.Screens.MealLibrary do
     socket
     |> Mob.Socket.assign(:meals, meals())
     |> Mob.Socket.assign(:filter, "All")
+    |> Mob.Socket.assign(:query, "")
   end
 
   @doc "The library: what is stored, or the drawing's six."
@@ -140,9 +150,9 @@ defmodule Kati.Screens.MealLibrary do
       >
         {Kati.Screens.Goals.chrome()}
         {SettingsList.title("Meal library", Kati.Screens.MealLibrary.subtitle(assigns.meals))}
-        {Kati.Screens.MealLibrary.search_field()}
+        {Kati.Screens.MealLibrary.search_field(assigns.query)}
         {Kati.Screens.MealLibrary.chips(assigns.filter)}
-        {Kati.Screens.MealLibrary.grid(assigns.meals, assigns.filter)}
+        {Kati.Screens.MealLibrary.grid(assigns.meals, assigns.filter, assigns.query)}
         {Kati.Screens.MealLibrary.notes()}
       </Column>
     </Scroll>
@@ -172,8 +182,32 @@ defmodule Kati.Screens.MealLibrary do
     end
   end
 
-  @doc false
-  def search_field do
+  @doc """
+  The search field, which is a field now rather than a picture of one.
+
+  `Kati.ScreenTapSweepTest`'s `@inert_taps` listed this as *"`search` opens no
+  keyboard (#45)"*, and that premise is gone: `<TextField>` with `on_change`
+  ships on screen 154 (`Kati.Screens.AddByHand.field/3`) and screen 92
+  (`Kati.Screens.MyServices.search_field/1`), and the bridge honours it under
+  `native/LEDGER.md`'s text-field fence. This screen is the one place in Meals
+  where reading beats recognition — a library grown past two screenfuls of tiles
+  cannot be scanned, which is board 116's own argument for the grid pointed the
+  other way.
+
+  The row keeps its `on_tap`, for `Kati.Screens.MyServices.search_field/1`'s
+  reason: it is the drawn hit area, and it is what a tap on the glyph or on the
+  padding lands on rather than on the field itself. What it opens is still
+  nothing, which is what keeps its `@inert_taps` entry honest — the entry's
+  REASON is what is stale, not the entry.
+
+  The copy stays the drawing's and moves from `:text` to `:placeholder`, which
+  `Kati.DesignLiterals.content_props/0` already reads, so
+  `Kati.ScreenDesignLiteralTest` still finds *Search your meals* in the tree.
+  """
+  @spec search_field(String.t()) :: map()
+  def search_field(query \\ "") do
+    assigns = %{query: query, on_change: {self(), :meal_query}}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -189,12 +223,13 @@ defmodule Kati.Screens.MealLibrary do
       >
         {UI.symbol("search", size: 19, color: Palette.tertiary())}
         <Spacer size={11} />
-        <Text
-          text="Search your meals"
-          text_size={14}
-          text_color={Palette.tertiary()}
+        <TextField
+          value={@query}
+          placeholder="Search your meals"
+          return_key="search"
           weight={1.0}
-          max_lines={1}
+          accessibility_id="meal_query"
+          on_change={@on_change}
         />
       </Row>
       <Spacer size={18} />
@@ -252,20 +287,25 @@ defmodule Kati.Screens.MealLibrary do
   end
 
   @doc """
-  The grid, two across, filtered by the chip.
+  The grid, two across, filtered by the chip and by what is typed.
 
-  Indexed **before** the filter, not after: the index a tile carries is its
+  Indexed **before** either filter, not after: the index a tile carries is its
   position in `assigns.meals`, which is the list `handle_tap/2` reads back. An
   index into the filtered list would name the third *Dinner* while the handler
   looked up the third meal, and the two coincide exactly when the chip is `All`
-  — which is what a screenshot shows.
+  and the field is empty — which is what a screenshot shows.
+
+  An empty query is not a filter of nothing, it is no filter: `query == ""`
+  short-circuits, which is the branch every sweep renders and the branch board
+  116 is drawn in.
   """
-  @spec grid([map()], String.t()) :: map()
-  def grid(meals, filter) do
+  @spec grid([map()], String.t(), String.t()) :: map()
+  def grid(meals, filter, query \\ "") do
     rows =
       meals
       |> Enum.with_index()
       |> Enum.filter(fn {meal, _index} -> filter == "All" or meal.slot == filter end)
+      |> Enum.filter(fn {meal, _index} -> Kati.Screens.MealLibrary.matches?(meal, query) end)
       |> Enum.chunk_every(2)
       |> Enum.map(&Kati.Screens.MealLibrary.grid_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={12} />")
@@ -277,6 +317,24 @@ defmodule Kati.Screens.MealLibrary do
     </Column>
     """
   end
+
+  @doc """
+  Whether a meal survives what is typed in the field.
+
+  Containment over the title and nothing else: the tile draws a title, a figure
+  and a slot word, and matching on the slot would make typing *dinner* and
+  tapping the **Dinner** chip two spellings of one control.
+
+  Through `Kati.Search.normalise/1` rather than `String.downcase/1`, so this
+  field folds a query the way the app's own search does — the Persian kaf and
+  ya, the ZWNJ, and Persian digits — instead of inventing a second, weaker rule
+  for one screen.
+  """
+  @spec matches?(map(), String.t()) :: boolean()
+  def matches?(_meal, ""), do: true
+
+  def matches?(meal, query) when is_binary(query),
+    do: String.contains?(Kati.Search.normalise(meal.title), Kati.Search.normalise(query))
 
   @doc false
   def grid_row(row) do
@@ -457,4 +515,23 @@ defmodule Kati.Screens.MealLibrary do
 
     Mob.Socket.push_screen(socket, Kati.Screens.MealEdit, Kati.Screens.MealEdit.params_for(meal))
   end
+
+  @doc """
+  What was typed in the search field.
+
+  **The catch-all delegates to `super/2`.** `Kati.Screens.Pushed` marks
+  `handle_info/2` overridable and defines four clauses on it, one of which
+  routes every `{:tap, tag}` to `handle_tap/2` and another of which answers
+  `:back` — so an override that replaced all four would take every tap on this
+  page with it. `Kati.Screens.MyServices`' own change clause carries the same
+  warning, and it is there because that failure has already happened once.
+
+  A keystroke narrows the grid and nothing else: it does not touch `:filter`,
+  because the chip and the field are two different questions and a screen that
+  cleared one when you used the other would be answering neither.
+  """
+  def handle_info({:change, :meal_query, typed}, socket) when is_binary(typed),
+    do: {:noreply, Mob.Socket.assign(socket, :query, typed)}
+
+  def handle_info(message, socket), do: super(message, socket)
 end

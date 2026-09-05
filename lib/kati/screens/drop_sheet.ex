@@ -158,10 +158,11 @@ defmodule Kati.Screens.DropSheet do
 
   ## Referent
 
-  `gone_cold_title/0` reads the newest `status == :paused, archived == false`
-  row — `Kati.Screens.UpNext`'s own cold-section query, independently written
+  `gone_cold_title/1` reads the `status == :paused, archived == false` rows —
+  `Kati.Screens.UpNext`'s own cold-section query, independently written
   here because this sheet needs the integer position that row's own `cold`
-  formatter throws away. No such row falls back to `Kati.Screens.DropSheet.
+  formatter throws away — and takes the one the push NAMED, or the newest when
+  the push named none. No such row falls back to `Kati.Screens.DropSheet.
   Sample.sheet/0` whole, the same all-or-nothing fallback
   `Kati.Screens.UpNext.queue/0` and `Kati.Screens.RateEpisode.sheet/0` both
   take, for the reason both give: a real position under the drawing's own
@@ -207,38 +208,75 @@ defmodule Kati.Screens.DropSheet do
   @reason_tags Enum.map(@reasons, fn {key, _label} -> :"reason_#{key}" end)
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:sheet, sheet())
+     |> Mob.Socket.assign(:sheet, sheet(Map.get(params || %{}, :title_id)))
      |> Mob.Socket.assign(:reason, nil)
      |> Mob.Socket.assign(:dropped?, false)}
   end
 
   @doc """
-  The title this sheet drops: the newest gone-cold row, or the board's own.
+  The params that name a thread to this sheet.
 
-  See the moduledoc's "Referent" section.
+  `:title_id` and not `:id`, for the reason `Kati.Screens.Season.params_for/1`
+  gives: naming the noun is what tells a reader whose id it is holding.
+  `%{tracked_id: id}` is the shape `Kati.Screens.Series`'s page already carries,
+  and a row with no tracked id — every drawn fixture — yields `%{}` rather than
+  `%{title_id: nil}`, so the bare branch stays the branch a nameless push takes.
+
+      iex> Kati.Screens.DropSheet.params_for(%{tracked_id: "abc"})
+      %{title_id: "abc"}
+
+      iex> Kati.Screens.DropSheet.params_for(%{title: "The Quiet Ones"})
+      %{}
   """
-  @spec sheet() :: map()
-  def sheet do
-    case gone_cold_title() do
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{tracked_id: id}) when is_binary(id), do: %{title_id: id}
+  def params_for(_row), do: %{}
+
+  @doc """
+  The title this sheet drops: the one it was named, the newest gone-cold row,
+  or the board's own.
+
+  See the moduledoc's "Referent" section. Without the id every door into this
+  sheet opened the same row — the newest paused one — however many gone-cold
+  threads the store holds and whichever of them the door was on. That is the
+  defect Phase 1 is named for, and on a sheet that WRITES it is worse than a
+  dead control: it drops a title the user did not point at.
+
+  An id that names no gone-cold row answers `nil` and falls back to the drawing
+  rather than to the head of the list, which is the rule the whole phase keeps:
+  a row dropped, resumed or never paused under you is not the same fact as an
+  empty queue, and answering with a different real title is the swap this
+  argument exists to prevent.
+  """
+  @spec sheet(String.t() | nil) :: map()
+  def sheet(title_id \\ nil) do
+    case gone_cold_title(title_id) do
       nil -> Sample.sheet()
       tracked -> from_tracked(tracked)
     end
   end
 
-  defp gone_cold_title do
+  # One query either way — the filter is what this sheet is ABOUT (a thread
+  # that has gone quiet and is still on the shelf), so a named id narrows that
+  # set rather than replacing it. `archived == false` therefore still holds for
+  # a named row: an id must not open a title the user has hidden.
+  defp gone_cold_title(title_id) do
     TrackedTitle
     |> Ash.Query.filter(archived == false and status == :paused)
     |> Ash.Query.sort(last_touched_at: :desc)
     |> Ash.read!()
-    |> List.first()
+    |> pick(title_id)
   rescue
     _ -> nil
   end
+
+  defp pick(rows, nil), do: List.first(rows)
+  defp pick(rows, title_id), do: Enum.find(rows, &(&1.id == title_id))
 
   defp from_tracked(tracked) do
     cached = cached_for(tracked)

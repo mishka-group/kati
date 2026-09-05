@@ -220,7 +220,10 @@ defmodule Kati.Screens.SearchIdle do
 
       ~MOB"""
       <Column fill_width={true}>
-        {Kati.UI.eyebrow("Recent · last #{@kept}", trailing: "Clear")}
+        {Kati.UI.eyebrow("Recent · last #{@kept}",
+           trailing: "Clear",
+           trailing_tap: {self(), :clear_recent}
+         )}
         {Kati.UI.SettingsList.card(@rows)}
         <Spacer size={22} />
       </Column>
@@ -364,6 +367,22 @@ defmodule Kati.Screens.SearchIdle do
 
   def handle_tap(:filters, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec)}
+
+  @doc """
+  Forget the shelf, and redraw without it.
+
+  Both halves, and the second is not tidiness: `Kati.Search.Recent` writes
+  `Mob.State`, which is neither an assign nor a nav action — the blind spot
+  `Kati.Screens.LanguagePick`'s two entries in `@inert_taps` exist for — so a
+  clear that did not also move `:history` would look dead to every sweep AND
+  leave eight rows on screen under a heading that says they are gone. The
+  card gives way to board 87's *Nothing searched yet* on the next render,
+  which is the state `recent/1` already draws for an empty history.
+  """
+  def handle_tap(:clear_recent, socket) do
+    Kati.Search.Recent.forget!()
+    {:noreply, Mob.Socket.assign(socket, :history, [])}
+  end
 
   # `query_tag/2` answers a bare tag only for a row whose text is empty — the
   # drawing's own single-row states. There is no line to carry, so these two say

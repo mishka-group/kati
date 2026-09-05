@@ -72,8 +72,16 @@ defmodule Kati.Screens.Books do
   alias Kati.Theme
   alias Kati.Theme.Palette
 
+  @impl true
+  # The shelf opens on `All`, which is the chip the drawing draws selected.
+  # `Kati.Screens.Library.load/1` opens on the same word for the same reason:
+  # screens 03, 20 and 21 are one control drawn three times.
+  def load(socket), do: Mob.Socket.assign(socket, :filter, "All")
+
   @doc false
-  def content(_assigns) do
+  def content(assigns) do
+    filter = assigns.filter
+
     ~MOB"""
     <Scroll>
       <Column
@@ -86,8 +94,8 @@ defmodule Kati.Screens.Books do
         {Kati.Screens.Books.header()}
         {Kati.Screens.Books.segments()}
         {Kati.Screens.Books.reading_now()}
-        {Kati.Screens.Books.chips()}
-        {Kati.Screens.Books.grid()}
+        {Kati.Screens.Books.chips(filter)}
+        {Kati.Screens.Books.grid(filter)}
       </Column>
     </Scroll>
     """
@@ -390,14 +398,15 @@ defmodule Kati.Screens.Books do
   end
 
   @doc false
-  def chips do
+  def chips(active) do
     ~MOB"""
     <Column fill_width={true}>
       <Scroll axis="horizontal">
         <Row>
           {Kati.Books.Sample.chips()
-           |> Enum.with_index()
-           |> Enum.map(fn {{label, count}, i} -> Kati.Screens.Books.chip(label, count, i == 0) end)
+           |> Enum.map(fn {label, count} ->
+             Kati.Screens.Books.chip(label, count, label == active)
+           end)
            |> Enum.intersperse(Kati.Screens.Books.chip_gap())}
         </Row>
       </Scroll>
@@ -412,11 +421,15 @@ defmodule Kati.Screens.Books do
   @doc """
   One shelf chip — `Kati.Components.MishkaChip`, count in the trailing slot.
 
-  Screen 19 draws the same chip and adopts the same component; this one has no
-  handler, because the drawing gives these chips no destination and a tap that
-  does nothing is worse than no tap. `on_toggle` is simply not passed, and the
-  port omits the key rather than sending a null — so the node carries no
-  `on_tap` at all, exactly as the hand-rolled `Row` did.
+  Screen 19 draws the same chip and adopts the same component. This one used to
+  be passed no `on_toggle` at all — *the drawing gives these chips no
+  destination and a tap that does nothing is worse than no tap* — and the
+  destination that paragraph went looking for was never a push. It is this
+  screen in another state, which is exactly what screen 03's identical chips
+  do: `library.ex:896-898` passes the same `on_toggle`, answered at
+  `library.ex:1270-1271`, and 20 is 03 rebuilt from the identical parts. The
+  tag carries the label, so a fifth chip is a change to
+  `Kati.Books.Sample.chips/0` and not to this file.
 
   **Why the pixels do not move.** The chip was a `Row`; the port builds a `Box`
   that hugs by `fill_width={false}` (read by the bridge since fence K-17), and
@@ -439,6 +452,10 @@ defmodule Kati.Screens.Books do
     MishkaChip.chip(
       label: label,
       checked: on?,
+      # The label and not the index: `Kati.Books.Sample.chips/0` is the order
+      # the drawing draws, and a tag built from a position rots the moment that
+      # order changes. `Kati.Screens.Library.chip/3` spells it the same way.
+      on_toggle: String.to_atom("filter_" <> label),
       color: Palette.ink_fill(),
       text_color: Palette.on_ink(),
       unchecked_color: Palette.card(),
@@ -472,9 +489,10 @@ defmodule Kati.Screens.Books do
   # The 18pt gap goes *between* rows: interspersed rather than trailed off each
   # row, so the last row does not push 18pt of dead space above the dock.
   @doc false
-  def grid do
+  def grid(filter) do
     rows =
       Sample.books()
+      |> Kati.Screens.Books.visible(filter)
       |> Enum.chunk_every(3)
       |> Enum.map(&Kati.Screens.Books.grid_row/1)
       |> Enum.intersperse(Kati.Screens.Books.row_gap())
@@ -485,6 +503,38 @@ defmodule Kati.Screens.Books do
     </Column>
     """
   end
+
+  @doc """
+  The books a chip leaves on the shelf.
+
+  Read off the fraction, because there is nothing else to read it off:
+  `Kati.Books.Sample`'s rows carry a `progress` and the line the tile prints,
+  and no `status` column — so *Reading* is a book between the two ends rather
+  than a row that says so. The drawing agrees with that arithmetic, which is
+  what says it is the right read: two of the six are strictly between 0 and 1,
+  and the chip above them says **Reading 2**.
+
+  The chips keep their drawn counts and do not count this. `All 64` is a window
+  onto a library of 64 — `Kati.Books.Sample`'s moduledoc — and counting the six
+  visible would turn 64 into 6, which is the same reason the header says
+  `64 books` over six covers.
+
+  A filter that leaves nothing draws an empty grid under live chips rather than
+  an empty state: `Kati.Screens.Library.shelf_body/3` branches on the SHELF
+  being empty and never on the filter, for the reason written out there.
+
+      iex> Kati.Screens.Books.visible(Kati.Books.Sample.books(), "Reading") |> length()
+      2
+  """
+  @spec visible([map()], String.t()) :: [map()]
+  def visible(books, "Reading"),
+    do: Enum.filter(books, &(&1.progress > 0.0 and &1.progress < 1.0))
+
+  def visible(books, "Finished"), do: Enum.filter(books, &(&1.progress >= 1.0))
+
+  def visible(books, "To read"), do: Enum.filter(books, &(&1.progress == 0.0))
+
+  def visible(books, _all), do: books
 
   @doc false
   def grid_row(row) do
@@ -657,9 +707,33 @@ defmodule Kati.Screens.Books do
   screen that already had it, rather than a second rule invented here.
 
   Search is `Kati.Screens.Search` — the same screen 03's disc opens — and sort
-  has nowhere to go: no board in the 165 draws a sort sheet for any shelf, and
-  03's own disc is on `Kati.ScreenTapSweepTest`'s backlog for that reason. It
-  is left there rather than pointed at a screen that would be invented here.
+  is `Kati.Screens.ShelfFilters`, whose board is 145 and whose caption is *one
+  sheet for screens 03, 20 and 21 — three sheets would end the "identical
+  parts" claim within a release.* This paragraph used to say sort had nowhere
+  to go and that no board in the 165 draws a sort sheet for any shelf. 145 is
+  that board: the sheet is built, it mounts, it is registered `:push` at
+  `gallery.ex:184`, and `Kati.Screens.Library` already pushes it
+  (`library.ex:1246-1251`) — from a ⋯ menu row, which 03 grew only because no
+  shelf had claimed its disc yet. The trailing `sort` disc board 20 draws in
+  its own header, beside search, is the door 145's caption describes, so the
+  disc pushes it rather than staying on `Kati.ScreenTapSweepTest`'s backlog.
+
+  **Bare, and that is the sheet's limit rather than a forgotten argument.** 145
+  also says *only the section-specific sort label changes: Runtime, Pages,
+  Length* — but `Kati.Screens.ShelfFilters.mount/3` matches `_params`, and its
+  five sort rows come from `Kati.Library.ShelfFiltersSample.sort_options/0`,
+  where `Runtime` is a literal. There is no key to name a shelf in, and writing
+  one the sheet does not read is an argument nobody can check —
+  `Kati.ScreenParamsSweepTest`'s own subject. When 145 learns which shelf
+  opened it, this push gains its third argument and that sweep starts holding
+  it to it.
+
+  Screens 03 and 57 draw the same disc and are still on the backlog. 145's
+  caption names 03 first, so the three of them are one control drawn three
+  times here too: the two that could be reached from this batch's files are
+  wired, and `Kati.Screens.Library`'s disc is the one left to move — its own
+  `menu/1` already says *when 03 is redrawn with its filter disc, `ShelfFilters`
+  moves to it and comes out of this menu*, and 03 has had the disc all along.
   """
   def handle_tap(:open_music, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
@@ -677,6 +751,12 @@ defmodule Kati.Screens.Books do
     do:
       {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Books"})}
 
+  # Board 145's sheet, from the disc board 20 draws beside search. Pushed with
+  # two arguments and not three — see the paragraph on `:open_music` for why the
+  # shelf cannot be named yet, and what makes it nameable.
+  def handle_tap(:open_sort, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
+
   # Every grid tile, by its own seed — see `book_tag/1`. They all open the same
   # screen today: `Kati.Screens.BookDetail` takes no argument, so this is
   # identity for the sake of being addressable rather than for routing.
@@ -688,10 +768,18 @@ defmodule Kati.Screens.Books do
   # Below the named clauses, above the catch-all: a prefix match placed before
   # them makes every one of them unreachable, silently.
   def handle_tap(tag, socket) when is_atom(tag) do
-    if String.starts_with?(Atom.to_string(tag), "open_book_") do
-      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetail)}
-    else
-      {:noreply, socket}
+    case Atom.to_string(tag) do
+      # The four shelf chips, by their own labels — see `chip/3`. One clause for
+      # the family, so a fifth chip is a data change rather than a code change,
+      # which is the rule `Kati.Screens.Library.handle_tap/2` already follows.
+      "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      "open_book_" <> _seed ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetail)}
+
+      _other ->
+        {:noreply, socket}
     end
   end
 
