@@ -190,6 +190,54 @@ screen cannot show the right row until it is told which row it is about.
 
 ---
 
+## What the device said, once Phase 1 landed
+
+Four defects that no host sweep can see, found by using the app on Pixel_9a.
+Three are fixed in `27ce0b8`; the fourth is the largest thing in this document
+and is not fixed.
+
+**A popped-to screen never re-reads.** `deps/mob/lib/mob/screen.ex:571-578`
+answers `{:pop}` by restoring the *saved socket* — the one the screen had when
+it was pushed away from. `load/1` does not run again. So:
+
+    add a title  →  press back  →  the Library still says "1 titles"
+    switch roots →  it says 3
+
+Every write that ends in `pop_screen/1` is invisible until you leave the stack:
+*Mark eaten*, *Log a watch*, a saved rating, an added expense, a logged weight.
+It is the reason Phase 1's own fix looks broken the first time you try it, and
+it is **not** Phase 1's doing — it has always been true and nothing wrote enough
+to notice.
+
+It cannot be fixed in this repo the way the other three were. Mob has no resume
+hook — no `on_resume`, no message to the restored screen — and `deps/mob` is a
+dependency rather than a vendored file, so there is no fence to put a patch in.
+The three ways out, in the order they should be considered:
+
+  1. **Ask upstream for a resume callback.** One optional callback invoked on the
+     restored screen before `do_render/3`. It is what every navigation library
+     that keeps a stack ends up with.
+  2. **Re-mount instead of restoring**, for screens that declare they read the
+     store. `Kati.ScreenEmptyDatabaseTest`'s `@migrated` is already that list.
+  3. **Vendor `mob/screen.ex`.** The last resort, and a large one — the drift
+     ledger exists so that decisions like this are made deliberately.
+
+The three that are fixed, kept here because each says something about where the
+sweeps stop:
+
+  * **Screen 19's search field was 63 pixels wide.** A `Box` with no numeric
+    width is force-filled, so the clear disc took 774 of the row's 876 pixels
+    and the weighted field beside it got what was left. Neither the rendered
+    tree nor the board has a width, so no sweep could ever have caught it.
+  * **The text field lost and reordered keystrokes.** `Marram` arrived as
+    `Mamr`. The bridge reset its local value on every host echo, and Kati's echo
+    is a NIF round trip. No host sweep has a keyboard.
+  * **Recents filled with abandoned prefixes.** One search for *Ashfall* held
+    five of the eight slots. Visible only after typing a whole word on a device.
+
+
+---
+
 ## Phase 2 — wire the dead controls that need nothing
 
 **75 connections. The design drew the control and the destination exists.**
@@ -624,12 +672,15 @@ so the boards that draw them are not read as bugs:
 
 ## The todo, in order
 
-- [ ] **1.** Give `push_screen/3` its third argument at the 50 Phase 1 call
-      sites, and make each destination read `socket.assigns.params`. Copy
-      `day.ex:158`. One commit per area.
-- [ ] **2.** Assert it: extend the tap sweep so a tap that opens a detail screen
-      must open it *about* the row it was fired from. Without this the fix
-      regresses silently.
+- [x] **1.** Give `push_screen/3` its third argument at the 50 Phase 1 call
+      sites, and make each destination read `socket.assigns.params`.
+      Done in `156410a`, verified on Pixel_9a: three posters, three films.
+- [x] **2.** Assert it: `test/kati/screen_params_sweep_test.exs` ratchets every
+      door into a params reader that names nothing, and locks the fallback —
+      an id that names no row must render what naming nothing renders.
+- [ ] **2a.** **Make a popped-to screen re-read.** The largest item in this
+      document; see *What the device said* above. Nothing else in Phase 2 or 3
+      is worth much until a write is visible when you press back.
 - [ ] **3.** Wire the 75 Phase 2 controls, striking each off `@inert_taps` in the
       same commit. Start with the 15 in the Backlog section, whose reasons are
       already written down.
@@ -641,12 +692,23 @@ so the boards that draw them are not read as bugs:
       42 and the sweep reaches 123.
 - [ ] **5.** Retire the sample modules a real source can now replace (Phase 3),
       largest first: `Kati.Library.Sample` at 79 call sites.
-- [ ] **6.** Hand each brief in `design-briefs/D-35`…`D-NN` to Claude Design, one
+- [ ] **6.** Hand each brief in `design-briefs/D-35`…`D-57` to Claude Design, one
       at a time. Land the boards in `test/design/incoming/` and move them to
       `screens/` in the commit that builds each screen.
 - [ ] **7.** Write the migrations for Phase 5, one resource at a time, and only
       once a board draws the control that needs the column.
 - [ ] **8.** Leave Phase 6 alone.
+
+## One note for whoever runs this on a device
+
+`bin/deploy_native.sh` fails the gradle build after every Elixir change, with
+`src/e2e/assets/otp.zip is older than _build/dev/lib/kati/ebin`. The guard is
+right — an e2e APK shipping stale BEAMs would test code nobody wrote — but the
+fix is a second command the script does not run:
+
+```bash
+mix kati.e2e.stage && ./bin/deploy_native.sh
+```
 
 ## What this document is not
 
