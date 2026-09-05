@@ -1,6 +1,6 @@
 # The controls that name a place with nothing behind it
 
-> **Mixed — three boards and one schema decision** · ticket `D-62`
+> **Mixed — two boards, one card state, one decision** · ticket `D-62`
 
 `Kati.ScreenTapSweepTest`'s `@inert_taps` is down to 166 after `K-43 open-url`
 and `K-44 open-settings` took thirteen off it. Most of what remains is not a
@@ -13,6 +13,12 @@ This brief is the rest — the controls that are drawn, reachable, honest-lookin
 and dead, each because the thing behind them does not exist. They are grouped
 by what is missing rather than by screen, because the missing thing is the unit
 of work.
+
+**What actually needs a designer: two boards and one card state.** §1's service
+page and §2's lending page are the two. §3 needs a DECISION before it needs a
+drawing, and then one new state of a card that already exists. §2's series
+chevron needs neither — its destination is screen 20 filtered by series, which
+is already built. §4 is done.
 
 ## 1 · Seven service rows, and no page to open
 
@@ -63,17 +69,18 @@ itself, and `Kati.Meals.MealPlanSlot` is where that belongs.
 
 Answer the question, then the column, then the card's second state.
 
-## 4 · *Save image*, blocked on a capability
+## 4 · *Save image* — built, and struck off
 
-Screen 121 is the week rendered as one printable page and its button says
-**Save image**. `Kati.Native.Files.save_as/2` can put a file into
-`ACTION_CREATE_DOCUMENT`, so the saving half exists. What does not exist is the
-half that turns a screen into a PNG: Mob renders to Compose, and nothing in
-`native/LEDGER.md` captures a composable to a bitmap.
+Kept as a row here because it was in this brief when it was written and a
+struck-out line is worth more than a deleted one: screen 121's button needed a
+node tree rasterised to a file, and `K-45 capture-screen` is that. It draws
+`android.R.id.content` into a PNG in the cache and `Kati.Native.Files.save_screen/1`
+hands it to the same `ACTION_CREATE_DOCUMENT` picker the backups go through.
+**Nothing to draw. Nothing to decide.**
 
-`K-43` and `K-44` are the shape this would take — a fence, a closed contract, a
-refusal that gets drawn. It is a bigger fence than either, and it is the only
-item here that is engineering rather than design.
+`Kati.Screens.YearCards.handle_tap/2` still stubs its own save for the reason
+this one used to, and is now the last screen in the app that does. It is one
+call away and is not a board question either.
 
 ## Why this is filed rather than fixed
 

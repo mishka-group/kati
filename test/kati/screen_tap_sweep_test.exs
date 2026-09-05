@@ -811,17 +811,17 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Nutrition, :share},
     {Kati.Screens.Rating, :add_tag},
     {Kati.Screens.ScheduleFa, :open_menu},
-    {Kati.Screens.Subscriptions, :open_menu},
-    # ── Blocked on a capability the app does not have. Screen 121 is the week
-    # rendered as one printable page, and its button says Save image. Kati can
-    # put a file into `ACTION_CREATE_DOCUMENT` or `ACTION_SEND` —
-    # `Kati.Native.Files.save_as/2` and `share/2` — but it has no way to turn a
-    # rendered screen into a bitmap to hand them, and no screen in the app does:
-    # `Kati.Screens.YearCards.handle_tap/2` stubs its own save for exactly the
-    # same reason. The tap is drawn because the button is drawn, and the button
-    # is drawn because it is on the board. It stops being inert the day the
-    # bridge gains a screen-to-bitmap call, and not before.
-    {Kati.Screens.WeekImage, :save_image}
+    {Kati.Screens.Subscriptions, :open_menu}
+    # (Screen 121's `save_image` was here, with the sentence *it stops being
+    # inert the day the bridge gains a screen-to-bitmap call, and not before.*
+    # `K-45 capture-screen` is that call: `Kati.Native.Files.save_screen/1`
+    # draws the content view into a PNG in the cache and hands it to the same
+    # `ACTION_CREATE_DOCUMENT` picker the backups go through. Struck out rather
+    # than deleted, because a list that only grows is a list nobody believes.
+    #
+    # `Kati.Screens.YearCards.handle_tap/2` stubs its own save for the reason
+    # this one used to, and is now the last screen in the app that does. It is
+    # one call away.)
   ]
 
   test "both locales are swept" do

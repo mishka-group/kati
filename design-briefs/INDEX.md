@@ -120,7 +120,7 @@ rather than deleted.
 | `D-59-your-first-medication-and-three-you-never-took.md` | Your first medication, and three you never took | Two states | — |
 | `D-60-a-persian-screen-cannot-say-a-save-failed.md` | A Persian screen cannot say a save failed | Copy | — |
 | `D-61-the-persian-shelf-that-does-not-exist.md` | The Persian shelf that does not exist | Full screen | — |
-| `D-62-the-controls-that-name-a-place-with-nothing-behind-it.md` | The controls that name a place with nothing behind it | Mixed | — |
+| `D-62-the-controls-that-name-a-place-with-nothing-behind-it.md` | The controls that name a place with nothing behind it | Two boards | — |
 
 `D-30` is the one brief here for a **closed** issue. #27 is closed as *not
 planned* because it cannot start until these boards exist and two questions in

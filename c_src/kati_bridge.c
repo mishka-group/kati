@@ -158,6 +158,20 @@ static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM arg
     return reply;
 }
 
+static ERL_NIF_TERM kb_capture_screen(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *name;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    name = kati_take_cstr(env, argv[0]);
+    if (name == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call(env, "katiCaptureScreen", "(Ljava/lang/String;)Ljava/lang/String;",
+                             name, NULL);
+    kati_free_cstr(name);
+    return reply;
+}
+
 static ERL_NIF_TERM kb_open_settings(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     char *which;
     ERL_NIF_TERM reply;
@@ -273,6 +287,12 @@ static ERL_NIF_TERM kb_open_settings(ErlNifEnv *env, int argc, const ERL_NIF_TER
     return kb_unavailable(env);
 }
 
+static ERL_NIF_TERM kb_capture_screen(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     (void)argc;
     (void)argv;
@@ -297,6 +317,9 @@ static ErlNifFunc nif_funcs[] = {
     {"permission_status", 1, kb_permission_status, 0},
     {"open_url", 1, kb_open_url, 0},
     {"open_settings", 1, kb_open_settings, 0},
+    /* Dirty: the Kotlin half posts to the UI thread and waits on a latch, and
+       a wait of up to five seconds must not sit on a normal scheduler. */
+    {"capture_screen", 1, kb_capture_screen, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

@@ -250,4 +250,39 @@ defmodule Kati.Native.Files do
   defp reason_atom(reason) when reason in ~w(no_jvm no_bridge no_method no_pid), do: :no_bridge
   defp reason_atom(other) when is_binary(other), do: {:native, other}
   defp reason_atom(_other), do: :bad_request
+
+  @doc """
+  Rasterise what is on screen and hand it to the document picker.
+
+  The two halves of *Save image*, joined. `Kati.Nifs.KatiBridge.capture_screen/1`
+  writes a PNG of the app's own content area into the cache directory — never
+  anywhere the user can see, because a capture that wrote to Pictures itself
+  would be saving without being asked — and `save_as/2` is what puts it
+  somewhere permanent, through the same `ACTION_CREATE_DOCUMENT` picker every
+  other file in Kati goes through.
+
+  Screen 121's button said **Save image** and did nothing from the day it was
+  drawn. `Kati.ScreenTapSweepTest` recorded it as *blocked on a capability the
+  app does not have*, and the missing half was never the saving.
+
+  Returns `:ok` once the picker is open, which is what `save_as/2` returns and
+  means the same thing: the save itself reports back as a message.
+  """
+  @spec save_screen(String.t()) :: :ok | {:error, term()}
+  def save_screen(name) when is_binary(name) do
+    with {:ok, path} <- capture(name) do
+      save_as(path, name: name, mime: "image/png")
+    end
+  end
+
+  @doc false
+  @spec capture(String.t()) :: {:ok, Path.t()} | {:error, term()}
+  def capture(name) when is_binary(name) do
+    case Bridge.reply(:capture_screen, [name]) do
+      {:ok, "ok:" <> path} -> {:ok, path}
+      {:ok, "error:" <> reason} -> {:error, String.to_atom(reason)}
+      {:ok, _other} -> {:error, :capture_failed}
+      {:error, why} -> {:error, why}
+    end
+  end
 end

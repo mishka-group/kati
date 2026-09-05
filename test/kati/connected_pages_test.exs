@@ -245,4 +245,48 @@ defmodule Kati.ConnectedPagesTest do
       assert socket.assigns.link_error == Kati.Native.Links.message(:no_bridge)
     end
   end
+
+  describe "screen 121 saves the page it draws" do
+    test "the filename carries the week, in a shape the bridge will not rewrite" do
+      # The Kotlin half strips anything outside `[A-Za-z0-9._-]` out of a
+      # filename. A name that came back different from the one composed here
+      # would be a small lie in a folder listing.
+      name = Kati.Screens.WeekImage.filename()
+
+      assert name =~ ~r/^kati-week-\d{4}-\d{2}-\d{2}\.png$/
+      assert name == String.replace(name, ~r/[^A-Za-z0-9._-]/, "_")
+    end
+
+    test "the button acts, and says so when it cannot" do
+      # On a host there is no bridge, so the capture refuses — which is the
+      # case worth pinning, because the old handler answered `{:noreply,
+      # socket}` and said nothing at all.
+      {:noreply, socket} =
+        Kati.Screens.WeekImage.handle_tap(:save_image, Mob.Socket.new(Kati.Screens.WeekImage))
+
+      assert is_binary(socket.assigns.save_error)
+      assert socket.assigns.save_error =~ "does not work here yet"
+    end
+
+    test "and the refusal is drawn, not just carried" do
+      view = mount_screen(Kati.Screens.WeekImage)
+
+      drawn =
+        view
+        |> assigns()
+        |> Map.put(:save_error, "Saving images does not work here yet.")
+        |> Kati.Screens.WeekImage.content()
+        |> Mob.ScreenCase.flatten()
+        |> Enum.map(&Map.get(&1.props || %{}, :text))
+
+      assert "Saving images does not work here yet." in drawn
+    end
+
+    test "the capture writes nowhere the user can see" do
+      # Into `cacheDir` only. A capture that wrote to Pictures itself would be
+      # saving without being asked; `save_as/2` and the picker are what put it
+      # somewhere permanent.
+      assert {:error, :no_bridge} = Kati.Native.Files.capture("kati-week-2026-09-05.png")
+    end
+  end
 end

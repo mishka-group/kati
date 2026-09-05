@@ -779,6 +779,76 @@ object MobBridge {
     // The `denied:false` + asked case is the one that matters on screen: once
     // permanently denied, `request/2` will not re-prompt, so the row has to
     // offer system settings instead of an Allow button that does nothing.
+    // KATI-BEGIN(K-45 capture-screen) mob_new=0.4.20
+    /**
+     * Rasterise what is on screen to a PNG in the cache directory and answer
+     * its path.
+     *
+     * Screen 121 is the week rendered as one printable page and its button
+     * says **Save image**. The saving half has existed since `katiFileSaveAs`
+     * — `ACTION_CREATE_DOCUMENT`, a real file, the user's own folder — and the
+     * half that turns a screen into a file did not, so the button was matched,
+     * answered and inert, and `Kati.ScreenTapSweepTest` recorded it as *blocked
+     * on a capability the app does not have*. This is that capability.
+     *
+     * The content view rather than `PixelCopy`. Compose draws into the view's
+     * canvas, so `view.draw(canvas)` gets the composed frame without the async
+     * listener dance, and without the window decorations — `android.R.id.content`
+     * is the app's own area, which is what *this page* means. The status bar is
+     * not part of the week.
+     *
+     * **On the UI thread, and the NIF is dirty.** `view.draw` must run on the
+     * main thread and the call arrives on an Erlang scheduler, so this posts
+     * and waits on a latch; the NIF is registered `ERL_NIF_DIRTY_JOB_IO_BOUND`
+     * so that wait cannot stall a normal scheduler. Five seconds is the bound,
+     * after which it answers `error:timeout` rather than hanging a screen.
+     *
+     * Into `cacheDir`, never anywhere the user can see. The file is an
+     * intermediate: `Kati.Native.Files.save_as/2` is what puts it somewhere
+     * permanent, and the picker is where the user chooses. A capture that
+     * wrote to Pictures itself would be saving without being asked.
+     */
+    @JvmStatic
+    fun katiCaptureScreen(name: String): String {
+        val activity = activityRef?.get() ?: return "error:no_activity"
+
+        val result = java.util.concurrent.atomic.AtomicReference<String>("error:timeout")
+        val latch = java.util.concurrent.CountDownLatch(1)
+
+        activity.runOnUiThread {
+            try {
+                val view = activity.findViewById<android.view.View>(android.R.id.content)
+
+                if (view == null || view.width <= 0 || view.height <= 0) {
+                    result.set("error:nothing_drawn")
+                } else {
+                    val bitmap = android.graphics.Bitmap.createBitmap(
+                        view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888
+                    )
+                    view.draw(android.graphics.Canvas(bitmap))
+
+                    val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(64)
+                    val file = File(activity.cacheDir, if (safe.isEmpty()) "kati.png" else safe)
+
+                    java.io.FileOutputStream(file).use { out ->
+                        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                    }
+                    bitmap.recycle()
+
+                    result.set("ok:" + file.absolutePath)
+                }
+            } catch (e: Exception) {
+                result.set("error:" + (e.javaClass.simpleName))
+            } finally {
+                latch.countDown()
+            }
+        }
+
+        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        return result.get()
+    }
+    // KATI-END(K-45 capture-screen)
+
     // KATI-BEGIN(K-44 open-settings) mob_new=0.4.20
     /**
      * Open one of the phone's own settings screens, by name.

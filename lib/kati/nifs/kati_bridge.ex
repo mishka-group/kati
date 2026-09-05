@@ -153,6 +153,17 @@ defmodule Kati.Nifs.KatiBridge do
   @spec open_settings(binary()) :: binary()
   def open_settings(_which), do: :erlang.nif_error(:nif_not_loaded)
 
+  @doc """
+  `"ok:<path>"` for a PNG of what is on screen, written into the cache
+  directory, or `"error:<reason>"`.
+
+  Registered `ERL_NIF_DIRTY_JOB_IO_BOUND`: the Kotlin half posts to the UI
+  thread — `view.draw` cannot run anywhere else — and waits on a latch, and a
+  wait of up to five seconds must not sit on a normal scheduler.
+  """
+  @spec capture_screen(binary()) :: binary()
+  def capture_screen(_name), do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """
