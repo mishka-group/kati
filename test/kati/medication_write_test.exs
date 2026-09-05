@@ -272,6 +272,32 @@ defmodule Kati.MedicationWriteTest do
       assert {:push, MedicationDetail, %{}} = opened.socket.__mob__.nav_action
       assert MedicationDetail.params_for(first) == %{}
     end
+
+    test "the sheet the disc opens can be reached, which means it scrolls" do
+      # Found on a Pixel 9a, where the sheet is bottom-anchored and its five
+      # fields, preview band and two notes are taller than the screen — so the
+      # overflow went off the TOP and the header carrying the close disc and
+      # the only Save was drawn half under the status bar. The sheet could
+      # neither be committed nor abandoned.
+      #
+      # A tree has no viewport, so no host test can see a sheet leave the
+      # screen. What a host test CAN see is whether there is a scroller to
+      # leave it in, which is the one structural fact that decides it.
+      tree =
+        AddMedication
+        |> mount_screen()
+        |> then(&AddMedication.render(assigns(&1)))
+
+      scrolls =
+        tree
+        |> Mob.ScreenCase.flatten()
+        |> Enum.filter(&(&1.type == :scroll))
+
+      assert scrolls != [],
+             "screen 188's sheet draws no Scroll. It is taller than a phone, so without one " <>
+               "its header — close, title and the sheet's only Save — is pushed off the top " <>
+               "of the screen and the sheet becomes a trap"
+    end
   end
 
   describe "screen 189 acts on the row it drew" do

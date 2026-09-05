@@ -22,6 +22,32 @@ defmodule Kati.Screens.AddMedication do
   `Kati.Screens.RateEpisode` compose theirs — `Kati.UI.Sheet.scrim/0` and
   `Kati.UI.Sheet.close_disc/0` are still the shared pieces.
 
+  ## The sheet scrolls, because it is taller than a phone
+
+  Five fields, the no-times note, the preview band, the method note and the
+  refusal do not fit on a 2424px screen. Bottom-anchored and unscrolled, the
+  overflow goes off the TOP: on a Pixel 9a the header — the close disc, the
+  title and the only Save in the sheet — was drawn half under the status bar
+  and the sheet could be neither committed nor abandoned. `Kati.Screens.
+  RateEpisode`'s shell is copied here and its sheet is short, so the shape was
+  right for the screen it came from and wrong for this one. `<Scroll>` inside
+  the bottom-aligned box is `Kati.Screens.RateAlbum`'s answer to the same
+  thing, in the same round, and this is that answer.
+
+  Found on a device and only on a device: every host check renders a tree and
+  a tree has no viewport, so nothing on the host can see a sheet leave the
+  screen.
+
+  The top padding is **64 rather than the board's 18** for the same reason and
+  it is the same number every pushed page in the app uses. Board 188 puts the
+  header 18 below the sheet's rounded top edge, which is right while the sheet
+  rests at the bottom with scrim above it. A sheet taller than the screen has
+  no scrim above it: its top edge IS the top of the screen, and 18 puts the
+  close disc under the status bar. `Kati.Screens.Pushed.page/2` defaults to 64
+  for exactly this clearance — 18 of the board's own padding and the rest of
+  the system's chrome — so this borrows the house number rather than inventing
+  one.
+
   ## The sheet opens on a draft, and the preview is why
 
   `Kati.Screens.AddIngredient` opens on `Kati.Meals.SampleLibrary.draft/0` for
@@ -127,24 +153,25 @@ defmodule Kati.Screens.AddMedication do
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">
-        <Box fill_width={true} height={40} background={Kati.Theme.Palette.paper()} />
-        <Column
-          fill_width={true}
-          background={Kati.Theme.Palette.paper()}
-          corner_radius={26}
-          padding_left={21}
-          padding_right={21}
-          padding_top={18}
-          padding_bottom={34}
-        >
-          {Kati.Screens.AddMedication.header()}
-          {Kati.Screens.AddMedication.fields(assigns)}
-          {Kati.Screens.AddMedication.no_times_note()}
-          {Kati.UI.Eyebrow.quiet("This is how it will look")}
-          {Kati.Screens.AddMedication.preview(assigns)}
-          {Kati.Screens.AddMedication.method_note()}
-          {Kati.Screens.AddMedication.error(assigns[:save_error])}
-        </Column>
+        <Scroll>
+          <Column
+            fill_width={true}
+            background={Kati.Theme.Palette.paper()}
+            corner_radius={26}
+            padding_left={21}
+            padding_right={21}
+            padding_top={64}
+            padding_bottom={34}
+          >
+            {Kati.Screens.AddMedication.header()}
+            {Kati.Screens.AddMedication.fields(assigns)}
+            {Kati.Screens.AddMedication.no_times_note()}
+            {Kati.UI.Eyebrow.quiet("This is how it will look")}
+            {Kati.Screens.AddMedication.preview(assigns)}
+            {Kati.Screens.AddMedication.method_note()}
+            {Kati.Screens.AddMedication.error(assigns[:save_error])}
+          </Column>
+        </Scroll>
       </Box>
     </Box>
     """
