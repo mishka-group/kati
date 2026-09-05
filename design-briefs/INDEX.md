@@ -3,13 +3,14 @@
 One file per artboard Kati needs and has not drawn. Hand a single file to Claude Design;
 each one is self-contained and carries the house style.
 
-**91 briefs.** The app has 165 drawn screens (01–166; there is no 134); a new
+**92 briefs.** The app has 165 drawn screens (01–166; there is no 134); a new
 brief must ask for **167 or higher**.
 
 `D-35` … `D-57` are the 5 September 2026 wave. They come from the survey written
 up in [`MISSING-CONNECTIONS.md`](../MISSING-CONNECTIONS.md): 411 connection
 findings, 133 claimed missing designs, 74 of them surviving an adversarial second
-pass that defaulted to *not missing*. Between them they ask for boards **167–247**.
+pass that defaulted to *not missing*. Between them they ask for boards **167–247**; `D-58`, written after Phase 2
+found it on a device, takes **248–249**.
 Read the plan before picking one up — more than half of what the survey first
 called a missing design turned out to be a wiring ticket.
 
@@ -112,6 +113,7 @@ rather than deleted.
 | `D-55-settings-a-persian-install-has.md` | The settings a Persian install has and an English one does not | Mixed | — |
 | `D-56-the-dead-tiles-on-every-persian-root.md` | The dead tiles on every Persian root | Mixed | — |
 | `D-57-sheets-that-change-language-mid-gesture.md` | The sheets that change language mid-gesture | Modal sheet | — |
+| `D-58-a-title-with-nothing-under-it.md` | A title with nothing under it | Full screen | — |
 
 `D-30` is the one brief here for a **closed** issue. #27 is closed as *not
 planned* because it cannot start until these boards exist and two questions in
