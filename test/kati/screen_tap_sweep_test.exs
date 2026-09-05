@@ -159,6 +159,16 @@ defmodule Kati.ScreenTapSweepTest do
 
   @locales [:en, :fa]
 
+  # The remaining design- and capability-blocked groups are written up in
+  # `design-briefs/D-62-the-controls-that-name-a-place-with-nothing-behind-it.md`
+  # — seven service rows with no page to open, four chevrons on a book pointing
+  # at two screens nobody drew, screen 43's *Done prepping* and its five
+  # neighbours waiting on an answer to *what does done mean*, and *Save image*
+  # waiting on a fence that turns a composable into a bitmap. Filed rather than
+  # fixed, because each needs a drawing that does not exist or a decision about
+  # what the app means, and inventing either in a screen file is the one thing
+  # this pipeline does not allow.
+  #
   # Every tap this sweep knows to be dead right now. Each entry is a screen
   # that draws a control and cannot answer it, kept so the sweep fails on a
   # NEW one instead of failing on the backlog. Delete an entry when you wire
