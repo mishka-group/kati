@@ -1,0 +1,206 @@
+defmodule Kati.Media.Recommendations do
+  @moduledoc """
+  What to watch next, from a provider that actually knows.
+
+  ## The defect this exists for
+
+  Screen 11 — Discover — was `Kati.Screens.Discover.Sample.feed()` end to end.
+  Every string on it was frozen, and six of them were specific claims about the
+  reader: *Tuned to 128 titles* on a shelf of six, *Because you watched The
+  Long Hollow* for somebody who never had, three films with `94% match`,
+  `89% match` and `81% match`, three people the app has never heard of, and
+  *Leaving Lumen+ in 7 days* for a service that may not be on the account.
+  MOVIES-AND-TV.md ranks it #50 and calls it the app's most confident lie.
+
+  Two of its three sections cannot be made true this round and the screen's own
+  moduledoc says why: there is no person anywhere in Kati, and no offers
+  resource to hold an availability window. The first one can, and this is it.
+
+  ## What is real, and what a match percentage would have been
+
+  TMDB answers `/movie/{id}/recommendations` and `/tv/{id}/recommendations`.
+  That is a real recommendation from a real corpus, keyed on a title the reader
+  actually tracked — which is exactly what the drawing's *Because you watched*
+  claims to be.
+
+  What comes back carries **no score**, and none is invented here. TMDB's own
+  ordering is a ranking and not a percentage, and `94% match` is a statement
+  about how well a title fits one particular person's history — Kati runs no
+  recommender and has nowhere to keep such a number. So `match` is `nil` and
+  screen 11 draws no line under the title. Three real posters with three
+  invented percentages under them would have been the same defect with better
+  artwork.
+
+  ## Why the seed is the newest touched title
+
+  `Kati.Media.TrackedTitle`'s `:shelf` read is *newest touch first*, and the
+  newest touch is the closest thing the app has to *what you are watching now*.
+  The heading says which title the picks came from, so the reader can see the
+  premise rather than take the list on trust — and when the premise is wrong,
+  they know why the list is.
+
+  Archived titles are out, because `:shelf` excludes them: recommending from a
+  show somebody hid is recommending from a decision they already made.
+
+  ## Why it is asked for rather than called
+
+  A TMDB request from `mount/3` would block the screen for the length of a
+  round trip on a phone's radio, and a screen that pushes and then freezes is
+  worse than one that fills in. So `ask/1` runs the work under
+  `Kati.TaskSupervisor` — the same shape, and for the same
+  `Kati.SupervisionRuleTest` reason, as `Kati.Media.SearchDebounce` — and sends
+  `{:recommendations, seed_id, picks}` back. The screen compares `seed_id` with
+  what it is drawing and drops an answer about a title it has moved off.
+
+  Posters are downloaded before the message is sent, so the rail draws pictures
+  rather than filling in three at a time as the files land. That is the one
+  reason this waits on `Kati.Media.Artwork.cache/1` at all — nothing here is
+  being kept, and `Artwork` prunes what nothing references.
+  """
+
+  alias Kati.Media.Artwork
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.Tmdb
+  alias Kati.Media.TrackedTitle
+
+  require Ash.Query
+
+  # Three, because the drawing's rail is three columns wide. Asking for more
+  # and slicing here rather than at the screen keeps the network cost of this
+  # feature at three pictures.
+  @picks 3
+
+  @kinds [:movie, :tv, :anime]
+
+  @doc """
+  The title the picks are drawn from: the newest thing the reader touched.
+
+  `{tracked, cached}` when there is one with a cache row behind it — the cache
+  is where the title and the provider id live, and a recommendation needs both
+  — and `nil` for every other state: an empty store, a shelf of archived rows,
+  a title whose cache was evicted.
+
+  `nil` is what puts screen 11 back on its board, which is the answer an empty
+  device should get.
+  """
+  @spec seed() :: {TrackedTitle.t(), CachedTitle.t()} | nil
+  def seed do
+    Enum.find_value(newest(), fn tracked ->
+      case cached_for(tracked) do
+        %CachedTitle{source_id: id, title: title} = cached
+        when is_binary(id) and is_binary(title) and title != "" ->
+          {tracked, cached}
+
+        _no_cache ->
+          nil
+      end
+    end)
+  rescue
+    _error -> nil
+  end
+
+  @doc """
+  Ask for recommendations, and be sent them when they arrive.
+
+  Sends `{:recommendations, source_id, result}` to `pid`, where `result` is
+  `{:ok, picks}` or `{:error, reason}`. The reason travels because the three
+  ways this comes back empty are three different things to say: a token nobody
+  has entered is a thing the reader can fix in Settings, a request that could
+  not be made is a thing to try again, and a provider that knows of nothing
+  like this show is neither.
+
+  Answers `:ok` whatever happens. See `Kati.Media.SearchDebounce.ask/2` for why
+  the `catch :exit` is not a `rescue`.
+  """
+  @spec ask(pid(), CachedTitle.t()) :: :ok
+  def ask(pid, %CachedTitle{} = cached) when is_pid(pid) do
+    work = fn -> send(pid, {:recommendations, cached.source_id, picks_for(cached)}) end
+
+    try do
+      Task.Supervisor.start_child(Kati.TaskSupervisor, work)
+      :ok
+    catch
+      :exit, _reason ->
+        spawn(work)
+        :ok
+    end
+  rescue
+    _error -> :ok
+  end
+
+  @doc """
+  The picks themselves — the network call, run wherever the caller is.
+
+  Separated from `ask/2` so a test can make the request without a supervisor
+  and without a mailbox.
+
+  `{:error, reason}` is the client's own reason, verbatim — `:no_api_key` for a
+  device nobody has given a token, and whatever `Kati.Media.Tmdb` names for a
+  transport failure. A raise anywhere in here is `{:error, :unavailable}`
+  rather than a crash: this runs in a task whose only reader is a screen, and
+  a screen waiting forever on a message that will not come is worse than one
+  that says it could not look.
+  """
+  @spec picks_for(CachedTitle.t()) :: {:ok, [map()]} | {:error, term()}
+  def picks_for(%CachedTitle{source_id: source_id, kind: kind}) do
+    case Tmdb.recommendations(source_id, provider_kind(kind)) do
+      {:ok, rows} -> {:ok, rows |> Enum.take(@picks) |> Enum.map(&pick/1)}
+      {:error, reason} -> {:error, reason}
+    end
+  rescue
+    _error -> {:error, :unavailable}
+  end
+
+  @doc """
+  The sentence over the rail, naming the title the picks came from.
+
+      iex> Kati.Media.Recommendations.because("Severance")
+      "Because you watched Severance"
+  """
+  @spec because(String.t()) :: String.t()
+  def because(title), do: "Because you watched " <> title
+
+  # One pick, with its poster already on disk. `match: nil` — see the
+  # moduledoc. `seed` is the provider path, which `Kati.Design.Images.path/2`
+  # resolves through `Kati.Media.Artwork` exactly as a shelf poster is.
+  defp pick(row) do
+    # A picture that will not download is a pick without a picture, not a lost
+    # pick — `Kati.Design.Images.path/2` already answers `nil` for a poster
+    # this device has not fetched, and screen 11 already draws the placeholder
+    # rectangle behind it.
+    _ = safely(fn -> Artwork.cache(row.poster_path) end)
+
+    %{title: row.title, seed: row.poster_path, match: nil}
+  end
+
+  defp safely(fun) do
+    fun.()
+  rescue
+    _error -> :error
+  catch
+    :exit, _reason -> :error
+  end
+
+  # `:anime` is a Kati kind and not a TMDB one — the provider files anime under
+  # `tv`, which is why `Kati.Media.CachedTitle` keeps the three apart and the
+  # client only ever sees two.
+  defp provider_kind(:movie), do: :movie
+  defp provider_kind(_series), do: :tv
+
+  defp newest do
+    @kinds
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.Query.limit(1)
+      |> Ash.read!()
+    end)
+    |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
+  end
+
+  defp cached_for(%TrackedTitle{source: source, source_id: source_id}) do
+    CachedTitle
+    |> Ash.Query.filter(source == ^source and source_id == ^source_id)
+    |> Ash.read_one!()
+  end
+end

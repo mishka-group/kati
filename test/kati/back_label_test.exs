@@ -22,6 +22,10 @@ defmodule Kati.BackLabelTest do
 
   use Mob.ScreenCase, async: false
 
+  # The three answers, run rather than read — the fallback is the branch every
+  # screen in the app takes on a push that names no origin.
+  doctest Kati.Screens.Pushed, only: [back_label: 2]
+
   alias Kati.Screens.Pushed
 
   describe "back_label/2" do

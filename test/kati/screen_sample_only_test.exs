@@ -3,19 +3,25 @@ Code.require_file("../support/design_literals.exs", __DIR__)
 
 defmodule Kati.ScreenSampleOnlyTest do
   @moduledoc """
-  The four screens that could **not** move onto the domains still draw their
+  The screens that could **not** move onto the domains still draw their
   drawings when nothing is stored.
 
-  ## Why these four are here rather than in `Kati.ScreenEmptyDatabaseTest`
+  ## Why these are here rather than in `Kati.ScreenEmptyDatabaseTest`
 
   That file covers the screens the migration *moved*, and its question is
   whether a migrated screen kept the Sample fallback that makes a fresh install
-  render. These four never moved. Each one names, in its own moduledoc, exactly
+  render. These never moved. Each one names, in its own moduledoc, exactly
   which resource or column it is waiting on:
+
+  **11 Discover left this list on 6 September.** Its first band — the picks
+  under *Because you watched* — is now `Kati.Media.Recommendations`, keyed on
+  the newest title the reader touched and answered by TMDB. The other two
+  bands still cannot move, and no longer pretend to: on a real device they are
+  empty and their headings and chips are dropped. It is gated in
+  `Kati.ScreenEmptyDatabaseTest` now, at `Kati.Screens.Discover.feed/0`.
 
     * **06 Add a title** — no provider search client, and no first-release
       year or availability on `Kati.Media.CachedTitle`.
-    * **11 Discover** — no recommender, no person, no service availability.
     * **18 Quick add** — no natural-language parser anywhere in `lib/`.
     * **19 Search** — no index. Nothing anywhere matches a title, an episode,
       an event or a review by substring.
@@ -75,7 +81,6 @@ defmodule Kati.ScreenSampleOnlyTest do
   #     `description`, which is two of the four services and not a source.
   @on_sample [
     {"06", Kati.Screens.AddTitle},
-    {"11", Kati.Screens.Discover},
     {"18", Kati.Screens.QuickAdd},
     {"22", Kati.Screens.Habits},
     {"23", Kati.Screens.Subscriptions}
@@ -85,8 +90,8 @@ defmodule Kati.ScreenSampleOnlyTest do
   # Everything else in the schema is an Ash resource's table and gets emptied.
   @not_resources ~w(schema_migrations mob_screen_states)
 
-  # What these four screens would read from once they move — the two domains
-  # their moduledocs name. Asked through Ash rather than through Ecto, because
+  # What these screens would read from once they move — the two domains their
+  # moduledocs name. Asked through Ash rather than through Ecto, because
   # `count(*)` returning zero and `Ash.read!` returning `[]` are different
   # claims and it is the second one a screen depends on.
   @resources [
@@ -104,8 +109,8 @@ defmodule Kati.ScreenSampleOnlyTest do
 
       # A derived list cannot go stale, but it can come back empty — a changed
       # pragma, a renamed system table — and emptying nothing would make every
-      # assertion below vacuous. So the tables the four screens' own domains sit
-      # on are named here, and only here, as proof the read worked.
+      # assertion below vacuous. So the tables these screens' own domains sit on
+      # are named here, and only here, as proof the read worked.
       for table <-
             ~w(cached_titles media_content_warnings tracked_titles media_watches events calendars) do
         assert table in tables,

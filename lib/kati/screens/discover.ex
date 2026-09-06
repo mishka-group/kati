@@ -92,20 +92,107 @@ defmodule Kati.Screens.Discover do
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaScrollArea
   alias Kati.Components.MishkaSeparator
+  alias Kati.Media.Recommendations
   alias Kati.Screens.Discover.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
   def load(socket) do
-    feed = Sample.feed()
+    feed = feed()
 
-    Mob.Socket.assign(socket,
+    socket
+    |> Mob.Socket.assign(
       feed: feed,
       chip: Kati.Screens.Discover.default_chip(feed),
       scheduled: []
     )
+    |> ask()
   end
+
+  @doc """
+  The feed: the reader's, or the drawing's.
+
+  Screen 04's gate on a screen where it decides more than usual. An empty store
+  — or a store whose newest title has no cache row behind it — has nothing to
+  recommend FROM, so it gets `Kati.Screens.Discover.Sample.feed()` whole, which
+  is the state board 11 was captured in.
+
+  A store with a title in it gets a feed with one section: the picks, under the
+  title they came from. The other two are `[]` and stay `[]`, because there is
+  no person in this app and no offers resource — see the moduledoc, which lists
+  what each would need. The chips go with the sections they name.
+
+  `picks` starts empty on purpose. The request has not been made yet; `ask/1`
+  makes it, and `handle_info/2` fills it in.
+  """
+  @spec feed() :: map()
+  def feed do
+    case Recommendations.seed() do
+      nil -> Sample.feed()
+      {_tracked, cached} -> real_feed(cached)
+    end
+  end
+
+  @doc false
+  @spec real_feed(Kati.Media.CachedTitle.t()) :: map()
+  def real_feed(cached) do
+    %{
+      # `Tuned to 128 titles` is the size of a corpus a recommender was tuned
+      # to, and Kati runs no recommender. `Ash.count!` of the shelf would be a
+      # different number wearing this one's caption. So the line is absent, and
+      # `header/1` closes the gap.
+      subtitle: nil,
+      chips: [%{label: "For you", count: nil, selected: true}],
+      because: Recommendations.because(cached.title),
+      seed_id: cached.source_id,
+      picks: [],
+      asked?: true,
+      picks_error: nil,
+      people: [],
+      leaving_label: nil,
+      leaving: []
+    }
+  end
+
+  # Nothing to ask about when the screen is drawing its board: the sample's
+  # three picks are already there, and a request keyed on a title nobody
+  # tracks has nothing to be keyed on.
+  defp ask(socket) do
+    case Recommendations.seed() do
+      nil ->
+        socket
+
+      {_tracked, cached} ->
+        Recommendations.ask(self(), cached)
+        socket
+    end
+  end
+
+  @doc """
+  Picks, when they arrive — or an answer about a title this page is not on.
+
+  `seed_id` is compared rather than trusted, for `Kati.Media.SearchDebounce`'s
+  reason: the reader can have touched something else and reopened this screen
+  while a request was in flight, and a rail of recommendations for the wrong
+  premise is exactly the defect this whole change is about.
+  """
+  @impl true
+  def handle_info({:recommendations, seed_id, result}, socket) do
+    feed = socket.assigns.feed
+
+    if Map.get(feed, :seed_id) == seed_id do
+      {:noreply, Mob.Socket.assign(socket, :feed, answered(feed, result))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # `Kati.Screens.Pushed` marks `handle_info/2` overridable, so defining a
+  # clause here replaces ALL of its clauses — the back pill, `rescue_tap/3` and
+  # the `{:kati, …}` bridge among them. `super/2` is what hands the rest back,
+  # and without it this screen's own chips would stop answering.
+  def handle_info(message, socket), do: super(message, socket)
 
   @doc """
   The chip the data marks selected.
@@ -182,14 +269,7 @@ defmodule Kati.Screens.Discover do
             letter_spacing={-0.03}
             text_color={:on_surface}
           />
-          <Spacer size={5} />
-          <Text
-            text={f.subtitle}
-            font_family="mono"
-            text_size={11}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
+          {Kati.Screens.Discover.subtitle(f.subtitle)}
         </Column>
         <Spacer size={9} />
         <Box
@@ -213,7 +293,45 @@ defmodule Kati.Screens.Discover do
   # that exact node — it only wraps the scroller in a Box when a height,
   # background, padding or radius is passed, and none is. Same node, same
   # pixels, and the chip rail now says what it is.
-  @doc false
+  @doc """
+  The mono line under *Discover*, when there is one.
+
+  The board's is `Tuned to 128 titles` — the size of the corpus a recommender
+  was tuned to. Kati runs no recommender, and `Ash.count!` of the shelf is a
+  different number wearing this one's caption. So a real feed has none and the
+  5pt above it goes too, rather than leaving a gap where a claim used to be.
+  """
+  @spec subtitle(String.t() | nil) :: map()
+  def subtitle(nil), do: ~MOB"<Spacer size={0} />"
+
+  def subtitle(line) do
+    assigns = %{line: line}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={5} />
+      <Text
+        text={@line}
+        font_family="mono"
+        text_size={11}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  The chip rail, when there is more than one section to choose between.
+
+  A chip names a section, and a real feed has exactly one — the picks. A rail
+  of one chip is a control with nothing to switch to, and *People*, *Leaving*
+  and *Awards* over sections this device has none of are three more of the
+  claims this screen is being cured of.
+  """
+  def chips(%{chips: chips}, _active) when length(chips) < 2,
+    do: ~MOB"<Spacer size={0} />"
+
   def chips(f, active) do
     rail =
       ~MOB"""
@@ -309,7 +427,7 @@ defmodule Kati.Screens.Discover do
       ~MOB"""
       <Column fill_width={true}>
         {UI.eyebrow(f.because)}
-        {Kati.Screens.Discover.rail(f)}
+        {Kati.Screens.Discover.picks_or_not(f)}
       </Column>
       """
     else
@@ -317,7 +435,124 @@ defmodule Kati.Screens.Discover do
     end
   end
 
+  @doc """
+  The rail, or what stands in its place.
+
+  A real feed opens with `picks: []` and a request in flight, so there are two
+  empty states rather than one and they mean opposite things: *asking* is a
+  screen that will fill in, and *nothing* is an answer. Drawn apart, because a
+  reader who is told there is nothing to suggest and then watches three posters
+  appear has been told something false about their own library.
+
+  `nothing` is the answer to every failure as well — no API key, no network, a
+  provider that returned an empty list. On this screen they collapse honestly:
+  there is nothing to show and the reader is not owed the reason a request
+  failed on a page that is only ever a suggestion. `Kati.Screens.Settings` is
+  where a missing key is a thing to act on.
+
+  The card is board 87's, which board 19 already borrows for the same job — the
+  44pt tinted tile, the bold line, the explanation under it. Only the glyph and
+  the two sentences are this screen's.
+  """
+  @spec picks_or_not(map()) :: map()
+  def picks_or_not(%{picks: [_ | _]} = f), do: rail(f)
+
+  def picks_or_not(%{asked?: true}),
+    do:
+      nothing_card(
+        "sync",
+        "Looking for something",
+        "Checking what goes with what you last watched."
+      )
+
+  # Three empty answers, three cards. A token nobody has entered is something
+  # the reader can fix and is told where; a request that could not be made is
+  # something to try again; and a provider that knows of nothing like this show
+  # is neither, and is not dressed up as either.
+  #
+  # `explore` twice would have been the section's own glyph in every state, and
+  # `explore_off` and `vpn_key_off` — the obvious pairs for it and for the
+  # token card — are not in Kati's Material subset (`mix kati.gen.icons`), so
+  # the three take glyphs that are.
+  def picks_or_not(%{picks_error: :no_api_key}),
+    do: nothing_card("lock", "No TMDB token yet", Kati.Media.Tmdb.message(:no_api_key))
+
+  # Every other reason takes the client's own sentence — the wording of a
+  # provider failure belongs with the provider, and `Kati.Media.Tmdb.message/1`
+  # already words all seven for screen 06. A card here that said *could not be
+  # reached* over a rate limit would be a second, worse copy of it.
+  def picks_or_not(%{picks_error: reason}) when not is_nil(reason),
+    do: nothing_card("cloud_off", "Could not look just now", Kati.Media.Tmdb.message(reason))
+
+  def picks_or_not(_feed),
+    do:
+      nothing_card(
+        "explore",
+        "Nothing to suggest yet",
+        "TMDB knows of nothing like it. Watch something else and this fills in."
+      )
+
+  @doc """
+  The feed, with the answer folded in.
+
+  `picks_error` is set on failure and cleared on success, so reopening the
+  screen after a flight-mode spell does not leave the last failure's card
+  under three fresh posters.
+  """
+  @spec answered(map(), {:ok, [map()]} | {:error, term()}) :: map()
+  def answered(feed, {:ok, picks}),
+    do: %{feed | picks: picks, asked?: false, picks_error: nil}
+
+  def answered(feed, {:error, reason}),
+    do: %{feed | picks: [], asked?: false, picks_error: reason}
+
   @doc false
+  def nothing_card(icon, title, body) do
+    assigns = %{icon: icon, title: title, body: body}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {UI.symbol(@icon, size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text={@title}
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text={@body}
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def people_section(%{people: []}, _chip), do: ~MOB"<Spacer size={0} />"
+
   def people_section(f, chip) do
     if shows?(:people, chip) do
       ~MOB"""
@@ -332,6 +567,8 @@ defmodule Kati.Screens.Discover do
   end
 
   @doc false
+  def leaving_section(%{leaving: []}, _chip, _scheduled), do: ~MOB"<Spacer size={0} />"
+
   def leaving_section(f, chip, scheduled) do
     if shows?(:leaving, chip) do
       ~MOB"""
@@ -383,9 +620,31 @@ defmodule Kati.Screens.Discover do
         text_color={:on_surface}
         max_lines={1}
       />
+      {Kati.Screens.Discover.match(p.match)}
+    </Column>
+    """
+  end
+
+  @doc """
+  `94% match`, when something scored it.
+
+  Nothing does. TMDB's `/recommendations` is a ranking and not a percentage,
+  and a match is a statement about a title AGAINST one person's history —
+  Kati runs no recommender and has no column to keep such a number in. So a
+  real pick carries `nil` and the line is absent rather than rounded up from
+  the position in the list. `Kati.Media.Recommendations` argues it at length.
+  """
+  @spec match(String.t() | nil) :: map()
+  def match(nil), do: ~MOB"<Spacer size={0} />"
+
+  def match(line) do
+    assigns = %{line: line}
+
+    ~MOB"""
+    <Column fill_width={true}>
       <Spacer size={3} />
       <Text
-        text={p.match}
+        text={@line}
         font_family="mono"
         text_size={10.5}
         text_color={Palette.accent()}

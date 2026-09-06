@@ -23,6 +23,8 @@ defmodule Kati.SeriesMetaSubjectTest do
 
   use Mob.ScreenCase, async: false
 
+  doctest Kati.Screens.SeriesMeta, only: [params_for: 1]
+
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Screens.SeriesMeta

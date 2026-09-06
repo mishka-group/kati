@@ -86,6 +86,58 @@ defmodule Kati.Media.Tmdb do
     end
   end
 
+  @doc """
+  What TMDB suggests for one title: `/movie/{id}/recommendations`.
+
+  Screen 11 was `Kati.Discover.Sample.feed()` end to end — *Tuned to 128
+  titles* on a shelf of six, *Because you watched The Long Hollow* for a
+  reader who never had, and three invented films with invented match
+  percentages. Its first band is the one that can be real, and this is the
+  call that makes it: the app already knows what somebody watched, and TMDB
+  already answers what is like it.
+
+  Shaped exactly as `search/1` shapes a result, so a suggestion can be added
+  by the same `Kati.Screens.AddTitle.track/2` that adds a search hit — a row
+  that could be shown and not kept would be a worse page than the fixture.
+
+  `{:error, :no_api_key}` and every transport failure come back as they do
+  everywhere else in this module, and screen 11 falls back to its drawing:
+  a recommendation nobody could fetch is not a recommendation.
+  """
+  @spec recommendations(String.t(), :movie | :tv) :: {:ok, [map()]} | {:error, term()}
+  def recommendations(source_id, kind) when is_binary(source_id) and kind in [:movie, :tv] do
+    path = if kind == :movie, do: "/movie/", else: "/tv/"
+
+    with {:ok, key} <- key(),
+         {:ok, body} <- get(key, path <> source_id <> "/recommendations", page: "1") do
+      {:ok, body |> Map.get("results", []) |> Enum.flat_map(&shape_recommendation(&1, kind))}
+    end
+  end
+
+  # `/recommendations` answers rows with no `media_type`, because the endpoint
+  # is already about one kind — so `shape_result/1`'s guard cannot match them
+  # and the kind is carried in rather than read off.
+  defp shape_recommendation(%{"id" => id} = row, kind) do
+    title = row["title"] || row["name"]
+
+    if is_binary(title) and title != "" do
+      [
+        %{
+          title: title,
+          kind: kind,
+          source_id: to_string(id),
+          year: year_of(row["release_date"] || row["first_air_date"]),
+          overview: blank_to_nil(row["overview"]),
+          poster_path: row["poster_path"]
+        }
+      ]
+    else
+      []
+    end
+  end
+
+  defp shape_recommendation(_other, _kind), do: []
+
   defp do_search(query) do
     with {:ok, key} <- key(),
          {:ok, body} <-
@@ -329,9 +381,19 @@ defmodule Kati.Media.Tmdb do
   # The token reaches the build from `~/.config/kati/tmdb.env`, which is
   # outside the repository and mode 600. Nothing here is committed: the value
   # lives in `_build`, which is ignored, and in the pushed artefact.
+  # The documented location, read at compile time as well as the environment —
+  # because depending on the environment alone meant depending on whether the
+  # shell that happened to run `mix kati.e2e.stage` had sourced the file.
+  # `Kati.Media.TmdbKeyFile` carries the rest of that argument, and the
+  # `@external_resource` is what makes a changed token recompile this.
+  @env_file Kati.Media.TmdbKeyFile.path()
+  @external_resource @env_file
+
   @bundled_key if Mix.env() == :test,
                  do: nil,
-                 else: System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN")
+                 else:
+                   System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") ||
+                     Kati.Media.TmdbKeyFile.read(@env_file)
 
   defp bundled_key do
     System.get_env("TMDB_READ_TOKEN") || System.get_env("TMDB_TOKEN") || @bundled_key

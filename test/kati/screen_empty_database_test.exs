@@ -212,6 +212,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # that answers with the drawing.
     {"52", Kati.Screens.MealsDay},
     {"10", Kati.Screens.UpNext},
+    # 11 joined when its first band stopped being a fixture. It gates the whole
+    # feed the way 04 gates its page: an empty store has nothing to recommend
+    # FROM, so it draws board 11 whole. A store with a title in it gets one
+    # section — the picks, under the title they came from — because the other
+    # two need a person resource and an offers resource, neither of which
+    # exists. `Kati.DiscoverFeedTest` holds that half.
+    {"11", Kati.Screens.Discover},
     {"15", Kati.Screens.Activity},
     # 32 moved its "which calendars show" group onto `Kati.Calendars.Calendar`
     # and 42 its hero and meal row onto `Kati.Meals`. Both keep the rest of
@@ -1421,6 +1428,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 11 gates on the seed rather than on the feed: `Kati.Media.Recommendations.seed/0`
+      # is the title the picks would be drawn FROM, and an empty store has
+      # none. One pair covers the subtitle, the four chips, the heading, the
+      # three picks with their percentages, the three people and the two
+      # leaving rows, because they arrive as one map or not at all.
+      {"11", Kati.Screens.Discover, &Kati.Screens.Discover.feed/0,
+       &Kati.Screens.Discover.Sample.feed/0},
       # 14 gates like 04: one pair covers the title, the still, the meta line,
       # the synopsis, the three ratings, the four cast members, the three ways
       # to watch and the five tags, because they arrive as one map or not at
