@@ -65,9 +65,28 @@ defmodule Kati.Screens.Resume do
   The order matters and is the whole mechanism: the message is queued BEFORE
   the socket carrying `{:pop}` is returned, so it is dispatched after the pop
   has been applied and lands on the screen that is now on top.
+
+  ## And the theme goes back with you
+
+  `Kati.Theme.activate/0` first, and it is here for the same reason the read
+  is: the screen being popped to is not remounted, so nothing else runs.
+
+  Seven boards are drawn in the dark colourway — 28, 29, 68, 131, 157 and the
+  two Persian ones — and each sets the dark palette in its own `load/1`.
+  `Mob.Theme.set/1` is global and popping does not remount, so opening one
+  left **the whole app dark** until some other pushed screen mounted and
+  `Kati.Screens.Pushed`'s macro re-activated the preference. A reader who
+  looked at screen 157 got a dark Settings, a dark Library and a dark Home,
+  and nothing they could press to undo it (MOVIES-AND-TV.md #30).
+
+  One call, at the one place every back control in the app already goes
+  through, rather than seven screens each remembering to put it back. A screen
+  whose own palette IS dark re-asserts it on `handle_kati(:resumed, …)` — the
+  same hook it would use to re-read anything else.
   """
   @spec pop(Mob.Socket.t()) :: Mob.Socket.t()
   def pop(socket) do
+    Kati.Theme.activate()
     announce()
     Mob.Socket.pop_screen(socket)
   end

@@ -565,6 +565,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # visible, which is a state a user reaches and not the one the screen opens
     # in, so the resting comparison is 155's first band rather than 154 whole.
     "154" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
+    # 157 is 154 in the dark colourway and opens in the same resting state, so
+    # it answers to the same band of board 155 — see the entry above, and
+    # MOVIES-AND-TV.md #29 for what it used to open in instead.
+    "157" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
     # 188 is 154's case with both states on ONE board: the sheet is drawn
     # resting, with a value in every trough, and again refused, with the card
     # that names what is missing. The refusal is a state a user reaches by

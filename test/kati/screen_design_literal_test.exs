@@ -1039,6 +1039,17 @@ defmodule Kati.ScreenDesignLiteralTest do
          |> Map.put(:title, "The Long Hollow")
          |> Map.put(:year, "2024")
          |> Map.put(:episodes, "7"))},
+      # 157 is 154 in the dark colourway, drawn in the same state and for the
+      # same reason. It used to LOAD these values, so *Add to library* wrote a
+      # series nobody had typed into the reader's real library
+      # (MOVIES-AND-TV.md #29). A captured frame belongs here, not in a
+      # `load/1`.
+      {"157", Kati.Screens.AddByHandDark,
+       &(&1
+         |> Map.put(:kind, :tv)
+         |> Map.put(:title, "The Long Hollow")
+         |> Map.put(:year, "2024")
+         |> Map.put(:episodes, "7"))},
       # 19 is drawn mid-query and its whole subject is one query matched four
       # ways, so its state is a result set rather than a row: `drawn_results/0`
       # is the transcription board 19 was read from, and a device gets

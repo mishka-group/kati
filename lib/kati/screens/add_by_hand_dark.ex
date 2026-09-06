@@ -34,14 +34,18 @@ defmodule Kati.Screens.AddByHandDark do
   def load(socket) do
     Mob.Theme.set(Kati.Theme.dark())
 
-    Mob.Socket.assign(socket,
-      title: "The Long Hollow",
-      kind: :tv,
-      year: "2024",
-      status: "Not started",
-      episodes: "",
-      save_error: nil
-    )
+    # `AddByHand.load/1`'s own resting state — empty, Film, nothing assumed —
+    # and not board 157's captured values.
+    #
+    # It used to open on `The Long Hollow`, `:tv`, `2024`, which is the frame
+    # this board was drawn in, and then *Add to library* wrote exactly that
+    # into the reader's real library: a series nobody had typed, from a
+    # colourway specimen (MOVIES-AND-TV.md #29). Board 155 states the screen's
+    # actual default and `Kati.Screens.AddByHand`'s moduledoc carries the
+    # argument; the board's own values are installed by
+    # `Kati.ScreenDesignLiteralTest.drawn_state/0`, which is where a captured
+    # frame belongs.
+    AddByHand.load(socket)
   end
 
   @doc false
@@ -49,4 +53,17 @@ defmodule Kati.Screens.AddByHandDark do
 
   @impl true
   def handle_tap(tag, socket), do: AddByHand.handle_tap(tag, socket)
+
+  # The three fields, and their absence is the other half of #29.
+  #
+  # This screen delegates `content/1` and `handle_tap/2` and stopped there, so
+  # the `TextField`s it draws are `Kati.Screens.AddByHand`'s — with its
+  # `on_change` — and every `{:change, …}` they sent fell through to
+  # `Kati.Screens.Pushed`'s catch-all and was dropped. Three fields drawn, none
+  # of them typeable, and nothing to see: the field renders its value, and the
+  # value never changed.
+  def handle_info({:change, _field, _typed} = message, socket),
+    do: AddByHand.handle_info(message, socket)
+
+  def handle_info(message, socket), do: super(message, socket)
 end

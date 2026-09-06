@@ -287,6 +287,12 @@ defmodule Kati.ScreenTapSweepTest do
     # is the first group above. `kind_Film` and the other two statuses all move
     # the assign, which is what says the family is wired.
     {Kati.Screens.AddByHand, :kind_Film},
+    # 157 is 154 in the dark colourway and opens in the same resting state, so
+    # its Film chip is the already-selected member of the same family. It was
+    # not here before because 157 opened on `:tv` — board 157's captured
+    # frame, loaded rather than drawn, which is what let *Add to library*
+    # write The Long Hollow into a real library (MOVIES-AND-TV.md #29).
+    {Kati.Screens.AddByHandDark, :kind_Film},
     # Steps 4 and 5's resting choices — the loudness the board opens on and the
     # title it opens with picked. Every other choice in each family moves the
     # assign, which is what says the family is wired.
