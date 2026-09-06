@@ -130,13 +130,21 @@ defmodule Kati.ScreenActivityTest do
       [drawn_rewatch | _finished_dropped_imported] = Sample.earlier()
       [drawn_count | _] = Sample.rewatch()
 
-      assert log.today == [drawn_tick, drawn_rating],
+      # Compared on the DRAWING's own keys. A real row also carries `:id` and
+      # `:kind`, which is what makes it openable — MOVIES-AND-TV.md #90 — and
+      # a drawn row carries neither, which is what keeps board 15's rows
+      # pictures rather than dead controls. That difference is the feature;
+      # asserting the whole map would be asserting it away.
+      assert drawn_only(log.today) == [drawn_tick, drawn_rating],
              "a watch and a rating no longer shape into the rows the drawing " <>
                "shows. Got #{inspect(log.today)}"
 
-      assert log.earlier == [drawn_rewatch],
+      assert drawn_only(log.earlier) == [drawn_rewatch],
              "a rewatch no longer shapes into `#{drawn_rewatch.rest}`. " <>
                "Got #{inspect(log.earlier)}"
+
+      assert Enum.all?(log.today ++ log.earlier, &is_binary(&1.id)),
+             "a row with no id cannot be opened, which is the whole of #90"
 
       assert log.rewatch == [drawn_count]
       assert log.entries_line == "3 entries"
@@ -156,6 +164,54 @@ defmodule Kati.ScreenActivityTest do
       refute text(view) =~ "8"
     end
   end
+
+  describe "opening an entry" do
+    test "the row carries the title it is about" do
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      watch!(hollow, %{watched_at: at(Kati.Time.today(), ~T[21:12:00])})
+
+      [row] = Activity.entries(Kati.Time.today()).today
+
+      assert row.id == hollow.id
+      assert row.kind == :tv
+      assert Activity.open_tag(row) == String.to_atom("open_" <> hollow.id)
+    end
+
+    test "and tapping it opens that title, under a pill reading Activity" do
+      blue = title!("bluehour58", "Blue Hour", :movie)
+      watch!(blue, %{watched_at: at(Kati.Time.today(), ~T[20:40:00])})
+
+      view = mount_screen(Activity)
+      [row] = assigns(view).log.today
+
+      socket =
+        Kati.Screens.Activity
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:log, assigns(view).log)
+
+      pushed = Activity.open(socket, Activity.open_tag(row))
+
+      assert {:push, Kati.Screens.Film, %{id: id, back: "Activity"}} =
+               Map.get(pushed.__mob__, :nav_action)
+
+      assert id == blue.id
+    end
+
+    test "a drawn row opens nothing, because there is no title behind it" do
+      assert Enum.all?(Kati.Activity.Sample.today(), &(Activity.open_tag(&1) == nil))
+    end
+
+    test "and the tune disc opens the sheet the chips narrow with" do
+      socket = Mob.Socket.new(Kati.Screens.Activity)
+      {:noreply, pushed} = Activity.handle_tap(:open_filters, socket)
+
+      assert {:push, Kati.Screens.ShelfFilters, _} = Map.get(pushed.__mob__, :nav_action)
+    end
+  end
+
+  # The row as the drawing describes it: every key board 15 has, and none of
+  # the two a device adds so the entry can be opened.
+  defp drawn_only(rows), do: Enum.map(rows, &Map.drop(&1, [:id, :kind]))
 
   describe "real rows replace the drawing" do
     test "a watch recorded today is the log, and the sample is gone" do

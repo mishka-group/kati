@@ -519,9 +519,11 @@ defmodule Kati.Screens.Activity do
   # in both the drawing and here.
   @doc false
   def entry_row(row, stamp_width, stamp_size, stamp_spacing, rule?) do
+    tap = Kati.Screens.Activity.open_tap(row)
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={12} padding_bottom={12}>
+      <Row fill_width={true} align="center" padding_top={12} padding_bottom={12} on_tap={tap}>
         <Column width={stamp_width}>
           <Text
             text={row.stamp}
@@ -702,11 +704,65 @@ defmodule Kati.Screens.Activity do
       {:noreply,
        Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Activity"})}
 
-  # One clause for all four chips: the tag carries the label.
+  # `tune` opens the same sheet the filter chips narrow with. It reached
+  # `handle_tap/2`'s catch-all and did nothing — MOVIES-AND-TV.md #91 — which
+  # is the worst kind of control: alive enough to swallow the tap, dead enough
+  # to answer it with silence.
+  def handle_tap(:open_filters, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
+
+  # One clause for all four chips: the tag carries the label. And one for the
+  # rows, which open the title the entry is about.
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      "open_" <> _id -> {:noreply, Kati.Screens.Activity.open(socket, tag)}
       _ -> {:noreply, socket}
+    end
+  end
+
+  @doc """
+  The tap that opens a log entry's title, or `nil`.
+
+  MOVIES-AND-TV.md #90. A history you cannot walk back into is a list; the one
+  thing somebody wants from *you watched Dune on 3 March* is Dune.
+
+  `nil` on a drawn row, which is `Kati.Activity.Sample`'s: not tappable rather
+  than broken.
+
+      iex> Kati.Screens.Activity.open_tag(%{stamp: "3 MAR"})
+      nil
+  """
+  @spec open_tap(map()) :: {pid(), atom()} | nil
+  def open_tap(row) do
+    case open_tag(row) do
+      nil -> nil
+      tag -> {self(), tag}
+    end
+  end
+
+  @doc false
+  @spec open_tag(map()) :: atom() | nil
+  def open_tag(%{id: id}) when is_binary(id), do: String.to_atom("open_" <> id)
+  def open_tag(_drawn), do: nil
+
+  @doc """
+  Open the title a row named — the series screen for a series, the film screen
+  for a film, under a pill reading `Activity`.
+  """
+  @spec open(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def open(socket, tag) do
+    log = socket.assigns.log
+
+    (Map.get(log, :today, []) ++ Map.get(log, :earlier, []))
+    |> Enum.find(&(Kati.Screens.Activity.open_tag(&1) == tag))
+    |> case do
+      nil ->
+        socket
+
+      row ->
+        module = if row.kind == :movie, do: Kati.Screens.Film, else: Kati.Screens.Series
+        Mob.Socket.push_screen(socket, module, %{id: row.id, back: "Activity"})
     end
   end
 
@@ -761,7 +817,19 @@ defmodule Kati.Screens.Activity do
     named = named(title_of(tracked, cached), episode_label(watch))
     {lead, rest} = verb(watch, named)
 
-    row = %{stamp: stamp, seed: seed_of(tracked, cached), lead: lead, rest: rest}
+    row = %{
+      stamp: stamp,
+      seed: seed_of(tracked, cached),
+      lead: lead,
+      rest: rest,
+      # The title this entry is about, so the row can open it — MOVIES-AND-TV.md
+      # #90: *no row in the activity log is tappable, so the user cannot open a
+      # title from their own history*, which is the one thing a history is for.
+      # Absent on a drawn row, the way `:stars` is, so the two shapes stay
+      # indistinguishable and the fallback stays one.
+      id: tracked && tracked.id,
+      kind: tracked && tracked.kind
+    }
 
     # The key is absent rather than nil when there is no rating, because that is
     # what `Kati.Activity.Sample` produces and `entry_row/5` reads it with
