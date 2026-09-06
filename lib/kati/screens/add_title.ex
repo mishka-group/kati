@@ -449,8 +449,9 @@ defmodule Kati.Screens.AddTitle do
   decided is yours to undo, what a title IS is not a decision.
   """
   @spec add(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
-  def add(socket, title) do
-    row = Enum.find(socket.assigns.results, &(&1.title == title))
+  def add(socket, key) do
+    row = Enum.find(socket.assigns.results, &(Kati.Screens.AddTitle.row_key(&1) == key))
+    title = row && row.title
     tracked? = row && row.added
 
     result =
@@ -463,13 +464,38 @@ defmodule Kati.Screens.AddTitle do
     case result do
       {:ok, _record} ->
         socket
-        |> Mob.Socket.assign(:results, Kati.Screens.AddTitle.mark(socket.assigns.results, title))
+        |> Mob.Socket.assign(:results, Kati.Screens.AddTitle.mark(socket.assigns.results, key))
         |> Mob.Socket.assign(:save_error, nil)
 
       {:error, _reason} = error ->
         Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
     end
   end
+
+  @doc """
+  What names a row among the rows beside it.
+
+  The title was the key, and two results with the same title made the second
+  one unusable: TMDB answers `arrival` with **Arrival (2016)** and **Arrival
+  (1986)**, both rows drew the tag `add_Arrival`, `Mob.Renderer` gave one
+  `accessibility_id` to two nodes, and `add/2`'s `Enum.find/2` matched the
+  first — so tapping the 1986 film added the 2016 one and ticked both discs.
+  Reproduced on a Pixel 9a with that exact query.
+
+  A TMDB row is named by its own id, which is what the store keys on anyway;
+  the design's four fixture rows have none and keep their titles, so board 06's
+  tags — `add_The Quiet Coast` and the rest — are unchanged and every sweep
+  that names them still names them.
+
+      iex> Kati.Screens.AddTitle.row_key(%{title: "Arrival", source_id: "329865"})
+      "329865"
+
+      iex> Kati.Screens.AddTitle.row_key(%{title: "The Quiet Coast"})
+      "The Quiet Coast"
+  """
+  @spec row_key(map()) :: String.t()
+  def row_key(%{source_id: id}) when is_binary(id) and id != "", do: id
+  def row_key(%{title: title}), do: title
 
   @doc false
   @spec track(String.t(), map() | nil) :: {:ok, term()} | {:error, term()}
@@ -621,9 +647,9 @@ defmodule Kati.Screens.AddTitle do
   def kind_of(_row), do: :movie
 
   @doc false
-  def mark(results, title) do
+  def mark(results, key) do
     Enum.map(results, fn r ->
-      if r.title == title, do: %{r | added: not r.added}, else: r
+      if Kati.Screens.AddTitle.row_key(r) == key, do: %{r | added: not r.added}, else: r
     end)
   end
 
@@ -740,7 +766,7 @@ defmodule Kati.Screens.AddTitle do
           <Text text={r.note} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
-        {Kati.Screens.AddTitle.add_button(r.added, r.title)}
+        {Kati.Screens.AddTitle.add_button(r.added, Kati.Screens.AddTitle.row_key(r))}
       </Row>
     </Column>
     """
@@ -781,10 +807,11 @@ defmodule Kati.Screens.AddTitle do
   # structural difference is the `<Row>` the component wraps children in, which
   # hugs its single Text and is centred by the same Box — no measurement moves.
   @doc false
-  def add_button(added?, title) do
-    # Keyed on the title, not the row's position: the chips reorder nothing but
-    # they do renumber, and `add_1` would mean a different film under `Films`.
-    tap = {self(), String.to_atom("add_" <> title)}
+  def add_button(added?, key) do
+    # Keyed on the row's own identity, not its position: the chips reorder
+    # nothing but they do renumber, and `add_1` would mean a different film
+    # under `Films`. See `row_key/1` for why it is not the title either.
+    tap = {self(), String.to_atom("add_" <> key)}
     bg = if added?, do: Palette.placeholder(), else: Palette.ink_fill()
     icon = if added?, do: "check", else: "add"
     ink = if added?, do: Palette.sub(), else: Palette.on_ink()

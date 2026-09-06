@@ -148,6 +148,19 @@ defmodule Kati.App do
     {:ok, _} = Kati.Supervisor.start_link()
     trace("supervisor")
 
+    # The pictures of titles that have not got one yet — see
+    # `Kati.Media.Artwork.backfill/0`. Off the boot path entirely: it is a
+    # network round trip per missing poster and the first frame must not wait
+    # for it. Under `Kati.TaskSupervisor` rather than a bare `spawn/1`, which
+    # is what that supervisor is here for, so a crash in it cannot reach a
+    # screen.
+    #
+    # A no-op on a device that is up to date: one query, no requests.
+    _backfill =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        Kati.Media.ArtworkBackfill.run()
+      end)
+
     # `Kati.Components.register_all/0` is deliberately NOT called here.
     #
     # It costs ~245ms of cold start on the emulator — measured, phase-traced —
