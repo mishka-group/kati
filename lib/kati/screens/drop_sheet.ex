@@ -215,6 +215,7 @@ defmodule Kati.Screens.DropSheet do
      socket
      |> Mob.Socket.assign(:sheet, sheet(Map.get(params || %{}, :title_id)))
      |> Mob.Socket.assign(:reason, nil)
+     |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:dropped?, false)}
   end
 
@@ -334,38 +335,62 @@ defmodule Kati.Screens.DropSheet do
   def commit_drop(socket) do
     sheet = socket.assigns.sheet
 
-    update_tracked(sheet.tracked, %{
+    written(socket, sheet.tracked, %{
       status: :dropped,
       progress_season: sheet.season,
       progress_episode: sheet.episode
     })
-
-    socket
   end
 
   @doc "Gone cold → Active: \"nothing — 'still on it' just clears it.\""
   @spec commit_keep(Mob.Socket.t()) :: Mob.Socket.t()
-  def commit_keep(socket) do
-    update_tracked(socket.assigns.sheet.tracked, %{status: :watching})
-    socket
-  end
+  def commit_keep(socket),
+    do: written(socket, socket.assigns.sheet.tracked, %{status: :watching})
 
   @doc "Dropped → Active: the position was never touched, so it is already resumed at."
   @spec commit_undo(Mob.Socket.t()) :: Mob.Socket.t()
-  def commit_undo(socket) do
-    update_tracked(socket.assigns.sheet.tracked, %{status: :watching})
-    socket
+  def commit_undo(socket),
+    do: written(socket, socket.assigns.sheet.tracked, %{status: :watching})
+
+  @doc """
+  Whether the write happened, on the socket.
+
+  `update_tracked/2` used to answer `:ok` whatever became of the `Ash.update`
+  — the result was discarded and a raise was rescued to `:ok` — so a refused
+  drop and a successful one were the same thing to look at: the sheet flipped
+  to its *Dropped* face and announced a change that had not been made.
+  MOVIES-AND-TV.md #57.
+
+  The result is kept now, and `refusal/1` draws it. The `rescue` stays, and it
+  matters that it does: an `Ash.Changeset` error is a value and a raise is not,
+  and a sheet that died inside a tap handler would take the screen process with
+  it — see `Kati.Screens.Series.tick_result/2`, which is the same shape for the
+  same reason.
+  """
+  @spec written(Mob.Socket.t(), term(), map()) :: Mob.Socket.t()
+  def written(socket, tracked, attrs) do
+    case update_tracked(tracked, attrs) do
+      :ok ->
+        Mob.Socket.assign(socket, :save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+    end
   end
 
   # `nil` is the drawn fallback: nothing to write against, so the tap still
-  # changes the sheet's own assigns and simply persists nothing durable.
+  # changes the sheet's own assigns and simply persists nothing durable. NOT a
+  # refusal — the drawn sheet has no row by design, and saying *that did not
+  # save* over board 149 would be an error message about a drawing.
   defp update_tracked(nil, _attrs), do: :ok
 
   defp update_tracked(tracked, attrs) do
-    Ash.update(tracked, attrs)
-    :ok
+    case Ash.update(tracked, attrs) do
+      {:ok, _updated} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   rescue
-    _ -> :ok
+    error -> {:error, error}
   end
 
   @impl true
@@ -399,11 +424,35 @@ defmodule Kati.Screens.DropSheet do
           {Kati.Screens.DropSheet.reasons(assigns.reason)}
           {Kati.Screens.DropSheet.info_card()}
           {Kati.Screens.DropSheet.keep_card()}
+          {Kati.Screens.DropSheet.refusal(Map.get(assigns, :save_error))}
           {Kati.Screens.DropSheet.actions(s)}
           {Kati.Screens.DropSheet.trail(s, assigns.dropped?)}
         </Column>
       </Box>
     </Box>
+    """
+  end
+
+  @doc """
+  A drop the store refused, said out loud.
+
+  Above the buttons and below the card they change, which is where screen 112
+  puts its own. Every other write in this app that can fail now draws this
+  band; this sheet was the last one that could not, and it is the one where
+  the silence cost most — the reader was shown *Dropped* over a title that had
+  not been.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.note("error", @message)}
+      <Spacer size={14} />
+    </Column>
     """
   end
 
@@ -784,19 +833,30 @@ defmodule Kati.Screens.DropSheet do
     {:noreply, Mob.Socket.assign(socket, :reason, next)}
   end
 
+  # `dropped?` follows the WRITE, not the tap. Flipping the sheet to its
+  # *Dropped* face over a refusal is the announcement MOVIES-AND-TV.md #57 is
+  # about, and it was the only thing this handler did with the result.
   def handle_info({:tap, :drop}, socket) do
-    socket = Kati.Screens.DropSheet.commit_drop(socket)
-    {:noreply, Mob.Socket.assign(socket, :dropped?, true)}
+    written = Kati.Screens.DropSheet.commit_drop(socket)
+
+    {:noreply, Mob.Socket.assign(written, :dropped?, is_nil(written.assigns.save_error))}
   end
 
+  # A refused *still on it* stays on the sheet to say so. Popping would take
+  # the message with it and land the reader back on a page that had not
+  # changed, with nothing to explain why.
   def handle_info({:tap, :keep}, socket) do
-    socket = Kati.Screens.DropSheet.commit_keep(socket)
-    {:noreply, Kati.Screens.Resume.pop(socket)}
+    written = Kati.Screens.DropSheet.commit_keep(socket)
+
+    if written.assigns.save_error,
+      do: {:noreply, written},
+      else: {:noreply, Kati.Screens.Resume.pop(written)}
   end
 
   def handle_info({:tap, :undo}, socket) do
-    socket = Kati.Screens.DropSheet.commit_undo(socket)
-    {:noreply, Mob.Socket.assign(socket, :dropped?, false)}
+    written = Kati.Screens.DropSheet.commit_undo(socket)
+
+    {:noreply, Mob.Socket.assign(written, :dropped?, not is_nil(written.assigns.save_error))}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
