@@ -131,12 +131,53 @@ defmodule Kati.Screens.UpNext do
     # `:paused` is still read alongside it, because a reader who pauses a show
     # once something can write that has said so and Kati should not argue.
     cold = Kati.Media.Staleness.cold(watching) ++ tracked(:paused)
-    ready = Kati.Media.Staleness.warm(watching)
+
+    # *Hide titles I can't watch* — screen 92's third switch, which prints the
+    # three pages it empties and this is one of them. It removes only what is
+    # KNOWN to be unavailable in the reader's country: a title nobody has
+    # fetched providers for is not one they cannot watch, and a shelf emptied
+    # by data they cannot see is a shelf they cannot understand.
+    # MOVIES-AND-TV.md #77; `Kati.Media.Availability` carries the argument.
+    ready =
+      watching
+      |> Kati.Media.Staleness.warm()
+      |> Kati.Screens.UpNext.watchable()
 
     case {ready, cold} do
       {[], []} -> Sample.queue()
       {[], cold} -> nothing_ready(cold)
       {[hero | rest], cold} -> assemble(hero, rest, cold)
+    end
+  end
+
+  @doc """
+  The titles screen 92's *Hide titles I can't watch* leaves on this shelf.
+
+  The whole list when the switch is off, which is its default and the state
+  every device is in until somebody turns it on.
+
+  One read of the reader — region, services, rules — for the whole list, and
+  one read of the cache: `Kati.Services.availability/0` and a single
+  `cache_for/1` rather than a pair per row.
+  """
+  @spec watchable([TrackedTitle.t()]) :: [TrackedTitle.t()]
+  def watchable([]), do: []
+
+  def watchable(tracked) do
+    reader = Kati.Services.availability()
+
+    if reader.rules[:hide_unavailable] do
+      cache = cache_for(tracked)
+
+      Enum.reject(tracked, fn row ->
+        Kati.Media.Availability.hide?(
+          Kati.Media.Availability.offers(Map.get(cache, {row.source, row.source_id}), reader.region),
+          reader.subscribed,
+          reader.rules
+        )
+      end)
+    else
+      tracked
     end
   end
 

@@ -114,6 +114,28 @@ defmodule Kati.Media.Tmdb do
     end
   end
 
+  @doc """
+  Where one title can be watched, on its own.
+
+  `fetch/2` gets this for free by appending to the detail request, and a title
+  the reader does not have has never been fetched — which is every row on
+  screen 11's rail. So this is the one-title endpoint, asked only when
+  somebody has turned *Hide titles I can't watch* on: three lookups for a
+  reader who asked for them, none for a reader who did not.
+
+  Answers the same shape `providers/1` does, so both sides of the app read one
+  format.
+  """
+  @spec watch_providers(String.t(), :movie | :tv) :: {:ok, map() | nil} | {:error, term()}
+  def watch_providers(source_id, kind) when is_binary(source_id) and kind in [:movie, :tv] do
+    path = if kind == :movie, do: "/movie/", else: "/tv/"
+
+    with {:ok, key} <- key(),
+         {:ok, body} <- get(key, path <> source_id <> "/watch/providers", []) do
+      {:ok, Kati.Media.Tmdb.providers(%{"watch/providers" => body})}
+    end
+  end
+
   # `/recommendations` answers rows with no `media_type`, because the endpoint
   # is already about one kind — so `shape_result/1`'s guard cannot match them
   # and the kind is carried in rather than read off.
@@ -182,10 +204,14 @@ defmodule Kati.Media.Tmdb do
   `special: true` on its episodes — `Kati.Media.CachedEpisode` has the column
   because a special has no place in an ordinary numbering and still airs.
   """
+  # One extra query parameter, no extra request: TMDB folds the watch-provider
+  # block into the detail response. See `providers/1`.
+  @with_providers [append_to_response: "watch/providers"]
+
   @spec fetch(String.t(), :movie | :tv) :: {:ok, map()} | {:error, term()}
   def fetch(source_id, :movie) when is_binary(source_id) do
     with {:ok, key} <- key(),
-         {:ok, body} <- get(key, "/movie/" <> source_id, []) do
+         {:ok, body} <- get(key, "/movie/" <> source_id, @with_providers) do
       {:ok, title} = upsert_title(body, :movie, source_id)
       {:ok, %{title: title, seasons: 0, episodes: 0}}
     end
@@ -193,7 +219,7 @@ defmodule Kati.Media.Tmdb do
 
   def fetch(source_id, :tv) when is_binary(source_id) do
     with {:ok, key} <- key(),
-         {:ok, body} <- get(key, "/tv/" <> source_id, []) do
+         {:ok, body} <- get(key, "/tv/" <> source_id, @with_providers) do
       {:ok, title} = upsert_title(body, :tv, source_id)
       {seasons, episodes} = fetch_seasons(key, source_id, body)
       {:ok, %{title: title, seasons: seasons, episodes: episodes}}
@@ -225,6 +251,81 @@ defmodule Kati.Media.Tmdb do
     end)
   end
 
+  @doc """
+  Where a title can be watched, out of TMDB's `watch/providers` block.
+
+  `append_to_response=watch/providers` rides along on the detail request, so
+  this costs no extra call — the fetch that caches a title brings its
+  availability home with it.
+
+  TMDB's shape is `{"results": {"GB": {"link": …, "flatrate": [{provider_name:
+  "Netflix", …}], "rent": […], "buy": […]}}}`, and what comes out here is the
+  same thing with the names lifted out and the link dropped:
+
+      %{"GB" => %{"flatrate" => ["Netflix"], "rent" => ["Apple TV"]}}
+
+  NAMES, because a JustWatch provider id means nothing to a reader and nothing
+  to `Kati.Services.Service`, which is keyed on the name a person typed. An
+  empty monetisation list is dropped rather than stored as `[]`: three empty
+  keys per region is a lot of nothing to carry, and `Kati.Media.Availability`
+  reads a missing key and an empty one the same way.
+
+  `nil` when TMDB sent no block at all, which `put_if/3` then skips — a fetch
+  that could not answer must not overwrite an answer an earlier one gave.
+
+      iex> Kati.Media.Tmdb.providers(%{})
+      nil
+
+      iex> Kati.Media.Tmdb.providers(%{
+      ...>   "watch/providers" => %{
+      ...>     "results" => %{
+      ...>       "GB" => %{
+      ...>         "link" => "https://example",
+      ...>         "flatrate" => [%{"provider_name" => "Netflix"}],
+      ...>         "rent" => []
+      ...>       }
+      ...>     }
+      ...>   }
+      ...> })
+      %{"GB" => %{"flatrate" => ["Netflix"]}}
+  """
+  @spec providers(map()) :: map() | nil
+  def providers(body) do
+    case get_in(body, ["watch/providers", "results"]) do
+      results when is_map(results) and results != %{} ->
+        Map.new(results, fn {region, offers} -> {region, monetisations(offers)} end)
+
+      _absent ->
+        nil
+    end
+  end
+
+  defp monetisations(offers) when is_map(offers) do
+    for kind <- ["flatrate", "free", "ads", "rent", "buy"],
+        names = provider_names(Map.get(offers, kind)),
+        names != [],
+        into: %{},
+        do: {kind, names}
+  end
+
+  defp monetisations(_offers), do: %{}
+
+  defp provider_names(list) when is_list(list) do
+    list
+    |> Enum.map(&Map.get(&1, "provider_name"))
+    |> Enum.filter(&(is_binary(&1) and &1 != ""))
+    |> Enum.uniq()
+  end
+
+  defp provider_names(_absent), do: []
+
+  # Only stamped when there was a block to read. A fetch that answered nothing
+  # must not claim the question was asked and settled.
+  defp providers_stamp(body) do
+    if is_map(get_in(body, ["watch/providers", "results"])),
+      do: DateTime.utc_now() |> DateTime.truncate(:second)
+  end
+
   defp upsert_title(body, kind, source_id) do
     attrs =
       %{
@@ -249,6 +350,8 @@ defmodule Kati.Media.Tmdb do
       # rather than shown once and thrown away. Screen 14's meta line and
       # screen 145's decade chips both wanted it and there was no column.
       |> put_if(:first_release_year, year_number(body["release_date"] || body["first_air_date"]))
+      |> put_if(:providers, Kati.Media.Tmdb.providers(body))
+      |> put_if(:providers_checked_at, providers_stamp(body))
 
     upsert(CachedTitle, [source: :tmdb, source_id: source_id], attrs)
   end

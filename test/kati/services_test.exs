@@ -155,11 +155,14 @@ defmodule Kati.ServicesTest do
     test "every rule row states its consequence" do
       tree = tree(mount_screen(MyServices))
 
-      # `Hide titles I can't watch` empties three other screens, so its own
-      # line names them and names what it does not touch.
+      # `Hide titles I can't watch` empties two other screens, so its own line
+      # names them and names what it does not touch. The board says three —
+      # Discover, Up next and What fits tonight — and screen 13 reads nothing
+      # at all, so a rule that claimed to filter it would be the promise this
+      # one was reported for (MOVIES-AND-TV.md #77 and #88).
       assert find(tree, :text,
                text:
-                 "Removes them from Discover, Up next and What fits tonight. " <>
+                 "Removes them from Discover and Up next. " <>
                    "Your library and wishlist keep everything."
              ) != nil
     end

@@ -82,7 +82,7 @@ defmodule Kati.Screens.MyServices do
     {:purchases, "Count purchases as available",
      "Titles you would have to buy outright are included too."},
     {:hide_unavailable, "Hide titles I can’t watch",
-     "Removes them from Discover, Up next and What fits tonight. Your library and wishlist keep everything."}
+     "Removes them from Discover and Up next. Your library and wishlist keep everything."}
   ]
 
   # `:query` and `:save_error` open empty and nil, so the resting page is the

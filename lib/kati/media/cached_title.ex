@@ -81,6 +81,16 @@ defmodule Kati.Media.CachedTitle do
     attribute :runtime_minutes, :integer, public?: true
     attribute :genres, :string, public?: true
 
+    # Where this title can be watched, by region — see the migration for the
+    # shape and for why it is a map rather than a list.
+    #
+    #     %{"GB" => %{"flatrate" => ["Netflix"], "rent" => ["Apple TV"]}}
+    #
+    # `nil` means nobody has asked. `%{}` means somebody asked and the answer
+    # was nowhere, which is a thing worth saying to a reader and `nil` is not.
+    attribute :providers, :map, public?: true
+    attribute :providers_checked_at, :utc_datetime, public?: true
+
     # The year a title first came out — a YEAR, not a date.
     #
     # `next_release_at` is the NEXT release and was the only date this resource

@@ -219,11 +219,88 @@ defmodule Kati.Screens.SeriesMeta do
       more: nil,
       trailer: nil,
       cast: [],
-      where: [],
+      where: Kati.Screens.SeriesMeta.where_rows(cached),
       tags: [],
       add_tag: nil
     }
   end
+
+  @doc """
+  Every way this title can be watched, for the band board 14 draws and had
+  nothing to fill.
+
+  This was `[]` and the moduledoc said why: *the same absent offers resource*.
+  It is not absent any more. TMDB folds JustWatch's per-country data into the
+  detail response Kati already fetches, `Kati.Media.CachedTitle.providers`
+  keeps it, and `Kati.Media.Availability` reads it — MOVIES-AND-TV.md #77.
+
+  What is drawn is the reader's own country's answer, in the order the board
+  puts it: what you pay for first, then free, then rent, then buy. The badge is
+  the service's initial, the same two-letter mark screen 92 gives its rows.
+
+  **No prices**, and the `price` slot stays `nil` on every row. TMDB says
+  *where*, never *how much*: it has no price field, and JustWatch's own terms
+  do not let one through this endpoint. Board 14 draws `£14.99` beside *buy
+  season* and a number Kati invented there would be the most expensive kind of
+  lie a page like this can tell. `line/1` says what the offer IS — *included*,
+  *rent*, *buy* — which is the part that is known.
+
+  `[]` for a title nobody has fetched, which `band/4` then drops entirely
+  rather than drawing an eyebrow over nothing.
+  """
+  @spec where_rows(CachedTitle.t() | nil) :: [map()]
+  def where_rows(nil), do: []
+
+  def where_rows(cached) do
+    reader = Kati.Services.availability()
+    mine = MapSet.new(reader.subscribed, &String.downcase/1)
+
+    case Kati.Media.Availability.offers(cached, reader.region) do
+      nil ->
+        []
+
+      offers ->
+        for {kind, line} <- [
+              {"flatrate", "included"},
+              {"free", "free"},
+              {"ads", "free, with ads"},
+              {"rent", "rent"},
+              {"buy", "buy"}
+            ],
+            name <- List.wrap(Map.get(offers, kind)),
+            is_binary(name) do
+          %{
+            badge: String.slice(name, 0, 1) |> String.upcase(),
+            name: name,
+            line: Kati.Screens.SeriesMeta.where_line(kind, line, name, mine),
+            price: nil
+          }
+        end
+    end
+  end
+
+  @doc """
+  What a row says under the service's name.
+
+  *included · you pay for this* on a service the reader has told screen 92
+  about, which is the one fact this page can add to TMDB's answer and the one
+  a reader most wants: whether tonight costs anything.
+
+      iex> Kati.Screens.SeriesMeta.where_line("flatrate", "included", "Netflix", MapSet.new(["netflix"]))
+      "included · you pay for this"
+
+      iex> Kati.Screens.SeriesMeta.where_line("flatrate", "included", "Now", MapSet.new(["netflix"]))
+      "included"
+
+      iex> Kati.Screens.SeriesMeta.where_line("rent", "rent", "Apple TV", MapSet.new([]))
+      "rent"
+  """
+  @spec where_line(String.t(), String.t(), String.t(), MapSet.t()) :: String.t()
+  def where_line("flatrate", line, name, mine) do
+    if MapSet.member?(mine, String.downcase(name)), do: line <> " · you pay for this", else: line
+  end
+
+  def where_line(_kind, line, _name, _mine), do: line
 
   # `2024 · DRAMA, MYSTERY · 3 SEASONS · 26 EP`, minus whichever part the cache
   # has not got. Upper case and interpuncts are the drawing's. The `15`

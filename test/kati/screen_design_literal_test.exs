@@ -603,7 +603,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # board over a page listing three subscriptions (MOVIES-AND-TV.md #35).
       # Both patterns accept the board's own words as well, because a device
       # with nothing stored still draws board 92 whole.
-      assert length(device_values()) <= 45,
+      assert length(device_values()) <= 46,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -709,6 +709,19 @@ defmodule Kati.ScreenDesignLiteralTest do
        ~r/^.+ · (none yet|\d+ subscribed)$/u},
       {"42", "united kingdom · 3 subscribed",
        "42 draws 24's row and reaches the same count through it", ~r/^.+ · (none yet|\d+ subscribed)$/u},
+      # 92's third rule. The board's sentence names three pages —
+      # *Removes them from Discover, Up next and What fits tonight* — and the
+      # rule empties two of them: screen 13 reads nothing at all
+      # (`Kati.Screens.WhatFits` draws `Kati.WhatFits.Sample.tonight/0`, and
+      # MOVIES-AND-TV.md #88 is that every control on it is decoration), so a
+      # switch that claimed to filter it would be the same promise this rule
+      # was reported for in the first place (#77). It names what it does.
+      # The pattern insists the sentence still names pages and still says what
+      # is kept, so a rule that quietly stopped saying either fails.
+      {"92", "removes them from discover, up next and what fits tonight. your library and " <>
+         "wishlist keep everything.",
+       "the pages the rule actually empties, which is two of the three the board names",
+       ~r/^removes them from .+\. your library and wishlist keep everything\.$/u},
       {"01", "good evening",
        "the greeting is picked from the device clock's hour by the same function. Which of " <>
          "the three it is belongs to `Kati.Screens.Home.today/0`; restating its thresholds " <>

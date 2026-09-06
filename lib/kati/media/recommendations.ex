@@ -148,6 +148,7 @@ defmodule Kati.Media.Recommendations do
         {:ok,
          rows
          |> Enum.reject(&tracked?/1)
+         |> Kati.Media.Recommendations.watchable()
          |> Enum.take(@picks)
          |> Enum.map(&pick/1)}
 
@@ -156,6 +157,58 @@ defmodule Kati.Media.Recommendations do
     end
   rescue
     _error -> {:error, :unavailable}
+  end
+
+  # How many candidates are looked up when the switch is on. See `watchable/1`.
+  @lookups 8
+
+  @doc """
+  The candidates screen 92's *Hide titles I can't watch* leaves on the rail.
+
+  The whole list untouched when the switch is off, which is its default and
+  the state a device is in until somebody turns it on — no extra request, no
+  extra wait.
+
+  When it IS on, a suggestion the reader cannot watch is not a suggestion, so
+  each candidate is looked up until three have passed. `@lookups` caps it:
+  three picks are wanted and a rail is not worth twenty requests, so a reader
+  whose rules exclude everything gets a short rail rather than a long pause —
+  and a short rail is the true answer to *what can I watch tonight that I have
+  not already got*.
+
+  A lookup that fails leaves the candidate IN. `Kati.Media.Availability`'s
+  rule, one layer up: unknown is not unavailable, and a rail emptied by a
+  request that timed out would be a rail emptied for a reason nobody can see.
+  """
+  @spec watchable([map()]) :: [map()]
+  def watchable(candidates) do
+    reader = Kati.Services.availability()
+
+    if reader.rules[:hide_unavailable] do
+      candidates
+      |> Enum.take(@lookups)
+      |> Enum.reject(&Kati.Media.Recommendations.unwatchable?(&1, reader))
+    else
+      candidates
+    end
+  end
+
+  @doc false
+  @spec unwatchable?(map(), map()) :: boolean()
+  def unwatchable?(%{source_id: source_id, kind: kind}, reader) do
+    case Tmdb.watch_providers(source_id, kind) do
+      {:ok, providers} ->
+        Kati.Media.Availability.hide?(
+          Kati.Media.Availability.offers(providers, reader.region),
+          reader.subscribed,
+          reader.rules
+        )
+
+      {:error, _reason} ->
+        false
+    end
+  rescue
+    _error -> false
   end
 
   @doc """

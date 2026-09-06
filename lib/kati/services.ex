@@ -169,6 +169,35 @@ defmodule Kati.Services do
     _error -> 0
   end
 
+  @doc """
+  Everything an availability question needs about this reader, read once.
+
+  The region, the services they pay for, and the three rules — `Kati.Media.
+  Availability` takes this and a title's offers and answers. Gathered here
+  rather than in that module because this one already reads the store and that
+  one is arithmetic on what it is handed: `Kati.ScreenEmptyDatabaseTest`
+  derives *reaches the store* from the compiled call graph, so a pure module
+  that grew two reads would drag every screen that imports it onto that list.
+
+  `subscribed` is names, because that is what both sides of the match are: a
+  service is keyed on what somebody typed, and TMDB answers `provider_name`.
+  """
+  @spec availability() :: %{region: String.t(), subscribed: [String.t()], rules: map()}
+  def availability do
+    %{region: region(), subscribed: subscribed_names(), rules: rules()}
+  end
+
+  @doc "The names of the services the reader pays for."
+  @spec subscribed_names() :: [String.t()]
+  def subscribed_names do
+    Kati.Services.Service
+    |> Ash.Query.for_read(:subscribed)
+    |> Ash.read!()
+    |> Enum.map(& &1.name)
+  rescue
+    _error -> []
+  end
+
   @doc "The three availability rules, as a map of booleans."
   @spec rules() :: %{rentals: boolean(), purchases: boolean(), hide_unavailable: boolean()}
   def rules do
