@@ -462,9 +462,14 @@ defmodule Kati.Screens.AddByHand do
     if title == "" do
       Mob.Socket.assign(socket, :save_error, "A title is the one thing this needs.")
     else
-      with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, socket.assigns.kind),
-           {:ok, _tracked} <- Kati.Screens.AddByHand.track(title, socket.assigns) do
-        Kati.Screens.Resume.pop(socket)
+      with {:ok, _cached} <-
+             Kati.Screens.AddTitle.cache(
+               title,
+               socket.assigns.kind,
+               Kati.Screens.AddByHand.typed_facts(socket.assigns)
+             ),
+           {:ok, tracked} <- Kati.Screens.AddByHand.track(title, socket.assigns) do
+        Kati.Screens.AddByHand.opened(socket, tracked)
       else
         error ->
           Mob.Socket.assign(socket, :save_error, Kati.Screens.AddByHand.refusal(error, title))
@@ -485,6 +490,75 @@ defmodule Kati.Screens.AddByHand do
     |> Ash.create()
     |> Kati.Write.note("add by hand #{title}")
   end
+
+  @doc """
+  What the form collected, in the shape the cache row stores it.
+
+  Both fields were typed, held on the socket and then dropped: `create_cache/2`
+  wrote five fields and neither was one of them. So a series added by hand had
+  no `episode_count` — the denominator every progress bar in the app divides
+  by, and the note under that very field promised it, in as many words:
+  *without it a series still tracks, but its progress bar has no denominator*.
+  And the Year went nowhere at all, because until this round
+  `Kati.Media.CachedTitle` had no column for one. MOVIES-AND-TV.md #59.
+
+  Both are parsed rather than trusted, and anything that is not a positive
+  integer is simply absent — a form is a place people mistype, and a `nil` year
+  is honest where a `0` is a claim. The episode field is drawn only for a
+  series, so a film's is ignored even if something put a value there.
+
+      iex> Kati.Screens.AddByHand.typed_facts(%{kind: :tv, episodes: "7", year: "2024"})
+      %{episode_count: 7, first_release_year: 2024}
+
+      iex> Kati.Screens.AddByHand.typed_facts(%{kind: :movie, episodes: "7", year: "1999"})
+      %{first_release_year: 1999}
+
+      iex> Kati.Screens.AddByHand.typed_facts(%{kind: :tv, episodes: "  ", year: "not a year"})
+      %{}
+  """
+  @spec typed_facts(map()) :: map()
+  def typed_facts(assigns) do
+    %{}
+    |> put_counted(:episode_count, episodes_typed(assigns))
+    |> put_counted(:first_release_year, counted(Map.get(assigns, :year)))
+  end
+
+  defp episodes_typed(%{kind: :movie}), do: nil
+  defp episodes_typed(assigns), do: counted(Map.get(assigns, :episodes))
+
+  defp counted(value) do
+    case Integer.parse(String.trim(value || "")) do
+      {n, ""} when n > 0 -> n
+      _unparsed -> nil
+    end
+  end
+
+  defp put_counted(map, _key, nil), do: map
+  defp put_counted(map, key, value), do: Map.put(map, key, value)
+
+  @doc """
+  Where a save goes: the title that was just written.
+
+  It popped, which put the reader back on screen 06 — a search sheet showing
+  four films they did not add. Board 155 rules that out in as many words:
+  *straight to the new title's detail screen — 04 for a series, 08 for a film.
+  Returning to 89 would leave the person on a search results page for a title
+  they just finished typing; the detail screen is where the next thing they
+  want to do lives.* MOVIES-AND-TV.md #28.
+
+  `reset_to/3` rather than a push, because the two screens behind — 154 and 06
+  — are both about typing a title that now exists, and a back tap onto either
+  would be a step backwards through a job that is done.
+  """
+  @spec opened(Mob.Socket.t(), term()) :: Mob.Socket.t()
+  def opened(socket, tracked) do
+    Kati.Screens.Resume.announce()
+
+    Mob.Socket.reset_to(socket, detail_screen(tracked), %{id: tracked.id, back: "Library"})
+  end
+
+  defp detail_screen(%{kind: :movie}), do: Kati.Screens.Film
+  defp detail_screen(_series), do: Kati.Screens.Series
 
   @doc """
   Why a write was refused, in words.

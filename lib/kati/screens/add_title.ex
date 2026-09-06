@@ -676,35 +676,44 @@ defmodule Kati.Screens.AddTitle do
   someone changes their mind.
   """
   @spec cache(String.t(), :movie | :tv) :: {:ok, term()} | {:error, term()}
-  def cache(title, kind) do
+  def cache(title, kind, extra \\ %{}) do
     existing =
       case Ash.read(Kati.Media.CachedTitle) do
         {:ok, rows} -> Enum.find(rows, &(&1.source == :manual and &1.source_id == title))
         _error -> nil
       end
 
-    if existing, do: {:ok, existing}, else: Kati.Screens.AddTitle.create_cache(title, kind)
+    if existing, do: {:ok, existing}, else: Kati.Screens.AddTitle.create_cache(title, kind, extra)
   end
 
   @doc false
-  def create_cache(title, kind) do
-    Ash.create(Kati.Media.CachedTitle, %{
-      source: :manual,
-      source_id: title,
-      kind: kind,
-      title: title,
-      # `Kati.Time.now/0`, not `DateTime.utc_now/0` — `Kati.ScreenDateTest`
-      # forbids the latter in a screen, because a screen that reads the wall
-      # clock directly cannot be tested against a fixed day.
-      #
-      # `allow_nil?: false`, because the resource's own moduledoc says a row
-      # with no age cannot be evicted and would quietly break TMDB's six-month
-      # ceiling. A `:manual` row is never evicted — see
-      # `Kati.Media.CachePolicy`'s `manual: {:never, :never}` — but it still
-      # carries an honest timestamp rather than a placeholder, because "when
-      # did this enter Kati" is a real question with a real answer.
-      fetched_at: Kati.Time.now() |> DateTime.truncate(:second)
-    })
+  def create_cache(title, kind, extra \\ %{}) do
+    Ash.create(
+      Kati.Media.CachedTitle,
+      Map.merge(
+        %{
+          source: :manual,
+          source_id: title,
+          kind: kind,
+          title: title,
+          # `Kati.Time.now/0`, not `DateTime.utc_now/0` — `Kati.ScreenDateTest`
+          # forbids the latter in a screen, because a screen that reads the wall
+          # clock directly cannot be tested against a fixed day.
+          #
+          # `allow_nil?: false`, because the resource's own moduledoc says a row
+          # with no age cannot be evicted and would quietly break TMDB's six-month
+          # ceiling. A `:manual` row is never evicted — see
+          # `Kati.Media.CachePolicy`'s `manual: {:never, :never}` — but it still
+          # carries an honest timestamp rather than a placeholder, because "when
+          # did this enter Kati" is a real question with a real answer.
+          fetched_at: Kati.Time.now() |> DateTime.truncate(:second)
+        },
+        # What screen 154's form collected and nothing wrote. `episode_count`
+        # is the denominator every progress bar in the app divides by, and the
+        # note under that field promised it — MOVIES-AND-TV.md #59.
+        extra
+      )
+    )
   end
 
   @doc false

@@ -582,11 +582,17 @@ defmodule Kati.ScreenDesignLiteralTest do
       # device that has not watched exactly 1,204 things. Both ends of the
       # range — none, one, many — are asserted in `Kati.ScreenStatsTest` and
       # `Kati.ScreenStatsEmptyTest`.
+      # Raised to 41 on 6 September for board 86's two *Try* rows, and these
+      # two are the weakest patterns in the list: a suggestion is a title out
+      # of this reader's own library, so nothing about its SHAPE can be
+      # asserted. What the entries hold is that the slot is still drawn, and
+      # `Kati.SearchSuggestionsTest` holds the rest — including that every
+      # suggestion offered is a query that actually matches.
       # Raised to 39 on 6 September for screen 94's field placeholder, and it
       # is the same class as 02's month title: the pattern insists on a count
       # the screen builds, which is stricter than the frozen literal — a screen
       # that hardcoded 190 over a list of seven fails it.
-      assert length(device_values()) <= 39,
+      assert length(device_values()) <= 41,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -627,6 +633,23 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"01", "sunday · 16 august",
        "Home's eyebrow is `Kati.Screens.Home.today/0`, which formats `Kati.Time.now/0`",
        ~r/^\p{L}+ · #{day} \p{L}+$/u},
+      # 86's two *Try* rows. Board 86's own caption says they are *drawn from
+      # what you actually have*, and they were two fixed strings that match
+      # nothing on any device but the one the board was captured on
+      # (MOVIES-AND-TV.md #72). They are the newest title on the shelf and the
+      # book the newest note is about now, so what a device draws there is
+      # whatever that device holds — and a shelf with neither still draws these
+      # two, which is why the pattern accepts them as well as anything else.
+      #
+      # The pattern is deliberately permissive and the claim is narrow: the
+      # slot is still drawn. `Kati.SearchSuggestionsTest` holds the rest,
+      # including that every suggestion offered actually matches something.
+      {"86", "what leaves this week",
+       "the newest title on this reader's shelf, or the board's own string on a device with " <>
+         "no titles", ~r/^.+$/u},
+      {"86", "notes about the estuary",
+       "the book this reader's newest note is about, or the board's own string on a device " <>
+         "with no notes", ~r/^.+$/u},
       # 94's field. Board 94 froze `Search 190 countries` — JustWatch's number
       # over Kati's seven — and the field was a picture that filtered nothing
       # (MOVIES-AND-TV.md #78). The placeholder counts

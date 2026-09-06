@@ -237,7 +237,13 @@ defmodule Kati.MediaTmdbTest do
       # The title and the season that answered are cached. Eight seasons cached
       # and one missing beats nothing cached, and the next `:stale` pass
       # re-fetches the gap.
-      assert Ash.count!(CachedTitle) == 1
+      #
+      # Counted by THIS title's id rather than over the whole table. The tables
+      # are wiped in `on_exit` and this file shares its database with every
+      # other, so a count of all rows is a count of whatever the previous file
+      # left behind — which is a green suite that goes red on a different
+      # ordering. The repo's own notes name this trap.
+      assert Enum.count(Ash.read!(CachedTitle), &(&1.source_id == "95396")) == 1
       assert Ash.count!(CachedEpisode) == 1
     end
 

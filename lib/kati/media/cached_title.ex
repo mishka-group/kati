@@ -81,6 +81,19 @@ defmodule Kati.Media.CachedTitle do
     attribute :runtime_minutes, :integer, public?: true
     attribute :genres, :string, public?: true
 
+    # The year a title first came out — a YEAR, not a date.
+    #
+    # `next_release_at` is the NEXT release and was the only date this resource
+    # held, so screen 14's meta line could not draw the `2024` its board does,
+    # screen 145 had nothing to bucket its decade chips by, and screen 154's
+    # form collected a Year and dropped it. `Kati.Media.Release` is explicit
+    # that a bare year must not become 1 January; this is the column that lets
+    # a bare year stay one.
+    #
+    # Nullable: unknown for a hand-typed title and for anything a provider has
+    # not dated, and an unknown year is not a year of zero.
+    attribute :first_release_year, :integer, public?: true, constraints: [min: 1888]
+
     # ── Shelf denominators ─────────────────────────────────────────────────
     # The totals screens 03 and 20 divide a stored position by. All three are
     # nullable, and `min: 1` is deliberate: a source that answers 0 is saying it

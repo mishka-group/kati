@@ -244,6 +244,11 @@ defmodule Kati.Media.Tmdb do
         last_checked_at: DateTime.utc_now()
       }
       |> put_if(:episode_count, positive(body["number_of_episodes"]))
+      # `release_date` for a film, `first_air_date` for a series — the same
+      # pair `shape_result/1` already reads for a search row's year, now kept
+      # rather than shown once and thrown away. Screen 14's meta line and
+      # screen 145's decade chips both wanted it and there was no column.
+      |> put_if(:first_release_year, year_number(body["release_date"] || body["first_air_date"]))
 
     upsert(CachedTitle, [source: :tmdb, source_id: source_id], attrs)
   end
@@ -458,6 +463,16 @@ defmodule Kati.Media.Tmdb do
   defp year_of(nil), do: nil
   defp year_of(""), do: nil
   defp year_of(date) when is_binary(date), do: String.slice(date, 0, 4)
+
+  # The same four characters as an integer, for the column. `nil` for anything
+  # that is not a plausible year: TMDB answers `""` for a title with no date
+  # and has been known to answer a partial one.
+  defp year_number(date) do
+    case date |> year_of() |> to_string() |> Integer.parse() do
+      {year, ""} when year >= 1888 -> year
+      _unparsed -> nil
+    end
+  end
 
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil

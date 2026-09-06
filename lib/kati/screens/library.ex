@@ -345,6 +345,7 @@ defmodule Kati.Screens.Library do
       # two, and screen 145 could do neither while a row carried only what the
       # tile needed — MOVIES-AND-TV.md #26.
       genres: cached && cached.genres,
+      year: cached && cached.first_release_year,
       # The rating that STANDS, off the newest watch — `Kati.Media.TrackedTitle.rating`
       # has no writer anywhere in the app and screen 08 documents that at
       # length, so sorting the shelf by it would have sorted by zero.

@@ -133,7 +133,8 @@ defmodule Kati.Screens.ShelfFilters do
       # drawing of: a library this app does not hold yet.
       showing: 41,
       total: Sample.total(),
-      facets: nil
+      facets: nil,
+      decades: nil
     ]
   end
 
@@ -143,13 +144,14 @@ defmodule Kati.Screens.ShelfFilters do
     [
       sort: chosen.sort,
       direction: chosen.direction,
-      decade: nil,
+      decade: Map.get(chosen, :decade),
       rating: nil,
       genres: MapSet.new(chosen.genres),
       services: MapSet.new(),
       showing: length(Kati.Library.ShelfFilters.apply(all, chosen)),
       total: length(all),
-      facets: Kati.Library.ShelfFilters.facets(all)
+      facets: Kati.Library.ShelfFilters.facets(all),
+      decades: Kati.Library.ShelfFilters.decades(all)
     ]
   end
 
@@ -400,7 +402,60 @@ defmodule Kati.Screens.ShelfFilters do
     """
   end
 
-  def ranges(_assigns), do: ~MOB"<Spacer size={0} />"
+  def ranges(%{decades: []}), do: ~MOB"<Spacer size={0} />"
+
+  def ranges(assigns) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.eyebrow_muted("Ranges — buckets, not sliders")}
+      {Kati.Screens.ShelfFilters.decade_facets(assigns.decades, assigns.decade)}
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc """
+  One chip per decade this shelf holds, newest first.
+
+  Board 145 draws four frozen buckets and until 6 September
+  `Kati.Media.CachedTitle` had no year column at all, so none of them could be
+  answered — which is why this group was dropped on a device. It has one now
+  (see `20260906120000_add_cached_title_first_release_year`), so these are the
+  reader's own decades with their own counts. A shelf whose titles are all
+  undated gets no Ranges group rather than four empty buckets.
+
+  The rating buckets the board draws beside these are still not offered: `4★
+  and up` is a bucket over `Kati.Media.Watch.rating`, which is a rating of one
+  NIGHT, and averaging a title's nights into a bucket is a judgement no board
+  states.
+  """
+  @spec decade_facets([{integer(), non_neg_integer()}], integer() | nil) :: map()
+  def decade_facets(decades, chosen) do
+    chips = Enum.map(decades, fn {decade, n} -> {decade_tag(decade), "#{decade}s", n} end)
+
+    Kati.Screens.ShelfFilters.chip_row(chips, fn key -> decade_of(key) == chosen end)
+  end
+
+  @doc """
+  The tap tag for a decade chip, and back again.
+
+      iex> Kati.Screens.ShelfFilters.decade_tag(2020)
+      :decade_2020
+
+      iex> Kati.Screens.ShelfFilters.decade_of(:decade_2020)
+      2020
+  """
+  @spec decade_tag(integer()) :: atom()
+  def decade_tag(decade), do: String.to_atom("decade_#{decade}")
+
+  @doc false
+  @spec decade_of(atom()) :: integer() | nil
+  def decade_of(tag) do
+    case tag |> Atom.to_string() |> String.replace_prefix("decade_", "") |> Integer.parse() do
+      {decade, ""} -> decade
+      _other -> nil
+    end
+  end
 
   @doc """
   The Filters group: the genres this shelf actually holds, or the board's four.
@@ -476,7 +531,7 @@ defmodule Kati.Screens.ShelfFilters do
   end
 
   def note_text(_facets) do
-    "Genres come from the provider, so these are the ones your own shelf carries. Release decade and streaming service are not offered: no column holds a first-air year, and nothing in Kati holds a catalogue."
+    "Genres and release years come from the provider, so these are the ones your own shelf carries. Streaming service is not offered: nothing in Kati holds a catalogue."
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
@@ -487,6 +542,9 @@ defmodule Kati.Screens.ShelfFilters do
     cond do
       String.starts_with?(Atom.to_string(tag), "facet_") ->
         {:noreply, Kati.Screens.ShelfFilters.toggle_facet(socket, tag)}
+
+      socket.assigns.decades && String.starts_with?(Atom.to_string(tag), "decade_") ->
+        {:noreply, Kati.Screens.ShelfFilters.toggle_decade(socket, tag)}
 
       tag in Kati.Screens.ShelfFilters.sort_keys() ->
         {:noreply, Kati.Screens.ShelfFilters.apply_sort(socket, tag)}
@@ -552,6 +610,23 @@ defmodule Kati.Screens.ShelfFilters do
   over the board's frozen bucket sizes, so `showing N of M` is two real
   numbers about this reader's own library.
   """
+  @doc """
+  A decade chip pressed: narrow to it, or stop narrowing by it.
+
+  Single-select, which is what a bucket row is — two decades at once is a range
+  and the board draws chips.
+  """
+  @spec toggle_decade(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def toggle_decade(socket, tag) do
+    decade = decade_of(tag)
+    chosen = Kati.Library.ShelfFilters.current()
+    next = if Map.get(chosen, :decade) == decade, do: nil, else: decade
+
+    %{chosen | decade: next}
+    |> Kati.Library.ShelfFilters.put()
+    |> then(fn stored -> restated(socket, stored) end)
+  end
+
   @spec restated(Mob.Socket.t(), map()) :: Mob.Socket.t()
   def restated(socket, chosen) do
     all = Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting())
@@ -563,6 +638,8 @@ defmodule Kati.Screens.ShelfFilters do
     |> Mob.Socket.assign(:showing, length(Kati.Library.ShelfFilters.apply(all, chosen)))
     |> Mob.Socket.assign(:total, length(all))
     |> Mob.Socket.assign(:facets, Kati.Library.ShelfFilters.facets(all))
+    |> Mob.Socket.assign(:decade, Map.get(chosen, :decade))
+    |> Mob.Socket.assign(:decades, Kati.Library.ShelfFilters.decades(all))
   end
 
   @doc false

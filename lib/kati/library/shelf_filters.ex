@@ -56,18 +56,18 @@ defmodule Kati.Library.ShelfFilters do
   touched it.
 
       iex> Kati.Library.ShelfFilters.resting()
-      %{sort: :recently_added, direction: :desc, genres: []}
+      %{sort: :recently_added, direction: :desc, genres: [], decade: nil}
   """
   @spec resting() :: map()
-  def resting, do: %{sort: :recently_added, direction: :desc, genres: []}
+  def resting, do: %{sort: :recently_added, direction: :desc, genres: [], decade: nil}
 
   @doc "The choice this device has stored, falling back to `resting/0`."
   @spec current() :: map()
   def current do
     case Mob.State.get(@key) do
-      %{sort: sort, direction: direction, genres: genres}
+      %{sort: sort, direction: direction, genres: genres} = stored
       when sort in @sorts and direction in [:asc, :desc] and is_list(genres) ->
-        %{sort: sort, direction: direction, genres: genres}
+        %{sort: sort, direction: direction, genres: genres, decade: Map.get(stored, :decade)}
 
       _absent ->
         resting()
@@ -112,10 +112,10 @@ defmodule Kati.Library.ShelfFilters do
       iex> Kati.Library.ShelfFilters.narrowed?(Kati.Library.ShelfFilters.resting())
       false
 
-      iex> Kati.Library.ShelfFilters.narrowed?(%{sort: :title, direction: :asc, genres: []})
+      iex> Kati.Library.ShelfFilters.narrowed?(%{sort: :title, direction: :asc, genres: [], decade: nil})
       true
 
-      iex> Kati.Library.ShelfFilters.narrowed?(%{sort: :recently_added, direction: :desc, genres: ["Drama"]})
+      iex> Kati.Library.ShelfFilters.narrowed?(%{sort: :recently_added, direction: :desc, genres: ["Drama"], decade: nil})
       true
   """
   @spec narrowed?(map()) :: boolean()
@@ -134,8 +134,38 @@ defmodule Kati.Library.ShelfFilters do
   def apply(rows, choice) do
     rows
     |> Enum.filter(&genre_match?(&1, choice.genres))
+    |> Enum.filter(&decade_match?(&1, Map.get(choice, :decade)))
     |> sort(choice)
   end
+
+  @doc """
+  Every decade this shelf holds, newest first, with how many titles are in it.
+
+  Board 145 draws four frozen buckets — 2020s, 2010s, 2000s, Older — and until
+  6 September `Kati.Media.CachedTitle` had no year column at all, so none of
+  them could be answered. It has one now (see the migration), and these are the
+  reader's own decades: a bucket with nothing in it is not offered, and a title
+  a provider has not dated takes part in none.
+
+      iex> Kati.Library.ShelfFilters.decades([%{year: 2021}, %{year: 2019}, %{year: 2024}])
+      [{2020, 2}, {2010, 1}]
+
+      iex> Kati.Library.ShelfFilters.decades([%{year: nil}])
+      []
+  """
+  @spec decades([map()]) :: [{integer(), non_neg_integer()}]
+  def decades(rows) do
+    rows
+    |> Enum.flat_map(&decade_of/1)
+    |> Enum.frequencies()
+    |> Enum.sort_by(fn {decade, _n} -> -decade end)
+  end
+
+  defp decade_of(%{year: year}) when is_integer(year), do: [div(year, 10) * 10]
+  defp decade_of(_undated), do: []
+
+  defp decade_match?(_row, nil), do: true
+  defp decade_match?(row, decade), do: decade in decade_of(row)
 
   @doc """
   Every genre on this shelf, with how many titles carry it, commonest first.

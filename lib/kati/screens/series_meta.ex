@@ -225,17 +225,20 @@ defmodule Kati.Screens.SeriesMeta do
     }
   end
 
-  # `DRAMA, MYSTERY · 3 SEASONS · 26 EP`, minus whichever of the three the
-  # cache has not got. Upper case and interpuncts are the drawing's; the year
-  # and the `15` certification that sit in front of them there are dropped
-  # rather than guessed — `next_release_at` is the NEXT release and not a first
-  # air date, and no column holds a certification at all.
+  # `2024 · DRAMA, MYSTERY · 3 SEASONS · 26 EP`, minus whichever part the cache
+  # has not got. Upper case and interpuncts are the drawing's. The `15`
+  # certification the board draws between the year and the genres is still
+  # dropped rather than guessed: no column holds one.
   defp meta_line(nil), do: ""
 
   defp meta_line(%CachedTitle{} = cached) do
     seasons = Kati.Media.CachedSeason.count(seasons_of(cached))
 
     [
+      # The year, which board 14 draws first and which had no column until
+      # 6 September — see the migration. The `15` certification beside it on
+      # the board still has none, so the line is four parts rather than five.
+      cached.first_release_year && Integer.to_string(cached.first_release_year),
       cached.genres && String.upcase(cached.genres),
       seasons > 0 && "#{seasons} SEASON#{if seasons == 1, do: "", else: "S"}",
       cached.episode_count && "#{cached.episode_count} EP"

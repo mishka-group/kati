@@ -53,14 +53,20 @@ defmodule Kati.ShelfFiltersTest do
     end
 
     test "survives being written and read back" do
-      ShelfFilters.put(%{sort: :title, direction: :asc, genres: ["Drama"]})
+      ShelfFilters.put(%{sort: :title, direction: :asc, genres: ["Drama"], decade: nil})
 
-      assert ShelfFilters.current() == %{sort: :title, direction: :asc, genres: ["Drama"]}
+      assert ShelfFilters.current() == %{
+               sort: :title,
+               direction: :asc,
+               genres: ["Drama"],
+               decade: nil
+             }
+
       assert ShelfFilters.narrowed?(ShelfFilters.current())
     end
 
     test "and Reset puts it back" do
-      ShelfFilters.put(%{sort: :title, direction: :asc, genres: ["Drama"]})
+      ShelfFilters.put(%{sort: :title, direction: :asc, genres: ["Drama"], decade: nil})
       ShelfFilters.clear()
 
       assert ShelfFilters.current() == ShelfFilters.resting()
@@ -76,7 +82,12 @@ defmodule Kati.ShelfFiltersTest do
     end
 
     test "narrows to the genre chosen" do
-      ShelfFilters.put(%{sort: :recently_added, direction: :desc, genres: ["Mystery"]})
+      ShelfFilters.put(%{
+        sort: :recently_added,
+        direction: :desc,
+        genres: ["Mystery"],
+        decade: nil
+      })
 
       assert Enum.map(Library.shelf(), & &1.title) == ["Severance"]
     end
@@ -92,7 +103,7 @@ defmodule Kati.ShelfFiltersTest do
     end
 
     test "a title naming no genre is out of every genre filter" do
-      ShelfFilters.put(%{sort: :recently_added, direction: :desc, genres: ["Drama"]})
+      ShelfFilters.put(%{sort: :recently_added, direction: :desc, genres: ["Drama"], decade: nil})
 
       refute "Nightbirds" in Enum.map(Library.shelf(), & &1.title)
     end
@@ -102,10 +113,10 @@ defmodule Kati.ShelfFiltersTest do
     end
 
     test "sorts by title in both directions" do
-      ShelfFilters.put(%{sort: :title, direction: :asc, genres: []})
+      ShelfFilters.put(%{sort: :title, direction: :asc, genres: [], decade: nil})
       assert Enum.map(Library.shelf(), & &1.title) == ["Arrival", "Nightbirds", "Severance"]
 
-      ShelfFilters.put(%{sort: :title, direction: :desc, genres: []})
+      ShelfFilters.put(%{sort: :title, direction: :desc, genres: [], decade: nil})
       assert Enum.map(Library.shelf(), & &1.title) == ["Severance", "Nightbirds", "Arrival"]
     end
 
@@ -147,16 +158,20 @@ defmodule Kati.ShelfFiltersTest do
       assert {"Drama", 2} in opening[:facets]
     end
 
-    test "and draws neither the decade nor the service group" do
+    test "draws the decades this shelf holds, and no service group" do
       drawn = inspect(Sheet.body(Map.new(Sheet.opening())), limit: :infinity)
 
-      refute drawn =~ "Ranges", "a decade needs a first-air year and no column holds one"
       refute drawn =~ "Lumen+", "a service needs a catalogue Kati does not have"
       assert drawn =~ "Drama"
     end
 
     test "and a chosen genre narrows the count it reports" do
-      ShelfFilters.put(%{sort: :recently_added, direction: :desc, genres: ["Mystery"]})
+      ShelfFilters.put(%{
+        sort: :recently_added,
+        direction: :desc,
+        genres: ["Mystery"],
+        decade: nil
+      })
 
       opening = Sheet.opening()
 
@@ -187,7 +202,12 @@ defmodule Kati.ShelfFiltersTest do
     end
 
     test "counts the whole shelf, not the narrowed one" do
-      ShelfFilters.put(%{sort: :recently_added, direction: :desc, genres: ["Mystery"]})
+      ShelfFilters.put(%{
+        sort: :recently_added,
+        direction: :desc,
+        genres: ["Mystery"],
+        decade: nil
+      })
 
       # One title survives the filter and two are on the shelf. The badge
       # labels a door onto screen 10, which shows the queue whole — a tile
@@ -201,6 +221,66 @@ defmodule Kati.ShelfFiltersTest do
     test "and is absent when nothing is being watched" do
       assert Library.up_next_badge(0) == nil
     end
+  end
+
+  describe "the decade chips" do
+    setup do
+      dated!("severance", "Severance", "Drama", 2022)
+      dated!("arrival", "Arrival", "Science Fiction", 2016)
+      dated!("bladerunner", "Blade Runner", "Science Fiction", 1982)
+      dated!("undated", "Nightbirds", "Drama", nil)
+      :ok
+    end
+
+    test "are this shelf's own decades, newest first" do
+      # Board 145 draws four frozen buckets and until 6 September
+      # `Kati.Media.CachedTitle` had no year column at all, so none of them
+      # could be answered.
+      assert ShelfFilters.decades(Library.shelf()) == [{2020, 1}, {2010, 1}, {1980, 1}]
+    end
+
+    test "a title the provider never dated takes part in none" do
+      decades = ShelfFilters.decades(Library.shelf())
+
+      assert Enum.sum(Enum.map(decades, &elem(&1, 1))) == 3,
+             "the undated title was bucketed somewhere"
+    end
+
+    test "and choosing one narrows the shelf" do
+      ShelfFilters.put(%{
+        sort: :recently_added,
+        direction: :desc,
+        genres: [],
+        decade: 2010
+      })
+
+      assert Enum.map(Library.shelf(), & &1.title) == ["Arrival"]
+    end
+
+    test "the tag round-trips" do
+      assert Sheet.decade_of(Sheet.decade_tag(1980)) == 1980
+    end
+  end
+
+  defp dated!(slug, title, genres, year) do
+    source_id = @prefix <> slug
+
+    Ash.create!(CachedTitle, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: :tv,
+      title: title,
+      genres: genres,
+      first_release_year: year,
+      fetched_at: Kati.Time.now()
+    })
+
+    Ash.create!(TrackedTitle, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: :tv,
+      status: :watching
+    })
   end
 
   defp shelf!(slug, title, genres) do
