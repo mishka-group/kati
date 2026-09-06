@@ -2182,8 +2182,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 | 87 | 11 Discover | `inert-control` | Discover's `tune` disc is drawn as a plain Box with no tap at all, and the `Schedule` buttons that do work forget themselves the moment you go back. |
 | 88 | 13 What fits? | `inert-control` | Every control on screen 13 is decoration: the five window buttons (20m/30m/45m/1h/2h+), the four mood chips, the three play discs, the `Tomorrow` defer pill and the overflow disc. The board's own caption is "Set the window you actually have and the library filters itself". |
 | 89 | 141 Import — recognised (Kati.Screens.ImportRecognised) | `inert-control` | The 'Import 412' pill — the commit action of the whole import flow — carries no on_tap on both screens that draw it, so the tap sweep cannot report it either. |
-| 90 | 15 Activity | `inert-control` | No row in the activity log is tappable, so the user cannot open a title from their own history. |
-| 91 | 15 Activity | `inert-control` | The filter (tune) disc in the Activity header reaches a handler and does nothing. |
+| 90 | 15 Activity | `fixed` | ~~No row in the activity log is tappable, so the user cannot open a title from their own history.~~ Fixed 6 September: the row carries the title it is about and opens the series or film screen under a pill reading *Activity*. A drawn row carries no id, so board 15's rows stay pictures. Verified on the Pixel_9a. |
+| 91 | 15 Activity | `fixed` | ~~The filter (tune) disc in the Activity header reaches a handler and does nothing.~~ Fixed 6 September: it opens screen 145, the same sort-and-filter sheet the chips beside it narrow with. |
 | 92 | 152 Anime | `inert-control` | Two of the board's five taps are the already-selected members of live families and change nothing. |
 | 93 | 18 Quick add (Kati.Screens.QuickAdd) | `inert-control` | Five of the six 'Or file it as' chips — including Title, the only one that would add a film — swallow taps and do nothing. |
 | 94 | 19 Search | `inert-control` | The clear disc is booked inert by the tap sweep, with the sweep's own stated reason. |
