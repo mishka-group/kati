@@ -1132,11 +1132,111 @@ defmodule Kati.Screens.Library do
   # left to the weights in poster/1 — see the moduledoc.
   @doc false
   def grid(filter, shelf, titles) do
-    rows = titles |> Kati.Screens.Library.visible(filter, shelf) |> Enum.chunk_every(3)
+    case Kati.Screens.Library.visible(titles, filter, shelf) do
+      [] -> Kati.Screens.Library.nothing_here(filter, shelf)
+      shown -> Kati.Screens.Library.tiles(Enum.chunk_every(shown, 3))
+    end
+  end
 
+  @doc false
+  def tiles(rows) do
     ~MOB"""
     <Column fill_width={true}>
       {Enum.map(rows, fn row -> Kati.Screens.Library.grid_row(row) end)}
+    </Column>
+    """
+  end
+
+  @doc """
+  A chip that leaves nothing, saying so.
+
+  `grid/3` rendered an empty `Column` for an empty list, so tapping a chip that
+  matched nothing left a blank space under live chips with no card and no
+  explanation — and until something in the app could set a status, *Not
+  started* and *Finished* matched nothing on every device, so that blank was
+  what every reader got from either. MOVIES-AND-TV.md #37.
+
+  Two wordings, because they are two different absences. A Books or Music shelf
+  is empty by decision — #60 settled that v1 ships one media domain — and a
+  status chip with nothing behind it is a shelf that simply has none of those
+  yet. Saying *nothing added yet* over the Books tab would invite an add the
+  app cannot do.
+  """
+  @spec nothing_here(String.t(), String.t()) :: map()
+  def nothing_here(_filter, shelf) when shelf != "Screen",
+    do:
+      nothing_card(
+        "Nothing here yet",
+        "Kati holds films and shows for now. #{shelf} comes later."
+      )
+
+  # A sentence per chip rather than the chip's own label in a frame. `Nothing
+  # not started` reads as a double negative and `No title on your shelf is not
+  # started right now` is worse; each of the three says its own thing, and the
+  # second line says what would put a title there.
+  def nothing_here("Watching", _shelf),
+    do:
+      nothing_card(
+        "Nothing on the go",
+        "Log a watch or tick an episode and the title moves here."
+      )
+
+  def nothing_here("Not started", _shelf),
+    do:
+      nothing_card(
+        "Everything here is started",
+        "A title you add and have not watched yet waits in this one."
+      )
+
+  def nothing_here("Finished", _shelf),
+    do:
+      nothing_card(
+        "Nothing finished yet",
+        "A film you log a watch of, or a series whose last episode you tick, lands here."
+      )
+
+  def nothing_here(filter, _shelf),
+    do: nothing_card("Nothing #{String.downcase(filter)}", "No title on your shelf matches.")
+
+  @doc false
+  def nothing_card(title, body) do
+    assigns = %{title: title, body: body}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("movie", size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text={@title}
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text={@body}
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
     </Column>
     """
   end

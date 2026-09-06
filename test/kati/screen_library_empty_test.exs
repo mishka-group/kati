@@ -278,21 +278,42 @@ defmodule Kati.ScreenLibraryEmptyTest do
       end
     end
 
-    test "a filter that matches nothing empties the grid without claiming the shelf is empty" do
-      # The design draws no state for "this filter matches none of your nine",
-      # so the screen does what it always did: an empty grid under live chips
-      # whose counts say which one to tap next. Putting *No titles yet* here
-      # would be a second untruth in place of the first.
+    test "a filter that matches nothing says so, and does not claim the shelf is empty" do
+      # This used to assert a BLANK — an empty grid under live chips, on the
+      # argument that the design draws no state for *this filter matches none
+      # of your nine*. It is MOVIES-AND-TV.md #37: a tap that leaves a hole
+      # where the shelf was, with nothing to say what happened, and until
+      # something in the app could set a status it was what every reader got
+      # from *Not started* and *Finished* both.
       view = render_info(mount_screen(Library), {:tap, :"filter_Not started"})
       drawn = texts(tree(view))
 
       assert assigns(view).filter == "Not started"
       assert find_all(tree(view), :column, weight: 1.0, on_tap: {self(), :open_series}) == []
 
+      assert "Everything here is started" in drawn
+
       refute @title in drawn,
              "the shelf holds a title; a filter matching none of it is not an empty library"
 
+      refute Kati.Screens.Library.empty_state() |> inspect() =~ "Everything here is started",
+             "screen 27's card is for an empty library and this is not one"
+
       assert "1 titles · 1 in progress" in drawn
+    end
+
+    test "and a shelf Kati does not hold yet would say which" do
+      # `visible/3` answers `[]` for any shelf but Screen, and today no tap can
+      # put screen 03 in that state — `:shelf_Books` pushes screen 20 outright.
+      # The branch guards the read rather than a route, so it is asserted at
+      # the function: an empty Books tab is empty by DECISION (#60 ships one
+      # media domain), and saying *nothing added yet* over it would invite an
+      # add the app cannot do.
+      drawn = inspect(Library.nothing_here("All", "Books"), limit: :infinity)
+
+      assert drawn =~ "Nothing here yet"
+      assert drawn =~ "Books comes later"
+      refute drawn =~ "Everything here is started"
     end
   end
 end
