@@ -25,6 +25,7 @@ defmodule Kati.DiscoverFeedTest do
   use Mob.ScreenCase, async: false
 
   doctest Kati.Media.Recommendations, only: [because: 1]
+  doctest Kati.Screens.Discover, only: [pick_tag: 1, mark: 2]
 
   alias Kati.Media.CachedTitle
   alias Kati.Media.Recommendations
@@ -200,6 +201,82 @@ defmodule Kati.DiscoverFeedTest do
     end
   end
 
+  describe "a pick you can act on" do
+    setup do
+      tracked!("severance", "Severance", :tv)
+      feed = Discover.feed()
+
+      picks = [
+        %{
+          title: "Emergence",
+          seed: "/emergence.jpg",
+          match: nil,
+          source_id: "82708",
+          kind: :tv,
+          added: false
+        }
+      ]
+
+      %{feed: Discover.answered(feed, {:ok, picks})}
+    end
+
+    test "carries a tap naming its provider id", %{feed: feed} do
+      assert drawn(feed) =~ "add_82708"
+    end
+
+    test "and the board's picks carry none" do
+      # Which is what keeps board 11 the node it always was, and why
+      # `Kati.ScreenTapSweepTest` — which runs against an empty store, and so
+      # renders the board — cannot see this tap at all.
+      for pick <- Discover.Sample.feed().picks do
+        assert Discover.pick_tag(pick) == nil
+      end
+    end
+
+    test "ticking one marks it and leaves the others", %{feed: feed} do
+      marked = Discover.mark(feed.picks ++ [%{source_id: "999", added: false}], "82708")
+
+      assert [%{source_id: "82708", added: true}, %{source_id: "999", added: false}] = marked
+    end
+
+    test "a tap naming nothing on the rail changes nothing", %{feed: feed} do
+      socket =
+        Discover
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(feed: feed, chip: "For you", scheduled: [], add_error: nil)
+
+      assert Discover.add(socket, "not-in-the-rail").assigns.feed == feed
+    end
+
+    test "and one already added is not added twice", %{feed: feed} do
+      added = %{feed | picks: Discover.mark(feed.picks, "82708")}
+
+      socket =
+        Discover
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(feed: added, chip: "For you", scheduled: [], add_error: nil)
+
+      assert Discover.add(socket, "82708").assigns.feed == added
+      assert Ash.read!(TrackedTitle) |> Enum.map(& &1.source_id) |> Enum.member?("82708") == false
+    end
+
+    test "a refused add is said out loud rather than swallowed", %{feed: feed} do
+      # `Kati.Screens.AddTitle.track/2` fetches from TMDB first, and this suite
+      # has no key — so this is the refusal path, exercised for the thing that
+      # matters about it: that the screen SAYS so. Screen 06 sets the same
+      # assign and draws it nowhere, which is `D-60`'s defect in English.
+      socket =
+        Discover
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(feed: feed, chip: "For you", scheduled: [], add_error: nil)
+
+      after_tap = Discover.add(socket, "82708")
+
+      assert is_binary(after_tap.assigns.add_error)
+      assert drawn_with(after_tap.assigns) =~ after_tap.assigns.add_error
+    end
+  end
+
   describe "with nothing stored" do
     test "the board is drawn whole" do
       assert Discover.feed() == Discover.Sample.feed()
@@ -215,11 +292,11 @@ defmodule Kati.DiscoverFeedTest do
   end
 
   defp drawn(feed) do
-    inspect(
-      Discover.content(%{feed: feed, chip: Discover.default_chip(feed), scheduled: []}),
-      limit: :infinity,
-      printable_limit: :infinity
-    )
+    drawn_with(%{feed: feed, chip: Discover.default_chip(feed), scheduled: [], add_error: nil})
+  end
+
+  defp drawn_with(assigns) do
+    inspect(Discover.content(assigns), limit: :infinity, printable_limit: :infinity)
   end
 
   defp tracked!(slug, title, kind) do

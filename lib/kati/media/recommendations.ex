@@ -144,11 +144,41 @@ defmodule Kati.Media.Recommendations do
   @spec picks_for(CachedTitle.t()) :: {:ok, [map()]} | {:error, term()}
   def picks_for(%CachedTitle{source_id: source_id, kind: kind}) do
     case Tmdb.recommendations(source_id, provider_kind(kind)) do
-      {:ok, rows} -> {:ok, rows |> Enum.take(@picks) |> Enum.map(&pick/1)}
-      {:error, reason} -> {:error, reason}
+      {:ok, rows} ->
+        {:ok,
+         rows
+         |> Enum.reject(&tracked?/1)
+         |> Enum.take(@picks)
+         |> Enum.map(&pick/1)}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   rescue
     _error -> {:error, :unavailable}
+  end
+
+  @doc """
+  Whether the reader already has this.
+
+  A suggestion to watch a thing that is on the shelf is not a suggestion, and
+  on a small library TMDB's answer for one show routinely contains two others
+  the reader added the same evening. Rejected before `@picks` is applied, so
+  three already-owned titles cost the rail three rows rather than emptying it.
+
+  Read against the whole of `Kati.Media.TrackedTitle` rather than through
+  `:shelf`: an archived title is still a title somebody has decided about, and
+  suggesting it back is the same noise.
+  """
+  @spec tracked?(map()) :: boolean()
+  def tracked?(%{source_id: source_id}) do
+    TrackedTitle
+    |> Ash.Query.filter(source == :tmdb and source_id == ^source_id)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> Enum.any?()
+  rescue
+    _error -> false
   end
 
   @doc """
@@ -170,7 +200,20 @@ defmodule Kati.Media.Recommendations do
     # rectangle behind it.
     _ = safely(fn -> Artwork.cache(row.poster_path) end)
 
-    %{title: row.title, seed: row.poster_path, match: nil}
+    # `source_id` and `kind` ride along because a recommendation you cannot act
+    # on is half a feature — screen 11 was *the only page in the app that shows
+    # films you cannot open* (MOVIES-AND-TV.md #14 under screen 11), and these
+    # two are exactly what `Kati.Screens.AddTitle.track/2` needs. The board's
+    # own picks carry neither, which is what keeps them untappable: a fixture
+    # is not a title anybody can add.
+    %{
+      title: row.title,
+      seed: row.poster_path,
+      match: nil,
+      source_id: row.source_id,
+      kind: row.kind,
+      added: false
+    }
   end
 
   defp safely(fun) do

@@ -105,7 +105,8 @@ defmodule Kati.Screens.Discover do
     |> Mob.Socket.assign(
       feed: feed,
       chip: Kati.Screens.Discover.default_chip(feed),
-      scheduled: []
+      scheduled: [],
+      add_error: nil
     )
     |> ask()
   end
@@ -241,6 +242,7 @@ defmodule Kati.Screens.Discover do
         {Kati.Screens.Discover.pill_row()}
         {Kati.Screens.Discover.header(f)}
         {Kati.Screens.Discover.chips(f, chip)}
+        {Kati.Screens.Discover.add_error(Map.get(assigns, :add_error))}
         {Kati.Screens.Discover.because_section(f, chip)}
         {Kati.Screens.Discover.people_section(f, chip)}
         {Kati.Screens.Discover.leaving_section(f, chip, scheduled)}
@@ -436,6 +438,32 @@ defmodule Kati.Screens.Discover do
   end
 
   @doc """
+  A refused add, said out loud.
+
+  `Kati.Screens.AddTitle.add/2` sets `:save_error` and screen 06 draws it
+  nowhere, which is the defect `D-60` is about in Persian and the same one in
+  English. This screen writes through the same `track/2`, so it can fail the
+  same ways — a TMDB detail call that 404s, a uniqueness constraint — and a
+  poster that does not tick and says nothing is a tap the reader will make
+  again.
+
+  `Kati.UI.SettingsList.note/2` is the band screen 155 already uses for this.
+  """
+  @spec add_error(String.t() | nil) :: map()
+  def add_error(nil), do: ~MOB"<Spacer size={0} />"
+
+  def add_error(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.note("error", @message)}
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc """
   The rail, or what stands in its place.
 
   A real feed opens with `picks: []` and a request in flight, so there are two
@@ -599,8 +627,27 @@ defmodule Kati.Screens.Discover do
 
   # Weighted rather than 112 wide: three equal shares of the real content width
   # fill the row on any device, where a fixed 112 only fills the drawing's frame.
-  @doc false
+  @doc """
+  One pick, which you can now add.
+
+  Screen 11 was *the only page in the app that shows films you cannot open*:
+  `pick/1` was pure layout, so three posters sat there and nothing happened.
+  A recommendation you cannot act on is half a feature, and the act a
+  recommendation asks for is **add it** — the same
+  `Kati.Screens.AddTitle.track/2` a search hit goes through.
+
+  The tap exists only on a pick that names a title: a real one carries the
+  provider id the write needs, and the board's three carry nothing but a design
+  seed. So `Kati.Library.Sample`'s picks stay untappable, board 11 renders the
+  node it always rendered, and `Kati.ScreenTapSweepTest` — which runs against
+  an EMPTY store, and therefore sees the board — is unchanged.
+
+  That is also why the sweep cannot cover this tap. `Kati.DiscoverFeedTest`
+  does, over a pick with an id on it.
+  """
   def pick(p) do
+    tap = Kati.Screens.Discover.pick_tap(p)
+
     ~MOB"""
     <Column weight={1.0}>
       <Box
@@ -609,8 +656,10 @@ defmodule Kati.Screens.Discover do
         corner_radius={13}
         background={Palette.placeholder()}
         shadow={Kati.Theme.shadow_card_soft()}
+        on_tap={tap}
       >
         {Kati.Screens.Discover.poster(p.seed)}
+        {Kati.Screens.Discover.added_mark(Map.get(p, :added, false))}
       </Box>
       <Spacer size={9} />
       <Text
@@ -651,6 +700,57 @@ defmodule Kati.Screens.Discover do
         max_lines={1}
       />
     </Column>
+    """
+  end
+
+  @doc """
+  The tag a pick answers to, or `nil` for one nothing can add.
+
+  `nil` is the value `Kati.ScreenTapSweepTest` documents as *not tappable
+  rather than broken*, and it is the honest answer for a fixture: the board's
+  picks are three seeds and three captions, and there is no title behind them
+  to put on a shelf.
+
+      iex> Kati.Screens.Discover.pick_tag(%{title: "Emergence", source_id: "82708"})
+      :add_82708
+
+      iex> Kati.Screens.Discover.pick_tag(%{title: "Vellum", seed: "vellum97"})
+      nil
+  """
+  @spec pick_tag(map()) :: atom() | nil
+  def pick_tag(%{source_id: id}) when is_binary(id) and id != "",
+    do: String.to_atom("add_" <> id)
+
+  def pick_tag(_pick), do: nil
+
+  @doc false
+  def pick_tap(pick) do
+    case pick_tag(pick) do
+      nil -> nil
+      tag -> {self(), tag}
+    end
+  end
+
+  @doc """
+  The tick over a poster that has just been added.
+
+  Screen 06's answer at rail scale: the tap's only visible result is that the
+  title is now on the shelf, which is a different screen, so the control has to
+  say so where it was pressed. `Kati.Screens.Library` is where it turns up.
+  """
+  @spec added_mark(boolean()) :: map()
+  def added_mark(false), do: ~MOB"<Spacer size={0} />"
+
+  def added_mark(true) do
+    ~MOB"""
+    <Box fill_width={true} fill_height={true} align="top">
+      <Row fill_width={true} padding={7} align="top">
+        <Spacer weight={1.0} />
+        <Box width={26} height={26} corner_radius={13} background={Palette.ink_fill()} align="center">
+          {UI.symbol("check", size: 15, color: Palette.on_ink())}
+        </Box>
+      </Row>
+    </Box>
     """
   end
 
@@ -872,9 +972,65 @@ defmodule Kati.Screens.Discover do
            Kati.Screens.Discover.toggle(done, title)
          end)}
 
+      "add_" <> source_id ->
+        {:noreply, Kati.Screens.Discover.add(socket, source_id)}
+
       _ ->
         {:noreply, socket}
     end
+  end
+
+  @doc """
+  Add the pick that was tapped.
+
+  Synchronous, which is `Kati.Screens.AddTitle.add/2`'s own choice and made for
+  its reason: `track/2` fetches the seasons and the episodes as well as the row
+  — nothing can be ticked before the episodes exist — and this is the moment
+  the app knows a title is wanted and is allowed to be slow.
+
+  A pick already on the shelf cannot be tapped twice into two rows: `added` is
+  set on the pick, and a second tap finds it already true and does nothing.
+  Untracking is deliberately NOT offered here the way screen 06 offers it — a
+  discover rail is a list of things you do not have, and a title you just added
+  leaves the rail on the next visit rather than becoming a toggle.
+  """
+  @spec add(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def add(socket, source_id) do
+    feed = socket.assigns.feed
+
+    case Enum.find(feed.picks, &(Map.get(&1, :source_id) == source_id)) do
+      nil -> socket
+      %{added: true} -> socket
+      pick -> written(socket, feed, pick)
+    end
+  end
+
+  defp written(socket, feed, pick) do
+    row = %{source: :tmdb, source_id: pick.source_id, kind: pick.kind}
+
+    case Kati.Screens.AddTitle.track(pick.title, row) do
+      {:ok, _tracked} ->
+        Mob.Socket.assign(socket, :feed, %{feed | picks: mark(feed.picks, pick.source_id)})
+
+      {:error, _reason} = error ->
+        Mob.Socket.assign(socket, :add_error, Kati.Write.message(error))
+    end
+  end
+
+  @doc """
+  The picks with one of them ticked.
+
+      iex> Kati.Screens.Discover.mark([%{source_id: "1", added: false}], "1")
+      [%{source_id: "1", added: true}]
+
+      iex> Kati.Screens.Discover.mark([%{source_id: "1", added: false}], "2")
+      [%{source_id: "1", added: false}]
+  """
+  @spec mark([map()], String.t()) :: [map()]
+  def mark(picks, source_id) do
+    Enum.map(picks, fn p ->
+      if Map.get(p, :source_id) == source_id, do: Map.put(p, :added, true), else: p
+    end)
   end
 
   @doc false
