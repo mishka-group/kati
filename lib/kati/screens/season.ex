@@ -196,7 +196,67 @@ defmodule Kati.Screens.Season do
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "episode_" <> index -> {:noreply, Kati.Screens.Season.tick(socket, index)}
+      "rate_" <> index -> {:noreply, Kati.Screens.Season.rate(socket, index)}
       _other -> {:noreply, socket}
+    end
+  end
+
+  @doc """
+  The trailing rating column, and the door onto screen 144.
+
+  `Kati.Screens.Series.rating_column/1`'s twin, one screen over, and the same
+  three states for the same reasons — a rated episode prints its numeral and
+  star, an aired unrated one draws the hollow star that is the affordance, and
+  an episode that has not aired draws nothing because there is no opinion to
+  have. The two screens draw the same episode rows and must offer the same
+  door.
+  """
+  @spec rating_column(map()) :: map() | []
+  def rating_column(ep) do
+    case {Map.get(ep, :aired, true), Map.get(ep, :source_id), Map.get(ep, :index)} do
+      {true, id, i} when is_binary(id) and is_integer(i) ->
+        Kati.Screens.Season.rating_door(ep, i)
+
+      _no_door ->
+        Kati.Screens.EpisodeRatings.rating_node(Map.get(ep, :rating))
+    end
+  end
+
+  @doc false
+  def rating_door(ep, index) do
+    assigns = %{
+      tap: {self(), String.to_atom("rate_#{index}")},
+      body: Kati.Screens.Series.rating_face(Map.get(ep, :rating))
+    }
+
+    ~MOB"""
+    <Row align="center" padding_left={13} padding_right={4} on_tap={@tap}>
+      {@body}
+    </Row>
+    """
+  end
+
+  @doc """
+  Open the rating sheet over one episode of this season.
+
+  `Kati.Screens.Series.rate/2`'s twin, and the same gate: the pair, never the
+  position, and a drawn season opens nothing because there is no episode
+  behind `Kati.Season.Sample` to rate.
+  """
+  @spec rate(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def rate(socket, index) do
+    s = socket.assigns.season
+    episode = Enum.at(s.episodes, String.to_integer(index))
+    tracked_id = Map.get(s, :tracked_id)
+    source_id = episode && Map.get(episode, :source_id)
+
+    if is_binary(tracked_id) and is_binary(source_id) do
+      Mob.Socket.push_screen(socket, Kati.Screens.RateEpisode, %{
+        tracked_id: tracked_id,
+        episode_source_id: source_id
+      })
+    else
+      socket
     end
   end
 
@@ -424,8 +484,13 @@ defmodule Kati.Screens.Season do
   # drawn one. Everything not named here is the design's own and stays that way
   # — see the moduledoc for the list and for why each is on it.
   defp assemble(tracked, number, episodes) do
-    ticked = tracked |> ticks() |> CachedEpisode.ticked_ids()
-    rows = episodes |> CachedEpisode.in_order(:aired) |> Enum.map(&row(&1, ticked))
+    watches = ticks(tracked)
+    ticked = CachedEpisode.ticked_ids(watches)
+    # The same rows the ticks come from — see `Kati.Screens.Series.
+    # ratings_by_episode/1`, which is where this screen's twin reads them and
+    # therefore where both screens agree on what a rating is.
+    ratings = Kati.Screens.Series.ratings_by_episode(watches)
+    rows = episodes |> CachedEpisode.in_order(:aired) |> Enum.map(&row(&1, ticked, ratings))
     drawn = drawn_season()
 
     %{
@@ -504,8 +569,11 @@ defmodule Kati.Screens.Season do
   # One episode in the shape `episode/1` reads. `special` is stored, so both
   # marks the design gives it — the bronze number and the badge — come off the
   # one column rather than being decided twice.
-  defp row(%CachedEpisode{} = episode, ticked) do
+  defp row(%CachedEpisode{} = episode, ticked, ratings) do
     %{
+      # Your verdict on this episode, for the trailing column board 143 draws
+      # and the door onto the sheet that writes it.
+      rating: Map.get(ratings, episode.source_id),
       # What a tick is written against. `Kati.Media.Watch` names an episode by
       # `episode_source_id` and nothing else, and this row carried the NUMBER —
       # which is the one thing this screen's own footnote says a tick must not
@@ -808,6 +876,7 @@ defmodule Kati.Screens.Season do
       align="center"
     >
       {Kati.Screens.Season.episode_body(ep, title_color, number_color)}
+      {Kati.Screens.Season.rating_column(ep)}
       {Kati.Screens.Season.check(true)}
     </Row>
     """
@@ -828,6 +897,7 @@ defmodule Kati.Screens.Season do
       align="center"
     >
       {Kati.Screens.Season.episode_body(ep, title_color, number_color)}
+      {Kati.Screens.Season.rating_column(ep)}
       {Kati.Screens.Season.check(false)}
     </Row>
     """

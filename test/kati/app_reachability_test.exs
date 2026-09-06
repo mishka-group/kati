@@ -451,6 +451,33 @@ defmodule Kati.AppReachabilityTest do
       status: :watching
     })
     |> Ash.create!()
+
+    if kind == :tv, do: episode!(source_id)
+  end
+
+  # One cached episode for the tracked series, and it is the difference between
+  # a populated store and a populated store a user would recognise. A series
+  # you are watching has episodes; this one had none, so screen 04 drew its
+  # "nothing cached yet" state in the pass that is supposed to be the device in
+  # use — and every door an episode ROW draws was invisible to the walk.
+  #
+  # That is not hypothetical. Screen 144 is reached by tapping the rating
+  # column beside an episode (`Kati.Screens.Series.rating_column/1`), which is
+  # drawn per episode and cannot exist without one, and the walk called it
+  # stranded on the day that route shipped.
+  defp episode!(title_source_id) do
+    Kati.Media.CachedEpisode
+    |> Ash.Changeset.for_create(:create, %{
+      source: :tmdb,
+      title_source_id: title_source_id,
+      source_id: "#{title_source_id}:s1e1",
+      season_number: 1,
+      episode_number: 1,
+      title: "The Weight of Water",
+      runtime_minutes: 48,
+      fetched_at: Kati.Time.now()
+    })
+    |> Ash.create!()
   end
 
   # `Mob.State` is the third global a tap pass writes to, and the only one

@@ -239,12 +239,14 @@ defmodule Kati.Screens.RateEpisode do
   alias Kati.UI.Sheet
   alias Kati.UI.SettingsList
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:sheet, sheet())
+     |> Mob.Socket.assign(:params, params)
+     |> Mob.Socket.assign(:sheet, sheet(params))
+     |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:verdict_expanded?, false)}
   end
 
@@ -257,8 +259,56 @@ defmodule Kati.Screens.RateEpisode do
   episode name is somebody else's reads as entirely real. Either every value
   here is this log's, or every value is the drawing's.
   """
-  @spec sheet() :: map()
-  def sheet, do: logged_sheet() || drawn_sheet()
+  @spec sheet(map() | nil) :: map()
+  def sheet(params \\ %{})
+
+  def sheet(params) when is_map(params),
+    do: asked_sheet(params) || logged_sheet() || drawn_sheet()
+
+  def sheet(_params), do: logged_sheet() || drawn_sheet()
+
+  @doc """
+  The episode the pushing screen named, shaped for this sheet.
+
+  The route into this screen is an episode's rating column on screen 04 — you
+  open a series, you open a season, you tap the rating beside the episode you
+  just watched — so the subject is the caller's, and `logged_sheet/0`'s
+  "newest episode log anywhere" is the fallback for the one door that names
+  nothing (the gallery).
+
+  `nil` when the pair names no tracked row: a sheet opened over a title that
+  has since been removed draws the drawing rather than half of somebody
+  else's episode.
+  """
+  @spec asked_sheet(map()) :: map() | nil
+  def asked_sheet(params) when is_map(params) do
+    # `Map.get/2`, which is how every other screen in this app reads a push —
+    # see `Kati.ScreenParamsSweepTest`, whose whole subject is that one
+    # spelling is what lets a sweep find the keys a screen reads.
+    tracked_id = Map.get(params, :tracked_id)
+    episode_source_id = Map.get(params, :episode_source_id)
+
+    if is_binary(tracked_id) and is_binary(episode_source_id),
+      do: asked_sheet_for(tracked_id, episode_source_id)
+  end
+
+  def asked_sheet(_params), do: nil
+
+  defp asked_sheet_for(tracked_id, episode_source_id) do
+    case Ash.get(TrackedTitle, tracked_id) do
+      {:ok, tracked} ->
+        history = episode_history(tracked_id, episode_source_id)
+        cached_title = cached_title_for(tracked)
+        cached_episode = CachedEpisode.by_reference(tracked.source, episode_source_id)
+
+        shaped(tracked, cached_title, cached_episode, history, episode_source_id)
+
+      _gone ->
+        nil
+    end
+  rescue
+    _ -> nil
+  end
 
   @doc """
   Screen 144 exactly as it is drawn, from `Kati.Screens.RateEpisode.Sample`.
@@ -286,13 +336,24 @@ defmodule Kati.Screens.RateEpisode do
         nil
 
       logged ->
-        history = episode_history(logged.tracked_title_id, logged.episode_source_id)
+        history =
+          with_subject(
+            episode_history(logged.tracked_title_id, logged.episode_source_id),
+            logged
+          )
+
         cached_title = cached_title_for(logged.tracked_title)
 
         cached_episode =
           CachedEpisode.by_reference(logged.tracked_title.source, logged.episode_source_id)
 
-        shaped(logged.tracked_title, cached_title, cached_episode, history)
+        shaped(
+          logged.tracked_title,
+          cached_title,
+          cached_episode,
+          history,
+          logged.episode_source_id
+        )
     end
   rescue
     _ -> nil
@@ -302,12 +363,35 @@ defmodule Kati.Screens.RateEpisode do
   # the title-level rule this narrows. `watched_at` first, `inserted_at`
   # behind it, for the reason given there: a log with no instant still orders
   # by when it was written down.
+  #
+  # A VERDICT first, and any tick behind it. The narrower query alone is what
+  # made this sheet undrawable: it asks for an episode watch carrying a rating
+  # or a review, and the app's only episode-level writer — `Kati.Screens.
+  # Series.write_tick/2` — creates the row with neither, because a tick is not
+  # a verdict. So on a phone with fifty ticked episodes the query answered
+  # `nil` and the sheet drew The Long Hollow, on a screen whose whole purpose
+  # is to put the FIRST rating on an episode you have just watched. The tick
+  # is the subject; the rating is what this sheet adds to it.
   defp newest_episode_log do
+    rated_episode_log() || ticked_episode_log()
+  end
+
+  defp rated_episode_log do
     Watch
     |> Ash.Query.filter(
       not is_nil(episode_source_id) and
         (not is_nil(rating) or (not is_nil(review) and review != ""))
     )
+    |> Ash.Query.sort(watched_at: :desc, inserted_at: :desc)
+    |> Ash.Query.load(:tracked_title)
+    |> Ash.Query.limit(1)
+    |> Ash.read!()
+    |> List.first()
+  end
+
+  defp ticked_episode_log do
+    Watch
+    |> Ash.Query.filter(not is_nil(episode_source_id))
     |> Ash.Query.sort(watched_at: :desc, inserted_at: :desc)
     |> Ash.Query.load(:tracked_title)
     |> Ash.Query.limit(1)
@@ -331,6 +415,21 @@ defmodule Kati.Screens.RateEpisode do
     |> Ash.read!()
   end
 
+  # The subject at the head of its own history.
+  #
+  # `episode_history/2` answers verdicts, and the subject may be a bare tick —
+  # see `newest_episode_log/0`. `hd(history)` is what `shaped/4` fills the
+  # sheet from, so the subject has to be in the list it is the head of, or the
+  # sheet draws somebody else's rating over the episode you just watched (and,
+  # on an episode with no verdicts at all, `hd/1` raises on `[]`).
+  #
+  # Prepended rather than sorted in: it is the newest by construction, both
+  # queries order by the same two columns, and a tick made in the same second
+  # as a verdict would otherwise be a coin toss.
+  defp with_subject(history, subject) do
+    if Enum.any?(history, &(&1.id == subject.id)), do: history, else: [subject | history]
+  end
+
   # One read, by the VALUE PAIR the durable half references the cache by —
   # see `Kati.Screens.Rating.cached_for/1`.
   defp cached_title_for(%TrackedTitle{source: source, source_id: source_id}) do
@@ -346,12 +445,21 @@ defmodule Kati.Screens.RateEpisode do
   spoiler-safe swatch draws), the rating, the review, the three context rows,
   and the quoted verdict before this one, if there is one.
   """
-  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, CachedEpisode.t() | nil, [Watch.t()]) ::
-          map()
-  def shaped(tracked, cached_title, cached_episode, history) do
+  @spec shaped(
+          TrackedTitle.t(),
+          CachedTitle.t() | nil,
+          CachedEpisode.t() | nil,
+          [Watch.t()],
+          String.t() | nil
+        ) :: map()
+  def shaped(tracked, cached_title, cached_episode, history, episode_source_id \\ nil) do
     zone = Kati.Time.device_zone()
     today = Kati.Time.today()
-    newest = hd(history)
+    # `List.first/1` and not `hd/1`: an episode opened from its rating column
+    # may never have been watched, and *"rating an unwatched episode ticks it
+    # watched"* is this board's own note. So an empty history is the ordinary
+    # first-rating case rather than an error.
+    newest = List.first(history)
 
     rewatch? = length(history) > 1
     spoiler_safe? = tracked.hide_unwatched_titles and not rewatch?
@@ -363,13 +471,23 @@ defmodule Kati.Screens.RateEpisode do
       if spoiler_safe?, do: spoiler_title(episode), else: cached_episode_title(cached_episode)
 
     %{
+      watch_id: newest && newest.id,
+      # What Save writes when there is no row yet. The pair is the episode's
+      # own identity everywhere else in this app — `Kati.Media.Watch.
+      # for_episode` reads by it and `Kati.Screens.Series.write_tick/2` writes
+      # by it — so a rating made before a tick creates exactly the row a tick
+      # would have.
+      tracked_title_id: tracked.id,
+      episode_source_id: episode_source_id || (newest && newest.episode_source_id),
+      season_number: season,
+      episode_number: episode,
       headline: headline(episode_label(season, episode), title),
       masked_headline: headline(episode_label(season, episode), spoiler_title(episode)),
       show_title: show_title(cached_title),
       spoiler_safe?: spoiler_safe?,
       rewatch?: rewatch?,
-      rating: newest.rating && newest.rating / 2,
-      review: newest.review || "",
+      rating: newest && newest.rating && newest.rating / 2,
+      review: (newest && newest.review) || "",
       context: context_rows(newest, zone, today),
       previous: if(rewatch?, do: previous_verdict(Enum.at(history, 1), zone), else: nil)
     }
@@ -394,6 +512,7 @@ defmodule Kati.Screens.RateEpisode do
   defp episode_number(_cached, %Watch{episode_number: n}) when is_integer(n), do: n
   defp episode_number(_cached, _watch), do: nil
 
+
   # "S2 E6", the same reduction `Kati.Screens.Inbox.episode_line/1` performs —
   # a number a source left blank has no label rather than a guessed one.
   defp episode_label(season, episode) when is_integer(season) and is_integer(episode),
@@ -409,6 +528,16 @@ defmodule Kati.Screens.RateEpisode do
   # `trailing` is `"now"` on the one row whose date is today's, and `nil` on
   # the other two: this board draws no chevron here at all, so `nil` is "no
   # picker wired", not "a control missing its trailing icon".
+  # An episode nobody has watched yet has no log to describe, so the three
+  # context rows say nothing rather than saying today.
+  defp context_rows(nil, _zone, _today) do
+    [
+      %{icon: "event", title: "Watched on", sub: nil, trailing: nil},
+      %{icon: "tv", title: "Where", sub: nil, trailing: nil},
+      %{icon: "group", title: "With", sub: nil, trailing: nil}
+    ]
+  end
+
   defp context_rows(watch, zone, today) do
     date = log_date(watch, zone)
     hour = log_hour(watch, zone)
@@ -486,6 +615,7 @@ defmodule Kati.Screens.RateEpisode do
   def render(assigns) do
     s = assigns.sheet
     expanded? = assigns.verdict_expanded?
+    refusal = Kati.Screens.RateEpisode.refusal(Map.get(assigns, :save_error))
 
     ~MOB"""
     <Box
@@ -509,6 +639,7 @@ defmodule Kati.Screens.RateEpisode do
         >
           {Kati.Screens.RateEpisode.header()}
           {Kati.Screens.RateEpisode.title_block(s)}
+          {refusal}
           {Kati.Screens.RateEpisode.rating_card(s)}
           {Kati.Screens.RateEpisode.rewatch_block(s, expanded?)}
           {Kati.Screens.RateEpisode.review_card(s)}
@@ -637,7 +768,7 @@ defmodule Kati.Screens.RateEpisode do
         </Row>
         <Spacer size={13} />
         <Row fill_width={true} align="center">
-          {Rating.stars(s.rating)}
+          {Rating.stars(s.rating, Kati.Screens.RateEpisode.writable?(s))}
           <Spacer size={12} />
           <Text
             text={Rating.rating_label(s.rating)}
@@ -1004,12 +1135,154 @@ defmodule Kati.Screens.RateEpisode do
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
-  def handle_info({:tap, :save}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, :save}, socket) do
+    case Kati.Screens.RateEpisode.save_rating(socket.assigns.sheet) do
+      {:ok, _watch} -> {:noreply, Kati.Screens.Resume.pop(socket)}
+      :nothing_to_save -> {:noreply, Kati.Screens.Resume.pop(socket)}
+      {:error, reason} -> {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+    end
+  end
 
   def handle_info({:tap, :toggle_verdict}, socket) do
     {:noreply,
      Mob.Socket.assign(socket, :verdict_expanded?, not socket.assigns.verdict_expanded?)}
   end
 
+  # A star. Every other tag this sheet draws has its own clause above, so a tag
+  # that is not a star point falls through to the catch-all rather than being
+  # read as rating `nil`.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    case Rating.point_of(tag) do
+      nil -> {:noreply, socket}
+      point -> {:noreply, Kati.Screens.RateEpisode.pick(socket, point)}
+    end
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  Whether this sheet has a row to write a rating onto.
+
+  The drawing has none — `Kati.Screens.RateEpisode.Sample.sheet/0` is four
+  stars and a half over an episode of a series nobody is tracking — so its
+  stars stay a picture. Drawing ten tap targets over them would make Save on
+  a fresh install look like it did something, which is the exact defect this
+  screen was reported for.
+
+      iex> Kati.Screens.RateEpisode.writable?(%{watch_id: "abc"})
+      true
+
+      iex> Kati.Screens.RateEpisode.writable?(Kati.Screens.RateEpisode.Sample.sheet())
+      false
+  """
+  @spec writable?(map()) :: boolean()
+  def writable?(sheet) do
+    is_binary(Map.get(sheet, :watch_id)) or
+      (is_binary(Map.get(sheet, :tracked_title_id)) and
+         is_binary(Map.get(sheet, :episode_source_id)))
+  end
+
+  @doc """
+  Take a rating on the sheet, in the five-point display scale the stars draw.
+
+  The assign only — the write happens on Save, the same order screen 33 uses,
+  because a star is a thing you slide past on the way to the one you meant.
+
+      iex> socket = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.RateEpisode), :sheet, %{rating: nil})
+      iex> Kati.Screens.RateEpisode.pick(socket, 9).assigns.sheet.rating
+      4.5
+  """
+  @spec pick(Mob.Socket.t(), 1..10) :: Mob.Socket.t()
+  def pick(socket, point) do
+    sheet = %{socket.assigns.sheet | rating: point / 2}
+
+    socket
+    |> Mob.Socket.assign(:sheet, sheet)
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
+  Write the sheet's rating onto the episode watch it was opened over.
+
+  `Kati.Screens.Rating.ten_point/1` for the scale, because the column is
+  1..10 and the stars are five — the same conversion, called rather than
+  repeated, for the reason the moduledoc gives about the half-star crop.
+
+  `:nothing_to_save` rather than an error when there is no row: Save on the
+  drawing closes the sheet, which is what a picture's button should do, and it
+  is not a failure worth putting a red line under.
+  """
+  @spec save_rating(map()) :: {:ok, struct()} | {:error, term()} | :nothing_to_save
+  def save_rating(sheet) do
+    cond do
+      is_binary(Map.get(sheet, :watch_id)) -> update_rating(sheet)
+      writable?(sheet) -> create_rating(sheet)
+      true -> :nothing_to_save
+    end
+  rescue
+    error -> Kati.Write.note({:error, error}, "rate an episode")
+  end
+
+  defp update_rating(sheet) do
+    case Ash.get(Watch, sheet.watch_id) do
+      {:ok, record} ->
+        record
+        |> Ash.Changeset.for_update(:update, %{rating: Rating.ten_point(sheet.rating)})
+        |> Ash.update()
+        |> Kati.Write.note("rate an episode")
+
+      error ->
+        Kati.Write.note(error, "rate an episode")
+    end
+  end
+
+  # The first watch of this episode, made BY the rating. Board 144's own note
+  # is the rule: *"Rating an unwatched episode ticks it watched — you cannot
+  # have an opinion about something you have not seen, and asking twice is a
+  # needless tap."* So this writes the row `Kati.Screens.Series.write_tick/2`
+  # would have written, with the rating already on it, and then asks that
+  # screen to restate the shelf — one tick more may be the tick that finishes
+  # the series, and the status has to follow the ticks wherever they are made.
+  defp create_rating(sheet) do
+    %{
+      tracked_title_id: sheet.tracked_title_id,
+      episode_source_id: sheet.episode_source_id,
+      season_number: Map.get(sheet, :season_number),
+      episode_number: Map.get(sheet, :episode_number),
+      rating: Rating.ten_point(sheet.rating),
+      watched_at: Kati.Time.now(),
+      watched_on: Kati.Time.today()
+    }
+    |> then(&Ash.create(Watch, &1))
+    |> case do
+      {:ok, watch} ->
+        Kati.Screens.Series.restate(sheet.tracked_title_id)
+        {:ok, watch}
+
+      error ->
+        Kati.Write.note(error, "rate an episode")
+    end
+  end
+
+  @doc """
+  The red line under the header when a save was refused, or nothing.
+
+  Same shape as `Kati.Screens.Season.refusal/1` and screen 04's — one recipe
+  for "the store said no", so a user meets the same sentence wherever they
+  meet it.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.notice(@message)}
+      <Spacer size={12} />
+    </Column>
+    """
+  end
 end

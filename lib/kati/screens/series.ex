@@ -332,7 +332,12 @@ defmodule Kati.Screens.Series do
   end
 
   defp assembled(tracked, cached, seasons, episodes, numbers) do
-    ticked = tracked |> episode_ticks() |> CachedEpisode.ticked_ids()
+    watches = episode_ticks(tracked)
+    ticked = CachedEpisode.ticked_ids(watches)
+    # The same rows the ticks come from, read once for the rating column board
+    # 143 specifies — see `episode_facts/4`. A second query would be a second
+    # set of ratings able to disagree with the ticks drawn beside them.
+    ratings = Kati.Screens.Series.ratings_by_episode(watches)
     now = Kati.Time.now()
     inventory = Map.new(seasons, &{&1.season_number, &1})
     grouped = Enum.group_by(episodes, & &1.season_number)
@@ -350,7 +355,7 @@ defmodule Kati.Screens.Series do
       seasons:
         Enum.map(
           numbers,
-          &season_facts(&1, Map.get(inventory, &1), Map.get(grouped, &1, []), ticked, now)
+          &season_facts(&1, Map.get(inventory, &1), Map.get(grouped, &1, []), ticked, ratings, now)
         ),
       current: current_number(tracked, numbers),
       next_air: next_airing(episodes, now)
@@ -382,18 +387,18 @@ defmodule Kati.Screens.Series do
     if n in numbers, do: n, else: List.first(numbers)
   end
 
-  defp season_facts(number, inventory, episodes, ticked, now) do
+  defp season_facts(number, inventory, episodes, ticked, ratings, now) do
     %{
       number: number,
       name: inventory && inventory.name,
       # The provider's count when it gave one, and how many are cached when it
       # did not. `denominator/1` is what turns a stored zero back into nil.
       total: CachedSeason.denominator(inventory) || length(episodes),
-      episodes: Enum.map(episodes, &episode_facts(&1, ticked, now))
+      episodes: Enum.map(episodes, &episode_facts(&1, ticked, ratings, now))
     }
   end
 
-  defp episode_facts(episode, ticked, now) do
+  defp episode_facts(episode, ticked, ratings, now) do
     air = Release.air(episode)
 
     %{
@@ -407,11 +412,37 @@ defmodule Kati.Screens.Series do
       air: air,
       airing: Release.airing(air, now),
       watched: CachedEpisode.ticked?(episode, ticked),
+      # Your own verdict on this episode, in the five-point scale the column
+      # prints. Board 143 is the drawing of it and its own moduledoc names this
+      # function's caller as where the wiring belongs: *"Wiring the column to
+      # `Watch.for_episode/2` belongs to `Kati.Screens.Series` itself."*
+      rating: Map.get(ratings, episode.source_id),
       # What a tick is written against. `Kati.Media.Watch` names an episode by
       # `episode_source_id` and nothing else, so a row drawn without one can be
       # flipped on screen and never persisted — which is what #90 opened on.
       source_id: episode.source_id
     }
+  end
+
+  @doc """
+  The rating standing against each episode, in the five-point display scale.
+
+  Newest first wins, the same rule `Kati.Screens.Rating.newest_log/0` applies
+  at the title level: a rewatch you rated last night is what the column
+  should print, not the verdict you left in 2021. A tick with no rating
+  contributes nothing, so an unrated watched episode draws no column at all —
+  board 143's own words, and the reason `Kati.Screens.EpisodeRatings.
+  rating_node/1` answers `[]` rather than five hollow stars.
+
+      iex> Kati.Screens.Series.ratings_by_episode([])
+      %{}
+  """
+  @spec ratings_by_episode([Watch.t()]) :: map()
+  def ratings_by_episode(watches) do
+    watches
+    |> Enum.filter(&(is_binary(&1.episode_source_id) and is_integer(&1.rating)))
+    |> Enum.sort_by(& &1.inserted_at, {:asc, DateTime})
+    |> Map.new(&{&1.episode_source_id, &1.rating / 2})
   end
 
   # The next episode is the first one still ahead, in aired order — which is
@@ -538,7 +569,8 @@ defmodule Kati.Screens.Series do
       # episodes were ticked, because it looked for a runtime on the TITLE and
       # TMDB puts a series' runtime on each EPISODE (#18).
       season: Map.get(episode, :season),
-      runtime: Map.get(episode, :runtime)
+      runtime: Map.get(episode, :runtime),
+      rating: Map.get(episode, :rating)
     }
   end
 
@@ -846,17 +878,20 @@ defmodule Kati.Screens.Series do
         Kati.UI.Menu.item("checklist", "Episode order", :episode_order),
         Kati.UI.Menu.rule(),
         Kati.UI.Menu.item("tune", "Show settings", :open_settings),
-        # #94's two. `Kati.Screens.RateEpisode`'s drawn entry is a LONG PRESS
-        # on an episode row and `Kati.Screens.DropSheet`'s is a Drop action on
-        # this board — neither gesture is drawn on 04, 66 or 74, so both were
-        # reachable only from the developer gallery that #94 deletes. Menu rows
-        # rather than dead code, on the precedent
+        # #94's row. `Kati.Screens.DropSheet`'s drawn entry is a Drop action on
+        # this board, which is not a gesture 04, 66 or 74 draw, so it was
+        # reachable only from the developer gallery that #94 deletes. A menu
+        # row rather than dead code, on the precedent
         # `Kati.Screens.Library.menu/1` argues at length: the alternative was
         # leaving a finished screen unreachable forever.
         #
-        # Placeholders for a drawing. When 04 is redrawn with the long press,
-        # `RateEpisode` moves to it and leaves this menu.
-        Kati.UI.Menu.item("star", "Rate an episode", :open_rate_episode),
+        # *Rate an episode* used to sit beside it and no longer does. That row
+        # opened `Kati.Screens.RateEpisode` with no subject — the sheet then
+        # picked the newest episode log in the whole store, which is a
+        # different show as often as not. Its own comment said it was a
+        # placeholder until 04 drew the gesture; the gesture is drawn, in
+        # `rating_column/1`, one per episode, so the row's exit condition has
+        # been met and the row is gone. You rate the episode you tapped.
         Kati.UI.Menu.item("do_not_disturb_on", "Drop this show", :open_drop_sheet)
       ],
       dismiss: :close_menu
@@ -1218,10 +1253,84 @@ defmodule Kati.Screens.Series do
             max_lines={1}
           />
         </Column>
+        {Kati.Screens.Series.rating_column(ep)}
         <Spacer size={13} />
         {Kati.Screens.Series.check(ep.watched, aired?)}
       </Row>
     </Column>
+    """
+  end
+
+  @doc """
+  The trailing rating column, and the door onto the sheet that writes it.
+
+  This is board 143 in its live position, and the route MOVIES-AND-TV.md #25
+  was missing. Screen 144 could only be opened from Settings → Every screen,
+  which is not a route: you rate the episode you just watched by going to the
+  series, opening the season, and tapping beside the episode — so that is what
+  this is.
+
+  Two states, and the third is the whole point:
+
+    * A rated episode prints its numeral and one star — `Kati.Screens.
+      EpisodeRatings.rating_node/1`, called rather than redrawn, so the
+      specimen board and the live column cannot disagree about what a rating
+      looks like.
+    * An episode that has aired but carries no rating draws a hollow star
+      instead. Board 143 says an unrated row shows *"nothing at all, not five
+      hollow stars"*, and it is right about the COLUMN: five glyphs would be a
+      smear. One outline is not that column — it is the affordance, and a door
+      nobody can see is a door nobody opens.
+    * An episode that has not aired gets nothing. There is no opinion to have.
+
+  The tap sits on this Row rather than on the episode Row, which already has
+  one: a Box renders children back to front and Compose hit-tests them front
+  to back, so the inner control takes the tap and the rest of the row still
+  ticks. `Kati.Screens.RateEpisode` is then pushed with the pair it writes by,
+  and with the back label naming where you actually came from.
+  """
+  @spec rating_column(map()) :: map() | []
+  def rating_column(%{aired: false}), do: []
+
+  def rating_column(ep) do
+    case Map.get(ep, :source_id) do
+      nil -> Kati.Screens.EpisodeRatings.rating_node(Map.get(ep, :rating))
+      _id -> Kati.Screens.Series.rating_door(ep)
+    end
+  end
+
+  @doc false
+  def rating_door(ep) do
+    tap = {self(), String.to_atom("rate_#{ep.index}")}
+    assigns = %{tap: tap, body: rating_face(Map.get(ep, :rating))}
+
+    ~MOB"""
+    <Row align="center" padding_left={13} padding_right={4} on_tap={@tap}>
+      {@body}
+    </Row>
+    """
+  end
+
+  @doc false
+  def rating_face(nil) do
+    Kati.UI.symbol("star", size: 13, color: Palette.bar_neutral())
+  end
+
+  def rating_face(rating) do
+    assigns = %{label: Kati.Screens.EpisodeRatings.rating_label(rating)}
+
+    ~MOB"""
+    <Row align="center">
+      <Text
+        text={@label}
+        font_family="mono"
+        text_size={12}
+        text_color={Palette.meta()}
+        max_lines={1}
+      />
+      <Spacer size={3} />
+      {Kati.UI.symbol("star", size: 11, color: Palette.accent(), fill: true)}
+    </Row>
     """
   end
 
@@ -1293,9 +1402,6 @@ defmodule Kati.Screens.Series do
 
   # #94's two. See the menu above for why they are rows rather than the
   # gestures the design intends, and for what takes them out of it.
-  def handle_info({:tap, :open_rate_episode}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.RateEpisode)}
-
   # Named, since `Kati.Screens.DropSheet` reads an argument now. Bare, this row
   # opened the sheet on the newest PAUSED title in the store, which is not the
   # show the page is drawing and may be nothing to do with it — a Drop that
@@ -1335,8 +1441,41 @@ defmodule Kati.Screens.Series do
       "episode_" <> index ->
         {:noreply, Kati.Screens.Series.tick(socket, index)}
 
+      "rate_" <> index ->
+        {:noreply, Kati.Screens.Series.rate(socket, index)}
+
       _ ->
         {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Open the rating sheet over one episode of the season on screen.
+
+  The pair, not the position: `Kati.Screens.RateEpisode` writes by
+  `{tracked_title_id, episode_source_id}` — which is what `Kati.Media.Watch`
+  names an episode by — so what it is handed is what it writes, and the index
+  never leaves this function.
+
+  A drawn episode has no `source_id` and no tracked row behind it, so it opens
+  nothing. That is the same all-or-nothing gate `tick/2` applies for the same
+  reason: there is no episode behind `Kati.Library.Sample`, so there is
+  nothing to rate.
+  """
+  @spec rate(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def rate(socket, index) do
+    s = socket.assigns.series
+    episode = Enum.at(s.episodes, String.to_integer(index))
+    tracked_id = Map.get(s, :tracked_id)
+    source_id = episode && Map.get(episode, :source_id)
+
+    if is_binary(tracked_id) and is_binary(source_id) do
+      Mob.Socket.push_screen(socket, Kati.Screens.RateEpisode, %{
+        tracked_id: tracked_id,
+        episode_source_id: source_id
+      })
+    else
+      socket
     end
   end
 
