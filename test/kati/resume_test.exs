@@ -150,6 +150,37 @@ defmodule Kati.ResumeTest do
     end
   end
 
+  describe "screen 92 — My services" do
+    test "picks up a country chosen on screen 94" do
+      socket = mounted(Kati.Screens.MyServices)
+      before = socket.assigns.region
+
+      # Restored inside the test, not in `on_exit`: `Mob.ScreenCase` stops
+      # `Mob.State` around each one, and a `put_region/1` in the callback exits
+      # rather than raising — `Kati.Media.SearchDebounce.ask/2` documents that
+      # named-GenServer shape at length.
+      Kati.Services.put_region("PT")
+
+      {:noreply, resumed} = Kati.Screens.MyServices.handle_kati(:resumed, nil, socket)
+
+      refute resumed.assigns.region == before
+      assert resumed.assigns.region == "PT"
+
+      Kati.Services.put_region(before)
+    end
+
+    test "and keeps what the reader typed into the filter" do
+      socket =
+        Kati.Screens.MyServices
+        |> mounted()
+        |> Mob.Socket.assign(:query, "lum")
+
+      {:noreply, resumed} = Kati.Screens.MyServices.handle_kati(:resumed, nil, socket)
+
+      assert resumed.assigns.query == "lum"
+    end
+  end
+
   defp mounted(module) do
     {:ok, socket} = module.mount(%{}, %{}, Mob.Socket.new(module))
     socket

@@ -96,6 +96,26 @@ defmodule Kati.Screens.MyServices do
     |> Mob.Socket.assign(:save_error, nil)
   end
 
+  @doc """
+  Coming back from the country picker, or from anything else pushed over this.
+
+  See `Kati.Screens.Resume`. Screen 94 writes the region and pops, and this
+  page's region row is drawn from `assigns.region` — read once at mount — so
+  picking a country left the row saying the old one. MOVIES-AND-TV.md #36, and
+  it is the same defect the shelf had one screen along.
+
+  The two reads only. `query` is what the reader has typed into the filter and
+  `save_error` is about the last thing they did, and neither is the picker's to
+  clear.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:region, Services.region())
+     |> Mob.Socket.assign(:rules, Services.rules())}
+  end
+
   @doc "The services you pay for: what is stored, or the drawing's three."
   @spec subscribed() :: [map()]
   def subscribed do
