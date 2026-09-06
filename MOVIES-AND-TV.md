@@ -1336,22 +1336,20 @@ The board's caption is *"the screen the whole app is for"*. It is the best-read 
 
 ### 11 — Discover (`Kati.Screens.Discover`)
 
-**Fixture end to end.** No `Ash.Query`, no `Kati.Media` alias, nothing in the module reads the store. `load/1` (:100) assigns `Sample.feed()`. `test/kati/screen_sample_only_test.exs:78` lists it as permanently sample-only, and the moduledoc is candid: there is no recommender, no person table, no service availability.
+**Reads `Kati.Media` since 6 September** (`ca8f89e`). `Kati.Media.Recommendations` seeds on the newest title the reader touched and TMDB's `/recommendations` answers it; the other two sections still have no resource behind them and are now empty rather than fixtures. With nothing stored, board 11 is still drawn whole.
 
-What that means in front of a user: six specific claims about them, all invented. *Tuned to 128 titles*. *Because you watched The Long Hollow*. *94% match*. Three people — Ines Karvel, Tomas Rhee, Ada Vance — with roles and credit counts. *Leaving Lumen+ in 7 days*, for a service that may not be on their account.
+What it used to mean in front of a user: six specific claims about them, all invented. *Tuned to 128 titles*. *Because you watched The Long Hollow*. *94% match*. Three people — Ines Karvel, Tomas Rhee, Ada Vance — with roles and credit counts. *Leaving Lumen+ in 7 days*, for a service that may not be on their account.
 
-8. **I open Discover on a fresh phone.**
+8. **I open Discover on a fresh phone.** — `[x] fixed 6 September` (`ca8f89e`).
    Steps: Home → **Library** → **Discover**.
-   Expect: nothing yet, honestly said. What you get: the full feed, three posters, three people, two leaving rows.
-   Status: `[!] known broken — every line is invented; the page cannot tell a fresh install from a full one.`
+   A device with a title on it gets one section: the picks, under the title they came from. A device with nothing gets board 11. Verified on the Pixel_9a — *BECAUSE YOU WATCHED SEVERANCE* over Emergence, Tales from the Loop and Mr. Mercedes, with their own posters.
+   Three empty answers are drawn apart: a request in flight, a token nobody has entered (which takes `Kati.Media.Tmdb.message/1`'s own sentence), and a provider that knows of nothing like this show.
 
-9. **I tap `Awards`.**
-   `shows?/2` (:135) answers `false` for every section, and all three section functions collapse to `<Spacer size={0} />`. The entire page below the chip row disappears with no message.
-   Status: `[!] known broken — a chip that empties the screen and says nothing.`
+9. **I tap `Awards`.** — `[x] gone on a real device 6 September`; still true on board 11.
+   `shows?/2` answers `false` for every section and the page below the chips empties with no message. On a real feed there is one section and therefore one chip, and `chips/2` drops the rail entirely rather than offering three chips over sections this device has none of. The board keeps all four.
 
-10. **I tap `Leaving`, which claims 5.**
-    You get `Leaving Lumen+ in 7 days` over **two** rows. The chip's badge is the literal `"5"` in the sample.
-    Status: `[!] known broken — count and list disagree.`
+10. **I tap `Leaving`, which claims 5.** — `[x] gone on a real device 6 September`; still true on board 11.
+    `leaving` is `[]` on a real feed and the chip that named it is not drawn. The board's `"5"` over two rows is the fixture's own disagreement and is left as drawn.
 
 11. **I tap `Schedule` on a leaving row, then go back and return.**
     `scheduled` is a socket assign (:105); `handle_tap` toggles it (:612) and nothing writes. Back → Discover again → the button reads `Schedule` once more.
@@ -1364,9 +1362,11 @@ What that means in front of a user: six specific claims about them, all invented
     `header/1` (:196) draws `<Box width={44} height={44} corner_radius={22} …>` with a glyph and no `on_tap`.
     Status: `[!] known broken — drawn control, no tap.`
 
-14. **I tap a poster in the rail, or a person's row.**
-    Neither carries a tap. `pick/1` (:371) and `person_row/2` (:414) are pure layout.
-    Status: `[!] known broken — the only page in the app that shows films you cannot open.`
+14. **I tap a poster in the rail** — `[x] fixed 6 September` (`1b1293f`).
+    Tapping a pick adds it, through the same `Kati.Screens.AddTitle.track/2` a search hit goes through, and the poster ticks. A pick already on the shelf is never suggested; one already added is not added twice; a refused add is drawn rather than swallowed. The tap exists only on a pick that names a title, so the board's three stay untappable — which is also why `Kati.ScreenTapSweepTest` cannot see it and `Kati.DiscoverFeedTest` covers it instead.
+    Verified on the Pixel_9a: tap Emergence → tick → back → the shelf reads `7 titles` with Emergence on it.
+
+    **A person's row** still carries no tap, and there is no person to open. See the moduledoc.
 
 ---
 
@@ -2142,7 +2142,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 | 47 | 07 Your year (Kati.Screens.Stats) | `lies-to-user` | A first year draws a green '↑ 0%' pill against a prior year that does not exist, and a falling year draws a green pill with a down arrow in it. |
 | 48 | 08 Film detail | `lies-to-user` | An untracked shelf tile opens a page titled 'Blue Hour' with a stranger's note and a fabricated £9.99 price, whatever the tile was captioned. |
 | 49 | 10 Up next | `lies-to-user` | With any real library the header counts are wrong and with a partly-real one the whole page reverts to fixtures. `queue/0` falls back to `Sample.queue/0` whole whenever there is no `:watching` row — so a user whose shows are all paused sees four invented titles and none of their own. And the fixture itself says "12 ready" over four rows and "Gone cold · 3" over one. |
-| 50 | 11 Discover | `lies-to-user` | Discover is a fixture end to end — no `Kati.Media` read anywhere — and it prints six specific claims about the user: "Tuned to 128 titles", "Because you watched The Long Hollow", three match percentages, three people the app has never heard of, and "Leaving Lumen+ in 7 days" for a service that may not be on the account. |
+| 50 | 11 Discover | `fixed ca8f89e` | ~~Discover is a fixture end to end — no `Kati.Media` read anywhere — and it prints six specific claims about the user: "Tuned to 128 titles", "Because you watched The Long Hollow", three match percentages, three people the app has never heard of, and "Leaving Lumen+ in 7 days" for a service that may not be on the account.~~ Fixed 6 September: the picks are TMDB's, keyed on the newest title the reader touched; the two sections with no resource behind them are empty and their headings, chips and the corpus-size line go with them. |
 | 51 | 14 Series metadata | `fixed 5915c2a` | ~~Show details always describes The Long Hollow — a fixed synopsis, three ratings, four named cast members with character names, priced Where-to-watch rows and five tags — regardless of which series' overflow menu opened it. The push carries no subject and the screen would ignore one.~~ Fixed 6 September: the push names the row and the page reads it; the four bands with no resource behind them are dropped rather than borrowed. |
 | 52 | 140 Import — where are you coming from (Kati.Screens.ImportSources) | `lies-to-user` | All six source tiles discard which source was tapped and push the same Goodreads books board, so Letterboxd, Trakt, MyAnimeList and AniList all land on a screen about books. |
 | 53 | 141 Import — recognised (Kati.Screens.ImportRecognised) | `lies-to-user` | 'Check the mapping' promises the nine columns it just counted and pushes a screen showing five columns of a different file. |
@@ -2619,13 +2619,19 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Gate on `tracked(:watching) == [] and tracked(:paused) == []`. When falling back, either compute the labels from the fixture's own list lengths or accept that the drawing's counts are a design artefact and stop shipping them to a device.
 
-### 50. 11 Discover — `lies-to-user`
+### 50. 11 Discover — `fixed ca8f89e` and `1b1293f`, 6 September
 
 **Discover is a fixture end to end — no `Kati.Media` read anywhere — and it prints six specific claims about the user: "Tuned to 128 titles", "Because you watched The Long Hollow", three match percentages, three people the app has never heard of, and "Leaving Lumen+ in 7 days" for a service that may not be on the account.**
 
 *Proof.* lib/kati/screens/discover.ex:100-107 `load/1` assigns `Sample.feed()` and nothing else; there is no `Ash.Query` or `Kati.Media` alias in the file. lib/kati/screens/discover/sample.ex holds every string. test/kati/screen_sample_only_test.exs:78 lists `{"11", Kati.Screens.Discover}` as permanently sample-only. The moduledoc concedes there is no recommender and no person table.
 
-*Fix.* Nothing here can be made true this round. The honest move is to stop drawing the picks and the people on a real device — keep only "Leaving" once an offers resource exists — or gate the whole screen behind a "not yet" state the way 96 argues for. A Discover tile on Library that opens three invented films is the app's most confident lie.
+*Fixed, and not the way this said.* One of the three sections COULD be made true: TMDB answers `/movie/{id}/recommendations` and `/tv/{id}/recommendations`, which is a real recommendation from a real corpus keyed on a title the reader actually tracked — exactly what *Because you watched* claims to be. `Kati.Media.Recommendations` is that, seeded on the newest touched `Kati.Media.TrackedTitle`, asked from a task under `Kati.TaskSupervisor` rather than from `mount/3`, and matched against the seed it was asked about before the answer is taken.
+
+The rest went the way this prescribed: people and Leaving are `[]` on a real device and their eyebrows, their chips and the *Tuned to N titles* line are dropped with them. The board still draws all of it.
+
+No match percentage was invented to fill the gap under a title. TMDB's ordering is a ranking; a match is a statement about a title against one person's history, and Kati runs no recommender and has no column to keep such a number in.
+
+The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 no longer suggests something already on the shelf.
 
 ### 51. 14 Series metadata — `fixed 5915c2a`, 6 September
 
