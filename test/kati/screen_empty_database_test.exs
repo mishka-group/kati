@@ -212,6 +212,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # that answers with the drawing.
     {"52", Kati.Screens.MealsDay},
     {"10", Kati.Screens.UpNext},
+    # 25 joined when its cream banner stopped claiming `Watching 24 titles · 3
+    # FOUND THIS WEEK` on every device. Both halves are counts of the reader's
+    # own library, through the same `:followed` read screen 05 uses; a device
+    # following nothing keeps the board's line, because `Watching 0 titles`
+    # over a page of switches is a page about nothing.
+    {"25", Kati.Screens.ReleaseWatcher},
     # 145 joined when the sort disc's sheet stopped being a picture. It reads
     # the shelf twice — once as it stands and once with nothing selected — so
     # `showing N of M` is two numbers about this reader rather than board
@@ -1464,6 +1470,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 25 gates on the banner, which is the only part of it that reads
+      # anything: the ten switches and the cadence are still
+      # `Kati.Settings.WatcherSample`'s, and MOVIES-AND-TV.md #67 is what says
+      # so — they edit one socket assign and nothing consumes them.
+      {"25", Kati.Screens.ReleaseWatcher, &Kati.Screens.ReleaseWatcher.banner/0,
+       &Kati.Settings.WatcherSample.banner/0},
       # 145 gates on its whole opening state, which is one keyword list: the
       # sort, the direction, the four chip groups and both counts arrive
       # together or not at all. An empty shelf takes the board's own

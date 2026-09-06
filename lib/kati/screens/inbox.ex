@@ -197,6 +197,21 @@ defmodule Kati.Screens.Inbox do
     }
   end
 
+  @doc """
+  How many titles the watcher is watching.
+
+  Screen 25's banner draws this number and drew `24` on every device. Exposed
+  here rather than counted there because `:followed` is the read that decides
+  what the watcher watches, and two places asking that question differently is
+  how the banner and the list it is a banner FOR come to disagree.
+  """
+  @spec followed_count() :: non_neg_integer()
+  def followed_count do
+    length(followed())
+  rescue
+    _error -> 0
+  end
+
   defp followed do
     TrackedTitle
     |> Ash.Query.for_read(:followed)

@@ -3,7 +3,7 @@
 One file per artboard Kati needs and has not drawn. Hand a single file to Claude Design;
 each one is self-contained and carries the house style.
 
-**97 briefs.** The app has 173 drawn screens (01–166 with no 134, plus 176–180
+**98 briefs.** The app has 173 drawn screens (01–166 with no 134, plus 176–180
 and 188–190 built on 5 September); a new brief must ask for a number the
 gallery does not already hold.
 
@@ -122,6 +122,7 @@ rather than deleted.
 | `D-61-the-persian-shelf-that-does-not-exist.md` | The Persian shelf that does not exist | Full screen | — |
 | `D-62-the-controls-that-name-a-place-with-nothing-behind-it.md` | The controls that name a place with nothing behind it | Two boards | — |
 | `D-63-what-a-real-series-page-has-left.md` | What a real series page has left | One board | — |
+| `D-64-a-settings-page-of-switches-nothing-reads.md` | A settings page of switches nothing reads | One board | — |
 
 `D-30` is the one brief here for a **closed** issue. #27 is closed as *not
 planned* because it cannot start until these boards exist and two questions in
@@ -132,11 +133,11 @@ the brief's constraints section are answered; the brief is what reopens it.
 hint on 04 are still undrawn, and the second pass of the September survey found
 those claims again and sent them back here rather than filing them twice.
 
-`D-35` … `D-63` have no issue numbers because there are none to give: only #94
+`D-35` … `D-64` have no issue numbers because there are none to give: only #94
 and #80 are open. Each brief carries its own acceptance criteria instead.
 
-`D-59` and `D-63` were written from a DEVICE rather than from a survey of the
-source. `D-43`'s boards gave the app its first way to create a
+`D-59`, `D-63` and `D-64` were written from a DEVICE rather than from a survey
+of the source. `D-43`'s boards gave the app its first way to create a
 `Kati.Health.Medication`; the very first one created showed the page
 contradicting itself, because screen 112 gates its two halves on two different
 tables and only one of them had just gained a writer. Nothing on the host could

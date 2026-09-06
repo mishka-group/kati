@@ -50,13 +50,73 @@ defmodule Kati.Screens.ReleaseWatcher do
   def load(socket) do
     Mob.Socket.assign(socket, :watcher, %{
       checked: Sample.checked(),
-      banner: Sample.banner(),
+      banner: banner(),
       kinds: Sample.kinds(),
       cadences: Sample.cadences(),
       cadence: Sample.cadence(),
       loudness: Sample.loudness(),
       note: Sample.note()
     })
+  end
+
+  @doc """
+  The cream banner: how many titles are being watched, and what that found.
+
+  `Watching 24 titles · 3 FOUND THIS WEEK` was `Kati.Settings.WatcherSample`'s
+  on every device — two specific claims about the reader's own library, of
+  exactly the kind MOVIES-AND-TV.md #67 and #50 are about, on a phone that may
+  follow none. Both are counts and both are countable: the followed rows, and
+  the `out_now` list screen 05 already builds out of them.
+
+  A device following nothing keeps the board's line. That is the gate every
+  other screen on this list keeps — an empty store answers the drawing — and
+  `Watching 0 titles` over a page of switches would be a page about nothing.
+  """
+  @spec banner() :: map()
+  def banner do
+    case Kati.Screens.Inbox.releases() do
+      nil ->
+        Sample.banner()
+
+      inbox ->
+        %{
+          Sample.banner()
+          | title: watching_line(%{followed: Kati.Screens.Inbox.followed_count()}),
+            meta: found_line(inbox)
+        }
+    end
+  rescue
+    _error -> Sample.banner()
+  end
+
+  @doc """
+  `Watching 1 title`, or `Watching 24 titles`.
+
+      iex> Kati.Screens.ReleaseWatcher.watching_line(%{followed: 1})
+      "Watching 1 title"
+
+      iex> Kati.Screens.ReleaseWatcher.watching_line(%{followed: 24})
+      "Watching 24 titles"
+  """
+  @spec watching_line(map()) :: String.t()
+  def watching_line(%{followed: 1}), do: "Watching 1 title"
+  def watching_line(%{followed: n}), do: "Watching #{n} titles"
+
+  @doc """
+  `3 FOUND THIS WEEK`, in the mono capitals the banner draws.
+
+      iex> Kati.Screens.ReleaseWatcher.found_line(%{out_now: []})
+      "NOTHING NEW THIS WEEK"
+
+      iex> Kati.Screens.ReleaseWatcher.found_line(%{out_now: [%{}]})
+      "1 FOUND THIS WEEK"
+  """
+  @spec found_line(map()) :: String.t()
+  def found_line(inbox) do
+    case length(Map.get(inbox, :out_now, [])) do
+      0 -> "NOTHING NEW THIS WEEK"
+      n -> "#{n} FOUND THIS WEEK"
+    end
   end
 
   @doc false
