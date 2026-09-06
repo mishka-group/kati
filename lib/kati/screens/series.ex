@@ -299,9 +299,36 @@ defmodule Kati.Screens.Series do
     episodes = CachedEpisode.for_title(tracked.source, tracked.source_id)
 
     case season_numbers(seasons, episodes) do
-      [] -> nil
+      # A tracked series with no cached episodes. `nil` here sent the page to
+      # `drawn_series/0`, so **every hand-typed series opened as The Long
+      # Hollow** — hollow71 artwork, three seasons and seven named episodes,
+      # none of which the reader had ever heard of. MOVIES-AND-TV.md #38.
+      #
+      # There IS a row, so the page draws it. The gate this screen keeps —
+      # *either every value is this user's or every value is the drawing's* —
+      # is about whether a row exists, not about whether a provider has filled
+      # it in; a title with no episodes yet is an ordinary state and
+      # `no_episodes/2` is what it looks like.
+      [] -> no_episodes(tracked, cached)
       numbers -> assembled(tracked, cached, seasons, episodes, numbers)
     end
+  end
+
+  # The reader's own series, with nothing under it. One season labelled by the
+  # bookmark or by 1, holding no episodes — which `shaped/1` turns into an
+  # empty strip, `0 of 0 watched`, and the card `episodes/1` draws in place of
+  # a list.
+  defp no_episodes(tracked, cached) do
+    %{
+      title: cached && cached.title,
+      seed: seed_of(tracked, cached),
+      tracked_id: tracked.id,
+      genres: cached && cached.genres,
+      season_count: nil,
+      seasons: [%{number: tracked.progress_season || 1, name: nil, total: 0, episodes: []}],
+      current: tracked.progress_season || 1,
+      next_air: :unknown
+    }
   end
 
   defp assembled(tracked, cached, seasons, episodes, numbers) do
@@ -1087,6 +1114,48 @@ defmodule Kati.Screens.Series do
   # would raise inside a tap handler. `episode/1` keeps its arity because two
   # other screens' moduledocs cite it by name.
   @doc false
+  def episodes(%{episodes: []}) do
+    assigns = %{}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("playlist_play", size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text="No episodes yet"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text="Kati has this show but not its episode list. A title added from search brings one with it."
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+    </Column>
+    """
+  end
+
   def episodes(s) do
     rows = s.episodes |> Enum.with_index() |> Enum.map(fn {ep, i} -> Map.put(ep, :index, i) end)
 

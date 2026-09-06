@@ -242,16 +242,59 @@ defmodule Kati.ScreenSeriesTest do
                "fails for a lost fallback on either side"
     end
 
-    test "a tracked series with nothing cached about it still draws the drawing" do
-      # The gate is the whole page, not the title: an episode tick names an
-      # episode id and cannot name an episode, so a series with no season and no
-      # episode cached has nothing on this page that is the user's. Half a real
-      # page reads as a whole real page, which is the argument screen 08 credits
-      # this screen with.
+    test "a tracked series with nothing cached about it draws ITSELF, empty" do
+      # This asserted the opposite until 6 September, and the opposite was
+      # MOVIES-AND-TV.md #38: a hand-typed series has no cached seasons and no
+      # cached episodes, so `facts/1` answered `nil` and every one of them
+      # opened as **The Long Hollow** — hollow71 artwork, three seasons and
+      # seven named episodes, none of which the reader had ever heard of.
+      #
+      # The gate this screen keeps is about whether a ROW exists, not about
+      # whether a provider has filled it in. There is a row, so the page is
+      # that row's: its own title, an empty strip, `0 of 0 watched`, and a card
+      # where the list would be.
+      tracked = tracked!()
+
+      facts = Series.tracked_series()
+
+      refute facts == nil
+      assert facts.tracked_id == tracked.id
+      assert facts.seasons == [%{number: 2, name: nil, total: 0, episodes: []}]
+
+      page = Series.series()
+
+      refute page == Series.drawn_series(),
+             "a reader's own hand-typed series opened as somebody else's show"
+
+      assert page.episodes == []
+      assert page.total == 0
+      assert page.watched == 0
+    end
+
+    test "and says why the list is empty rather than leaving a gap" do
       tracked!()
 
-      assert Series.tracked_series() == nil
-      assert Series.series() == Series.drawn_series()
+      drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
+
+      assert drawn =~ "No episodes yet"
+      assert drawn =~ "A title added from search brings one with it"
+    end
+
+    test "and none of the drawing's episodes are on it" do
+      tracked!()
+
+      words =
+        inspect(
+          Series.render(%{
+            series: Series.series(),
+            back: "Library",
+            menu?: false,
+            save_error: nil
+          }), limit: :infinity)
+
+      for ep <- Sample.series().episodes do
+        refute words =~ ep.title, "the drawing's episodes are on a real reader's series"
+      end
     end
 
     test "every string the drawing carries reaches screen 04's tree" do
