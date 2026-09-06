@@ -55,9 +55,14 @@ defmodule Kati.Screens.AddByHandFa do
 
     {:ok,
      Mob.Socket.assign(socket,
-       title: "گودال بلند",
+       # EMPTY, as screen 154 opens. Board 156 is drawn with a title typed into
+       # it — that is a drawing of the form in use, not a default — and opening
+       # on it meant tapping the commit button without editing added a film
+       # called گودال بلند to the reader's own library.
+       # MOVIES-AND-TV.md #60.
+       title: "",
        kind: :tv,
-       year: "۱۴۰۳",
+       year: "",
        status: "شروع نشده",
        episodes: "",
        save_error: nil

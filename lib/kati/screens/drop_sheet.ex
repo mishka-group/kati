@@ -266,18 +266,38 @@ defmodule Kati.Screens.DropSheet do
   # that has gone quiet and is still on the shelf), so a named id narrows that
   # set rather than replacing it. `archived == false` therefore still holds for
   # a named row: an id must not open a title the user has hidden.
+  # Gone cold is derived — see `Kati.Media.Staleness`, and the moduledoc above
+  # for what this used to read instead.
   defp gone_cold_title(title_id) do
     TrackedTitle
-    |> Ash.Query.filter(archived == false and status == :paused)
+    |> Ash.Query.filter(archived == false and status in [:watching, :paused])
     |> Ash.Query.sort(last_touched_at: :desc)
     |> Ash.read!()
+    |> Enum.filter(&cold_or_paused?/1)
     |> pick(title_id)
   rescue
     _ -> nil
   end
 
+  # A title a NAMED push points at is taken whether or not Kati would have
+  # called it cold: screen 04's *Drop this show* is a decision the reader is
+  # making about the show in front of them, and refusing it because the show is
+  # three months old rather than four would be the sheet arguing.
+  defp cold_or_paused?(%TrackedTitle{status: :paused}), do: true
+  defp cold_or_paused?(tracked), do: Kati.Media.Staleness.gone_cold?(tracked)
+
   defp pick(rows, nil), do: List.first(rows)
-  defp pick(rows, title_id), do: Enum.find(rows, &(&1.id == title_id))
+
+  # A named id is looked up in the WHOLE shelf, not in the cold slice — see
+  # `cold_or_paused?/1`.
+  defp pick(_rows, title_id) do
+    TrackedTitle
+    |> Ash.Query.filter(archived == false and id == ^title_id)
+    |> Ash.read!()
+    |> List.first()
+  rescue
+    _error -> nil
+  end
 
   defp from_tracked(tracked) do
     cached = cached_for(tracked)

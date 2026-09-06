@@ -89,6 +89,22 @@ defmodule Kati.Screens.Books do
   def load(socket), do: Mob.Socket.assign(socket, filter: "All", page: page())
 
   @doc """
+  What the `+` opens from the Books shelf.
+
+  `Kati.Screens.Root` defaults every root's FAB to `Kati.Screens.AddTitle`,
+  which is the films-and-series sheet — so the Books shelf's `+` offered to add
+  a film. MOVIES-AND-TV.md #16. `Kati.Screens.Music` has overridden this since
+  it was written; this is the shelf that was missed.
+
+  Screen 155's by-hand form rather than a books state of screen 06: there is no
+  such state, and no book search client either — `Kati.Screens.AddByHandBook`
+  is the only way in the app to put a book on the shelf, which is exactly what
+  the `+` on a shelf of books is for.
+  """
+  @impl true
+  def add_sheet, do: Kati.Screens.AddByHandBook
+
+  @doc """
   Everything this screen reads, in one map: the shelf, the hero, the header's
   subtitle and the chips.
 

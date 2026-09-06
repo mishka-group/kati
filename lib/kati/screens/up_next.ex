@@ -119,7 +119,21 @@ defmodule Kati.Screens.UpNext do
   """
   @spec queue() :: map()
   def queue do
-    case {tracked(:watching), tracked(:paused)} do
+    watching = tracked(:watching)
+
+    # Gone cold is DERIVED, not stored. Both bands used to read
+    # `status == :paused` — a value nothing in the app ever wrote — so the cold
+    # band was empty on every device that has ever existed, and a title nobody
+    # had touched in four months sat at the top of *Ready to watch*.
+    # MOVIES-AND-TV.md #55 and #56; `Kati.Media.Staleness` carries the
+    # argument, including why a stored status would have been the wrong answer.
+    #
+    # `:paused` is still read alongside it, because a reader who pauses a show
+    # once something can write that has said so and Kati should not argue.
+    cold = Kati.Media.Staleness.cold(watching) ++ tracked(:paused)
+    ready = Kati.Media.Staleness.warm(watching)
+
+    case {ready, cold} do
       {[], []} -> Sample.queue()
       {[], cold} -> nothing_ready(cold)
       {[hero | rest], cold} -> assemble(hero, rest, cold)
