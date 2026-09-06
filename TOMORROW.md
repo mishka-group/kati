@@ -1,3 +1,7 @@
+just consider we need scenatio of the filems and seris all page of it
+
+from home page you must stay and if you done it with comperhansive tests and data go other page of screen and finish it not books or music for know just files and  each page done we must delete it from settings screen pages there too!
+
 # Where this is, and what to pick up
 
 Written 5 September 2026, at the end of the session. Branch `dev`, working tree

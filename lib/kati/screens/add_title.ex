@@ -482,7 +482,7 @@ defmodule Kati.Screens.AddTitle do
     # A tracked row under the TMDB id rather than under the title: the cached
     # episodes reference `title_source_id`, so a `:manual` row keyed on a
     # string would sit beside its own episode list and never join to it.
-    with {:ok, _filled} <- Kati.Media.Tmdb.fetch(source_id, tmdb_kind(kind)),
+    with {:ok, filled} <- Kati.Media.Tmdb.fetch(source_id, tmdb_kind(kind)),
          {:ok, tracked} <-
            Ash.create(Kati.Media.TrackedTitle, %{
              source: :tmdb,
@@ -490,6 +490,18 @@ defmodule Kati.Screens.AddTitle do
              kind: kind,
              status: :watching
            }) do
+      # The picture, fetched once, here, because this is the only moment the
+      # app knows a title is wanted and is allowed to be slow. `poster_path` is
+      # a path on TMDB's CDN and every screen resolves artwork through
+      # `Kati.Design.Images`, which can only answer for a file already on the
+      # device — so without this line every title a user added drew a grey
+      # placeholder on Home, on the shelf, on Up next and on its own page.
+      #
+      # The result is deliberately dropped. A poster that did not download is a
+      # grey card, which is what the app drew before; refusing to add the title
+      # would let the network decide what is on somebody's shelf.
+      _artwork = Kati.Media.Artwork.cache(Kati.Screens.AddTitle.poster_of(filled))
+
       {:ok, tracked}
     end
     |> Kati.Write.note("track #{title}")
@@ -510,6 +522,19 @@ defmodule Kati.Screens.AddTitle do
     end
     |> Kati.Write.note("track #{title}")
   end
+
+  @doc """
+  The CDN path on the row `Kati.Media.Tmdb.fetch/2` just wrote, or `nil`.
+
+  `fetch/2` answers `%{title: %Kati.Media.CachedTitle{}, seasons: n, episodes:
+  n}` — the counts are what the caller usually wants and the row is what this
+  wants. Written as a function with a nil clause rather than a chain of
+  `Map.get/2` so a shape change here is a compile-time surprise in one place
+  instead of a silently absent poster on every screen.
+  """
+  @spec poster_of(term()) :: String.t() | nil
+  def poster_of(%{title: %{poster_path: path}}) when is_binary(path), do: path
+  def poster_of(_other), do: nil
 
   # `Kati.Media.TrackedTitle` calls a show `:tv` and so does TMDB; anime and
   # books are Kati's own kinds and have no TMDB endpoint, so they fetch as
