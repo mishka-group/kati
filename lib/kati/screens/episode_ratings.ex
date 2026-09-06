@@ -341,17 +341,15 @@ defmodule Kati.Screens.EpisodeRatings do
   @doc """
   `4.5`, `5`, `3.5` — never `5.0`. Every rating on this board is a whole or a
   half, so the only question is whether the fraction is worth printing.
+
+  Or `9`, `10`, `7` — MOVIES-AND-TV.md #96 made the `5★` / `10pt` toggle on
+  screen 33 a real preference, and a scale honoured on the screen that sets it
+  and nowhere else is worse than one that does nothing: the numeral beside an
+  episode on 04 would disagree with the numeral on the sheet that wrote it.
+  `Kati.Rating.Scale` is the one place a rating becomes text.
   """
   @spec rating_label(float()) :: String.t()
-  def rating_label(rating) do
-    whole = trunc(rating)
-
-    if rating - whole == 0.5 do
-      "#{whole}.5"
-    else
-      "#{whole}"
-    end
-  end
+  defdelegate rating_label(rating), to: Kati.Rating.Scale, as: :label
 
   @doc """
   The 27pt check: ink-filled when watched, or a hairline ring around an

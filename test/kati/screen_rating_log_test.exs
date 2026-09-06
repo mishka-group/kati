@@ -270,7 +270,7 @@ defmodule Kati.ScreenRatingLogTest do
       assert drawn?(tree(mount_rating()), "4")
     end
 
-    test "a review with no spoilers draws neither the label nor the glyph" do
+    test "a review with no spoilers is offered the flag rather than told it is set" do
       tracked = track!("log-clean", %{title: "Harbour"})
       watch!(tracked, %{watched_on: ~D[2026-07-04], rating: 6, review: "Nothing given away."})
 
@@ -279,10 +279,18 @@ defmodule Kati.ScreenRatingLogTest do
       tree = tree(mount_rating())
 
       refute drawn?(tree, "Spoilers hidden"),
-             "`contains_spoilers` is false, so nothing is hidden and the toggle is asserting " <>
-               "the opposite of the sentence beside it"
+             "`contains_spoilers` is false, so nothing is hidden and the badge would be " <>
+               "asserting the opposite of the sentence beside it"
 
-      refute drawn?(tree, Kati.Icons.glyph!("visibility_off"))
+      # MOVIES-AND-TV.md #96. The badge used to draw NOTHING here, which left a
+      # reader writing a review with a twist in it no way to say so. The rule
+      # that produced that — the icon must not assert the opposite — is kept by
+      # not changing the icon: `visibility_off` in the gold pair is the claim,
+      # the same glyph in the eyebrow colour beside *Mark spoilers* is the
+      # offer. It could not swap regardless; `Kati.Icons.glyph!/1` raises on
+      # `visibility`.
+      assert drawn?(tree, "Mark spoilers")
+      assert drawn?(tree, Kati.Icons.glyph!("visibility_off"))
     end
 
     test "a first watch carries no rewatch badge" do

@@ -457,7 +457,8 @@ defmodule Kati.Screens.Rating do
           review: "",
           characters: characters_label(nil),
           context: [],
-          tags: []
+          tags: [],
+          live?: true
         }
 
       _gone ->
@@ -563,9 +564,24 @@ defmodule Kati.Screens.Rating do
       review: logged.review || "",
       characters: characters_label(logged.review),
       context: context_rows(logged, zone),
-      tags: tag_list(logged.tags)
+      tags: tag_list(logged.tags),
+      # This draft has somewhere to be committed, and the drawing's has not.
+      # The controls #96 wired read it rather than each deciding again: a
+      # spoiler flag or a tag set on `Kati.Rating.Sample` would be an edit to a
+      # picture, and pressing Save would refuse it with `nothing_to_save` after
+      # the reader had already typed.
+      live?: true
     }
   end
+
+  @doc """
+  Whether this draft has a row behind it, or is the drawing.
+
+      iex> Kati.Screens.Rating.writable?(Kati.Screens.Rating.drawn_watch())
+      false
+  """
+  @spec writable?(map()) :: boolean()
+  def writable?(draft), do: Map.get(draft, :live?, false) == true
 
   defp title_of(%CachedTitle{title: title}) when is_binary(title) and title != "", do: title
   defp title_of(_cached), do: "Untitled"
@@ -983,14 +999,14 @@ defmodule Kati.Screens.Rating do
             max_lines={1}
           />
           <Spacer weight={1.0} />
-          {Kati.Screens.Rating.scale_toggle()}
+          {Kati.Screens.Rating.scale_toggle(Kati.Screens.Rating.writable?(w))}
         </Row>
         <Spacer size={14} />
         <Row fill_width={true} align="center">
           {Kati.Screens.Rating.stars(w.rating, true)}
           <Spacer size={12} />
           <Text
-            text={Kati.Screens.Rating.rating_label(w.rating)}
+            text={Kati.Rating.Scale.label(w.rating, Map.get(w, :scale))}
             font_family="mono"
             text_size={14}
             font_weight="medium"
@@ -1017,11 +1033,29 @@ defmodule Kati.Screens.Rating do
   # card's `#1E1D1B` and stays the well it is. `Palette.tab_well/0` carries the
   # same light value and is the other reading, but it is the dock's active-tab
   # disc and is deliberately DARKER than the page; this is a trough, not a tab.
-  @doc false
-  def scale_toggle do
+  @doc """
+  The `5★` / `10pt` toggle, lit from the stored preference.
+
+  MOVIES-AND-TV.md #96. It was drawn from `Kati.Rating.Sample.scales/0` with
+  its first tile hardcoded `on` and no tap on either, and the moduledoc argued
+  that was right because no resource holds a display preference. No Ash
+  resource does and none should — see `Kati.Rating.Scale`, which keeps it where
+  `Kati.Locale` keeps the locale.
+
+  The tiles are built here rather than read from the fixture now, because the
+  fixture cannot know which one is lit; their labels still come from it, so the
+  drawing stays the source of the copy.
+  """
+  @spec scale_toggle(boolean()) :: map()
+  def scale_toggle(live? \\ false) do
+    active = Kati.Rating.Scale.current()
+
     tiles =
-      Sample.scales()
-      |> Enum.map(&Kati.Screens.Rating.scale/1)
+      Kati.Rating.Scale.supported()
+      |> Enum.zip(Sample.scales())
+      |> Enum.map(fn {scale, drawn} ->
+        Kati.Screens.Rating.scale(%{drawn | on: scale == active}, live?)
+      end)
       |> Enum.intersperse(Kati.Screens.Rating.scale_gap())
 
     ~MOB"""
@@ -1034,8 +1068,16 @@ defmodule Kati.Screens.Rating do
   @doc false
   def scale_gap, do: ~MOB"<Spacer size={3} />"
 
+  # Both tiles keep their tap, the lit one included, for the reason screen 35's
+  # status tiles and screen 34's order tiles do: pressing the scale you are
+  # already on is how somebody checks which one that is, and a tile that goes
+  # dead once chosen stops answering exactly when it is pressed to be sure.
   @doc false
-  def scale(%{on: true} = option) do
+  def scale(option, live? \\ false)
+
+  def scale(%{on: true} = option, live?) do
+    assigns = %{tap: if(live?, do: Kati.Screens.Rating.scale_tap(option.label))}
+
     ~MOB"""
     <Row
       height={24}
@@ -1045,6 +1087,7 @@ defmodule Kati.Screens.Rating do
       padding_left={10}
       padding_right={10}
       align="center"
+      on_tap={@tap}
     >
       <Text
         text={option.label}
@@ -1058,9 +1101,18 @@ defmodule Kati.Screens.Rating do
     """
   end
 
-  def scale(option) do
+  def scale(option, live?) do
+    assigns = %{tap: if(live?, do: Kati.Screens.Rating.scale_tap(option.label))}
+
     ~MOB"""
-    <Row height={24} corner_radius={8} padding_left={10} padding_right={10} align="center">
+    <Row
+      height={24}
+      corner_radius={8}
+      padding_left={10}
+      padding_right={10}
+      align="center"
+      on_tap={@tap}
+    >
       <Text
         text={option.label}
         text_size={10.5}
@@ -1072,6 +1124,22 @@ defmodule Kati.Screens.Rating do
     </Row>
     """
   end
+
+  @doc """
+  A scale tile's tap, keyed by the label the drawing gives it.
+
+      iex> {_pid, tag} = Kati.Screens.Rating.scale_tap("10pt")
+      iex> tag
+      :scale_10pt
+  """
+  @spec scale_tap(String.t()) :: {pid(), atom()}
+  def scale_tap(label), do: {self(), String.to_atom("scale_" <> label)}
+
+  @doc false
+  @spec scale_from(String.t()) :: :stars | :points | nil
+  def scale_from("5"), do: :stars
+  def scale_from("10pt"), do: :points
+  def scale_from(_other), do: nil
 
   @doc false
   def scale_star(false, _color), do: ~MOB"<Spacer size={0} />"
@@ -1090,14 +1158,14 @@ defmodule Kati.Screens.Rating do
   unrated log prints the em dash `Kati.Screens.Stats` uses for the same absence
   in `Avg ★` — the card is the user's own rating and is never hidden, so it says
   "not rated" rather than "0".
+
+  On the ten-point scale the same nine prints `9`. `Kati.Rating.Scale` owns
+  both readings and every screen that prints a rating routes through it, so the
+  numeral beside an episode on 04 cannot disagree with the numeral on the sheet
+  that wrote it.
   """
   @spec rating_label(number() | nil) :: String.t()
-  def rating_label(nil), do: "—"
-
-  def rating_label(value) do
-    whole = trunc(value)
-    if value == whole, do: Integer.to_string(whole), else: "#{value}"
-  end
+  defdelegate rating_label(value), to: Kati.Rating.Scale, as: :label
 
   @doc """
   The five-star row, tappable or not.
@@ -1311,7 +1379,7 @@ defmodule Kati.Screens.Rating do
             max_lines={1}
           />
           <Spacer weight={1.0} />
-          {Kati.Screens.Rating.spoiler_toggle(w.spoilers)}
+          {Kati.Screens.Rating.spoiler_toggle(w.spoilers, Kati.Screens.Rating.writable?(w))}
         </Row>
         <Spacer size={10} />
         {Kati.Screens.Rating.review_field(w.review)}
@@ -1393,16 +1461,52 @@ defmodule Kati.Screens.Rating do
   `fillMaxWidth`, and `rowAlignProp/1` answers `CenterVertically` for an absent
   `align` — so the glyph and the label share the same centre line and the same
   6pt gap they had as direct children of the eyebrow row.
-  """
-  def spoiler_toggle(nil), do: ~MOB"<Spacer size={0} />"
 
-  def spoiler_toggle(label) do
+  ## Both states now, and the off one is an invitation
+
+  MOVIES-AND-TV.md #96. The badge said *Spoilers hidden* over a real column and
+  could not be changed, and with `contains_spoilers` false it drew nothing —
+  so a reader writing a review with a twist in it had no way to say so.
+
+  The argument above still holds and decides the shape: the icon must not
+  assert the opposite. It does not, because it does not change. `visibility_off`
+  in the gold pair is a claim — *this review has spoilers to hide* — and the
+  same glyph in the eyebrow colour beside *Mark spoilers* is an offer, which is
+  what an unset toggle should look like. The glyph could not swap regardless:
+  `Kati.Icons.glyph!/1` raises on `visibility`, which is not in Kati's subset.
+  """
+  @spec spoiler_toggle(String.t() | nil, boolean()) :: map()
+  def spoiler_toggle(label, live? \\ false)
+
+  def spoiler_toggle(nil, false), do: ~MOB"<Spacer size={0} />"
+
+  def spoiler_toggle(nil, true) do
+    assigns = %{tap: {self(), :toggle_spoilers}}
+
     ~MOB"""
-    <Row>
+    <Row on_tap={@tap}>
+      {Kati.UI.symbol("visibility_off", size: 15, color: Palette.eyebrow())}
+      <Spacer size={6} />
+      <Text
+        text="Mark spoilers"
+        text_size={11}
+        font_weight="semibold"
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
+    </Row>
+    """
+  end
+
+  def spoiler_toggle(label, live?) do
+    assigns = %{label: label, tap: if(live?, do: {self(), :toggle_spoilers})}
+
+    ~MOB"""
+    <Row on_tap={@tap}>
       {Kati.UI.symbol("visibility_off", size: 15, color: Palette.gold_icon())}
       <Spacer size={6} />
       <Text
-        text={label}
+        text={@label}
         text_size={11}
         font_weight="semibold"
         text_color={Palette.gold_text()}
@@ -1440,17 +1544,179 @@ defmodule Kati.Screens.Rating do
 
   # Row, not a wrapping field: the four chips measure ~315 inside the 360pt
   # content width, so the drawing's `flex-wrap` never actually wraps here.
-  @doc false
+  @doc """
+  The tag row, and the field `+ tag` opens under it.
+
+  MOVIES-AND-TV.md #96: `+ tag` was drawn with a tap that reached
+  `handle_info({:tap, tag})`'s fall-through, so it was recorded in
+  `Kati.ScreenTapSweepTest`'s `@inert_taps` as *a sheet that never opens*.
+  `Kati.Media.Watch.tags` is a real list column with no writer anywhere.
+
+  There is no sheet. A tag is one short word and a sheet to type it in is a
+  page of chrome around a text field, so the field opens **here**, under the
+  chips, with the tags this reader has used before beside it — which is what
+  people actually do with tags: reuse the ones they have.
+
+  Over the drawing the chips and `+ tag` stay pictures, because a tag typed
+  onto `Kati.Rating.Sample` would be refused by Save after it had been typed.
+  """
+  @spec tags(map()) :: map()
   def tags(w) do
+    live? = Kati.Screens.Rating.writable?(w)
+
     chips =
-      (Enum.map(w.tags, &Kati.Screens.Rating.tag/1) ++ [Kati.Screens.Rating.add_tag()])
+      (Enum.map(w.tags, &Kati.Screens.Rating.tag(&1, live?)) ++
+         [Kati.Screens.Rating.add_tag(live?)])
       |> Enum.intersperse(Kati.Screens.Rating.tag_gap())
 
+    assigns = %{chips: chips, field: Kati.Screens.Rating.tag_field(w)}
+
     ~MOB"""
-    <Row fill_width={true} align="center">
-      {chips}
-    </Row>
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center">
+        {@chips}
+      </Row>
+      {@field}
+    </Column>
     """
+  end
+
+  @doc """
+  The tag entry, drawn only while `+ tag` is open.
+
+  `Kati.Screens.Rating.tag_draft/1` is `nil` until `+ tag` is pressed, which is
+  what keeps the resting sheet exactly the drawing.
+  """
+  @spec tag_field(map()) :: map()
+  def tag_field(w) do
+    case Map.get(w, :tag_draft) do
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      draft ->
+        assigns = %{
+          change: {self(), :tag_draft},
+          draft: draft,
+          suggestions: Kati.Screens.Rating.suggestion_row(w)
+        }
+
+        ~MOB"""
+        <Column fill_width={true}>
+          <Spacer size={10} />
+          <Row fill_width={true} align="center">
+            <Box weight={1.0}>
+              <TextField
+                value={@draft}
+                placeholder="rewatch, with Jo, rainy sunday…"
+                return_key="done"
+                fill_width={true}
+                text_size={13}
+                accessibility_id="tag_draft"
+                on_change={@change}
+              />
+            </Box>
+            <Spacer size={8} />
+            {Kati.Screens.Rating.commit_tag()}
+          </Row>
+          {@suggestions}
+        </Column>
+        """
+    end
+  end
+
+  @doc """
+  The tags this reader has used before, minus the ones already on this watch.
+
+  Read from `Kati.Media.Watch.tags` across the store rather than from a
+  vocabulary resource, because there is no such resource and there does not
+  need to be: the tags somebody uses ARE the tags on their watches.
+  """
+  @spec suggestion_row(map()) :: map()
+  def suggestion_row(w) do
+    case Kati.Screens.Rating.suggestions(w) do
+      [] ->
+        ~MOB"<Spacer size={0} />"
+
+      words ->
+        assigns = %{
+          chips:
+            words
+            |> Enum.map(&Kati.Screens.Rating.suggestion(&1))
+            |> Enum.intersperse(Kati.Screens.Rating.tag_gap())
+        }
+
+        ~MOB"""
+        <Column fill_width={true}>
+          <Spacer size={9} />
+          <Row fill_width={true} align="center">
+            {@chips}
+          </Row>
+        </Column>
+        """
+    end
+  end
+
+  @doc false
+  @spec words_of(String.t() | nil) :: [String.t()]
+  def words_of(tags) when is_binary(tags),
+    do: tags |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+
+  def words_of(_none), do: []
+
+  @doc false
+  @spec suggestions(map()) :: [String.t()]
+  def suggestions(w) do
+    already = MapSet.new(Map.get(w, :tags, []))
+
+    Watch
+    |> Ash.read!()
+    # `Kati.Media.Watch.tags` is one comma-separated STRING, not a list — the
+    # same column `tag_list/1` splits on read, and the same shape
+    # `stored_tags/1` writes.
+    |> Enum.flat_map(&Kati.Screens.Rating.words_of(&1.tags))
+    |> Enum.reject(&MapSet.member?(already, &1))
+    |> Enum.frequencies()
+    |> Enum.sort_by(fn {word, n} -> {-n, word} end)
+    |> Enum.take(3)
+    |> Enum.map(&elem(&1, 0))
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  def suggestion(label) do
+    MishkaPill.pill(
+      label: label,
+      background: Palette.paper(),
+      color: Palette.eyebrow(),
+      height: 26,
+      corner_radius: 13,
+      padding: 0,
+      padding_left: 11,
+      padding_right: 11,
+      text_size: 11,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: {self(), String.to_atom("use_tag_" <> label)}
+    )
+  end
+
+  @doc false
+  def commit_tag do
+    MishkaPill.pill(
+      label: "Add",
+      background: Palette.ink_fill(),
+      color: Palette.on_ink(),
+      height: 34,
+      corner_radius: 17,
+      padding: 0,
+      padding_left: 15,
+      padding_right: 15,
+      text_size: 12,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: {self(), :commit_tag}
+    )
   end
 
   @doc false
@@ -1465,9 +1731,13 @@ defmodule Kati.Screens.Rating do
   `shadow` prop**, and every tag here is a lifted `Kati.Theme.shadow_card_soft()`
   card. A chip cannot draw one, so a chip is not what this is.
   """
-  def tag(label) do
+  def tag(label, live? \\ false) do
     MishkaPill.pill(
       label: label,
+      # Tapping a tag removes it, which is the only gesture a token this size
+      # can carry and the one every tag field in the world uses. Over the
+      # drawing it carries none: `nil` is not tappable rather than broken.
+      on_tap: if(live?, do: {self(), String.to_atom("drop_tag_" <> label)}),
       background: Palette.card(),
       color: Palette.ink_soft(),
       shadow: Kati.Theme.shadow_card_soft(),
@@ -1499,8 +1769,8 @@ defmodule Kati.Screens.Rating do
   `MishkaChip` is out for the second time here: no `border_color`, no
   `border_width`.
   """
-  def add_tag do
-    tap = {self(), :add_tag}
+  def add_tag(live? \\ false) do
+    tap = if live?, do: {self(), :add_tag}
 
     MishkaPill.pill(
       label: "+ tag",
@@ -1572,12 +1842,99 @@ defmodule Kati.Screens.Rating do
   # either way, which is what `Kati.ScreenTapSweepTest` is checking.
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case point_of(tag) do
-      nil -> {:noreply, socket}
+      nil -> {:noreply, Kati.Screens.Rating.other_tap(socket, tag)}
       point -> {:noreply, Mob.Socket.update(socket, :watch, &Map.put(&1, :rating, point / 2))}
     end
   end
 
+  # What the tag draft holds while `+ tag` is open. Held on the draft rather
+  # than in its own assign so `render/1` reads one map, and so closing the
+  # field is one `Map.delete`.
+  def handle_info({:change, :tag_draft, typed}, socket) when is_binary(typed) do
+    {:noreply, Mob.Socket.update(socket, :watch, &Map.put(&1, :tag_draft, typed))}
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  The controls that are not stars: the scale, the spoiler flag, the tags.
+
+  MOVIES-AND-TV.md #96 is the three of them together, and they land here rather
+  than in three `handle_info/2` clauses because every one of them arrives as a
+  tag built from a label — `:scale_10pt`, `:drop_tag_rewatch` — and pattern
+  matching on a constructed atom is how a screen ends up with a clause nothing
+  reaches.
+
+  The scale is the odd one: it is a display preference rather than part of the
+  draft, so it is written the moment it is pressed (`Kati.Rating.Scale`) and
+  survives whether or not this sheet is saved. The other two are edits to the
+  draft and go where every other edit on this sheet goes — into `:watch`, and
+  onto the row only when Save says so.
+  """
+  @spec other_tap(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def other_tap(socket, tag) do
+    case Atom.to_string(tag) do
+      "scale_" <> label ->
+        case Kati.Screens.Rating.scale_from(label) do
+          nil -> socket
+          scale -> tap_scale(socket, scale)
+        end
+
+      "drop_tag_" <> label ->
+        edit(socket, &Map.put(&1, :tags, Enum.reject(&1.tags, fn t -> t == label end)))
+
+      "use_tag_" <> label ->
+        edit(socket, &add_tag_to(&1, label))
+
+      "toggle_spoilers" ->
+        edit(socket, &Map.put(&1, :spoilers, if(is_nil(&1.spoilers), do: "Spoilers hidden")))
+
+      "add_tag" ->
+        edit(socket, &Map.put(&1, :tag_draft, Map.get(&1, :tag_draft) || ""))
+
+      "commit_tag" ->
+        edit(socket, &add_tag_to(&1, Map.get(&1, :tag_draft)))
+
+      _other ->
+        socket
+    end
+  end
+
+  # A scale change re-labels the numeral, and the draft is untouched: the value
+  # is one stored integer read two ways, so nothing about this watch changed.
+  defp tap_scale(socket, scale) do
+    Kati.Rating.Scale.put(scale)
+    # Onto the draft as well, and not as a decoration: `rating_card/1` labels
+    # the numeral with `Map.get(w, :scale)`, so this is what redraws `4.5` as
+    # `9`. Reading `Kati.Rating.Scale.current/0` inside the markup instead
+    # would leave the socket identical after a tap that plainly changed the
+    # screen — which is a control `Kati.ScreenTapSweepTest` reports as inert,
+    # and it would be right to.
+    Mob.Socket.update(socket, :watch, &Map.put(&1, :scale, scale))
+  end
+
+  # An edit only a draft with a row behind it may take. A tag added to the
+  # drawing would be typed, drawn, and then refused by Save — which is the
+  # `nothing_to_save` receipt landing after the work rather than instead of it.
+  defp edit(socket, change) do
+    if Kati.Screens.Rating.writable?(socket.assigns.watch),
+      do: Mob.Socket.update(socket, :watch, change),
+      else: socket
+  end
+
+  # Trimmed, deduplicated, and the field closes behind it. A blank commit
+  # closes the field rather than adding `""` — pressing Add on an empty field
+  # is how somebody changes their mind.
+  defp add_tag_to(draft, word) do
+    trimmed = String.trim(word || "")
+
+    tags =
+      if trimmed == "" or trimmed in draft.tags,
+        do: draft.tags,
+        else: draft.tags ++ [trimmed]
+
+    draft |> Map.put(:tags, tags) |> Map.delete(:tag_draft)
+  end
 
   @doc """
   Write the draft back onto the watch the sheet opened on.
@@ -1626,6 +1983,16 @@ defmodule Kati.Screens.Rating do
           tracked_title_id: tracked_id,
           rating: ten_point(w.rating),
           review: stored_review(w.review),
+          # The two columns #96 gave a writer. `contains_spoilers` is a boolean
+          # and the draft carries the SENTENCE the badge draws, because that is
+          # what `shaped/3` reads it back as — so the flag is the presence of
+          # the sentence, in both directions.
+          # `Map.get`, not a dot: a draft assembled by a caller that predates
+          # #96 — every test that builds one by hand, and `blank_for/1`'s own
+          # shape before it grew the keys — must go on meaning "no spoilers,
+          # no tags" rather than raising inside a save.
+          contains_spoilers: not is_nil(Map.get(w, :spoilers)),
+          tags: stored_tags(Map.get(w, :tags)),
           watched_on: Kati.Time.today(),
           watched_at: Kati.Time.now() |> DateTime.truncate(:second)
         }
@@ -1646,7 +2013,9 @@ defmodule Kati.Screens.Rating do
         record
         |> Ash.Changeset.for_update(:update, %{
           rating: ten_point(w.rating),
-          review: stored_review(w.review)
+          review: stored_review(w.review),
+          contains_spoilers: not is_nil(Map.get(w, :spoilers)),
+          tags: stored_tags(Map.get(w, :tags))
         })
         |> Ash.update()
         |> Write.note("rate a watch")
@@ -1679,4 +2048,11 @@ defmodule Kati.Screens.Rating do
   end
 
   defp stored_review(_review), do: nil
+
+  # `Kati.Media.Watch.tags` is one comma-separated string, not a list — the
+  # column `tag_list/1` has always split on read. `nil` for no tags rather than
+  # `""`, so an untagged watch is untagged rather than carrying an empty word.
+  defp stored_tags([]), do: nil
+  defp stored_tags(tags) when is_list(tags), do: Enum.join(tags, ", ")
+  defp stored_tags(_tags), do: nil
 end

@@ -807,7 +807,14 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealsToday, :done_prepping},
     {Kati.Screens.Meal, :more},
     {Kati.Screens.Nutrition, :share},
-    {Kati.Screens.Rating, :add_tag},
+    # (`{Kati.Screens.Rating, :add_tag}` was here, filed under Backlog as *a
+    # sheet that never opens*. MOVIES-AND-TV.md #96 struck it off, and there is
+    # still no sheet: a tag is one short word, so the field opens under the
+    # chips with the tags this reader has used before beside it. The tag is now
+    # a phantom to this sweep for the reason screen 35's status tiles are —
+    # the sweep renders against an empty store, where the sheet draws
+    # `Kati.Rating.Sample` and the chips carry no taps at all. `Kati.RatingTagsTest`
+    # presses them over a real watch.)
     {Kati.Screens.ScheduleFa, :open_menu},
     {Kati.Screens.Subscriptions, :open_menu}
     # (Screen 121's `save_image` was here, with the sentence *it stops being

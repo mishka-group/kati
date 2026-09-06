@@ -399,6 +399,17 @@ defmodule Kati.ScreenWriteTargetTest do
     # with the specification rather than on the screen, and its own doc says
     # why.
     {Kati.Screens.Search, :look_up, {:state, :kati_search_query}}
+    # (Screen 33's `5★` / `10pt` was briefly here. It writes `Mob.State`'s
+    # `:rating_scale` — `Kati.Rating.Scale`, a display preference kept beside
+    # the locale and the theme, because how a number is READ is not a fact
+    # about a title, a watch or a shelf — and MOVIES-AND-TV.md #96 wired it.
+    #
+    # The exemption turned out not to be needed, which is the better answer:
+    # the toggle is only tappable on a sheet with a row behind it, so a page
+    # named a row that has gone draws it as a picture and the write this file
+    # is about cannot happen. Recorded rather than deleted, so the next person
+    # who adds a preference toggle can see that the gate is what earns the
+    # silence here.)
   ]
 
   # The tables the CONTROL pass writes to — the same screens, the same seeded
