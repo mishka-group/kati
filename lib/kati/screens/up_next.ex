@@ -111,6 +111,35 @@ defmodule Kati.Screens.UpNext do
   def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
 
   @doc """
+  Every control this screen draws, and it drew none until 6 September.
+
+  MOVIES-AND-TV.md #86. The play discs open the title, the `tune` disc opens
+  the shelf's own filter sheet, and a cold row's `Drop` pill opens the drop
+  sheet over that show. A drawn row carries no id and therefore no tag, so
+  the board's discs stay pictures.
+  """
+  @impl true
+  def handle_tap(:open_filters, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "open_" <> _id ->
+        {:noreply, Kati.Screens.UpNext.open(socket, tag)}
+
+      "drop_" <> id ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.DropSheet, %{
+           tracked_id: id,
+           back: "Up next"
+         })}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
   The queue as `content/1` draws it: a hero, the rest of the ready list, and
   the cold one.
 
@@ -265,13 +294,27 @@ defmodule Kati.Screens.UpNext do
       title: title_of(c),
       seed: seed_of(c),
       meta: join(episode(row) ++ hero_tail(row, c)),
-      progress: fraction(row, c)
+      progress: fraction(row, c),
+      # The row a tap opens. Carried on the shape rather than looked up again
+      # in the handler, for `Kati.Screens.Series`' reason: the title the reader
+      # pressed and the title a second query happens to return first are two
+      # different facts. `nil` on the drawing, which is what makes its discs
+      # pictures rather than dead controls (MOVIES-AND-TV.md #86).
+      id: row.id,
+      kind: row.kind
     }
   end
 
   defp ready_data(row, cache) do
     c = cached(row, cache)
-    %{title: title_of(c), seed: seed_of(c), meta: join(episode(row) ++ runtime(c))}
+
+    %{
+      title: title_of(c),
+      seed: seed_of(c),
+      meta: join(episode(row) ++ runtime(c)),
+      id: row.id,
+      kind: row.kind
+    }
   end
 
   # `action` is the offer this screen makes on a thread that has gone quiet, not
@@ -280,6 +323,8 @@ defmodule Kati.Screens.UpNext do
     c = cached(row, cache)
 
     %{
+      id: row.id,
+      kind: row.kind,
       title: title_of(c),
       seed: seed_of(c),
       meta: join(episode(row) ++ [age(row.last_touched_at)]),
@@ -455,6 +500,10 @@ defmodule Kati.Screens.UpNext do
   where a bare centred Text did.
   """
   @spec tune_disc() :: map()
+  # The same sheet screen 03's own `tune` opens — `Kati.Screens.ShelfFilters`,
+  # the sort and filter this reader last chose. Up next narrows the same shelf,
+  # so a second sheet would be a second set of choices able to disagree with
+  # the first.
   def tune_disc do
     MishkaActionIcon.action_icon(
       [
@@ -462,7 +511,8 @@ defmodule Kati.Screens.UpNext do
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
-        shadow: Kati.Theme.shadow_button()
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), :open_filters}
       ],
       [Kati.UI.symbol("tune", size: 21)]
     )
@@ -583,7 +633,7 @@ defmodule Kati.Screens.UpNext do
                 />
               </Column>
               <Spacer size={8} />
-              {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media(), Palette.ink(:light))}
+              {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media(), Palette.ink(:light), Kati.Screens.UpNext.open_tap(q.hero))}
             </Row>
           </Box>
           <Box fill_width={true} fill_height={true} align="bottom">
@@ -717,7 +767,7 @@ defmodule Kati.Screens.UpNext do
           />
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.UpNext.play_disc(34, 19, Palette.paper())}
+        {Kati.Screens.UpNext.play_disc(34, 19, Palette.paper(), Palette.ink(), Kati.Screens.UpNext.open_tap(row))}
       </Row>
       <Spacer size={9} />
     </Column>
@@ -761,10 +811,62 @@ defmodule Kati.Screens.UpNext do
   passed `Palette.ink(:light)` at the hero. Light mode is untouched: the two
   are the same `#1A1917` there, which is what the drawing has.
   """
-  @spec play_disc(number(), number(), non_neg_integer(), non_neg_integer()) :: map()
-  def play_disc(size, glyph, background, ink \\ Palette.ink()) do
+  @doc """
+  The tap that opens a row's title, or `nil` for one with nothing behind it.
+
+  MOVIES-AND-TV.md #86: this screen drew no tappable control at all — the
+  hero's play disc, four ready-row discs, the tune disc and every Drop pill
+  were built without one, and `Kati.ScreenTapSweepTest` is blind to that by
+  construction, because it collects the tags a screen DOES draw and a screen
+  with none passes every check in the file.
+
+  `nil` for a drawn row, which is what `Kati.Library.Sample.queue/0` is: not
+  tappable rather than broken, the value that sweep's own docs name for a
+  control with nowhere to go. Every real row carries the id it was read from.
+
+      iex> Kati.Screens.UpNext.open_tag(%{id: nil})
+      nil
+  """
+  @spec open_tap(map()) :: {pid(), atom()} | nil
+  def open_tap(row) do
+    case open_tag(row) do
+      nil -> nil
+      tag -> {self(), tag}
+    end
+  end
+
+  @doc false
+  @spec open_tag(map()) :: atom() | nil
+  def open_tag(%{id: id}) when is_binary(id), do: String.to_atom("open_" <> id)
+  def open_tag(_drawn), do: nil
+
+  @doc """
+  Open the title a tap named — the series screen for a series, the film screen
+  for a film, which is what the design draws them as.
+
+  `:back` says *Up next*, because that is where the reader is; see
+  `Kati.Screens.Pushed.back_label/2` for what a pill that names the wrong
+  screen does to somebody's sense of where they are.
+  """
+  @spec open(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def open(socket, tag) do
+    q = socket.assigns.queue
+    rows = [q.hero | q.ready ++ q.cold] |> Enum.reject(&is_nil/1)
+
+    case Enum.find(rows, &(Kati.Screens.UpNext.open_tag(&1) == tag)) do
+      nil ->
+        socket
+
+      row ->
+        module = if row.kind == :movie, do: Kati.Screens.Film, else: Kati.Screens.Series
+        Mob.Socket.push_screen(socket, module, %{id: row.id, back: "Up next"})
+    end
+  end
+
+  @spec play_disc(number(), number(), non_neg_integer(), non_neg_integer(), term()) :: map()
+  def play_disc(size, glyph, background, ink \\ Palette.ink(), tap \\ nil) do
     MishkaActionIcon.action_icon(
-      [size: size, shape: :circle, variant: :filled, background: background],
+      [size: size, shape: :circle, variant: :filled, background: background, on_tap: tap],
       [Kati.UI.symbol("play_arrow", size: glyph, fill: true, color: ink)]
     )
   end
@@ -830,7 +932,7 @@ defmodule Kati.Screens.UpNext do
           />
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.UpNext.drop_pill(row.action)}
+        {Kati.Screens.UpNext.drop_pill(row.action, Kati.Screens.UpNext.drop_tap(row))}
       </Row>
     </Column>
     """
@@ -853,7 +955,7 @@ defmodule Kati.Screens.UpNext do
   the pill's own default and is what this Text already carried.
   """
   @spec drop_pill(String.t()) :: map()
-  def drop_pill(label) do
+  def drop_pill(label, tap \\ nil) do
     MishkaPill.pill(
       label: label,
       background: Palette.placeholder(),
@@ -865,9 +967,21 @@ defmodule Kati.Screens.UpNext do
       padding_right: 12,
       align: :center,
       text_size: 11.5,
-      font_weight: :semibold
+      font_weight: :semibold,
+      on_tap: tap
     )
   end
+
+  @doc """
+  The tap on a cold row's `Drop` pill — the drop sheet, over that title.
+
+  `Kati.Screens.DropSheet` is screen 149, and its own moduledoc says the row
+  must name which show: pushed bare it opens on the newest paused title in the
+  store, which is not the one the reader pressed.
+  """
+  @spec drop_tap(map()) :: {pid(), atom()} | nil
+  def drop_tap(%{id: id}) when is_binary(id), do: {self(), String.to_atom("drop_" <> id)}
+  def drop_tap(_drawn), do: nil
 
   # The drawing tones the cold poster back with `opacity:.6`. There is no
   # opacity prop on an Image node, so the same result is composited: 40% of the
