@@ -75,6 +75,30 @@ defmodule Kati.Services do
     end
   end
 
+  @doc """
+  The country the reader has actually CHOSEN, or `nil`.
+
+  `region/0` answers `"GB"` on a phone nobody has told anything, because every
+  page that asks *what is available here* needs an answer and the drawings were
+  captured in one country. That default is a working assumption, not a fact
+  about the reader, and board 93 is the board that knows the difference: its
+  region row reads *Pick your country — nothing works until this is set*.
+
+  So there are two questions and now two functions. `region/0` is "which
+  country am I answering for"; this is "has anyone said".
+  """
+  @spec chosen_region() :: String.t() | nil
+  def chosen_region do
+    case Mob.State.get(@region_key) do
+      code when is_binary(code) -> code
+      _unset -> nil
+    end
+  rescue
+    _error -> nil
+  catch
+    :exit, _reason -> nil
+  end
+
   @doc "Set the region. Screen 94's only side effect."
   @spec put_region(String.t()) :: :ok
   def put_region(code) when is_binary(code) do

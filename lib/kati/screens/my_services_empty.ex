@@ -103,7 +103,11 @@ defmodule Kati.Screens.MyServicesEmpty do
   ]
 
   @doc false
-  def load(socket), do: Mob.Socket.assign(socket, :rules, Services.default_rules())
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:rules, Services.default_rules())
+    |> Mob.Socket.assign(:chosen_region, Services.chosen_region())
+  end
 
   @doc false
   def content(assigns) do
@@ -119,7 +123,7 @@ defmodule Kati.Screens.MyServicesEmpty do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
         {UI.eyebrow("Region")}
-        {Kati.Screens.MyServicesEmpty.region_group()}
+        {Kati.Screens.MyServicesEmpty.region_group(assigns[:chosen_region])}
         {Kati.Screens.MyServices.search_field()}
         {UI.eyebrow("Subscribed · none yet")}
         {Kati.Screens.MyServicesEmpty.empty_group()}
@@ -145,8 +149,19 @@ defmodule Kati.Screens.MyServicesEmpty do
   the other while a designer is still deciding whether the frame is a border or
   a cream card.
   """
-  @spec region_group() :: map()
-  def region_group do
+  @spec region_group(String.t() | nil) :: map()
+  # A country the reader has chosen is drawn as screen 92 draws it — the flag,
+  # the name, the chevron — because this page is 92 with no services on it, not
+  # 92 with nothing known about it. `Pick your country · Nothing works until
+  # this is set` is true of a phone nobody has told anything and false the
+  # moment somebody has, and `Kati.Services.chosen_region/0` is the difference:
+  # `region/0` answers `"GB"` on a fresh install so the availability questions
+  # have an answer, which is a working assumption rather than a claim about the
+  # reader.
+  def region_group(code) when is_binary(code) and code != "",
+    do: Kati.Screens.MyServices.region_group(code)
+
+  def region_group(_unset) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
@@ -304,6 +319,15 @@ defmodule Kati.Screens.MyServicesEmpty do
   JustWatch's on both boards, and only its trustworthiness differs.
   """
   @spec catalogue_group() :: map()
+  # `Show all 47` is the board's own row and it opens nothing, here as on 92.
+  #
+  # It used to open screen 23 — the money ledger, a read-only page about what
+  # you already spend, which is not a catalogue of anything (MOVIES-AND-TV.md
+  # #35). There is no catalogue in this app to open: `Kati.Services.Service`
+  # holds the services a person has told Kati about, and `47` is a number from
+  # the drawing. The row keeps the board's words, because this board is what a
+  # device with nothing set up looks like, and loses its chevron and its tap,
+  # because there is nothing on the other side.
   def catalogue_group do
     ~MOB"""
     <Column fill_width={true}>
@@ -312,8 +336,7 @@ defmodule Kati.Screens.MyServicesEmpty do
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("more_horiz"),
           Kati.UI.SettingsList.body(Kati.Services.Sample.catalogue_count(), "Pick a country first for an accurate list"),
-          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
-          on_tap: {self(), :show_all},
+          Kati.UI.SettingsList.trailing(nil),
           rule: false
         )
       ])}
@@ -389,9 +412,6 @@ defmodule Kati.Screens.MyServicesEmpty do
   @doc false
   def handle_tap(:pick_country, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.CountryPicker)}
-
-  def handle_tap(:show_all, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
 
   def handle_tap(:open_subscriptions, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}

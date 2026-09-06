@@ -592,7 +592,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # is the same class as 02's month title: the pattern insists on a count
       # the screen builds, which is stricter than the frozen literal — a screen
       # that hardcoded 190 over a list of seven fails it.
-      assert length(device_values()) <= 41,
+      #
+      # 41 → 43 on 6 September, for 92's *Not mine* row: `Show all 47` and
+      # `Everything JustWatch lists for the UK` were a promise of a catalogue
+      # that does not exist in this app, on a row that opened the empty-state
+      # board over a page listing three subscriptions (MOVIES-AND-TV.md #35).
+      # Both patterns accept the board's own words as well, because a device
+      # with nothing stored still draws board 92 whole.
+      assert length(device_values()) <= 43,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -667,6 +674,24 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the size of the reader's own history, which board 07 froze at 1,204 and " <>
          "`Kati.Screens.Stats.entries_count/0` now counts",
        ~r/^(\p{N}[\p{N},]* entries|1 entry|nothing logged yet)$/u},
+      # 92's *Not mine* row. Board 92 froze `Show all 47 · Everything JustWatch
+      # lists for the UK` on a row that opened screen 93 — the empty state —
+      # over a page listing three subscriptions (MOVIES-AND-TV.md #35). Kati
+      # has no catalogue provider: `Kati.Services.Service` holds the services
+      # a person has told it about and nothing else, so 47 was the drawing's
+      # number and could never become anyone's. The row counts what Kati
+      # actually lists now, and says a fuller list needs a source it has not
+      # got. A device with nothing stored still draws the board's own words,
+      # which is the state the board was captured in, so the patterns accept
+      # both.
+      {"92", "show all 47",
+       "the number of services Kati lists for this reader, which board 92 froze at " <>
+         "JustWatch's 47 and `Kati.Screens.MyServices.catalogue_line/1` now counts",
+       ~r/^(show all 47|kati lists \d+ services?)$/u},
+      {"92", "everything justwatch lists for the uk",
+       "the sub-line under it, which now says where the list comes from rather than naming " <>
+         "a provider this app has never integrated",
+       ~r/^(everything justwatch lists for the uk|the ones you have told it about\..*)$/u},
       {"01", "good evening",
        "the greeting is picked from the device clock's hour by the same function. Which of " <>
          "the three it is belongs to `Kati.Screens.Home.today/0`; restating its thresholds " <>
@@ -1047,6 +1072,15 @@ defmodule Kati.ScreenDesignLiteralTest do
        &(&1
          |> Map.put(:results, Kati.Library.Sample.search_results())
          |> Map.put(:query, "hollow"))},
+      # 92 is drawn with three subscriptions on it, which is a state a reader
+      # reaches by telling Kati about three services. A device that has told it
+      # nothing gets board 93 — see `Kati.Screens.MyServices.content/1` and
+      # `Kati.ScreenEmptyDatabaseTest`'s `@empty_boards`. This entry is the
+      # arrival board 92 is a drawing OF, and it is one assign because the page
+      # renders from one map: that is the change MOVIES-AND-TV.md #75 asked for
+      # in as many words, and the reason it could not be closed before.
+      {"92", Kati.Screens.MyServices,
+       &Map.put(&1, :services, Kati.Screens.MyServices.drawn_page())},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so

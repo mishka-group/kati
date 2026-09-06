@@ -170,7 +170,7 @@ defmodule Kati.ServicesTest do
       a_service!(%{name: @prefix <> "Aria", monthly_pence: 1099})
       a_service!(%{name: @prefix <> "Beacon", monthly_pence: 499})
 
-      assert MyServices.subscribed_label() == "Subscribed · 2"
+      assert MyServices.subscribed_label(MyServices.listed()) == "Subscribed · 2"
       assert Enum.map(MyServices.subscribed(), & &1.price) == ["£10.99", "£4.99"]
     end
 

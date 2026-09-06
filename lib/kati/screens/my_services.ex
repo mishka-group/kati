@@ -91,7 +91,13 @@ defmodule Kati.Screens.MyServices do
   def load(socket) do
     socket
     |> Mob.Socket.assign(:region, Services.region())
+    # Both, because they answer two questions and this page hands one of them
+    # on. `:region` is the country the page is answering FOR — `"GB"` until
+    # somebody says otherwise — and `:chosen_region` is whether anybody has,
+    # which is what board 93 asks when it draws *Pick your country*.
+    |> Mob.Socket.assign(:chosen_region, Services.chosen_region())
     |> Mob.Socket.assign(:rules, Services.rules())
+    |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
     |> Mob.Socket.assign(:query, "")
     |> Mob.Socket.assign(:save_error, nil)
   end
@@ -113,7 +119,9 @@ defmodule Kati.Screens.MyServices do
     {:noreply,
      socket
      |> Mob.Socket.assign(:region, Services.region())
-     |> Mob.Socket.assign(:rules, Services.rules())}
+     |> Mob.Socket.assign(:chosen_region, Services.chosen_region())
+     |> Mob.Socket.assign(:rules, Services.rules())
+     |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())}
   end
 
   @doc """
@@ -160,12 +168,58 @@ defmodule Kati.Screens.MyServices do
   end
 
   @doc "The drawing's values, unconditionally — the fixture, not a fallback path."
-  @spec drawn() :: %{subscribed: [map()], free: [map()]}
-  def drawn, do: %{subscribed: Sample.subscribed(), free: Sample.free()}
+  @spec drawn() :: map()
+  def drawn, do: page(Sample.subscribed(), Sample.free(), false, Sample.monthly_total())
 
-  @doc "What this screen would show, for the empty-database gate."
-  @spec listed() :: %{subscribed: [map()], free: [map()]}
-  def listed, do: %{subscribed: subscribed(), free: free()}
+  @doc """
+  Board 92's own arrival: the drawing's services, on a page that IS set up.
+
+  `drawn/0`'s `set_up?` is false because that is the question it answers — what
+  a device with nothing stored reads back — and a device with nothing stored
+  draws board 93 now. This is the other thing: the state board 92 was captured
+  in, which is a reader with three subscriptions. Two maps, because they are
+  answers to two questions, and collapsing them is how a board stops being
+  compared against the page it is a drawing of.
+  """
+  @spec drawn_page() :: map()
+  def drawn_page, do: page(Sample.subscribed(), Sample.free(), true, Sample.monthly_total())
+
+  @doc """
+  Everything this page draws that comes from anywhere but the markup, as one
+  map — which is what the page renders FROM.
+
+  Read once, in `load/1`, and put on `:services`. It was six separate function
+  calls inside `content/1`, and that is what MOVIES-AND-TV.md #75's shape note
+  is about: `Kati.ScreenDesignLiteralTest.drawn_state/0` can put a screen into
+  the state its own board draws only by handing it assigns, and a screen that
+  reads through function calls cannot be handed anything. So 92 could not be
+  compared against board 93 on an empty device, and the disagreement between
+  Home's *No subscriptions yet* and this page's three subscriptions stood as a
+  passing test in `Kati.MyServicesGateTest` rather than as a fixed bug.
+
+  `set_up?` rides along because every other value here is gated on it, and
+  asking twice is how the halves come apart.
+  """
+  @spec listed() :: %{
+          subscribed: [map()],
+          free: [map()],
+          set_up?: boolean(),
+          money: {String.t(), String.t() | nil}
+        }
+  def listed, do: page(subscribed(), free(), set_up?(), monthly_total())
+
+  # One shaper for both sides of `Kati.ScreenEmptyDatabaseTest`'s pair. The map
+  # this page renders from and the map its drawing renders from have to be the
+  # same SHAPE or the pair compares two different kinds of thing, and the
+  # comparison stops meaning anything the day a key is added to one of them.
+  defp page(subscribed, free, set_up?, total) do
+    %{
+      subscribed: subscribed,
+      free: free,
+      set_up?: set_up?,
+      money: Kati.Screens.MyServices.money_line(subscribed, total)
+    }
+  end
 
   @doc """
   What the Money row says a month costs.
@@ -192,18 +246,14 @@ defmodule Kati.Screens.MyServices do
   invites you to believe the account has been totalled and came to nothing;
   what is true is that nothing has been totalled.*
   """
-  @spec money_line() :: {String.t(), String.t() | nil}
-  def money_line do
-    case Kati.Screens.MyServices.subscribed() do
-      [] ->
-        {"Nothing to add up yet", nil}
+  @spec money_line([map()], String.t()) :: {String.t(), String.t() | nil}
+  def money_line([], _total), do: {"Nothing to add up yet", nil}
 
-      services ->
-        count = length(services)
+  def money_line(subscribed, total) do
+    count = length(subscribed)
 
-        {"#{count} #{if count == 1, do: "service", else: "services"}",
-         String.upcase(monthly_total() <> " a month")}
-    end
+    {"#{count} #{if count == 1, do: "service", else: "services"}",
+     String.upcase(total <> " a month")}
   end
 
   defp stored(tier), do: Enum.filter(all_stored(), &(&1.tier == tier))
@@ -221,7 +271,33 @@ defmodule Kati.Screens.MyServices do
   def content(assigns) do
     query = assigns[:query] || ""
     save_error = assigns[:save_error]
+    services = assigns[:services] || Kati.Screens.MyServices.listed()
 
+    Kati.Screens.MyServices.page_for(assigns, services, query, save_error)
+  end
+
+  @doc """
+  The page, in the one shape it has.
+
+  It nearly had two. MOVIES-AND-TV.md #75's shape note says 92's empty state
+  should be board 93 through `@empty_boards`, the way Home's is board 139, and
+  the assigns half of that is done — this page renders from one map now, which
+  is what made the swap expressible at all.
+
+  The swap itself does not survive reading board 93. That board has **no way
+  to add a service**: 92's *Something else* row, the app's only writer for a
+  first service, is not on it, and its *Free with ads* group lists Aria Free
+  and Dispatch — two fixture services a reader with nothing has not got. So a
+  device sent there could see that it had nothing and could do nothing about
+  it, which is worse than the disagreement being fixed.
+
+  What 92's empty state should be — its own chrome over an empty list, in the
+  manner screen 03 keeps over screen 27's card, with *Something else* still on
+  it — is a drawing that does not exist. Recorded on #75 rather than invented
+  here.
+  """
+  @spec page_for(map(), map(), String.t(), String.t() | nil) :: map()
+  def page_for(assigns, services, query, save_error) do
     ~MOB"""
     <Scroll>
       <Column
@@ -236,15 +312,15 @@ defmodule Kati.Screens.MyServices do
         {UI.eyebrow("Region")}
         {Kati.Screens.MyServices.region_group(assigns.region)}
         {Kati.Screens.MyServices.search_field(query)}
-        {UI.eyebrow(Kati.Screens.MyServices.subscribed_label())}
-        {Kati.Screens.MyServices.service_group(Kati.Screens.MyServices.subscribed(), true)}
+        {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services))}
+        {Kati.Screens.MyServices.service_group(services.subscribed, true)}
         {UI.eyebrow("Free with ads")}
-        {Kati.Screens.MyServices.service_group(Kati.Screens.MyServices.free(), false)}
-        {Kati.Screens.MyServices.catalogue_group(save_error)}
+        {Kati.Screens.MyServices.service_group(services.free, false)}
+        {Kati.Screens.MyServices.catalogue_group(services, save_error)}
         {UI.eyebrow("Rules")}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
         {UI.eyebrow("Money")}
-        {Kati.Screens.MyServices.money_group()}
+        {Kati.Screens.MyServices.money_group(services)}
         {Kati.Screens.MyServices.credit()}
       </Column>
     </Scroll>
@@ -305,7 +381,7 @@ defmodule Kati.Screens.MyServices do
   *for* here. Screen 95 draws it mid-query — `mubi plus` typed, the list gone —
   and answers *No service called that. Kati uses JustWatch's list through TMDB.
   If it is a real service they do not track, add it as Something else.* That
-  sentence points the field at `catalogue_group/1`'s escape hatch, and the hatch
+  sentence points the field at `catalogue_group/2`'s escape hatch, and the hatch
   cannot add a service without a name to add it under.
 
   Screen 93 stays on the drawn clause deliberately. It is the board with
@@ -382,8 +458,8 @@ defmodule Kati.Screens.MyServices do
   end
 
   @doc "The subscribed eyebrow, carrying the count of what is actually listed."
-  @spec subscribed_label() :: String.t()
-  def subscribed_label, do: "Subscribed · #{length(Kati.Screens.MyServices.subscribed())}"
+  @spec subscribed_label(map()) :: String.t()
+  def subscribed_label(services), do: "Subscribed · #{length(services.subscribed)}"
 
   @doc """
   A group of services, with prices where they have them.
@@ -503,17 +579,18 @@ defmodule Kati.Screens.MyServices do
   and a row that took the name and stayed quiet about that would be a promise
   it could not keep.
   """
-  @spec catalogue_group(String.t() | nil) :: map()
-  def catalogue_group(save_error \\ nil) do
+  @spec catalogue_group(map(), String.t() | nil) :: map()
+  def catalogue_group(services, save_error \\ nil) do
+    {label, sub} = Kati.Screens.MyServices.catalogue_line(services)
+
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.eyebrow_muted("Not mine")}
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("more_horiz"),
-          Kati.UI.SettingsList.body(Kati.Services.Sample.catalogue_count(), "Everything JustWatch lists for the UK"),
-          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
-          on_tap: {self(), :show_all}
+          Kati.UI.SettingsList.body(label, sub, lines: 3),
+          Kati.UI.SettingsList.trailing(nil)
         ),
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("add"),
@@ -526,6 +603,51 @@ defmodule Kati.Screens.MyServices do
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc """
+  What the *Not mine* row says, and it no longer says `Show all 47`.
+
+  MOVIES-AND-TV.md #35. That row read *Show all 47 · Everything JustWatch
+  lists for the UK* and opened screen 93 — the board that announces
+  *Subscribed · none yet* and *Pick your country · Nothing works until this is
+  set* — to a reader with three services and a country. Two lies for the price
+  of one tap: a catalogue that does not exist anywhere in this app, and a page
+  contradicting the page it was opened from.
+
+  Kati has no catalogue provider. `Kati.Services.Service` holds the services a
+  person has told it about and nothing else, so `47` was the drawing's number
+  and could never become anyone's. What this row can honestly say is how many
+  Kati knows, and that a fuller list needs a source it has not got — so that
+  is what it says, and it is a statement rather than a door, because there is
+  nothing on the other side of it. `Kati.UI.SettingsList.trailing(nil)` and no
+  `on_tap`: not tappable rather than broken.
+
+  The drawing keeps its own words. A device with nothing set up renders board
+  92 whole, `Show all 47` included, which is the state that board was captured
+  in — see `set_up?/0` for why the gate is the page.
+
+      iex> Kati.Screens.MyServices.catalogue_line(%{set_up?: false, subscribed: [], free: []})
+      {"Show all 47", "Everything JustWatch lists for the UK"}
+
+      iex> Kati.Screens.MyServices.catalogue_line(%{set_up?: true, subscribed: [1, 2], free: [3]})
+      {"Kati lists 3 services",
+       "The ones you have told it about. A fuller list needs a source Kati has not got yet."}
+
+      iex> Kati.Screens.MyServices.catalogue_line(%{set_up?: true, subscribed: [1], free: []})
+      {"Kati lists 1 service",
+       "The ones you have told it about. A fuller list needs a source Kati has not got yet."}
+  """
+  @spec catalogue_line(map()) :: {String.t(), String.t()}
+  def catalogue_line(%{set_up?: false}),
+    do: {Sample.catalogue_count(), "Everything JustWatch lists for the UK"}
+
+  def catalogue_line(%{subscribed: subscribed, free: free}) do
+    count = length(subscribed) + length(free)
+    noun = if count == 1, do: "service", else: "services"
+
+    {"Kati lists #{count} #{noun}",
+     "The ones you have told it about. A fuller list needs a source Kati has not got yet."}
   end
 
   @doc """
@@ -575,9 +697,9 @@ defmodule Kati.Screens.MyServices do
   end
 
   @doc "The link into screen 23, quoting screen 23's own figure."
-  @spec money_group() :: map()
-  def money_group do
-    {line, total} = Kati.Screens.MyServices.money_line()
+  @spec money_group(map()) :: map()
+  def money_group(services) do
+    {line, total} = services.money
 
     assigns = %{line: line, total: total}
 
@@ -634,12 +756,6 @@ defmodule Kati.Screens.MyServices do
 
   def handle_tap(:open_subscriptions, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
-
-  # `Show all 47` opens the whole JustWatch catalogue for the region, which is
-  # what screen 93 draws when none of it is set up yet — the empty state IS the
-  # catalogue with nothing chosen from it.
-  def handle_tap(:show_all, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServicesEmpty)}
 
   # `Something else` used to push screen 23, which is a read-only page about
   # money you already spend — the one place in the app that could not answer
@@ -708,8 +824,15 @@ defmodule Kati.Screens.MyServices do
   def add_service(socket) do
     case Kati.Screens.MyServices.save_service(socket.assigns[:query]) do
       {:ok, _service} ->
+        # Re-read, because the page renders from `:services` and that map was
+        # built at mount. Before this the row was written and the page went on
+        # drawing the list it had — the reader added a service and the screen
+        # said *Subscribed · 3* over the drawing's three, which is the same
+        # class of defect `Kati.Screens.Resume` fixes for a screen you come
+        # back to. Here the screen never left.
         socket
         |> Mob.Socket.assign(:query, "")
+        |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
         |> Mob.Socket.assign(:save_error, nil)
 
       {:error, _reason} = error ->

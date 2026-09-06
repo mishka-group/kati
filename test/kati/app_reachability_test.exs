@@ -107,6 +107,13 @@ defmodule Kati.AppReachabilityTest do
      "screen 154's two states and the three decisions behind them, in 27's " <>
        "manner. A picture of two situations rather than a situation the app " <>
        "can be in."},
+    {Screens.MyServicesEmpty,
+     "screen 92 with nothing set up. `Kati.Screens.MyServices.content/1` " <>
+       "CALLS this module's `content/1` when no service is stored — Home's " <>
+       "own arrangement with screen 139 — so a user reaches it by having no " <>
+       "services rather than by navigating, and nothing pushes it. The row " <>
+       "that used to, `Show all 47`, was opening it over a page listing three " <>
+       "subscriptions: MOVIES-AND-TV.md #35."},
     {Screens.YearCardsStates, "screen 100's states, in 27's manner. As above."},
     {Screens.MoneyStates, "screen 122's states, in 27's manner. As above."},
     {Screens.MealLibraryEmpty,

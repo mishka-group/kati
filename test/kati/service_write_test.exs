@@ -101,7 +101,7 @@ defmodule Kati.ServiceWriteTest do
       # And it is on the page, under the name that was typed, through the
       # screen's own reader rather than a query written for the test.
       assert Enum.any?(MyServices.subscribed(), &(&1.name == name))
-      assert MyServices.subscribed_label() == "Subscribed · 1"
+      assert MyServices.subscribed_label(MyServices.listed()) == "Subscribed · 1"
 
       # The field is empty again and nothing is being reported.
       assert assigns(view).query == ""
@@ -191,6 +191,26 @@ defmodule Kati.ServiceWriteTest do
              "the failure took the typed name with it, so there is nothing to try again with"
 
       assert mine() == []
+    end
+  end
+
+  describe "the page after the write" do
+    test "lists the service that was just added, without leaving the screen" do
+      view = mount_screen(MyServices)
+      view = render_info(view, {:change, :service_query, "svcwrite-Cinepop"})
+      view = render_info(view, {:tap, :add_service})
+
+      assert find(tree(view), :text, text: "svcwrite-Cinepop") != nil,
+             "the row was written and the page went on drawing the list it had at mount"
+    end
+
+    test "and the Not mine row counts it" do
+      view = mount_screen(MyServices)
+      view = render_info(view, {:change, :service_query, "svcwrite-Cinepop"})
+      view = render_info(view, {:tap, :add_service})
+
+      assert find(tree(view), :text, text: "Kati lists 1 service") != nil
+      assert find(tree(view), :text, text: "Show all 47") == nil
     end
   end
 
