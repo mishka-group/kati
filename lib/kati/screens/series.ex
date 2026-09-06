@@ -1343,6 +1343,65 @@ defmodule Kati.Screens.Series do
   end
 
   @doc """
+  Where you are in a series, as a season and an episode number.
+
+  `Kati.Media.TrackedTitle` calls `progress_episode` *a bookmark inside a
+  season* and **nothing wrote it**: the only writer was
+  `Kati.Screens.DropSheet`, which has no route in. So every screen that reads
+  the bookmark had nothing to read — `Kati.Screens.UpNext`'s hero drew a title
+  with a blank line under it where board 10 puts `S2 · E6`, and it drew that
+  for a series whose episodes the reader had been ticking all along.
+
+  Derived from the ticks rather than tracked alongside them, and written here
+  so it is derived ONCE. Screens that want the position read a column; they do
+  not each grow their own count, which is how two of them come to disagree.
+
+  The furthest episode ticked, not the last one tapped: ticking episode 3 after
+  episode 7 does not move you back to 3. `nil` for a title whose ticked
+  episodes are not in the cache, which leaves the bookmark alone rather than
+  clearing it.
+  """
+  @spec bookmark(binary()) :: map()
+  def bookmark(tracked_id) when is_binary(tracked_id) do
+    ids =
+      Kati.Media.Watch
+      |> Ash.Query.for_read(:for_title, %{tracked_title_id: tracked_id})
+      |> Ash.read!()
+      |> Enum.map(& &1.episode_source_id)
+      |> Enum.reject(&is_nil/1)
+
+    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, tracked_id),
+         %CachedEpisode{season_number: s, episode_number: e} <- furthest(tracked, ids) do
+      %{progress_season: s, progress_episode: e}
+    else
+      _nothing -> %{}
+    end
+  rescue
+    _error -> %{}
+  end
+
+  # Through `:for_title`, the named read, for the reason at the top of this
+  # file: no `require Ash.Query` here, so the narrowing to the ticked episodes
+  # happens in Elixir over one title's own list rather than in a filter
+  # expression over every episode in the store.
+  defp furthest(_tracked, []), do: nil
+
+  defp furthest(tracked, source_ids) do
+    ticked = MapSet.new(source_ids)
+
+    CachedEpisode
+    |> Ash.Query.for_read(:for_title, %{
+      source: tracked.source,
+      title_source_id: tracked.source_id
+    })
+    |> Ash.read!()
+    |> Enum.filter(&MapSet.member?(ticked, &1.source_id))
+    |> Enum.max_by(&{&1.season_number || 0, &1.episode_number || 0}, fn -> nil end)
+  rescue
+    _error -> nil
+  end
+
+  @doc """
   What the shelf calls a series after a tick: `:finished`, or `:watching`.
 
   Nothing in the reachable app could set a title's status — the only writer
@@ -1382,9 +1441,14 @@ defmodule Kati.Screens.Series do
 
       status = if ticked >= total, do: :finished, else: :watching
 
-      if tracked.status != status do
+      changes =
+        %{status: status}
+        |> Map.merge(Kati.Screens.Series.bookmark(tracked_id))
+        |> Map.reject(fn {key, value} -> Map.get(tracked, key) == value end)
+
+      if changes != %{} do
         tracked
-        |> Ash.Changeset.for_update(:update, %{status: status})
+        |> Ash.Changeset.for_update(:update, changes)
         |> Ash.update()
       end
     end

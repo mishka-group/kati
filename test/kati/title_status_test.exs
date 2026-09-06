@@ -34,6 +34,10 @@ defmodule Kati.TitleStatusTest do
 
       Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
+
+      Kati.Repo.query!("DELETE FROM cached_episodes WHERE title_source_id LIKE ?1", [
+        @prefix <> "%"
+      ])
     end)
 
     :ok
@@ -65,6 +69,22 @@ defmodule Kati.TitleStatusTest do
   end
 
   defp status_of(id), do: TrackedTitle |> Ash.get!(id) |> Map.get(:status)
+
+  defp ep_id(tracked, season, number), do: "#{tracked.source_id}-s#{season}e#{number}"
+
+  defp episodes!(tracked, pairs) do
+    for {season, number} <- pairs do
+      Ash.create!(Kati.Media.CachedEpisode, %{
+        source: tracked.source,
+        source_id: ep_id(tracked, season, number),
+        title_source_id: tracked.source_id,
+        season_number: season,
+        episode_number: number,
+        title: "S#{season}E#{number}",
+        fetched_at: DateTime.utc_now() |> DateTime.truncate(:second)
+      })
+    end
+  end
 
   describe "a film" do
     test "is finished by logging a watch of it" do
@@ -130,6 +150,49 @@ defmodule Kati.TitleStatusTest do
       assert :ok = Series.restate(series.id)
 
       assert status_of(series.id) == :watching
+    end
+
+    test "the bookmark follows the furthest episode ticked" do
+      # `progress_episode` is what `Kati.Media.TrackedTitle` calls *a bookmark
+      # inside a season*, and nothing wrote it — only the gallery-only drop
+      # sheet did — so `Kati.Screens.UpNext`'s hero drew a title with a blank
+      # line under it where board 10 puts `S2 · E6`, for a series whose
+      # episodes the reader had been ticking all along.
+      series = tracked!(:tv, %{episode_count: 20})
+      episodes!(series, [{1, 1}, {1, 2}, {2, 5}])
+
+      Series.write_tick(series.id, %{source_id: ep_id(series, 1, 1), watched: false})
+      Series.restate(series.id)
+
+      after_first = Ash.get!(TrackedTitle, series.id)
+      assert after_first.progress_season == 1
+      assert after_first.progress_episode == 1
+
+      # Out of order: ticking S2E5 moves the bookmark forward...
+      Series.write_tick(series.id, %{source_id: ep_id(series, 2, 5), watched: false})
+      Series.restate(series.id)
+
+      ahead = Ash.get!(TrackedTitle, series.id)
+      assert ahead.progress_season == 2
+      assert ahead.progress_episode == 5
+
+      # ...and ticking an earlier one does not move it back.
+      Series.write_tick(series.id, %{source_id: ep_id(series, 1, 2), watched: false})
+      Series.restate(series.id)
+
+      still = Ash.get!(TrackedTitle, series.id)
+      assert still.progress_season == 2
+      assert still.progress_episode == 5
+    end
+
+    test "a title whose ticks are not in the cache keeps the bookmark it had" do
+      series = tracked!(:tv, %{episode_count: 9})
+
+      Series.write_tick(series.id, %{source_id: "not-a-cached-episode", watched: false})
+      Series.restate(series.id)
+
+      row = Ash.get!(TrackedTitle, series.id)
+      refute row.progress_episode, "a bookmark was invented from an episode nobody has"
     end
 
     test "restate/1 with no id is a no-op rather than a raise" do
