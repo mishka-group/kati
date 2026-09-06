@@ -153,6 +153,12 @@ defmodule Kati.Media.TrackedTitle do
     # Spoiler-safe episode names on screen 04.
     attribute :hide_unwatched_titles, :boolean, allow_nil?: false, default: false, public?: true
 
+    # Kept off a shared card, and off nothing else. See the migration: screen
+    # 98's switch reads *Hide titles I marked private* and there was nothing to
+    # mark. The shelf, Up next and the year's own numbers are unchanged — a
+    # private title is still a title you watched.
+    attribute :private, :boolean, allow_nil?: false, default: false, public?: true
+
     # ── Shelf order ────────────────────────────────────────────────────────
     attribute :last_touched_at, :utc_datetime_usec,
       allow_nil?: false,

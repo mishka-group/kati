@@ -300,6 +300,9 @@ defmodule Kati.Screens.Film do
       # says where and never how much, and the row draws it as nothing.
       where: where_rows,
       where_line: Kati.Screens.Film.where_line(where_rows),
+      # Kept off a shared card, and off nothing else — see the migration for
+      # `Kati.Media.TrackedTitle.private`.
+      private?: tracked.private,
       actions: @actions
     }
   end
@@ -459,7 +462,7 @@ defmodule Kati.Screens.Film do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Film.chrome(assigns.menu?, Map.get(assigns, :back, "Library"))}
+      {Kati.Screens.Film.chrome(assigns.menu?, Map.get(assigns, :back, "Library"), f)}
     </Box>
     """
   end
@@ -582,7 +585,7 @@ defmodule Kati.Screens.Film do
   end
 
   @doc false
-  def chrome(menu?, label \\ "Library") do
+  def chrome(menu?, label \\ "Library", f \\ %{}) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
@@ -595,7 +598,7 @@ defmodule Kati.Screens.Film do
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
         {Kati.Screens.Film.back_pill(back, fill, lift, label)}
         <Spacer weight={1.0} />
-        {Kati.Screens.Film.more_disc(fill, lift, menu?)}
+        {Kati.Screens.Film.more_disc(fill, lift, menu?, f)}
       </Row>
     </Box>
     """
@@ -669,7 +672,7 @@ defmodule Kati.Screens.Film do
   centred Text did.
   """
   @spec more_disc(non_neg_integer(), String.t(), boolean()) :: map()
-  def more_disc(fill, lift, menu?) do
+  def more_disc(fill, lift, menu?, f \\ %{}) do
     trigger =
       MishkaActionIcon.action_icon(
         [
@@ -689,7 +692,18 @@ defmodule Kati.Screens.Film do
     Kati.UI.Menu.overflow(
       trigger,
       menu?,
-      [Kati.UI.Menu.item("star", "Log a watch", :log_watch)],
+      [
+        Kati.UI.Menu.item("star", "Log a watch", :log_watch),
+        # The one control that can set `Kati.Media.TrackedTitle.private`, and
+        # therefore the one thing that makes screen 98's *Hide titles I marked
+        # private* a switch about anything (MOVIES-AND-TV.md #103). A decision
+        # about one title belongs on that title's own page.
+        Kati.UI.Menu.item(
+          Kati.Screens.Film.private_icon(f),
+          Kati.Screens.Film.private_label(f),
+          :toggle_private
+        )
+      ],
       dismiss: :close_menu
     )
   end
@@ -1069,6 +1083,32 @@ defmodule Kati.Screens.Film do
   there is nothing to report and nothing to draw. The socket is unchanged,
   which `Mob.Share.text/2` documents in as many words.
   """
+  @doc """
+  Mark this film private, or unmark it — the one write behind screen 98's
+  *Hide titles I marked private*, which was a switch with nothing to mark.
+
+  It hides the title from that CARD and from nowhere else. The shelf, Up next
+  and the year's own numbers are unchanged, because a private title is still a
+  title you watched.
+  """
+  def handle_info({:tap, :toggle_private}, socket) do
+    f = socket.assigns.film
+
+    with id when is_binary(id) <- Map.get(f, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{private: not tracked.private})
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:film, %{f | private?: updated.private})}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
   def handle_info({:tap, :share_film}, socket) do
     {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
   end
@@ -1102,6 +1142,29 @@ defmodule Kati.Screens.Film do
   def where_line([%{name: name, line: "rent"} | _rest]), do: "Rent from " <> name
   def where_line([%{name: name, line: "buy"} | _rest]), do: "Buy from " <> name
   def where_line([%{name: name} | _rest]), do: "On " <> name
+
+  @doc """
+  The ⋯ row that marks a title private, and what it says.
+
+  Two labels rather than a switch, because an overflow row is a verb: *Keep off
+  shared cards* is what pressing it does, and *Show on shared cards* is what
+  pressing it does when it is already off one.
+  """
+  @spec private_label(map()) :: String.t()
+  def private_label(%{private?: true}), do: "Show on shared cards"
+  def private_label(_film), do: "Keep off shared cards"
+
+  @doc """
+  The glyph beside it.
+
+  `visibility_off` both ways, and `lock` is not the alternative it looks like:
+  Kati's icon subset carries exactly two of this family — `Kati.Icons.glyph!/1`
+  raises on anything else, which is how a `visibility` here took the film
+  screen down on the Pixel_9a and sent the app back to Home. The row's WORD
+  carries the state; the glyph names the subject.
+  """
+  @spec private_icon(map()) :: String.t()
+  def private_icon(_film), do: "visibility_off"
 
   @doc """
   What gets shared: the title, the year, and where it can be watched.

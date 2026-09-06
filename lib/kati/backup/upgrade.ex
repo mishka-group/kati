@@ -90,7 +90,12 @@ defmodule Kati.Backup.Upgrade do
       {6, 7, &add_goals_and_expenses/1},
       {7, 8, &add_health/1},
       {8, 9, &unchanged/1},
-      {9, 10, &unchanged/1}
+      {9, 10, &unchanged/1},
+      # `tracked_titles` gained `private`, which screen 98's share card reads.
+      # Nothing moves: a version-10 file has no such column and every row takes
+      # the attribute default of `false`, which is what a title nobody has
+      # marked private is.
+      {10, 11, &unchanged/1}
     ]
 
   @doc """

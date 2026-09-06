@@ -86,7 +86,12 @@ defmodule Kati.Backup.Catalog do
   #   * **10** — `recipes` gained `bookmarked` with screen 45's disc. Nothing
   #     moves, for the same reason 8 -> 9 moves nothing: a missing column takes
   #     the attribute default, where a missing table would raise.
-  @schema_version 10
+  #   * **11** — `tracked_titles` gained `private`, which screen 98's share card
+  #     reads: *Hide titles I marked private* was a switch with nothing to
+  #     mark. Nothing moves, for 10's reason — a version-10 file has no such
+  #     column and every row takes the attribute default of `false`, which is
+  #     what a title nobody has marked is.
+  @schema_version 11
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

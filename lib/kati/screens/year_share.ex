@@ -47,6 +47,17 @@ defmodule Kati.Screens.YearShare do
     |> Mob.Socket.assign(:share, share())
   end
 
+  # Both controls re-read the card, which is the whole of #103: they moved an
+  # assign nothing looked at, so the chip relit and the card did not move.
+  @doc false
+  def restated(socket) do
+    Mob.Socket.assign(
+      socket,
+      :share,
+      Kati.Screens.YearShare.share(socket.assigns.scope, socket.assigns.hide_private)
+    )
+  end
+
   @doc """
   The card this page shares: the reader's year, or the drawing's.
 
@@ -62,12 +73,19 @@ defmodule Kati.Screens.YearShare do
   layer down.
   """
   @spec share() :: map()
-  def share do
+  def share(scope \\ "All", hide_private \\ false) do
     figures = Kati.Screens.Stats.figures()
 
     case figures[:year] do
-      nil -> drawn_share()
-      year -> %{subtitle: figures[:range], hours: hours_face(year), top: top_titles()}
+      nil ->
+        drawn_share()
+
+      year ->
+        %{
+          subtitle: figures[:range],
+          hours: hours_face(year),
+          top: top_titles(scope, hide_private)
+        }
     end
   rescue
     _error -> drawn_share()
@@ -104,7 +122,7 @@ defmodule Kati.Screens.YearShare do
   rather than drawn `Untitled` on a card that is about to be posted.
   """
   @spec top_titles() :: [map()]
-  def top_titles do
+  def top_titles(scope \\ "All", hide_private \\ false) do
     watches = Ash.read!(Kati.Media.Watch)
     tracked = Map.new(Ash.read!(Kati.Media.TrackedTitle), &{&1.id, &1})
     cached = Map.new(Ash.read!(Kati.Media.CachedTitle), &{{&1.source, &1.source_id}, &1})
@@ -112,12 +130,56 @@ defmodule Kati.Screens.YearShare do
     watches
     |> Enum.frequencies_by(& &1.tracked_title_id)
     |> Enum.sort_by(fn {id, n} -> {-n, id} end)
+    |> Enum.map(fn {id, n} -> {Map.get(tracked, id), n} end)
+    |> Enum.filter(&Kati.Screens.YearShare.shareable?(&1, scope, hide_private))
     |> Enum.take(3)
     |> Enum.with_index(1)
-    |> Enum.flat_map(fn {{id, _n}, rank} -> title_row(rank, Map.get(tracked, id), cached) end)
+    |> Enum.flat_map(fn {{row, _n}, rank} -> title_row(rank, row, cached) end)
   rescue
     _error -> []
   end
+
+  @doc """
+  Whether a title belongs on the card as this reader has set it up.
+
+  Two questions, and they were both being asked of nothing (MOVIES-AND-TV.md
+  #103): the scope chips and the privacy switch moved assigns that nothing
+  read, so both relit over an unchanged card.
+
+    * **The scope.** `Screen` is films and series; the other chips name
+      sections whose watches are not in `Kati.Media.Watch` at all, so they
+      narrow to nothing and the card says so rather than showing the same
+      three titles under a different word.
+    * **Private.** `Kati.Media.TrackedTitle.private`, set from the title's own
+      ⋯ menu. It hides a title from the CARD and from nothing else — the
+      shelf, Up next and the year's numbers are unchanged, because a private
+      title is still a title you watched.
+
+      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: false}, 3}, "All", false)
+      true
+
+      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: true}, 3}, "All", true)
+      false
+
+      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: false}, 3}, "Books", false)
+      false
+
+      iex> Kati.Screens.YearShare.shareable?({nil, 3}, "All", false)
+      false
+  """
+  @spec shareable?({map() | nil, integer()}, String.t(), boolean()) :: boolean()
+  def shareable?({nil, _n}, _scope, _hide_private), do: false
+
+  def shareable?({tracked, _n}, scope, hide_private) do
+    not (hide_private and Map.get(tracked, :private, false)) and
+      in_scope?(Map.get(tracked, :kind), scope)
+  end
+
+  defp in_scope?(_kind, "All"), do: true
+  defp in_scope?(kind, "Screen"), do: kind in [:movie, :tv, :anime]
+  defp in_scope?(:book, "Books"), do: true
+  defp in_scope?(:album, "Music"), do: true
+  defp in_scope?(_kind, _scope), do: false
 
   defp title_row(_rank, nil, _cached), do: []
 
@@ -454,8 +516,10 @@ defmodule Kati.Screens.YearShare do
   end
 
   @doc false
-  def handle_tap(:toggle_private, socket),
-    do: {:noreply, Mob.Socket.assign(socket, :hide_private, not socket.assigns.hide_private)}
+  def handle_tap(:toggle_private, socket) do
+    socket = Mob.Socket.assign(socket, :hide_private, not socket.assigns.hide_private)
+    {:noreply, Kati.Screens.YearShare.restated(socket)}
+  end
 
   def handle_tap(aspect, socket) when aspect in [:aspect_square, :aspect_story],
     do: {:noreply, Mob.Socket.assign(socket, :aspect, aspect)}
@@ -522,7 +586,9 @@ defmodule Kati.Screens.YearShare do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "scope_" <> scope -> {:noreply, Mob.Socket.assign(socket, :scope, scope)}
+      "scope_" <> scope ->
+        socket = Mob.Socket.assign(socket, :scope, scope)
+        {:noreply, Kati.Screens.YearShare.restated(socket)}
       _other -> {:noreply, socket}
     end
   end
