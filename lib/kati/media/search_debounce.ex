@@ -12,6 +12,26 @@ defmodule Kati.Media.SearchDebounce do
   Kati user, and a results list that flickered through the answers to `s`,
   `se`, `sev` on the way.
 
+  ## Mob was asked first, and does not have one
+
+  Checked before writing a line of this, because the framework usually has it:
+  `Mob.Renderer` supports a **native** throttle and debounce on gestures —
+  `on_scroll: {pid, tag, debounce: 200}`, and the same for `on_drag`,
+  `on_pinch`, `on_rotate` and pointer events, serialised to the bridge as a
+  `*_config` prop (`deps/mob/lib/mob/renderer.ex:378-424`).
+
+  `on_change` is not one of them. It is `{pid, tag}` and nothing else
+  (`renderer.ex:318-319`), there is no `change_config` on the Kotlin side, and
+  nothing in Mob's README offers one. So the debounce for a text field has to
+  be written, and this is it.
+
+  **The deeper fix, if keystroke traffic ever matters**, is a vendored-bridge
+  patch giving `on_change` the same `*_config` treatment the gestures have —
+  the letters would then stop crossing the NIF at all rather than crossing it
+  and being discarded here. That is a `KATI-BEGIN` fence and a `native/LEDGER.md`
+  row; it is not this, because what was expensive was the REQUESTS and those
+  are what this stops.
+
   ## Why the sleep is here and not in the screen
 
   `Kati.SupervisionRuleTest` forbids `Process.send_after/3` in a screen module,
