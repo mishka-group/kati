@@ -197,8 +197,16 @@ defmodule Kati.ServicesTest do
   end
 
   describe "screen 92 with nothing stored" do
-    test "both groups fall back to the drawing, whole" do
-      assert MyServices.listed() == MyServices.drawn()
+    test "both groups are empty, and neither falls back to the drawing" do
+      # #75. They used to answer `Kati.Services.Sample` — three subscriptions
+      # and two free services — on a phone that had been told nothing.
+      assert MyServices.listed().subscribed == []
+      assert MyServices.listed().free == []
+      refute MyServices.listed() == MyServices.drawn_page()
+    end
+
+    test "and the drawing is still there to compare the board against" do
+      assert MyServices.drawn_page().subscribed == Kati.Services.Sample.subscribed()
     end
   end
 

@@ -565,6 +565,27 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # visible, which is a state a user reaches and not the one the screen opens
     # in, so the resting comparison is 155's first band rather than 154 whole.
     "154" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
+    # 92 → 93's own empty card, and 92's chrome besides.
+    #
+    # This is screen 03's arrangement, one screen over: the page keeps its own
+    # board's header, region row, search field, *Something else*, rules and
+    # money row — every one of them live and unchanged with nothing stored —
+    # and what goes is the list of services, which becomes board 93's `No
+    # services yet` card. So board 92 cannot be compared whole here (its three
+    # subscriptions are a state a reader reaches), and the band that replaces
+    # them is 93's.
+    #
+    # 93 as a WHOLE is not the answer, and reading it is what says so: it has
+    # no way to add a service — 92's *Something else* row is not on it — and
+    # its *Free with ads* group lists two services the reader has not got.
+    # MOVIES-AND-TV.md #75.
+    "92" => [{"93", {"Subscribed · none yet", "Free with ads"}}],
+    # 97 is 92 in Persian and empties the same way. There is no Persian board
+    # for the empty state — 93 has no mirror — so the comparison is 97's own
+    # chrome, which the `@quoted` floor and `Kati.MyServicesGateTest` hold,
+    # and the card's two Persian sentences are this screen's own translation
+    # of board 93's, in `@copy` beside the rest of the page's words.
+    "97" => [],
     # 157 is 154 in the dark colourway and opens in the same resting state, so
     # it answers to the same band of board 155 — see the entry above, and
     # MOVIES-AND-TV.md #29 for what it used to open in instead.
@@ -1673,64 +1694,44 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.AlbumDetail.drawn_album/0},
       {"77", Kati.Screens.ArtistDetail, &Kati.Screens.ArtistDetail.artist/0,
        &Kati.Screens.ArtistDetail.drawn_artist/0},
-      # 92 gates both service groups at once — either the shelf is yours or the
-      # whole page is the drawing's — and 24, 62 and 94 all gate on 92's own
-      # reader rather than on a second one, because the count in Settings' row
-      # and the list on 92 must never be able to disagree.
-      {"92", Kati.Screens.MyServices, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"24", Kati.Screens.Settings, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
+      # 92 and its three borrowers moved to `empties/0` on 6 September. They
+      # gated the service groups the way every screen here used to — an empty
+      # store answered `Kati.Services.Sample` — and MOVIES-AND-TV.md #75 is
+      # what that looked like on a phone: Home saying *No subscriptions yet*
+      # and 92, one tap later, listing Lumen+ £8.99, Orbit £13.99, Kino £11.49
+      # and `£46.47 A MONTH`. The groups read the store now and answer with
+      # nothing when it holds nothing; board 92 is compared in the state it is
+      # a drawing OF by `Kati.ScreenDesignLiteralTest.drawn_state/0`.
       # #25 and #11's readers. Four of the six borrow the pair they are built
       # on, which is the shape 120 already uses: the screen draws another
       # screen's `drawn_*` value, so what it depends on is that the borrowed
       # pair still agrees on an empty database, and that is what this asks.
-      {"128", Kati.Screens.Backup, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"131", Kati.Screens.BackupDark, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"132", Kati.Screens.RestoreFa, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 129 and 135 write rather than read: what they draw at rest is
       # `Kati.Backup.SampleRestore`'s fixture, and the database only enters on
       # the tap that restores. Their gate is 128's for the reason 106's is
       # 104's — a screen that restored into a Kati whose service list disagreed
       # with the page that sent it there would be the defect worth catching.
-      {"129", Kati.Screens.Restore, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"135", Kati.Screens.RestoreFirstRun, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 26 writes rather than reads: what it draws is its own section tiles, and
       # the database is only touched when someone answers the calendar dialog.
       # Gated on 128's reader for the reason 106 is gated on 104's — a first run
       # that ingested a calendar into a Kati whose service list disagreed with
       # the page that sent it there would be the defect worth catching.
-      {"26", Kati.Screens.PickSections, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 06 draws its own search results and writes on a tap; what it READS from
       # the store on an empty database is nothing at all. Gated on 92's reader
       # for the reason 106 is gated on 104's — a sheet that added a title into
       # a Kati whose service list disagreed with the page that opened it would
       # be the defect worth catching.
-      {"06", Kati.Screens.AddTitle, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 154 draws its own form and reads nothing: it WRITES on Add, which is
       # why it is on the migrated list at all. Gated on 92's reader for the
       # reason 06 is — a form that added a title into a Kati whose service list
       # disagreed with the page that opened it would be the defect worth
       # catching.
-      {"154", Kati.Screens.AddByHand, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # D-39's add path. 178 draws its own form and 179 its own transcription of
       # board 179's three rows; neither reads the store at all, and both are on
       # the migrated list because they WRITE on a tap. Gated on 92's reader the
       # way 154 and 06 are, and for their reason — a form that shelved a record
       # into a Kati whose service list disagreed with the page that opened it
       # would be the defect worth catching.
-      {"178", Kati.Screens.AddByHandRecord, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"179", Kati.Screens.AddTitleMusic, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 180 is gated on screen 74's own reader, not on a second one, for the
       # reason screen 73 is: the sheet and the page that opened it must be
       # about one record, and an id is what turns a shared reader into a shared
@@ -1744,48 +1745,26 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.Books.Book`. Gated the way 154 is, for 154's reason — a form that
       # put a book on the shelf of a Kati whose service list disagreed with the
       # page that opened it would be the defect worth catching.
-      {"177", Kati.Screens.AddByHandBook, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 163 and 166 draw four posters and a tick and read nothing; they are on
       # the migrated list because Finish writes the picked title. Gated the way
       # 154 is, for 154's reason — a first run that shelved a title into a Kati
       # whose service list disagreed with the page that sent it there would be
       # the defect worth catching.
-      {"163", Kati.Screens.OnboardingFirstTitle, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"166", Kati.Screens.OnboardingFirstTitleFa, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 155 reads nothing at all — it is a picture of 154's two states, and it
       # is on the migrated list only because it calls 154's own helpers and the
       # list is derived from the compiled import table. Gated the same way 154
       # is, for the same reason.
-      {"155", Kati.Screens.AddByHandStates, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 156 and 157 are 154 in another script and another colourway, and read
       # exactly what it reads — nothing. On this list because they call its
       # helpers and the list is derived from the compiled import table.
-      {"156", Kati.Screens.AddByHandFa, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"157", Kati.Screens.AddByHandDark, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 158 IS the empty state — it is screen 55 with nothing kept, so it
       # answers with its own emptiness rather than falling back to a drawing.
       # `Kati.Screens.HomeEmpty` is gated the same way for the same reason.
-      {"158", Kati.Screens.HomeFaEmpty, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"159", Kati.Screens.HomeFaEmptyDark, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"160", Kati.Screens.HomeFaOmittedSections, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       {"144", Kati.Screens.RateEpisode, &Kati.Screens.Rating.watch/0,
        &Kati.Screens.Rating.drawn_watch/0},
       # 149 is NOT here: it gates on `Kati.Screens.Library.titles/0`, which #91
       # made answer with the shelf and nothing else. Its gate is in `empties/0`,
       # still through Library's own reader for the reason it always was.
-      {"62", Kati.Screens.SettingsFa, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"94", Kati.Screens.CountryPicker, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       # 80 reads the metadata cache rather than a domain the user writes to, so
       # what it falls back to is a sentence about there being nothing — which is
       # the correct thing for a cache page to say and is asserted as itself.
@@ -1873,16 +1852,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> "Nothing cached yet" end},
       {"126", Kati.Screens.MoneyDay, &Kati.Screens.MoneyDay.rows/0,
        &Kati.Screens.MoneyDay.drawn_rows/0},
-      {"93", Kati.Screens.MyServicesEmpty, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"95", Kati.Screens.MyServicesStates, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"96", Kati.Screens.NothingSetUpKnockOn, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"97", Kati.Screens.MyServicesFa, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
-      {"90", Kati.Screens.SearchFa, &Kati.Screens.MyServices.listed/0,
-       &Kati.Screens.MyServices.drawn/0},
       {"102", Kati.Screens.YearShareDark, &Kati.Screens.AlbumDetail.field/0,
        &Kati.Music.Sample.listen_field/0},
       {"103", Kati.Screens.YearShareFa, &Kati.Screens.AlbumDetail.field/0,
@@ -1991,6 +1960,129 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> Kati.Screens.Search.drawn_results().titles end},
       {"89", Kati.Screens.SearchResultStates, fn -> Kati.Search.Query.run("hollow").titles end,
        [], fn -> Kati.Screens.Search.drawn_results().titles end},
+      # 92 and the three screens that read through it. The live value is the
+      # reader's two service groups; the empty value is two empty lists; the
+      # drawn value is still there, on `Kati.Screens.MyServices.drawn/0`, which
+      # is what stops an emptied Sample module turning the pair into two
+      # nothings agreeing. MOVIES-AND-TV.md #75.
+      {"92", Kati.Screens.MyServices,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"24", Kati.Screens.Settings,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      # The screens that borrow 92's reader. Each of them can WRITE into a Kati
+      # whose service list it would otherwise disagree with — the reason each
+      # is named in `fallbacks/0`'s own comments, which stay there — and the
+      # question about that reader changed on 6 September: it used to answer
+      # with `Kati.Services.Sample` and now answers with nothing. So the borrow
+      # moved with it, from "the borrowed pair still agrees" to "the borrowed
+      # reader answers empty, and the drawn value it could have answered with
+      # is still there". MOVIES-AND-TV.md #75.
+      {"128", Kati.Screens.Backup,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"131", Kati.Screens.BackupDark,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"132", Kati.Screens.RestoreFa,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"129", Kati.Screens.Restore,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"135", Kati.Screens.RestoreFirstRun,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"26", Kati.Screens.PickSections,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"06", Kati.Screens.AddTitle,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"154", Kati.Screens.AddByHand,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"178", Kati.Screens.AddByHandRecord,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"179", Kati.Screens.AddTitleMusic,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"177", Kati.Screens.AddByHandBook,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"163", Kati.Screens.OnboardingFirstTitle,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"166", Kati.Screens.OnboardingFirstTitleFa,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"155", Kati.Screens.AddByHandStates,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"156", Kati.Screens.AddByHandFa,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"157", Kati.Screens.AddByHandDark,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"158", Kati.Screens.HomeFaEmpty,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"159", Kati.Screens.HomeFaEmptyDark,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"160", Kati.Screens.HomeFaOmittedSections,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"62", Kati.Screens.SettingsFa,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"94", Kati.Screens.CountryPicker,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"93", Kati.Screens.MyServicesEmpty,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"95", Kati.Screens.MyServicesStates,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"96", Kati.Screens.NothingSetUpKnockOn,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"97", Kati.Screens.MyServicesFa,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
+      {"90", Kati.Screens.SearchFa,
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
+       {[], []},
+       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"01", Kati.Screens.Home, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,
        fn -> Kati.Screens.Home.nothing_kept?(Kati.Screens.Home.drawn_rows()) end},
       {"139", Kati.Screens.HomeEmpty, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,
@@ -2171,6 +2263,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # started writing; the line was exempt before and is exempt for the same
       # reason on both sides.
       {"46", "in my fridge", ~r/^recently eaten$/},
+      # 24's and 42's *My services* row, and the twin of this pair is in
+      # `Kati.ScreenDesignLiteralTest`. Both boards froze `United Kingdom · 3
+      # subscribed` and the line counts the reader's own services now — the
+      # count Home has always drawn, which is what let one screen say *No
+      # subscriptions yet* while another said three (MOVIES-AND-TV.md #75).
+      {"24", "united kingdom · 3 subscribed", ~r/^.+ · (none yet|\d+ subscribed)$/u},
+      {"42", "united kingdom · 3 subscribed", ~r/^.+ · (none yet|\d+ subscribed)$/u},
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},

@@ -479,11 +479,6 @@ defmodule Kati.ScreenTapSweepTest do
     # matched by prefix because that is what this list is: a control named here
     # is a control somebody looked at. Naming them changes nothing about what
     # they open, which is still nothing — the paragraph above is unaltered.
-    {Kati.Screens.MyServices, :"edit_service_Lumen+"},
-    {Kati.Screens.MyServices, :edit_service_Orbit},
-    {Kati.Screens.MyServices, :edit_service_Kino},
-    {Kati.Screens.MyServices, :edit_service_Aria_Free},
-    {Kati.Screens.MyServices, :edit_service_Dispatch},
     # `{Kati.Screens.CountryPicker, :search}` left this list on 6 September.
     # The field was a picture whose tap fell through to
     # `handle_info(_message, …)`, over a placeholder that promised 190

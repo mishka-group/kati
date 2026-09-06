@@ -185,7 +185,15 @@ defmodule Kati.Screens.MyServicesFa do
     rules: "قواعد",
     money: "مالی",
     services: "سرویس",
-    a_month: "در ماه"
+    a_month: "در ماه",
+    # Board 93's empty card, and the eyebrow over it, said in Persian. en and
+    # fa are one app, so a phone with no services says the same thing in both
+    # — and this page was showing Lumen+, Orbit and Kino to a reader who had
+    # told Kati nothing, exactly as 92 was (MOVIES-AND-TV.md #75).
+    none_yet: "هنوز هیچ‌کدام",
+    no_services: "هنوز سرویسی اضافه نشده",
+    no_services_why:
+      "آن‌هایی را که مشترکشان هستید روشن کنید تا کاتی چیزهایی را که نمی‌توانید ببینید نشان ندهد."
   }
 
   # The seven countries `Kati.Services.countries/0` offers, in Persian. Keyed by
@@ -263,10 +271,8 @@ defmodule Kati.Screens.MyServicesFa do
         {Kati.Screens.MyServicesFa.region_group(assigns.region)}
         {Kati.Screens.MyServicesFa.search_field()}
         {Fa.eyebrow(subscribed)}
-        {Kati.Screens.MyServicesFa.service_group(services.subscribed, on, 0)}
-        {Kati.Screens.MyServicesFa.owner_note()}
-        {SettingsFa.eyebrow(c.free, :muted)}
-        {Kati.Screens.MyServicesFa.service_group(services.free, on, length(services.subscribed))}
+        {Kati.Screens.MyServicesFa.subscribed_band(services.subscribed, on)}
+        {Kati.Screens.MyServicesFa.free_band(services.free, on, length(services.subscribed))}
         {SettingsFa.eyebrow(c.not_mine, :muted)}
         {Kati.Screens.MyServicesFa.catalogue_group()}
         {Fa.eyebrow(c.rules)}
@@ -453,8 +459,103 @@ defmodule Kati.Screens.MyServicesFa do
   drawing's own U+00B7 and is not a numeral, so it is left alone.
   """
   @spec subscribed_label([map()]) :: String.t()
+  def subscribed_label([]), do: @copy.subscribed <> " · " <> @copy.none_yet
+
   def subscribed_label(services) do
     @copy.subscribed <> " · " <> Digits.to_persian(length(services))
+  end
+
+  @doc """
+  The Subscribed band: the reader's services, or the card that says there are
+  none — `Kati.Screens.MyServices.service_group/2`'s own two clauses, said in
+  Persian.
+
+  The owner note goes with the group. It explains where the PRICES on these
+  rows are kept, and a note about prices over a card saying there are no
+  services is a footnote to nothing.
+  """
+  @spec subscribed_band([map()], MapSet.t()) :: map()
+  def subscribed_band([], _on) do
+    assigns = %{
+      title: @copy.no_services,
+      body: @copy.no_services_why
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.MyServicesFa.empty_card(@title, @body)}
+    </Column>
+    """
+  end
+
+  def subscribed_band(services, on) do
+    assigns = %{
+      group: Kati.Screens.MyServicesFa.service_group(services, on, 0),
+      note: Kati.Screens.MyServicesFa.owner_note()
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@group}
+      {@note}
+    </Column>
+    """
+  end
+
+  @doc """
+  The *free with ads* band, or nothing — a heading over an empty section is an
+  eyebrow over a hole. `Kati.Screens.MyServices.free_band/1`'s twin.
+  """
+  @spec free_band([map()], MapSet.t(), non_neg_integer()) :: map()
+  def free_band([], _on, _offset), do: ~MOB"<Spacer size={0} />"
+
+  def free_band(free, on, offset) do
+    assigns = %{
+      eyebrow: SettingsFa.eyebrow(@copy.free, :muted),
+      group: Kati.Screens.MyServicesFa.service_group(free, on, offset)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@eyebrow}
+      {@group}
+    </Column>
+    """
+  end
+
+  @doc false
+  def empty_card(title, body) do
+    assigns = %{
+      tile: Kati.Screens.MyServicesEmpty.empty_tile(),
+      title: BookDetailFa.fa(title, 13.5, :on_surface, weight: "bold", align: "center"),
+      body: BookDetailFa.fa(body, 12, Palette.sub(), lines: 3, align: "center")
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding_left={15}
+        padding_right={15}
+        padding_top={21}
+        padding_bottom={21}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          {@tile}
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={13} />
+        {@title}
+        <Spacer size={6} />
+        {@body}
+      </Column>
+      <Spacer size={24} />
+    </Column>
+    """
   end
 
   @doc """

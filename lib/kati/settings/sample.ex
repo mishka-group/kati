@@ -65,13 +65,41 @@ defmodule Kati.Settings.Sample do
       %{
         icon: "subscriptions",
         title: "My services",
-        sub:
-          "#{Kati.Services.region_name(Kati.Services.region())} · " <>
-            "#{length(Kati.Screens.MyServices.subscribed())} subscribed",
+        sub: Kati.Settings.Sample.services_line(),
         control: :chevron
       }
     ]
   end
+
+  @doc """
+  The *My services* row's second line: the country, and how many services.
+
+  `none yet` rather than `0 subscribed`, which is Home's own wording for the
+  same fact one screen away and board 93's for it on the page this row opens.
+  A zero is an answer; this is the absence of one, and the two read
+  differently to somebody who has just installed the app.
+
+      iex> Kati.Settings.Sample.services_line(:gb, 0)
+      "United Kingdom · none yet"
+
+      iex> Kati.Settings.Sample.services_line(:gb, 1)
+      "United Kingdom · 1 subscribed"
+
+      iex> Kati.Settings.Sample.services_line(:gb, 3)
+      "United Kingdom · 3 subscribed"
+  """
+  @spec services_line() :: String.t()
+  def services_line do
+    services_line(
+      Kati.Services.region_name(Kati.Services.region()),
+      length(Kati.Screens.MyServices.subscribed())
+    )
+  end
+
+  @doc false
+  def services_line(:gb, count), do: services_line("United Kingdom", count)
+  def services_line(region, 0), do: "#{region} · none yet"
+  def services_line(region, count), do: "#{region} · #{count} subscribed"
 
   @doc """
   Sections — the growth mechanic made literal.

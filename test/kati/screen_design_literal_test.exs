@@ -593,13 +593,17 @@ defmodule Kati.ScreenDesignLiteralTest do
       # the screen builds, which is stricter than the frozen literal — a screen
       # that hardcoded 190 over a list of seven fails it.
       #
+      # 43 → 45 the same day, for 24's and 42's *My services* row: both froze
+      # `United Kingdom · 3 subscribed` and the line counts the reader's own
+      # services now, which is the count Home has always drawn.
+      #
       # 41 → 43 on 6 September, for 92's *Not mine* row: `Show all 47` and
       # `Everything JustWatch lists for the UK` were a promise of a catalogue
       # that does not exist in this app, on a row that opened the empty-state
       # board over a page listing three subscriptions (MOVIES-AND-TV.md #35).
       # Both patterns accept the board's own words as well, because a device
       # with nothing stored still draws board 92 whole.
-      assert length(device_values()) <= 43,
+      assert length(device_values()) <= 45,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -692,6 +696,19 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the sub-line under it, which now says where the list comes from rather than naming " <>
          "a provider this app has never integrated",
        ~r/^(everything justwatch lists for the uk|the ones you have told it about\..*)$/u},
+      # 24's and 42's *My services* row. Both boards froze `United Kingdom · 3
+      # subscribed` and the line counts `Kati.Screens.MyServices.subscribed/0`
+      # now — the same count Home has always drawn, which is what let one
+      # screen say *No subscriptions yet* while another said 3
+      # (MOVIES-AND-TV.md #75). The pattern insists the line is composed from
+      # a region and a count, so a screen that hardcoded the drawing's three
+      # fails it.
+      {"24", "united kingdom · 3 subscribed",
+       "the reader's own country and their own count, which board 24 froze at the drawing's " <>
+         "three and `Kati.Settings.Sample.services_line/0` now reads",
+       ~r/^.+ · (none yet|\d+ subscribed)$/u},
+      {"42", "united kingdom · 3 subscribed",
+       "42 draws 24's row and reaches the same count through it", ~r/^.+ · (none yet|\d+ subscribed)$/u},
       {"01", "good evening",
        "the greeting is picked from the device clock's hour by the same function. Which of " <>
          "the three it is belongs to `Kati.Screens.Home.today/0`; restating its thresholds " <>
@@ -1092,6 +1109,18 @@ defmodule Kati.ScreenDesignLiteralTest do
       # in as many words, and the reason it could not be closed before.
       {"92", Kati.Screens.MyServices,
        &Map.put(&1, :services, Kati.Screens.MyServices.drawn_page())},
+      # 97 is 92 in Persian and reads through the same map, so it takes the
+      # same arrival. `:on` rides with it: the switches are lit from the
+      # subscribed names, and a page whose services came from the drawing must
+      # take its switches from there too.
+      {"97", Kati.Screens.MyServicesFa,
+       fn assigns ->
+         drawn = Kati.Screens.MyServices.drawn_page()
+
+         assigns
+         |> Map.put(:services, drawn)
+         |> Map.put(:on, MapSet.new(Enum.map(drawn.subscribed, & &1.name)))
+       end},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so

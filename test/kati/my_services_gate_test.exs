@@ -32,28 +32,39 @@ defmodule Kati.MyServicesGateTest do
   end
 
   describe "with nothing set up" do
-    test "the board stands, WHOLE — which is the half of #75 still open" do
+    test "the page shows nothing, because there is nothing" do
       refute MyServices.set_up?()
 
-      assert MyServices.subscribed() == Sample.subscribed()
-      assert MyServices.free() == Sample.free()
-      assert MyServices.monthly_total() == Sample.monthly_total()
+      assert MyServices.subscribed() == []
+      assert MyServices.free() == []
     end
 
-    test "and Home says the opposite one tap away" do
-      # This is #75, stated rather than hidden: Home refuses to draw the
-      # drawing on an empty device (#91) and 92 draws it, so a reader is told
-      # *No subscriptions yet* and then shown three subscriptions.
-      #
-      # Closing it needs 92's empty state to be board 93's — the
-      # `@empty_boards` mapping this repo already has for screens 01 and 154 —
-      # and 92 reads its services through function calls rather than assigns,
-      # so `Kati.ScreenDesignLiteralTest.drawn_state/0` cannot put it in the
-      # state its own board draws. Boards 24 and 42 quote 92's line as well.
-      # It is one well-shaped piece of work and it is not this one.
+    test "and Home says the same thing one tap away" do
+      # This WAS #75: Home refuses to draw the drawing on an empty device
+      # (#91) and 92 drew it, so a reader was told *No subscriptions yet* and
+      # then shown three subscriptions one tap later. The assertion is now the
+      # agreement rather than the disagreement.
       assert Kati.Services.subscribed_count() == 0
       assert Kati.Screens.Home.services_line(%{count: 0}) == "No subscriptions yet"
-      assert length(MyServices.subscribed()) == 3
+      assert MyServices.subscribed() == []
+    end
+
+    test "the eyebrow says none yet, in board 93's own words" do
+      assert MyServices.subscribed_label(MyServices.listed()) == "Subscribed · none yet"
+    end
+
+    test "the drawing is still there, for the board to be compared against" do
+      # The other half of the #91 rule this file exists for: a page that
+      # answers empty must not have answered by losing the values its board was
+      # captured from. `drawn_page/0` is the arrival board 92 is a drawing OF,
+      # and `Kati.ScreenDesignLiteralTest.drawn_state/0` installs it.
+      assert MyServices.drawn_page().subscribed == Sample.subscribed()
+      assert MyServices.drawn_page().free == Sample.free()
+      assert MyServices.drawn_page().set_up?
+    end
+
+    test "Settings says none yet too, where its board froze three" do
+      assert Kati.Settings.Sample.services_line() =~ "none yet"
     end
   end
 

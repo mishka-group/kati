@@ -302,7 +302,20 @@ defmodule Kati.ServiceWriteTest do
                "saved is not the one on screen"
     end
 
-    test "the placeholder is still the drawing's, so 92's copy is unchanged" do
+    test "the placeholder asks for a name while there is nothing to search" do
+      # `Search services` is board 92's word and the right one on a page with
+      # services on it. On a page with none it is a dead end — there is
+      # nothing to search, and this field is in fact how the first one gets
+      # named. Same control, same tap; the sentence the page is actually in.
+      view = mount_screen(MyServices)
+
+      assert find(tree(view), :text_field, placeholder: "Name a service you pay for") != nil
+      assert find(tree(view), :text_field, placeholder: "Search services") == nil
+    end
+
+    test "and goes back to the drawing's word once a service is listed" do
+      Ash.create!(Service, %{name: "svcwrite-Mubi", tier: :subscribed, monthly_pence: 899})
+
       view = mount_screen(MyServices)
 
       assert find(tree(view), :text_field, placeholder: "Search services") != nil

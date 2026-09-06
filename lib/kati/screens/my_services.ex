@@ -134,15 +134,21 @@ defmodule Kati.Screens.MyServices do
   MOVIES-AND-TV.md #76.
   """
   @spec subscribed() :: [map()]
-  def subscribed do
-    if set_up?(), do: stored(:subscribed) |> Enum.map(&shape/1), else: Sample.subscribed()
-  end
+  def subscribed, do: stored(:subscribed) |> Enum.map(&shape/1)
 
-  @doc "The ones that cost nothing: what is stored, or the drawing's two."
+  @doc """
+  The ones that cost nothing: what is stored, and nothing when nothing is.
+
+  Neither group falls back to `Kati.Services.Sample` any more, which is
+  MOVIES-AND-TV.md #75. A phone that had been told nothing was shown Lumen+
+  £8.99, Orbit £13.99, Kino £11.49, *Subscribed · 3* and `£46.47 A MONTH` —
+  one tap after Home had said *No subscriptions yet*. The drawing's values are
+  still the drawing's: `Kati.ScreenDesignLiteralTest.drawn_state/0` installs
+  them to compare board 92 against, which is the arrangement screens 01 and 03
+  already have.
+  """
   @spec free() :: [map()]
-  def free do
-    if set_up?(), do: stored(:free_with_ads) |> Enum.map(&shape/1), else: Sample.free()
-  end
+  def free, do: stored(:free_with_ads) |> Enum.map(&shape/1)
 
   @doc """
   Whether this reader has told Kati about any service at all.
@@ -311,11 +317,10 @@ defmodule Kati.Screens.MyServices do
         {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
         {UI.eyebrow("Region")}
         {Kati.Screens.MyServices.region_group(assigns.region)}
-        {Kati.Screens.MyServices.search_field(query)}
+        {Kati.Screens.MyServices.search_field(query, services.set_up?)}
         {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services))}
         {Kati.Screens.MyServices.service_group(services.subscribed, true)}
-        {UI.eyebrow("Free with ads")}
-        {Kati.Screens.MyServices.service_group(services.free, false)}
+        {Kati.Screens.MyServices.free_band(services.free)}
         {Kati.Screens.MyServices.catalogue_group(services, save_error)}
         {UI.eyebrow("Rules")}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
@@ -394,9 +399,9 @@ defmodule Kati.Screens.MyServices do
   than on the field itself.
   """
   @spec search_field(String.t() | nil) :: map()
-  def search_field(query \\ nil)
+  def search_field(query \\ nil, set_up? \\ true)
 
-  def search_field(nil) do
+  def search_field(nil, _set_up?) do
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -425,8 +430,17 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  def search_field(query) when is_binary(query) do
-    assigns = %{query: query, on_change: {self(), :service_query}}
+  def search_field(query, set_up?) when is_binary(query) do
+    assigns = %{
+      query: query,
+      on_change: {self(), :service_query},
+      # A field over an empty list cannot be searching it. `Search services`
+      # is the right word on a page with services on it and a dead end on one
+      # without: there is nothing to search, and the field is in fact the way
+      # you name the first one. Same control, same tap, the sentence the page
+      # is actually in.
+      placeholder: if(set_up?, do: "Search services", else: "Name a service you pay for")
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -445,7 +459,7 @@ defmodule Kati.Screens.MyServices do
         <Spacer size={11} />
         <TextField
           value={@query}
-          placeholder="Search services"
+          placeholder={@placeholder}
           return_key="search"
           weight={1.0}
           accessibility_id="service_query"
@@ -459,6 +473,7 @@ defmodule Kati.Screens.MyServices do
 
   @doc "The subscribed eyebrow, carrying the count of what is actually listed."
   @spec subscribed_label(map()) :: String.t()
+  def subscribed_label(%{subscribed: []}), do: "Subscribed · none yet"
   def subscribed_label(services), do: "Subscribed · #{length(services.subscribed)}"
 
   @doc """
@@ -467,7 +482,98 @@ defmodule Kati.Screens.MyServices do
   The subscribed group takes the ownership `info` row under it; the free group
   does not, because nothing on it has a price to own.
   """
+  @doc """
+  The pill under the empty card: add the service named in the field above.
+
+  `:add_first`, and the same writer as *Something else* — one way a service
+  gets into Kati, two places to reach it, rather than two writers able to
+  disagree. Its own TAG, though: `Mob.Renderer` registers `{pid, atom}` and
+  emits the atom as the control's `accessibility_id`, so two nodes sharing one
+  would be two controls a device test could not tell apart, and
+  `Kati.ScreenTapSweepTest` fails on exactly that.
+
+  An empty field answers *Nothing to save yet* under the row, which
+  `Kati.Write.message/1` already words.
+  """
+  @spec add_first_pill() :: map()
+  def add_first_pill do
+    assigns = %{
+      pill:
+        Kati.Components.MishkaPill.pill(
+          label: "Add it",
+          background: Palette.ink_fill(),
+          color: Palette.on_ink(),
+          height: 38,
+          corner_radius: 19,
+          padding: 0,
+          padding_left: 18,
+          padding_right: 18,
+          text_size: 13,
+          font_weight: :bold,
+          align: :center,
+          on_tap: {self(), :add_first}
+        )
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={13} />
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        {@pill}
+        <Spacer weight={1.0} />
+      </Row>
+      <Spacer size={10} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The *Free with ads* band, or nothing at all.
+
+  A heading over an empty section is an eyebrow over a hole — the rule screen
+  14 arrived at when its bands started falling away one at a time. Board 92
+  draws two free services and board 93 draws the same two, and neither is a
+  service the reader has: `Kati.Services.Sample`'s Aria Free and Dispatch were
+  what a device with nothing showed under this heading, which is a good part
+  of MOVIES-AND-TV.md #75 in one band.
+  """
+  @spec free_band([map()]) :: map()
+  def free_band([]), do: ~MOB"<Spacer size={0} />"
+
+  def free_band(free) do
+    assigns = %{group: Kati.Screens.MyServices.service_group(free, false)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow("Free with ads")}
+      {@group}
+    </Column>
+    """
+  end
+
   @spec service_group([map()], boolean()) :: map()
+  # Board 93's own card, called rather than copied — the module that owns an
+  # artboard owns its copy, which is the arrangement Home keeps with screen 139
+  # and the Library with band one of screen 27 — with the action under it.
+  #
+  # The card says *Turn on the ones you pay for* and there is nothing on the
+  # page to turn on: with no catalogue, the only way to name a service is to
+  # type it and press the row at the far end of the page. A card that tells
+  # somebody what to do and does not offer it is a card they read twice. So
+  # the pill goes under the sentence, on the same write as *Something else*,
+  # and the field above it is asking for the name.
+  def service_group([], true) do
+    assigns = %{card: Kati.Screens.MyServicesEmpty.empty_group()}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@card}
+      {Kati.Screens.MyServices.add_first_pill()}
+    </Column>
+    """
+  end
+
   def service_group(services, owner_note?) do
     rows = Enum.map(services, &Kati.Screens.MyServices.service_row/1)
 
@@ -581,24 +687,20 @@ defmodule Kati.Screens.MyServices do
   """
   @spec catalogue_group(map(), String.t() | nil) :: map()
   def catalogue_group(services, save_error \\ nil) do
-    {label, sub} = Kati.Screens.MyServices.catalogue_line(services)
-
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.eyebrow_muted("Not mine")}
-      {Kati.UI.SettingsList.card([
-        Kati.UI.SettingsList.row(
-          Kati.UI.SettingsList.icon_tile("more_horiz"),
-          Kati.UI.SettingsList.body(label, sub, lines: 3),
-          Kati.UI.SettingsList.trailing(nil)
-        ),
+      {Kati.UI.SettingsList.card(
+        Kati.Screens.MyServices.count_row(services) ++
+        [
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("add"),
           Kati.UI.SettingsList.body("Something else", "Kati will remember it for your subscription total, but cannot tell you what is on it", lines: 3),
           Kati.UI.SettingsList.trailing(nil),
           on_tap: {self(), :add_service}
         )
-      ])}
+        ]
+      )}
       {Kati.Screens.MyServices.save_notice(save_error)}
       <Spacer size={24} />
     </Column>
@@ -627,8 +729,8 @@ defmodule Kati.Screens.MyServices do
   92 whole, `Show all 47` included, which is the state that board was captured
   in — see `set_up?/0` for why the gate is the page.
 
-      iex> Kati.Screens.MyServices.catalogue_line(%{set_up?: false, subscribed: [], free: []})
-      {"Show all 47", "Everything JustWatch lists for the UK"}
+      iex> Kati.Screens.MyServices.count_row(%{subscribed: [], free: []})
+      []
 
       iex> Kati.Screens.MyServices.catalogue_line(%{set_up?: true, subscribed: [1, 2], free: [3]})
       {"Kati lists 3 services",
@@ -639,15 +741,35 @@ defmodule Kati.Screens.MyServices do
        "The ones you have told it about. A fuller list needs a source Kati has not got yet."}
   """
   @spec catalogue_line(map()) :: {String.t(), String.t()}
-  def catalogue_line(%{set_up?: false}),
-    do: {Sample.catalogue_count(), "Everything JustWatch lists for the UK"}
-
   def catalogue_line(%{subscribed: subscribed, free: free}) do
     count = length(subscribed) + length(free)
     noun = if count == 1, do: "service", else: "services"
 
     {"Kati lists #{count} #{noun}",
      "The ones you have told it about. A fuller list needs a source Kati has not got yet."}
+  end
+
+  @doc """
+  The count row, or no row at all on a page with nothing counted.
+
+  *Not mine* over `Kati lists 0 services` above a card that has just said *No
+  services yet* is the same sentence twice, and the second time it is a
+  number. A section with nothing to say does not say it — the rule this page
+  now keeps for its Free with ads band as well.
+  """
+  @spec count_row(map()) :: [map()]
+  def count_row(%{subscribed: [], free: []}), do: []
+
+  def count_row(services) do
+    {label, sub} = Kati.Screens.MyServices.catalogue_line(services)
+
+    [
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("more_horiz"),
+        Kati.UI.SettingsList.body(label, sub, lines: 3),
+        Kati.UI.SettingsList.trailing(nil)
+      )
+    ]
   end
 
   @doc """
@@ -760,7 +882,7 @@ defmodule Kati.Screens.MyServices do
   # `Something else` used to push screen 23, which is a read-only page about
   # money you already spend — the one place in the app that could not answer
   # "add a service Kati has never heard of". It writes now; see `add_service/1`.
-  def handle_tap(:add_service, socket),
+  def handle_tap(tag, socket) when tag in [:add_service, :add_first],
     do: {:noreply, Kati.Screens.MyServices.add_service(socket)}
 
   def handle_tap(tag, socket) do
