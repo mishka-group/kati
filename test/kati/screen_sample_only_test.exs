@@ -13,15 +13,20 @@ defmodule Kati.ScreenSampleOnlyTest do
   render. These never moved. Each one names, in its own moduledoc, exactly
   which resource or column it is waiting on:
 
-  **11 Discover left this list on 6 September.** Its first band — the picks
+  **06 Add a title and 11 Discover left this list on 6 September.** 06 no
+  longer draws its Sample at rest: board 06 is a drawing of a search somebody
+  has run, and opening the sheet on its four results meant a reader who had
+  typed nothing was shown four invented films. It draws a card now, and
+  `Kati.ScreenDesignLiteralTest` renders it in the state the board WAS captured
+  in.
+
+  **11 Discover left on the same day.** Its first band — the picks
   under *Because you watched* — is now `Kati.Media.Recommendations`, keyed on
   the newest title the reader touched and answered by TMDB. The other two
   bands still cannot move, and no longer pretend to: on a real device they are
   empty and their headings and chips are dropped. It is gated in
   `Kati.ScreenEmptyDatabaseTest` now, at `Kati.Screens.Discover.feed/0`.
 
-    * **06 Add a title** — no provider search client, and no first-release
-      year or availability on `Kati.Media.CachedTitle`.
     * **18 Quick add** — no natural-language parser anywhere in `lib/`.
     * **19 Search** — no index. Nothing anywhere matches a title, an episode,
       an event or a review by substring.
@@ -80,7 +85,6 @@ defmodule Kati.ScreenSampleOnlyTest do
   #     nearest thing is a `kind: :money` event with an amount in its free-text
   #     `description`, which is two of the four services and not a source.
   @on_sample [
-    {"06", Kati.Screens.AddTitle},
     {"18", Kati.Screens.QuickAdd},
     {"22", Kati.Screens.Habits},
     {"23", Kati.Screens.Subscriptions}

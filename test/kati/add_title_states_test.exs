@@ -111,9 +111,17 @@ defmodule Kati.AddTitleStatesTest do
       refute words(socket) =~ "Nothing here for"
     end
 
-    test "the board's own resting state is untouched" do
-      # Screen 06 is compared with board 06 through the gallery, which pushes
-      # with no params — so the mount state must keep drawing the drawing.
+    test "the sheet opens on a card, not on the drawing's four results" do
+      # This asserted the opposite until 6 September, on the argument that the
+      # gallery pushes with no params and so the mount state must keep drawing
+      # the drawing. It is MOVIES-AND-TV.md #43: board 06 is drawn MID-QUERY,
+      # and opening on its results meant a reader who had typed nothing was
+      # shown four invented films with real poster images, a `4 results`
+      # caption, fabricated availability lines, and one of them ticked as
+      # already in their library.
+      #
+      # Board 06's literals are still compared, in the state the board was
+      # captured in — see `Kati.ScreenDesignLiteralTest.drawn_state/0`.
       assert {:ok, _socket, tree} = ScreenSweep.render(AddTitle)
 
       said =
@@ -122,8 +130,27 @@ defmodule Kati.AddTitleStatesTest do
         |> Enum.filter(&(&1.type == :text))
         |> Enum.map_join(" | ", &(Map.get(&1.props || %{}, :text) || ""))
 
-      assert said =~ "The Quiet Coast"
-      refute said =~ "Nothing here for"
+      refute said =~ "The Quiet Coast",
+             "the sheet still opens on four films nobody searched for"
+
+      assert said =~ "Search for something to add"
+      assert said =~ "0 RESULTS"
+
+      # The chrome survives, which is what `Kati.ScreenEmptyDatabaseTest`'s
+      # `@quoted` rows for 06 hold from the other side.
+      assert said =~ "Add a title"
+      assert said =~ "Everything"
+    end
+
+    test "and one or two letters do not put them back" do
+      {:noreply, typed} =
+        AddTitle.handle_info({:change, :title_query, "Up"}, mounted())
+
+      assert typed.assigns.results == []
+      assert words(typed) =~ "Keep typing"
+
+      refute words(typed) =~ "The Quiet Coast",
+             "typing `Up` answered with four films nobody searched for"
     end
   end
 
@@ -143,7 +170,11 @@ defmodule Kati.AddTitleStatesTest do
 
       assert cleared.assigns.query == ""
       refute cleared.assigns.search_error
-      assert cleared.assigns.results == Kati.Library.Sample.search_results()
+
+      assert cleared.assigns.results == [],
+             "clearing the field put the drawing's four results back under it"
+
+      assert words(cleared) =~ "Search for something to add"
     end
 
     test "clearing does not reach the network" do

@@ -573,6 +573,22 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # by `empties/0`, and every line of their empty cards that IS quoted from a
   # board is compared in `@quoted` directly below.
   @no_empty_board [
+    # 06 is drawn MID-QUERY: the four results, the `4 results` caption and the
+    # availability lines under them all belong to a search somebody has run.
+    # The sheet used to open on them, so a reader who had typed nothing was
+    # shown four invented films with real poster images and one of them ticked
+    # as already in their library (MOVIES-AND-TV.md #43) — and typing one or
+    # two letters put them back (#44).
+    #
+    # It opens empty now, and no board draws that state. `Kati.AddTitleStatesTest`
+    # holds the three cards it draws instead, and `Kati.ScreenDesignLiteralTest`
+    # renders 06 in the state its own board WAS captured in — a query typed and
+    # four results — which is where board 06's literals are still compared.
+    {"06",
+     "board 06 is drawn mid-query and its four results belong to that query. The sheet " <>
+       "opens empty, and the three states it can be in with nothing typed — resting, under " <>
+       "the minimum, and no match — have no board of their own; `D-31` is the brief that " <>
+       "would settle it", Kati.AddTitleStatesTest},
     # 19 and 89 are results pages and no board draws one with nothing typed,
     # for a reason that was true until this round: until the field was real the
     # design never put a person on 19 without a query. A person can clear the
@@ -689,6 +705,20 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # `All` is board 19's own — it is the chip that reads as selected on every
     # one of the four boards — and it is the one literal here that says the
     # scope row survived.
+    # 06 with nothing typed. What constrains it is the chrome that survives
+    # whatever a search answered — the sheet's own heading, its three scope
+    # chips, and the row that is the only way to add a title the catalogue
+    # cannot find. A sheet that quietly lost its chips would still have looked
+    # like a sheet.
+    #
+    # All five are board 06's own; the four RESULTS are the part that belongs
+    # to a query, and `Kati.ScreenDesignLiteralTest` compares those in the
+    # state the board was captured in.
+    {"06", "06", "Add a title"},
+    {"06", "06", "Everything"},
+    {"06", "06", "Films"},
+    {"06", "06", "Series"},
+    {"06", "06", "Can’t find it? Add it by hand"},
     {"19", "87", "Search anything you keep"},
     {"19", "19", "All"},
     {"19", "19", "Recent"},

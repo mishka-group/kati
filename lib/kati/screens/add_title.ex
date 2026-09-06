@@ -98,7 +98,14 @@ defmodule Kati.Screens.AddTitle do
 
     {:ok,
      Mob.Socket.assign(socket,
-       results: Sample.search_results(),
+       # EMPTY, not the drawing's four. Board 06 is drawn mid-query and its
+       # four results belong to that query; opening the sheet on them meant a
+       # reader who had typed nothing was shown four invented films with real
+       # poster images, a `4 results` caption, fabricated availability lines,
+       # and one of them ticked as already in their library.
+       # MOVIES-AND-TV.md #43. `resting_card/2` is what a sheet nobody has
+       # typed into draws instead.
+       results: [],
        filter: "Everything",
        query: "",
        # Bumped when this screen REPLACES the field rather than echoing it —
@@ -257,9 +264,12 @@ defmodule Kati.Screens.AddTitle do
       # `Kati.Screens.Library` moved off its Sample under is that the design
       # must draw the emptiness first, and here it does not. `D-31` is the
       # brief that would settle it.
+      # And emptied, not restored to the drawing's four. Typing `Up` used to
+      # answer with four films nobody had searched for — MOVIES-AND-TV.md #44,
+      # and the same defect as the resting sheet one keystroke along.
       {:noreply,
        socket
-       |> Mob.Socket.assign(:results, Sample.search_results())
+       |> Mob.Socket.assign(:results, [])
        |> Mob.Socket.assign(:search_error, nil)}
     else
       # NOT searched here. This handler runs on every keystroke, so searching
@@ -284,10 +294,20 @@ defmodule Kati.Screens.AddTitle do
      # it the results reset and the typed text stayed — see `K-46` in
      # `native/LEDGER.md`, found doing exactly this on a device.
      |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
-     |> Mob.Socket.assign(:results, Sample.search_results())
+     # Back to the state the sheet mounts in, which is empty — clearing the
+     # field used to put the drawing's four results back under it.
+     |> Mob.Socket.assign(:results, [])
      |> Mob.Socket.assign(:search_error, nil)
      |> Mob.Socket.assign(:save_error, nil)}
   end
+
+  @doc false
+  # A door for a test to put result rows on the socket without a network call.
+  # The sheet opens empty and the only other way in is `{:search_ready, …}`,
+  # which makes a TMDB request — `Kati.AddTitleWriteTest` is about the WRITE
+  # behind a row and has no business making one.
+  def handle_info({:results_for_test, rows}, socket) when is_list(rows),
+    do: {:noreply, Mob.Socket.assign(socket, :results, rows)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
@@ -972,34 +992,82 @@ defmodule Kati.Screens.AddTitle do
   def nothing_card([], query, _error) do
     typed = String.trim(query)
 
-    if String.length(typed) >= @min_query do
-      assigns = %{headline: "Nothing here for “" <> typed <> "”"}
+    cond do
+      typed == "" ->
+        card(
+          "search",
+          "Search for something to add",
+          "Type a film or a show and Kati looks it up."
+        )
 
-      ~MOB"""
-      <Column fill_width={true}>
-        <Column
-          fill_width={true}
-          background={Palette.card()}
-          corner_radius={22}
-          shadow={Kati.Theme.shadow_card_soft()}
-          padding={17}
-          align="center"
-        >
-          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
-            {Kati.UI.symbol("search", size: 22, color: Palette.rail_idle())}
-          </Box>
-          <Spacer size={13} />
-          <Text text={@headline} text_size={14} font_weight="bold" text_color={:on_surface} />
-        </Column>
-        <Spacer size={14} />
-      </Column>
-      """
-    else
-      []
+      String.length(typed) < @min_query ->
+        card(
+          "search",
+          "Keep typing",
+          "#{@min_query} letters or more, so the search has something to go on."
+        )
+
+      true ->
+        found_nothing(typed)
     end
   end
 
   def nothing_card(_shown, _query, _error), do: []
+
+  @doc false
+  def found_nothing(typed) do
+    card("search", "Nothing here for \u201C" <> typed <> "\u201D", nil)
+  end
+
+  # Board 87's card at this screen's size, which is what board 06's own
+  # `nothing` state would be if one had been drawn — see `D-31`. One shape for
+  # the three empty answers, because they differ in what they say and not in
+  # how they look.
+  @doc false
+  def card(icon, headline, body) do
+    assigns = %{icon: icon, headline: headline, body: body}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+        align="center"
+      >
+        <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+          {Kati.UI.symbol(@icon, size: 22, color: Palette.rail_idle())}
+        </Box>
+        <Spacer size={13} />
+        <Text text={@headline} text_size={14} font_weight="bold" text_color={:on_surface} />
+        {Kati.Screens.AddTitle.card_body(@body)}
+      </Column>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def card_body(nil), do: ~MOB"<Spacer size={0} />"
+
+  def card_body(body) do
+    assigns = %{body: body}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={6} />
+      <Text
+        text={@body}
+        text_size={12}
+        line_height={1.55}
+        text_color={Palette.sub()}
+        text_align="center"
+      />
+    </Column>
+    """
+  end
 
   @doc """
   The × at the end of the field, which is a control and was a picture.

@@ -35,7 +35,7 @@ defmodule Kati.AddTitleWriteTest do
 
   describe "adding a title" do
     test "writes both rows, and they are there after the screen is gone" do
-      view = mount_screen(AddTitle)
+      view = drawn_results(mount_screen(AddTitle))
       title = "The Quiet Coast"
 
       assert Ash.read!(Kati.Media.TrackedTitle) == []
@@ -67,7 +67,7 @@ defmodule Kati.AddTitleWriteTest do
     end
 
     test "untracking removes what you decided and keeps what the title is" do
-      view = mount_screen(AddTitle)
+      view = drawn_results(mount_screen(AddTitle))
       title = "The Quiet Coast"
 
       view = render_info(view, {:tap, String.to_atom("add_" <> title)})
@@ -83,7 +83,7 @@ defmodule Kati.AddTitleWriteTest do
     end
 
     test "adding the same title twice does not write a second pair" do
-      view = mount_screen(AddTitle)
+      view = drawn_results(mount_screen(AddTitle))
       title = "Quiet Earth"
 
       view = render_info(view, {:tap, String.to_atom("add_" <> title)})
@@ -103,5 +103,13 @@ defmodule Kati.AddTitleWriteTest do
       assert assigns(view).query == "hollow"
       assert find(tree(view), :text_field, accessibility_id: "title_query") != nil
     end
+  end
+
+  # The sheet opens EMPTY since 6 September — board 06 is drawn mid-query and
+  # its four results belong to that query (MOVIES-AND-TV.md #43). These tests
+  # are about the write behind a result row, so they put the board's rows on
+  # the socket the way a search would.
+  defp drawn_results(view) do
+    render_info(view, {:results_for_test, Kati.Library.Sample.search_results()})
   end
 end

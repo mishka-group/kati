@@ -1003,6 +1003,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # which is what this entry is. The drawing is still the drawing; what it
       # is a drawing OF is one particular arrival.
       {"14", Kati.Screens.SeriesMeta, &Map.put(&1, :back, "Library")},
+      # 06 is drawn MID-QUERY. The sheet opens empty now — its four results and
+      # its `4 results` caption belong to a search somebody has run, and
+      # opening on them showed a reader who had typed nothing four invented
+      # films (MOVIES-AND-TV.md #43). This is the arrival the board is a
+      # drawing OF: a query in the field and the answer under it.
+      {"06", Kati.Screens.AddTitle,
+       &(&1
+         |> Map.put(:results, Kati.Library.Sample.search_results())
+         |> Map.put(:query, "hollow"))},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so
