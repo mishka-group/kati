@@ -181,7 +181,11 @@ defmodule Kati.Screens.Season do
   # `Kati.Screens.MealEdit` are built on. A bare push assigns `%{}`, which
   # `season/1` reads as the question this screen was always asked.
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :season, season(socket.assigns.params))
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:season, season(socket.assigns.params))
+    |> Mob.Socket.assign(:save_error, nil)
+  end
 
   # Screen 34's first tag. `Kati.Screens.Pushed` deliberately defines no
   # `handle_tap/2` — its moduledoc says why — so this screen had none, because
@@ -542,6 +546,7 @@ defmodule Kati.Screens.Season do
         {SettingsList.title(s.title, s.subtitle, nil, :meta_tight)}
         {Kati.Screens.Season.orders(s)}
         {Kati.Screens.Season.options(s)}
+        {Kati.Screens.Season.refusal(Map.get(assigns, :save_error))}
         {UI.eyebrow(s.eyebrow)}
         {Kati.Screens.Season.episodes(s)}
         {Kati.Screens.Season.note(s)}
@@ -648,6 +653,30 @@ defmodule Kati.Screens.Season do
   # `""` for a special a source never placed, so the number is a label and never
   # an identity. `:index` goes onto the row rather than into a second argument
   # so `episode/1` keeps the arity it has.
+  @doc """
+  A tick the store refused, said out loud.
+
+  The mirror of `Kati.Screens.Series.refusal/1`, and open for the same reason:
+  `:save_error` has been assigned here since the tick could fail and was drawn
+  nowhere, so a refused tick left the row unfilled and the page silent.
+  MOVIES-AND-TV.md #39 names both screens.
+
+  Above the episode list, because the list is the thing that failed to change.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.note("error", @message)}
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
   @doc false
   def episodes(s) do
     rows = s.episodes |> Enum.with_index() |> Enum.map(fn {ep, i} -> Map.put(ep, :index, i) end)

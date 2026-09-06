@@ -142,6 +142,7 @@ defmodule Kati.Screens.Series do
      socket
      |> Mob.Socket.assign(:series, series(Map.get(params || %{}, :id)))
      |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
+     |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:menu?, false)}
   end
 
@@ -617,6 +618,7 @@ defmodule Kati.Screens.Series do
             padding_bottom={40}
           >
             {Kati.Screens.Series.season_card(s, pct)}
+            {Kati.Screens.Series.refusal(Map.get(assigns, :save_error))}
             {Kati.Screens.Series.actions()}
             {Kati.Screens.Series.episodes_header(s)}
             {Kati.Screens.Series.episodes(s)}
@@ -625,6 +627,33 @@ defmodule Kati.Screens.Series do
       </Scroll>
       {Kati.Screens.Series.chrome(assigns.menu?, Map.get(assigns, :back, "Library"))}
     </Box>
+    """
+  end
+
+  @doc """
+  A tick the store refused, said out loud.
+
+  `tick/2` has assigned `:save_error` since the day it could fail, and nothing
+  drew it — so a refused tick was a tap into total nothing: the row did not
+  fill, the counter did not move, and the page said no more than it would have
+  if the finger had missed. MOVIES-AND-TV.md #39, and the same defect `D-60`
+  describes on the Persian side.
+
+  Between the season card and the buttons, which is where screen 112 puts its
+  own: after the thing that failed to change and before the controls that were
+  just pressed.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={14} />
+      {Kati.UI.SettingsList.note("error", @message)}
+    </Column>
     """
   end
 
@@ -1311,17 +1340,52 @@ defmodule Kati.Screens.Series do
     case Kati.Screens.Series.tick_result(Map.get(series, :tracked_id), episode) do
       :ok ->
         flip = fn ep -> %{ep | watched: not ep.watched} end
+        episodes = List.update_at(series.episodes, position, flip)
 
         socket
-        |> Mob.Socket.assign(
-          :series,
-          recount(%{series | episodes: List.update_at(series.episodes, position, flip)})
-        )
+        |> Mob.Socket.assign(:series, recount(restored(series, episodes)))
         |> Mob.Socket.assign(:save_error, nil)
 
       {:error, reason} ->
         Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
     end
+  end
+
+  # The tick written into BOTH lists the screen holds.
+  #
+  # `episodes` is the season on screen and `by_season` is every season, and
+  # `switch/2` restores the season on screen out of `by_season`. Updating only
+  # the first meant a tick survived until you tapped S2 and back, and then
+  # vanished: the ring emptied, the counter fell, and the store still held the
+  # watch. MOVIES-AND-TV.md #14, and it is the tick disappearing rather than
+  # the write failing — which is why nothing in the log said anything.
+  @doc """
+  `restored/2` and `switch/2`, reachable from a test.
+
+  Both are private because they are bookkeeping rather than API, and both are
+  exactly where MOVIES-AND-TV.md #14 lived: a tick written into one of the two
+  lists this screen holds and read back out of the other. The round trip needs
+  no store and no device, and a test that could only reach it through `tick/2`
+  could not reach it at all — the drawn series carries no `:source_id`, so
+  `tick_result/2` refuses the write and the success branch never runs.
+  """
+  @spec restored_for_test(map(), [map()]) :: map()
+  def restored_for_test(series, episodes), do: restored(series, episodes)
+
+  @doc false
+  @spec switch_for_test(map(), String.t()) :: map()
+  def switch_for_test(series, label), do: switch(series, label)
+
+  defp restored(series, episodes) do
+    label = series.current_season
+
+    by_season =
+      case Map.fetch(series.by_season, label) do
+        {:ok, view} -> Map.put(series.by_season, label, %{view | episodes: episodes})
+        :error -> series.by_season
+      end
+
+    %{series | episodes: episodes, by_season: by_season}
   end
 
   @doc """

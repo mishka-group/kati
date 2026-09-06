@@ -82,4 +82,56 @@ defmodule Kati.SeriesTickTest do
       assert after_tap.assigns.series, "the screen lost its subject"
     end
   end
+
+  describe "a tick survives a season switch" do
+    # `tick/2` updated `series.episodes` and left `series.by_season` alone, and
+    # `switch/2` restores the season on screen OUT of `by_season` — so ticking
+    # episode 3, tapping S2, and tapping S1 again put the tick back where it
+    # started. The ring emptied, the counter fell, and the store still held the
+    # watch: the screen and the database disagreed, and only the screen was
+    # visible. MOVIES-AND-TV.md #14.
+    #
+    # Exercised against the DRAWN series, which is the one state a host can
+    # build: `Kati.Library.Sample` gives three seasons and the pills to move
+    # between them, and its episodes carry no `source_id`, so `tick_result/2`
+    # refuses the write and the assign is never reached. The two halves are
+    # therefore tested apart — `restored/2` through `tick/2`'s success path with
+    # a stub, and the round trip through `switch/2` — because a tick that only
+    # updates one of the two lists is a defect in the bookkeeping, not in the
+    # write.
+    test "the flip lands in by_season as well as in episodes" do
+      series = Series.series()
+      label = series.current_season
+
+      before = Enum.at(series.episodes, 2).watched
+      flipped = List.update_at(series.episodes, 2, &%{&1 | watched: not before})
+
+      moved = Series.restored_for_test(series, flipped)
+
+      assert Enum.at(moved.episodes, 2).watched == not before,
+             "the season on screen did not take the tick"
+
+      assert Enum.at(Map.fetch!(moved.by_season, label).episodes, 2).watched == not before,
+             "the tick was written into the season on screen and not into the map " <>
+               "`switch/2` restores it from"
+    end
+
+    test "so switching away and back keeps it" do
+      series = Series.series()
+      label = series.current_season
+      other = Enum.find(Map.keys(series.by_season), &(&1 != label))
+
+      before = Enum.at(series.episodes, 2).watched
+      flipped = List.update_at(series.episodes, 2, &%{&1 | watched: not before})
+      moved = Series.restored_for_test(series, flipped)
+
+      round_trip =
+        moved
+        |> Series.switch_for_test(other)
+        |> Series.switch_for_test(label)
+
+      assert Enum.at(round_trip.episodes, 2).watched == not before,
+             "the tick came back off `by_season` and it was the stale list"
+    end
+  end
 end

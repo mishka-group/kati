@@ -136,6 +136,7 @@ defmodule Kati.Screens.AddTitle do
           {Kati.Screens.AddTitle.field(assigns.query, assigns[:query_epoch] || 0)}
           {Kati.Screens.AddTitle.chips(filter)}
           {Kati.Screens.AddTitle.search_notice(assigns[:search_error])}
+          {Kati.Screens.AddTitle.save_notice(assigns[:save_error])}
           {UI.eyebrow(count)}
           {Kati.Screens.AddTitle.results(shown)}
           {Kati.Screens.AddTitle.nothing_card(shown, assigns.query, assigns[:search_error])}
@@ -171,6 +172,25 @@ defmodule Kati.Screens.AddTitle do
   def search_notice(nil), do: []
 
   def search_notice(message), do: Kati.UI.notice(message)
+
+  @doc """
+  Why the add — or the remove — did not happen.
+
+  `:save_error` has been assigned in three places on this screen since it could
+  write, and drawn in none of them. So adding a title that is already in the
+  library was a tap into total nothing: the check did not fill, no row
+  appeared, and the page said no more than it would have if the finger had
+  missed. MOVIES-AND-TV.md #42, and it is `D-60`'s defect in English on the one
+  screen a new install is most likely to be on.
+
+  `Kati.UI.notice/1` and not a second band of its own: the search failure two
+  lines above already uses it, and two shapes for *this did not work* on one
+  page is how a person learns to read neither.
+  """
+  @spec save_notice(String.t() | nil) :: term()
+  def save_notice(nil), do: []
+
+  def save_notice(message), do: Kati.UI.notice(message)
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
@@ -510,7 +530,7 @@ defmodule Kati.Screens.AddTitle do
 
     result =
       if tracked? do
-        Kati.Screens.AddTitle.untrack(title)
+        Kati.Screens.AddTitle.untrack(title, row)
       else
         Kati.Screens.AddTitle.track(title, row)
       end
@@ -669,14 +689,19 @@ defmodule Kati.Screens.AddTitle do
 
   @doc false
   @spec untrack(String.t()) :: {:ok, term()} | {:error, term()}
-  def untrack(title) do
+  def untrack(title, row \\ nil) do
+    {source, source_id} = tracked_key(title, row)
+
     case Ash.read(Kati.Media.TrackedTitle) do
       {:ok, rows} ->
         rows
-        |> Enum.find(&(&1.source == :manual and &1.source_id == title))
+        |> Enum.find(&(&1.source == source and &1.source_id == source_id))
         |> case do
-          nil -> {:ok, :already_gone}
-          row -> Ash.destroy(row) |> then(fn r -> if r == :ok, do: {:ok, :removed}, else: r end)
+          nil ->
+            {:ok, :already_gone}
+
+          found ->
+            Ash.destroy(found) |> then(fn r -> if r == :ok, do: {:ok, :removed}, else: r end)
         end
 
       error ->
@@ -684,6 +709,37 @@ defmodule Kati.Screens.AddTitle do
     end
     |> Kati.Write.note("untrack #{title}")
   end
+
+  @doc """
+  The `{source, source_id}` pair a tracked row is actually keyed on.
+
+  This function is MOVIES-AND-TV.md #41 in one line. `untrack/1` looked for
+  `source == :manual and source_id == title`, which is the pair a HAND-TYPED
+  title is stored under — and `track/2` stores a TMDB title under `{:tmdb,
+  "329865"}`, deliberately, because the cached episodes reference the provider
+  id. So removing something added from TMDB found nothing, answered
+  `{:ok, :already_gone}`, and reported success: the check flipped back to a `+`
+  and the title stayed in the library forever.
+
+  The row is the caller's, and it is the row the same tap added — `row/1` puts
+  `source` and `source_id` on it for exactly this reason. Without one, the
+  title is the key, which is the drawing's four fixtures and every hand-typed
+  title.
+
+      iex> Kati.Screens.AddTitle.tracked_key("Arrival", %{source: :tmdb, source_id: "329865"})
+      {:tmdb, "329865"}
+
+      iex> Kati.Screens.AddTitle.tracked_key("The Quiet Coast", nil)
+      {:manual, "The Quiet Coast"}
+
+      iex> Kati.Screens.AddTitle.tracked_key("Typed by hand", %{title: "Typed by hand"})
+      {:manual, "Typed by hand"}
+  """
+  @spec tracked_key(String.t(), map() | nil) :: {:tmdb | :manual, String.t()}
+  def tracked_key(_title, %{source: :tmdb, source_id: id}) when is_binary(id) and id != "",
+    do: {:tmdb, id}
+
+  def tracked_key(title, _row), do: {:manual, title}
 
   @doc """
   What a result row is, read off the `meta` line the drawing writes.
