@@ -550,6 +550,18 @@ defmodule Kati.ScreenParamsSweepTest do
     # in either carries an `:id`. The bare `:open_book` is the hero's, whose
     # tag `Kati.Screens.Books.book_tag/1` falls back to when a row has neither
     # id nor seed.
+    # Screen 08's *Log a watch* pill, which drew no tap at all until 6
+    # September — `action/4` built a `<Box>` with no `on_tap`, so the row was
+    # three pictures of buttons and no sweep could see them, because this file
+    # walks the tags a tree DRAWS. The door was live in the ⋯ menu all along
+    # and invisible here for the same reason: the menu is closed at rest.
+    #
+    # Empty for screen 20's reason: with nothing shelved the film is
+    # `Kati.Library.Sample.film/0` and carries no `tracked_id`, so
+    # `Kati.Screens.Rating.params_for/1` answers `%{}` — and `save_watch/1`
+    # refuses a sheet that names no title, which is what stops a watch being
+    # logged against the drawing.
+    {Kati.Screens.Film, :log_watch, Kati.Screens.Rating},
     {Kati.Screens.BooksFa, :open_book, Kati.Screens.BookDetailFa},
     {Kati.Screens.BooksFa, :open_book_bookaa1, Kati.Screens.BookDetailFa},
     {Kati.Screens.BooksFa, :open_book_bookbb2, Kati.Screens.BookDetailFa},

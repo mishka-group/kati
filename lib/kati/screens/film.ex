@@ -85,7 +85,44 @@ defmodule Kati.Screens.Film do
   # class of literal as screen 03's `Up next` tile — so they live in the screen
   # beside the markup that draws them rather than being read back out of the
   # fixture, which would be a lie about where a real render's copy came from.
-  @actions [{"replay", "Log rewatch"}, {"event", "Schedule"}, {"ios_share", "Share"}]
+  # The three pills under the rating card. Each carries the tag it sends, or
+  # `nil` for the two that have nowhere to go yet — they were ALL `nil` and
+  # none of them said so: `action/2` drew a `<Box>` with no `on_tap`, so the
+  # row was three pictures of buttons. A control that sends nothing is
+  # invisible to `Kati.ScreenTapSweepTest`, which walks the tags a tree draws,
+  # so nothing in the suite could report them either. Found by pressing *Log
+  # rewatch* on a Pixel 9a and watching the page not move.
+  #
+  # `Schedule` wants a date sheet this app does not have and `Share` wants the
+  # Android share intent, which is a fence nobody has written — `K-43` opens a
+  # URL and `K-45` captures the screen, and neither is this. Both are listed in
+  # `MOVIES-AND-TV.md` rather than left looking live.
+  @actions [
+    {"replay", "Log rewatch", :log_watch},
+    {"event", "Schedule", nil},
+    {"ios_share", "Share", nil}
+  ]
+
+  @doc """
+  What the first pill says, which depends on whether you have seen it.
+
+  It read **Log rewatch** on a film whose own card said `SEEN never` — the
+  label was a constant. A rewatch is a second watch; there is no such thing
+  until there has been a first.
+
+      iex> Kati.Screens.Film.action_label("Log rewatch", :log_watch, 0)
+      "Log a watch"
+
+      iex> Kati.Screens.Film.action_label("Log rewatch", :log_watch, 2)
+      "Log rewatch"
+
+      iex> Kati.Screens.Film.action_label("Schedule", nil, 0)
+      "Schedule"
+  """
+  @spec action_label(String.t(), atom() | nil, non_neg_integer()) :: String.t()
+  def action_label(_drawn, :log_watch, seen) when is_integer(seen) and seen > 0, do: "Log rewatch"
+  def action_label(_drawn, :log_watch, _never), do: "Log a watch"
+  def action_label(drawn, _other, _seen), do: drawn
 
   # `use Mob.Screen` and not `Kati.Screens.Root`, so this screen's own `mount/3`
   # takes the push's params directly where a pushed screen reads them off
@@ -232,8 +269,19 @@ defmodule Kati.Screens.Film do
       seed: seed_of(tracked, cached),
       meta: meta_line(cached),
       watched: watched_label(tracked, dated, zone),
-      stars: star_count(tracked.rating),
+      # The rating comes off the newest WATCH, not off the tracked row.
+      # `Kati.Media.TrackedTitle.rating` has no writer anywhere in the app —
+      # screen 33's Save writes `Kati.Media.Watch.rating`, which is the rating
+      # OF a viewing and is what a person actually gives — so reading the
+      # tracked column meant this card drew five empty stars however many times
+      # somebody rated the film. Found on a device: rate Arrival four stars,
+      # save, reopen, and the card is blank.
+      stars: star_count(newest_rating(watches) || tracked.rating),
       seen: seen_line(watches),
+      # The COUNT as well as the sentence: `action_label/2` needs to know
+      # whether a rewatch is even a thing yet, and `seen_line/1` answers in
+      # words rather than in a number.
+      seen_count: length(watches),
       note_date: noted && note_date(noted, zone),
       note: noted && noted.review,
       where: [],
@@ -304,6 +352,16 @@ defmodule Kati.Screens.Film do
   # draws four. Rounding 9 up to five would claim half a star nobody gave. An
   # unrated film is five empty stars, which is what "you have not rated this"
   # looks like — the card is the user's own rating and is never hidden.
+  # The rating on the most recent watch that carries one. Watches arrive newest
+  # first, and a rewatch logged without a rating does not erase the rating of
+  # the viewing before it — *unrated* is a thing a log can be, and it is not a
+  # statement about the film.
+  defp newest_rating(watches) when is_list(watches) do
+    Enum.find_value(watches, fn w -> w.rating end)
+  end
+
+  defp newest_rating(_other), do: nil
+
   defp star_count(rating) when is_integer(rating), do: div(rating, 2)
   defp star_count(_rating), do: 0
 
@@ -863,7 +921,7 @@ defmodule Kati.Screens.Film do
     <Column fill_width={true}>
       <Spacer size={14} />
       <Row fill_width={true} align="top">
-        {f.actions |> Enum.map(fn {icon, label} -> Kati.Screens.Film.action(icon, label) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
+        {f.actions |> Enum.map(fn {icon, label, tag} -> Kati.Screens.Film.action(icon, label, tag, Map.get(f, :seen_count, 0)) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
       </Row>
     </Column>
     """
@@ -877,9 +935,15 @@ defmodule Kati.Screens.Film do
   # to the left edge — the icons and labels sat against the button's left side.
   # A Box centres its content in both axes when given `align`.
   @doc false
-  def action(icon, label) do
+  def action(icon, drawn_label, tag, seen \\ 0) do
+    label = Kati.Screens.Film.action_label(drawn_label, tag, seen)
+    # `nil` for the two pills with nowhere to go — a `<Box>` with a nil
+    # `on_tap` draws no tap at all, which is what they did before and is the
+    # honest state until each has a destination.
+    tap = if tag, do: {self(), tag}
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Box
         fill_width={true}
         height={52}

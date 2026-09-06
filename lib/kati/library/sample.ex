@@ -311,7 +311,17 @@ defmodule Kati.Library.Sample do
         %{badge: "L", name: "Lumen+", price: "included"},
         %{badge: "K", name: "Kino store", price: "£9.99"}
       ],
-      actions: [{"replay", "Log rewatch"}, {"event", "Schedule"}, {"ios_share", "Share"}]
+      # `{icon, tag}` rather than `{icon, label}`, matching
+      # `Kati.Screens.Film`'s own list. The label is decided by
+      # `Kati.Screens.Film.action_label/2` because it depends on whether the
+      # film has been seen — a *rewatch* is a second watch, and this drawing's
+      # film has two, so board 08's word is unchanged.
+      actions: [
+        {"replay", "Log rewatch", :log_watch},
+        {"event", "Schedule", nil},
+        {"ios_share", "Share", nil}
+      ],
+      seen_count: 2
     }
   end
 end

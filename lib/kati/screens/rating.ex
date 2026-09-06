@@ -259,21 +259,49 @@ defmodule Kati.Screens.Rating do
   """
   def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {draft, id} = draft_and_id(logged_record(Map.get(params || %{}, :tracked_title_id)))
+    tracked_id = Map.get(params || %{}, :tracked_title_id)
+    {draft, id} = draft_and_id(logged_record(tracked_id), tracked_id)
 
     {:ok,
      socket
      |> Mob.Socket.assign(:watch, draft)
      |> Mob.Socket.assign(:watch_id, id)
+     # Kept, where it used to be looked up and thrown away. `save_watch/1`
+     # could only ever UPDATE, so a film with nothing logged against it
+     # answered `{:error, :nothing_to_save}` and there was no way in the app
+     # to say you had watched a film at all — which took the rating, the
+     # review, the Activity log and Your year's Films count with it.
+     |> Mob.Socket.assign(:tracked_title_id, tracked_id)
      |> Mob.Socket.assign(:save_error, nil)}
   end
 
   # The draft and the id it may be committed under. `nil` for the id whenever
   # the draft is the drawing's, by either route: no logged watch at all, or one
   # that could not be shaped.
-  defp draft_and_id(nil), do: {drawn_watch(), nil}
+  # Nothing logged yet, but a film was NAMED: a blank sheet about that film.
+  #
+  # It used to answer the drawing here whatever it had been handed, and on a
+  # device that meant pressing *Log a watch* on **Arrival** opened a sheet
+  # about **Blue Hour** — its poster, its `2nd rewatch`, its review, its tags,
+  # its `Watched on Sun 16 Aug`, its `With Jo`. Pressing Save then wrote all
+  # of it against Arrival's id, which is the whole of what this app must not
+  # do. Found on a Pixel 9a the first time a film could be logged at all.
+  #
+  # `blank_for/1` is the sheet in the state a first watch is actually in:
+  # this title, this poster, this runtime, no stars, no review, no tags, and
+  # no claim about a night. The drawing is still the answer when NOTHING was
+  # named — the gallery pushes with no params, and board 33 is what it must
+  # draw.
+  defp draft_and_id(nil, tracked_id) when is_binary(tracked_id) do
+    case blank_for(tracked_id) do
+      nil -> {drawn_watch(), nil}
+      blank -> {blank, nil}
+    end
+  end
 
-  defp draft_and_id(logged) do
+  defp draft_and_id(nil, _none), do: {drawn_watch(), nil}
+
+  defp draft_and_id(logged, _tracked_id) do
     case shape(logged) do
       nil -> {drawn_watch(), nil}
       shaped -> {shaped, logged.id}
@@ -361,6 +389,45 @@ defmodule Kati.Screens.Rating do
   @spec params_for(map() | nil) :: map()
   def params_for(%{tracked_id: id}) when is_binary(id), do: %{tracked_title_id: id}
   def params_for(_film), do: %{}
+
+  @doc """
+  The sheet for a film with nothing logged against it yet.
+
+  Every field the markup reads, answered about THIS title and about nothing
+  else: the title, the poster and the runtime off the cache, and then absence
+  — no rating, no review, no spoiler flag, no context rows, no tags, and no
+  rewatch line, because a first watch is not a rewatch.
+
+  `nil` when the id names no row, which sends `draft_and_id/2` back to the
+  drawing — the same rule `Kati.Screens.BookDetail.shelved_book/1` states: a
+  title deleted under you draws the drawing, never somebody else's.
+  """
+  @spec blank_for(String.t()) :: map() | nil
+  def blank_for(tracked_id) when is_binary(tracked_id) do
+    case Ash.get(TrackedTitle, tracked_id) do
+      {:ok, %TrackedTitle{} = tracked} ->
+        cached = cached_for(tracked)
+
+        %{
+          title: title_of(cached),
+          seed: seed_of(tracked, cached),
+          meta: runtime_label(cached),
+          rewatch: nil,
+          rating: nil,
+          rating_note: Sample.watch().rating_note,
+          spoilers: nil,
+          review: "",
+          characters: characters_label(nil),
+          context: [],
+          tags: []
+        }
+
+      _gone ->
+        nil
+    end
+  rescue
+    _error -> nil
+  end
 
   defp shaped_or_drawn(nil), do: drawn_watch()
   defp shaped_or_drawn(logged), do: shape(logged) || drawn_watch()
@@ -1484,6 +1551,43 @@ defmodule Kati.Screens.Rating do
   person's own words is an edit, and this function is not entitled to one.
   """
   @spec save_watch(map()) :: {:ok, struct()} | {:error, term()}
+  def save_watch(%{watch_id: nil, tracked_title_id: tracked_id, watch: w})
+      when is_binary(tracked_id) do
+    # The FIRST watch of a film, which nothing in the app could record. Screen
+    # 08's *Log a watch* opens this sheet with the film's tracked id and the
+    # sheet only ever knew how to update a row that already existed — so the
+    # save refused, and a film could never be marked watched, rated, reviewed,
+    # or counted by Your year. Reported against the store rather than the
+    # screen: `grep -rn "Ash.create(Kati.Media.Watch" lib/` was empty.
+    #
+    # `watched_on` is today and `watched_at` is now, because this sheet is
+    # reached from *Log a watch* — a claim about an evening that is happening.
+    # A watch logged for some other night is a date field this sheet does not
+    # draw; when it draws one, this is the line that reads it.
+    # The named row is checked BEFORE anything is written, and that is not
+    # defensiveness: `Kati.ScreenWriteTargetTest` refused the first version of
+    # this clause because a sheet pushed with an id whose title has since been
+    # deleted still created a watch — a row hanging off a title that is not
+    # there, made by a page that was drawing its fixture at the time. The rule
+    # that file states is *refuse when the named row is gone*, and this is that
+    # refusal.
+    case Ash.get(Kati.Media.TrackedTitle, tracked_id) do
+      {:ok, _title} ->
+        %{
+          tracked_title_id: tracked_id,
+          rating: ten_point(w.rating),
+          review: stored_review(w.review),
+          watched_on: Kati.Time.today(),
+          watched_at: Kati.Time.now() |> DateTime.truncate(:second)
+        }
+        |> then(&Ash.create(Watch, &1))
+        |> Write.note("log a watch")
+
+      _gone ->
+        Write.note({:error, :nothing_to_save}, "log a watch")
+    end
+  end
+
   def save_watch(%{watch_id: nil}), do: Write.note({:error, :nothing_to_save}, "rate a watch")
 
   def save_watch(%{watch_id: id, watch: w}) do
