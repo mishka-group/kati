@@ -243,6 +243,11 @@ defmodule Kati.ScreenParamsSweepTest do
     #
     # Unblocks when an import job is a resource rather than a fixture: the
     # tile then names the file the reader actually picked.
+    # The Schedule's `+`. Screen 18 takes a sentence and the `+` has none to
+    # give: a person pressing it is about to say what is happening, which is
+    # the whole of what that page is for. Screen 08's *Schedule* row names one
+    # — `Watch <title>` — because it knows the film.
+    {Kati.Screens.Calendar, :fab, Kati.Screens.QuickAdd},
     {Kati.Screens.ImportSources, :source_trakt, Kati.Screens.Import},
     {Kati.Screens.ImportSources, :source_letterboxd, Kati.Screens.Import},
     {Kati.Screens.ImportSources, :source_anilist, Kati.Screens.Import},
@@ -690,7 +695,15 @@ defmodule Kati.ScreenParamsSweepTest do
     # push naming no query at all opens on `Kati.Search.handed_over/0` — see
     # `Kati.Screens.Search.opening_query/1` for why silence and `""` are two
     # different answers. Both are right; they are not the same render.
-    {Kati.Screens.Search, :query}
+    {Kati.Screens.Search, :query},
+    # The words in the field, one screen over. Screen 18 takes a SENTENCE —
+    # `Kati.QuickAdd.Parse` reads a day, an hour, a duration and a reminder out
+    # of it and everything left is the title — so `no-such-row` is a real
+    # sentence naming a thing called *No-such-row*, and it renders as itself.
+    # A push naming no sentence opens on board 18, which is drawn mid-typing.
+    # Both are right; they are not the same render, and they must not be:
+    # a value, not a reference.
+    {Kati.Screens.QuickAdd, :sentence}
   ]
 
   # Readers named by hand, so a scan that stops matching fails loudly instead of

@@ -93,14 +93,20 @@ defmodule Kati.Screens.Film do
   # so nothing in the suite could report them either. Found by pressing *Log
   # rewatch* on a Pixel 9a and watching the page not move.
   #
-  # `Schedule` wants a date sheet this app does not have and `Share` wants the
-  # Android share intent, which is a fence nobody has written — `K-43` opens a
-  # URL and `K-45` captures the screen, and neither is this. Both are listed in
-  # `MOVIES-AND-TV.md` rather than left looking live.
+  # All three go somewhere now, and the two that did not were each waiting on
+  # something that has since landed (MOVIES-AND-TV.md #84).
+  #
+  # `Schedule` wanted a date sheet this app did not have. It has one: screen 18
+  # takes a sentence and writes a calendar event, so *Schedule* opens it with
+  # the film's own name already typed. One field, and the reader adds the when.
+  #
+  # `Share` wanted the Android share intent, and the note here said it was a
+  # fence nobody had written. `Mob.Share.text/2` is Mob's own — `ACTION_SEND`
+  # through `Intent.createChooser` — and has been there all along.
   @actions [
     {"replay", "Log rewatch", :log_watch},
-    {"event", "Schedule", nil},
-    {"ios_share", "Share", nil}
+    {"event", "Schedule", :schedule_watch},
+    {"ios_share", "Share", :share_film}
   ]
 
   @doc """
@@ -260,6 +266,8 @@ defmodule Kati.Screens.Film do
     dated = Enum.sort_by(watches, &sort_key(&1, zone), {:desc, Date})
     noted = Enum.find(dated, &noted?/1)
 
+    where_rows = Kati.Screens.SeriesMeta.where_rows(cached)
+
     %{
       # The row a log is written against. Carried for the same reason
       # `Kati.Screens.Series` carries `tracked_id`: the film on screen and the
@@ -285,7 +293,13 @@ defmodule Kati.Screens.Film do
       seen_count: length(watches),
       note_date: noted && note_date(noted, zone),
       note: noted && noted.review,
-      where: [],
+      # Where this film can be watched — the same band screen 14 draws and the
+      # same column it reads. It was `[]` on both, for want of an offers
+      # resource; `Kati.Media.CachedTitle.providers` is that resource now
+      # (MOVIES-AND-TV.md #77). `price` is `nil` on every row because TMDB
+      # says where and never how much, and the row draws it as nothing.
+      where: where_rows,
+      where_line: Kati.Screens.Film.where_line(where_rows),
       actions: @actions
     }
   end
@@ -687,6 +701,12 @@ defmodule Kati.Screens.Film do
   # 333dp tall against the drawing's 84 and the stars did not appear at all.
   @doc false
   def rating_card(f) do
+    # The card is the door to the sheet that sets a rating — MOVIES-AND-TV.md
+    # #85. It was painted, so a reader looking at their own four stars had no
+    # way to change them from the page that shows them; screen 33 is where a
+    # rating is written, and this is the only thing on 08 that is about one.
+    tap = if Map.get(f, :tracked_id), do: {self(), :log_watch}
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -695,6 +715,7 @@ defmodule Kati.Screens.Film do
       shadow={Kati.Theme.shadow_card()}
       padding={17}
       align="center"
+      on_tap={tap}
     >
       <Column weight={1.0}>
         <Text
@@ -782,7 +803,7 @@ defmodule Kati.Screens.Film do
             text_color={Palette.cream_meta()}
           />
           <Spacer weight={1.0} />
-          {Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}
+          {Kati.Screens.Film.note_pencil(f)}
         </Row>
         <Spacer size={9} />
         <Text text={f.note} text_size={14} line_height={1.55} text_color={Palette.cream_body()} />
@@ -845,7 +866,7 @@ defmodule Kati.Screens.Film do
           max_lines={1}
         />
         <Text
-          text={row.price}
+          text={Map.get(row, :line) || Map.get(row, :price) || ""}
           font_family="mono"
           text_size={11}
           text_color={Palette.muted()}
@@ -854,6 +875,27 @@ defmodule Kati.Screens.Film do
       </Row>
       {Kati.Screens.Film.hairline(rule?)}
     </Column>
+    """
+  end
+
+  @doc """
+  The pencil on the note card: the sheet the note was written in.
+
+  Screen 33 holds the review — it is the one field in this app that writes
+  `Kati.Media.Watch.review` — so *edit this note* is *open the log this note
+  belongs to*. MOVIES-AND-TV.md #85; it was a painted glyph.
+
+  A drawn film has no row to edit and gets a picture, which is what board 08's
+  own state is.
+  """
+  @spec note_pencil(map()) :: map()
+  def note_pencil(f) do
+    assigns = %{tap: if(Map.get(f, :tracked_id), do: {self(), :log_watch})}
+
+    ~MOB"""
+    <Box on_tap={@tap} fill_width={false}>
+      {Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}
+    </Box>
     """
   end
 
@@ -996,6 +1038,102 @@ defmodule Kati.Screens.Film do
        Kati.Screens.Rating.params_for(socket.assigns.film)
      )}
   end
+
+  @doc """
+  Put this film on the calendar: screen 18, with its name already typed.
+
+  A film you mean to watch is a thing that is going to happen, and screen 18
+  is the one field in this app that takes *a thing that is going to happen*.
+  It is pre-filled with `Watch <title>` rather than the bare title, because
+  the sentence a reader completes is *watch Dune tomorrow 8pm* and the verb is
+  the part they should not have to type.
+  """
+  def handle_info({:tap, :schedule_watch}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.QuickAdd, %{
+       sentence: "Watch " <> socket.assigns.film.title
+     })}
+  end
+
+  @doc """
+  Hand the film to the system share sheet.
+
+  `Mob.Share.text/2`, which is Mob's own and needed no fence: `ACTION_SEND`
+  through `Intent.createChooser` on Android, `UIActivityViewController` on
+  iOS. The comment beside `@actions` said this was waiting on something
+  nobody had written; it was there all along.
+
+  Fire-and-forget by construction — nothing comes back into the BEAM — so
+  there is nothing to report and nothing to draw. The socket is unchanged,
+  which `Mob.Share.text/2` documents in as many words.
+  """
+  def handle_info({:tap, :share_film}, socket) do
+    {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
+  end
+
+  @doc """
+  Where this film can be watched, as one line, or `nil`.
+
+  The FIRST row of the band, which is the first way it is offered — what the
+  reader pays for, then free, then rent, then buy, in `Kati.Screens.SeriesMeta.
+  where_rows/1`'s own order.
+
+  Not `Kati.Media.Availability.line/3`, and the difference matters here: that
+  one answers *what can YOU watch*, which is the right question for hiding a
+  title and the wrong one for telling somebody else about it. A film on
+  Kanopy is on Kanopy whether or not the person sharing it subscribes.
+
+  `nil` for a film nobody has looked up, which keeps *Dune* out of a share
+  that would otherwise claim it was available nowhere.
+
+      iex> Kati.Screens.Film.where_line([])
+      nil
+
+      iex> Kati.Screens.Film.where_line([%{name: "Kanopy", line: "included"}])
+      "On Kanopy"
+
+      iex> Kati.Screens.Film.where_line([%{name: "Apple TV", line: "rent"}])
+      "Rent from Apple TV"
+  """
+  @spec where_line([map()]) :: String.t() | nil
+  def where_line([]), do: nil
+  def where_line([%{name: name, line: "rent"} | _rest]), do: "Rent from " <> name
+  def where_line([%{name: name, line: "buy"} | _rest]), do: "Buy from " <> name
+  def where_line([%{name: name} | _rest]), do: "On " <> name
+
+  @doc """
+  What gets shared: the title, the year, and where it can be watched.
+
+  The last part is the one worth sending. `Kati.Media.Availability` knows it
+  now, and *Dune (2021) — On Netflix* is a message somebody can act on where
+  *Dune* is a message they have to look up.
+
+      iex> Kati.Screens.Film.share_line(%{title: "Dune", meta: "2021 · SCI-FI", where_line: nil})
+      "Dune (2021)"
+
+      iex> Kati.Screens.Film.share_line(%{title: "Dune", meta: nil, where_line: "On Netflix"})
+      "Dune — On Netflix"
+  """
+  @spec share_line(map()) :: String.t()
+  def share_line(film) do
+    [
+      film.title <> year_suffix(Map.get(film, :meta)),
+      Map.get(film, :where_line)
+    ]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" — ")
+  end
+
+  defp year_suffix(meta) when is_binary(meta) do
+    case Regex.run(~r/\b(\d{4})\b/, meta) do
+      [_all, year] -> " (" <> year <> ")"
+      _no_year -> ""
+    end
+  end
+
+  defp year_suffix(_none), do: ""
 
   # Coming back from the log sheet, or from anything else pushed over this
   # page. See `Kati.Screens.Resume`: a popped-to screen restores its saved

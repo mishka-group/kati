@@ -80,14 +80,21 @@ defmodule Kati.Screens.QuickAdd do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  def mount(_params, _session, socket) do
+  # A caller may name the sentence. Screen 08's *Schedule* opens this with
+  # `Watch <title>` already typed, because the verb and the subject are the
+  # part a reader should not have to retype — what they came here to say is
+  # WHEN.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+
+    sentence = Map.get(params || %{}, :sentence, "")
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:sentence, "")
+     |> Mob.Socket.assign(:params, params)
+     |> Mob.Socket.assign(:sentence, sentence)
      |> Mob.Socket.assign(:save_error, nil)
-     |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(""))}
+     |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(sentence))}
   end
 
   @doc """
