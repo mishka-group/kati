@@ -206,6 +206,37 @@ defmodule Kati.ScreenParamsSweepTest do
   # reason that applies to anything below — that case is `@empty_builders`, and
   # a door in that state fails the assertion over THAT list instead.
   @bare_pushes [
+    # ── The `+` FAB, and screen 07's music twin, onto screen 06.
+    #
+    # Screen 06 reads a `:query` since MOVIES-AND-TV.md #93 — screen 18's
+    # *Title* chip opens it over a sentence somebody has already typed. The FAB
+    # is the opposite case and has nothing to hand it: a reader pressing `+` on
+    # Home has typed nothing, and the resting sheet is exactly what they should
+    # get. `Kati.Screens.AddTitleMusic`'s three filter chips push the film sheet
+    # for the same reason — they are switching WHICH sheet, not carrying a
+    # query, and 06's own field is where the query then comes from.
+    #
+    # These are `%{}` because `%{}` is the right argument, which is the one
+    # shape this list holds that is not a backlog entry.
+    {Kati.Screens.Home, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeDark, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeEmpty, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.Agenda, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeFa, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeFaEmpty, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeFaEmptyDark, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.HomeFaOmittedSections, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.Library, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.Library, :add_title, Kati.Screens.AddTitle},
+    {Kati.Screens.LibraryFa, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.MonthGrid, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.ScheduleFa, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.Stats, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.StatsFa, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.Week, :fab, Kati.Screens.AddTitle},
+    {Kati.Screens.AddTitleMusic, :filter_Everything, Kati.Screens.AddTitle},
+    {Kati.Screens.AddTitleMusic, :filter_Films, Kati.Screens.AddTitle},
+    {Kati.Screens.AddTitleMusic, :filter_Series, Kati.Screens.AddTitle},
     # ── The Day/Week/Month/Agenda switcher's `Day` segment, drawn by all three
     # of the other views. `Kati.Screens.Day` can receive a date — it is
     # `use Kati.Screens.Pushed` and `day/1` reads `%{date: date}` — but none of
@@ -703,7 +734,15 @@ defmodule Kati.ScreenParamsSweepTest do
     # A push naming no sentence opens on board 18, which is drawn mid-typing.
     # Both are right; they are not the same render, and they must not be:
     # a value, not a reference.
-    {Kati.Screens.QuickAdd, :sentence}
+    {Kati.Screens.QuickAdd, :sentence},
+    # The words in the field, one sheet over. MOVIES-AND-TV.md #93 gave screen
+    # 06 a `:query`, because screen 18's *Title* chip opens it after the reader
+    # has already typed the film's name and a blank sheet is an invitation to
+    # type it twice. `no-such-row` is a search for that phrase and answers with
+    # nothing found; a push naming no query opens the resting sheet, which is
+    # what a reader who has typed nothing should see. Both are right and they
+    # are not the same render — a value, not a reference.
+    {Kati.Screens.AddTitle, :query}
   ]
 
   # Readers named by hand, so a scan that stops matching fails loudly instead of

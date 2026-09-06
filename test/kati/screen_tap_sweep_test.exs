@@ -306,6 +306,12 @@ defmodule Kati.ScreenTapSweepTest do
     # segment drawn without a tap at all would read as a broken control rather
     # than a settled one.
     {Kati.Screens.AutoDetect, :tv},
+    # Screen 18's own lit chip, for screen 36's reason one line up. *Or file it
+    # as* is a choice of one, and `Event` is what a bare sentence is already
+    # filed as, so pressing it sets `:filed_as` to what it already holds. The
+    # other five move the screen — four set a different
+    # `Kati.Calendars.Event.kind`, Title opens screen 06 — and are swept.
+    {Kati.Screens.QuickAdd, :file_as_event},
     # Screen 43's **Mark eaten** on the DRAWN day, which is the only day the
     # sweep sees. With a plan in the store the tag carries the slot's id and
     # writes a `Kati.Meals.MealLog` — `Kati.MealsTodayWriteTest` asserts that
@@ -520,11 +526,14 @@ defmodule Kati.ScreenTapSweepTest do
     # into, which is #45. The field is honest about being empty and the sheet
     # saves without it, which is the screen's whole subject.
     #
-    # `file_as_expense` is the Expense chip, and on this screen it is the
-    # selected one: you are already looking at what it files the sentence as.
-    # On screen 18 the same chip pushes here, which is what makes the family
-    # live.
-    {Kati.Screens.QuickAddExpense, :file_as_expense},
+    # (`{Kati.Screens.QuickAddExpense, :file_as_expense}` was here, for the
+    # already-selected reason: on this screen the Expense chip is the one you
+    # are already looking at. MOVIES-AND-TV.md #93 wired the other five on
+    # screen 18, and screen 124 answers none of them — it has its own chip lit
+    # and its own screen behind it — so it now draws the whole row as a
+    # picture, the rule `Kati.Screens.Rating.scale_toggle/1` states for the
+    # toggle it lends 73 the same way. A picture draws no tags, so the entry
+    # became a phantom. Screen 18's own lit chip is in this list instead.)
     # ── Screen 111's three.
     #
     # `unit_kg` is the one the sheet opens on, and `unit_st` writes through

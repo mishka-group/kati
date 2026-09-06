@@ -93,8 +93,20 @@ defmodule Kati.Screens.AddTitle do
   # `results` is the whole answer to the query and never shrinks — the chip
   # narrows the VIEW, so a title added under `Films` is still added when the
   # user goes back to `Everything`.
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+    # What the caller wanted looked up, if it named one. MOVIES-AND-TV.md #93:
+    # screen 18's *Title* chip is a door onto this sheet, and a sheet that
+    # opened blank after the reader had already typed the film's name is an
+    # invitation to type it a second time.
+    #
+    # `query_epoch` starts at 1 rather than 0 when there is one, and that is
+    # the whole of what makes the text appear: the bridge remembers the last
+    # epoch it saw per field, so a `value` handed to a field it has already
+    # drawn is ignored unless the epoch moves. See `K-46` in `native/LEDGER.md`.
+    handed = Kati.Screens.AddTitle.opening_query(params)
+
+    if handed != "", do: Kati.Media.SearchDebounce.ask(self(), handed)
 
     {:ok,
      Mob.Socket.assign(socket,
@@ -107,15 +119,36 @@ defmodule Kati.Screens.AddTitle do
        # typed into draws instead.
        results: [],
        filter: "Everything",
-       query: "",
+       query: handed,
        # Bumped when this screen REPLACES the field rather than echoing it —
        # see `clear_disc/0` and the `K-46 text-field-epoch` fence. It starts at
        # zero and the bridge remembers the last one it saw, so a mount is not
        # itself a replacement.
-       query_epoch: 0,
+       query_epoch: if(handed == "", do: 0, else: 1),
        save_error: nil,
        search_error: nil
      )}
+  end
+
+  @doc """
+  The query a push named, trimmed, or `""`.
+
+  Under `@min_query` it is still put in the field and simply not searched —
+  the same floor `handle_info({:change, :title_query, …})` keeps. Two letters
+  the reader typed are two letters they should not have to type again.
+
+      iex> Kati.Screens.AddTitle.opening_query(%{query: "  Arrival "})
+      "Arrival"
+
+      iex> Kati.Screens.AddTitle.opening_query(%{})
+      ""
+  """
+  @spec opening_query(map() | nil) :: String.t()
+  def opening_query(params) do
+    case Map.get(params || %{}, :query) do
+      typed when is_binary(typed) -> String.trim(typed)
+      _none -> ""
+    end
   end
 
   def render(assigns) do

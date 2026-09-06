@@ -128,6 +128,90 @@ defmodule Kati.QuickAddTest do
     end
   end
 
+  describe "the six Or file it as chips" do
+    test "each sends a tag, where five of six sent nothing" do
+      for label <- ["Event", "Reminder", "Title", "Habit", "Note", "Expense"] do
+        assert {_pid, _tag} = QuickAdd.kind_tap(label)
+      end
+    end
+
+    test "four of them are one value of Kati.Calendars.Event.kind" do
+      filed = Enum.map(["Event", "Reminder", "Habit", "Note"], &QuickAdd.filing/1)
+
+      assert filed == [:event, :reminder, :habit, :note]
+      assert Enum.all?(filed, &(&1 in Event.kinds()))
+
+      # The two that are doors rather than settings: a film is not an event,
+      # and an amount is a parse this screen does not do.
+      assert QuickAdd.filing("Title") == nil
+      assert QuickAdd.filing("Expense") == nil
+    end
+
+    test "and the chosen one decides what the sentence is filed as" do
+      draft = QuickAdd.draft("call mum tomorrow 6pm")
+
+      assert {:ok, _event} = QuickAdd.commit(draft, :reminder)
+      assert [%{kind: :reminder, summary: "Call mum"}] = quick_events()
+    end
+
+    test "with Event as what a bare sentence is already filed as" do
+      assert {:ok, _event} = QuickAdd.commit(QuickAdd.draft("bin day tomorrow"))
+      assert [%{kind: :event}] = quick_events()
+    end
+
+    test "pressing a chip lights it and leaves the sentence alone" do
+      socket = typed("dentist tomorrow 11am")
+
+      {:noreply, filed} = QuickAdd.handle_info({:tap, :file_as_note}, socket)
+
+      assert filed.assigns.filed_as == :note
+      assert filed.assigns.draft == socket.assigns.draft
+    end
+
+    test "and a chip that names no filing leaves the screen alone" do
+      socket = typed("dentist tomorrow 11am")
+
+      {:noreply, after_tap} = QuickAdd.handle_info({:tap, :file_as_nonsense}, socket)
+
+      assert after_tap.assigns.filed_as == :event
+    end
+
+    test "Title hands the parsed title to screen 06 and opens it" do
+      socket = typed("the long hollow tomorrow 9pm")
+
+      {:noreply, pushed} = QuickAdd.handle_info({:tap, :file_as_title}, socket)
+
+      assert {:push, Kati.Screens.AddTitle, %{query: "The long hollow"}} =
+               Map.get(pushed.__mob__, :nav_action)
+    end
+
+    test "and hands the whole sentence over when it could parse no title" do
+      # Every token consumed and nothing left to be a title. The raw sentence
+      # is still a better search term than an empty one.
+      socket = typed("tomorrow 9pm")
+      assert socket.assigns.draft.read.title == nil
+
+      {:noreply, pushed} = QuickAdd.handle_info({:tap, :file_as_title}, socket)
+
+      assert {:push, Kati.Screens.AddTitle, %{query: "tomorrow 9pm"}} =
+               Map.get(pushed.__mob__, :nav_action)
+    end
+
+    test "screen 124 draws the same row as a picture, having no handler for it" do
+      row = inspect(QuickAdd.kinds(QuickAdd.draft("")), limit: :infinity)
+
+      refute row =~ "file_as_"
+      assert inspect(QuickAdd.kinds(QuickAdd.draft(""), :event), limit: :infinity) =~ "file_as_"
+    end
+  end
+
+  defp typed(sentence) do
+    {:ok, socket} = QuickAdd.mount(%{}, %{}, Mob.Socket.new(QuickAdd))
+
+    {:noreply, typed} = QuickAdd.handle_info({:change, :sentence, sentence}, socket)
+    typed
+  end
+
   defp quick_events do
     Event |> Ash.read!() |> Enum.filter(&String.starts_with?(&1.uid, "kati-quick-"))
   end

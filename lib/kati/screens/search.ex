@@ -141,6 +141,12 @@ defmodule Kati.Screens.Search do
        results: results,
        filter: Kati.Search.narrowable(Map.get(params, :scope, "All")),
        recent: nil,
+       # Screen 06's counter, for the reason `handle_info({:tap, :clear}, …)`
+       # gives. It starts at 1 when a push HANDED a query, so the field draws
+       # it: the bridge remembers the last epoch per field, and a mount is not
+       # itself a replacement, so a value handed to a field it has already
+       # drawn is otherwise ignored.
+       query_epoch: if(query == "", do: 0, else: 1),
        back: Map.get(params, :back, @drawn_back),
        history: Kati.Search.Recent.all()
      )}
@@ -290,7 +296,7 @@ defmodule Kati.Screens.Search do
           padding_bottom={40}
         >
           {Kati.Screens.Search.back(back)}
-          {Kati.Screens.Search.field(query)}
+          {Kati.Screens.Search.field(query, true, Map.get(assigns, :query_epoch, 0))}
           {Kati.Screens.Search.chips(filter, results)}
           {Kati.Screens.Search.state_or_groups(results, filter, history)}
           {Kati.Screens.Search.section("Recent")}
@@ -344,6 +350,19 @@ defmodule Kati.Screens.Search do
     {:noreply,
      socket
      |> Mob.Socket.assign(:query, "")
+     # The bump is what makes the FIELD empty as well as the assign, and
+     # without it this control HALF worked: the counts went to zero and the
+     # word the reader had typed stayed sitting in the box, so the page read as
+     # "no results for hollow" over a query it had just thrown away. The bridge
+     # remembers the last epoch it saw per field and ignores a `value` for a
+     # field it has already drawn — `K-46` in `native/LEDGER.md`, and screen 06
+     # has carried the same counter since it was found there.
+     #
+     # MOVIES-AND-TV.md #94 called this control inert on the strength of
+     # `Kati.ScreenTapSweepTest`'s own note — the sweep reaches 19 with an empty
+     # field, where clearing is correctly a no-op. Pressed over a real query on
+     # the device it was not inert; it was wrong.
+     |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
      |> Mob.Socket.assign(:results, Kati.Search.Query.run(""))}
   end
 
@@ -488,7 +507,7 @@ defmodule Kati.Screens.Search do
   # looked the same. It showed the moment screen 19 started opening on the
   # query it was pushed with.
   @doc false
-  def field(query, live? \\ true) do
+  def field(query, live? \\ true, epoch \\ 0) do
     # `live?: false` is board 89, which draws this field four times over — once
     # per edge state. Four live fields on one page means four nodes called
     # `search_query` and four called `clear`, and `onNodeWithTag` throws on the
@@ -496,9 +515,15 @@ defmodule Kati.Screens.Search do
     # draws a picture of a control, so the picture carries no name and no tap.
     assigns =
       if live? do
-        %{query: query, id: "search_query", on_change: {self(), :query}, clear: {self(), :clear}}
+        %{
+          query: query,
+          id: "search_query",
+          on_change: {self(), :query},
+          clear: {self(), :clear},
+          epoch: epoch
+        }
       else
-        %{query: query, id: nil, on_change: nil, clear: nil}
+        %{query: query, id: nil, on_change: nil, clear: nil, epoch: epoch}
       end
 
     # `min_height`, not `height`. `Kati.DynamicTypeTest` states the rule: a
@@ -527,6 +552,7 @@ defmodule Kati.Screens.Search do
         <Spacer size={11} />
         <TextField
           value={@query}
+          value_epoch={@epoch}
           placeholder={Kati.Search.placeholder()}
           return_key="search"
           weight={1.0}

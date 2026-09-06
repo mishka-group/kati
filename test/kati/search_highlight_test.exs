@@ -125,4 +125,42 @@ defmodule Kati.SearchHighlightTest do
       end
     end
   end
+
+  describe "the clear disc" do
+    test "empties the field as well as the results, which it did not" do
+      # MOVIES-AND-TV.md #94. `Kati.ScreenTapSweepTest` books this tag inert
+      # with its own reason — it reaches 19 with an empty field, where clearing
+      # is correctly a no-op — so nothing in the suite had ever pressed it over
+      # a query. Pressed on the device it was not inert; it was HALF right:
+      # the counts went to zero and the typed word stayed in the box, so the
+      # page read as "no results for hollow" over a query it had just thrown
+      # away.
+      #
+      # The bump is what empties the field. The bridge remembers the last epoch
+      # it saw per field and ignores a `value` for one it has already drawn —
+      # `K-46` in `native/LEDGER.md`, and screen 06 has carried this counter
+      # since it was found there.
+      socket =
+        Kati.Screens.Search
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:query, "hollow")
+        |> Mob.Socket.assign(:query_epoch, 1)
+        |> Mob.Socket.assign(:results, Kati.Search.Query.run("hollow"))
+
+      {:noreply, cleared} = Kati.Screens.Search.handle_info({:tap, :clear}, socket)
+
+      assert cleared.assigns.query == ""
+      assert cleared.assigns.query_epoch > socket.assigns.query_epoch
+    end
+
+    test "and the field is handed the counter rather than reading it itself" do
+      # `field/3` is what a board calls too — 91, 141 and 88 all draw it — so
+      # the counter is an argument. A board passing none draws epoch 0, which
+      # is a picture of a field and never a replacement of one.
+      drawn = inspect(Kati.Screens.Search.field("hollow", true, 4), limit: :infinity)
+
+      assert drawn =~ "value_epoch: 4"
+      assert inspect(Kati.Screens.Search.field("hollow"), limit: :infinity) =~ "value_epoch: 0"
+    end
+  end
 end
