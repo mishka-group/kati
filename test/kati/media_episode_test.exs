@@ -26,6 +26,8 @@ defmodule Kati.Media.EpisodeTest do
   """
   use ExUnit.Case, async: false
 
+  doctest Kati.Media.CachedEpisode, only: [derived_absolute: 1]
+
   require Ash.Query
 
   alias Kati.Media.CachedEpisode

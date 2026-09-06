@@ -87,7 +87,9 @@ defmodule Kati.Screens.SeriesSettings do
 
   @impl true
   def load(socket) do
-    Mob.Socket.assign(socket, :show, Kati.Screens.SeriesSettings.show(socket.assigns.params))
+    socket
+    |> Mob.Socket.assign(:show, Kati.Screens.SeriesSettings.show(socket.assigns.params))
+    |> Mob.Socket.assign(:menu?, false)
   end
 
   @doc """
@@ -248,7 +250,11 @@ defmodule Kati.Screens.SeriesSettings do
         padding_top={64}
         padding_bottom={40}
       >
-        {SettingsList.chrome("more_horiz", 44)}
+        {Kati.Screens.ShowPages.chrome(
+          Kati.Screens.SeriesSettings,
+          Kati.Screens.SeriesSettings.id_of(show),
+          Map.get(assigns, :menu?, false)
+        )}
         {SettingsList.title(show.title, show.subtitle, nil, :meta_tight)}
         {UI.eyebrow(show.status_label)}
         {Kati.Screens.SeriesSettings.statuses(Kati.Screens.SeriesSettings.status_tiles(show))}
@@ -343,7 +349,31 @@ defmodule Kati.Screens.SeriesSettings do
   end
 
   @impl true
-  def handle_tap(tag, socket), do: {:noreply, Kati.Screens.SeriesSettings.write(socket, tag)}
+  def handle_tap(tag, socket) do
+    case Kati.Screens.ShowPages.handle(
+           socket,
+           tag,
+           Kati.Screens.SeriesSettings.tracked_id(socket),
+           "Show settings"
+         ) do
+      {:handled, moved} -> {:noreply, moved}
+      :unknown -> {:noreply, Kati.Screens.SeriesSettings.write(socket, tag)}
+    end
+  end
+
+  @doc false
+  @spec id_of(map()) :: String.t() | nil
+  def id_of(%{tracked: %{id: id}}), do: id
+  def id_of(_drawn), do: nil
+
+  @doc false
+  @spec tracked_id(Mob.Socket.t()) :: String.t() | nil
+  def tracked_id(socket) do
+    case Map.get(socket.assigns.show, :tracked) do
+      %{id: id} -> id
+      _drawn -> nil
+    end
+  end
 
   @doc """
   *Region & availability* and *This show*, or nothing at all.

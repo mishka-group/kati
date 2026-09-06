@@ -360,6 +360,89 @@ defmodule Kati.Media.CachedEpisode do
   end
 
   @doc """
+  The absolute numbering a COMPLETE cache implies, or `%{}` when it implies none.
+
+  `absolute_number` is what a source called an episode and nothing Kati fetches
+  from fills it — TMDB keeps alternate orders in *episode groups*, a separate
+  endpoint and a separate record, which is why the column is nullable and why
+  the moduledoc forbids writing an invented value into it. Left there, the
+  Absolute tile on screen 34 is an order with no numbers: `in_order/2` at
+  `:absolute` drops every episode and answers `[]`.
+
+  Absolute order is not an invention, though. It is the series laid out end to
+  end with the specials left out, which is the definition every source that
+  publishes one uses, and it is derivable from rows Kati already holds — but
+  only from a cache that holds ALL of them. Half a series numbered end to end
+  is the tick-losing renumbering screen 34 exists to warn about: cache S2 alone
+  and S2E1 becomes 1, which is a claim about a season the user never watched.
+
+  So this answers with the map only when the cache can support it, and `%{}`
+  otherwise:
+
+    * every season from 1 to the highest one present is in the list, with no
+      gap — a series missing S2 cannot say what S3E1's absolute number is;
+    * each of those seasons runs 1..n with no gap and no repeat;
+    * there is more than one season, because a single-season series numbers
+      absolutely exactly as it numbers by air date, and offering a second tile
+      that draws the identical list is the pixel-lie `orders/0` exists to stop.
+
+  Specials are excluded and get no number, which is `in_order/2`'s own note:
+  *"absolute order renumbers this season 27–35 and drops the special"*.
+
+  Keyed by `source_id`, because that is the identity — see the moduledoc.
+
+      iex> alias Kati.Media.CachedEpisode
+      iex> eps = [
+      ...>   %CachedEpisode{source_id: "a", season_number: 1, episode_number: 1, special: false},
+      ...>   %CachedEpisode{source_id: "b", season_number: 1, episode_number: 2, special: false},
+      ...>   %CachedEpisode{source_id: "c", season_number: 2, episode_number: 1, special: false}
+      ...> ]
+      iex> CachedEpisode.derived_absolute(eps)
+      %{"a" => 1, "b" => 2, "c" => 3}
+
+      iex> alias Kati.Media.CachedEpisode
+      iex> CachedEpisode.derived_absolute([
+      ...>   %CachedEpisode{source_id: "c", season_number: 2, episode_number: 1, special: false}
+      ...> ])
+      %{}
+  """
+  @spec derived_absolute([t()]) :: %{String.t() => pos_integer()}
+  def derived_absolute(episodes) do
+    numbered =
+      Enum.filter(episodes, fn ep ->
+        not ep.special and is_integer(ep.season_number) and ep.season_number >= 1 and
+          is_integer(ep.episode_number) and ep.episode_number >= 1
+      end)
+
+    by_season = Enum.group_by(numbered, & &1.season_number)
+
+    if complete?(by_season) do
+      numbered
+      |> Enum.sort_by(&{&1.season_number, &1.episode_number})
+      |> Enum.with_index(1)
+      |> Map.new(fn {ep, n} -> {ep.source_id, n} end)
+    else
+      %{}
+    end
+  end
+
+  # Contiguous from 1, more than one season, and every season itself contiguous
+  # from 1. Sets rather than counts on both axes: `[1, 1, 2]` has three entries
+  # and two distinct numbers, and a duplicate is a cache that wrote one episode
+  # twice rather than a season of three.
+  defp complete?(by_season) when map_size(by_season) < 2, do: false
+
+  defp complete?(by_season) do
+    seasons = Map.keys(by_season)
+
+    Enum.sort(seasons) == Enum.to_list(1..Enum.max(seasons)) and
+      Enum.all?(by_season, fn {_number, episodes} ->
+        numbers = MapSet.new(episodes, & &1.episode_number)
+        MapSet.equal?(numbers, MapSet.new(1..MapSet.size(numbers)))
+      end)
+  end
+
+  @doc """
   What one order calls this episode, or `nil` when that order cannot place it.
 
   `nil` rather than a fallback to the other scheme: a list that silently shows

@@ -131,8 +131,15 @@ defmodule Kati.UI.SettingsList do
   `Row` is layout-neutral and the disc would still render identically; the theme
   icon simply produces the same tree with one node fewer, and keeps this
   file's two containers on one component.
+
+  ## The tap is optional, and `nil` is a real answer
+
+  Ten screens draw this disc and most of them open nothing — see
+  `Kati.Screens.ShowPages`, which is where two of them stopped. A disc with
+  something to open passes its tag; one without passes nothing and gets the
+  same pixels, so a screen cannot half-wire it.
   """
-  def disc(icon) do
+  def disc(icon, on_tap \\ nil) do
     Kati.Components.MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
@@ -142,7 +149,8 @@ defmodule Kati.UI.SettingsList do
         color: Kati.Theme.card(Palette.mode()),
         size: 44,
         radius: 22,
-        shadow: Kati.Theme.shadow_button()
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: on_tap
       },
       [Kati.UI.symbol(icon, size: 21)]
     )
