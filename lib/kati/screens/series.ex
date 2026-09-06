@@ -1327,13 +1327,74 @@ defmodule Kati.Screens.Series do
   """
   @spec tick_result(binary() | nil, map() | nil) :: :ok | {:error, term()}
   def tick_result(tracked_id, episode) do
-    Kati.Screens.Series.write_tick(tracked_id, episode)
+    case Kati.Screens.Series.write_tick(tracked_id, episode) do
+      :ok ->
+        Kati.Screens.Series.restate(tracked_id)
+        :ok
+
+      other ->
+        other
+    end
   rescue
     error ->
       require Logger
       Logger.error("series tick: #{Exception.message(error)}")
       {:error, :nothing_to_save}
   end
+
+  @doc """
+  What the shelf calls a series after a tick: `:finished`, or `:watching`.
+
+  Nothing in the reachable app could set a title's status — the only writer
+  was `Kati.Screens.DropSheet`, which is gallery-only — so screen 03's chips
+  read `Not started 0` and `Finished 0` on every device, and a series whose
+  last episode had just been ticked still said *watching*.
+
+  Counted rather than asserted: the ticks against this title, against the
+  episode count the cache holds. `Kati.Media.TrackedTitle` names the set of
+  ticks as the authority on how much is watched, and this is the same question
+  asked once more at the moment the answer can have changed.
+
+  A cache with no `episode_count` — a series the provider has not filled, or
+  a hand-typed one — leaves the status alone. *Watching* is right for a series
+  you are watching, and inventing *finished* out of a total nobody knows would
+  be the page asserting the one thing it cannot.
+
+  Failure here does not fail the tick, for `Kati.Screens.Rating.finish_title/2`'s
+  reason: the tick is what the person asked for and is already written.
+  """
+  @spec restate(binary() | nil) :: :ok
+  def restate(tracked_id) when is_binary(tracked_id) do
+    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, tracked_id),
+         %CachedTitle{episode_count: total} when is_integer(total) and total > 0 <-
+           Release.cached_for(tracked) do
+      # Through the named action rather than a `filter` expression, for the
+      # reason stated at the top of this file: no `require Ash.Query` here, and
+      # `:for_title` is the read this screen already makes about its own ticks.
+      ticked =
+        Kati.Media.Watch
+        |> Ash.Query.for_read(:for_title, %{tracked_title_id: tracked_id})
+        |> Ash.read!()
+        |> Enum.map(& &1.episode_source_id)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.uniq()
+        |> length()
+
+      status = if ticked >= total, do: :finished, else: :watching
+
+      if tracked.status != status do
+        tracked
+        |> Ash.Changeset.for_update(:update, %{status: status})
+        |> Ash.update()
+      end
+    end
+
+    :ok
+  rescue
+    _error -> :ok
+  end
+
+  def restate(_none), do: :ok
 
   @doc false
   @spec write_tick(binary() | nil, map() | nil) :: :ok | {:error, term()}

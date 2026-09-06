@@ -391,6 +391,40 @@ defmodule Kati.Screens.Rating do
   def params_for(_film), do: %{}
 
   @doc """
+  A film you have watched is a film you have finished.
+
+  Nothing in the reachable app could set a title's status: the only writer was
+  `Kati.Screens.DropSheet`, which is gallery-only and writes `:watching`. So
+  the shelf's chips read `Not started 0` and `Finished 0` on every device that
+  has ever existed, every tile's caption said *watching*, and a film logged as
+  seen still sat under *Continue watching* — the section for things you have
+  not finished.
+
+  Only for a FILM. A series is finished when its last episode is ticked, which
+  is a different fact and belongs with the tick that establishes it; logging a
+  watch of one episode says nothing about the other nine.
+
+  A failure here does not fail the watch. The log is the thing the person
+  asked for and it is already written; a status that did not move is a wrong
+  caption, and losing the log to fix a caption would be the worse trade.
+  """
+  @spec finish_title({:ok, struct()} | {:error, term()}, String.t()) ::
+          {:ok, struct()} | {:error, term()}
+  def finish_title({:ok, _watch} = written, tracked_id) do
+    with {:ok, %TrackedTitle{kind: :movie} = tracked} <- Ash.get(TrackedTitle, tracked_id) do
+      tracked
+      |> Ash.Changeset.for_update(:update, %{status: :finished})
+      |> Ash.update()
+    end
+
+    written
+  rescue
+    _error -> written
+  end
+
+  def finish_title(other, _tracked_id), do: other
+
+  @doc """
   The sheet for a film with nothing logged against it yet.
 
   Every field the markup reads, answered about THIS title and about nothing
@@ -1581,6 +1615,7 @@ defmodule Kati.Screens.Rating do
           watched_at: Kati.Time.now() |> DateTime.truncate(:second)
         }
         |> then(&Ash.create(Watch, &1))
+        |> Kati.Screens.Rating.finish_title(tracked_id)
         |> Write.note("log a watch")
 
       _gone ->
