@@ -13,6 +13,11 @@ defmodule Kati.RatingTagsTest do
       display preference. None should; `Mob.State` does, which is where
       `Kati.Locale` has kept the locale since the app had two screens.
 
+  And #95's three, which are the same defect one card up: *Watched on*, *Where*
+  and *With* each drew a chevron over a real column — `watched_on` beside
+  `watched_at`, `service`, `companions` — and a chevron is a promise that a
+  screen opens.
+
   The sweep cannot see any of this. It renders against an empty store, where
   the sheet draws `Kati.Rating.Sample` and every one of these controls is
   deliberately a picture — a tag typed onto the drawing would be refused by
@@ -160,6 +165,121 @@ defmodule Kati.RatingTagsTest do
 
       refute drawn =~ "add_tag"
       refute drawn =~ "drop_tag_"
+    end
+  end
+
+  describe "the three context rows" do
+    test "open one at a time, and pressing the open one closes it", %{tracked: tracked} do
+      socket = sheet(tracked)
+
+      {:noreply, day} = Rating.handle_info({:tap, :open_watched_on}, socket)
+      assert day.assigns.watch.open_row == :watched_on
+
+      {:noreply, where} = Rating.handle_info({:tap, :open_where}, day)
+      assert where.assigns.watch.open_row == :where
+
+      {:noreply, shut} = Rating.handle_info({:tap, :open_where}, where)
+      refute Map.has_key?(shut.assigns.watch, :open_row)
+    end
+
+    test "Watched on changes the day and leaves the hour alone", %{tracked: tracked} do
+      socket = sheet(tracked)
+      hour = socket.assigns.watch.watched_at
+      yesterday = Date.add(Kati.Time.today(), -1)
+
+      {:noreply, chosen} =
+        Rating.handle_info({:tap, String.to_atom("day_" <> Date.to_iso8601(yesterday))}, socket)
+
+      assert chosen.assigns.watch.watched_on == yesterday
+      assert chosen.assigns.watch.watched_at == hour
+      refute Map.has_key?(chosen.assigns.watch, :open_row)
+
+      {:ok, _saved} = Rating.save_watch(chosen.assigns)
+      assert only_watch!().watched_on == yesterday
+    end
+
+    test "and offers tonight and the three nights before it" do
+      today = Kati.Time.today()
+
+      assert Rating.recent_days() |> Enum.map(&elem(&1, 1)) == [
+               today,
+               Date.add(today, -1),
+               Date.add(today, -2),
+               Date.add(today, -3)
+             ]
+
+      assert Rating.recent_days() |> Enum.map(&elem(&1, 0)) |> Enum.take(2) ==
+               ["Today", "Yesterday"]
+    end
+
+    test "Where writes the service, and pressing it again clears it", %{tracked: tracked} do
+      socket = sheet(tracked)
+
+      {:noreply, set} = Rating.handle_info({:tap, :where_Lumen}, socket)
+      assert set.assigns.watch.service == "Lumen"
+
+      {:ok, _saved} = Rating.save_watch(set.assigns)
+      assert only_watch!().service == "Lumen"
+
+      {:noreply, cleared} = Rating.handle_info({:tap, :where_Lumen}, set)
+      assert cleared.assigns.watch.service == nil
+    end
+
+    test "and offers the services this reader has actually named", %{tracked: tracked} do
+      other = tracked!("second")
+      watch!(other, %{service: "The Rio", review: "One."})
+
+      assert "The Rio" in Rating.where_options(%{})
+
+      _ = tracked
+    end
+
+    test "With takes the names as typed and stores them as typed", %{tracked: tracked} do
+      socket = sheet(tracked)
+
+      {:noreply, open} = Rating.handle_info({:tap, :open_with}, socket)
+      {:noreply, typed} = Rating.handle_info({:change, :with_draft, "Jo, Sam"}, open)
+      {:noreply, done} = Rating.handle_info({:tap, :commit_with}, typed)
+
+      assert done.assigns.watch.companions == "Jo, Sam"
+      refute Map.has_key?(done.assigns.watch, :open_row)
+
+      {:ok, _saved} = Rating.save_watch(done.assigns)
+      assert only_watch!().companions == "Jo, Sam"
+    end
+
+    test "and a blank answer is nobody rather than a refusal", %{tracked: tracked} do
+      socket = sheet(tracked)
+
+      {:noreply, open} = Rating.handle_info({:tap, :open_with}, socket)
+      {:noreply, typed} = Rating.handle_info({:change, :with_draft, "  "}, open)
+      {:noreply, done} = Rating.handle_info({:tap, :commit_with}, typed)
+
+      assert done.assigns.watch.companions == nil
+    end
+
+    test "the sub-line under each row reads back what was set", %{tracked: tracked} do
+      socket = sheet(tracked)
+
+      {:noreply, a} = Rating.handle_info({:tap, :where_Lumen}, socket)
+      {:noreply, b} = Rating.handle_info({:tap, :open_with}, a)
+      {:noreply, c} = Rating.handle_info({:change, :with_draft, "Jo"}, b)
+      {:noreply, d} = Rating.handle_info({:tap, :commit_with}, c)
+
+      subs = d.assigns.watch |> Rating.context_of() |> Enum.map(& &1.sub)
+
+      assert [_day, "Lumen", "Jo"] = subs
+    end
+
+    test "and are chevrons with no tap over the drawing" do
+      drawn = inspect(Rating.context_card(Rating.drawn_watch()), limit: :infinity)
+
+      refute drawn =~ "open_watched_on"
+      refute drawn =~ "open_where"
+      refute drawn =~ "open_with"
+
+      # The board keeps its own three sub-lines, which is what it is a drawing of.
+      assert drawn =~ "Lumen+"
     end
   end
 
