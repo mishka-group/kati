@@ -123,7 +123,10 @@ defmodule Kati.Screens.SeriesFa do
     series = series(Map.get(params || %{}, :id))
     back = Kati.Screens.Pushed.back_label(params, @back)
 
-    {:ok, Mob.Socket.assign(socket, :series, Map.put(series, :back, back))}
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:series, Map.put(series, :back, back))
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   @doc """
@@ -209,6 +212,11 @@ defmodule Kati.Screens.SeriesFa do
       current: current,
       saved: false,
       by_index: by_index,
+      # The row a tick is written against, carried the way screen 04 carries
+      # it — on the assembled map rather than re-read in the handler, so this
+      # page cannot write a tick against a different show from the one it is
+      # drawing. Absent on the drawing, which is what refuses the write.
+      tracked_id: facts.tracked_id,
       watched_line: nil,
       progress: 0.0,
       action: nil
@@ -233,7 +241,20 @@ defmodule Kati.Screens.SeriesFa do
       n: episode_number(episode),
       title: episode_title(episode),
       sub: episode_sub(episode, zone),
-      watched: episode.watched
+      watched: episode.watched,
+      # The three keys that are not for drawing, and their absence is the whole
+      # of MOVIES-AND-TV.md #33: this page flipped a ring, moved a counter and
+      # relabelled a button, and discarded every one of those when the screen
+      # was popped. `Kati.Media.Watch` names an episode by `episode_source_id`
+      # and nothing else — screen 04's own `episode_row/2` carries the same
+      # three for the same reason, and lost them once already.
+      #
+      # `n` above is a PERSIAN numeral for the eye; `number` is the integer the
+      # column stores. Two fields because they are two different facts, and
+      # storing "۶" in an integer column is not a rounding error.
+      source_id: Map.get(episode, :source_id),
+      season: Map.get(episode, :season),
+      number: Map.get(episode, :number)
     }
   end
 
@@ -322,13 +343,13 @@ defmodule Kati.Screens.SeriesFa do
 
   def render(assigns) do
     Fa.pushed_frame(
-      Kati.Screens.SeriesFa.page(assigns.series),
+      Kati.Screens.SeriesFa.page(assigns.series, Map.get(assigns, :save_error)),
       Kati.Screens.Identity.of(__MODULE__)
     )
   end
 
   @doc false
-  def page(series) do
+  def page(series, save_error \\ nil) do
     ~MOB"""
     <Box fill_width={true} fill_height={true}>
       <Scroll>
@@ -341,6 +362,7 @@ defmodule Kati.Screens.SeriesFa do
             padding_top={16}
             padding_bottom={40}
           >
+            {Kati.Screens.SeriesFa.refusal(save_error)}
             {Kati.Screens.SeriesFa.season_card(series)}
             {Kati.Screens.SeriesFa.actions(series)}
             {Kati.Screens.SeriesFa.episodes_header(series)}
@@ -962,7 +984,7 @@ defmodule Kati.Screens.SeriesFa do
 
     case Enum.find_index(series.episodes, &(not &1.watched)) do
       nil -> {:noreply, socket}
-      i -> {:noreply, Mob.Socket.assign(socket, :series, toggle(series, i))}
+      i -> {:noreply, Kati.Screens.SeriesFa.tick(socket, i)}
     end
   end
 
@@ -977,8 +999,7 @@ defmodule Kati.Screens.SeriesFa do
          )}
 
       "episode_" <> index ->
-        series = socket.assigns.series
-        {:noreply, Mob.Socket.assign(socket, :series, toggle(series, String.to_integer(index)))}
+        {:noreply, Kati.Screens.SeriesFa.tick(socket, String.to_integer(index))}
 
       _ ->
         {:noreply, socket}
@@ -1008,7 +1029,89 @@ defmodule Kati.Screens.SeriesFa do
     end
   end
 
-  defp toggle(series, index) do
+  @doc """
+  Tick or untick one episode, and write it.
+
+  `Kati.Screens.Series.write_tick/2` and not a second writer, for that
+  function's own reason: what a tick IS — a `Kati.Media.Watch` row that
+  exists, destroyed rather than contradicted on the way back — is
+  `Kati.Media.Watch`'s rule, and this page and screen 04 tick the same
+  episodes. The Persian page and the English one are the same app in two
+  languages; they must not be two apps that disagree about what a tick does.
+
+  The screen follows the store: the ring flips only after the write answers
+  `:ok`, so a refused write leaves the page showing what the database holds
+  rather than what the tap hoped for. A drawn series has no `tracked_id` and
+  its episodes no `source_id`, so it writes nothing and says so — the same
+  all-or-nothing gate `series/1` already applies to the page.
+  """
+  @spec tick(Mob.Socket.t(), non_neg_integer()) :: Mob.Socket.t()
+  def tick(socket, index) do
+    series = socket.assigns.series
+    episode = Enum.at(series.episodes, index)
+
+    case Kati.Screens.Series.write_tick(Map.get(series, :tracked_id), for_write(episode)) do
+      :ok ->
+        Kati.Screens.Series.restate(Map.get(series, :tracked_id))
+
+        socket
+        |> Mob.Socket.assign(:series, Kati.Screens.SeriesFa.toggle(series, index))
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Screens.SeriesFa.refusal_text(reason))
+    end
+  end
+
+  # `write_tick/2` reads `:n` for the episode number and this page's `:n` is a
+  # Persian numeral, so the integer is handed over under the name that function
+  # already accepts. `nil` for a drawn row, which its `%{source_id: nil}`
+  # clause refuses.
+  defp for_write(nil), do: nil
+
+  defp for_write(episode) do
+    %{
+      source_id: Map.get(episode, :source_id),
+      watched: episode.watched,
+      season: Map.get(episode, :season),
+      n: Map.get(episode, :number)
+    }
+  end
+
+  @doc """
+  Why a tick was refused, in Persian.
+
+  `Kati.Write.message/1` answers in English, which is the right answer on the
+  English screens and the wrong one here — a Persian page that explains itself
+  in English has not explained itself. Two sentences, because there are two
+  things that can be true: the series is not on your shelf, or the write
+  failed.
+
+      iex> Kati.Screens.SeriesFa.refusal_text(:not_tracked)
+      "این سریال هنوز در کتابخانه‌ی شما نیست."
+  """
+  @spec refusal_text(term()) :: String.t()
+  def refusal_text(reason) when reason in [:not_tracked, :no_episode, :no_episode_id],
+    do: "این سریال هنوز در کتابخانه‌ی شما نیست."
+
+  def refusal_text(_reason), do: "ذخیره نشد. دوباره تلاش کنید."
+
+  @doc false
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.notice(@message)}
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def toggle(series, index) do
     flip = fn ep -> %{ep | watched: not ep.watched} end
     recount(%{series | episodes: List.update_at(series.episodes, index, flip)})
   end
