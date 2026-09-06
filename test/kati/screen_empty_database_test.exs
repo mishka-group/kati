@@ -241,6 +241,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 145's `41 of 418`. An empty shelf has neither, so it draws the board
     # whole, which is the state the board is a drawing of.
     {"145", Kati.Screens.ShelfFilters},
+    # 146 joined when selection mode stopped selecting nine invented titles.
+    # It reads the shelf through `Kati.Screens.Library.shelf/0` — one shelf,
+    # one reader — and gates it whole: a grid of the reader's own posters with
+    # the board's two tiles highlighted inside it is a page that looks
+    # entirely real and is half a drawing. An empty shelf keeps board 146.
+    {"146", Kati.Screens.ShelfSelection},
     # 11 joined when its first band stopped being a fixture. It gates the whole
     # feed the way 04 gates its page: an empty store has nothing to recommend
     # FROM, so it draws board 11 whole. A store with a title in it gets one
@@ -1545,6 +1551,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # preselection and its `41 of 418`.
       {"145", Kati.Screens.ShelfFilters, &Kati.Screens.ShelfFilters.opening/0,
        &Kati.Screens.ShelfFilters.drawn_opening_for_test/0},
+      # 146 gates on the list, which is the whole of what it draws that could
+      # come from anywhere: the nine tiles, the two that start selected, and
+      # every count the header composes from them. An empty shelf answers with
+      # the board's own nine.
+      {"146", Kati.Screens.ShelfSelection, &Kati.Screens.ShelfSelection.shelf/0,
+       &Kati.Library.Sample.selection_shelf/0},
       # 11 gates on the seed rather than on the feed: `Kati.Media.Recommendations.seed/0`
       # is the title the picks would be drawn FROM, and an empty store has
       # none. One pair covers the subtitle, the four chips, the heading, the
