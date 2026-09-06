@@ -949,7 +949,7 @@ defmodule Kati.Screens.AlbumDetail do
        )}
 
   def handle_tap(:add_to_list, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Album"})}
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

@@ -812,10 +812,10 @@ defmodule Kati.Screens.ArtistDetail do
   end
 
   def handle_tap(:open_album, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetail)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetail, %{back: "Artist"})}
 
   def handle_tap(:remind_me, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Artist"})}
 
   # `Dismiss` takes the card off this render and writes nothing, because
   # *unheard* is derived from a play count and there is nothing to set. A

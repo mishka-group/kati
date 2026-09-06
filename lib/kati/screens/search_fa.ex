@@ -973,7 +973,7 @@ defmodule Kati.Screens.SearchFa do
       # sibling. A mirror that pushed an LTR screen would change the reader's
       # language mid-navigation.
       "hit_" <> _index ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa, %{back: "جست‌وجو"})}
 
       _other ->
         {:noreply, socket}

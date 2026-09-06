@@ -95,9 +95,13 @@ defmodule Kati.Screens.SeriesMeta do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :series, Sample.series())}
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:series, Sample.series())
+     |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Series"))}
   end
 
   def render(assigns) do
@@ -136,7 +140,7 @@ defmodule Kati.Screens.SeriesMeta do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.SeriesMeta.chrome()}
+      {Kati.Screens.SeriesMeta.chrome(Map.get(assigns, :back, "Series"))}
     </Box>
     """
   end
@@ -207,14 +211,14 @@ defmodule Kati.Screens.SeriesMeta do
   end
 
   @doc false
-  def chrome do
+  def chrome(label \\ "Series") do
     back = {self(), :back}
     fill = Palette.card()
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        {Kati.Screens.SeriesMeta.back_pill(back, fill)}
+        {Kati.Screens.SeriesMeta.back_pill(back, fill, label)}
         <Spacer weight={1.0} />
         {Kati.Screens.SeriesMeta.more_disc(fill)}
       </Row>
@@ -238,8 +242,8 @@ defmodule Kati.Screens.SeriesMeta do
   where a ✕ would sit) all hug and all centre vertically by default, so the
   chevron, the 6pt gap and `Library` sit exactly where they sat.
   """
-  @spec back_pill(term(), non_neg_integer()) :: map()
-  def back_pill(back, fill) do
+  @spec back_pill(term(), non_neg_integer(), String.t()) :: map()
+  def back_pill(back, fill, label \\ "Series") do
     MishkaPill.pill(
       [
         background: fill,
@@ -252,18 +256,20 @@ defmodule Kati.Screens.SeriesMeta do
         align: :center,
         on_tap: back
       ],
-      Kati.Screens.SeriesMeta.back_content()
+      Kati.Screens.SeriesMeta.back_content(label)
     )
   end
 
   @doc false
-  def back_content do
+  def back_content(label \\ "Series") do
+    assigns = %{back: label}
+
     [
       Kati.UI.symbol("arrow_back_ios_new", size: 17),
       ~MOB"<Spacer size={6} />",
       ~MOB"""
       <Text
-        text="Library"
+        text={@back}
         text_size={13.5}
         font_weight="semibold"
         letter_spacing={-0.01}

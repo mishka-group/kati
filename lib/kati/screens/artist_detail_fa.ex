@@ -857,7 +857,7 @@ defmodule Kati.Screens.ArtistDetailFa do
   # the stack and the back pill returns to it. Screen 69 pushes the English
   # rating sheet on the same reasoning, there being no mirror of it either.
   def handle_info({:tap, :remind_me}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Artist"})}
 
   # `رد کن` takes the card off this render and writes nothing. *Unheard* is
   # derived from a play count, so there is nothing to set; a dismissal that

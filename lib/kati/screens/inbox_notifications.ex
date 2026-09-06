@@ -409,7 +409,9 @@ defmodule Kati.Screens.InboxNotifications do
 
   @doc false
   def handle_tap(:open_watcher, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Notifications"})}
 
   def handle_tap(:open_diagnostic, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NotificationsHelp)}
@@ -422,7 +424,9 @@ defmodule Kati.Screens.InboxNotifications do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Calendar)}
 
   def handle_tap(:open_tv, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Notifications"})}
 
   def handle_tap(:open_habits, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}

@@ -119,7 +119,11 @@ defmodule Kati.Screens.SeriesFa do
   # page can take the push's params, and simply discarded them.
   def mount(params, _session, socket) do
     Kati.Theme.activate()
-    {:ok, Mob.Socket.assign(socket, :series, series(Map.get(params || %{}, :id)))}
+
+    series = series(Map.get(params || %{}, :id))
+    back = Kati.Screens.Pushed.back_label(params, @back)
+
+    {:ok, Mob.Socket.assign(socket, :series, Map.put(series, :back, back))}
   end
 
   @doc """

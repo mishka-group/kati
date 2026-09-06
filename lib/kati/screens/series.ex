@@ -141,6 +141,7 @@ defmodule Kati.Screens.Series do
     {:ok,
      socket
      |> Mob.Socket.assign(:series, series(Map.get(params || %{}, :id)))
+     |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
      |> Mob.Socket.assign(:menu?, false)}
   end
 
@@ -622,7 +623,7 @@ defmodule Kati.Screens.Series do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Series.chrome(assigns.menu?)}
+      {Kati.Screens.Series.chrome(assigns.menu?, Map.get(assigns, :back, "Library"))}
     </Box>
     """
   end
@@ -697,10 +698,11 @@ defmodule Kati.Screens.Series do
   # The floating chrome. `arrow_back_ios_new` rather than a chevron, because
   # that is the glyph the drawing names.
   @doc false
-  def chrome(menu?) do
+  def chrome(menu?, label \\ "Library") do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     lift = "0 6 16 -8 #991A1917"
+    assigns = %{back: label}
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
@@ -718,7 +720,7 @@ defmodule Kati.Screens.Series do
           {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
           <Spacer size={6} />
           <Text
-            text="Library"
+            text={@back}
             text_size={13.5}
             font_weight="semibold"
             letter_spacing={-0.01}

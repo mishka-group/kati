@@ -1163,9 +1163,13 @@ defmodule Kati.Screens.Library do
   def open_tile(socket, tag, module) do
     row = Enum.find(socket.assigns.titles, &(Kati.Screens.Library.poster_tag(&1) == tag))
 
+    # `:back` names the screen the reader is ON, so the pill on the page that
+    # opens says where they came from rather than where that page assumes.
+    # See `Kati.Screens.Pushed.back_label/2`: a film opened from here used to
+    # offer to take somebody back to the Library.
     case row && Map.get(row, :id) do
-      nil -> Mob.Socket.push_screen(socket, module)
-      id -> Mob.Socket.push_screen(socket, module, %{id: id})
+      nil -> Mob.Socket.push_screen(socket, module, %{back: "Library"})
+      id -> Mob.Socket.push_screen(socket, module, %{id: id, back: "Library"})
     end
   end
 

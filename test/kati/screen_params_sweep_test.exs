@@ -324,7 +324,10 @@ defmodule Kati.ScreenParamsSweepTest do
     # seeds `:calendars` and `:media` only and never a
     # `Kati.Media.TrackedTitle`, so the reference would resolve to nothing.
     # Both hits are the same series in Persian, which is why one destination
-    # answers both (`search_fa.ex:971-976`).
+    # answers both (`search_fa.ex:971-976`). The push now writes `%{back:
+    # "جست‌وجو"}` so the Persian series page's pill says where the reader came
+    # from instead of `کتابخانه`, and that is an origin, not a subject — see
+    # `no_subject?/1` and `subject_args/1` for why it leaves these two here.
     {Kati.Screens.SearchFa, :hit_0, Kati.Screens.SeriesFa},
     {Kati.Screens.SearchFa, :hit_1, Kati.Screens.SeriesFa}
   ]
@@ -748,7 +751,19 @@ defmodule Kati.ScreenParamsSweepTest do
   # names `params` in code is a reader the scan finds. A row here is a claim
   # that a screen names it and means something else, and it needs a sentence
   # saying what.
-  @not_readers []
+  @not_readers [
+    # Screen 14 says `params` once, and it is the back pill's word rather than
+    # its subject: `Kati.Screens.Pushed.back_label(params, "Series")`, so a
+    # page opened from the series says `Series` where it used to say `Library`
+    # on every arrival. What it DRAWS is `Kati.Screens.SeriesMeta.Sample` on
+    # every arrival, and its moduledoc spends a screenful on why — the cast,
+    # two of the three ratings, the offers, the tags and the trailer are the
+    # third thing a provider says about a title, and `Kati.Media` has nowhere
+    # to put any of it. So there is no id for a push to name and nothing this
+    # screen could do with one; counting it a reader would arm the fallback
+    # lock over a key it will never read.
+    Kati.Screens.SeriesMeta
+  ]
 
   # What the app's own screens reach, with the board index left out. Counted
   # WITHOUT `Kati.Screens.Gallery` for the reason the guard itself gives: the
@@ -1193,13 +1208,25 @@ defmodule Kati.ScreenParamsSweepTest do
   defp runtime_bare_pushes do
     for {module, tag, dest, params} <- pushes(),
         module != @index,
-        params == %{},
+        no_subject?(params),
         Map.has_key?(readers(), dest) do
       {module, tag, dest}
     end
     |> Enum.uniq()
     |> Enum.sort()
   end
+
+  # `:back` is not a subject.
+  #
+  # It is the word the destination's floating pill says, and it says where you
+  # came FROM — `%{back: "Home"}` on a push of screen 08 means the pill reads
+  # `Home`, not that the push named a film. Every assertion in this file is
+  # about whether a door names the row it opens, and a push carrying nothing
+  # but an origin names none: `params == %{}` would have called it named, and
+  # the moment the app started passing origins around, six real bare pushes
+  # would have dropped out of assertion 1 without a line changing. So the key
+  # is taken off before the question is asked.
+  defp no_subject?(params), do: Map.delete(params, :back) == %{}
 
   # Nobody wrote the argument: the clause that answers the tag pushes the
   # destination with two arguments and never three. `@bare_pushes` is this.
@@ -1304,9 +1331,26 @@ defmodule Kati.ScreenParamsSweepTest do
   # gallery's own row loop — answers `nil` and is not a site: which screen it
   # opens is not knowable here, and the runtime half already knows.
   defp destination([_socket, {:__aliases__, _meta, parts} | rest]),
-    do: {Module.concat(parts), 2 + length(rest)}
+    do: {Module.concat(parts), 2 + length(subject_args(rest))}
 
   defp destination(_args), do: nil
+
+  # The source half of `no_subject?/1`. A push whose written argument is
+  # `%{back: "Home"}` and nothing else has named an ORIGIN, not a subject, and
+  # counting it as the three-argument form would move the door off
+  # `@bare_pushes` — where the reason its source has nothing to name is written
+  # down — and onto `@empty_builders`, which is about a builder answering `%{}`
+  # and would be a lie about what happened. So a back-only literal is counted
+  # as the two-argument form: still bare, still on the list that explains it.
+  #
+  # `%{id: id, back: "Home"}` is an argument, and so is `%{}` — the latter is
+  # somebody writing the empty map on purpose, which is a different sentence
+  # from not writing one at all.
+  defp subject_args([{:%{}, _meta, pairs}] = rest) when pairs != [] do
+    if Enum.all?(pairs, &match?({:back, _value}, &1)), do: [], else: rest
+  end
+
+  defp subject_args(rest), do: rest
 
   defp atoms_in(term) when is_atom(term), do: [term]
   defp atoms_in(term) when is_list(term), do: Enum.flat_map(term, &atoms_in/1)

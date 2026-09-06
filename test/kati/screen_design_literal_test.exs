@@ -978,6 +978,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # in screen 88's row.
       {"86", Kati.Screens.SearchIdle,
        &Map.put(&1, :history, Kati.Screens.SearchIdle.drawn_recent())},
+      # 14's back pill was drawn reading `Library`, because the board was
+      # captured as an arrival from the shelf. In the app the only door into
+      # screen 14 is the series page's *Show details*, so `mount/3` defaults
+      # the pill to `Series` and takes `Library` from a push that says so —
+      # which is what this entry is. The drawing is still the drawing; what it
+      # is a drawing OF is one particular arrival.
+      {"14", Kati.Screens.SeriesMeta, &Map.put(&1, :back, "Library")},
       {"02", Kati.Screens.Calendar, &Map.put(&1, :rows, Kati.Screens.Calendar.drawn_rows())},
       {"03", Kati.Screens.Library, &Map.put(&1, :titles, Kati.Screens.Library.drawn_titles())},
       # 28 is screen 01 in dark and its three bands are the same three reads, so

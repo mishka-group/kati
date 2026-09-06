@@ -1111,7 +1111,7 @@ defmodule Kati.Screens.Health do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile)}
 
   def handle_tap(:open_services, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices, %{back: "Health"})}
 
   # `:open_filters` — the header's `tune` disc — is deliberately inert.
   #

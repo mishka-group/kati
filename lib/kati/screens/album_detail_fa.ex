@@ -1006,7 +1006,7 @@ defmodule Kati.Screens.AlbumDetailFa do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
   def handle_info({:tap, :add_to_list}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Album"})}
 
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}

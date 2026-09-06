@@ -880,7 +880,7 @@ defmodule Kati.Screens.ShelfSelection do
   def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
 
   def handle_info({:tap, :add_to_list}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Shelf"})}
 
   def handle_info({:tap, :change_status}, socket) do
     case MapSet.to_list(socket.assigns.selected) do

@@ -1067,23 +1067,26 @@ defmodule Kati.SheetRowIdentityTest do
       {:noreply, named} = Kati.Screens.Library.handle_tap(:open_series_First_Show, socket)
 
       assert named.__mob__.nav_action ==
-               {:push, Kati.Screens.Series, %{id: "row-identity-title-one"}},
+               {:push, Kati.Screens.Series, %{id: "row-identity-title-one", back: "Library"}},
              "every poster pushed screen 04 with nothing, so all of them opened whatever " <>
                "the top of the shelf happened to be"
 
       {:noreply, film} = Kati.Screens.Library.handle_tap(:open_film_Low_Water, socket)
 
       assert film.__mob__.nav_action ==
-               {:push, Kati.Screens.Film, %{id: "row-identity-title-two"}}
+               {:push, Kati.Screens.Film, %{id: "row-identity-title-two", back: "Library"}}
 
-      # A row with no id is `Kati.Library.Sample`'s, and it must push exactly
-      # what it pushed before — not `%{id: nil}`, which a destination matching
-      # on the key would take for an answer.
+      # A row with no id is `Kati.Library.Sample`'s, and it must still name no
+      # row — not `%{id: nil}`, which a destination matching on the key would
+      # take for an answer. `back:` rides along on every one of these because
+      # the pill on the far side has to say `Library`, and it is not an id: a
+      # push carrying only an origin is still a push that named nothing, which
+      # is what `Kati.ScreenParamsSweepTest.no_subject?/1` is for.
       {:noreply, drawn} = Kati.Screens.Library.handle_tap(:open_series_Second_Show, socket)
-      assert drawn.__mob__.nav_action == {:push, Kati.Screens.Series, %{}}
+      assert drawn.__mob__.nav_action == {:push, Kati.Screens.Series, %{back: "Library"}}
 
       {:noreply, unknown} = Kati.Screens.Library.handle_tap(:open_series_Nobody, socket)
-      assert unknown.__mob__.nav_action == {:push, Kati.Screens.Series, %{}}
+      assert unknown.__mob__.nav_action == {:push, Kati.Screens.Series, %{back: "Library"}}
     end
 
     test "screen 57's Persian grid names the same row" do

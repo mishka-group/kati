@@ -134,6 +134,7 @@ defmodule Kati.Screens.Film do
     {:ok,
      socket
      |> Mob.Socket.assign(:film, film(Map.get(params || %{}, :id)))
+     |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
      |> Mob.Socket.assign(:menu?, false)}
   end
 
@@ -444,7 +445,7 @@ defmodule Kati.Screens.Film do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Film.chrome(assigns.menu?)}
+      {Kati.Screens.Film.chrome(assigns.menu?, Map.get(assigns, :back, "Library"))}
     </Box>
     """
   end
@@ -567,7 +568,7 @@ defmodule Kati.Screens.Film do
   end
 
   @doc false
-  def chrome(menu?) do
+  def chrome(menu?, label \\ "Library") do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
@@ -578,7 +579,7 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        {Kati.Screens.Film.back_pill(back, fill, lift)}
+        {Kati.Screens.Film.back_pill(back, fill, lift, label)}
         <Spacer weight={1.0} />
         {Kati.Screens.Film.more_disc(fill, lift, menu?)}
       </Row>
@@ -602,8 +603,8 @@ defmodule Kati.Screens.Film do
   empty one where a ✕ would sit) all hug and all centre vertically by default,
   so the chevron, the 6pt gap and `Library` sit where they sat.
   """
-  @spec back_pill(term(), non_neg_integer(), String.t()) :: map()
-  def back_pill(back, fill, lift) do
+  @spec back_pill(term(), non_neg_integer(), String.t(), String.t()) :: map()
+  def back_pill(back, fill, lift, label \\ "Library") do
     MishkaPill.pill(
       [
         background: fill,
@@ -616,18 +617,20 @@ defmodule Kati.Screens.Film do
         align: :center,
         on_tap: back
       ],
-      Kati.Screens.Film.back_content()
+      Kati.Screens.Film.back_content(label)
     )
   end
 
   @doc false
-  def back_content do
+  def back_content(label \\ "Library") do
+    assigns = %{back: label}
+
     [
       Kati.UI.symbol("arrow_back_ios_new", size: 17),
       ~MOB"<Spacer size={6} />",
       ~MOB"""
       <Text
-        text="Library"
+        text={@back}
         text_size={13.5}
         font_weight="semibold"
         letter_spacing={-0.01}

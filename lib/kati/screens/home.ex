@@ -1352,7 +1352,7 @@ defmodule Kati.Screens.Home do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Calendar)}
 
   def handle_tap(:open_services, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices, %{back: "Home"})}
 
   def handle_tap(:open_meals, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
@@ -1424,9 +1424,13 @@ defmodule Kati.Screens.Home do
     rows = Map.get(socket.assigns, :continue, [])
     row = Enum.find(rows, &(Kati.Screens.Library.poster_tag(&1) == tag))
 
+    # `:back` names the screen the reader is ON, so the pill on the page that
+    # opens says where they came from rather than where that page assumes.
+    # See `Kati.Screens.Pushed.back_label/2`: a film opened from here used to
+    # offer to take somebody back to the Library.
     case row && Map.get(row, :id) do
-      nil -> Mob.Socket.push_screen(socket, module)
-      id -> Mob.Socket.push_screen(socket, module, %{id: id})
+      nil -> Mob.Socket.push_screen(socket, module, %{back: "Home"})
+      id -> Mob.Socket.push_screen(socket, module, %{id: id, back: "Home"})
     end
   end
 end

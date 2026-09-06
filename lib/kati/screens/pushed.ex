@@ -63,7 +63,8 @@ defmodule Kati.Screens.Pushed do
 
       def render(assigns) do
         Kati.Screens.Pushed.chrome(
-          @back_label,
+          @back_label &&
+            Kati.Screens.Pushed.back_label(Map.get(assigns, :params), @back_label),
           content(assigns),
           Kati.Screens.Pushed.screen_name(__MODULE__)
         )
@@ -87,6 +88,39 @@ defmodule Kati.Screens.Pushed do
       def handle_info(_message, socket), do: {:noreply, socket}
 
       defoverridable load: 1, handle_info: 2
+    end
+  end
+
+  @doc """
+  What the back pill says: where you came FROM, not where the screen assumes.
+
+  The label was a compile-time constant per screen — `use Kati.Screens.Pushed,
+  back: "Library"` — and the hand-rolled pages wrote the word into their own
+  markup. So a film opened from Home's *Continue watching* offered to take you
+  back to the Library, which is not where you were and, on a phone whose back
+  gesture pops one screen, is not where the pill takes you either: the word and
+  the behaviour disagreed.
+
+  The pushing screen is the only thing that knows, so it says so — `%{back:
+  "Home"}` alongside whatever else it carries — and this reads it with the
+  screen's own declaration as the fallback. A screen pushed from the gallery,
+  or by a test, or by anything that does not care, keeps exactly the label it
+  had.
+
+      iex> Kati.Screens.Pushed.back_label(%{back: "Home"}, "Library")
+      "Home"
+
+      iex> Kati.Screens.Pushed.back_label(%{}, "Library")
+      "Library"
+
+      iex> Kati.Screens.Pushed.back_label(nil, "Library")
+      "Library"
+  """
+  @spec back_label(map() | nil, String.t()) :: String.t()
+  def back_label(params, default) do
+    case params && Map.get(params, :back) do
+      label when is_binary(label) and label != "" -> label
+      _absent -> default
     end
   end
 
