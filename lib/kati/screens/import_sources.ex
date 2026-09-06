@@ -392,13 +392,44 @@ defmodule Kati.Screens.ImportSources do
   @doc false
   def handle_tap(tag, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
-      "source_" <> _id ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ImportRecognised)}
+      "source_" <> id ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ImportSources.opens(id))}
 
       _other ->
         handle_other(tag, socket)
     end
   end
+
+  @doc """
+  Which recognised-job board a source's tile opens.
+
+  The tag carried the id and `handle_tap/2` threw it away, so all six tiles
+  pushed screen 141 — a **Goodreads** job, headed with a book's columns:
+  *Author*, *Bookshelves*, *Number of Pages*. Four of the six sources in that
+  grid are film and TV — Letterboxd, Trakt, MyAnimeList, AniList — and every
+  one of them landed on a screen about books. MOVIES-AND-TV.md #52.
+
+  There is no import engine behind either board and both are drawings; what
+  this fixes is which drawing. Screen 141 is a Goodreads export and screen 37
+  is a Trakt one, so a books tile opens the books job and a films tile opens
+  the films job. Neither claims to have read the file the reader picked, and
+  neither did before — the difference is that a person importing Letterboxd is
+  no longer shown somebody's bookshelves.
+
+      iex> Kati.Screens.ImportSources.opens("letterboxd")
+      Kati.Screens.Import
+
+      iex> Kati.Screens.ImportSources.opens("goodreads")
+      Kati.Screens.ImportRecognised
+
+      iex> Kati.Screens.ImportSources.opens("something-nobody-drew")
+      Kati.Screens.ImportRecognised
+  """
+  @spec opens(String.t()) :: module()
+  def opens(id) when id in ~w(letterboxd trakt myanimelist anilist),
+    do: Kati.Screens.Import
+
+  def opens(_id), do: Kati.Screens.ImportRecognised
 
   defp handle_other(tag, socket), do: fallback(tag, socket)
 

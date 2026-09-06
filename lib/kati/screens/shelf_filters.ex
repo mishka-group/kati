@@ -79,16 +79,78 @@ defmodule Kati.Screens.ShelfFilters do
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
 
-    {:ok,
-     socket
-     |> Mob.Socket.assign(:sort, :recently_added)
-     |> Mob.Socket.assign(:direction, :desc)
-     |> Mob.Socket.assign(:decade, :decade_2020s)
-     |> Mob.Socket.assign(:rating, :rating_4)
-     |> Mob.Socket.assign(:genres, MapSet.new([:genre_anime]))
-     |> Mob.Socket.assign(:services, MapSet.new())
-     # The board's own literal — see the moduledoc for why this is not computed.
-     |> Mob.Socket.assign(:showing, 41)}
+    {:ok, Mob.Socket.assign(socket, Kati.Screens.ShelfFilters.opening())}
+  end
+
+  @doc """
+  What the sheet opens on.
+
+  Two things this used to do, and both were MOVIES-AND-TV.md #54. It opened
+  **already filtered** — 2020s, 4★ and up, Anime — which hides part of the
+  reader's own library the first time they touch the disc; and it announced
+  `showing 41 of 418` on a phone that might hold two, because both numbers
+  were board 145's literals.
+
+  It opens on the choice this device has stored (`Kati.Library.ShelfFilters`),
+  which on a first tap is nothing selected and newest first, and both counts
+  are the reader's own shelf.
+
+  On a device with nothing on it, `shelf/0` answers `[]` and the sheet falls
+  back to the board whole — the same gate screens 03, 04 and 11 use, and what
+  keeps board 145 comparable.
+  """
+  @spec opening() :: keyword()
+  def opening do
+    # The shelf as it stands, and the shelf with nothing selected. Both are
+    # asked for, because a `showing N of M` where M was inferred from N would
+    # be the same guess this is here to remove — and the narrowed list cannot
+    # produce the unnarrowed one.
+    case Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting()) do
+      [] -> drawn_opening()
+      all -> real_opening(all)
+    end
+  end
+
+  @doc """
+  The board's opening state, for the gate that asserts an empty shelf gets it.
+
+  `Kati.ScreenEmptyDatabaseTest` compares `opening/0` against this, which is
+  what makes *an empty device draws board 145* a claim a run settles rather
+  than one this moduledoc asserts.
+  """
+  @spec drawn_opening_for_test() :: keyword()
+  def drawn_opening_for_test, do: drawn_opening()
+
+  defp drawn_opening do
+    [
+      sort: :recently_added,
+      direction: :desc,
+      decade: :decade_2020s,
+      rating: :rating_4,
+      genres: MapSet.new([:genre_anime]),
+      services: MapSet.new(),
+      # The board's own literals, on the one device state the board is a
+      # drawing of: a library this app does not hold yet.
+      showing: 41,
+      total: Sample.total(),
+      facets: nil
+    ]
+  end
+
+  defp real_opening(all) do
+    chosen = Kati.Library.ShelfFilters.current()
+
+    [
+      sort: chosen.sort,
+      direction: chosen.direction,
+      decade: nil,
+      rating: nil,
+      genres: MapSet.new(chosen.genres),
+      services: MapSet.new(),
+      showing: length(Kati.Library.ShelfFilters.apply(all, chosen)),
+      total: length(all),
+      facets: Kati.Library.ShelfFilters.facets(all)
+    ]
   end
 
   def render(assigns),
@@ -101,19 +163,11 @@ defmodule Kati.Screens.ShelfFilters do
       {UI.eyebrow("Sort")}
       {Kati.Screens.ShelfFilters.sort_card(assigns.sort, assigns.direction)}
       <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Ranges — buckets, not sliders")}
-      {Kati.Screens.ShelfFilters.decade_row(assigns.decade)}
-      <Spacer size={11} />
-      {Kati.Screens.ShelfFilters.rating_row(assigns.rating)}
-      <Spacer size={16} />
-      {SettingsList.eyebrow_muted("Filters")}
-      {Kati.Screens.ShelfFilters.genre_row(assigns.genres)}
-      <Spacer size={11} />
-      {Kati.Screens.ShelfFilters.service_row(assigns.services)}
-      <Spacer size={16} />
-      {Kati.Screens.ShelfFilters.count_card(assigns.showing, Sample.total())}
+      {Kati.Screens.ShelfFilters.ranges(assigns)}
+      {Kati.Screens.ShelfFilters.filters(assigns)}
+      {Kati.Screens.ShelfFilters.count_card(assigns.showing, assigns.total)}
       <Spacer size={14} />
-      {SettingsList.note("info", Kati.Screens.ShelfFilters.note_text())}
+      {SettingsList.note("info", Kati.Screens.ShelfFilters.note_text(assigns.facets))}
     </Column>
     """
   end
@@ -321,9 +375,108 @@ defmodule Kati.Screens.ShelfFilters do
     """
   end
 
+  @doc """
+  The Ranges group — decades and rating buckets — on the one device it is true
+  on.
+
+  Neither can be answered. A decade needs a first-air year and
+  `Kati.Media.CachedTitle` holds `next_release_at`, which is the NEXT release —
+  screen 14's meta line drops the year for the same reason. The rating buckets
+  could be answered, but `4★ and up` over a shelf that has no decade filter
+  beside it is half a group; the two are drawn as one row pair and are dropped
+  as one.
+
+  `facets: nil` is the board, and only the board.
+  """
+  def ranges(%{facets: nil} = assigns) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.eyebrow_muted("Ranges — buckets, not sliders")}
+      {Kati.Screens.ShelfFilters.decade_row(assigns.decade)}
+      <Spacer size={11} />
+      {Kati.Screens.ShelfFilters.rating_row(assigns.rating)}
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  def ranges(_assigns), do: ~MOB"<Spacer size={0} />"
+
+  @doc """
+  The Filters group: the genres this shelf actually holds, or the board's four.
+
+  `Kati.Media.CachedTitle.genres` is real and `", "`-separated — screen 07's
+  hour bars read the same column — so a device offers its own genres with
+  their own counts, commonest first. Services are dropped: there is no service
+  resource, and `Kati.Media.Watch.service` is where ONE night was watched
+  rather than a catalogue.
+
+  A shelf whose titles name no genre at all gets no Filters group, rather than
+  an eyebrow over an empty row.
+  """
+  def filters(%{facets: nil} = assigns) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.eyebrow_muted("Filters")}
+      {Kati.Screens.ShelfFilters.genre_row(assigns.genres)}
+      <Spacer size={11} />
+      {Kati.Screens.ShelfFilters.service_row(assigns.services)}
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  def filters(%{facets: []}), do: ~MOB"<Spacer size={0} />"
+
+  def filters(assigns) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.eyebrow_muted("Filters")}
+      {Kati.Screens.ShelfFilters.facet_row(assigns.facets, assigns.genres)}
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc "One chip per genre the shelf holds, with how many titles carry it."
+  @spec facet_row([{String.t(), non_neg_integer()}], MapSet.t()) :: map()
+  def facet_row(facets, selected) do
+    chips = Enum.map(facets, fn {genre, n} -> {facet_tag(genre), genre, n} end)
+
+    Kati.Screens.ShelfFilters.chip_row(chips, fn key ->
+      MapSet.member?(selected, facet_genre(key))
+    end)
+  end
+
+  @doc """
+  The tap tag for a genre chip, and back again.
+
+  Tags must be atoms — `Mob.Renderer` emits an `accessibility_id` only for
+  `{pid, atom}` — and a genre is a provider's free text, so the two are
+  converted rather than stored as one. `String.to_atom/1` and not
+  `to_existing_atom/1`: the genre came from TMDB and no atom for it has been
+  created anywhere before this.
+
+      iex> Kati.Screens.ShelfFilters.facet_tag("Sci-Fi & Fantasy")
+      :"facet_Sci-Fi & Fantasy"
+
+      iex> Kati.Screens.ShelfFilters.facet_genre(:"facet_Sci-Fi & Fantasy")
+      "Sci-Fi & Fantasy"
+  """
+  @spec facet_tag(String.t()) :: atom()
+  def facet_tag(genre), do: String.to_atom("facet_" <> genre)
+
   @doc false
-  def note_text do
+  @spec facet_genre(atom()) :: String.t()
+  def facet_genre(tag), do: tag |> Atom.to_string() |> String.replace_prefix("facet_", "")
+
+  @doc false
+  def note_text(nil) do
     "Ranges are chip buckets, not sliders — the app has no slider in its component table, and a bucket carries a count while a slider cannot. Count badges exist so a chip that would empty the shelf says so before it is tapped: Comedy reads 0 in hairline grey."
+  end
+
+  def note_text(_facets) do
+    "Genres come from the provider, so these are the ones your own shelf carries. Release decade and streaming service are not offered: no column holds a first-air year, and nothing in Kati holds a catalogue."
   end
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
@@ -332,6 +485,9 @@ defmodule Kati.Screens.ShelfFilters do
 
   def handle_info({:tap, tag}, socket) do
     cond do
+      String.starts_with?(Atom.to_string(tag), "facet_") ->
+        {:noreply, Kati.Screens.ShelfFilters.toggle_facet(socket, tag)}
+
       tag in Kati.Screens.ShelfFilters.sort_keys() ->
         {:noreply, Kati.Screens.ShelfFilters.apply_sort(socket, tag)}
 
@@ -364,6 +520,51 @@ defmodule Kati.Screens.ShelfFilters do
     end
   end
 
+  @doc """
+  A genre chip pressed: narrow by it, or stop narrowing by it.
+
+  The choice is written to `Kati.Library.ShelfFilters` on every tap rather than
+  on a Done button, because this sheet has no Done — it has a ✕, and a sheet
+  whose only exit discarded the choice is exactly the defect
+  MOVIES-AND-TV.md #26 describes. Screen 03 re-reads on the pop through
+  `Kati.Screens.Resume`, so the shelf behind is already narrowed when it comes
+  back.
+  """
+  @spec toggle_facet(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def toggle_facet(socket, tag) do
+    genre = facet_genre(tag)
+    chosen = Kati.Library.ShelfFilters.current()
+
+    genres =
+      if genre in chosen.genres,
+        do: List.delete(chosen.genres, genre),
+        else: [genre | chosen.genres]
+
+    %{chosen | genres: genres}
+    |> Kati.Library.ShelfFilters.put()
+    |> then(fn stored -> restated(socket, stored) end)
+  end
+
+  @doc """
+  The sheet redrawn against what is now stored.
+
+  Both counts come off the shelf rather than off `facet_count/2`'s arithmetic
+  over the board's frozen bucket sizes, so `showing N of M` is two real
+  numbers about this reader's own library.
+  """
+  @spec restated(Mob.Socket.t(), map()) :: Mob.Socket.t()
+  def restated(socket, chosen) do
+    all = Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting())
+
+    socket
+    |> Mob.Socket.assign(:sort, chosen.sort)
+    |> Mob.Socket.assign(:direction, chosen.direction)
+    |> Mob.Socket.assign(:genres, MapSet.new(chosen.genres))
+    |> Mob.Socket.assign(:showing, length(Kati.Library.ShelfFilters.apply(all, chosen)))
+    |> Mob.Socket.assign(:total, length(all))
+    |> Mob.Socket.assign(:facets, Kati.Library.ShelfFilters.facets(all))
+  end
+
   @doc false
   def sort_keys, do: Enum.map(Sample.sort_options(), &elem(&1, 0))
   @doc false
@@ -378,15 +579,57 @@ defmodule Kati.Screens.ShelfFilters do
   @doc "Tapping the active sort row flips its direction; any other row becomes the new sort at DESC."
   @spec apply_sort(Mob.Socket.t(), atom()) :: Mob.Socket.t()
   def apply_sort(socket, key) do
-    if socket.assigns.sort == key do
-      next = if socket.assigns.direction == :desc, do: :asc, else: :desc
-      Mob.Socket.assign(socket, :direction, next)
+    {sort, direction} =
+      if socket.assigns.sort == key do
+        {key, if(socket.assigns.direction == :desc, do: :asc, else: :desc)}
+      else
+        {key, :desc}
+      end
+
+    stored = %{
+      Kati.Library.ShelfFilters.current()
+      | sort: stored_sort(sort),
+        direction: direction
+    }
+
+    if socket.assigns.facets do
+      restated(Kati.Screens.ShelfFilters.put_sort(socket, sort, direction), stored)
     else
-      socket
-      |> Mob.Socket.assign(:sort, key)
-      |> Mob.Socket.assign(:direction, :desc)
+      Kati.Screens.ShelfFilters.put_sort(socket, sort, direction)
     end
   end
+
+  @doc false
+  def put_sort(socket, sort, direction) do
+    socket
+    |> Mob.Socket.assign(:sort, sort)
+    |> Mob.Socket.assign(:direction, direction)
+  end
+
+  @doc """
+  Board 145's sort key, as `Kati.Library.ShelfFilters` names it.
+
+  The board draws five and the store can answer four. `Release date` needs a
+  first-air year and no column holds one — the same absence that takes the
+  decade buckets off a device — so choosing it stores the shelf's own order
+  instead of a sort by a value that is always `nil`. `Your rating` is the
+  standing rating off the newest watch, which is where every rating in this
+  app actually is.
+
+      iex> Kati.Screens.ShelfFilters.stored_sort(:your_rating)
+      :rating
+
+      iex> Kati.Screens.ShelfFilters.stored_sort(:release_date)
+      :recently_added
+
+      iex> Kati.Screens.ShelfFilters.stored_sort(:title)
+      :title
+  """
+  @spec stored_sort(atom()) :: atom()
+  def stored_sort(:your_rating), do: :rating
+  def stored_sort(:release_date), do: :recently_added
+  def stored_sort(key) when key in [:title, :runtime, :recently_added], do: key
+  def stored_sort(_key), do: :recently_added
 
   @doc "A single-select bucket: tapping the selected one clears it, tapping another replaces it."
   @spec toggle_single(Mob.Socket.t(), atom(), atom()) :: Mob.Socket.t()
@@ -451,13 +694,19 @@ defmodule Kati.Screens.ShelfFilters do
   @doc "Clears every bucket and the sort, back to Recently added / DESC. See the moduledoc for why this is not what `mount/3` draws."
   @spec reset(Mob.Socket.t()) :: Mob.Socket.t()
   def reset(socket) do
-    socket
-    |> Mob.Socket.assign(:sort, :recently_added)
-    |> Mob.Socket.assign(:direction, :desc)
-    |> Mob.Socket.assign(:decade, nil)
-    |> Mob.Socket.assign(:rating, nil)
-    |> Mob.Socket.assign(:genres, MapSet.new())
-    |> Mob.Socket.assign(:services, MapSet.new())
-    |> Mob.Socket.assign(:showing, Sample.total())
+    Kati.Library.ShelfFilters.clear()
+
+    cleared =
+      socket
+      |> Mob.Socket.assign(:sort, :recently_added)
+      |> Mob.Socket.assign(:direction, :desc)
+      |> Mob.Socket.assign(:decade, nil)
+      |> Mob.Socket.assign(:rating, nil)
+      |> Mob.Socket.assign(:genres, MapSet.new())
+      |> Mob.Socket.assign(:services, MapSet.new())
+
+    if socket.assigns.facets,
+      do: restated(cleared, Kati.Library.ShelfFilters.resting()),
+      else: Mob.Socket.assign(cleared, :showing, Sample.total())
   end
 end

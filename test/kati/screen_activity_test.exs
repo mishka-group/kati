@@ -189,7 +189,12 @@ defmodule Kati.ScreenActivityTest do
       refute copy =~ "REWATCH COUNT"
     end
 
-    test "a watch from before this month leaves the drawing standing" do
+    test "a watch from before this month is still this reader's history" do
+      # This used to assert the opposite, and the opposite was
+      # MOVIES-AND-TV.md #58: the gate was `%{today: [], earlier: []}`, both of
+      # which are month-scoped, so a reader whose watches are all older than
+      # the first was handed `1,204 entries` over seven invented rows — and the
+      # rewatch card, which counts their WHOLE history, was replaced too.
       hollow = title!("hollow71", "The Long Hollow", :tv)
       last_month = Date.add(Date.beginning_of_month(Kati.Time.today()), -3)
 
@@ -200,12 +205,31 @@ defmodule Kati.ScreenActivityTest do
       })
 
       view = mount_screen(Activity)
+      copy = text(view)
 
-      assert assigns(view).log == Activity.drawn(),
-             "a watch older than this month belongs to neither group, so the " <>
-               "screen has nothing of its own to show and must draw the drawing."
+      refute assigns(view).log == Activity.drawn(),
+             "a reader with a history was shown the drawing's"
 
+      assert assigns(view).log.count == 1
+      assert copy =~ "1 entry"
+      refute copy =~ Sample.entries_line()
+
+      # Neither month group can hold it, so the page says which month is empty
+      # rather than leaving two silent gaps under the header.
+      assert copy =~ "Nothing this month"
+
+      # And none of the seven rows the drawing carries.
+      for row <- Sample.today() ++ Sample.earlier() do
+        refute copy =~ row.rest, "the drawing's rows are still on a real reader's log"
+      end
+    end
+
+    test "and a device that has recorded nothing at all still draws the drawing" do
+      view = mount_screen(Activity)
+
+      assert assigns(view).log == Activity.drawn()
       assert text(view) =~ Sample.entries_line()
+      refute text(view) =~ "Nothing this month"
     end
   end
 

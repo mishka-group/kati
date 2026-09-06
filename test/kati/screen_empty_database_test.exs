@@ -212,6 +212,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # that answers with the drawing.
     {"52", Kati.Screens.MealsDay},
     {"10", Kati.Screens.UpNext},
+    # 145 joined when the sort disc's sheet stopped being a picture. It reads
+    # the shelf twice — once as it stands and once with nothing selected — so
+    # `showing N of M` is two numbers about this reader rather than board
+    # 145's `41 of 418`. An empty shelf has neither, so it draws the board
+    # whole, which is the state the board is a drawing of.
+    {"145", Kati.Screens.ShelfFilters},
     # 11 joined when its first band stopped being a fixture. It gates the whole
     # feed the way 04 gates its page: an empty store has nothing to recommend
     # FROM, so it draws board 11 whole. A store with a title in it gets one
@@ -1428,6 +1434,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 145 gates on its whole opening state, which is one keyword list: the
+      # sort, the direction, the four chip groups and both counts arrive
+      # together or not at all. An empty shelf takes the board's own
+      # preselection and its `41 of 418`.
+      {"145", Kati.Screens.ShelfFilters, &Kati.Screens.ShelfFilters.opening/0,
+       &Kati.Screens.ShelfFilters.drawn_opening_for_test/0},
       # 11 gates on the seed rather than on the feed: `Kati.Media.Recommendations.seed/0`
       # is the title the picks would be drawn FROM, and an empty store has
       # none. One pair covers the subtitle, the four chips, the heading, the

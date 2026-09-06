@@ -120,6 +120,7 @@ defmodule Kati.Screens.Activity do
         {Kati.Screens.Activity.filters(filter)}
         {Kati.Screens.Activity.group(today, UI.eyebrow("Today"), 44, 11, 0.0)}
         {Kati.Screens.Activity.group(earlier, Kati.UI.Eyebrow.quiet("Earlier this month"), 44, 10, 0.06)}
+        {Kati.Screens.Activity.nothing_this_month(log, today, earlier)}
         {Kati.Screens.Activity.rewatch_section(log.rewatch)}
       </Column>
     </Scroll>
@@ -144,7 +145,13 @@ defmodule Kati.Screens.Activity do
   @spec log() :: map()
   def log do
     case entries() do
-      %{today: [], earlier: []} -> drawn()
+      # NOTHING RECORDED, and not *nothing this month*. The gate was
+      # `%{today: [], earlier: []}`, which is the state of every reader whose
+      # watches are all older than the first of the month — so somebody with a
+      # real history was shown `1,204 entries` over seven invented rows, and
+      # the rewatch card underneath, which counts their WHOLE history, was
+      # replaced by the drawing's too. MOVIES-AND-TV.md #58.
+      %{count: 0} -> drawn()
       log -> log
     end
   rescue
@@ -161,6 +168,7 @@ defmodule Kati.Screens.Activity do
   @spec drawn() :: map()
   def drawn do
     %{
+      count: 0,
       entries_line: Sample.entries_line(),
       today: Sample.today(),
       earlier: Sample.earlier(),
@@ -208,6 +216,9 @@ defmodule Kati.Screens.Activity do
       |> Enum.reverse()
 
     %{
+      # What `log/0` gates on. `today` and `earlier` are both month-scoped and
+      # neither can answer *has this reader recorded anything at all*.
+      count: length(watches),
       entries_line: entries_line(length(watches)),
       today:
         for {date, clock, watch} <- dated, date == today, not is_nil(clock) do
@@ -253,6 +264,63 @@ defmodule Kati.Screens.Activity do
   def group(rows, eyebrow, stamp_width, stamp_size, stamp_spacing) do
     [eyebrow, entries(rows, stamp_width, stamp_size, stamp_spacing)]
   end
+
+  @doc """
+  A month with nothing in it, on a device that has a history.
+
+  Both groups on this page are month-scoped and `group/5` draws nothing for an
+  empty one, so a reader whose watches are all older than the first of the
+  month used to be handed the fixture — and now, correctly, gets their own real
+  count in the header over two blank gaps. The gaps are what this fills.
+
+  Not drawn on a device with nothing recorded at all: that one is on the
+  drawing, which is what `log/0` answers with, and the drawing has rows.
+  """
+  @spec nothing_this_month(map(), [map()], [map()]) :: term()
+  def nothing_this_month(%{count: count}, [], []) when count > 0 do
+    assigns = %{}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {UI.symbol("history", size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text="Nothing this month"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text="Everything you have logged is older than the first. The rewatch counts below still cover all of it."
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def nothing_this_month(_log, _today, _earlier), do: []
 
   # `Kati.Screens.Pushed` floats the back pill over the content, so the content
   # has to leave room for it: the drawing's pill is 42 tall with a 16 gap under

@@ -111,8 +111,19 @@ defmodule Kati.Screens.Library do
   @screen_kinds [:movie, :tv, :anime]
 
   @impl true
-  def load(socket),
-    do: Mob.Socket.assign(socket, filter: "All", shelf: "Screen", titles: titles(), menu?: false)
+  def load(socket) do
+    Mob.Socket.assign(socket,
+      filter: "All",
+      shelf: "Screen",
+      titles: titles(),
+      # The WHOLE shelf's watching count, not the narrowed one. The badge
+      # labels a door onto screen 10, and screen 10 shows the queue whole — a
+      # genre filter that made the tile read `4` over a page of eight would be
+      # the tile disagreeing with the screen it opens.
+      queued: queued(),
+      menu?: false
+    )
+  end
 
   @doc """
   Coming back to the shelf after something was written above it.
@@ -131,7 +142,7 @@ defmodule Kati.Screens.Library do
   """
   @impl true
   def handle_kati(:resumed, _payload, socket),
-    do: {:noreply, Mob.Socket.assign(socket, :titles, titles())}
+    do: {:noreply, Mob.Socket.assign(socket, titles: titles(), queued: queued())}
 
   @doc """
   The shelf the screen renders: the user's library, and only ever that.
@@ -144,6 +155,20 @@ defmodule Kati.Screens.Library do
   """
   @spec titles() :: [map()]
   def titles, do: shelf()
+
+  @doc """
+  How many titles are on the whole shelf, unfiltered, and being watched.
+
+  What the *Up next* tile's badge counts. Read apart from `titles/0` because
+  that one is narrowed by whatever screen 145 last stored, and this labels a
+  door onto a screen that is not.
+  """
+  @spec queued() :: non_neg_integer()
+  def queued do
+    Kati.Library.ShelfFilters.resting()
+    |> shelf()
+    |> Enum.count(&(&1.status == :watching))
+  end
 
   @doc """
   The Screen shelf, straight from `Kati.Media`.
@@ -172,7 +197,7 @@ defmodule Kati.Screens.Library do
   descending within its own kind and this grid is one shelf, not three.
   """
   @spec shelf() :: [map()]
-  def shelf do
+  def shelf(choice \\ Kati.Library.ShelfFilters.current()) do
     tracked =
       @screen_kinds
       |> Enum.flat_map(fn kind ->
@@ -185,6 +210,7 @@ defmodule Kati.Screens.Library do
     cached = cached_by_reference(tracked)
     ticks = ticks_by_title(tracked)
     seen = watches_by_title(tracked)
+    rated = ratings_by_title(tracked)
 
     tracked
     |> Enum.map(
@@ -192,10 +218,12 @@ defmodule Kati.Screens.Library do
         &1,
         Map.get(cached, {&1.source, &1.source_id}),
         Map.get(ticks, &1.id, 0),
-        Map.get(seen, &1.id, 0)
+        Map.get(seen, &1.id, 0),
+        Map.get(rated, &1.id)
       )
     )
     |> Enum.reject(&is_nil(&1.title))
+    |> Kati.Library.ShelfFilters.apply(choice)
   rescue
     # Same degradation `Kati.Calendars.Today` makes: a screen that cannot reach
     # its store draws the drawing rather than taking the activity down.
@@ -234,6 +262,27 @@ defmodule Kati.Screens.Library do
     |> Ash.read!()
     |> Enum.group_by(& &1.tracked_title_id)
     |> Map.new(fn {id, watches} -> {id, length(watches)} end)
+  rescue
+    _error -> %{}
+  end
+
+  # `%{tracked_title_id => rating}` off the newest rated watch of each title.
+  # Only title-level watches — an episode's rating is a rating of that episode.
+  defp ratings_by_title([]), do: %{}
+
+  defp ratings_by_title(tracked) do
+    ids = Enum.map(tracked, & &1.id)
+
+    Watch
+    |> Ash.Query.filter(
+      tracked_title_id in ^ids and is_nil(episode_source_id) and not is_nil(rating)
+    )
+    |> Ash.read!()
+    |> Enum.group_by(& &1.tracked_title_id)
+    |> Map.new(fn {id, watches} ->
+      newest = Enum.max_by(watches, &(&1.watched_at || &1.inserted_at), DateTime)
+      {id, newest.rating}
+    end)
   rescue
     _error -> %{}
   end
@@ -279,7 +328,7 @@ defmodule Kati.Screens.Library do
   """
   @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer(), non_neg_integer()) ::
           map()
-  def shaped(tracked, cached, ticks, seen \\ 0) do
+  def shaped(tracked, cached, ticks, seen \\ 0, rating \\ nil) do
     %{
       # The row a tile opens. Carried on the shape rather than looked up again
       # in the tap handler, for the reason `Kati.Screens.Series` gives for
@@ -291,7 +340,16 @@ defmodule Kati.Screens.Library do
       kind: if(tracked.kind == :movie, do: :film, else: :series),
       status: tracked.status,
       progress: fraction_for(tracked, cached, ticks, seen),
-      meta: meta_for(tracked, cached, ticks, seen)
+      meta: meta_for(tracked, cached, ticks, seen),
+      # Not for drawing. `Kati.Library.ShelfFilters` sorts and narrows on these
+      # two, and screen 145 could do neither while a row carried only what the
+      # tile needed — MOVIES-AND-TV.md #26.
+      genres: cached && cached.genres,
+      # The rating that STANDS, off the newest watch — `Kati.Media.TrackedTitle.rating`
+      # has no writer anywhere in the app and screen 08 documents that at
+      # length, so sorting the shelf by it would have sorted by zero.
+      rating: rating || tracked.rating,
+      runtime: cached && cached.runtime_minutes
     }
   end
 
@@ -455,7 +513,7 @@ defmodule Kati.Screens.Library do
       >
         {Kati.Screens.Library.header(titles, assigns.menu?)}
         {Kati.Screens.Library.segments(shelf)}
-        {Kati.Screens.Library.quick_tiles(titles)}
+        {Kati.Screens.Library.quick_tiles(Map.get(assigns, :queued, length(titles)))}
         {Kati.Screens.Library.shelf_body(filter, shelf, titles)}
       </Column>
     </Scroll>
@@ -850,11 +908,11 @@ defmodule Kati.Screens.Library do
   end
 
   @doc false
-  def quick_tiles(titles) do
+  def quick_tiles(queued) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
-        {Kati.Screens.Library.quick_tile("playlist_play", "Up next", Kati.Screens.Library.up_next_badge(titles), :open_up_next)}
+        {Kati.Screens.Library.quick_tile("playlist_play", "Up next", Kati.Screens.Library.up_next_badge(queued), :open_up_next)}
         <Spacer size={9} />
         {Kati.Screens.Library.quick_tile("explore", "Discover", nil, :open_discover)}
         <Spacer size={9} />
@@ -896,12 +954,12 @@ defmodule Kati.Screens.Library do
       "1"
   """
   @spec up_next_badge([map()]) :: String.t() | nil
-  def up_next_badge(titles) do
-    case Enum.count(titles, &(&1.status == :watching)) do
-      0 -> nil
-      n -> Integer.to_string(n)
-    end
+  def up_next_badge(queued) when is_integer(queued) do
+    if queued == 0, do: nil, else: Integer.to_string(queued)
   end
+
+  def up_next_badge(titles) when is_list(titles),
+    do: up_next_badge(Enum.count(titles, &(&1.status == :watching)))
 
   @doc false
   def quick_tile(icon, label, count, tag) do
