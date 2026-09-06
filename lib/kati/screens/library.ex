@@ -165,9 +165,17 @@ defmodule Kati.Screens.Library do
 
     cached = cached_by_reference(tracked)
     ticks = ticks_by_title(tracked)
+    seen = watches_by_title(tracked)
 
     tracked
-    |> Enum.map(&shaped(&1, Map.get(cached, {&1.source, &1.source_id}), Map.get(ticks, &1.id, 0)))
+    |> Enum.map(
+      &shaped(
+        &1,
+        Map.get(cached, {&1.source, &1.source_id}),
+        Map.get(ticks, &1.id, 0),
+        Map.get(seen, &1.id, 0)
+      )
+    )
     |> Enum.reject(&is_nil(&1.title))
   rescue
     # Same degradation `Kati.Calendars.Today` makes: a screen that cannot reach
@@ -192,6 +200,25 @@ defmodule Kati.Screens.Library do
   # `progress_episode` is a bookmark inside a season and the authority on how
   # much is watched is the set of ticks. Counted by distinct episode, so a
   # rewatch does not push a season past its own total.
+  # The TITLE-level watches, which `ticks_by_title/1` deliberately excludes:
+  # its filter is `not is_nil(episode_source_id)`, because an episode tick is
+  # what makes a series' progress. A film has no episodes and its watch carries
+  # no `episode_source_id`, so it was invisible to the shelf — a film you had
+  # watched drew an empty rail and `0%` forever.
+  defp watches_by_title([]), do: %{}
+
+  defp watches_by_title(tracked) do
+    ids = Enum.map(tracked, & &1.id)
+
+    Watch
+    |> Ash.Query.filter(tracked_title_id in ^ids and is_nil(episode_source_id))
+    |> Ash.read!()
+    |> Enum.group_by(& &1.tracked_title_id)
+    |> Map.new(fn {id, watches} -> {id, length(watches)} end)
+  rescue
+    _error -> %{}
+  end
+
   defp ticks_by_title([]), do: %{}
 
   defp ticks_by_title(tracked) do
@@ -231,8 +258,9 @@ defmodule Kati.Screens.Library do
       `Kati.Media.TrackedTitle` names `:not_started` and `:finished` as this
       screen's shelf filters.
   """
-  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer()) :: map()
-  def shaped(tracked, cached, ticks) do
+  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer(), non_neg_integer()) ::
+          map()
+  def shaped(tracked, cached, ticks, seen \\ 0) do
     %{
       # The row a tile opens. Carried on the shape rather than looked up again
       # in the tap handler, for the reason `Kati.Screens.Series` gives for
@@ -243,8 +271,8 @@ defmodule Kati.Screens.Library do
       seed: cached && cached.poster_path,
       kind: if(tracked.kind == :movie, do: :film, else: :series),
       status: tracked.status,
-      progress: fraction_for(tracked, cached, ticks),
-      meta: meta_for(tracked, cached, ticks)
+      progress: fraction_for(tracked, cached, ticks, seen),
+      meta: meta_for(tracked, cached, ticks, seen)
     }
   end
 
@@ -272,8 +300,11 @@ defmodule Kati.Screens.Library do
     * A title with neither answers `nil`, and `Kati.Screens.Home` draws no
       line, which is the state every card was stuck in before this.
   """
-  @spec meta_for(TrackedTitle.t(), term(), non_neg_integer()) :: String.t() | nil
-  def meta_for(%TrackedTitle{kind: :movie} = tracked, cached, _ticks) do
+  @spec meta_for(TrackedTitle.t(), term(), non_neg_integer(), non_neg_integer()) ::
+          String.t() | nil
+  def meta_for(tracked, cached, ticks, seen \\ 0)
+
+  def meta_for(%TrackedTitle{kind: :movie} = tracked, cached, _ticks, seen) do
     minutes = cached && cached.runtime_minutes
     seconds = tracked.progress_seconds
 
@@ -281,6 +312,9 @@ defmodule Kati.Screens.Library do
       is_integer(minutes) and minutes > 0 and is_integer(seconds) and seconds > 0 ->
         left = max(minutes - div(seconds, 60), 0)
         "#{left}m left"
+
+      seen > 0 and is_integer(minutes) and minutes > 0 ->
+        "Watched · " <> Kati.Screens.Library.runtime_line(minutes)
 
       is_integer(minutes) and minutes > 0 ->
         Kati.Screens.Library.runtime_line(minutes)
@@ -290,7 +324,7 @@ defmodule Kati.Screens.Library do
     end
   end
 
-  def meta_for(%TrackedTitle{}, cached, ticks) do
+  def meta_for(%TrackedTitle{}, cached, ticks, _seen) do
     total = cached && cached.episode_count
 
     if is_integer(total) and total > 0 do
@@ -323,16 +357,29 @@ defmodule Kati.Screens.Library do
 
   # A series divides ticks by the episode total; a film divides its resume point
   # by its runtime. Anything either half cannot answer is nil, never a guess.
-  defp fraction_for(%TrackedTitle{kind: :movie} = tracked, cached, _ticks) do
+  defp fraction_for(%TrackedTitle{kind: :movie} = tracked, cached, _ticks, seen) do
     seconds = tracked.progress_seconds
     minutes = cached && cached.runtime_minutes
 
-    if is_integer(seconds) and seconds > 0 and is_integer(minutes) and minutes > 0 do
-      min(seconds / (minutes * 60), 1.0)
+    cond do
+      # A resume point, when there is one. Nothing in the app writes
+      # `progress_seconds` yet — there is no scrubber and no player — so this
+      # is the branch a future one lands in rather than the branch that runs.
+      is_integer(seconds) and seconds > 0 and is_integer(minutes) and minutes > 0 ->
+        min(seconds / (minutes * 60), 1.0)
+
+      # A film you have watched is a film you are through, and its rail says
+      # so. It drew empty however many times somebody logged it, because the
+      # only fraction a film had was a resume point nothing sets.
+      seen > 0 ->
+        1.0
+
+      true ->
+        nil
     end
   end
 
-  defp fraction_for(%TrackedTitle{}, cached, ticks) do
+  defp fraction_for(%TrackedTitle{}, cached, ticks, _seen) do
     cached |> CachedTitle.progress(ticks) |> CachedTitle.ratio()
   end
 
