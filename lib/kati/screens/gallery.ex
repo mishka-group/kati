@@ -286,8 +286,51 @@ defmodule Kati.Screens.Gallery do
     {:open_undrawn_sync, "Sync", Kati.Screens.Sync}
   ]
 
+  # Numbers whose page has left this list, and the route that took it.
+  #
+  # The owner's rule, in his own words: *"each screen we did and connected in
+  # our pages must be deleted in Every screen in settings — its routing not
+  # there, it must have its own routing from the actual app."* A page that a
+  # user reaches by going where the page lives is finished with this
+  # scaffolding, and leaving it here invites the next person to check it from
+  # the wrong door.
+  #
+  # It leaves the LIST, not the registry. `screens/0` still answers with every
+  # number, because three sweeps read it as the app's number → drawing map —
+  # `Kati.ScreenDesignLiteralTest` pairs each with `test/design/screens/NN.html`,
+  # `Kati.ScreenEmptyDatabaseTest` asks it whether a drawing exists, and
+  # `Kati.AppReachabilityTest` walks it to ask whether a user can get there.
+  # Deleting the tuple would quietly delete all three checks, which is the
+  # opposite of finishing a page.
+  #
+  # A number goes here when both halves of MOVIES-AND-TV.md's rule are true:
+  # a real route in, and every scenario under it passing on the device. The
+  # commit that retires it says which route was walked.
+  @routed [
+    # Series → ⋯ → Show details. 5915c2a.
+    "14",
+    # 92 My services → the country row, and 93 → Pick your country. Verified
+    # when `Kati.Screens.Resume` made the page behind it re-read.
+    "94",
+    # Series → an episode's rating column. e44d44d, which built that column.
+    "144",
+    # Library → ⋯ → Select titles. c946a49.
+    "146"
+  ]
+
   @doc false
   def screens, do: @screens
+
+  @doc """
+  The screens this page still lists — every drawing that has not been retired.
+
+  See `@routed` for what retires one and why the registry keeps it.
+  """
+  @spec listed() :: [{String.t(), String.t(), module(), :root | :push}]
+  def listed, do: Enum.reject(@screens, fn {number, _, _, _} -> number in @routed end)
+
+  @doc false
+  def routed, do: @routed
 
   @doc false
   def undrawn, do: @undrawn
@@ -296,7 +339,7 @@ defmodule Kati.Screens.Gallery do
   def content(_assigns) do
     # Bound to a local: inside ~MOB an `@name` means an ASSIGN, so `@screens`
     # would be read as `assigns.screens` and fail.
-    count = length(@screens) + length(@undrawn)
+    count = length(Kati.Screens.Gallery.listed()) + length(@undrawn)
 
     ~MOB"""
     <LazyList>
@@ -379,7 +422,7 @@ defmodule Kati.Screens.Gallery do
   # One lazy item per row, not one item holding every row — see `cap/0`.
   @doc false
   def rows do
-    screens = @screens
+    screens = Kati.Screens.Gallery.listed()
     last = length(screens) - 1
 
     caps =
@@ -529,7 +572,7 @@ defmodule Kati.Screens.Gallery do
   def open_numbered(tag, socket) do
     number = tag |> Atom.to_string() |> String.replace_prefix("open_", "")
 
-    case Enum.find(@screens, fn {n, _, _, _} -> n == number end) do
+    case Enum.find(Kati.Screens.Gallery.listed(), fn {n, _, _, _} -> n == number end) do
       # A root is swapped rather than pushed: pushing Home over the gallery
       # would leave the dock showing Home while the back stack says otherwise.
       {_, _, module, :root} -> {:noreply, Mob.Socket.reset_to(socket, module)}

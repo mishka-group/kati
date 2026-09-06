@@ -175,7 +175,10 @@ defmodule Kati.AppReachabilityTest do
     {Screens.EpisodeRatings,
      "screen 04's episode rows with the rating column added, drawn so the " <>
        "before and after can be compared. A board about a change to 04, not a " <>
-       "screen beside it."},
+       "screen beside it — and the change has shipped: " <>
+       "`Kati.Screens.Series.rating_column/1` draws that column beside every " <>
+       "aired episode on 04 and 34, and opens screen 144 over the one you " <>
+       "tapped."},
     # ── Drawn, built, and waiting on an entry point ──────────────────────
     #
     # These eight are NOT reference sheets. Each is a real destination whose
@@ -231,6 +234,24 @@ defmodule Kati.AppReachabilityTest do
     assert wired == [],
            "these are reachable now. Delete their lines from @no_route:\n" <>
              Enum.join(wired, "\n")
+  end
+
+  test "a screen retired from the gallery is one the app can actually reach" do
+    reached = reachable(push_graph(), @roots)
+    exempt = MapSet.new(Enum.map(@no_route, &elem(&1, 0)))
+
+    stranded =
+      for {number, label, module, _kind} <- Screens.Gallery.screens(),
+          number in Screens.Gallery.routed(),
+          not MapSet.member?(reached, module) or MapSet.member?(exempt, module),
+          do: "  #{number}  #{label}  #{inspect(module)}"
+
+    assert stranded == [],
+           "these screens have been taken out of Settings > Every screen as " <>
+             "finished, and the walk cannot reach them — so they are now in the " <>
+             "app with no door at all. Put the number back in " <>
+             "`Kati.Screens.Gallery`'s `@routed` only once the route is " <>
+             "there:\n" <> Enum.join(stranded, "\n")
   end
 
   test "the roots are themselves drawn screens" do
