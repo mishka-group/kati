@@ -101,6 +101,11 @@ defmodule Kati.Screens.AddTitle do
        results: Sample.search_results(),
        filter: "Everything",
        query: "",
+       # Bumped when this screen REPLACES the field rather than echoing it —
+       # see `clear_disc/0` and the `K-46 text-field-epoch` fence. It starts at
+       # zero and the bridge remembers the last one it saw, so a mount is not
+       # itself a replacement.
+       query_epoch: 0,
        save_error: nil,
        search_error: nil
      )}
@@ -128,7 +133,7 @@ defmodule Kati.Screens.AddTitle do
           padding_bottom={40}
         >
           {Kati.Screens.AddTitle.header()}
-          {Kati.Screens.AddTitle.field(assigns.query)}
+          {Kati.Screens.AddTitle.field(assigns.query, assigns[:query_epoch] || 0)}
           {Kati.Screens.AddTitle.chips(filter)}
           {Kati.Screens.AddTitle.search_notice(assigns[:search_error])}
           {UI.eyebrow(count)}
@@ -245,6 +250,23 @@ defmodule Kati.Screens.AddTitle do
       Kati.Media.SearchDebounce.ask(self(), query)
       {:noreply, socket}
     end
+  end
+
+  # The × at the end of the field. Back to the state the sheet mounts in —
+  # the query empty, the board's rows, and no refusal left standing from a
+  # search that is no longer on screen. Not `searched/2` with an empty string:
+  # an empty field is under the floor and must not reach the network.
+  def handle_info({:tap, :clear_query}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:query, "")
+     # The bump is what makes the FIELD empty as well as the assign. Without
+     # it the results reset and the typed text stayed — see `K-46` in
+     # `native/LEDGER.md`, found doing exactly this on a device.
+     |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
+     |> Mob.Socket.assign(:results, Sample.search_results())
+     |> Mob.Socket.assign(:search_error, nil)
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   def handle_info({:tap, tag}, socket) do
@@ -424,8 +446,8 @@ defmodule Kati.Screens.AddTitle do
   search box in the app is a drawing because of it.
   """
   @spec field(String.t()) :: map()
-  def field(query) do
-    assigns = %{query: query, on_change: {self(), :title_query}}
+  def field(query, epoch \\ 0) do
+    assigns = %{query: query, epoch: epoch, on_change: {self(), :title_query}}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -445,13 +467,14 @@ defmodule Kati.Screens.AddTitle do
         <Spacer size={11} />
         <TextField
           value={@query}
+          value_epoch={@epoch}
           placeholder="quiet"
           return_key="search"
           weight={1.0}
           accessibility_id="title_query"
           on_change={@on_change}
         />
-        {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
+        {Kati.Screens.AddTitle.clear_disc()}
       </Row>
       <Spacer size={16} />
     </Column>
@@ -921,6 +944,29 @@ defmodule Kati.Screens.AddTitle do
   end
 
   def nothing_card(_shown, _query, _error), do: []
+
+  @doc """
+  The × at the end of the field, which is a control and was a picture.
+
+  It was drawn as a bare `Kati.UI.symbol("cancel", …)` with no `on_tap`, so a
+  tap on it fell through to the `<TextField>` underneath — the keyboard opened
+  and the next thing typed was APPENDED to the query the person was trying to
+  get rid of. Found on a device: clearing `zzqwx` and typing `severance` gave
+  `zzqwxseverance` and no results.
+
+  A `<Box>` around the glyph rather than an `on_tap` on the symbol itself,
+  because the glyph is 19pt and a 19pt target is under every guideline there
+  is; the box is 40 and centres it. Nothing else about the row moves — the
+  glyph keeps its size, colour and fill.
+  """
+  @spec clear_disc() :: map()
+  def clear_disc do
+    ~MOB"""
+    <Box width={40} height={40} align="center" on_tap={{self(), :clear_query}}>
+      {Kati.UI.symbol("cancel", size: 19, color: Kati.Theme.Palette.rail_idle(), fill: true)}
+    </Box>
+    """
+  end
 
   @doc false
   def by_hand do

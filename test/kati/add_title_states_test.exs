@@ -127,6 +127,48 @@ defmodule Kati.AddTitleStatesTest do
     end
   end
 
+  describe "the × at the end of the field" do
+    test "clears the query, the results and any refusal" do
+      # It was a bare glyph with no `on_tap`: the tap fell through to the
+      # `<TextField>` under it, the keyboard opened, and the next thing typed
+      # was appended to what somebody was trying to delete. On a device,
+      # clearing `zzqwx` and typing `severance` gave `zzqwxseverance`.
+      typed =
+        mounted()
+        |> Mob.Socket.assign(:query, "zzqwx")
+        |> Mob.Socket.assign(:results, [])
+        |> Mob.Socket.assign(:search_error, "No TMDB key yet.")
+
+      {:noreply, cleared} = AddTitle.handle_info({:tap, :clear_query}, typed)
+
+      assert cleared.assigns.query == ""
+      refute cleared.assigns.search_error
+      assert cleared.assigns.results == Kati.Library.Sample.search_results()
+    end
+
+    test "clearing does not reach the network" do
+      # An empty field is under the three-character floor, so the reset must
+      # not go through `searched/2` — a request for "" is a request for nothing.
+      typed = Mob.Socket.assign(mounted(), :query, "arrival")
+
+      {:noreply, cleared} = AddTitle.handle_info({:tap, :clear_query}, typed)
+
+      refute cleared.assigns.search_error,
+             "clearing the field made a request"
+    end
+
+    test "the disc is a 40pt target around a 19pt glyph" do
+      target =
+        AddTitle.clear_disc()
+        |> Mob.ScreenCase.flatten()
+        |> Enum.find(&(Map.get(&1.props || %{}, :width) == 40))
+
+      assert target, "the glyph is its own tap target, which is 19pt"
+
+      assert {_pid, :clear_query} = Map.get(target.props, :on_tap)
+    end
+  end
+
   describe "two results with one name" do
     test "each row carries its own key, so the second is addable" do
       rows = [

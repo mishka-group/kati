@@ -380,6 +380,14 @@ defmodule Kati.ScreenTapSweepTest do
     # Album and whose own Kind row moves to Artist. Struck out rather than
     # deleted, because a list that only grows is a list nobody believes.)
     {Kati.Screens.Activity, :filter_All},
+    # Screen 06's × clears the field. On this sweep there is nothing to clear:
+    # every screen is pressed on the socket it MOUNTED with, and screen 06
+    # mounts with an empty query and the board's four rows — which is exactly
+    # what the tap resets to. The control is live and was not: it was drawn as
+    # a bare `Kati.UI.symbol("cancel", …)` with no `on_tap`, so a tap fell
+    # through to the `<TextField>` under it and the next thing typed was
+    # appended to the query somebody was trying to delete. Found on a device.
+    {Kati.Screens.AddTitle, :clear_query},
     {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_All},
     {Kati.Screens.Discover, :"filter_For you"},

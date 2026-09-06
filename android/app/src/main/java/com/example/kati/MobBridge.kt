@@ -3757,6 +3757,41 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     }
     // KATI-END(K-42 text-field-echo)
 
+    // KATI-BEGIN(K-46 text-field-epoch) mob_new=0.4.20
+    // The half K-42 cannot express: a host value that is a DECISION and must
+    // land whatever is in flight.
+    //
+    // K-42's rule is that an unrecognised value wins only when `outstanding`
+    // is empty, and its own comment states the assumption that makes that
+    // safe: *by the time a disc is pressed the field's last keystroke has long
+    // since echoed.* Typing quickly breaks it. On a Pixel 9a, clearing screen
+    // 06's field with the × reset the RESULTS — the host had set `:query` to
+    // "" and re-rendered — and left `zzqwxseverance` sitting in the field,
+    // because a keystroke was still in flight and the empty string looked like
+    // one more stale re-render. The next thing typed was then appended to text
+    // the person had just asked to delete.
+    //
+    // So the host says which it means. `value_epoch` is a number a screen
+    // bumps when it is REPLACING the field rather than echoing it; a change in
+    // it takes the value unconditionally and drops everything queued, because
+    // a decision supersedes every keystroke made before it. Screens that never
+    // replace their field send no epoch and behave exactly as before.
+    //
+    // Deliberately not a boolean `authoritative` prop: the host re-renders for
+    // reasons of its own, and a flag that stayed true would make every one of
+    // those re-renders clobber the field, which is the defect K-42 exists to
+    // stop. A number that only changes when the screen decides something is
+    // the difference between "this value is special" and "this MOMENT is".
+    val epoch = (node.props["value_epoch"] as? Number)?.toInt() ?: 0
+    var seenEpoch by remember { mutableStateOf(epoch) }
+
+    if (epoch != seenEpoch) {
+        seenEpoch = epoch
+        localValue = incoming
+        outstanding.clear()
+    }
+    // KATI-END(K-46 text-field-epoch)
+
     // Only fill width when explicitly asked. The unconditional fillMaxWidth
     // we used to apply broke layouts like ImperialInput's row of three
     // text_fields — the first field swallowed all the row's width and the
