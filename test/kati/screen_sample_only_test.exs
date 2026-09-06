@@ -81,13 +81,18 @@ defmodule Kati.ScreenSampleOnlyTest do
   #     occurrence can be called off and cannot be ticked. Every number the
   #     screen draws — the streak, the seven squares, the 13-week field, the
   #     header's best — is a count over that missing history.
-  #   * **23 Subscriptions** — no table in the app holds a **price**. The
-  #     nearest thing is a `kind: :money` event with an amount in its free-text
-  #     `description`, which is two of the four services and not a source.
+  #
+  # **23 Subscriptions left this list on 6 September.** Its reason was that no
+  # table held a price — `Kati.Services.Service.monthly_pence` does, and has
+  # since screen 92 could write one. What it was still missing was the HOURS,
+  # and `Kati.Media.CachedTitle.providers` supplies those without asking
+  # anybody to log where they watched something: a title is on the services
+  # JustWatch says it is on, and a watch of it is an hour spent on one of them.
+  # `Kati.Subscriptions` carries the argument, MOVIES-AND-TV.md #66 the
+  # defect.
   @on_sample [
     {"18", Kati.Screens.QuickAdd},
-    {"22", Kati.Screens.Habits},
-    {"23", Kati.Screens.Subscriptions}
+    {"22", Kati.Screens.Habits}
   ]
 
   # Ecto's own ledger and the DETS-replacing store Mob keeps screen state in.

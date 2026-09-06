@@ -241,6 +241,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 145's `41 of 418`. An empty shelf has neither, so it draws the board
     # whole, which is the state the board is a drawing of.
     {"145", Kati.Screens.ShelfFilters},
+    # 23 joined when it stopped quoting four services and £46.47 a month at
+    # every reader. It gates the page whole — either the ledger is yours or it
+    # is the board's — because a page with your one service in it and the
+    # drawing's other three under it reads as entirely real.
+    {"23", Kati.Screens.Subscriptions},
     # 146 joined when selection mode stopped selecting nine invented titles.
     # It reads the shelf through `Kati.Screens.Library.shelf/0` — one shelf,
     # one reader — and gates it whole: a grid of the reader's own posters with
@@ -1576,6 +1581,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # preselection and its `41 of 418`.
       {"145", Kati.Screens.ShelfFilters, &Kati.Screens.ShelfFilters.opening/0,
        &Kati.Screens.ShelfFilters.drawn_opening_for_test/0},
+      # 23 gates on the whole ledger: the count, the total, every row and the
+      # advice card arrive together or the board's do.
+      {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
+       &Kati.Screens.Subscriptions.drawn_ledger/0},
       # 146 gates on the list, which is the whole of what it draws that could
       # come from anywhere: the nine tiles, the two that start selected, and
       # every count the header composes from them. An empty shelf answers with
@@ -2263,6 +2272,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # started writing; the line was exempt before and is exempt for the same
       # reason on both sides.
       {"46", "in my fridge", ~r/^recently eaten$/},
+      # 23's back pill. Board 23 reads `Stats` and the only route into the
+      # page is screen 92's Money row, so the word and the gesture disagreed
+      # (MOVIES-AND-TV.md #66). The twin of this entry is in
+      # `Kati.ScreenDesignLiteralTest`, where the board is compared in the
+      # arrival it is a drawing OF.
+      {"23", "stats", ~r/^(my services|stats)$/u},
       # 24's and 42's *My services* row, and the twin of this pair is in
       # `Kati.ScreenDesignLiteralTest`. Both boards froze `United Kingdom · 3
       # subscribed` and the line counts the reader's own services now — the

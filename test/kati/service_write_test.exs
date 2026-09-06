@@ -194,6 +194,34 @@ defmodule Kati.ServiceWriteTest do
     end
   end
 
+  describe "a price typed after the name" do
+    test "is stored, so the total is a total" do
+      view = mount_screen(MyServices)
+      view = render_info(view, {:change, :service_query, "svcwrite-Netflix 10.99"})
+      _view = render_info(view, {:tap, :add_service})
+
+      assert [%{name: "svcwrite-Netflix", monthly_pence: 1099}] =
+               Ash.read!(Service) |> Enum.filter(&String.starts_with?(&1.name, "svcwrite-"))
+    end
+
+    test "and a name with a number in it is still a name" do
+      view = mount_screen(MyServices)
+      view = render_info(view, {:change, :service_query, "svcwrite-Apple TV+ 4K"})
+      _view = render_info(view, {:tap, :add_service})
+
+      assert [%{name: "svcwrite-Apple TV+ 4K", monthly_pence: nil}] =
+               Ash.read!(Service) |> Enum.filter(&String.starts_with?(&1.name, "svcwrite-"))
+    end
+
+    test "and screen 23's total adds them up" do
+      view = mount_screen(MyServices)
+      view = render_info(view, {:change, :service_query, "svcwrite-Netflix 10.99"})
+      _view = render_info(view, {:tap, :add_service})
+
+      assert Kati.Subscriptions.ledger().monthly.total == "£10.99"
+    end
+  end
+
   describe "the page after the write" do
     test "lists the service that was just added, without leaving the screen" do
       view = mount_screen(MyServices)
@@ -309,7 +337,7 @@ defmodule Kati.ServiceWriteTest do
       # named. Same control, same tap; the sentence the page is actually in.
       view = mount_screen(MyServices)
 
-      assert find(tree(view), :text_field, placeholder: "Name a service you pay for") != nil
+      assert find(tree(view), :text_field, placeholder: "Name a service, and what it costs") != nil
       assert find(tree(view), :text_field, placeholder: "Search services") == nil
     end
 

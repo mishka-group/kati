@@ -603,7 +603,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # board over a page listing three subscriptions (MOVIES-AND-TV.md #35).
       # Both patterns accept the board's own words as well, because a device
       # with nothing stored still draws board 92 whole.
-      assert length(device_values()) <= 46,
+      assert length(device_values()) <= 48,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -722,6 +722,23 @@ defmodule Kati.ScreenDesignLiteralTest do
          "wishlist keep everything.",
        "the pages the rule actually empties, which is two of the three the board names",
        ~r/^removes them from .+\. your library and wishlist keep everything\.$/u},
+      # 23's back pill, and the twin of this entry is in
+      # `Kati.ScreenEmptyDatabaseTest`. Board 23 froze `Stats`; the only route
+      # into the page is screen 92's Money row.
+      {"23", "stats",
+       "where the reader actually came from, which for this page is My services",
+       ~r/^(my services|stats)$/u},
+      # 92's *Something else* sub-line. The board promises *Kati will remember
+      # it for your subscription total* and nothing could enter a price:
+      # `Kati.Services.Service.monthly_pence` has existed since the resource
+      # was written and every writer left it `nil`, so screen 23's *Every
+      # month* read `—` however many services somebody added
+      # (MOVIES-AND-TV.md #66). The field takes both now — `Netflix 10.99` —
+      # and the row says so. The pattern insists the sentence still promises
+      # the total, which is the half of it that was true.
+      {"92", "kati will remember it for your subscription total, but cannot tell you what is on it",
+       "the row explains how to enter a price, now that entering one does something",
+       ~r/subscription total/u},
       {"01", "good evening",
        "the greeting is picked from the device clock's hour by the same function. Which of " <>
          "the three it is belongs to `Kati.Screens.Home.today/0`; restating its thresholds " <>
@@ -1104,6 +1121,12 @@ defmodule Kati.ScreenDesignLiteralTest do
       # which is what this entry is. The drawing is still the drawing; what it
       # is a drawing OF is one particular arrival.
       {"14", Kati.Screens.SeriesMeta, &Map.put(&1, :back, "Library")},
+      # 23's pill reads `Stats` on its board and the only route into the page
+      # is screen 92's Money row, so the word and the gesture disagreed
+      # (MOVIES-AND-TV.md #66). The screen says `My services` now and takes a
+      # caller's own word ahead of it — which is what this entry is, the
+      # arrival board 23 is a drawing of.
+      {"23", Kati.Screens.Subscriptions, &Map.put(&1, :params, %{back: "Stats"})},
       # 06 is drawn MID-QUERY. The sheet opens empty now — its four results and
       # its `4 results` caption belong to a search somebody has run, and
       # opening on them showed a reader who had typed nothing four invented

@@ -439,7 +439,8 @@ defmodule Kati.Screens.MyServices do
       # without: there is nothing to search, and the field is in fact the way
       # you name the first one. Same control, same tap, the sentence the page
       # is actually in.
-      placeholder: if(set_up?, do: "Search services", else: "Name a service you pay for")
+      placeholder:
+        if(set_up?, do: "Search services", else: "Name a service, and what it costs")
     }
 
     ~MOB"""
@@ -695,7 +696,7 @@ defmodule Kati.Screens.MyServices do
         [
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("add"),
-          Kati.UI.SettingsList.body("Something else", "Kati will remember it for your subscription total, but cannot tell you what is on it", lines: 3),
+          Kati.UI.SettingsList.body("Something else", "Type its name, and its price after it — Netflix 10.99. Kati remembers both for your subscription total.", lines: 3),
           Kati.UI.SettingsList.trailing(nil),
           on_tap: {self(), :add_service}
         )
@@ -989,13 +990,59 @@ defmodule Kati.Screens.MyServices do
         Write.note({:error, :nothing_to_save}, "add service")
 
       typed ->
-        case Kati.Screens.MyServices.already_listed(typed) do
+        {name, pence} = Kati.Screens.MyServices.split_price(typed)
+
+        case Kati.Screens.MyServices.already_listed(name) do
           %Service{} = service ->
-            Write.note({:ok, service}, "add service #{typed}")
+            Write.note({:ok, service}, "add service #{name}")
 
           nil ->
-            Kati.Screens.MyServices.create_service(typed) |> Write.note("add service #{typed}")
+            Kati.Screens.MyServices.create_service(name, pence)
+            |> Write.note("add service #{name}")
         end
+    end
+  end
+
+  @doc """
+  A name, and a price if one was typed after it.
+
+  One field, because two would be a form. Screen 23 is a page about money and
+  nothing in this app could enter any: `Kati.Services.Service.monthly_pence`
+  has existed since the resource was written and every writer left it `nil`,
+  so *Every month* read `—` however many services somebody added and the
+  *Something else* row's promise — *Kati will remember it for your
+  subscription total* — was one it could not keep.
+
+  So the field takes both. `Netflix 10.99` is a name and a price; `Netflix` is
+  a name. A trailing number is read as money in the account's own currency, a
+  leading `£`, `$` or `€` is ignored rather than parsed, and anything that is
+  not a bare amount stays part of the name — `Apple TV+ 4K` is a service
+  called *Apple TV+ 4K*, not one costing four thousand pence.
+
+      iex> Kati.Screens.MyServices.split_price("Netflix")
+      {"Netflix", nil}
+
+      iex> Kati.Screens.MyServices.split_price("Netflix 10.99")
+      {"Netflix", 1099}
+
+      iex> Kati.Screens.MyServices.split_price("Now £9")
+      {"Now", 900}
+
+      iex> Kati.Screens.MyServices.split_price("Apple TV+ 4K")
+      {"Apple TV+ 4K", nil}
+  """
+  @spec split_price(String.t()) :: {String.t(), non_neg_integer() | nil}
+  def split_price(typed) do
+    case Regex.run(~r/^(.*?)\s+[£$€]?(\d+(?:[.,]\d{1,2})?)$/u, String.trim(typed)) do
+      [_whole, name, amount] when name != "" -> {String.trim(name), pence(amount)}
+      _no_price -> {String.trim(typed), nil}
+    end
+  end
+
+  defp pence(amount) do
+    case amount |> String.replace(",", ".") |> Float.parse() do
+      {pounds, ""} -> round(pounds * 100)
+      _not_a_number -> nil
     end
   end
 
@@ -1011,9 +1058,15 @@ defmodule Kati.Screens.MyServices do
   what a nil `provider_id` means — and a promise resting on somebody else's
   default is a promise nobody would think to check before changing it.
   """
-  @spec create_service(String.t()) :: {:ok, Service.t()} | {:error, term()}
-  def create_service(name) do
-    Ash.create(Service, %{name: name, tier: :subscribed, provider_id: nil})
+  @spec create_service(String.t(), non_neg_integer() | nil) ::
+          {:ok, Service.t()} | {:error, term()}
+  def create_service(name, pence \\ nil) do
+    Ash.create(Service, %{
+      name: name,
+      tier: :subscribed,
+      provider_id: nil,
+      monthly_pence: pence
+    })
   end
 
   @doc """

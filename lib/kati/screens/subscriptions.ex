@@ -108,19 +108,52 @@ defmodule Kati.Screens.Subscriptions do
   that holds names without figures would be worse than one that is honestly a
   drawing.
   """
-  use Kati.Screens.Pushed, back: "Stats"
+  # `My services`, not `Stats`. Board 23's pill reads Stats and the only route
+  # into this page is screen 92's Money row — MOVIES-AND-TV.md #66 — so the
+  # word and the gesture disagreed. `Kati.Screens.Pushed.back_label/2` takes a
+  # caller's own word ahead of this one, so a door that opens it from anywhere
+  # else says so without touching this line.
+  use Kati.Screens.Pushed, back: "My services"
 
   alias Kati.Subscriptions.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, suggestion: true, reminded: false)
+  def load(socket) do
+    Mob.Socket.assign(socket,
+      ledger: Kati.Screens.Subscriptions.ledger(),
+      suggestion: true,
+      reminded: false
+    )
+  end
+
+  @doc """
+  The ledger this page draws: the reader's, or the drawing's.
+
+  All-or-nothing, the gate screens 04 and 92 keep: a page with the reader's
+  one service in it and the drawing's other three under it reads as entirely
+  real and is three-quarters invented. MOVIES-AND-TV.md #66.
+  """
+  @spec ledger() :: map()
+  def ledger, do: Kati.Subscriptions.ledger() || Kati.Screens.Subscriptions.drawn_ledger()
+
+  @doc "Board 23 exactly as it is drawn, from `Kati.Subscriptions.Sample`."
+  @spec drawn_ledger() :: map()
+  def drawn_ledger do
+    %{
+      active_line: Sample.active_line(),
+      monthly: Sample.monthly(),
+      services: Sample.services(),
+      suggestion: Sample.suggestion()
+    }
+  end
 
   @doc false
   def content(assigns) do
     shown? = assigns.suggestion
     reminded? = assigns.reminded
+    ledger = assigns[:ledger] || Kati.Screens.Subscriptions.ledger()
 
     ~MOB"""
     <Scroll>
@@ -132,11 +165,11 @@ defmodule Kati.Screens.Subscriptions do
         padding_bottom={40}
       >
         {Kati.Screens.Subscriptions.back_row()}
-        {Kati.Screens.Subscriptions.title()}
-        {Kati.Screens.Subscriptions.monthly()}
+        {Kati.Screens.Subscriptions.title(ledger)}
+        {Kati.Screens.Subscriptions.monthly(ledger)}
         {UI.eyebrow("Services")}
-        {Kati.Screens.Subscriptions.services()}
-        {Kati.Screens.Subscriptions.suggestion(shown?, reminded?)}
+        {Kati.Screens.Subscriptions.services(ledger)}
+        {Kati.Screens.Subscriptions.suggestion(ledger.suggestion, shown?, reminded?)}
       </Column>
     </Scroll>
     """
@@ -193,7 +226,9 @@ defmodule Kati.Screens.Subscriptions do
   end
 
   @doc false
-  def title do
+  def title(ledger) do
+    assigns = %{active_line: ledger.active_line}
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
@@ -206,7 +241,7 @@ defmodule Kati.Screens.Subscriptions do
       />
       <Spacer size={5} />
       <Text
-        text={Kati.Subscriptions.Sample.active_line()}
+        text={@active_line}
         font_family="mono"
         text_size={11}
         text_color={Palette.muted()}
@@ -218,8 +253,8 @@ defmodule Kati.Screens.Subscriptions do
   end
 
   @doc false
-  def monthly do
-    m = Sample.monthly()
+  def monthly(ledger) do
+    m = ledger.monthly
 
     ~MOB"""
     <Column fill_width={true}>
@@ -245,42 +280,54 @@ defmodule Kati.Screens.Subscriptions do
           letter_spacing={-0.04}
           text_color={:on_surface}
         />
-        <Spacer size={12} />
-        <Row fill_width={true} align="center">
-          {Kati.UI.symbol("trending_up", size: 15, color: Palette.red())}
-          <Spacer size={7} />
-          <Text
-            text={m.change_lead}
-            text_size={12.5}
-            text_color={Palette.cream_sub()}
-            max_lines={1}
-          />
-          <Spacer size={4} />
-          <Text
-            text={m.change_amount}
-            text_size={12.5}
-            font_weight="semibold"
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          <Spacer size={4} />
-          <Text
-            text={m.change_rest}
-            text_size={12.5}
-            text_color={Palette.cream_sub()}
-            max_lines={1}
-          />
-          <Spacer weight={1.0} />
-        </Row>
+        {Kati.Screens.Subscriptions.change_line(m)}
       </Column>
       <Spacer size={22} />
     </Column>
     """
   end
 
+  @doc """
+  `↗ Up £4.00 since March — Orbit raised its price`, or nothing at all.
+
+  Nothing at all is what a real account gets, and will until something records
+  what a price used to be: `Kati.Services.Service` holds the price a service
+  is at, not the one it was. Board 23 draws the line because board 23's reader
+  had a rise; inventing one for anybody else would be inventing the number
+  this page is about.
+  """
+  @spec change_line(map()) :: map()
+  def change_line(%{change_amount: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def change_line(m) do
+    assigns = %{lead: m.change_lead, amount: m.change_amount, rest: m.change_rest}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row fill_width={true} align="center">
+        {Kati.UI.symbol("trending_up", size: 15, color: Palette.red())}
+        <Spacer size={7} />
+        <Text text={@lead} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
+        <Spacer size={4} />
+        <Text
+          text={@amount}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer size={4} />
+        <Text text={@rest} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
+        <Spacer weight={1.0} />
+      </Row>
+    </Column>
+    """
+  end
+
   @doc false
-  def services do
-    rows = Sample.services()
+  def services(ledger) do
+    rows = ledger.services
     last = length(rows) - 1
 
     children =
@@ -326,13 +373,35 @@ defmodule Kati.Screens.Subscriptions do
             text_color={name_color}
             max_lines={1}
           />
-          <Spacer size={3} />
-          <Text text={row.line} text_size={11.5} text_color={line_color} max_lines={1} />
+          {Kati.Screens.Subscriptions.row_line(row.line, line_color)}
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Subscriptions.money(row, paused?)}
       </Row>
       {Kati.Screens.Subscriptions.hairline(rule?)}
+    </Column>
+    """
+  end
+
+  @doc """
+  The line under a service's name, or nothing.
+
+  `nil` is an ordinary answer: a service with no renewal date and nothing
+  watched on it has nothing to put here. The `Text` was unconditional and a
+  `nil` reached the bridge, which renders it as the four letters `nil` — the
+  device found that in the first minute of looking at this page, and it is
+  the class of defect `Kati.Write.message/1` exists to stop one layer down.
+  """
+  @spec row_line(String.t() | nil, term()) :: map()
+  def row_line(nil, _colour), do: ~MOB"<Spacer size={0} />"
+
+  def row_line(line, colour) do
+    assigns = %{line: line, colour: colour}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      <Text text={@line} text_size={11.5} text_color={@colour} max_lines={1} />
     </Column>
     """
   end
@@ -368,6 +437,8 @@ defmodule Kati.Screens.Subscriptions do
   # because £5.00 buying nothing is not a price per hour. Two clauses rather
   # than a nil-rate branch, so the shapes stay honestly different.
   @doc false
+  def money(%{price: nil}, _paused?), do: ~MOB"<Spacer size={0} />"
+
   def money(row, true) do
     ~MOB"""
     <Text
@@ -398,7 +469,7 @@ defmodule Kati.Screens.Subscriptions do
       />
       <Spacer size={3} />
       <Text
-        text={row.rate}
+        text={row.rate || ""}
         font_family="mono"
         text_size={10}
         text_color={row.rate_tone}
@@ -419,15 +490,19 @@ defmodule Kati.Screens.Subscriptions do
   # have laid out the same; "almost certainly" is not what the frame comparison
   # is measured in.
   @doc false
-  def suggestion(false, _reminded?), do: ~MOB"<Spacer size={0} />"
+  # `nil` is the third state and the important one: a reader whose every
+  # service is being used has nothing worth a look, and a card that appeared
+  # every month regardless would be a card nobody reads. Board 23 always draws
+  # it because board 23's reader is paying £13.99 for six hours.
+  def suggestion(nil, _shown?, _reminded?), do: ~MOB"<Spacer size={0} />"
+  def suggestion(_advice, false, _reminded?), do: ~MOB"<Spacer size={0} />"
 
-  def suggestion(true, reminded?) do
-    [Kati.UI.Eyebrow.quiet("Worth a look"), Kati.Screens.Subscriptions.advice(reminded?)]
+  def suggestion(advice, true, reminded?) do
+    [Kati.UI.Eyebrow.quiet("Worth a look"), Kati.Screens.Subscriptions.advice(advice, reminded?)]
   end
 
   @doc false
-  def advice(reminded?) do
-    s = Sample.suggestion()
+  def advice(s, reminded?) do
 
     ~MOB"""
     <Column
