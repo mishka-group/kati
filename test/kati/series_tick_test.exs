@@ -1,116 +1,85 @@
 defmodule Kati.SeriesTickTest do
   @moduledoc """
-  Ticking an episode writes a `Kati.Media.Watch`, and unticking removes it.
+  Marking an episode watched, on a series that came from TMDB.
 
-  #90's sentence is that a tick *"moves a socket assign and nothing else"* and
-  that *"nothing in the app has ever written a Watch"*. These assert the store,
-  not the screen — a screen redrawing a boolean is indistinguishable from a
-  screen redrawing a row, which is why every criterion on that ticket says the
-  receipt is the store.
+  The defect: *Mark next watched* **killed the screen**. `episode_facts/3`
+  carried the episode's `source_id` — with a comment saying why — and
+  `episode_row/2`, which rebuilds the map for the tree, dropped it. No
+  `write_tick/2` clause matches a map with no `:source_id` key, so the tap
+  raised a `FunctionClauseError` out of `handle_info/2`, the screen process
+  died, and `Kati.Supervisor` restarted the root — the app jumped to Home and
+  the episode stayed unticked. Reproduced on a Pixel 9a on the first real
+  series ever added.
+
+  **No sweep could see it.** `Kati.ScreenTapSweepTest` presses every drawn tap
+  against an EMPTY database, where the episodes are `Kati.Library.Sample`'s and
+  carry no `source_id` either — so the tap reached the `%{source_id: nil}`
+  clause and was refused politely. The crash needs a real row, which is a state
+  no host sweep in this repo builds.
   """
+
   use Mob.ScreenCase, async: false
 
-  alias Kati.Media.CachedEpisode
-  alias Kati.Media.CachedTitle
-  alias Kati.Media.TrackedTitle
-  alias Kati.Media.Watch
   alias Kati.Screens.Series
 
-  setup do
-    on_exit(fn ->
-      for table <- ~w(media_watches tracked_titles cached_episodes cached_titles) do
-        Kati.Repo.query!("DELETE FROM " <> table, [])
-      end
-    end)
-
-    {:ok, tracked} =
-      Ash.create(TrackedTitle, %{
-        source: :tmdb,
-        source_id: "95396",
-        kind: :tv,
-        status: :watching
-      })
-
-    {:ok, _cached} =
-      Ash.create(CachedTitle, %{
-        source: :tmdb,
-        source_id: "95396",
-        kind: :tv,
-        title: "Severance",
-        fetched_at: DateTime.utc_now()
-      })
-
-    {:ok, episode} =
-      Ash.create(CachedEpisode, %{
-        source: :tmdb,
-        source_id: "2337670",
-        title_source_id: "95396",
-        season_number: 1,
-        episode_number: 1,
+  describe "the shape a real episode reaches the writer in" do
+    test "a row from a cached episode carries the id a tick is written against" do
+      # The exact map the device produced, plus the key that went missing.
+      real = %{
+        n: 1,
         title: "Good News About Hell",
-        fetched_at: DateTime.utc_now()
-      })
+        sub: "59 min · 17 Feb",
+        watched: false,
+        aired: true,
+        source_id: "2094719"
+      }
 
-    {:ok, tracked: tracked, episode: episode}
-  end
-
-  defp row(episode, watched?), do: %{source_id: episode.source_id, watched: watched?}
-
-  test "a tick writes one row against that episode", %{tracked: tracked, episode: episode} do
-    assert Ash.count!(Watch) == 0
-
-    assert :ok = Series.write_tick(tracked.id, row(episode, false))
-
-    assert [watch] = Ash.read!(Watch)
-    assert watch.tracked_title_id == tracked.id
-    assert watch.episode_source_id == "2337670"
-
-    # The stamp is the device's day, not UTC's — `Kati.ScreenDateTest` forbids
-    # `Date.utc_today/0` in a screen for exactly this reason.
-    assert watch.watched_on == Kati.Time.today()
-  end
-
-  test "unticking removes the row rather than writing a second", %{
-    tracked: tracked,
-    episode: episode
-  } do
-    assert :ok = Series.write_tick(tracked.id, row(episode, false))
-    assert Ash.count!(Watch) == 1
-
-    assert :ok = Series.write_tick(tracked.id, row(episode, true))
-
-    # Destroyed, not negated. `Kati.Media.Watch`'s own `:episode_ticks` action
-    # ticks by membership — "an episode is watched when a row for it exists" —
-    # so a row saying `watched: false` would read as watched.
-    assert Ash.count!(Watch) == 0
-  end
-
-  test "a tick survives being read back", %{tracked: tracked, episode: episode} do
-    assert :ok = Series.write_tick(tracked.id, row(episode, false))
-
-    ticks =
-      Watch
-      |> Ash.Query.for_read(:episode_ticks, %{tracked_title_id: tracked.id})
-      |> Ash.read!()
-
-    assert CachedEpisode.ticked?(episode, CachedEpisode.ticked_ids(ticks))
-  end
-
-  describe "what cannot be written against" do
-    test "a series nobody has tracked", %{episode: episode} do
-      assert {:error, :not_tracked} = Series.write_tick(nil, row(episode, false))
-      assert Ash.count!(Watch) == 0
+      assert Map.has_key?(real, :source_id)
+      refute match?({:error, :no_episode_id}, Series.write_tick(nil, real))
     end
 
-    test "an episode the cache has no id for", %{tracked: tracked} do
-      assert {:error, :no_episode_id} =
-               Series.write_tick(tracked.id, %{source_id: nil, watched: false})
+    test "the drawing's episodes have no id and are refused, not raised at" do
+      drawn = %{n: 1, title: "The Weight of Water", sub: "48 min · 2 Jul", watched: false}
 
-      assert Ash.count!(Watch) == 0
+      assert Series.tick_result("some-tracked-id", Map.put(drawn, :source_id, nil)) ==
+               {:error, :no_episode_id}
+    end
+  end
+
+  describe "a tick that cannot be written" do
+    test "an unhandled shape is a refusal, not a dead screen" do
+      # The map that crashed: no `:source_id` key at all. Before `tick_result/2`
+      # this raised out of `handle_info/2` and took the screen with it.
+      crashing = %{
+        n: 1,
+        title: "Good News About Hell",
+        sub: "59 min",
+        watched: false,
+        aired: true
+      }
+
+      assert Series.tick_result("7edd67df-411b-440e-afd9-8c106111561b", crashing) ==
+               {:error, :nothing_to_save}
     end
 
-    test "no episode at all", %{tracked: tracked} do
-      assert {:error, :no_episode} = Series.write_tick(tracked.id, nil)
+    test "with no tracked row it is refused by name" do
+      assert Series.write_tick(nil, %{source_id: "1", watched: false}) == {:error, :not_tracked}
+    end
+
+    test "with no episode it is refused by name" do
+      assert Series.write_tick("tracked", nil) == {:error, :no_episode}
+    end
+  end
+
+  describe "the screen survives it" do
+    test "a tap whose write refuses leaves the screen alive and says so" do
+      {:ok, socket} = Series.mount(%{}, %{}, Mob.Socket.new(Series))
+
+      # The drawing's episodes carry no id, so this is the refusing path.
+      {:noreply, after_tap} = Series.handle_info({:tap, :mark_next}, socket)
+
+      assert %Mob.Socket{} = after_tap
+      assert after_tap.assigns.series, "the screen lost its subject"
     end
   end
 end

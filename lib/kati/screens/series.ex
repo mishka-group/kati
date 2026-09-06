@@ -478,7 +478,25 @@ defmodule Kati.Screens.Series do
       title: episode_title(episode),
       sub: episode_sub(episode, zone),
       watched: episode.watched,
-      aired: episode.airing != :upcoming
+      aired: episode.airing != :upcoming,
+      # Carried through to the view, and this is the one key that is not for
+      # drawing. `episode_facts/3` above puts it on the fact map with a comment
+      # saying why — *a row drawn without one can be flipped on screen and
+      # never persisted* — and then this function, which rebuilds the map for
+      # the tree, dropped it.
+      #
+      # `write_tick/2` matches on `%{source_id: _}` and has no clause for a map
+      # without the key, so **Mark next watched killed the screen**: a
+      # `FunctionClauseError` out of `handle_info/2`, the screen process gone,
+      # and `Kati.Supervisor` restarting the root — so the app jumped to Home
+      # and the episode stayed unticked. Invisible until a real series existed
+      # to press it on, because `Kati.Library.Sample`'s episodes carry no
+      # `source_id` either and its ticks were refused politely by the
+      # `%{source_id: nil}` clause.
+      #
+      # `Map.get/2` rather than a dot: the drawing's episodes have no such key
+      # and must keep reaching that refusing clause rather than raising here.
+      source_id: Map.get(episode, :source_id)
     }
   end
 
@@ -1269,7 +1287,7 @@ defmodule Kati.Screens.Series do
     position = String.to_integer(index)
     episode = Enum.at(series.episodes, position)
 
-    case Kati.Screens.Series.write_tick(Map.get(series, :tracked_id), episode) do
+    case Kati.Screens.Series.tick_result(Map.get(series, :tracked_id), episode) do
       :ok ->
         flip = fn ep -> %{ep | watched: not ep.watched} end
 
@@ -1283,6 +1301,38 @@ defmodule Kati.Screens.Series do
       {:error, reason} ->
         Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
     end
+  end
+
+  @doc """
+  `write_tick/2`, with a raise turned into a refusal the page can draw.
+
+  This screen is hand-rolled: it defines its own `handle_info/2` clauses
+  instead of taking `Kati.Screens.Pushed`'s, so a tap here never passes
+  through `Kati.Screens.Root.rescue_tap/3` and a raise in a handler kills the
+  screen process. `Kati.Supervisor` then restarts the ROOT — so the symptom is
+  not a crash dialog, it is the app silently jumping to Home with the tap
+  undone.
+
+  That is exactly what *Mark next watched* did on a Pixel 9a the first time a
+  real series existed to press it on: `episode_row/2` had dropped
+  `source_id`, no `write_tick/2` clause matched a map without the key, and the
+  page bounced to Home. The missing key is fixed above; this is the second
+  half, because the next unhandled shape should cost a red line and not the
+  screen.
+
+  Not a `rescue` inside `write_tick/2` itself: that function's clauses ARE the
+  contract — an id and an episode, or a named refusal — and swallowing a
+  raise inside it would hide a caller passing the wrong thing. The rescue
+  belongs at the boundary the screen owns.
+  """
+  @spec tick_result(binary() | nil, map() | nil) :: :ok | {:error, term()}
+  def tick_result(tracked_id, episode) do
+    Kati.Screens.Series.write_tick(tracked_id, episode)
+  rescue
+    error ->
+      require Logger
+      Logger.error("series tick: #{Exception.message(error)}")
+      {:error, :nothing_to_save}
   end
 
   @doc false
