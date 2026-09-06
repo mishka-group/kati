@@ -821,31 +821,116 @@ object MobBridge {
 
                 if (view == null || view.width <= 0 || view.height <= 0) {
                     result.set("error:nothing_drawn")
+                    latch.countDown()
                 } else {
                     val bitmap = android.graphics.Bitmap.createBitmap(
                         view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888
                     )
-                    view.draw(android.graphics.Canvas(bitmap))
 
-                    val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(64)
-                    val file = File(activity.cacheDir, if (safe.isEmpty()) "kati.png" else safe)
+                    // PixelCopy, not `view.draw(Canvas(bitmap))`.
+                    //
+                    // That is the obvious one and it worked on exactly the
+                    // pages with no pictures on them. Coil decodes into
+                    // HARDWARE bitmaps, and a software Canvas cannot draw one:
+                    // `IllegalArgumentException: Software rendering doesn't
+                    // support hardware bitmaps`, thrown from inside Compose's
+                    // own draw pass. So screen 121 — a week, all type — saved
+                    // fine, and screen 98 — a share card with three posters on
+                    // it — could not, which is MOVIES-AND-TV.md #80's second
+                    // half and the reason it looked like a screen problem.
+                    //
+                    // PixelCopy reads the window's rendered surface instead of
+                    // replaying the view hierarchy, so what it copies is what
+                    // the GPU actually drew, hardware layers included. It is
+                    // also what the platform documents for this: `View.draw`
+                    // is for rendering a view somewhere, and this is asking
+                    // for a picture of the screen.
+                    //
+                    // The fallback is the old path. PixelCopy needs a window
+                    // with a surface and answers `ERROR_SOURCE_NO_DATA` when
+                    // there is not one yet; a page of pure type still captures
+                    // the old way rather than not at all.
+                    val location = IntArray(2)
+                    view.getLocationInWindow(location)
+                    val source = android.graphics.Rect(
+                        location[0], location[1],
+                        location[0] + view.width, location[1] + view.height
+                    )
 
-                    java.io.FileOutputStream(file).use { out ->
-                        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                    val onCopied = { ok: Boolean ->
+                        if (ok) {
+                            result.set(katiWriteCapture(activity, bitmap, name))
+                        } else {
+                            result.set(katiDrawCapture(activity, view, bitmap, name))
+                        }
+                        latch.countDown()
                     }
-                    bitmap.recycle()
 
-                    result.set("ok:" + file.absolutePath)
+                    try {
+                        android.view.PixelCopy.request(
+                            activity.window, source, bitmap,
+                            { code -> onCopied(code == android.view.PixelCopy.SUCCESS) },
+                            android.os.Handler(android.os.Looper.getMainLooper())
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.w("KatiCapture", "PixelCopy refused, drawing instead", e)
+                        onCopied(false)
+                    }
                 }
             } catch (e: Exception) {
+                android.util.Log.e("KatiCapture", "capture failed", e)
                 result.set("error:" + (e.javaClass.simpleName))
-            } finally {
                 latch.countDown()
             }
         }
 
         latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
         return result.get()
+    }
+    /**
+     * The old capture, kept as the fallback PixelCopy falls back TO.
+     *
+     * Replays the view hierarchy onto a software Canvas. Correct for a page
+     * of pure type and unable to draw a hardware bitmap, which is every page
+     * with a poster on it — see `katiCaptureScreen`.
+     */
+    @JvmStatic
+    private fun katiDrawCapture(
+        activity: android.app.Activity,
+        view: android.view.View,
+        bitmap: android.graphics.Bitmap,
+        name: String
+    ): String {
+        return try {
+            view.draw(android.graphics.Canvas(bitmap))
+            katiWriteCapture(activity, bitmap, name)
+        } catch (e: Exception) {
+            android.util.Log.e("KatiCapture", "software capture failed", e)
+            "error:" + e.javaClass.simpleName
+        }
+    }
+
+    /** The PNG, written to the cache under a filename Android will accept. */
+    @JvmStatic
+    private fun katiWriteCapture(
+        activity: android.app.Activity,
+        bitmap: android.graphics.Bitmap,
+        name: String
+    ): String {
+        return try {
+            val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(64)
+            val file = File(activity.cacheDir, if (safe.isEmpty()) "kati.png" else safe)
+
+            java.io.FileOutputStream(file).use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+            }
+            bitmap.recycle()
+
+            "ok:" + file.absolutePath
+        } catch (e: Exception) {
+            android.util.Log.e("KatiCapture", "writing the capture failed", e)
+            "error:" + e.javaClass.simpleName
+        }
     }
     // KATI-END(K-45 capture-screen)
 

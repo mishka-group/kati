@@ -43,6 +43,7 @@ defmodule Kati.Screens.YearShare do
     |> Mob.Socket.assign(:scope, "All")
     |> Mob.Socket.assign(:aspect, :aspect_square)
     |> Mob.Socket.assign(:hide_private, false)
+    |> Mob.Socket.assign(:save_error, nil)
     |> Mob.Socket.assign(:share, share())
   end
 
@@ -151,6 +152,7 @@ defmodule Kati.Screens.YearShare do
         {Kati.Screens.YearShare.privacy_row(assigns.hide_private)}
         <Spacer size={16} />
         {Kati.Screens.YearShare.actions()}
+        {Kati.Screens.YearShare.refusal(Map.get(assigns, :save_error))}
         <Spacer size={16} />
         {Kati.Screens.YearShare.no_server_note()}
       </Column>
@@ -382,9 +384,14 @@ defmodule Kati.Screens.YearShare do
   @doc """
   Save, and the share that is waiting on a fence.
 
-  `Save image` takes the ink because it is the one that works. `Share…` carries
-  `WHEN FILE SHARING LANDS` in the same idiom screen 119's unbuilt nutrition
-  paths use, so *designed, not built* looks the same wherever it appears.
+  `Save image` takes the ink because it is the one that works — and now it does
+  work. It pushed `Kati.Screens.YearCards` and saved nothing until 6 September
+  (MOVIES-AND-TV.md #80), while the note beside it said the capability was
+  missing; it was not. `K-45 capture-screen` had shipped and screen 110 had
+  been saving its own page with it. `Share…` still carries `WHEN FILE SHARING
+  LANDS`, in the same idiom screen 119's unbuilt nutrition paths use, because
+  that fence is real: a capture writes a file, and sending it somewhere needs
+  an intent this bridge has no side for.
   """
   @spec actions() :: map()
   def actions do
@@ -453,8 +460,65 @@ defmodule Kati.Screens.YearShare do
   def handle_tap(aspect, socket) when aspect in [:aspect_square, :aspect_story],
     do: {:noreply, Mob.Socket.assign(socket, :aspect, aspect)}
 
-  def handle_tap(:save_image, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.YearCards)}
+  @doc """
+  Save the card as a PNG, through the picker every other file in Kati uses.
+
+  It used to push `Kati.Screens.YearCards` — the reference sheet about how a
+  card is drawn — which is a page about the feature rather than the feature,
+  and MOVIES-AND-TV.md #80 is that the button said *Save image* and saved
+  none. The note beside it said the capability was missing; it was not. `K-45
+  capture-screen` shipped and `Kati.Screens.WeekImage` has been saving its own
+  page with it since. This is the same three lines.
+
+  A refusal is drawn rather than swallowed, for that screen's reason: a save
+  button that appears to work and silently does not is the defect screen 06's
+  search taught this codebase to stop shipping.
+  """
+  def handle_tap(:save_image, socket) do
+    case Kati.Native.Files.save_screen(Kati.Screens.YearShare.filename()) do
+      :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
+      {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}
+    end
+  end
+
+  @doc """
+  The name the file is offered under: `kati-year-2026.png`.
+
+  The year the card is about, so a folder with three of these in it can be
+  read — `Kati.Screens.WeekImage.filename/0`'s own rule, with the range this
+  page has instead of that one's week. ASCII and hyphenated, because the
+  Kotlin half strips anything else out of a filename and a name that came back
+  different from the one composed here would be a small lie in a folder
+  listing.
+  """
+  @spec filename() :: String.t()
+  def filename, do: "kati-year-" <> Integer.to_string(Kati.Time.today().year) <> ".png"
+
+  @doc false
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      {Kati.UI.notice(@message)}
+    </Column>
+    """
+  end
+
+  # One sentence per way this can fail, in `Kati.Write.message/1`'s register:
+  # what happened, and whether anything was lost. Nothing ever is — the capture
+  # writes to the cache and the picker is the only thing that writes anywhere
+  # else — so every one of these ends by saying so. Screen 110's own five,
+  # because the two buttons do the same thing and a reader who met both should
+  # not meet two vocabularies.
+  defp message(:no_activity), do: "Kati is not on screen. Nothing was saved."
+  defp message(:nothing_drawn), do: "There was nothing to capture. Nothing was saved."
+  defp message(:timeout), do: "The page took too long to capture. Nothing was saved."
+  defp message(:no_bridge), do: "Saving images does not work here yet."
+  defp message(_other), do: "That did not save. The page is unchanged."
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
