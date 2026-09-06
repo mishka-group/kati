@@ -79,6 +79,26 @@ defmodule Kati.Calendars.Today do
   end
 
   @doc """
+  The day's events, as rows — the resource, not a rendering.
+
+  `rows/1` answers what a timeline draws and drops the instants doing it;
+  `Kati.Screens.QuickAdd` needs the instants, because a clash is an overlap
+  and `"11:00"` cannot overlap anything. Same query, so the two can never
+  disagree about what is on a day, which is what `events/2`'s own comment
+  says it is for.
+
+  All-day events are out: they have no hours to overlap with.
+  """
+  @spec timed(Date.t() | nil) :: [struct()]
+  def timed(date \\ nil) do
+    zone = Kati.Time.device_zone()
+
+    (date || Kati.Time.today())
+    |> events(zone)
+    |> Enum.reject(& &1.is_all_day)
+  end
+
+  @doc """
   The day's timed occurrences as `Kati.Calendar.Layout` input.
 
   Minutes from midnight in the device zone, all-day events excluded — they

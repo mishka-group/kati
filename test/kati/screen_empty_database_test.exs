@@ -246,6 +246,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # is the board's — because a page with your one service in it and the
     # drawing's other three under it reads as entirely real.
     {"23", Kati.Screens.Subscriptions},
+    # 18 joined when its field, its parse card and its commit button stopped
+    # being one sentence somebody typed into a design tool. It reads the
+    # calendar for the clash — `Kati.Calendars.Today.timed/1` — and writes an
+    # event on commit. An empty field draws board 18 whole, which is the state
+    # that board is a drawing of: it is captured MID-TYPING, and its sentence
+    # is the clearest statement of the syntax this screen has.
+    {"18", Kati.Screens.QuickAdd},
     # 146 joined when selection mode stopped selecting nine invented titles.
     # It reads the shelf through `Kati.Screens.Library.shelf/0` — one shelf,
     # one reader — and gates it whole: a grid of the reader's own posters with
@@ -1586,6 +1593,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # advice card arrive together or the board's do.
       {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,
        &Kati.Screens.Subscriptions.drawn_ledger/0},
+      # 18 gates on the whole draft: the sentence, the title, the chips, the
+      # clash and the button's word arrive together or the board's do. An
+      # untyped field is the board.
+      {"18", Kati.Screens.QuickAdd, fn -> Kati.Screens.QuickAdd.draft("") end,
+       &Kati.Screens.QuickAdd.Sample.draft/0},
       # 146 gates on the list, which is the whole of what it draws that could
       # come from anywhere: the nine tiles, the two that start selected, and
       # every count the header composes from them. An empty shelf answers with

@@ -90,8 +90,13 @@ defmodule Kati.ScreenSampleOnlyTest do
   # JustWatch says it is on, and a watch of it is an hour spent on one of them.
   # `Kati.Subscriptions` carries the argument, MOVIES-AND-TV.md #66 the
   # defect.
+  #
+  # **18 Quick add left this list on 6 September.** Its reason was that it had
+  # no field, no parser and no writer. `Kati.QuickAdd.Parse` is the parser,
+  # `Kati.Calendars.Today.timed/1` is where the clash comes from, and
+  # `Kati.Screens.QuickAdd.commit/1` writes a `Kati.Calendars.Event`.
+  # MOVIES-AND-TV.md #31.
   @on_sample [
-    {"18", Kati.Screens.QuickAdd},
     {"22", Kati.Screens.Habits}
   ]
 

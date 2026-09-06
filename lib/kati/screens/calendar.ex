@@ -82,6 +82,24 @@ defmodule Kati.Screens.Calendar do
   """
   use Kati.Screens.Root, root: :calendar
 
+  @doc """
+  What the `+` opens from the Schedule: `Kati.Screens.QuickAdd`.
+
+  It opened `Kati.Screens.AddTitle` — the films-and-series search sheet — from
+  the calendar, which is the half of MOVIES-AND-TV.md #16 that stayed open
+  because no board said which door was right. Board 18 does, in its own
+  caption: *One field for the whole app.* A `+` on the Schedule is somebody
+  saying *something is happening*, and 18 is the screen that takes that
+  sentence.
+
+  It is also screen 18's route. Until this it was reachable from the Calendar
+  dock the same way — the FAB pushed the wrong sheet — and the page it should
+  have been pushing had no field, no parser and no writer (#31). Both halves
+  landed together, which is why the door could be moved: a `+` that opened a
+  page of fixtures would have been a worse answer than the wrong page.
+  """
+  def add_sheet, do: Kati.Screens.QuickAdd
+
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
   alias Kati.Components.MishkaSeparator
@@ -90,6 +108,23 @@ defmodule Kati.Screens.Calendar do
   alias Kati.Theme.Palette
 
   @impl true
+  @doc """
+  Coming back to the Schedule, from anything pushed over it.
+
+  See `Kati.Screens.Resume`. The rows are read at mount and a pop does not
+  remount, so quick-adding an event and pressing back left the day reading
+  `0 items` over an event that had just been written — the same defect the
+  shelf had, one root over (MOVIES-AND-TV.md #11).
+
+  The rows only. `date` is the day the reader has selected and `filter` is
+  what they narrowed to; neither is the sheet's to reset, which is the whole
+  reason `:resumed` is opt-in per screen rather than a re-run of `load/1`.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket) do
+    {:noreply, Mob.Socket.assign(socket, :rows, day_rows(socket.assigns.date))}
+  end
+
   def load(socket) do
     date = Kati.Time.today()
 
