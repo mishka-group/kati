@@ -139,7 +139,26 @@ defmodule Kati.Screens.SearchIdle do
     chips =
       Search.chip_labels()
       |> Enum.map(fn label ->
-        UI.chip(label, selected: label == active, on_toggle: String.to_atom("scope_" <> label))
+        # A scope with no group behind it is drawn DISABLED rather than
+        # offered. `Kati.Search.narrowable/1` turned Music, Meals and Money
+        # into `All` on the way to screen 19, so a reader picked a scope, ran
+        # the search, and got everything — with nothing on either screen
+        # saying the choice had been dropped. MOVIES-AND-TV.md #73, whose own
+        # prescription is this: *grey the four unbuildable chips the way an
+        # unavailable control is drawn, so the choice is never offered and then
+        # discarded.*
+        #
+        # The chip stays on the row rather than being removed, because board 86
+        # draws seven and the design's contract is wider than the executor on
+        # purpose — `Kati.Search.built?/1` is the seam, and screen 88 is where
+        # the whole contract is stated.
+        built? = Search.built?(label)
+
+        UI.chip(label,
+          selected: label == active,
+          disabled: not built?,
+          on_toggle: built? && String.to_atom("scope_" <> label)
+        )
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
@@ -247,11 +266,21 @@ defmodule Kati.Screens.SearchIdle do
   @spec drawn_recent() :: [String.t()]
   def drawn_recent, do: ["dentist", "leaving soon", "ines karvel", "4 stars", "miso salmon"]
 
-  @doc "Two suggestions, drawn from what you have. Never more — see the moduledoc."
+  @doc """
+  Two suggestions, drawn from what you have. Never more — see the moduledoc.
+
+  And now actually drawn from it. `Kati.Search.suggestions/0` is board 86's
+  own two — `what leaves this week`, `notes about the estuary` — under a
+  caption that says they come from this reader's library, and they match
+  nothing on any device but the one the board was captured on
+  (MOVIES-AND-TV.md #72). `Kati.Search.Suggestions.for_reader/0` answers with
+  the newest title on the shelf and the book the newest note is about, and
+  falls back to the board's two on a device that has neither.
+  """
   @spec suggestions() :: map()
   def suggestions do
     rows =
-      Search.suggestions()
+      Kati.Search.Suggestions.for_reader()
       |> Enum.map(fn suggestion ->
         SettingsList.row(
           SettingsList.icon_tile("auto_awesome"),

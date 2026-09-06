@@ -212,6 +212,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # that answers with the drawing.
     {"52", Kati.Screens.MealsDay},
     {"10", Kati.Screens.UpNext},
+    # 86 and 87 joined when the *Try* group stopped being two fixed strings.
+    # Board 86's caption says the two suggestions are *drawn from what you
+    # actually have* and they were `what leaves this week` and `notes about the
+    # estuary` — queries that match nothing on any device but the one the board
+    # was captured on (MOVIES-AND-TV.md #72). 87 is here because it draws 86's
+    # own chip row and reaches the read through it.
+    {"86", Kati.Screens.SearchIdle},
+    {"87", Kati.Screens.SearchTyping},
     # 25 joined when its cream banner stopped claiming `Watching 24 titles · 3
     # FOUND THIS WEEK` on every device. Both halves are counts of the reader's
     # own library, through the same `:followed` read screen 05 uses; a device
@@ -579,6 +587,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # by `empties/0`, and every line of their empty cards that IS quoted from a
   # board is compared in `@quoted` directly below.
   @no_empty_board [
+    # 86 and 87 with nothing stored. Board 86 draws two things a fresh device
+    # cannot have: a *Recent* shelf of five queries — this reader's own search
+    # history, which `Kati.ScreenDesignLiteralTest.drawn_state/0` installs to
+    # compare the board — and a *Try* group of two suggestions its own caption
+    # says are drawn from what you actually have. The second is what brought
+    # these two into this file at all (MOVIES-AND-TV.md #72); the first was
+    # always a device value and no board draws the page without it.
+    #
+    # 87 is here because it draws 86's chip row and reaches the same read
+    # through it.
+    {"86",
+     "board 86 draws a Recent shelf of five queries and two suggestions, and both are this " <>
+       "reader's own. A fresh install has neither, and no board draws the idle page without " <>
+       "them — 87's *Nothing searched yet* card is what it draws instead, and this screen " <>
+       "already draws that card", Kati.SearchSuggestionsTest},
+    {"87",
+     "87 IS the idle page with nothing typed, so its own empty state is the one it draws; " <>
+       "what it cannot draw on a fresh device is 86's Recent shelf and its two derived " <>
+       "suggestions", Kati.SearchSuggestionsTest},
     # 06 is drawn MID-QUERY: the four results, the `4 results` caption and the
     # availability lines under them all belong to a search somebody has run.
     # The sheet used to open on them, so a reader who had typed nothing was
@@ -720,6 +747,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # All five are board 06's own; the four RESULTS are the part that belongs
     # to a query, and `Kati.ScreenDesignLiteralTest` compares those in the
     # state the board was captured in.
+    # 86 and 87 with nothing stored: the field's own placeholder, the chip row
+    # that survives whatever the history held, and the note under it. A page
+    # that quietly lost its chips would still have looked like a page.
+    {"86", "87", "Search anything you keep"},
+    {"86", "86", "Screen"},
+    {"86", "86", "Try"},
+    {"87", "87", "Search anything you keep"},
+    {"87", "87", "Nothing searched yet"},
     {"06", "06", "Add a title"},
     {"06", "06", "Everything"},
     {"06", "06", "Films"},
@@ -1470,6 +1505,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 86 and 87 gate on the same read, which is the only one either makes:
+      # a device with no title and no note answers the board's own two, so both
+      # boards' literals are still drawn in full.
+      {"86", Kati.Screens.SearchIdle, &Kati.Search.Suggestions.for_reader/0,
+       &Kati.Search.suggestions/0},
+      {"87", Kati.Screens.SearchTyping, &Kati.Search.Suggestions.for_reader/0,
+       &Kati.Search.suggestions/0},
       # 25 gates on the banner, which is the only part of it that reads
       # anything: the ten switches and the cadence are still
       # `Kati.Settings.WatcherSample`'s, and MOVIES-AND-TV.md #67 is what says

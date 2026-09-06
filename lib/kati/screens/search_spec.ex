@@ -104,7 +104,7 @@ defmodule Kati.Screens.SearchSpec do
       |> Enum.map(&Kati.Screens.SearchSpec.field_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
-    assigns = %{label: label, rows: rows}
+    assigns = %{label: label, rows: rows, state: Kati.Screens.SearchSpec.state_pill(label)}
 
     ~MOB"""
     <Column
@@ -114,17 +114,64 @@ defmodule Kati.Screens.SearchSpec do
       padding={16}
       shadow={Kati.Theme.shadow_card()}
     >
-      <Text
-        text={@label}
-        text_size={13.5}
-        font_weight="bold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Row fill_width={true} align="center">
+        <Text
+          text={@label}
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer weight={1.0} />
+        {@state}
+      </Row>
       <Spacer size={11} />
       {@rows}
     </Column>
     """
+  end
+
+  @doc """
+  `not yet`, on a scope a search does not look in.
+
+  This board is the SPECIFICATION and its list is wider than the executor:
+  `Kati.Search.Query.run/1` builds four of its seven groups, so Music, Meals
+  and Money are searched by nothing at all. A specification screen that
+  overstates is worse than none, because it is the page a reader opens to find
+  out why a search missed — MOVIES-AND-TV.md #74.
+
+  The scope is not removed. The contract is the design's and stating it whole
+  is what this board is for; what was missing is which half of it is live.
+  `Kati.Search.built?/1` is the seam, and screen 86 greys the same four chips
+  from the same predicate.
+  """
+  @spec state_pill(String.t()) :: map()
+  def state_pill(label) do
+    if Kati.Search.built?(label) do
+      ~MOB"<Spacer size={0} />"
+    else
+      assigns = %{}
+
+      ~MOB"""
+      <Row
+        height={22}
+        corner_radius={11}
+        background={Palette.placeholder()}
+        padding_left={9}
+        padding_right={9}
+        align="center"
+      >
+        <Text
+          text="not yet"
+          font_family="mono"
+          text_size={10}
+          letter_spacing={0.08}
+          text_color={Palette.muted()}
+          max_lines={1}
+        />
+      </Row>
+      """
+    end
   end
 
   @doc false

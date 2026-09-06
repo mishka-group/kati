@@ -40,6 +40,20 @@ defmodule Kati.Search do
 
   # `{scope, label, [fields]}` in the order every result list uses. The fields
   # are the contract screen 88 draws; the module is what makes them true.
+  # The contract the design states, and it is WIDER than the executor.
+  #
+  # Seven scopes and thirty fields; `Kati.Search.Query.run/1` builds four groups
+  # and matches eight fields. Music, Meals and Money are searched by nothing;
+  # five of Screen's six fields and Calendar's location are not read. That is a
+  # real gap and boards 86, 88, 90 and 91 all draw the wider list — so the list
+  # stays as the design's, and `built?/1` is what says which half of it is
+  # live. A specification screen that overstates is worse than none, because it
+  # is the page a reader opens to find out why a search missed
+  # (MOVIES-AND-TV.md #74); a specification screen that says *not yet* against
+  # four rows is the same page telling the truth.
+  #
+  # `Kati.SearchContractTest` pins `built?/1` to `narrowable_scopes/0`, so a
+  # scope cannot be marked built without a group behind it.
   @scopes [
     {:screen, "Screen",
      ["title", "original title", "alt titles", "cast", "your tags", "your review"]},
@@ -50,6 +64,11 @@ defmodule Kati.Search do
     {:money, "Money", ["service name"]},
     {:notes, "Notes", ["every cream card in the app"]}
   ]
+
+  # The scopes `Kati.Search.Query.run/1` actually builds a group for. Written
+  # as labels rather than derived from `@narrowable`, because that list also
+  # holds `All` — which is every group rather than a scope of its own.
+  @built ["Screen", "Books", "Calendar", "Notes"]
 
   # The four tiers, with the example screen 88 prints for each.
   @tiers [
@@ -75,6 +94,28 @@ defmodule Kati.Search do
   @doc "Every scope, in the fixed order every result list uses."
   @spec scopes() :: [{atom(), String.t(), [String.t()]}]
   def scopes, do: @scopes
+
+  @doc """
+  Whether a search actually looks in this scope.
+
+  `@scopes` is the design's contract and `Kati.Search.Query.run/1` builds four
+  of its seven groups. Screens 86 and 88 both draw all seven; this is what lets
+  them say which ones are live rather than offering a choice that
+  `narrowable/1` silently turns into `All` on the way to screen 19
+  (MOVIES-AND-TV.md #73 and #74).
+
+      iex> Kati.Search.built?("Screen")
+      true
+
+      iex> Kati.Search.built?("Music")
+      false
+
+      iex> Kati.Search.built?("All")
+      true
+  """
+  @spec built?(String.t()) :: boolean()
+  def built?("All"), do: true
+  def built?(label), do: label in @built
 
   @doc "Just the labels, for the chip row — with `All` first."
   @spec chip_labels() :: [String.t()]
@@ -111,6 +152,11 @@ defmodule Kati.Search do
   @spec placeholder() :: String.t()
   def placeholder, do: "Search anything you keep"
 
+  # Board 86's two, and its own caption says they are *drawn from what you
+  # actually have* — which they were not: two fixed strings that match nothing
+  # on any device but the one the board was captured on. MOVIES-AND-TV.md #72.
+  @drawn_suggestions ["what leaves this week", "notes about the estuary"]
+
   @doc """
   The two suggestions, and there are only ever two.
 
@@ -126,7 +172,7 @@ defmodule Kati.Search do
   when they are derived.
   """
   @spec suggestions() :: [String.t()]
-  def suggestions, do: ["what leaves this week", "notes about the estuary"]
+  def suggestions, do: @drawn_suggestions
 
   @doc """
   The sentence explaining why the chips carry no counts until something is typed.
