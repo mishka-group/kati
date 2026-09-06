@@ -133,6 +133,7 @@ defmodule Kati.Screens.AddTitle do
           {Kati.Screens.AddTitle.search_notice(assigns[:search_error])}
           {UI.eyebrow(count)}
           {Kati.Screens.AddTitle.results(shown)}
+          {Kati.Screens.AddTitle.nothing_card(shown, assigns.query, assigns[:search_error])}
           {Kati.Screens.AddTitle.by_hand()}
         </Column>
       </Scroll>
@@ -309,10 +310,12 @@ defmodule Kati.Screens.AddTitle do
   @doc """
   One TMDB result in the shape this screen draws.
 
-  `seed` stays nil. A seed is `Kati.Library.Sample`'s key for a drawing's
-  photograph, and a TMDB `poster_path` is a URL on someone else's CDN —
-  `thumb/1` already draws the paper placeholder for a row it has no picture
-  for, which is the honest answer until posters are fetched.
+  `seed` carries the CDN path. It was `nil` with the note *the honest answer
+  until posters are fetched* — they are fetched now, by `Kati.Media.Artwork`,
+  and `Kati.Design.Images` resolves a path like `/kBf3g9....jpg` to the file
+  on this device. A row already added therefore shows its own poster, and a
+  row not yet added shows `thumb/1`'s paper placeholder, because nothing is
+  downloaded until somebody asks for the title.
 
   `source_id` and `kind` ride along because `track/2` needs them: a row added
   from TMDB is tracked under its TMDB id, not under its title.
@@ -321,7 +324,12 @@ defmodule Kati.Screens.AddTitle do
   def row(result) do
     %{
       title: result.title,
-      seed: nil,
+      # The CDN path, not `nil`. `Kati.Design.Images` resolves one of these to
+      # the file `Kati.Media.Artwork` downloaded, so a result the person has
+      # already added shows its own poster here instead of the placeholder —
+      # and a result they have not shows the placeholder exactly as before,
+      # because nothing is fetched until a title is added. See `thumb/1`.
+      seed: result.poster_path,
       meta: Kati.Screens.AddTitle.meta_line(result),
       note: result.overview,
       added: false,
@@ -849,6 +857,71 @@ defmodule Kati.Screens.AddTitle do
   # solid borders, so the dash is the one thing here that is not the design;
   # the COLOUR is now the design's own 16% ink rather than the opaque
   # #D8D2C8 that stood in for it, which read a shade light on paper.
+  @doc """
+  *Nothing here for “…”* — a search that ran and found nothing, said out loud.
+
+  A query with no matches drew the eyebrow `0 results` and then a blank page:
+  the sheet looked broken rather than answered, and the only thing under the
+  hole was a by-hand row that gave no reason for being the last resort. Found
+  by typing a query TMDB has nothing for, on a device.
+
+  The sentence is **not new**. `Kati.Screens.AddTitleMusic.nothing_card/1`
+  words this exact state on the sheet built beside this one, and its headline
+  is quoted here character for character. Its body is not: that one says *Kati
+  has no music catalogue to look in*, which is true of music and false here —
+  this search did look. So there is no body at all, and the row below is the
+  action, because a second *Add it by hand* button over the one this screen
+  already draws would be the same offer twice.
+
+  Drawn only when a search has actually run and come back empty. Three states
+  are deliberately not this one:
+
+    * **Under the floor.** Fewer than three characters is not a search that
+      found nothing, it is a search that has not been made, and the sheet is
+      showing the board's rows.
+    * **A refusal.** `search_notice/1` is already above with the reason — no
+      key, no network — and a card saying *nothing here* under a line saying
+      *could not look* would be the app contradicting itself.
+    * **A filter with nothing under it.** `Films` over a page of series is a
+      chip the user can undo, and the count above already says `0 results`.
+  """
+  @spec nothing_card([map()], String.t(), String.t() | nil) :: map() | []
+  def nothing_card(shown, query, error)
+
+  def nothing_card(_shown, _query, error) when not is_nil(error), do: []
+
+  def nothing_card([], query, _error) do
+    typed = String.trim(query)
+
+    if String.length(typed) >= @min_query do
+      assigns = %{headline: "Nothing here for “" <> typed <> "”"}
+
+      ~MOB"""
+      <Column fill_width={true}>
+        <Column
+          fill_width={true}
+          background={Palette.card()}
+          corner_radius={22}
+          shadow={Kati.Theme.shadow_card_soft()}
+          padding={17}
+          align="center"
+        >
+          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("search", size: 22, color: Palette.rail_idle())}
+          </Box>
+          <Spacer size={13} />
+          <Text text={@headline} text_size={14} font_weight="bold" text_color={:on_surface} />
+        </Column>
+        <Spacer size={14} />
+      </Column>
+      """
+    else
+      []
+    end
+  end
+
+  def nothing_card(_shown, _query, _error), do: []
+
   @doc false
   def by_hand do
     ~MOB"""
