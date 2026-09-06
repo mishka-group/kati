@@ -71,7 +71,7 @@ defmodule Kati.Screens.Pushed do
       end
 
       def handle_info({:tap, :back}, socket) do
-        {:noreply, Mob.Socket.pop_screen(socket)}
+        {:noreply, Kati.Screens.Resume.pop(socket)}
       end
 
       # Everything except `:back` is the screen's own control, so the screen

@@ -196,7 +196,7 @@ defmodule Kati.Screens.OnboardingFirstTitleFa do
   end
 
   def handle_info({:tap, tag}, socket) when tag in [:step_back, :back],
-    do: {:noreply, Mob.Socket.pop_screen(socket)}
+    do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do

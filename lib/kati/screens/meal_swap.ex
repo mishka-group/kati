@@ -730,7 +730,7 @@ defmodule Kati.Screens.MealSwap do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   @doc """
   The two commitments, which drew and committed nothing.
@@ -780,7 +780,7 @@ defmodule Kati.Screens.MealSwap do
 
     if is_binary(slot_id) and picked do
       Kati.Screens.MealSwap.write(slot_id, picked, how)
-      Mob.Socket.pop_screen(socket)
+      Kati.Screens.Resume.pop(socket)
     else
       socket
     end

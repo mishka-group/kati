@@ -258,7 +258,7 @@ defmodule Kati.Screens.AddByHandFa do
       when field in [:title, :year, :episodes] and is_binary(typed),
       do: {:noreply, Mob.Socket.assign(socket, field, typed)}
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The write is screen 154's, so a hand-typed row is the same row in either
   # script. `status_atom/1` maps the Persian labels rather than 154's, which is

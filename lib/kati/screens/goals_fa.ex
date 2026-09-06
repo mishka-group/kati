@@ -901,7 +901,7 @@ defmodule Kati.Screens.GoalsFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Screen 106, which is English. The same debt `Kati.Screens.AlbumDetailFa`
   # carries against `Kati.Screens.Rating` and `Kati.Screens.Fa`'s moduledoc

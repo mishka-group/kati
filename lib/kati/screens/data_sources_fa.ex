@@ -880,7 +880,7 @@ defmodule Kati.Screens.DataSourcesFa do
   def age(days) when days < 31, do: Digits.to_persian(days) <> " روز"
   def age(days), do: Digits.to_persian(div(days, 30)) <> " ماه"
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :key_kati}, socket) do
     Sources.put_tmdb_key(:kati)

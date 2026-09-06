@@ -172,7 +172,7 @@ defmodule Kati.Screens.AddTitle do
 
   def search_notice(message), do: Kati.UI.notice(message)
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The escape hatch, finally wired. This row has been drawn on artboard 89
   # since the screen was written and rendered with no `on_tap` at all, because

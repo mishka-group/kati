@@ -1552,7 +1552,7 @@ defmodule Kati.Screens.BookDetailFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The sheet is handed the id of the book this page is drawing — screen 66's
   # own door does the same through `Kati.Screens.LogProgress.params_for/1`, and

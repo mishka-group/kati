@@ -115,6 +115,25 @@ defmodule Kati.Screens.Library do
     do: Mob.Socket.assign(socket, filter: "All", shelf: "Screen", titles: titles(), menu?: false)
 
   @doc """
+  Coming back to the shelf after something was written above it.
+
+  See `Kati.Screens.Resume`: a popped-to screen restores its saved socket, so
+  a title added on screen 06 or 11 was not on the shelf until the dock
+  re-mounted the page. Added *Emergence* from Discover, pressed back, and the
+  header still read `6 titles · 5 in progress` over six posters — found on a
+  Pixel 9a, which is the only place it shows.
+
+  The reads only. `load/1` also sets `filter`, `shelf` and `menu?`, and those
+  are the reader's: somebody who narrows to *Finished*, opens a title and comes
+  back has not asked for the chip to go back to *All*, and re-running `load/1`
+  wholesale would do exactly that. Screen 01 has no such state and reloads
+  whole.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :titles, titles())}
+
+  @doc """
   The shelf the screen renders: the user's library, and only ever that.
 
   A delegation rather than a branch, and deliberately so — this is the function

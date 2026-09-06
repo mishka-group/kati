@@ -947,7 +947,7 @@ defmodule Kati.Screens.SeriesFa do
     )
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :toggle_save}, socket) do
     series = socket.assigns.series

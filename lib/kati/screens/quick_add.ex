@@ -128,7 +128,7 @@ defmodule Kati.Screens.QuickAdd do
   def kind_tap("Expense"), do: {self(), :file_as_expense}
   def kind_tap(_label), do: nil
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :file_as_expense}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.QuickAddExpense)}

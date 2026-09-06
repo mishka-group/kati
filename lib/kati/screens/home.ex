@@ -201,6 +201,20 @@ defmodule Kati.Screens.Home do
   end
 
   @doc """
+  Coming back to Home after something was written under it.
+
+  See `Kati.Screens.Resume`: a popped-to screen restores its saved socket, so
+  *Continue watching* used to keep the progress it had when the reader left,
+  and a watch logged on screen 08 was invisible until the dock re-mounted the
+  page.
+
+  The whole of `load/1`, because every assign it sets is a read — Home holds
+  no state the reader chose. Screen 03 cannot do this and says why.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
+  @doc """
   Whether this device has nothing for Home to draw.
 
   Two halves, and they are not the same kind of fact.

@@ -772,7 +772,7 @@ defmodule Kati.Screens.DropSheet do
   end
 
   @impl true
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :step_back}, socket) do
     {:noreply, Mob.Socket.update(socket, :sheet, &Kati.Screens.DropSheet.step_back/1)}
@@ -791,7 +791,7 @@ defmodule Kati.Screens.DropSheet do
 
   def handle_info({:tap, :keep}, socket) do
     socket = Kati.Screens.DropSheet.commit_keep(socket)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    {:noreply, Kati.Screens.Resume.pop(socket)}
   end
 
   def handle_info({:tap, :undo}, socket) do

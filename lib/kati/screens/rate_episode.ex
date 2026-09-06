@@ -1003,8 +1003,8 @@ defmodule Kati.Screens.RateEpisode do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
-  def handle_info({:tap, :save}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+  def handle_info({:tap, :save}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :toggle_verdict}, socket) do
     {:noreply,

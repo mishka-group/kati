@@ -256,7 +256,7 @@ defmodule Kati.Screens.OnboardingLoudnessFa do
     do: {:noreply, Mob.Socket.assign(socket, :choice, "خلاصه هفتگی")}
 
   def handle_info({:tap, tag}, socket) when tag in [:step_back, :back],
-    do: {:noreply, Mob.Socket.pop_screen(socket)}
+    do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :home, socket)
   def handle_info(_message, socket), do: {:noreply, socket}

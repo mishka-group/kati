@@ -610,7 +610,7 @@ defmodule Kati.Screens.LogProgress do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :step_up}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :page, socket.assigns.page + 1)}
@@ -634,7 +634,7 @@ defmodule Kati.Screens.LogProgress do
   def handle_info({:tap, :save}, socket) do
     case save_session(socket.assigns.page, socket.assigns.book_id) do
       {:ok, _session} ->
-        {:noreply, socket |> Mob.Socket.assign(:save_error, nil) |> Mob.Socket.pop_screen()}
+        {:noreply, socket |> Mob.Socket.assign(:save_error, nil) |> Kati.Screens.Resume.pop()}
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}

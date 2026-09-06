@@ -100,6 +100,17 @@ defmodule Kati.Screens.UpNext do
   def load(socket), do: Mob.Socket.assign(socket, :queue, queue())
 
   @doc """
+  Coming back to the queue after something was ticked above it.
+
+  See `Kati.Screens.Resume`. The one assign is the read, so this is `load/1` —
+  and this screen is where a stale socket showed worst: the whole point of
+  *Up next* is what to watch NEXT, and marking an episode watched on screen 04
+  left the same episode at the top of it.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
+  @doc """
   The queue as `content/1` draws it: a hero, the rest of the ready list, and
   the cold one.
 

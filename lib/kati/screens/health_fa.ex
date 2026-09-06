@@ -1222,7 +1222,7 @@ defmodule Kati.Screens.HealthFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # 111 has no Persian mirror in the 127, so the disc opens the English sheet
   # rather than going nowhere — which is what `Kati.Screens.Fa.dock_tap/3` does

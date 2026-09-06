@@ -326,7 +326,7 @@ defmodule Kati.Screens.ShelfFilters do
     "Ranges are chip buckets, not sliders — the app has no slider in its component table, and a bucket carries a count while a slider cannot. Count badges exist so a chip that would empty the shelf says so before it is tapped: Comedy reads 0 in hairline grey."
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :reset}, socket), do: {:noreply, Kati.Screens.ShelfFilters.reset(socket)}
 

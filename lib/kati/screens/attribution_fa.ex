@@ -744,7 +744,7 @@ defmodule Kati.Screens.AttributionFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Every card opens the site it names, through screen 83's own table.
   #

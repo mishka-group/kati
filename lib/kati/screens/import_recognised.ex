@@ -584,6 +584,6 @@ defmodule Kati.Screens.ImportRecognised do
   end
 
   def handle_tap(:change_source, socket) do
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    {:noreply, Kati.Screens.Resume.pop(socket)}
   end
 end

@@ -944,7 +944,7 @@ defmodule Kati.Screens.SearchFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Clearing the field leaves the screen, and that is not a shortcut. There is
   # no text input on this bridge (#45), so an empty field is not a state this
@@ -953,7 +953,7 @@ defmodule Kati.Screens.SearchFa do
   # nothing: it is the English screen, and there is no Persian idle board among
   # the 127, so tapping ✕ would change the app's language out from under the
   # reader — the failure `Kati.Screens.Fa` records for the آمار tab's stand-in.
-  def handle_info({:tap, :clear}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :clear}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # One clause for every chip on the page, so a scope added to `Kati.Search` or
   # a fourth recent query is a change to the data and not to a handler. Each tag

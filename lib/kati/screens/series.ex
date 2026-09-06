@@ -1144,7 +1144,7 @@ defmodule Kati.Screens.Series do
   # Not aired yet: no affordance at all, because there is nothing to mark.
   def check(false, false), do: ~MOB"<Spacer size={27} />"
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :toggle_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
@@ -1227,6 +1227,15 @@ defmodule Kati.Screens.Series do
       _ ->
         {:noreply, socket}
     end
+  end
+
+  # Coming back from the season screen, the rate-an-episode sheet or the drop
+  # sheet — all three write, and all three end in a pop. See
+  # `Kati.Screens.Resume`, and `Kati.Screens.Film` for why the clause is here
+  # rather than in a `handle_kati/3`.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply,
+     Mob.Socket.assign(socket, :series, series(Map.get(socket.assigns.series, :tracked_id)))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}

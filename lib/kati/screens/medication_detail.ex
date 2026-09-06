@@ -899,7 +899,7 @@ defmodule Kati.Screens.MedicationDetail do
   defp destroy(socket) do
     case delete(socket.assigns.medication) do
       {:ok, _deleted} ->
-        Mob.Socket.pop_screen(socket)
+        Kati.Screens.Resume.pop(socket)
 
       error ->
         socket

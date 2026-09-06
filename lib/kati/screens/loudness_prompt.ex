@@ -412,7 +412,7 @@ defmodule Kati.Screens.LoudnessPrompt do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingFirstTitle)}
 
   def handle_info({:tap, :back_to_sections}, socket) do
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    {:noreply, Kati.Screens.Resume.pop(socket)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

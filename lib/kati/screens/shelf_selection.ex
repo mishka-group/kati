@@ -877,7 +877,7 @@ defmodule Kati.Screens.ShelfSelection do
 
   # ── Taps ────────────────────────────────────────────────────────────────
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :add_to_list}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Shelf"})}

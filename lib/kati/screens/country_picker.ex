@@ -118,13 +118,13 @@ defmodule Kati.Screens.CountryPicker do
 
   def tick(true), do: UI.symbol("check", size: 20, color: Palette.green())
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
       "pick_" <> code ->
         Services.put_region(code)
-        {:noreply, socket |> Mob.Socket.assign(:region, code) |> Mob.Socket.pop_screen()}
+        {:noreply, socket |> Mob.Socket.assign(:region, code) |> Kati.Screens.Resume.pop()}
 
       _other ->
         {:noreply, socket}

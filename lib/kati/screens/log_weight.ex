@@ -421,7 +421,7 @@ defmodule Kati.Screens.LogWeight do
     end
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :step_up}, socket) do
     step = Kati.Screens.LogWeight.step(socket.assigns.unit)
@@ -450,7 +450,7 @@ defmodule Kati.Screens.LogWeight do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}

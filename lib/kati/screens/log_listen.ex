@@ -605,7 +605,7 @@ defmodule Kati.Screens.LogListen do
   # its own, for the reason `album/1` gives.
   defp shelved(id), do: Kati.Screens.AlbumDetail.shelved(id)
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, scope}, socket)
       when scope in [:scope_album, :scope_selected, :scope_minutes],
@@ -617,7 +617,7 @@ defmodule Kati.Screens.LogListen do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}

@@ -229,7 +229,7 @@ defmodule Kati.Screens.NewGoal do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :step_up}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :target, socket.assigns.target + 1)}
@@ -250,7 +250,7 @@ defmodule Kati.Screens.NewGoal do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}

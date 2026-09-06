@@ -941,7 +941,7 @@ defmodule Kati.Screens.EventDetail do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :save}, socket), do: {:noreply, Kati.Screens.EventDetail.save(socket)}
 
@@ -1044,7 +1044,7 @@ defmodule Kati.Screens.EventDetail do
          {:ok, stored} <- Ash.get(Event, id),
          {:ok, _tombstone} <-
            Kati.Write.note(Ash.update(stored, %{}, action: :soft_delete), "event delete") do
-      Mob.Socket.pop_screen(socket)
+      Kati.Screens.Resume.pop(socket)
     else
       _no_write -> socket
     end

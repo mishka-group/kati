@@ -677,7 +677,7 @@ defmodule Kati.Screens.MealsMatrixFa do
     MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do

@@ -889,7 +889,7 @@ defmodule Kati.Screens.SettingsFa do
     MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Positional tags, parsed back to positions. Nothing here raises on a tag it
   # does not recognise: this screen is a bare `Mob.Screen` with no rescue

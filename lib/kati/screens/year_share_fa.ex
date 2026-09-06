@@ -775,7 +775,7 @@ defmodule Kati.Screens.YearShareFa do
   does not catch a raise in a tap handler.
   """
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket) when tag in @borrowed,
     do: YearShare.handle_tap(tag, socket)

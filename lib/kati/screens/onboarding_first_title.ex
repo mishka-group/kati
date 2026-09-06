@@ -263,7 +263,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
     {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.HomeEmpty)}
   end
 
-  def handle_tap(:step_back, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_tap(:step_back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

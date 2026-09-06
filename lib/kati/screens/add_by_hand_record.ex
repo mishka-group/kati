@@ -636,7 +636,7 @@ defmodule Kati.Screens.AddByHandRecord do
 
   defp commit(socket, typed) do
     case write(socket.assigns.kind, typed, socket.assigns) do
-      {:ok, _record} -> Mob.Socket.pop_screen(socket)
+      {:ok, _record} -> Kati.Screens.Resume.pop(socket)
       error -> Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
     end
   end

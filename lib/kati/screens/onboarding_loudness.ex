@@ -217,7 +217,7 @@ defmodule Kati.Screens.OnboardingLoudness do
      Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudness.after_choice(socket))}
   end
 
-  def handle_tap(:step_back, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_tap(:step_back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do

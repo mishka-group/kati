@@ -629,7 +629,7 @@ defmodule Kati.Screens.AddMedication do
     ])
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # A save that landed closes the sheet; a save that did not KEEPS IT OPEN and
   # says so — `Kati.Write`'s contract, and the reason
@@ -640,7 +640,7 @@ defmodule Kati.Screens.AddMedication do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       {:error, :no_name} ->
         {:noreply, Mob.Socket.assign(socket, :save_error, refusal())}

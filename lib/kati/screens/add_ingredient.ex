@@ -354,7 +354,7 @@ defmodule Kati.Screens.AddIngredient do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # A save that landed closes the sheet; a save that did not KEEPS IT OPEN and
   # says so. Closing on failure is the specific behaviour `Kati.Write` exists to
@@ -367,7 +367,7 @@ defmodule Kati.Screens.AddIngredient do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}

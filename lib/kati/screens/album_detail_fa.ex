@@ -963,7 +963,7 @@ defmodule Kati.Screens.AlbumDetailFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The four destinations are `Kati.Screens.AlbumDetail.handle_tap/2`'s, exactly
   # — a mirror that navigated somewhere else would be a second app rather than

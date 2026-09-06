@@ -604,7 +604,7 @@ defmodule Kati.Screens.AddTitleMusic do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Both doors into screen 178, and they are two tags rather than one because
   # `Mob.Renderer` derives an `accessibility_id` from every atom tag — a tag

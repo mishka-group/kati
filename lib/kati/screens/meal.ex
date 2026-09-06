@@ -1189,7 +1189,7 @@ defmodule Kati.Screens.Meal do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The meal on screen goes with the tap. Screen 43 hands its slot to 46 through
   # `Mob.State` — `Kati.Screens.MealSwap.hand_over/1` — and this disc handed over

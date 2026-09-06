@@ -213,7 +213,7 @@ defmodule Kati.Screens.Lock do
     """
   end
 
-  def handle_info({:tap, :dismiss}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :dismiss}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @doc false

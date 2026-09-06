@@ -841,7 +841,7 @@ defmodule Kati.Screens.ArtistDetailFa do
 
   defp first_heard(year), do: Shamsi.to_persian_digits(year)
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The write is screen 77's, called rather than copied. `handle_tap/2` flips the
   # assign it is given and writes the artist through when there is one to write

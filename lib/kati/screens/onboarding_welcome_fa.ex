@@ -170,8 +170,8 @@ defmodule Kati.Screens.OnboardingWelcomeFa do
   def handle_info({:tap, :restore}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFa)}
 
-  def handle_info({:tap, :step_back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :step_back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :home, socket)
   def handle_info(_message, socket), do: {:noreply, socket}

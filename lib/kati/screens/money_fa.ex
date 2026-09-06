@@ -1048,7 +1048,7 @@ defmodule Kati.Screens.MoneyFa do
   was rather than raising in a tap handler, which Mob does not catch.
   """
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :remind_me}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher)}

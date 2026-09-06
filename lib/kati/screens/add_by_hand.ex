@@ -464,7 +464,7 @@ defmodule Kati.Screens.AddByHand do
     else
       with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, socket.assigns.kind),
            {:ok, _tracked} <- Kati.Screens.AddByHand.track(title, socket.assigns) do
-        Mob.Socket.pop_screen(socket)
+        Kati.Screens.Resume.pop(socket)
       else
         error ->
           Mob.Socket.assign(socket, :save_error, Kati.Screens.AddByHand.refusal(error, title))

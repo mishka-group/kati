@@ -675,7 +675,7 @@ defmodule Kati.Screens.RateAlbum do
       "74’s cream card draws — two review fields would be two truths about one record."
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :save}, socket) do
     case Kati.Screens.RateAlbum.save_rating(socket.assigns) do
@@ -683,7 +683,7 @@ defmodule Kati.Screens.RateAlbum do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}

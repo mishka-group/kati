@@ -253,7 +253,7 @@ defmodule Kati.Screens.QuickAddExpense do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :add}, socket) do
     case save_expense(socket.assigns.draft) do
@@ -261,7 +261,7 @@ defmodule Kati.Screens.QuickAddExpense do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}

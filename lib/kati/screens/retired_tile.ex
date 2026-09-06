@@ -507,7 +507,7 @@ defmodule Kati.Screens.RetiredTile do
   """
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
   def handle_info({:tap, tag}, socket) when tag in [:close, :close_acknowledged],
-    do: {:noreply, Mob.Socket.pop_screen(socket)}
+    do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :open_habits}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}

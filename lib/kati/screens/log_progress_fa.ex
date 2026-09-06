@@ -640,7 +640,7 @@ defmodule Kati.Screens.LogProgressFa do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
   # The Persian mirror of screen 70's Save, and the same write — not a second
   # one. `Kati.Screens.LogProgress.save_session/2` is public for the reason
   # `finish_book/1` beside it is: two copies of "what logging a session means"
@@ -662,7 +662,7 @@ defmodule Kati.Screens.LogProgressFa do
   def handle_info({:tap, :save}, socket) do
     case Kati.Screens.LogProgress.save_session(socket.assigns.page, socket.assigns.book_id) do
       {:ok, _session} ->
-        {:noreply, socket |> Mob.Socket.assign(:save_error, nil) |> Mob.Socket.pop_screen()}
+        {:noreply, socket |> Mob.Socket.assign(:save_error, nil) |> Kati.Screens.Resume.pop()}
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}

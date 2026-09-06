@@ -140,7 +140,7 @@ defmodule Kati.Screens.OnboardingFa do
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudnessFa)}
 
       "back_to_welcome" ->
-        {:noreply, Mob.Socket.pop_screen(socket)}
+        {:noreply, Kati.Screens.Resume.pop(socket)}
 
       _ ->
         {:noreply, socket}

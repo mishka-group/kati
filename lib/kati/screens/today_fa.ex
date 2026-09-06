@@ -702,7 +702,7 @@ defmodule Kati.Screens.TodayFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The week disc opens screen 60, which is what the English pair does: screen
   # 43's Week tile opens 44. 60's own back pill reads وعده‌ها, naming this

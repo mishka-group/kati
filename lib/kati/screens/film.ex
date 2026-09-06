@@ -976,7 +976,7 @@ defmodule Kati.Screens.Film do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :toggle_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
@@ -995,6 +995,20 @@ defmodule Kati.Screens.Film do
        Kati.Screens.Rating,
        Kati.Screens.Rating.params_for(socket.assigns.film)
      )}
+  end
+
+  # Coming back from the log sheet, or from anything else pushed over this
+  # page. See `Kati.Screens.Resume`: a popped-to screen restores its saved
+  # socket, so *Log a watch* → Save → back left the stars empty, `SEEN never`
+  # and the first pill still reading *Log a watch* — the write had landed and
+  # the page in front of the reader said it had not.
+  #
+  # This screen is hand-rolled rather than `Kati.Screens.Pushed`, so nothing
+  # routes `{:kati, …}` to a `handle_kati/3` for it; the clause is the routing.
+  # The id is re-read off the film on screen so the refresh describes the same
+  # title the arrival did.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply, Mob.Socket.assign(socket, :film, film(Map.get(socket.assigns.film, :tracked_id)))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}

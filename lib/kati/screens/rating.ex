@@ -1505,12 +1505,12 @@ defmodule Kati.Screens.Rating do
     )
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Commit the draft, or keep the sheet up and say why not.
   #
   # The failure branch is the whole of #85 in one clause. This handler used to
-  # be `{:noreply, Mob.Socket.pop_screen(socket)}` with no write behind it at
+  # be `{:noreply, Kati.Screens.Resume.pop(socket)}` with no write behind it at
   # all, which is the extreme case of what that ticket found: the sheet closed
   # on a rating nothing had recorded, and closing is what a sheet does when it
   # has saved. A save that fails now leaves the sheet exactly as it was —
@@ -1523,7 +1523,7 @@ defmodule Kati.Screens.Rating do
         {:noreply,
          socket
          |> Mob.Socket.assign(:save_error, nil)
-         |> Mob.Socket.pop_screen()}
+         |> Kati.Screens.Resume.pop()}
 
       error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
