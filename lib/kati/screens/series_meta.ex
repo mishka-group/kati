@@ -91,18 +91,161 @@ defmodule Kati.Screens.SeriesMeta do
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaSeparator
   alias Kati.Components.MishkaThemeIcon
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.TrackedTitle
   alias Kati.Screens.SeriesMeta.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
+
+  require Ash.Query
+
+  # An anime is a series. `Kati.Screens.Series` reads the same two kinds, and a
+  # page that read only `:tv` would describe the board over every anime the
+  # reader tracks.
+  @series_kinds [:tv, :anime]
 
   def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:series, Sample.series())
+     |> Mob.Socket.assign(:series, series(Map.get(params || %{}, :id)))
      |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Series"))}
   end
+
+  @doc """
+  The series this page describes: the user's, or the drawing's.
+
+  Screen 04's gate, on screen 14. Either every value on the page is this
+  reader's or every value is the board's — the moduledoc above says why the
+  halfway house is the worst of the three, and it is what this page WAS: the
+  fixture, whole, over whatever show's overflow menu opened it. *Show details*
+  on Severance described The Long Hollow, in four ratings, four faces and five
+  tags, none of which were about the thing on the screen a second earlier.
+
+  `id` is the tracked row the series page named. Without one — the gallery's
+  door, a test's — the answer is the board, which is the state
+  `test/design/screens/14.html` was captured in.
+  """
+  @spec series(String.t() | nil) :: map()
+  def series(id \\ nil) do
+    tracked_meta(id) || Sample.series()
+  end
+
+  @doc """
+  The params that name a series to screen 14.
+
+  The argument is screen 04's assembled view, whose one identity field is
+  `:tracked_id` — `Kati.Screens.Series.assembled/5` carries it for exactly this
+  kind of question. A map without one is `Kati.Library.Sample`'s and yields
+  `%{}`: the drawing has no row to name.
+
+      iex> Kati.Screens.SeriesMeta.params_for(%{tracked_id: "abc", title: "X"})
+      %{id: "abc"}
+
+      iex> Kati.Screens.SeriesMeta.params_for(%{title: "X"})
+      %{}
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{tracked_id: id}) when is_binary(id), do: %{id: id}
+  def params_for(_row), do: %{}
+
+  # The tracked row, shaped for this page — or `nil`, which is every reason
+  # there is nothing to describe: no such row, no cache behind it, an empty
+  # store. `rescue` for `Kati.Screens.Film.tracked_film/1`'s reason: a screen
+  # that cannot read is a screen that draws its board, not one that crashes.
+  defp tracked_meta(id) do
+    case series_record(id) do
+      nil -> nil
+      tracked -> shaped(tracked, cached_for(tracked))
+    end
+  rescue
+    _ -> nil
+  end
+
+  # Read THROUGH `:shelf`, like every other door onto a title: it is where
+  # *keeps history, hides from shelf* is enforced, so an id fetched around it
+  # would describe a show the reader archived. Both kinds, because an anime is
+  # a series here — `Kati.Screens.Series` reads the same two.
+  defp series_record(nil), do: List.first(shelf())
+
+  defp series_record(title_id), do: Enum.find(shelf(), &(&1.id == title_id))
+
+  defp shelf do
+    Enum.flat_map(@series_kinds, fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+  end
+
+  defp cached_for(%TrackedTitle{source: source, source_id: source_id}) do
+    CachedTitle
+    |> Ash.Query.filter(source == ^source and source_id == ^source_id)
+    |> Ash.read_one!()
+  end
+
+  @doc """
+  One tracked series in the shape the markup reads — and nothing it cannot know.
+
+  Four of the eleven keys have a value today. The other seven are `[]` or
+  `nil`, and `render/1` drops the band rather than drawing an empty card: the
+  moduledoc's list is why they are empty and this is what empty looks like.
+
+    * `title` is the cache's, `Untitled` when the cache row has been evicted —
+      `Kati.Screens.Film.shaped/3`'s answer, for its reason.
+    * `seed` is `poster_path`, which `Kati.Media.Artwork` turns into a file.
+    * `meta` is the three of the drawing's five parts that exist: the genres,
+      the season count and the episode count. The year and the certification
+      have no column, so the line is short rather than invented.
+    * `synopsis` is `overview`, and `more` is `nil` — there is no expander, and
+      a `more` under text that is already whole is a control that lies.
+    * `ratings` is `[]`. `Kati.Media.TrackedTitle.rating` has no writer
+      anywhere in the app (`Kati.Screens.Film.shaped/3` says so at length), and
+      the ratings this app DOES write are `Kati.Media.Watch.rating` on one
+      episode — which is not this show's score. Audience and critics are other
+      people's and nothing caches them.
+    * `cast`, `where` and `tags` are `[]`, and `trailer` is `nil`, for the four
+      reasons the moduledoc gives.
+  """
+  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil) :: map()
+  def shaped(_tracked, cached) do
+    %{
+      title: (cached && cached.title) || "Untitled",
+      seed: cached && cached.poster_path,
+      meta: meta_line(cached),
+      ratings: [],
+      synopsis: (cached && cached.overview) || "",
+      more: nil,
+      trailer: nil,
+      cast: [],
+      where: [],
+      tags: [],
+      add_tag: nil
+    }
+  end
+
+  # `DRAMA, MYSTERY · 3 SEASONS · 26 EP`, minus whichever of the three the
+  # cache has not got. Upper case and interpuncts are the drawing's; the year
+  # and the `15` certification that sit in front of them there are dropped
+  # rather than guessed — `next_release_at` is the NEXT release and not a first
+  # air date, and no column holds a certification at all.
+  defp meta_line(nil), do: ""
+
+  defp meta_line(%CachedTitle{} = cached) do
+    seasons = Kati.Media.CachedSeason.count(seasons_of(cached))
+
+    [
+      cached.genres && String.upcase(cached.genres),
+      seasons > 0 && "#{seasons} SEASON#{if seasons == 1, do: "", else: "S"}",
+      cached.episode_count && "#{cached.episode_count} EP"
+    ]
+    |> Enum.filter(&is_binary/1)
+    |> Enum.join(" · ")
+  end
+
+  defp seasons_of(%CachedTitle{source: source, source_id: source_id}),
+    do: Kati.Media.CachedSeason.for_title(source, source_id)
 
   def render(assigns) do
     s = assigns.series
@@ -128,20 +271,41 @@ defmodule Kati.Screens.SeriesMeta do
             {Kati.Screens.SeriesMeta.ratings(s)}
             {Kati.Screens.SeriesMeta.synopsis(s)}
             {Kati.Screens.SeriesMeta.actions(s)}
-            <Spacer size={26} />
-            {UI.eyebrow("Cast")}
-            {Kati.Screens.SeriesMeta.cast(s)}
-            <Spacer size={26} />
-            {UI.eyebrow("Where to watch")}
-            {Kati.Screens.SeriesMeta.where(s)}
-            <Spacer size={26} />
-            {UI.eyebrow("Your tags")}
-            {Kati.Screens.SeriesMeta.tags(s)}
+            {Kati.Screens.SeriesMeta.band(s.cast, "Cast", &Kati.Screens.SeriesMeta.cast/1, s)}
+            {Kati.Screens.SeriesMeta.band(s.where, "Where to watch", &Kati.Screens.SeriesMeta.where/1, s)}
+            {Kati.Screens.SeriesMeta.band(s.tags, "Your tags", &Kati.Screens.SeriesMeta.tags/1, s)}
           </Column>
         </Column>
       </Scroll>
       {Kati.Screens.SeriesMeta.chrome(Map.get(assigns, :back, "Series"))}
     </Box>
+    """
+  end
+
+  @doc """
+  A titled band, or nothing at all.
+
+  Three of screen 14's six sections describe things `Kati.Media` has no
+  resource for — the cast, the offers, and tags on a title rather than on one
+  night's watch — so on a real series each one is `[]`. An eyebrow over an
+  empty card is worse than a shorter page: it is a heading promising a section
+  that never arrives, and the `Spacer` above it would leave 26pt of nothing
+  where the heading used to be.
+
+  The board still draws all three, because on the board they are full.
+  """
+  @spec band([term()], String.t(), (map() -> map()), map()) :: map()
+  def band([], _title, _builder, _series), do: ~MOB"<Spacer size={0} />"
+
+  def band(_rows, title, builder, series) do
+    assigns = %{eyebrow: UI.eyebrow(title), content: builder.(series)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={26} />
+      {@eyebrow}
+      {@content}
+    </Column>
     """
   end
 
@@ -168,7 +332,7 @@ defmodule Kati.Screens.SeriesMeta do
 
     ~MOB"""
     <Box fill_width={true} height={270} background={Palette.track_off()}>
-      {Kati.Screens.SeriesMeta.hero_art()}
+      {Kati.Screens.SeriesMeta.hero_art(s.seed)}
       <Box fill_width={true} fill_height={true} align="bottom">
         <Box fill_width={true} height={150} gradient={fade} />
       </Box>
@@ -198,8 +362,8 @@ defmodule Kati.Screens.SeriesMeta do
   end
 
   @doc false
-  def hero_art do
-    case Sample.hero_art() do
+  def hero_art(seed \\ nil) do
+    case art_for(seed) do
       nil ->
         ~MOB"<Spacer size={0} />"
 
@@ -209,6 +373,14 @@ defmodule Kati.Screens.SeriesMeta do
         """
     end
   end
+
+  # The board's own still when there is no seed to look one up by, and
+  # `Kati.Design.Images.path/2` otherwise — which answers a downloaded provider
+  # file for a real `poster_path` and the design export for a drawing's seed,
+  # in one call. 900x620 rather than screen 04's 900x740: this header is 270pt,
+  # and that is the crop the export names for it.
+  defp art_for(nil), do: Sample.hero_art()
+  defp art_for(seed), do: Kati.Design.Images.path(seed, {900, 620})
 
   @doc false
   def chrome(label \\ "Series") do
@@ -307,6 +479,8 @@ defmodule Kati.Screens.SeriesMeta do
   end
 
   @doc false
+  def ratings(%{ratings: []}), do: ~MOB"<Spacer size={0} />"
+
   def ratings(s) do
     ~MOB"""
     <Column fill_width={true}>
@@ -382,20 +556,48 @@ defmodule Kati.Screens.SeriesMeta do
     ~MOB"""
     <Column fill_width={true}>
       <Text text={s.synopsis} text_size={14} line_height={1.6} text_color={Palette.cream_body()} />
-      <Row align="center">
-        <Text
-          text={s.more}
-          text_size={14}
-          line_height={1.6}
-          text_color={Palette.eyebrow()}
-          max_lines={1}
-        />
-      </Row>
+      {Kati.Screens.SeriesMeta.more_link(s.more)}
     </Column>
     """
   end
 
-  @doc false
+  @doc """
+  The drawing's `more` under the synopsis, when there is more.
+
+  It expands nothing — there is no expander on this screen and never was — so
+  on the board it is a word under three clamped lines and on a real title,
+  whose `overview` is drawn whole, it would be a control promising a rest of a
+  text that is already all there. `nil` is the real title's answer.
+  """
+  @spec more_link(String.t() | nil) :: map()
+  def more_link(nil), do: ~MOB"<Spacer size={0} />"
+
+  def more_link(label) do
+    assigns = %{label: label}
+
+    ~MOB"""
+    <Row align="center">
+      <Text
+        text={@label}
+        text_size={14}
+        line_height={1.6}
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
+    </Row>
+    """
+  end
+
+  @doc """
+  The Trailer button and its two discs, when there is a trailer.
+
+  No video, no link, no column — the moduledoc's fourth bullet — so on a real
+  title `trailer` is `nil` and the row goes with it. The bookmark and label
+  discs go too: neither has an `on_tap`, so what would be left is a play
+  button that plays nothing beside two shapes that do nothing.
+  """
+  def actions(%{trailer: nil}), do: ~MOB"<Spacer size={0} />"
+
   def actions(s) do
     ~MOB"""
     <Column fill_width={true}>

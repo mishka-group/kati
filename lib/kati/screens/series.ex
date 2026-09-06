@@ -1152,8 +1152,18 @@ defmodule Kati.Screens.Series do
   def handle_info({:tap, :close_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
 
+  # Screen 14 describes a show, so it is told which. Bare, *Show details* on
+  # any series drew `Kati.Screens.SeriesMeta.Sample` — Severance's overflow
+  # menu opened a full page about The Long Hollow, and every fact on it was
+  # confident, specific and about something else.
   def handle_info({:tap, :show_details}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesMeta)}
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.SeriesMeta,
+         Kati.Screens.SeriesMeta.params_for(socket.assigns.series)
+       )}
 
   # The page knows both halves of what screen 34 is about: which series it is
   # drawing, and which pill on the season strip is lit. Bare, "Episode order"

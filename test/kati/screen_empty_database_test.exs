@@ -183,6 +183,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"02", Kati.Screens.Calendar},
     {"03", Kati.Screens.Library},
     {"04", Kati.Screens.Series},
+    # 14 joined when *Show details* started describing the show you opened it
+    # over. It reads the shelf and the cache the way 04 and 08 do, and gates
+    # the whole page on the same rule: either every value is this reader's or
+    # every value is the board's. What it does NOT read is a person, an offer
+    # or a tag on a title — there is no resource for any of them, so on a real
+    # series those three bands are `[]` and the page is shorter rather than
+    # borrowing the board's.
+    {"14", Kati.Screens.SeriesMeta},
     {"05", Kati.Screens.Inbox},
     {"07", Kati.Screens.Stats},
     {"08", Kati.Screens.Film},
@@ -1413,6 +1421,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 14 gates like 04: one pair covers the title, the still, the meta line,
+      # the synopsis, the three ratings, the four cast members, the three ways
+      # to watch and the five tags, because they arrive as one map or not at
+      # all. An empty store has no shelf row to describe, so the answer is the
+      # board — and a device with a series on it gets four real values and
+      # three empty bands, which is the half of this that only
+      # `Kati.SeriesMetaSubjectTest` can see.
+      {"14", Kati.Screens.SeriesMeta, &Kati.Screens.SeriesMeta.series/0,
+       &Kati.Screens.SeriesMeta.Sample.series/0},
       # 09 is asked the question this file's renders ask: a bare push, the one
       # `Kati.Screens.ViewSwitcher` sends and the one `render_migrated/0` makes,
       # must answer with the drawn day whole — its date, its fourteen
@@ -2096,6 +2113,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        "نمودار از راست به چپ خوانده می‌شود و ستون امروز در سمت راست است. " <>
          "اعداد وزن در dm mono با ارقام فارسی و جداکننده اعشار",
        ~r/^نمودار از راست به چپ .+ ستون امروز در سمت چپ است\./u},
+      # 14's back pill. The board was captured as an arrival from the shelf, so
+      # it draws `Library`; the app's only door into screen 14 is the series
+      # page's *Show details*, so the pill defaults to `Series` and takes
+      # `Library` from a push that says so. This file's renders are bare
+      # pushes, which is the default. `Kati.BackLabelTest` holds both branches,
+      # and `Kati.ScreenDesignLiteralTest` compares the board against the
+      # arrival it is a drawing OF rather than exempting the word.
+      {"14", "library", ~r/^(library|series)$/u},
       # 111's `Today` row prints the device's clock. See
       # `Kati.ScreenDesignLiteralTest` for the full reasoning.
       {"111", "16 august, 07:42", ~r/^#{day} \p{L}+, \d{2}:\d{2}$/u},
