@@ -323,6 +323,10 @@ defmodule Kati.Screens.Series do
       title: cached && cached.title,
       seed: seed_of(tracked, cached),
       tracked_id: tracked.id,
+      # Whether Kati tells you about new episodes of this show — the column
+      # screen 25 is a page about, which nothing anywhere could set for one
+      # title until the bookmark disc could (MOVIES-AND-TV.md #81).
+      followed?: tracked.notify_new_episodes,
       genres: cached && cached.genres,
       season_count: nil,
       seasons: [%{number: tracked.progress_season || 1, name: nil, total: 0, episodes: []}],
@@ -349,6 +353,7 @@ defmodule Kati.Screens.Series do
       # re-read in the handler, so the page cannot write a tick against a
       # different title from the one it is drawing.
       tracked_id: tracked.id,
+      followed?: tracked.notify_new_episodes,
       genres: cached && cached.genres,
       # The inventory's count, never `length(numbers)` — see the moduledoc.
       season_count: CachedSeason.count(seasons),
@@ -500,6 +505,11 @@ defmodule Kati.Screens.Series do
       # series the page is drawing. `Map.get/2` rather than `facts.tracked_id`
       # so a facts map built without the key raises nothing.
       tracked_id: Map.get(facts, :tracked_id),
+      # The same class of key, dropped the same way: `assembled/5` puts it on
+      # the facts and this map is where a fact goes to be forgotten. The
+      # bookmark disc reads it, and a disc that cannot tell whether it is on
+      # is a disc that cannot be drawn filled.
+      followed?: Map.get(facts, :followed?, false),
       title: facts.title || "Untitled",
       seed: facts.seed,
       meta: meta_line(facts),
@@ -691,7 +701,7 @@ defmodule Kati.Screens.Series do
           >
             {Kati.Screens.Series.season_card(s, pct)}
             {Kati.Screens.Series.refusal(Map.get(assigns, :save_error))}
-            {Kati.Screens.Series.actions()}
+            {Kati.Screens.Series.actions(s)}
             {Kati.Screens.Series.episodes_header(s)}
             {Kati.Screens.Series.episodes(s)}
           </Column>
@@ -1022,10 +1032,12 @@ defmodule Kati.Screens.Series do
   # built into a variable first, the way `Kati.Screens.SeriesFa.actions/1`
   # already does for the mirror of this same button.
   #
-  # `actions/0` keeps arity 0: the tag carries no subject, because the button
-  # acts on the season already on the socket.
+  # `actions/1` takes the series, and did not: the mark button acts on the
+  # season already on the socket and carries no subject, but the two discs
+  # beside it do — one follows this show and one rates it, and both need to
+  # know whether there is a row behind the page at all (MOVIES-AND-TV.md #81).
   @doc false
-  def actions do
+  def actions(s) do
     mark = {self(), :mark_next}
 
     ~MOB"""
@@ -1054,9 +1066,9 @@ defmodule Kati.Screens.Series do
           </Row>
         </Box>
         <Spacer size={10} />
-        {Kati.Screens.Series.action_disc("bookmark")}
+        {Kati.Screens.Series.follow_disc(s)}
         <Spacer size={10} />
-        {Kati.Screens.Series.action_disc("star")}
+        {Kati.Screens.Series.rate_disc(s)}
       </Row>
     </Column>
     """
@@ -1068,22 +1080,65 @@ defmodule Kati.Screens.Series do
   # the design's own `shadow_card_soft()`.
   #
   # `shape: :circle` computes `50 / 2` = 25.0 where the Box stated 25;
-  # `floatProp` reads both as 25.0f. No handler is passed and none is wanted —
-  # bookmark and rate are not built — and the component omits the key entirely
-  # rather than sending a null, so no `clickable` is attached and the disc is as
-  # inert as the Box was.
+  # `floatProp` reads both as 25.0f.
+  #
+  # This used to say *bookmark and rate are not built*, and pass no handler.
+  # Both are built now (MOVIES-AND-TV.md #81). A `nil` tap still omits the key
+  # entirely rather than sending a null, so a drawn series keeps two discs
+  # that are pictures — which is the honest state for a show with no row
+  # behind it.
   @doc false
-  def action_disc(icon) do
+  def action_disc(icon, tap \\ nil, ink \\ nil) do
     MishkaActionIcon.action_icon(
       [
         size: 50,
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
-        shadow: Theme.shadow_card_soft()
+        shadow: Theme.shadow_card_soft(),
+        on_tap: tap
       ],
-      [Kati.UI.symbol(icon, size: 21)]
+      [Kati.UI.symbol(icon, size: 21, color: ink, fill: ink != nil)]
     )
+  end
+
+  @doc """
+  The bookmark disc: whether Kati tells you about new episodes of this show.
+
+  `Kati.Media.TrackedTitle.notify_new_episodes` is the column, and it has had
+  one since the resource was written — screen 25 is the page ABOUT it, and
+  there was nothing anywhere that could set it for one show. So the disc is
+  *follow this*, which is what a bookmark on a series page means, and it fills
+  when it is on.
+
+  A drawn series has no row and gets a picture.
+  """
+  @spec follow_disc(map()) :: map()
+  def follow_disc(s) do
+    case Map.get(s, :tracked_id) do
+      nil ->
+        action_disc("bookmark")
+
+      _id ->
+        ink = if Map.get(s, :followed?), do: Palette.accent()
+        action_disc("bookmark", {self(), :toggle_follow}, ink)
+    end
+  end
+
+  @doc """
+  The star disc: the rating sheet for this show, which is where a rating is
+  written.
+
+  Screen 33's own, the same sheet screen 08 opens — one place a rating is set,
+  so the series page and the film page cannot come to disagree about what
+  setting one means.
+  """
+  @spec rate_disc(map()) :: map()
+  def rate_disc(s) do
+    case Map.get(s, :tracked_id) do
+      nil -> action_disc("star")
+      _id -> action_disc("star", {self(), :rate_title})
+    end
   end
 
   @doc false
@@ -1366,6 +1421,21 @@ defmodule Kati.Screens.Series do
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
+  def handle_info({:tap, :toggle_follow}, socket),
+    do: {:noreply, Kati.Screens.Series.follow(socket)}
+
+  # Before the `"rate_" <> index` clause below, and it has to be: `rate_title`
+  # matches that prefix and `String.to_integer("title")` raises inside a tap
+  # handler, which kills the screen process.
+  def handle_info({:tap, :rate_title}, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.Rating,
+         Kati.Screens.Rating.params_for(socket.assigns.series)
+       )}
+
   def handle_info({:tap, :toggle_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
 
@@ -1462,6 +1532,31 @@ defmodule Kati.Screens.Series do
   reason: there is no episode behind `Kati.Library.Sample`, so there is
   nothing to rate.
   """
+  @doc """
+  Follow or unfollow this show — `notify_new_episodes` on its tracked row.
+
+  The one write behind screen 25's whole page, and nothing anywhere could make
+  it for a single title: the watcher's ten switches are a page about a
+  preference nobody could express. The disc fills when it is on.
+  """
+  @spec follow(Mob.Socket.t()) :: Mob.Socket.t()
+  def follow(socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{
+             notify_new_episodes: not tracked.notify_new_episodes
+           })
+           |> Ash.update() do
+      Mob.Socket.assign(socket, :series, %{s | followed?: updated.notify_new_episodes})
+    else
+      _refused -> socket
+    end
+  end
+
   @spec rate(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def rate(socket, index) do
     s = socket.assigns.series
