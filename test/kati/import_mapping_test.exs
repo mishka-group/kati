@@ -66,7 +66,8 @@ defmodule Kati.ImportMappingTest do
       {:ok, socket} =
         Import.mount(%{source: :goodreads}, %{}, Mob.Socket.new(Kati.Screens.Import))
 
-      words = socket.assigns |> Import.render() |> inspect(limit: :infinity, printable_limit: :infinity)
+      words =
+        socket.assigns |> Import.render() |> inspect(limit: :infinity, printable_limit: :infinity)
 
       assert words =~ "goodreads_library_export.csv"
       assert words =~ "Bookshelves"
@@ -76,7 +77,8 @@ defmodule Kati.ImportMappingTest do
     test "and a bare push still draws board 37's own file" do
       {:ok, socket} = Import.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.Import))
 
-      words = socket.assigns |> Import.render() |> inspect(limit: :infinity, printable_limit: :infinity)
+      words =
+        socket.assigns |> Import.render() |> inspect(limit: :infinity, printable_limit: :infinity)
 
       assert words =~ "trakt-backup.csv"
     end

@@ -309,6 +309,10 @@ defmodule Kati.Screens.Gallery do
   @routed [
     # Series → ⋯ → Show details. 5915c2a.
     "14",
+    # Series → ⋯ → Show settings, which now carries the show it was opened
+    # over. Walked on the device: all three Status tiles and all four
+    # season-pass switches write, and the values survive a back-and-return.
+    "35",
     # 92 My services → the country row, and 93 → Pick your country. Verified
     # when `Kati.Screens.Resume` made the page behind it re-read.
     "94",

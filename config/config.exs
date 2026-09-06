@@ -37,4 +37,3 @@ config :kati,
     Kati.Services,
     Kati.Sync
   ]
-

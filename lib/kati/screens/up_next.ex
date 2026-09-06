@@ -200,7 +200,10 @@ defmodule Kati.Screens.UpNext do
 
       Enum.reject(tracked, fn row ->
         Kati.Media.Availability.hide?(
-          Kati.Media.Availability.offers(Map.get(cache, {row.source, row.source_id}), reader.region),
+          Kati.Media.Availability.offers(
+            Map.get(cache, {row.source, row.source_id}),
+            reader.region
+          ),
           reader.subscribed,
           reader.rules
         )

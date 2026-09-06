@@ -34,6 +34,7 @@ defmodule Kati.YearShareSaveTest do
       {:noreply, socket} = YearShare.handle_tap(:save_image, assigns_socket(view))
 
       assert is_binary(socket.assigns.save_error)
+
       assert socket.assigns.save_error =~ "Nothing was saved." or
                socket.assigns.save_error =~ "does not work here yet."
     end
@@ -43,7 +44,9 @@ defmodule Kati.YearShareSaveTest do
       {:noreply, socket} = YearShare.handle_tap(:save_image, assigns_socket(view))
 
       words =
-        socket.assigns |> YearShare.render() |> inspect(limit: :infinity, printable_limit: :infinity)
+        socket.assigns
+        |> YearShare.render()
+        |> inspect(limit: :infinity, printable_limit: :infinity)
 
       assert words =~ socket.assigns.save_error
     end

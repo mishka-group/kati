@@ -512,7 +512,6 @@ defmodule Kati.Screens.RateEpisode do
   defp episode_number(_cached, %Watch{episode_number: n}) when is_integer(n), do: n
   defp episode_number(_cached, _watch), do: nil
 
-
   # "S2 E6", the same reduction `Kati.Screens.Inbox.episode_line/1` performs —
   # a number a source left blank has no label rather than a guessed one.
   defp episode_label(season, episode) when is_integer(season) and is_integer(episode),
@@ -1138,9 +1137,14 @@ defmodule Kati.Screens.RateEpisode do
 
   def handle_info({:tap, :save}, socket) do
     case Kati.Screens.RateEpisode.save_rating(socket.assigns.sheet) do
-      {:ok, _watch} -> {:noreply, Kati.Screens.Resume.pop(socket)}
-      :nothing_to_save -> {:noreply, Kati.Screens.Resume.pop(socket)}
-      {:error, reason} -> {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+      {:ok, _watch} ->
+        {:noreply, Kati.Screens.Resume.pop(socket)}
+
+      :nothing_to_save ->
+        {:noreply, Kati.Screens.Resume.pop(socket)}
+
+      {:error, reason} ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
     end
   end
 

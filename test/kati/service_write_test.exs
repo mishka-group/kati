@@ -337,7 +337,9 @@ defmodule Kati.ServiceWriteTest do
       # named. Same control, same tap; the sentence the page is actually in.
       view = mount_screen(MyServices)
 
-      assert find(tree(view), :text_field, placeholder: "Name a service, and what it costs") != nil
+      assert find(tree(view), :text_field, placeholder: "Name a service, and what it costs") !=
+               nil
+
       assert find(tree(view), :text_field, placeholder: "Search services") == nil
     end
 

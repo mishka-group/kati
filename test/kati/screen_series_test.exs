@@ -290,7 +290,9 @@ defmodule Kati.ScreenSeriesTest do
             back: "Library",
             menu?: false,
             save_error: nil
-          }), limit: :infinity)
+          }),
+          limit: :infinity
+        )
 
       for ep <- Sample.series().episodes do
         refute words =~ ep.title, "the drawing's episodes are on a real reader's series"

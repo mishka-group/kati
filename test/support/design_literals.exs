@@ -416,6 +416,7 @@ defmodule Kati.DesignLiterals do
 
     %{nodes: texts, flow: flow, squashed: String.replace(flow, " ", "")}
   end
+
   @doc """
   Lines a screen deliberately does not draw, because what carried them is gone
   and its absence is the decision.
@@ -455,5 +456,4 @@ defmodule Kati.DesignLiterals do
       {"82", "تا ۹:۴۸ دیگر معتبر است"}
     ]
   end
-
 end

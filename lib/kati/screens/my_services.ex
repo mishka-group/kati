@@ -439,8 +439,7 @@ defmodule Kati.Screens.MyServices do
       # without: there is nothing to search, and the field is in fact the way
       # you name the first one. Same control, same tap, the sentence the page
       # is actually in.
-      placeholder:
-        if(set_up?, do: "Search services", else: "Name a service, and what it costs")
+      placeholder: if(set_up?, do: "Search services", else: "Name a service, and what it costs")
     }
 
     ~MOB"""

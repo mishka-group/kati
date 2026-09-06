@@ -611,7 +611,9 @@ defmodule Kati.Screens.YearShare do
       "scope_" <> scope ->
         socket = Mob.Socket.assign(socket, :scope, scope)
         {:noreply, Kati.Screens.YearShare.restated(socket)}
-      _other -> {:noreply, socket}
+
+      _other ->
+        {:noreply, socket}
     end
   end
 end

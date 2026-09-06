@@ -131,11 +131,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # Ash and is not added here fails, and an entry here for a screen that reads
   # nothing fails too.
   #
-  # `Kati.Screens.SeriesMeta` (14) and `Kati.Screens.SeriesSettings` (35) are
-  # absent because they read no store at all: each still reads its Sample module
-  # outright and says why at length in its moduledoc — no cast, no availability,
-  # no offers, and in 35's case a referent it argues cannot be picked safely —
-  # so neither has a fallback that could regress.
+  # **14 and 35 have both moved, and this comment used to say why neither had.**
+  # The reason given for 35 was that half of it would become the reader's own
+  # and half would stay a picture. That rule is right and it named the wrong
+  # unit: the half with no schema is two whole GROUPS — *Region & availability*
+  # and *This show* — and a group with nothing behind it is dropped rather than
+  # drawn dead, which is the shape 14's own bands settled. So over a real show
+  # 35 is the Status tiles and the Season pass and nothing else, and over no
+  # show it is board 35 whole. See `Kati.Screens.SeriesSettings.show/1`.
   #
   # **04 and 58 have moved, and this comment used to explain why they had not.**
   # The reason given was that `Kati.Media` cannot enumerate a season or name an
@@ -278,6 +281,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # note above. It is here for the ordinary reason: it reaches the store, so
     # its fallback is a thing that can regress.
     {"34", Kati.Screens.Season},
+    # 35 is here for the ordinary reason: it reaches the store, so what it draws
+    # against an empty one can regress. Its gate is the whole `show/1` map,
+    # because the two groups it drops over a real show are keys in that map —
+    # a gate that compared only the status would pass while the page went bare.
+    {"35", Kati.Screens.SeriesSettings},
     # The two screens the design draws DARK, and the log sheet.
     #
     # 28 is Home in dark and reads exactly what Home reads — `Rest of today`,
@@ -1111,14 +1119,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # only through a helper, and one whose moduledoc names an `Ash` call at
       # length and whose body reads nothing.
       #
-      # That third one used to be `Kati.Screens.Season`, which now reads — so
-      # the exemplar moved to `Kati.Screens.SeriesSettings`, whose moduledoc
-      # quotes `Ash.create!` while arguing that its referent cannot be picked
-      # safely yet. Keeping a mention-only screen pinned here is the point: a
-      # namespace test that matched too much would answer `true` for it.
+      # That third one used to be `Kati.Screens.Season`, then
+      # `Kati.Screens.SeriesSettings`; both now read. The exemplar is
+      # `Kati.Screens.Habits`, which gives a whole moduledoc section to *Why
+      # this screen is still on `Kati.Habits.Sample`* and reads nothing.
+      # Keeping a mention-only screen pinned here is the point: a namespace
+      # test that matched too much would answer `true` for it.
       assert reaches_store?(Kati.Screens.Film)
       assert reaches_store?(Kati.Screens.Home)
-      refute reaches_store?(Kati.Screens.SeriesSettings)
+      refute reaches_store?(Kati.Screens.Habits)
       refute reaches_store?(Kati.Screens.Gallery)
     end
 
@@ -1664,6 +1673,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # list would pass while one of the frozen parts quietly changed.
       {"34", Kati.Screens.Season, &Kati.Screens.Season.season/0,
        &Kati.Screens.Season.drawn_season/0},
+      # 35 gates the whole `show/1` map for 34's reason and one of its own: the
+      # map carries both the values (status, the four season-pass switches) and
+      # the two flags that decide whether *Region & availability* and *This
+      # show* are drawn at all. On an empty store every one of those is the
+      # board's, groups included, which is the page the gallery renders.
+      {"35", Kati.Screens.SeriesSettings, fn -> Kati.Screens.SeriesSettings.show(%{}) end,
+       fn -> Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil) end},
       # 28 is NOT here any more, and neither is 55. Both used to compare
       # `rest_of_today(Kati.Calendars.Today.rows())` with
       # `rest_of_today(Sample.rest_of_today())` — the assertion that a device
@@ -2002,108 +2018,82 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # reader answers empty, and the drawn value it could have answered with
       # is still there". MOVIES-AND-TV.md #75.
       {"128", Kati.Screens.Backup,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"131", Kati.Screens.BackupDark,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"132", Kati.Screens.RestoreFa,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"129", Kati.Screens.Restore,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"135", Kati.Screens.RestoreFirstRun,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"26", Kati.Screens.PickSections,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"06", Kati.Screens.AddTitle,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"154", Kati.Screens.AddByHand,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"178", Kati.Screens.AddByHandRecord,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"179", Kati.Screens.AddTitleMusic,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"177", Kati.Screens.AddByHandBook,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"163", Kati.Screens.OnboardingFirstTitle,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"166", Kati.Screens.OnboardingFirstTitleFa,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"155", Kati.Screens.AddByHandStates,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"156", Kati.Screens.AddByHandFa,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"157", Kati.Screens.AddByHandDark,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"158", Kati.Screens.HomeFaEmpty,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"159", Kati.Screens.HomeFaEmptyDark,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"160", Kati.Screens.HomeFaOmittedSections,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"62", Kati.Screens.SettingsFa,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"94", Kati.Screens.CountryPicker,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"93", Kati.Screens.MyServicesEmpty,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"95", Kati.Screens.MyServicesStates,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"96", Kati.Screens.NothingSetUpKnockOn,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"97", Kati.Screens.MyServicesFa,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"90", Kati.Screens.SearchFa,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end,
-       {[], []},
+       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"01", Kati.Screens.Home, fn -> Kati.Screens.Home.nothing_kept?(timeline()) end, true,
        fn -> Kati.Screens.Home.nothing_kept?(Kati.Screens.Home.drawn_rows()) end},

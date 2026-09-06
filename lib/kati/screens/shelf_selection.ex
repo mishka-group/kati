@@ -990,7 +990,8 @@ defmodule Kati.Screens.ShelfSelection do
             |> then(&{:noreply, &1})
 
           {:error, reason} ->
-            {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+            {:noreply,
+             Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
         end
 
       _not_exactly_one ->
@@ -1042,7 +1043,8 @@ defmodule Kati.Screens.ShelfSelection do
             |> then(&{:noreply, &1})
 
           {:error, reason} ->
-            {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+            {:noreply,
+             Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
         end
     end
   end

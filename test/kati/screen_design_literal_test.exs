@@ -731,7 +731,8 @@ defmodule Kati.ScreenDesignLiteralTest do
          "three and `Kati.Settings.Sample.services_line/0` now reads",
        ~r/^.+ · (none yet|\d+ subscribed)$/u},
       {"42", "united kingdom · 3 subscribed",
-       "42 draws 24's row and reaches the same count through it", ~r/^.+ · (none yet|\d+ subscribed)$/u},
+       "42 draws 24's row and reaches the same count through it",
+       ~r/^.+ · (none yet|\d+ subscribed)$/u},
       # 92's third rule. The board's sentence names three pages —
       # *Removes them from Discover, Up next and What fits tonight* — and the
       # rule empties two of them: screen 13 reads nothing at all
@@ -741,15 +742,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # was reported for in the first place (#77). It names what it does.
       # The pattern insists the sentence still names pages and still says what
       # is kept, so a rule that quietly stopped saying either fails.
-      {"92", "removes them from discover, up next and what fits tonight. your library and " <>
+      {"92",
+       "removes them from discover, up next and what fits tonight. your library and " <>
          "wishlist keep everything.",
        "the pages the rule actually empties, which is two of the three the board names",
        ~r/^removes them from .+\. your library and wishlist keep everything\.$/u},
       # 23's back pill, and the twin of this entry is in
       # `Kati.ScreenEmptyDatabaseTest`. Board 23 froze `Stats`; the only route
       # into the page is screen 92's Money row.
-      {"23", "stats",
-       "where the reader actually came from, which for this page is My services",
+      {"23", "stats", "where the reader actually came from, which for this page is My services",
        ~r/^(my services|stats)$/u},
       # 92's *Something else* sub-line. The board promises *Kati will remember
       # it for your subscription total* and nothing could enter a price:
@@ -759,7 +760,8 @@ defmodule Kati.ScreenDesignLiteralTest do
       # (MOVIES-AND-TV.md #66). The field takes both now — `Netflix 10.99` —
       # and the row says so. The pattern insists the sentence still promises
       # the total, which is the half of it that was true.
-      {"92", "kati will remember it for your subscription total, but cannot tell you what is on it",
+      {"92",
+       "kati will remember it for your subscription total, but cannot tell you what is on it",
        "the row explains how to enter a price, now that entering one does something",
        ~r/subscription total/u},
       {"01", "good evening",

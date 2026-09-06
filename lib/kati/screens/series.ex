@@ -362,7 +362,14 @@ defmodule Kati.Screens.Series do
       seasons:
         Enum.map(
           numbers,
-          &season_facts(&1, Map.get(inventory, &1), Map.get(grouped, &1, []), ticked, ratings, now)
+          &season_facts(
+            &1,
+            Map.get(inventory, &1),
+            Map.get(grouped, &1, []),
+            ticked,
+            ratings,
+            now
+          )
         ),
       current: current_number(tracked, numbers),
       next_air: next_airing(episodes, now)
@@ -1500,8 +1507,20 @@ defmodule Kati.Screens.Series do
          Kati.Screens.Season.params_for(socket.assigns.series)
        )}
 
+  # Named, for the reason the two rows below it are. Screen 35 writes now —
+  # four season-pass switches and the three Status tiles, over columns that had
+  # no reader until MOVIES-AND-TV.md #99 — so a bare push here is a settings
+  # page that saves onto whichever show `show/1` happened to find. It saves
+  # onto this one, and its back pill says Series because that is where it came
+  # from.
   def handle_info({:tap, :open_settings}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesSettings)}
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.SeriesSettings,
+         Kati.Screens.SeriesSettings.params_for(socket.assigns.series)
+       )}
 
   # #94's two. See the menu above for why they are rows rather than the
   # gestures the design intends, and for what takes them out of it.

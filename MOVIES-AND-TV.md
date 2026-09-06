@@ -1154,21 +1154,21 @@ Route note: `routes.txt` lists **14, 34, 35, 144** as gallery-only. That is a sw
 
 ### 35 — Series settings (`Kati.Screens.SeriesSettings`)
 
-**Route** 04 → ⋯ → *Show settings*.
-**Reads** `Kati.SeriesSettings.Sample.show/0` and nothing else (`series_settings.ex:109`).
-**Writes** nothing, deliberately.
+**Route** 04 → ⋯ → *Show settings*, carrying the show the menu was opened over (`series.ex:1502`).
+**Reads** the tracked row that push names, and `Kati.Media.Release.cached_for/1` for its title. With no id — the gallery, a sweep, a push that named nothing — `Kati.SeriesSettings.Sample.show/0`.
+**Writes** `TrackedTitle.status` and the four season-pass columns.
 
-22. **I set the show to Paused** — `[!] known broken — the three status tiles are inert.`
-    Tap **Paused**. Expect `TrackedTitle.status` to change and the shelf to reflect it. `status/1` (`series_settings.ex:170-232`) draws two shadow states and no `on_tap`. `TrackedTitle.status` exists and takes exactly these three values.
+22. **I set the show to Paused** — `[x] verified on device 6 September`
+    Tap **Paused**. The tile lights, `TrackedTitle.status` becomes `:paused`, and it is still Paused after ‹ Series and back in. All three tiles write, the lit one included — pressing *Watching* on a watching show writes the same value, which is how somebody checks rather than changes. The off-state arm of `status/1` was the last thing to break here: it computed the tap and drew a `Box` without it, so the two tiles you press to change anything were dead. Found by pressing them on the phone; `Kati.SeriesSettingsTest` now asserts all three carry a tap on the drawn tree.
 
-23. **I turn off Notify about new episodes** — `[!] known broken — inert.`
-    All four season-pass switches, all four Region rows and the three *This show* rows are inert; `control/1` (`series_settings.ex:286-287`) returns a chevron or a switch, never a tap. The moduledoc argues this is right ("a switch that flips and forgets is worse"), and for the four Region rows it is — nothing stores them. But `auto_add_new_seasons`, `notify_new_episodes`, `add_air_dates_to_calendar` and `hide_unwatched_titles` are real columns on `TrackedTitle` **with these exact defaults and no other reader or writer in the app**. Four working switches sitting under four impossible ones is the actual shape of this screen.
+23. **I turn off Tell me about episodes** — `[x] verified on device 6 September`
+    All four season-pass switches write the `TrackedTitle` column they sit over — `auto_add_new_seasons`, `notify_new_episodes`, `add_air_dates_to_calendar`, `hide_unwatched_titles` — and only that one. The tap is on the whole row rather than on the 46×28 switch, which is the shape screen 25 settled. The moduledoc's *a switch that flips and forgets is worse* still holds and is why the control moves only after the store answers.
 
-24. **I tap Remove from library** — `[!] known broken — the one red row does nothing.`
-    The `#B4553C` row with the chevron. Expect a confirmation and a deletion. Nothing. A destructive-looking control that is inert is the safest failure on this page and still a lie.
+24. **I tap Remove from library** — `[x] the row is gone, which is the honest answer`
+    *This show* had no schema behind any of its three rows and *Region & availability* had none behind any of its four, so both groups are dropped over a real show rather than drawn dead. A destructive-looking control that does nothing is not a smaller version of one that works. Both groups are still drawn whole on the board, which is what the drawing is a drawing of.
 
-25. **Whose show is this anyway** — `[!] known broken — the header is the fixture's.`
-    The title and `S4 will appear when announced` / `Currently 5 of 7 in S2` are `Sample.show/0`'s, over whatever series you opened the menu from. The moduledoc's own third blocker is marked **Resolved** — the referent *can* be picked now.
+25. **Whose show is this anyway** — `[x] verified on device 6 September`
+    The header is the show you opened the menu from — *Severance*, not *The Long Hollow*. `S4 will appear when announced` and `Currently 5 of 7 in S2` stay the board's on both branches: they belong to rows whose switches now write, and they say what the switch DOES rather than where this show is.
 
 ---
 
@@ -2191,7 +2191,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 | 96 | 33 Rating | `inert-control` | '+ tag', the spoiler toggle and the 5★/10pt scale toggle are all drawn as controls and none of them changes anything. |
 | 97 | 34 Season | `inert-control` | The Aired / Absolute / DVD strip is a picture: neither clause of order/2 emits on_tap and handle_tap/2 matches only episode rows, so the screen's central control does nothing. CachedEpisode.in_order/2 already implements :absolute. |
 | 98 | 34 Season / 35 Series settings | `inert-control` | The ⋯ disc at the top of both screens is not a control — SettingsList.disc/1 builds a themed icon with no on_tap, so it reaches no handler and Kati.ScreenTapSweepTest's 'answers every tag' check cannot see it. |
-| 99 | 35 Series settings | `inert-control` | Every control on the screen is inert, including four switches whose columns exist on TrackedTitle with matching defaults and no other reader or writer in the app, and the three-way Status tiles that map exactly onto TrackedTitle.status. |
+| 99 | 35 Series settings | `fixed` | ~~Every control on the screen is inert, including four switches whose columns exist on TrackedTitle with matching defaults and no other reader or writer in the app, and the three-way Status tiles that map exactly onto TrackedTitle.status.~~ Fixed 6 September. The screen's own argument for staying frozen — *half of it would become the user's own and half would stay a picture* — is right and named the wrong unit: the half with no schema is two whole GROUPS, *Region & availability* and *This show*, and a group with nothing behind it is DROPPED, the rule screen 14's bands and screen 92's *Free with ads* already keep. So over a real show the page is the three Status tiles and the four season-pass switches, every one of them writing `Kati.Media.TrackedTitle`; over no show it is board 35 whole. 04's ⋯ → *Show settings* now carries `tracked_id`, so the page saves onto the show the menu was opened over rather than onto whichever row a bare push found. Walked on the Pixel_9a: all seven controls write and survive a back-and-return. Retired from *Every screen*. |
 | 100 | 36 Auto-detect (Kati.Screens.AutoDetect) | `inert-control` | Ten of the twelve controls on Auto-detect — including the master on/off switch for the whole feature — carry no on_tap and are invisible to the tap sweep. |
 | 101 | 37 Import (Kati.Screens.Import) | `inert-control` | Screen 37 has zero controls: the 'Import 412' commit pill, the step meter and the three conflict answers are all pictures, and because none carries a tag the tap sweep cannot see any of them. |
 | 102 | 80 Data sources (Kati.Screens.DataSources) | `inert-control` | The Refresh and Clear pills under Cached metadata emit no tap at all — the only cache controls in the app are pictures, and they are invisible to the tap sweep. |

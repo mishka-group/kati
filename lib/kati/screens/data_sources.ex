@@ -533,12 +533,7 @@ defmodule Kati.Screens.DataSources do
           text_color={Palette.cream_sub()}
         />
         <Spacer size={4} />
-        <Text
-          text={@supplies}
-          font_family="mono"
-          text_size={11}
-          text_color={Palette.cream_meta()}
-        />
+        <Text text={@supplies} font_family="mono" text_size={11} text_color={Palette.cream_meta()} />
       </Column>
     </Column>
     """

@@ -43,13 +43,14 @@ defmodule Kati.WhereToWatchTest do
 
   describe "the band" do
     test "names every way the title is offered here, in the board's order" do
-      cached = cache!(%{
-        "GB" => %{
-          "flatrate" => ["Netflix"],
-          "rent" => ["Apple TV"],
-          "buy" => ["Amazon"]
-        }
-      })
+      cached =
+        cache!(%{
+          "GB" => %{
+            "flatrate" => ["Netflix"],
+            "rent" => ["Apple TV"],
+            "buy" => ["Amazon"]
+          }
+        })
 
       rows = SeriesMeta.where_rows(cached)
 

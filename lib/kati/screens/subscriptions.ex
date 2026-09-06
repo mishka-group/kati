@@ -503,7 +503,6 @@ defmodule Kati.Screens.Subscriptions do
 
   @doc false
   def advice(s, reminded?) do
-
     ~MOB"""
     <Column
       fill_width={true}
