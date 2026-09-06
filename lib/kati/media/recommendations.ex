@@ -84,7 +84,21 @@ defmodule Kati.Media.Recommendations do
   device should get.
   """
   @spec seed() :: {TrackedTitle.t(), CachedTitle.t()} | nil
-  def seed do
+  def seed(source_id \\ nil)
+
+  def seed(source_id) when is_binary(source_id) do
+    # The title the reader ASKED to be recommended from, if it is still theirs.
+    # MOVIES-AND-TV.md #87 gave screen 11's `tune` disc this question, and a
+    # named title that has since been removed falls back to the newest rather
+    # than answering nothing — the rule every push in this app keeps.
+    Enum.find_value(seedable(), fn {tracked, cached} ->
+      if cached.source_id == source_id, do: {tracked, cached}
+    end) || Kati.Media.Recommendations.seed()
+  rescue
+    _error -> nil
+  end
+
+  def seed(_newest) do
     Enum.find_value(newest(), fn tracked ->
       case cached_for(tracked) do
         %CachedTitle{source_id: id, title: title} = cached
@@ -282,6 +296,40 @@ defmodule Kati.Media.Recommendations do
   # client only ever sees two.
   defp provider_kind(:movie), do: :movie
   defp provider_kind(_series), do: :tv
+
+  @doc """
+  Every title the picks could be seeded on, newest first.
+
+  What screen 11's `tune` disc offers. The same `:shelf` reads `newest/0`
+  makes, without its per-kind `limit(1)`: that limit is right for *what am I
+  recommending from by default* and wrong for *what could I recommend from*.
+
+  A title with no cache row behind it is left out for `seed/0`'s own reason —
+  there is nothing to name it by, and a row offered as a choice has to have a
+  name on it.
+  """
+  @spec seedable() :: [{TrackedTitle.t(), CachedTitle.t()}]
+  def seedable do
+    @kinds
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Enum.sort_by(& &1.last_touched_at, {:desc, DateTime})
+    |> Enum.flat_map(fn tracked ->
+      case cached_for(tracked) do
+        %CachedTitle{source_id: id, title: title} = cached
+        when is_binary(id) and is_binary(title) and title != "" ->
+          [{tracked, cached}]
+
+        _no_cache ->
+          []
+      end
+    end)
+  rescue
+    _error -> []
+  end
 
   defp newest do
     @kinds

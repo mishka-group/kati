@@ -105,7 +105,12 @@ defmodule Kati.Screens.Discover do
     |> Mob.Socket.assign(
       feed: feed,
       chip: Kati.Screens.Discover.default_chip(feed),
+      # Always `[]` now, and kept as an assign rather than removed: it is what
+      # `leaving_row/2` reads to draw the *Scheduled* state, and board 11 draws
+      # both states. See `leaving_action/2` for why neither is tappable.
       scheduled: [],
+      tune?: false,
+      seed_id: Map.get(feed, :seed_id),
       add_error: nil
     )
     |> ask()
@@ -154,6 +159,111 @@ defmodule Kati.Screens.Discover do
       leaving_label: nil,
       leaving: []
     }
+  end
+
+  @doc """
+  A *Schedule* button's tap, which is always `nil`. See `leaving_action/2`.
+
+      iex> Kati.Screens.Discover.schedule_tap(%{title: "Anything"})
+      nil
+  """
+  @spec schedule_tap(map()) :: nil
+  def schedule_tap(_row), do: nil
+
+  @doc """
+  Whether this page has a shelf to be tuned against.
+
+  More than one title, and not the board's. One title is not a choice — the
+  feed is already seeded on it — and the drawing has no shelf at all.
+
+      iex> Kati.Screens.Discover.tunable?(Kati.Screens.Discover.Sample.feed())
+      false
+  """
+  @spec tunable?(map()) :: boolean()
+  def tunable?(feed) do
+    is_binary(Map.get(feed, :seed_id)) and length(Recommendations.seedable()) > 1
+  end
+
+  @doc false
+  def tune_panel(_feed, false), do: ~MOB"<Spacer size={0} />"
+
+  def tune_panel(feed, true) do
+    assigns = %{
+      chips:
+        Recommendations.seedable()
+        |> Enum.map(fn {_tracked, cached} ->
+          Kati.Screens.Discover.seed_chip(cached, cached.source_id == Map.get(feed, :seed_id))
+        end)
+        |> Enum.intersperse(~MOB"<Spacer size={7} />")
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text="PICKS FROM"
+        font_family="mono"
+        text_size={10.5}
+        letter_spacing={0.16}
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
+      <Spacer size={9} />
+      <Row fill_width={true} align="center">
+        {@chips}
+      </Row>
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  # `MishkaPill`, not `MishkaChip`, and this cost a round: the chip takes no
+  # `on_tap` and no per-edge padding, so it drew the label and silently dropped
+  # both — a rail of titles that could not be pressed. `Kati.Screens.Rating`'s
+  # tags are the same shape for the same reason.
+  @doc false
+  def seed_chip(cached, on?) do
+    Kati.Components.MishkaPill.pill(
+      label: cached.title,
+      background: if(on?, do: Palette.ink_fill(), else: Palette.card()),
+      color: if(on?, do: Palette.on_ink(), else: Palette.ink_soft()),
+      shadow: Kati.Theme.shadow_card_soft(),
+      height: 30,
+      corner_radius: 15,
+      padding: 0,
+      padding_left: 13,
+      padding_right: 13,
+      text_size: 12,
+      font_weight: :semibold,
+      align: :center,
+      on_tap: {self(), String.to_atom("seed_on_" <> cached.source_id)}
+    )
+  end
+
+  @doc """
+  Redraw the picks from a different title.
+
+  The whole feed is rebuilt rather than the heading swapped, because *Because
+  you watched X* and the posters under it are one answer: a heading naming a
+  show over picks fetched for another is the substitution this app spends most
+  of its moduledocs preventing. `picks` goes back to `[]` and `ask/1` makes the
+  request again — the same shape a mount takes, which is what `handle_info/2`
+  is already written to receive.
+  """
+  @spec reseed(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def reseed(socket, source_id) do
+    case Recommendations.seed(source_id) do
+      nil ->
+        socket
+
+      {_tracked, cached} ->
+        Recommendations.ask(self(), cached)
+
+        socket
+        |> Mob.Socket.assign(:feed, Kati.Screens.Discover.real_feed(cached))
+        |> Mob.Socket.assign(:seed_id, cached.source_id)
+        |> Mob.Socket.assign(:tune?, false)
+        |> Mob.Socket.assign(:add_error, nil)
+    end
   end
 
   # Nothing to ask about when the screen is drawing its board: the sample's
@@ -240,7 +350,8 @@ defmodule Kati.Screens.Discover do
         padding_bottom={40}
       >
         {Kati.Screens.Discover.pill_row()}
-        {Kati.Screens.Discover.header(f)}
+        {Kati.Screens.Discover.header(f, Kati.Screens.Discover.tunable?(f))}
+        {Kati.Screens.Discover.tune_panel(f, Map.get(assigns, :tune?, false))}
         {Kati.Screens.Discover.chips(f, chip)}
         {Kati.Screens.Discover.add_error(Map.get(assigns, :add_error))}
         {Kati.Screens.Discover.because_section(f, chip)}
@@ -257,8 +368,30 @@ defmodule Kati.Screens.Discover do
   @doc false
   def pill_row, do: ~MOB"<Spacer size={58} />"
 
-  @doc false
-  def header(f) do
+  @doc """
+  The title, and the `tune` disc that decides what the picks come FROM.
+
+  MOVIES-AND-TV.md #87: the disc was a plain `Box` with no tap at all.
+
+  What a *tune* on a recommendation page can honestly do here is the question
+  the page is already answering badly for you: `Kati.Media.Recommendations.seed/0`
+  picks the newest title you touched, and *the last thing I opened* is not the
+  same as *the thing I want more like*. So the disc opens the shelf and lets
+  you say which — the reader's own titles, newest first, out of
+  `Kati.Media.Recommendations.seedable/0`.
+
+  Nothing else on this page is tunable, and the disc does not pretend
+  otherwise: there is no recommender to weight, no genre model and no *more
+  like this, less like that*. One question, the one the feed actually turns on.
+
+  Over the board the disc is a picture, which is the rule this round keeps
+  everywhere: a control that exists only over data is not drawn live over a
+  drawing of it.
+  """
+  @spec header(map(), boolean()) :: map()
+  def header(f, live? \\ false) do
+    assigns = %{tap: if(live?, do: {self(), :open_tune})}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
@@ -281,6 +414,7 @@ defmodule Kati.Screens.Discover do
           background={Palette.card()}
           shadow={Kati.Theme.shadow_button()}
           align="center"
+          on_tap={@tap}
         >
           {Kati.UI.symbol("tune", size: 21)}
         </Box>
@@ -887,10 +1021,25 @@ defmodule Kati.Screens.Discover do
     """
   end
 
-  # The tag carries the title, so one handler serves every row.
-  @doc false
+  @doc """
+  *Schedule*, and *Scheduled* — both of them the board's, and neither tappable.
+
+  MOVIES-AND-TV.md #87's second half: this was *the one working control on the
+  page*, and what it did was toggle a socket assign that the next pop threw
+  away. A button that changes and forgets is not a smaller version of one that
+  works; it is the screen claiming a thing was scheduled.
+
+  It cannot be more than that here. `leaving` is `[]` on every real feed —
+  there is no offers resource and no window in which a title leaves a service,
+  which the moduledoc lists among what this page would need — so this section
+  exists only on board 11, over rows that name nothing. Nothing to schedule
+  against, so nothing to press.
+
+  Both states stay drawn, because the board draws both.
+  """
+  @spec leaving_action(map(), boolean()) :: map()
   def leaving_action(row, false) do
-    tap = {self(), String.to_atom("schedule_" <> row.title)}
+    tap = Kati.Screens.Discover.schedule_tap(row)
 
     ~MOB"""
     <Row
@@ -914,7 +1063,7 @@ defmodule Kati.Screens.Discover do
   end
 
   def leaving_action(row, true) do
-    tap = {self(), String.to_atom("schedule_" <> row.title)}
+    tap = Kati.Screens.Discover.schedule_tap(row)
 
     ~MOB"""
     <Row
@@ -966,14 +1115,14 @@ defmodule Kati.Screens.Discover do
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :chip, label)}
 
-      "schedule_" <> title ->
-        {:noreply,
-         Mob.Socket.update(socket, :scheduled, fn done ->
-           Kati.Screens.Discover.toggle(done, title)
-         end)}
-
       "add_" <> source_id ->
         {:noreply, Kati.Screens.Discover.add(socket, source_id)}
+
+      "open_tune" ->
+        {:noreply, Mob.Socket.assign(socket, :tune?, not socket.assigns.tune?)}
+
+      "seed_on_" <> source_id ->
+        {:noreply, Kati.Screens.Discover.reseed(socket, source_id)}
 
       _ ->
         {:noreply, socket}
@@ -1031,11 +1180,5 @@ defmodule Kati.Screens.Discover do
     Enum.map(picks, fn p ->
       if Map.get(p, :source_id) == source_id, do: Map.put(p, :added, true), else: p
     end)
-  end
-
-  @doc false
-  @spec toggle([String.t()], String.t()) :: [String.t()]
-  def toggle(list, title) do
-    if title in list, do: List.delete(list, title), else: [title | list]
   end
 end

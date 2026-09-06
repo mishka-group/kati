@@ -69,6 +69,100 @@ defmodule Kati.DiscoverFeedTest do
     end
   end
 
+  describe "the tune disc" do
+    test "offers every title with a name on it, newest first" do
+      _older = tracked!("arrival", "Arrival", :movie)
+      _newest = tracked!("severance", "Severance", :tv)
+
+      assert ["Severance", "Arrival"] =
+               Recommendations.seedable() |> Enum.map(fn {_t, c} -> c.title end)
+    end
+
+    test "and is not offered at all when there is nothing to choose between" do
+      tracked!("severance", "Severance", :tv)
+
+      refute Discover.tunable?(Discover.feed())
+      refute Discover.tunable?(Discover.Sample.feed())
+    end
+
+    test "is offered once the shelf holds two" do
+      tracked!("arrival", "Arrival", :movie)
+      tracked!("severance", "Severance", :tv)
+
+      assert Discover.tunable?(Discover.feed())
+    end
+
+    test "seeds the picks on the title you name, not the newest" do
+      tracked!("arrival", "Arrival", :movie)
+      tracked!("severance", "Severance", :tv)
+
+      assert {_tracked, cached} = Recommendations.seed(@prefix <> "arrival")
+      assert cached.title == "Arrival"
+    end
+
+    test "and falls back to the newest when the named title has gone" do
+      tracked!("severance", "Severance", :tv)
+
+      assert {_tracked, cached} = Recommendations.seed("no-such-title")
+      assert cached.title == "Severance"
+    end
+
+    test "pressing a title rebuilds the whole feed rather than swapping the heading" do
+      tracked!("arrival", "Arrival", :movie)
+      tracked!("severance", "Severance", :tv)
+
+      socket =
+        Discover
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:feed, Discover.feed())
+        |> Mob.Socket.assign(:chip, "For you")
+        |> Mob.Socket.assign(:scheduled, [])
+        |> Mob.Socket.assign(:tune?, true)
+        |> Mob.Socket.assign(:seed_id, @prefix <> "severance")
+        |> Mob.Socket.assign(:add_error, nil)
+
+      reseeded = Discover.reseed(socket, @prefix <> "arrival")
+
+      assert reseeded.assigns.feed.because =~ "Arrival"
+      assert reseeded.assigns.feed.seed_id == @prefix <> "arrival"
+      # The heading and the posters are one answer: a heading naming a show
+      # over picks fetched for another is exactly the substitution this app
+      # spends its moduledocs preventing.
+      assert reseeded.assigns.feed.picks == []
+      refute reseeded.assigns.tune?
+    end
+
+    test "the panel is drawn only while it is open" do
+      tracked!("arrival", "Arrival", :movie)
+      tracked!("severance", "Severance", :tv)
+
+      feed = Discover.feed()
+
+      refute inspect(Discover.tune_panel(feed, false), limit: :infinity) =~ "seed_on_"
+      assert inspect(Discover.tune_panel(feed, true), limit: :infinity) =~ "seed_on_"
+    end
+
+    test "and the disc is a picture over the board" do
+      drawn = inspect(Discover.header(Discover.Sample.feed(), false), limit: :infinity)
+
+      refute drawn =~ "open_tune"
+    end
+  end
+
+  describe "the Schedule button" do
+    test "is not tappable, in either state" do
+      # MOVIES-AND-TV.md #87. It was "the one working control on the page", and
+      # what it did was toggle a socket assign the next pop threw away. There
+      # is nothing to schedule against — `leaving` is `[]` on every real feed —
+      # so both drawn states are pictures now.
+      row = %{title: "Anything", line: "Leaving Lumen+ in 7 days", action: "Schedule"}
+
+      assert Discover.schedule_tap(row) == nil
+      refute inspect(Discover.leaving_action(row, false), limit: :infinity) =~ "schedule_"
+      refute inspect(Discover.leaving_action(row, true), limit: :infinity) =~ "schedule_"
+    end
+  end
+
   describe "the feed a real library gets" do
     setup do
       tracked!("severance", "Severance", :tv)
