@@ -91,6 +91,35 @@ defmodule Kati.Screens.YearShare do
     _error -> drawn_share()
   end
 
+  @doc """
+  `↑ 18%` beside the hours, or nothing at all.
+
+  `hours_face/1` has always answered `change: nil` for a first year — the
+  comment beside it says so, and cites #47: *a first year has no last year, and
+  `↑ 0%` is a claim*. The card drew it anyway, so a device with one year of
+  history put a green up-arrow beside the four letters `nil`. Found on the
+  Pixel_9a, which is the second time this round a `nil` has reached a `Text`
+  and been rendered as its own name.
+
+  The ARROW goes with it. It is not decoration around the number, it is the
+  direction — an up-arrow beside nothing is a claim about a rise that has not
+  been measured.
+  """
+  @spec change_pill(String.t() | nil) :: map()
+  def change_pill(nil), do: ~MOB"<Spacer size={0} />"
+
+  def change_pill(change) do
+    assigns = %{change: change}
+
+    ~MOB"""
+    <Row align="center">
+      <Spacer size={10} />
+      {Kati.UI.symbol("arrow_drop_up", size: 20, color: Palette.green_text())}
+      <Text text={@change} font_family="mono" text_size={13} text_color={Palette.green_text()} />
+    </Row>
+    """
+  end
+
   @doc "The drawing's card, whole — the state board 98 was captured in."
   @spec drawn_share() :: map()
   def drawn_share,
@@ -309,14 +338,7 @@ defmodule Kati.Screens.YearShare do
             letter_spacing={-0.035}
             text_color={:on_surface}
           />
-          <Spacer size={10} />
-          {Kati.UI.symbol("arrow_drop_up", size: 20, color: Palette.green_text())}
-          <Text
-            text={@hours.change}
-            font_family="mono"
-            text_size={13}
-            text_color={Palette.green_text()}
-          />
+          {Kati.Screens.YearShare.change_pill(@hours.change)}
           <Spacer weight={1.0} />
           <Text text={@hours.year} font_family="mono" text_size={12} text_color={Palette.muted()} />
         </Row>

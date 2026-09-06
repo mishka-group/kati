@@ -84,6 +84,31 @@ defmodule Kati.ShareCardScopeTest do
     end
   end
 
+  describe "the card" do
+    test "draws no `nil` where a first year has no change to report" do
+      # `hours_face/1` has always answered `change: nil` for a first year and
+      # the card drew it anyway, so a green up-arrow sat beside the four
+      # letters `nil`. Found on the Pixel_9a.
+      watch!(shelve!("Dune", :movie))
+
+      words =
+        %{scope: "All", hide_private: false, aspect: :aspect_square, share: YearShare.share()}
+        |> YearShare.content()
+        |> inspect(limit: :infinity, printable_limit: :infinity)
+
+      refute words =~ "\"nil\""
+    end
+
+    test "and the arrow goes with it, because an arrow is a direction" do
+      # An up-arrow beside nothing is a claim about a rise nobody measured.
+      absent = YearShare.change_pill(nil) |> inspect(limit: :infinity)
+      present = YearShare.change_pill("18%") |> inspect(limit: :infinity)
+
+      assert absent == inspect(%{type: :spacer, children: [], props: %{size: 0}})
+      assert present =~ "18%"
+    end
+  end
+
   describe "the ⋯ row that marks it" do
     test "draws a glyph Kati actually has, in both states" do
       # `visibility` is not in Kati's subset and `Kati.Icons.glyph!/1` raises
@@ -97,6 +122,21 @@ defmodule Kati.ShareCardScopeTest do
     test "says what pressing it does, both ways" do
       assert Kati.Screens.Film.private_label(%{private?: false}) == "Keep off shared cards"
       assert Kati.Screens.Film.private_label(%{private?: true}) == "Show on shared cards"
+    end
+
+    test "is on the series page too, because a series is as private as a film" do
+      tracked = shelve!("Tidewrack", :tv)
+
+      socket =
+        Kati.Screens.Series
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:series, Kati.Screens.Series.series(tracked.id))
+        |> Mob.Socket.assign(:menu?, true)
+
+      {:noreply, marked} = Kati.Screens.Series.handle_info({:tap, :toggle_private}, socket)
+
+      assert {:ok, %{private: true}} = Ash.get(TrackedTitle, tracked.id)
+      assert marked.assigns.series.private?
     end
 
     test "and writes the column" do

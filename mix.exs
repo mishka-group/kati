@@ -81,28 +81,51 @@ defmodule Kati.MixProject do
       {:req, "~> 0.7"},
       # Code quality — Credo + ex_slop (catches AI-generated patterns
       # like blanket rescue, narrator docs, redundant Enum chains, etc).
-      # Mishka Chelekom is a DEV-ONLY CLI that generates component source into
-      # lib/kati/components/. It is not a runtime dependency and never ships.
-      #
-      # A `path:` dep, not hex or git: priv/mob is excluded from the hex package
-      # so a hex dep cannot generate Mob components at all, and mishka's own
-      # mix.exs carries `path:` deps on ../igniter_js and ../igniter_css, so a
-      # `github:` dep cannot resolve either. The owner maintains the library, so
-      # a sibling checkout is the intended workflow rather than a workaround.
-      {:mishka_chelekom, path: "../mishka_chelekom", only: :dev, runtime: false},
-      # Only so igniter_js/igniter_css can build their NIFs from source, which
-      # mishka_chelekom requires and which have no published precompiled
-      # artifacts for the version it pins. Dev-only; never reaches the device.
-      {:rustler, ">= 0.0.0", only: :dev},
-      # Direct path deps ONLY so rustler is visible in the same tree when these
-      # force-build their NIFs. They are transitive deps of mishka_chelekom,
-      # which declares rustler dev-only — and a dependency's dev deps are not
-      # installed for the consumer, so igniter_js could not see it.
-      {:igniter_js, path: "../igniter_js", only: :dev, override: true},
-      {:igniter_css, path: "../igniter_css", only: :dev, override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false}
-    ]
+    ] ++ component_generator()
+  end
+
+  # Mishka Chelekom is a DEV-ONLY CLI that generates component source into
+  # `lib/kati/components/`. It is not a runtime dependency, it never ships, and
+  # what it produces is already in the tree — every module under
+  # `Kati.Components` is checked-in source, not something built at compile time.
+  #
+  # It is behind `KATI_UI_GEN` rather than plain `only: :dev`, and the reason is
+  # a real failure rather than tidiness. The deploy runs in DEV: `mix
+  # kati.e2e.stage` reads `MobDev.OtpDownloader` and `mix mob.deploy` is a
+  # dev-only task, so both force `MIX_ENV=dev`, and a dev compile builds every
+  # `only: :dev` dependency. On 6 September the generator's own tree stopped
+  # compiling — a Rust NIF with no published artifact for this machine's
+  # target — and took the deploy with it. A component generator must not be
+  # able to stop the app reaching a phone.
+  #
+  # So it is opt-in, one env var, at the one moment it is wanted:
+  #
+  #     KATI_UI_GEN=1 mix deps.get
+  #     KATI_UI_GEN=1 mix mishka.ui.gen.component pill
+  #
+  # `path:` deps rather than hex or git, and that has not changed: `priv/mob` is
+  # excluded from the hex package so a hex dep cannot generate Mob components at
+  # all, and mishka's own mix.exs carries `path:` deps on ../igniter_js and
+  # ../igniter_css, so a `github:` dep cannot resolve either. The owner
+  # maintains all three, so sibling checkouts are the intended workflow.
+  #
+  # `rustler` and the two igniter path deps come with it: they are mishka's
+  # transitive deps, and a dependency's dev deps are not installed for the
+  # consumer, so igniter_js could not otherwise see rustler when it builds its
+  # NIF from source.
+  defp component_generator do
+    if System.get_env("KATI_UI_GEN") in ["1", "true"] do
+      [
+        {:mishka_chelekom, path: "../mishka_chelekom", only: :dev, runtime: false},
+        {:rustler, ">= 0.0.0", only: :dev},
+        {:igniter_js, path: "../igniter_js", only: :dev, override: true},
+        {:igniter_css, path: "../igniter_css", only: :dev, override: true}
+      ]
+    else
+      []
+    end
   end
 
   defp aliases do

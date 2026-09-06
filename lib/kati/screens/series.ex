@@ -327,6 +327,7 @@ defmodule Kati.Screens.Series do
       # screen 25 is a page about, which nothing anywhere could set for one
       # title until the bookmark disc could (MOVIES-AND-TV.md #81).
       followed?: tracked.notify_new_episodes,
+      private?: tracked.private,
       genres: cached && cached.genres,
       season_count: nil,
       seasons: [%{number: tracked.progress_season || 1, name: nil, total: 0, episodes: []}],
@@ -354,6 +355,7 @@ defmodule Kati.Screens.Series do
       # different title from the one it is drawing.
       tracked_id: tracked.id,
       followed?: tracked.notify_new_episodes,
+      private?: tracked.private,
       genres: cached && cached.genres,
       # The inventory's count, never `length(numbers)` — see the moduledoc.
       season_count: CachedSeason.count(seasons),
@@ -510,6 +512,7 @@ defmodule Kati.Screens.Series do
       # bookmark disc reads it, and a disc that cannot tell whether it is on
       # is a disc that cannot be drawn filled.
       followed?: Map.get(facts, :followed?, false),
+      private?: Map.get(facts, :private?, false),
       title: facts.title || "Untitled",
       seed: facts.seed,
       meta: meta_line(facts),
@@ -707,7 +710,7 @@ defmodule Kati.Screens.Series do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Series.chrome(assigns.menu?, Map.get(assigns, :back, "Library"))}
+      {Kati.Screens.Series.chrome(assigns.menu?, Map.get(assigns, :back, "Library"), s)}
     </Box>
     """
   end
@@ -809,7 +812,7 @@ defmodule Kati.Screens.Series do
   # The floating chrome. `arrow_back_ios_new` rather than a chevron, because
   # that is the glyph the drawing names.
   @doc false
-  def chrome(menu?, label \\ "Library") do
+  def chrome(menu?, label \\ "Library", s \\ %{}) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     lift = "0 6 16 -8 #991A1917"
@@ -839,7 +842,7 @@ defmodule Kati.Screens.Series do
           />
         </Row>
         <Spacer weight={1.0} />
-        {Kati.Screens.Series.more_disc(fill, lift, menu?)}
+        {Kati.Screens.Series.more_disc(fill, lift, menu?, s)}
       </Row>
     </Box>
     """
@@ -859,7 +862,7 @@ defmodule Kati.Screens.Series do
   # inside a SQUARE `size x size` box, so a 42-tall pill 100-odd wide has no
   # shape to be built out of.
   @doc false
-  def more_disc(fill, lift, menu?) do
+  def more_disc(fill, lift, menu?, s \\ %{}) do
     trigger =
       MishkaActionIcon.action_icon(
         [
@@ -902,7 +905,15 @@ defmodule Kati.Screens.Series do
         # placeholder until 04 drew the gesture; the gesture is drawn, in
         # `rating_column/1`, one per episode, so the row's exit condition has
         # been met and the row is gone. You rate the episode you tapped.
-        Kati.UI.Menu.item("do_not_disturb_on", "Drop this show", :open_drop_sheet)
+        Kati.UI.Menu.item("do_not_disturb_on", "Drop this show", :open_drop_sheet),
+        # The same row screen 08 carries, for the same reason: a series is as
+        # private as a film, and screen 98's *Hide titles I marked private* has
+        # to be able to reach both or it is a switch about half a shelf.
+        Kati.UI.Menu.item(
+          Kati.Screens.Film.private_icon(s),
+          Kati.Screens.Film.private_label(s),
+          :toggle_private
+        )
       ],
       dismiss: :close_menu
     )
@@ -1423,6 +1434,28 @@ defmodule Kati.Screens.Series do
 
   def handle_info({:tap, :toggle_follow}, socket),
     do: {:noreply, Kati.Screens.Series.follow(socket)}
+
+  @doc """
+  Keep this show off a shared card, or put it back — screen 08's own write,
+  on the resource both pages share.
+  """
+  def handle_info({:tap, :toggle_private}, socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{private: not tracked.private})
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:series, %{s | private?: updated.private})}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
 
   # Before the `"rate_" <> index` clause below, and it has to be: `rate_title`
   # matches that prefix and `String.to_integer("title")` raises inside a tap
