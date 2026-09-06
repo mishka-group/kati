@@ -236,7 +236,13 @@ defmodule Kati.Screens.AddTitle do
        |> Mob.Socket.assign(:results, Sample.search_results())
        |> Mob.Socket.assign(:search_error, nil)}
     else
-      {:noreply, Kati.Screens.AddTitle.searched(socket, query)}
+      # NOT searched here. This handler runs on every keystroke, so searching
+      # from it made one TMDB request per letter — nine for `severance`, eight
+      # of them thrown away by the ninth. `Kati.Media.SearchDebounce` waits for
+      # the typing to stop and sends `{:search_ready, query}` back; the clause
+      # below decides whether that answer is still the one wanted.
+      Kati.Media.SearchDebounce.ask(self(), query)
+      {:noreply, socket}
     end
   end
 
@@ -253,6 +259,23 @@ defmodule Kati.Screens.AddTitle do
 
       _ ->
         {:noreply, socket}
+    end
+  end
+
+  # The debounce coming back. The query is searched only if it is still what
+  # the person has typed — see `Kati.Media.SearchDebounce` for why that
+  # comparison is the whole mechanism and needs no sequence number.
+  #
+  # Re-checked against the floor as well: `sev` can arrive after the field has
+  # been cleared back to `se`, and a request for a query the screen would now
+  # refuse to make is a request it should not make late either.
+  def handle_info({:search_ready, query}, socket) when is_binary(query) do
+    current = socket.assigns |> Map.get(:query, "") |> String.trim()
+
+    if query == current and String.length(query) >= @min_query do
+      {:noreply, Kati.Screens.AddTitle.searched(socket, query)}
+    else
+      {:noreply, socket}
     end
   end
 
