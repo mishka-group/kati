@@ -1139,11 +1139,12 @@ Route note: `routes.txt` lists **14, 34, 35, 144** as gallery-only. That is a sw
 ### 14 — Series metadata (`Kati.Screens.SeriesMeta`)
 
 **Route** 04 → ⋯ → *Show details*. `routes.txt` says gallery-only; the code says otherwise (see the route note).
-**Reads** nothing. `mount/3` is `Mob.Socket.assign(:series, Sample.series())` and the params are `_params` (`series_meta.ex:98-101`).
+**Reads** `Kati.Media.TrackedTitle` through `:shelf` and the `Kati.Media.CachedTitle` behind it, by the `:id` the push names (`series_meta.ex`). With nothing stored it answers `Sample.series()` whole, which is the state board 14 was captured in.
 **Writes** nothing.
 
-19. **I tap Show details on my show** — `[!] known broken — it always describes* The Long Hollow*.`
-    04 → ⋯ → *Show details*. Expect this series' synopsis, its ratings, its cast. Actual: a fixed page — three ratings, four faces with names and character names, *Where to watch* with prices, five tags. The screen is honest about why in its own moduledoc (no person resource, no offers resource, no tag-on-title), but the consequence on the device is a full page of confident, specific, wrong facts about whatever show you were just looking at. Even the four values that *are* expressible today — title, artwork, synopsis, your own rating — are not read.
+19. **I tap Show details on my show** — `[x] fixed 6 September` (`5915c2a`).
+    04 → ⋯ → *Show details*. The push now carries the row screen 04 is drawing, and the page reads it: the title, the still, the meta line and the synopsis are that show's. Verified on the Pixel_9a — Severance draws `Severance`, `DRAMA, MYSTERY, SCI-FI & FANTASY · 3 SEASONS · 19 EP`, its own backdrop and its own synopsis.
+    The cast, the two foreign ratings, *Where to watch* and the tags are `[]` on a real title and their headings go with them, because no resource behind them exists — the moduledoc lists all four. **Open:** what the page draws in the space they leave. See `design-briefs/D-63`.
 
 20. **I tap Trailer** — `[!] known broken — inert.` The 48pt ink primary button (`series_meta.ex:393-427`) has no `on_tap`. No video, no link, no column behind it.
 
@@ -2142,7 +2143,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 | 48 | 08 Film detail | `lies-to-user` | An untracked shelf tile opens a page titled 'Blue Hour' with a stranger's note and a fabricated £9.99 price, whatever the tile was captioned. |
 | 49 | 10 Up next | `lies-to-user` | With any real library the header counts are wrong and with a partly-real one the whole page reverts to fixtures. `queue/0` falls back to `Sample.queue/0` whole whenever there is no `:watching` row — so a user whose shows are all paused sees four invented titles and none of their own. And the fixture itself says "12 ready" over four rows and "Gone cold · 3" over one. |
 | 50 | 11 Discover | `lies-to-user` | Discover is a fixture end to end — no `Kati.Media` read anywhere — and it prints six specific claims about the user: "Tuned to 128 titles", "Because you watched The Long Hollow", three match percentages, three people the app has never heard of, and "Leaving Lumen+ in 7 days" for a service that may not be on the account. |
-| 51 | 14 Series metadata | `lies-to-user` | Show details always describes The Long Hollow — a fixed synopsis, three ratings, four named cast members with character names, priced Where-to-watch rows and five tags — regardless of which series' overflow menu opened it. The push carries no subject and the screen would ignore one. |
+| 51 | 14 Series metadata | `fixed 5915c2a` | ~~Show details always describes The Long Hollow — a fixed synopsis, three ratings, four named cast members with character names, priced Where-to-watch rows and five tags — regardless of which series' overflow menu opened it. The push carries no subject and the screen would ignore one.~~ Fixed 6 September: the push names the row and the page reads it; the four bands with no resource behind them are dropped rather than borrowed. |
 | 52 | 140 Import — where are you coming from (Kati.Screens.ImportSources) | `lies-to-user` | All six source tiles discard which source was tapped and push the same Goodreads books board, so Letterboxd, Trakt, MyAnimeList and AniList all land on a screen about books. |
 | 53 | 141 Import — recognised (Kati.Screens.ImportRecognised) | `lies-to-user` | 'Check the mapping' promises the nine columns it just counted and pushes a screen showing five columns of a different file. |
 | 54 | 145 Shelf filter sheet | `lies-to-user` | The sheet opens already filtered and announces a library of 418 titles on a phone that may hold two. |
@@ -2626,13 +2627,17 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Nothing here can be made true this round. The honest move is to stop drawing the picks and the people on a real device — keep only "Leaving" once an offers resource exists — or gate the whole screen behind a "not yet" state the way 96 argues for. A Discover tile on Library that opens three invented films is the app's most confident lie.
 
-### 51. 14 Series metadata — `lies-to-user`
+### 51. 14 Series metadata — `fixed 5915c2a`, 6 September
 
 **Show details always describes The Long Hollow — a fixed synopsis, three ratings, four named cast members with character names, priced Where-to-watch rows and five tags — regardless of which series' overflow menu opened it. The push carries no subject and the screen would ignore one.**
 
 *Proof.* lib/kati/screens/series_meta.ex:98-101 — `def mount(_params, _session, socket)` assigns `Sample.series()` unconditionally. series.ex:1135-1136 pushes it with no params. Four values the app can express today — title, artwork, Kati.Media.CachedTitle.overview and TrackedTitle.rating — are not read.
 
-*Fix.* Take :id from the push, read the CachedTitle, and draw title/artwork/synopsis from it; gate the cast, the two foreign ratings, Where-to-watch and tags as one absent block rather than shipping the fixture's.
+*Fixed.* Exactly as prescribed. `Kati.Screens.SeriesMeta.params_for/1` reads screen 04's `tracked_id`, `series/1` reads the shelf row and the cache behind it, and `shaped/2` fills the four expressible keys and empties the seven that are not. `band/4` drops a heading whose section is empty. `Kati.SeriesMetaSubjectTest` holds both halves — a real title is that title and does not borrow the fixture's cast; an empty store still draws the board whole.
+
+*One correction to the prescription.* `TrackedTitle.rating` is NOT drawn, so *Yours* is absent too. That column has no writer anywhere in the app — `Kati.Screens.Film.shaped/3` documents this at length — and the ratings this app does write are `Kati.Media.Watch.rating` against one episode, which is not the show's score. Three empty rating cards were the alternative and would have been the same defect at a third the size.
+
+*Left open.* The page is now honest and short: a still, a title, a meta line and a paragraph, then nothing. What fills the space the four dropped bands leave is a design question, not a data one — see `design-briefs/D-63`. Candidates the store can already answer: the tracked status, `runtime_minutes` as an episode length, `next_release_at` as the next airing, and the per-season episode counts screen 04 already reads.
 
 ### 52. 140 Import — where are you coming from (Kati.Screens.ImportSources) — `lies-to-user`
 
