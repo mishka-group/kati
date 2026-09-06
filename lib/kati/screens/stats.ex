@@ -36,13 +36,17 @@ defmodule Kati.Screens.Stats do
 
   **Still the drawing's own copy**, because the domain cannot say it yet:
 
-    * **Where the hours went.** `Kati.Media.CachedTitle.genres` is one free-text
-      column with no defined separator, written by nothing and read by nothing.
-      Splitting it here would be inventing a format and then reporting hours
-      against it.
     * **More numbers.** Four rows belonging to four other domains, and three of
       them — Habits, Nutrition, Subscriptions — have no resource at all. The
       card stays whole rather than having one real line among three stand-ins.
+
+  *Where the hours went* was in that list until 6 September, on the argument
+  that `Kati.Media.CachedTitle.genres` is *"one free-text column with no defined
+  separator, written by nothing and read by nothing"*. Two thirds of that had
+  gone stale: `Kati.Media.Tmdb.genres/1` writes it `", "`-separated, and screens
+  04 and 14 both read it back that way. It is `genre_bars/1` now — see there for
+  the one judgement it does make, which is that a watch counts in full towards
+  each genre it names.
 
   A watch with no date at all is real — *"I have seen this, I do not remember
   when"* is an answer `Kati.Media.Watch` deliberately allows — and it takes part
@@ -106,9 +110,6 @@ defmodule Kati.Screens.Stats do
   from a fresh install any more, and both are recorded here rather than quietly
   left:
 
-    * `Where the hours went` is `Kati.Stats.Sample.year/0`'s `breakdown` on every
-      device. `Kati.Media.CachedTitle.genres` is one free-text column with no
-      defined separator; deriving hours against it means inventing a format.
     * `More numbers`' second lines are `Kati.Stats.Sample.more_numbers/0` on
       every device. Three of the five domains have no resource at all.
   """
@@ -409,26 +410,7 @@ defmodule Kati.Screens.Stats do
               text_color={:on_surface}
             />
           </Column>
-          <Column padding_bottom={5}>
-            <Row
-              height={28}
-              corner_radius={14}
-              background={Palette.green_wash()}
-              padding_left={11}
-              padding_right={11}
-              align="center"
-            >
-              {Kati.Screens.Stats.arrow(year)}
-              <Spacer size={5} />
-              <Text
-                text={year.change}
-                font_family="mono"
-                text_size={11.5}
-                font_weight="medium"
-                text_color={Palette.green_text()}
-              />
-            </Row>
-          </Column>
+          {Kati.Screens.Stats.change_pill(year)}
         </Row>
         <Spacer size={18} />
         {Kati.Screens.Stats.grid(grid)}
@@ -471,10 +453,64 @@ defmodule Kati.Screens.Stats do
   # was a tofu box waiting to happen.
   @spec arrow(map()) :: map()
   def arrow(%{rising?: false}),
-    do: Kati.UI.symbol("arrow_downward", size: 14, color: Palette.green_text(), fill: true)
+    do: Kati.UI.symbol("arrow_downward", size: 14, color: Palette.red(), fill: true)
 
   def arrow(_year),
     do: Kati.UI.symbol("arrow_drop_up", size: 14, color: Palette.green_text(), fill: true)
+
+  @doc """
+  The pill beside *Time watched*, when there is something to compare with.
+
+  Two halves of MOVIES-AND-TV.md #47, and they are different mistakes.
+
+  **A first year has no last year.** `change/2` answered `0` for a prior year
+  of zero minutes, so a device whose history begins today drew `↑ 0%` in green
+  — a claim of *level with last year* about a year that does not exist. It
+  answers `nil` now and this draws nothing at all: the headline stands on its
+  own, which is what it is.
+
+  **A year that fell was green.** The arrow had a falling branch and the
+  colours did not: both the glyph and the number were `green_text` on a
+  `green_wash` ground whatever the direction, so watching less than last year
+  was congratulated. Down is `Palette.red/0` on `red_wash`, which is the pair
+  this app already uses for a figure going the wrong way.
+
+  The drawn year rises, so board 07 is unchanged.
+  """
+  @spec change_pill(map()) :: map()
+  def change_pill(%{change: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def change_pill(year) do
+    assigns = %{
+      year: year,
+      arrow: arrow(year),
+      ground: if(year.rising?, do: Palette.green_wash(), else: Palette.red_wash()),
+      ink: if(year.rising?, do: Palette.green_text(), else: Palette.red())
+    }
+
+    ~MOB"""
+    <Column padding_bottom={5}>
+      <Row
+        height={28}
+        corner_radius={14}
+        background={@ground}
+        padding_left={11}
+        padding_right={11}
+        align="center"
+      >
+        {@arrow}
+        <Spacer size={5} />
+        <Text
+          text={@year.change}
+          font_family="mono"
+          text_size={11.5}
+          font_weight="medium"
+          text_color={@ink}
+        />
+      </Row>
+    </Column>
+    """
+  end
 
   # 26 columns per row, one per week. 26*8 + 25*4 = 308, inside the 360 the
   # gutters leave, which is why the design's wrap lands on 26 as well.
@@ -633,7 +669,11 @@ defmodule Kati.Screens.Stats do
   """
   @spec more_numbers(boolean()) :: map()
   def more_numbers(counted?) do
-    rows = Enum.reject(Kati.Stats.Sample.more_numbers(), &(&1.title == "Recently watched"))
+    rows =
+      Kati.Stats.Sample.more_numbers()
+      |> Enum.reject(&(&1.title == "Recently watched"))
+      |> Enum.map(&entries_line/1)
+
     last = length(rows) - 1
 
     ~MOB"""
@@ -650,6 +690,38 @@ defmodule Kati.Screens.Stats do
       {rows |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Stats.number_row(row, i < last, counted?) end)}
     </Column>
     """
+  end
+
+  # The one row of the five whose second line this app can actually answer.
+  #
+  # `1,204 entries` was `Kati.Stats.Sample`'s on every device — a specific claim
+  # about the reader's own history, of exactly the kind #91 and MOVIES-AND-TV.md
+  # #45 are about, sitting on a phone that may hold four watches. Activity is a
+  # `Kati.Media.Watch` count and nothing else, so it is counted.
+  #
+  # The other four stay the drawing's, and the moduledoc's reason stands for
+  # them: Habits, Nutrition and Money have no resource behind them at all, and a
+  # card with one real line among three stand-ins would be harder to read as a
+  # stand-in card than one that is wholly frozen. What changes here is that the
+  # line the app CAN answer is no longer among the frozen ones.
+  defp entries_line(%{title: "Activity log"} = row) do
+    %{row | sub: Kati.Screens.Stats.entries_count()}
+  end
+
+  defp entries_line(row), do: row
+
+  @doc """
+  How many watches there are, in `Kati.Screens.Activity`'s own words.
+
+  Counted through `Ash` rather than `count(*)`, because `[]` from Ash is the
+  claim the screens depend on. A store that cannot be read at all answers the
+  empty wording rather than raising: this is a subtitle on a settings row.
+  """
+  @spec entries_count() :: String.t()
+  def entries_count do
+    Watch |> Ash.read!() |> length() |> Kati.Screens.Activity.entries_line()
+  rescue
+    _error -> Kati.Screens.Activity.entries_line(0)
   end
 
   @doc false
@@ -878,18 +950,19 @@ defmodule Kati.Screens.Stats do
       |> Ash.read!()
 
     cache = cache_for(watches)
+    runtimes = runtimes_for(watches)
     zone = Kati.Time.device_zone()
 
     watches
     |> Enum.reject(&is_nil(&1.tracked_title))
-    |> Enum.map(&entry(&1, cache, zone))
+    |> Enum.map(&entry(&1, cache, runtimes, zone))
   rescue
     # A stats screen is not worth a crash: off device, or before the repo is
     # up, there is no history and the drawing stands in for it.
     _ -> []
   end
 
-  defp entry(watch, cache, zone) do
+  defp entry(watch, cache, runtimes, zone) do
     tracked = watch.tracked_title
     cached = Map.get(cache, {tracked.source, tracked.source_id})
 
@@ -897,8 +970,17 @@ defmodule Kati.Screens.Stats do
       tracked_id: tracked.id,
       on: watched_on(watch, zone),
       at: watch.watched_at,
-      minutes: cached && cached.runtime_minutes,
+      # The EPISODE's runtime for an episode tick, and the title's for a film.
+      # This read the title's for both, and TMDB puts a series' duration on
+      # each episode — `/tv/{id}` answers `episode_run_time` and not `runtime`,
+      # so `Kati.Media.CachedTitle.runtime_minutes` is `nil` for every series
+      # in the store. *Time watched* therefore read `0h 0m` however many
+      # episodes somebody ticked. MOVIES-AND-TV.md #18.
+      minutes: Map.get(runtimes, watch.episode_source_id) || (cached && cached.runtime_minutes),
       kind: tracked.kind,
+      # For `breakdown/1`. The title's, because a genre is a property of the
+      # show rather than of one night of it.
+      genres: cached && cached.genres,
       title: cached && cached.title,
       seed: cached && cached.poster_path,
       season: watch.season_number,
@@ -924,6 +1006,33 @@ defmodule Kati.Screens.Stats do
 
   defp watched_on(%Watch{watched_at: at}, zone),
     do: at |> Kati.Time.in_zone(zone) |> DateTime.to_date()
+
+  # `%{episode_source_id => runtime_minutes}` for every episode a tick names.
+  # One query for the whole history, the shape `cache_for/1` already uses, and
+  # an episode with no runtime is simply absent — `entry/4` falls through to
+  # the title's, which is right for a film and `nil` for a series nobody has
+  # runtimes for.
+  defp runtimes_for(watches) do
+    ids =
+      watches
+      |> Enum.map(& &1.episode_source_id)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    case ids do
+      [] ->
+        %{}
+
+      ids ->
+        Kati.Media.CachedEpisode
+        |> Ash.Query.filter(source_id in ^ids)
+        |> Ash.read!()
+        |> Enum.reject(&is_nil(&1.runtime_minutes))
+        |> Map.new(&{&1.source_id, &1.runtime_minutes})
+    end
+  rescue
+    _error -> %{}
+  end
 
   defp cache_for([]), do: %{}
 
@@ -956,15 +1065,98 @@ defmodule Kati.Screens.Stats do
     %{
       range: range(today),
       time: hours_and_minutes(minutes),
-      change: "#{abs(change)}%",
-      rising?: change >= 0,
+      change: change && "#{abs(change)}%",
+      rising?: is_nil(change) or change >= 0,
       weeks: @weeks,
       streak: streak(this),
       counts: count_cards(this),
-      # Not derivable — see the moduledoc. The drawing's own bars.
-      breakdown: Sample.year().breakdown
+      breakdown: genre_bars(this)
     }
   end
+
+  # The genre bars, from the genres the provider actually gave.
+  #
+  # This was `Kati.Stats.Sample.year/0`'s five frozen bars on every device, and
+  # the moduledoc's reason was that `Kati.Media.CachedTitle.genres` is *"one
+  # free-text column with no defined separator, written by nothing and read by
+  # nothing"*. Two thirds of that went stale: `Kati.Media.Tmdb.genres/1` writes
+  # it, `", "`-separated, and screens 04 and 14 both read it back that way. So
+  # the separator is defined, by the only writer there is.
+  #
+  # What is still true is that a title has SEVERAL genres and one duration, and
+  # there is no honest way to divide ninety minutes between *Drama* and
+  # *Mystery*. So a watch counts in full towards each genre it names — the
+  # question the band asks is *where did the hours go*, and an hour of a
+  # drama-mystery went to both — and the bars are scaled against the largest
+  # rather than against a total that would then exceed the year. The value
+  # under each is the hours themselves, so the arithmetic is visible rather
+  # than implied.
+  #
+  # Five bars, because the drawing has five: the top four by hours and
+  # `Everything else` for the rest, which is exactly what board 07 draws.
+  # MOVIES-AND-TV.md #45.
+  # The drawing's five, named rather than written out — `Kati.Theme.PaletteTest`
+  # is right that a hex in a screen is a colour that cannot follow the mode, and
+  # these five have to, because the bars sit on a card. Functions rather than a
+  # module attribute for the same reason: the palette resolves at call time.
+  defp genre_colours,
+    do: [Palette.ink(), Palette.green(), Palette.accent(), Palette.bronze()]
+
+  defp rest_colour, do: Palette.rail_idle()
+
+  defp genre_bars([]), do: []
+
+  defp genre_bars(entries) do
+    by_genre =
+      entries
+      |> Enum.flat_map(fn entry ->
+        Enum.map(genres_of(entry), &{&1, entry.minutes || 0})
+      end)
+      |> Enum.reduce(%{}, fn {genre, minutes}, acc ->
+        Map.update(acc, genre, minutes, &(&1 + minutes))
+      end)
+      |> Enum.sort_by(fn {genre, minutes} -> {-minutes, genre} end)
+
+    case by_genre do
+      [] -> []
+      ranked -> bars(ranked)
+    end
+  end
+
+  defp bars(ranked) do
+    colours = genre_colours()
+    {top, rest} = Enum.split(ranked, length(colours))
+    top_minutes = Enum.map(top, &elem(&1, 1))
+    rest_minutes = Enum.sum(Enum.map(rest, &elem(&1, 1)))
+    largest = Enum.max([rest_minutes | top_minutes])
+
+    named =
+      top
+      |> Enum.zip(colours)
+      |> Enum.map(fn {{genre, minutes}, colour} -> bar_row(genre, minutes, largest, colour) end)
+
+    if rest == [],
+      do: named,
+      else: named ++ [bar_row("Everything else", rest_minutes, largest, rest_colour())]
+  end
+
+  defp bar_row(name, minutes, largest, colour) do
+    fraction = if largest > 0, do: minutes / largest, else: 0.0
+
+    {name, Float.round(fraction, 2), "#{div(minutes, 60)}h", colour}
+  end
+
+  # `Drama, Mystery, Sci-Fi & Fantasy` as it is stored, split on the separator
+  # its only writer uses. A title with no genres takes part in no bar rather
+  # than becoming an `Unknown` one, which would be a genre nobody named.
+  defp genres_of(%{genres: genres}) when is_binary(genres) and genres != "" do
+    genres
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp genres_of(_entry), do: []
 
   defp in_year?(%{on: %Date{} = on}, year), do: on.year == year
   defp in_year?(_entry, _year), do: false
@@ -980,7 +1172,12 @@ defmodule Kati.Screens.Stats do
 
   # A first year has nothing to be up on. Reporting that as 100% rather than as
   # a division by zero, and as 0% when there is nothing either side.
-  defp change(_now, 0), do: 0
+  # `nil` and not `0` when there is nothing to compare with. A first year has no
+  # last year, and `0%` beside a green up arrow is a claim that this year is
+  # level with one that does not exist — the pill said *unchanged* to somebody
+  # whose history begins today. MOVIES-AND-TV.md #47. `change_pill/1` draws
+  # nothing for `nil`.
+  defp change(_now, 0), do: nil
   defp change(now, before), do: round((now - before) / before * 100)
 
   # Distinct TITLES, not ticks: a series watched every week of the year is one

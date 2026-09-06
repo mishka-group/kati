@@ -257,9 +257,15 @@ defmodule Kati.ScreenStatsEmptyTest do
     test "and the `More numbers` second lines come back with it" do
       words = text(tree(mount_screen(Stats)))
 
-      for row <- Sample.more_numbers(), row.title != "Recently watched" do
+      for row <- Sample.more_numbers(),
+          row.title not in ["Recently watched", "Activity log"] do
         assert words =~ row.sub
       end
+
+      # The Activity row is counted rather than frozen — one watch is written
+      # in this block's setup, and `1,204 entries` was what every device saw.
+      assert words =~ "1 entry"
+      refute words =~ "1,204 entries"
     end
   end
 

@@ -27,11 +27,16 @@ defmodule Kati.ScreenStatsTest do
 
   ## What is deliberately still the drawing's
 
-  `Where the hours went` and `More numbers` are asserted to be *unchanged* from
-  `Kati.Stats.Sample`, because they are stand-ins and the screen says so. That
-  is a real assertion: it fails the day someone wires a genre breakdown to
-  `CachedTitle.genres`, which is the free-text column the moduledoc refuses to
-  parse, and it fails without anyone having to remember to come back here.
+  `More numbers` is asserted to be *unchanged* from `Kati.Stats.Sample`,
+  because three of its five domains have no resource at all and the card stays
+  whole rather than having one real line among three stand-ins.
+
+  `Where the hours went` was in that sentence until 6 September, and the
+  assertion did exactly what it was written to do: it failed the day the
+  breakdown was wired to `CachedTitle.genres`. The moduledoc's reason for
+  refusing that column — *no defined separator, written by nothing* — had gone
+  stale: `Kati.Media.Tmdb.genres/1` writes it `", "`-separated and screens 04
+  and 14 read it back that way. MOVIES-AND-TV.md #45.
 
   ## Where the empty history went
 
@@ -204,17 +209,54 @@ defmodule Kati.ScreenStatsTest do
       assert Stats.figures()[:recent] == Stats.recent()
     end
 
-    test "keeps the breakdown and More numbers as the drawing's own" do
-      # Both are stand-ins for domains that do not exist. When one of them
-      # starts reading a domain, this is where that shows up.
-      assert Stats.figures()[:year].breakdown == Sample.year().breakdown
+    test "counts the hours against the genres the provider gave" do
+      bars = Stats.figures()[:year].breakdown
 
+      # Two of the three titles carry genres and the third carries none, which
+      # is the ordinary mixture. A watch counts in full towards each genre it
+      # names — there is no honest way to divide ninety minutes between Drama
+      # and Mystery — so Drama holds both films' and Mystery only one's.
+      assert [{"Drama", _, _, _} | _] = bars
+
+      names = Enum.map(bars, &elem(&1, 0))
+      assert "Mystery" in names
+
+      refute bars == Sample.year().breakdown,
+             "the drawing's five frozen bars are still being shipped to a device"
+
+      refute "Documentary" in names, "a genre nobody watched is on the card"
+      refute "Comedy" in names
+    end
+
+    test "and a title with no genres takes part in no bar" do
+      names = Enum.map(Stats.figures()[:year].breakdown, &elem(&1, 0))
+
+      # `Marram` has none. An `Unknown` bar would be a genre nobody named.
+      refute "Unknown" in names
+      refute "" in names
+    end
+
+    test "keeps the four More numbers rows nothing can answer as the drawing's own" do
       words = text(tree(mount_screen(Stats)))
 
-      for row <- Sample.more_numbers(), row.title != "Recently watched" do
+      # Habits, Nutrition, Goals and Money. Three of those domains have no
+      # resource at all, and the card would be harder to read as a stand-in
+      # card with one real line among three stand-ins than wholly frozen.
+      for row <- Sample.more_numbers(),
+          row.title not in ["Recently watched", "Activity log"] do
         assert words =~ row.title
         assert words =~ row.sub
       end
+    end
+
+    test "and counts the Activity row, which is the one it can" do
+      words = text(tree(mount_screen(Stats)))
+
+      # Five watches are written in this block's setup.
+      assert words =~ "5 entries"
+
+      refute words =~ "1,204 entries",
+             "screen 07 is still telling this reader they have 1,204 entries"
     end
 
     test "renders the computed figures, and none of the drawn ones" do
@@ -296,9 +338,9 @@ defmodule Kati.ScreenStatsTest do
   defp seed_history(_context) do
     today = Kati.Time.today()
 
-    hollow = title!("The Long Hollow", :tv, "hollow71", 47, 9)
-    blue = title!("Blue Hour", :movie, "bluehour58", 112, 8)
-    marram = title!("Marram", :tv, "marram15", 50, 8)
+    hollow = title!("The Long Hollow", :tv, "hollow71", 47, 9, "Drama, Mystery")
+    blue = title!("Blue Hour", :movie, "bluehour58", 112, 8, "Drama")
+    marram = title!("Marram", :tv, "marram15", 50, 8, nil)
 
     watch!(hollow, %{
       season_number: 2,
@@ -340,7 +382,7 @@ defmodule Kati.ScreenStatsTest do
     :ok
   end
 
-  defp title!(title, kind, seed, runtime, rating) do
+  defp title!(title, kind, seed, runtime, rating, genres \\ nil) do
     source_id = "stats:#{System.unique_integer([:positive])}"
 
     CachedTitle
@@ -353,6 +395,7 @@ defmodule Kati.ScreenStatsTest do
       # the artwork through `Kati.Design.Images.poster/1`.
       poster_path: seed,
       runtime_minutes: runtime,
+      genres: genres,
       fetched_at: Kati.Time.now()
     })
     |> Ash.create!()

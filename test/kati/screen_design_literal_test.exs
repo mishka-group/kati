@@ -573,7 +573,16 @@ defmodule Kati.ScreenDesignLiteralTest do
       # with nothing stored, exactly as 139 is 01 with nothing stored, and 01's
       # pair is already here for that reason. Each pins today's Shamsi day, so
       # a screen that hardcoded the board's ۲۵ مرداد ۱۴۰۵ still fails.
-      assert length(device_values()) <= 37,
+      # Raised to 38 on 6 September for screen 07's Activity row. Board 07
+      # froze `1,204 entries` and the row is now a count of
+      # `Kati.Media.Watch` — MOVIES-AND-TV.md #45's neighbour, and the same
+      # class as 02's month title: not checking less, because the pattern
+      # insists on a plural the screen builds rather than accepting anything,
+      # and a screen that hardcoded the board's figure would fail on every
+      # device that has not watched exactly 1,204 things. Both ends of the
+      # range — none, one, many — are asserted in `Kati.ScreenStatsTest` and
+      # `Kati.ScreenStatsEmptyTest`.
+      assert length(device_values()) <= 38,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -614,6 +623,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"01", "sunday · 16 august",
        "Home's eyebrow is `Kati.Screens.Home.today/0`, which formats `Kati.Time.now/0`",
        ~r/^\p{L}+ · #{day} \p{L}+$/u},
+      # 07's Activity row. Board 07 froze `1,204 entries` and the row counts
+      # `Kati.Media.Watch` now, which on this file's store is none. It is
+      # `Kati.Screens.Activity.entries_line/1`'s wording either way, and both
+      # ends of the range are asserted in `Kati.ScreenStatsTest` and
+      # `Kati.ScreenStatsEmptyTest`.
+      {"07", "1,204 entries",
+       "the size of the reader's own history, which board 07 froze at 1,204 and " <>
+         "`Kati.Screens.Stats.entries_count/0` now counts",
+       ~r/^(\p{N}[\p{N},]* entries|1 entry|nothing logged yet)$/u},
       {"01", "good evening",
        "the greeting is picked from the device clock's hour by the same function. Which of " <>
          "the three it is belongs to `Kati.Screens.Home.today/0`; restating its thresholds " <>

@@ -777,11 +777,30 @@ defmodule Kati.Screens.Activity do
     Integer.to_string(n) <> suffix
   end
 
-  # "1,204 entries". Grouped by hand rather than through `Kati.Cldr` because
-  # the drawing's line is ASCII digits and a locale switch would silently turn
-  # it into Persian ones — the Persian mirrors are their own screens.
-  defp entries_line(1), do: "1 entry"
-  defp entries_line(n), do: delimited(n) <> " entries"
+  @doc """
+  `1,204 entries`, `1 entry`, or `nothing logged yet`.
+
+  Grouped by hand rather than through `Kati.Cldr` because the drawing's line is
+  ASCII digits and a locale switch would silently turn it into Persian ones —
+  the Persian mirrors are their own screens.
+
+  Public because screen 07's *More numbers* draws the same sentence about the
+  same rows, and drew `Kati.Stats.Sample`'s frozen `1,204 entries` on every
+  device until 6 September. One wording, one place.
+
+      iex> Kati.Screens.Activity.entries_line(0)
+      "nothing logged yet"
+
+      iex> Kati.Screens.Activity.entries_line(1)
+      "1 entry"
+
+      iex> Kati.Screens.Activity.entries_line(1204)
+      "1,204 entries"
+  """
+  @spec entries_line(non_neg_integer()) :: String.t()
+  def entries_line(0), do: "nothing logged yet"
+  def entries_line(1), do: "1 entry"
+  def entries_line(n), do: delimited(n) <> " entries"
 
   defp delimited(n) do
     n

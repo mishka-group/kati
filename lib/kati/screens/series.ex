@@ -371,6 +371,10 @@ defmodule Kati.Screens.Series do
 
     %{
       number: episode.episode_number,
+      # Which season this episode belongs to, off the cached row rather than
+      # off the strip's label — the label is `S2` and this is `2`, and a
+      # provider's specials sit in season 0.
+      season: episode.season_number,
       title: episode.title,
       runtime: episode.runtime_minutes,
       air: air,
@@ -498,7 +502,16 @@ defmodule Kati.Screens.Series do
       #
       # `Map.get/2` rather than a dot: the drawing's episodes have no such key
       # and must keep reaching that refusing clause rather than raising here.
-      source_id: Map.get(episode, :source_id)
+      source_id: Map.get(episode, :source_id),
+      # The other three that are not for drawing, and that were dropped here
+      # for the same reason `source_id` was. `Kati.Media.Watch` has columns for
+      # the season and the episode number and nothing wrote them, so screen 07
+      # labelled every tick `SERIES` where board 07 draws `S2 E5`
+      # (MOVIES-AND-TV.md #46) — and `Time watched` read `0h 0m` however many
+      # episodes were ticked, because it looked for a runtime on the TITLE and
+      # TMDB puts a series' runtime on each EPISODE (#18).
+      season: Map.get(episode, :season),
+      runtime: Map.get(episode, :runtime)
     }
   end
 
@@ -1553,7 +1566,7 @@ defmodule Kati.Screens.Series do
   def write_tick(tracked_id, %{source_id: nil}) when is_binary(tracked_id),
     do: {:error, :no_episode_id}
 
-  def write_tick(tracked_id, %{source_id: source_id, watched: watched?}) do
+  def write_tick(tracked_id, %{source_id: source_id, watched: watched?} = episode) do
     if watched? do
       Kati.Media.Watch
       |> Ash.Query.for_read(:for_episode, %{
@@ -1569,6 +1582,13 @@ defmodule Kati.Screens.Series do
       |> Ash.Changeset.for_create(:create, %{
         tracked_title_id: tracked_id,
         episode_source_id: source_id,
+        # Which episode, in words a person recognises. The columns have always
+        # existed and nothing wrote them, so every tick was anonymous once it
+        # left this screen: `Kati.Screens.Stats` had `S2 E5` to draw and no
+        # numbers to draw it from. `Map.get/2` because the drawing's episodes
+        # carry neither and are refused above anyway.
+        season_number: Map.get(episode, :season),
+        episode_number: Map.get(episode, :n) || Map.get(episode, :number),
         # `Kati.Time` and not `DateTime.utc_now/0`: a tick is stamped in the
         # device's zone, which is what `Kati.ScreenDateTest` enforces and what
         # makes "watched today" mean the user's today rather than UTC's.
