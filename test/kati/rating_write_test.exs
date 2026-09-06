@@ -125,7 +125,7 @@ defmodule Kati.RatingWriteTest do
 
     test "the review is a field a device test can address" do
       a_logged_watch!()
-      tree = tree(mount_screen(Rating))
+      tree = tree(mount_rating())
 
       # Without an `accessibility_id` the bridge's `K-35 test-tag` fence has
       # nothing to hang a `testTag` on — `Mob.Renderer` emits one for an atom
@@ -149,13 +149,13 @@ defmodule Kati.RatingWriteTest do
     # reached from a test without editing the module, so what is pinned here is
     # the invariant either branch has to satisfy: no id beside the drawing.
     test "no sheet showing the drawing carries a row to commit it to" do
-      empty = mount_screen(Rating)
+      empty = mount_rating()
 
       assert assigns(empty).watch == Rating.drawn_watch()
       assert assigns(empty).watch_id == nil
 
       a_logged_watch!()
-      real = mount_screen(Rating)
+      real = mount_rating()
 
       assert assigns(real).watch_id != nil
       assert assigns(real).watch != Rating.drawn_watch()
@@ -177,7 +177,7 @@ defmodule Kati.RatingWriteTest do
       a_logged_watch!()
       assert only_watch!().rating == nil
 
-      view = mount_screen(Rating)
+      view = mount_rating()
       view = render_info(view, {:tap, Rating.star_tag(7)})
       view = render_info(view, {:tap, :save})
 
@@ -193,8 +193,7 @@ defmodule Kati.RatingWriteTest do
       a_logged_watch!()
 
       view =
-        Rating
-        |> mount_screen()
+        mount_rating()
         |> render_info({:tap, Rating.star_tag(10)})
         |> render_info({:tap, :save})
 
@@ -206,8 +205,7 @@ defmodule Kati.RatingWriteTest do
       a_logged_watch!()
 
       for point <- 1..10 do
-        Rating
-        |> mount_screen()
+        mount_rating()
         |> render_info({:tap, Rating.star_tag(point)})
         |> render_info({:tap, :save})
 
@@ -221,8 +219,7 @@ defmodule Kati.RatingWriteTest do
       a_logged_watch!()
       typed = "The estuary scenes land differently the second time."
 
-      Rating
-      |> mount_screen()
+      mount_rating()
       |> render_info({:change, :review, typed})
       |> render_info({:tap, :save})
 
@@ -232,8 +229,7 @@ defmodule Kati.RatingWriteTest do
     test "a review of nothing but whitespace is stored as nothing" do
       a_logged_watch!()
 
-      Rating
-      |> mount_screen()
+      mount_rating()
       |> render_info({:change, :review, "   "})
       |> render_info({:tap, :save})
 
@@ -247,8 +243,7 @@ defmodule Kati.RatingWriteTest do
       a_logged_watch!()
 
       view =
-        Rating
-        |> mount_screen()
+        mount_rating()
         |> render_info({:change, :review, "Six.."})
 
       assert assigns(view).watch.characters == "5 characters"
@@ -259,8 +254,7 @@ defmodule Kati.RatingWriteTest do
     test "two ratings on one night leave one watch, carrying the later value" do
       a_logged_watch!()
 
-      Rating
-      |> mount_screen()
+      mount_rating()
       |> render_info({:tap, Rating.star_tag(4)})
       |> render_info({:tap, :save})
 
@@ -268,8 +262,7 @@ defmodule Kati.RatingWriteTest do
 
       # A fresh mount, because the first save closed the sheet. This is the
       # user changing their mind: reopen the log, tap a different star, save.
-      Rating
-      |> mount_screen()
+      mount_rating()
       |> render_info({:tap, Rating.star_tag(9)})
       |> render_info({:tap, :save})
 
@@ -282,7 +275,7 @@ defmodule Kati.RatingWriteTest do
     test "saving twice without changing anything is still one watch" do
       a_logged_watch!()
 
-      view = mount_screen(Rating)
+      view = mount_rating()
       view = render_info(view, {:tap, Rating.star_tag(6)})
       view = render_info(view, {:tap, :save})
       _view = render_info(view, {:tap, :save})
@@ -294,8 +287,7 @@ defmodule Kati.RatingWriteTest do
     test "a rating does not take the review with it, and a review does not take the rating" do
       a_logged_watch!()
 
-      Rating
-      |> mount_screen()
+      mount_rating()
       |> render_info({:tap, Rating.star_tag(8)})
       |> render_info({:tap, :save})
 
@@ -315,7 +307,7 @@ defmodule Kati.RatingWriteTest do
       # file the drawing under the user's own log, so the write refuses.
       assert Rating.logged_record() == nil
 
-      view = mount_screen(Rating)
+      view = mount_rating()
       view = render_info(view, {:tap, Rating.star_tag(9)})
       view = render_info(view, {:tap, :save})
 
@@ -331,7 +323,7 @@ defmodule Kati.RatingWriteTest do
     test "a row that has gone leaves the sheet up with the draft still on it" do
       a_logged_watch!()
 
-      view = mount_screen(Rating)
+      view = mount_rating()
       view = render_info(view, {:tap, Rating.star_tag(5)})
       view = render_info(view, {:change, :review, "Still typed."})
 
@@ -355,7 +347,7 @@ defmodule Kati.RatingWriteTest do
     end
 
     test "the notice goes away once a save lands" do
-      view = mount_screen(Rating)
+      view = mount_rating()
       view = render_info(view, {:tap, :save})
       assert assigns(view).save_error != nil
 
@@ -364,13 +356,34 @@ defmodule Kati.RatingWriteTest do
       a_logged_watch!()
 
       view =
-        Rating
-        |> mount_screen()
+        mount_rating()
         |> render_info({:tap, Rating.star_tag(2)})
         |> render_info({:tap, :save})
 
       assert assigns(view).save_error == nil
       assert only_watch!().rating == 2
     end
+  end
+
+  # The subject. `newest_log/1` ran its query UNNARROWED when the push named
+  # nothing, so a sheet opened with no subject drew the newest rated watch
+  # anywhere in the library — somebody else's film, with a Save that would then
+  # edit that row. MOVIES-AND-TV.md #68. It answers `nil` now and the sheet
+  # falls to its drawing, so every test that wants a real sheet has to name the
+  # title, which is what screen 08's door already does through
+  # `Kati.Screens.Rating.params_for/1`.
+  #
+  # `nil` before anything is written is exactly right: that mount IS the
+  # drawing, which is what the first half of the `no id beside the drawing`
+  # test asserts.
+  defp mount_rating do
+    mount_screen(Rating, %{tracked_title_id: tracked_id()})
+  end
+
+  defp tracked_id do
+    Kati.Media.TrackedTitle
+    |> Ash.read!()
+    |> List.first()
+    |> then(&(&1 && &1.id))
   end
 end

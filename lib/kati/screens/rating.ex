@@ -315,9 +315,13 @@ defmodule Kati.Screens.Rating do
   `Kati.Screens.Film.film/0` gives: a page whose review is the user's own and
   whose title is somebody else's film reads as entirely real. Either every value
   on it is this watch's or every value is the drawing's.
+
+  `title_id` is the title the push named. Without one there is no subject and
+  the answer is the drawing — see `newest_log/1`, which used to run the query
+  unnarrowed and hand back the newest rated watch anywhere in the library.
   """
-  @spec watch() :: map()
-  def watch, do: shaped_or_drawn(logged_record())
+  @spec watch(String.t() | nil) :: map()
+  def watch(title_id \\ nil), do: shaped_or_drawn(logged_record(title_id))
 
   @doc """
   Screen 33 exactly as it is drawn, from `Kati.Rating.Sample`.
@@ -477,6 +481,19 @@ defmodule Kati.Screens.Rating do
   # night the log is about; `inserted_at` behind it so a watch recorded with no
   # instant ("I have seen this, I do not remember when") still orders by when it
   # was written down rather than arbitrarily.
+  # A push that named nothing gets NOTHING, and the sheet falls to its drawing.
+  #
+  # It used to run the query unnarrowed, so a sheet opened without a subject
+  # showed the newest rated watch anywhere in the library — somebody else's
+  # film, with their stars and their review, and a Save that would then edit
+  # that row. Six of the seven doors into this sheet push it bare
+  # (MOVIES-AND-TV.md #68), and the gallery's is a seventh.
+  #
+  # `nil` is the sheet's own documented no-row state and is safe: `watch/0`
+  # gates the whole page on it, and `save_watch/1` refuses to commit the
+  # drawing. Screen 08's door passes `params_for/1` and is unaffected.
+  defp newest_log(nil), do: nil
+
   defp newest_log(title_id) do
     Watch
     |> Ash.Query.filter(not is_nil(rating) or (not is_nil(review) and review != ""))
@@ -489,10 +506,8 @@ defmodule Kati.Screens.Rating do
   end
 
   # The narrowing, as a second `filter` rather than a third term inside the
-  # first one: chained filters are ANDed, so the no-id query stays character for
-  # character the query this sheet has always run and the `or` above keeps its
-  # own parentheses instead of being re-nested around a new `and`.
-  defp of_title(query, nil), do: query
+  # first one: chained filters are ANDed, so the `or` above keeps its own
+  # parentheses instead of being re-nested around a new `and`.
   defp of_title(query, title_id), do: Ash.Query.filter(query, tracked_title_id == ^title_id)
 
   # One read, by the VALUE PAIR the durable half references the cache by. A

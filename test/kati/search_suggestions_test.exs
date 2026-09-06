@@ -32,10 +32,13 @@ defmodule Kati.SearchSuggestionsTest do
     :ok
   end
 
-  describe "with nothing stored" do
-    test "the board's two stand" do
-      assert Suggestions.derived() == []
-      assert Suggestions.for_reader() == Kati.Search.suggestions()
+  describe "the fallback" do
+    # NOT asserted against an empty store: this file shares its database with
+    # every other, and a title another file left behind is a title `derived/0`
+    # can honestly offer. What is asserted is the shape of the fallback, which
+    # holds whatever the store contains.
+    test "the board's two are what an empty derivation falls back to" do
+      assert Suggestions.for_reader([]) == Kati.Search.suggestions()
     end
 
     test "and the group is never empty, because the board always draws it" do

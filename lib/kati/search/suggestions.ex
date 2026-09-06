@@ -36,13 +36,11 @@ defmodule Kati.Search.Suggestions do
   Never raises and never answers `[]`: this fills a group the board always
   draws, and an empty *Try* group would be a heading over nothing.
   """
-  @spec for_reader() :: [String.t()]
-  def for_reader do
-    case derived() do
-      [] -> Kati.Search.suggestions()
-      derived -> derived
-    end
-  end
+  @spec for_reader([String.t()]) :: [String.t()]
+  def for_reader(derived \\ derived())
+
+  def for_reader([]), do: Kati.Search.suggestions()
+  def for_reader(derived), do: derived
 
   @doc "What can be derived, which may be nothing at all."
   @spec derived() :: [String.t()]

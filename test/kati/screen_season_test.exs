@@ -158,16 +158,38 @@ defmodule Kati.ScreenSeasonTest do
       refute season.note =~ "27"
     end
 
-    test "leaves the order strip, the switches and the subtitle exactly as drawn" do
+    test "leaves the order strip and the subtitle exactly as drawn" do
       season = Season.season()
       drawn = Season.drawn_season()
 
-      # None of these has a column — see `Kati.Screens.Season`'s moduledoc — and
-      # a round that wired one up would have invented one.
+      # Neither of these has a column — see `Kati.Screens.Season`'s moduledoc —
+      # and a round that wired one up would have invented one.
       assert season.orders == drawn.orders
       assert season.current_order == drawn.current_order
-      assert season.options == drawn.options
       assert season.subtitle == drawn.subtitle
+    end
+
+    test "and offers only the switch it can honour" do
+      # `Include specials` was drawn ON above a list `for_season/3` could not
+      # put a season-0 special into, and `Merge multi-part` promised a merge
+      # nothing records — MOVIES-AND-TV.md #69. Season 0 is read now, and the
+      # switch that cannot be honoured is not offered.
+      assert Enum.map(Season.season().options, & &1.title) == ["Include specials"]
+
+      assert Enum.map(Season.drawn_season().options, & &1.title) == [
+               "Include specials",
+               "Merge multi-part"
+             ]
+    end
+
+    test "and says where the specials actually are" do
+      [specials] = Season.season().options
+
+      assert specials.on, "this season has one and the switch reads off"
+
+      assert specials.sub == "Listed first, before the season",
+             "the board's *Shown inline, at air date* is what `in_order(:aired)` cannot " <>
+               "deliver: it sorts by {season, episode} and season 0 sorts ahead of the season"
     end
 
     test "the DVD tile is still offered, and CachedEpisode still has two orders" do
@@ -187,10 +209,14 @@ defmodule Kati.ScreenSeasonTest do
       assert words =~ "SPECIAL"
       assert words =~ String.upcase("Episodes · 5 in this order")
 
-      # Still drawn, because none of these can be read.
+      # Still drawn, because the order strip cannot be read.
       assert words =~ "DVD"
+
+      # Wired, and drawn in the state the list is actually in.
       assert words =~ "Include specials"
-      assert words =~ "Merge multi-part"
+
+      refute words =~ "Merge multi-part",
+             "a switch that promises a merge nothing records is still offered"
 
       # All of these are in the drawn season and in none of these rows. A screen
       # that fell back would still draw a full running order.

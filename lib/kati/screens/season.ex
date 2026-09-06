@@ -392,8 +392,32 @@ defmodule Kati.Screens.Season do
   defp episodes(tracked, number) do
     case CachedEpisode.for_season(tracked.source, tracked.source_id, number) do
       [] -> nil
-      episodes -> assemble(tracked, number, episodes)
+      episodes -> assemble(tracked, number, episodes ++ specials(tracked))
     end
+  end
+
+  @doc """
+  Season 0, which is where every provider files the specials.
+
+  *Include specials · Shown inline, at air date* was drawn switched ON above a
+  list that contained none, because `for_season/3` reads one season number and
+  0 is never it. A reader was shown a switch in its on position and a list that
+  did not honour it. MOVIES-AND-TV.md #69.
+
+  Inline and at air date is what the sub-line promises and what
+  `Kati.Media.CachedEpisode.in_order/2` at `:aired` already does: it sorts by
+  `{season_number, episode_number}`, so a special sorts ahead of the season
+  rather than at its own air date — which is why these are merged into one list
+  and re-sorted by air date below rather than concatenated.
+
+  A provider that files no specials answers `[]`, and the switch then sits over
+  a list that is complete without them, which is true.
+  """
+  @spec specials(TrackedTitle.t()) :: [CachedEpisode.t()]
+  def specials(%TrackedTitle{} = tracked) do
+    CachedEpisode.for_season(tracked.source, tracked.source_id, 0)
+  rescue
+    _error -> []
   end
 
   # The three parts of the drawing a season can actually fill, laid over the
@@ -409,9 +433,48 @@ defmodule Kati.Screens.Season do
       | title: heading(cached_season(tracked, number), number),
         eyebrow: "Episodes · #{length(rows)} in this order",
         episodes: rows,
+        options: real_options(episodes),
         note: @general_note
     }
     |> Map.put(:tracked_id, tracked.id)
+  end
+
+  @doc """
+  The switches a real season can honour, which is one of the drawing's two.
+
+  *Include specials* is wired and drawn in the state the list is actually in:
+  on when a special is in it, off when the provider filed none. *Merge
+  multi-part* is dropped, and the moduledoc says why — merging a two-part
+  finale is a transformation of the order with nothing to record that it
+  happened, and no column marks an episode as merged or pairs it with its other
+  half. A switch that cannot be honoured is not offered.
+
+  The board keeps both: it is a drawing of a season this app cannot yet hold.
+  """
+  @spec real_options([CachedEpisode.t()]) :: [map()]
+  def real_options(episodes) do
+    any? = Enum.any?(episodes, & &1.special)
+
+    [
+      %{
+        icon: "star",
+        title: "Include specials",
+        # NOT *Shown inline, at air date*, which is the board's wording and is
+        # what `in_order(:aired)` cannot deliver: it sorts by `{season_number,
+        # episode_number}` and every season-0 special therefore sorts ahead of
+        # the whole season. Re-sorting by `air_at` was tried and reverted —
+        # `Kati.Media.CachedEpisode.in_order/2` argues at length that its
+        # `{season, episode}` sort IS broadcast order for every source Kati
+        # fetches from, and a screen that quietly used a different one would be
+        # the renumbering its own footnote warns about.
+        #
+        # So the sub-line says where they are. A special a provider filed
+        # INSIDE the season keeps its own place, which is why this says
+        # `first` rather than `at the top`.
+        sub: if(any?, do: "Listed first, before the season", else: "None filed for this season"),
+        on: any?
+      }
+    ]
   end
 
   # One read, by the triple `Kati.Media.CachedSeason` is keyed on. `nil` is the
