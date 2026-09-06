@@ -144,6 +144,31 @@ defmodule Kati.Search do
   end
 
   @doc """
+  What screen 19 says while it is waiting, which is about screen 19.
+
+  It drew `counts_note/0` — board 88's specification — and every clause of it
+  was false here. That note describes **eight** scopes and this screen narrows
+  to five; it promises a 180 ms debounce and this screen runs on every
+  keystroke, deliberately and for a reason its own `handle_info/2` argues at
+  length: the query is a scan of a personal SQLite library, so a debounce would
+  buy latency rather than spend it. A reader was told the app was being careful
+  with requests it does not make. MOVIES-AND-TV.md #63.
+
+  Board 88 keeps `counts_note/0`, because board 88 is where seven scopes are
+  actually drawn.
+
+      iex> Kati.Search.local_note() =~ "debounce"
+      false
+  """
+  @spec local_note() :: String.t()
+  def local_note do
+    "Counts stay off the chips until a query exists — #{length(narrowable_scopes())} zeroes on open " <>
+      "would read as an empty app. Searching starts at 2 characters, or 1 for Persian, Arabic " <>
+      "and CJK, where one character is a word. Every keystroke runs: the search is your own " <>
+      "library on this device, so waiting would cost more than it saved."
+  end
+
+  @doc """
   Put a query where the next screen will look for it.
 
   Screen 86 is the idle board and screen 19 is the results board, and the two
@@ -194,7 +219,10 @@ defmodule Kati.Search do
   # 91 among them — a database reader in `Kati.ScreenEmptyDatabaseTest`'s
   # derived list. `narrowable_scopes/0` is what lets the two lists be checked
   # against each other instead.
-  @narrowable ["All", "Screen", "Calendar", "Notes"]
+  # `Books` joined on 6 September. A book used to be concatenated into the
+  # Screen group, drawn under that heading, counted by that chip and given a
+  # chevron that opened nothing — MOVIES-AND-TV.md #61.
+  @narrowable ["All", "Screen", "Books", "Calendar", "Notes"]
 
   @doc """
   The scope screen 19 can narrow to, given one of the eight screen 86 offers.

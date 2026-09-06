@@ -14,7 +14,7 @@ defmodule Kati.Search.Query do
   pulled into the empty-database migration.
   """
 
-  import Kati.Search, only: [long_enough?: 1, normalise: 1, rows_per_group: 0, tier: 3]
+  import Kati.Search, only: [long_enough?: 1, normalise: 1, tier: 3]
 
   @doc """
   Run one query against the store and answer what screen 19 draws.
@@ -55,12 +55,18 @@ defmodule Kati.Search.Query do
         query: query,
         idle?: false,
         titles: titles_for(query),
+        # Books had no group of their own: `titles_for/1` concatenated them
+        # into `:titles`, so a book was drawn under the heading SCREEN, counted
+        # by the Screen chip, and given a chevron that opened nothing —
+        # `hit_tag/1` answers `nil` for anything that is not a film or a
+        # series. MOVIES-AND-TV.md #61.
+        books: books_for(query),
         calendar: calendar_for(query),
         note: note_for(query),
         recent: []
       }
     else
-      %{query: query, idle?: true, titles: [], calendar: [], note: nil, recent: []}
+      %{query: query, idle?: true, titles: [], books: [], calendar: [], note: nil, recent: []}
     end
   end
 
@@ -72,14 +78,16 @@ defmodule Kati.Search.Query do
   whole reason screen 88 specifies the chips as counts of the result set.
   """
   @spec chip_counts(map()) :: [{String.t(), non_neg_integer()}]
-  def chip_counts(%{titles: titles, calendar: calendar, note: note}) do
+  def chip_counts(%{titles: titles, calendar: calendar, note: note} = results) do
     titles = titles || []
+    books = Map.get(results, :books) || []
     calendar = calendar || []
     notes = if note, do: 1, else: 0
 
     [
-      {"All", length(titles) + length(calendar) + notes},
+      {"All", length(titles) + length(books) + length(calendar) + notes},
       {"Screen", length(titles)},
+      {"Books", length(books)},
       {"Calendar", length(calendar)},
       {"Notes", notes}
     ]
@@ -99,10 +107,20 @@ defmodule Kati.Search.Query do
   # Merged BEFORE the take rather than concatenated after it: two lists each cut
   # to `rows_per_group/0` and then joined would put a substring-tier book above
   # an exact-tier film.
+  # No `Enum.take/2`. Every group used to end `|> Enum.take(rows_per_group())`
+  # BEFORE `chip_counts/1` counted it, so ten matching films rendered three,
+  # the chip said `3`, and the other seven were unreachable from this screen —
+  # `Kati.Search.rows_per_group/0`'s own doc promises a `See all N →` row and
+  # `grep` finds no such row anywhere. MOVIES-AND-TV.md #62.
+  #
+  # Drawing all of them is the simpler true thing: the groups are inside a
+  # `Scroll`, and a search that found ten answers with ten. `rows_per_group/0`
+  # stays as what BOARD 19 draws, which is what `Kati.Screens.SearchSpec` is
+  # about.
   defp titles_for(query) do
-    (cached_for(query, tracked_ids()) ++ books_for(query))
+    query
+    |> cached_for(tracked_ids())
     |> Enum.sort_by(fn {tier, title, _row} -> {tier, title} end)
-    |> Enum.take(rows_per_group())
     |> Enum.map(fn {_tier, _title, row} -> row end)
   end
 
@@ -152,7 +170,8 @@ defmodule Kati.Search.Query do
     |> Ash.read!()
     |> Enum.map(&{tier(query, &1.title || "", &1.author || ""), &1.title, &1})
     |> Enum.reject(fn {tier, _title, _row} -> is_nil(tier) end)
-    |> Enum.map(fn {tier, title, row} -> {tier, title, book_row(row)} end)
+    |> Enum.sort_by(fn {tier, title, _row} -> {tier, title} end)
+    |> Enum.map(fn {_tier, _title, row} -> book_row(row) end)
   rescue
     _error -> []
   end
@@ -212,7 +231,6 @@ defmodule Kati.Search.Query do
     |> Enum.map(&{tier(query, &1.summary || "", &1.description || ""), &1})
     |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
     |> Enum.sort_by(fn {tier, row} -> {tier, row.summary} end)
-    |> Enum.take(rows_per_group())
     |> Enum.map(fn {_tier, row} -> event_row(row) end)
   rescue
     _error -> []
@@ -245,6 +263,7 @@ defmodule Kati.Search.Query do
   # decoration rather than a result.
   defp note_for(query) do
     Kati.Books.Note
+    |> Ash.Query.load(:book)
     |> Ash.read!()
     |> Enum.map(&{tier(query, &1.body || "", &1.body || ""), &1})
     |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
@@ -263,7 +282,7 @@ defmodule Kati.Search.Query do
     case :binary.match(normalise(body), normalise(query)) do
       {at, len} ->
         %{
-          eyebrow: "NOTE",
+          eyebrow: note_eyebrow(note),
           lead: body |> binary_part(0, at) |> String.trim_leading(),
           match: binary_part(body, at, len),
           tail: binary_part(body, at + len, byte_size(body) - at - len),
@@ -274,4 +293,42 @@ defmodule Kati.Search.Query do
         nil
     end
   end
+
+  @doc """
+  `NOTE · 6 AUG · THE LONG HOLLOW` — the three-part eyebrow board 19 draws.
+
+  It was the bare word `NOTE`, so a note hit said nothing about WHOSE note it
+  was or when it was written, and the reader was left with a paragraph and no
+  way to place it. MOVIES-AND-TV.md #64. Both missing parts are on the row:
+  `inserted_at` is when it was written and `:book` is what it is about.
+
+  Each part is dropped rather than invented when it is absent — a note whose
+  book has been deleted is `NOTE · 6 AUG`, and one with neither is the bare
+  word it was.
+
+      iex> Kati.Search.Query.note_eyebrow(%{inserted_at: ~U[2026-08-06 09:00:00Z], book: %{title: "The Long Hollow"}})
+      "NOTE · 6 AUG · THE LONG HOLLOW"
+
+      iex> Kati.Search.Query.note_eyebrow(%{inserted_at: ~U[2026-08-06 09:00:00Z], book: nil})
+      "NOTE · 6 AUG"
+
+      iex> Kati.Search.Query.note_eyebrow(%{})
+      "NOTE"
+  """
+  @spec note_eyebrow(map()) :: String.t()
+  def note_eyebrow(note) do
+    ["NOTE", note_date(Map.get(note, :inserted_at)), note_book(Map.get(note, :book))]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" · ")
+  end
+
+  defp note_date(%DateTime{} = at),
+    do: "#{at.day} #{at.month |> Kati.Time.month_name() |> String.upcase() |> String.slice(0, 3)}"
+
+  defp note_date(_absent), do: nil
+
+  defp note_book(%{title: title}) when is_binary(title) and title != "",
+    do: String.upcase(title)
+
+  defp note_book(_absent), do: nil
 end

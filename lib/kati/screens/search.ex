@@ -417,7 +417,16 @@ defmodule Kati.Screens.Search do
     row = Enum.find(socket.assigns.results.titles, &(Kati.Screens.Search.hit_tag(&1) == tag))
 
     case row && Map.get(row, :id) do
-      nil -> Mob.Socket.push_screen(socket, module)
+      # A hit with no tracked row is a title somebody looked up on the add
+      # sheet and never shelved — `cached_for/2` reads the whole cache. Pushing
+      # bare drew the FIXTURE branch of screen 04 or 08, so a chevron on
+      # `Emergence` opened a page about The Long Hollow. MOVIES-AND-TV.md #65.
+      #
+      # It carries no tap at all now: `hit_tag/1` refuses a row with no id, so
+      # the card is a card and not a door. Adding it from here would be a
+      # second add flow on a screen whose subject is finding things — screen 06
+      # is one tap away and is where a title is added.
+      nil -> socket
       id -> Mob.Socket.push_screen(socket, module, %{id: id})
     end
   end
@@ -539,15 +548,31 @@ defmodule Kati.Screens.Search do
   """
   @spec chips(String.t(), map()) :: map()
   def chips(active, results) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} align="center">
+    rail =
+      ~MOB"""
+      <Row align="center">
         {Kati.Search.Query.chip_counts(results)
          |> Enum.map(fn {label, count} ->
            Kati.Screens.Search.chip(label, count, label == active)
          end)
          |> Enum.intersperse(Kati.Screens.Search.gap())}
       </Row>
+      """
+
+    # A scroller since `Books` joined the row. Board 19 draws four chips and
+    # they fit a 402pt frame; five do not, and a `Row` does not wrap — the
+    # fifth was clipped mid-word on a Pixel 9a, which is a chip a reader cannot
+    # read let alone press. `Kati.Screens.Discover.chips/2` reached for the
+    # same component for the same reason, and with `orientation: :horizontal`
+    # and no bound asked for, `scroll_area/2` emits exactly the node this Row
+    # was in before.
+    scroller = Kati.Components.MishkaScrollArea.scroll_area([orientation: :horizontal], [rail])
+
+    assigns = %{scroller: scroller}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@scroller}
       <Spacer size={24} />
     </Column>
     """
@@ -675,7 +700,7 @@ defmodule Kati.Screens.Search do
   """
   @spec visible_groups(map(), String.t()) :: [{String.t(), atom()}]
   def visible_groups(results, filter) do
-    [{"Screen", :titles}, {"Calendar", :calendar}, {"Notes", :note}]
+    [{"Screen", :titles}, {"Books", :books}, {"Calendar", :calendar}, {"Notes", :note}]
     |> Enum.filter(fn {label, _key} -> filter == "All" or filter == label end)
     |> Enum.reject(fn {_label, key} -> Kati.Screens.Search.blank?(results, key) end)
   end
@@ -688,7 +713,8 @@ defmodule Kati.Screens.Search do
   @doc "Whether a result set matched nothing at all."
   @spec empty?(map()) :: boolean()
   def empty?(results) do
-    (results.titles || []) == [] and (results.calendar || []) == [] and results.note == nil
+    (results.titles || []) == [] and (Map.get(results, :books) || []) == [] and
+      (results.calendar || []) == [] and results.note == nil
   end
 
   @doc """
@@ -715,7 +741,7 @@ defmodule Kati.Screens.Search do
     ~MOB"""
     <Column fill_width={true}>
       {@card}
-      {Kati.UI.SettingsList.note("search", Kati.Search.counts_note())}
+      {Kati.UI.SettingsList.note("search", Kati.Search.local_note())}
       <Spacer size={24} />
     </Column>
     """
@@ -785,6 +811,7 @@ defmodule Kati.Screens.Search do
 
   @doc false
   def body(results, :titles), do: Kati.Screens.Search.titles(results)
+  def body(results, :books), do: Kati.Screens.Search.books(results)
   def body(results, :calendar), do: Kati.Screens.Search.calendar(results)
   def body(results, :note), do: Kati.Screens.Search.note(results)
 
@@ -821,6 +848,27 @@ defmodule Kati.Screens.Search do
   end
 
   @doc """
+  The Books group, which used to be four rows of the Screen one.
+
+  Same card, its own heading and its own chip. A book still has nowhere to go —
+  `Kati.Screens.BookDetail.load/1` discards the push's params — so `hit_tag/1`
+  answers `nil` for it and the row draws no chevron, which is the honest shape
+  for a hit with no door and is what it drew before. What changed is that it is
+  no longer drawn under a heading that says SCREEN and counted by a chip that
+  says films. MOVIES-AND-TV.md #61.
+  """
+  def books(results) do
+    assigns = %{rows: Map.get(results, :books) || []}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(@rows, fn row -> Kati.Screens.Search.title_row(row) end)}
+      <Spacer size={13} />
+    </Column>
+    """
+  end
+
+  @doc """
   One hit's tag, or `nil` for a hit with nowhere to go.
 
   The title, because a hit IS its title on this card and two nodes cannot share
@@ -842,10 +890,17 @@ defmodule Kati.Screens.Search do
   """
   @spec hit_tag(map()) :: atom() | nil
   def hit_tag(row) do
-    case Map.get(row, :kind) do
-      :film -> Kati.Screens.Library.poster_tag(row)
-      :series -> Kati.Screens.Library.poster_tag(row)
-      _no_door -> nil
+    # An id as well as a kind. A cache-only hit — looked up on the add sheet,
+    # never shelved — has a kind and no row to open, and drawing it with a
+    # chevron meant a tap onto the fixture branch of screen 04 or 08: a
+    # chevron on one title that opened a page about another.
+    # MOVIES-AND-TV.md #65.
+    case {Map.get(row, :kind), Map.get(row, :id)} do
+      {kind, id} when kind in [:film, :series] and is_binary(id) ->
+        Kati.Screens.Library.poster_tag(row)
+
+      _no_door ->
+        nil
     end
   end
 
