@@ -274,6 +274,84 @@ defmodule Kati.ScreenInboxTest do
 
   # One followed series with a week of history and a fortnight of schedule, one
   # muted film, one dropped title and one title whose only date is a bare year.
+  describe "the three controls that were drawn without taps" do
+    setup :seed_releases
+
+    test "Mark all writes one tick per Out now row, and the section empties" do
+      socket = mount_screen(Inbox).socket
+      before = length(socket.assigns.inbox.out_now)
+
+      assert before > 0
+
+      {:noreply, marked} = Inbox.handle_tap(:mark_all, socket)
+
+      assert marked.assigns.inbox.out_now == []
+      assert length(Ash.read!(Watch)) == before + 1, "the seeded tick is still there"
+    end
+
+    test "and the subtitle recounts with it" do
+      socket = mount_screen(Inbox).socket
+      {:noreply, marked} = Inbox.handle_tap(:mark_all, socket)
+
+      assert inspect(Inbox.title(marked.assigns.inbox), limit: :infinity) =~ "0 out now"
+    end
+
+    test "Watch on one row ticks that episode and leaves the others" do
+      socket = mount_screen(Inbox).socket
+      row = hd(socket.assigns.inbox.out_now)
+
+      {:noreply, ticked} = Inbox.handle_tap(String.to_atom("watch_" <> row.source_id), socket)
+
+      refute Enum.any?(ticked.assigns.inbox.out_now, &(&1.source_id == row.source_id))
+      assert length(ticked.assigns.inbox.out_now) == length(socket.assigns.inbox.out_now) - 1
+    end
+
+    test "and the tick records the season and number the show uses" do
+      socket = mount_screen(Inbox).socket
+      row = Enum.find(socket.assigns.inbox.out_now, &(&1.line =~ "Ash and After"))
+
+      {:noreply, _ticked} = Inbox.handle_tap(String.to_atom("watch_" <> row.source_id), socket)
+
+      written = Ash.read!(Watch) |> Enum.find(&(&1.episode_source_id == row.source_id))
+
+      assert written.season_number == 2
+      assert written.episode_number == 6
+    end
+
+    test "the gear on the cream card opens screen 25" do
+      socket = mount_screen(Inbox).socket
+
+      {:noreply, pushed} = Inbox.handle_tap(:open_watcher, socket)
+
+      assert {:push, Kati.Screens.ReleaseWatcher, %{back: "Inbox"}} =
+               Map.get(pushed.__mob__, :nav_action)
+    end
+
+    test "and a tag naming no row on the page changes nothing" do
+      socket = mount_screen(Inbox).socket
+
+      {:noreply, after_tap} = Inbox.handle_tap(:watch_nothing, socket)
+
+      assert after_tap.assigns.inbox == socket.assigns.inbox
+    end
+  end
+
+  describe "the same three over the drawing" do
+    test "carry no taps, because the board's rows have no episode behind them" do
+      drawn = Inbox.drawn_inbox()
+
+      assert Inbox.tickable(drawn) == []
+      assert Enum.all?(drawn.out_now, &(Inbox.watch_tap(&1) == nil))
+      refute inspect(Inbox.mark_all(drawn), limit: :infinity) =~ "mark_all"
+    end
+
+    test "and Mark all is drawn without a tap on an inbox with nothing out now" do
+      # Not the same as inert: there is nothing to mark all OF, which is the
+      # smallest case of the gesture rather than a failure of it.
+      refute inspect(Inbox.mark_all(%{out_now: []}), limit: :infinity) =~ "mark_all"
+    end
+  end
+
   defp seed_releases(_context) do
     series = track!(%{title: "Tidewrack", seed: "hollow71", kind: :tv})
 

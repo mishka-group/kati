@@ -337,13 +337,21 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealSwap, :swap_once},
     {Kati.Screens.MealSwap, :swap_forever},
     {Kati.Screens.MealsToday, :mark_eaten},
-    # Screen 05's **Mark all**, which joined this group the round it was wired.
-    # It writes one tick per row in `out_now` and re-reads; on the empty store
-    # this sweep mounts against there are no rows, so the write set is empty
-    # and the re-read answers the drawing again. Its own moduledoc says the
-    # gesture is defined that way — *a row that cannot be ticked is a row that
-    # was never in the set* — so an empty inbox is the smallest case of that,
-    # not a failure of it.
+    # (The comment that stood here described screen 05's **Mark all** as having
+    # joined this group "the round it was wired", and MOVIES-AND-TV.md #82
+    # pointed out that it was orphaned: the control had no tap at all, so the
+    # entry it described had been struck as a phantom and the sentence outlived
+    # it. #82 wired all three of screen 05's controls on 7 September, and the
+    # sentence is true now and belongs to none of them — a control drawn
+    # without a tap over an empty list is not a tag this sweep can see.
+    # `Kati.ScreenInboxTest` presses them over real rows.)
+    #
+    # Screen 19's clear disc. This entry outlived its own reason too: #94 found
+    # the control HALF working on the device — the counts went to zero and the
+    # typed word stayed in the field — and it is fixed. It stays here for the
+    # reason it was first written, which is about the SWEEP and not the screen:
+    # 19 is reached with an empty field, 86 is what hands it a query, and
+    # clearing an empty field is correctly a no-op.
     {Kati.Screens.Search, :clear},
     # Screen 06's clear disc, for screen 19's reason one line up: the field it
     # empties is already empty on a bare mount.

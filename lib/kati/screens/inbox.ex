@@ -198,6 +198,90 @@ defmodule Kati.Screens.Inbox do
   end
 
   @doc """
+  The `Watch` pill's tap, or `nil` for a row with no episode behind it.
+
+  The drawing's rows are literal maps with an artwork seed and no `source_id`,
+  so the board draws the pill and it is not tappable — the rule the whole
+  round keeps. A real row carries the reference `Kati.Media.Watch` names an
+  episode by, and the tag carries it.
+  """
+  @spec watch_tap(map()) :: {pid(), atom()} | nil
+  def watch_tap(%{source_id: id, tracked_id: tracked}) when is_binary(id) and is_binary(tracked),
+    do: {self(), String.to_atom("watch_" <> id)}
+
+  def watch_tap(_drawn), do: nil
+
+  @doc """
+  The Out now rows a tick can actually be written for.
+
+  Both controls read it: the pill needs one row and *Mark all* needs the set,
+  and a row that cannot be ticked is a row that was never in the set — which
+  is what makes an empty inbox the smallest case of *Mark all* rather than a
+  failure of it.
+  """
+  @spec tickable(map()) :: [map()]
+  def tickable(inbox) do
+    inbox
+    |> Map.get(:out_now, [])
+    |> Enum.filter(&(is_binary(Map.get(&1, :source_id)) and is_binary(Map.get(&1, :tracked_id))))
+  end
+
+  @doc false
+  def watcher_gear do
+    assigns = %{tap: {self(), :open_watcher}}
+
+    ~MOB"""
+    <Box on_tap={@tap}>
+      {Kati.UI.symbol("settings", size: 19, color: Palette.gold_icon())}
+    </Box>
+    """
+  end
+
+  @impl true
+  def handle_tap(:mark_all, socket) do
+    socket.assigns.inbox
+    |> Kati.Screens.Inbox.tickable()
+    |> Enum.each(&Kati.Screens.Series.write_tick(&1.tracked_id, &1))
+
+    {:noreply, Mob.Socket.assign(socket, :inbox, inbox())}
+  end
+
+  # Screen 25, which is what the gear on the cream card has always pointed at.
+  def handle_tap(:open_watcher, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Inbox"})}
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "watch_" <> source_id ->
+        {:noreply, Kati.Screens.Inbox.tick(socket, source_id)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Tick one Out now row, and re-read.
+
+  Re-read rather than dropped from the list in place: a tick moves the episode
+  out of `out_now` because `out_now_rows/5` rejects what is already ticked, and
+  the subtitle counts the same list. Removing the row here and leaving the
+  count alone is how the two come to disagree.
+  """
+  @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def tick(socket, source_id) do
+    row =
+      socket.assigns.inbox
+      |> Kati.Screens.Inbox.tickable()
+      |> Enum.find(&(&1.source_id == source_id))
+
+    case row && Kati.Screens.Series.write_tick(row.tracked_id, row) do
+      :ok -> Mob.Socket.assign(socket, :inbox, inbox())
+      _refused -> socket
+    end
+  end
+
+  @doc """
   How many titles the watcher is watching.
 
   Screen 25's banner draws this number and drew `24` on every device. Exposed
@@ -295,20 +379,32 @@ defmodule Kati.Screens.Inbox do
     |> Enum.sort_by(fn {_episode, air} -> resolved_date(air) end, {:desc, Date})
     |> Enum.map(fn {episode, air} ->
       tracked_row = Map.get(by_reference, {episode.source, episode.title_source_id})
-      out_now_row(episode, air, cached_for(tracked_row, cache), now)
+      out_now_row(episode, air, cached_for(tracked_row, cache), now, tracked_row)
     end)
   end
 
   # The show's name and poster, the episode's number and name, and how long it
   # is beside when it went out. `dot` is the design's orange in every real row:
   # its green is the film premiere this list deliberately does not hold.
-  defp out_now_row(episode, air, cached, now) do
+  defp out_now_row(episode, air, cached, now, tracked) do
     %{
       title: show_title(cached),
       seed: cached && cached.poster_path,
       line: episode_line(episode),
       meta: join([episode_runtime(episode), aired_label(air, now)]),
-      dot: Palette.accent()
+      dot: Palette.accent(),
+      # What a tick is written against, and none of it is drawn.
+      # MOVIES-AND-TV.md #82: the `Watch` pill on every row and `Mark all` at
+      # the top had no taps, and the rows had nothing to carry a tap's meaning
+      # even if they had. `Kati.Media.Watch` names an episode by
+      # `episode_source_id` and nothing else, and takes the season and number
+      # off the COLUMNS — the same shape screen 34's rows carry, for the same
+      # reason: the numbering is a label and the tick follows the episode.
+      tracked_id: tracked && tracked.id,
+      source_id: episode.source_id,
+      season: episode.season_number,
+      n: episode.episode_number,
+      watched: false
     }
   end
 
@@ -496,7 +592,7 @@ defmodule Kati.Screens.Inbox do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.Inbox.mark_all()}
+        {Kati.Screens.Inbox.mark_all(inbox)}
         {Kati.Screens.Inbox.title(inbox)}
         {Kati.Screens.Inbox.watcher(inbox)}
         {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
@@ -513,8 +609,22 @@ defmodule Kati.Screens.Inbox do
   # not the 36 of the control inside it — the drawing centres a 36 pill against
   # a 44 one, and a row that measured 36 pulled the title and everything under
   # it 8 up the frame.
-  @doc false
-  def mark_all do
+  @doc """
+  *Mark all*, and nothing when there is nothing to mark.
+
+  MOVIES-AND-TV.md #82: this was drawn without a tap, over rows that carried
+  nothing to write a tick against. It writes one `Kati.Media.Watch` per **Out
+  now** row and re-reads, which empties the section and recounts the subtitle —
+  the behaviour the moduledoc already described as if it had shipped.
+
+  Drawn without a tap when the list is empty, and that is not the same as
+  inert: there is nothing to mark all OF. Over the board it is likewise a
+  picture, because the drawing's rows have no episode behind them.
+  """
+  @spec mark_all(map()) :: map()
+  def mark_all(inbox \\ %{}) do
+    assigns = %{tap: if(Kati.Screens.Inbox.tickable(inbox) != [], do: {self(), :mark_all})}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
@@ -526,6 +636,7 @@ defmodule Kati.Screens.Inbox do
           padding_left={14}
           padding_right={14}
           align="center"
+          on_tap={@tap}
         >
           <Text
             text="Mark all"
@@ -636,7 +747,7 @@ defmodule Kati.Screens.Inbox do
           />
         </Column>
         <Spacer size={12} />
-        {Kati.UI.symbol("settings", size: 19, color: Palette.gold_icon())}
+        {Kati.Screens.Inbox.watcher_gear()}
       </Row>
       <Spacer size={26} />
     </Column>
@@ -704,6 +815,7 @@ defmodule Kati.Screens.Inbox do
           padding_left={14}
           padding_right={14}
           align="center"
+          on_tap={Kati.Screens.Inbox.watch_tap(row)}
         >
           <Text
             text="Watch"
