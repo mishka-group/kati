@@ -202,6 +202,28 @@ defmodule Kati.ScreenDesignLiteralTest do
   # intent expressed in a date the schema actually holds.
   @retired_symbols [{"49", "auto_mode"}]
 
+  # Lines a screen deliberately does not draw, because what carried them is
+  # gone and its absence is the decision. `@retired_symbols`' twin, and the
+  # first entries are the reason it exists.
+  #
+  # Screen 80's pairing card printed a six-character code, the address
+  # `listenbrainz.org/link`, and `Expires in 9:48`. All three were invented
+  # (MOVIES-AND-TV.md #71). Kati talks to none of the three providers it
+  # offers, so `pairing_code/1` derived the code from the provider id; the
+  # address was ListenBrainz's under every one of them, so a Hardcover reader
+  # was sent to somebody else's site; and the clock never started, because
+  # nothing had. A reader who took the card at face value went to a URL that
+  # was not theirs and typed a code nobody had issued.
+  #
+  # The card now names the site the token actually comes from — `:site` on
+  # `Kati.Sources`, one per provider — says what connecting would bring, and
+  # says Kati cannot complete it yet. The slot is still there:
+  # `Kati.Screens.DataSources.ready?/1` answers `false` for all three today
+  # and the code comes back from the provider the day one answers `true`.
+  #
+  # 82 is 80 in Persian and lost the same three lines for the same reason. en
+  # and fa are one app.
+
   # Symbols a screen draws on a branch no test can reach. Different from
   # `@retired_symbols` in the way that matters: the row is not gone, it is
   # simply not the branch an empty install takes, so the entry is a statement
@@ -348,6 +370,7 @@ defmodule Kati.ScreenDesignLiteralTest do
             literal <- screen.design.text,
             DesignLiterals.locate(literal, screen.haystacks) == :missing,
             not exempt?(screen.number, literal),
+            {screen.number, literal} not in DesignLiterals.retired_lines(),
             do: "  #{screen.number} #{inspect(screen.module)} never draws #{inspect(literal)}"
 
       assert unexplained == [],

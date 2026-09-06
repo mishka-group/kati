@@ -1194,6 +1194,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
             screen.boards != [],
             literal <- screen.design.text,
             not exempt?(screen.boards, literal),
+            not retired?(screen.boards, literal),
             DesignLiterals.locate(literal, screen.haystacks) == :missing,
             do:
               "  #{screen.number} #{inspect(screen.module)} never draws #{inspect(literal)} " <>
@@ -2406,6 +2407,16 @@ defmodule Kati.ScreenEmptyDatabaseTest do
 
   defp exempt?(boards, literal) do
     Enum.any?(device_values(), fn {n, l, _pattern} -> n in boards and l == literal end)
+  end
+
+  # Lines a screen deliberately does not draw. `Kati.ScreenDesignLiteralTest`
+  # holds the list and the reasons, one per entry; this file asks the same
+  # question of the same screens against an empty database, so it asks the
+  # same list rather than keeping a second one to drift from the first.
+  defp retired?(boards, literal) do
+    Enum.any?(DesignLiterals.retired_lines(), fn {n, l} ->
+      n in boards and l == literal
+    end)
   end
 
   # ── Which screens read a store ──────────────────────────────────────────────

@@ -69,6 +69,11 @@ defmodule Kati.Sources do
       icon: "graphic_eq",
       name: "ListenBrainz",
       supplies: "Scrobbles, listening history",
+      # Where a reader goes to get their own token. One per provider, and it
+      # was one for all three: screen 80's pairing card printed
+      # `listenbrainz.org/link` under every code, so a Hardcover reader was
+      # sent to somebody else's site (MOVIES-AND-TV.md #71).
+      site: "listenbrainz.org/profile",
       why:
         "ListenBrainz needs your own token because it writes to your account, not Kati’s. " <>
           "Nothing is shared between users."
@@ -78,6 +83,7 @@ defmodule Kati.Sources do
       icon: "menu_book",
       name: "Hardcover",
       supplies: "Community book ratings",
+      site: "hardcover.app/account/api",
       why:
         "Hardcover’s ratings are read with your own token, so your reading is not " <>
           "attributed to anyone else."
@@ -87,6 +93,7 @@ defmodule Kati.Sources do
       icon: "tv",
       name: "TheTVDB",
       supplies: "Artwork, absolute ordering",
+      site: "thetvdb.com/dashboard/account/apikey",
       why: "TheTVDB issues a per-user key you can revoke from your own account page."
     }
   ]

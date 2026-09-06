@@ -416,4 +416,44 @@ defmodule Kati.DesignLiterals do
 
     %{nodes: texts, flow: flow, squashed: String.replace(flow, " ", "")}
   end
+  @doc """
+  Lines a screen deliberately does not draw, because what carried them is gone
+  and its absence is the decision.
+
+  Here rather than in either sweep, because both ask the same question of the
+  same screens — `Kati.ScreenDesignLiteralTest` against a populated render and
+  `Kati.ScreenEmptyDatabaseTest` against an empty one — and two lists would
+  drift the first time somebody retired a line and updated one of them.
+
+  Screen 80's pairing card printed a six-character code, the address
+  `listenbrainz.org/link`, and `Expires in 9:48`. All three were invented
+  (MOVIES-AND-TV.md #71). Kati talks to none of the three providers it offers,
+  so `Kati.Screens.DataSources.pairing_code/1` derived the code from the
+  provider id; the address was ListenBrainz's under every one of them, so a
+  Hardcover reader was sent to somebody else's site; and the clock never
+  started, because nothing had. A reader who took the card at face value went
+  to a URL that was not theirs and typed a code nobody had issued.
+
+  The card names the site the token actually comes from now — `:site` on
+  `Kati.Sources`, one per provider — says what connecting would bring, and
+  says Kati cannot complete it yet. The slot is still there:
+  `Kati.Screens.DataSources.ready?/1` answers `false` for all three today and
+  the code comes back from the provider the day one answers `true`.
+
+  82 is 80 in Persian and lost the same three lines for the same reason. en
+  and fa are one app.
+  """
+  @spec retired_lines() :: [{String.t(), String.t()}]
+  def retired_lines do
+    [
+      {"80", "enter this code"},
+      {"80", "k4q9b2"},
+      {"80", "listenbrainz.org/link"},
+      {"80", "expires in 9:48"},
+      {"82", "کد را وارد کنید"},
+      {"82", "listenbrainz.org/link"},
+      {"82", "تا ۹:۴۸ دیگر معتبر است"}
+    ]
+  end
+
 end

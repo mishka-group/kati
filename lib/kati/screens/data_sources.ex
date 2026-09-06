@@ -468,14 +468,33 @@ defmodule Kati.Screens.DataSources do
   provider's own site, so Kati never sees a credential and the user never types
   one into a screen they cannot verify.
 
-  The code is generated per pairing and is deliberately not stored — an expired
-  code that survived a restart would be a code the user copies and is refused.
+  ## What it says now, and what it used to say
+
+  It used to print a six-character code, `listenbrainz.org/link`, and `Expires
+  in 9:48`. All three were invented (MOVIES-AND-TV.md #71): the code came from
+  `pairing_code/1`, which derives it from the provider id because **Kati talks
+  to none of these three providers** and there is no pairing to have a code
+  for; the address was ListenBrainz's under every one of them, so a Hardcover
+  reader was sent to somebody else's site; and the countdown never counted,
+  because nothing had started.
+
+  A reader who took that at face value went to a URL that was not theirs and
+  typed a code nobody had issued. So the card says what is true: which site
+  the token comes from, what connecting would bring, and that Kati cannot
+  complete it yet. No code, and no clock on a code that does not exist.
+
+  The shape is the board's and the slot is still here. When a client lands,
+  `ready?/1` answers `true` and the code comes back — from the provider.
   """
   @spec pairing(map(), boolean()) :: map() | []
   def pairing(_source, false), do: []
 
   def pairing(source, true) do
-    assigns = %{why: source.why, code: Kati.Screens.DataSources.pairing_code(source.id)}
+    assigns = %{
+      why: source.why,
+      site: Map.get(source, :site, ""),
+      supplies: Map.get(source, :supplies, "")
+    }
 
     ~MOB"""
     <Column fill_width={true} padding_bottom={13}>
@@ -491,7 +510,7 @@ defmodule Kati.Screens.DataSources do
       <Spacer size={12} />
       <Column fill_width={true} background={Palette.cream()} corner_radius={16} padding={15}>
         <Text
-          text="Enter this code"
+          text="Not connected yet"
           font_family="mono"
           text_size={9.5}
           letter_spacing={0.12}
@@ -499,18 +518,23 @@ defmodule Kati.Screens.DataSources do
         />
         <Spacer size={8} />
         <Text
-          text={@code}
+          text={@site}
           font_family="mono"
-          text_size={26}
+          text_size={16}
           font_weight="medium"
           letter_spacing={0.1}
           text_color={Palette.cream_ink()}
         />
         <Spacer size={8} />
-        <Text text="listenbrainz.org/link" text_size={12.5} text_color={Palette.cream_sub()} />
+        <Text
+          text={"Your token lives there. Kati cannot ask for it yet — when it can, this is where it comes from."}
+          text_size={12.5}
+          line_height={1.5}
+          text_color={Palette.cream_sub()}
+        />
         <Spacer size={4} />
         <Text
-          text="Expires in 9:48"
+          text={@supplies}
           font_family="mono"
           text_size={11}
           text_color={Palette.cream_meta()}
@@ -521,18 +545,24 @@ defmodule Kati.Screens.DataSources do
   end
 
   @doc """
-  A six-character pairing code.
+  Whether Kati can actually pair with a provider.
 
-  Derived from the provider id rather than random, and that is a real
-  limitation stated rather than hidden: nothing in Kati talks to ListenBrainz
-  yet, so there is no pairing to have a code for. When the client lands this
-  becomes the code the provider issued, and the screen does not change.
+  `false` for all three today, and the function exists so the day one of them
+  becomes `true` is a one-line change rather than a redesign. `pairing/2`
+  draws the address and the limit while this is false, and the provider's own
+  code when it is true.
+
+  It replaces `pairing_code/1`, which answered `K4Q9B2` for ListenBrainz,
+  `K7M3D8` for Hardcover and `K2V6X1` for TheTVDB — six characters derived
+  from the provider id, printed under *Enter this code* over a ten-minute
+  countdown, for a pairing no code had been issued for. A limitation stated in
+  a moduledoc and contradicted on screen is not stated.
+
+      iex> Kati.Screens.DataSources.ready?(:listenbrainz)
+      false
   """
-  @spec pairing_code(atom()) :: String.t()
-  def pairing_code(:listenbrainz), do: "K4Q9B2"
-  def pairing_code(:hardcover), do: "K7M3D8"
-  def pairing_code(:thetvdb), do: "K2V6X1"
-  def pairing_code(_other), do: "K0000O"
+  @spec ready?(atom()) :: boolean()
+  def ready?(_provider), do: false
 
   @doc """
   Where tokens live, and the one row that takes them all away.

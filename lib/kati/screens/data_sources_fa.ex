@@ -154,8 +154,13 @@ defmodule Kati.Screens.DataSourcesFa do
       "کلید کاتی عمومی است، چون کاتی متن‌باز است. این برای شما هزینه‌ای ندارد — " <>
         "TMDB درخواست‌ها را بر اساس نشانی IP می‌شمارد، نه بر اساس کلید.",
     pairing: "در حال جفت‌شدن",
-    enter_code: "کد را وارد کنید",
-    link: "listenbrainz.org/link",
+    # Was `کد را وارد کنید` — *enter the code* — over a code Kati had invented
+    # and a countdown that never counted, with ListenBrainz's address under all
+    # three providers (MOVIES-AND-TV.md #71). en and fa are one app: the
+    # English card stopped saying it and so does this one.
+    not_connected: "هنوز وصل نشده",
+    token_lives_there:
+      "توکن شما آنجاست. کاتی هنوز نمی‌تواند آن را بخواهد — وقتی بتواند، از همان‌جا می‌آید.",
     connect: "اتصال",
     disconnect: "قطع اتصال",
     connected: "متصل",
@@ -648,12 +653,17 @@ defmodule Kati.Screens.DataSourcesFa do
   password, only a token you can revoke — is kept by there being no field here
   to type one into.
 
-  The code is `Kati.Screens.DataSources.pairing_code/1`, folded to Persian
-  digits and set in Vazirmatn; see the moduledoc for why it cannot stay in DM
-  Mono. The site is screen 80's literal for all three providers, which is right
-  for the one the drawing captured and wrong for the other two — the fix is a
-  `link` beside `why` in `Kati.Sources`, where the real code will come from
-  too, rather than two URLs invented here.
+  It drew a code and a countdown and does not any more, for the reason
+  `Kati.Screens.DataSources.pairing/2` gives at length: Kati talks to none of
+  these three providers, so the code was derived from the provider id, the
+  clock never started, and the address under it was ListenBrainz's for all
+  three. That last was noted here as a thing to fix with *a `link` beside
+  `why` in `Kati.Sources`* — which is what `:site` is, and it is now where
+  both cards read it from.
+
+  The address stays in DM Mono: it is a URL, not Persian, and folding
+  `listenbrainz.org` to Persian digits would be folding something that has
+  none.
   """
   @spec pairing(map(), boolean()) :: map() | []
   def pairing(_source, false), do: []
@@ -662,10 +672,9 @@ defmodule Kati.Screens.DataSourcesFa do
     assigns = %{
       label: @copy.pairing,
       why: Map.get(source, :why, ""),
-      enter: @copy.enter_code,
-      code: Digits.to_persian(DataSources.pairing_code(source.id)),
-      link: @copy.link,
-      expires: "تا " <> Digits.to_persian("9:48") <> " دیگر معتبر است"
+      enter: @copy.not_connected,
+      code: Map.get(source, :site, ""),
+      link: @copy.token_lives_there
     }
 
     ~MOB"""
@@ -679,8 +688,8 @@ defmodule Kati.Screens.DataSourcesFa do
         <Spacer size={12} />
         <Text
           text={@code}
-          font_family="fa"
-          text_size={34}
+          font_family="mono"
+          text_size={16}
           font_weight="medium"
           letter_spacing={0.14}
           text_align="center"
@@ -688,16 +697,7 @@ defmodule Kati.Screens.DataSourcesFa do
           max_lines={1}
         />
         <Spacer size={12} />
-        <Text
-          text={@link}
-          font_family="mono"
-          text_size={11}
-          text_align="center"
-          text_color={Kati.Theme.Palette.cream_sub()}
-          max_lines={1}
-        />
-        <Spacer size={9} />
-        {BookDetailFa.fa(@expires, 11.5, Palette.cream_meta(), align: "center")}
+        {Kati.Screens.DataSourcesFa.paragraph(@link, Palette.cream_sub())}
       </Column>
     </Column>
     """
