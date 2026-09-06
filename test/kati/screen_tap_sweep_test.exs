@@ -478,7 +478,11 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MyServices, :edit_service_Kino},
     {Kati.Screens.MyServices, :edit_service_Aria_Free},
     {Kati.Screens.MyServices, :edit_service_Dispatch},
-    {Kati.Screens.CountryPicker, :search},
+    # `{Kati.Screens.CountryPicker, :search}` left this list on 6 September.
+    # The field was a picture whose tap fell through to
+    # `handle_info(_message, …)`, over a placeholder that promised 190
+    # countries against a list of seven (MOVIES-AND-TV.md #78). It is a
+    # `<TextField>` that filters now, and the placeholder counts the list.
     # ── Screen 66's status and edition chips.
     #
     # All seven write: `Kati.Screens.BookDetail.apply_change/1` updates the

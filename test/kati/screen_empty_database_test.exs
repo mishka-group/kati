@@ -2187,6 +2187,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # error*, and the default state of every user. Same pair 24 and 62 carry.
       {"128", "14 aug", ~r/^(\d{1,2} \p{L}{3}|never)$/u},
       {"128", "2 weeks ago · 214 mb", ~r/^(.*ago · \d+ mb|still only on this phone)$/u},
+      # 94's field placeholder counts `Kati.Services.countries/0` rather than
+      # JustWatch's 190. Board 94 froze the wrong number over a list of seven,
+      # and the field was a picture that filtered nothing —
+      # MOVIES-AND-TV.md #78. The pattern insists on a count the screen
+      # builds, which is stricter than the frozen literal it replaces.
+      {"94", "search 190 countries", ~r/^search \d+ countries$/u},
       # 139's greeting line prints the device's own clock, as 01's does.
       {"139", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       # 144 and 149's boards each show SEVERAL MOMENTS in one frame, and a live

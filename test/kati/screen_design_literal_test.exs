@@ -582,7 +582,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # device that has not watched exactly 1,204 things. Both ends of the
       # range — none, one, many — are asserted in `Kati.ScreenStatsTest` and
       # `Kati.ScreenStatsEmptyTest`.
-      assert length(device_values()) <= 38,
+      # Raised to 39 on 6 September for screen 94's field placeholder, and it
+      # is the same class as 02's month title: the pattern insists on a count
+      # the screen builds, which is stricter than the frozen literal — a screen
+      # that hardcoded 190 over a list of seven fails it.
+      assert length(device_values()) <= 39,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -623,6 +627,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"01", "sunday · 16 august",
        "Home's eyebrow is `Kati.Screens.Home.today/0`, which formats `Kati.Time.now/0`",
        ~r/^\p{L}+ · #{day} \p{L}+$/u},
+      # 94's field. Board 94 froze `Search 190 countries` — JustWatch's number
+      # over Kati's seven — and the field was a picture that filtered nothing
+      # (MOVIES-AND-TV.md #78). The placeholder counts
+      # `Kati.Services.countries/0` now, so it is the truth about the list this
+      # field actually searches, and it says 190 on the day the list is 190.
+      {"94", "search 190 countries",
+       "the size of the list the field filters, which board 94 froze at JustWatch's 190 and " <>
+         "`Kati.Screens.CountryPicker.search_field/1` now counts", ~r/^search \d+ countries$/u},
       # 07's Activity row. Board 07 froze `1,204 entries` and the row counts
       # `Kati.Media.Watch` now, which on this file's store is none. It is
       # `Kati.Screens.Activity.entries_line/1`'s wording either way, and both

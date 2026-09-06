@@ -116,22 +116,47 @@ defmodule Kati.Screens.MyServices do
      |> Mob.Socket.assign(:rules, Services.rules())}
   end
 
-  @doc "The services you pay for: what is stored, or the drawing's three."
+  @doc """
+  The services you pay for: what is stored, or the drawing's three.
+
+  Gated on the WHOLE page rather than on this group. The two groups fell back
+  independently, so adding one service through *Something else* produced a page
+  that was half the reader's and half the drawing's: their one service under
+  Subscribed, and Aria Free and Dispatch still under Free.
+  MOVIES-AND-TV.md #76.
+  """
   @spec subscribed() :: [map()]
   def subscribed do
-    case stored(:subscribed) do
-      [] -> Sample.subscribed()
-      services -> Enum.map(services, &shape/1)
-    end
+    if set_up?(), do: stored(:subscribed) |> Enum.map(&shape/1), else: Sample.subscribed()
   end
 
   @doc "The ones that cost nothing: what is stored, or the drawing's two."
   @spec free() :: [map()]
   def free do
-    case stored(:free_with_ads) do
-      [] -> Sample.free()
-      services -> Enum.map(services, &shape/1)
-    end
+    if set_up?(), do: stored(:free_with_ads) |> Enum.map(&shape/1), else: Sample.free()
+  end
+
+  @doc """
+  Whether this reader has told Kati about any service at all.
+
+  One gate for the page. Home's own row already asks this question — it reads
+  `Kati.Services.subscribed_count/0` and says *No subscriptions yet* — and 92
+  answered the opposite one tap later, listing Lumen+ £8.99, Orbit £13.99, Kino
+  £11.49 and `£46.47 A MONTH`. Two screens, opposite answers, one tap apart.
+  MOVIES-AND-TV.md #75.
+
+  Both tiers, because a reader who has added only a free service has still set
+  the page up and should not be shown three subscriptions they do not pay for.
+  """
+  @spec set_up?() :: boolean()
+  def set_up?, do: all_stored() != []
+
+  defp all_stored do
+    Service
+    |> Ash.Query.for_read(:listed)
+    |> Ash.read!()
+  rescue
+    _error -> []
   end
 
   @doc "The drawing's values, unconditionally — the fixture, not a fallback path."
@@ -142,17 +167,46 @@ defmodule Kati.Screens.MyServices do
   @spec listed() :: %{subscribed: [map()], free: [map()]}
   def listed, do: %{subscribed: subscribed(), free: free()}
 
-  defp stored(tier) do
-    Service
-    |> Ash.Query.for_read(:listed)
-    |> Ash.read()
-    |> case do
-      {:ok, services} -> Enum.filter(services, &(&1.tier == tier))
-      _other -> []
-    end
-  rescue
-    _error -> []
+  @doc """
+  What the Money row says a month costs.
+
+  It said `£46.47` — `Kati.Services.Sample.monthly_total/0` — beside a LIVE
+  count, so a reader with one service was told *1 service · £46.47 A MONTH*.
+  MOVIES-AND-TV.md #76. `Kati.Services.Service.total/1` adds the stored prices
+  up; a set-up page whose services carry no price says `—` rather than
+  borrowing the drawing's figure, because a total nobody entered is not a
+  total.
+  """
+  @spec monthly_total() :: String.t()
+  def monthly_total do
+    if set_up?(),
+      do: Kati.Services.Service.total(stored(:subscribed)) || "—",
+      else: Sample.monthly_total()
   end
+
+  @doc """
+  The Money row's second line, which is a count and a total or neither.
+
+  `Nothing to add up yet` on a device with no services, which is board 93's own
+  wording and its own argument: *a figure is an answer, and an answer of zero
+  invites you to believe the account has been totalled and came to nothing;
+  what is true is that nothing has been totalled.*
+  """
+  @spec money_line() :: {String.t(), String.t() | nil}
+  def money_line do
+    case Kati.Screens.MyServices.subscribed() do
+      [] ->
+        {"Nothing to add up yet", nil}
+
+      services ->
+        count = length(services)
+
+        {"#{count} #{if count == 1, do: "service", else: "services"}",
+         String.upcase(monthly_total() <> " a month")}
+    end
+  end
+
+  defp stored(tier), do: Enum.filter(all_stored(), &(&1.tier == tier))
 
   defp shape(%Service{} = service) do
     %{
@@ -523,12 +577,9 @@ defmodule Kati.Screens.MyServices do
   @doc "The link into screen 23, quoting screen 23's own figure."
   @spec money_group() :: map()
   def money_group do
-    count = length(Kati.Screens.MyServices.subscribed())
+    {line, total} = Kati.Screens.MyServices.money_line()
 
-    assigns = %{
-      line: "#{count} #{if count == 1, do: "service", else: "services"}",
-      total: String.upcase(Sample.monthly_total() <> " a month")
-    }
+    assigns = %{line: line, total: total}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -546,6 +597,8 @@ defmodule Kati.Screens.MyServices do
   end
 
   @doc false
+  def total_trailing(nil), do: ~MOB"<Spacer size={0} />"
+
   def total_trailing(total) do
     assigns = %{total: total}
 
