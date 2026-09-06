@@ -361,6 +361,111 @@ defmodule Kati.Search do
   end
 
   @doc """
+  Where a query actually falls in a piece of raw text: `{at, len}` in BYTES of
+  `text`, or `:nomatch`.
+
+  This exists because the obvious version is wrong, and was shipped:
+
+      case :binary.match(normalise(body), normalise(query)) do
+        {at, len} -> binary_part(body, at, len)
+
+  Those offsets are into the NORMALISED string and that slice is out of the
+  RAW one. `normalise/1` changes lengths — it strips ZWNJ and harakat, folds
+  two-byte Persian digits to one-byte ASCII, collapses runs of whitespace and
+  trims the ends — so on any note with a doubled space, a leading newline, a
+  ZWNJ or a vowel mark, the card highlighted the wrong characters. And when
+  normalisation SHORTENED the text enough, `at + len` ran off the end of the
+  raw body, `binary_part/3` raised, and a `rescue` in `Kati.Search.Query`
+  turned that into "there is no note here": the Notes group vanished from the
+  results, silently, for the query that matched it best. MOVIES-AND-TV.md #32.
+
+  So the search happens in raw coordinates. For each grapheme boundary in
+  `text`, the window starting there is grown until its NORMALISED form is as
+  long as the normalised query, and the window whose normalised form equals it
+  wins. `normalise/1` is the oracle rather than something reimplemented here,
+  which is the point: there is no second copy of the folding rules to drift
+  from the first, and a rule added to `normalise/1` is honoured here the day
+  it lands.
+
+  Windows starting on whitespace are skipped, because normalisation trims and
+  such a window would answer for the same match one space early — a highlight
+  with a space hanging off the front of it.
+
+      iex> Kati.Search.locate("The  Long  Hollow", "long hollow")
+      {5, 12}
+
+      iex> {at, len} = Kati.Search.locate("The  Long  Hollow", "long hollow")
+      iex> binary_part("The  Long  Hollow", at, len)
+      "Long  Hollow"
+
+      iex> Kati.Search.locate("hello", "nothing")
+      :nomatch
+
+  The interesting case, and the one the shipped version got wrong: a body
+  whose bytes and whose normalised bytes are different lengths.
+
+      iex> body = "  می‌رود به خانه"
+      iex> {at, len} = Kati.Search.locate(body, "خانه")
+      iex> binary_part(body, at, len)
+      "خانه"
+  """
+  @spec locate(String.t(), String.t()) :: {non_neg_integer(), non_neg_integer()} | :nomatch
+  def locate(text, query) when is_binary(text) and is_binary(query) do
+    needle = normalise(query)
+
+    if needle == "" do
+      :nomatch
+    else
+      starts(text)
+      |> Enum.find_value(:nomatch, &window_at(text, &1, needle))
+    end
+  end
+
+  # Every grapheme boundary that is not whitespace, as a byte offset.
+  defp starts(text) do
+    text
+    |> String.graphemes()
+    |> Enum.reduce({[], 0}, fn grapheme, {offsets, at} ->
+      offsets = if String.trim(grapheme) == "", do: offsets, else: [at | offsets]
+      {offsets, at + byte_size(grapheme)}
+    end)
+    |> elem(0)
+    |> Enum.reverse()
+  end
+
+  # The window starting at `at` whose normalised form is the needle, or nil.
+  #
+  # `normalise/1` never shortens a window when the window grows — it strips and
+  # collapses, and both of those are per-character — so the normalised length
+  # climbs monotonically and the search stops the moment it passes the needle's.
+  defp window_at(text, at, needle) do
+    size = byte_size(text)
+    target = byte_size(needle)
+
+    Enum.reduce_while(ends(text, at), nil, fn stop, _acc ->
+      len = stop - at
+      window = binary_part(text, at, len)
+      normalised = normalise(window)
+
+      cond do
+        normalised == needle -> {:halt, {at, len}}
+        byte_size(normalised) > target -> {:halt, nil}
+        stop >= size -> {:halt, nil}
+        true -> {:cont, nil}
+      end
+    end)
+  end
+
+  # The byte offsets a window starting at `at` may end on: every grapheme
+  # boundary after it.
+  defp ends(text, at) do
+    text
+    |> binary_part(at, byte_size(text) - at)
+    |> String.graphemes()
+    |> Enum.scan(at, fn grapheme, offset -> offset + byte_size(grapheme) end)
+  end
+
+  @doc """
   Which tier a candidate falls in for a query, or `nil` for no match at all.
 
   `title` is the candidate's own name and `body` is everything else about it —

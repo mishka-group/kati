@@ -501,11 +501,17 @@ defmodule Kati.Screens.Search do
         %{query: query, id: nil, on_change: nil, clear: nil}
       end
 
+    # `min_height`, not `height`. `Kati.DynamicTypeTest` states the rule: a
+    # fixed height is a SHAPE, and a number measured from a line of text is a
+    # floor. 52 is the second — one line of 13.5pt plus the drawing's padding —
+    # and as a cap it clipped the reader's own query at 235%, descenders first,
+    # which is the one thing a search field may not do. Board 91 draws this
+    # field at 235% holding `the long hollow estuary` in full.
     ~MOB"""
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        height={52}
+        min_height={52}
         corner_radius={26}
         background={Palette.card()}
         border_width={2}
@@ -513,6 +519,8 @@ defmodule Kati.Screens.Search do
         shadow="0 8 18 -14 #991A1917"
         padding_left={18}
         padding_right={18}
+        padding_top={6}
+        padding_bottom={6}
         align="center"
       >
         {Kati.UI.symbol("search", size: 20)}
@@ -549,30 +557,25 @@ defmodule Kati.Screens.Search do
   @spec chips(String.t(), map()) :: map()
   def chips(active, results) do
     rail =
-      ~MOB"""
-      <Row align="center">
-        {Kati.Search.Query.chip_counts(results)
-         |> Enum.map(fn {label, count} ->
-           Kati.Screens.Search.chip(label, count, label == active)
-         end)
-         |> Enum.intersperse(Kati.Screens.Search.gap())}
-      </Row>
-      """
+      results
+      |> Kati.Search.Query.chip_counts()
+      |> Kati.Screens.Search.chip_rows()
+      |> Enum.map(fn line ->
+        Kati.Screens.Search.chip_line(
+          line
+          |> Enum.map(fn {label, count} ->
+            Kati.Screens.Search.chip(label, count, label == active)
+          end)
+          |> Enum.intersperse(Kati.Screens.Search.gap())
+        )
+      end)
+      |> Kati.Screens.Search.chip_stack()
 
-    # A scroller since `Books` joined the row. Board 19 draws four chips and
-    # they fit a 402pt frame; five do not, and a `Row` does not wrap — the
-    # fifth was clipped mid-word on a Pixel 9a, which is a chip a reader cannot
-    # read let alone press. `Kati.Screens.Discover.chips/2` reached for the
-    # same component for the same reason, and with `orientation: :horizontal`
-    # and no bound asked for, `scroll_area/2` emits exactly the node this Row
-    # was in before.
-    scroller = Kati.Components.MishkaScrollArea.scroll_area([orientation: :horizontal], [rail])
-
-    assigns = %{scroller: scroller}
+    assigns = %{rail: rail}
 
     ~MOB"""
     <Column fill_width={true}>
-      {@scroller}
+      {@rail}
       <Spacer size={24} />
     </Column>
     """
@@ -580,6 +583,70 @@ defmodule Kati.Screens.Search do
 
   @doc "The drawing's 7pt flex gap, between chips and between chip rows."
   def gap, do: ~MOB"<Spacer size={7} />"
+
+  @doc """
+  The scope chips, split into lines that fit — board 91's own instruction.
+
+  This row was a horizontal scroller, and board 91 is the board that says it
+  must not be: *"The scope chips wrap to two lines instead of scrolling, since
+  a horizontal scroll at this size hides half the scopes behind a gesture."*
+  It draws six chips on two lines, three and three.
+
+  A gesture is not a control. A scope a reader cannot see is one they will not
+  use, and the scroller was hiding two of six at ordinary text size before
+  Dynamic Type entered into it at all — this app has six scopes and board 19
+  was drawn when it had four.
+
+  Balanced rather than greedy: three per line at most, and then the chips are
+  spread evenly across however many lines that needs, so four chips are two
+  and two rather than three and a widow. There is no `FlowRow` on this bridge
+  — `MobBridge.kt` has no wrapping row of any kind — so the wrap is decided
+  here, by count, which is what makes the rule visible and testable.
+
+      iex> Kati.Screens.Search.chip_rows([:a, :b, :c, :d, :e, :f])
+      [[:a, :b, :c], [:d, :e, :f]]
+
+      iex> Kati.Screens.Search.chip_rows([:a, :b, :c, :d])
+      [[:a, :b], [:c, :d]]
+
+      iex> Kati.Screens.Search.chip_rows([:a, :b, :c])
+      [[:a, :b, :c]]
+
+      iex> Kati.Screens.Search.chip_rows([])
+      []
+  """
+  @spec chip_rows([term()]) :: [[term()]]
+  def chip_rows([]), do: []
+
+  def chip_rows(chips) do
+    lines = ceil(length(chips) / 3)
+    per_line = ceil(length(chips) / lines)
+
+    Enum.chunk_every(chips, per_line)
+  end
+
+  @doc false
+  def chip_line(chips) do
+    assigns = %{chips: chips}
+
+    ~MOB"""
+    <Row fill_width={true} align="center">
+      {@chips}
+      <Spacer weight={1.0} />
+    </Row>
+    """
+  end
+
+  @doc false
+  def chip_stack(lines) do
+    assigns = %{lines: Enum.intersperse(lines, Kati.Screens.Search.gap())}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@lines}
+    </Column>
+    """
+  end
 
   @doc """
   One counted filter chip — `Kati.Components.MishkaChip`, count in the
@@ -931,10 +998,10 @@ defmodule Kati.Screens.Search do
             text_size={13.5}
             font_weight="bold"
             text_color={:on_surface}
-            max_lines={1}
+            max_lines={3}
           />
           <Spacer size={4} />
-          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={2} />
         </Column>
         <Spacer size={12} />
         {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}

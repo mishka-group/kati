@@ -279,7 +279,7 @@ defmodule Kati.Search.Query do
   defp note_card({_tier, note}, query) do
     body = note.body || ""
 
-    case :binary.match(normalise(body), normalise(query)) do
+    case Kati.Search.locate(body, query) do
       {at, len} ->
         %{
           eyebrow: note_eyebrow(note),
@@ -289,8 +289,15 @@ defmodule Kati.Search.Query do
           inline_words: 6
         }
 
+      # The note matched — `tier/3` said so, which is why this row is here at
+      # all — and the words cannot be pointed at in the raw body. `می‌رود`
+      # found by typing `می رود` is the shape of it: the two are one word once
+      # normalised and no substring of the body is that word with a space in
+      # it. So the card is drawn whole, unhighlighted, rather than dropped:
+      # a result you can read is worth more than an emphasis you cannot have,
+      # and dropping it is what the old code did by accident.
       :nomatch ->
-        nil
+        %{eyebrow: note_eyebrow(note), lead: "", match: "", tail: body, inline_words: 6}
     end
   end
 
