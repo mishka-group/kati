@@ -334,4 +334,65 @@ defmodule Kati.ScreenUpNextTest do
     })
     |> Ash.create!()
   end
+
+  describe "a library whose shows are all paused" do
+    # `queue/0` used to branch on `tracked(:watching) == []` alone, so a reader
+    # who had paused everything got four invented titles and none of their own
+    # — and `tracked(:paused)`, the read that would have found theirs, was only
+    # reached on the branch that was not taken. The board is for a library with
+    # nothing in it, not for one with nothing ready.
+    setup do
+      on_exit(fn ->
+        Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", ["paused-only-%"])
+        Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", ["paused-only-%"])
+      end)
+
+      Ash.create!(Kati.Media.CachedTitle, %{
+        source: :tmdb,
+        source_id: "paused-only-one",
+        kind: :tv,
+        title: "Salt & Iron",
+        fetched_at: Kati.Time.now()
+      })
+
+      Ash.create!(Kati.Media.TrackedTitle, %{
+        source: :tmdb,
+        source_id: "paused-only-one",
+        kind: :tv,
+        status: :paused
+      })
+
+      :ok
+    end
+
+    test "draws the reader's own paused titles, not the drawing's" do
+      q = UpNext.queue()
+
+      assert Enum.map(q.cold, & &1.title) == ["Salt & Iron"]
+      refute Enum.any?(q.cold, &(&1.title == "The Quiet Ones"))
+    end
+
+    test "has no hero, because there is nothing to watch next" do
+      q = UpNext.queue()
+
+      assert q.hero == nil
+      assert q.ready == []
+      assert q.ready_label == nil
+      assert q.subtitle == "Nothing ready · 1 gone cold"
+    end
+
+    test "says so where the hero would be, and draws no empty section" do
+      words = text(tree(mount_screen(UpNext)))
+
+      assert words =~ "Nothing ready to watch"
+      assert words =~ "Salt & Iron"
+      refute words =~ "READY TO WATCH"
+
+      # The four titles board 10 draws. A screen that still fell back would
+      # show every one of them over a shelf that holds one paused show.
+      for drawn <- ["Ashfall", "The Cartographer", "Marram", "The Long Hollow"] do
+        refute words =~ drawn, "screen 10 fell back to the drawing over a real paused shelf"
+      end
+    end
+  end
 end

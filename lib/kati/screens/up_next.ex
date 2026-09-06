@@ -119,12 +119,19 @@ defmodule Kati.Screens.UpNext do
   """
   @spec queue() :: map()
   def queue do
-    case tracked(:watching) do
-      [] -> Sample.queue()
-      [hero | rest] -> assemble(hero, rest, tracked(:paused))
+    case {tracked(:watching), tracked(:paused)} do
+      {[], []} -> Sample.queue()
+      {[], cold} -> nothing_ready(cold)
+      {[hero | rest], cold} -> assemble(hero, rest, cold)
     end
   end
 
+  # The two numbers count different things on purpose, and each counts its own
+  # thing exactly: the subtitle is everything ready — the hero included — and
+  # the eyebrow labels the section under the hero, which is the rows it is
+  # sitting on. Board 10's `12 ready` over `Ready to watch · 12` over four rows
+  # is a drawing showing a slice of a longer list, and is not a semantics a
+  # page that draws the whole list can copy.
   defp assemble(hero, rest, cold) do
     cache = cache_for([hero | rest] ++ cold)
 
@@ -134,6 +141,34 @@ defmodule Kati.Screens.UpNext do
       cold_label: "Gone cold · #{length(cold)}",
       hero: hero_row(hero, cache),
       ready: Enum.map(rest, &ready_data(&1, cache)),
+      cold: Enum.map(cold, &cold_data(&1, cache))
+    }
+  end
+
+  @doc """
+  A library whose shows are all paused.
+
+  `queue/0` used to fall back to `Kati.Screens.UpNext.Sample` on
+  `tracked(:watching) == []` alone, so a reader who had paused everything was
+  shown four invented titles and none of their own — and `tracked(:paused)`,
+  the read that would have found theirs, was only reached on the other branch.
+  The board is for a library with nothing in it, not for one with nothing
+  ready.
+
+  There is no hero, because a hero is *the next thing to watch* and there is
+  not one. `hero/1` draws the reason instead, and the ready section is dropped
+  entirely rather than drawn as an eyebrow over nothing.
+  """
+  @spec nothing_ready([term()]) :: map()
+  def nothing_ready(cold) do
+    cache = cache_for(cold)
+
+    %{
+      subtitle: "Nothing ready · #{length(cold)} gone cold",
+      ready_label: nil,
+      cold_label: "Gone cold · #{length(cold)}",
+      hero: nil,
+      ready: [],
       cold: Enum.map(cold, &cold_data(&1, cache))
     }
   end
@@ -324,8 +359,7 @@ defmodule Kati.Screens.UpNext do
         {Kati.Screens.UpNext.tune_row()}
         {Kati.Screens.UpNext.header(q)}
         {Kati.Screens.UpNext.hero(q)}
-        {UI.eyebrow(q.ready_label)}
-        {Kati.Screens.UpNext.ready(q)}
+        {Kati.Screens.UpNext.ready_section(q)}
         {Kati.UI.Eyebrow.quiet(q.cold_label)}
         {Kati.Screens.UpNext.cold(q)}
       </Column>
@@ -409,6 +443,47 @@ defmodule Kati.Screens.UpNext do
   # a Box stacks its children, so the gradient, the caption row and the progress
   # bar can all sit at the bottom edge without fighting for the same slot.
   @doc false
+  def hero(%{hero: nil}) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={15}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {UI.symbol("pause_circle", size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text="Nothing ready to watch"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text="Everything on your shelf is paused. Picking one up puts it here."
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
   def hero(q) do
     h = q.hero
 
@@ -524,6 +599,20 @@ defmodule Kati.Screens.UpNext do
         <Spacer weight={1.0 - fraction} />
       </Row>
     </Box>
+    """
+  end
+
+  @doc false
+  def ready_section(%{ready_label: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def ready_section(q) do
+    assigns = %{eyebrow: UI.eyebrow(q.ready_label), rows: ready(q)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@eyebrow}
+      {@rows}
+    </Column>
     """
   end
 
