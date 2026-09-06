@@ -991,7 +991,23 @@ defmodule Kati.ScreenDesignLiteralTest do
 
     case :persistent_term.get(key, :miss) do
       :miss ->
-        screens = do_render_all()
+        # Inside an empty store, and this file did not used to be.
+        #
+        # It renders every screen once and memoises the trees, and it rendered
+        # them against whatever the database happened to hold at that moment.
+        # That was harmless while every screen answered an empty store with a
+        # Sample module. It stopped being harmless as screens moved onto real
+        # reads: a row left behind by another file — this suite shares one
+        # connection and cleans up per test rather than rolling back — makes a
+        # screen draw the reader's data instead of its board, and the
+        # comparison fails on a literal that is only missing because somebody
+        # else's fixture was still there. Twice on 6 September, both times on a
+        # screen that had just started reading the store, and neither
+        # reproducible.
+        #
+        # The state a drawing is a drawing OF is an empty device plus whatever
+        # `drawn_state/0` installs, which is exactly what this gives it.
+        screens = in_empty_store(&do_render_all/0)
         :persistent_term.put(key, screens)
         screens
 
@@ -1003,6 +1019,33 @@ defmodule Kati.ScreenDesignLiteralTest do
   # One locale switch per screen rather than per literal: `Kati.Locale` lives in
   # `Mob.State`, which is DETS, so each switch is a `GenServer.call` and a disk
   # write (see `Kati.ScreenSweep.with_locale/2`).
+  # `Kati.ScreenParamsSweepTest`'s own, for its own reason: emptied inside a
+  # transaction that is always rolled back, so nothing this file does reaches
+  # the next one.
+  defp in_empty_store(fun) do
+    {:error, {:rolled_back, result}} =
+      Kati.Repo.transaction(fn ->
+        Kati.Repo.query!("PRAGMA defer_foreign_keys = ON", [])
+        Enum.each(app_tables(), &Kati.Repo.query!("DELETE FROM " <> &1, []))
+        Kati.Repo.rollback({:rolled_back, fun.()})
+      end)
+
+    result
+  end
+
+  # Ecto's own ledger and the table Mob keeps screen state in are not the app's
+  # data and emptying them would be emptying the harness.
+  @not_data ~w(schema_migrations mob_screen_states)
+
+  defp app_tables do
+    %{rows: rows} = Kati.Repo.query!("SELECT name FROM sqlite_master WHERE type = 'table'", [])
+
+    for [name] <- rows,
+        name not in @not_data,
+        not String.starts_with?(name, "sqlite_"),
+        do: name
+  end
+
   defp do_render_all do
     for {number, _label, module, _kind} <- @registry do
       locale = if number in @fa_screens, do: :fa, else: :en
