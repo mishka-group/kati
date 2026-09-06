@@ -381,7 +381,13 @@ defmodule Kati.Screens.Home do
         title: &1.title,
         seed: &1.seed,
         progress: &1.progress,
-        meta: nil
+        # `S2 · E6 · 18m left`, board 01's own line, built by
+        # `Kati.Screens.Library.meta_for/3` where the tracked row, the cached
+        # title and the ticks are already gathered. It was `nil` here, so the
+        # line the board draws under every card could not appear however much
+        # somebody watched — see that function for what each half is allowed
+        # to say and when it says nothing.
+        meta: &1.meta
       }
     )
   end

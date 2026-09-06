@@ -243,9 +243,83 @@ defmodule Kati.Screens.Library do
       seed: cached && cached.poster_path,
       kind: if(tracked.kind == :movie, do: :film, else: :series),
       status: tracked.status,
-      progress: fraction_for(tracked, cached, ticks)
+      progress: fraction_for(tracked, cached, ticks),
+      meta: meta_for(tracked, cached, ticks)
     }
   end
+
+  @doc """
+  The line under a title on Home: `S2 · E6 · 18m left`, or as much of it as is
+  true.
+
+  Board 01 draws it under every *Continue watching* card and
+  `Kati.Screens.Home.continue_watching_rows/0` hard-coded `meta: nil`, so the
+  line could not appear however much a person watched — the card was a poster
+  and a title over an empty gap. Built here rather than there because this is
+  where the tracked row, the cached title and the ticks are already in hand,
+  and a second gather on Home would be a second set of numbers able to
+  disagree with the progress bar drawn beside it.
+
+  **Every part is dropped when it is not known**, rather than guessed at:
+
+    * A series says how far in you are — `S2 · E6` — from the ticks, which
+      `Kati.Media.TrackedTitle` names as the authority. A series with nothing
+      ticked says `S1 · E1`, because that is where you are about to be, and a
+      series with no episodes cached says nothing at all.
+    * A film says what is left of it, from `progress_seconds` against the
+      cached runtime. With no resume point it says the runtime instead — `1h
+      48m` is what a film you have not started has to tell you.
+    * A title with neither answers `nil`, and `Kati.Screens.Home` draws no
+      line, which is the state every card was stuck in before this.
+  """
+  @spec meta_for(TrackedTitle.t(), term(), non_neg_integer()) :: String.t() | nil
+  def meta_for(%TrackedTitle{kind: :movie} = tracked, cached, _ticks) do
+    minutes = cached && cached.runtime_minutes
+    seconds = tracked.progress_seconds
+
+    cond do
+      is_integer(minutes) and minutes > 0 and is_integer(seconds) and seconds > 0 ->
+        left = max(minutes - div(seconds, 60), 0)
+        "#{left}m left"
+
+      is_integer(minutes) and minutes > 0 ->
+        Kati.Screens.Library.runtime_line(minutes)
+
+      true ->
+        nil
+    end
+  end
+
+  def meta_for(%TrackedTitle{}, cached, ticks) do
+    total = cached && cached.episode_count
+
+    if is_integer(total) and total > 0 do
+      done = min(ticks, total)
+      "S1 · E#{min(done + 1, total)}"
+    end
+  end
+
+  @doc """
+  `1h 48m`, or `48m` for anything under the hour.
+
+      iex> Kati.Screens.Library.runtime_line(108)
+      "1h 48m"
+
+      iex> Kati.Screens.Library.runtime_line(48)
+      "48m"
+
+      iex> Kati.Screens.Library.runtime_line(120)
+      "2h"
+  """
+  @spec runtime_line(pos_integer()) :: String.t()
+  def runtime_line(minutes) when minutes >= 60 do
+    case rem(minutes, 60) do
+      0 -> "#{div(minutes, 60)}h"
+      rest -> "#{div(minutes, 60)}h #{rest}m"
+    end
+  end
+
+  def runtime_line(minutes), do: "#{minutes}m"
 
   # A series divides ticks by the episode total; a film divides its resume point
   # by its runtime. Anything either half cannot answer is nil, never a guess.
