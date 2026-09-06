@@ -226,6 +226,32 @@ defmodule Kati.ScreenParamsSweepTest do
     # as the branch that must answer with the drawn day, so this is load-bearing
     # in both directions. Unblocks when 16/17/30 move off their fixtures onto
     # real dates.
+    # ── Screen 140's six source tiles and 135's three doors into the importer.
+    #
+    # Screen 37 reads a `:source` since 6 September, because screen 141 was
+    # pushing it bare: a reader who had just been told about nine columns of
+    # `goodreads_library_export.csv` arrived at five columns of
+    # `trakt-backup.csv` (MOVIES-AND-TV.md #53). 141 names its file now.
+    #
+    # These nine cannot. `Kati.Import.Sample` holds two worked examples — the
+    # trakt backup board 37 was drawn from and the Goodreads export board 141
+    # was — and Kati has no importer for any source, so there is no third job
+    # to name and nothing to build one out of. A tile that pushed
+    # `%{source: :letterboxd}` would be asking the sample module for a file
+    # nobody has described, and it would answer with trakt's under a
+    # Letterboxd heading, which is the defect this entry is here instead of.
+    #
+    # Unblocks when an import job is a resource rather than a fixture: the
+    # tile then names the file the reader actually picked.
+    {Kati.Screens.ImportSources, :source_trakt, Kati.Screens.Import},
+    {Kati.Screens.ImportSources, :source_letterboxd, Kati.Screens.Import},
+    {Kati.Screens.ImportSources, :source_anilist, Kati.Screens.Import},
+    {Kati.Screens.ImportSources, :source_myanimelist, Kati.Screens.Import},
+    {Kati.Screens.ImportSources, :five_more, Kati.Screens.Import},
+    {Kati.Screens.ImportSources, :something_else, Kati.Screens.Import},
+    {Kati.Screens.RestoreFirstRun, :pick_file, Kati.Screens.Import},
+    {Kati.Screens.RestoreFirstRun, :restore_everything, Kati.Screens.Import},
+    {Kati.Screens.RestoreFirstRun, :scan_qr, Kati.Screens.Import},
     {Kati.Screens.Agenda, :view_Day, Kati.Screens.Day},
     {Kati.Screens.MonthGrid, :view_Day, Kati.Screens.Day},
     {Kati.Screens.Week, :view_Day, Kati.Screens.Day},

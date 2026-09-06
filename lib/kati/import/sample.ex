@@ -28,8 +28,10 @@ defmodule Kati.Import.Sample do
   for the one column that will be dropped — and `skipped?` greys the target so
   colour is not the only thing saying it will be ignored.
   """
-  @spec job() :: map()
-  def job do
+  @spec job(atom()) :: map()
+  def job(source \\ :trakt)
+
+  def job(:trakt) do
     %{
       action: "Import 412",
       file: "trakt-backup.csv",
@@ -41,6 +43,67 @@ defmodule Kati.Import.Sample do
       outcome: outcome(),
       conflict: conflict()
     }
+  end
+
+  @doc """
+  The same job for the file screen 141 just counted.
+
+  MOVIES-AND-TV.md #53. Screen 141 reads a Goodreads export — 418 rows, nine
+  columns, seven matched — and its *Check the mapping* row pushed screen 37,
+  which drew `trakt-backup.csv` and five columns of a film export. Two boards,
+  two fixtures, one chevron between them, and the second one contradicted
+  every number the first had just given.
+
+  So 37 draws the file it was handed. `recognised_columns/0` is 141's own
+  nine, unchanged, and the rest of the job is 141's own header — the file
+  name, the shape, the step. What 37 adds is the sampled value beside each
+  row, which is the whole reason its board exists, and a Goodreads export has
+  those: they are the first row of the file 141 is describing.
+
+  The conflict card is `conflict/0`'s, because a conflict is about two records
+  of the same thing and does not depend on which file they came from.
+  """
+  def job(:goodreads) do
+    %{
+      action: "Import 412",
+      file: "goodreads_library_export.csv",
+      subtitle: "goodreads_library_export.csv · step 3 of 4",
+      shape: "418 ROWS · 9 COLUMNS",
+      steps: 4,
+      step: 3,
+      columns: goodreads_columns(),
+      outcome: outcome(),
+      conflict: conflict()
+    }
+  end
+
+  def job(_unknown), do: job(:trakt)
+
+  @doc """
+  Board 141's nine columns, with the sampled value screen 37 draws beside each.
+
+  `recognised_columns/0` is the same list without the samples, because board
+  141's rows never draw one — see its own doc. The values are the first row of
+  `goodreads_library_export.csv`, which is what a sample IS: not an example of
+  the shape, the reader's actual first record.
+  """
+  @spec goodreads_columns() :: [map()]
+  def goodreads_columns do
+    samples = %{
+      "Title" => ~s("The Long Hollow"),
+      "Author" => ~s("Ines Kaur"),
+      "My Rating" => "8",
+      "Date Read" => "2026/03/14",
+      "Bookshelves" => ~s("read, coastal"),
+      "My Review" => ~s("The estuary chapters…"),
+      "Number of Pages" => "384",
+      "Publisher" => ~s("Saltmarsh Press"),
+      "Binding" => ~s("Paperback")
+    }
+
+    Enum.map(recognised_columns(), fn column ->
+      Map.put(column, :sample, Map.get(samples, column.column, ""))
+    end)
   end
 
   @doc "The five mapped columns, with the value the drawing samples from row 1."

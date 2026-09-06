@@ -580,8 +580,29 @@ defmodule Kati.Screens.ImportRecognised do
   @doc false
   @impl true
   def handle_tap(:check_mapping, socket) do
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.Import, %{
+       source: Kati.Screens.ImportRecognised.source()
+     })}
   end
+
+  @doc """
+  Which file this screen is about, for the screen its chevron opens.
+
+  MOVIES-AND-TV.md #53: the row promised *the nine columns it just counted*
+  and pushed screen 37 bare, which drew five columns of `trakt-backup.csv` —
+  a different file, one tap later, contradicting every number on the page it
+  was opened from.
+
+  An atom rather than the job, because the push names WHICH file and the
+  sample module answers with it. `Kati.Import.Sample.job/1` is where the two
+  jobs live and the only place either is described.
+
+      iex> Kati.Screens.ImportRecognised.source()
+      :goodreads
+  """
+  @spec source() :: atom()
+  def source, do: :goodreads
 
   def handle_tap(:change_source, socket) do
     {:noreply, Kati.Screens.Resume.pop(socket)}

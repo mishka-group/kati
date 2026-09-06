@@ -60,8 +60,26 @@ defmodule Kati.Screens.Import do
   alias Kati.Theme.Palette
   alias Kati.UI
 
+  # The file the caller named, and the board's own when nobody named one.
+  #
+  # Screen 141 reads a Goodreads export and its *Check the mapping* row used
+  # to push this screen bare — so a reader who had just been told about nine
+  # columns of `goodreads_library_export.csv` arrived at five columns of
+  # `trakt-backup.csv`, and every number on the page they had just left was
+  # contradicted by the page it opened (MOVIES-AND-TV.md #53). One chevron
+  # apart, the same way screens 04 and 34 drew two different Season 2s (#40).
+  #
+  # A SOURCE, not the job itself: the push names which file, and
+  # `Kati.Import.Sample` answers with it. That is the app's own convention —
+  # `Kati.ScreenParamsSweepTest` is about screens reading an id out of their
+  # params — and it is what a real import would pass too, once there is a job
+  # resource to have an id.
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :job, Sample.job())
+  def load(socket) do
+    source = Map.get(socket.assigns.params || %{}, :source)
+
+    Mob.Socket.assign(socket, :job, Sample.job(source || :trakt))
+  end
 
   @doc false
   def content(assigns) do
