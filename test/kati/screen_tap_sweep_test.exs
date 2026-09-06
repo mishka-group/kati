@@ -306,6 +306,12 @@ defmodule Kati.ScreenTapSweepTest do
     # segment drawn without a tap at all would read as a broken control rather
     # than a settled one.
     {Kati.Screens.AutoDetect, :tv},
+    # Screen 13's own selected window, for screen 36's reason one line up. The
+    # board is drawn at `45m` and this sweep renders it, so pressing `45m`
+    # re-reads the same window and answers the same page. The other four move
+    # it, and are swept. `Kati.ScreenWhatFitsTest` presses all five over a real
+    # shelf, where the list under them actually changes.
+    {Kati.Screens.WhatFits, :window_45m},
     # Screen 18's own lit chip, for screen 36's reason one line up. *Or file it
     # as* is a choice of one, and `Event` is what a bare sentence is already
     # filed as, so pressing it sets `:filed_as` to what it already holds. The

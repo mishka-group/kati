@@ -286,6 +286,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # because the two groups it drops over a real show are keys in that map —
     # a gate that compared only the status would pass while the page went bare.
     {"35", Kati.Screens.SeriesSettings},
+    # 13 joined when its window started filtering something. Its own moduledoc
+    # had already recorded that three of the four things blocking it stopped
+    # being blocked when `Kati.Media.CachedEpisode` was built; the fourth is a
+    # mood, which no column anywhere speaks to, so the chips are dropped over a
+    # real list rather than drawn dead. On an empty store there is nothing that
+    # fits and no film that does not, so the page is board 13 whole.
+    {"13", Kati.Screens.WhatFits},
     # The two screens the design draws DARK, and the log sheet.
     #
     # 28 is Home in dark and reads exactly what Home reads — `Rest of today`,
@@ -1680,6 +1687,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # board's, groups included, which is the page the gallery renders.
       {"35", Kati.Screens.SeriesSettings, fn -> Kati.Screens.SeriesSettings.show(%{}) end,
        fn -> Map.put(Kati.SeriesSettings.Sample.show(), :tracked, nil) end},
+      # 13 gates the whole `tonight/1` map, because the window, the count, the
+      # rows and the `61 MIN OVER` on the last one are four views of one
+      # number. A gate that compared only the list would pass while the sentence
+      # above it described a film nobody has.
+      {"13", Kati.Screens.WhatFits, &Kati.Screens.WhatFits.tonight/0,
+       &Kati.Screens.WhatFits.drawn_tonight/0},
       # 28 is NOT here any more, and neither is 55. Both used to compare
       # `rest_of_today(Kati.Calendars.Today.rows())` with
       # `rest_of_today(Sample.rest_of_today())` — the assertion that a device
