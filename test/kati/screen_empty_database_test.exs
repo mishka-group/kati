@@ -212,6 +212,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # that answers with the drawing.
     {"52", Kati.Screens.MealsDay},
     {"10", Kati.Screens.UpNext},
+    # 98, 100 and 101 joined when the share card stopped being a fixture. Every
+    # figure on it was `Kati.Stats.ShareSample`'s — `312h 40m`, `↑ 18%`, three
+    # titles nobody had watched — on a device where screen 07 one tap earlier
+    # drew the reader's own year (MOVIES-AND-TV.md #79). A share card is the
+    # one page whose whole purpose is to leave the device, so a fixture on it
+    # is a fixture somebody posts. 100 and 101 draw 98's own card.
+    {"98", Kati.Screens.YearShare},
+    {"99", Kati.Screens.YearShareBooks},
+    {"101", Kati.Screens.YearCardsStates},
     # 86 and 87 joined when the *Try* group stopped being two fixed strings.
     # Board 86's caption says the two suggestions are *drawn from what you
     # actually have* and they were `what leaves this week` and `notes about the
@@ -1505,6 +1514,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 98, 100 and 101 gate on the same map — the subtitle, the hours face and
+      # the three titles arrive together or not at all, which is the whole-page
+      # rule screens 04 and 08 keep. An empty history answers board 98's card,
+      # which is the state all three boards were captured in. 99 is 98 with the
+      # Books chip lit and 101 is the five states of 100's cards; both draw 98's
+      # own card and reach the read through it.
+      {"98", Kati.Screens.YearShare, &Kati.Screens.YearShare.share/0,
+       &Kati.Screens.YearShare.drawn_share/0},
+      {"99", Kati.Screens.YearShareBooks, &Kati.Screens.YearShare.share/0,
+       &Kati.Screens.YearShare.drawn_share/0},
+      {"101", Kati.Screens.YearCardsStates, &Kati.Screens.YearShare.share/0,
+       &Kati.Screens.YearShare.drawn_share/0},
       # 86 and 87 gate on the same read, which is the only one either makes:
       # a device with no title and no note answers the board's own two, so both
       # boards' literals are still drawn in full.

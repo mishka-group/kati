@@ -48,6 +48,9 @@ defmodule Kati.Screens.DataSources do
   def load(socket) do
     socket
     |> Mob.Socket.assign(:tmdb, Sources.tmdb_key())
+    |> Mob.Socket.assign(:token, "")
+    |> Mob.Socket.assign(:token_error, nil)
+    |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
     # Opens with ListenBrainz's pairing card showing, which is the state the
     # drawing was captured in and the state that is actually useful: the page
     # exists to be told how to connect something, and the first row that can be
@@ -71,7 +74,7 @@ defmodule Kati.Screens.DataSources do
         {UI.eyebrow("Working out of the box")}
         {Kati.Screens.DataSources.tier0()}
         {UI.eyebrow("Better artwork and metadata")}
-        {Kati.Screens.DataSources.tmdb(assigns.tmdb)}
+        {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error))}
         {UI.eyebrow("Connect an account")}
         {Kati.Screens.DataSources.tier2(assigns.expanded)}
         {UI.eyebrow("Where your tokens live")}
@@ -157,8 +160,8 @@ defmodule Kati.Screens.DataSources do
   Two chips rather than a switch, because neither is the *off* state — both are
   a working configuration and the page's job is to say that plainly.
   """
-  @spec tmdb(atom()) :: map()
-  def tmdb(choice) do
+  @spec tmdb(atom(), String.t(), boolean(), String.t() | nil) :: map()
+  def tmdb(choice, token \\ "", saved? \\ false, error \\ nil) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
@@ -176,10 +179,142 @@ defmodule Kati.Screens.DataSources do
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={12} />
+      {Kati.Screens.DataSources.own_key(choice, token, saved?, error)}
       {Kati.UI.SettingsList.note("info", "Kati’s key is public, because Kati is open source. That costs you nothing — TMDB counts requests per IP address, not per key. Paste your own only if you want your own limits.")}
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc """
+  The field the *Use my own key* chip has always needed.
+
+  Tapping that chip wrote `:own` to `Mob.State` and there was nowhere on this
+  page — or anywhere in the app — to put a token. `Kati.Media.Tmdb.key/0` then
+  routed to the always-empty secure store and answered `{:error, :no_api_key}`,
+  so screen 06 stopped returning results and started drawing a notice pointing
+  back at THIS page. One tap on a control that reads as a preference, and
+  search was off with no way to switch it on. MOVIES-AND-TV.md #70.
+
+  Drawn only under `:own`, because under `:kati` there is nothing to enter —
+  which is also why this is not on board 80: the board is drawn with Kati's key
+  chosen.
+
+  `Kati.SecureStore.available?/0` is checked before the field is offered rather
+  than after a save fails, which is the rule that module states in its own
+  words: *callers that hold credentials must check this before offering to
+  connect an account, so the user is told the truth instead of discovering it
+  when the first save fails.*
+  """
+  @spec own_key(atom(), String.t(), boolean(), String.t() | nil) :: map()
+  def own_key(:own, token, saved?, error) do
+    if Kati.SecureStore.available?() do
+      assigns = %{
+        token: token,
+        saved?: saved?,
+        error: error,
+        on_change: {self(), :tmdb_token},
+        save: {self(), :save_token}
+      }
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.SettingsList.card([
+          Kati.UI.SettingsList.row(
+            Kati.UI.SettingsList.icon_tile("lock"),
+            Kati.Screens.DataSources.token_field(@token, @on_change),
+            Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.save_pill(@save)),
+            padding: 13,
+            rule: false
+          )
+        ])}
+        <Spacer size={10} />
+        {Kati.Screens.DataSources.token_state(@saved?, @error)}
+      </Column>
+      """
+    else
+      Kati.UI.SettingsList.note(
+        "error",
+        "This device has no encrypted store, so Kati cannot hold a token of yours. " <>
+          "Kati’s own key still works."
+      )
+    end
+  end
+
+  def own_key(_kati, _token, _saved?, _error), do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  def token_field(token, on_change) do
+    assigns = %{token: token, on_change: on_change}
+
+    ~MOB"""
+    <TextField
+      value={@token}
+      placeholder="Paste your TMDB read token"
+      return_key="done"
+      weight={1.0}
+      accessibility_id="tmdb_token"
+      on_change={@on_change}
+    />
+    """
+  end
+
+  @doc false
+  def save_pill(tap) do
+    assigns = %{tap: tap}
+
+    ~MOB"""
+    <Row
+      height={32}
+      corner_radius={16}
+      background={Kati.Theme.Palette.ink_fill()}
+      padding_left={14}
+      padding_right={14}
+      align="center"
+      on_tap={@tap}
+    >
+      <Text
+        text="Save"
+        text_size={12.5}
+        font_weight="bold"
+        text_color={Kati.Theme.Palette.on_ink()}
+        max_lines={1}
+      />
+    </Row>
+    """
+  end
+
+  @doc false
+  def token_state(_saved?, error) when is_binary(error),
+    do: Kati.UI.SettingsList.note("error", error)
+
+  def token_state(true, _error),
+    do:
+      Kati.UI.SettingsList.note(
+        "check_circle",
+        "A token of yours is stored. Kati searches with it."
+      )
+
+  def token_state(_saved?, _error),
+    do:
+      Kati.UI.SettingsList.note(
+        "info",
+        "themoviedb.org → your account → Settings → API. Copy the read access token."
+      )
+
+  @doc """
+  Whether this device is holding a token of the reader's own.
+
+  Read rather than remembered, so the state survives a restart and cannot
+  disagree with what `Kati.Media.Tmdb.key/0` will actually find.
+  """
+  @spec own_key_stored?() :: boolean()
+  def own_key_stored? do
+    match?({:ok, token} when is_binary(token) and token != "", Kati.SecureStore.get("tmdb"))
+  rescue
+    _error -> false
+  catch
+    :exit, _reason -> false
   end
 
   @doc """
@@ -559,9 +694,61 @@ defmodule Kati.Screens.DataSources do
     {:noreply, Mob.Socket.assign(socket, :tmdb, :kati)}
   end
 
+  @impl true
+  def handle_info({:change, :tmdb_token, typed}, socket) when is_binary(typed),
+    do: {:noreply, Mob.Socket.assign(socket, :token, typed)}
+
+  def handle_info(message, socket), do: super(message, socket)
+
   def handle_tap(:key_own, socket) do
     Sources.put_tmdb_key(:own)
-    {:noreply, Mob.Socket.assign(socket, :tmdb, :own)}
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:tmdb, :own)
+     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
+     |> Mob.Socket.assign(:token_error, nil)}
+  end
+
+  @doc """
+  Store the token, or say why it could not be.
+
+  Trimmed, because a token pasted from a web page arrives with whitespace and
+  a leading space is not a different token — it is the same token that will
+  fail every request. Empty is a refusal rather than a silent no-op: somebody
+  who presses Save on an empty field has done something and is owed an answer.
+  """
+  def handle_tap(:save_token, socket) do
+    case String.trim(socket.assigns[:token] || "") do
+      "" ->
+        {:noreply, Mob.Socket.assign(socket, :token_error, "Paste a token first.")}
+
+      token ->
+        {:noreply, Kati.Screens.DataSources.store_token(socket, token)}
+    end
+  end
+
+  @doc false
+  @spec store_token(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def store_token(socket, token) do
+    case Kati.SecureStore.put("tmdb", token) do
+      :ok ->
+        socket
+        |> Mob.Socket.assign(:token, "")
+        |> Mob.Socket.assign(:token_saved?, true)
+        |> Mob.Socket.assign(:token_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(
+          socket,
+          :token_error,
+          "That did not save — #{inspect(reason)}. Kati’s own key still works."
+        )
+    end
+  rescue
+    _error -> Mob.Socket.assign(socket, :token_error, "That did not save.")
+  catch
+    :exit, _reason -> Mob.Socket.assign(socket, :token_error, "That did not save.")
   end
 
   def handle_tap(tag, socket) do

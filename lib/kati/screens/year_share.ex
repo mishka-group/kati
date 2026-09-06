@@ -43,6 +43,91 @@ defmodule Kati.Screens.YearShare do
     |> Mob.Socket.assign(:scope, "All")
     |> Mob.Socket.assign(:aspect, :aspect_square)
     |> Mob.Socket.assign(:hide_private, false)
+    |> Mob.Socket.assign(:share, share())
+  end
+
+  @doc """
+  The card this page shares: the reader's year, or the drawing's.
+
+  Every figure on it was `Kati.Stats.ShareSample`'s — `312h 40m`, `↑ 18%`, The
+  Long Hollow, Blue Hour, The Cartographer, `JAN – AUG 2026` — on a device
+  where screen 07 one tap earlier draws the reader's own year.
+  MOVIES-AND-TV.md #79. A share card is the one page in the app whose whole
+  purpose is to leave the device, so a fixture on it is a fixture somebody
+  posts.
+
+  Read through `Kati.Screens.Stats.figures/0` rather than a second query, so
+  the two pages cannot disagree about the same year — which is the defect one
+  layer down.
+  """
+  @spec share() :: map()
+  def share do
+    figures = Kati.Screens.Stats.figures()
+
+    case figures[:year] do
+      nil -> drawn_share()
+      year -> %{subtitle: figures[:range], hours: hours_face(year), top: top_titles()}
+    end
+  rescue
+    _error -> drawn_share()
+  end
+
+  @doc "The drawing's card, whole — the state board 98 was captured in."
+  @spec drawn_share() :: map()
+  def drawn_share,
+    do: %{
+      subtitle: ShareSample.subtitle(),
+      hours: ShareSample.hours(),
+      top: ShareSample.top_titles()
+    }
+
+  # Screen 07's own headline, change pill and year, in the shape this card
+  # draws them. `change: nil` where 07 draws no pill — a first year has no last
+  # year, and `↑ 0%` is the claim MOVIES-AND-TV.md #47 was about.
+  defp hours_face(year) do
+    %{
+      label: "Time watched",
+      figure: year.time,
+      direction: if(year.rising?, do: :up, else: :down),
+      change: year.change,
+      year: Integer.to_string(Kati.Time.today().year)
+    }
+  end
+
+  @doc """
+  The three titles this reader watched most of, by ticks and logs.
+
+  `Kati.Media.Watch` grouped by `tracked_title_id`, which counts an episode
+  tick and a film's watch as one each — the same unit screen 07's *Recently
+  watched* is a list of. A title whose cache row has been evicted is dropped
+  rather than drawn `Untitled` on a card that is about to be posted.
+  """
+  @spec top_titles() :: [map()]
+  def top_titles do
+    watches = Ash.read!(Kati.Media.Watch)
+    tracked = Map.new(Ash.read!(Kati.Media.TrackedTitle), &{&1.id, &1})
+    cached = Map.new(Ash.read!(Kati.Media.CachedTitle), &{{&1.source, &1.source_id}, &1})
+
+    watches
+    |> Enum.frequencies_by(& &1.tracked_title_id)
+    |> Enum.sort_by(fn {id, n} -> {-n, id} end)
+    |> Enum.take(3)
+    |> Enum.with_index(1)
+    |> Enum.flat_map(fn {{id, _n}, rank} -> title_row(rank, Map.get(tracked, id), cached) end)
+  rescue
+    _error -> []
+  end
+
+  defp title_row(_rank, nil, _cached), do: []
+
+  defp title_row(rank, tracked, cached) do
+    case Map.get(cached, {tracked.source, tracked.source_id}) do
+      %{title: title, poster_path: seed} when is_binary(title) ->
+        [%{rank: Integer.to_string(rank), title: title, seed: seed}]
+
+      _evicted ->
+        []
+    end
   end
 
   @doc false
@@ -57,9 +142,9 @@ defmodule Kati.Screens.YearShare do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Your year, shared", ShareSample.subtitle())}
+        {SettingsList.title("Your year, shared", Map.get(assigns, :share, Kati.Screens.YearShare.drawn_share()).subtitle)}
         {Kati.Screens.YearShare.scopes(assigns.scope)}
-        {Kati.Screens.YearShare.card(assigns.aspect)}
+        {Kati.Screens.YearShare.card(assigns.aspect, Map.get(assigns, :share, Kati.Screens.YearShare.drawn_share()))}
         {UI.eyebrow("Aspect")}
         {Kati.UI.Segmented.plain(Kati.Screens.YearShare.aspects(), assigns.aspect)}
         <Spacer size={16} />
@@ -122,13 +207,14 @@ defmodule Kati.Screens.YearShare do
   `10 * 1.0` is `10.0` where the drawing's tree carries `10`, and the square
   ratio is what every capture, every sweep and the gallery render.
   """
-  @spec card(atom()) :: map()
-  def card(aspect) do
-    hours = ShareSample.hours()
+  @spec card(atom(), map()) :: map()
+  def card(aspect, share \\ nil) do
+    share = share || drawn_share()
     scale = scale(aspect)
 
     assigns = %{
-      hours: hours,
+      hours: share.hours,
+      top: share.top,
       label_size: sized(10, scale),
       figure_size: sized(34, scale),
       titles_size: sized(10, scale)
@@ -179,9 +265,9 @@ defmodule Kati.Screens.YearShare do
           text_color={Palette.muted()}
         />
         <Spacer size={11} />
-        {Kati.Screens.YearShare.posters()}
+        {Kati.Screens.YearShare.posters(@top)}
         <Spacer size={13} />
-        {Kati.Screens.YearShare.ranks()}
+        {Kati.Screens.YearShare.ranks(@top)}
       </Column>
       <Spacer size={22} />
     </Column>
@@ -202,9 +288,9 @@ defmodule Kati.Screens.YearShare do
   defp sized(size, scale), do: size * scale
 
   @doc false
-  def posters do
+  def posters(top \\ ShareSample.top_titles()) do
     tiles =
-      ShareSample.top_titles()
+      top
       |> Enum.map(&Kati.Screens.YearShare.poster/1)
       |> Enum.intersperse(~MOB"<Spacer size={9} />")
 
@@ -235,9 +321,9 @@ defmodule Kati.Screens.YearShare do
   end
 
   @doc false
-  def ranks do
+  def ranks(top \\ ShareSample.top_titles()) do
     rows =
-      ShareSample.top_titles()
+      top
       |> Enum.map(&Kati.Screens.YearShare.rank_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
