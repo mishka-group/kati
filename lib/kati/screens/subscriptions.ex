@@ -123,6 +123,10 @@ defmodule Kati.Screens.Subscriptions do
   def load(socket) do
     Mob.Socket.assign(socket,
       ledger: Kati.Screens.Subscriptions.ledger(),
+      # Read once, at mount, and carried — so the page cannot change its mind
+      # mid-render, and so a captured frame can put this screen in the state
+      # its own board draws without writing a service into the store.
+      set_up?: Kati.Screens.NothingSetUpKnockOn.set_up?(),
       suggestion: true,
       reminded: false
     )
@@ -165,14 +169,52 @@ defmodule Kati.Screens.Subscriptions do
         padding_bottom={40}
       >
         {Kati.Screens.Subscriptions.back_row()}
-        {Kati.Screens.Subscriptions.title(ledger)}
-        {Kati.Screens.Subscriptions.monthly(ledger)}
-        {UI.eyebrow("Services")}
-        {Kati.Screens.Subscriptions.services(ledger)}
-        {Kati.Screens.Subscriptions.suggestion(ledger.suggestion, shown?, reminded?)}
+        {Kati.Screens.Subscriptions.body(ledger, shown?, reminded?, Map.get(assigns, :set_up?, true))}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The page, or board 96's fourth band in place of it.
+
+  MOVIES-AND-TV.md #120. Screen 96 draws *an empty ledger* — **No subscriptions
+  yet**, and explicitly not `£0.00 a month`, because a zero total is a sentence
+  about your spending and it would be false. Nothing in the app could ever
+  enter that state: this screen fell back to `Kati.Subscriptions.Sample` when
+  the store had nothing, so a reader with no services was shown somebody
+  else's four.
+
+  The band's own note says what the decision takes out with it — the delta
+  badge, the per-service rows and the Worth-a-look card, all of which would
+  otherwise report a change of nothing against nothing — so this branch draws
+  none of them rather than drawing them empty.
+
+  `set_up?/0` could not answer `false` until #75 took the fixture fallback off
+  `Kati.Screens.MyServices.listed/0`; screen 96's moduledoc named exactly that
+  as the change these four bands were waiting on.
+  """
+  @spec body(map(), boolean(), boolean(), boolean()) :: term()
+  def body(ledger, shown?, reminded?, set_up?) do
+    if set_up? do
+      [
+        Kati.Screens.Subscriptions.title(ledger),
+        Kati.Screens.Subscriptions.monthly(ledger),
+        UI.eyebrow("Services"),
+        Kati.Screens.Subscriptions.services(ledger),
+        Kati.Screens.Subscriptions.suggestion(ledger.suggestion, shown?, reminded?)
+      ]
+    else
+      # ONE replaced section, which is board 96's own caption: *each band is a
+      # single replaced section of a screen that already exists*. The page keeps
+      # its header — 23 still has a page — and what goes is the ledger under it:
+      # the monthly total, the services and the Worth-a-look card, all three of
+      # which would otherwise report a change of nothing against nothing.
+      [
+        Kati.Screens.Subscriptions.title(%{ledger | active_line: "NONE YET"}),
+        Kati.Screens.NothingSetUpKnockOn.ledger()
+      ]
+    end
   end
 
   # The back pill itself is drawn by Kati.Screens.Pushed as floating chrome;
@@ -700,6 +742,11 @@ defmodule Kati.Screens.Subscriptions do
   # also cancel it. There is nowhere else on this screen to cancel from, and a
   # button that can only be pressed once is a button that lies the second time.
   @impl true
+  # Board 96's button, on the band this screen draws when nothing is set up
+  # (#120). All four of the sheet's routes lead to one place.
+  def handle_tap(:my_services_ledger, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+
   def handle_tap(:remind, socket) do
     {:noreply, Mob.Socket.assign(socket, :reminded, not socket.assigns.reminded)}
   end

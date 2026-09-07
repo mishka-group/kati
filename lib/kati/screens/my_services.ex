@@ -1319,18 +1319,36 @@ defmodule Kati.Screens.MyServices do
   is a failure the row reports rather than one it swallows — the whole of #85.
   """
   @doc """
-  The same service, at the price that was just typed — or untouched.
+  The same service, at the price that was just typed and back on the shelf.
 
-      iex> Kati.Screens.MyServices.repriced(%{monthly_pence: 1099}, nil)
-      {:ok, %{monthly_pence: 1099}}
+  Two things, because typing a name into this field means both. A price after
+  the name is a correction (#119); the name alone, on a service the reader
+  switched OFF, is them putting it back — and *Netflix* typed into the add row
+  answering `{:ok, existing}` while the row stayed under *Not mine* is a save
+  that reports success and shows nothing, which is what the device did.
+
+  A service already on the shelf is left where it is: `:free_with_ads` is a
+  tier the reader chose and re-typing the name must not promote it.
+
+      iex> Kati.Screens.MyServices.repriced(%{monthly_pence: 1099, tier: :subscribed}, nil)
+      {:ok, %{monthly_pence: 1099, tier: :subscribed}}
   """
   @spec repriced(term(), integer() | nil) :: {:ok, term()} | {:error, term()}
-  def repriced(service, nil), do: {:ok, service}
+  def repriced(%{tier: tier} = service, nil) when tier != :not_mine, do: {:ok, service}
 
   def repriced(service, pence) do
-    service
-    |> Ash.Changeset.for_update(:update, %{monthly_pence: pence})
-    |> Ash.update()
+    attrs = if is_nil(pence), do: %{}, else: %{monthly_pence: pence}
+
+    attrs =
+      if Map.get(service, :tier) == :not_mine,
+        do: Map.put(attrs, :tier, :subscribed),
+        else: attrs
+
+    if attrs == %{} do
+      {:ok, service}
+    else
+      service |> Ash.Changeset.for_update(:update, attrs) |> Ash.update()
+    end
   end
 
   @spec save_service(String.t() | nil) :: {:ok, Service.t()} | {:error, term()}

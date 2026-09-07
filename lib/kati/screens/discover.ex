@@ -729,7 +729,41 @@ defmodule Kati.Screens.Discover do
   end
 
   @doc false
-  def leaving_section(%{leaving: []}, _chip, _scheduled), do: ~MOB"<Spacer size={0} />"
+  # MOVIES-AND-TV.md #120, band 11. Board 96's second band — *Nothing to leave
+  # yet* — is a section screen 11 replaces, and 11 drew nothing at all instead.
+  # The two absences are different and only one of them is the reader's to fix:
+  # *nothing you pay for is dropping a title this month* is a fact about the
+  # catalogue, and *you have not told Kati what you pay for* is a fact about the
+  # account, with a button on it.
+  #
+  # `set_up?/0` could not answer `false` until #75 took the fixture fallback off
+  # `Kati.Screens.MyServices.listed/0`; screen 96's own moduledoc named that as
+  # the change these four bands were waiting on.
+  #
+  # Behind the chip, like the section it replaces: a reader who has narrowed to
+  # *Because you watched* is not asking about leaving-soon at all.
+  def leaving_section(%{leaving: []}, chip, _scheduled) do
+    if shows?(:leaving, chip) and not Kati.Screens.NothingSetUpKnockOn.set_up?() do
+      assigns = %{
+        band:
+          Kati.Screens.NothingSetUpKnockOn.prompt(
+            "Nothing to leave yet",
+            "Leaving-soon warnings need at least one subscribed service — there is " <>
+              "nothing to count down from.",
+            :my_services_leaving_soon
+          )
+      }
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.Eyebrow.quiet("Leaving soon")}
+        {@band}
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
 
   def leaving_section(f, chip, scheduled) do
     if shows?(:leaving, chip) do
@@ -1123,6 +1157,11 @@ defmodule Kati.Screens.Discover do
 
       "seed_on_" <> source_id ->
         {:noreply, Kati.Screens.Discover.reseed(socket, source_id)}
+
+      # Board 96's button, on the band this screen draws when nothing is set up
+      # (#120). All four of the sheet's routes lead to one place.
+      "my_services_" <> _band ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
 
       _ ->
         {:noreply, socket}

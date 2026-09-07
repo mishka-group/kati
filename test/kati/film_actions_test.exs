@@ -103,10 +103,25 @@ defmodule Kati.FilmActionsTest do
     end
 
     test "and stays empty for a film nobody has looked up, so the heading drops" do
+      # ...once Kati knows what the reader pays for. With no service set up the
+      # band board 96 draws goes there instead — MOVIES-AND-TV.md #120 — and
+      # the two absences are different: *nothing you pay for carries this film*
+      # is a fact about the film, and *you have not said what you pay for* is a
+      # fact about the account, with a button on it.
       tracked = shelve!("Dune", nil)
+      film = Film.film(tracked.id)
 
-      assert Film.film(tracked.id).where == []
-      assert Film.where_section(Film.film(tracked.id)) == []
+      assert film.where == []
+
+      # The gate is passed rather than made, because the suite shares one
+      # SQLite file and emptying `services` to assert one branch is a claim
+      # about every other file's rows.
+      unset = inspect(Film.where_section(film, false), limit: :infinity)
+      assert unset =~ "Set up your services"
+      assert unset =~ "my_services_where_to_watch"
+
+      assert Film.where_section(film, true) == [],
+             "with a service set up, a film on none of them heads nothing"
     end
   end
 

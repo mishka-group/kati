@@ -113,6 +113,11 @@ defmodule Kati.Screens.WhatFits do
       "open_" <> index ->
         {:noreply, Kati.Screens.WhatFits.open(socket, index)}
 
+      # Board 96's button, on the band this screen draws when nothing is set
+      # up (#120). All four of the sheet's routes lead to one place.
+      "my_services_" <> _band ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+
       _other ->
         {:noreply, socket}
     end
@@ -416,6 +421,7 @@ defmodule Kati.Screens.WhatFits do
         {Kati.Screens.WhatFits.header(t)}
         {Kati.Screens.WhatFits.window(t, true)}
         {UI.eyebrow(t.fits_label)}
+        {Kati.Screens.WhatFits.unfiltered(t)}
         {Kati.Screens.WhatFits.fits(t)}
         {Kati.Screens.WhatFits.over_eyebrow(t.over_label)}
         {Kati.Screens.WhatFits.over(t)}
@@ -659,6 +665,38 @@ defmodule Kati.Screens.WhatFits do
       <Spacer size={13} />
     </Column>
     """
+  end
+
+  @doc """
+  Board 96's third band: the count is by TIME, and nothing filters it yet.
+
+  MOVIES-AND-TV.md #120. The board's caption is the sharpest of its four —
+  *it can still size your evening, it just cannot fill it yet* — and the band
+  it draws is `11 episodes fit — 0 you can watch`. That is not an empty list:
+  the window works, the shelf answers, and what is missing is any idea of which
+  of them the reader can actually reach. Screen 92's third rule names this page
+  among the three it empties and this page reads nothing at all, so the count
+  above is unfiltered and says so rather than implying a shortlist.
+
+  Above the list rather than instead of it, which is the whole of 96's argument
+  — *each band is a single replaced section of a screen that already exists* —
+  and the rows underneath are still worth having: they are what fits.
+
+  Nothing at all once a service is set up. `set_up?/0` could not answer `false`
+  until #75 took the fixture fallback off `Kati.Screens.MyServices.listed/0`.
+  """
+  @spec unfiltered(map()) :: map()
+  def unfiltered(t) do
+    if Kati.Screens.NothingSetUpKnockOn.set_up?() do
+      ~MOB"<Spacer size={0} />"
+    else
+      Kati.Screens.NothingSetUpKnockOn.prompt(
+        t.fits_label <> " — 0 you can watch",
+        "Kati can size the gap but not fill it. Set up your services and this " <>
+          "becomes a shortlist instead of a count.",
+        :my_services_what_fits
+      )
+    end
   end
 
   @doc false

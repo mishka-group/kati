@@ -633,6 +633,30 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # its *Free with ads* group lists two services the reader has not got.
     # MOVIES-AND-TV.md #75.
     "92" => [{"93", {"Subscribed · none yet", "Free with ads"}}],
+    # 23 → board 96's fourth band, which is what that sheet was drawn FOR.
+    #
+    # This page fell back to `Kati.Subscriptions.Sample` when the store held
+    # nothing, so a reader with no services was shown somebody else's four —
+    # and screen 96, whose whole subject is what four screens look like on day
+    # one, could never produce any of its bands. Its own moduledoc named the
+    # change it was waiting on: `Kati.Screens.MyServices.listed/0` had to stop
+    # falling back first (#75), and it has. MOVIES-AND-TV.md #120.
+    #
+    # The band and not board 96 whole: 96 is a reference sheet of four
+    # specimens, read a band at a time exactly as screen 27 is for the Library
+    # above. What 23 keeps with nothing stored is its own back row and disc;
+    # what goes is the ledger, and 96's card is what replaces it — *No
+    # subscriptions yet*, and explicitly not `£0.00 a month`, because a zero
+    # total is a sentence about your spending and it would be false.
+    # The band stops at the sheet's own footnote. *The empty ledger hides the
+    # delta badge…* is 96 explaining what it chose, addressed to somebody
+    # reading the sheet — it is not copy screen 23 shows to somebody who has
+    # simply not set up a service yet.
+    "23" => [
+      {"96",
+       {"No subscriptions yet",
+        "<div style=\"display:flex;align-items:flex-start;gap:11px;padding:15px;border-radius:18px"}}
+    ],
     # 97 is 92 in Persian and empties the same way. There is no Persian board
     # for the empty state — 93 has no mirror — so the comparison is 97's own
     # chrome, which the `@quoted` floor and `Kati.MyServicesGateTest` hold,
@@ -912,6 +936,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # file, including the ones whose drawing holds fewer literals than this.
   @chrome_floor 13
 
+  # The one screen whose empty state is genuinely smaller than the floor, and
+  # the drawing says so. Board 96's fourth band is *an empty ledger* — a card
+  # holding a title, a sentence and a button, and nothing else — and its own
+  # note spells out what the state takes away with it: the delta badge, the
+  # per-service rows and the Worth-a-look card, all of which would report a
+  # change of nothing against nothing. Screen 23 keeps its header and draws
+  # that card, which is nine strings.
+  #
+  # An exception rather than a lower `@chrome_floor`: the floor is what catches
+  # a page that lost its content and kept its chrome, and lowering it for
+  # everybody to fit one screen the design drew small would stop it catching
+  # that. Named, with a number, so a page that shrinks further still fails.
+  # MOVIES-AND-TV.md #120.
+  @small_empty_boards %{"23" => 9}
+
   # Every table an Ash resource in this app is backed by, child tables first so
   # the deletes below do not trip a foreign key. Written out rather than derived
   # so that `every_table_is_listed/0` can compare it against the schema the
@@ -1099,6 +1138,22 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"144", "visibility_off"},
     {"149", "undo"}
   ]
+
+  # The floor this screen is actually held to. Three answers, in order: a screen
+  # whose empty board the design drew small takes its own named number; a screen
+  # compared with its OWN board takes that board's literal count; everything
+  # else takes the greater of that count and `@chrome_floor`.
+  defp floor_for(screen, drawn_floor) do
+    case Map.fetch(@small_empty_boards, screen.number) do
+      {:ok, named} ->
+        named
+
+      :error ->
+        if screen.boards == [screen.number],
+          do: drawn_floor,
+          else: max(drawn_floor, @chrome_floor)
+    end
+  end
 
   # A screen may be held to more than one drawing (see `@empty_boards`), so the
   # question is asked of every board it is compared with rather than of its own
@@ -1495,11 +1550,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
         for screen <- render_migrated(),
             allowance = Map.get(@floor_allowance, screen.number, 0),
             drawn_floor = length(screen.design.text) - allowance,
-            floor =
-              if(screen.boards == [screen.number],
-                do: drawn_floor,
-                else: max(drawn_floor, @chrome_floor)
-              ),
+            floor = floor_for(screen, drawn_floor),
             length(screen.texts) < floor,
             do:
               "  #{screen.number} #{inspect(screen.module)} rendered #{length(screen.texts)} " <>
@@ -1508,6 +1559,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       assert thin == [],
              "these screens render less copy than the drawing they are held to, which is what " <>
                "a lost empty state looks like:\n" <> Enum.join(thin, "\n")
+    end
+
+    test "the small-empty-board exception names a screen that is still small" do
+      # An exception that stopped being needed would be an exemption for
+      # nothing, so it is pinned from both ends like every allow-list here: the
+      # screen has to still be under `@chrome_floor`, or its entry is hiding a
+      # page that grew back and should be held to the ordinary bound.
+      rendered = Map.new(render_migrated(), &{&1.number, &1.texts})
+
+      for {number, floor} <- @small_empty_boards do
+        count = length(rendered[number] || [])
+
+        assert count < @chrome_floor,
+               "#{number} renders #{count} strings, which clears the ordinary floor of " <>
+                 "#{@chrome_floor}. Delete its @small_empty_boards entry"
+
+        assert count >= floor,
+               "#{number} renders #{count} strings against its own named floor of #{floor}"
+      end
     end
 
     test "the lines quoted from another board are still on it, and still on the screen" do

@@ -892,9 +892,41 @@ defmodule Kati.Screens.Film do
   A list, so the flattened result is the two nodes `render/1` used to name
   itself and the drawn film is unchanged to the node.
   """
-  @spec where_section(map()) :: [map()]
-  def where_section(%{where: []}), do: []
-  def where_section(f), do: [UI.eyebrow("Where to watch"), Kati.Screens.Film.where(f)]
+  @spec where_section(map(), boolean() | nil) :: [map()]
+  # MOVIES-AND-TV.md #120. Board 96's first band — *Set up your services to see
+  # where this is streaming* — is a section screen 08 replaces, and 08 drew
+  # nothing at all instead. The two absences are different and only one of them
+  # is the reader's to fix: *nothing you pay for carries this film* is a fact
+  # about the film, and *you have not told Kati what you pay for* is a fact
+  # about the account, with a button on it.
+  #
+  # `set_up?/0` could not answer `false` until #75 took the fixture fallback
+  # off `Kati.Screens.MyServices.listed/0`; screen 96's own moduledoc named
+  # that as the change these four bands were waiting on.
+  def where_section(film, set_up? \\ nil)
+
+  def where_section(%{where: []}, set_up?) do
+    # The gate as an argument, defaulting to the live one. A caller that already
+    # knows — a captured frame, a test about one branch — says so rather than
+    # writing a service into a store the rest of the suite shares.
+    gate = if is_nil(set_up?), do: Kati.Screens.NothingSetUpKnockOn.set_up?(), else: set_up?
+
+    if gate do
+      []
+    else
+      [
+        UI.eyebrow("Where to watch"),
+        Kati.Screens.NothingSetUpKnockOn.prompt(
+          "Set up your services to see where this is streaming",
+          "Kati knows this film exists. It cannot say whether you can watch it tonight " <>
+            "until it knows what you pay for.",
+          :my_services_where_to_watch
+        )
+      ]
+    end
+  end
+
+  def where_section(f, _set_up?), do: [UI.eyebrow("Where to watch"), Kati.Screens.Film.where(f)]
 
   @doc false
   def where(f) do
@@ -1234,6 +1266,11 @@ defmodule Kati.Screens.Film do
       _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
     end
   end
+
+  # Board 96's button, on the band above. One clause, because the sheet's whole
+  # point is that one screen answers all four (#120).
+  def handle_info({:tap, :my_services_where_to_watch}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
 
   def handle_info({:tap, :share_film}, socket) do
     {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}

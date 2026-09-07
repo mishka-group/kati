@@ -390,6 +390,36 @@ defmodule Kati.ServiceWriteTest do
              "the row is still on the page it was taken off"
     end
 
+    test "and typing its name again puts it back" do
+      # Found on the Pixel_9a: re-adding a service switched off answered
+      # `{:ok, existing}` and wrote nothing, so the save reported success and
+      # the row stayed under *Not mine* — a control that looks broken.
+      view = mount_screen(MyServices)
+      view = add(view, @prefix <> "Mubi 10.99")
+
+      service = stored(@prefix <> "Mubi")
+      view = render_info(view, {:tap, MyServices.drop_tag(%{id: service.id})})
+      assert stored(@prefix <> "Mubi").tier == :not_mine
+
+      back = add(view, @prefix <> "Mubi")
+
+      assert stored(@prefix <> "Mubi").tier == :subscribed
+      assert text(back) =~ @prefix <> "Mubi"
+
+      # And the price it had is not blanked by a bare name.
+      assert stored(@prefix <> "Mubi").monthly_pence == 1099
+    end
+
+    test "and a free service is not promoted by re-typing its name" do
+      # `:free_with_ads` is a tier the reader chose.
+      Ash.create!(Service, %{name: @prefix <> "Aria", tier: :free_with_ads})
+
+      view = mount_screen(MyServices)
+      add(view, @prefix <> "Aria")
+
+      assert stored(@prefix <> "Aria").tier == :free_with_ads
+    end
+
     test "and the switch is not drawn over a row that is only a drawing" do
       drawn = inspect(MyServices.mine_switch(%{name: "Lumen+"}), limit: :infinity)
 

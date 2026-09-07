@@ -1194,7 +1194,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # (MOVIES-AND-TV.md #66). The screen says `My services` now and takes a
       # caller's own word ahead of it — which is what this entry is, the
       # arrival board 23 is a drawing of.
-      {"23", Kati.Screens.Subscriptions, &Map.put(&1, :params, %{back: "Stats"})},
+      # And `set_up?` beside the back pill's own param: 23 is drawn with
+      # subscriptions on it, which is the state a reader reaches rather than
+      # the one the screen opens in on a fresh install — board 96's fourth band
+      # is what it opens in now (MOVIES-AND-TV.md #120), and
+      # `Kati.ScreenEmptyDatabaseTest`'s `@empty_boards` holds that half. The
+      # gate is an assign so a captured frame can set it without writing a
+      # service into the store.
+      {"23", Kati.Screens.Subscriptions,
+       &(&1 |> Map.put(:params, %{back: "Stats"}) |> Map.put(:set_up?, true))},
       # 06 is drawn MID-QUERY. The sheet opens empty now — its four results and
       # its `4 results` caption belong to a search somebody has run, and
       # opening on them showed a reader who had typed nothing four invented
