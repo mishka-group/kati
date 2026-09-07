@@ -327,7 +327,67 @@ defmodule Kati.Screens.Gallery do
     # Series → an episode's rating column. e44d44d, which built that column.
     "144",
     # Library → ⋯ → Select titles. c946a49.
-    "146"
+    "146",
+    # ── Retired 7 September, at the end of the MOVIES-AND-TV pass. Every one
+    # was walked on the Pixel_9a in the commit that closed its finding, and
+    # the route is named beside it.
+    #
+    # Settings → New releases. #1 — this page had no English door at all
+    # until that row: its only one was Home's hero, which is omitted when
+    # there is nothing out this week, so the page that says so was the page
+    # you could not reach.
+    "05",
+    # Library → Up next. #49 — an empty shelf drew the board's four invented
+    # titles; it draws its own empty card now.
+    "10",
+    # Library → Lists. #106 — the lists are the reader's, `+` makes one that
+    # survives the pop, and a row opens it.
+    "12",
+    # Library → ⋯ → What fits? #88 wired its window; #120 put board 96's band
+    # over the count.
+    "13",
+    # Stats → Activity log. #112 — the `Added` chip finds real rows, and a
+    # chip that matches nothing says which.
+    "15",
+    # Home → the search field. #114, #117, #129, #130, #131 — the fields it
+    # names are searched, and narrowing to an empty scope says where the
+    # answer is.
+    "19",
+    # 92 My services → the Money row. #120 — board 96's empty ledger is what a
+    # device with no service draws.
+    "23",
+    # Settings → Release watcher, and Home → the bell. #67 — the cadence and
+    # *New episodes* are read by something; the rest carry `not yet`.
+    "25",
+    # Series → ⋯ → Episode order. #34's ticks write, the order strip reorders,
+    # and #9's help disc explains the choice.
+    "34",
+    # Settings → Import → a source tile → Check the mapping. #101 built the
+    # importer; #4 made 141 say when a file cannot be read.
+    "37",
+    # Home → My services, and Settings → My services. #118, #119 — the field
+    # filters, every row has a switch, and a price can be corrected.
+    "92",
+    # Settings → Import. #52 sends each tile to the right board; #126 made the
+    # *Four more sources* row open the picker.
+    "140",
+    # 140 → a source tile → pick a file. #4 — the three edge states board 142
+    # draws are what a real file produces now.
+    "141",
+    # Settings → Dropping. #7 — the sheet said it was pushed under Settings
+    # and nothing pushed it.
+    "148",
+    # Series → ⋯ → Drop this show, and Film → ⋯ → Drop this film. #110, #111,
+    # #127 — a film can be dropped, the reason is kept, and the position pill
+    # goes both ways.
+    "149",
+    # Settings → Anime. #8 — the rule it argues for is a Library chip now, and
+    # `Kati.Media.Anime` is its three lines.
+    "152",
+    # Season → the help disc beside the order strip. #9.
+    "153",
+    # Settings → Year cards → When a card cannot be made. #2.
+    "101"
   ]
 
   @doc false
