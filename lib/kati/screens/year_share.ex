@@ -404,6 +404,7 @@ defmodule Kati.Screens.YearShare do
       # `Your year` over `26 WEEKS`. The first version of this invented
       # `Every day`, which is copy neither board contains.
       weeks: "#{Kati.Screens.Stats.weeks()} WEEKS",
+      year: Kati.Screens.YearShare.year(),
       rows:
         grid
         |> Enum.chunk_every(26)
@@ -435,11 +436,26 @@ defmodule Kati.Screens.YearShare do
           text_color={Palette.muted()}
         />
         <Spacer weight={1.0} />
+        <Text text={@year} font_family="mono" text_size={@label_size} text_color={Palette.muted()} />
+        <Spacer size={9} />
         {Kati.Screens.YearShare.wordmark()}
       </Row>
     </Column>
     """
   end
+
+  @doc """
+  The year, which both faces carry and neither used to.
+
+  Boards 325 and 326 draw it bottom-right on each — *"its placement is fixed
+  here rather than inferred"*, because these are the one artefact of the app
+  that leaves the app and a card with no year on it is a card nobody can date.
+
+      iex> Kati.Screens.YearShare.year() =~ ~r/^\d{4}$/
+      true
+  """
+  @spec year() :: String.t()
+  def year, do: Integer.to_string(Kati.Time.today().year)
 
   @doc """
   `Kati` — and it goes on the field face and nowhere else.
@@ -448,6 +464,10 @@ defmodule Kati.Screens.YearShare do
   wordmark*, and board 98's own note gives the reason — *it is the one people
   ask about, so it is the one that answers*. A wordmark on every face would be
   a signature on a page nobody asked who wrote.
+
+  Board 326 restates it from the other side, on the card that must NOT carry
+  one: its own bottom row draws the year and stops. Two boards saying the same
+  rule from both ends is what makes it checkable rather than remembered.
   """
   @spec wordmark() :: map()
   def wordmark do
@@ -492,6 +512,7 @@ defmodule Kati.Screens.YearShare do
   def hours_face_bars(breakdown, label_size) do
     assigns = %{
       label_size: label_size,
+      year: Kati.Screens.YearShare.year(),
       # `bar/1` and not `breakdown/1`: that one wraps the rows in their own
       # card, and here they are already inside one.
       bars: Enum.map(breakdown, &Kati.Screens.Stats.bar/1)
@@ -509,6 +530,11 @@ defmodule Kati.Screens.YearShare do
       />
       <Spacer size={11} />
       {@bars}
+      <Spacer size={11} />
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        <Text text={@year} font_family="mono" text_size={@label_size} text_color={Palette.muted()} />
+      </Row>
     </Column>
     """
   end
