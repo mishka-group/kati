@@ -170,7 +170,10 @@ defmodule Kati.AppReachabilityTest do
      "screens 128 and 129 at 235% text size. The same screens at a system " <>
        "setting, not other ones — reached by changing the setting, as 91 is."},
     {Screens.OnboardingLarge, "the onboarding chain at 235%. As above."},
-    {Screens.ImportStates, "screen 140's edge states, in 27's manner. As above."},
+    {Screens.ImportStates,
+     "screen 140's edge states, in 27's manner. As above — and #4 has since " <>
+       "shipped the states themselves: 141 draws its refusal card with `Pick " <>
+       "again` live, and its wrong-guess note over a file that still reads."},
     {Screens.ShelfLarge, "screens 145 and 146 at 235%. As above."},
     {Screens.DropStates,
      "the drop, DNF and abandon states across all three media at once, in " <>

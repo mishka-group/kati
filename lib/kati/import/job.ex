@@ -60,11 +60,15 @@ defmodule Kati.Import.Job do
          {:ok, {headers, rows}} <- Csv.read(text) do
       columns = Mapping.columns(headers, rows)
       records = Mapping.records(headers, rows)
+      looks_like = Mapping.looks_like(headers)
 
       if Enum.all?(columns, & &1.skipped?) or records == [] do
         {:error, :unrecognised}
       else
-        {:ok, Kati.Import.Job.shaped(name, headers, rows, columns, records)}
+        {:ok,
+         name
+         |> Kati.Import.Job.shaped(headers, rows, columns, records)
+         |> Map.put(:looks_like, looks_like)}
       end
     end
   end

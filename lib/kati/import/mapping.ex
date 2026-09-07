@@ -154,6 +154,66 @@ defmodule Kati.Import.Mapping do
     |> String.replace(~r/[^a-z0-9]/u, "")
   end
 
+  # A column only one exporter writes. Not a list of everything a source
+  # carries — a shared column proves nothing, and the point is to recognise the
+  # file rather than to describe it.
+  @markers %{
+    "goodreads" => ~w(bookshelves exclusiveshelf numberofpages bookid),
+    "storygraph" => ~w(readstatus starrating contentwarnings),
+    "letterboxd" => ~w(letterboxduri),
+    "imdb" => ~w(const titletype numvotes),
+    "trakt" => ~w(traktid traktrating),
+    "myanimelist" => ~w(animetitle myscore mystatus),
+    "anilist" => ~w(anilistid mediaid)
+  }
+
+  # Which of those sources are about BOOKS. A film reader who lands on a book
+  # export has made a different mistake from one who picked the wrong film
+  # service, and screen 141 says so differently.
+  @books ~w(goodreads storygraph)
+
+  @doc """
+  Which service a file looks like it came from, or `nil`.
+
+  Screen 140 asks the reader to say where they are coming from, and a person
+  with four exports in their Downloads folder will sometimes pick the wrong
+  tile. The file itself knows: `Bookshelves` and `Number of Pages` are
+  Goodreads' and nobody else's, `Letterboxd URI` is Letterboxd's.
+
+  `nil` when no marker is present, which is most CSVs and is not a failure —
+  the columns are matched by header regardless of where they came from, and the
+  guess is only used to warn about a mismatch.
+
+      iex> Kati.Import.Mapping.looks_like(["Title", "Bookshelves", "My Rating"])
+      "goodreads"
+
+      iex> Kati.Import.Mapping.looks_like(["Name", "Letterboxd URI"])
+      "letterboxd"
+
+      iex> Kati.Import.Mapping.looks_like(["Title", "Rating"])
+      nil
+  """
+  @spec looks_like([String.t()]) :: String.t() | nil
+  def looks_like(headers) do
+    keys = MapSet.new(headers, &Kati.Import.Mapping.key/1)
+
+    Enum.find_value(@markers, fn {source, markers} ->
+      if Enum.any?(markers, &MapSet.member?(keys, &1)), do: source
+    end)
+  end
+
+  @doc """
+  Whether a source id names a book service.
+
+      iex> Kati.Import.Mapping.books?("goodreads")
+      true
+
+      iex> Kati.Import.Mapping.books?("letterboxd")
+      false
+  """
+  @spec books?(String.t() | nil) :: boolean()
+  def books?(source), do: source in @books
+
   @doc """
   Every row of the file as a record, with only the fields Kati understands.
 

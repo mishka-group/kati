@@ -27,7 +27,18 @@ defmodule Kati.ImportTest do
 
   doctest Kati.Screens.Import, only: [result_line: 1, answer_tag: 2, live?: 1]
 
-  doctest Kati.Screens.ImportRecognised, only: [live?: 1, source_name: 1]
+  doctest Kati.Screens.ImportRecognised,
+    only: [
+      live?: 1,
+      source_name: 1,
+      mismatch: 2,
+      refusal_title: 1,
+      tone: 1,
+      pick_again: 1,
+      possessive: 1
+    ]
+
+  doctest Kati.Import.Mapping, only: [looks_like: 1, books?: 1]
 
   alias Kati.Import.Commit
   alias Kati.Import.Job
@@ -340,6 +351,121 @@ defmodule Kati.ImportTest do
 
       assert Ash.read!(TrackedTitle) == []
       assert Map.get(after_tap.__mob__, :nav_action) == nil
+    end
+  end
+
+  describe "a file screen 141 cannot read" do
+    test "is said out loud instead of drawn as somebody else's 418 rows" do
+      # MOVIES-AND-TV.md #4. `Job.read/2` has always had three refusals to
+      # report and screen 141 swallowed all three into the fixture, so a
+      # reader who handed Kati a photo was shown a Goodreads export and told
+      # it had 418 rows and nine matched columns.
+      job = Recognised.job_for(file("Colour,Shape\nred,round\n"))
+
+      assert job.refusal == :unrecognised
+      refute Recognised.live?(job)
+
+      drawn = inspect(Recognised.content(%{job: job, result: nil}), limit: :infinity)
+
+      assert drawn =~ "Kati could not read that file"
+      assert drawn =~ "watched.csv"
+      # None of the fixture's numbers, because none of them is about this file.
+      refute drawn =~ "418"
+      refute drawn =~ "Mapping"
+      refute drawn =~ "STEP 1 OF 4"
+    end
+
+    test "offers the one way out a refusal honestly has" do
+      job = Recognised.job_for(file("Colour,Shape\nred,round\n"))
+      drawn = inspect(Recognised.content(%{job: job, result: nil}), limit: :infinity)
+
+      assert drawn =~ "Pick again"
+      assert drawn =~ "change_source"
+      # Board 142 names `Something else` in the sentence rather than drawing a
+      # second pill, and so does this.
+      assert drawn =~ "Something else"
+
+      socket =
+        Recognised
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:job, job)
+        |> Mob.Socket.assign(:file, {nil, nil})
+        |> Mob.Socket.assign(:result, nil)
+
+      {:noreply, popped} = Recognised.handle_tap(:change_source, socket)
+
+      assert Map.get(popped.__mob__, :nav_action) == {:pop}
+    end
+
+    test "says which of the three refusals it was" do
+      empty = Recognised.job_for(file(""))
+      missing = Recognised.job_for(%{path: "/nowhere/at/all.csv", name: "at/all.csv"})
+
+      assert empty.refusal in [:empty, :unrecognised]
+      assert missing.refusal == :unreadable
+
+      assert inspect(Recognised.content(%{job: missing, result: nil}), limit: :infinity) =~
+               "could not be opened"
+    end
+
+    test "and nothing reaches the shelf" do
+      Recognised.job_for(file("Colour,Shape\nred,round\n"))
+
+      assert Ash.read!(TrackedTitle) == []
+      assert Ash.read!(Watch) == []
+    end
+  end
+
+  describe "a file that disagrees with the tile that was tapped" do
+    test "is named, and still read" do
+      # Board 142's *wrong guess*: mapping is by column name, so a Letterboxd
+      # export picked under the Trakt tile imports exactly as well.
+      job = Recognised.job_for(Map.put(file(letterboxd()), :source, :trakt))
+
+      assert Recognised.live?(job), "a wrong tile is not a refusal"
+      assert {"Letterboxd", false} = job.mismatch
+
+      drawn = inspect(Recognised.content(%{job: job, result: nil}), limit: :infinity)
+
+      assert drawn =~ "This looks like a Letterboxd export"
+      assert drawn =~ "it will still read"
+      # The board is still the board — the file reads.
+      assert drawn =~ "STEP 1 OF 4"
+      # Gold help, not red error: this goes somewhere.
+      refute drawn =~ "Pick again"
+    end
+
+    test "says so louder when it is not even the same kind of thing" do
+      books = """
+      Title,Author,Bookshelves,My Rating,Date Read
+      Dune,Frank Herbert,read,4,2026/01/02
+      """
+
+      job = Recognised.job_for(Map.put(file(books), :source, :letterboxd))
+
+      assert {"Goodreads", true} = job.mismatch
+
+      assert inspect(Recognised.content(%{job: job, result: nil}), limit: :infinity) =~
+               "no watches in it"
+    end
+
+    test "and says nothing at all when the guess was right" do
+      job = Recognised.job_for(Map.put(file(letterboxd()), :source, :letterboxd))
+
+      assert job.mismatch == nil
+      assert job.source == "Letterboxd"
+
+      refute inspect(Recognised.content(%{job: job, result: nil}), limit: :infinity) =~
+               "looks like a"
+    end
+
+    test "and the picker's own atom ids name the source, not \"CSV\"" do
+      # Screen 140 carries `%{id: :letterboxd}`, an atom, and this read strings
+      # only — so every real import through the picker was headed *CSV*.
+      job = Recognised.job_for(Map.put(file(letterboxd()), :source, :letterboxd))
+
+      assert job.source == "Letterboxd"
+      refute job.source == "CSV"
     end
   end
 
