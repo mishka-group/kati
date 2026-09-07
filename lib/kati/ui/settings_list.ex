@@ -707,9 +707,13 @@ defmodule Kati.UI.SettingsList do
   `Text` squeezed narrower than its content wraps character by character, and a
   pill that does not quite fit its row would render as a stack of letters.
   """
-  def action_pill(label) do
+  def action_pill(label, on_tap \\ nil) do
     Kati.Components.MishkaPill.pill(
       label: label,
+      # `nil` is the ordinary answer: most of the eight screens that draw this
+      # pill have nothing behind it yet, and `nil` reaches the node as no
+      # `on_tap` — not tappable rather than broken.
+      on_tap: on_tap,
       background: Kati.Theme.paper(Palette.mode()),
       color: :on_surface,
       corner_radius: 15,

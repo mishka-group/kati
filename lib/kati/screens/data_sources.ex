@@ -80,7 +80,7 @@ defmodule Kati.Screens.DataSources do
         {UI.eyebrow("Where your tokens live")}
         {Kati.Screens.DataSources.tokens()}
         {UI.eyebrow("Cached metadata")}
-        {Kati.Screens.DataSources.cache()}
+        {Kati.Screens.DataSources.cache(Map.get(assigns, :cache_notice), Map.get(assigns, :refreshing?, false))}
       </Column>
     </Scroll>
     """
@@ -591,11 +591,13 @@ defmodule Kati.Screens.DataSources do
   Both figures are read. A page about where data comes from that stated its own
   cache size would be the one page in the app allowed to guess.
   """
-  @spec cache() :: map()
-  def cache do
+  @spec cache(String.t() | nil, boolean()) :: map()
+  def cache(notice \\ nil, refreshing? \\ false) do
     assigns = %{
       size: Kati.Screens.DataSources.cache_size(),
-      oldest: Kati.Screens.DataSources.oldest_entry()
+      oldest: Kati.Screens.DataSources.oldest_entry(),
+      notice: Kati.Screens.DataSources.cache_notice(notice),
+      refresh: if(refreshing?, do: "Refreshing…", else: "Refresh")
     }
 
     ~MOB"""
@@ -626,10 +628,11 @@ defmodule Kati.Screens.DataSources do
               max_lines={1}
             />
           </Column>
-          {Kati.UI.SettingsList.action_pill("Refresh")}
+          {Kati.UI.SettingsList.action_pill(@refresh, {self(), :refresh_cache})}
           <Spacer size={9} />
-          {Kati.UI.SettingsList.action_pill("Clear")}
+          {Kati.UI.SettingsList.action_pill("Clear", {self(), :clear_cache})}
         </Row>
+        {@notice}
       </Column>
       <Spacer size={12} />
       {Kati.UI.SettingsList.note("info", "Kati refreshes anything older than six months on its own. That is a promise it keeps, not a limit it suffers.")}
@@ -699,6 +702,68 @@ defmodule Kati.Screens.DataSources do
     "#{months} #{if months == 1, do: "MONTH", else: "MONTHS"}"
   end
 
+  @doc """
+  What the last cache action did, when there is something to say.
+
+  A sweep that answers nothing looks exactly like a button that does nothing,
+  which is what this finding was about; a screen that redraws its own size line
+  and hopes the reader notices two megabytes fewer is not much better.
+  """
+  @spec cache_notice(String.t() | nil) :: map()
+  def cache_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def cache_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={11} />
+      <Text
+        text={@message}
+        font_family="mono"
+        text_size={10.5}
+        letter_spacing={0.12}
+        text_color={Palette.muted()}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  Empty the metadata cache. MOVIES-AND-TV.md #102.
+
+  Nothing the reader made is in it — `Kati.Media.Cache`'s moduledoc gives the
+  whole argument — so this needs no confirmation step: the shelf, the ticks and
+  the ratings are all still there afterwards, and the posters come back on the
+  next refresh.
+  """
+  def handle_tap(:clear_cache, socket) do
+    notice =
+      case Kati.Media.Cache.clear() do
+        {:ok, 0} -> "Nothing was cached."
+        {:ok, n} -> "Cleared #{n} cached #{if n == 1, do: "row", else: "rows"}."
+        {:error, _reason} -> "The cache could not be cleared."
+      end
+
+    {:noreply, Mob.Socket.assign(socket, :cache_notice, notice)}
+  end
+
+  @doc """
+  Re-read every tracked title from TMDB.
+
+  Off this process — one round trip per season per show would stop the screen
+  drawing until TMDB answered — so the pill says *Refreshing…* and the answer
+  arrives as `{:cache_refreshed, result}`. See `Kati.Media.Cache`.
+  """
+  def handle_tap(:refresh_cache, socket) do
+    Kati.Media.Cache.ask(self())
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:refreshing?, true)
+     |> Mob.Socket.assign(:cache_notice, nil)}
+  end
+
   @doc false
   def handle_tap(:wipe_tokens, socket) do
     Sources.disconnect_all()
@@ -722,6 +787,13 @@ defmodule Kati.Screens.DataSources do
   @impl true
   def handle_info({:change, :tmdb_token, typed}, socket) when is_binary(typed),
     do: {:noreply, Mob.Socket.assign(socket, :token, typed)}
+
+  def handle_info({:cache_refreshed, result}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:refreshing?, false)
+     |> Mob.Socket.assign(:cache_notice, Kati.Screens.DataSources.refresh_line(result))}
+  end
 
   def handle_info(message, socket), do: super(message, socket)
 
@@ -752,6 +824,35 @@ defmodule Kati.Screens.DataSources do
         {:noreply, Kati.Screens.DataSources.store_token(socket, token)}
     end
   end
+
+  @doc """
+  What a finished refresh says.
+
+      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 3, failed: 0}})
+      "Refreshed 3 titles."
+
+      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 2, failed: 1}})
+      "Refreshed 2 titles. 1 could not be reached."
+
+      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 0, failed: 0}})
+      "Nothing on the shelf to refresh."
+  """
+  @spec refresh_line({:ok, map()} | {:error, term()}) :: String.t()
+  def refresh_line({:ok, %{refreshed: 0, failed: 0}}), do: "Nothing on the shelf to refresh."
+
+  def refresh_line({:ok, %{refreshed: n, failed: 0}}),
+    do: "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}."
+
+  def refresh_line({:ok, %{refreshed: n, failed: f}}),
+    do:
+      "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}. " <>
+        "#{f} could not be reached."
+
+  # `Kati.Media.Tmdb.message/1` already owns every sentence about a request
+  # that could not be made, including the one about a key nobody has entered —
+  # which is the failure this button meets most often and the one the reader
+  # can actually do something about, two cards up this same page.
+  def refresh_line({:error, reason}), do: Kati.Media.Tmdb.message(reason)
 
   @doc false
   @spec store_token(Mob.Socket.t(), String.t()) :: Mob.Socket.t()

@@ -179,12 +179,25 @@ defmodule Kati.Screens.Library do
   `Kati.Media.TrackedTitle` holds — a value pair, not a foreign key — so an
   evicted poster cannot take a tracked row down with it.
 
-  **A row with no cached title is dropped.** The grid draws a name and a mono
-  line under every poster, and a tile captioned `nil` is worse than a tile that
-  is not there: the title is the one thing eviction takes and nothing durable
-  can replace, so the honest answer is to say nothing rather than to draw an
-  anonymous rectangle. The tracked row is untouched and reappears the moment
-  its cache row is re-fetched.
+  **A row with no cached title reads `Untitled`, and this used to drop it.**
+  The old rule was *a tile captioned `nil` is worse than a tile that is not
+  there*, and it is right about `nil` and wrong about the alternative: `nil` is
+  not the only answer an evicted cache has. `Untitled` is the one every other
+  screen in this app already gives — `Kati.Screens.Inbox.show_title/1`,
+  `Kati.Screens.Rating.title_of/1`, `Kati.Screens.SeriesSettings.title_of/1`,
+  each with the same sentence about a cache wipe not orphaning the row that
+  holds the user's own words.
+
+  Dropping was found on a device the day screen 80's **Clear** pill was wired
+  (MOVIES-AND-TV.md #102): clearing the cache — which that card promises Kati
+  does on its own to anything older than six months — left three tracked
+  titles, two watches, and a Library reading `0 titles · 0 in progress` over
+  *No titles yet · Add one thing you are watching*. Every fact was intact and
+  the one screen that shows them said the shelf was empty.
+
+  A tile with no name is a poor tile. A library that says you have nothing is
+  a lie, and it is the lie that tells somebody to add a title they already
+  have.
 
   `Kati.Media.TrackedTitle`'s own `:shelf` action does the reading, once per
   kind, rather than a filter written out here: it is the action that resource
@@ -222,7 +235,6 @@ defmodule Kati.Screens.Library do
         Map.get(rated, &1.id)
       )
     )
-    |> Enum.reject(&is_nil(&1.title))
     |> Kati.Library.ShelfFilters.apply(choice)
   rescue
     # Same degradation `Kati.Calendars.Today` makes: a screen that cannot reach
@@ -326,6 +338,24 @@ defmodule Kati.Screens.Library do
       `Kati.Media.TrackedTitle` names `:not_started` and `:finished` as this
       screen's shelf filters.
   """
+  @doc """
+  A title's name, or what an evicted cache leaves behind.
+
+  `Untitled` and not `nil`: see `shelf/1`. The rest of the row survives —
+  the kind, the status, the ticks and the rating are all the tracked row's or
+  the watches' — so the tile is a real title with a name Kati cannot currently
+  say, which is what it is.
+
+      iex> Kati.Screens.Library.name_of(nil)
+      "Untitled"
+
+      iex> Kati.Screens.Library.name_of(%{title: "Severance"})
+      "Severance"
+  """
+  @spec name_of(map() | nil) :: String.t()
+  def name_of(%{title: title}) when is_binary(title) and title != "", do: title
+  def name_of(_evicted), do: "Untitled"
+
   @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer(), non_neg_integer()) ::
           map()
   def shaped(tracked, cached, ticks, seen \\ 0, rating \\ nil) do
@@ -335,7 +365,7 @@ defmodule Kati.Screens.Library do
       # `tracked_id`: the title the user tapped and the title a second query
       # happens to return first are two different facts.
       id: tracked.id,
-      title: cached && cached.title,
+      title: Kati.Screens.Library.name_of(cached),
       seed: cached && cached.poster_path,
       kind: if(tracked.kind == :movie, do: :film, else: :series),
       status: tracked.status,

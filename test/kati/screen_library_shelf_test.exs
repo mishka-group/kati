@@ -410,22 +410,26 @@ defmodule Kati.ScreenLibraryShelfTest do
                "the fallback fired over a shelf that has rows: #{inspect(drawn)} is drawn"
       end
 
-      assert length(tile_columns(tree)) == 5
+      assert length(tile_columns(tree)) == 6
     end
 
     test "the shelf is ordered newest touch first" do
-      assert Enum.map(Library.shelf(), & &1.title) == [
-               "The Ferry Road",
-               "Low Water",
-               "Undertow",
-               "Paper Cities",
-               "Northlight Bay"
-             ]
+      assert Library.shelf() |> Enum.reject(&(&1.title == "Untitled")) |> Enum.map(& &1.title) ==
+               [
+                 "The Ferry Road",
+                 "Low Water",
+                 "Undertow",
+                 "Paper Cities",
+                 "Northlight Bay"
+               ]
 
-      assert titles_drawn(tree(mount_screen(Library))) |> Enum.take(1) == ["The Ferry Road"]
+      # The evicted row is the newest touch in this fixture, so it leads —
+      # which is the ordering working, not the name.
+      assert titles_drawn(tree(mount_screen(Library))) |> Enum.take(2) ==
+               ["Untitled", "The Ferry Road"]
     end
 
-    test "an archived title, an evicted one and a book stay off the Screen shelf" do
+    test "an archived title and a book stay off the Screen shelf" do
       tree = tree(mount_screen(Library))
 
       assert find(tree, :text, text: "Hidden Coast") == nil,
@@ -433,14 +437,34 @@ defmodule Kati.ScreenLibraryShelfTest do
 
       assert find(tree, :text, text: "Saltings") == nil,
              "a book is on the Screen shelf"
+    end
 
-      # The evicted row has no title to draw at all, so the proof it was dropped
-      # is the tile count: five drawn out of eight tracked rows.
+    test "and an evicted one stays ON it, under the name every other screen gives" do
+      # This used to be dropped, and the argument for dropping it was about
+      # `nil` rather than about the alternative: `Untitled` is what
+      # `Kati.Screens.Inbox`, `Kati.Screens.Rating` and
+      # `Kati.Screens.SeriesSettings` have always drawn for the same row.
+      #
+      # Found on a device the day screen 80's Clear pill was wired
+      # (MOVIES-AND-TV.md #102): clearing the cache left three tracked titles,
+      # two watches and a Library reading `0 titles` over *No titles yet · Add
+      # one thing you are watching*. Every fact intact, and the one screen that
+      # shows them saying the shelf was empty.
       assert length(Ash.read!(TrackedTitle)) == 8
-      assert length(Library.shelf()) == 5
+      assert length(Library.shelf()) == 6
 
-      assert Enum.all?(Library.shelf(), &(&1.title != nil)),
-             "a tile with no name reached the grid"
+      assert "Untitled" in Enum.map(Library.shelf(), & &1.title)
+      assert Enum.all?(Library.shelf(), &is_binary(&1.title))
+    end
+
+    test "so a wiped cache leaves the shelf standing rather than reading empty" do
+      Kati.Repo.query!("delete from cached_titles")
+
+      shelf = Library.shelf()
+
+      assert length(shelf) == 6, "every tracked Screen row is still a row"
+      assert Enum.all?(shelf, &(&1.title == "Untitled"))
+      refute Library.subtitle(shelf) =~ "0 titles"
     end
 
     test "progress is derived, never invented" do
@@ -470,18 +494,19 @@ defmodule Kati.ScreenLibraryShelfTest do
 
       tree = tree(mount_screen(Library))
       assert length(find_all(tree, :text, text: "50% watched")) == 2
-      assert length(find_all(tree, :text, text: "watching")) == 1
+      # Two now: the evicted row is `:watching` too, and drawing it is the point.
+      assert length(find_all(tree, :text, text: "watching")) == 2
     end
 
     test "the subtitle and the chip counts come off the shelf, not the Sample" do
       titles = Library.titles()
 
-      assert Library.subtitle(titles) == "5 titles · 3 in progress"
-      assert subtitle_of(tree(mount_screen(Library))) == "5 titles · 3 in progress"
+      assert Library.subtitle(titles) == "6 titles · 4 in progress"
+      assert subtitle_of(tree(mount_screen(Library))) == "6 titles · 4 in progress"
 
       assert Library.chip_counts(titles) == [
-               {"All", 5},
-               {"Watching", 3},
+               {"All", 6},
+               {"Watching", 4},
                {"Not started", 1},
                {"Finished", 1}
              ]
@@ -493,7 +518,9 @@ defmodule Kati.ScreenLibraryShelfTest do
       # The counts are written out rather than read back off `chip_counts/1`:
       # a shelf that lost its rows would agree with its own chip labels
       # perfectly, and this is the assertion that would still notice.
-      for {label, count} <- [{"All", 5}, {"Watching", 3}, {"Not started", 1}, {"Finished", 1}] do
+      # Six, not five: the evicted row is on the shelf now and is `:watching`
+      # like the row it always was. See *an evicted one stays ON it*.
+      for {label, count} <- [{"All", 6}, {"Watching", 4}, {"Not started", 1}, {"Finished", 1}] do
         filtered = render_info(view, {:tap, String.to_atom("filter_" <> label)})
 
         assert length(tile_columns(tree(filtered))) == count,
@@ -512,7 +539,7 @@ defmodule Kati.ScreenLibraryShelfTest do
              "a provider path resolved to a sample photograph, which means the " <>
                "artwork lookup is matching something it should not"
 
-      assert length(tile_columns(tree)) == 5,
+      assert length(tile_columns(tree)) == 6,
              "the tiles vanished with their artwork"
     end
 

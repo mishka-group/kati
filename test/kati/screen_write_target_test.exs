@@ -462,6 +462,27 @@ defmodule Kati.ScreenWriteTargetTest do
   # Ratcheted both ways, like `@writes_anyway`, so it may only shrink.
   @writes_a_stranger []
 
+  # ── and the one control whose whole meaning is EVERY row ────────────────────
+  #
+  # Not the same list, and not the same claim. Assertion 3 is about a write that
+  # CHOSE a row the page was not holding — the shelf re-queried at tap time, the
+  # newest book written to while the fixture was drawn. Screen 80's **Clear**
+  # under *Cached metadata* chooses nothing: it empties three tables, which is
+  # what the pill says and the only thing it could mean, and it is safe to
+  # offer for the reason `Kati.Media.Cache`'s moduledoc gives at length — those
+  # three resources are cache entirely, nothing the reader made is in them, and
+  # the library and the log are joined to them by a VALUE PAIR rather than a
+  # foreign key so that emptying one cannot orphan the other.
+  #
+  # A control that writes to every row is invisible to the defect this file
+  # exists for and would be permanently unfixable against it, which is why it
+  # is named here rather than filed in the backlog above.
+  @clears_everything [
+    {Kati.Screens.DataSources, :clear_cache, {:db, "cached_titles"}},
+    {Kati.Screens.DataSources, :clear_cache, {:db, "cached_seasons"}},
+    {Kati.Screens.DataSources, :clear_cache, {:db, "cached_episodes"}}
+  ]
+
   # It is EMPTY, and that is the state this file was written to reach.
   #
   # It shipped with four entries, all found by the assertion above and none by
@@ -662,7 +683,8 @@ defmodule Kati.ScreenWriteTargetTest do
   # ── assertion 3: a write lands on a row the page was holding ────────────────
 
   test "every bare write lands on a row the page was holding" do
-    unexpected = Enum.reject(drawn_pass().strangers, &Enum.member?(@writes_a_stranger, &1))
+    allowed = @writes_a_stranger ++ @clears_everything
+    unexpected = Enum.reject(drawn_pass().strangers, &Enum.member?(allowed, &1))
 
     assert unexpected == [],
            "these controls wrote to a row carrying a seeded id that the socket's assigns did " <>
@@ -681,7 +703,7 @@ defmodule Kati.ScreenWriteTargetTest do
   end
 
   test "the stranger inventory has no stale entries" do
-    stale = @writes_a_stranger -- drawn_pass().strangers
+    stale = (@writes_a_stranger ++ @clears_everything) -- drawn_pass().strangers
 
     assert stale == [],
            "these controls no longer write to a row the page was not holding, or are no " <>
