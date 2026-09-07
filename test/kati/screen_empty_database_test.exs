@@ -890,7 +890,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"06", "06", "Everything"},
     {"06", "06", "Films"},
     {"06", "06", "Series"},
-    {"06", "06", "Can’t find it? Add it by hand"},
+    # `Can't find it? Add it by hand` was a fifth row here until board 308 made
+    # the control absent before a keystroke — it NAMES the query now, and an
+    # untouched sheet has none to name. There is no replacement quotation:
+    # 06 is drawn mid-query, so every line it has to lend is one of the four
+    # above, and what an empty sheet says instead is 87's card at this size
+    # rather than anything 06 draws.
     {"19", "87", "Search anything you keep"},
     {"19", "19", "All"},
     {"19", "19", "Recent"},

@@ -135,6 +135,29 @@ defmodule Kati.ScreenSweep do
   end
 
   @doc """
+  Every `on_change` tag a tree carries — the fields a reader can type into.
+
+  `tap_tags/1`'s twin, and `Kati.AppReachabilityTest` needs it for the same
+  reason it needs that one: **a door that only appears after a keystroke is
+  invisible to a walk that only taps.** Board 308 made screen 06's add-by-hand
+  row exactly that — absent before a keystroke, because it names the query and
+  there is none — and `Kati.Screens.AddByHandFa` went unreachable in the walk
+  while staying one letter away for a person.
+  """
+  @spec change_tags(term()) :: [atom()]
+  def change_tags(tree) do
+    tree
+    |> Mob.ScreenCase.flatten()
+    |> Enum.flat_map(fn node ->
+      case Map.get(node, :props) || %{} do
+        %{on_change: {pid, tag}} when is_pid(pid) and is_atom(tag) -> [tag]
+        _ -> []
+      end
+    end)
+    |> Enum.uniq()
+  end
+
+  @doc """
   Every node type Kati can actually draw.
 
   `Mob.ScreenCase.renderable_types/0` is mob's own set, read off

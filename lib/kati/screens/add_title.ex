@@ -124,6 +124,10 @@ defmodule Kati.Screens.AddTitle do
        # zero and the bridge remembers the last one it saw, so a mount is not
        # itself a replacement.
        query_epoch: if(handed == "", do: 0, else: 1),
+       # Board 308's second band, from the first frame: a sheet handed a query
+       # by screen 19's *Look it up* has a request in flight before it draws, so
+       # it opens on the skeletons rather than on the empty card and then them.
+       searching?: handed != "",
        save_error: nil,
        search_error: nil
      )}
@@ -132,7 +136,7 @@ defmodule Kati.Screens.AddTitle do
   @doc """
   The query a push named, trimmed, or `""`.
 
-  Under `@min_query` it is still put in the field and simply not searched —
+  Under the minimum it is still put in the field and simply not searched —
   the same floor `handle_info({:change, :title_query, …})` keeps. Two letters
   the reader typed are two letters they should not have to type again.
 
@@ -153,7 +157,14 @@ defmodule Kati.Screens.AddTitle do
   def render(assigns) do
     filter = assigns.filter
     shown = visible(assigns.results, filter)
-    count = "#{length(shown)} results"
+    # Board 308's first band draws no count before a keystroke: `0 results` over
+    # a sheet nobody has asked anything of is a report on a search that has not
+    # happened. `Kati.Search.long_enough?/1` is the same seam the search itself
+    # gates on, so the eyebrow and the query cannot disagree.
+    count =
+      if Kati.Search.long_enough?(assigns.query),
+        do: "#{length(shown)} results",
+        else: "SEARCH"
 
     ~MOB"""
     <Box
@@ -177,9 +188,8 @@ defmodule Kati.Screens.AddTitle do
           {Kati.Screens.AddTitle.search_notice(assigns[:search_error])}
           {Kati.Screens.AddTitle.save_notice(assigns[:save_error])}
           {UI.eyebrow(count)}
-          {Kati.Screens.AddTitle.results(shown)}
-          {Kati.Screens.AddTitle.nothing_card(shown, assigns.query, assigns[:search_error])}
-          {Kati.Screens.AddTitle.by_hand()}
+          {Kati.Screens.AddTitle.body(shown, assigns)}
+          {Kati.Screens.AddTitle.by_hand(assigns.query)}
         </Column>
       </Scroll>
     </Box>
@@ -284,13 +294,18 @@ defmodule Kati.Screens.AddTitle do
   `handle_info/2` is sequential, so at least the answers cannot arrive out of
   order and overwrite a newer list with an older one.
   """
-  @min_query 3
+
+  # Board 308: *"Two characters to start — one in فارسی, العربية, 中文, 日本語."*
+  # It was a flat three, which asked a Persian reader for three characters where
+  # one is a word. `Kati.Search.long_enough?/1` is the rule screen 86 already
+  # states in its own note, and this sheet now uses the same one rather than a
+  # second number that could drift from it.
 
   def handle_info({:change, :title_query, typed}, socket) when is_binary(typed) do
     socket = Mob.Socket.assign(socket, :query, typed)
     query = String.trim(typed)
 
-    if String.length(query) < @min_query do
+    if not Kati.Search.long_enough?(query) do
       # Back to the drawing, not to nothing. Board 06 is drawn mid-query and no
       # board draws this screen before anyone has typed — the rule
       # `Kati.Screens.Library` moved off its Sample under is that the design
@@ -302,6 +317,7 @@ defmodule Kati.Screens.AddTitle do
       {:noreply,
        socket
        |> Mob.Socket.assign(:results, [])
+       |> Mob.Socket.assign(:searching?, false)
        |> Mob.Socket.assign(:search_error, nil)}
     else
       # NOT searched here. This handler runs on every keystroke, so searching
@@ -310,7 +326,12 @@ defmodule Kati.Screens.AddTitle do
       # the typing to stop and sends `{:search_ready, query}` back; the clause
       # below decides whether that answer is still the one wanted.
       Kati.Media.SearchDebounce.ask(self(), query)
-      {:noreply, socket}
+
+      # Board 308's second band. Set here rather than when the request goes out,
+      # because from the reader's side the wait starts at the keystroke — the
+      # debounce is part of it — and a sheet that shows nothing for 300ms and
+      # then skeletons has two waits in it.
+      {:noreply, Mob.Socket.assign(socket, :searching?, true)}
     end
   end
 
@@ -326,6 +347,7 @@ defmodule Kati.Screens.AddTitle do
      # it the results reset and the typed text stayed — see `K-46` in
      # `native/LEDGER.md`, found doing exactly this on a device.
      |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
+     |> Mob.Socket.assign(:searching?, false)
      # Back to the state the sheet mounts in, which is empty — clearing the
      # field used to put the drawing's four results back under it.
      |> Mob.Socket.assign(:results, [])
@@ -367,9 +389,12 @@ defmodule Kati.Screens.AddTitle do
   def handle_info({:search_ready, query}, socket) when is_binary(query) do
     current = socket.assigns |> Map.get(:query, "") |> String.trim()
 
-    if query == current and String.length(query) >= @min_query do
+    if query == current and Kati.Search.long_enough?(query) do
       {:noreply, Kati.Screens.AddTitle.searched(socket, query)}
     else
+      # A stale answer, for a query the reader has typed past. The rows are not
+      # touched — a newer request is already out — but the flag is, because this
+      # one is no longer the thing being waited for.
       {:noreply, socket}
     end
   end
@@ -387,6 +412,8 @@ defmodule Kati.Screens.AddTitle do
   """
   @spec searched(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def searched(socket, query) do
+    socket = Mob.Socket.assign(socket, :searching?, false)
+
     case Kati.Media.Tmdb.search(query) do
       {:ok, rows} ->
         socket
@@ -1052,11 +1079,11 @@ defmodule Kati.Screens.AddTitle do
           "Type a film or a show and Kati looks it up."
         )
 
-      String.length(typed) < @min_query ->
+      not Kati.Search.long_enough?(typed) ->
         card(
           "search",
           "Keep typing",
-          "#{@min_query} letters or more, so the search has something to go on."
+          "Two characters to start — one in فارسی, العربية, 中文, 日本語, where one is a word."
         )
 
       true ->
@@ -1144,8 +1171,43 @@ defmodule Kati.Screens.AddTitle do
     """
   end
 
+  @doc """
+  The escape hatch — absent before a keystroke, and naming the query after one.
+
+  Board 308: *"The add-by-hand row is absent before a keystroke — it names the
+  query, and there is none"*, and *"present from the first keystroke: the query
+  exists, so the escape hatch can name it."*
+
+  Naming it is the whole difference. `Can't find it? Add it by hand` asks the
+  reader to retype what they have just typed; `Add "vellichor" by hand` is the
+  same control having read the field.
+
+      iex> Kati.Screens.AddTitle.by_hand_label("")
+      nil
+
+      iex> Kati.Screens.AddTitle.by_hand_label("vellichor")
+      "Add “vellichor” by hand"
+  """
+  @spec by_hand_label(String.t()) :: String.t() | nil
+  def by_hand_label(query) do
+    case String.trim(query) do
+      "" -> nil
+      typed -> "Add \u201C" <> typed <> "\u201D by hand"
+    end
+  end
+
   @doc false
-  def by_hand do
+  def by_hand(query \\ "") do
+    case Kati.Screens.AddTitle.by_hand_label(query) do
+      nil -> ~MOB"<Spacer size={0} />"
+      label -> Kati.Screens.AddTitle.by_hand_row(label)
+    end
+  end
+
+  @doc false
+  def by_hand_row(label) do
+    assigns = %{label: label}
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -1154,6 +1216,8 @@ defmodule Kati.Screens.AddTitle do
       border_color={Palette.border()}
       padding_top={14}
       padding_bottom={14}
+      padding_left={13}
+      padding_right={13}
       align="center"
       on_tap={{self(), :add_by_hand}}
     >
@@ -1161,13 +1225,80 @@ defmodule Kati.Screens.AddTitle do
       {Kati.UI.symbol("edit_note", size: 18, color: Palette.sub())}
       <Spacer size={7} />
       <Text
-        text="Can’t find it? Add it by hand"
+        text={@label}
         text_size={13}
         font_weight="semibold"
         text_color={Palette.ink_soft()}
         max_lines={1}
       />
       <Spacer weight={1.0} />
+    </Row>
+    """
+  end
+
+  @doc """
+  The list, the skeletons, or the card — board 308's three states.
+
+  In flight is `:searching?`, which the debounce sets on the keystroke and the
+  answer clears. Before that the sheet has nothing to say and says the shortest
+  true thing; after it, either rows or 89's card.
+  """
+  @spec body([map()], map()) :: term()
+  def body(shown, assigns) do
+    cond do
+      Map.get(assigns, :searching?, false) and shown == [] ->
+        Kati.Screens.AddTitle.skeletons()
+
+      shown != [] ->
+        Kati.Screens.AddTitle.results(shown)
+
+      true ->
+        Kati.Screens.AddTitle.nothing_card(shown, assigns.query, assigns[:search_error])
+    end
+  end
+
+  @doc """
+  Three skeleton rows in the result row's own shape, while a query is in flight.
+
+  Board 308: *"never a spinner — 87's rule, and this sheet is the same list."*
+  A spinner says *something is happening*; a skeleton says *what is coming and
+  how much of it*, which is the honest claim for a list.
+  """
+  @spec skeletons() :: map()
+  def skeletons do
+    ~MOB"""
+    <Column fill_width={true}>
+      {[1, 2, 3]
+       |> Enum.map(fn _row -> Kati.Screens.AddTitle.skeleton_row() end)
+       |> Enum.intersperse(Kati.Screens.AddTitle.row_gap())}
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def skeleton_row do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={13}
+      padding_right={13}
+      padding_top={11}
+      padding_bottom={11}
+      align="center"
+    >
+      <Box width={44} height={62} corner_radius={10} background={Palette.placeholder()} />
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Box width={150} height={13} corner_radius={6} background={Palette.placeholder()} />
+        <Spacer size={9} />
+        <Box width={92} height={10} corner_radius={5} background={Palette.placeholder()} />
+        <Spacer size={9} />
+        <Box width={120} height={10} corner_radius={5} background={Palette.placeholder()} />
+      </Column>
     </Row>
     """
   end

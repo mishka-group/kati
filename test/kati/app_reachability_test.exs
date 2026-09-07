@@ -365,6 +365,13 @@ defmodule Kati.AppReachabilityTest do
                   # Handing the whole tag list to `targets/3` would defeat the
                   # point on screen 53: `choose_fa` sits before `continue` in
                   # draw order and writes the setting `continue` reads.
+                  #
+                  # Typed first, because board 308 put screen 06's own fork one
+                  # keystroke away: the add-by-hand row is absent before a
+                  # keystroke, since it NAMES the query and there is none. A
+                  # fork that only appears after typing is still a fork.
+                  {socket, tree} = Kati.AppReachabilityTest.after_typing(module, socket, tree)
+
                   if tag in ScreenSweep.tap_tags(tree),
                     do: targets(module, socket, [tag]),
                     else: []
@@ -408,7 +415,10 @@ defmodule Kati.AppReachabilityTest do
       for {module, {socket, tags}} <- taps,
           module != Screens.Gallery,
           into: %{} do
-        {module, targets(module, socket, tags) ++ opened_targets(module, socket, tags)}
+        {module,
+         targets(module, socket, tags) ++
+           opened_targets(module, socket, tags) ++
+           typed_targets(module, socket)}
       end
     end)
   end
@@ -565,6 +575,63 @@ defmodule Kati.AppReachabilityTest do
         dest <- targets(module, opened, ScreenSweep.tap_tags(tree)),
         uniq: true,
         do: dest
+  end
+
+  # The same move for a field rather than a control. **A door that only appears
+  # after a keystroke is invisible to a walk that only taps**, and board 308
+  # made screen 06's add-by-hand row exactly that: absent before a keystroke,
+  # because it names the query and there is none. `Kati.Screens.AddByHandFa`
+  # went unreachable here while staying one letter away for a person.
+  #
+  # `@typed` is two characters because that is the app's own floor
+  # (`Kati.Search.long_enough?/1`), and a word rather than a letter so a screen
+  # that searches on it has something to search for.
+  # Re-rendered here rather than carried on the memo: `ScreenSweep.drawn_taps/1`
+  # is shared with four other sweeps that destructure its 2-tuple, and widening
+  # it for one caller is a change to all of them.
+  defp typed_targets(module, socket) do
+    with {:ok, tree} <- ScreenSweep.safely(fn -> module.render(socket.assigns) end) do
+      typed_targets(module, socket, tree)
+    else
+      _unrenderable -> []
+    end
+  end
+
+  defp typed_targets(module, socket, tree) do
+    for tag <- ScreenSweep.change_tags(tree),
+        {:ok, typed} <-
+          [ScreenSweep.safely(fn -> pinned(fn -> typed_only(module, socket, tag) end) end)],
+        typed != nil,
+        {:ok, after_typing} <- [ScreenSweep.safely(fn -> module.render(typed.assigns) end)],
+        dest <- targets(module, typed, ScreenSweep.tap_tags(after_typing)),
+        uniq: true,
+        do: dest
+  end
+
+  @typed "up"
+
+  @doc false
+  @spec after_typing(module(), Mob.Socket.t(), term()) :: {Mob.Socket.t(), term()}
+  def after_typing(module, socket, tree) do
+    ScreenSweep.change_tags(tree)
+    |> Enum.reduce({socket, tree}, fn tag, {so_far, drawn} ->
+      with typed when not is_nil(typed) <- typed_only(module, so_far, tag),
+           {:ok, redrawn} <- ScreenSweep.safely(fn -> module.render(typed.assigns) end) do
+        {typed, redrawn}
+      else
+        _unchanged -> {so_far, drawn}
+      end
+    end)
+  end
+
+  defp typed_only(module, socket, tag) do
+    case module.handle_info({:change, tag, @typed}, socket) do
+      {:noreply, %Mob.Socket{__mob__: %{nav_action: nil}} = moved} ->
+        if moved.assigns == socket.assigns, do: nil, else: moved
+
+      _ ->
+        nil
+    end
   end
 
   # A tap that changed the assigns and navigated nowhere — opening a panel,

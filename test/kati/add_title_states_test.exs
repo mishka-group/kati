@@ -55,16 +55,21 @@ defmodule Kati.AddTitleStatesTest do
 
       said = words(socket)
 
-      assert said =~ "Add it by hand"
+      # Board 308: the row NAMES the query. `Can't find it? Add it by hand` asks
+      # the reader to retype what they have just typed.
+      assert said =~ "Add \u201Czzzqwertyfilm\u201D by hand"
 
-      refute said =~ ~r/Add it by hand.*Add it by hand/s,
+      refute said =~ ~r/by hand.*by hand/s,
              "two by-hand buttons — the card's and the screen's"
     end
   end
 
   describe "states that are not that one" do
-    test "under the three-character floor, no card" do
-      for typed <- ["", "a", "ab"] do
+    test "under the floor, no card" do
+      # Two characters, not three — board 308, and one in Persian, Arabic and
+      # CJK where one is a word. `Kati.Search.long_enough?/1` is the rule, and
+      # screen 86 has stated it in its own note all along.
+      for typed <- ["", "a"] do
         socket =
           mounted()
           |> Mob.Socket.assign(:query, typed)
@@ -134,7 +139,11 @@ defmodule Kati.AddTitleStatesTest do
              "the sheet still opens on four films nobody searched for"
 
       assert said =~ "Search for something to add"
-      assert said =~ "0 RESULTS"
+
+      # `0 RESULTS` until board 308: a count over a sheet nobody has asked
+      # anything of is a report on a search that has not happened.
+      assert said =~ "SEARCH"
+      refute said =~ "0 RESULTS"
 
       # The chrome survives, which is what `Kati.ScreenEmptyDatabaseTest`'s
       # `@quoted` rows for 06 hold from the other side.
@@ -142,9 +151,9 @@ defmodule Kati.AddTitleStatesTest do
       assert said =~ "Everything"
     end
 
-    test "and one or two letters do not put them back" do
+    test "and one letter does not put them back" do
       {:noreply, typed} =
-        AddTitle.handle_info({:change, :title_query, "Up"}, mounted())
+        AddTitle.handle_info({:change, :title_query, "U"}, mounted())
 
       assert typed.assigns.results == []
       assert words(typed) =~ "Keep typing"

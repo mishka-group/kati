@@ -466,6 +466,12 @@ defmodule Kati.DesignLiterals do
       # schedules a manual run, so picking it switched the watcher off in
       # silence. 314 makes it what it always was — a **Check now** button, which
       # runs the sweep once and stamps the line above it.
+      # Board 308 replaced the label. `Can't find it? Add it by hand` asks the
+      # reader to retype what they have just typed; the row NAMES the query now
+      # — `Add "vellichor" by hand` — and is absent before a keystroke, because
+      # it has nothing to name. 06 draws it mid-query and could not have drawn
+      # the absent state.
+      {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},
       {"25", "manual"},
       # Board 141's sentence names the file it was captured from — a nine-column
