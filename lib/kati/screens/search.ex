@@ -631,54 +631,75 @@ defmodule Kati.Screens.Search do
   def gap, do: ~MOB"<Spacer size={7} />"
 
   @doc """
-  The scope chips, split into lines that fit — board 91's own instruction.
+  The scope chips, on one scrolling line — board 313's ruling.
 
-  This row was a horizontal scroller, and board 91 is the board that says it
-  must not be: *"The scope chips wrap to two lines instead of scrolling, since
-  a horizontal scroll at this size hides half the scopes behind a gesture."*
-  It draws six chips on two lines, three and three.
+  ## Two boards disagreed, and 313 settled it
 
-  A gesture is not a control. A scope a reader cannot see is one they will not
-  use, and the scroller was hiding two of six at ordinary text size before
-  Dynamic Type entered into it at all — this app has six scopes and board 19
-  was drawn when it had four.
+  Board 91 said the chips must WRAP: *"a horizontal scroll at this size hides
+  half the scopes behind a gesture."* That objection is right and this row was
+  built on it — three per line, balanced rather than greedy, so four chips came
+  out two and two rather than three and a widow.
 
-  Balanced rather than greedy: three per line at most, and then the chips are
-  spread evenly across however many lines that needs, so four chips are two
-  and two rather than three and a widow. There is no `FlowRow` on this bridge
-  — `MobBridge.kt` has no wrapping row of any kind — so the wrap is decided
-  here, by count, which is what makes the rule visible and testable.
+  Board 313 revisits it at 235% with both drawings side by side and picks the
+  other one, for two reasons the wrapped version cannot answer:
+
+    * **The bridge has no `FlowRow`** — filed as
+      [mishka-group/kati#98](https://github.com/mishka-group/kati/issues/98) —
+      so a real wrap is not buildable at all; what was here was a wrap decided
+      by count, which holds only while the count does.
+    * **Three lines is the results off-screen.** *"Better to read, and three
+      lines tall — on a 235% page where the field alone is 62pt, that is the
+      results pushed off-screen."*
+
+  And it answers 91's objection rather than ignoring it: the scroll carries a
+  **leading chevron**, *"because a horizontal scroll with no affordance hides
+  half the scopes behind a gesture nobody knows is there."* See `chip_line/1`.
+
+  277's rule — that at the largest size rows become columns — is about rows of
+  CONTENT. A scope chip row is chrome, and 313 draws the distinction on its own
+  face: the see-all row does become a column, because it is content.
 
       iex> Kati.Screens.Search.chip_rows([:a, :b, :c, :d, :e, :f])
-      [[:a, :b, :c], [:d, :e, :f]]
-
-      iex> Kati.Screens.Search.chip_rows([:a, :b, :c, :d])
-      [[:a, :b], [:c, :d]]
-
-      iex> Kati.Screens.Search.chip_rows([:a, :b, :c])
-      [[:a, :b, :c]]
+      [[:a, :b, :c, :d, :e, :f]]
 
       iex> Kati.Screens.Search.chip_rows([])
       []
   """
-  @spec chip_rows([term()]) :: [[term()]]
   def chip_rows([]), do: []
 
-  def chip_rows(chips) do
-    lines = ceil(length(chips) / 3)
-    per_line = ceil(length(chips) / lines)
+  # ONE line, since board 313. This wrapped into up to three, and 313 makes the
+  # trade explicitly: *"The bridge has no FlowRow — filed as
+  # mishka-group/kati#98. A drawing that wraps needs that; a drawing that
+  # scrolls does not."*
+  #
+  # And the wrapped version is the one it rejects on its own merits as well as
+  # on the bridge's: *"Better to read, and three lines tall — on a 235% page
+  # where the field alone is 62pt, that is the results pushed off-screen."*
+  # 277's rule that rows become columns is about rows of CONTENT; a scope chip
+  # row is chrome, and chrome may scroll.
+  def chip_rows(chips), do: [chips]
 
-    Enum.chunk_every(chips, per_line)
-  end
+  @doc """
+  The chip row, scrolling, with the affordance board 313 requires.
 
-  @doc false
+  *"Both drawn, because a horizontal scroll with no affordance hides half the
+  scopes behind a gesture nobody knows is there."* The chevron is the mark; it
+  is not a control, because the row it points along is already draggable and a
+  second way to move it would be two answers to one question.
+  """
+  @spec chip_line([map()]) :: map()
   def chip_line(chips) do
     assigns = %{chips: chips}
 
     ~MOB"""
     <Row fill_width={true} align="center">
-      {@chips}
-      <Spacer weight={1.0} />
+      <Scroll axis="horizontal">
+        <Row align="center">
+          {@chips}
+        </Row>
+      </Scroll>
+      <Spacer size={7} />
+      {Kati.UI.symbol("chevron_right", size: 17, color: Kati.Theme.Palette.tertiary())}
     </Row>
     """
   end
