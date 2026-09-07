@@ -29,7 +29,11 @@ defmodule Kati.MediaDetectTest do
 
   use Mob.ScreenCase, async: false
 
-  doctest Kati.Media.Detect, only: [progress: 1, clamp: 1]
+  doctest Kati.Media.Detect, only: [progress: 1, clamp: 1, candidates: 1]
+
+  doctest Kati.Media.Detect.Near, only: [tokens: 1, score: 2]
+
+  doctest Kati.Media.Detect.Notice, only: [id: 1]
 
   doctest Kati.Screens.AutoDetect,
     only: [
@@ -163,6 +167,33 @@ defmodule Kati.MediaDetectTest do
 
       assert {:tick, _t, id} = Detect.verdict(%{session("Severance", 95) | subtitle: "Half Loop"})
       assert id == @prefix <> "ep-Half Loop"
+    end
+
+    test "finds an anime by the name its player announces, not only TMDB's" do
+      # The case the reader asked about. Their shelf holds TMDB's English name;
+      # Crunchyroll announces the romaji one. Same show, and `title_original`
+      # has been stored since the ingest was written with nothing reading it.
+      anime!("Frieren: Beyond Journey's End", "Sousou no Frieren")
+
+      assert {:tick, matched, _e} = Detect.verdict(session("Sousou no Frieren", 95))
+      assert matched.source_id == @prefix <> "Frieren: Beyond Journey's End"
+
+      # And still by the English name, which is what the shelf draws.
+      assert {:tick, _t, _e2} = Detect.verdict(session("Frieren: Beyond Journey's End", 95))
+    end
+
+    test "and by the filename a local player announces" do
+      # VLC playing a file reports the file. Cleaned and then matched EXACTLY —
+      # this is a second spelling of one string, not fuzzy matching.
+      anime!("Frieren: Beyond Journey's End", "Sousou no Frieren")
+      shelve!("Blade Runner 2049", :movie)
+
+      assert {:tick, _a, _e} = Detect.verdict(session("Sousou.no.Frieren.S01E05.1080p.mkv", 95))
+      assert {:tick, _b, _e2} = Detect.verdict(session("Blade_Runner_2049.mp4", 95))
+    end
+
+    test "and a cleaned name that still matches nothing is still a question" do
+      assert {:ask, _} = Detect.verdict(session("Some.Other.Film.S02E01.mkv", 95))
     end
 
     test "a title nobody keeps becomes a question rather than a title" do
@@ -299,6 +330,102 @@ defmodule Kati.MediaDetectTest do
     end
   end
 
+  describe "suggesting what it might have been" do
+    setup do
+      anime!("Frieren: Beyond Journey's End", "Sousou no Frieren")
+      shelve!("The Crown", :tv)
+      :ok
+    end
+
+    test "offers the near ones as something to tap, rather than a shrug" do
+      titles = Detect.suggestions_for("Frieren S1") |> Enum.map(& &1.title)
+
+      assert "Frieren: Beyond Journey's End" in titles
+    end
+
+    test "and finds the show behind a fansub filename" do
+      titles =
+        Detect.suggestions_for("[SubsPlease] Sousou no Frieren - 05 (1080p).mkv")
+        |> Enum.map(& &1.title)
+
+      assert "Frieren: Beyond Journey's End" in titles
+    end
+
+    test "suggests nothing for a name that is nothing like anything" do
+      assert Detect.suggestions_for("Zzzz Qqqq Wwww") == []
+    end
+
+    test "and never suggests on a shared stopword alone" do
+      # `The Bear` against `The Crown` scored 0.45 before stopwords were
+      # dropped — two unrelated shows offered for each other, which is exactly
+      # the noise a card of guesses must not contain.
+      assert Detect.suggestions_for("The Bear") == []
+    end
+
+    test "a suggestion is a suggestion — it never ticks by itself" do
+      assert {:ask, _} = Detect.verdict(session("Frieren S1", 99))
+      assert Ash.read!(Watch) == []
+    end
+  end
+
+  describe "connecting a heard name to a title" do
+    setup do
+      %{tracked: shelve!("The Crown", :tv)}
+    end
+
+    test "teaches Kati the name, and ticks what was watched", %{tracked: tracked} do
+      Detect.ask("Korona S02E01")
+
+      assert {:ok, :ticked} = Detect.connect("Korona S02E01", tracked.id)
+
+      assert [watch] = Ash.read!(Watch)
+      assert watch.tracked_title_id == tracked.id
+      assert watch.detected
+      assert Detect.unsure() == []
+    end
+
+    test "and the same name is never asked about again", %{tracked: tracked} do
+      {:ok, _} = Detect.connect("Korona", tracked.id)
+
+      assert {:tick, matched, _e} = Detect.verdict(session("Korona", 95))
+      assert matched.id == tracked.id
+    end
+
+    test "the taught name survives a cleaned filename too", %{tracked: tracked} do
+      {:ok, _} = Detect.connect("Korona", tracked.id)
+
+      assert {:tick, _t, _e} = Detect.verdict(session("Korona.S02E01.1080p.mkv", 95))
+    end
+
+    test "teaching a new answer replaces the old one", %{tracked: tracked} do
+      other = shelve!("Slow Horses", :tv)
+
+      {:ok, _} = Detect.connect("Korona", tracked.id)
+      {:ok, _} = Detect.connect("Korona", other.id)
+
+      assert length(Ash.read!(Kati.Media.TitleAlias)) == 1
+      assert {:tick, matched, _e} = Detect.verdict(session("Korona", 95))
+      assert matched.id == other.id
+    end
+
+    test "an alias for a title the reader has hidden is not used", %{tracked: tracked} do
+      # Archiving is what "off my shelf" means here — `:shelf` is the read every
+      # list in this app goes through, and `on_shelf/1` keeps the alias honest
+      # to it. A taught name must not resurrect a title somebody hid.
+      {:ok, _} = Detect.connect("Korona", tracked.id)
+
+      tracked
+      |> Ash.Changeset.for_update(:update, %{archived: true})
+      |> Ash.update!()
+
+      assert {:ask, "Korona"} = Detect.verdict(session("Korona", 95))
+    end
+
+    test "and connecting to a title that is gone refuses rather than half-writing" do
+      assert {:error, _why} = Detect.connect("Korona", Ecto.UUID.generate())
+    end
+  end
+
   describe "the screen on a device that cannot look" do
     test "draws board 36 whole, because unavailable is not denied" do
       assert Detect.access() == :unavailable
@@ -336,6 +463,24 @@ defmodule Kati.MediaDetectTest do
       position_ms: div(3_000_000 * percent, 100),
       playing?: true
     }
+  end
+
+  defp anime!(title, original) do
+    Ash.create!(CachedTitle, %{
+      source: :manual,
+      source_id: @prefix <> title,
+      kind: :anime,
+      title: title,
+      title_original: original,
+      fetched_at: Kati.Time.now()
+    })
+
+    Ash.create!(TrackedTitle, %{
+      source: :manual,
+      source_id: @prefix <> title,
+      kind: :anime,
+      status: :watching
+    })
   end
 
   defp shelve!(title, kind) do

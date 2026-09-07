@@ -272,15 +272,18 @@ defmodule Kati.Import.Job do
       |> Ash.read!()
       |> Map.new(&{{&1.source, &1.source_id}, &1})
 
-    Map.new(tracked, fn row ->
-      name =
-        case Map.get(cached, {row.source, row.source_id}) do
-          %CachedTitle{title: title} when is_binary(title) and title != "" -> title
-          _evicted -> row.source_id
-        end
-
-      {Kati.Import.Job.name_key(name), row}
-    end)
+    # Every name a row answers to, not only the one the shelf draws:
+    # `Kati.Media.CachedTitle.names/1` gives TMDB's own two, so an export that
+    # names a show by its original title merges into the row the reader
+    # already has rather than creating a second copy of it beside it.
+    for row <- tracked,
+        name <-
+          (case CachedTitle.names(Map.get(cached, {row.source, row.source_id})) do
+             [] -> [row.source_id]
+             names -> names
+           end),
+        into: %{},
+        do: {Kati.Import.Job.name_key(name), row}
   rescue
     _error -> %{}
   end

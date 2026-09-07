@@ -314,15 +314,30 @@ defmodule Kati.Screens.AutoDetect do
         nil
 
       [title | _rest] ->
+        suggestions = Kati.Media.Detect.suggestions_for(title)
+
         %{
           seed: nil,
+          heard: title,
           question: "“#{title}” — is that something you keep?",
-          sub: "Kati heard it play and found nothing on your shelf",
+          sub: Kati.Screens.AutoDetect.decision_sub(suggestions),
+          suggestions: suggestions,
           options: ["Add it", "Not mine"],
           chosen: nil
         }
     end
   end
+
+  @doc """
+      iex> Kati.Screens.AutoDetect.decision_sub([])
+      "Kati heard it play and found nothing on your shelf"
+
+      iex> Kati.Screens.AutoDetect.decision_sub([%{title: "Frieren", tracked_id: "x"}])
+      "Kati heard it play — tap the one it is, or add it"
+  """
+  @spec decision_sub([map()]) :: String.t()
+  def decision_sub([]), do: "Kati heard it play and found nothing on your shelf"
+  def decision_sub(_some), do: "Kati heard it play — tap the one it is, or add it"
 
   @doc false
   def content(assigns) do
@@ -651,6 +666,8 @@ defmodule Kati.Screens.AutoDetect do
 
   @doc false
   def decision(d, live? \\ false) do
+    suggestions = Kati.Screens.AutoDetect.suggestion_row(Map.get(d, :suggestions, []), live?)
+
     buttons =
       d.options
       |> Enum.map(fn o -> Kati.Screens.AutoDetect.choice(o, o == d.chosen, live?) end)
@@ -673,12 +690,67 @@ defmodule Kati.Screens.AutoDetect do
           <Text text={d.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
       </Row>
+      {suggestions}
       <Spacer size={13} />
       <Row fill_width={true} align="center">
         {buttons}
       </Row>
     </Column>
     """
+  end
+
+  @doc """
+  The titles Kati thinks it might be, as pills you tap to connect.
+
+  The answer to *there is no shared id*, and to being handed a name and left to
+  find it: `Kati.Media.Detect.Near` ranks the shelf against what was announced
+  and the two or three best go here. Tapping one teaches Kati the name for good
+  (`Kati.Media.TitleAlias`) and ticks it, because the queue only holds names
+  that already passed the threshold.
+
+  Nothing at all when the ranking has nothing above its floor. A row of bad
+  guesses is worse than no row: it invites a wrong tap, and a wrong tap here
+  writes both a watch and an alias that will keep being wrong.
+  """
+  @spec suggestion_row([map()], boolean()) :: map()
+  def suggestion_row([], _live?), do: ~MOB"<Spacer size={0} />"
+
+  def suggestion_row(suggestions, live?) do
+    assigns = %{
+      pills:
+        suggestions
+        |> Enum.with_index()
+        |> Enum.map(fn {s, i} -> Kati.Screens.AutoDetect.suggestion(s, i, live?) end)
+        |> Enum.intersperse(~MOB"<Spacer size={7} />")
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row fill_width={true} align="center">
+        {@pills}
+      </Row>
+    </Column>
+    """
+  end
+
+  @doc false
+  def suggestion(s, index, live?) do
+    Kati.Components.MishkaPill.pill(
+      label: s.title,
+      background: Palette.paper(),
+      color: :on_surface,
+      height: 30,
+      corner_radius: 15,
+      padding: 0,
+      padding_left: 12,
+      padding_right: 12,
+      text_size: 11.5,
+      font_weight: :semibold,
+      align: :center,
+      max_lines: 1,
+      on_tap: if(live?, do: {self(), String.to_atom("connect_#{index}")})
+    )
   end
 
   @doc false
@@ -917,5 +989,24 @@ defmodule Kati.Screens.AutoDetect do
   def handle_tap(:open_retired, socket) do
     {:noreply,
      Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Browser extension"})}
+  end
+
+  @doc """
+  Connect the heard name to the title the reader tapped.
+
+  Writes the alias and the watch in one go — see `Kati.Media.Detect.connect/2`.
+  The reader has told Kati two things by tapping: what it was, and that they
+  watched it, because a name only reaches this queue by passing the threshold.
+  """
+  def handle_tap(tag, socket) when is_atom(tag) do
+    with "connect_" <> index <- Atom.to_string(tag),
+         %{} = card <- Map.get(socket.assigns.detect, :decision),
+         %{} = pick <- Enum.at(Map.get(card, :suggestions, []), String.to_integer(index)) do
+      _ = Kati.Media.Detect.connect(Map.get(card, :heard, ""), pick.tracked_id)
+
+      {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
+    else
+      _not_a_connect -> {:noreply, socket}
+    end
   end
 end

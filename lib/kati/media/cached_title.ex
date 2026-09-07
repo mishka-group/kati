@@ -228,6 +228,44 @@ defmodule Kati.Media.CachedTitle do
   zero is a source declining to answer, and honouring it as a denominator is the
   "p.214/0" this whole split exists to prevent.
   """
+  @doc """
+  Every name this title answers to, and none of them empty.
+
+  Two, because one show has two: TMDB's `title` is the name the reader's shelf
+  draws and `title_original` is the name their player may well announce —
+  `Frieren: Beyond Journey's End` and `Sousou no Frieren` are the same show,
+  and anime is where that gap shows first.
+
+  `title_original` has been filled from TMDB's `original_name` since the ingest
+  was written (`Kati.Media.Tmdb`) and nothing read it. Two callers do now, and
+  they are the two places a name arrives from outside and has to be recognised:
+  `Kati.Media.Detect` matching what the phone is playing, and
+  `Kati.Import.Job` matching a row of somebody's export.
+
+  Here rather than in either of them, because *what is this title called* is a
+  fact about the title. Two copies would drift the first time a third name was
+  worth keeping.
+
+      iex> alias Kati.Media.CachedTitle
+      iex> CachedTitle.names(%CachedTitle{title: "Frieren", title_original: "Sousou no Frieren"})
+      ["Frieren", "Sousou no Frieren"]
+
+      iex> alias Kati.Media.CachedTitle
+      iex> CachedTitle.names(%CachedTitle{title: "Dune", title_original: "Dune"})
+      ["Dune"]
+
+      iex> Kati.Media.CachedTitle.names(nil)
+      []
+  """
+  @spec names(t() | nil) :: [String.t()]
+  def names(nil), do: []
+
+  def names(%__MODULE__{} = cached) do
+    [cached.title, cached.title_original]
+    |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
+    |> Enum.uniq()
+  end
+
   @spec denominator(t() | nil) :: pos_integer() | nil
   def denominator(nil), do: nil
   def denominator(%__MODULE__{kind: :tv} = cached), do: positive(cached.episode_count)

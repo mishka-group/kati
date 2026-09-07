@@ -91,7 +91,7 @@ defmodule Kati.Backup.Catalog do
   #     mark. Nothing moves, for 10's reason — a version-10 file has no such
   #     column and every row takes the attribute default of `false`, which is
   #     what a title nobody has marked is.
-  @schema_version 12
+  @schema_version 13
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -127,6 +127,12 @@ defmodule Kati.Backup.Catalog do
     # silently forget.
     %{table: "media_content_warnings", resource: Kati.Media.ContentWarning, drop: []},
     %{table: "media_warning_preferences", resource: Kati.Media.WarningPreference, drop: []},
+    # A name the reader taught Kati, and nothing could regenerate it: there is
+    # no shared id between a media player and a title database — see
+    # `Kati.Media.TitleAlias` — so *this is the show that announces itself as
+    # “Sousou no Frieren”* exists only because somebody answered a question.
+    # Losing it on a restore means being asked all of them again.
+    %{table: "media_title_aliases", resource: Kati.Media.TitleAlias, drop: []},
     %{table: "foods", resource: Kati.Meals.Food, drop: []},
     %{table: "recipes", resource: Kati.Meals.Recipe, drop: []},
     %{

@@ -330,10 +330,27 @@ class KatiMediaListener : NotificationListenerService() {
                     ?: metadata.getString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
                     ?: ""
 
+            // The series name, where a TV app usually puts it. Netflix and
+            // Plex both fill ALBUM with the show while TITLE carries the
+            // episode, so without this the only name Kati saw for a series was
+            // the episode's — which matches nothing on a shelf of series.
+            val album =
+                metadata.getString(android.media.MediaMetadata.METADATA_KEY_ALBUM) ?: ""
+
+            // App-PRIVATE, and reported for exactly one purpose: it is stable
+            // for one item inside one app, so it is the key an alias the
+            // reader taught can be remembered against. It is not a TMDB id and
+            // nothing treats it as one — Netflix's 81234567 means nothing to
+            // Plex and nothing to TMDB.
+            val mediaId =
+                metadata.getString(android.media.MediaMetadata.METADATA_KEY_MEDIA_ID) ?: ""
+
             return JSONObject().apply {
                 put("app", controller.packageName ?: "")
                 put("title", title)
                 put("subtitle", subtitle)
+                put("album", album)
+                put("media_id", mediaId)
                 put("duration_ms", metadata.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION))
                 put("position_ms", state?.position ?: 0L)
                 put("playing", state?.state == PlaybackState.STATE_PLAYING)

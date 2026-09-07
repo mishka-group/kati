@@ -100,7 +100,12 @@ defmodule Kati.Backup.Upgrade do
       # Nothing moves: a version-11 file has no such column and every row takes
       # the attribute default of `false`, which is the truth about every watch
       # written before Kati could notice one — the reader tapped it.
-      {11, 12, &unchanged/1}
+      {11, 12, &unchanged/1},
+      # `media_title_aliases` arrived, and a version-12 file simply has none —
+      # the reader had not been asked yet. Nothing to move: an absent table
+      # restores as an empty one, and Kati asks about a name the first time it
+      # hears it, which is what it would have done anyway.
+      {12, 13, &unchanged/1}
     ]
 
   @doc """

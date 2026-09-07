@@ -24,12 +24,33 @@ defmodule Kati.Media.Detect do
 
     * **it ticks nothing that is not already on your shelf.** A detector that
       added titles would turn a mistyped browser tab into a library entry.
-    * **it ticks nothing it matched loosely.** The name has to match a shelf
-      title exactly, case and whitespace aside — `Kati.Import.Job.name_key/1`'s
+    * **it ticks nothing it matched loosely.** A candidate has to match a shelf
+      key exactly, case and whitespace aside — `Kati.Import.Job.name_key/1`'s
       rule, and for its reason: `Se7en` and `Seven` are two films.
     * **an ambiguous session becomes a question**, not a tick. That is the card
       board 36 is arranged around and the sentence it gives for it: *a wrong
       tick pollutes a watch history nobody audits.*
+
+  ## One show has several names, and a file has none
+
+  Exact matching against one name is too strict to be useful, and anime is
+  where that shows first. A reader's shelf holds TMDB's name —
+  `Frieren: Beyond Journey's End` — and Crunchyroll may announce
+  `Sousou no Frieren`. Same show, no match, and a question the reader has to
+  answer about something they plainly keep.
+
+  So the shelf is keyed by **both** names Kati already has:
+  `Kati.Media.CachedTitle.title` and `title_original`, which the TMDB ingest
+  has been filling from `original_name` all along and nothing read.
+
+  And a local player announces a FILE. VLC playing
+  `Frieren.S01E05.1080p.WEB-DL.mkv` reports exactly that, which matches
+  nothing. `candidates/1` therefore also offers a cleaned form of each name —
+  extension dropped, dots and underscores turned into spaces, everything from
+  an `S01E05` marker onwards cut off — and that cleaned form is matched
+  **exactly** like any other. This is not fuzzy matching: it is a second
+  spelling of the same string, and a candidate that still matches nothing is
+  still a question.
 
   ## The threshold, and why it is a threshold
 
@@ -65,6 +86,7 @@ defmodule Kati.Media.Detect do
   require Ash.Query
 
   alias Kati.Media.CachedTitle
+  alias Kati.Media.TitleAlias
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
   alias Kati.Native.Bridge
@@ -177,6 +199,15 @@ defmodule Kati.Media.Detect do
         app: Map.get(raw, "app", ""),
         title: title,
         subtitle: Map.get(raw, "subtitle", ""),
+        # Where a TV app usually puts the SERIES name while `title` carries the
+        # episode — Netflix and Plex both do. Without it the only name a series
+        # announced was its episode's, which matches nothing on a shelf of
+        # series.
+        album: Map.get(raw, "album", ""),
+        # App-private and never treated as anything else. See
+        # `KatiMediaListener`: it is stable for one item inside one app, which
+        # is what makes it a key an alias can be remembered against.
+        media_id: Map.get(raw, "media_id", ""),
         duration_ms: Map.get(raw, "duration_ms", 0),
         position_ms: Map.get(raw, "position_ms", 0),
         playing?: Map.get(raw, "playing", false)
@@ -252,19 +283,131 @@ defmodule Kati.Media.Detect do
   @spec match(map()) :: {struct(), String.t() | nil} | nil
   def match(session) do
     shelf = Kati.Media.Detect.shelf()
-    title = Kati.Import.Job.name_key(session.title)
-    subtitle = Kati.Import.Job.name_key(session.subtitle || "")
 
-    case {Map.get(shelf, title), Map.get(shelf, subtitle)} do
-      {%{} = tracked, _either} ->
-        {tracked, Kati.Media.Detect.episode_of(tracked, session.subtitle)}
+    # What the reader has taught, before anything Kati works out for itself.
+    # `Kati.Media.TitleAlias` is the answer to a question they have already
+    # been asked once, and re-deriving over the top of it would be asking again.
+    taught = Kati.Media.Detect.taught(session)
 
-      {nil, %{} = tracked} ->
+    if taught do
+      {taught, Kati.Media.Detect.episode_of(taught, session.title)}
+    else
+      Kati.Media.Detect.derive(session, shelf)
+    end
+  end
+
+  @doc false
+  @spec taught(map()) :: struct() | nil
+  def taught(session) do
+    aliases = TitleAlias.all()
+
+    [Map.get(session, :album), Map.get(session, :title), Map.get(session, :subtitle)]
+    |> Enum.flat_map(&Kati.Media.Detect.candidates/1)
+    |> Enum.find_value(&Map.get(aliases, &1))
+    |> case do
+      nil -> nil
+      id -> Kati.Media.Detect.on_shelf(id)
+    end
+  end
+
+  @doc false
+  def on_shelf(id) do
+    case Ash.get(TrackedTitle, id) do
+      {:ok, %TrackedTitle{archived: false} = tracked} -> tracked
+      _gone_or_hidden -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc false
+  @spec derive(map(), map()) :: {struct(), String.t() | nil} | nil
+  def derive(session, shelf) do
+    # The album first, and the order is the point: a TV app puts the SERIES
+    # there and the episode in `title`, so asking the album first means a
+    # series is recognised as itself rather than by whichever of its episodes
+    # happens to be named on the shelf.
+    from_album = Kati.Media.Detect.lookup(shelf, Map.get(session, :album))
+    from_title = Kati.Media.Detect.lookup(shelf, session.title)
+    from_subtitle = Kati.Media.Detect.lookup(shelf, session.subtitle)
+
+    case {from_album, from_title, from_subtitle} do
+      {%{} = tracked, _t, _s} ->
         {tracked, Kati.Media.Detect.episode_of(tracked, session.title)}
 
-      {nil, nil} ->
+      {nil, %{} = tracked, _s} ->
+        {tracked, Kati.Media.Detect.episode_of(tracked, session.subtitle)}
+
+      {nil, nil, %{} = tracked} ->
+        {tracked, Kati.Media.Detect.episode_of(tracked, session.title)}
+
+      {nil, nil, nil} ->
         nil
     end
+  end
+
+  @doc false
+  @spec lookup(map(), String.t() | nil) :: struct() | nil
+  def lookup(shelf, name) do
+    name
+    |> Kati.Media.Detect.candidates()
+    |> Enum.find_value(&Map.get(shelf, &1))
+  end
+
+  @doc """
+  The spellings of one announced name worth looking up, in order.
+
+  The name as given, then the same name with a player's file noise taken off.
+  Both are matched exactly; this widens what counts as *the same string*, not
+  what counts as a match.
+
+      iex> Kati.Media.Detect.candidates("Severance")
+      ["severance"]
+
+      iex> Kati.Media.Detect.candidates("Frieren.S01E05.1080p.WEB-DL.mkv")
+      ["frieren.s01e05.1080p.web-dl.mkv", "frieren"]
+
+      iex> Kati.Media.Detect.candidates("Blade_Runner_2049.mp4")
+      ["blade_runner_2049.mp4", "blade runner 2049"]
+
+      iex> Kati.Media.Detect.candidates(nil)
+      []
+  """
+  @spec candidates(String.t() | nil) :: [String.t()]
+  def candidates(name) when not is_binary(name), do: []
+
+  def candidates(name) do
+    raw = Kati.Import.Job.name_key(name)
+
+    if raw == "" do
+      []
+    else
+      Enum.uniq([raw, Kati.Media.Detect.unfile(raw)]) |> Enum.reject(&(&1 == ""))
+    end
+  end
+
+  @doc """
+  A filename read as the name of the thing inside it.
+
+  Only the three transformations a media filename actually needs, and each is
+  reversible in the head of whoever reads the result: drop a known extension,
+  turn separators into spaces, and stop at the episode marker — everything
+  after `S01E05` is the release, not the show.
+
+  Nothing here guesses. A name with none of those features comes back
+  unchanged, which is why this can be matched as strictly as the raw one.
+  """
+  @spec unfile(String.t()) :: String.t()
+  def unfile(name) do
+    name
+    |> String.replace(~r/\.(mkv|mp4|avi|mov|m4v|webm|ts|wmv|flv|mpg|mpeg)$/, "")
+    |> String.replace(~r/[._]+/, " ")
+    |> String.split(~r/\bs\d\d?e\d\d?\b/, parts: 2)
+    |> List.first()
+    |> String.replace(~r/\s+/, " ")
+    |> String.trim()
+    |> String.trim("-")
+    |> String.trim()
   end
 
   @doc """
@@ -370,6 +513,12 @@ defmodule Kati.Media.Detect do
 
     unless title in queue do
       Mob.State.put(:detect_unsure, Enum.take([title | queue], 5))
+      # And say so, rather than waiting to be found. A question nobody knows
+      # about is a question nobody answers, and the reader has just finished
+      # watching the thing it is about — which is the moment they can answer it
+      # from memory. `Kati.Media.Detect.Notice` is the one notification this
+      # feature sends, and it sends one per name.
+      _ = Kati.Media.Detect.Notice.heard(title)
     end
 
     :asked
@@ -392,9 +541,36 @@ defmodule Kati.Media.Detect do
   @spec resolve(String.t()) :: :ok
   def resolve(title) do
     Mob.State.put(:detect_unsure, Enum.reject(Kati.Media.Detect.unsure(), &(&1 == title)))
+    _ = Kati.Media.Detect.Notice.answered(title)
     :ok
   rescue
     _no_state -> :ok
+  end
+
+  @doc """
+  Connect a name Kati could not place to a title on the shelf.
+
+  The answer to *there is no shared id*: the reader points, once, and
+  `Kati.Media.TitleAlias` remembers. From then on that name matches without a
+  question.
+
+  It also **ticks it**, and that is not a bonus — the queue only ever holds
+  names that already passed the threshold, so a reader answering this has told
+  Kati two things: what it was, and that they watched it.
+  """
+  @spec connect(String.t(), String.t()) :: {:ok, atom()} | {:error, term()}
+  def connect(heard, tracked_title_id) do
+    with {:ok, _alias} <- TitleAlias.learn(heard, tracked_title_id),
+         %TrackedTitle{} = tracked <- Kati.Media.Detect.on_shelf(tracked_title_id) do
+      :ok = Kati.Media.Detect.resolve(heard)
+
+      if Kati.Media.Detect.ticked_already?(tracked, nil),
+        do: {:ok, :already},
+        else: Kati.Media.Detect.tick(tracked, nil)
+    else
+      nil -> {:error, :gone}
+      error -> error
+    end
   end
 
   @doc """
@@ -480,6 +656,47 @@ defmodule Kati.Media.Detect do
     end
   end
 
+  @doc """
+  The titles a heard name is probably about, for the card to offer.
+
+  `Kati.Media.Detect.Near` ranks them and this is the only caller: a ranking
+  that is allowed to be approximate must never reach `verdict/1`, which decides
+  what gets ticked without anyone looking. These are suggestions on a card
+  somebody is reading.
+
+  `[]` is an ordinary answer and the card handles it — *Add it* and *Not mine*
+  stand alone, and Kati does not pretend to a guess it does not have.
+  """
+  @spec suggestions_for(String.t()) :: [%{title: String.t(), tracked_id: String.t()}]
+  def suggestions_for(heard) do
+    Kati.Media.Detect.Near.ranked(heard, Kati.Media.Detect.rows())
+    |> Enum.map(fn {tracked, cached, _score} ->
+      %{
+        title: Kati.Screens.Library.name_of(cached),
+        tracked_id: tracked.id
+      }
+    end)
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  @spec rows() :: [{struct(), struct() | nil}]
+  def rows do
+    tracked =
+      Enum.flat_map(@kinds, fn kind ->
+        TrackedTitle
+        |> Ash.Query.for_read(:shelf, %{kind: kind})
+        |> Ash.read!()
+      end)
+
+    cached = CachedTitle |> Ash.read!() |> Map.new(&{{&1.source, &1.source_id}, &1})
+
+    Enum.map(tracked, &{&1, Map.get(cached, {&1.source, &1.source_id})})
+  rescue
+    _error -> []
+  end
+
   @doc false
   @spec shelf() :: %{String.t() => struct()}
   def shelf do
@@ -492,17 +709,31 @@ defmodule Kati.Media.Detect do
 
     cached = CachedTitle |> Ash.read!() |> Map.new(&{{&1.source, &1.source_id}, &1})
 
-    Map.new(tracked, fn row ->
-      name =
-        case Map.get(cached, {row.source, row.source_id}) do
-          %CachedTitle{title: title} when is_binary(title) and title != "" -> title
-          _evicted -> row.source_id
-        end
-
-      {Kati.Import.Job.name_key(name), row}
-    end)
+    for row <- tracked,
+        name <- Kati.Media.Detect.names_of(row, Map.get(cached, {row.source, row.source_id})),
+        into: %{},
+        do: {Kati.Import.Job.name_key(name), row}
   rescue
     _error -> %{}
+  end
+
+  @doc """
+  Every name a shelf row answers to.
+
+  TMDB's own two — `title` and `title_original` — because one show has several
+  names and the reader's player may announce either. `title_original` has been
+  filled from `original_name` since the ingest was written and nothing has ever
+  read it; this is the reader who needed it.
+
+  A row whose cache has been evicted answers to its `source_id`, which for a
+  hand-added or imported title IS the name — see `Kati.Screens.AddByHand`.
+  """
+  @spec names_of(struct(), struct() | nil) :: [String.t()]
+  def names_of(row, cached) do
+    case CachedTitle.names(cached) do
+      [] -> [row.source_id]
+      names -> names
+    end
   end
 
   defp decode(json) do

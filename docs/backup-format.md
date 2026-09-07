@@ -36,6 +36,7 @@ kati-backup-2026-08-21.katibackup
     ├── media_watches.json
     ├── media_content_warnings.json
     ├── media_warning_preferences.json
+    ├── media_title_aliases.json
     ├── foods.json
     ├── recipes.json
     ├── recipe_ingredients.json
@@ -146,6 +147,7 @@ reproduce.
 | `Kati.Media.Watch` | `media_watches` | Every tick, log, review, rewatch, place, companion, mood and pace |
 | `Kati.Media.ContentWarning` | `media_content_warnings` | Warnings the user recorded on a title, and whether each came from them or from an import |
 | `Kati.Media.WarningPreference` | `media_warning_preferences` | What to do with a warning category — avoid, warn, or show |
+| `Kati.Media.TitleAlias` | `media_title_aliases` | A name the reader taught Kati is one of their titles, so auto-detect stops asking |
 | `Kati.Meals.Food` | `foods` | Foods Kati or the user wrote, and remembered prices |
 | `Kati.Meals.Recipe` | `recipes` | Recipes, methods, notes, ratings, cached totals |
 | `Kati.Meals.RecipeIngredient` | `recipe_ingredients` | Every ingredient line, with its own figures |
@@ -228,6 +230,7 @@ before any column is decoded.
 | 6 → 7 | `goals` and `expenses` joined with screens 104 and 122. | Supplies both as empty members. |
 | 7 → 8 | `health_medications`, `health_readings` and `health_doses` joined with screens 109 and 112. | Supplies all three as empty members. |
 | 8 → 9 | `recipes` gained `slot_name` with screen 116. | **Nothing.** A version-8 archive has every member a version-9 app expects and its recipe rows simply lack one key, which takes the attribute default. The version still moved, because `schema_version` tracks the row shape — the step is here saying so rather than the chain having a hole in it. |
+| 12 → 13 | `media_title_aliases` joined the backup. | Supplied as an empty member. A version-12 file simply has none — the reader had not been asked yet — and Kati asks about a name the first time it hears it, which is what it would have done anyway. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

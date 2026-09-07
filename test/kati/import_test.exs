@@ -116,6 +116,32 @@ defmodule Kati.ImportTest do
       assert length(job.plan.merged) == 1
     end
 
+    test "merges an export that names a show by its original title" do
+      # The same widening detection got: one show has two names, and an export
+      # that used the other one would otherwise create a second copy of a title
+      # the reader already has.
+      Ash.create!(CachedTitle, %{
+        source: :manual,
+        source_id: @prefix <> "frieren",
+        kind: :anime,
+        title: "Frieren: Beyond Journey's End",
+        title_original: "Sousou no Frieren",
+        fetched_at: Kati.Time.now()
+      })
+
+      Ash.create!(TrackedTitle, %{
+        source: :manual,
+        source_id: @prefix <> "frieren",
+        kind: :anime,
+        status: :watching
+      })
+
+      {:ok, job} = read("Name,Rating\nSousou no Frieren,4\n")
+
+      assert Enum.map(job.plan.merged, & &1.title) == ["Sousou no Frieren"]
+      assert job.plan.new == []
+    end
+
     test "and writes nothing while it counts" do
       shelve!("Arrival", :movie)
       before = length(Ash.read!(Watch))
