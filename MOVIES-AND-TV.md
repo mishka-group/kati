@@ -3416,6 +3416,18 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Two things 306 draws that were not built.* Its filter row carries counts — `All 2 · Screen 1 · Habits 1 · Personal 0` — over a chip set screen 02 does not have (02 draws All / Screen / Personal / Money, and none of them counts). 306's stated point about that row is that `Personal` must not vanish at zero, and it cannot: the four chips are a fixed list. Counting all four is a change to board 02's own row and belongs to a board about screen 02's chips.
 
+### 135. 112 Medication (Kati.Health.Medication) — `missing-feature`
+
+**A medication whose schedule reads `Mon, Wed, Fri` is given a dose every day of the week, and armed a reminder every day, because `schedule` is a free string the reader types and nothing structured records which days a prescription falls on.**
+
+*Proof.* lib/kati/health/medication.ex:43 `attribute :schedule, :string` — free text, entered on screen 188 through `Kati.Screens.AddMedication`'s `trough(:schedule, …)` with the placeholder `every morning, 08:00`. The only structured half is `times`, and lib/kati/health/dose.ex `derive/2` is `for medication <- medications, at <- Enum.uniq(medication.times), clock?(at)` with no day test at all — the day it is handed is simply stamped on every row. `Kati.Notifications.Sources.Health.active/0` filters on `active` alone, so the same is true of the reminder.
+
+*Fix.* A `days` column on `Kati.Health.Medication` — the days of the week a dose falls on, defaulting to all seven so nothing already stored changes — read by `Dose.derive/2` and by the notification source, written by screens 188 and 189, and printed by `schedule_line/1`. Then board 327's sentence becomes expressible: with days, *which* schedules fall elsewhere is a filter and *when next* is the next day any of them matches.
+
+*Partly built 8 September.* Board 327's card is drawn — a `check_circle` on a green wash, `Nothing due today` as its title, and a body that names why — but the why it can honestly give is not the board's. `Kati.Screens.Medication.nothing_due/1`'s two clauses are the only two ways this page reaches a quiet day: every medication paused, or schedules none of which has a clock time yet. The board's *"Your four schedules all fall on other days. Next is Monday at 08:00 — levothyroxine"* needs the column above, and that function's doc says so.
+
+*What 327's second frame asks for and was not built.* Its *true empty* — `No medications` over an `Add a medication` ink button, with the Schedules group and its eyebrow both gone — is the state a reader with nothing stored is in, and screen 112 draws the drawing there instead: `doses({false, [], []})` answers `drawn_doses/0`, which is FIDELITY's rule that an empty store answers the board and which `Kati.ScreenEmptyDatabaseTest` pins for all 172 screens. Changing it for one screen is a decision about that rule rather than about this page.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

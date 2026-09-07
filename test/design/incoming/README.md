@@ -104,7 +104,7 @@ about; the right is the section of `D-65` it answers.
 | 324 | ۹۷ — فارسی، هیچ‌چیز تنظیم نشده | `D-65` 97 | — **built 8 Sep**, kept here: 97's board is the full page, and this is a state of it |
 | 325 | Year card · the field face, 4:5 at size | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 326 | Year card · the genres face + the heading | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
-| 327 | 112 — medications, nothing due today | `D-65` 112 |
+| 327 | 112 — medications, nothing due today | `D-65` 112 | — **partly built 8 Sep**: the card is drawn; its sentence and the true-empty frame wait on MOVIES-AND-TV.md #135 |
 | 328 | 140 — four more sources, and the door | `D-65` 140 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 329 | 141 — the recognition line, six shapes | `D-65` 141 |
 | 330 | L1 — removing, deleting, renaming | `D-65` L1 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |

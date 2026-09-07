@@ -673,59 +673,74 @@ defmodule Kati.Screens.Medication do
   end
 
   @doc """
-  What TODAY says on a day with medications and nothing due.
+  The BODY of the quiet day's card: why nothing is due, in the reader's own
+  terms.
+
+  Board 327 is what this is now. D-59 asked for *screen 112 with medications
+  stored and nothing due today* and it was undrawn, so the sentence was written
+  in a screen file with every word's provenance argued out here — 327 draws it
+  at last, as a card that *"names why and when next"* rather than a line of
+  prose, and the title above this carries the *Nothing due today* half.
 
   **A function rather than a literal so a test can point at it**, which is
-  `Kati.Screens.HomeFa.empty_day/0`'s own reason for being one — and like that
-  sentence, no artboard contains this one. D-59 asks for the board (*screen 112
-  with medications stored and nothing due today*) and it is not drawn yet, so
-  where every word came from is written down here instead:
+  `Kati.Screens.HomeFa.empty_day/0`'s own reason for being one.
 
-    * *Nothing … today* is `Kati.Screens.InboxNotifications.usage_line/2`
-      exactly — `"Nothing today"` is already what this app says about a section
-      whose count is zero and which stays on the page rather than going away.
-    * *due* is this page's own word and not a new one:
-      `Kati.Health.Medication`'s `times` is documented as *the list of clock
-      times a dose is due*, and `Kati.Health.Dose.resolve/2` names the state
-      `:due`.
-    * The em-dash and the pointer after it are screen 139's shape — *Nothing
-      scheduled — add anything with +* — borrowed the way
-      `Kati.Screens.Home.rest_of_today/1` borrows it, which is to say the
-      structure and not the words: say what is missing, then name the one thing
-      that answers it.
-    * *your schedules are below* names `UI.eyebrow("Schedules")`, which
-      `content/1` draws directly beneath this on every render that has any. That
-      it names something really on the page is the requirement rather than a
-      nicety — `empty_day/0`'s doc states it: *the control it names is real.*
+  ## Why, and how far *why* can honestly go
 
-  ## The pointer is dropped when there is nothing to point at
+  There are exactly two ways this page reaches a quiet day, and the two clauses
+  are those two:
 
-  Which is why this takes the schedules. A reader who owns medications and has
-  paused every one of them gets `[]` from `schedules/1`, `schedule_band/1` takes
-  the whole band away, and the tail would then name a heading that is not on the
-  page — the one requirement the paragraph above calls the requirement rather
-  than a nicety.
+    * **`[]` — everything is paused.** `schedules/1` maps
+      `Kati.Notifications.Sources.Health.active/0`, so a reader who owns
+      prescriptions and has paused every one gets an empty list,
+      `schedule_band/1` takes the whole band away, and a sentence pointing at a
+      *Schedules* heading would name a heading that is not on the page. That
+      the control a sentence names is real is `empty_day/0`'s stated
+      requirement, not a nicety.
+    * **schedules, and none with a time.** `Kati.Health.Dose.derive/2` builds
+      one row per `at` in `times` that passes `clock?/1`, so an active
+      medication with a time is due EVERY day. `doses == []` beside a non-empty
+      `schedules` therefore means precisely one thing: no active medication has
+      a clock time yet. Board 188 saves a medication with a name and nothing
+      else, so this is a state a reader reaches by typing one.
 
-  Dropping the tail and keeping the lead is not a new sentence and it is not a
-  new decision either: `Kati.Screens.HealthFa`'s own `nothing_due` label is this
-  sentence with 139's tail already dropped, for this exact reason in this exact
-  wording — *the control it names is real*, and neither pointer the English
-  sentence takes is true on that page. Screen 115 reached the state first
-  because it never draws a Schedules group at all; this is the same drop on the
-  day screen 112 can reach the same state.
+  ## What 327 asks for and this cannot say
 
-  What is deliberately NOT said is *add a medication*. Screen 139's structure
-  offers the one thing that fixes the state, and nothing here is broken: this
-  reader already owns prescriptions, and inviting them to add another would
-  answer a fault they do not have. Screen 96's rule, quoted by
-  `Kati.Screens.Home.rest_of_today/1`, is the test this is written to pass —
+  Its sentence is *"Your four schedules all fall on other days. Next is Monday
+  at 08:00 — levothyroxine."* Neither half is expressible.
+  `Kati.Health.Medication.schedule` is a free string the reader types —
+  `Mon, Wed, Fri` is words, not data — and `times` is the only structured part.
+  So nothing knows which DAYS a schedule falls on, there is no next occurrence
+  to compute, and a medication whose schedule says *Mon, Wed, Fri* is in fact
+  derived a dose every day of the week. MOVIES-AND-TV.md #135 is that defect
+  and the column it needs; the day it lands, this sentence becomes the board's.
+
+  What is deliberately NOT said is *add a medication*. Screen 96's rule, quoted
+  by `Kati.Screens.Home.rest_of_today/1`, is the test this is written to pass —
   *an empty state should say what is missing and offer the one thing that fixes
-  it, never render a plausible-looking zero* — and on a quiet day what is
-  missing is nothing.
+  it, never render a plausible-looking zero* — and this reader already owns
+  prescriptions.
   """
   @spec nothing_due([map()]) :: String.t()
-  def nothing_due([]), do: "Nothing due today."
-  def nothing_due(_schedules), do: "Nothing due today — your schedules are below."
+  def nothing_due([]), do: "Every medication you have is paused."
+
+  def nothing_due(schedules) do
+    "Your #{Kati.Screens.Medication.schedule_count(length(schedules))} below, " <>
+      "and none of them has a time set yet."
+  end
+
+  @doc """
+  `4 schedules are` / `one schedule is`, for the sentence above.
+
+      iex> Kati.Screens.Medication.schedule_count(1)
+      "one schedule is"
+
+      iex> Kati.Screens.Medication.schedule_count(4)
+      "4 schedules are"
+  """
+  @spec schedule_count(pos_integer()) :: String.t()
+  def schedule_count(1), do: "one schedule is"
+  def schedule_count(n), do: "#{n} schedules are"
 
   @doc """
   The quiet day's one card, in the shape a dose row would have had.
@@ -752,17 +767,31 @@ defmodule Kati.Screens.Medication do
     assigns = %{sentence: Kati.Screens.Medication.nothing_due(schedules)}
 
     ~MOB"""
-    <Box
+    <Row
       fill_width={true}
       background={Palette.card()}
-      corner_radius={18}
-      padding_left={14}
-      padding_right={14}
-      padding_top={18}
-      padding_bottom={18}
+      corner_radius={22}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding={17}
+      align="top"
     >
-      <Text text={@sentence} text_size={13} line_height={1.55} text_color={Palette.sub()} />
-    </Box>
+      {Kati.Components.MishkaThemeIcon.theme_icon(
+        [variant: :filled, color: Palette.green_wash(), size: 36, radius: 12],
+        [Kati.UI.symbol("check_circle", size: 19, color: Palette.green_text())]
+      )}
+      <Spacer size={12} />
+      <Column weight={1.0}>
+        <Text
+          text="Nothing due today"
+          text_size={14}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer size={7} />
+        <Text text={@sentence} text_size={12.5} line_height={1.65} text_color={Palette.ink_soft()} />
+      </Column>
+    </Row>
     """
   end
 

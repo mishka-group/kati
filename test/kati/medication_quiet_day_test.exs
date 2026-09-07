@@ -242,6 +242,30 @@ defmodule Kati.MedicationQuietDayTest do
       assert "TODAY" in strings, "the page's first section vanished on a quiet day"
     end
 
+    test "board 327: the card names the title, the glyph and why", %{view: view} do
+      strings = texts(view)
+
+      assert "Nothing due today" in strings,
+             "327 puts the half that was prose into the card's title"
+
+      assert Kati.Icons.glyph!("check_circle") in strings,
+             "327's card leads with a check_circle on a green wash"
+
+      # The why, and it is exactly true: `Kati.Health.Dose.derive/2` builds one
+      # row per valid clock time, so schedules with nothing due means no active
+      # medication has a time yet.
+      assert MedicationScreen.nothing_due(assigns(view).schedules) =~ "none of them has a time"
+    end
+
+    test "and the counted half agrees with the band below it", %{view: view} do
+      n = length(assigns(view).schedules)
+
+      assert n > 0
+
+      assert MedicationScreen.nothing_due(assigns(view).schedules) =~
+               MedicationScreen.schedule_count(n)
+    end
+
     test "and draws no verbs at all — absent rather than inert", %{view: view} do
       assert MedicationScreen.undecided(assigns(view).doses) == nil
       assert MedicationScreen.actions(nil) == []
