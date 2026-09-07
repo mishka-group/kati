@@ -164,6 +164,30 @@ defmodule Kati.Nifs.KatiBridge do
   @spec capture_screen(binary()) :: binary()
   def capture_screen(_name), do: :erlang.nif_error(:nif_not_loaded)
 
+  # ── K-46: what the phone is playing ─────────────────────────────────────
+
+  @doc """
+  `"ok:<json array>"` — every active media session on the device, or `[]`.
+
+  `[]` is a complete answer and the commonest one: nothing is playing, or
+  Kati has not been allowed to look. `media_access/0` tells the two apart,
+  because a screen that says *nothing is playing* when it is not allowed to
+  know is exactly the kind of claim MOVIES-AND-TV.md #100 is about.
+  """
+  @spec now_playing() :: binary()
+  def now_playing, do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  `"ok:granted"` or `"ok:denied"` — whether Kati may read media sessions.
+
+  Granted in system settings and nowhere else: there is no runtime dialog for
+  `BIND_NOTIFICATION_LISTENER_SERVICE`. Read every time rather than cached,
+  for `K-33 permission-status`'s reason — a permission a person changes in
+  Settings changes while Kati is backgrounded.
+  """
+  @spec media_access() :: binary()
+  def media_access, do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """

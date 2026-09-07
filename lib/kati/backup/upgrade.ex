@@ -95,7 +95,12 @@ defmodule Kati.Backup.Upgrade do
       # Nothing moves: a version-10 file has no such column and every row takes
       # the attribute default of `false`, which is what a title nobody has
       # marked private is.
-      {10, 11, &unchanged/1}
+      {10, 11, &unchanged/1},
+      # `media_watches` gained `detected`, which screen 36's banner counts.
+      # Nothing moves: a version-11 file has no such column and every row takes
+      # the attribute default of `false`, which is the truth about every watch
+      # written before Kati could notice one — the reader tapped it.
+      {11, 12, &unchanged/1}
     ]
 
   @doc """

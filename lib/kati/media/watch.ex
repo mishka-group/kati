@@ -84,6 +84,12 @@ defmodule Kati.Media.Watch do
     # with the review rather than sitting in settings.
     attribute :contains_spoilers, :boolean, allow_nil?: false, default: false, public?: true
 
+    # Whether Kati noticed this watch or the reader told it. See
+    # `20260907060000_add_watch_detected` for why this is a boolean and not a
+    # source enum, and `Kati.Media.Detect` for the only thing that sets it
+    # true.
+    attribute :detected, :boolean, allow_nil?: false, default: false, public?: true
+
     # The user's own count, not `count(rows)`. See the moduledoc.
     attribute :rewatch_number, :integer, public?: true, constraints: [min: 1]
 

@@ -91,7 +91,7 @@ defmodule Kati.Backup.Catalog do
   #     mark. Nothing moves, for 10's reason — a version-10 file has no such
   #     column and every row takes the attribute default of `false`, which is
   #     what a title nobody has marked is.
-  @schema_version 11
+  @schema_version 12
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

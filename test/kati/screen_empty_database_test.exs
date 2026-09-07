@@ -306,6 +306,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # where shared chrome goes, and the derivation went back to telling the
     # truth. Worth the six lines: the alternative was three gates asserting
     # that a screen which reads nothing draws its own fixture.
+    # 36 joined the round auto-detect was built. It counts the ticks Kati made
+    # rather than the reader — `Kati.Media.Watch.detected` since
+    # `20260907060000_add_watch_detected` — and matches what is playing against
+    # the shelf. On a host there is no bridge, so `Kati.Media.Detect.access/0`
+    # answers `:unavailable` and the page is board 36 whole, which is what the
+    # gallery and every sweep render.
+    {"36", Kati.Screens.AutoDetect},
     {"37", Kati.Screens.Import},
     # 141 joined with it, and reads for the same reason: it describes the file
     # the picker handed over, and `Kati.Import.Job.read/2` counts what that
@@ -1722,6 +1729,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # too, with `:refusal` on it so the screen can say why, and those are two
       # different renders on purpose: a file that could not be read is a thing
       # to tell somebody about, and a push that named no file is not.
+      # 36 gates the whole `detect/0` map: the banner's count, the Now playing
+      # card, the Sources rows and the decision are five views of one device,
+      # and a gate on the banner alone would pass while the card described a
+      # session nobody is playing.
+      {"36", Kati.Screens.AutoDetect, &Kati.Screens.AutoDetect.detect/0,
+       &Kati.Screens.AutoDetect.drawn_detect/0},
       {"37", Kati.Screens.Import, fn -> Kati.Screens.Import.job_for(%{}) end,
        fn -> Kati.Import.Sample.job(:trakt) end},
       # 141 gates on the same branch and for the same reason.

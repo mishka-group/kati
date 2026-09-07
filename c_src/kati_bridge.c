@@ -186,6 +186,20 @@ static ERL_NIF_TERM kb_open_settings(ErlNifEnv *env, int argc, const ERL_NIF_TER
     return reply;
 }
 
+/* ── K-46: what the phone is playing ─────────────────────────────────────── */
+
+static ERL_NIF_TERM kb_now_playing(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kati_bridge_call(env, "katiNowPlaying", "()Ljava/lang/String;", NULL, NULL);
+}
+
+static ERL_NIF_TERM kb_media_access(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kati_bridge_call(env, "katiMediaAccessGranted", "()Ljava/lang/String;", NULL, NULL);
+}
+
 /* ── #58: the periodic refresh worker ────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -320,6 +334,8 @@ static ErlNifFunc nif_funcs[] = {
     /* Dirty: the Kotlin half posts to the UI thread and waits on a latch, and
        a wait of up to five seconds must not sit on a normal scheduler. */
     {"capture_screen", 1, kb_capture_screen, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"now_playing", 0, kb_now_playing, 0},
+    {"media_access", 0, kb_media_access, 0},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

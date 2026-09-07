@@ -991,6 +991,39 @@ object MobBridge {
     }
     // KATI-END(K-44 open-settings)
 
+    // KATI-BEGIN(K-46 media-session-bridge) mob_new=0.7.24
+    /**
+     * What this phone is playing, as a JSON array. See [KatiMediaListener].
+     *
+     * `ok:[]` is a complete answer and the commonest one: nothing is playing,
+     * or Kati has not been allowed to look. The two are told apart by
+     * [katiMediaAccessGranted] rather than by an empty list, because a screen
+     * that says *nothing is playing* when it is not allowed to know is the
+     * kind of lie this whole round is about.
+     */
+    @JvmStatic
+    fun katiNowPlaying(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        return "ok:" + KatiMediaListener.nowPlaying(ctx)
+    }
+
+    /**
+     * `ok:granted` or `ok:denied` — whether Kati may read media sessions.
+     *
+     * Read every time rather than cached: this permission is granted in system
+     * settings, which means it changes while Kati is backgrounded, which is
+     * the normal way it changes. `K-33 permission-status` says the same thing
+     * about the runtime ones and is right for the same reason.
+     */
+    @JvmStatic
+    fun katiMediaAccessGranted(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        return if (KatiMediaListener.granted(ctx)) "ok:granted" else "ok:denied"
+    }
+    // KATI-END(K-46 media-session-bridge)
+
     // KATI-BEGIN(K-43 open-url) mob_new=0.4.20
     /**
      * Hand a URL to whatever the phone opens URLs with.

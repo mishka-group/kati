@@ -306,6 +306,18 @@ defmodule Kati.ScreenTapSweepTest do
     # segment drawn without a tap at all would read as a broken control rather
     # than a settled one.
     {Kati.Screens.AutoDetect, :tv},
+    # Screen 36's permission row and its threshold, on a host with no bridge.
+    # MOVIES-AND-TV.md #100 wired both: *This phone* opens the system page that
+    # grants notification access — there is no runtime dialog for a
+    # notification listener, so a door is the only honest shape — and *Tick at*
+    # steps the threshold `Kati.Media.Detect.threshold/0` reads.
+    #
+    # Neither can change anything here. `Kati.Native.Links.settings/1` answers
+    # `{:error, :no_bridge}` off a device, and `Mob.State` is not running in
+    # this sweep so the threshold write is rescued into a no-op. Both are
+    # pressed over a real preference store in `Kati.MediaDetectTest`.
+    {Kati.Screens.AutoDetect, :open_media_access},
+    {Kati.Screens.AutoDetect, :cycle_threshold},
     # Screen 13's own selected window, for screen 36's reason one line up. The
     # board is drawn at `45m` and this sweep renders it, so pressing `45m`
     # re-reads the same window and answers the same page. The other four move
