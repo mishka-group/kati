@@ -1358,6 +1358,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `device_values/0` and have been since the screen was built.
       {"55", Kati.Screens.HomeFa,
        &Map.merge(&1, %{
+         # Board 317 gave 55 the gate 139 gives 01, so the flag joins the four
+         # values for 01's reason: this is the board's state, and the board is
+         # a device with something on it. `Kati.ScreenHomeFaEmptyStateTest`
+         # holds the other half — that a device with nothing draws 158.
+         nothing_kept: false,
          hero: Kati.Screens.HomeFa.drawn_hero(),
          continue: Kati.Screens.HomeFa.Sample.continue(),
          tiles: Kati.Screens.HomeFa.drawn_tiles(),

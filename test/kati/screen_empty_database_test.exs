@@ -808,14 +808,15 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        "as a colourway of 01, reached by changing the theme rather than by navigating",
      Kati.ScreenDarkWidgetsTest},
     {"55",
-     "no board draws a Persian Home with nothing kept, and this is the one screen here where " <>
-       "that matters to a real user: `Kati.Onboarding.shell_root/1` answers " <>
-       "`Kati.Screens.HomeFa` for `:fa`, so 55 is the page a Persian install opens on. Its " <>
-       "two announcing bands are omitted whole and its section tiles keep their labels and " <>
-       "lose their invented counts, on screen 96's rule; its empty day says " <>
-       "`Kati.Screens.HomeFa.empty_day/0`, the one Persian sentence in the app that no " <>
-       "artboard contains, written on `Kati.Screens.SettingsFa.backup_line/1`'s precedent " <>
-       "and argued at that function", Kati.ScreenHomeFaEmptyStateTest}
+     "board 158 draws a Persian Home with nothing kept, and board 317 is the ruling that 55 " <>
+       "must USE it: `Kati.Onboarding.shell_root/1` answers `Kati.Screens.HomeFa` for `:fa`, " <>
+       "so 55 is the page a Persian install opens on, and it drew its own bands emptied " <>
+       "there. It calls `Kati.Screens.HomeFaEmpty.content/1` now, gated on " <>
+       "`Kati.Screens.Home.nothing_kept?/1` — one gate for two languages, which is 317's " <>
+       "own sentence — so the four lines in @quoted are quoted from 158 rather than from 55. " <>
+       "`Kati.Screens.HomeFa.empty_day/0` still words 55's own empty day for a reader who " <>
+       "HAS kept something, and is argued at that function",
+     Kati.ScreenHomeFaEmptyStateTest}
   ]
 
   # `{screen number, the board it is quoted from, the line}`.
@@ -906,12 +907,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"07", "101", "Not much to show yet"},
     {"28", "139", "Nothing scheduled"},
     {"28", "139", "add anything with +"},
-    {"55", "55", "جست‌وجوی فیلم، سریال، رویداد…"},
-    {"55", "55", "بخش‌ها"},
-    {"55", "55", "وعده‌ها"},
-    {"55", "55", "عادت‌ها"},
-    {"55", "55", "تنظیمات"},
-    {"55", "55", "باقی امروز"}
+    # Board 317 gave screen 55 the gate 139 gives screen 01, so a Persian
+    # device with nothing kept draws board **158** — «همان جمله ۱۵۸», the
+    # board's own words, and it needs no fresh translation because 158 is
+    # already the Persian mirror of 139. The six lines that used to be here
+    # were board 55's own chrome, on the reading that an empty Persian Home is
+    # 55 emptied; 317 overturns that reading and these four hold the new one at
+    # both ends. `Kati.ScreenHomeFaEmptyStateTest`'s board-317 describe holds
+    # the rest, including that the three announcing bands are gone.
+    {"55", "158", "هنوز چیزی اینجا نیست"},
+    {"55", "158", "انتخاب بخش‌ها"},
+    {"55", "158", "تقویم همچنان کار می‌کند"},
+    {"55", "158", "جست‌وجوی هر چیزی که نگه می‌دارید"}
   ]
 
   # Screens that read the database and have **no drawing at all**.

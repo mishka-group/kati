@@ -130,6 +130,25 @@ defmodule Kati.Screens.HomeFa do
   ۲۰:۰۰, and the kind label is Kati's so it is rendered پخش امروز; the title is
   the event's summary and the location is one the user typed, and rewriting
   characters inside those is transliteration rather than translation.
+  ## Board 317 — the gate, and one gate for two languages
+
+  Screen 55 is the page a Persian install opens on: `Kati.Onboarding.shell_root/1`
+  answers this module for `:fa`. It drew its OWN bands emptied there — an
+  eyebrow over an omitted hero, three section tiles, and a باقی امروز card —
+  where English had branched to 139 since that board landed. Board 158 is the
+  Persian mirror of 139 and had existed for days without anything reaching it.
+
+  317 asks for no new ink: *«این تخته جوهر تازه نمی‌خواهد — گِیت را می‌خواهد.»*
+  So `content/1` branches on `:nothing_kept` and the empty branch is
+  `Kati.Screens.HomeFaEmpty.content/1` **called**, not copied — the arrangement
+  `Kati.Screens.Home` and `Kati.Screens.HomeEmpty` have, for its reason: the
+  module that owns an artboard owns its copy.
+
+  The condition is `Kati.Screens.Home.nothing_kept?/1` itself, which is 317's
+  own requirement — *«دقیقاً همان خواندنی که ۱۳۹ در انگلیسی دارد، پس دو زبان
+  یک گِیت دارند و نه دو تا»* — so the two languages cannot come to disagree
+  about what an empty install is.
+
   """
   use Mob.Screen
   import Mob.Sigil
@@ -146,12 +165,26 @@ defmodule Kati.Screens.HomeFa do
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
 
+    # The spine is queried FIRST and the gate learns about it after, which is
+    # `Kati.Screens.Home.mount/3`'s order and its moduledoc's warning: a build
+    # that adds the gate while the bands are still literals ships the literals
+    # to everybody who answers the sections question. These bands are reads —
+    # `hero_summary/0` goes through the English one and `tile_rows/0` filters
+    # on `Kati.Sections.on?/1` — so the gate is safe to add.
+    timeline = Kati.Calendars.Today.rows()
+
     socket
     |> Mob.Socket.assign(:moment, Kati.Screens.HomeFa.moment())
     |> Mob.Socket.assign(:hero, Kati.Screens.HomeFa.hero_summary())
     |> Mob.Socket.assign(:continue, Kati.Screens.Home.continue_watching_rows())
     |> Mob.Socket.assign(:tiles, Kati.Screens.HomeFa.tile_rows())
-    |> Mob.Socket.assign(:timeline, Kati.Calendars.Today.rows())
+    |> Mob.Socket.assign(:timeline, timeline)
+    # Board 317: *«همان خواندنی که ۱۳۹ برای انگلیسی استفاده می‌کند»* — the same
+    # read 139 uses in English, so the two languages have ONE gate and not two.
+    # `Kati.Screens.Home.nothing_kept?/1` is that read, called rather than
+    # restated for the reason `Kati.Screens.SeriesFa` reads through
+    # `Kati.Screens.Series`: a second copy is a second thing that can drift.
+    |> Mob.Socket.assign(:nothing_kept, Kati.Screens.Home.nothing_kept?(timeline))
     |> then(&{:ok, &1})
   end
 
@@ -185,6 +218,23 @@ defmodule Kati.Screens.HomeFa do
   end
 
   @doc false
+  # Board 317, and its own words: *«این تخته جوهر تازه نمی‌خواهد — گِیت را
+  # می‌خواهد.»* This board asks for no new ink; it asks for the gate.
+  #
+  # 158 is a board in its own right and stays one — registered in the gallery
+  # under its own number, rendered by `Kati.ScreenEmptyDatabaseTest` under
+  # `"158"` — so the module that owns the artboard owns its copy, and this
+  # screen holds the CONDITION while `Kati.Screens.HomeFaEmpty` holds the page.
+  # That is exactly how 139 and Home are arranged, and 317 names the precedent:
+  # *«۲۶۰ همین کار را برای ۰۵ کرد: گِیت را روی تخته نوشت، نه جوهر تازه.»*
+  #
+  # `HomeFaEmpty`'s blocks build their taps as `{self(), tag}`, and `self()`
+  # during THIS screen's render is this screen — so `:pick_sections` and
+  # `:import_backup` arrive at `handle_info/2` below, which answers each with
+  # the destination that file answers it with.
+  def content(%{nothing_kept: true} = assigns),
+    do: Kati.Screens.HomeFaEmpty.content(assigns)
+
   def content(assigns) do
     ~MOB"""
     <Scroll>
@@ -1052,6 +1102,16 @@ defmodule Kati.Screens.HomeFa do
   # stand-in, and it is the same failure here.
   def handle_info({:tap, :open_search}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchFa)}
+
+  # Board 317's two doors, borrowed with 158's page. Answered here because
+  # `self()` inside `Kati.Screens.HomeFaEmpty.content/1` is this screen when
+  # this screen renders it, and each answers with the destination that file
+  # answers it with.
+  def handle_info({:tap, :pick_sections}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}
+
+  def handle_info({:tap, :import_backup}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFa)}
 
   def handle_info({:tap, :open_calendar}, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.ScheduleFa)}

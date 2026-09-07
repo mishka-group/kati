@@ -107,7 +107,13 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     end
 
     test "and keeps every line of its own board that was never stand-in data" do
-      texts = with_empty_store(&home_texts/0)
+      # A reader who has ANSWERED the sections question, which is where this
+      # claim now belongs. Board 317 gave 55 the gate 139 gives 01, and a
+      # device that has kept nothing and answered nothing draws 158 instead —
+      # see the board-317 describe below. Once anything is kept, 55's own page
+      # is back and every line of its chrome with it, which is the half this
+      # test was written for and still holds.
+      texts = with_empty_store(fn -> chose_sections!() && home_texts() end)
 
       for literal <- @board_55_chrome do
         assert literal in texts,
@@ -118,7 +124,10 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     end
 
     test "says what is missing on an empty day, in the one sentence this app wrote" do
-      texts = with_empty_store(&home_texts/0)
+      # Again a reader who has chosen: `empty_day/0` is 55's own باقی امروز
+      # band, and a device that has answered nothing is on 158, which has a
+      # calendar row of its own.
+      texts = with_empty_store(fn -> chose_sections!() && home_texts() end)
 
       assert HomeFa.empty_day() in texts,
              "باقی امروز drew nothing at all. Screen 96's rule is that an empty state says " <>
@@ -249,9 +258,73 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     end
   end
 
+  describe "board 317 — the gate, and one gate for two languages" do
+    test "a device that has kept nothing and answered nothing draws 158, not 55" do
+      texts = with_empty_store(&home_texts/0)
+
+      # 158's invitation card, which 317 says needs no fresh translation
+      # because it is already drawn: «همان جمله ۱۵۸».
+      assert "هنوز چیزی اینجا نیست" in texts
+      assert "انتخاب بخش‌ها" in texts
+
+      # And what 317 says is NOT drawn: «نوار «تازه‌های این هفته»، «ادامه
+      # تماشا» و «بخش‌ها» — هر سه از بخش‌ها می‌آیند. نمونه هرگز.»
+      for eyebrow <- ["تازه‌های این هفته", "ادامه تماشا", "بخش‌ها", "باقی امروز"] do
+        refute eyebrow in texts,
+               "#{eyebrow} comes from the sections, and this device has kept none"
+      end
+    end
+
+    test "and the calendar row is still live, because the calendar is independent" do
+      # 317: «یک ردیف تقویم زنده می‌ماند — مستقل از بخش‌هاست».
+      texts = with_empty_store(&home_texts/0)
+
+      assert "تقویم همچنان کار می‌کند" in texts
+    end
+
+    test "the search field stays, and is empty" do
+      texts = with_empty_store(&home_texts/0)
+
+      assert "جست‌وجوی هر چیزی که نگه می‌دارید" in texts
+    end
+
+    test "one gate for two languages, and it is 139's own read" do
+      # 317: «دقیقاً همان خواندنی که ۱۳۹ در انگلیسی دارد، پس دو زبان یک گِیت
+      # دارند و نه دو تا.» Called rather than restated, so this asserts the
+      # call rather than a second copy of the rule.
+      with_empty_store(fn ->
+        assert Kati.Screens.Home.nothing_kept?([]) == true
+        assert assigns(mount_screen(HomeFa)).nothing_kept == true
+      end)
+    end
+
+    test "answering the question is enough to bring 55's own page back" do
+      with_empty_store(fn ->
+        chose_sections!()
+
+        refute assigns(mount_screen(HomeFa)).nothing_kept,
+               "somebody who has just answered the sections step must not be told to answer it"
+
+        assert "بخش‌ها" in home_texts()
+      end)
+    end
+
+    test "158's two doors are answered by this screen when this screen draws them" do
+      # `Kati.Screens.HomeFaEmpty`'s blocks build their taps as `{self(), tag}`,
+      # and `self()` during 55's render is 55.
+      socket = with_empty_store(fn -> mount_screen(HomeFa).socket end)
+
+      assert {:noreply, chosen} = HomeFa.handle_info({:tap, :pick_sections}, socket)
+      assert chosen.__mob__.nav_action == {:push, Kati.Screens.PickSections, %{}}
+
+      assert {:noreply, restored} = HomeFa.handle_info({:tap, :import_backup}, socket)
+      assert restored.__mob__.nav_action == {:push, Kati.Screens.RestoreFa, %{}}
+    end
+  end
+
   describe "بخش‌ها, whose two counts nothing counts" do
     test "draws the three tiles and neither of the drawing's counts" do
-      texts = with_empty_store(&home_texts/0)
+      texts = with_empty_store(fn -> chose_sections!() && home_texts() end)
 
       assert "وعده‌ها" in texts
       assert "عادت‌ها" in texts
@@ -301,7 +374,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
 
   describe "باقی امروز, on a day with nothing on it" do
     test "draws its own emptiness rather than the drawing's two rows" do
-      texts = with_empty_store(&home_texts/0)
+      texts = with_empty_store(fn -> chose_sections!() && home_texts() end)
 
       for row <- Sample.rest_of_today(), literal <- [row.time, row.title, row.meta] do
         refute literal in texts,
@@ -421,6 +494,17 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       Enum.flat_map(Sample.continue(), fn row -> [row.title, row.meta] end) ++
       (Sample.sections() |> Enum.map(& &1.meta) |> Enum.reject(&is_nil/1)) ++
       Enum.flat_map(Sample.rest_of_today(), fn row -> [row.time, row.title, row.meta] end)
+  end
+
+  # A reader who has answered screen 158's question. `Kati.Sections.answered?/0`
+  # is the third term in `Kati.Screens.Home.nothing_kept?/1`, and board 317's
+  # gate is that function — so this is what puts a Persian device back on its
+  # own board with an empty store behind it, which is the state most of this
+  # file is about. All six sections, because 55's three tiles are filtered by
+  # `Kati.Sections.on?/1` and a narrower choice would take one away.
+  defp chose_sections! do
+    :ok = Kati.Sections.put(Kati.Sections.all())
+    true
   end
 
   defp with_empty_store(fun) do
