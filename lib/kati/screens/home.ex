@@ -538,13 +538,35 @@ defmodule Kati.Screens.Home do
             text_color={:on_surface}
           />
         </Column>
-        {Kati.Screens.Home.disc("notifications", true, :notifications)}
+        {Kati.Screens.Home.disc("notifications", Kati.Screens.Home.unread?(), :notifications)}
         <Spacer size={9} />
         {Kati.Screens.Home.disc("calendar_month", false, :open_calendar)}
       </Row>
       <Spacer size={20} />
     </Column>
     """
+  end
+
+  @doc """
+  Whether anything is actually waiting behind the bell.
+
+  It was the literal `true`, so Home's unread dot was on from the moment the app
+  opened on a device with nothing to tell anybody — the one thing on that screen
+  that says there is something to open, saying it always. A dot that is never
+  off is a dot nobody reads, which is the same defect as a count nobody counted
+  (#75) one screen over.
+
+  `Kati.Screens.InboxNotifications.plan/0` is what the bell opens onto, and its
+  `armed` list is what that page draws as waiting — so the dot and the page it
+  leads to are one answer rather than two. A plan that cannot be built at all
+  answers `false`: a dot promising something the next screen cannot show is
+  worse than no dot.
+  """
+  @spec unread?() :: boolean()
+  def unread? do
+    Kati.Screens.InboxNotifications.plan().armed != []
+  rescue
+    _error -> false
   end
 
   # A 44px disc. The unread dot is 8px of #E8823C with a 2px card-coloured

@@ -920,6 +920,31 @@ defmodule Kati.ScreenHomeEmptyStateTest do
     |> Ash.create!()
   end
 
+  describe "the bell's unread dot" do
+    test "is off when nothing is waiting behind it" do
+      # It was the literal `true`, so the one thing on Home that says there is
+      # something to open said it always — on a device with nothing to tell
+      # anybody. A dot that is never off is a dot nobody reads.
+      refute Kati.Screens.Home.unread?(),
+             "the dot is on over an empty store, which is where this file starts"
+
+      dark =
+        inspect(Kati.Screens.Home.disc("notifications", false, :notifications), limit: :infinity)
+
+      lit =
+        inspect(Kati.Screens.Home.disc("notifications", true, :notifications), limit: :infinity)
+
+      refute dark == lit, "the badge argument changes nothing about what is drawn"
+    end
+
+    test "and it is the same answer the page behind it gives" do
+      # `Kati.Screens.InboxNotifications.plan/0`'s `armed` list is what that
+      # page draws as waiting, so the dot and the page cannot disagree.
+      assert Kati.Screens.Home.unread?() ==
+               (Kati.Screens.InboxNotifications.plan().armed != [])
+    end
+  end
+
   defp utc_now, do: Kati.Time.now() |> DateTime.shift_zone!("Etc/UTC")
 
   defp tap_tags(tree) do
