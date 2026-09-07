@@ -54,6 +54,13 @@ defmodule Kati.Screens.AutoDetect do
 
   @impl true
   def load(socket) do
+    # Act on whatever is playing right now, before drawing. Opening this page
+    # is the one moment a reader is asking Kati about detection, and a page
+    # that showed a session at 97% and did not tick it would be the picture it
+    # used to be. `Kati.App` drains what was recorded while the BEAM was dead;
+    # this is the live half.
+    _ = Kati.Media.Detect.sweep()
+
     Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())
   end
 

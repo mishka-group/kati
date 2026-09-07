@@ -280,6 +280,25 @@ defmodule Kati.MediaDetectTest do
     end
   end
 
+  describe "draining what was recorded while Kati was not running" do
+    test "is the half that catches the case the feature exists for" do
+      # `sessions/0` answers what is playing AT THIS MOMENT, and that moment is
+      # one Kati is not running for: you finish an episode, close the app, and
+      # the session is gone before Kati is next opened. `KatiMediaListener`
+      # records instead. There is no bridge on a host, so what is asserted here
+      # is the shape and the gate — the write path itself is `apply/1`, which is
+      # pressed above.
+      assert Detect.recorded() == []
+      assert Detect.drain() == []
+    end
+
+    test "and drains nothing at all when detection is off" do
+      Detect.put(false)
+
+      assert Detect.drain() == []
+    end
+  end
+
   describe "the screen on a device that cannot look" do
     test "draws board 36 whole, because unavailable is not denied" do
       assert Detect.access() == :unavailable

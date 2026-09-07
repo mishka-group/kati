@@ -200,6 +200,12 @@ static ERL_NIF_TERM kb_media_access(ErlNifEnv *env, int argc, const ERL_NIF_TERM
     return kati_bridge_call(env, "katiMediaAccessGranted", "()Ljava/lang/String;", NULL, NULL);
 }
 
+static ERL_NIF_TERM kb_drain_sessions(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kati_bridge_call(env, "katiDrainSessions", "()Ljava/lang/String;", NULL, NULL);
+}
+
 /* ── #58: the periodic refresh worker ────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -336,6 +342,7 @@ static ErlNifFunc nif_funcs[] = {
     {"capture_screen", 1, kb_capture_screen, ERL_NIF_DIRTY_JOB_IO_BOUND},
     {"now_playing", 0, kb_now_playing, 0},
     {"media_access", 0, kb_media_access, 0},
+    {"drain_sessions", 0, kb_drain_sessions, 0},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

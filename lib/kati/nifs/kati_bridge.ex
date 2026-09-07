@@ -188,6 +188,19 @@ defmodule Kati.Nifs.KatiBridge do
   @spec media_access() :: binary()
   def media_access, do: :erlang.nif_error(:nif_not_loaded)
 
+  @doc """
+  `"ok:<json array>"` — every session the listener heard while the BEAM was
+  not running, and clear it.
+
+  `now_playing/0` answers what is playing AT THIS MOMENT, which is almost never
+  the thing Kati wants: you finish an episode, close the app, and the session
+  is gone before Kati is next opened. The listener records instead, and this
+  drains what it recorded — the shape `Kati.Background.Handoff` already uses
+  for the periodic worker.
+  """
+  @spec drain_sessions() :: binary()
+  def drain_sessions, do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """

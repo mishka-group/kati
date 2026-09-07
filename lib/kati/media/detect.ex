@@ -42,11 +42,24 @@ defmodule Kati.Media.Detect do
   tick. Live television and a browser tab are both that, and both are things a
   reader would be angry to find in their history.
 
-  ## Nothing here polls
+  ## Nothing here polls, and it must not
 
-  This module is pure but for one bridge read. What calls it is screen 36 while
-  it is open, and `Kati.Media.Detect.Sweep` on the periodic worker — a screen
-  that polled would stop when it closed, which is every moment that matters.
+  Polling was the first shape and it cannot work. `sessions/0` answers what is
+  playing **at this moment**, and the moment that matters is one Kati is not
+  running for: you finish an episode, close Netflix, and the session is gone
+  before Kati is next opened. A screen that polled would see nothing, every
+  time, for the one case the whole feature exists for.
+
+  So the listener records instead. `KatiMediaListener` is bound whenever the
+  reader has enabled it, watches every session while it plays, and keeps the
+  furthest point each one reached; `drain/0` reads that back and clears it.
+  That is the shape `Kati.Background.Handoff` already uses for the periodic
+  refresh worker, and for the same reason: work happens while the BEAM is dead
+  and is read when the BEAM is next up.
+
+  `Kati.App` drains at boot. `sweep/0` is the live half — what is playing right
+  now — and screen 36 runs it when it opens, so a session in flight is caught
+  too.
   """
 
   require Ash.Query
@@ -418,6 +431,52 @@ defmodule Kati.Media.Detect do
       end)
     else
       []
+    end
+  end
+
+  @doc """
+  Everything the listener recorded while Kati was not running, applied.
+
+  The half of this feature that catches the case it exists for. See the
+  moduledoc: a session is gone by the time Kati is next opened, so what is
+  acted on here is what `KatiMediaListener` wrote down as it happened.
+
+  Off, or unallowed, and it drains nothing and clears nothing — a reader who
+  turns detection off must not find that the last hour was ticked anyway the
+  next time they open the app.
+  """
+  @spec drain() :: [{String.t(), atom()}]
+  def drain do
+    if Kati.Media.Detect.on?() and Kati.Media.Detect.access() == :granted do
+      Enum.map(Kati.Media.Detect.recorded(), fn session ->
+        case Kati.Media.Detect.apply(session) do
+          {:ok, what} -> {session.title, what}
+          :ignored -> {session.title, :ignored}
+        end
+      end)
+    else
+      []
+    end
+  end
+
+  @doc """
+  What the listener wrote down, shaped like a live session.
+
+  A recorded entry is a live one plus a `seen_at`, so everything downstream —
+  `progress/1`, `verdict/1`, `match/1` — reads it unchanged. `playing?` is
+  forced true because a recording IS a play: the listener only writes a session
+  it heard, and the last state before one is destroyed is often `paused`, which
+  is the player letting go rather than the reader stopping.
+  """
+  @spec recorded() :: [map()]
+  def recorded do
+    with {:ok, "ok:" <> json} <- Bridge.reply(:drain_sessions, []),
+         {:ok, list} when is_list(list) <- decode(json) do
+      list
+      |> Enum.flat_map(&Kati.Media.Detect.session/1)
+      |> Enum.map(&Map.put(&1, :playing?, true))
+    else
+      _nothing -> []
     end
   end
 

@@ -1022,6 +1022,27 @@ object MobBridge {
 
         return if (KatiMediaListener.granted(ctx)) "ok:granted" else "ok:denied"
     }
+
+    /**
+     * Everything the listener heard while the BEAM was not running, and clear
+     * it. See [KatiMediaListener] for why it records rather than only
+     * answering: a session is gone by the time Kati is next opened, which is
+     * the one case the whole feature exists for.
+     *
+     * The same shape `KatiRefreshWorker` and `Kati.Background.Handoff` already
+     * use — work happens while the BEAM is dead and is read back when it is up.
+     */
+    @JvmStatic
+    fun katiDrainSessions(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        // Bind again if the process was restarted while the grant stood: the
+        // service is bound by the OS, and a launch that beat the bind would
+        // otherwise stop recording until the next one.
+        KatiMediaListener.watch(ctx)
+
+        return "ok:" + KatiMediaListener.drain(ctx)
+    }
     // KATI-END(K-46 media-session-bridge)
 
     // KATI-BEGIN(K-43 open-url) mob_new=0.4.20

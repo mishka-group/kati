@@ -197,6 +197,20 @@ defmodule Kati.App do
     # `{:mob_device, :did_become_active}`, because a cold launch never sends
     # that message and a cold launch is exactly the case where the inbox is
     # full.
+    # #100's third leg, and the same shape as #58's below it. `KatiMediaListener`
+    # records what played while the BEAM was dead — a session is gone by the
+    # time Kati is next opened, which is the one case auto-detect exists for —
+    # and this is where it is read back and acted on. A no-op when detection is
+    # off or notification access has not been granted, which is the normal
+    # state and not an error.
+    _detected =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        case Kati.Media.Detect.drain() do
+          [] -> :ok
+          done -> :mob_nif.log("Kati: auto-detect applied #{inspect(done)}")
+        end
+      end)
+
     case Kati.Background.Handoff.drain() do
       [] -> :ok
       runs -> :mob_nif.log("Kati: drained #{length(runs)} background refresh runs")
