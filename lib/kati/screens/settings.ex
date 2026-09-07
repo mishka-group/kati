@@ -676,6 +676,9 @@ defmodule Kati.Screens.Settings do
   # rejections — and until these two lines existed no screen in the app invoked
   # any of it, which made them exactly as useful to a user as no engine at all.
   @destinations %{
+    # #1. 05's only English door was a Home hero that is omitted when there is
+    # nothing out this week — so the page that says so was unreachable.
+    "New releases" => Kati.Screens.Inbox,
     "Release watcher" => Kati.Screens.ReleaseWatcher,
     "Calendars" => Kati.Screens.Calendars,
     "Auto-detect" => Kati.Screens.AutoDetect,

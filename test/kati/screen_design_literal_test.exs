@@ -274,7 +274,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # the rule this number follows: a board moves into `screens/` in the same
       # commit that builds its screen and registers it here, and this count
       # moves with it.
-      assert length(on_disk) == 173,
+      #
+      # 173 until 7 September, when board 102 moved OUT — the other direction,
+      # and `test/design/retired/README.md` is where it went. It was read as a
+      # dark colourway of 98 and built as a second screen, and it is not one:
+      # `Kati.Theme.Palette.mode/0` already draws 98 dark on a dark device.
+      # What it held was two card faces 98 never previewed, which is what made
+      # them unreachable in light. Both are on 98 now (MOVIES-AND-TV.md #3).
+      assert length(on_disk) == 172,
              "expected 173 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
@@ -642,7 +649,13 @@ defmodule Kati.ScreenDesignLiteralTest do
       # board over a page listing three subscriptions (MOVIES-AND-TV.md #35).
       # Both patterns accept the board's own words as well, because a device
       # with nothing stored still draws board 92 whole.
-      assert length(device_values()) <= 48,
+      # 48 until 7 September, when board 07's *More numbers* card stopped
+      # freezing two of its four figures: `Goals` and `Money` are counted now,
+      # and a counted line is asserted here by PATTERN rather than by its
+      # frozen value, which is what an entry in this list is
+      # (MOVIES-AND-TV.md #45). Two entries bought two lines that used to be
+      # nobody's.
+      assert length(device_values()) <= 50,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -713,6 +726,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.Screens.Activity.entries_line/1`'s wording either way, and both
       # ends of the range are asserted in `Kati.ScreenStatsTest` and
       # `Kati.ScreenStatsEmptyTest`.
+      {"07", "3 active · 38 of 52 books",
+       "the reader's own goals, which board 07 froze at the drawing's three and " <>
+         "`Kati.Screens.Stats.goals_line/0` now counts",
+       ~r/^(none set|1 goal|\p{N}[\p{N},]* goals)$/u},
+      {"07", "£46.47 a month · 7 expenses",
+       "the reader's own subscriptions and expenses, which board 07 froze at the drawing's " <>
+         "and `Kati.Screens.Stats.money_line/0` now reads — through the same function " <>
+         "screen 92's Money row reads, so the two pages cannot disagree",
+       ~r/^(nothing added yet|.*a month.*|\p{N}+ expenses?)$/u},
       {"07", "1,204 entries",
        "the size of the reader's own history, which board 07 froze at 1,204 and " <>
          "`Kati.Screens.Stats.entries_count/0` now counts",

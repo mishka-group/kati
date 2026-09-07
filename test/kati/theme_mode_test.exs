@@ -483,8 +483,7 @@ defmodule Kati.ThemeModeTest do
                Kati.Screens.BookDetailDark,
                Kati.Screens.HomeDark,
                Kati.Screens.HomeFaEmptyDark,
-               Kati.Screens.Lock,
-               Kati.Screens.YearShareDark
+               Kati.Screens.Lock
              ]
     end
   end

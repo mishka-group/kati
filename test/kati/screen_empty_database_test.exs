@@ -453,7 +453,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # The Persian search and the two year-card twins. Each gates on the pair its
     # primary gates on, for the reason every mirror in this list does.
     {"90", Kati.Screens.SearchFa},
-    {"102", Kati.Screens.YearShareDark},
     {"103", Kati.Screens.YearShareFa},
     {"105", Kati.Screens.GoalsEmpty},
     {"110", Kati.Screens.WeightStates},
@@ -2102,8 +2101,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> "Nothing cached yet" end},
       {"126", Kati.Screens.MoneyDay, &Kati.Screens.MoneyDay.rows/0,
        &Kati.Screens.MoneyDay.drawn_rows/0},
-      {"102", Kati.Screens.YearShareDark, &Kati.Screens.AlbumDetail.field/0,
-       &Kati.Music.Sample.listen_field/0},
       {"103", Kati.Screens.YearShareFa, &Kati.Screens.AlbumDetail.field/0,
        &Kati.Music.Sample.listen_field/0},
       {"105", Kati.Screens.GoalsEmpty, &Kati.Screens.Goals.goals/0,

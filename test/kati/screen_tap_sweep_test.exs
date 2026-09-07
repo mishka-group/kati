@@ -769,8 +769,6 @@ defmodule Kati.ScreenTapSweepTest do
     # and 102 and 103 are 98's board with its own opening scope and ratio.
     {Kati.Screens.SearchTyping, :scope_All},
     {Kati.Screens.SearchFa, :scope_all},
-    {Kati.Screens.YearShareDark, :scope_All},
-    {Kati.Screens.YearShareDark, :aspect_square},
     {Kati.Screens.YearShareFa, :scope_All},
     {Kati.Screens.YearShareFa, :aspect_square},
     # Screen 113 draws screen 42's Meals tile as one of the states it is about.

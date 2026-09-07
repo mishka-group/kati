@@ -194,6 +194,15 @@ defmodule Kati.Screens.Season do
   # are pictures (see the moduledoc), and the episode rows were pictures of
   # screen 04's rows.
   @impl true
+  # The `help` disc beside the order strip, onto screen 153 — the board that
+  # explains the choice this strip offers, and which nothing pushed
+  # (MOVIES-AND-TV.md #9). Before the prefix clauses below, which would
+  # otherwise hand it to `menu_tap/2`.
+  def handle_tap(:explain_numbering, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.NumberingScheme, %{back: "Episodes"})}
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "episode_" <> index -> {:noreply, Kati.Screens.Season.tick(socket, index)}
@@ -879,20 +888,54 @@ defmodule Kati.Screens.Season do
       end)
       |> Enum.intersperse(Kati.Screens.Season.order_gap())
 
+    assigns = %{tiles: tiles, help: {self(), :explain_numbering}}
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row
-        fill_width={true}
-        background={Palette.placeholder()}
-        corner_radius={16}
-        padding={4}
-        align="center"
-      >
-        {tiles}
+      <Row fill_width={true} align="center">
+        <Row
+          weight={1.0}
+          background={Palette.placeholder()}
+          corner_radius={16}
+          padding={4}
+          align="center"
+        >
+          {@tiles}
+        </Row>
+        <Spacer size={9} />
+        {Kati.Screens.Season.explain_disc(@help)}
       </Row>
       <Spacer size={18} />
     </Column>
     """
+  end
+
+  @doc """
+  The `help` disc beside the order strip, which opens screen 153.
+
+  MOVIES-AND-TV.md #9: 153 explains the Aired/Absolute/DVD choice and nothing
+  pushed it — including this screen, which draws that choice as a three-tile
+  strip a reader will want explained. The finding's own fix, in its own words:
+  *push it from screen 34 — a note row or an info glyph beside the order
+  strip*.
+
+  A disc rather than a note row, because the strip is a row and a note under it
+  would read as a caption on the season rather than on the choice. It is drawn
+  only where the strip is: a season that can offer one order has no choice to
+  explain.
+  """
+  @spec explain_disc(term()) :: map()
+  def explain_disc(tap) do
+    Kati.Components.MishkaActionIcon.action_icon(
+      [
+        size: 34,
+        shape: :circle,
+        variant: :filled,
+        background: Palette.placeholder(),
+        on_tap: tap
+      ],
+      [Kati.UI.symbol("help", size: 17, color: Palette.ink_soft())]
+    )
   end
 
   @doc """

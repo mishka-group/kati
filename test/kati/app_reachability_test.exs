@@ -114,7 +114,6 @@ defmodule Kati.AppReachabilityTest do
        "services rather than by navigating, and nothing pushes it. The row " <>
        "that used to, `Show all 47`, was opening it over a page listing three " <>
        "subscriptions: MOVIES-AND-TV.md #35."},
-    {Screens.YearCardsStates, "screen 100's states, in 27's manner. As above."},
     {Screens.MoneyStates, "screen 122's states, in 27's manner. As above."},
     {Screens.MealLibraryEmpty,
      "screen 116 with nothing in it, and the same board in Persian. The same " <>
@@ -137,9 +136,6 @@ defmodule Kati.AppReachabilityTest do
     {Screens.SearchLarge,
      "screen 86 at 235% text size. The same screen at a system setting, not " <>
        "another one — reached by changing the setting, not by navigating."},
-    {Screens.YearShareDark,
-     "screen 98 in the dark colourway. The same screen, not another one — " <>
-       "reached by changing the theme, exactly as 28 and 68 are."},
     {Screens.YearShareBooks,
      "screen 98 with one scope selected, drawn so the two can be compared. A " <>
        "board about a choice rather than a place the choice is made — 98 is where " <>
@@ -194,9 +190,6 @@ defmodule Kati.AppReachabilityTest do
     # rather than becoming a graveyard.
     {Screens.NotificationAccess,
      "the special-access row. Reached from 150, which is itself waiting."},
-    {Screens.NumberingScheme,
-     "the per-show numbering row. Its entry is a row on screen 35, whose " <>
-       "board has not been redrawn. #21."},
     # 63, 64 and 65 — the three drawings of Kati seen from outside the app.
     # 29's reason, three more times: an app cannot navigate to the surface it
     # is being launched from.

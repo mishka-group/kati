@@ -84,7 +84,20 @@ defmodule Kati.Screens.YearShare do
         %{
           subtitle: figures[:range],
           hours: hours_face(year),
-          top: top_titles(scope, hide_private)
+          top: top_titles(scope, hide_private),
+          # MOVIES-AND-TV.md #3. Board 102 — *Your year, shared, dark* — drew
+          # two card faces this one never previewed: the contribution field and
+          # the genre bars. It is not a colourway: `Kati.Theme.Palette.mode/0`
+          # reads the theme at render time, so 98 already draws dark on a dark
+          # device, and what 102 actually held was two faces unreachable in
+          # light. They are here now, and 102 is deleted.
+          #
+          # The reader's own, where 102's were `Kati.Stats.Sample`'s: screen 07
+          # counts both — the grid is 26 weeks of the reader's watches and the
+          # bars are their own genres (#45) — so a card saved from this page
+          # carries their year rather than somebody else's.
+          grid: figures[:grid],
+          breakdown: Map.get(year, :breakdown, [])
         }
     end
   rescue
@@ -126,7 +139,12 @@ defmodule Kati.Screens.YearShare do
     do: %{
       subtitle: ShareSample.subtitle(),
       hours: ShareSample.hours(),
-      top: ShareSample.top_titles()
+      top: ShareSample.top_titles(),
+      grid: Kati.Stats.Sample.contributions(),
+      # Screen 07's own drawn bars, in `Kati.Screens.Stats.bar/1`'s shape —
+      # board 102 held `{genre, hours}` pairs and its own arithmetic, which is
+      # the second table the two boards would have drifted through.
+      breakdown: Kati.Stats.Sample.year().breakdown
     }
 
   # Screen 07's own headline, change pill and year, in the shape this card
@@ -308,6 +326,8 @@ defmodule Kati.Screens.YearShare do
     assigns = %{
       hours: share.hours,
       top: share.top,
+      grid: Map.get(share, :grid, []),
+      breakdown: Map.get(share, :breakdown, []),
       label_size: sized(10, scale),
       figure_size: sized(34, scale),
       titles_size: sized(10, scale)
@@ -354,8 +374,103 @@ defmodule Kati.Screens.YearShare do
         {Kati.Screens.YearShare.posters(@top)}
         <Spacer size={13} />
         {Kati.Screens.YearShare.ranks(@top)}
+        {Kati.Screens.YearShare.field_face(@grid, @label_size)}
+        {Kati.Screens.YearShare.hours_face_bars(@breakdown, @label_size)}
       </Column>
       <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  Board 102's contribution field, on this card and in this reader's own year.
+
+  MOVIES-AND-TV.md #3. Dropped entirely when there is nothing to draw: a field
+  of empty cells under a heading is a texture of a year nobody had.
+
+  Row-major, which is not how a contribution grid is usually filled — and
+  102's own doc gives the reason it stays: `Kati.UI.pixel_field/2` and
+  `Kati.Screens.Stats` both fill this data row-major already, and on a card
+  meant to be saved the field is a texture of a year rather than a calendar
+  anybody points a Tuesday at.
+  """
+  @spec field_face([0..4], number()) :: map()
+  def field_face([], _label_size), do: ~MOB"<Spacer size={0} />"
+
+  def field_face(grid, label_size) do
+    assigns = %{
+      label_size: label_size,
+      rows:
+        grid
+        |> Enum.chunk_every(26)
+        |> Enum.map(&Kati.Screens.YearShare.field_row/1)
+        |> Enum.intersperse(Kati.Screens.Stats.cell_gap())
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={20} />
+      <Text
+        text="Every day"
+        font_family="mono"
+        text_size={@label_size}
+        letter_spacing={0.14}
+        text_color={Palette.muted()}
+      />
+      <Spacer size={11} />
+      <Column fill_width={true}>
+        {@rows}
+      </Column>
+    </Column>
+    """
+  end
+
+  @doc false
+  def field_row(row) do
+    assigns = %{
+      cells:
+        row
+        |> Enum.map(&Kati.Screens.Stats.cell/1)
+        |> Enum.intersperse(Kati.Screens.Stats.cell_gap())
+    }
+
+    ~MOB"""
+    <Row>
+      {@cells}
+    </Row>
+    """
+  end
+
+  @doc """
+  Board 102's genre bars, on this card and out of this reader's own genres.
+
+  MOVIES-AND-TV.md #3, and #45 is why the figures are real: screen 07's bars
+  stopped being a fixture, and this reads the same list rather than starting a
+  second one. Dropped when there is nothing to divide.
+  """
+  @spec hours_face_bars([term()], number()) :: map()
+  def hours_face_bars([], _label_size), do: ~MOB"<Spacer size={0} />"
+
+  def hours_face_bars(breakdown, label_size) do
+    assigns = %{
+      label_size: label_size,
+      # `bar/1` and not `breakdown/1`: that one wraps the rows in their own
+      # card, and here they are already inside one.
+      bars: Enum.map(breakdown, &Kati.Screens.Stats.bar/1)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={20} />
+      <Text
+        text="Where the hours went"
+        font_family="mono"
+        text_size={@label_size}
+        letter_spacing={0.14}
+        text_color={Palette.muted()}
+      />
+      <Spacer size={11} />
+      {@bars}
     </Column>
     """
   end

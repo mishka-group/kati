@@ -164,6 +164,27 @@ defmodule Kati.ShelfSelectionTest do
     end
   end
 
+  describe "board 147's rule at 235%" do
+    test "the count grows and the chrome caps" do
+      # MOVIES-AND-TV.md #6. Board 147 is this bar at the largest text size and
+      # states the split: *`4 selected` carries no `max_lines` and no cap — the
+      # board's own caption names it as the one thing this bar exists to say* —
+      # while *the close glyph caps because it is chrome whose size carries
+      # structure*. Both lines of the count carried `max_lines={1}`.
+      one = inspect(ShelfSelection.count_body(1), limit: :infinity)
+      four = inspect(ShelfSelection.count_body(4), limit: :infinity)
+
+      refute one =~ "max_lines", "the one thing this bar exists to say can clip"
+      refute four =~ "max_lines"
+      assert four =~ "4 selected"
+      assert four =~ "Actions apply to all four"
+
+      # And the glyph beside it does not grow with the text.
+      assert inspect(ShelfSelection.close_glyph(true), limit: :infinity) =~ "max_font_scale"
+      assert inspect(ShelfSelection.close_glyph(false), limit: :infinity) =~ "max_font_scale"
+    end
+  end
+
   defp shelve!(title, kind) do
     Ash.create!(CachedTitle, %{
       source: :tmdb,

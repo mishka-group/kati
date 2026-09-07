@@ -15,11 +15,23 @@ defmodule Kati.Screens.ShelfLarge do
   backup's — a specimen to be checked by looking, not a screen a user reaches
   by tapping anything.
 
-  Board 146 is itself unbuilt (`test/design/reference/README.md` still
-  lists it `queued`), so unlike `Kati.Screens.SearchLarge`, which can lean on
-  `Kati.Screens.Search` for chrome and `Kati.Search.chip_labels/0` for data,
-  this file has no sibling selection-mode module to borrow from. Every
-  literal below is typed from board 147 itself — the same choice
+  ## Its findings are on 146 now — MOVIES-AND-TV.md #6
+
+  Board 146 was unbuilt when this file was written and is not any more:
+  `Kati.Screens.ShelfSelection` is the shelf's selection mode, reachable from
+  the Library's ⋯. So the two things this sheet exists to specify have been
+  moved into it as real behaviour, which is exactly what #6 asks for:
+
+    * **`4 selected` grows.** Both lines of `count_body/1` carried
+      `max_lines={1}` — so at the largest text size the one thing that bar
+      exists to say was the first thing to lose its end. The cap is gone.
+    * **The close glyph caps.** `close_glyph/1` wraps its symbol in
+      `max_font_scale`, because it is chrome whose size carries structure and
+      a glyph that grew with the text would push the count off its own bar.
+
+  This sheet stays as the specimen it is — the picture the rule was read off,
+  in 27's manner, like 91 for search and 133 for backup. Every literal below is
+  typed from board 147 itself — the same choice
   `Kati.Screens.BackupLarge`'s moduledoc defends for its own board: a
   specimen, not a stand-in for a screen that is nearly ready. The zero-result
   card is new content besides — 145's own board never draws it, for the

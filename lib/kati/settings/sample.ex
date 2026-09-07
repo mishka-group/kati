@@ -209,6 +209,21 @@ defmodule Kati.Settings.Sample do
         sub: "Which calendars Kati may read",
         control: :chevron
       },
+      # MOVIES-AND-TV.md #1. Screen 05 had no English door at all: its only one
+      # was Home's *New this week* hero, which is omitted unless a followed
+      # title has an unticked episode from the last seven days — so a reader
+      # with nothing out this week could not reach the page that would tell
+      # them so. The Persian build reached it and the English one did not,
+      # which `routes.txt` found empirically.
+      #
+      # Beside Release watcher because they are the two halves of one subject:
+      # 25 is what Kati watches for, and 05 is what it found.
+      %{
+        icon: "inbox",
+        title: "New releases",
+        sub: "What is out, and what is coming",
+        control: :chevron
+      },
       %{
         icon: "notifications_active",
         title: "Release watcher",

@@ -713,11 +713,69 @@ defmodule Kati.Screens.Stats do
   # card with one real line among three stand-ins would be harder to read as a
   # stand-in card than one that is wholly frozen. What changes here is that the
   # line the app CAN answer is no longer among the frozen ones.
+  # MOVIES-AND-TV.md #45's remainder. Four rows carried the drawing's own
+  # figures on every device — `4 active · 12-day best`, `Cutting v3 · 86%`,
+  # `3 active · 38 of 52 books`, `£46.47 a month · 7 expenses` — beside one
+  # that counts. Two of the four can be counted now and are; the other two
+  # cannot and say nothing rather than saying somebody else's numbers, which
+  # is the call #75 made on screen 92 and #58 on screen 15.
   defp entries_line(%{title: "Activity log"} = row) do
     %{row | sub: Kati.Screens.Stats.entries_count()}
   end
 
+  defp entries_line(%{title: "Goals"} = row), do: %{row | sub: Kati.Screens.Stats.goals_line()}
+  defp entries_line(%{title: "Money"} = row), do: %{row | sub: Kati.Screens.Stats.money_line()}
+
+  # `Kati.Habits` is a `Sample` module and nothing else — no resource, no
+  # table — and `Nutrition`'s `Cutting v3 · 86%` is a diet plan, which
+  # `Kati.Health` holds no column for either. Both rows stay, because the row
+  # is the door to a page that exists; what goes is the figure.
+  defp entries_line(%{title: title} = row) when title in ["Habits", "Nutrition"],
+    do: %{row | sub: nil}
+
   defp entries_line(row), do: row
+
+  @doc """
+  `3 active` — the goals the reader is running, counted.
+
+      iex> is_binary(Kati.Screens.Stats.goals_line())
+      true
+  """
+  @spec goals_line() :: String.t()
+  def goals_line do
+    case Kati.Goals.Goal |> Ash.read!() |> length() do
+      0 -> "None set"
+      1 -> "1 goal"
+      n -> "#{n} goals"
+    end
+  rescue
+    _error -> "None set"
+  end
+
+  @doc """
+  `£46.47 a month · 7 expenses` — the reader's own, both halves.
+
+  The subscription total is `Kati.Screens.MyServices`'s, read through the same
+  function screen 92's own Money row reads, so the two pages cannot disagree
+  about what a month costs.
+  """
+  @spec money_line() :: String.t()
+  def money_line do
+    total = Kati.Screens.MyServices.monthly_total()
+    n = Kati.Money.Expense |> Ash.read!() |> length()
+
+    [
+      if(total in [nil, "—"], do: nil, else: "#{total} a month"),
+      if(n == 0, do: nil, else: "#{n} #{if n == 1, do: "expense", else: "expenses"}")
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [] -> "Nothing added yet"
+      parts -> Enum.join(parts, " · ")
+    end
+  rescue
+    _error -> "Nothing added yet"
+  end
 
   @doc """
   How many watches there are, in `Kati.Screens.Activity`'s own words.
@@ -765,6 +823,11 @@ defmodule Kati.Screens.Stats do
   # from; a row of a title and an invented figure is not a recipe at all.
   @doc false
   def row_sub(_row, false), do: ~MOB"<Spacer size={0} />"
+
+  # A row whose figure is nobody's draws no second line at all — #45. `Habits`
+  # and `Nutrition` have no resource to count, and a subtitle that says nothing
+  # is better than one that says the drawing's.
+  def row_sub(%{sub: nil}, true), do: ~MOB"<Spacer size={0} />"
 
   def row_sub(row, true) do
     ~MOB"""

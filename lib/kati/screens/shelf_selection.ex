@@ -519,16 +519,41 @@ defmodule Kati.Screens.ShelfSelection do
     """
   end
 
-  @doc false
-  def close_glyph(false), do: UI.symbol("close", size: 21)
+  @doc """
+  The `close` glyph, capped — the other half of board 147's split.
+
+  MOVIES-AND-TV.md #6, and 147's own words: *the close glyph caps at 26px
+  because it is chrome whose size carries structure.* It is a fixed shape
+  beside a count that must be free to grow, and a glyph that grew with the
+  text would push the count it sits next to off the bar it is on.
+
+  `max_font_scale` reaches any node — `MobBridge.kt`'s `RenderNode` checks it
+  before dispatching — so it wraps the symbol rather than needing one of its
+  own. `1.15` and not `1.0`: this bar is drawn at ordinary size, unlike 147
+  whose every `sp` is the 235% figure typed out, so the glyph may grow a
+  little before it stops.
+  """
+  @spec close_glyph(boolean()) :: map()
+  def close_glyph(false), do: Kati.Screens.ShelfSelection.capped_close()
 
   def close_glyph(true) do
     close_tap = {self(), :close}
 
     ~MOB"""
     <Row on_tap={close_tap} align="center">
-      {Kati.UI.symbol("close", size: 21)}
+      {Kati.Screens.ShelfSelection.capped_close()}
     </Row>
+    """
+  end
+
+  @doc false
+  def capped_close do
+    assigns = %{}
+
+    ~MOB"""
+    <Box max_font_scale={1.15}>
+      {Kati.UI.symbol("close", size: 21)}
+    </Box>
     """
   end
 
@@ -540,6 +565,16 @@ defmodule Kati.Screens.ShelfSelection do
   `four` back into a word rather than leaving `4` where the drawing wrote a
   word out.
   """
+  # MOVIES-AND-TV.md #6. Board 147 — this bar at 235% — states the rule and
+  # this bar broke it: *`4 selected` carries no `max_lines` and no cap — the
+  # board's own caption names it as the one thing this bar exists to say, so it
+  # is the one thing here guaranteed never to clip.* Both lines carried
+  # `max_lines={1}`, so at the largest text size the count and the sentence
+  # under it were the first two things to lose their ends.
+  #
+  # Content grows; chrome whose size carries structure caps instead — the close
+  # glyph and the action pills, which are fixed shapes. That is fence `K-29`'s
+  # split and 147 draws it as cleanly as any board in the set.
   def count_body(count) when count > 1 do
     ~MOB"""
     <Column fill_width={true}>
@@ -549,14 +584,12 @@ defmodule Kati.Screens.ShelfSelection do
         font_weight="bold"
         letter_spacing={-0.02}
         text_color={:on_surface}
-        max_lines={1}
       />
       <Spacer size={3} />
       <Text
         text={"Actions apply to all #{Kati.Screens.ShelfSelection.count_word(count)}"}
         text_size={11}
         text_color={Palette.sub()}
-        max_lines={1}
       />
     </Column>
     """
@@ -570,7 +603,6 @@ defmodule Kati.Screens.ShelfSelection do
       font_weight="bold"
       letter_spacing={-0.02}
       text_color={:on_surface}
-      max_lines={1}
     />
     """
   end

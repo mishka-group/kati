@@ -482,6 +482,15 @@ defmodule Kati.DesignLiterals do
       # else's reads as fully real. So they are not drawn rather than drawn
       # frozen, which is the call #75 made one screen over.
       # MOVIES-AND-TV.md #106.
+      # Board 07's *More numbers* card froze four figures. Two of them are the
+      # reader's own now — `Kati.Goals.Goal` and `Kati.Money.Expense` are real
+      # resources — and are asserted by pattern in `device_values/0` instead.
+      # The other two have no resource to count: `Kati.Habits` is a Sample
+      # module and nothing else, and `Nutrition`'s `Cutting v3 · 86%` is a diet
+      # plan no column holds, so those rows draw no second line rather than
+      # somebody else's numbers. MOVIES-AND-TV.md #45.
+      {"07", "4 active · 12-day best"},
+      {"07", "cutting v3 · 86%"},
       {"12", "wishlist"},
       {"12", "owned on disc"},
       {"140", "five more sources"},

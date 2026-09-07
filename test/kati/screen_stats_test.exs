@@ -236,17 +236,28 @@ defmodule Kati.ScreenStatsTest do
       refute "" in names
     end
 
-    test "keeps the four More numbers rows nothing can answer as the drawing's own" do
+    test "counts the two More numbers rows it can, and the two it cannot say nothing" do
+      # MOVIES-AND-TV.md #45's remainder. All four carried the drawing's own
+      # figures beside one that counted. `Kati.Goals.Goal` and
+      # `Kati.Money.Expense` are real resources, so those two are counted;
+      # `Kati.Habits` is a Sample module and nothing else, and `Nutrition`'s
+      # `Cutting v3 · 86%` is a diet plan no column holds — so those two draw
+      # no second line rather than somebody else's numbers.
       words = text(tree(mount_screen(Stats)))
 
-      # Habits, Nutrition, Goals and Money. Three of those domains have no
-      # resource at all, and the card would be harder to read as a stand-in
-      # card with one real line among three stand-ins than wholly frozen.
       for row <- Sample.more_numbers(),
           row.title not in ["Recently watched", "Activity log"] do
-        assert words =~ row.title
-        assert words =~ row.sub
+        assert words =~ row.title, "the row is the door to a page that exists"
       end
+
+      # The two that cannot be counted say nothing at all.
+      refute words =~ "4 active · 12-day best"
+      refute words =~ "Cutting v3 · 86%"
+
+      # And the two that can are this reader's.
+      refute words =~ "3 active · 38 of 52 books"
+      assert words =~ Kati.Screens.Stats.goals_line()
+      assert words =~ Kati.Screens.Stats.money_line()
     end
 
     test "and counts the Activity row, which is the one it can" do

@@ -254,18 +254,26 @@ defmodule Kati.ScreenStatsEmptyTest do
       assert length(find_all(tree, :text, text: Kati.Icons.glyph("bar_chart_4_bars"))) == 1
     end
 
-    test "and the `More numbers` second lines come back with it" do
+    test "and the `More numbers` rows come back with it" do
       words = text(tree(mount_screen(Stats)))
 
-      for row <- Sample.more_numbers(),
-          row.title not in ["Recently watched", "Activity log"] do
-        assert words =~ row.sub
+      for row <- Sample.more_numbers(), row.title != "Recently watched" do
+        assert words =~ row.title
       end
 
-      # The Activity row is counted rather than frozen — one watch is written
-      # in this block's setup, and `1,204 entries` was what every device saw.
+      # Three of the five rows are counted now rather than frozen — one watch
+      # is written in this block's setup, and `1,204 entries` was what every
+      # device saw. MOVIES-AND-TV.md #45.
       assert words =~ "1 entry"
       refute words =~ "1,204 entries"
+
+      assert words =~ Kati.Screens.Stats.goals_line()
+      assert words =~ Kati.Screens.Stats.money_line()
+
+      # And the two with no resource behind them say nothing rather than
+      # somebody else's figures.
+      refute words =~ "4 active · 12-day best"
+      refute words =~ "Cutting v3 · 86%"
     end
   end
 

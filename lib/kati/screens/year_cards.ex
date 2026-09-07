@@ -62,8 +62,36 @@ defmodule Kati.Screens.YearCards do
         {Kati.Screens.YearCards.palette_note()}
         {Kati.Screens.YearCards.boards()}
         {Kati.Screens.YearCards.rescale_note()}
+        {Kati.Screens.YearCards.states_row()}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc """
+  The row onto board 101 — the five states one of these cards can be in.
+
+  MOVIES-AND-TV.md #2. This page draws the four faces at two ratios; 101 draws
+  what happens when one of them cannot be filled or cannot be saved, which is
+  the same subject one question further on. It was gallery-only, so the one
+  correction it needed — band 5 names a capability that has since shipped —
+  went unread for as long as the board did.
+  """
+  @spec states_row() :: map()
+  def states_row do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={22} />
+      {Kati.UI.SettingsList.card([
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("help"),
+          Kati.UI.SettingsList.body("When a card cannot be made", "Not enough data, a private title, a save that refused"),
+          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+          rule: false,
+          on_tap: {self(), :open_states}
+        )
+      ])}
+    </Column>
     """
   end
 
@@ -339,5 +367,16 @@ defmodule Kati.Screens.YearCards do
   # exactly. The clause is here so a stray tag is a quiet no-op rather than a
   # `DEAD TAP` in the log.
   @doc false
+  # Board 101's door. MOVIES-AND-TV.md #2: the sheet whose whole job is to name
+  # honestly why a card cannot be saved was reachable only from the developer
+  # gallery, so nobody ever read it — including after its central claim stopped
+  # being true. This screen is the one page in the app that is already about
+  # how a card is drawn, and 101 is about the states of that card, so the row
+  # goes here rather than as a second Settings entry beside the first.
+  def handle_tap(:open_states, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.YearCardsStates, %{back: "Year cards"})}
+
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end
