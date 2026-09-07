@@ -74,14 +74,68 @@ defmodule Kati.ReleaseWatcherBannerTest do
     end
   end
 
-  describe "the rest of the page" do
-    test "is still the drawing's, and this file says so rather than hiding it" do
-      {:ok, socket} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
-      watcher = socket.assigns.watcher
+  describe "the two controls that have a consumer" do
+    # MOVIES-AND-TV.md #67 and `design-briefs/D-64`, whose acceptance names this
+    # block: *it either goes away because the controls became real, or becomes
+    # an assertion about the not-yet state. It must not stay as it is.* Two of
+    # the fifteen became real; the rest carry the mark.
 
-      assert watcher.kinds == WatcherSample.kinds()
-      assert watcher.cadence == WatcherSample.cadence()
-      assert watcher.loudness == WatcherSample.loudness()
+    test "the cadence is the reader's, and boot asks the scheduler for it" do
+      Kati.Settings.Watcher.put_cadence("Daily")
+
+      {:ok, socket} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
+
+      assert socket.assigns.watcher.cadence == "Daily"
+      assert Kati.Settings.Watcher.interval_for("Daily") == 24 * 60
+
+      # And it survives the pop, which is the whole of the finding.
+      {:ok, again} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
+      assert again.assigns.watcher.cadence == "Daily"
+    end
+
+    test "Manual asks for no periodic work rather than a very long interval" do
+      assert Kati.Settings.Watcher.interval_for("Manual") == nil
+    end
+
+    test "New episodes gates the notifier, and survives the pop" do
+      {:ok, socket} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
+
+      # Index 0 is `New episodes`, which is the one live row.
+      {:noreply, off} = ReleaseWatcher.handle_tap(:kind_0, socket)
+
+      refute Kati.Settings.Watcher.new_episodes?()
+      refute hd(off.assigns.watcher.kinds).on
+
+      followed!("gated", "The Long Hollow")
+
+      assert Kati.Notifications.Sources.Media.followed() == [],
+             "the switch is off and the notifier still has titles to tell you about"
+
+      Kati.Settings.Watcher.put_new_episodes(true)
+      refute Kati.Notifications.Sources.Media.followed() == []
+    end
+
+    test "and the thirteen with no consumer are marked rather than offered" do
+      {:ok, socket} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
+      kinds = socket.assigns.watcher.kinds
+
+      assert [live | rest] = kinds
+      assert live.title == "New episodes"
+      refute Map.get(live, :not_yet?, false)
+
+      for row <- rest do
+        assert Map.get(row, :not_yet?), "#{row.title} has no consumer and is offered as a switch"
+      end
+
+      # A marked row carries no tap: a switch a reader can move that changes
+      # nothing is the defect this finding reports.
+      drawn = inspect(ReleaseWatcher.group(kinds, "kind", 13, 22), limit: :infinity)
+
+      assert drawn =~ "not yet"
+      assert length(Regex.scan(~r/:kind_\d/, drawn)) == 1
+
+      # The loudness group is untouched by this round and still the drawing's.
+      assert socket.assigns.watcher.loudness == WatcherSample.loudness()
     end
   end
 

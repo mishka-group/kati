@@ -97,7 +97,22 @@ defmodule Kati.Screens.Lists do
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :lists, Kati.Screens.Lists.lists())
+  def load(socket) do
+    params = socket.assigns.params || %{}
+
+    socket
+    |> Mob.Socket.assign(:lists, Kati.Screens.Lists.lists())
+    |> Mob.Socket.assign(:name, "")
+    |> Mob.Socket.assign(:naming?, false)
+    |> Mob.Socket.assign(:name_epoch, 0)
+    |> Mob.Socket.assign(:save_error, nil)
+    # The titles board 146's *Add to list* selected. Empty on every other
+    # arrival, and it is what turns a row from *open this list* into *put these
+    # in it* — see `made_row/1` and `handle_tap/2`.
+    # A push carrying anything but a list of ids is a push that named none —
+    # the sweeps hand `:adding` a bare string to prove the fallback holds.
+    |> Mob.Socket.assign(:adding, Kati.Screens.Lists.ids(Map.get(params, :adding)))
+  end
 
   @doc """
   The page: the drawing's made lists, and the reader's own kept ones.
@@ -117,9 +132,15 @@ defmodule Kati.Screens.Lists do
   """
   @spec lists() :: map()
   def lists do
-    drawn = Sample.lists()
+    page = Kati.Lists.Shelf.page()
 
-    %{drawn | kept: Kati.Screens.Lists.kept_rows()}
+    # Not the board. Screen 03 falls back to its drawing because a shelf has a
+    # drawn empty state to fall back TO — board 27's card — and 12 has none, so
+    # falling back here would show three lists nobody made to somebody who has
+    # made none. That is the defect #75 fixed on screen 92 and #58 on screen
+    # 15. `empty_card/0` is the state instead, and it says the one thing that
+    # fixes it.
+    page
   end
 
   @doc """
@@ -131,40 +152,15 @@ defmodule Kati.Screens.Lists do
   the rule exists.
   """
   @spec kept_rows() :: [map()]
-  def kept_rows do
-    [
-      %{
-        icon: "replay",
-        title: "Rewatches",
-        count: Integer.to_string(Kati.Screens.Lists.rewatch_count())
-      },
-      %{
-        icon: "do_not_disturb_on",
-        title: "Abandoned",
-        count: Integer.to_string(Kati.Screens.Lists.abandoned_count())
-      }
-    ]
-  end
+  defdelegate kept_rows(), to: Kati.Lists.Shelf, as: :kept
 
   @doc "How many watches the reader has marked as a rewatch."
   @spec rewatch_count() :: non_neg_integer()
-  def rewatch_count do
-    Kati.Media.Watch
-    |> Ash.read!()
-    |> Enum.count(&(is_integer(&1.rewatch_number) and &1.rewatch_number > 1))
-  rescue
-    _error -> 0
-  end
+  defdelegate rewatch_count(), to: Kati.Lists.Shelf, as: :rewatches
 
   @doc "How many titles the reader has dropped."
   @spec abandoned_count() :: non_neg_integer()
-  def abandoned_count do
-    Kati.Media.TrackedTitle
-    |> Ash.read!()
-    |> Enum.count(&(&1.status == :dropped and not &1.archived))
-  rescue
-    _error -> 0
-  end
+  defdelegate abandoned_count(), to: Kati.Lists.Shelf, as: :abandoned
 
   @doc false
   def content(assigns) do
@@ -181,8 +177,9 @@ defmodule Kati.Screens.Lists do
       >
         {Kati.Screens.Lists.pill_row()}
         {Kati.Screens.Lists.header(l)}
-        {Kati.Screens.Lists.waiting(Map.get(assigns, :waiting?, false))}
-        {Kati.Screens.Lists.made(l)}
+        {Kati.Screens.Lists.name_field(assigns)}
+        {Kati.Screens.Lists.adding_note(Kati.Screens.Lists.ids(Map.get(assigns, :adding)))}
+        {Kati.Screens.Lists.made(l, Kati.Screens.Lists.ids(Map.get(assigns, :adding)))}
         {UI.eyebrow("Kept automatically")}
         {Kati.Screens.Lists.kept(l)}
       </Column>
@@ -248,17 +245,75 @@ defmodule Kati.Screens.Lists do
   end
 
   @doc false
-  def made(l) do
+  def made(%{made: []}, _adding) do
+    # `:name_this_one`, not the disc's own `:new_list`: two nodes may not share
+    # an `accessibility_id` — `onNodeWithTag` throws on the second match — and
+    # both are drawn at once on an empty page. One action, two doors, two names.
+    assigns = %{tap: {self(), :name_this_one}}
+
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(l.made, fn row -> Kati.Screens.Lists.made_row(row) end)}
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+        on_tap={@tap}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+            {UI.symbol("bookmarks", size: 22, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={13} />
+        <Text
+          text="No lists yet"
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text="A list is yours to name — press + and call it something. Titles go in from your shelf."
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+      </Column>
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  def made(l, adding \\ []) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(l.made, fn row -> Kati.Screens.Lists.made_row(row, adding) end)}
       <Spacer size={12} />
     </Column>
     """
   end
 
   @doc false
-  def made_row(row) do
+  def made_row(row, adding \\ []) do
+    # A row opens the list it names — or, arriving from board 146's *Add to
+    # list* with a selection in hand, puts that selection in it. One row, two
+    # verbs, and which one is decided by how the reader got here rather than by
+    # a mode they have to notice.
+    #
+    # `nil` over the board's own three, which belong to nobody: not tappable
+    # rather than opening somebody else's.
+    prefix = if adding == [], do: "open_list_", else: "add_to_list_"
+    tap = if Map.get(row, :id), do: {self(), String.to_atom(prefix <> row.id)}
+
+    assigns = %{tap: tap}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -268,6 +323,7 @@ defmodule Kati.Screens.Lists do
         shadow={Kati.Theme.shadow_card_soft()}
         padding={13}
         align="center"
+        on_tap={@tap}
       >
         {Kati.Screens.Lists.stack(row.seeds)}
         <Spacer size={14} />
@@ -465,6 +521,68 @@ defmodule Kati.Screens.Lists do
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
   @doc """
+  The field `+` opens, where the list is named.
+
+  Board 12 draws no text entry — it draws three lists that already have names —
+  so this is a departure, made deliberately and recorded here: the alternative
+  was a `+` that creates `New list` with no way to rename it, which is the same
+  lie one step further in. `Kati.UI.SettingsList`'s own field geometry, so it is
+  the app's field and not a new one.
+
+  It appears on the press and not before, which is why the board is unchanged
+  for a reader who has not pressed anything.
+  """
+  @spec name_field(map()) :: map()
+  def name_field(assigns) do
+    if Map.get(assigns, :naming?, false) do
+      inner = %{
+        name: Map.get(assigns, :name, ""),
+        epoch: Map.get(assigns, :name_epoch, 0),
+        on_change: {self(), :list_name},
+        on_submit: {self(), :save_list},
+        save: {self(), :save_list},
+        error: Kati.UI.notice(Map.get(assigns, :save_error))
+      }
+
+      assigns = inner
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {@error}
+        <Row fill_width={true} align="center">
+          <Row
+            weight={1.0}
+            height={48}
+            corner_radius={14}
+            background={Kati.Theme.Palette.card()}
+            shadow={Kati.Theme.shadow_card_soft()}
+            padding_left={15}
+            padding_right={15}
+            align="center"
+          >
+            <TextField
+              value={@name}
+              placeholder="Name this list"
+              return_key="done"
+              weight={1.0}
+              accessibility_id="list_name"
+              on_change={@on_change}
+              on_submit={@on_submit}
+              value_epoch={@epoch}
+            />
+          </Row>
+          <Spacer size={9} />
+          {Kati.UI.SettingsList.action_pill("Make it", @save)}
+        </Row>
+        <Spacer size={18} />
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
+
+  @doc """
   What `+` can honestly do today, which is say why it cannot make a list.
 
   MOVIES-AND-TV.md #106. It used to prepend a row titled `New list` to this
@@ -484,11 +602,148 @@ defmodule Kati.Screens.Lists do
   So the disc says that, in one line, where the row it used to invent went.
   """
   @impl true
-  def handle_tap(:new_list, socket) do
-    {:noreply, Mob.Socket.assign(socket, :waiting?, true)}
+  def handle_tap(tag, socket) when tag in [:new_list, :name_this_one] do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:naming?, not Map.get(socket.assigns, :naming?, false))
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  @doc """
+  Make the list the field names, and put it on the page.
+
+  `Kati.Lists.Shelf.create/1` answers `{:ok, existing}` for a name already
+  taken and writes nothing: re-typing a name you already have is how somebody
+  checks whether they already have it, and a second `Rainy Sunday` is not what
+  they asked for. The refusal is the same one every write in this app gives —
+  `Kati.Write.message/1` — so a store that cannot be reached says so instead of
+  looking like a press that missed.
+  """
+  def handle_tap(:save_list, socket) do
+    case Kati.Lists.Shelf.create(Map.get(socket.assigns, :name, "")) do
+      {:ok, _list} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:lists, Kati.Screens.Lists.lists())
+         |> Mob.Socket.assign(:name, "")
+         # `K-46`: the bridge ignores a `value` for a field it has already
+         # drawn unless the epoch moves.
+         |> Mob.Socket.assign(:name_epoch, Map.get(socket.assigns, :name_epoch, 0) + 1)
+         |> Mob.Socket.assign(:naming?, false)
+         |> Mob.Socket.assign(:save_error, nil)}
+
+      error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}
+    end
+  end
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "open_list_" <> id ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.ListDetail, %{id: id, back: "Lists"})}
+
+      # Arriving from board 146 with a selection: the row puts it in, and the
+      # page then opens the list so the reader sees where it went. Anything
+      # else would be a press with no visible result.
+      "add_to_list_" <> id ->
+        {:noreply, Kati.Screens.Lists.put_selection(socket, id)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Put the selection board 146 handed over into the list that was pressed.
+
+  Then open it, because a press with no visible result is a press that looks
+  like it missed — and the list is where the reader can see what arrived.
+  """
+  @spec put_selection(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def put_selection(socket, list_id) do
+    case Ash.get(Kati.Lists.List, list_id) do
+      {:ok, list} ->
+        Enum.each(Map.get(socket.assigns, :adding, []), &Kati.Lists.Shelf.add(list, &1))
+
+        Mob.Socket.push_screen(socket, Kati.Screens.ListDetail, %{id: list_id, back: "Lists"})
+
+      _gone ->
+        socket
+    end
+  end
+
+  @doc """
+  The line that says what pressing a list will do, when it is not *open it*.
+
+      iex> Kati.Screens.Lists.adding_note([])
+      Kati.Screens.Lists.blank()
+  """
+  @spec adding_note(term()) :: map()
+  def adding_note(ids) when not is_list(ids), do: Kati.Screens.Lists.blank()
+  def adding_note([]), do: Kati.Screens.Lists.blank()
+
+  def adding_note(ids) do
+    n = length(ids)
+
+    assigns = %{
+      note:
+        Kati.UI.SettingsList.note(
+          "info",
+          "Pick a list for #{n} #{if n == 1, do: "title", else: "titles"}."
+        )
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@note}
+      <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  @doc """
+      iex> Kati.Screens.Lists.ids(["a"])
+      ["a"]
+
+      iex> Kati.Screens.Lists.ids("nonsense")
+      []
+  """
+  @spec ids(term()) :: [String.t()]
+  def ids(value) when is_list(value), do: Enum.filter(value, &is_binary/1)
+  def ids(_none), do: []
+
+  @doc false
+  def blank, do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  @impl true
+  def handle_info({:change, :list_name, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:name, typed)
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  # The keyboard's own key. A submit is not a tap — `mob_send_submit/1` sends
+  # `{:submit, tag}` — so `handle_tap/2` never sees it.
+  def handle_info({:submit, :save_list}, socket),
+    do: Kati.Screens.Lists.handle_tap(:save_list, socket)
+
+  # Coming back from a list: the counts and the fans have moved, and the page
+  # was still showing what it mounted with. `Kati.Screens.Resume` is what
+  # announces it, and screens 08 and 02 answer the same message the same way.
+  #
+  # The selection goes with it. `Pick a list for 2 titles` over a list those
+  # two titles are already in is the note outliving the act it describes.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:lists, Kati.Screens.Lists.lists())
+     |> Mob.Socket.assign(:adding, [])}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
 
   @doc """
   The line `+` leaves behind, or nothing.

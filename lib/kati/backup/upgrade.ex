@@ -119,7 +119,12 @@ defmodule Kati.Backup.Upgrade do
       # `anime_override` that default is `NULL` — *I have not said* — which is
       # exactly right for a title written before there was anywhere to say it,
       # and leaves the provider rule free to answer.
-      {14, 15, &unchanged/1}
+      {14, 15, &unchanged/1},
+      # `lists` and `list_memberships` arrived. Both are supplied as empty
+      # members and neither can be derived: a list is a thing the reader made
+      # and named, and its order is a thing they chose. A restored version-15
+      # file therefore has no lists — which is what that device had.
+      {15, 16, &unchanged/1}
     ]
 
   @doc """

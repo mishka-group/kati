@@ -664,6 +664,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        {"No subscriptions yet",
         "<div style=\"display:flex;align-items:flex-start;gap:11px;padding:15px;border-radius:18px"}}
     ],
+    # 12 → its own card, because board 12 has no drawn empty state and falling
+    # back to the board would show three lists nobody made to somebody who has
+    # made none — #75's defect, one screen over. `[]` is the same answer screen
+    # 97 gives below and for the same reason: no board words this state, so
+    # what is compared is the screen's own chrome plus the `@quoted` floor,
+    # and `Kati.ScreenListsTest` holds the card's own two sentences.
+    # MOVIES-AND-TV.md #106.
+    "12" => [],
     # 97 is 92 in Persian and empties the same way. There is no Persian board
     # for the empty state — 93 has no mirror — so the comparison is 97's own
     # chrome, which the `@quoted` floor and `Kati.MyServicesGateTest` hold,
@@ -932,7 +940,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # for shape, and exempt from the literal comparison.
     Kati.Screens.InboxNotifications,
     Kati.Screens.NotificationsHelp,
-    Kati.Screens.Sync
+    Kati.Screens.Sync,
+    # Board 12 draws a `chevron_right` on every list row and never drew what it
+    # opens, so this screen has no drawing either. It reads two stores — the
+    # list, and the titles in it — and a push naming no list answers `nil`,
+    # which is its own drawn sentence rather than an empty list somebody still
+    # has. MOVIES-AND-TV.md #106.
+    Kati.Screens.ListDetail
   ]
 
   # The fewest strings a whole page can be. Thirteen is the bound the `@undrawn`
@@ -958,13 +972,23 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # MOVIES-AND-TV.md #120.
   @small_empty_boards %{"23" => 9}
 
+  # The same exception for an `@undrawn` screen, and the same argument.
+  # `Kati.Screens.ListDetail` with nothing stored is one page saying one thing —
+  # *this list is gone*, why nothing was lost with it, and the two ways on. It
+  # cannot be thirteen strings without padding, and padding an empty state is
+  # the opposite of what the floor is for.
+  #
+  # Named with a number, so a page that shrinks further still fails.
+  # MOVIES-AND-TV.md #106.
+  @small_undrawn %{Kati.Screens.ListDetail => 9}
+
   # Every table an Ash resource in this app is backed by, child tables first so
   # the deletes below do not trip a foreign key. Written out rather than derived
   # so that `every_table_is_listed/0` can compare it against the schema the
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending)
+  @tables ~w(list_memberships lists event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.
@@ -1293,7 +1317,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
           |> Enum.map(&(&1.props[:text] || ""))
           |> Enum.reject(&(&1 == ""))
 
-        assert length(texts) >= @chrome_floor,
+        floor = Map.get(@small_undrawn, module, @chrome_floor)
+
+        assert length(texts) >= floor,
                "#{inspect(module)} rendered #{length(texts)} strings against an empty " <>
                  "database. A page that is mostly chrome is what a lost empty state looks " <>
                  "like, and this screen has no drawing for anything else to compare"
@@ -1572,6 +1598,36 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       assert thin == [],
              "these screens render less copy than the drawing they are held to, which is what " <>
                "a lost empty state looks like:\n" <> Enum.join(thin, "\n")
+    end
+
+    test "the small-undrawn exception names a screen that is still small" do
+      # Pinned from both ends like every allow-list here: a screen that grew
+      # back past the ordinary floor has an entry hiding nothing.
+      trees =
+        in_empty_database(fn ->
+          Map.new(Map.keys(@small_undrawn), fn module ->
+            {:ok, _socket, tree} = ScreenSweep.render(module)
+            {module, tree}
+          end)
+        end)
+
+      for {module, floor} <- @small_undrawn do
+        count =
+          trees
+          |> Map.fetch!(module)
+          |> find_all(:text)
+          |> Enum.map(&(&1.props[:text] || ""))
+          |> Enum.reject(&(&1 == ""))
+          |> length()
+
+        assert count < @chrome_floor,
+               "#{inspect(module)} renders #{count} strings, which clears the ordinary floor " <>
+                 "of #{@chrome_floor}. Delete its @small_undrawn entry"
+
+        assert count >= floor,
+               "#{inspect(module)} renders #{count} strings against its own named floor of " <>
+                 "#{floor}"
+      end
     end
 
     test "the small-empty-board exception names a screen that is still small" do

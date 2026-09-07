@@ -85,6 +85,74 @@ defmodule Kati.ScreenUpNextTest do
     end
   end
 
+  describe "a shelf with nothing on the go" do
+    # MOVIES-AND-TV.md #49's remaining half. `queue/0` fell back to the drawing
+    # whenever there was no `:watching` row AND nothing cold — so a reader who
+    # had finished everything they own was shown four invented titles, `12
+    # ready` over four rows and `Gone cold · 3` over one.
+    #
+    # An empty DATABASE still draws the board, and that is the distinction the
+    # branch turns on: a store that cannot be read at all is not a shelf with
+    # nothing on the go.
+
+    test "says its queue is empty rather than showing somebody else's" do
+      track!(%{status: :finished, title: "Ashfall"})
+
+      queue = UpNext.queue()
+
+      assert queue.empty?
+      assert queue.subtitle == "Nothing queued"
+      assert queue.ready == []
+      assert queue.cold == []
+
+      refute queue == Sample.queue()
+
+      words = text(tree(mount_screen(UpNext)))
+      assert words =~ "Nothing queued"
+      assert words =~ "Start something on your shelf"
+
+      for row <- Sample.queue().ready do
+        refute words =~ row.title, "#{row.title} is the drawing's own title"
+      end
+    end
+
+    test "and no heading stands over an empty card" do
+      track!(%{status: :finished, title: "Ashfall"})
+
+      queue = UpNext.queue()
+
+      assert queue.ready_label == nil
+      assert queue.cold_label == nil
+    end
+
+    test "and the card opens the shelf, which is where starting one happens" do
+      track!(%{status: :finished, title: "Ashfall"})
+
+      {:noreply, opened} =
+        UpNext.handle_tap(
+          :open_library,
+          Mob.Socket.assign(Mob.Socket.new(UpNext), :queue, UpNext.empty())
+        )
+
+      assert {:push, Kati.Screens.Library, _params} = Map.get(opened.__mob__, :nav_action)
+    end
+
+    test "but an empty DATABASE still draws the board" do
+      # `shelf?/0` is the seam. A page that dies is worse than one showing the
+      # values it was drawn from, which is `Kati.Screens.Library.shelf/0`'s own
+      # degradation.
+      refute UpNext.shelf?()
+      assert UpNext.queue() == Sample.queue()
+    end
+
+    test "and a dropped title is a shelf, so its owner is told" do
+      track!(%{status: :dropped, title: "Ashfall"})
+
+      assert UpNext.shelf?()
+      assert UpNext.queue().empty?
+    end
+  end
+
   describe "a library with titles in it" do
     setup :seed_library
 

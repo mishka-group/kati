@@ -51,12 +51,41 @@ defmodule Kati.Screens.ReleaseWatcher do
     Mob.Socket.assign(socket, :watcher, %{
       checked: Sample.checked(),
       banner: banner(),
-      kinds: Sample.kinds(),
-      cadences: Sample.cadences(),
-      cadence: Sample.cadence(),
+      # MOVIES-AND-TV.md #67 and `design-briefs/D-64`. Fifteen controls edited a
+      # socket assign and were forgotten on the pop, and the brief's own table
+      # says which two have a consumer today: the cadence and *New episodes*.
+      # Those two are read from `Mob.State` and written back; the other
+      # thirteen keep the board's values and take the `not yet` mark screen 88
+      # already uses for a scope nothing searches (#74).
+      #
+      # Persisting all fifteen was the obvious patch and is the wrong one — the
+      # brief says why in a sentence: it turns *forgotten on the pop* into
+      # *remembered, and still inert*, which is a worse lie.
+      kinds: Kati.Screens.ReleaseWatcher.kinds(),
+      cadences: Kati.Settings.Watcher.cadences(),
+      cadence: Kati.Settings.Watcher.cadence(),
       loudness: Sample.loudness(),
       note: Sample.note()
     })
+  end
+
+  @doc """
+  The six *Tell me about* rows, with the one that is live reading its own state.
+
+  `New episodes` is the global gate over every title's `notify_new_episodes`
+  and `Kati.Notifications.Sources.Media.followed/0` reads it. The other five
+  keep the board's value and are marked, because a switch a reader can move
+  that changes nothing is the defect #67 reports.
+  """
+  @spec kinds() :: [map()]
+  def kinds do
+    Enum.map(Sample.kinds(), fn row ->
+      if Kati.Settings.Watcher.live?(row.title) do
+        %{row | on: Kati.Settings.Watcher.new_episodes?()}
+      else
+        Map.put(row, :not_yet?, true)
+      end
+    end)
   end
 
   @doc """
@@ -217,17 +246,33 @@ defmodule Kati.Screens.ReleaseWatcher do
   # two groups cannot collide on a shared name.
   @doc false
   def row(row, key, i, pad, rule?) do
-    tap = {self(), String.to_atom(key <> "_" <> Integer.to_string(i))}
+    # A row with nothing behind it carries no tap and says so instead of its
+    # switch — `Kati.Screens.SearchSpec.state_pill/1`'s `not yet`, which is the
+    # same mark for the same thing one screen over (#74, #67).
+    not_yet? = Map.get(row, :not_yet?, false)
 
     SettingsList.row(
       SettingsList.icon_tile(row.icon),
       SettingsList.body(row.title, row.sub),
-      SettingsList.switch(row.on),
+      if(not_yet?, do: Kati.Screens.ReleaseWatcher.not_yet(), else: SettingsList.switch(row.on)),
       padding: pad,
       rule: rule?,
-      on_tap: tap
+      on_tap:
+        if(not_yet?, do: nil, else: {self(), String.to_atom(key <> "_" <> Integer.to_string(i))})
     )
   end
+
+  @doc """
+  `not yet`, on a control this app cannot keep a promise about.
+
+  Screen 88's own pill, drawn here for the same argument: the contract is the
+  design's and stating it whole is what the page is for; what was missing is
+  which half of it is live. `design-briefs/D-64` lists what each of the
+  thirteen would need, and every one becomes a switch again the day its
+  resource exists.
+  """
+  @spec not_yet() :: map()
+  def not_yet, do: Kati.Screens.SearchSpec.not_yet_pill()
 
   @doc """
   Four segments on an `#E4E0D9` trough, each taking a weight so they divide the
@@ -321,12 +366,17 @@ defmodule Kati.Screens.ReleaseWatcher do
         {:noreply,
          Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: not w.banner.on}})}
 
+      # Only the live one reaches here — a marked row carries no tag at all —
+      # and it writes, which is the whole of #67 for this switch.
       "kind_" <> i ->
-        {:noreply,
-         Mob.Socket.assign(socket, :watcher, %{
-           w
-           | kinds: Kati.Screens.ReleaseWatcher.flip(w.kinds, i)
-         })}
+        flipped = Kati.Screens.ReleaseWatcher.flip(w.kinds, i)
+
+        Enum.each(flipped, fn row ->
+          if Kati.Settings.Watcher.live?(row.title),
+            do: Kati.Settings.Watcher.put_new_episodes(row.on)
+        end)
+
+        {:noreply, Mob.Socket.assign(socket, :watcher, %{w | kinds: flipped})}
 
       "loud_" <> i ->
         {:noreply,
@@ -335,7 +385,11 @@ defmodule Kati.Screens.ReleaseWatcher do
            | loudness: Kati.Screens.ReleaseWatcher.flip(w.loudness, i)
          })}
 
+      # And the cadence, which `Kati.Background.Periodic.ensure/1`'s own doc
+      # named as *a future "check less often" setting* before there was one.
       "cadence_" <> label ->
+        Kati.Settings.Watcher.put_cadence(label)
+
         {:noreply, Mob.Socket.assign(socket, :watcher, %{w | cadence: label})}
 
       _ ->

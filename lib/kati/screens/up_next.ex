@@ -122,6 +122,12 @@ defmodule Kati.Screens.UpNext do
   def handle_tap(:open_filters, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
 
+  # The empty card's own tap (#49). Before the `"open_" <> _id` clause below,
+  # which would otherwise swallow it and hand `:open_library` to `open/2` as
+  # a title id.
+  def handle_tap(:open_library, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Library)}
+
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "open_" <> _id ->
@@ -173,10 +179,69 @@ defmodule Kati.Screens.UpNext do
       |> Kati.Screens.UpNext.watchable()
 
     case {ready, cold} do
-      {[], []} -> Sample.queue()
-      {[], cold} -> nothing_ready(cold)
-      {[hero | rest], cold} -> assemble(hero, rest, cold)
+      # MOVIES-AND-TV.md #49's remaining half. An empty shelf drew board 10 —
+      # four invented titles, `12 ready` over four rows and `Gone cold · 3` over
+      # one — to a reader who has nothing on the go. That is the same defect
+      # #75 fixed on screen 92 and #58 on screen 15, and the argument screen 96
+      # makes for all of them: *say what is missing and offer the one thing
+      # that fixes it, never render a plausible-looking zero.*
+      #
+      # The drawing is still what a page with NO STORE falls back to — an
+      # `Ash.read!` raising mid-migration is a different fact from a shelf with
+      # nothing on the go, and `tracked/1` rescues both to `[]`. `shelf?/0` is
+      # what separates them.
+      {[], []} ->
+        if Kati.Screens.UpNext.shelf?(), do: Kati.Screens.UpNext.empty(), else: Sample.queue()
+
+      {[], cold} ->
+        nothing_ready(cold)
+
+      {[hero | rest], cold} ->
+        assemble(hero, rest, cold)
     end
+  end
+
+  @doc """
+  Whether this reader has a Screen shelf at all.
+
+  The question that separates *nothing is ready* from *nothing is here*: a
+  shelf holding dropped and finished titles is a shelf, and its owner is told
+  their queue is empty rather than shown somebody else's four. A store that
+  cannot be read answers `false` and the drawing stands, which is
+  `Kati.Screens.Library.shelf/0`'s own degradation.
+  """
+  @spec shelf?() :: boolean()
+  def shelf? do
+    [:movie, :tv, :anime]
+    |> Enum.any?(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.Query.limit(1)
+      |> Ash.read!()
+      |> Enum.any?()
+    end)
+  rescue
+    _error -> false
+  end
+
+  @doc """
+  A queue with nothing in it, on a shelf that has something on it.
+
+  Every label is the true one rather than a zero dressed as a count: the
+  subtitle says what is missing, and both eyebrow labels are `nil` so no
+  heading stands over an empty card. `empty_card/1` is what goes there.
+  """
+  @spec empty() :: map()
+  def empty do
+    %{
+      subtitle: "Nothing queued",
+      ready_label: nil,
+      cold_label: nil,
+      hero: nil,
+      ready: [],
+      cold: [],
+      empty?: true
+    }
   end
 
   @doc """
@@ -246,6 +311,62 @@ defmodule Kati.Screens.UpNext do
   not one. `hero/1` draws the reason instead, and the ready section is dropped
   entirely rather than drawn as an eyebrow over nothing.
   """
+  @doc """
+  What an empty queue says, and the one thing that fixes it.
+
+  Screen 96's rule, which this app keeps everywhere: *say what is missing and
+  offer the one thing that fixes it.* A queue is empty because nothing on the
+  shelf is being watched, and the way out is to start something — so the card
+  opens the shelf rather than the add screen: a reader with dropped and
+  finished titles has things to start, and one with none finds an Add button
+  on the page they land on.
+  """
+  @spec empty_card(map()) :: map()
+  def empty_card(%{empty?: true}) do
+    assigns = %{tap: {self(), :open_library}}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+        on_tap={@tap}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("play_arrow", size: 22, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={13} />
+        <Text
+          text="Nothing queued"
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text="Up next follows what you are watching. Start something on your shelf and it arrives here."
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def empty_card(_queue), do: ~MOB"<Spacer size={0} />"
+
   @spec nothing_ready([term()]) :: map()
   def nothing_ready(cold) do
     cache = cache_for(cold)
@@ -461,9 +582,10 @@ defmodule Kati.Screens.UpNext do
       >
         {Kati.Screens.UpNext.tune_row()}
         {Kati.Screens.UpNext.header(q)}
+        {Kati.Screens.UpNext.empty_card(q)}
         {Kati.Screens.UpNext.hero(q)}
         {Kati.Screens.UpNext.ready_section(q)}
-        {Kati.UI.Eyebrow.quiet(q.cold_label)}
+        {Kati.Screens.UpNext.cold_eyebrow(q.cold_label)}
         {Kati.Screens.UpNext.cold(q)}
       </Column>
     </Scroll>
@@ -709,6 +831,17 @@ defmodule Kati.Screens.UpNext do
     </Box>
     """
   end
+
+  @doc """
+  The cold eyebrow, or nothing at all when there is no cold section.
+
+  `nil` is a label `ready_section/1` has always answered to and this heading
+  never could — `Kati.UI.Eyebrow.quiet/1` upcases what it is given, so an empty
+  queue (#49) died on a heading over a section it does not have.
+  """
+  @spec cold_eyebrow(String.t() | nil) :: map()
+  def cold_eyebrow(nil), do: ~MOB"<Spacer size={0} />"
+  def cold_eyebrow(label), do: Kati.UI.Eyebrow.quiet(label)
 
   @doc false
   def ready_section(%{ready_label: nil}), do: ~MOB"<Spacer size={0} />"

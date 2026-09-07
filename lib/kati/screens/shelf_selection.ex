@@ -974,8 +974,17 @@ defmodule Kati.Screens.ShelfSelection do
 
   def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
+  # MOVIES-AND-TV.md #106. This pushed screen 12 and left the selection behind,
+  # so *Add to list* opened a page of lists and added nothing to any of them.
+  # It carries the selection now, and 12 puts it in whichever list is pressed —
+  # which is the membership route board 146 draws and nothing could complete.
   def handle_info({:tap, :add_to_list}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Shelf"})}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{
+         back: "Shelf",
+         adding: MapSet.to_list(socket.assigns.selected)
+       })}
 
   def handle_info({:tap, :change_status}, socket) do
     case MapSet.to_list(socket.assigns.selected) do

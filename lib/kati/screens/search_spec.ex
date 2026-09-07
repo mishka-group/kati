@@ -153,28 +153,41 @@ defmodule Kati.Screens.SearchSpec do
     if Kati.Search.built?(label) do
       ~MOB"<Spacer size={0} />"
     else
-      assigns = %{}
-
-      ~MOB"""
-      <Row
-        height={22}
-        corner_radius={11}
-        background={Palette.placeholder()}
-        padding_left={9}
-        padding_right={9}
-        align="center"
-      >
-        <Text
-          text="not yet"
-          font_family="mono"
-          text_size={10}
-          letter_spacing={0.08}
-          text_color={Palette.muted()}
-          max_lines={1}
-        />
-      </Row>
-      """
+      Kati.Screens.SearchSpec.not_yet_pill()
     end
+  end
+
+  @doc """
+  The pill itself, for the other screens that owe the same answer.
+
+  Screen 25's *Tell me about* rows take it for exactly the reason this screen's
+  scopes do — a control the app cannot keep a promise about is marked rather
+  than offered — so the mark is one object and not two that could drift apart.
+  MOVIES-AND-TV.md #74 and #67.
+  """
+  @spec not_yet_pill() :: map()
+  def not_yet_pill do
+    assigns = %{}
+
+    ~MOB"""
+    <Row
+      height={22}
+      corner_radius={11}
+      background={Palette.placeholder()}
+      padding_left={9}
+      padding_right={9}
+      align="center"
+    >
+      <Text
+        text="not yet"
+        font_family="mono"
+        text_size={10}
+        letter_spacing={0.08}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
+    </Row>
+    """
   end
 
   @doc false

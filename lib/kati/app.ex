@@ -220,7 +220,14 @@ defmodule Kati.App do
     # enqueue is `ExistingPeriodicWorkPolicy.KEEP`, so calling it on every boot
     # does NOT restart the interval clock. `{:error, :no_bridge}` is the normal
     # answer off Android and must not be logged as a fault.
-    case Kati.Background.Periodic.ensure() do
+    # At the cadence the reader chose on screen 25, which defaults to the
+    # constant this used to pass unconditionally. `ensure/1` is `KEEP`, so a
+    # boot at the same interval does not restart the clock (#67).
+    case Kati.Background.Periodic.ensure(
+           interval_minutes:
+             Kati.Settings.Watcher.interval_for(Kati.Settings.Watcher.cadence()) ||
+               elem(Kati.Background.Periodic.cadence(), 0)
+         ) do
       {:ok, %{interval_minutes: minutes}} ->
         :mob_nif.log("Kati: background refresh every #{minutes}m")
 

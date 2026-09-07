@@ -150,9 +150,19 @@ defmodule Kati.ScreenDesignLiteralTest do
   # notification and the release watcher's loudness settings and nothing
   # between them, and #26 is a design ticket that names components rather than
   # supplying a frame. Both are built from those components and each says so.
+  #
+  # `ListDetail` joined for a third reason, and it is the one this list is for:
+  # board 12 draws a `chevron_right` on every list row and never drew what it
+  # opens. MOVIES-AND-TV.md #106 was first closed by removing the chevrons and
+  # filing the gap ([#99](https://github.com/mishka-group/kati/issues/99)); the
+  # owner asked for the feature instead. The screen borrows every object it
+  # draws from a board that does exist — 12's header, the library's poster row,
+  # 146's destructive pill — and its own moduledoc lists which, so the day 12's
+  # detail board lands there is one file to change and no resource to move.
   @undesigned [
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
+    Kati.Screens.ListDetail,
     Kati.Screens.NotificationsHelp,
     Kati.Screens.Sync
   ]
@@ -1150,6 +1160,14 @@ defmodule Kati.ScreenDesignLiteralTest do
          tiles: Kati.Screens.Home.drawn_tiles(),
          timeline: Kati.Screens.Home.drawn_rows()
        })},
+      # 12 is drawn with three lists on it, which is a state a reader reaches
+      # rather than the one the screen opens in: a device with no lists draws
+      # `made/2`'s own card now, because board 12 has no drawn empty state to
+      # fall back to and three lists nobody made is #75's defect
+      # (MOVIES-AND-TV.md #106). `Kati.ScreenEmptyDatabaseTest`'s
+      # `@empty_boards` holds that half.
+      {"12", Kati.Screens.Lists,
+       &Map.put(&1, :lists, %{Kati.Screens.Lists.Sample.lists() | kept: Kati.Lists.Shelf.kept()})},
       # 154 is drawn with Series chosen, and its own caption says why: the
       # episode-count field is only visible for a series. Board 155 states the
       # screen's actual default — "Resting — empty, Film, nothing assumed" — so

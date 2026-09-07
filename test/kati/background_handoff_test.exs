@@ -208,8 +208,14 @@ defmodule Kati.BackgroundHandoffTest do
       assert on_start =~ "Kati.Background.Handoff.drain()",
              "nothing reads what the Worker wrote"
 
-      assert on_start =~ "Kati.Background.Periodic.ensure()",
+      # `ensure/1` now, with the cadence the reader chose on screen 25 — #67.
+      # Asked of the call rather than of its argument list, which is the thing
+      # this test is about: that boot enqueues the work at all.
+      assert on_start =~ "Kati.Background.Periodic.ensure(",
              "the periodic work is never enqueued"
+
+      assert on_start =~ "Kati.Settings.Watcher.cadence()",
+             "the cadence the reader chose is not what boot asks for"
 
       # At start, not only on did_become_active: a cold launch never sends
       # that message, and a cold launch is exactly when the inbox is full.

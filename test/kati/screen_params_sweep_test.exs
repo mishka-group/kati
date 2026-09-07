@@ -206,6 +206,29 @@ defmodule Kati.ScreenParamsSweepTest do
   # reason that applies to anything below — that case is `@empty_builders`, and
   # a door in that state fails the assertion over THAT list instead.
   @bare_pushes [
+    # ── Onto screen 12, which reads `:adding` since MOVIES-AND-TV.md #106.
+    #
+    # That param is board 146's SELECTION — the titles *Add to list* was
+    # pressed over — and it turns a list row from *open this* into *put these
+    # in it*. Every push here has no selection to carry and should not invent
+    # one:
+    #
+    #   * Library's `Lists` tile is a door to the page, not an act on a title.
+    #   * Book and Album detail's `Add to list` names a `Kati.Books.Book` or a
+    #     `Kati.Music.Album`, and `Kati.Lists.Membership` references
+    #     `Kati.Media.TrackedTitle`. Screen 12's own moduledoc says the shell
+    #     will hold book and album lists; the join for them does not exist, so
+    #     these two carry nothing until it does rather than carrying an id
+    #     from the wrong table.
+    #   * `ListDetail`'s own `Your lists` pill is on the card for a list that
+    #     is GONE — there is no selection and no list, which is the whole of
+    #     what the card says.
+    {Kati.Screens.Library, :open_lists, Kati.Screens.Lists},
+    {Kati.Screens.ListDetail, :open_lists, Kati.Screens.Lists},
+    {Kati.Screens.AlbumDetail, :add_to_list, Kati.Screens.Lists},
+    {Kati.Screens.AlbumDetailFa, :add_to_list, Kati.Screens.Lists},
+    {Kati.Screens.BookDetail, :add_to_list, Kati.Screens.Lists},
+    {Kati.Screens.BookDetailDark, :add_to_list, Kati.Screens.Lists},
     # ── The `+` FAB, and screen 07's music twin, onto screen 06.
     #
     # Screen 06 reads a `:query` since MOVIES-AND-TV.md #93 — screen 18's

@@ -283,7 +283,16 @@ defmodule Kati.Screens.Gallery do
     {:open_undrawn_notifications, "Notifications", Kati.Screens.InboxNotifications},
     {:open_undrawn_notifications_help, "Why am I not getting these?",
      Kati.Screens.NotificationsHelp},
-    {:open_undrawn_sync, "Sync", Kati.Screens.Sync}
+    {:open_undrawn_sync, "Sync", Kati.Screens.Sync},
+    # Board 12 draws a `chevron_right` on every list row and never drew what it
+    # opens. `Kati.Screens.ListDetail` is that screen, built because the owner
+    # asked for the feature rather than the design gap
+    # ([#99](https://github.com/mishka-group/kati/issues/99)), and it borrows
+    # every object it draws from a board that does exist — see its moduledoc.
+    # It is reachable from screen 12's own rows as well; it is here because a
+    # screen with no drawing has to be openable from the one list that checks
+    # them. MOVIES-AND-TV.md #106.
+    {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail}
   ]
 
   # Numbers whose page has left this list, and the route that took it.
