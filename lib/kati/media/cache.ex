@@ -43,8 +43,6 @@ defmodule Kati.Media.Cache do
   `Kati.SupervisionRuleTest` forbids the alternative.
   """
 
-  require Ash.Query
-
   alias Kati.Media.Artwork
   alias Kati.Media.CachedEpisode
   alias Kati.Media.CachedSeason

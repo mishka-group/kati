@@ -418,6 +418,7 @@ defmodule Kati.Screens.ImportSources do
   these services lets you re-order the columns before export and a mapping by
   source would be right until somebody did.
   """
+  @impl true
   def handle_tap(tag, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
       "source_" <> id ->

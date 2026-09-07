@@ -107,7 +107,6 @@ defmodule Kati.Screens.Calendar do
   alias Kati.Theme
   alias Kati.Theme.Palette
 
-  @impl true
   @doc """
   Coming back to the Schedule, from anything pushed over it.
 
@@ -125,6 +124,7 @@ defmodule Kati.Screens.Calendar do
     {:noreply, Mob.Socket.assign(socket, :rows, day_rows(socket.assigns.date))}
   end
 
+  @impl true
   def load(socket) do
     date = Kati.Time.today()
 

@@ -45,24 +45,22 @@ defmodule Kati.Import.Sample do
     }
   end
 
-  @doc """
-  The same job for the file screen 141 just counted.
-
-  MOVIES-AND-TV.md #53. Screen 141 reads a Goodreads export — 418 rows, nine
-  columns, seven matched — and its *Check the mapping* row pushed screen 37,
-  which drew `trakt-backup.csv` and five columns of a film export. Two boards,
-  two fixtures, one chevron between them, and the second one contradicted
-  every number the first had just given.
-
-  So 37 draws the file it was handed. `recognised_columns/0` is 141's own
-  nine, unchanged, and the rest of the job is 141's own header — the file
-  name, the shape, the step. What 37 adds is the sampled value beside each
-  row, which is the whole reason its board exists, and a Goodreads export has
-  those: they are the first row of the file 141 is describing.
-
-  The conflict card is `conflict/0`'s, because a conflict is about two records
-  of the same thing and does not depend on which file they came from.
-  """
+  # The same job for the file screen 141 just counted.
+  #
+  # MOVIES-AND-TV.md #53. Screen 141 reads a Goodreads export — 418 rows, nine
+  # columns, seven matched — and its *Check the mapping* row pushed screen 37,
+  # which drew `trakt-backup.csv` and five columns of a film export. Two boards,
+  # two fixtures, one chevron between them, and the second one contradicted
+  # every number the first had just given.
+  #
+  # So 37 draws the file it was handed. `recognised_columns/0` is 141's own
+  # nine, unchanged, and the rest of the job is 141's own header — the file
+  # name, the shape, the step. What 37 adds is the sampled value beside each
+  # row, which is the whole reason its board exists, and a Goodreads export has
+  # those: they are the first row of the file 141 is describing.
+  #
+  # The conflict card is `conflict/0`'s, because a conflict is about two records
+  # of the same thing and does not depend on which file they came from.
   def job(:goodreads) do
     %{
       action: "Import 412",

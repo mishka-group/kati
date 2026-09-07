@@ -167,8 +167,6 @@ defmodule Kati.Screens.SearchSpec do
   """
   @spec not_yet_pill() :: map()
   def not_yet_pill do
-    assigns = %{}
-
     ~MOB"""
     <Row
       height={22}

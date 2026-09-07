@@ -30,7 +30,6 @@ defmodule Kati.Screens.ListDetail do
 
   alias Kati.Components.MishkaPill
   alias Kati.Theme.Palette
-  alias Kati.UI
   alias Kati.UI.SettingsList
 
   @impl true

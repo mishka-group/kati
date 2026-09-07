@@ -54,8 +54,6 @@ defmodule Kati.Screens.Import do
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Components.MishkaSeparator
-  alias Kati.Components.MishkaThemeIcon
-  alias Kati.Components.MishkaToggle
   alias Kati.Import.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -638,6 +636,13 @@ defmodule Kati.Screens.Import do
   defdelegate choice_gap(), to: Kati.UI.ImportChrome
 
   @doc """
+  One answer to the conflict, tappable over a real file.
+
+  `Kati.UI.ImportChrome.choice/2` draws it — screen 120 draws the same three
+  pills over a plan import with no conflict queue, and takes them as pictures.
+
+  ## How it is drawn
+
   One answer to the conflict: a 32pt pill, ink when it is the chosen one.
 
   The sample is a selection, not a recommendation — `[{"Keep mine", true},
@@ -707,12 +712,6 @@ defmodule Kati.Screens.Import do
   `#1A1917` / `#FBFAF8` in light — `background`/`label_color` the idle pair
   (`Palette.cream_raise/0`, 60% white on cream, and `Palette.cream_sub/0`,
   `#8A7B60`), and `pressed` picks between them exactly as the `if` did.
-  """
-  @doc """
-  One answer to the conflict, tappable over a real file.
-
-  `Kati.UI.ImportChrome.choice/2` draws it — screen 120 draws the same three
-  pills over a plan import with no conflict queue, and takes them as pictures.
   """
   @spec choice({String.t(), boolean()}, boolean()) :: map()
   def choice({label, _primary?} = chip, live? \\ false) do

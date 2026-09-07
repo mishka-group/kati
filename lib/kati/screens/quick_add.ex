@@ -366,6 +366,8 @@ defmodule Kati.Screens.QuickAdd do
     end
   end
 
+  def handle_info(_message, socket), do: {:noreply, socket}
+
   @doc """
   The words the Title chip hands over: the parsed title, or the whole sentence.
 
@@ -464,8 +466,6 @@ defmodule Kati.Screens.QuickAdd do
     end
   end
 
-  def handle_info(_message, socket), do: {:noreply, socket}
-
   @doc false
   def header do
     ~MOB"""
@@ -523,21 +523,19 @@ defmodule Kati.Screens.QuickAdd do
   # offset draws nothing under the card's own elevation, so it is a 2px border
   # here and the drawing's second layer stays a shadow.
   @doc false
-  @doc """
-  The field itself, which this screen did not have.
-
-  MOVIES-AND-TV.md #31 — the drawn sentence was `Kati.Screens.QuickAdd.
-  Sample`'s styled pieces, so the page was a picture of somebody typing. A
-  `TextField` cannot carry styled runs on this bridge, so the highlighting
-  stays where it was — under the field, over the reader's own words, which is
-  `field/1` below and is board 18's *highlighted in place* said in the one
-  primitive there is.
-
-  The placeholder is the board's own sentence. That is not a fallback: board
-  18 is drawn MID-TYPING and its sentence is the clearest statement of the
-  syntax this screen has, so somebody who opens the page and types nothing is
-  looking at the example they need.
-  """
+  # The field itself, which this screen did not have.
+  #
+  # MOVIES-AND-TV.md #31 — the drawn sentence was `Kati.Screens.QuickAdd.
+  # Sample`'s styled pieces, so the page was a picture of somebody typing. A
+  # `TextField` cannot carry styled runs on this bridge, so the highlighting
+  # stays where it was — under the field, over the reader's own words, which is
+  # `field/1` below and is board 18's *highlighted in place* said in the one
+  # primitive there is.
+  #
+  # The placeholder is the board's own sentence. That is not a fallback: board
+  # 18 is drawn MID-TYPING and its sentence is the clearest statement of the
+  # syntax this screen has, so somebody who opens the page and types nothing is
+  # looking at the example they need.
   @spec input(String.t()) :: map()
   def input(sentence) do
     assigns = %{sentence: sentence, on_change: {self(), :sentence}}
@@ -815,22 +813,20 @@ defmodule Kati.Screens.QuickAdd do
   # Three Texts rather than one, because the drawing bolds the clashing event's
   # name inside the sentence and there is no inline span on this bridge.
   @doc false
-  @doc """
-  What this event would run into, or `nil`.
-
-  Board 18 draws `Clashes with Design review — add anyway?` and the caption
-  says why it is above the button rather than after it: *the clash warning
-  appears before the save, not after.* It was `Kati.Screens.QuickAdd.Sample`'s
-  one sentence; it is the reader's own calendar now.
-
-  An overlap, not a same-day list: two things on Thursday are not a clash and
-  saying so on every save would train somebody to ignore the line. An all-day
-  event has no hours to overlap with and clashes with nothing.
-
-  The first one only. A sentence that collides with three things has a
-  scheduling problem this card cannot express, and naming one of the three is
-  what makes somebody go and look.
-  """
+  # What this event would run into, or `nil`.
+  #
+  # Board 18 draws `Clashes with Design review — add anyway?` and the caption
+  # says why it is above the button rather than after it: *the clash warning
+  # appears before the save, not after.* It was `Kati.Screens.QuickAdd.Sample`'s
+  # one sentence; it is the reader's own calendar now.
+  #
+  # An overlap, not a same-day list: two things on Thursday are not a clash and
+  # saying so on every save would train somebody to ignore the line. An all-day
+  # event has no hours to overlap with and clashes with nothing.
+  #
+  # The first one only. A sentence that collides with three things has a
+  # scheduling problem this card cannot express, and naming one of the three is
+  # what makes somebody go and look.
   @spec clash_for(map()) :: {String.t(), String.t(), String.t()} | nil
   def clash_for(%{date: %Date{} = date, time: %Time{} = time} = read) do
     minutes = read.minutes || 60

@@ -1246,8 +1246,6 @@ defmodule Kati.Screens.Series do
   # other screens' moduledocs cite it by name.
   @doc false
   def episodes(%{episodes: []}) do
-    assigns = %{}
-
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -1635,19 +1633,17 @@ defmodule Kati.Screens.Series do
     end
   end
 
-  @doc """
-  Open the rating sheet over one episode of the season on screen.
+  # Coming back from the season screen, the rate-an-episode sheet or the drop
+  # sheet — all three write, and all three end in a pop. See
+  # `Kati.Screens.Resume`, and `Kati.Screens.Film` for why the clause is here
+  # rather than in a `handle_kati/3`.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply,
+     Mob.Socket.assign(socket, :series, series(Map.get(socket.assigns.series, :tracked_id)))}
+  end
 
-  The pair, not the position: `Kati.Screens.RateEpisode` writes by
-  `{tracked_title_id, episode_source_id}` — which is what `Kati.Media.Watch`
-  names an episode by — so what it is handed is what it writes, and the index
-  never leaves this function.
+  def handle_info(_msg, socket), do: {:noreply, socket}
 
-  A drawn episode has no `source_id` and no tracked row behind it, so it opens
-  nothing. That is the same all-or-nothing gate `tick/2` applies for the same
-  reason: there is no episode behind `Kati.Library.Sample`, so there is
-  nothing to rate.
-  """
   @doc """
   Follow or unfollow this show — `notify_new_episodes` on its tracked row.
 
@@ -1673,6 +1669,19 @@ defmodule Kati.Screens.Series do
     end
   end
 
+  @doc """
+  Open the rating sheet over one episode of the season on screen.
+
+  The pair, not the position: `Kati.Screens.RateEpisode` writes by
+  `{tracked_title_id, episode_source_id}` — which is what `Kati.Media.Watch`
+  names an episode by — so what it is handed is what it writes, and the index
+  never leaves this function.
+
+  A drawn episode has no `source_id` and no tracked row behind it, so it opens
+  nothing. That is the same all-or-nothing gate `tick/2` applies for the same
+  reason: there is no episode behind `Kati.Library.Sample`, so there is
+  nothing to rate.
+  """
   @spec rate(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def rate(socket, index) do
     s = socket.assigns.series
@@ -1689,17 +1698,6 @@ defmodule Kati.Screens.Series do
       socket
     end
   end
-
-  # Coming back from the season screen, the rate-an-episode sheet or the drop
-  # sheet — all three write, and all three end in a pop. See
-  # `Kati.Screens.Resume`, and `Kati.Screens.Film` for why the clause is here
-  # rather than in a `handle_kati/3`.
-  def handle_info({:kati, :resumed, _payload}, socket) do
-    {:noreply,
-     Mob.Socket.assign(socket, :series, series(Map.get(socket.assigns.series, :tracked_id)))}
-  end
-
-  def handle_info(_msg, socket), do: {:noreply, socket}
 
   # The season the pill names, out of the map both paths built — the drawing's
   # three from `Kati.Library.Sample.season_episodes/1`, a real title's from

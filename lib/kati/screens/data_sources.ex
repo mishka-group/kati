@@ -45,6 +45,7 @@ defmodule Kati.Screens.DataSources do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
+  @impl true
   def load(socket) do
     socket
     |> Mob.Socket.assign(:tmdb, Sources.tmdb_key())
@@ -737,6 +738,7 @@ defmodule Kati.Screens.DataSources do
   the ratings are all still there afterwards, and the posters come back on the
   next refresh.
   """
+  @impl true
   def handle_tap(:clear_cache, socket) do
     notice =
       case Kati.Media.Cache.clear() do
@@ -748,13 +750,11 @@ defmodule Kati.Screens.DataSources do
     {:noreply, Mob.Socket.assign(socket, :cache_notice, notice)}
   end
 
-  @doc """
-  Re-read every tracked title from TMDB.
-
-  Off this process — one round trip per season per show would stop the screen
-  drawing until TMDB answered — so the pill says *Refreshing…* and the answer
-  arrives as `{:cache_refreshed, result}`. See `Kati.Media.Cache`.
-  """
+  # Re-read every tracked title from TMDB.
+  #
+  # Off this process — one round trip per season per show would stop the screen
+  # drawing until TMDB answered — so the pill says *Refreshing…* and the answer
+  # arrives as `{:cache_refreshed, result}`. See `Kati.Media.Cache`.
   def handle_tap(:refresh_cache, socket) do
     Kati.Media.Cache.ask(self())
 
@@ -784,19 +784,6 @@ defmodule Kati.Screens.DataSources do
     {:noreply, Mob.Socket.assign(socket, :tmdb, :kati)}
   end
 
-  @impl true
-  def handle_info({:change, :tmdb_token, typed}, socket) when is_binary(typed),
-    do: {:noreply, Mob.Socket.assign(socket, :token, typed)}
-
-  def handle_info({:cache_refreshed, result}, socket) do
-    {:noreply,
-     socket
-     |> Mob.Socket.assign(:refreshing?, false)
-     |> Mob.Socket.assign(:cache_notice, Kati.Screens.DataSources.refresh_line(result))}
-  end
-
-  def handle_info(message, socket), do: super(message, socket)
-
   def handle_tap(:key_own, socket) do
     Sources.put_tmdb_key(:own)
 
@@ -807,14 +794,6 @@ defmodule Kati.Screens.DataSources do
      |> Mob.Socket.assign(:token_error, nil)}
   end
 
-  @doc """
-  Store the token, or say why it could not be.
-
-  Trimmed, because a token pasted from a web page arrives with whitespace and
-  a leading space is not a different token — it is the same token that will
-  fail every request. Empty is a refusal rather than a silent no-op: somebody
-  who presses Save on an empty field has done something and is owed an answer.
-  """
   def handle_tap(:save_token, socket) do
     case String.trim(socket.assigns[:token] || "") do
       "" ->
@@ -823,58 +802,6 @@ defmodule Kati.Screens.DataSources do
       token ->
         {:noreply, Kati.Screens.DataSources.store_token(socket, token)}
     end
-  end
-
-  @doc """
-  What a finished refresh says.
-
-      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 3, failed: 0}})
-      "Refreshed 3 titles."
-
-      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 2, failed: 1}})
-      "Refreshed 2 titles. 1 could not be reached."
-
-      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 0, failed: 0}})
-      "Nothing on the shelf to refresh."
-  """
-  @spec refresh_line({:ok, map()} | {:error, term()}) :: String.t()
-  def refresh_line({:ok, %{refreshed: 0, failed: 0}}), do: "Nothing on the shelf to refresh."
-
-  def refresh_line({:ok, %{refreshed: n, failed: 0}}),
-    do: "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}."
-
-  def refresh_line({:ok, %{refreshed: n, failed: f}}),
-    do:
-      "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}. " <>
-        "#{f} could not be reached."
-
-  # `Kati.Media.Tmdb.message/1` already owns every sentence about a request
-  # that could not be made, including the one about a key nobody has entered —
-  # which is the failure this button meets most often and the one the reader
-  # can actually do something about, two cards up this same page.
-  def refresh_line({:error, reason}), do: Kati.Media.Tmdb.message(reason)
-
-  @doc false
-  @spec store_token(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
-  def store_token(socket, token) do
-    case Kati.SecureStore.put("tmdb", token) do
-      :ok ->
-        socket
-        |> Mob.Socket.assign(:token, "")
-        |> Mob.Socket.assign(:token_saved?, true)
-        |> Mob.Socket.assign(:token_error, nil)
-
-      {:error, reason} ->
-        Mob.Socket.assign(
-          socket,
-          :token_error,
-          "That did not save — #{inspect(reason)}. Kati’s own key still works."
-        )
-    end
-  rescue
-    _error -> Mob.Socket.assign(socket, :token_error, "That did not save.")
-  catch
-    :exit, _reason -> Mob.Socket.assign(socket, :token_error, "That did not save.")
   end
 
   def handle_tap(tag, socket) do
@@ -906,5 +833,77 @@ defmodule Kati.Screens.DataSources do
       _other ->
         {:noreply, socket}
     end
+  end
+
+  @impl true
+  def handle_info({:change, :tmdb_token, typed}, socket) when is_binary(typed),
+    do: {:noreply, Mob.Socket.assign(socket, :token, typed)}
+
+  def handle_info({:cache_refreshed, result}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:refreshing?, false)
+     |> Mob.Socket.assign(:cache_notice, Kati.Screens.DataSources.refresh_line(result))}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc """
+  What a finished refresh says.
+
+      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 3, failed: 0}})
+      "Refreshed 3 titles."
+
+      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 2, failed: 1}})
+      "Refreshed 2 titles. 1 could not be reached."
+
+      iex> Kati.Screens.DataSources.refresh_line({:ok, %{refreshed: 0, failed: 0}})
+      "Nothing on the shelf to refresh."
+  """
+  @spec refresh_line({:ok, map()} | {:error, term()}) :: String.t()
+  def refresh_line({:ok, %{refreshed: 0, failed: 0}}), do: "Nothing on the shelf to refresh."
+
+  def refresh_line({:ok, %{refreshed: n, failed: 0}}),
+    do: "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}."
+
+  def refresh_line({:ok, %{refreshed: n, failed: f}}),
+    do:
+      "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}. " <>
+        "#{f} could not be reached."
+
+  # `Kati.Media.Tmdb.message/1` already owns every sentence about a request
+  # that could not be made, including the one about a key nobody has entered —
+  # which is the failure this button meets most often and the one the reader
+  # can actually do something about, two cards up this same page.
+  def refresh_line({:error, reason}), do: Kati.Media.Tmdb.message(reason)
+
+  @doc """
+  Store the token, or say why it could not be.
+
+  Trimmed, because a token pasted from a web page arrives with whitespace and
+  a leading space is not a different token — it is the same token that will
+  fail every request. Empty is a refusal rather than a silent no-op: somebody
+  who presses Save on an empty field has done something and is owed an answer.
+  """
+  @spec store_token(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def store_token(socket, token) do
+    case Kati.SecureStore.put("tmdb", token) do
+      :ok ->
+        socket
+        |> Mob.Socket.assign(:token, "")
+        |> Mob.Socket.assign(:token_saved?, true)
+        |> Mob.Socket.assign(:token_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(
+          socket,
+          :token_error,
+          "That did not save — #{inspect(reason)}. Kati’s own key still works."
+        )
+    end
+  rescue
+    _error -> Mob.Socket.assign(socket, :token_error, "That did not save.")
+  catch
+    :exit, _reason -> Mob.Socket.assign(socket, :token_error, "That did not save.")
   end
 end

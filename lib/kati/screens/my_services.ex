@@ -88,6 +88,7 @@ defmodule Kati.Screens.MyServices do
   # `:query` and `:save_error` open empty and nil, so the resting page is the
   # drawing to the pixel: an unfilled field showing its placeholder, and no
   # notice under the catalogue card.
+  @impl true
   def load(socket) do
     socket
     |> Mob.Socket.assign(:region, Services.region())
@@ -636,12 +637,6 @@ defmodule Kati.Screens.MyServices do
   def subscribed_label(services, _query), do: "Subscribed · #{length(services.subscribed)}"
 
   @doc """
-  A group of services, with prices where they have them.
-
-  The subscribed group takes the ownership `info` row under it; the free group
-  does not, because nothing on it has a price to own.
-  """
-  @doc """
   The pill under the empty card: add the service named in the field above.
 
   `:add_first`, and the same writer as *Something else* — one way a service
@@ -722,6 +717,12 @@ defmodule Kati.Screens.MyServices do
   # somebody what to do and does not offer it is a card they read twice. So
   # the pill goes under the sentence, on the same write as *Something else*,
   # and the field above it is asking for the name.
+  @doc """
+  A group of services, with prices where they have them.
+
+  The subscribed group takes the ownership `info` row under it; the free group
+  does not, because nothing on it has a price to own.
+  """
   def service_group(services, owner_note?, query \\ "")
 
   # A GROUP a filter emptied is not a group that is empty. *Nothing here yet*
@@ -1126,6 +1127,7 @@ defmodule Kati.Screens.MyServices do
   end
 
   @doc false
+  @impl true
   def handle_tap(:pick_country, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.CountryPicker)}
 
@@ -1177,6 +1179,7 @@ defmodule Kati.Screens.MyServices do
   # about, pointed the other way: this one reports a failure that is over.
   # `Kati.Screens.QuickAddExpense`'s own change clause drops `:saved?` for the
   # mirror-image reason — an edited field has no receipt yet either.
+  @impl true
   def handle_info({:change, :service_query, typed}, socket) when is_binary(typed) do
     {:noreply,
      socket
@@ -1299,26 +1302,6 @@ defmodule Kati.Screens.MyServices do
   def line_for(service), do: service.name
 
   @doc """
-  The write. A service the user typed, in the tier the row's own copy promises.
-
-  `:nothing_to_save` for an empty field rather than a row named `""`:
-  `name` is `allow_nil?: false` but a string of spaces satisfies that, and
-  `Kati.Write.message/1` already owns the sentence for a save with nothing in
-  it — *Nothing to save yet.*
-
-  A name already on the list answers `{:ok, existing}` and writes nothing.
-  Nothing in `services` is unique, so a second `Mubi` would be a second row: two
-  identical lines in the Subscribed group, a count of two, and — the day a price
-  editor exists — a subscription total charging you twice for one service.
-  `Kati.Screens.AddTitle.cache/1` reaches the same answer from the other
-  direction, and its reasoning holds here: re-adding something you already have
-  is the ordinary way somebody checks whether they already have it.
-
-  The read behind that check does not rescue and neither does the write. A store
-  this screen cannot reach answers `{:error, _}` at one end or the other, which
-  is a failure the row reports rather than one it swallows — the whole of #85.
-  """
-  @doc """
   The same service, at the price that was just typed and back on the shelf.
 
   Two things, because typing a name into this field means both. A price after
@@ -1351,6 +1334,26 @@ defmodule Kati.Screens.MyServices do
     end
   end
 
+  @doc """
+  The write. A service the user typed, in the tier the row's own copy promises.
+
+  `:nothing_to_save` for an empty field rather than a row named `""`:
+  `name` is `allow_nil?: false` but a string of spaces satisfies that, and
+  `Kati.Write.message/1` already owns the sentence for a save with nothing in
+  it — *Nothing to save yet.*
+
+  A name already on the list answers `{:ok, existing}` and writes nothing.
+  Nothing in `services` is unique, so a second `Mubi` would be a second row: two
+  identical lines in the Subscribed group, a count of two, and — the day a price
+  editor exists — a subscription total charging you twice for one service.
+  `Kati.Screens.AddTitle.cache/1` reaches the same answer from the other
+  direction, and its reasoning holds here: re-adding something you already have
+  is the ordinary way somebody checks whether they already have it.
+
+  The read behind that check does not rescue and neither does the write. A store
+  this screen cannot reach answers `{:error, _}` at one end or the other, which
+  is a failure the row reports rather than one it swallows — the whole of #85.
+  """
   @spec save_service(String.t() | nil) :: {:ok, Service.t()} | {:error, term()}
   def save_service(name) when is_binary(name) do
     case String.trim(name) do
@@ -1378,6 +1381,8 @@ defmodule Kati.Screens.MyServices do
         end
     end
   end
+
+  def save_service(_nothing), do: Write.note({:error, :nothing_to_save}, "add service")
 
   @doc """
   A name, and a price if one was typed after it.
@@ -1421,8 +1426,6 @@ defmodule Kati.Screens.MyServices do
       _not_a_number -> nil
     end
   end
-
-  def save_service(_nothing), do: Write.note({:error, :nothing_to_save}, "add service")
 
   @doc """
   The row itself, spelled out rather than left to the resource's defaults.

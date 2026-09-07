@@ -1182,26 +1182,12 @@ defmodule Kati.Screens.Film do
      })}
   end
 
-  @doc """
-  Hand the film to the system share sheet.
-
-  `Mob.Share.text/2`, which is Mob's own and needed no fence: `ACTION_SEND`
-  through `Intent.createChooser` on Android, `UIActivityViewController` on
-  iOS. The comment beside `@actions` said this was waiting on something
-  nobody had written; it was there all along.
-
-  Fire-and-forget by construction — nothing comes back into the BEAM — so
-  there is nothing to report and nothing to draw. The socket is unchanged,
-  which `Mob.Share.text/2` documents in as many words.
-  """
-  @doc """
-  Mark this film private, or unmark it — the one write behind screen 98's
-  *Hide titles I marked private*, which was a switch with nothing to mark.
-
-  It hides the title from that CARD and from nowhere else. The shelf, Up next
-  and the year's own numbers are unchanged, because a private title is still a
-  title you watched.
-  """
+  # Mark this film private, or unmark it — the one write behind screen 98's
+  # *Hide titles I marked private*, which was a switch with nothing to mark.
+  #
+  # It hides the title from that CARD and from nowhere else. The shelf, Up next
+  # and the year's own numbers are unchanged, because a private title is still a
+  # title you watched.
   def handle_info({:tap, :toggle_private}, socket) do
     f = socket.assigns.film
 
@@ -1272,9 +1258,35 @@ defmodule Kati.Screens.Film do
   def handle_info({:tap, :my_services_where_to_watch}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
 
+  # Hand the film to the system share sheet.
+  #
+  # `Mob.Share.text/2`, which is Mob's own and needed no fence: `ACTION_SEND`
+  # through `Intent.createChooser` on Android, `UIActivityViewController` on
+  # iOS. The comment beside `@actions` said this was waiting on something
+  # nobody had written; it was there all along.
+  #
+  # Fire-and-forget by construction — nothing comes back into the BEAM — so
+  # there is nothing to report and nothing to draw. The socket is unchanged,
+  # which `Mob.Share.text/2` documents in as many words.
   def handle_info({:tap, :share_film}, socket) do
     {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
   end
+
+  # Coming back from the log sheet, or from anything else pushed over this
+  # page. See `Kati.Screens.Resume`: a popped-to screen restores its saved
+  # socket, so *Log a watch* → Save → back left the stars empty, `SEEN never`
+  # and the first pill still reading *Log a watch* — the write had landed and
+  # the page in front of the reader said it had not.
+  #
+  # This screen is hand-rolled rather than `Kati.Screens.Pushed`, so nothing
+  # routes `{:kati, …}` to a `handle_kati/3` for it; the clause is the routing.
+  # The id is re-read off the film on screen so the refresh describes the same
+  # title the arrival did.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply, Mob.Socket.assign(socket, :film, film(Map.get(socket.assigns.film, :tracked_id)))}
+  end
+
+  def handle_info(_msg, socket), do: {:noreply, socket}
 
   @doc """
   Where this film can be watched, as one line, or `nil`.
@@ -1473,20 +1485,4 @@ defmodule Kati.Screens.Film do
   end
 
   defp year_suffix(_none), do: ""
-
-  # Coming back from the log sheet, or from anything else pushed over this
-  # page. See `Kati.Screens.Resume`: a popped-to screen restores its saved
-  # socket, so *Log a watch* → Save → back left the stars empty, `SEEN never`
-  # and the first pill still reading *Log a watch* — the write had landed and
-  # the page in front of the reader said it had not.
-  #
-  # This screen is hand-rolled rather than `Kati.Screens.Pushed`, so nothing
-  # routes `{:kati, …}` to a `handle_kati/3` for it; the clause is the routing.
-  # The id is re-read off the film on screen so the refresh describes the same
-  # title the arrival did.
-  def handle_info({:kati, :resumed, _payload}, socket) do
-    {:noreply, Mob.Socket.assign(socket, :film, film(Map.get(socket.assigns.film, :tracked_id)))}
-  end
-
-  def handle_info(_msg, socket), do: {:noreply, socket}
 end

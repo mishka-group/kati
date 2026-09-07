@@ -85,7 +85,6 @@ defmodule Kati.Screens.AddTitle do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
-  alias Kati.Library.Sample
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI

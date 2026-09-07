@@ -245,6 +245,8 @@ defmodule Kati.Screens.Lists do
   end
 
   @doc false
+  def made(lists, adding \\ [])
+
   def made(%{made: []}, _adding) do
     # `:name_this_one`, not the disc's own `:new_list`: two nodes may not share
     # an `accessibility_id` — `onNodeWithTag` throws on the second match — and
@@ -291,7 +293,7 @@ defmodule Kati.Screens.Lists do
     """
   end
 
-  def made(l, adding \\ []) do
+  def made(l, adding) do
     ~MOB"""
     <Column fill_width={true}>
       {Enum.map(l.made, fn row -> Kati.Screens.Lists.made_row(row, adding) end)}
@@ -609,16 +611,14 @@ defmodule Kati.Screens.Lists do
      |> Mob.Socket.assign(:save_error, nil)}
   end
 
-  @doc """
-  Make the list the field names, and put it on the page.
-
-  `Kati.Lists.Shelf.create/1` answers `{:ok, existing}` for a name already
-  taken and writes nothing: re-typing a name you already have is how somebody
-  checks whether they already have it, and a second `Rainy Sunday` is not what
-  they asked for. The refusal is the same one every write in this app gives —
-  `Kati.Write.message/1` — so a store that cannot be reached says so instead of
-  looking like a press that missed.
-  """
+  # Make the list the field names, and put it on the page.
+  #
+  # `Kati.Lists.Shelf.create/1` answers `{:ok, existing}` for a name already
+  # taken and writes nothing: re-typing a name you already have is how somebody
+  # checks whether they already have it, and a second `Rainy Sunday` is not what
+  # they asked for. The refusal is the same one every write in this app gives —
+  # `Kati.Write.message/1` — so a store that cannot be reached says so instead of
+  # looking like a press that missed.
   def handle_tap(:save_list, socket) do
     case Kati.Lists.Shelf.create(Map.get(socket.assigns, :name, "")) do
       {:ok, _list} ->

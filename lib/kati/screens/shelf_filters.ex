@@ -604,13 +604,6 @@ defmodule Kati.Screens.ShelfFilters do
   end
 
   @doc """
-  The sheet redrawn against what is now stored.
-
-  Both counts come off the shelf rather than off `facet_count/2`'s arithmetic
-  over the board's frozen bucket sizes, so `showing N of M` is two real
-  numbers about this reader's own library.
-  """
-  @doc """
   A decade chip pressed: narrow to it, or stop narrowing by it.
 
   Single-select, which is what a bucket row is — two decades at once is a range
@@ -627,6 +620,13 @@ defmodule Kati.Screens.ShelfFilters do
     |> then(fn stored -> restated(socket, stored) end)
   end
 
+  @doc """
+  The sheet redrawn against what is now stored.
+
+  Both counts come off the shelf rather than off `facet_count/2`'s arithmetic
+  over the board's frozen bucket sizes, so `showing N of M` is two real
+  numbers about this reader's own library.
+  """
   @spec restated(Mob.Socket.t(), map()) :: Mob.Socket.t()
   def restated(socket, chosen) do
     all = Kati.Screens.Library.shelf(Kati.Library.ShelfFilters.resting())

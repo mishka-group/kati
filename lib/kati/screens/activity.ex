@@ -274,17 +274,6 @@ defmodule Kati.Screens.Activity do
   end
 
   @doc """
-  A month with nothing in it, on a device that has a history.
-
-  Both groups on this page are month-scoped and `group/5` draws nothing for an
-  empty one, so a reader whose watches are all older than the first of the
-  month used to be handed the fixture — and now, correctly, gets their own real
-  count in the header over two blank gaps. The gaps are what this fills.
-
-  Not drawn on a device with nothing recorded at all: that one is on the
-  drawing, which is what `log/0` answers with, and the drawing has rows.
-  """
-  @doc """
   Which of the two empty states this is — or neither.
 
   MOVIES-AND-TV.md #112: pressing a chip that matches nothing left the header
@@ -378,10 +367,19 @@ defmodule Kati.Screens.Activity do
     """
   end
 
+  @doc """
+  A month with nothing in it, on a device that has a history.
+
+  Both groups on this page are month-scoped and `group/5` draws nothing for an
+  empty one, so a reader whose watches are all older than the first of the
+  month used to be handed the fixture — and now, correctly, gets their own real
+  count in the header over two blank gaps. The gaps are what this fills.
+
+  Not drawn on a device with nothing recorded at all: that one is on the
+  drawing, which is what `log/0` answers with, and the drawing has rows.
+  """
   @spec nothing_this_month(map(), [map()], [map()]) :: term()
   def nothing_this_month(%{count: count}, [], []) when count > 0 do
-    assigns = %{}
-
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -962,8 +960,11 @@ defmodule Kati.Screens.Activity do
       # title from their own history*, which is the one thing a history is for.
       # Absent on a drawn row, the way `:stars` is, so the two shapes stay
       # indistinguishable and the fallback stays one.
-      id: tracked && tracked.id,
-      kind: tracked && tracked.kind
+      # `tracked` cannot be nil here: `Kati.Media.Watch`'s `belongs_to` is
+      # `allow_nil?: false`, and `title_of/2` has already read `tracked.source`
+      # two lines up — a guard here would fire after the crash it guards.
+      id: tracked.id,
+      kind: tracked.kind
     }
 
     # The key is absent rather than nil when there is no rating, because that is

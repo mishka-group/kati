@@ -62,6 +62,7 @@ defmodule Kati.Screens.AddByHandDark do
   # `Kati.Screens.Pushed`'s catch-all and was dropped. Three fields drawn, none
   # of them typeable, and nothing to see: the field renders its value, and the
   # value never changed.
+  @impl true
   def handle_info({:change, _field, _typed} = message, socket),
     do: AddByHand.handle_info(message, socket)
 

@@ -894,42 +894,36 @@ defmodule Kati.Screens.AutoDetect do
   # all would read as a broken control rather than as a settled one.
   def handle_tap(:tv, socket), do: {:noreply, socket}
 
-  @doc """
-  Turn detection on, or off. MOVIES-AND-TV.md #100's master switch.
-
-  Re-reads the whole screen rather than flipping the assign: the banner's
-  count, the Sources row's own switch and the *Now playing* card all follow
-  from this one setting, and a switch that moved alone would be the picture it
-  used to be with a different pixel lit.
-  """
+  # Turn detection on, or off. MOVIES-AND-TV.md #100's master switch.
+  #
+  # Re-reads the whole screen rather than flipping the assign: the banner's
+  # count, the Sources row's own switch and the *Now playing* card all follow
+  # from this one setting, and a switch that moved alone would be the picture it
+  # used to be with a different pixel lit.
   def handle_tap(:toggle_detect, socket) do
     Kati.Media.Detect.put(not Kati.Media.Detect.on?())
 
     {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
   end
 
-  @doc """
-  Open the page that grants notification access.
-
-  There is no runtime dialog for `BIND_NOTIFICATION_LISTENER_SERVICE` —
-  `ACTION_NOTIFICATION_LISTENER_SETTINGS` is the whole of what an app may do,
-  and `K-44 open-settings` already carries it. So the row is a door rather than
-  a switch, which is also the honest shape: the reader grants this somewhere
-  Kati cannot reach.
-  """
+  # Open the page that grants notification access.
+  #
+  # There is no runtime dialog for `BIND_NOTIFICATION_LISTENER_SERVICE` —
+  # `ACTION_NOTIFICATION_LISTENER_SETTINGS` is the whole of what an app may do,
+  # and `K-44 open-settings` already carries it. So the row is a door rather than
+  # a switch, which is also the honest shape: the reader grants this somewhere
+  # Kati cannot reach.
   def handle_tap(:open_media_access, socket) do
     _ = Kati.Native.Links.settings(:notification_listener)
 
     {:noreply, socket}
   end
 
-  @doc """
-  Step the threshold through the values a person would pick.
-
-  A chevron row on the board, which promises a screen; four values do not want
-  one. 80, 90 and 95 are the three anybody means by *when does this count as
-  watched*, and the row says which is set.
-  """
+  # Step the threshold through the values a person would pick.
+  #
+  # A chevron row on the board, which promises a screen; four values do not want
+  # one. 80, 90 and 95 are the three anybody means by *when does this count as
+  # watched*, and the row says which is set.
   def handle_tap(:cycle_threshold, socket) do
     next =
       case Kati.Media.Detect.threshold() do
@@ -943,13 +937,11 @@ defmodule Kati.Screens.AutoDetect do
     {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
   end
 
-  @doc """
-  Answer the unplaced name: keep it, or forget it.
-
-  *Add it* opens the add sheet already searching for what was heard, which is
-  the one thing that would make the next play of it tick. *Not mine* forgets
-  the name — a question answered is a question gone.
-  """
+  # Answer the unplaced name: keep it, or forget it.
+  #
+  # *Add it* opens the add sheet already searching for what was heard, which is
+  # the one thing that would make the next play of it tick. *Not mine* forgets
+  # the name — a question answered is a question gone.
   def handle_tap(:answer_add_it, socket) do
     heard = Kati.Screens.AutoDetect.asked_title(socket)
     Kati.Media.Detect.resolve(heard)
@@ -961,6 +953,31 @@ defmodule Kati.Screens.AutoDetect do
     Kati.Media.Detect.resolve(Kati.Screens.AutoDetect.asked_title(socket))
 
     {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
+  end
+
+  def handle_tap(:open_music, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
+
+  def handle_tap(:open_retired, socket) do
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Browser extension"})}
+  end
+
+  # Connect the heard name to the title the reader tapped.
+  #
+  # Writes the alias and the watch in one go — see `Kati.Media.Detect.connect/2`.
+  # The reader has told Kati two things by tapping: what it was, and that they
+  # watched it, because a name only reaches this queue by passing the threshold.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    with "connect_" <> index <- Atom.to_string(tag),
+         %{} = card <- Map.get(socket.assigns.detect, :decision),
+         %{} = pick <- Enum.at(Map.get(card, :suggestions, []), String.to_integer(index)) do
+      _ = Kati.Media.Detect.connect(Map.get(card, :heard, ""), pick.tracked_id)
+
+      {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
+    else
+      _not_a_connect -> {:noreply, socket}
+    end
   end
 
   @doc """
@@ -980,33 +997,6 @@ defmodule Kati.Screens.AutoDetect do
     case Kati.Media.Detect.unsure() do
       [title | _rest] -> title
       [] -> Map.get(socket.assigns.detect, :now_playing, %{}) |> then(&(&1 && &1.title)) || ""
-    end
-  end
-
-  def handle_tap(:open_music, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AutoDetectMusic)}
-
-  def handle_tap(:open_retired, socket) do
-    {:noreply,
-     Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: "Browser extension"})}
-  end
-
-  @doc """
-  Connect the heard name to the title the reader tapped.
-
-  Writes the alias and the watch in one go — see `Kati.Media.Detect.connect/2`.
-  The reader has told Kati two things by tapping: what it was, and that they
-  watched it, because a name only reaches this queue by passing the threshold.
-  """
-  def handle_tap(tag, socket) when is_atom(tag) do
-    with "connect_" <> index <- Atom.to_string(tag),
-         %{} = card <- Map.get(socket.assigns.detect, :decision),
-         %{} = pick <- Enum.at(Map.get(card, :suggestions, []), String.to_integer(index)) do
-      _ = Kati.Media.Detect.connect(Map.get(card, :heard, ""), pick.tracked_id)
-
-      {:noreply, Mob.Socket.assign(socket, :detect, Kati.Screens.AutoDetect.detect())}
-    else
-      _not_a_connect -> {:noreply, socket}
     end
   end
 end

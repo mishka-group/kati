@@ -451,8 +451,6 @@ defmodule Kati.Screens.YearShare do
   """
   @spec wordmark() :: map()
   def wordmark do
-    assigns = %{}
-
     ~MOB"""
     <Text
       text="Kati"
@@ -722,6 +720,17 @@ defmodule Kati.Screens.YearShare do
     end
   end
 
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "scope_" <> scope ->
+        socket = Mob.Socket.assign(socket, :scope, scope)
+        {:noreply, Kati.Screens.YearShare.restated(socket)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
   @doc """
   The name the file is offered under: `kati-year-2026.png`.
 
@@ -760,15 +769,4 @@ defmodule Kati.Screens.YearShare do
   defp message(:timeout), do: "The page took too long to capture. Nothing was saved."
   defp message(:no_bridge), do: "Saving images does not work here yet."
   defp message(_other), do: "That did not save. The page is unchanged."
-
-  def handle_tap(tag, socket) do
-    case Atom.to_string(tag) do
-      "scope_" <> scope ->
-        socket = Mob.Socket.assign(socket, :scope, scope)
-        {:noreply, Kati.Screens.YearShare.restated(socket)}
-
-      _other ->
-        {:noreply, socket}
-    end
-  end
 end

@@ -103,8 +103,14 @@ defmodule Kati.Settings.Watcher do
   @spec reschedule(String.t()) :: :ok
   def reschedule(label) do
     case Kati.Settings.Watcher.interval_for(label) do
-      nil -> :ok
-      minutes -> Kati.Background.Periodic.ensure(interval_minutes: minutes) && :ok
+      nil ->
+        :ok
+
+      minutes ->
+        # Both answers are truthy — `{:error, :no_bridge}` is the normal one off
+        # Android — so this is a sequence, not a choice.
+        Kati.Background.Periodic.ensure(interval_minutes: minutes)
+        :ok
     end
   rescue
     _error -> :ok

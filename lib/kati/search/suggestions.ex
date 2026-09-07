@@ -28,8 +28,6 @@ defmodule Kati.Search.Suggestions do
   is written up in the repo's own notes.
   """
 
-  require Ash.Query
-
   @doc """
   The reader's own two, or the board's.
 

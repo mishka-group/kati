@@ -311,6 +311,26 @@ defmodule Kati.Screens.Library do
   end
 
   @doc """
+  A title's name, or what an evicted cache leaves behind.
+
+  `Untitled` and not `nil`: see `shelf/1`. The rest of the row survives —
+  the kind, the status, the ticks and the rating are all the tracked row's or
+  the watches' — so the tile is a real title with a name Kati cannot currently
+  say, which is what it is.
+
+      iex> Kati.Screens.Library.name_of(nil)
+      "Untitled"
+
+      iex> Kati.Screens.Library.name_of(%{title: "Severance"})
+      "Severance"
+  """
+  @spec name_of(map() | nil) :: String.t()
+  def name_of(%{title: title}) when is_binary(title) and title != "", do: title
+  def name_of(_evicted), do: "Untitled"
+
+  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer(), non_neg_integer()) ::
+          map()
+  @doc """
   One tracked title in the shape the grid, the chips and the subtitle all read.
 
   `id` is the tracked row's own, and it is the only field here that is an
@@ -337,26 +357,6 @@ defmodule Kati.Screens.Library do
       `Kati.Media.TrackedTitle` names `:not_started` and `:finished` as this
       screen's shelf filters.
   """
-  @doc """
-  A title's name, or what an evicted cache leaves behind.
-
-  `Untitled` and not `nil`: see `shelf/1`. The rest of the row survives —
-  the kind, the status, the ticks and the rating are all the tracked row's or
-  the watches' — so the tile is a real title with a name Kati cannot currently
-  say, which is what it is.
-
-      iex> Kati.Screens.Library.name_of(nil)
-      "Untitled"
-
-      iex> Kati.Screens.Library.name_of(%{title: "Severance"})
-      "Severance"
-  """
-  @spec name_of(map() | nil) :: String.t()
-  def name_of(%{title: title}) when is_binary(title) and title != "", do: title
-  def name_of(_evicted), do: "Untitled"
-
-  @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil, non_neg_integer(), non_neg_integer()) ::
-          map()
   def shaped(tracked, cached, ticks, seen \\ 0, rating \\ nil) do
     %{
       # The row a tile opens. Carried on the shape rather than looked up again
@@ -1275,14 +1275,6 @@ defmodule Kati.Screens.Library do
         "No anime on the shelf",
         "Kati flags one from its genre and origin, or from a MAL or AniList import — " <>
           "and you can say so yourself from a title's ⋯ menu."
-      )
-
-  def nothing_here("Anime"),
-    do:
-      nothing_card(
-        "No anime on the shelf",
-        "Kati flags one from its genre and origin, or from a MAL or AniList import — " <>
-          "and you can say so yourself from a title's \u22EF menu."
       )
 
   def nothing_here(filter),

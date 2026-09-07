@@ -298,20 +298,6 @@ defmodule Kati.Screens.UpNext do
   end
 
   @doc """
-  A library whose shows are all paused.
-
-  `queue/0` used to fall back to `Kati.Screens.UpNext.Sample` on
-  `tracked(:watching) == []` alone, so a reader who had paused everything was
-  shown four invented titles and none of their own — and `tracked(:paused)`,
-  the read that would have found theirs, was only reached on the other branch.
-  The board is for a library with nothing in it, not for one with nothing
-  ready.
-
-  There is no hero, because a hero is *the next thing to watch* and there is
-  not one. `hero/1` draws the reason instead, and the ready section is dropped
-  entirely rather than drawn as an eyebrow over nothing.
-  """
-  @doc """
   What an empty queue says, and the one thing that fixes it.
 
   Screen 96's rule, which this app keeps everywhere: *say what is missing and
@@ -367,6 +353,20 @@ defmodule Kati.Screens.UpNext do
 
   def empty_card(_queue), do: ~MOB"<Spacer size={0} />"
 
+  @doc """
+  A library whose shows are all paused.
+
+  `queue/0` used to fall back to `Kati.Screens.UpNext.Sample` on
+  `tracked(:watching) == []` alone, so a reader who had paused everything was
+  shown four invented titles and none of their own — and `tracked(:paused)`,
+  the read that would have found theirs, was only reached on the other branch.
+  The board is for a library with nothing in it, not for one with nothing
+  ready.
+
+  There is no hero, because a hero is *the next thing to watch* and there is
+  not one. `hero/1` draws the reason instead, and the ready section is dropped
+  entirely rather than drawn as an eyebrow over nothing.
+  """
   @spec nothing_ready([term()]) :: map()
   def nothing_ready(cold) do
     cache = cache_for(cold)
@@ -911,43 +911,6 @@ defmodule Kati.Screens.UpNext do
   end
 
   @doc """
-  The filled play disc — Mishka's Action Icon, which is what a round icon
-  button is.
-
-  Both play discs are shadowless; the lifted `tune` disc above is the same
-  component with a `shadow`, which it did not have when these two adopted it.
-
-  Nothing moves. `shape: :circle` is an exact `size / 2` radius — 22 at 44,
-  17 at 34, the drawing's own numbers — the fill is passed straight through,
-  and the glyph is the same `Kati.UI.symbol/2` Text as before, wrapped in a
-  Row that hugs it (a Compose Row takes its content's size unless told to
-  fill), centred in a Box of the same declared size.
-
-  ## The two grounds are not the same ground
-
-  The hero's disc is handed `Palette.on_media/0` and the ready row's is handed
-  `Palette.paper/0`, and only one of them moves with the mode: the hero disc
-  sits on a **photograph**, which does not get darker when the app does, so it
-  stays `#FBFAF8` in dark; the ready row's sits on a card, so it sinks to the
-  page colour.
-
-  So the glyph cannot be one value either, and it is the argument this
-  function was missing.
-
-  `Kati.UI.symbol/2`'s default colour used to be `Kati.Theme.ink/0` — `#1A1917`
-  forever — and this docstring said that fixing it belonged there, with a note
-  that when it moved, the hero's glyph would need pinning back. It has moved:
-  the default is `Palette.ink/0` now, which is `#F5F2EE` in dark. That is the
-  right answer for the ready row, whose disc sank to `#121110` alongside it,
-  and the wrong one for the hero, whose disc stayed `#FBFAF8` because a
-  photograph does not invert — near-white on near-white, an invisible play
-  button on the one control the screen exists for.
-
-  Hence `ink`, defaulted to the mode-following value the ready row wants, and
-  passed `Palette.ink(:light)` at the hero. Light mode is untouched: the two
-  are the same `#1A1917` there, which is what the drawing has.
-  """
-  @doc """
   The tap that opens a row's title, or `nil` for one with nothing behind it.
 
   MOVIES-AND-TV.md #86: this screen drew no tappable control at all — the
@@ -999,6 +962,43 @@ defmodule Kati.Screens.UpNext do
     end
   end
 
+  @doc """
+  The filled play disc — Mishka's Action Icon, which is what a round icon
+  button is.
+
+  Both play discs are shadowless; the lifted `tune` disc above is the same
+  component with a `shadow`, which it did not have when these two adopted it.
+
+  Nothing moves. `shape: :circle` is an exact `size / 2` radius — 22 at 44,
+  17 at 34, the drawing's own numbers — the fill is passed straight through,
+  and the glyph is the same `Kati.UI.symbol/2` Text as before, wrapped in a
+  Row that hugs it (a Compose Row takes its content's size unless told to
+  fill), centred in a Box of the same declared size.
+
+  ## The two grounds are not the same ground
+
+  The hero's disc is handed `Palette.on_media/0` and the ready row's is handed
+  `Palette.paper/0`, and only one of them moves with the mode: the hero disc
+  sits on a **photograph**, which does not get darker when the app does, so it
+  stays `#FBFAF8` in dark; the ready row's sits on a card, so it sinks to the
+  page colour.
+
+  So the glyph cannot be one value either, and it is the argument this
+  function was missing.
+
+  `Kati.UI.symbol/2`'s default colour used to be `Kati.Theme.ink/0` — `#1A1917`
+  forever — and this docstring said that fixing it belonged there, with a note
+  that when it moved, the hero's glyph would need pinning back. It has moved:
+  the default is `Palette.ink/0` now, which is `#F5F2EE` in dark. That is the
+  right answer for the ready row, whose disc sank to `#121110` alongside it,
+  and the wrong one for the hero, whose disc stayed `#FBFAF8` because a
+  photograph does not invert — near-white on near-white, an invisible play
+  button on the one control the screen exists for.
+
+  Hence `ink`, defaulted to the mode-following value the ready row wants, and
+  passed `Palette.ink(:light)` at the hero. Light mode is untouched: the two
+  are the same `#1A1917` there, which is what the drawing has.
+  """
   @spec play_disc(number(), number(), non_neg_integer(), non_neg_integer(), term()) :: map()
   def play_disc(size, glyph, background, ink \\ Palette.ink(), tap \\ nil) do
     MishkaActionIcon.action_icon(

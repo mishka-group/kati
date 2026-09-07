@@ -212,28 +212,6 @@ defmodule Kati.Media.CachedTitle do
           | :unknown
 
   @doc """
-  The total this title's progress is measured against, or `nil`.
-
-  Chosen by `kind`, because each kind counts in its own unit and the position it
-  is divided into is stored in that same unit on `Kati.Media.TrackedTitle`:
-
-    * `:tv` and `:anime` → `episode_count`. The numerator is the count of
-      `Kati.Media.Watch` ticks, not `progress_episode` — screen 04 is explicit
-      that the counter is derived, and `progress_episode` is a bookmark inside a
-      season rather than a total across the series.
-    * `:book` → `page_count`, against `progress_page`.
-    * `:album` → `track_count`, against `progress_track`.
-    * `:movie` → `nil`. A film's position is `progress_seconds` and the only
-      total it could divide is `runtime_minutes`, which is a different unit.
-      Screen 10's "18M LEFT" does that ×60 where the units are visible rather
-      than having this function hide it, and a film's shelf state is watched or
-      not, not a partial ring.
-
-  `nil` for an evicted or unfetched row, and `nil` for a stored zero: a count of
-  zero is a source declining to answer, and honouring it as a denominator is the
-  "p.214/0" this whole split exists to prevent.
-  """
-  @doc """
   Every name this title answers to, and none of them empty.
 
   Two, because one show has two: TMDB's `title` is the name the reader's shelf
@@ -271,6 +249,28 @@ defmodule Kati.Media.CachedTitle do
     |> Enum.uniq()
   end
 
+  @doc """
+  The total this title's progress is measured against, or `nil`.
+
+  Chosen by `kind`, because each kind counts in its own unit and the position it
+  is divided into is stored in that same unit on `Kati.Media.TrackedTitle`:
+
+    * `:tv` and `:anime` → `episode_count`. The numerator is the count of
+      `Kati.Media.Watch` ticks, not `progress_episode` — screen 04 is explicit
+      that the counter is derived, and `progress_episode` is a bookmark inside a
+      season rather than a total across the series.
+    * `:book` → `page_count`, against `progress_page`.
+    * `:album` → `track_count`, against `progress_track`.
+    * `:movie` → `nil`. A film's position is `progress_seconds` and the only
+      total it could divide is `runtime_minutes`, which is a different unit.
+      Screen 10's "18M LEFT" does that ×60 where the units are visible rather
+      than having this function hide it, and a film's shelf state is watched or
+      not, not a partial ring.
+
+  `nil` for an evicted or unfetched row, and `nil` for a stored zero: a count of
+  zero is a source declining to answer, and honouring it as a denominator is the
+  "p.214/0" this whole split exists to prevent.
+  """
   @spec denominator(t() | nil) :: pos_integer() | nil
   def denominator(nil), do: nil
   def denominator(%__MODULE__{kind: :tv} = cached), do: positive(cached.episode_count)

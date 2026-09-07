@@ -101,7 +101,6 @@ defmodule Kati.Screens.Books do
   is the only way in the app to put a book on the shelf, which is exactly what
   the `+` on a shelf of books is for.
   """
-  @impl true
   def add_sheet, do: Kati.Screens.AddByHandBook
 
   @doc """

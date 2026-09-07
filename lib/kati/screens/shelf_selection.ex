@@ -548,8 +548,6 @@ defmodule Kati.Screens.ShelfSelection do
 
   @doc false
   def capped_close do
-    assigns = %{}
-
     ~MOB"""
     <Box max_font_scale={1.15}>
       {Kati.UI.symbol("close", size: 21)}

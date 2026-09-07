@@ -1534,23 +1534,21 @@ defmodule Kati.Screens.Rating do
   end
 
   @doc false
-  @doc """
-  *Watched on*, *Where* and *With* — three rows, and what each one opens.
-
-  MOVIES-AND-TV.md #95. Each drew a chevron and carried no tap, and a chevron
-  is a promise that a screen opens. All three sit over real columns —
-  `watched_on` beside `watched_at`, `service`, `companions` — and none had a
-  writer.
-
-  Three screens is not what they want. Each edit is one short answer, so each
-  opens **under its own row, inside the same card**, which is the shape `+ tag`
-  settled one card down: a page of chrome around a choice of four days is more
-  app than the choice is worth, and a reader logging a watch is answering three
-  questions at one sitting rather than visiting three places.
-
-  One row is open at a time. Two open editors in a settings card is a card that
-  jumps under the thumb, and the reader is answering one question anyway.
-  """
+  # *Watched on*, *Where* and *With* — three rows, and what each one opens.
+  #
+  # MOVIES-AND-TV.md #95. Each drew a chevron and carried no tap, and a chevron
+  # is a promise that a screen opens. All three sit over real columns —
+  # `watched_on` beside `watched_at`, `service`, `companions` — and none had a
+  # writer.
+  #
+  # Three screens is not what they want. Each edit is one short answer, so each
+  # opens **under its own row, inside the same card**, which is the shape `+ tag`
+  # settled one card down: a page of chrome around a choice of four days is more
+  # app than the choice is worth, and a reader logging a watch is answering three
+  # questions at one sitting rather than visiting three places.
+  #
+  # One row is open at a time. Two open editors in a settings card is a card that
+  # jumps under the thumb, and the reader is answering one question anyway.
   @spec context_card(map()) :: map()
   def context_card(w) do
     live? = Kati.Screens.Rating.writable?(w)

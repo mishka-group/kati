@@ -76,12 +76,10 @@ defmodule Kati.Media.TitleAlias do
     defaults [:read, :destroy, create: :*, update: :*]
   end
 
-  @doc """
-  Teach Kati that this announced name is that title.
-
-  Replaces any previous answer for the same name rather than adding a second:
-  a reader correcting themselves is answering the same question again.
-  """
+  # Teach Kati that this announced name is that title.
+  #
+  # Replaces any previous answer for the same name rather than adding a second:
+  # a reader correcting themselves is answering the same question again.
   @spec learn(String.t(), String.t()) :: {:ok, t()} | {:error, term()}
   def learn(heard, tracked_title_id) when is_binary(heard) and is_binary(tracked_title_id) do
     key = Kati.Import.Job.name_key(heard)
