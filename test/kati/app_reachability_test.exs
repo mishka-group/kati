@@ -175,9 +175,6 @@ defmodule Kati.AppReachabilityTest do
        "shipped the states themselves: 141 draws its refusal card with `Pick " <>
        "again` live, and its wrong-guess note over a file that still reads."},
     {Screens.ShelfLarge, "screens 145 and 146 at 235%. As above."},
-    {Screens.DropStates,
-     "the drop, DNF and abandon states across all three media at once, in " <>
-       "27's manner — a board about five states rather than a sixth place."},
     {Screens.AnimeFilter,
      "a board about one change landing on four existing screens — 03's chip, " <>
        "26's sub-choice, 37's two tiles, 35's numbering row. 96's reason: a " <>

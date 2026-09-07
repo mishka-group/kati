@@ -148,6 +148,7 @@ reproduce.
 | `Kati.Media.ContentWarning` | `media_content_warnings` | Warnings the user recorded on a title, and whether each came from them or from an import |
 | `Kati.Media.WarningPreference` | `media_warning_preferences` | What to do with a warning category — avoid, warn, or show |
 | `Kati.Media.TitleAlias` | `media_title_aliases` | A name the reader taught Kati is one of their titles, so auto-detect stops asking |
+| `Kati.Media.Event` | `media_events` | What happened to a title and when — added, dropped and why, resumed, imported |
 | `Kati.Meals.Food` | `foods` | Foods Kati or the user wrote, and remembered prices |
 | `Kati.Meals.Recipe` | `recipes` | Recipes, methods, notes, ratings, cached totals |
 | `Kati.Meals.RecipeIngredient` | `recipe_ingredients` | Every ingredient line, with its own figures |
@@ -231,6 +232,7 @@ before any column is decoded.
 | 7 → 8 | `health_medications`, `health_readings` and `health_doses` joined with screens 109 and 112. | Supplies all three as empty members. |
 | 8 → 9 | `recipes` gained `slot_name` with screen 116. | **Nothing.** A version-8 archive has every member a version-9 app expects and its recipe rows simply lack one key, which takes the attribute default. The version still moved, because `schema_version` tracks the row shape — the step is here saying so rather than the chain having a hole in it. |
 | 12 → 13 | `media_title_aliases` joined the backup. | Supplied as an empty member. A version-12 file simply has none — the reader had not been asked yet — and Kati asks about a name the first time it hears it, which is what it would have done anyway. |
+| 13 → 14 | `media_events` joined the backup. | Supplied as an empty member, and **nothing is reconstructed**. A status column says where a title *is*; it cannot be read backwards into when it got there or why, which is the whole reason the table exists. A restored version-13 file therefore has a history that starts on the day it was upgraded. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

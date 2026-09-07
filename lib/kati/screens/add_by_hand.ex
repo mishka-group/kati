@@ -488,8 +488,25 @@ defmodule Kati.Screens.AddByHand do
       status: Kati.Screens.AddByHand.status_atom(assigns.status)
     })
     |> Ash.create()
+    |> Kati.Screens.AddByHand.logged()
     |> Kati.Write.note("add by hand #{title}")
   end
+
+  @doc """
+  Record the add, and pass the result through unchanged.
+
+  MOVIES-AND-TV.md #112: screen 15's `Added` chip matched nothing, because
+  nothing recorded that a title arrived. Written on the way past rather than in
+  the caller, so the one place that adds a hand-typed title is the one place
+  that says so.
+  """
+  @spec logged({:ok, term()} | {:error, term()}) :: {:ok, term()} | {:error, term()}
+  def logged({:ok, tracked} = result) do
+    Kati.Media.Log.write(tracked, :added, %{from_status: nil})
+    result
+  end
+
+  def logged(result), do: result
 
   @doc """
   What the form collected, in the shape the cache row stores it.

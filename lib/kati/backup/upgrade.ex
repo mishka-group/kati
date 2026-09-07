@@ -105,7 +105,14 @@ defmodule Kati.Backup.Upgrade do
       # the reader had not been asked yet. Nothing to move: an absent table
       # restores as an empty one, and Kati asks about a name the first time it
       # hears it, which is what it would have done anyway.
-      {12, 13, &unchanged/1}
+      {12, 13, &unchanged/1},
+      # `media_events` arrived, and a version-13 file has none: nothing wrote
+      # one before this version existed. Nothing to move, and nothing to
+      # reconstruct either — a status column says where a title IS and cannot
+      # be read backwards into when it got there or why, which is the whole
+      # reason the table exists. So a restored 13 has a history that starts on
+      # the day it was upgraded, and that is the honest answer.
+      {13, 14, &unchanged/1}
     ]
 
   @doc """

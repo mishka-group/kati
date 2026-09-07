@@ -655,6 +655,11 @@ defmodule Kati.Screens.AddTitle do
       # would let the network decide what is on somebody's shelf.
       _artwork = Kati.Media.Artwork.cache(Kati.Screens.AddTitle.poster_of(filled))
 
+      # MOVIES-AND-TV.md #112: screen 15's `Added` chip could never match a row,
+      # because nothing recorded that a title arrived. `from_status` is nil on
+      # an add — there was no before.
+      Kati.Media.Log.write(tracked, :added, %{from_status: nil})
+
       {:ok, tracked}
     end
     |> Kati.Write.note("track #{title}")
@@ -671,6 +676,8 @@ defmodule Kati.Screens.AddTitle do
              kind: kind,
              status: :watching
            }) do
+      Kati.Media.Log.write(tracked, :added, %{from_status: nil})
+
       {:ok, tracked}
     end
     |> Kati.Write.note("track #{title}")

@@ -702,10 +702,36 @@ defmodule Kati.Screens.Film do
           Kati.Screens.Film.private_icon(f),
           Kati.Screens.Film.private_label(f),
           :toggle_private
-        )
-      ],
+        ),
+        # MOVIES-AND-TV.md #110: a film could not be dropped, abandoned or
+        # DNF'd anywhere in the app. Screen 149 is the sheet for it — it is
+        # series-shaped in exactly two places, its header and its position
+        # card, and both are answered by the title's own kind now rather than
+        # assumed.
+        Kati.Screens.Film.drop_item(f)
+      ]
+      |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
     )
+  end
+
+  @doc """
+  *Drop this film*, or nothing at all when there is no film to drop.
+
+  MOVIES-AND-TV.md #110 gives the row and the app's own rule takes it away
+  again over the drawing: screen 08 renders a fixture when nothing is tracked,
+  and a Drop row there would open the sheet on whatever the newest gone-cold
+  title happens to be — the exact swap `Kati.Screens.DropSheet.sheet/1`'s
+  argument exists to prevent. Dropped rather than drawn dead, which is what
+  `rating_card/1` already does with its own tap on the same page.
+  """
+  @spec drop_item(map()) :: map() | []
+  def drop_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item("do_not_disturb_on", "Drop this film", :open_drop_sheet)
+    else
+      []
+    end
   end
 
   # Two hugging children with a weighted Spacer between them, not a weighted
@@ -719,7 +745,13 @@ defmodule Kati.Screens.Film do
     # #85. It was painted, so a reader looking at their own four stars had no
     # way to change them from the page that shows them; screen 33 is where a
     # rating is written, and this is the only thing on 08 that is about one.
-    tap = if Map.get(f, :tracked_id), do: {self(), :log_watch}
+    #
+    # `:rate` rather than `:log_watch`, though it opens the same sheet. Three
+    # controls on this page carried `:log_watch` and two of them are drawn at
+    # once, so `ui.sh ids` on the Pixel_9a listed the tag twice — and two nodes
+    # may not share an `accessibility_id`: `onNodeWithTag` throws on the second
+    # match. One action, three doors, three names.
+    tap = if Map.get(f, :tracked_id), do: {self(), :rate}
 
     ~MOB"""
     <Row
@@ -904,7 +936,9 @@ defmodule Kati.Screens.Film do
   """
   @spec note_pencil(map()) :: map()
   def note_pencil(f) do
-    assigns = %{tap: if(Map.get(f, :tracked_id), do: {self(), :log_watch})}
+    # `:edit_note`, not `:log_watch` — see `rating_card/1` on why each door
+    # onto screen 33 carries its own tag.
+    assigns = %{tap: if(Map.get(f, :tracked_id), do: {self(), :edit_note})}
 
     ~MOB"""
     <Box on_tap={@tap} fill_width={false}>
@@ -1043,13 +1077,38 @@ defmodule Kati.Screens.Film do
   # The sheet is about a watch OF this film, so it is told which. Bare, "Log a
   # watch" on one film opened whatever the newest logged watch in the whole
   # library happened to be.
-  def handle_info({:tap, :log_watch}, socket) do
+  # Three doors onto screen 33 — the action pill, the rating card and the note
+  # pencil — and one behaviour. Three tags because two nodes may not share an
+  # `accessibility_id`; one clause because it is one action.
+  def handle_info({:tap, tag}, socket) when tag in [:log_watch, :rate, :edit_note] do
     {:noreply,
      socket
      |> Mob.Socket.assign(:menu?, false)
      |> Mob.Socket.push_screen(
        Kati.Screens.Rating,
        Kati.Screens.Rating.params_for(socket.assigns.film)
+     )}
+  end
+
+  # Drop this film: screen 149, over the title this page is drawing.
+  #
+  # MOVIES-AND-TV.md #110. The sheet was reachable only from a series, so a
+  # film had no way to be dropped, abandoned or DNF'd at all.
+  #
+  # Named, exactly as screen 04's row is and for the same reason its comment
+  # gives: bare, the sheet opens on the newest gone-cold title in the store,
+  # which is not the film in front of the reader and may be nothing to do with
+  # it — a Drop that dropped somebody else's title.
+  #
+  # A comment rather than a `@doc`, because these are clauses of one
+  # `handle_info/2` and a second doc on it discards the first.
+  def handle_info({:tap, :open_drop_sheet}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(
+       Kati.Screens.DropSheet,
+       Kati.Screens.DropSheet.params_for(socket.assigns.film)
      )}
   end
 

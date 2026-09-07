@@ -254,6 +254,20 @@ defmodule Kati.Settings.Sample do
         sub: "How a shared card is drawn",
         control: :chevron
       },
+      # MOVIES-AND-TV.md #7. Screen 148's own moduledoc says it is "a reference
+      # sheet pushed under Settings" and its back pill says `Settings`, and
+      # nothing pushed it — it was gallery-only, exactly as Year cards above
+      # was until its row existed. Same argument, same group: the app
+      # describing itself. It is where the one distinction the app makes about
+      # a shelf is written down — *Paused and Dropped are things a person
+      # decided; Gone cold is something Kati noticed* — and the reader meets
+      # all three without ever being told which is which.
+      %{
+        icon: "do_not_disturb_on",
+        title: "Dropping",
+        sub: "Paused, dropped, and gone cold",
+        control: :chevron
+      },
       # The gallery. It used to be behind Home's bell, which was scaffolding
       # from the round when 53 screens landed at once with no way in. They are
       # all reachable now, so the bell went back to meaning notifications and

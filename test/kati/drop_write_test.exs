@@ -23,6 +23,7 @@ defmodule Kati.DropWriteTest do
 
   setup do
     on_exit(fn ->
+      Kati.Repo.query!("DELETE FROM media_events", [])
       Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
     end)
@@ -94,6 +95,127 @@ defmodule Kati.DropWriteTest do
     end
   end
 
+  describe "the reason, which used to be thrown away" do
+    setup do
+      %{tracked: tracked!(:paused)}
+    end
+
+    test "is written with the position it was picked at", %{tracked: tracked} do
+      # MOVIES-AND-TV.md #111. The reason was assigned to the socket, drawn as
+      # a lit chip, and discarded when the sheet closed — the one question in
+      # the app whose answer nothing could ever read back.
+      socket = sheet_for(tracked)
+
+      {:noreply, chosen} = DropSheet.handle_info({:tap, :reason_too_slow}, socket)
+      assert chosen.assigns.reason == :too_slow
+
+      {:noreply, _dropped} = DropSheet.handle_info({:tap, :drop}, chosen)
+
+      assert [event] = Ash.read!(Kati.Media.Event)
+      assert event.kind == :dropped
+      assert event.reason == "Too slow"
+      assert event.tracked_title_id == tracked.id
+      assert event.from_status == :paused
+      assert event.season_number == 1
+      assert event.episode_number == 1
+    end
+
+    test "and a drop with no reason still records the drop", %{tracked: tracked} do
+      {:noreply, _dropped} = DropSheet.handle_info({:tap, :drop}, sheet_for(tracked))
+
+      assert [%{kind: :dropped, reason: nil}] = Ash.read!(Kati.Media.Event)
+    end
+
+    test "undo is a second row, not the first one erased", %{tracked: tracked} do
+      socket = sheet_for(tracked)
+      {:noreply, dropped} = DropSheet.handle_info({:tap, :drop}, socket)
+      {:noreply, _undone} = DropSheet.handle_info({:tap, :undo}, dropped)
+
+      kinds = Kati.Media.Event |> Ash.read!() |> Enum.map(& &1.kind) |> Enum.sort()
+
+      assert kinds == [:dropped, :resumed],
+             "an append-only log whose undo erases its own cause is not one"
+    end
+
+    test "and a refused drop records nothing", %{tracked: tracked} do
+      # An event log that records a change the store refused is worse than no
+      # log: it is a record of something that did not happen.
+      socket = sheet_for(tracked)
+      Ash.destroy!(tracked)
+
+      {:noreply, after_tap} = DropSheet.handle_info({:tap, :drop}, socket)
+
+      assert after_tap.assigns.save_error
+      assert Ash.read!(Kati.Media.Event) == []
+    end
+  end
+
+  describe "the position pill" do
+    test "goes both ways" do
+      # MOVIES-AND-TV.md #127: it only ever decremented, so overshooting meant
+      # closing the sheet and opening it again.
+      assert DropSheet.step_forward(%{season: 2, episode: 5}) == %{season: 2, episode: 6}
+      assert DropSheet.step_back(%{season: 2, episode: 5}) == %{season: 2, episode: 4}
+
+      # And back past the head of a season still walks to the one before it.
+      assert DropSheet.step_back(%{season: 2, episode: 1}) == %{season: 1, episode: 1}
+      assert DropSheet.step_back(%{season: 1, episode: 1}) == %{season: 1, episode: 1}
+    end
+
+    test "and both discs are on the sheet", %{} do
+      tracked = tracked!(:paused)
+      socket = sheet_for(tracked)
+      drawn = inspect(DropSheet.render(socket.assigns), limit: :infinity)
+
+      assert drawn =~ "step_back"
+      assert drawn =~ "step_forward"
+    end
+  end
+
+  describe "a film" do
+    test "can be dropped, and its sheet says film" do
+      # MOVIES-AND-TV.md #110: a film could not be dropped, abandoned or DNF'd
+      # anywhere in the app.
+      tracked = film!()
+      socket = sheet_for(tracked)
+      sheet = socket.assigns.sheet
+
+      assert sheet.kind == :movie
+      assert DropSheet.heading(sheet) == "Drop this film"
+
+      # No position card: a film has no episode to have stopped after, and
+      # inventing `S1 E1` would put it on a two-hour film's own history.
+      assert sheet.season == nil
+      assert sheet.episode == nil
+
+      drawn = inspect(DropSheet.render(socket.assigns), limit: :infinity)
+      refute drawn =~ "Stopping at"
+      refute drawn =~ "step_back"
+
+      # And no position anywhere else either. The button and the undo pill
+      # build the same sentence out of the same two numbers, and with them nil
+      # they read **Drop at S E** — found by opening the sheet on the Pixel_9a.
+      assert drawn =~ "Drop"
+      refute drawn =~ "S E"
+      refute drawn =~ "at S"
+
+      {:noreply, _dropped} = DropSheet.handle_info({:tap, :drop}, socket)
+
+      assert Ash.get!(TrackedTitle, tracked.id).status == :dropped
+      assert [%{kind: :dropped, season_number: nil}] = Ash.read!(Kati.Media.Event)
+    end
+
+    test "and screen 08 offers the row, but only over a real film" do
+      drawn = inspect(Kati.Screens.Film.drop_item(%{tracked_id: "x"}), limit: :infinity)
+      assert drawn =~ "open_drop_sheet"
+      assert drawn =~ "Drop this film"
+
+      # Over the drawing there is nothing to drop, and the row would open the
+      # sheet on whatever gone-cold title happened to be newest.
+      assert Kati.Screens.Film.drop_item(%{}) == []
+    end
+  end
+
   describe "the drawn sheet" do
     test "has no row to write against, and that is not a refusal" do
       {:ok, socket} = DropSheet.mount(%{}, %{}, Mob.Socket.new(DropSheet))
@@ -113,6 +235,25 @@ defmodule Kati.DropWriteTest do
       DropSheet.mount(%{title_id: tracked.id}, %{}, Mob.Socket.new(DropSheet))
 
     socket
+  end
+
+  defp film!() do
+    source_id = @prefix <> "film"
+
+    Ash.create!(CachedTitle, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: :movie,
+      title: "Estuary",
+      fetched_at: Kati.Time.now()
+    })
+
+    Ash.create!(TrackedTitle, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: :movie,
+      status: :paused
+    })
   end
 
   defp tracked!(status) do

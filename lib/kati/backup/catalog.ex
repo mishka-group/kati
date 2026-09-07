@@ -91,7 +91,11 @@ defmodule Kati.Backup.Catalog do
   #     mark. Nothing moves, for 10's reason — a version-10 file has no such
   #     column and every row takes the attribute default of `false`, which is
   #     what a title nobody has marked is.
-  @schema_version 13
+  #   * **14** — `media_events` arrived: what happened to a title, in the order
+  #     it happened. A version-13 file has none and none can be derived — a
+  #     status column says where a title is, never when it got there — so a
+  #     restored 13 has a history that starts on the day it was upgraded.
+  @schema_version 14
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -133,6 +137,11 @@ defmodule Kati.Backup.Catalog do
     # “Sousou no Frieren”* exists only because somebody answered a question.
     # Losing it on a restore means being asked all of them again.
     %{table: "media_title_aliases", resource: Kati.Media.TitleAlias, drop: []},
+    # The reader's own history — what they added, dropped, and why. Nothing can
+    # regenerate it: `Kati.Media.TrackedTitle.status` says where a title IS, and
+    # every change to it overwrites the one before. Losing this on a restore
+    # would leave a shelf with no story behind it, which is what screen 15 is.
+    %{table: "media_events", resource: Kati.Media.Event, drop: []},
     %{table: "foods", resource: Kati.Meals.Food, drop: []},
     %{table: "recipes", resource: Kati.Meals.Recipe, drop: []},
     %{

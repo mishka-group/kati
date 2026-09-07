@@ -49,7 +49,7 @@ defmodule Kati.ScreenActivityTest do
   @drawn_day ~D[2026-08-16]
 
   # Children first: media_watches carries the foreign key into tracked_titles.
-  @tables ~w(media_watches media_content_warnings tracked_titles cached_titles)
+  @tables ~w(media_events media_watches media_content_warnings tracked_titles cached_titles)
 
   # The whole suite shares one SQLite file (test/test_helper.exs), so an empty
   # database has to be made rather than assumed — and made again afterwards,
@@ -315,6 +315,78 @@ defmodule Kati.ScreenActivityTest do
              "the Rated chip matched a plain tick. The chip filters on `lead` " <>
                "and nothing else, so a tick shaped with the wrong verb passes " <>
                "every other test in this file and fails here."
+    end
+
+    test "Added finds a real add, which nothing could produce before" do
+      # MOVIES-AND-TV.md #112: `verb/2` returned only Watched, Rated or
+      # Rewatched, so the fourth chip matched nothing on any device — and
+      # nothing recorded that a title had arrived at all.
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      Kati.Media.Log.write(hollow, :added, %{from_status: nil})
+
+      added = Activity |> mount_screen() |> render_info({:tap, :filter_Added}) |> text()
+
+      assert added =~ "The Long Hollow"
+      assert added =~ "Added"
+    end
+
+    test "a drop carries its position and its reason into the log" do
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+
+      Kati.Media.Log.write(hollow, :dropped, %{
+        season_number: 1,
+        episode_number: 3,
+        reason: "Too slow"
+      })
+
+      drawn = text(mount_screen(Activity))
+
+      assert drawn =~ "Dropped"
+      assert drawn =~ "after S1E3"
+      assert drawn =~ "too slow"
+    end
+
+    test "an import is a row with no title behind it" do
+      # `tracked_title_id` is nullable for exactly this: screen 15's own sample
+      # carries *Imported 412 titles from a CSV backup*.
+      title!("hollow71", "The Long Hollow", :tv)
+      Kati.Media.Log.imported(412, "goodreads_library_export.csv")
+
+      drawn = text(mount_screen(Activity))
+
+      assert drawn =~ "Imported"
+      assert drawn =~ "412 titles"
+    end
+
+    test "a chip that matches nothing says so rather than drawing a blank" do
+      # The second half of #112: the page kept its header and its chips over
+      # nothing at all, which reads as a search that broke.
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      watch!(hollow, %{watched_at: at(Kati.Time.today(), ~T[12:00:00])})
+
+      added = Activity |> mount_screen() |> render_info({:tap, :filter_Added}) |> text()
+
+      assert added =~ "No added entries this month"
+      assert added =~ "Press All to see it"
+
+      # And pressing the card is the same move the `All` chip is.
+      back = Activity |> mount_screen() |> render_info({:tap, :show_all}) |> text()
+      assert back =~ "The Long Hollow"
+    end
+
+    test "and the card's tap is not a tag another node already carries" do
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      watch!(hollow, %{watched_at: at(Kati.Time.today(), ~T[12:00:00])})
+
+      drawn =
+        Activity
+        |> mount_screen()
+        |> render_info({:tap, :filter_Added})
+        |> tree()
+        |> inspect(limit: :infinity)
+
+      assert length(Regex.scan(~r/:filter_All\b/, drawn)) == 1,
+             "filter_All is drawn twice on one frame; onNodeWithTag throws on the second"
     end
   end
 

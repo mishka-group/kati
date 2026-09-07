@@ -206,8 +206,13 @@ defmodule Kati.ScreenBackupTest do
       # is exactly as strong when asked of the breakdown.
       panel = Backup.preview_card(preview)
 
+      # WHOLE NAMES, NOT SUBSTRINGS. `media_events` is a table and `events` is
+      # another, and the moment the first one held a row this refutation
+      # started failing on the second — a table name that is a substring of a
+      # table name. The claim is *this exact name is not on the panel*, so it
+      # is asked exactly.
       for {table, _count} <- empty do
-        refute drawn?(panel, table),
+        refute named?(panel, table),
                "#{table} is empty and is listed by name — twenty-nine zeroes is not a report"
       end
     end
@@ -238,7 +243,7 @@ defmodule Kati.ScreenBackupTest do
       end
 
       # And the file it would write is a real one, with the same total.
-      assert Backup.preview_sub(preview) == "0 records across 30 tables"
+      assert Backup.preview_sub(preview) == "0 records across 31 tables"
     end
 
     test "the columns the format leaves out are named when there are any" do
@@ -848,6 +853,15 @@ defmodule Kati.ScreenBackupTest do
         Map.get(node.props, :text_size) in [13.5, 11.5]
     end)
     |> Enum.map(& &1.props.text)
+  end
+
+  # `drawn?/2`'s question asked of a whole word rather than a substring — see
+  # the breakdown test for why the difference matters.
+  defp named?(tree, needle) do
+    tree
+    |> flatten()
+    |> Enum.flat_map(fn node -> node.props |> Map.values() |> Enum.filter(&is_binary/1) end)
+    |> Enum.any?(fn text -> needle in Regex.split(~r/[^a-z_]+/, text) end)
   end
 
   defp drawn?(tree, needle) do

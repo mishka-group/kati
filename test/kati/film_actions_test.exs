@@ -118,15 +118,44 @@ defmodule Kati.FilmActionsTest do
       card = Film.rating_card(film) |> inspect(limit: :infinity)
       pencil = Film.note_pencil(film) |> inspect(limit: :infinity)
 
-      assert card =~ ":log_watch"
-      assert pencil =~ ":log_watch"
+      # Three doors, three tags, one handler. All three carried `:log_watch`
+      # and two of them are drawn at once, so `ui.sh ids` on the Pixel_9a
+      # listed the tag twice — and `onNodeWithTag` throws on the second match.
+      assert card =~ ":rate"
+      assert pencil =~ ":edit_note"
+
+      for tag <- [:log_watch, :rate, :edit_note] do
+        {:noreply, opened} =
+          Film.handle_info({:tap, tag}, Mob.Socket.assign(Mob.Socket.new(Film), :film, film))
+
+        assert {:push, Kati.Screens.Rating, _params} = Map.get(opened.__mob__, :nav_action),
+               "#{tag} did not open the sheet that writes a rating"
+      end
+    end
+
+    test "and no two controls on the page share a tag" do
+      tracked = shelve!("Dune", nil)
+      film = Film.film(tracked.id)
+
+      drawn =
+        Film
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:film, film)
+        |> Mob.Socket.assign(:menu?, false)
+        |> Mob.Socket.assign(:save_error, nil)
+        |> then(&inspect(Film.render(&1.assigns), limit: :infinity))
+
+      tags = Regex.scan(~r/:[a-z_]+\}/, drawn) |> List.flatten()
+      repeated = tags -- Enum.uniq(tags)
+
+      assert repeated == [], "these tags are drawn more than once: #{inspect(repeated)}"
     end
 
     test "and stay pictures on a film that is only a drawing" do
       drawn = Film.drawn_film()
 
-      refute Film.rating_card(drawn) |> inspect(limit: :infinity) =~ ":log_watch"
-      refute Film.note_pencil(drawn) |> inspect(limit: :infinity) =~ ":log_watch"
+      refute Film.rating_card(drawn) |> inspect(limit: :infinity) =~ ":rate"
+      refute Film.note_pencil(drawn) |> inspect(limit: :infinity) =~ ":edit_note"
     end
   end
 

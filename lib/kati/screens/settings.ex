@@ -703,6 +703,9 @@ defmodule Kati.Screens.Settings do
     "Data sources" => Kati.Screens.DataSources,
     "Where this comes from" => Kati.Screens.Attribution,
     "Year cards" => Kati.Screens.YearCards,
+    # #7. A reference sheet whose own moduledoc said it was pushed under
+    # Settings, and nothing pushed it.
+    "Dropping" => Kati.Screens.DropStates,
     "Every screen" => Kati.Screens.Gallery
   }
 
