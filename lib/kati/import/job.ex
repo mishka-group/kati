@@ -91,7 +91,11 @@ defmodule Kati.Import.Job do
       total_columns: length(job.columns),
       skipped: length(job.columns) - matched,
       columns: job.columns,
-      outcome: job.outcome
+      outcome: job.outcome,
+      # The whole job, carried. 141 and 37 are two views of one file (#53) and
+      # 141's own `Import 412` pill has to be able to commit it (#89) — without
+      # this it could only describe a file and then hand the reader on.
+      job: job
     }
   end
 

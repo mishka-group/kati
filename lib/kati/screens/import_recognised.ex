@@ -140,6 +140,7 @@ defmodule Kati.Screens.ImportRecognised do
     socket
     |> Mob.Socket.assign(:job, Kati.Screens.ImportRecognised.job_for(params))
     |> Mob.Socket.assign(:file, {Map.get(params, :path), Map.get(params, :name)})
+    |> Mob.Socket.assign(:result, nil)
   end
 
   @doc """
@@ -204,6 +205,7 @@ defmodule Kati.Screens.ImportRecognised do
         padding_bottom={40}
       >
         {Kati.Screens.ImportRecognised.header(job)}
+        {Kati.Screens.Import.result_notice(Map.get(assigns, :result))}
         {Kati.Screens.ImportRecognised.title(job)}
         {Kati.Screens.ImportRecognised.steps(job)}
         {Kati.Screens.ImportRecognised.file_card(job)}
@@ -223,32 +225,39 @@ defmodule Kati.Screens.ImportRecognised do
   # pushed macro floats the back pill over this row, so the row only owns the
   # ink pill on the right.
   @doc false
+  @doc """
+  The ink `Import 412` pill, and the commit behind it.
+
+  MOVIES-AND-TV.md #89: this is the commit action of the whole import flow and
+  it carried no tap on either screen that draws it. Screen 37's was wired with
+  #101; this one was not, and hand-drawing the pill here rather than calling
+  the shared builder is how it was missed — an audit caught it.
+
+  So it is `Kati.UI.ImportChrome.header/2` now, the same pill 37, 120 and 142
+  draw, and pressing it commits the file this page is describing without
+  making the reader walk through the mapping table first. The mapping is still
+  one row down for anybody who wants to check it; this is the *I know what this
+  file is* path.
+
+  No tap over the board, for 37's reason: committing the drawing would file
+  four hundred invented titles under the reader's own shelf.
+  """
+  @spec header(map()) :: map()
   def header(job) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} height={44} align="center">
-        <Spacer weight={1.0} />
-        <Row
-          height={38}
-          corner_radius={19}
-          background={Palette.ink_fill()}
-          padding_left={16}
-          padding_right={16}
-          align="center"
-        >
-          <Text
-            text={job.action}
-            text_size={13}
-            font_weight="bold"
-            text_color={Palette.on_ink()}
-            max_lines={1}
-          />
-        </Row>
-      </Row>
-      <Spacer size={16} />
-    </Column>
-    """
+    Kati.UI.ImportChrome.header(
+      job.action,
+      if(Kati.Screens.ImportRecognised.live?(job), do: {self(), :commit})
+    )
   end
+
+  @doc """
+  Whether this page is describing a real file or the board.
+
+      iex> Kati.Screens.ImportRecognised.live?(Kati.Import.Sample.recognised())
+      false
+  """
+  @spec live?(map()) :: boolean()
+  def live?(job), do: is_map(Map.get(job, :job))
 
   @doc false
   def title(job) do
@@ -740,6 +749,45 @@ defmodule Kati.Screens.ImportRecognised do
   """
   @spec source() :: atom()
   def source, do: :goodreads
+
+  @doc """
+  Commit from here, or hand the reader to 37 when there is something to answer.
+
+  MOVIES-AND-TV.md #89. A file that disagrees with nothing on your shelf needs
+  no mapping table read and no questions answered — this page has already said
+  what it found, and one press is the whole of what a reader wants. A file that
+  DOES conflict is the other case: `Kati.Import.Commit.run/2` reads silence as
+  *keep mine*, which is the safe reading but not one to make on somebody's
+  behalf without showing them, so the pill opens 37 where the queue can be
+  answered.
+
+  Neither branch commits the board: `live?/1` is what keeps the drawing's
+  `Import 412` a picture.
+  """
+  def handle_tap(:commit, socket) do
+    job = socket.assigns.job
+
+    cond do
+      not Kati.Screens.ImportRecognised.live?(job) ->
+        {:noreply, socket}
+
+      job.job.plan.conflicts != [] ->
+        {path, name} = Map.get(socket.assigns, :file, {nil, nil})
+
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.Import, %{
+           path: path,
+           name: name,
+           source: Kati.Screens.ImportRecognised.source(),
+           back: "Recognised"
+         })}
+
+      true ->
+        {:ok, tally} = Kati.Import.Commit.run(job.job, %{})
+
+        {:noreply, Mob.Socket.assign(socket, :result, Kati.Screens.Import.result_line(tally))}
+    end
+  end
 
   def handle_tap(:change_source, socket) do
     {:noreply, Kati.Screens.Resume.pop(socket)}

@@ -27,12 +27,15 @@ defmodule Kati.ImportTest do
 
   doctest Kati.Screens.Import, only: [result_line: 1, answer_tag: 2, live?: 1]
 
+  doctest Kati.Screens.ImportRecognised, only: [live?: 1, source_name: 1]
+
   alias Kati.Import.Commit
   alias Kati.Import.Job
   alias Kati.Media.CachedTitle
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
   alias Kati.Screens.Import, as: Screen
+  alias Kati.Screens.ImportRecognised, as: Recognised
 
   @prefix "import-test-"
 
@@ -263,6 +266,57 @@ defmodule Kati.ImportTest do
     end
   end
 
+  describe "screen 141's own Import pill" do
+    test "commits a file that disagrees with nothing, in one press" do
+      socket = recognised(letterboxd())
+
+      assert Recognised.live?(socket.assigns.job)
+
+      {:noreply, done} = Recognised.handle_tap(:commit, socket)
+
+      assert done.assigns.result == "3 added."
+      assert length(Ash.read!(TrackedTitle)) == 3
+    end
+
+    test "and hands the reader to 37 when there is a queue to answer" do
+      tracked = shelve!("Arrival", :movie)
+      watch!(tracked, ~D[2026-08-12], 8)
+
+      socket = recognised(letterboxd())
+
+      {:noreply, moved} = Recognised.handle_tap(:commit, socket)
+
+      assert {:push, Screen, %{back: "Recognised"}} = Map.get(moved.__mob__, :nav_action)
+      # Nothing written: silence reads as "keep mine", and that is not a
+      # decision to make on somebody's behalf without showing them.
+      assert Ash.read!(Watch) |> length() == 1, "only the watch the fixture made"
+    end
+
+    test "and the board's pill is a picture, as 37's is" do
+      drawn = Recognised.job_for(%{})
+
+      refute Recognised.live?(drawn)
+      refute inspect(Recognised.header(drawn), limit: :infinity) =~ "commit"
+
+      assert inspect(Recognised.header(Recognised.job_for(file(letterboxd()))), limit: :infinity) =~
+               "commit"
+    end
+
+    test "and pressing it on the board writes nothing" do
+      socket =
+        Recognised
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:job, Recognised.job_for(%{}))
+        |> Mob.Socket.assign(:file, {nil, nil})
+        |> Mob.Socket.assign(:result, nil)
+
+      {:noreply, after_tap} = Recognised.handle_tap(:commit, socket)
+
+      assert Ash.read!(TrackedTitle) == []
+      assert Map.get(after_tap.__mob__, :nav_action) == nil
+    end
+  end
+
   describe "screen 37" do
     test "draws the board when the push named no file" do
       assert Screen.job_for(%{}) == Kati.Import.Sample.job(:trakt)
@@ -394,6 +448,16 @@ defmodule Kati.ImportTest do
   end
 
   defp read(csv), do: Job.read(write!(csv), "watched.csv")
+
+  defp file(csv), do: %{path: write!(csv), name: "watched.csv"}
+
+  defp recognised(csv) do
+    Recognised
+    |> Mob.Socket.new()
+    |> Mob.Socket.assign(:job, Recognised.job_for(file(csv)))
+    |> Mob.Socket.assign(:file, {nil, nil})
+    |> Mob.Socket.assign(:result, nil)
+  end
 
   defp write!(csv) do
     path = Path.join(System.tmp_dir!(), "#{@prefix}#{System.unique_integer([:positive])}.csv")
