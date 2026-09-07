@@ -711,13 +711,25 @@ defmodule Kati.Screens.SeriesMeta do
   @doc false
   @spec minutes([term()], CachedTitle.t() | nil) :: non_neg_integer()
   def minutes(watches, cached) do
-    # The cache's per-episode runtime, times the ticks. `Kati.Media.Watch` has
-    # no runtime column of its own — a watch records WHEN, not how long — so
-    # this is the only multiplication the store supports, and it answers `0`
-    # rather than a guess where the cache has no runtime either.
-    each = (cached && cached.runtime_minutes) || 0
+    # Per EPISODE, and that is the whole subtlety. `Kati.Media.Watch` records
+    # WHEN, not how long, so the runtime has to come from the cache — and
+    # `CachedTitle.runtime_minutes` is a FILM's runtime and `nil` on every
+    # series, which is why this first drew a dash on Severance. Each tick names
+    # the episode it watched, so the runtime is that episode's; the title's is
+    # the fallback for a film, and a tick with neither contributes nothing
+    # rather than a guess.
+    by_episode =
+      Kati.Media.CachedEpisode
+      |> Ash.read!()
+      |> Map.new(&{&1.source_id, &1.runtime_minutes})
 
-    length(watches) * each
+    fallback = cached && cached.runtime_minutes
+
+    Enum.reduce(watches, 0, fn watch, sum ->
+      each = Map.get(by_episode, watch.episode_source_id) || fallback || 0
+
+      sum + each
+    end)
   rescue
     _error -> 0
   end
