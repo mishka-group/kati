@@ -1,9 +1,15 @@
 # Boards delivered, screens not built yet
 
-**Ninety-five artboards from Claude Design, 5 September 2026** — every one of the
-twenty-four briefs `D-35`–`D-58`, plus `D-34`, `D-42`'s open question and two
-answers `D-62` asked for. Eighty-six are here; eight are built and in
-`screens/`; one — 251 — is a receipt and lives in `reference/`. They are here rather
+**Ninety-five artboards from Claude Design, 5 September 2026**, and **thirty-two
+more on 7 September** answering `D-65` in full.
+
+The 5 September wave covered the twenty-four briefs `D-35`–`D-58`, plus `D-34`,
+`D-42`'s open question and two answers `D-62` asked for. The 7 September wave is
+306–337: one board per ask in `design-briefs/D-65-boards-wanted-7-september.md`,
+including all eight Lists amendments and both Persian mirrors.
+
+**118 are here**; eight are built and in `screens/`; one — 251 — is a receipt and
+lives in `reference/`. They are here rather
 than in `screens/` because `Kati.ScreenDesignLiteralTest` asserts *every drawing
 has a screen*: a board in `screens/` with no module behind it turns the whole
 suite red, and a red suite is a worse record of "these arrived" than this
@@ -18,7 +24,8 @@ with it.
 **The numbers are not the ones the briefs reserved.** `MISSING-CONNECTIONS.md`
 allocated 167–247 across `D-35`–`D-57` and 248–249 to `D-58`. The canvas
 renumbered as it drew: 167–208 and 248–305, with 170–171, 205–207 and 209–247
-never used. The table below is the mapping that actually shipped, and it is the
+never used. The 7 September wave carried straight on at 306–337 and needs no
+mapping — its labels name their own subject. The table below is the mapping that actually shipped, and it is the
 one to trust. Nothing was lost — every brief has its boards.
 
 **The export's copies of boards 01–166 are NOT the repo's.** Extracting 154, 163
@@ -32,7 +39,7 @@ Board **134** is in the export too and was NOT taken: it is `D-23b`'s first-run
 flow map, 1720px wide, and it already lives in `test/design/reference/134.html`
 with its own README saying why it is not a screen.
 
-## How they were extracted — and the five it missed
+## How they were extracted — and the three ways it has failed
 
 Each `data-screen-label="NN"` and the `<x-import>` block that follows it,
 counting nested opens so a frame is not cut at the first close. The method was
@@ -53,13 +60,73 @@ Corrected 7 September:
   prepped card, which arrived as **304 What a prep is** — plus **305**, which
   answers `D-62` §2 and §4 by declining to draw them.
 
-The splitter now slices on the labelled element itself, counting that tag's own
-opens and closes, so a board with no phone frame is captured whole. Anything
-added to this table is checked two ways: no two files share an md5, and every
-`data-screen-label` in the export at or above 167 is on disk here, in
-`screens/`, or in `reference/`.
+The splitter now slices on the labelled element itself, so a board with no phone
+frame is captured whole. Counting that tag's own opens and closes is **not**
+enough on its own: two boards in the 7 September wave (309 and 311) close early
+under a naive `<div>` count and come out truncated — 311 at 3,748 bytes of a
+real 10,508. The boundary that holds is **the start of the next labelled
+element**, trimmed back to the last balanced close; the tag count is then a
+check rather than the method.
 
-## What arrived, by brief
+Three checks now hold, and all three are cheap:
+
+* no two files in `incoming/` share an md5 — this is what caught 251;
+* every `data-screen-label` in the export is on disk here, in `screens/`, in
+  `reference/` or in `retired/` — this is what caught 302–305;
+* every extracted board balances its own `<div>`s — this is what caught the
+  truncation.
+
+## The 7 September wave — `D-65`, answered in full
+
+Thirty-two boards, one per ask. The left column is the screen the board is
+about; the right is the section of `D-65` it answers.
+
+| Board | Drawing | Answers |
+|---|---|---|
+| 306 | 02 — no calendar permission | `D-65` 02 |
+| 307 | 05 + 25 — releases beyond television | `D-65` 05+25 |
+| 308 | 06 — before, during, and found nothing | `D-65` 06 |
+| 309 | 07 — a year with nothing counted | `D-65` 07 |
+| 310 | 13 + 92 + 97 — one sentence, one count | `D-65` 13+92+97 |
+| 311 | 14 — at rest, with its own empty band | `D-65` 14 |
+| 312 | 19 — the field cleared | `D-65` 19 |
+| 313 | 19 + 91 + 261 — chip rows at 235% | `D-65` 19+91 |
+| 314 | 25 — two literals | `D-65` 25 |
+| 315 | 28 — dark, with nothing kept | `D-65` 28 |
+| 316 | 50 + 120 — what the code encodes | `D-65` 50+120 |
+| 317 | 55 — the gate on the Persian empty | `D-65` 55 |
+| 318 | 80 — the token card, three states | `D-65` 80 (1) |
+| 319 | 80 — the pairing card, four states of one row | `D-65` 80 (2) |
+| 320 | 80 + 82 — one retirement, mirrored | `D-65` 80 (3) |
+| 321 | 86 — nothing to suggest from | `D-65` 86 |
+| 322 | 88 — deferred, withdrawn, and one pill | `D-65` 88 |
+| 323 | 93 — live, or a specimen | `D-65` 93 |
+| 324 | ۹۷ — فارسی، هیچ‌چیز تنظیم نشده | `D-65` 97 |
+| 325 | Year card · the field face, 4:5 at size | `D-65` 98+100 |
+| 326 | Year card · the genres face + the heading | `D-65` 98+100 |
+| 327 | 112 — medications, nothing due today | `D-65` 112 |
+| 328 | 140 — four more sources, and the door | `D-65` 140 |
+| 329 | 141 — the recognition line, six shapes | `D-65` 141 |
+| 330 | L1 — removing, deleting, renaming | `D-65` L1 |
+| 331 | L2 — the six states 181 did not draw | `D-65` L2 |
+| 332 | L3 — three artworks, one baseline | `D-65` L3 |
+| 333 | L4 — the sheet as one screen, and empty | `D-65` L4 |
+| 334 | L5 — the door, on a film and a series | `D-65` L5 |
+| 335 | L6 — one naming grammar, one failure rule | `D-65` L6 |
+| 336 | L7 — جزئیات فهرست، فارسی | `D-65` L7 |
+| 337 | L8 — انتخابگر فهرست، فارسی | `D-65` L8 |
+
+**325 and 326 carry no phone frame** — a year card is 402×502 and is not a
+screen, so they are drawn at their real size the way `D-65` asked. They amend
+98 and 100 rather than becoming screens of their own, which is the same category
+as 208 and 250 in the wave above.
+
+**330 rules `rename` in.** `D-65` L1 asked, and the board answers: the list gets
+a ⋯ disc carrying Rename / Share / Delete, because *"181 ruled no overflow disc
+with nothing decided; it is decided now"* — and rename reuses the index's own
+48px field rather than inventing a second naming grammar, which is 335's subject.
+
+## What arrived, by brief — the 5 September wave
 
 | Board | Drawing | Brief |
 |---|---|---|
