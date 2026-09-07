@@ -166,6 +166,11 @@ defmodule Kati.ScreenDesignLiteralTest do
     # render until a specimen screen per board exists, the way 155 is 154's.
     Kati.Screens.AddToList,
     Kati.Screens.AddToListFa,
+    # Board 301, the Persian country sheet. Its frame is drawn beside three
+    # notes about what screens 94 and 97 got wrong rather than as a numbered
+    # artboard, so it stays in `test/design/incoming/` and the screen is not
+    # compared against a file.
+    Kati.Screens.CountryPickerFa,
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
     Kati.Screens.ListDetail,
@@ -670,7 +675,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # frozen value, which is what an entry in this list is
       # (MOVIES-AND-TV.md #45). Two entries bought two lines that used to be
       # nobody's.
-      assert length(device_values()) <= 50,
+      # Raised from 50 to 52 for screen 97's country row (board 324). Three
+      # entries for one row, and they buy the same thing the two backup entries
+      # above bought: a line that was FROZEN — **ایران**, printed to every
+      # Persian reader whether or not they had chosen a country — becomes a
+      # line checked by contract. The alternative was a second Persian screen
+      # for one state, which is the arrangement this file has spent four waves
+      # arguing against.
+      assert length(device_values()) <= 52,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -700,6 +712,17 @@ defmodule Kati.ScreenDesignLiteralTest do
   # and `\p{N}+` rather than `\d+` (the digits are U+06F0-U+06F9).
   defp device_values do
     day = Integer.to_string(Kati.Time.now().day)
+
+    # The seven names screen 97 can print in that slot, read from the screen so
+    # a country added to `Kati.Services.countries/0` cannot leave this pattern
+    # behind.
+    persian_countries =
+      Kati.Services.countries()
+      |> Enum.map(fn {code, _name} ->
+        Regex.escape(Kati.Screens.MyServicesFa.region_name(code))
+      end)
+      |> Enum.join("|")
+
     today = Kati.Time.today()
     month = today.month |> Kati.Time.month_name() |> String.downcase()
     year = Integer.to_string(today.year)
@@ -708,6 +731,29 @@ defmodule Kati.ScreenDesignLiteralTest do
     word = "[\\p{L}\\x{200C}]+"
 
     [
+      # ── Screen 97's country row, three lines of it. Board 324.
+      #
+      # 97 used to read `Kati.Services.region/0` and rewrite its `"GB"` default
+      # to `"IR"`, so a reader who had chosen nothing was shown **ایران** — a
+      # country invented for them, on the one row the page calls its own
+      # precondition. It reads `chosen_region/0` now and draws 324's cream
+      # *choose a country* row for a `nil`, which is screen 93's row one
+      # language over.
+      #
+      # So all three lines are the reader's own, and the patterns say which
+      # slot must still be filled rather than with what: a country name from
+      # `@countries` or the invitation, the row's sub-line or the sentence
+      # that replaces it, and the flag or the `public` tile that stands in for
+      # one. `Kati.ScreenMyServicesFaTest` picks a country and asserts the
+      # other branch.
+      {"97", "🇮🇷",
+       "this reader's flag, or board 324's `public` tile when they have picked no country",
+       ~r/^([\x{1F1E6}-\x{1F1FF}]{2}|#{Regex.escape(Kati.Icons.glyph!("public"))})$/u},
+      {"97", "ایران", "the country this reader chose, or board 324's invitation to choose one",
+       ~r/^(کشورتان را انتخاب کنید|#{persian_countries})$/u},
+      {"97", "معنای «در دسترس» را تعیین می‌کند",
+       "what a chosen country decides, or what nothing works without while none is chosen",
+       ~r/^(معنای «در دسترس» را تعیین می‌کند|تا این تنظیم نشود چیزی کار نمی‌کند)$/u},
       {"01", "sunday · 16 august",
        "Home's eyebrow is `Kati.Screens.Home.today/0`, which formats `Kati.Time.now/0`",
        ~r/^\p{L}+ · #{day} \p{L}+$/u},

@@ -3388,6 +3388,20 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 **The one thing deliberately not built: board 307's row recipe.** The board replaces screen 05's 44×62 poster with a 40×40 glyph tile, and states its reason — *"a record has square art, a book a portrait cover, an episode a landscape still, and three aspect ratios in one list breaks the row rhythm."* That reason is **conditional on the list holding more than one shelf**, and it holds one. Swapping a real poster for a generic `live_tv` glyph today would degrade the only state that can occur, to fix a rhythm problem that cannot yet happen. The recipe goes in with the first producer above; until then screen 05 keeps its poster and its `Watch` pill.
 
+### 133. 97 سرویس‌های من — `lies-to-user`
+
+**Screen 97 printed ایران to every Persian reader whether or not they had chosen a country, drew the drawing's ۴۶٫۴۷ £ monthly total over a shelf with nothing on it, and its country row carried a chevron that opened nothing because no Persian country picker existed.**
+
+*Proof.* lib/kati/screens/my_services_fa.ex `region/0` was `case Services.region() do "GB" -> "IR"; code -> code end` — `region/0` answers `"GB"` on a phone nobody has told anything, so a reader who had chosen nothing got Iran and a reader who deliberately chose Britain got Iran too, which is board 301's own closing sentence. `money_group/1` printed `Kati.Services.Sample.monthly_total/0` for any list, empty included. `region_group/1` drew `chevron/0` with no `on_tap`, and `handle_info({:tap, tag}, …)` had no `:pick_country` clause; `grep -rn CountryPickerFa lib/` returned nothing.
+
+*Fix.* Read `Kati.Services.chosen_region/0`, which can answer *no country*; draw board 324's cream *choose a country* row for a `nil`, and 93's *nothing to add up yet* row for an empty shelf; build board 301's sheet and push it from both country rows.
+
+*Fixed 8 September.* All three. `Kati.Screens.CountryPickerFa` is board 301 — a sheet, Iran marked before any choice and marked without storing it, matching by Persian name, English name or code. `Kati.ScreenMyServicesFaTest` holds every part of it.
+
+*One deviation, and it is a decision already made.* 301 draws the field as «جست‌وجو در ۱۹۰ کشور» and argues seven rows do not need filtering but the sentence should speak correctly about the list. That is the argument #78 was filed against on screen 94, whose fix was to count what the field actually filters. The Persian placeholder counts `Kati.Services.countries/0` and prints it in Persian digits; the sheet's moduledoc says so.
+
+*Two things board 324 draws that were not built, both deliberately.* Its rules card carries the empty-state third sentence — «خاموش به‌طور پیش‌فرض — با هیچ سرویسی همه‌چیز پنهان می‌شد» — where 97 draws the full one that board 310 counted; board 323, which 324's own note defers to, rules that the rules group is ONE group with one sentence, and 310 is the board that counted it. And 324 omits the *مال من نیست* eyebrow and the catalogue row, where screen 93 draws both on the same state in English; two locales showing a different number of groups for one state would be a drift, so 97 keeps them.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

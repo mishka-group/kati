@@ -313,7 +313,14 @@ defmodule Kati.Screens.Gallery do
     # to see why* with nothing behind it since they were written; this is the
     # screen that was missing. Reachable from 80 and 82, and here for the same
     # reason as its neighbours.
-    {:open_undrawn_retired_reason, "Why not in v1", Kati.Screens.RetiredReason}
+    {:open_undrawn_retired_reason, "Why not in v1", Kati.Screens.RetiredReason},
+    # Board 301, the Persian country sheet. It is reachable — screen 97's
+    # country row opens it, which is the door that row has never had — and it
+    # is here for its neighbours' reason: the one list that checks every screen
+    # has to be able to open it. 301 is in `test/design/incoming/` rather than
+    # `screens/` because its frame is a sheet drawn beside three notes about
+    # what screens 94 and 97 got wrong, not a numbered artboard of one page.
+    {:open_undrawn_country_picker_fa, "کشور شما", Kati.Screens.CountryPickerFa}
   ]
 
   # Numbers whose page has left this list, and the route that took it.

@@ -101,7 +101,7 @@ about; the right is the section of `D-65` it answers.
 | 321 | 86 — nothing to suggest from | `D-65` 86 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 322 | 88 — deferred, withdrawn, and one pill | `D-65` 88 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 323 | 93 — live, or a specimen | `D-65` 93 | — **built 8 Sep**, kept here: it is a ruling about one group rather than a frame of a screen |
-| 324 | ۹۷ — فارسی، هیچ‌چیز تنظیم نشده | `D-65` 97 |
+| 324 | ۹۷ — فارسی، هیچ‌چیز تنظیم نشده | `D-65` 97 | — **built 8 Sep**, kept here: 97's board is the full page, and this is a state of it |
 | 325 | Year card · the field face, 4:5 at size | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 326 | Year card · the genres face + the heading | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 327 | 112 — medications, nothing due today | `D-65` 112 |
@@ -240,7 +240,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 298 | پایش انتشار — Release watcher, RTL | `D-57` |
 | 299 | هدف تازه — New goal, RTL | `D-57` |
 | 300 | ثبت وزن — Log weight, RTL | `D-57` |
-| 301 | کشور — Your country, RTL | `D-57` |
+| 301 | کشور — Your country, RTL | `D-57` | — **built 8 Sep**, kept here: the frame is a sheet drawn beside three notes about what 94 and 97 got wrong |
 | 302 | One service | `D-62` |
 | 303 | Lending | `D-62` |
 | 304 | What a prep is | `D-42` §3 |

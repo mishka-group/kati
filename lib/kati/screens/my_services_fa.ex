@@ -193,7 +193,15 @@ defmodule Kati.Screens.MyServicesFa do
     none_yet: "هنوز هیچ‌کدام",
     no_services: "هنوز سرویسی اضافه نشده",
     no_services_why:
-      "آن‌هایی را که مشترکشان هستید روشن کنید تا کاتی چیزهایی را که نمی‌توانید ببینید نشان ندهد."
+      "آن‌هایی را که مشترکشان هستید روشن کنید تا کاتی چیزهایی را که نمی‌توانید ببینید نشان ندهد.",
+    # Board 324's two empty-state rows, said in Persian. Both are screen 93's
+    # sentences one language over: the country row is the page's precondition
+    # rather than one of its settings, and the money row is a statement that
+    # nothing has been totalled rather than a total of nothing.
+    pick_country: "کشورتان را انتخاب کنید",
+    pick_country_why: "تا این تنظیم نشود چیزی کار نمی‌کند",
+    nothing_to_add: "هنوز چیزی برای جمع‌زدن نیست",
+    subscriptions: "اشتراک‌ها"
   }
 
   # The seven countries `Kati.Services.countries/0` offers, in Persian. Keyed by
@@ -347,18 +355,30 @@ defmodule Kati.Screens.MyServicesFa do
   end
 
   @doc """
-  The country this sheet answers *available* for.
+  The country this sheet answers *available* for, or `nil` when nobody has
+  said.
 
-  `Kati.Services.region/0`, with one substitution: its `"GB"` is a default
-  rather than a choice — its own doc says so, and the drawings it names are the
-  English ones. Screen 97 was captured in Iran. See the moduledoc for what the
-  substitution costs and the one function upstream that would remove it.
+  `Kati.Services.chosen_region/0`, which is the read that can answer *no
+  country*. This used to be `Kati.Services.region/0` with its `"GB"` default
+  rewritten to `"IR"`, on the argument that the default is a working assumption
+  and screen 97 was captured in Iran. Board 324 is the case that argument does
+  not survive: on the row the page itself calls its precondition, a substituted
+  country is a country the reader never picked, printed as though they had.
+
+  `nil` is drawn by `region_group/1` as 324's cream *choose a country* row —
+  screen 93's row, one language over — so the page says what is missing rather
+  than filling it in.
   """
-  @spec region() :: String.t()
+  @spec region() :: String.t() | nil
   def region do
-    case Services.region() do
-      "GB" -> "IR"
-      code -> code
+    case Services.chosen_region() do
+      code when is_binary(code) and code != "" -> code
+      # Board 324. This used to read `Services.region/0` and rewrite its `"GB"`
+      # default to `"IR"`, which put **ایران** under a reader who had chosen
+      # nothing — a country invented for them, on the one row the page calls
+      # its own precondition. `chosen_region/0` is the read that can say *no
+      # country*, and `region_group/1` draws 324's cream row for it.
+      _unchosen -> nil
     end
   end
 
@@ -382,7 +402,36 @@ defmodule Kati.Screens.MyServicesFa do
   than coloured, and it is the same node on both sheets because a flag does not
   translate.
   """
-  @spec region_group(String.t()) :: map()
+  @spec region_group(String.t() | nil) :: map()
+  def region_group(nil) do
+    tile =
+      Kati.Components.MishkaThemeIcon.theme_icon(
+        %{variant: :filled, color: Palette.cream(), size: 40, radius: 12},
+        [UI.symbol("public", size: 20, color: Palette.gold_icon())]
+      )
+
+    body = Kati.Screens.MyServicesFa.body(@copy.pick_country, @copy.pick_country_why)
+
+    card =
+      SettingsList.card([
+        SettingsList.row(tile, body, SettingsList.trailing(Kati.Screens.MyServicesFa.chevron()),
+          on_tap: {self(), :pick_country},
+          rule: false
+        )
+      ])
+
+    note = DataSourcesFa.note(@copy.availability)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {card}
+      <Spacer size={11} />
+      {note}
+      <Spacer size={24} />
+    </Column>
+    """
+  end
+
   def region_group(code) do
     tile = MyServices.flag_tile(Services.flag(code))
     name = Kati.Screens.MyServicesFa.region_name(code)
@@ -391,6 +440,9 @@ defmodule Kati.Screens.MyServicesFa do
     card =
       SettingsList.card([
         SettingsList.row(tile, body, SettingsList.trailing(Kati.Screens.MyServicesFa.chevron()),
+          # The chevron promised a push and nothing answered it, because there
+          # was no Persian picker to push. Board 301 built one.
+          on_tap: {self(), :pick_country},
           rule: false
         )
       ])
@@ -828,6 +880,24 @@ defmodule Kati.Screens.MyServicesFa do
   English `if count == 1` has no twin here.
   """
   @spec money_group([map()]) :: map()
+  def money_group([]) do
+    card =
+      SettingsList.card([
+        SettingsList.row(
+          SettingsList.icon_tile("payments"),
+          Kati.Screens.MyServicesFa.body(@copy.nothing_to_add, @copy.subscriptions),
+          SettingsList.trailing(Kati.Screens.MyServicesFa.chevron()),
+          rule: false
+        )
+      ])
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {card}
+    </Column>
+    """
+  end
+
   def money_group(services) do
     count = Digits.to_persian(length(services)) <> " " <> @copy.services
     total = Kati.Screens.MyServicesFa.amount(Sample.monthly_total()) <> " " <> @copy.a_month
@@ -908,6 +978,13 @@ defmodule Kati.Screens.MyServicesFa do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  # Board 324's country row, and board 301's sheet behind it. Screen 97 has
+  # never had a door to the picker — the chosen-country row draws a chevron and
+  # carries no tap, which was survivable while the row only reported a country
+  # and is not while it asks for one.
+  def handle_info({:tap, :pick_country}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.CountryPickerFa)}
 
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
