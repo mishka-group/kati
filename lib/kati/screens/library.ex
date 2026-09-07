@@ -802,24 +802,34 @@ defmodule Kati.Screens.Library do
   One item, so the panel is small on purpose. It grows when 03 grows, and it
   has: the two below are #94's doing.
 
-  ## The two that joined it, and what they are waiting for
+  ## The one that joined it, and what it is waiting for
 
-  `Kati.Screens.ShelfFilters` and `Kati.Screens.ShelfSelection` are finished
-  screens whose drawn entries do not exist. 145's is *"a trailing filter disc
-  in the header of screens 03, 20 and 21"* and none of the three boards has one;
-  146's is a **long press** on a poster tile, and 04 uses that gesture for
-  something else without either board drawing it.
+  `Kati.Screens.ShelfSelection` is a finished screen whose drawn entry does not
+  exist: 146's is a **long press** on a poster tile, and 04 uses that gesture
+  for something else without either board drawing it. It is here for the reason
+  the ⋯ disc itself is here, in the paragraph above — the alternative was
+  leaving a finished screen unreachable forever. #94 asked for the developer
+  gallery to be deleted, and deleting it without this row would have made a
+  working screen dead code.
 
-  They are here for the reason the ⋯ disc itself is here, in the paragraph
-  above: the alternative was leaving a finished screen unreachable forever.
-  #94 asked for the developer gallery to be deleted, and deleting it without
-  these two rows would have made two working screens dead code.
+  **It is a placeholder for a drawing.** When a long press on a tile is drawn,
+  `ShelfSelection` moves to it and comes out of this menu. Until then a menu row
+  is the honest door — it is reachable, it is named, and it does not pretend to
+  be the gesture the design intends.
 
-  **Both are placeholders for a drawing.** When 03 is redrawn with its filter
-  disc, `ShelfFilters` moves to it and comes out of this menu; the same for a
-  long press on a tile. Until then a menu row is the honest door — it is
-  reachable, it is named, and it does not pretend to be the gesture the design
-  intends.
+  ## `Filter shelf` left, and the sort disc is why — MOVIES-AND-TV.md #109
+
+  145's caption names *"a trailing filter disc in the header of screens 03, 20
+  and 21"*, and this module used to record that none of the three boards has
+  one. Board 03 has the next thing to it: a `sort` disc, in that header,
+  trailing the title, which has opened `Kati.Screens.ShelfFilters` since the
+  shelf could be sorted at all. The board draws exactly two discs — `search`
+  and `sort` — and a *filter* disc beside a *sort* disc opening the same sheet
+  would be two doors into one room from one wall.
+
+  So the finding's second option is the one taken: the sort disc is the
+  permanent entry, and the duplicate menu row is gone. One door, and it is the
+  one the board draws.
   """
   def menu(open?) do
     Kati.UI.Menu.overflow(
@@ -827,7 +837,6 @@ defmodule Kati.Screens.Library do
       open?,
       [
         Kati.UI.Menu.item("schedule", "What fits?", :open_what_fits),
-        Kati.UI.Menu.item("tune", "Filter shelf", :open_shelf_filters),
         Kati.UI.Menu.item("checklist", "Select titles", :open_shelf_selection)
       ],
       dismiss: :close_menu
@@ -1658,15 +1667,12 @@ defmodule Kati.Screens.Library do
      |> Mob.Socket.push_screen(Kati.Screens.WhatFits)}
   end
 
-  # The two rows #94 added. See `menu/1` for why they are menu rows rather than
-  # the gestures the design intends, and for what takes them out of here.
-  def handle_tap(:open_shelf_filters, socket) do
-    {:noreply,
-     socket
-     |> Mob.Socket.assign(:menu?, false)
-     |> Mob.Socket.push_screen(Kati.Screens.ShelfFilters)}
-  end
-
+  # The row #94 added. See `menu/1` for why it is a menu row rather than the
+  # gesture the design intends, and for what takes it out of here.
+  #
+  # Its sibling `:open_shelf_filters` is gone: the sort disc in this screen's
+  # own header has opened `Kati.Screens.ShelfFilters` all along, and a menu row
+  # beside it was a second door into one sheet from one wall (#109).
   def handle_tap(:open_shelf_selection, socket) do
     {:noreply,
      socket
@@ -1686,7 +1692,9 @@ defmodule Kati.Screens.Library do
   # opened it, all four pushes gain a third argument together.
   #
   # 145's caption names *screens 03, 20 and 21*, 03 first, so this disc and
-  # 57's are the two that make the sheet what its own board says it is.
+  # 57's are the two that make the sheet what its own board says it is — and
+  # since #109 this is the ONLY door on 03: the ⋯ menu's `Filter shelf` row
+  # was a second one into the same sheet from the same header.
   def handle_tap(:open_sort, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
 

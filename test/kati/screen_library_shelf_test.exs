@@ -236,6 +236,27 @@ defmodule Kati.ScreenLibraryShelfTest do
       end
     end
 
+    test "the filter sheet has one door, and it is the disc the board draws" do
+      # MOVIES-AND-TV.md #109. Board 145's caption names *a trailing filter
+      # disc in the header of screens 03, 20 and 21*; board 03 draws exactly
+      # two discs — `search` and `sort` — and the sort one has opened the sheet
+      # all along. A `Filter shelf` row in the ⋯ beside it was a second door
+      # into one sheet from one wall.
+      view = mount_screen(Library)
+
+      opened = render_info(view, {:tap, :open_sort})
+      assert navigated_to(opened) == Kati.Screens.ShelfFilters
+
+      drawn = inspect(tree(render_info(view, {:tap, :toggle_menu})), limit: :infinity)
+
+      refute drawn =~ "Filter shelf"
+      refute drawn =~ "open_shelf_filters"
+
+      # The other placeholder row stays: 146's own gesture is a long press, and
+      # nothing draws one.
+      assert drawn =~ "Select titles"
+    end
+
     test "and pressing Screen, which is the one you are on, changes nothing" do
       # An already-selected control keeps its tap — pressing what you are on is
       # how you check you are on it.

@@ -200,7 +200,13 @@ defmodule Kati.ScreenDesignLiteralTest do
   # no travel entity, no location state. `Kati.Meals.MealPlan`'s moduledoc has
   # the argument. The row is replaced by a scheduled switch, which is the same
   # intent expressed in a date the schema actually holds.
-  @retired_symbols [{"49", "auto_mode"}]
+  #
+  # `bookmark` and `inventory_2` are board 12's *Wishlist* and *Owned on disc*
+  # rows, retired under #106 with the two lines they carried: both are
+  # assertions a reader makes about a title and no column holds, and they were
+  # drawn frozen beside two rows that CAN be counted. See
+  # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
+  @retired_symbols [{"49", "auto_mode"}, {"12", "bookmark"}, {"12", "inventory_2"}]
 
   # Lines a screen deliberately does not draw, because what carried them is
   # gone and its absence is the decision. `@retired_symbols`' twin, and the

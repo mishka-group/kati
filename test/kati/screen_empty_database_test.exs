@@ -194,6 +194,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # series those three bands are `[]` and the page is shorter rather than
     # borrowing the board's.
     {"14", Kati.Screens.SeriesMeta},
+    # 12 joined with #106. Two of its four *Kept automatically* rows are the
+    # reader's own counts now — `Rewatches` is a `Kati.Media.Watch` carrying a
+    # `rewatch_number` and `Abandoned` is `status: :dropped` — where all four
+    # were the drawing's numbers on every device. `Rewatches · 0` on an empty
+    # store is a true answer, so the page falls back to its own board for
+    # everything else and this file compares it there.
+    {"12", Kati.Screens.Lists},
     {"05", Kati.Screens.Inbox},
     {"07", Kati.Screens.Stats},
     {"08", Kati.Screens.Film},
@@ -1136,7 +1143,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"128", "cloud_done"},
     {"144", "expand_more"},
     {"144", "visibility_off"},
-    {"149", "undo"}
+    {"149", "undo"},
+    # Board 12's *Wishlist* and *Owned on disc* rows, retired with the two
+    # lines they carried — both are assertions a reader makes and no column
+    # holds. `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this
+    # entry's twin and carries the argument. MOVIES-AND-TV.md #106.
+    {"12", "bookmark"},
+    {"12", "inventory_2"}
   ]
 
   # The floor this screen is actually held to. Three answers, in order: a screen
@@ -1670,6 +1683,19 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # sides differing on a key neither list touches.
       {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
+      # 12 does NOT gate the page. Two of its four *Kept automatically* rows
+      # are the reader's own counts and the rest of the screen is the drawing's,
+      # which is the arrangement screen 03 keeps — so the pair is asked of the
+      # rows themselves: `Rewatches · 0` and `Abandoned · 0` on an empty store,
+      # against the drawing's own two rows. The other two rows were retired
+      # with the lines they carried (MOVIES-AND-TV.md #106).
+      {"12", Kati.Screens.Lists, &Kati.Screens.Lists.kept_rows/0,
+       fn ->
+         [
+           %{icon: "replay", title: "Rewatches", count: "0"},
+           %{icon: "do_not_disturb_on", title: "Abandoned", count: "0"}
+         ]
+       end},
       # 98, 100 and 101 gate on the same map — the subtitle, the hours face and
       # the three titles arrive together or not at all, which is the whole-page
       # rule screens 04 and 08 keep. An empty history answers board 98's card,

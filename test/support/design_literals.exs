@@ -473,6 +473,17 @@ defmodule Kati.DesignLiterals do
       # arithmetic is the half that is right. It draws four now, and the two
       # lines it stopped drawing are the two the repeat was in.
       # MOVIES-AND-TV.md #126.
+      # Board 12's *Kept automatically* card lists four rules and two of them
+      # are assertions nothing stores: `Wishlist` and `Owned on disc` are
+      # things a reader says about a title and no column holds. They were drawn
+      # frozen at the drawing's `12` and `22` on every device, beside two rows
+      # that CAN be counted — `Rewatches` and `Abandoned` are one query each —
+      # and a card where two rows are the reader's library and two are somebody
+      # else's reads as fully real. So they are not drawn rather than drawn
+      # frozen, which is the call #75 made one screen over.
+      # MOVIES-AND-TV.md #106.
+      {"12", "wishlist"},
+      {"12", "owned on disc"},
       {"140", "five more sources"},
       {"140", "simkl · tv time · libib · last.fm · anilist"},
       {"141", "10pt → 5★"},
