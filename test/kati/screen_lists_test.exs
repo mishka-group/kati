@@ -197,14 +197,13 @@ defmodule Kati.ScreenListsTest do
       assert unchanged.assigns.list.count == "1 title"
     end
 
-    test "and coming back from it re-reads the counts and drops the selection" do
+    test "and coming back from it re-reads the counts" do
       # The page was showing what it mounted with: `Rainy Sunday · 0 titles`
-      # one tap after two went in, and `Pick a list for 2 titles` over a list
-      # they were already in. Found on the Pixel_9a.
+      # one tap after two went in. Found on the Pixel_9a.
       {:ok, list} = Kati.Lists.Shelf.create("Rainy Sunday")
       one = shelve!("one", :watching)
 
-      {:ok, socket} = Lists.mount(%{adding: [one.id]}, %{}, Mob.Socket.new(Lists))
+      {:ok, socket} = Lists.mount(%{}, %{}, Mob.Socket.new(Lists))
       assert hd(socket.assigns.lists.made).count == "0 titles"
 
       :ok = Kati.Lists.Shelf.add(list, one.id)
@@ -212,7 +211,6 @@ defmodule Kati.ScreenListsTest do
       {:noreply, back} = Lists.handle_info({:kati, :resumed, nil}, socket)
 
       assert hd(back.assigns.lists.made).count == "1 title"
-      assert back.assigns.adding == [], "the note outlived the act it describes"
     end
 
     test "and deleting the list takes its memberships and nothing else" do
@@ -229,25 +227,76 @@ defmodule Kati.ScreenListsTest do
              "a list holds titles, it does not own them"
     end
 
-    test "and board 146's selection lands in the list that was pressed" do
+    test "and board 146's selection lands in the list that was ticked" do
+      # This used to happen on screen 12, where a selection in hand swapped
+      # every row's verb from *open it* to *add to it*. Board 333 retired that
+      # and put the act on a sheet over the page you are on, so the route is
+      # `Kati.Screens.AddToList` now — same outcome, one gesture, and the row
+      # never changes meaning under the reader.
+      alias Kati.Screens.AddToList
+
       {:ok, list} = Kati.Lists.Shelf.create("Rainy Sunday")
       one = shelve!("one", :watching)
       two = shelve!("two", :watching)
+      members = [{:tracked_title, one.id}, {:tracked_title, two.id}]
 
-      {:ok, socket} =
-        Lists.mount(%{adding: [one.id, two.id]}, %{}, Mob.Socket.new(Lists))
+      {:ok, socket} = AddToList.mount(%{members: members}, %{}, Mob.Socket.new(AddToList))
 
-      assert socket.assigns.adding == [one.id, two.id]
-      assert inspect(Lists.adding_note(socket.assigns.adding), limit: :infinity) =~ "2 titles"
+      assert socket.assigns.members == members
+      assert AddToList.state(hd(socket.assigns.lists), members) == :none
 
-      {:noreply, put} =
-        Lists.handle_tap(String.to_atom("add_to_list_" <> list.id), socket)
+      {:noreply, ticked} =
+        AddToList.handle_info({:tap, String.to_atom("toggle_" <> list.id)}, socket)
 
       assert Kati.Lists.Shelf.detail(list.id).count == "2 titles"
 
-      # And the reader is taken to the list, so the press has a visible result.
-      assert {:push, Kati.Screens.ListDetail, %{id: id}} = Map.get(put.__mob__, :nav_action)
-      assert id == list.id
+      # The sheet stays open and the row now reads as holding all of them —
+      # 333: every tick already committed when it was tapped.
+      assert AddToList.state(hd(ticked.assigns.lists), members) == :all
+      refute Map.get(ticked.__mob__, :nav_action)
+    end
+
+    test "and ticking a list that already holds them all takes them out again" do
+      alias Kati.Screens.AddToList
+
+      {:ok, list} = Kati.Lists.Shelf.create("Rainy Sunday")
+      one = shelve!("one", :watching)
+      members = [{:tracked_title, one.id}]
+      :ok = Kati.Lists.Shelf.add(list, {:tracked_title, one.id})
+
+      {:ok, socket} = AddToList.mount(%{members: members}, %{}, Mob.Socket.new(AddToList))
+      assert AddToList.state(hd(socket.assigns.lists), members) == :all
+
+      {:noreply, off} =
+        AddToList.handle_info({:tap, String.to_atom("toggle_" <> list.id)}, socket)
+
+      assert Kati.Lists.Shelf.detail(list.id).count == "0 titles"
+      assert AddToList.state(hd(off.assigns.lists), members) == :none
+    end
+
+    test "and a book goes in a list beside a film" do
+      alias Kati.Screens.AddToList
+
+      {:ok, list} = Kati.Lists.Shelf.create("Rainy Sunday")
+      film = shelve!("one", :watching)
+
+      book =
+        Ash.create!(Kati.Books.Book, %{title: "The Salt Almanac", author: "Ines Karvel"})
+
+      :ok = Kati.Lists.Shelf.add(list, {:tracked_title, film.id})
+      :ok = Kati.Lists.Shelf.add(list, {:book, book.id})
+
+      detail = Kati.Lists.Shelf.detail(list.id)
+
+      assert detail.count == "2 titles"
+      assert Enum.map(detail.titles, & &1.kind) == [:film, :book]
+      assert Enum.map(detail.titles, & &1.title) == ["Test one", "The Salt Almanac"]
+
+      assert Enum.find(detail.titles, &(&1.kind == :book)).sub == "BOOK · INES KARVEL",
+             "board 332 names the kind in words, with the row's own fact after it"
+
+      # And AddToList sees it as held, which is what makes the tick populate.
+      assert AddToList.state(hd(Kati.Lists.Shelf.made()), [{:book, book.id}]) == :all
     end
   end
 

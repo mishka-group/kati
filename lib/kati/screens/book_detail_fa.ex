@@ -1587,6 +1587,17 @@ defmodule Kati.Screens.BookDetailFa do
   def handle_info({:tap, :rate}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
+  # This clause did not exist. The tap fell through to the generic chip clause,
+  # which matched only `status_*` and `format_*`, returned `nil`, and left the
+  # `with` to answer `{:noreply, socket}` — so the one control on this page that
+  # writes nothing at all was the one that promised a list. Board 337.
+  def handle_info({:tap, :add_to_list}, socket) do
+    book = socket.assigns.book || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.BookDetail.member(book), Map.get(book, :title))}
+  end
+
   # تمام شد is a write and then a handover, which is screen 66's `:finish` one
   # language over. The consequence stays in
   # `Kati.Screens.LogProgress.finish_book/1` so the two pages cannot drift

@@ -328,9 +328,13 @@ defmodule Kati.UI.SettingsList do
     # A row that names a screen should open it. Without a tap the whole
     # settings tree is a picture of a settings tree.
     tap = Keyword.get(opts, :on_tap)
+    # Board 330 puts `Remove` behind a long press on a list row — the gesture
+    # 146 already owns for a shelf tile. `nil` registers nothing, which is what
+    # every other caller passes.
+    hold = Keyword.get(opts, :on_long_press)
 
     ~MOB"""
-    <Column fill_width={true} on_tap={tap}>
+    <Column fill_width={true} on_tap={tap} on_long_press={hold}>
       <Row fill_width={true} align="center" padding_top={pad} padding_bottom={pad}>
         {leading}
         <Spacer size={13} />
@@ -431,15 +435,15 @@ defmodule Kati.UI.SettingsList do
     # lines this particular sentence needs and every other row keeps its one.
     lines = Keyword.get(opts, :lines, 1)
 
+    # `fallback: true` is board 331's rule for a title the store could not
+    # answer: *"Untitled sits in secondary ink so it reads as a fallback rather
+    # than a name."* The weight does not change with it — a lighter weight would
+    # read as a disabled row rather than as a missing fact.
+    ink = if Keyword.get(opts, :fallback, false), do: Palette.sub(), else: :on_surface
+
     ~MOB"""
     <Column fill_width={true}>
-      <Text
-        text={title}
-        text_size={13.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Text text={title} text_size={13.5} font_weight="semibold" text_color={ink} max_lines={1} />
       <Spacer size={3} />
       <Text
         text={sub}

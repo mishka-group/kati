@@ -72,17 +72,76 @@ defmodule Kati.Lists.Membership do
       attribute_writable?: true,
       attribute_public?: true
 
+    # Exactly one of the three is set, and the store says so — the CHECK is in
+    # `20260907200000_lists_hold_three_kinds.exs`'s `CREATE TABLE`, because
+    # SQLite will not take an added constraint. `member/1` is how the rest of
+    # the app reads it back.
+    #
     # The durable row, never the cache: a list is about a title the reader
     # keeps, and the cache is evicted.
     belongs_to :tracked_title, Kati.Media.TrackedTitle,
-      allow_nil?: false,
+      allow_nil?: true,
+      attribute_writable?: true,
+      attribute_public?: true
+
+    belongs_to :book, Kati.Books.Book,
+      allow_nil?: true,
+      attribute_writable?: true,
+      attribute_public?: true
+
+    belongs_to :album, Kati.Music.Album,
+      allow_nil?: true,
       attribute_writable?: true,
       attribute_public?: true
   end
 
   identities do
-    identity :one_per_list, [:list_id, :tracked_title_id]
+    # One per kind, matching the three partial unique indexes. Ash cannot express
+    # "unique where not null", so each identity is declared and the store is what
+    # actually holds it — a nil member column is unique against nothing.
+    identity :one_title_per_list, [:list_id, :tracked_title_id]
+    identity :one_book_per_list, [:list_id, :book_id]
+    identity :one_album_per_list, [:list_id, :album_id]
   end
+
+  @doc """
+  Which of the three this membership is, as `{kind, id}` — or `nil`.
+
+      iex> Kati.Lists.Membership.member(%{tracked_title_id: "t", book_id: nil, album_id: nil})
+      {:tracked_title, "t"}
+
+      iex> Kati.Lists.Membership.member(%{tracked_title_id: nil, book_id: "b", album_id: nil})
+      {:book, "b"}
+
+      iex> Kati.Lists.Membership.member(%{tracked_title_id: nil, book_id: nil, album_id: "a"})
+      {:album, "a"}
+
+  `nil` is unreachable through the store — the CHECK forbids it — and is
+  answered rather than raised so a row read from a backup written by a build
+  that predates the constraint cannot take a page down.
+
+      iex> Kati.Lists.Membership.member(%{tracked_title_id: nil, book_id: nil, album_id: nil})
+      nil
+  """
+  @spec member(map()) :: {:tracked_title | :book | :album, String.t()} | nil
+  def member(%{tracked_title_id: id}) when is_binary(id), do: {:tracked_title, id}
+  def member(%{book_id: id}) when is_binary(id), do: {:book, id}
+  def member(%{album_id: id}) when is_binary(id), do: {:album, id}
+  def member(_none), do: nil
+
+  @doc """
+  The column a kind writes into.
+
+      iex> Kati.Lists.Membership.column(:film)
+      :tracked_title_id
+
+      iex> Kati.Lists.Membership.column(:book)
+      :book_id
+  """
+  @spec column(atom()) :: atom()
+  def column(kind) when kind in [:book], do: :book_id
+  def column(kind) when kind in [:album], do: :album_id
+  def column(_title), do: :tracked_title_id
 
   actions do
     defaults [:read, :destroy, create: :*, update: :*]

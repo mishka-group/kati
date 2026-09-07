@@ -283,15 +283,20 @@ defmodule Kati.Screens.Gallery do
     {:open_undrawn_notifications_help, "Why am I not getting these?",
      Kati.Screens.NotificationsHelp},
     {:open_undrawn_sync, "Sync", Kati.Screens.Sync},
-    # Board 12 draws a `chevron_right` on every list row and never drew what it
-    # opens. `Kati.Screens.ListDetail` is that screen, built because the owner
-    # asked for the feature rather than the design gap
-    # ([#99](https://github.com/mishka-group/kati/issues/99)), and it borrows
-    # every object it draws from a board that does exist — see its moduledoc.
-    # It is reachable from screen 12's own rows as well; it is here because a
-    # screen with no drawing has to be openable from the one list that checks
-    # them. MOVIES-AND-TV.md #106.
-    {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail}
+    # The two Lists screens. Boards 330-333 and 335 draw them and arrived on
+    # 7 September, so neither is undrawn any more — what they are is drawn by a
+    # STATE CATALOGUE: 330 stacks the resting page, an open menu, a confirmation
+    # and an undo bar in one frame, and 333 is 1249pt of states in an 806pt
+    # sheet. Neither is a state a screen is ever in, so neither board can be
+    # compared literal-for-literal against a render, and both stay here until a
+    # specimen screen per board is built the way 155 was for 154.
+    #
+    # Both are reachable from the app: `ListDetail` from screen 12's rows, and
+    # `AddToList` from the *Add to list* control on 08, 04, 66, 68, 74, 76 and
+    # 146. They are here because the one list that checks every screen has to be
+    # able to open them. MOVIES-AND-TV.md #106.
+    {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail},
+    {:open_undrawn_add_to_list, "Add to list", Kati.Screens.AddToList}
   ]
 
   # Numbers whose page has left this list, and the route that took it.

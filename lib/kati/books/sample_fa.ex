@@ -282,7 +282,10 @@ defmodule Kati.Books.SampleFa do
       primary: "ثبت پیشرفت",
       finish: "تمام شد",
       rate: "امتیاز",
-      list: "فهرست"
+      # Board 337 rules this string: «فهرست» is a noun, not an action, and the
+      # control writes. «افزودن به فهرست» is the mirror of *Add to list*, and
+      # 76 renders the same one.
+      list: "افزودن به فهرست"
     }
   end
 

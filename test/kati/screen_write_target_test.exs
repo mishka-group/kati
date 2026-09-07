@@ -1323,12 +1323,27 @@ defmodule Kati.ScreenWriteTargetTest do
           into: %{},
           do: {attribute.name, attribute.default != true}
 
+    # Required foreign keys always. OPTIONAL ones at most one per resource,
+    # because filling every one of them is not always a legal row:
+    # `Kati.Lists.Membership` holds a film, a book or an album and the store
+    # carries a CHECK that exactly one of the three is set (migration
+    # `20260907200000`). Filling all three is the only way this seeder ever
+    # produced an illegal row, and one optional FK is enough to make the row
+    # point somewhere.
+    {needed, optional} =
+      Ash.Resource.Info.relationships(resource)
+      |> Enum.filter(&(&1.type == :belongs_to))
+      |> Enum.filter(&Map.has_key?(ids, &1.destination))
+      |> Enum.split_with(fn relationship ->
+        attribute = Ash.Resource.Info.attribute(resource, relationship.source_attribute)
+
+        attribute != nil and not attribute.allow_nil?
+      end)
+
     fks =
-      for relationship <- Ash.Resource.Info.relationships(resource),
-          relationship.type == :belongs_to,
-          id = Map.get(ids, relationship.destination),
+      for relationship <- needed ++ Enum.take(optional, 1),
           into: %{},
-          do: {relationship.source_attribute, id}
+          do: {relationship.source_attribute, Map.get(ids, relationship.destination)}
 
     flags |> Map.merge(required) |> Map.merge(fks)
   end

@@ -68,10 +68,19 @@ defmodule Kati.Lists.Shelf do
         title: list.name,
         count: Kati.Lists.Shelf.count_label(length(rows)),
         badge: Kati.Lists.Shelf.badge(list),
+        # What is in it, as `{kind, id}` — the picker sheet ticks against this,
+        # which is board 182's rule that ticks *arrive populated* rather than
+        # opening blank and inviting the duplicate the tick exists to prevent.
+        members: Enum.map(rows, &Membership.member/1) |> Enum.reject(&is_nil/1),
         seeds:
           rows
           |> Enum.take(3)
-          |> Enum.map(&Map.get(posters, &1.tracked_title_id))
+          |> Enum.map(fn row ->
+            case Membership.member(row) do
+              {_kind, id} -> Map.get(posters, id)
+              nil -> nil
+            end
+          end)
           |> Enum.reject(&is_nil/1)
       }
     end)
@@ -133,15 +142,53 @@ defmodule Kati.Lists.Shelf do
 
   A count of nothing is still drawn: `Abandoned · 0` is a true answer about a
   shelf nobody has dropped anything from, and the row is what tells a reader
-  the rule exists.
+  the rule exists. Board 331 goes further and gives that row its own empty
+  sentence, because *Add to list* is a lie on a shelf you cannot add to.
+
+  ## Why Wishlist and Owned on disc are not here
+
+  Board 333 draws four kept rows in the picker and words the lock as **"Kept by
+  Kati"** — the reason a row is not tickable is that a rule fills it. Two rules
+  exist: a dropped status fills Abandoned, and a watch carrying a rewatch number
+  fills Rewatches. Nothing fills Wishlist or Owned on disc, so locking them with
+  that sentence would state a rule that is not there, and drawing them tickable
+  is what 182 did and 333 overruled. They come back the day a rule does.
   """
   @spec kept() :: [map()]
   def kept do
     [
-      %{icon: "replay", title: "Rewatches", count: Integer.to_string(rewatches())},
-      %{icon: "do_not_disturb_on", title: "Abandoned", count: Integer.to_string(abandoned())}
+      %{
+        id: "kept:rewatches",
+        icon: "replay",
+        title: "Rewatches",
+        count: Integer.to_string(rewatches()),
+        empty_title: "Nothing rewatched",
+        empty_body:
+          "Kati fills this one — log a watch of something you have seen and it lands here."
+      },
+      %{
+        id: "kept:abandoned",
+        icon: "do_not_disturb_on",
+        title: "Abandoned",
+        count: Integer.to_string(abandoned()),
+        empty_title: "Nothing abandoned",
+        empty_body: "Kati fills this one — drop a show and it lands here."
+      }
     ]
   end
+
+  @doc """
+  Whether an id names a kept list rather than a made one.
+
+      iex> Kati.Lists.Shelf.kept?("kept:abandoned")
+      true
+
+      iex> Kati.Lists.Shelf.kept?("8971abd5-7a2b-4854-8305-9cd105c32d7b")
+      false
+  """
+  @spec kept?(String.t() | nil) :: boolean()
+  def kept?(id) when is_binary(id), do: String.starts_with?(id, "kept:")
+  def kept?(_none), do: false
 
   @doc "How many watches the reader has marked as a rewatch."
   @spec rewatches() :: non_neg_integer()
@@ -164,13 +211,17 @@ defmodule Kati.Lists.Shelf do
   end
 
   @doc """
-  Make a list, or answer the one already called that.
+  Make a list, or say the name is taken.
 
-  `{:ok, list}` either way — re-typing a name you already have is how somebody
-  checks whether they already have it, which is `Kati.Screens.AddTitle.cache/1`'s
-  reasoning, and making a second `Rainy Sunday` is not what they asked for.
+  `{:exists, list}` is a different answer from `{:ok, list}` and board 335 is
+  why: the old code returned the existing list and wrote nothing, which was
+  *indistinguishable from making one*. A reader who thought they had two lists
+  called `Rainy Sunday` now learns they have one, and is offered it.
+
+      iex> Kati.Lists.Shelf.create("   ")
+      {:error, :nothing_to_save}
   """
-  @spec create(String.t()) :: {:ok, term()} | {:error, term()}
+  @spec create(String.t()) :: {:ok, term()} | {:exists, term()} | {:error, term()}
   def create(name) do
     trimmed = String.trim(to_string(name))
 
@@ -181,8 +232,34 @@ defmodule Kati.Lists.Shelf do
 
       case Kati.Lists.Shelf.named(key) do
         nil -> Ash.create(Listing, %{name: trimmed, name_key: key})
-        list -> {:ok, list}
+        list -> {:exists, list}
       end
+    end
+  end
+
+  @doc """
+  Rename a list, or say the new name is taken.
+
+  Board 330 ruled rename in — the third thing 181 named as undrawn — and 335
+  rules it reuses the index's own field rather than inventing a second naming
+  grammar. Renaming to the name it already has is `{:ok, list}` and writes
+  nothing, because it is not a collision with itself.
+  """
+  @spec rename(String.t(), String.t()) :: {:ok, term()} | {:exists, term()} | {:error, term()}
+  def rename(list_id, name) do
+    trimmed = String.trim(to_string(name))
+    key = Kati.Import.Job.name_key(trimmed)
+
+    with false <- trimmed == "",
+         {:ok, list} <- Ash.get(Listing, list_id) do
+      case Kati.Lists.Shelf.named(key) do
+        nil -> Ash.update(list, %{name: trimmed, name_key: key})
+        %{id: same} = list when same == list_id -> {:ok, list}
+        clash -> {:exists, clash}
+      end
+    else
+      true -> {:error, :nothing_to_save}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -195,27 +272,30 @@ defmodule Kati.Lists.Shelf do
   end
 
   @doc """
-  Put a title in a list, at the end of it.
+  Put a film, a series, a book or an album in a list, at the end of it.
 
-  Already there is `:ok` and writes nothing: the identity on
-  `{list_id, tracked_title_id}` is what says a title is in a list once, and
-  adding it twice is how somebody checks.
+  The member arrives as `{kind, id}` — `Kati.Lists.Membership.member/1`'s own
+  shape, and `column/1` maps it onto the column the store holds it in. Already
+  there is `:ok` and writes nothing: the partial unique index per kind is what
+  says a title is in a list once, and adding it twice is how somebody checks.
   """
-  @spec add(term(), String.t()) :: :ok | {:error, term()}
-  def add(list, tracked_title_id) do
+  @spec add(term(), {atom(), String.t()} | String.t()) :: :ok | {:error, term()}
+  def add(list, id) when is_binary(id), do: add(list, {:tracked_title, id})
+
+  def add(list, {kind, id}) do
+    column = Membership.column(kind)
+
     existing =
       Membership
       |> Ash.Query.for_read(:for_list, %{list_id: list.id})
       |> Ash.read!()
 
-    if Enum.any?(existing, &(&1.tracked_title_id == tracked_title_id)) do
+    if Enum.any?(existing, &(Map.get(&1, column) == id)) do
       :ok
     else
-      case Ash.create(Membership, %{
-             list_id: list.id,
-             tracked_title_id: tracked_title_id,
-             position: length(existing)
-           }) do
+      attrs = %{list_id: list.id, position: length(existing)} |> Map.put(column, id)
+
+      case Ash.create(Membership, attrs) do
         {:ok, _row} -> :ok
         {:error, reason} -> {:error, reason}
       end
@@ -224,39 +304,69 @@ defmodule Kati.Lists.Shelf do
     error -> {:error, error}
   end
 
-  @doc "Take a title out of a list."
-  @spec remove(String.t(), String.t()) :: :ok
-  def remove(list_id, tracked_title_id) do
+  @doc """
+  Take one member out of a list.
+
+  **Answers the failure.** It used to `rescue _error -> :ok`, and board 335 is
+  the reason that had to stop: *"Nothing moves until the write returns. The
+  optimistic tick, the popped page and the silent reappearing row all come from
+  acting first."* A remove that fails now says so, and the row never left.
+  """
+  @spec remove(String.t(), {atom(), String.t()} | String.t()) :: :ok | {:error, term()}
+  def remove(list_id, id) when is_binary(id), do: remove(list_id, {:tracked_title, id})
+
+  def remove(list_id, {kind, id}) do
+    column = Membership.column(kind)
+
     Membership
     |> Ash.Query.for_read(:for_list, %{list_id: list_id})
     |> Ash.read!()
-    |> Enum.filter(&(&1.tracked_title_id == tracked_title_id))
-    |> Enum.each(&Ash.destroy!/1)
-
-    :ok
+    |> Enum.filter(&(Map.get(&1, column) == id))
+    |> Enum.reduce(:ok, fn row, acc ->
+      case Ash.destroy(row) do
+        :ok -> acc
+        {:ok, _destroyed} -> acc
+        {:error, reason} -> {:error, reason}
+      end
+    end)
   rescue
-    _error -> :ok
-  end
-
-  @doc "Delete a list and everything in it."
-  @spec delete(String.t()) :: :ok
-  def delete(list_id) do
-    case Ash.get(Listing, list_id) do
-      {:ok, list} -> Ash.destroy!(list)
-      _gone -> :ok
-    end
-
-    :ok
-  rescue
-    _error -> :ok
+    error -> {:error, error}
   end
 
   @doc """
-  One list, and the titles in it, shaped the way screen 12's rows are.
+  Delete a list and everything in it.
+
+  Answers the failure for board 335's reason, the same as `remove/2`: the page
+  does not pop until this returns `:ok`, so a reader whose delete failed is
+  still on the list they tried to delete rather than back on an index that
+  still shows it.
+
+  A list that is already gone is `:ok` — the reader asked for it to not be
+  there, and it is not there.
+  """
+  @spec delete(String.t()) :: :ok | {:error, term()}
+  def delete(list_id) do
+    case Ash.get(Listing, list_id) do
+      {:ok, list} ->
+        case Ash.destroy(list) do
+          :ok -> :ok
+          {:ok, _destroyed} -> :ok
+          {:error, reason} -> {:error, reason}
+        end
+
+      _gone ->
+        :ok
+    end
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc """
+  One list, and what is in it, shaped the way screen 12's rows are.
 
   `nil` for a list that is not there — a list deleted on another device is not
-  the same fact as an empty one, which is `Kati.Screens.Film.tracked_film/1`'s
-  rule for the identical question.
+  the same fact as an empty one, which board 331 draws apart and which is
+  `Kati.Screens.Film.tracked_film/1`'s rule for the identical question.
   """
   @spec detail(String.t() | nil) :: map() | nil
   # A push naming no list answers NOTHING, and deliberately not the newest one.
@@ -267,6 +377,30 @@ defmodule Kati.Lists.Shelf do
   # `Remove` writes to a row the reader never chose. The gallery's row shows
   # the empty card, which is the honest thing for a door that names nothing.
   def detail(nil), do: nil
+
+  # A kept list is derived, not stored — `Kati.Lists.Shelf.kept/0`'s two rules
+  # read back as rows. Board 331 draws its empty state apart from a made list's
+  # for the reason its own annotation gives: *Add to list* is a lie on a shelf
+  # you cannot add to, so the sentence names what fills it instead.
+  def detail("kept:" <> which) do
+    row = Enum.find(kept(), &(&1.id == "kept:" <> which))
+
+    row &&
+      %{
+        id: row.id,
+        title: row.title,
+        badge: nil,
+        ranked?: false,
+        shared?: false,
+        kept?: true,
+        empty_title: row.empty_title,
+        empty_body: row.empty_body,
+        count: Kati.Lists.Shelf.count_label(length(kept_titles(which))) <> " · KEPT BY KATI",
+        titles: kept_titles(which)
+      }
+  rescue
+    _error -> nil
+  end
 
   def detail(list_id) do
     case Ash.get(Listing, list_id) do
@@ -282,6 +416,7 @@ defmodule Kati.Lists.Shelf do
           badge: Kati.Lists.Shelf.badge(list),
           ranked?: list.ranked,
           shared?: list.shared,
+          kept?: false,
           count: Kati.Lists.Shelf.count_label(length(rows)),
           titles: Kati.Lists.Shelf.titles_for(rows)
         }
@@ -293,35 +428,160 @@ defmodule Kati.Lists.Shelf do
     _error -> nil
   end
 
-  @doc false
+  # The rows behind a kept list, in the shape `titles_for/1` produces so the two
+  # draw through one recipe. Both read the durable rows and neither writes.
+  defp kept_titles("abandoned") do
+    cached = CachedTitle |> Ash.read!() |> Map.new(&{{&1.source, &1.source_id}, &1})
+
+    TrackedTitle
+    |> Ash.read!()
+    |> Enum.filter(&(&1.status == :dropped and not &1.archived))
+    |> Enum.with_index()
+    |> Enum.map(fn {mine, i} -> title_row(mine, cached, i) end)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp kept_titles("rewatches") do
+    cached = CachedTitle |> Ash.read!() |> Map.new(&{{&1.source, &1.source_id}, &1})
+    tracked = TrackedTitle |> Ash.read!() |> Map.new(&{&1.id, &1})
+
+    Kati.Media.Watch
+    |> Ash.read!()
+    |> Enum.filter(&(is_integer(&1.rewatch_number) and &1.rewatch_number > 1))
+    |> Enum.map(& &1.tracked_title_id)
+    |> Enum.uniq()
+    |> Enum.with_index()
+    |> Enum.map(fn {id, i} -> title_row(Map.get(tracked, id), cached, i) end)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp kept_titles(_unknown), do: []
+
+  @doc """
+  The rows of a list, whatever kinds they are.
+
+  Board 332's claim in code: one 38x54 slot, three fills, three titles on one
+  baseline. `sub` is the second line the board words per kind — `SERIES · 2024`,
+  `BOOK · INES KARVEL`, `ALBUM · KELL OSTRAND` — and `art` says which shape
+  fills the slot, so a square is letterboxed rather than cropped.
+
+  A member whose row has gone is dropped rather than drawn as a hole: the
+  cascade removes memberships with their subject, so this only happens to a
+  file restored from a backup written before the cascade existed.
+  """
   @spec titles_for([term()]) :: [map()]
   def titles_for(rows) do
     tracked = TrackedTitle |> Ash.read!() |> Map.new(&{&1.id, &1})
     cached = CachedTitle |> Ash.read!() |> Map.new(&{{&1.source, &1.source_id}, &1})
+    books = Kati.Books.Book |> Ash.read!() |> Map.new(&{&1.id, &1})
+    albums = Kati.Music.Album |> Ash.read!() |> Map.new(&{&1.id, &1})
+    artists = Kati.Music.Artist |> Ash.read!() |> Map.new(&{&1.id, &1.name})
 
-    for row <- rows, mine = Map.get(tracked, row.tracked_title_id), mine != nil do
-      cache = Map.get(cached, {mine.source, mine.source_id})
-
-      %{
-        id: mine.id,
-        tracked_id: mine.id,
-        title: (cache && cache.title) || "Untitled",
-        seed: cache && cache.poster_path,
-        kind: if(Kati.Media.Anime.film?(mine.kind, cache), do: :film, else: :series),
-        position: row.position
-      }
-    end
+    rows
+    |> Enum.map(fn row ->
+      case Membership.member(row) do
+        {:tracked_title, id} -> title_row(Map.get(tracked, id), cached, row.position)
+        {:book, id} -> book_row(Map.get(books, id), row.position)
+        {:album, id} -> album_row(Map.get(albums, id), artists, row.position)
+        nil -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
   end
 
-  # Every tracked title's poster, keyed by the id a membership names it with.
+  defp title_row(nil, _cached, _position), do: nil
+
+  defp title_row(mine, cached, position) do
+    cache = Map.get(cached, {mine.source, mine.source_id})
+    kind = if Kati.Media.Anime.film?(mine.kind, cache), do: :film, else: :series
+
+    %{
+      id: mine.id,
+      tracked_id: mine.id,
+      member: {:tracked_title, mine.id},
+      title: (cache && cache.title) || "Untitled",
+      titled?: not is_nil(cache && cache.title),
+      seed: cache && cache.poster_path,
+      art: :poster,
+      kind: kind,
+      sub: Kati.Lists.Shelf.sub_line(kind, cache && cache.first_release_year),
+      position: position
+    }
+  end
+
+  defp book_row(nil, _position), do: nil
+
+  defp book_row(book, position) do
+    %{
+      id: book.id,
+      tracked_id: nil,
+      member: {:book, book.id},
+      title: book.title,
+      titled?: true,
+      seed: book.cover_seed,
+      art: :cover,
+      kind: :book,
+      sub: Kati.Lists.Shelf.sub_line(:book, book.author),
+      position: position
+    }
+  end
+
+  defp album_row(nil, _artists, _position), do: nil
+
+  defp album_row(album, artists, position) do
+    %{
+      id: album.id,
+      tracked_id: nil,
+      member: {:album, album.id},
+      title: album.title,
+      titled?: true,
+      seed: album.art_seed,
+      # The square. Board 332: 38x38 centred in the 38x54 slot, with 8px of the
+      # slot's own colour showing above and below — "a square reads as art in a
+      # slot rather than art with a frame".
+      art: :square,
+      kind: :album,
+      sub: Kati.Lists.Shelf.sub_line(:album, Map.get(artists, album.artist_id)),
+      position: position
+    }
+  end
+
+  @doc """
+  A row's second line, in the words board 332 gives each kind.
+
+      iex> Kati.Lists.Shelf.sub_line(:series, 2024)
+      "SERIES · 2024"
+
+      iex> Kati.Lists.Shelf.sub_line(:book, "Ines Karvel")
+      "BOOK · INES KARVEL"
+
+  Board 331: a title with no metadata still names its kind, because the kind is
+  a thing the store knows even when the cache is gone.
+
+      iex> Kati.Lists.Shelf.sub_line(:film, nil)
+      "FILM · NO DETAILS YET"
+  """
+  @spec sub_line(atom(), term()) :: String.t()
+  def sub_line(kind, nil), do: String.upcase(to_string(kind)) <> " · NO DETAILS YET"
+
+  def sub_line(kind, fact),
+    do: String.upcase(to_string(kind)) <> " · " <> String.upcase(to_string(fact))
+
+  # Every member's artwork seed, keyed the way a membership names it.
   @doc false
   @spec posters() :: %{String.t() => String.t() | nil}
   def posters do
     cached = CachedTitle |> Ash.read!() |> Map.new(&{{&1.source, &1.source_id}, &1.poster_path})
 
-    TrackedTitle
-    |> Ash.read!()
-    |> Map.new(&{&1.id, Map.get(cached, {&1.source, &1.source_id})})
+    titles =
+      TrackedTitle
+      |> Ash.read!()
+      |> Map.new(&{&1.id, Map.get(cached, {&1.source, &1.source_id})})
+
+    books = Kati.Books.Book |> Ash.read!() |> Map.new(&{&1.id, &1.cover_seed})
+    albums = Kati.Music.Album |> Ash.read!() |> Map.new(&{&1.id, &1.art_seed})
+
+    titles |> Map.merge(books) |> Map.merge(albums)
   rescue
     _error -> %{}
   end

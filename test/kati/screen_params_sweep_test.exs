@@ -206,29 +206,14 @@ defmodule Kati.ScreenParamsSweepTest do
   # reason that applies to anything below — that case is `@empty_builders`, and
   # a door in that state fails the assertion over THAT list instead.
   @bare_pushes [
-    # ── Onto screen 12, which reads `:adding` since MOVIES-AND-TV.md #106.
+    # ── Screen 12 takes NO params, as of board 333.
     #
-    # That param is board 146's SELECTION — the titles *Add to list* was
-    # pressed over — and it turns a list row from *open this* into *put these
-    # in it*. Every push here has no selection to carry and should not invent
-    # one:
-    #
-    #   * Library's `Lists` tile is a door to the page, not an act on a title.
-    #   * Book and Album detail's `Add to list` names a `Kati.Books.Book` or a
-    #     `Kati.Music.Album`, and `Kati.Lists.Membership` references
-    #     `Kati.Media.TrackedTitle`. Screen 12's own moduledoc says the shell
-    #     will hold book and album lists; the join for them does not exist, so
-    #     these two carry nothing until it does rather than carrying an id
-    #     from the wrong table.
-    #   * `ListDetail`'s own `Your lists` pill is on the card for a list that
-    #     is GONE — there is no selection and no list, which is the whole of
-    #     what the card says.
-    {Kati.Screens.Library, :open_lists, Kati.Screens.Lists},
-    {Kati.Screens.ListDetail, :open_lists, Kati.Screens.Lists},
-    {Kati.Screens.AlbumDetail, :add_to_list, Kati.Screens.Lists},
-    {Kati.Screens.AlbumDetailFa, :add_to_list, Kati.Screens.Lists},
-    {Kati.Screens.BookDetail, :add_to_list, Kati.Screens.Lists},
-    {Kati.Screens.BookDetailDark, :add_to_list, Kati.Screens.Lists},
+    # It used to read `:adding` — board 146's selection — and turn a list row
+    # from *open this* into *put these in it*. 333 retired that route: a title
+    # goes into a list from `Kati.Screens.AddToList`, a sheet over the page you
+    # are on, so a row never changes meaning under the reader. Both doors that
+    # remain are doors to the page and have nothing to name, which is why they
+    # are no longer listed here at all.
     # ── The `+` FAB, and screen 07's music twin, onto screen 06.
     #
     # Screen 06 reads a `:query` since MOVIES-AND-TV.md #93 — screen 18's
@@ -1214,9 +1199,15 @@ defmodule Kati.ScreenParamsSweepTest do
   # params to `:params` (`pushed.ex:56-58`), so a screen built on that macro
   # reads them off the socket; a hand-rolled `use Mob.Screen` screen writes its
   # own `mount/3` and reads the argument directly.
+  # A third spelling, added with `Kati.Screens.AddToList`: a screen that hands
+  # its whole params map to one function and reads the keys there. The two
+  # above are the two the app happened to write first — this one keeps the
+  # reading in one place, which is what a sheet with three accepted shapes
+  # wants, and it is still a reader.
   defp reader?(source) do
     source =~ ~r/socket\.assigns\.params/ or
-      (source =~ ~r/^  def mount\(params,/m and source =~ ~r/Map\.get\(\s*params/)
+      (source =~ ~r/^  def mount\(params,/m and source =~ ~r/Map\.get\(\s*params/) or
+      (source =~ ~r/^  def mount\(params,/m and source =~ ~r/params\[:/)
   end
 
   # Every `:key` the file takes out of the params map, following one rebinding
@@ -1227,6 +1218,8 @@ defmodule Kati.ScreenParamsSweepTest do
     |> key_pattern()
     |> Regex.scan(source, capture: :all_but_first)
     |> List.flatten()
+    # Two capture groups, one per spelling — the unused one is an empty string.
+    |> Enum.reject(&(&1 == ""))
     |> Enum.map(&String.to_atom/1)
     |> Enum.uniq()
     |> Enum.sort()
@@ -1243,7 +1236,15 @@ defmodule Kati.ScreenParamsSweepTest do
       |> Enum.uniq()
       |> Enum.map_join("|", &Regex.escape/1)
 
-    Regex.compile!("Map\\.get\\(\\s*(?:#{names})\\s*(?:\\|\\|\\s*%\\{\\}\\s*)?,\\s*:([a-z_]+)")
+    # Two spellings of the same read: `Map.get(params, :key)` and the access
+    # form `params[:key]`. `Kati.Screens.AddToList` uses the second throughout
+    # `members/1`, and until this scan followed it the fallback lock passed over
+    # that screen checking nothing — which is the exact failure this test's own
+    # message warns about for `Kati.Screens.Season`.
+    Regex.compile!(
+      "Map\\.get\\(\\s*(?:#{names})\\s*(?:\\|\\|\\s*%\\{\\}\\s*)?,\\s*:([a-z_]+)" <>
+        "|(?:#{names})\\[:([a-z_]+)\\]"
+    )
   end
 
   # Comments, `@doc` and `@moduledoc` removed. The word this file asks about

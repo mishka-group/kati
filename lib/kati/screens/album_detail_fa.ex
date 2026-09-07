@@ -132,7 +132,8 @@ defmodule Kati.Screens.AlbumDetailFa do
     note: "یادداشت شما",
     primary: "ثبت شنیدن",
     rate: "امتیاز",
-    list: "فهرست"
+    # Board 337: the same string 69 renders — a verb, because the control writes.
+    list: "افزودن به فهرست"
   }
 
   # Keyed by position rather than listed, because the position is what survives
@@ -1005,8 +1006,14 @@ defmodule Kati.Screens.AlbumDetailFa do
   def handle_info({:tap, :rate}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
-  def handle_info({:tap, :add_to_list}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Album"})}
+  # Board 337: the Persian picker, over this page. It pushed screen 12 — an
+  # English LTR page with a Latin back label — until 7 September.
+  def handle_info({:tap, :add_to_list}, socket) do
+    album = socket.assigns.album || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.AlbumDetail.member(album), Map.get(album, :title))}
+  end
 
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}

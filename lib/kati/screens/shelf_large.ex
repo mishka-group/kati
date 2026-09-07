@@ -263,6 +263,18 @@ defmodule Kati.Screens.ShelfLarge do
   10% tint — `rgba(180,85,60,.1)` — the same pairing
   `Kati.Screens.SeriesSettings.danger_tile/1` uses for its 30pt tile, restated
   here at the row's own full width because that tile has no full-width form.
+
+  ## Why these three stay pictures, and board 334
+
+  334 lists 147 among the screens whose *Add to list* gains a tap. It does not
+  get one, and the reason is the one this screen exists for: 147 is 146 at 235%,
+  drawn over a fixture selection whose ids name no row. A tap here would push
+  the picker over nothing — `Kati.Lists.Door.open_many/2` answers the socket
+  unchanged for an empty selection — which is a live affordance that does
+  nothing, the exact thing the ledger was closed against.
+
+  146's row is wired, and 147 is a picture of 146. The day this screen draws a
+  real selection is the day the tap belongs on it.
   """
   @spec action_row(String.t(), String.t(), non_neg_integer(), non_neg_integer()) :: map()
   def action_row(icon, label, background, ink) do

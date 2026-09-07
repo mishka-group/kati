@@ -124,7 +124,13 @@ defmodule Kati.Backup.Upgrade do
       # members and neither can be derived: a list is a thing the reader made
       # and named, and its order is a thing they chose. A restored version-15
       # file therefore has no lists — which is what that device had.
-      {15, 16, &unchanged/1}
+      {15, 16, &unchanged/1},
+      # `list_memberships` gained `book_id` and `album_id`, and
+      # `tracked_title_id` stopped being `NOT NULL` — a list holds a film, a
+      # series, a book or an album now (board 332). Nothing moves: a version-16
+      # row carries `tracked_title_id` and takes `NULL` for the other two, which
+      # is the shape the 10 -> 11 `private` step had.
+      {16, 17, &unchanged/1}
     ]
 
   @doc """

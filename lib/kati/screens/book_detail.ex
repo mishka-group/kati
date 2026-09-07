@@ -1076,6 +1076,19 @@ defmodule Kati.Screens.BookDetail do
   # page opened on the third book logged a session against the first — #84. The
   # sample has no id, and a sheet handed none still falls back to the drawing,
   # which is what the empty-database sweep renders.
+  @doc """
+  This page's member tuple for a list, or `nil` for a drawn fixture.
+
+      iex> Kati.Screens.BookDetail.member(%{id: "abc"})
+      {:book, "abc"}
+
+      iex> Kati.Screens.BookDetail.member(%{title: "Drawn"})
+      nil
+  """
+  @spec member(map()) :: {atom(), String.t()} | nil
+  def member(%{id: id}) when is_binary(id), do: {:book, id}
+  def member(_drawn), do: nil
+
   @doc false
   def handle_tap(:log_progress, socket),
     do:
@@ -1089,8 +1102,14 @@ defmodule Kati.Screens.BookDetail do
   def handle_tap(:rate, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
-  def handle_tap(:add_to_list, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+  # Board 334: the sheet, over this page, carrying this book — not the index
+  # carrying nothing, which is what it pushed until 7 September.
+  def handle_tap(:add_to_list, socket) do
+    book = socket.assigns.book || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.BookDetail.member(book), Map.get(book, :title))}
+  end
 
   # `Finish` is a write, not a navigation: it sets the book finished and then
   # hands to screen 33, which is the same handover screen 70's `Finished the

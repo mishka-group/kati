@@ -1107,6 +1107,8 @@ defmodule Kati.Screens.Series do
           </Row>
         </Box>
         <Spacer size={10} />
+        {Kati.Screens.Series.list_disc(s)}
+        <Spacer size={10} />
         {Kati.Screens.Series.follow_disc(s)}
         <Spacer size={10} />
         {Kati.Screens.Series.rate_disc(s)}
@@ -1163,6 +1165,24 @@ defmodule Kati.Screens.Series do
       _id ->
         ink = if Map.get(s, :followed?), do: Palette.accent()
         action_disc("bookmark", {self(), :toggle_follow}, ink)
+    end
+  end
+
+  @doc """
+  The bookmark disc board 334 puts in the first circular slot.
+
+  *"Same slot, same glyph, same label on both"* — 08 and 04 — because both 181's
+  empty card and 182's sheet promise *"open a film, book or album and tap Add to
+  list"*, and until 7 September no title page had one.
+
+  A drawn series has no tracked id and keeps a picture of the disc, which is
+  the honest state for a show with no row behind it — `follow_disc/1`'s own rule.
+  """
+  @spec list_disc(map()) :: map()
+  def list_disc(s) do
+    case Map.get(s, :tracked_id) do
+      nil -> action_disc("bookmarks")
+      _id -> action_disc("bookmarks", {self(), :add_to_list})
     end
   end
 
@@ -1462,6 +1482,14 @@ defmodule Kati.Screens.Series do
 
   def handle_info({:tap, :toggle_follow}, socket),
     do: {:noreply, Kati.Screens.Series.follow(socket)}
+
+  # Board 334's door, over this page and carrying this show.
+  def handle_info({:tap, :add_to_list}, socket) do
+    series = socket.assigns.series || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Lists.Door.title_member(series), Map.get(series, :title))}
+  end
 
   @doc """
   Keep this show off a shared card, or put it back — screen 08's own write,

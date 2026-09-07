@@ -907,6 +907,19 @@ defmodule Kati.Screens.AlbumDetail do
   # RESOLVED is the drawing whenever the id it was NAMED has been deleted, the
   # drawing has no `:id`, and `%{}` sends the sheet back to the shelf's first.
   # `target/1`'s doc has the whole of it.
+  @doc """
+  This page's member tuple for a list, or `nil` for a drawn fixture.
+
+      iex> Kati.Screens.AlbumDetail.member(%{id: "abc"})
+      {:album, "abc"}
+
+      iex> Kati.Screens.AlbumDetail.member(%{title: "Drawn"})
+      nil
+  """
+  @spec member(map()) :: {atom(), String.t()} | nil
+  def member(%{id: id}) when is_binary(id), do: {:album, id}
+  def member(_drawn), do: nil
+
   @doc false
   def handle_tap(:log_listen, socket),
     do:
@@ -948,8 +961,13 @@ defmodule Kati.Screens.AlbumDetail do
          Kati.Screens.RateAlbum.params_for(%{id: Kati.Screens.AlbumDetail.target(socket.assigns)})
        )}
 
-  def handle_tap(:add_to_list, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Album"})}
+  # Board 334: the sheet over this page, carrying this album.
+  def handle_tap(:add_to_list, socket) do
+    album = socket.assigns.album || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.AlbumDetail.member(album), Map.get(album, :title))}
+  end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

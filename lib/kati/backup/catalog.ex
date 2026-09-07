@@ -102,10 +102,14 @@ defmodule Kati.Backup.Catalog do
   #     which for `anime_override` is `NULL`: *I have not said*, and that is
   #     the truth about every title written before there was anywhere to say
   #     it.
+  #   * **17** — `list_memberships` gained `book_id` and `album_id`, and
+  #     `tracked_title_id` became nullable: a list holds a film, a series, a
+  #     book or an album (board 332). Exactly one of the three is set, and the
+  #     store holds that with a CHECK.
   #   * **16** — `lists` and `list_memberships` arrived: hand-made lists and
   #     what is in them. A version-15 file has neither and neither can be
   #     derived, so a restored 15 has no lists — which is what that device had.
-  @schema_version 16
+  @schema_version 17
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -153,12 +157,11 @@ defmodule Kati.Backup.Catalog do
     # every change to it overwrites the one before. Losing this on a restore
     # would leave a shelf with no story behind it, which is what screen 15 is.
     %{table: "media_events", resource: Kati.Media.Event, drop: []},
-    # Hand-made lists, and what is in them. Nothing derives either: a list is a
-    # thing the reader made and named, and its order is a thing they chose.
-    # `list_memberships` comes after `lists` and after `tracked_titles`,
-    # because `entries/0` is in foreign-key order.
+    # Hand-made lists. Nothing derives one: a list is a thing the reader made and
+    # named. `list_memberships` is NOT here — it points at `books` and
+    # `music_albums` as well as `tracked_titles` now, and `entries/0` is in
+    # foreign-key order, so it sits below all three.
     %{table: "lists", resource: Kati.Lists.List, drop: []},
-    %{table: "list_memberships", resource: Kati.Lists.Membership, drop: []},
     %{table: "foods", resource: Kati.Meals.Food, drop: []},
     %{table: "recipes", resource: Kati.Meals.Recipe, drop: []},
     %{
@@ -188,6 +191,9 @@ defmodule Kati.Backup.Catalog do
     %{table: "music_albums", resource: Kati.Music.Album, drop: []},
     %{table: "music_tracks", resource: Kati.Music.Track, drop: []},
     %{table: "music_listens", resource: Kati.Music.Listen, drop: []},
+    # What is in each list, written after all three tables a membership can
+    # point at. Its order is a thing the reader chose and nothing derives it.
+    %{table: "list_memberships", resource: Kati.Lists.Membership, drop: []},
     # What you pay for and what you have said is not yours. JustWatch can list
     # every service in a country; only this device knows which three of them
     # are on your card, what they cost you, and which ones you have ruled out.

@@ -686,7 +686,23 @@ defmodule Kati.ScreenTapSweepTest do
     # that behaved differently from the page it mirrors would be the defect
     # worth catching, and it would show up as one of these going live alone.
     {Kati.Screens.BookDetailFa, :finish},
+    # `add_to_list` on the four detail pages, and why it reads inert HERE and
+    # only here. Board 334 wired all four on 7 September: each now pushes
+    # `Kati.Screens.AddToList` carrying the member the page is about, and on a
+    # real book or album the sheet opens with its ticks populated. On a DRAWN
+    # fixture there is no row — `Kati.Screens.BookDetail.member/1` answers `nil`
+    # for a map with no id — and `Kati.Lists.Door.open/3` then answers the
+    # socket unchanged rather than pushing a sheet that would write to a row the
+    # reader never chose.
+    #
+    # This is `Kati.Screens.Series.follow_disc/1`'s rule, one page over: a
+    # control over a picture stays a picture. The sweep mounts the drawing, so
+    # the drawing is what it sees.
     {Kati.Screens.BookDetailFa, :add_to_list},
+    {Kati.Screens.BookDetail, :add_to_list},
+    {Kati.Screens.BookDetailDark, :add_to_list},
+    {Kati.Screens.AlbumDetail, :add_to_list},
+    {Kati.Screens.AlbumDetailFa, :add_to_list},
     {Kati.Screens.BookDetailFa, :open_series},
     {Kati.Screens.BookDetailFa, :open_lending},
     {Kati.Screens.BookDetailFa, :status_reading},

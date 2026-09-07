@@ -940,11 +940,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     Kati.Screens.InboxNotifications,
     Kati.Screens.NotificationsHelp,
     Kati.Screens.Sync,
-    # Board 12 draws a `chevron_right` on every list row and never drew what it
-    # opens, so this screen has no drawing either. It reads two stores — the
-    # list, and the titles in it — and a push naming no list answers `nil`,
-    # which is its own drawn sentence rather than an empty list somebody still
-    # has. MOVIES-AND-TV.md #106.
+    # The two Lists screens. Boards 330-333 and 335 draw them and arrived on
+    # 7 September, so "no drawing" is no longer the reason — what they are is
+    # **state catalogues**: 330 stacks the resting page, an open menu, a
+    # confirmation and an undo bar in one frame, and 333 is 1249px of states in
+    # an 806px sheet. Neither is a state a screen is ever in, so neither can be
+    # compared literal-for-literal against a render.
+    #
+    # The repo's answer to that is a specimen screen per states board — 155 for
+    # 154, 95 for 92 — and those are not built yet. Until they are, these two
+    # skip the literal comparison and keep the render, which is what this list
+    # is for. MOVIES-AND-TV.md #106.
+    Kati.Screens.AddToList,
     Kati.Screens.ListDetail
   ]
 
@@ -973,13 +980,28 @@ defmodule Kati.ScreenEmptyDatabaseTest do
 
   # The same exception for an `@undrawn` screen, and the same argument.
   # `Kati.Screens.ListDetail` with nothing stored is one page saying one thing —
-  # *this list is gone*, why nothing was lost with it, and the two ways on. It
-  # cannot be thirteen strings without padding, and padding an empty state is
-  # the opposite of what the floor is for.
+  # *this list is gone* and the one way on. It cannot be thirteen strings
+  # without padding, and padding an empty state is the opposite of what the
+  # floor is for.
+  #
+  # 9 until board 331 drew this state, which is the direction a floor is
+  # allowed to move for: the page used to carry a second sentence about what
+  # was not lost and an info note underneath, and 331 draws neither — a gone
+  # list gets an eyebrow, a glyph, two lines and a pill back to the index,
+  # *"because the page you came from no longer exists."* Seven strings is the
+  # drawing, not a shrink.
   #
   # Named with a number, so a page that shrinks further still fails.
   # MOVIES-AND-TV.md #106.
-  @small_undrawn %{Kati.Screens.ListDetail => 9}
+  @small_undrawn %{
+    # Board 333's empty sheet is five strings and nothing else: the header, the
+    # sentence, its second line, the field's placeholder and the pill. The
+    # board drops the kept card here on purpose — *"it is inert here"* — so
+    # there is nothing further to draw, and the empty sheet is the state a
+    # reader with no lists always meets first. Five IS the drawing.
+    Kati.Screens.AddToList => 5,
+    Kati.Screens.ListDetail => 7
+  }
 
   # Every table an Ash resource in this app is backed by, child tables first so
   # the deletes below do not trip a foreign key. Written out rather than derived
@@ -1746,9 +1768,27 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # with the lines they carried (MOVIES-AND-TV.md #106).
       {"12", Kati.Screens.Lists, &Kati.Screens.Lists.kept_rows/0,
        fn ->
+         # Board 331 gave each kept row its own empty sentence — *Add to list* is
+         # a lie on a shelf you cannot add to — and board 333 gave it an id, so
+         # a kept list can be opened and its detail page can say which one it is.
          [
-           %{icon: "replay", title: "Rewatches", count: "0"},
-           %{icon: "do_not_disturb_on", title: "Abandoned", count: "0"}
+           %{
+             id: "kept:rewatches",
+             icon: "replay",
+             title: "Rewatches",
+             count: "0",
+             empty_title: "Nothing rewatched",
+             empty_body:
+               "Kati fills this one — log a watch of something you have seen and it lands here."
+           },
+           %{
+             id: "kept:abandoned",
+             icon: "do_not_disturb_on",
+             title: "Abandoned",
+             count: "0",
+             empty_title: "Nothing abandoned",
+             empty_body: "Kati fills this one — drop a show and it lands here."
+           }
          ]
        end},
       # 98, 100 and 101 gate on the same map — the subtitle, the hours face and

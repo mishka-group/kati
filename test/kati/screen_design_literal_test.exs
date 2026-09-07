@@ -160,6 +160,11 @@ defmodule Kati.ScreenDesignLiteralTest do
   # 146's destructive pill — and its own moduledoc lists which, so the day 12's
   # detail board lands there is one file to change and no resource to move.
   @undesigned [
+    # Boards 330-333 and 335 draw the two Lists screens, but each is a STATE
+    # CATALOGUE — 330 stacks four states in one frame, 333 is 1249pt of them in
+    # an 806pt sheet — so neither can be compared literal-for-literal against a
+    # render until a specimen screen per board exists, the way 155 is 154's.
+    Kati.Screens.AddToList,
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
     Kati.Screens.ListDetail,

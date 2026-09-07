@@ -103,8 +103,15 @@ defmodule Kati.Screens.Film do
   # `Share` wanted the Android share intent, and the note here said it was a
   # fence nobody had written. `Mob.Share.text/2` is Mob's own — `ACTION_SEND`
   # through `Intent.createChooser` — and has been there all along.
+  #
+  # Board 334 put **Add to list** in the first slot and moved *Log rewatch* out
+  # of the row into the ink button it always deserved: both 181's empty card and
+  # 182's sheet promise *"open a film, book or album and tap Add to list"*, and
+  # until 7 September no film page had one. The `:log_watch` tap is unchanged —
+  # `menu/1` and `rating_card/1` still carry it, and `action_label/3` still
+  # answers *Log a watch* for a film nobody has seen.
   @actions [
-    {"replay", "Log rewatch", :log_watch},
+    {"bookmarks", "Add to list", :add_to_list},
     {"event", "Schedule", :schedule_watch},
     {"ios_share", "Share", :share_film}
   ]
@@ -1268,6 +1275,14 @@ defmodule Kati.Screens.Film do
   # Fire-and-forget by construction — nothing comes back into the BEAM — so
   # there is nothing to report and nothing to draw. The socket is unchanged,
   # which `Mob.Share.text/2` documents in as many words.
+  # Board 334's door, over this page and carrying this film.
+  def handle_info({:tap, :add_to_list}, socket) do
+    film = socket.assigns.film || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Lists.Door.title_member(film), Map.get(film, :title))}
+  end
+
   def handle_info({:tap, :share_film}, socket) do
     {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
   end

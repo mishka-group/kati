@@ -1008,13 +1008,11 @@ defmodule Kati.Screens.ShelfSelection do
   # so *Add to list* opened a page of lists and added nothing to any of them.
   # It carries the selection now, and 12 puts it in whichever list is pressed —
   # which is the membership route board 146 draws and nothing could complete.
-  def handle_info({:tap, :add_to_list}, socket),
-    do:
-      {:noreply,
-       Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{
-         back: "Shelf",
-         adding: MapSet.to_list(socket.assigns.selected)
-       })}
+  def handle_info({:tap, :add_to_list}, socket) do
+    members = Enum.map(MapSet.to_list(socket.assigns.selected), &{:tracked_title, &1})
+
+    {:noreply, Kati.Lists.Door.open_many(socket, members)}
+  end
 
   def handle_info({:tap, :change_status}, socket) do
     case MapSet.to_list(socket.assigns.selected) do

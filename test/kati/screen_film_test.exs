@@ -242,7 +242,12 @@ defmodule Kati.ScreenFilmTest do
       a_watched_film!()
       tree = tree(mount_screen(Film))
 
-      for label <- ["Log rewatch", "Schedule", "Share"], do: assert(drawn?(tree, label))
+      # `Add to list` took the first slot on 7 September — board 334, because
+      # both 181's empty card and 182's sheet promise "open a film, book or
+      # album and tap Add to list" and until then no film page had one. The
+      # `:log_watch` tap is unchanged and still reachable from ⋯ and from the
+      # rating card; what moved is which control sits in the circular row.
+      for label <- ["Add to list", "Schedule", "Share"], do: assert(drawn?(tree, label))
     end
 
     test "the newest film on the shelf is the one drawn" do

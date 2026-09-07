@@ -295,68 +295,22 @@ defmodule Kati.Screens.Currency do
   def confirmation(%{confirming: nil}), do: []
 
   def confirmation(assigns) do
+    from = Money.currency()
     to = assigns.confirming
-    from = assigns.currency
 
-    assigns = %{
+    # 269's recipe, which board 330 widened for a list delete. This screen drew
+    # it first; `Kati.UI.Destructive.confirm/1` is that drawing lifted so the
+    # second caller does not redraw it.
+    Kati.UI.Destructive.confirm(
+      eyebrow: "Changing it",
       title: "Switch to #{to}?",
-      example:
+      changes: "the symbol and the number formatting, everywhere.",
+      keeps:
         "any amount you have already recorded — #{Money.symbol(from)}8.99 becomes " <>
           "#{Money.symbol(to)}8.99, not #{Money.symbol(to)}10.42.",
-      keep: "Keep #{from}"
-    }
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.eyebrow("Changing it", dash: Kati.Theme.Palette.bronze())}
-      <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
-        <Row fill_width={true} align="center">
-          {Kati.UI.symbol("error", size: 18, color: Palette.gold_icon())}
-          <Spacer size={11} />
-          <Text
-            text={@title}
-            text_size={15}
-            font_weight="bold"
-            text_color={Palette.cream_ink()}
-            max_lines={1}
-          />
-        </Row>
-        <Spacer size={13} />
-        {Kati.Screens.Currency.clause("Changes:", "the symbol and the number formatting, everywhere.")}
-        <Spacer size={9} />
-        {Kati.Screens.Currency.clause("Does not change:", @example)}
-        <Spacer size={15} />
-        <Row fill_width={true} align="center">
-          <Row
-            height={38}
-            corner_radius={19}
-            background={Palette.ink_fill()}
-            padding_left={16}
-            padding_right={16}
-            align="center"
-            on_tap={{self(), :switch}}
-          >
-            <Text
-              text="Switch anyway"
-              text_size={12.5}
-              font_weight="bold"
-              text_color={Palette.on_ink()}
-              max_lines={1}
-            />
-          </Row>
-          <Spacer size={14} />
-          <Text
-            text={@keep}
-            text_size={12.5}
-            font_weight="semibold"
-            text_color={Palette.cream_sub()}
-            on_tap={{self(), :keep}}
-          />
-          <Spacer weight={1.0} />
-        </Row>
-      </Column>
-    </Column>
-    """
+      confirm: {"Switch anyway", :switch},
+      keep: {"Keep #{from}", :keep}
+    )
   end
 
   @doc """
@@ -401,29 +355,6 @@ defmodule Kati.Screens.Currency do
         />
       </Column>
     </Row>
-    """
-  end
-
-  @doc """
-  One half of the confirmation: a bold label and the sentence under it.
-
-  Two `Text` nodes rather than one `Kati.UI.rich_text/1` run, and this is the
-  one place in the app where that is the right call. `rich_text/1` merges its
-  runs into a single node, which is correct for a sentence with a number
-  emphasised inside it — and wrong here, because these are a **heading and a
-  clause**, and a reader skimming for "does it touch my money" needs the two
-  labels to be findable rather than buried mid-paragraph.
-  """
-  @spec clause(String.t(), String.t()) :: map()
-  def clause(label, body) do
-    assigns = %{label: label, body: body}
-
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text text={@label} text_size={13} font_weight="semibold" text_color={Palette.cream_ink()} />
-      <Spacer size={4} />
-      <Text text={@body} text_size={13} line_height={1.5} text_color={Palette.cream_body()} />
-    </Column>
     """
   end
 

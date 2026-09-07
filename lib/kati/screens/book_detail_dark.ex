@@ -594,8 +594,13 @@ defmodule Kati.Screens.BookDetailDark do
   def handle_tap(:rate, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
-  def handle_tap(:add_to_list, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists, %{back: "Book"})}
+  # Board 334, the same control as 66's.
+  def handle_tap(:add_to_list, socket) do
+    book = socket.assigns.book || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.BookDetail.member(book), Map.get(book, :title))}
+  end
 
   # `Finish` writes and then hands to the rating screen, which is the handover
   # screen 66 makes and the one screen 70 makes from the other direction. The
