@@ -733,10 +733,16 @@ defmodule Kati.ScreenDesignLiteralTest do
       # `Kati.Screens.Activity.entries_line/1`'s wording either way, and both
       # ends of the range are asserted in `Kati.ScreenStatsTest` and
       # `Kati.ScreenStatsEmptyTest`.
-      {"07", "3 active · 38 of 52 books",
-       "the reader's own goals, which board 07 froze at the drawing's three and " <>
-         "`Kati.Screens.Stats.goals_line/0` now counts",
-       ~r/^(none set|1 goal|\p{N}[\p{N},]* goals)$/u},
+      {
+        "07",
+        "3 active · 38 of 52 books",
+        "the reader's own goals, which board 07 froze at the drawing's three and " <>
+          "`Kati.Screens.Stats.goals_line/0` now counts",
+        # Board 309 reworded the zero: *No goals set — Kati counts anyway*, which
+        # is what page 105 says of itself. A row's second line at zero is an
+        # ANSWER on that board, not an absence.
+        ~r/^(no goals set — kati counts anyway|1 goal|\p{N}[\p{N},]* goals)$/u
+      },
       {"07", "£46.47 a month · 7 expenses",
        "the reader's own subscriptions and expenses, which board 07 froze at the drawing's " <>
          "and `Kati.Screens.Stats.money_line/0` now reads — through the same function " <>

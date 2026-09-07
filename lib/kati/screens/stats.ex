@@ -741,8 +741,15 @@ defmodule Kati.Screens.Stats do
   # table — and `Nutrition`'s `Cutting v3 · 86%` is a diet plan, which
   # `Kati.Health` holds no column for either. Both rows stay, because the row
   # is the door to a page that exists; what goes is the figure.
+  #
+  # `nil` until board 309, which is the half this got wrong: *"The row was
+  # shipping with no second line while every other row on the page carried
+  # one."* A row missing its sub-line is not the same claim as a row that has
+  # one and says the honest thing — the first reads as a rendering fault, and
+  # the second as an answer. **Not set up** is what the page behind each of them
+  # says, which is 309's rule for the whole card.
   defp entries_line(%{title: title} = row) when title in ["Habits", "Nutrition"],
-    do: %{row | sub: nil}
+    do: %{row | sub: "Not set up"}
 
   defp entries_line(row), do: row
 
@@ -755,7 +762,9 @@ defmodule Kati.Screens.Stats do
   @spec goals_line() :: String.t()
   def goals_line do
     case Kati.Goals.Goal |> Ash.read!() |> length() do
-      0 -> "None set"
+      # Board 309's wording, which says what 105 says: the count runs whether or
+      # not a goal has been set, so *none set* is not *nothing counted*.
+      0 -> "No goals set — Kati counts anyway"
       1 -> "1 goal"
       n -> "#{n} goals"
     end
@@ -781,7 +790,8 @@ defmodule Kati.Screens.Stats do
     ]
     |> Enum.reject(&is_nil/1)
     |> case do
-      [] -> "Nothing added yet"
+      # 309's wording for a money row at zero: what 123's page says of itself.
+      [] -> "Nothing to add up yet"
       parts -> Enum.join(parts, " · ")
     end
   rescue

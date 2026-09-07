@@ -278,9 +278,68 @@ defmodule Kati.Screens.SearchIdle do
   falls back to the board's two on a device that has neither.
   """
   @spec suggestions() :: map()
-  def suggestions do
+  def suggestions, do: Kati.Screens.SearchIdle.try_group(Kati.Search.Suggestions.derived())
+
+  @doc """
+  Board 321's *Try* group with nothing to suggest from.
+
+  **Present and worded, not absent** — 259's explicit choice for its
+  by-section card, and 321 gives the reason: *"Absent would be quieter and
+  would also hide that the group exists at all — a reader who never sees Try on
+  day one has no idea it will fill."*
+
+  What it replaces is worse than an empty card. `for_reader/1` fell back to
+  board 86's own two suggestions on a device with nothing — *what leaves this
+  week*, *notes about the estuary* — which match nothing anywhere but the
+  machine the board was captured on. A suggestion that finds nothing is the
+  defect MOVIES-AND-TV.md #72 was about, one turn further on.
+  """
+  @spec try_group([String.t()]) :: map()
+  def try_group([]) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.eyebrow("Try", dash: Palette.rail_idle())}
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("auto_awesome", size: 21, color: Kati.Theme.Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text="Nothing to suggest from yet"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text="Try lines are built from what you keep. Add a title and they appear."
+          text_size={12}
+          line_height={1.55}
+          text_color={Kati.Theme.Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def try_group(derived) do
     rows =
-      Kati.Search.Suggestions.for_reader()
+      derived
       |> Enum.map(fn suggestion ->
         SettingsList.row(
           SettingsList.icon_tile("auto_awesome"),
