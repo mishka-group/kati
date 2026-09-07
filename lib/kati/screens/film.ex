@@ -204,13 +204,25 @@ defmodule Kati.Screens.Film do
   # archived.
   defp film_record(nil), do: newest_film()
 
+  # ACROSS the Screen kinds, not `:movie` alone. `:anime` is a kind something
+  # writes now (MOVIES-AND-TV.md #104), and a film marked as anime keeps its
+  # `:movie` cache row and opens this screen — `Kati.Media.Anime.film?/2` is
+  # what routes it. Read against `:movie` only, this answered `nil` for exactly
+  # that title and the page fell back to the DRAWING: the reader tapped their
+  # own film and got somebody else's. Found on the Pixel_9a, one tap after
+  # marking one as anime.
+  #
+  # Still through `:shelf`, which is where *keeps history, hides from shelf* is
+  # enforced, and `Kati.Screens.Series.series_record/1` reads its two kinds the
+  # same way for the same reason.
   defp film_record(title_id) do
-    TrackedTitle
-    |> Ash.Query.for_read(:shelf, %{kind: :movie})
-    |> Ash.Query.filter(id == ^title_id)
-    |> Ash.Query.limit(1)
-    |> Ash.read!()
-    |> List.first()
+    [:movie, :tv, :anime]
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Enum.find(&(&1.id == title_id))
   end
 
   # The top of the film shelf. `:shelf` rather than a filter written out here:
@@ -305,6 +317,10 @@ defmodule Kati.Screens.Film do
       private?: tracked.private,
       # Board 152's rule 1, read back: which state the ⋯ row offers to leave.
       anime?: tracked.kind == :anime,
+      # Film or series, for the row that corrects it (#113). `:anime` reads as
+      # whichever the cache says it is, so *This is a film* on an anime series
+      # still means the right thing.
+      media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       actions: @actions
     }
   end
@@ -711,7 +727,8 @@ defmodule Kati.Screens.Film do
         # card, and both are answered by the title's own kind now rather than
         # assumed.
         Kati.Screens.Film.drop_item(f),
-        Kati.Screens.Film.anime_item(f)
+        Kati.Screens.Film.anime_item(f),
+        Kati.Screens.Film.kind_item(f)
       ]
       |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
@@ -1196,6 +1213,28 @@ defmodule Kati.Screens.Film do
     end
   end
 
+  # Kind, corrected. MOVIES-AND-TV.md #113: a hand-typed title takes its Kind
+  # from a two-chip answer on 154 and nothing could change it afterwards — a
+  # show picked as a film sat on the wrong screen forever, and the add path
+  # refused to let you type it again because the name was taken.
+  #
+  # `Kati.Screens.Resume.pop/1` rather than a push: the title has moved to the
+  # other screen, and the page the reader is on is now about a kind this title
+  # is not. Popping puts them back where they came from, and the tile there
+  # opens the right screen.
+  def handle_info({:tap, :swap_kind}, socket) do
+    f = socket.assigns.film
+
+    with id when is_binary(id) <- Map.get(f, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         swapped <- Kati.Screens.Film.swapped(Map.get(f, :media_kind, :movie)),
+         {:ok, _updated} <- Kati.Screens.Film.rekind(tracked, swapped) do
+      {:noreply, socket |> Mob.Socket.assign(:menu?, false) |> Kati.Screens.Resume.pop()}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
   def handle_info({:tap, :share_film}, socket) do
     {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
   end
@@ -1288,6 +1327,82 @@ defmodule Kati.Screens.Film do
     else
       []
     end
+  end
+
+  @doc """
+  *This is a series* / *This is a film* — the one row that corrects a Kind.
+
+  MOVIES-AND-TV.md #113. A hand-typed title takes its Kind from a two-chip
+  answer on screen 154, and no screen in the app could change it afterwards:
+  picking Film for a show meant a title on the wrong screen forever, with the
+  add path refusing to let you type it again because the name was taken.
+
+  It is a menu row rather than a control on the page, for `private`'s reason
+  and `anime`'s: a decision about one title belongs on that title's own page,
+  and the ⋯ is where the decisions that are not about watching live.
+
+      iex> Kati.Screens.Film.kind_label(:movie)
+      "This is a series"
+
+      iex> Kati.Screens.Film.kind_label(:tv)
+      "This is a film"
+  """
+  @spec kind_label(atom()) :: String.t()
+  def kind_label(:movie), do: "This is a series"
+  def kind_label(_series), do: "This is a film"
+
+  @doc false
+  @spec kind_item(map()) :: map() | []
+  def kind_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item(
+        "swap_horiz",
+        Kati.Screens.Film.kind_label(Map.get(f, :media_kind, :movie)),
+        :swap_kind
+      )
+    else
+      []
+    end
+  end
+
+  @doc """
+  The other kind.
+
+      iex> Kati.Screens.Film.swapped(:movie)
+      :tv
+
+      iex> Kati.Screens.Film.swapped(:tv)
+      :movie
+  """
+  @spec swapped(atom()) :: atom()
+  def swapped(:movie), do: :tv
+  def swapped(_series), do: :movie
+
+  @doc """
+  Write the corrected kind to BOTH rows, because both hold one.
+
+  `Kati.Media.TrackedTitle.kind` is what the shelf queries and
+  `Kati.Media.CachedTitle.kind` is what decides which screen a tile opens
+  (`Kati.Media.Anime.film?/2`), so correcting one and not the other would put
+  the title on the right shelf behind the wrong door.
+
+  An anime keeps being an anime: the tracked row's `:anime` is the flag, and
+  the cache is where film-or-series lives — see `Kati.Media.Anime`.
+  """
+  @spec rekind(term(), atom()) :: {:ok, term()} | {:error, term()}
+  def rekind(tracked, kind) do
+    Kati.Media.CachedTitle
+    |> Ash.Query.filter(source == ^tracked.source and source_id == ^tracked.source_id)
+    |> Ash.read!()
+    |> Enum.each(&(&1 |> Ash.Changeset.for_update(:update, %{kind: kind}) |> Ash.update!()))
+
+    tracked
+    |> Ash.Changeset.for_update(:update, %{
+      kind: if(tracked.kind == :anime, do: :anime, else: kind)
+    })
+    |> Ash.update()
+  rescue
+    error -> {:error, error}
   end
 
   @doc """

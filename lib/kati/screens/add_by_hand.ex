@@ -533,7 +533,8 @@ defmodule Kati.Screens.AddByHand do
          "Kati cannot keep a thing with no name. " <> Kati.Screens.AddByHand.nothing_lost()}
       )
     else
-      with {:ok, _cached} <-
+      with nil <- Kati.Screens.AddByHand.already_kept(title),
+           {:ok, _cached} <-
              Kati.Screens.AddTitle.cache(
                title,
                socket.assigns.kind,
@@ -546,6 +547,49 @@ defmodule Kati.Screens.AddByHand do
           Mob.Socket.assign(socket, :save_error, Kati.Screens.AddByHand.refusal(error, title))
       end
     end
+  end
+
+  @doc """
+  The shelf row already carrying this name, whatever source wrote it — or `nil`.
+
+  MOVIES-AND-TV.md #113. The duplicate guard is the unique index on
+  `[:source, :source_id]`, and a TMDB add writes `:tmdb` with a numeric id
+  where a hand-typed one writes `:manual` with the title. They never collide,
+  so the same film sat on the shelf twice: once from the search and once typed.
+
+  Matched on the NAME, through `Kati.Media.CachedTitle.names/1` — TMDB's own
+  two — and normalised the way every other name comparison in this app is
+  (`Kati.Import.Job.name_key/1`: trimmed, case-folded, nothing else). So
+  *the long hollow* finds `The Long Hollow`, and a reader who types the
+  original title of a show they added under its English one is told.
+
+  Only rows on the shelf. A cache row with no tracked row beside it is a title
+  somebody looked up and did not keep, and typing that name is how they keep
+  it.
+  """
+  @spec already_kept(String.t()) :: map() | nil
+  def already_kept(title) do
+    key = Kati.Import.Job.name_key(title)
+
+    cached =
+      Kati.Media.CachedTitle
+      |> Ash.read!()
+      |> Map.new(&{{&1.source, &1.source_id}, &1})
+
+    [:movie, :tv, :anime]
+    |> Enum.flat_map(fn kind ->
+      Kati.Media.TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Enum.find(fn row ->
+      cached
+      |> Map.get({row.source, row.source_id})
+      |> Kati.Media.CachedTitle.names()
+      |> Enum.any?(&(Kati.Import.Job.name_key(&1) == key))
+    end)
+  rescue
+    _error -> nil
   end
 
   @doc false
@@ -671,6 +715,17 @@ defmodule Kati.Screens.AddByHand do
       do: "“" <> title <> "” is already in your library.",
       else: Kati.Write.message(error)
   end
+
+  # A shelf row, which is what `already_kept/1` answers with when the name is
+  # taken. Two lines, as every refusal on this form is (#128) — and the second
+  # one says what to do instead, because *you already have this* with no way
+  # forward is a dead end on the one screen a reader reaches by not finding
+  # something.
+  def refusal(%Kati.Media.TrackedTitle{}, title),
+    do:
+      {"You already have this",
+       "“#{title}” is on your shelf already, under a name Kati matched. " <>
+         "Nothing was written — open it from your library to change what you keep about it."}
 
   def refusal(error, _title), do: Kati.Write.message(error)
 

@@ -329,6 +329,7 @@ defmodule Kati.Screens.Series do
       followed?: tracked.notify_new_episodes,
       private?: tracked.private,
       anime?: tracked.kind == :anime,
+      media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       genres: cached && cached.genres,
       season_count: nil,
       seasons: [%{number: tracked.progress_season || 1, name: nil, total: 0, episodes: []}],
@@ -358,6 +359,7 @@ defmodule Kati.Screens.Series do
       followed?: tracked.notify_new_episodes,
       private?: tracked.private,
       anime?: tracked.kind == :anime,
+      media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       genres: cached && cached.genres,
       # The inventory's count, never `length(numbers)` — see the moduledoc.
       season_count: CachedSeason.count(seasons),
@@ -522,6 +524,13 @@ defmodule Kati.Screens.Series do
       # is a disc that cannot be drawn filled.
       followed?: Map.get(facts, :followed?, false),
       private?: Map.get(facts, :private?, false),
+      # Two more of the same class, and this map is where a fact goes to be
+      # forgotten — the ⋯ rows that read them drew *Mark as anime* on a title
+      # already marked and *This is a series* on a series, because neither key
+      # survived the rebuild. Found on the Pixel_9a one tap after correcting a
+      # Kind (MOVIES-AND-TV.md #104, #113).
+      anime?: Map.get(facts, :anime?, false),
+      media_kind: Map.get(facts, :media_kind, :tv),
       title: facts.title || "Untitled",
       seed: facts.seed,
       meta: meta_line(facts),
@@ -926,7 +935,11 @@ defmodule Kati.Screens.Series do
         # And the same for the anime flag, for the same reason: anime is
         # overwhelmingly series, so a row only on screen 08 would be a rule
         # about the wrong half of the shelf. MOVIES-AND-TV.md #104.
-        Kati.Screens.Film.anime_item(s)
+        Kati.Screens.Film.anime_item(s),
+        # And the same row screen 08 carries: a Kind picked wrong on 154 could
+        # never be corrected anywhere (#113), and a series that is really a
+        # film is the same mistake the other way round.
+        Kati.Screens.Film.kind_item(s)
       ]
       # `anime_item/1` answers `[]` over the drawing, where there is no row to
       # tag — dropped rather than drawn dead, which is screen 08's own rule for
@@ -1469,6 +1482,22 @@ defmodule Kati.Screens.Series do
        socket
        |> Mob.Socket.assign(:menu?, false)
        |> Mob.Socket.assign(:series, %{s | private?: updated.private})}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # The same row and the same write screen 08 carries (#113). A series that is
+  # really a film is the same mistake as a film that is really a series, and
+  # neither could be corrected anywhere in the app.
+  def handle_info({:tap, :swap_kind}, socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         swapped <- Kati.Screens.Film.swapped(Map.get(s, :media_kind, :tv)),
+         {:ok, _updated} <- Kati.Screens.Film.rekind(tracked, swapped) do
+      {:noreply, socket |> Mob.Socket.assign(:menu?, false) |> Kati.Screens.Resume.pop()}
     else
       _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
     end

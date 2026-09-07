@@ -140,11 +140,94 @@ defmodule Kati.AddByHandTest do
       saved(%{title: "Estuary Nights", kind: :movie, status: "Not started"})
       socket = saved(%{title: "Estuary Nights", kind: :tv, status: "Watching"})
 
-      assert socket.assigns[:save_error] =~ "already in your library"
-      refute socket.assigns[:save_error] =~ "taken"
+      assert {title, body} = socket.assigns[:save_error]
+      assert title == "You already have this"
+      assert body =~ "on your shelf already"
+      refute body =~ "taken"
+
+      # And what to do instead, because *you already have this* with no way
+      # forward is a dead end on the one screen a reader reaches by not
+      # finding something (#128's rule, #113's refusal).
+      assert body =~ "open it from your library"
 
       assert length(Kati.Screens.Library.shelf()) == 1,
              "refusing the second add still left two rows on the shelf"
+    end
+
+    test "and the guard is the NAME, so a TMDB row and a typed one collide" do
+      # MOVIES-AND-TV.md #113: the guard was the unique index on
+      # `[:source, :source_id]`, and a TMDB add writes `:tmdb` with a numeric
+      # id where a hand-typed one writes `:manual` with the title — they never
+      # collided, so the same film sat on the shelf twice.
+      Ash.create!(Kati.Media.CachedTitle, %{
+        source: :tmdb,
+        source_id: "438631",
+        kind: :movie,
+        title: "Dune",
+        fetched_at: Kati.Time.now()
+      })
+
+      Ash.create!(Kati.Media.TrackedTitle, %{
+        source: :tmdb,
+        source_id: "438631",
+        kind: :movie,
+        status: :watching
+      })
+
+      socket = saved(%{title: "dune", kind: :movie, status: "Not started"})
+
+      assert {"You already have this", _body} = socket.assigns[:save_error],
+             "a TMDB row and a typed one are two rows for one film"
+
+      assert length(Kati.Screens.Library.shelf()) == 1
+    end
+
+    test "and a name nobody has is not refused" do
+      assert Kati.Screens.AddByHand.already_kept("Nothing By That Name") == nil
+    end
+  end
+
+  describe "a Kind picked wrong" do
+    test "can be corrected from the title's own menu" do
+      # MOVIES-AND-TV.md #113's other half. Kind comes from a two-chip answer on
+      # 154 and no screen in the app could change it — a show picked as a film
+      # sat on the wrong screen forever, and the add path refused to let you
+      # type it again because the name was taken.
+      saved(%{title: "The Long Hollow", kind: :movie, status: "Watching"})
+
+      [tracked] = Ash.read!(TrackedTitle)
+      assert tracked.kind == :movie
+
+      film = Kati.Screens.Film.film(tracked.id)
+      assert film.media_kind == :movie
+      assert Kati.Screens.Film.kind_label(film.media_kind) == "This is a series"
+
+      socket =
+        Kati.Screens.Film
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:film, film)
+        |> Mob.Socket.assign(:menu?, true)
+
+      {:noreply, swapped} = Kati.Screens.Film.handle_info({:tap, :swap_kind}, socket)
+
+      # Both rows. The tracked kind is what the shelf queries and the cached
+      # kind is what decides which screen a tile opens, so correcting one and
+      # not the other puts the title on the right shelf behind the wrong door.
+      assert Ash.get!(TrackedTitle, tracked.id).kind == :tv
+
+      assert [%{kind: :tv}] =
+               Kati.Media.CachedTitle
+               |> Ash.read!()
+               |> Enum.filter(&(&1.title == "The Long Hollow"))
+
+      # And the reader is popped: the page they are on is now about a kind this
+      # title is not.
+      assert Map.get(swapped.__mob__, :nav_action) == {:pop}
+    end
+
+    test "and there is no row over a drawing" do
+      assert Kati.Screens.Film.kind_item(%{}) == []
+      refute Kati.Screens.Film.kind_item(%{tracked_id: "x", media_kind: :tv}) == []
     end
   end
 

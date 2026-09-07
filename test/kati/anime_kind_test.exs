@@ -112,6 +112,20 @@ defmodule Kati.AnimeKindTest do
       assert Ash.get!(TrackedTitle, tracked.id).anime_override == false
     end
 
+    test "and the series page carries the flag through its own rebuild" do
+      # `Kati.Screens.Series` assembles facts and then rebuilds a render shape
+      # from them, dropping every key it does not name — its own comment calls
+      # that map "where a fact goes to be forgotten". So the ⋯ rows drew *Mark
+      # as anime* on a title already marked. Found on the Pixel_9a.
+      tracked = shelve!(:anime)
+      series = Kati.Screens.Series.series(tracked.id)
+
+      assert series.anime?, "the anime flag did not survive the rebuild"
+      assert Map.has_key?(series, :media_kind), "the kind did not survive the rebuild"
+
+      assert Kati.Screens.Film.anime_label(series) == "Not anime"
+    end
+
     test "and there is no row over a drawing" do
       assert Kati.Screens.Film.anime_item(%{}) == []
       refute Kati.Screens.Film.anime_item(%{tracked_id: "x"}) == []
@@ -181,6 +195,34 @@ defmodule Kati.AnimeKindTest do
 
       assert Kati.Screens.Library.visible(rows, "Anime") |> Enum.map(& &1.title) == ["Frieren"]
       assert Kati.Screens.Library.visible(rows, "All") |> length() == 2
+    end
+
+    test "a film marked as anime still opens its own page" do
+      # Found on the Pixel_9a: `film_record/1` read `kind: :movie` only, so the
+      # one title the reader had just marked answered `nil` and screen 08 fell
+      # back to the DRAWING — they tapped their own film and got somebody
+      # else's.
+      tracked = shelve!(:movie)
+
+      film = Kati.Screens.Film.film(tracked.id)
+      assert film.tracked_id == tracked.id
+
+      socket =
+        Kati.Screens.Film
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:film, film)
+        |> Mob.Socket.assign(:menu?, true)
+
+      {:noreply, marked} = Kati.Screens.Film.handle_info({:tap, :toggle_anime}, socket)
+      assert marked.assigns.film.anime?
+
+      reopened = Kati.Screens.Film.film(tracked.id)
+
+      assert reopened.tracked_id == tracked.id,
+             "the page fell back to the drawing one tap after the flag was set"
+
+      assert reopened.title == "Akira"
+      assert reopened.anime?
     end
 
     test "and an empty Anime chip says how a title gets the flag" do
