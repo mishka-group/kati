@@ -980,8 +980,15 @@ defmodule Kati.ScreenParamsSweepTest do
     named = for {_module, tag, dest, params} <- all, params != %{}, do: {tag, dest, params}
 
     # Non-vacuous first: the exclusion means nothing if the gallery drew no
-    # pushes at all in the pass — every screen in the app is one row of it.
-    assert length(all) > 100,
+    # pushes at all in the pass.
+    #
+    # `> 100` until 7 September, when every screen with a real door left the
+    # list — the owner's rule, applied to all of it rather than a page at a
+    # time. The gallery is no longer one row per screen in the app; it is one
+    # row per REFERENCE SHEET, colourway and mark, which is what it was always
+    # for. Forty of those, and the bound is under them: if it fell much below
+    # that the list would have stopped being a list of anything.
+    assert length(all) > 40,
            "the gallery pushed only #{length(all)} screens, so the claim below is being made " <>
              "over almost nothing and #{inspect(@index)} is excluded from assertion 1 for free"
 

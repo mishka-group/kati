@@ -387,7 +387,307 @@ defmodule Kati.Screens.Gallery do
     # Season → the help disc beside the order strip. #9.
     "153",
     # Settings → Year cards → When a card cannot be made. #2.
-    "101"
+    "101",
+    # ── The four dock roots, and the hub in one of them. The owner's words:
+    # *"01 - Home exist in the first page of app, no need in all screens, and
+    # Library menu exists in the dock on all pages — no need again inside All
+    # screens."* A page you land on when the app opens cannot be checked from
+    # anywhere else, and listing it here is a door beside a doorway.
+    "01",
+    "02",
+    "03",
+    "07",
+    # Home → Settings. The hub every Settings row below is reached through.
+    "24",
+    # ── The Movies and TV pages, each in its own place in the app.
+    #
+    # Library → a series poster. The page a season strip, an episode list, a
+    # tick and a rating all hang off.
+    "04",
+    # Any dock root → the `+` FAB.
+    "06",
+    # Library → a film poster.
+    "08",
+    # Library → Discover.
+    "11",
+    # Film → Log a watch, and Series → an episode's rating column.
+    "33",
+    # Settings → Auto-detect.
+    "36",
+    # Home → the search field, which opens idle before a query exists.
+    "86",
+    # 86 → the tune disc. #131 made its back pill name the page it returns to.
+    "88",
+    # Stats → the share disc. #3 gave it board 102's two missing card faces.
+    "98",
+    # Settings → Year cards.
+    "100",
+    # Library → the sort disc. #109 settled that as the one door.
+    "145",
+    # Home → `+` → Can't find it? Add it by hand. #113 made its Kind
+    # correctable and its duplicate guard match on the name.
+    "154",
+    # Home with nothing stored — board 139 is what Home draws on a fresh
+    # install, and a fresh install is how you reach it.
+    "139",
+    # ── Retired in the same pass, once every remaining row had been checked
+    # for a real door. The route beside each is the one a person walks; a
+    # 12-agent survey found them and `Kati.AppReachabilityTest` proves them,
+    # because a number here with no route in makes that test fail.
+    #
+    # What is LEFT in the list after this is what the list is for: reference
+    # sheets in screen 27's manner, dark and 235% colourways of pages that are
+    # themselves reachable, the three home-screen and lock-screen marks, and
+    # the state boards. Not one of them is a page of the app.
+    # ── The calendar pages. Reached from the Schedule tab, its ⋯ and its own rows.
+    # Calendar → a second tap on the already-selected day cell
+    #   (calendar.ex:1351); also the Day segment of the view switcher.
+    "09",
+    # Calendar → the month name at the top of the page (calendar.ex:1262).
+    "16",
+    # Calendar → month name → Month grid → the Week segment of the view
+    #   switcher (view_switcher.ex:137,154).
+    "17",
+    # Calendar → ⋯ → Quick add (calendar.ex:1272); also Film → ⋯ → Schedule
+    #   watch.
+    "18",
+    # Calendar → ⋯ → Agenda (calendar.ex:1270); also the Agenda segment of the
+    #   view switcher.
+    "30",
+    # Calendar → a personal event row in the day timeline
+    #   (calendar.ex:1237,1417); also Home and Day.
+    "31",
+    # Settings → Sources → Calendars (settings.ex:683,846).
+    "32",
+    # ── The Books shelf and what hangs off it. Library → the Books segment.
+    # Library → the Books segment of the shelf switcher (library.ex:1702).
+    "20",
+    # Library → Books → a book cover or the Reading-now hero
+    #   (books.ex:984,1109); also after a by-hand save.
+    "66",
+    # Library → Books → Log progress on the Reading-now hero, or the timer
+    #   disc (books.ex:950,976); also Book detail.
+    "70",
+    # Library → Books → the + FAB, which the Books shelf overrides to the by-
+    #   hand book form (books.ex:105; root.ex:232).
+    "177",
+    # ── The Music shelf and what hangs off it. Library → the Music segment.
+    # Library → the Music segment of the shelf switcher (library.ex:1705);
+    #   also from Books.
+    "21",
+    # Library → Music → an album tile → Log a listen (album_detail.ex:914).
+    "73",
+    # Library → Music → an album tile (music.ex:1051); also Artist detail's
+    #   album rail.
+    "74",
+    # Library → Music → a row in the releases band (music.ex:1071); also Album
+    #   detail's artist row.
+    "77",
+    # Settings → Auto-detect → the Music half of the segmented control, or its
+    #   Music tile (auto_detect.ex:889,987).
+    "150",
+    # Library → Music → + → Can't find it? Add it by hand
+    #   (add_title_music.ex:435,614); also the Album/Artist chip on 177.
+    "178",
+    # Library → Music → the + FAB, which the Music shelf overrides
+    #   (music.ex:1089; root.ex:232).
+    "179",
+    # Library → Music → an album tile → Rate (album_detail.ex:52,945).
+    "180",
+    # ── The meal pages. Home → Meals, and the tiles on the day.
+    # Home → the Meals tile (home.ex:1372); also Health → the Meals card.
+    "43",
+    # Meals today → the Week tile, or the calendar_view_week disc
+    #   (meals_today.ex:1377,1382).
+    "44",
+    # Meals today → any meal card on the day's timeline
+    #   (meals_today.ex:1220,1481).
+    "45",
+    # Meals today → a meal card's Swap button (meals_today.ex:1200,1419); also
+    #   Meal → the swap disc.
+    "46",
+    # Meals today → the Nutrition tile (meals_today.ex:1432).
+    "47",
+    # Meals today → the Shop tile (meals_today.ex:1386).
+    "48",
+    # Meals today → the Plan tile or the plan-name pill
+    #   (meals_today.ex:1438,1441); also Meal plan → the edit disc.
+    "49",
+    # Plans → the ⋯ disc on the active plan card (plans.ex:410).
+    "50",
+    # Meals today → ⋯ → Reminders (meals_today.ex:1454); also Notifications →
+    #   a held meal reminder.
+    "51",
+    # Schedule → ⋯ → Meals on the calendar (calendar.ex:1274); also Meals
+    #   today → See tomorrow.
+    "52",
+    # Meals today → the Library tile (meals_today.ex:1380).
+    "116",
+    # Meal library → the + disc for a new meal, or a meal tile to edit one
+    #   (meal_library.ex:609,627).
+    "118",
+    # Create or edit a meal → Add an ingredient, or an ingredient row
+    #   (meal_edit.ex:798,800,856).
+    "119",
+    # Plans → the Import a plan row (plans.ex:92,407).
+    "120",
+    # Plans → Share a plan → Print the week (plan_share.ex:266,362).
+    "121",
+    # ── Health, habits and weight. Stats → More numbers, and Health's own tiles.
+    # Stats → More numbers → Habits (stats.ex:1407); also Home's Habits
+    #   shortcut and Health's Habits tile.
+    "22",
+    # Stats → More numbers → Nutrition (stats.ex:1408) — the only non-gallery
+    #   door, and it survives a fresh install.
+    "42",
+    # Stats → More numbers → Nutrition → Health → the Weight tile
+    #   (health.ex:937,1102).
+    "109",
+    # Health → Weight → the + disc (weight.ex:475).
+    "111",
+    # Health → the Medication tile (health.ex:1105); also Notifications → a
+    #   health reminder.
+    "112",
+    # Health → the dashed Sleep or Workouts tile (health.ex:1111,1145); also
+    #   Auto-detect → the Browser extension tile.
+    "114",
+    # Health → Medication → the + disc in the header (medication.ex:1330).
+    "188",
+    # Health → Medication → a row in the Schedules band
+    #   (medication.ex:1080-1088,1351).
+    "189",
+    # ── Goals. Stats → More numbers → Goals.
+    # Stats → More numbers → Goals (stats.ex:1409).
+    "104",
+    # Stats → More numbers → Goals → the + disc (goals.ex:269,520).
+    "106",
+    # ── Money. Stats → More numbers → Money.
+    # Stats → More numbers → Money (stats.ex:1410) — the only non-gallery
+    #   door.
+    "122",
+    # Schedule → ⋯ → Quick add → the Expense chip in the file-as row
+    #   (quick_add.ex:301,343).
+    "124",
+    # Settings → Language → the Currency row (language.ex:429,503).
+    "125",
+    # Schedule → ⋯ → Money on the calendar (calendar.ex:1276); also a money
+    #   row in the day timeline.
+    "126",
+    # ── Settings' own rows, each reached from the row that names it.
+    # Settings → Appearance → Widgets (settings.ex:699,846).
+    "39",
+    # Settings → About → This device (settings.ex:700,846).
+    "40",
+    # Settings → Appearance → Text size (settings.ex:702,846).
+    "41",
+    # Settings → the Language row (settings.ex:701,846); also Persian Settings
+    #   → زبان → تغییر.
+    "54",
+    # Settings → Data → Data sources (settings.ex:706).
+    "80",
+    # Settings → About → Where this comes from (settings.ex:707).
+    "83",
+    # ── The first-run chain. Reached by being a fresh install.
+    # First run: 53 → Welcome → Get started (onboarding_welcome.ex:185); also
+    #   Home-with-nothing → Choose sections.
+    "26",
+    # First run: 26 Pick sections → import a backup → 135 Restore → Back to
+    #   welcome (restore_first_run.ex:178).
+    "38",
+    # The screen a fresh install opens on — Kati.Onboarding.first_screen/0 via
+    #   root.ex:176.
+    "53",
+    # First run: 162 Loudness → Notify me / Weekly digest → Continue
+    #   (onboarding_loudness.ex:217,234).
+    "136",
+    # First run, step 2: 53 Language → Continue (language_pick.ex:541;
+    #   onboarding.ex:186).
+    "161",
+    # First run, step 4: 26 Pick sections → Continue
+    #   (pick_sections.ex:180,221).
+    "162",
+    # First run, step 5: 162 Loudness → Continue, direct or via 136
+    #   (onboarding_loudness.ex:233; loudness_prompt.ex:412).
+    "163",
+    # ── Backup and restore. Settings → the Data group.
+    # Settings → Data → Back up everything, or Export everything
+    #   (settings.ex:690,696); also Persian Settings.
+    "128",
+    # Settings → Data → Restore a Kati backup (settings.ex:697); also Home-
+    #   with-nothing, Library's empty card and first-run Welcome.
+    "129",
+    # First run: 26 Pick sections → Restore from a backup instead
+    #   (pick_sections.ex:157).
+    "135",
+    # ── The Persian app. Settings → Language → فارسی, then its own dock — en and fa are one app, and its pages are reached the same way.
+    # Settings → Language → فارسی (language.ex:533,542); the Persian dock's
+    #   Home tab and the Persian shell root.
+    "55",
+    # Persian dock → the calendar tab, or Persian Home's calendar disc
+    #   (fa.ex:127,458; home_fa.ex:1057).
+    "56",
+    # Persian dock → the grid tab (fa.ex:128,458).
+    "57",
+    # Persian Library → a poster tile (library_fa.ex:964); also Persian Search
+    #   → a result.
+    "58",
+    # Persian Home → the وعده‌ها tile (home_fa.ex:1060).
+    "59",
+    # Persian Home → وعده‌ها → امروز → the week disc (today_fa.ex:711).
+    "60",
+    # Persian dock → the آمار tab (fa.ex:129,458).
+    "61",
+    # Persian Home → the تنظیمات tile (home_fa.ex:1063); also the Persian
+    #   empty Home's tune disc.
+    "62",
+    # Persian Library → کتاب‌ها → Persian Books shelf → a book cover
+    #   (books_fa.ex:940,1018).
+    "69",
+    # Persian Books shelf → ثبت پیشرفت, or the timer disc
+    #   (books_fa.ex:914,929).
+    "72",
+    # Persian Books shelf → the موسیقی segment (books_fa.ex:968).
+    "76",
+    # Persian album page → the artist row (album_detail_fa.ex:1001).
+    "79",
+    # Persian Settings → منابع داده under داده‌ها (settings_fa.ex:523,941).
+    "82",
+    # Persian Settings → منابع (پروانه‌ها و اعتبارها)
+    #   (settings_fa.ex:524,941).
+    "85",
+    # Persian Home → the search field (home_fa.ex:1054); also the Persian
+    #   empty Home.
+    "90",
+    # Persian Settings → سرویس‌های من (settings_fa.ex:522,941); also Persian
+    #   Money → a subscription row.
+    "97",
+    # Persian Stats → the share disc (stats_fa.ex:590).
+    "103",
+    # Persian Stats → the اهداف card (stats_fa.ex:593).
+    "108",
+    # Persian Stats → the سلامت card (stats_fa.ex:599).
+    "115",
+    # Persian Stats → the پول card (stats_fa.ex:596).
+    "127",
+    # Persian first run → the بازگردانی link on 164/137, or the Persian empty
+    #   Home's restore invitation (home_fa_empty.ex:309).
+    "132",
+    # Persian first run: 164 Persian welcome → بعدی
+    #   (onboarding_welcome_fa.ex:168).
+    "137",
+    # The same door in Persian — AddByHand.for_locale/0 answers this module
+    #   while the locale is :fa (add_by_hand.ex:139).
+    "156",
+    # Persian first run: 53 → فارسی → Continue (language_pick.ex:541;
+    #   onboarding.ex:185).
+    "164",
+    # Persian first run: 137 Persian sections → ادامه (onboarding_fa.ex:140).
+    "165",
+    # Persian first run: 165 Persian loudness → its continue pill
+    #   (onboarding_loudness_fa.ex:247).
+    "166",
+    # Persian Library → the کتاب‌ها segment (library_fa.ex:931).
+    "176"
   ]
 
   @doc false

@@ -510,11 +510,22 @@ defmodule Kati.ScreenWriteTargetTest do
   # guard. Adding a line is how a new one is recorded, and deleting it is the
   # commit that fixes it.
 
-  # Floors for assertion 3's pass, and they may only go up. Measured on
-  # 2026-09-05 over the two locales — 169 screens, 2465 taps — and set just
-  # under, for the reason the floors above are.
+  # Floors for assertion 3's pass. They may only go up — with ONE exception,
+  # taken on 7 September and stated here rather than made quietly.
+  #
+  # Measured on 2026-09-05 over the two locales — 169 screens, 2465 taps — and
+  # set just under. The tap floor moved DOWN once, to 2280, because
+  # `Kati.Screens.Gallery` stopped listing the app: every screen with a real
+  # door left its list in one pass, so the gallery draws 44 rows where it drew
+  # 176, and each row it lost was a tap this pass used to dispatch.
+  #
+  # That is not fewer controls in the app. It is the same controls, reached the
+  # way a person reaches them, and the pass still mounts every screen — the
+  # `@screens_swept` floor beside this one is untouched and is what says so. A
+  # floor that only ever rises would have made deleting scaffolding look like
+  # losing coverage, which is the opposite of what it is for.
   @screens_swept 160
-  @drawn_taps 2300
+  @drawn_taps 2280
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are
