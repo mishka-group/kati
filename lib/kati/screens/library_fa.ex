@@ -502,6 +502,13 @@ defmodule Kati.Screens.LibraryFa do
   The digits go through `Kati.Calendar.Shamsi.to_persian_digits/1`, which is
   how every other number on this screen is written.
   """
+  # None of the three carries a tap, and the reason is not that nobody wired
+  # them. Their destinations are boards 287 (بعدی), 288 (کشف) and 289
+  # (فهرست‌ها) — all three delivered on 5 September and all three still in
+  # `test/design/incoming/`. `Kati.Screens.UpNext`, `Discover` and `Lists` are
+  # English LTR screens, so pointing a Persian tile at one repeats the defect
+  # screen 76 has: a Persian page handing the reader an English one. The tiles
+  # get their taps in the commit that builds those three screens, not before.
   def quick_tiles(titles) do
     [up_next, discover, lists] = Sample.quick_tiles()
 
