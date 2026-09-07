@@ -48,12 +48,18 @@ defmodule Kati.Settings.Watcher do
   # WorkManager's floor is 15 minutes and the Kotlin side clamps to it, so
   # `Hourly` is honoured and nothing here can ask for less than the platform
   # allows — see `Kati.Background.Periodic.ensure/1`.
+  # THREE, since board 314. `Manual` was a fourth and it meant NEVER: nothing
+  # schedules a manual run, so choosing it silently switched the watcher off —
+  # *"a segment that silently switches the watcher off is worse than no
+  # segment."* 314 turns it into what it always was, a button: **Check now**,
+  # which runs once and stamps the line above it.
   @cadences [
     {"Hourly", 60},
     {"Every 6h", 6 * 60},
-    {"Daily", 24 * 60},
-    {"Manual", nil}
+    {"Daily", 24 * 60}
   ]
+
+  @checked_key :watcher_last_checked
 
   # The one *Tell me about* switch with a consumer. Named rather than indexed,
   # because the board's order is the board's and an index would silently move
@@ -117,7 +123,72 @@ defmodule Kati.Settings.Watcher do
   end
 
   @doc """
-  The interval a cadence asks for, in minutes — `nil` for `Manual`.
+  When the watcher last actually checked, or `nil`.
+
+  Board 314's first lie: `checked 18:02` was a literal on a page with no record
+  of ever having checked, which is the same defect 260 fixed on this page's
+  sibling. This is a real timestamp, and `nil` — *never checked* — is what
+  every fresh install answers.
+  """
+  @spec last_checked() :: DateTime.t() | nil
+  def last_checked do
+    case Mob.State.get(@checked_key) do
+      stamp when is_binary(stamp) ->
+        case DateTime.from_iso8601(stamp) do
+          {:ok, at, _offset} -> at
+          _unparseable -> nil
+        end
+
+      _none ->
+        nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc "Record that a check has just happened."
+  @spec checked!() :: :ok
+  def checked! do
+    Mob.State.put(@checked_key, DateTime.to_iso8601(Kati.Time.now()))
+    :ok
+  rescue
+    _error -> :ok
+  end
+
+  @doc """
+  `never checked`, `checking now`, or how long ago — board 314's own three.
+
+      iex> Kati.Settings.Watcher.checked_line(nil, false)
+      "never checked"
+
+      iex> Kati.Settings.Watcher.checked_line(nil, true)
+      "checking now"
+  """
+  @spec checked_line(DateTime.t() | nil, boolean()) :: String.t()
+  def checked_line(_at, true), do: "checking now"
+  def checked_line(nil, _idle), do: "never checked"
+
+  def checked_line(at, _idle) do
+    seconds = DateTime.diff(Kati.Time.now(), at)
+
+    cond do
+      seconds < 60 -> "checked just now"
+      seconds < 3600 -> "checked #{minutes(seconds)} ago"
+      seconds < 86_400 -> "checked #{hours(seconds)} ago"
+      true -> "checked #{days(seconds)} ago"
+    end
+  end
+
+  defp minutes(seconds), do: unit(div(seconds, 60), "minute")
+  defp hours(seconds), do: unit(div(seconds, 3600), "hour")
+  defp days(seconds), do: unit(div(seconds, 86_400), "day")
+
+  defp unit(1, word), do: "1 " <> word
+  defp unit(n, word), do: "#{n} #{word}s"
+
+  @doc """
+  The interval a cadence asks for, in minutes — `nil` for a name that is not
+  one of the three.
 
       iex> Kati.Settings.Watcher.interval_for("Hourly")
       60

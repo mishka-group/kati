@@ -49,7 +49,11 @@ defmodule Kati.Screens.ReleaseWatcher do
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket, :watcher, %{
-      checked: Sample.checked(),
+      # Board 314: a relative line from a real timestamp, and `never checked` —
+      # which is every fresh install — where there is none. `checked 18:02` was
+      # a wall-clock time from a column that did not exist.
+      checked: Kati.Settings.Watcher.checked_line(Kati.Settings.Watcher.last_checked(), false),
+      checking?: false,
       banner: banner(),
       # MOVIES-AND-TV.md #67 and `design-briefs/D-64`. Fifteen controls edited a
       # socket assign and were forgotten on the pop, and the brief's own table
@@ -307,8 +311,48 @@ defmodule Kati.Screens.ReleaseWatcher do
       >
         {tiles}
       </Row>
+      <Spacer size={14} />
+      {Kati.Screens.ReleaseWatcher.check_now(w)}
       <Spacer size={22} />
     </Column>
+    """
+  end
+
+  @doc """
+  **Check now** — board 314's replacement for the `Manual` segment.
+
+  *"Nothing schedules a manual run, so Manual is never — and a segment that
+  silently switches the watcher off is worse than no segment… A one-off run is
+  an action, not a schedule."* It runs `Kati.Media.Cache.ask/1`, which is the
+  same sweep screen 80's *Refresh* pill runs, and stamps the line this board
+  also fixed.
+  """
+  @spec check_now(map()) :: term()
+  def check_now(w) do
+    assigns = %{
+      label: if(Map.get(w, :checking?), do: "Checking…", else: "Check"),
+      tap: unless(Map.get(w, :checking?), do: {self(), :check_now})
+    }
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      height={56}
+      corner_radius={20}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={15}
+      padding_right={15}
+      align="center"
+    >
+      {Kati.UI.SettingsList.icon_tile("sync")}
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        {Kati.UI.SettingsList.body("Check now", "Runs once, here, and updates the line above")}
+      </Column>
+      <Spacer size={12} />
+      {Kati.UI.SettingsList.action_pill(@label, @tap)}
+    </Row>
     """
   end
 
@@ -355,6 +399,25 @@ defmodule Kati.Screens.ReleaseWatcher do
     List.update_at(rows, String.to_integer(index), fn row -> %{row | on: not row.on} end)
   end
 
+  # The sweep answering. It stamps the timestamp board 314 asks for and redraws
+  # the line from it, so the page says what actually happened rather than what
+  # was hoped: a refresh that could not start — no TMDB key is the usual reason
+  # — leaves *never checked* standing, which is true.
+  @impl true
+  def handle_info({:cache_refreshed, result}, socket) do
+    w = socket.assigns.watcher
+    if match?({:ok, _tally}, result), do: Kati.Settings.Watcher.checked!()
+
+    {:noreply,
+     Mob.Socket.assign(socket, :watcher, %{
+       w
+       | checking?: false,
+         checked: Kati.Settings.Watcher.checked_line(Kati.Settings.Watcher.last_checked(), false)
+     })}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
   # Every control on this screen edits the one `:watcher` map, so there is a
   # clause per kind of control rather than per row.
   @impl true
@@ -362,6 +425,14 @@ defmodule Kati.Screens.ReleaseWatcher do
     w = socket.assigns.watcher
 
     case Atom.to_string(tag) do
+      # Board 314's button. `Kati.Media.Cache.ask/1` is the same sweep screen
+      # 80's *Refresh* pill runs, and it answers on this pid when it is done.
+      "check_now" ->
+        Kati.Media.Cache.ask(self())
+
+        {:noreply,
+         Mob.Socket.assign(socket, :watcher, %{w | checking?: true, checked: "checking now"})}
+
       "banner" ->
         {:noreply,
          Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: not w.banner.on}})}

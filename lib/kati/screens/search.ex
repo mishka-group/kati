@@ -363,7 +363,11 @@ defmodule Kati.Screens.Search do
      # field, where clearing is correctly a no-op. Pressed over a real query on
      # the device it was not inert; it was wrong.
      |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
-     |> Mob.Socket.assign(:results, Kati.Search.Query.run(""))}
+     |> Mob.Socket.assign(:results, Kati.Search.Query.run(""))
+     # Board 312's *Recent, now carrying what you just cleared*. The store has
+     # remembered it since the first keystroke; this is what puts it on the page
+     # in the same breath as emptying the field.
+     |> Mob.Socket.assign(:history, Kati.Search.Recent.all())}
   end
 
   # One clause per PREFIX rather than per control: the tag carries the label,
@@ -588,9 +592,19 @@ defmodule Kati.Screens.Search do
   """
   @spec chips(String.t(), map()) :: map()
   def chips(active, results) do
+    # Board 312: **the chips stay, their counts go.** 86 already rules counts
+    # are withheld while the query is empty — *"eight zeroes read as an empty
+    # app"* — and the active chip stays active, so the scope the reader chose is
+    # not silently reset under them.
+    counts =
+      if Map.get(results, :idle?, false) do
+        Enum.map(Kati.Search.Query.chip_counts(results), fn {label, _zero} -> {label, nil} end)
+      else
+        Kati.Search.Query.chip_counts(results)
+      end
+
     rail =
-      results
-      |> Kati.Search.Query.chip_counts()
+      counts
       |> Kati.Screens.Search.chip_rows()
       |> Enum.map(fn line ->
         Kati.Screens.Search.chip_line(
@@ -737,7 +751,12 @@ defmodule Kati.Screens.Search do
     )
   end
 
+  # `nil` draws no trailing at all, which is board 312's *the chips stay, their
+  # counts go* — and `to_string(nil)` would draw an empty mono node in the gap
+  # rather than close it.
   @doc false
+  def chip_count(nil, _color), do: nil
+
   def chip_count(count, color) do
     ~MOB"""
     <Text
@@ -922,11 +941,21 @@ defmodule Kati.Screens.Search do
   """
   @spec waiting([String.t()]) :: map()
   def waiting(history) do
-    assigns = %{card: if(history == [], do: Kati.Screens.SearchTyping.nothing_yet(), else: nil)}
+    # Board 312: **it becomes 86, not 87.** 87's idle page is the first open —
+    # no recents, nothing searched. Clearing a field is a later moment, and
+    # what belongs there is 86's Recent group, *"now populated by the query
+    # just cleared."*
+    #
+    # `Kati.Screens.SearchIdle.recent/1` already handles both halves and states
+    # its own reason for the empty one: the eyebrow stays and the card under it
+    # explains itself, so the shape of the screen does not change under the
+    # reader on a first run.
+    assigns = %{recent: Kati.Screens.SearchIdle.recent(history)}
 
     ~MOB"""
     <Column fill_width={true}>
-      {@card}
+      {@recent}
+      <Spacer size={18} />
       {Kati.UI.SettingsList.note("search", Kati.Search.local_note())}
       <Spacer size={24} />
     </Column>

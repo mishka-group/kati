@@ -454,6 +454,20 @@ defmodule Kati.DesignLiterals do
       {"82", "کد را وارد کنید"},
       {"82", "listenbrainz.org/link"},
       {"82", "تا ۹:۴۸ دیگر معتبر است"},
+      # Board 314 replaced both of board 25's two lies, and it says so on its
+      # own face: *"A TIME IT NEVER CHECKED, AND A CADENCE THAT NEVER RUNS."*
+      #
+      # `checked 18:02` was a wall-clock time from a column that did not exist
+      # — the same defect 260 fixed on this page's sibling. The line is
+      # relative now, from a real timestamp, and reads `never checked` on every
+      # fresh install.
+      #
+      # `Manual` was one of four cadence segments and it meant NEVER: nothing
+      # schedules a manual run, so picking it switched the watcher off in
+      # silence. 314 makes it what it always was — a **Check now** button, which
+      # runs the sweep once and stamps the line above it.
+      {"25", "checked 18:02"},
+      {"25", "manual"},
       # Board 141's sentence names the file it was captured from — a nine-column
       # Goodreads export written with ten-point ratings and slashed dates — and
       # every number and format in it is the reader's file's now
