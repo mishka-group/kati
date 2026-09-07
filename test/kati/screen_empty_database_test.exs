@@ -293,6 +293,25 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # real list rather than drawn dead. On an empty store there is nothing that
     # fits and no film that does not, so the page is board 13 whole.
     {"13", Kati.Screens.WhatFits},
+    # 37 joined the round the importer was built. It reads the shelf to decide
+    # what a file would do to it — new, merged, or a conflict with a rating
+    # already stored — and on an empty store there is nothing to merge into and
+    # no file to read, so it answers board 37 whole.
+    #
+    # 120, 140 and 142 briefly joined with it and should not have. They read
+    # nothing; they borrowed a `Box` and a step bar from this module, and this
+    # file's derivation closes over the compiled import table, so sharing
+    # markup with a module that had just gained a database made three screens
+    # into store readers. The chrome moved to `Kati.UI.ImportChrome`, which is
+    # where shared chrome goes, and the derivation went back to telling the
+    # truth. Worth the six lines: the alternative was three gates asserting
+    # that a screen which reads nothing draws its own fixture.
+    {"37", Kati.Screens.Import},
+    # 141 joined with it, and reads for the same reason: it describes the file
+    # the picker handed over, and `Kati.Import.Job.read/2` counts what that
+    # file would do against the shelf. Given no file it answers board 141
+    # whole, which is what the gallery and every sweep render.
+    {"141", Kati.Screens.ImportRecognised},
     # The two screens the design draws DARK, and the log sheet.
     #
     # 28 is Home in dark and reads exactly what Home reads — `Rest of today`,
@@ -1693,6 +1712,21 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # above it described a film nobody has.
       {"13", Kati.Screens.WhatFits, &Kati.Screens.WhatFits.tonight/0,
        &Kati.Screens.WhatFits.drawn_tonight/0},
+      # 37 is gated on the branch a bare push lands on, which is every push
+      # that names no file: the gallery's, a sweep's, and screen 140's
+      # *Something else*. `job_for/1` then answers `Kati.Import.Sample`'s whole
+      # job — the file name, the shape, the five columns, the counts and the
+      # conflict — which is the state board 37 was captured in.
+      #
+      # NOT gated on a path naming nothing readable. That answers the drawing
+      # too, with `:refusal` on it so the screen can say why, and those are two
+      # different renders on purpose: a file that could not be read is a thing
+      # to tell somebody about, and a push that named no file is not.
+      {"37", Kati.Screens.Import, fn -> Kati.Screens.Import.job_for(%{}) end,
+       fn -> Kati.Import.Sample.job(:trakt) end},
+      # 141 gates on the same branch and for the same reason.
+      {"141", Kati.Screens.ImportRecognised, fn -> Kati.Screens.ImportRecognised.job_for(%{}) end,
+       &Kati.Import.Sample.recognised/0},
       # 28 is NOT here any more, and neither is 55. Both used to compare
       # `rest_of_today(Kati.Calendars.Today.rows())` with
       # `rest_of_today(Sample.rest_of_today())` — the assertion that a device

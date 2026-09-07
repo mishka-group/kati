@@ -453,7 +453,22 @@ defmodule Kati.DesignLiterals do
       {"80", "expires in 9:48"},
       {"82", "کد را وارد کنید"},
       {"82", "listenbrainz.org/link"},
-      {"82", "تا ۹:۴۸ دیگر معتبر است"}
+      {"82", "تا ۹:۴۸ دیگر معتبر است"},
+      # Board 141's sentence names the file it was captured from — a nine-column
+      # Goodreads export written with ten-point ratings and slashed dates — and
+      # every number and format in it is the reader's file's now
+      # (MOVIES-AND-TV.md #101). `Kati.Screens.ImportRecognised.date_line/1`
+      # still draws `YYYY/MM/DD` for a file written that way; the fixture's is
+      # written `2026/03/14`, so what the board keeps is the SHAPE of the
+      # sentence rather than its values.
+      #
+      # Two of the three are the values. The third, *Two columns are skipped*,
+      # is a clause that is dropped entirely when nothing was skipped, which is
+      # the same decision one clause smaller: a sentence counting columns that
+      # do not exist is what this whole finding was.
+      {"141", "10pt → 5★"},
+      {"141", "yyyy/mm/dd"},
+      {"141", ". two columns are skipped."}
     ]
   end
 end

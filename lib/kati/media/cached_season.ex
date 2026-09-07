@@ -82,7 +82,17 @@ defmodule Kati.Media.CachedSeason do
       # source one resource accepts and another rejects is a row that can be
       # created and then not joined to.
       constraints: [
-        one_of: [:manual, :tmdb, :tvmaze, :anilist, :jikan, :openlibrary, :musicbrainz, :wikidata]
+        one_of: [
+          :manual,
+          :import,
+          :tmdb,
+          :tvmaze,
+          :anilist,
+          :jikan,
+          :openlibrary,
+          :musicbrainz,
+          :wikidata
+        ]
       ]
 
     # The provider's id for the title — `CachedTitle.source_id`. A value, not a

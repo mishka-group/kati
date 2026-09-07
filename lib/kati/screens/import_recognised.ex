@@ -135,8 +135,60 @@ defmodule Kati.Screens.ImportRecognised do
 
   @impl true
   def load(socket) do
-    Mob.Socket.assign(socket, :job, Sample.recognised())
+    params = socket.assigns.params || %{}
+
+    socket
+    |> Mob.Socket.assign(:job, Kati.Screens.ImportRecognised.job_for(params))
+    |> Mob.Socket.assign(:file, {Map.get(params, :path), Map.get(params, :name)})
   end
+
+  @doc """
+  The file this screen describes: the one that was picked, or the drawing's.
+
+  Screen 140 opens the document picker and pushes the result here, so this is
+  the first screen in the flow that has ever had a real file behind it. A push
+  naming none — the gallery, a sweep — gets `Kati.Import.Sample.recognised/0`,
+  which is the state board 141 was captured in.
+  """
+  @spec job_for(map()) :: map()
+  def job_for(params) do
+    path = Map.get(params, :path)
+    name = Map.get(params, :name)
+
+    with true <- is_binary(path) and is_binary(name),
+         {:ok, job} <- Kati.Import.Job.read(path, name) do
+      job
+      |> Kati.Import.Job.recognised()
+      |> Map.put(:source, Kati.Screens.ImportRecognised.source_name(Map.get(params, :source)))
+    else
+      _no_file -> Sample.recognised()
+    end
+  end
+
+  @doc """
+  The source the reader said they were coming from, named as they would say it.
+
+  *Read as a **Letterboxd** export* — the tile they pressed on screen 140, not
+  the file name, which is what the first version of this read and made the line
+  say *Read as a watched.csv export*.
+
+  A file arriving by some other door names none, and the line then says what it
+  can: the file itself.
+
+      iex> Kati.Screens.ImportRecognised.source_name("myanimelist")
+      "MyAnimeList"
+
+      iex> Kati.Screens.ImportRecognised.source_name(nil)
+      "CSV"
+  """
+  @spec source_name(String.t() | nil) :: String.t()
+  def source_name("letterboxd"), do: "Letterboxd"
+  def source_name("trakt"), do: "Trakt"
+  def source_name("myanimelist"), do: "MyAnimeList"
+  def source_name("anilist"), do: "AniList"
+  def source_name("goodreads"), do: "Goodreads"
+  def source_name("storygraph"), do: "StoryGraph"
+  def source_name(_none), do: "CSV"
 
   @doc false
   def content(assigns) do
@@ -155,7 +207,7 @@ defmodule Kati.Screens.ImportRecognised do
         {Kati.Screens.ImportRecognised.title(job)}
         {Kati.Screens.ImportRecognised.steps(job)}
         {Kati.Screens.ImportRecognised.file_card(job)}
-        {Kati.Screens.ImportRecognised.matched_note()}
+        {Kati.Screens.ImportRecognised.matched_note(job)}
         {UI.SettingsList.eyebrow_muted("Mapping — collapsed")}
         {Kati.Screens.ImportRecognised.mapping_collapsed(job)}
         {UI.eyebrow("Mapping — expanded")}
@@ -365,7 +417,7 @@ defmodule Kati.Screens.ImportRecognised do
   That is exactly why the `5★` in it is the character rather than a spliced
   glyph — see "The star the font turned out to have" in this module's doc.
   """
-  def matched_note do
+  def matched_note(job) do
     ~MOB"""
     <Column fill_width={true}>
       <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
@@ -373,7 +425,7 @@ defmodule Kati.Screens.ImportRecognised do
           {UI.symbol("auto_awesome", size: 18, color: Palette.gold_icon())}
           <Spacer size={11} />
           <Column weight={1.0}>
-            {Kati.Screens.ImportRecognised.note()}
+            {Kati.Screens.ImportRecognised.note(job)}
           </Column>
         </Row>
       </Column>
@@ -382,20 +434,97 @@ defmodule Kati.Screens.ImportRecognised do
     """
   end
 
-  @doc false
-  def note do
+  @doc """
+  What Kati made of the file, counted rather than stated.
+
+  The board's own sentence — *Kati matched 7 of 9 columns … Two columns are
+  skipped* — was a literal, and over a real export it contradicted the counts
+  in the card directly above it. Every number in it is now the file's own, and
+  the clause about skipped columns is dropped when nothing was skipped: a
+  sentence ending *Two columns are skipped* over a file where none were is the
+  same defect one clause smaller.
+  """
+  @spec note(map()) :: map()
+  def note(job) do
     body = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
 
-    UI.rich_text([
-      {"Kati matched ", [base: true] ++ body},
-      {"7 of 9 columns", :semibold},
-      {" and set the conversions: ", body},
-      {"10pt → 5★", :semibold},
-      {", and dates read as ", body},
-      {"YYYY/MM/DD", :semibold},
-      {". Two columns are skipped.", body}
-    ])
+    UI.rich_text(
+      [
+        {"Kati matched ", [base: true] ++ body},
+        {"#{job.matched} of #{job.total_columns} columns", :semibold},
+        {" and set the conversions: ", body},
+        {Kati.Screens.ImportRecognised.scale_line(job), :semibold},
+        {", and dates read as ", body},
+        {Kati.Screens.ImportRecognised.date_line(job), :semibold},
+        {".", body}
+      ] ++ Kati.Screens.ImportRecognised.skipped_clause(job.skipped, body)
+    )
   end
+
+  @doc """
+  Which way the rating column is being converted, or that none is.
+
+  The board says `10pt → 5★` because the file it was captured from wrote ten
+  points. `Kati.Import.Mapping.scale_of/2` reads the column, so this says what
+  is actually happening to this file — and `no rating column` when there is
+  nothing to convert, which is a true sentence where the drawing's would be a
+  claim about a column the file does not have.
+  """
+  @spec scale_line(map()) :: String.t()
+  def scale_line(job) do
+    # `Map.get` with a default: board 141's own columns carry no `:sample` —
+    # they are a mapping table, not a preview — and the drawing must keep its
+    # sentence.
+    case Kati.Screens.ImportRecognised.sample_for(job, "Rating") do
+      nil -> "no rating column"
+      "" -> "10pt → 5★"
+      sample -> if String.contains?(sample, "."), do: "5★ → 10pt", else: "10pt → 5★"
+    end
+  end
+
+  @doc false
+  @spec sample_for(map(), String.t()) :: String.t() | nil
+  def sample_for(job, field) do
+    case Enum.find(job.columns, &(&1.field == field)) do
+      nil -> nil
+      column -> Map.get(column, :sample, "")
+    end
+  end
+
+  @doc """
+  The date format the file is being read in, from its own first row.
+
+  `YYYY/MM/DD` on the board. Every shape `Kati.Import.Mapping.date/1` accepts
+  is named here by what it looks like rather than by a parser flag, because
+  this line is read by somebody checking that Kati understood their file.
+  """
+  @spec date_line(map()) :: String.t()
+  def date_line(job) do
+    case Kati.Screens.ImportRecognised.sample_for(job, "Watched on") do
+      nil ->
+        "no date column"
+
+      sample ->
+        cond do
+          # `Regex.compile!` and not `~r{}`: the braces of a `{4}` quantifier
+          # close the sigil. `Kati.QuickAdd.Parse` hit the same thing.
+          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d-")) -> "YYYY-MM-DD"
+          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d/")) -> "YYYY/MM/DD"
+          String.match?(sample, Regex.compile!("^\\d\\d?/")) -> "DD/MM/YYYY"
+          # The board's own, for the board's own columns: 141 draws a mapping
+          # table with no sampled values, and its sentence says YYYY/MM/DD.
+          sample == "" -> "YYYY/MM/DD"
+          true -> "as written"
+        end
+    end
+  end
+
+  @doc false
+  def skipped_clause(0, _body), do: []
+
+  def skipped_clause(1, body), do: [{" One column is skipped.", body}]
+
+  def skipped_clause(n, body), do: [{" #{n} columns are skipped.", body}]
 
   @doc """
   The mapping at rest: one row, the counts, and the chevron that opens it.
@@ -580,9 +709,17 @@ defmodule Kati.Screens.ImportRecognised do
   @doc false
   @impl true
   def handle_tap(:check_mapping, socket) do
+    {path, name} = Map.get(socket.assigns, :file, {nil, nil})
+
     {:noreply,
      Mob.Socket.push_screen(socket, Kati.Screens.Import, %{
-       source: Kati.Screens.ImportRecognised.source()
+       # The same file, not the same fixture. 141 and 37 drew two jobs and
+       # contradicted each other about one export (#53); they are now two views
+       # of one `Kati.Import.Job`, and the path is what carries it across.
+       path: path,
+       name: name,
+       source: Kati.Screens.ImportRecognised.source(),
+       back: "Recognised"
      })}
   end
 

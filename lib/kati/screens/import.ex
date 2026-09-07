@@ -76,9 +76,170 @@ defmodule Kati.Screens.Import do
   # resource to have an id.
   @impl true
   def load(socket) do
-    source = Map.get(socket.assigns.params || %{}, :source)
+    params = socket.assigns.params || %{}
 
-    Mob.Socket.assign(socket, :job, Sample.job(source || :trakt))
+    socket
+    |> Mob.Socket.assign(:job, Kati.Screens.Import.job_for(params))
+    |> Mob.Socket.assign(:answers, %{})
+    |> Mob.Socket.assign(:at, 0)
+    |> Mob.Socket.assign(:result, nil)
+  end
+
+  @doc """
+  The job this screen draws: the file it was handed, or the drawing's.
+
+  A push carrying `:path` and `:name` is a file the reader actually picked, and
+  `Kati.Import.Job.read/2` is what makes it a job — the rows, the columns
+  mapped by their headers, and the plan counted against the shelf as it stands.
+  A push carrying neither is the gallery, a sweep, or screen 140's *Something
+  else*, and gets `Kati.Import.Sample`, which is the state board 37 was
+  captured in.
+
+  A file that could not be read falls back to the drawing rather than to a
+  blank page, and carries why on `:refusal` so the screen can say it.
+  """
+  @spec job_for(map()) :: map()
+  def job_for(params) do
+    path = Map.get(params, :path)
+    name = Map.get(params, :name)
+
+    with true <- is_binary(path) and is_binary(name),
+         {:ok, job} <- Kati.Import.Job.read(path, name) do
+      job
+    else
+      {:error, reason} ->
+        Map.put(Sample.job(Map.get(params, :source) || :trakt), :refusal, reason)
+
+      _no_file ->
+        Sample.job(Map.get(params, :source) || :trakt)
+    end
+  end
+
+  @doc """
+  Whether this job can be committed: it came from a file, not from the board.
+
+      iex> Kati.Screens.Import.live?(Kati.Import.Sample.job())
+      false
+  """
+  @spec live?(map()) :: boolean()
+  def live?(job), do: is_map(Map.get(job, :plan))
+
+  @impl true
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "answer_" <> answer ->
+        {:noreply, Kati.Screens.Import.answer(socket, answer, :one)}
+
+      "all_" <> answer ->
+        {:noreply, Kati.Screens.Import.answer(socket, answer, :all)}
+
+      "commit" ->
+        {:noreply, Kati.Screens.Import.commit(socket)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Answer the open conflict, for it alone or for the whole queue.
+
+  Answering advances to the next one, which is what makes a queue of six a
+  thing you get through rather than a thing you keep re-reading. *Apply to all*
+  answers every conflict still unanswered and closes the card.
+  """
+  @spec answer(Mob.Socket.t(), String.t(), :one | :all) :: Mob.Socket.t()
+  def answer(socket, label, scope) do
+    job = socket.assigns.job
+
+    with true <- Kati.Screens.Import.live?(job),
+         choice when not is_nil(choice) <- Kati.Screens.Import.choice_atom(label),
+         %{} = card <- job.conflict do
+      answers =
+        case scope do
+          :one -> Map.put(socket.assigns.answers, card.watch_id, choice)
+          :all -> Map.new(job.conflicts, &{&1.watch_id, choice})
+        end
+
+      at = if scope == :all, do: length(job.conflicts), else: card.index + 1
+
+      socket
+      |> Mob.Socket.assign(:answers, answers)
+      |> Mob.Socket.assign(:at, at)
+      |> Kati.Screens.Import.redraw_card()
+    else
+      _drawn -> socket
+    end
+  end
+
+  @doc false
+  def redraw_card(socket) do
+    job = socket.assigns.job
+    at = socket.assigns.at
+
+    answered =
+      job.conflicts |> Enum.at(at) |> then(&(&1 && Map.get(socket.assigns.answers, &1.watch_id)))
+
+    Mob.Socket.assign(
+      socket,
+      :job,
+      %{job | conflict: Kati.Import.Job.conflict_card(job.conflicts, at, answered)}
+    )
+  end
+
+  @doc false
+  @spec choice_atom(String.t()) :: atom() | nil
+  def choice_atom("keep_mine"), do: :keep_mine
+  def choice_atom("take_file"), do: :take_file
+  def choice_atom("keep_both"), do: :keep_both
+  def choice_atom(_other), do: nil
+
+  @doc """
+  Write the import, and say what it did.
+
+  Refuses on the drawing, which is `Kati.Write`'s own `:nothing_to_save`: the
+  board's `Import 412` describes a file nobody picked, and committing it would
+  file four hundred invented films under the reader's own shelf.
+  """
+  @spec commit(Mob.Socket.t()) :: Mob.Socket.t()
+  def commit(socket) do
+    job = socket.assigns.job
+
+    if Kati.Screens.Import.live?(job) do
+      {:ok, tally} = Kati.Import.Commit.run(job, socket.assigns.answers)
+
+      Mob.Socket.assign(socket, :result, Kati.Screens.Import.result_line(tally))
+    else
+      Mob.Socket.assign(socket, :result, Kati.Write.message({:error, :nothing_to_save}))
+    end
+  end
+
+  @doc """
+  What a finished import says.
+
+      iex> Kati.Screens.Import.result_line(%{new: 384, merged: 28, resolved: 6, failed: 0})
+      "384 added · 28 merged · 6 conflicts settled."
+
+      iex> Kati.Screens.Import.result_line(%{new: 3, merged: 0, resolved: 0, failed: 2})
+      "3 added. 2 rows could not be written."
+  """
+  @spec result_line(map()) :: String.t()
+  def result_line(tally) do
+    said =
+      [
+        {tally.new, "added"},
+        {tally.merged, "merged"},
+        {tally.resolved, "conflicts settled"}
+      ]
+      |> Enum.filter(fn {n, _word} -> n > 0 end)
+      |> Enum.map_join(" · ", fn {n, word} -> "#{n} #{word}" end)
+
+    said = if said == "", do: "Nothing to import", else: said
+
+    case tally.failed do
+      0 -> said <> "."
+      n -> said <> ". #{n} #{if n == 1, do: "row", else: "rows"} could not be written."
+    end
   end
 
   @doc false
@@ -95,6 +256,7 @@ defmodule Kati.Screens.Import do
         padding_bottom={40}
       >
         {Kati.Screens.Import.header(job)}
+        {Kati.Screens.Import.result_notice(Map.get(assigns, :result))}
         {Kati.Screens.Import.title(job)}
         {Kati.Screens.Import.steps(job)}
         {Kati.Screens.Import.file_card(job)}
@@ -102,8 +264,7 @@ defmodule Kati.Screens.Import do
         {Kati.Screens.Import.mapping(job)}
         {UI.eyebrow("What will happen")}
         {Kati.Screens.Import.outcome(job)}
-        {UI.eyebrow("Conflicts · keep which?")}
-        {Kati.Screens.Import.conflict(job)}
+        {Kati.Screens.Import.conflicts_band(job)}
       </Column>
     </Scroll>
     """
@@ -112,31 +273,37 @@ defmodule Kati.Screens.Import do
   # The 44pt height reserves the row the back pill floats in — the pill itself
   # is drawn by Kati.Screens.Pushed — so the ink action sits opposite it.
   @doc false
-  def header(job) do
+  def result_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def result_notice(message) do
+    assigns = %{notice: Kati.UI.notice(message)}
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} height={44} align="center">
-        <Spacer weight={1.0} />
-        <Row
-          height={38}
-          corner_radius={19}
-          background={Palette.ink_fill()}
-          padding_left={16}
-          padding_right={16}
-          align="center"
-        >
-          <Text
-            text={job.action}
-            text_size={13}
-            font_weight="bold"
-            text_color={Palette.on_ink()}
-            max_lines={1}
-          />
-        </Row>
-      </Row>
-      <Spacer size={16} />
+      {@notice}
+      <Spacer size={14} />
     </Column>
     """
+  end
+
+  @doc """
+  The ink `Import 412` pill, and the commit behind it.
+
+  MOVIES-AND-TV.md #101: this was the commit action of the whole flow and it
+  carried no tap. It carries one now over a real file, and none over the board
+  — `Kati.Screens.Import.live?/1` is the difference, and pressing the board's
+  would file four hundred invented films under the reader's own shelf.
+
+  The markup is `Kati.UI.ImportChrome.header/2`, which is where it moved when
+  this module started reaching the database: three other screens draw the same
+  pill and none of them reads anything.
+  """
+  @spec header(map()) :: map()
+  def header(job) do
+    Kati.UI.ImportChrome.header(
+      job.action,
+      if(Kati.Screens.Import.live?(job), do: {self(), :commit})
+    )
   end
 
   @doc false
@@ -179,14 +346,10 @@ defmodule Kati.Screens.Import do
   end
 
   @doc false
-  def step_gap, do: ~MOB"<Spacer size={5} />"
+  defdelegate step_gap(), to: Kati.UI.ImportChrome
 
   @doc false
-  def step_bar(done?) do
-    color = if done?, do: Palette.ink(), else: Palette.track_off()
-
-    ~MOB"<Box weight={1.0} height={4} corner_radius={2} background={color} />"
-  end
+  defdelegate step_bar(done?), to: Kati.UI.ImportChrome
 
   @doc false
   def file_card(job) do
@@ -247,12 +410,7 @@ defmodule Kati.Screens.Import do
   for
   node what the card wrote by hand.
   """
-  def file_tile do
-    MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Palette.paper(), size: 38, radius: 11},
-      [Kati.UI.symbol("description", size: 20, color: Palette.ink_soft())]
-    )
-  end
+  defdelegate file_tile(), to: Kati.UI.ImportChrome
 
   @doc false
   def mapping(job) do
@@ -377,7 +535,7 @@ defmodule Kati.Screens.Import do
   end
 
   @doc false
-  def outcome_gap, do: ~MOB"<Spacer size={10} />"
+  defdelegate outcome_gap(), to: Kati.UI.ImportChrome
 
   @doc false
   def outcome_card(card) do
@@ -413,9 +571,39 @@ defmodule Kati.Screens.Import do
     """
   end
 
+  @doc """
+  *Conflicts · keep which?* and the card under it, or nothing at all.
+
+  Nothing at all when the file disagrees with the shelf about nothing, which is
+  every import into an empty library and most imports into a full one. The
+  eyebrow goes with the card rather than standing over a gap — the rule this
+  round keeps everywhere, and here it is also what stops the screen dying:
+  `conflict/1` drew `job.conflict` unconditionally and `conflict_poster/1`
+  raised a `BadMapError` on `nil`, which took the screen process with it and
+  threw the reader back to Home. Found by importing a file that conflicted with
+  nothing, which is the ordinary case.
+  """
+  @spec conflicts_band(map()) :: map()
+  def conflicts_band(%{conflict: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def conflicts_band(job) do
+    assigns = %{
+      eyebrow: UI.eyebrow("Conflicts · keep which?"),
+      card: Kati.Screens.Import.conflict(job)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@eyebrow}
+      {@card}
+    </Column>
+    """
+  end
+
   @doc false
   def conflict(job) do
     c = job.conflict
+    live? = Kati.Screens.Import.live?(job)
 
     ~MOB"""
     <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={15}>
@@ -437,24 +625,17 @@ defmodule Kati.Screens.Import do
       <Spacer size={12} />
       <Row fill_width={true} align="center">
         {c.choices
-         |> Enum.map(fn choice -> Kati.Screens.Import.choice(choice) end)
+         |> Enum.map(fn choice -> Kati.Screens.Import.choice(choice, live?) end)
          |> Enum.intersperse(Kati.Screens.Import.choice_gap())}
       </Row>
       <Spacer size={12} />
-      <Text
-        text={c.progress}
-        font_family="mono"
-        text_size={10.5}
-        text_color={Palette.cream_meta()}
-        text_align="center"
-        max_lines={1}
-      />
+      {Kati.Screens.Import.apply_to_all(c, live?)}
     </Column>
     """
   end
 
   @doc false
-  def choice_gap, do: ~MOB"<Spacer size={8} />"
+  defdelegate choice_gap(), to: Kati.UI.ImportChrome
 
   @doc """
   One answer to the conflict: a 32pt pill, ink when it is the chosen one.
@@ -527,31 +708,64 @@ defmodule Kati.Screens.Import do
   (`Palette.cream_raise/0`, 60% white on cream, and `Palette.cream_sub/0`,
   `#8A7B60`), and `pressed` picks between them exactly as the `if` did.
   """
-  def choice({label, primary?}) do
-    button =
-      MishkaToggle.toggle(
-        label: label,
-        pressed: primary?,
-        color: Palette.ink_fill(),
-        text_color: Palette.on_ink(),
-        background: Palette.cream_raise(),
-        label_color: Palette.cream_sub(),
-        corner_radius: 16,
-        height: 32,
-        padding: 0,
-        border_width: 0,
-        fill_width: true,
-        align: :center,
-        text_size: 11.5,
-        font_weight: :semibold,
-        max_lines: 1
-      )
+  @doc """
+  One answer to the conflict, tappable over a real file.
+
+  `Kati.UI.ImportChrome.choice/2` draws it — screen 120 draws the same three
+  pills over a plan import with no conflict queue, and takes them as pictures.
+  """
+  @spec choice({String.t(), boolean()}, boolean()) :: map()
+  def choice({label, _primary?} = chip, live? \\ false) do
+    Kati.UI.ImportChrome.choice(
+      chip,
+      if(live?, do: {self(), Kati.Screens.Import.answer_tag("answer_", label)})
+    )
+  end
+
+  @doc """
+  *1 of 6 · apply to all* — a control now, and it was a `Text`.
+
+  MOVIES-AND-TV.md #101 counted it among this screen's pictures, and the
+  fixture's own note said why it is offered underneath rather than as the
+  default: six decisions is a short queue, and a blanket answer to a question
+  you have not read is how an import quietly destroys a rating. So it applies
+  **the answer you just gave**, and it is not tappable until you have given
+  one — which is the difference between *apply to all* and *decide for me*.
+  """
+  @spec apply_to_all(map(), boolean()) :: map()
+  def apply_to_all(card, live?) do
+    chosen = Enum.find(card.choices, fn {_label, on?} -> on? end)
+
+    assigns = %{
+      progress: card.progress,
+      tap:
+        if(live? and chosen,
+          do: {self(), Kati.Screens.Import.answer_tag("all_", elem(chosen, 0))}
+        )
+    }
 
     ~MOB"""
-    <Box weight={1.0}>
-      {button}
-    </Box>
+    <Text
+      text={@progress}
+      font_family="mono"
+      text_size={10.5}
+      text_color={Palette.cream_meta()}
+      text_align="center"
+      max_lines={1}
+      on_tap={@tap}
+    />
     """
+  end
+
+  @doc """
+  The tag a choice sends, built from its own label.
+
+      iex> Kati.Screens.Import.answer_tag("answer_", "Take file")
+      :answer_take_file
+  """
+  @spec answer_tag(String.t(), String.t()) :: atom()
+  def answer_tag(prefix, label) do
+    String.to_atom(prefix <> (label |> String.downcase() |> String.replace(" ", "_")))
   end
 
   @doc false

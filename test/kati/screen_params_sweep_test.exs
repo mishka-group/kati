@@ -435,6 +435,20 @@ defmodule Kati.ScreenParamsSweepTest do
     # `:add` beside them is in `@bare_pushes` and is the control for this whole
     # list: same screen, same destination, and bare ON PURPOSE, because a new
     # meal has no id to carry rather than none to find.
+    # ── Screen 140's two book tiles, onto 141.
+    #
+    # 141 reads `:path` and `:name` since the importer landed, and a tile hands
+    # it both — through the system document picker, which is a dialog this
+    # sweep cannot answer. What the sweep sees is the RESCUE: no NIF is bound
+    # on a host, so the tile does what it did before there was an importer and
+    # opens the board of its own kind, which is #52's fix and is why
+    # `Kati.Screens.ImportSources.opens/1` still exists.
+    #
+    # A board is a drawing of a file rather than a file, so `%{}` is the right
+    # argument for that push and this is the honest place to say so: the row
+    # this door names has no id because there is no row — there is a picture.
+    {Kati.Screens.ImportSources, :source_goodreads, Kati.Screens.ImportRecognised},
+    {Kati.Screens.ImportSources, :source_storygraph, Kati.Screens.ImportRecognised},
     {Kati.Screens.MealLibrary, :open_meal_0, Kati.Screens.MealEdit},
     {Kati.Screens.MealLibrary, :open_meal_1, Kati.Screens.MealEdit},
     {Kati.Screens.MealLibrary, :open_meal_2, Kati.Screens.MealEdit},

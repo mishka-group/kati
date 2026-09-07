@@ -176,8 +176,8 @@ defmodule Kati.Screens.ImportSources do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         {1..5
-         |> Enum.map(fn i -> Kati.Screens.Import.step_bar(i <= 1) end)
-         |> Enum.intersperse(Kati.Screens.Import.step_gap())}
+         |> Enum.map(fn i -> Kati.UI.ImportChrome.step_bar(i <= 1) end)
+         |> Enum.intersperse(Kati.UI.ImportChrome.step_gap())}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -389,16 +389,86 @@ defmodule Kati.Screens.ImportSources do
   def tag(id) when is_atom(id), do: tag(Atom.to_string(id))
   def tag(id) when is_binary(id), do: String.to_atom("source_" <> id)
 
-  @doc false
+  @doc """
+  A source tile opens the file picker, and remembers which tile it was.
+
+  Until the importer existed these six tiles pushed a drawing, and which
+  drawing was the whole of #52. There is a file now: the tile opens the system
+  document picker, and the picked file is read into a
+  `Kati.Import.Job` and handed to screen 37.
+
+  The id is kept on the socket rather than in the push, and it decides only
+  what to draw if the reader cancels or picks something unreadable — the
+  mapping itself is by HEADER (`Kati.Import.Mapping`), because every one of
+  these services lets you re-order the columns before export and a mapping by
+  source would be right until somebody did.
+  """
   def handle_tap(tag, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
       "source_" <> id ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ImportSources.opens(id))}
+        {:noreply, Kati.Screens.ImportSources.choose_file(socket, id)}
 
       _other ->
         handle_other(tag, socket)
     end
   end
+
+  @doc """
+  Open the system document picker, remembering which tile asked.
+
+  Rescued for `Kati.Screens.Restore.choose/1`'s reason, which is the whole
+  native boundary's: Kati runs one screen process, `Mob.Files.pick/2` reaches
+  `:mob_nif.files_pick/1` directly, and an unbound NIF raising here would take
+  the screen down rather than fail a button. A platform with no picker is told
+  as much — and that platform includes every host test, which is why this shape
+  and not a bare call.
+  """
+  @spec choose_file(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def choose_file(socket, id) do
+    socket
+    |> Mob.Socket.assign(:source, id)
+    |> Kati.Native.Files.pick(types: ["csv", "text/csv"])
+  rescue
+    # No picker bound: a host test, and any build without the NIF. The tile
+    # then does what it did before there was an importer — it opens the board
+    # of its own kind, which is #52's fix and is why `opens/1` is still here.
+    # A film source does not open a page about books, with a file or without
+    # one.
+    _exception ->
+      Mob.Socket.push_screen(socket, Kati.Screens.ImportSources.opens(id))
+  end
+
+  @doc """
+  What the picker answered.
+
+  A picked file goes to screen 37 with its path and its name; a cancel says so
+  and changes nothing; anything else is reported in the words
+  `Kati.Screens.Import` would have used, because the reader is owed the same
+  sentence wherever the refusal happens.
+  """
+  @impl true
+  def handle_info({:files, :picked, [item | _rest]}, socket) do
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.ImportRecognised, %{
+       # 141, not 37: the flow the boards draw is *here is what I found* and
+       # then *check the mapping*, and skipping the first would put a reader in
+       # front of a column table before they had been told what file it is.
+       path: Kati.Screens.ImportSources.string(item[:path]),
+       name: Kati.Screens.ImportSources.string(item[:name]),
+       source: Map.get(socket.assigns, :source),
+       back: "Import"
+     })}
+  end
+
+  def handle_info({:files, :cancelled}, socket),
+    do: {:noreply, Mob.Socket.assign(socket, :notice, "No file was chosen.")}
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc false
+  def string(value) when is_binary(value), do: value
+  def string(value) when is_list(value), do: List.to_string(value)
+  def string(_other), do: ""
 
   @doc """
   Which recognised-job board a source's tile opens.
@@ -409,8 +479,11 @@ defmodule Kati.Screens.ImportSources do
   grid are film and TV — Letterboxd, Trakt, MyAnimeList, AniList — and every
   one of them landed on a screen about books. MOVIES-AND-TV.md #52.
 
-  There is no import engine behind either board and both are drawings; what
-  this fixes is which drawing. Screen 141 is a Goodreads export and screen 37
+  There IS an import engine now — `Kati.Import.Job` — and a tile opens the
+  picker rather than a board. This is what a tile falls back to when no picker
+  is bound, which is every host test and any build without the NIF, and the
+  distinction it draws is unchanged: a film source does not open a page about
+  books. Screen 141 is a Goodreads export and screen 37
   is a Trakt one, so a books tile opens the books job and a films tile opens
   the films job. Neither claims to have read the file the reader picked, and
   neither did before — the difference is that a person importing Letterboxd is

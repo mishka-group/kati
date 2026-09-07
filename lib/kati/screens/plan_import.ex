@@ -158,7 +158,7 @@ defmodule Kati.Screens.PlanImport do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.Import.header(job.plan)}
+        {Kati.UI.ImportChrome.header(job.plan.action)}
         {Kati.Screens.PlanImport.steps(job.plan)}
         {Kati.Screens.PlanImport.title(job.plan)}
         {Kati.Screens.PlanImport.source_card(job.plan)}
@@ -283,8 +283,8 @@ defmodule Kati.Screens.PlanImport do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         {1..plan.steps
-         |> Enum.map(fn i -> Kati.Screens.Import.step_bar(i <= plan.step) end)
-         |> Enum.intersperse(Kati.Screens.Import.step_gap())}
+         |> Enum.map(fn i -> Kati.UI.ImportChrome.step_bar(i <= plan.step) end)
+         |> Enum.intersperse(Kati.UI.ImportChrome.step_gap())}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -414,7 +414,7 @@ defmodule Kati.Screens.PlanImport do
       <Row fill_width={true} align="top">
         {cards
          |> Enum.map(fn card -> Kati.Screens.PlanImport.count_card(card) end)
-         |> Enum.intersperse(Kati.Screens.Import.outcome_gap())}
+         |> Enum.intersperse(Kati.UI.ImportChrome.outcome_gap())}
       </Row>
       <Spacer size={22} />
     </Column>
@@ -514,8 +514,8 @@ defmodule Kati.Screens.PlanImport do
         <Spacer size={13} />
         <Row fill_width={true} align="center">
           {c.choices
-           |> Enum.map(fn choice -> Kati.Screens.Import.choice(choice) end)
-           |> Enum.intersperse(Kati.Screens.Import.choice_gap())}
+           |> Enum.map(fn choice -> Kati.UI.ImportChrome.choice(choice) end)
+           |> Enum.intersperse(Kati.UI.ImportChrome.choice_gap())}
         </Row>
         <Spacer size={12} />
         <Text
