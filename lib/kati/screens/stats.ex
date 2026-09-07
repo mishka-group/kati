@@ -141,6 +141,17 @@ defmodule Kati.Screens.Stats do
   @weeks 26
   @grid_days @weeks * 7
 
+  @doc """
+  The grid's span in weeks — 26, and the one place it is written down.
+
+  Public because screen 98's share card draws the same field and board 100
+  labels it `26 WEEKS`; reading it here rather than typing it again is what
+  stops the squares and the label disagreeing, which is the reason this
+  attribute exists at all.
+  """
+  @spec weeks() :: pos_integer()
+  def weeks, do: @weeks
+
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket, figures())

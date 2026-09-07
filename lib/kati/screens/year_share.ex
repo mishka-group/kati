@@ -400,6 +400,10 @@ defmodule Kati.Screens.YearShare do
   def field_face(grid, label_size) do
     assigns = %{
       label_size: label_size,
+      # Board 100's own two words for this face, and board 102's before it —
+      # `Your year` over `26 WEEKS`. The first version of this invented
+      # `Every day`, which is copy neither board contains.
+      weeks: "#{Kati.Screens.Stats.weeks()} WEEKS",
       rows:
         grid
         |> Enum.chunk_every(26)
@@ -411,7 +415,7 @@ defmodule Kati.Screens.YearShare do
     <Column fill_width={true}>
       <Spacer size={20} />
       <Text
-        text="Every day"
+        text="Your year"
         font_family="mono"
         text_size={@label_size}
         letter_spacing={0.14}
@@ -421,7 +425,43 @@ defmodule Kati.Screens.YearShare do
       <Column fill_width={true}>
         {@rows}
       </Column>
+      <Spacer size={11} />
+      <Row fill_width={true} align="center">
+        <Text
+          text={@weeks}
+          font_family="mono"
+          text_size={@label_size}
+          letter_spacing={0.14}
+          text_color={Palette.muted()}
+        />
+        <Spacer weight={1.0} />
+        {Kati.Screens.YearShare.wordmark()}
+      </Row>
     </Column>
+    """
+  end
+
+  @doc """
+  `Kati` — and it goes on the field face and nowhere else.
+
+  Board 100 states the rule in as many words: *only the field card carries the
+  wordmark*, and board 98's own note gives the reason — *it is the one people
+  ask about, so it is the one that answers*. A wordmark on every face would be
+  a signature on a page nobody asked who wrote.
+  """
+  @spec wordmark() :: map()
+  def wordmark do
+    assigns = %{}
+
+    ~MOB"""
+    <Text
+      text="Kati"
+      text_size={12}
+      font_weight="bold"
+      letter_spacing={-0.01}
+      text_color={Palette.muted()}
+      max_lines={1}
+    />
     """
   end
 
