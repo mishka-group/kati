@@ -1,8 +1,8 @@
 # Kati — boards wanted, 7 September 2026
 
-Twenty-three boards, ordered by screen number. Each says what is on the device
-today, what to draw, and which delivered board already sets the idiom — please
-reuse it rather than inventing a second one.
+Nineteen screens and eight Lists amendments, ordered by screen number. Each
+says what is on the device today, what to draw, and which delivered board
+already sets the idiom — please reuse it rather than inventing a second one.
 
 **Do not redraw anything in `test/design/incoming/`.** Ninety-five boards
 arrived on 5 September; eighty-six are still unbuilt and are a build backlog,
@@ -296,90 +296,161 @@ committing an import.
 
 ---
 
-# Lists — amendments to 181 and 182, and two Persian mirrors
+# Lists — what 181 and 182 left, and two Persian mirrors
 
-**Both boards arrived and are correct; nothing here asks you to redraw them.**
-What follows are the things they explicitly declined, on which the owner has now
-ruled, plus the Persian half that does not exist.
+**Both boards arrived and are right; nothing here asks you to redraw them.** A
+sweep of the two boards against the shipped screens found **twenty-four things
+neither board draws**, fourteen of them reachable in the app today. They group
+into six amendments and two new mirrors.
 
 **Two rulings, made 7 September:**
 
-1. **A list can be deleted, and a title can be removed from one.** Board 181
-   says *"No overflow disc — rename, share and delete are undrawn, and a disc
-   with an undrawn menu is a new inert tap."* That was the right call with
-   nothing decided; it is now decided, and the controls exist.
+1. **A list can be deleted, and a title can be removed from one.** 181 says
+   *"No overflow disc — rename, share and delete are undrawn, and a disc with an
+   undrawn menu is a new inert tap."* That was right with nothing decided. It is
+   decided now: both controls exist.
 2. **A list holds films, series, books and albums.** 182's mixed card is
-   ratified, and the schema will be changed to match — today
-   `list_memberships.tracked_title_id` is a hard foreign key to one table, so a
-   book cannot be in a list at all. Board 12's own caption already promised
-   this: *"The same shell will hold book and album lists."*
+   ratified and the schema follows — today `list_memberships.tracked_title_id`
+   is a hard foreign key to one table, so a book cannot be in a list at all.
+   Board 12's caption already promised it: *"The same shell will hold book and
+   album lists."*
 
 **Why this is urgent rather than tidy.** There are **seven** *Add to list*
-controls in the app, on six screens, and **only one of them adds anything**.
-Screen 146's passes a selection; 66, 68, 74 and 76 push the Lists index carrying
-nothing, so the title is never mentioned again; 147's has no tap at all; and
-screen 69's — the Persian book page — has no handler and does *literally
-nothing*, no push, no write, no feedback. 182 is what fixes all seven, and two
-of them are Persian, which is why the mirrors below are not optional.
+controls, on six screens, and **one** of them adds anything. Screen 146's passes
+a selection; 66, 68, 74 and 76 push the Lists index carrying nothing, so the
+title is never mentioned again; 147's has no tap; and screen 69's — the Persian
+book page — has no handler at all, so nothing pushes and nothing is written.
 
-## 181 — amendment 1: the destructive controls
+## L1 — 181: the destructive half
 
 **Draw:** removing a title from a list, and deleting a list. Where each control
-lives (181 currently gives the row's trailing slot to a `chevron_right` and puts
-nothing at the foot), and what confirmation each takes. **269 is the app's
-confirmation recipe** but is explicitly scoped to 267, 268 and 80 — either widen
-it or say why a list needs its own. 253's undo bar is the other precedent and is
-scoped to an expense.
+lives (181 gives the row's trailing slot to a `chevron_right`, and the ranked
+row's to a `drag_indicator` — there is no third mark, no swipe, no edit mode),
+and what confirmation each takes.
 
-Please also rule whether **rename** comes with them, since it is the third thing
-181 named as undrawn and the only one still open.
+**And undo.** Board 146 draws `Removed 4 titles · Undo` and it ships. Today the
+app offers undo for pulling a title off a shelf and nothing for destroying a
+whole list, whose memberships cascade. **269** is the app's confirmation recipe
+but is scoped to 267, 268 and 80; **253's** undo bar is scoped to an expense.
+Widen one, or say why a list needs its own.
 
-## 181 — amendment 2: the album row, actually letterboxed
+Please also rule on **rename** — the third thing 181 named as undrawn, and the
+only one still open.
+
+## L2 — 181: the states it did not draw
+
+Six, all reachable:
+
+* **The absent list, which is not the empty list.** `Shelf.detail/1` answers
+  `nil` and the code draws a distinct page — *"No list here"*, a card, a *Your
+  lists* pill. Reachable from a list deleted on another device, or a stale id
+  after a delete. 181 drew *empty* and never *gone*, and the code is explicit
+  they are different facts.
+* **The empty made list with its name.** 181's band 2 draws `0 TITLES` and **no
+  title, no header** — while calling it "the common case". The screen draws the
+  name and the count.
+* **The empty kept list.** `Abandoned · 0` ships on every fresh install. The
+  only drawn empty card belongs to a *made* list and reads *"Open a film, book
+  or album and tap Add to list"* — which is a lie on a shelf you cannot add to.
+* **A row with no artwork**, for a title whose cache was evicted or never had a
+  poster. 181's only art-less row is the album's `T / ART` **kind** placeholder.
+* **A title with no metadata** — the code falls back to `"Untitled"`, and 181
+  draws five well-formed subtitles and no fallback line.
+* **Length.** Rank 10+ in band 3's fixed 14px mono column; and a long title in
+  band 3's text column, which is 39px narrower than band 1's and is the one
+  recipe with **no** `text-overflow:ellipsis`, so it wraps and breaks the 82px
+  row rhythm.
+
+## L3 — 181: the album row, actually letterboxed
 
 181's annotation argues the case — *"The slot is fixed at 38×54 with the album
 letterboxed inside it, so the title's baseline never moves between a poster, a
 cover and a square"* — but the drawn album row contains **no art and no
-letterboxing**: it is a mono `T` over `ART` on a flat `#E4E0D9` field. The
-treatment the board argues for is claimed in prose and never drawn, and with
-mixed lists ratified it is now load-bearing.
+letterboxing**: a mono `T` over `ART` on a flat `#E4E0D9` field. Claimed in
+prose, never drawn, and with mixed lists ratified it is now load-bearing.
 
-**Draw:** the square album cover letterboxed inside the 38×54 slot, beside a
-poster row and a book-cover row, so the three can be compared at one baseline.
+**Draw:** the square cover letterboxed in the 38×54 slot, beside a poster row
+and a book-cover row, so the three can be compared at one baseline.
 
-## 182 — amendment: Wishlist and Owned, and their empty state
+## L4 — 182: the sheet as one real screen, and the empty sheet
 
-182 draws Wishlist and Owned on disc as **live, tickable** rows and greys only
-Abandoned and Rewatches with *"Filled by what you do, not by a tick"* — splitting
-by whether a rule fills the list rather than by whether Kati can store it. That
-split is now ratified.
+182 is 1249px of stacked states in an 806px cap — a state catalogue, not a
+screen.
 
-**Draw:** what Wishlist and Owned look like **before anything is in them**, and
-whether they appear on screen 12's index as well as in the picker sheet. The
-code currently drops both as *"assertions the user makes and nothing stores"*, so
-this is the first time either has a state to be in.
+**Draw:** the composed resting sheet. Its height at three lists versus seven,
+where it scrolls, what the header does when scrolled, whether there is a
+grabber, and any dismissal other than the `close` disc.
 
-## NEW — the Persian list detail (mirror of 181)
+**And the empty sheet** — a reader with no lists taps *Add to list*, and 182
+always draws a three-row card. What remains is a dashed *New list* over a kept
+card that is entirely inert. This is 181's own argument turned on 182: not an
+edge case, **the common case**, since both the index and the sheet are first
+reached by someone with zero lists.
 
-**No Persian list board exists except 289**, the index. A Persian reader can
-open فهرست‌ها, tap a list, and land on an English LTR page.
+Three smaller things on the same board: whether the failed row is **re-tappable**
+and when the error clears; what tapping the **dash** does (add-all or
+remove-all), and the fourth state where every selected title is already in the
+list; and what **Wishlist** and **Owned on disc** are — 182 draws them at full
+ink with no tick and no reason, directly beside two rows that are dimmed *and*
+explained, so a finger lands on them and nothing says what happens.
 
-**Draw:** the Persian mirror of 181 — the made list, the empty list, the ranked
-list, the kept list — with the destructive controls from amendment 1 included,
-and the RTL rules 289 already set.
+## L5 — 182: the entry point, which does not exist
 
-## NEW — the Persian *Add to list* picker (mirror of 182)
+182's sheet is drawn for an album — `Tidal Works · Album`. The kinds that make
+up every drawn list row (Film · 2025, Series · 2024, Series · dropped at S1 E3)
+have **no drawn door into it at all**: a film page's three actions are Log
+rewatch / Schedule / Share, and a series page the same. Meanwhile 181's empty
+card and 182's sheet both promise *"open a film, book or album and tap Add to
+list."*
+
+**Draw:** the *Add to list* control on a film and on a series page, and what it
+looks like **after** — once that title is in two lists. That after-state is what
+a reader sees the second time they open the sheet, and 182 states outright that
+the screen under the scrim is not drawn.
+
+## L6 — naming a list, and failing, each drawn once
+
+**Two naming grammars disagree.** The index's `+` opens a 48px field with a
+*Make it* action pill; 182 draws a 36px field in a dashed row **with no commit
+control**. Board 12 drew the disc and nothing behind it, so the surface people
+actually reach is drawn by no board.
+
+**Draw one**, and with it two cases neither board has: **a name that already
+exists** (the code returns the existing list and writes nothing —
+indistinguishable from making one), and **a list made while a selection is in
+hand** (you name it, it is made *empty*, and the page still says "Pick a list
+for 4 titles").
+
+**And the failure grammar.** 182 drew exactly one — *"Couldn't add it. Nothing
+was written."* Still silent today: a failed create, a failed remove (**the row
+silently reappears**), a failed delete (the page pops anyway and you land on
+Lists with the list still there), and a failed add on the shipped path (you
+arrive at the list without your title, no message). Draw the rule once and name
+where it hangs in each case.
+
+## L7 — NEW: the Persian list detail (mirror of 181)
+
+**289 is the only Persian lists board, and it is the index.** A Persian reader
+opens فهرست‌ها, taps a list, and lands on an English LTR page — there is no
+`ListDetailFa`. All seven of 289's own rows lead there.
+
+**Draw:** the Persian mirror of 181 — made, empty, ranked, kept — including L1's
+destructive controls and L2's states, in the RTL rules 289 already set.
+
+## L8 — NEW: the Persian *Add to list* picker (mirror of 182)
 
 289 says the «افزودن به فهرست» buttons on 69 and 76 *"land here too"* — on the
-Persian Lists **index**. 182 rules for English that Add to list opens a **picker
-sheet over the page you are on**, because a list is filled from a title. As
-delivered, **the two locales teach two different gestures for one action** — the
-exact failure 254 flags by name for its own Persian pair.
+Persian Lists **index**. 182 rules for English that *Add to list* opens a
+**picker sheet over the page you are on**, because a list is filled from a title.
+As delivered, **the two locales teach two different gestures for one action** —
+the exact failure 254 flags by name for its own Persian pair.
 
-**Draw:** the Persian picker sheet, mirroring 182 — the tick that commits
-immediately, the pre-populated state, the inline new-list field, the per-row
-failure line, and the dash for a mixed selection. And please state which of 289's
-sentences changes as a result, since it currently promises the other route.
+**Draw:** the Persian picker, mirroring 182 — the tick that commits immediately,
+the pre-populated state, the inline new-list field, the per-row failure line and
+its Persian wording (no Persian save-failure string exists anywhere in the app —
+that is `D-60`), and the dash for a mixed selection. Please also say which of
+289's sentences changes, since it currently promises the other route.
 
-Note the label these two Persian screens actually carry today is «فهرست»
-("List"), not «افزودن به فهرست» — the longer string exists nowhere in the app.
-Whichever the board chooses becomes the string both screens must render.
+Note the label these two Persian screens carry today is «فهرست» ("List"), not
+«افزودن به فهرست» — the longer string exists nowhere in the app. Whichever the
+board chooses becomes the string both screens must render.
