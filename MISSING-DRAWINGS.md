@@ -170,17 +170,27 @@ about episodes is the last place the app is still TV-only.**
 **Draw:** 25's *Tell me about* rows and 05's groups for a book publication and
 a record release, plus what 66 and 21 offer to follow.
 
-### A1.9 — Screen 140, *five more sources* is four
+### A1.9 — Screen 140, *five more sources* and the door behind it
 
-The summary row says **five** and names **four**, and its chevron opens a file
-picker rather than a list of sources. **278 is the Persian mirror and
-reproduces the defect rather than fixing it** — «پنج منبع دیگر / سیمکل ·
-تی‌وی‌تایم · لایبیب · لست‌اف‌ام», five claimed and four named, with a chevron
-and no destination. Building 278 faithfully ships the bug a second time.
+Board 140 draws **Five more sources / Simkl · TV Time · Libib · Last.fm ·
+AniList** — five claimed, five named. The code has since corrected the row to
+**Four more sources** and dropped AniList, because AniList is not one of the
+four the mapper reads. So the board and the screen now disagree about a
+literal, which is the state the literal sweep exists to prevent.
 
-**Draw:** the summary row with a count that matches its own names, and the
-screen behind its chevron — **or** the chevron removed the way 278 removed the
-one on «چیز دیگری», with a sentence saying why.
+And the chevron **opens a file picker with no source named** — it pushes the
+manual column mapper with no file, so the one row naming four services opens a
+column table about nothing. There is no screen listing four sources for it to
+open, because none was ever drawn.
+
+**278 is the Persian mirror and reproduces the older defect rather than either
+fix** — «پنج منبع دیگر / سیمکل · تی‌وی‌تایم · لایبیب · لست‌اف‌ام», five claimed
+and four named, carrying a chevron with no stated destination. Building 278
+faithfully ships a count that was already wrong.
+
+**Draw:** 140's summary row with a count that matches its own names in both
+locales, and the screen behind its chevron — **or** the chevron removed the way
+278 removed the one on «چیز دیگری», with a sentence saying why.
 
 ### A1.10 — Screen 141, the recognition sentence's six variants
 
@@ -225,7 +235,12 @@ sent to.
    only if you want your own limits"* — and nothing to paste into. The app
    composes a lock tile, a `TextField`, a Save pill, a saved/error line, the
    instruction *"themoviedb.org → your account → Settings → API…"* and a
-   no-secure-store fallback. **All of it written, none of it drawn.**
+   no-secure-store fallback. **All of it written, none of it drawn** — and it
+   showed. Until 7 September the field carried a Column's vertical `weight`
+   where it needed a width, so it rendered at zero: no placeholder, no caret,
+   no way to type, and the token stayed on screen after it was stored. The one
+   card on this page a person has to use was unusable from the day it was
+   written, and there was no drawing to check it against.
 2. **The pairing card at rest.** 80 draws it only as *Enter this code / K4Q9B2
    / listenbrainz.org/link / Expires in 9:48* — never in the state every device
    is actually in: no code issued, no clock. Board 81 has seven specimens for

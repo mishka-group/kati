@@ -50,6 +50,7 @@ defmodule Kati.Screens.DataSources do
     socket
     |> Mob.Socket.assign(:tmdb, Sources.tmdb_key())
     |> Mob.Socket.assign(:token, "")
+    |> Mob.Socket.assign(:token_epoch, 0)
     |> Mob.Socket.assign(:token_error, nil)
     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
     # Opens with ListenBrainz's pairing card showing, which is the state the
@@ -75,7 +76,7 @@ defmodule Kati.Screens.DataSources do
         {UI.eyebrow("Working out of the box")}
         {Kati.Screens.DataSources.tier0()}
         {UI.eyebrow("Better artwork and metadata")}
-        {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error))}
+        {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0))}
         {UI.eyebrow("Connect an account")}
         {Kati.Screens.DataSources.tier2(assigns.expanded)}
         {UI.eyebrow("Where your tokens live")}
@@ -162,7 +163,7 @@ defmodule Kati.Screens.DataSources do
   a working configuration and the page's job is to say that plainly.
   """
   @spec tmdb(atom(), String.t(), boolean(), String.t() | nil) :: map()
-  def tmdb(choice, token \\ "", saved? \\ false, error \\ nil) do
+  def tmdb(choice, token \\ "", saved? \\ false, error \\ nil, epoch \\ 0) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
@@ -180,7 +181,7 @@ defmodule Kati.Screens.DataSources do
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={12} />
-      {Kati.Screens.DataSources.own_key(choice, token, saved?, error)}
+      {Kati.Screens.DataSources.own_key(choice, token, saved?, error, epoch)}
       {Kati.UI.SettingsList.note("info", "Kati’s key is public, because Kati is open source. That costs you nothing — TMDB counts requests per IP address, not per key. Paste your own only if you want your own limits.")}
       <Spacer size={24} />
     </Column>
@@ -207,13 +208,14 @@ defmodule Kati.Screens.DataSources do
   connect an account, so the user is told the truth instead of discovering it
   when the first save fails.*
   """
-  @spec own_key(atom(), String.t(), boolean(), String.t() | nil) :: map()
-  def own_key(:own, token, saved?, error) do
+  @spec own_key(atom(), String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
+  def own_key(:own, token, saved?, error, epoch) do
     if Kati.SecureStore.available?() do
       assigns = %{
         token: token,
         saved?: saved?,
         error: error,
+        epoch: epoch,
         on_change: {self(), :tmdb_token},
         save: {self(), :save_token}
       }
@@ -223,7 +225,7 @@ defmodule Kati.Screens.DataSources do
         {Kati.UI.SettingsList.card([
           Kati.UI.SettingsList.row(
             Kati.UI.SettingsList.icon_tile("lock"),
-            Kati.Screens.DataSources.token_field(@token, @on_change),
+            Kati.Screens.DataSources.token_field(@token, @on_change, @epoch),
             Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.save_pill(@save)),
             padding: 13,
             rule: false
@@ -242,20 +244,21 @@ defmodule Kati.Screens.DataSources do
     end
   end
 
-  def own_key(_kati, _token, _saved?, _error), do: ~MOB"<Spacer size={0} />"
+  def own_key(_kati, _token, _saved?, _error, _epoch), do: ~MOB"<Spacer size={0} />"
 
   @doc false
-  def token_field(token, on_change) do
-    assigns = %{token: token, on_change: on_change}
+  def token_field(token, on_change, epoch) do
+    assigns = %{token: token, on_change: on_change, epoch: epoch}
 
     ~MOB"""
     <TextField
       value={@token}
       placeholder="Paste your TMDB read token"
       return_key="done"
-      weight={1.0}
+      fill_width={true}
       accessibility_id="tmdb_token"
       on_change={@on_change}
+      value_epoch={@epoch}
     />
     """
   end
@@ -891,6 +894,10 @@ defmodule Kati.Screens.DataSources do
       :ok ->
         socket
         |> Mob.Socket.assign(:token, "")
+        # `K-46`: the bridge ignores a `value` for a field it has already drawn
+        # unless `value_epoch` moves, so without this the token stays on screen
+        # after it has been stored — the one string on this page that must not.
+        |> Mob.Socket.assign(:token_epoch, Map.get(socket.assigns, :token_epoch, 0) + 1)
         |> Mob.Socket.assign(:token_saved?, true)
         |> Mob.Socket.assign(:token_error, nil)
 
