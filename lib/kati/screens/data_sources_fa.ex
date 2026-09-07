@@ -573,6 +573,75 @@ defmodule Kati.Screens.DataSourcesFa do
   """
   @spec tier2_row(map(), atom() | nil, boolean()) :: map()
   def tier2_row(source, expanded, rule?) do
+    if Kati.Retired.known?(source.name) do
+      Kati.Screens.DataSourcesFa.retired_row(source, rule?)
+    else
+      Kati.Screens.DataSourcesFa.live_row(source, expanded, rule?)
+    end
+  end
+
+  @doc """
+  Hardcover, retired — the mirror of 80's row, which board 320 exists to make
+  identical.
+
+  254's failure, named on 80's own page: *«اگر ردیف‌های چپ‌به‌راست در بگیرند و
+  آینه‌ها نگیرند، دو زبان دربارهٔ اینکه کدام ردیف جایی می‌رود اختلاف پیدا
+  می‌کنند.»* 320's own note settles the wording: the pill translates —
+  «در نسخه ۱ نیست» — and the provider name does not, because Hardcover is a
+  trade name.
+  """
+  @spec retired_row(map(), boolean()) :: map()
+  def retired_row(source, rule?) do
+    assigns = %{
+      icon: source.icon,
+      name: source.name,
+      line: "راه‌اندازی نشده — برای دیدن دلیل بزنید",
+      tap: {self(), String.to_atom("why_#{source.id}")},
+      rule: rule?
+    }
+
+    ~MOB"""
+    <Column fill_width={true} on_tap={@tap}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
+        {Kati.Screens.DataSources.dimmed_tile(@icon)}
+        <Spacer size={13} />
+        <Column weight={1.0}>
+          <Text
+            text={@name}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={Kati.Theme.Palette.rail_idle()}
+            max_lines={1}
+          />
+          <Spacer size={3} />
+          {Kati.Screens.BookDetailFa.fa(@line, 11.5, Kati.Theme.Palette.sub())}
+        </Column>
+        <Spacer size={12} />
+        {Kati.Screens.DataSourcesFa.not_in_v1()}
+      </Row>
+      {SettingsList.hairline(@rule)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def not_in_v1 do
+    ~MOB"""
+    <Row
+      height={22}
+      corner_radius={11}
+      background={Kati.Theme.Palette.placeholder()}
+      padding_left={9}
+      padding_right={9}
+      align="center"
+    >
+      {Kati.Screens.BookDetailFa.fa("در نسخه ۱ نیست", 9.5, Kati.Theme.Palette.rail_idle())}
+    </Row>
+    """
+  end
+
+  @doc false
+  def live_row(source, expanded, rule?) do
     source = Kati.Screens.DataSourcesFa.localise(source)
     connected? = Sources.connected?(source.id)
     expanded? = expanded == source.id
@@ -903,6 +972,16 @@ defmodule Kati.Screens.DataSourcesFa do
   # exists, and a tag that does not is a bug rather than a new atom.
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
+      # Board 114's sheet, which 320 is what finally needs — and it is the SAME
+      # screen the English row opens, so the two locales cannot drift about the
+      # reason the way they drifted about the row.
+      "why_" <> id ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.RetiredReason, %{
+           id: String.to_existing_atom(id),
+           back: "منابع داده"
+         })}
+
       "connect_" <> id ->
         source = String.to_existing_atom(id)
         now = if socket.assigns.expanded == source, do: nil, else: source

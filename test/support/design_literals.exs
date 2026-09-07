@@ -471,6 +471,12 @@ defmodule Kati.DesignLiterals do
       # — `Add "vellichor" by hand` — and is absent before a keystroke, because
       # it has nothing to name. 06 draws it mid-query and could not have drawn
       # the absent state.
+      # Board 320 retires Hardcover, so 80's row no longer says what it supplies —
+      # it says why it is not here. *"A row that vanishes reads as a bug and
+      # gives the reader nothing to tap"*, so the row keeps its place and takes
+      # 114's treatment: dimmed tile, dimmed label, `NOT IN V1`, and a tap that
+      # opens the reason.
+      {"80", "community book ratings"},
       {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},
       {"25", "manual"},

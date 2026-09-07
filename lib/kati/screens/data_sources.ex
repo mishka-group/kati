@@ -561,8 +561,81 @@ defmodule Kati.Screens.DataSources do
     """
   end
 
-  @doc false
+  @doc """
+  One connectable provider — or, since board 320, one retired one.
+
+  320 found the failure 254 names by name, on 80's own page: *"if the LTR rows
+  become doors and the mirrors do not, the two locales disagree about which rows
+  lead anywhere."* Hardcover was retired one way in English and another in
+  Persian. It takes 114's treatment now in both — dimmed tile, dimmed label,
+  *Not set up — tap to see why*, and the `NOT IN V1` pill — and the tap opens
+  `Kati.Screens.RetiredReason`, which is board 114 and did not exist until today.
+
+  The row keeps its place in the group, which is 320's own rule: *"a row that
+  vanishes reads as a bug and gives the reader nothing to tap."*
+  """
+  @spec tier2_row(map(), atom() | nil) :: map()
   def tier2_row(source, expanded) do
+    if Kati.Retired.known?(source.name) do
+      Kati.Screens.DataSources.retired_row(source)
+    else
+      Kati.Screens.DataSources.live_row(source, expanded)
+    end
+  end
+
+  @doc false
+  def retired_row(source) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.row(
+        Kati.Screens.DataSources.dimmed_tile(source.icon),
+        Kati.UI.SettingsList.body(source.name, "Not set up — tap to see why"),
+        Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.not_in_v1()),
+        on_tap: {self(), String.to_atom("why_#{source.id}")},
+        rule: false
+      )}
+      {Kati.UI.SettingsList.hairline(true)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def dimmed_tile(icon) do
+    assigns = %{icon: icon}
+
+    ~MOB"""
+    <Box width={30} height={30} corner_radius={9} background={Palette.placeholder()} align="center">
+      {Kati.UI.symbol(@icon, size: 17, color: Kati.Theme.Palette.rail_idle())}
+    </Box>
+    """
+  end
+
+  @doc "114's pill, and screen 88's — one mark for *named and not doing this*."
+  @spec not_in_v1() :: map()
+  def not_in_v1 do
+    ~MOB"""
+    <Row
+      height={22}
+      corner_radius={11}
+      background={Palette.placeholder()}
+      padding_left={9}
+      padding_right={9}
+      align="center"
+    >
+      <Text
+        text="NOT IN V1"
+        font_family="mono"
+        text_size={9.5}
+        letter_spacing={0.1}
+        text_color={Palette.rail_idle()}
+        max_lines={1}
+      />
+    </Row>
+    """
+  end
+
+  @doc false
+  def live_row(source, expanded) do
     connected? = Sources.connected?(source.id)
     expanded? = expanded == source.id
 
@@ -1051,6 +1124,14 @@ defmodule Kati.Screens.DataSources do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
+      # Board 114's sheet, which board 320 is what finally needs.
+      "why_" <> id ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.RetiredReason, %{
+           id: String.to_existing_atom(id),
+           back: "Data sources"
+         })}
+
       "connect_" <> id ->
         source = String.to_existing_atom(id)
 

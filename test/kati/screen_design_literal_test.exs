@@ -175,6 +175,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     # frame. Same treatment as 330 and 333.
     Kati.Screens.MoreSources,
     Kati.Screens.NotificationsHelp,
+    # Board 114 is a states board like the rest of this wave, and this screen is
+    # what finally sits behind three surfaces that have drawn *tap to see why*
+    # with nothing under it since they were written.
+    Kati.Screens.RetiredReason,
     Kati.Screens.Sync
   ]
 

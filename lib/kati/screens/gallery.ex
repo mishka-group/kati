@@ -307,7 +307,13 @@ defmodule Kati.Screens.Gallery do
     # both locales, the screen behind it, and the defect it replaces, in one
     # frame. It IS reachable, from 140's own summary row; it is here because the
     # one list that checks every screen has to be able to open it.
-    {:open_undrawn_more_sources, "Four more sources", Kati.Screens.MoreSources}
+    {:open_undrawn_more_sources, "Four more sources", Kati.Screens.MoreSources},
+    # Board 114. Screen 42's two dashed tiles, board 320's retired Hardcover row
+    # and the three importers `Kati.Sources.refused/0` names have all drawn *tap
+    # to see why* with nothing behind it since they were written; this is the
+    # screen that was missing. Reachable from 80 and 82, and here for the same
+    # reason as its neighbours.
+    {:open_undrawn_retired_reason, "Why not in v1", Kati.Screens.RetiredReason}
   ]
 
   # Numbers whose page has left this list, and the route that took it.
