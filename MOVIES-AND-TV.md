@@ -3402,6 +3402,20 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Two things board 324 draws that were not built, both deliberately.* Its rules card carries the empty-state third sentence — «خاموش به‌طور پیش‌فرض — با هیچ سرویسی همه‌چیز پنهان می‌شد» — where 97 draws the full one that board 310 counted; board 323, which 324's own note defers to, rules that the rules group is ONE group with one sentence, and 310 is the board that counted it. And 324 omits the *مال من نیست* eyebrow and the catalogue row, where screen 93 draws both on the same state in English; two locales showing a different number of groups for one state would be a drift, so 97 keeps them.
 
+### 134. 02 Schedule (Kati.Screens.Calendar) — `missing-feature`
+
+**Screen 02 could only say "Kati cannot see your calendar" on a day that was otherwise empty. On any day holding one of Kati's own events — a habit, an air date, a renewal — the page drew a timeline with the reader's appointments silently missing from it and no way to ask for them.**
+
+*Proof.* lib/kati/screens/calendar.ex `empty_reason/2` is `def empty_reason([], access) when access in [:unasked, :denied, :blocked], do: :no_permission` — the first clause matches an empty list only, so a day with any row at all answers `:no_events` and `timeline/2` draws the rows. Board 306's own frame is that day: a habit at 08:00 and an air date at 20:00, over a calendar Kati cannot read. Nothing anywhere on screen 02 called `Mob.Permissions.request/2`; a repo-wide grep found the calendar request only in `Kati.Screens.PickSections.ask_for_calendar/1`, which runs once during onboarding.
+
+*Fix.* Board 306's card, under the timeline rather than instead of it, in the three states `Kati.Permissions.affordance/1` names.
+
+*Fixed 8 September.* `Kati.Screens.Calendar.calendars_card/1`. `:allow` draws the button and calls the same `note_asked/1`-then-request pair screen 40 and the onboarding step make; `:settings` keeps the card and replaces the button with screen 02's own sentence, which is 306's rule — *"the card stays, reworded to send you to system settings — Android grants no second prompt"* — and 136's before it; `:none` draws nothing, because granted needs no card and `:unknown` is the absence of an answer rather than a refusal.
+
+*One deviation, and the manifest is the proof.* 306's mono line reads `READ AND WRITE · YOU PICK WHICH ON 32`. `AndroidManifest.xml`'s `K-26 read-calendar` fence declares `READ_CALENDAR` alone and states why — *"write-back is a separate decision (#54) and would need WRITE_CALENDAR"* — and screen 40's Calendars row already words it correctly as *Kati only reads them*. The line reads `READ ONLY`, and `Kati.ScreenCalendarEmptyStateTest` asserts it against the manifest so the day `WRITE_CALENDAR` is declared, the test says to follow the board.
+
+*Two things 306 draws that were not built.* Its filter row carries counts — `All 2 · Screen 1 · Habits 1 · Personal 0` — over a chip set screen 02 does not have (02 draws All / Screen / Personal / Money, and none of them counts). 306's stated point about that row is that `Personal` must not vanish at zero, and it cannot: the four chips are a fixed list. Counting all four is a change to board 02's own row and belongs to a board about screen 02's chips.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

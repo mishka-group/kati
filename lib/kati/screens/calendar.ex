@@ -265,6 +265,7 @@ defmodule Kati.Screens.Calendar do
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
         {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter), reason)}
+        {Kati.Screens.Calendar.calendars_card(Map.get(assigns, :access, :unknown))}
       </Column>
     </Scroll>
     """
@@ -712,6 +713,158 @@ defmodule Kati.Screens.Calendar do
       <Spacer size={3} />
       <Text text={line} text_size={11.5} line_height={1.5} text_color={Palette.sub()} />
     </Column>
+    """
+  end
+
+  @doc """
+  Board 306's card — *the one control that asks*.
+
+  306's whole subject is screen 02 on a phone whose calendars Kati cannot read,
+  and its finding is that the page had nothing to say about it unless the day
+  was **also** empty. `empty_reason/2` chooses between two emptinesses and
+  never runs on a day that holds a habit and an air date, which is exactly the
+  day 306 draws — *"Kati's own events still draw"* — so a reader with one
+  appointment of Kati's own was never told why their dentist was missing.
+
+  So this is a card and not a state: it sits under the timeline whenever the
+  permission has not been given, and the timeline above it is unchanged.
+
+  ## Three states, and `Kati.Permissions.affordance/1` picks
+
+    * `:allow` — the button. Android will show the dialog.
+    * `:settings` — the same card, reworded. 306: *"Declined and never asked
+      again? The card stays, reworded to send you to system settings — Android
+      grants no second prompt. Same rule as 136's notification denial."* A
+      button here would do nothing, and a button that does nothing is worse
+      than the truth — screen 40's own argument.
+    * `:none` — nothing. Granted needs no card, and `:unknown` is the absence
+      of an answer rather than a denial, which is `empty_reason/2`'s careful
+      half said again: telling a reader their calendars are not here, on a
+      device that has not answered, would be the claim this card exists to
+      stop.
+
+  Pure over the state for `empty_reason/2`'s reason: on a host
+  `Kati.Permissions.status/1` answers `:unknown` for want of a bridge, so a
+  card only reachable through `load/1` could not be looked at at all.
+
+  ## `READ ONLY`, where 306 draws `READ AND WRITE`
+
+  The board's mono line is `READ AND WRITE · YOU PICK WHICH ON 32` and Kati
+  asks for neither half of that. `AndroidManifest.xml`'s own `K-26
+  read-calendar` fence declares `READ_CALENDAR` alone and says why:
+  *"write-back is a separate decision (#54) and would need WRITE_CALENDAR."*
+  Screen 40's Calendars row already words it correctly — *"Kati only reads
+  them"* — and a button that promised to write would be asking for consent to
+  something the app cannot do. MOVIES-AND-TV.md #134.
+  """
+  @spec calendars_card(Kati.Permissions.state()) :: map()
+  def calendars_card(access) do
+    case Kati.Permissions.affordance(access) do
+      :allow ->
+        Kati.Screens.Calendar.ask_card(
+          Kati.Screens.Calendar.ask_button(),
+          "READ ONLY · YOU PICK WHICH ON 32"
+        )
+
+      :settings ->
+        Kati.Screens.Calendar.ask_card(
+          Kati.Screens.Calendar.settings_line(),
+          "ANDROID GRANTS NO SECOND PROMPT"
+        )
+
+      :none ->
+        ~MOB"<Spacer size={0} />"
+    end
+  end
+
+  @doc false
+  def ask_card(control, mono) do
+    assigns = %{control: control, mono: mono}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={22} />
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+      >
+        <Row fill_width={true} align="top">
+          {MishkaThemeIcon.theme_icon(
+            [variant: :filled, color: Palette.paper(), size: 36, radius: 12],
+            [Kati.UI.symbol("calendar_month", size: 19, color: Palette.ink_soft())]
+          )}
+          <Spacer size={12} />
+          <Column weight={1.0}>
+            <Text
+              text="Your other calendars are not here"
+              text_size={14}
+              font_weight="bold"
+              text_color={:on_surface}
+              max_lines={2}
+            />
+            <Spacer size={7} />
+            <Text
+              text="Calendars already on this phone are not connected here — they arrive with the Android permission and land with no account row at all."
+              text_size={12.5}
+              line_height={1.65}
+              text_color={Palette.ink_soft()}
+            />
+          </Column>
+        </Row>
+        <Spacer size={15} />
+        {@control}
+        <Spacer size={12} />
+        <Text
+          text={@mono}
+          font_family="mono"
+          text_size={10.5}
+          text_align="center"
+          text_color={Palette.muted()}
+        />
+      </Column>
+    </Column>
+    """
+  end
+
+  @doc false
+  def ask_button do
+    ~MOB"""
+    <Box
+      fill_width={true}
+      height={54}
+      corner_radius={27}
+      background={Palette.ink_fill()}
+      shadow={Kati.Theme.shadow_card()}
+      align="center"
+      on_tap={{self(), :ask_calendars}}
+    >
+      <Text
+        text="Let Kati read my calendars"
+        text_size={14.5}
+        font_weight="bold"
+        text_color={Palette.on_ink()}
+      />
+    </Box>
+    """
+  end
+
+  # A sentence, not a button. Nothing in Kati launches a system-settings
+  # intent — `Kati.Screens.NotificationsHelp` states the same wall — and the
+  # words are screen 02's own `:no_permission` card's, so the two places this
+  # page can say it cannot say it differently.
+  @doc false
+  def settings_line do
+    ~MOB"""
+    <Text
+      text="Allow Calendars in Settings, under This device."
+      text_size={12.5}
+      line_height={1.65}
+      text_color={:on_surface}
+      font_weight="semibold"
+    />
     """
   end
 
@@ -1260,6 +1413,26 @@ defmodule Kati.Screens.Calendar do
 
   def handle_tap(:open_month, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MonthGrid)}
+
+  @doc """
+  Board 306's button. `Kati.Screens.PickSections.ask_for_calendar/1`'s call,
+  made from the page the permission is actually about.
+
+  `note_asked/1` before the request, for that function's reason:
+  `Mob.Permissions.request/2` raises where there is no bridge, and a note
+  written after it never runs — losing the one record that tells `:unasked`
+  from `:blocked`. Nothing is assigned: the answer arrives as
+  `{:permission, :calendar, _}` and `load/1` reads the platform on every
+  render, which is `Kati.Permissions`' whole argument.
+  """
+  def handle_tap(:ask_calendars, socket) do
+    Kati.Permissions.note_asked(:calendar)
+    {:noreply, Mob.Permissions.request(socket, :calendar)}
+  rescue
+    # The host has no OS to answer and `request/2` raises there. This screen is
+    # rendered by five sweeps on a laptop; a raising tap would fail them all.
+    _error -> {:noreply, socket}
+  end
 
   def handle_tap(:toggle_menu, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}

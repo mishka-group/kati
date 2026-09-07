@@ -339,6 +339,81 @@ defmodule Kati.ScreenCalendarEmptyStateTest do
     end
   end
 
+  describe "board 306 — the one control that asks" do
+    test "a day with Kati's own events on it still says the other calendars are missing" do
+      # 306's finding, exactly. `empty_reason/2` chooses between two
+      # emptinesses and never runs on a day that holds something, which is the
+      # day 306 draws — a habit and an air date — so a reader with one event of
+      # Kati's own was never told why their dentist was not there.
+      texts = texts_of(rendered(rows: [real_row()], access: :denied))
+
+      assert "Your other calendars are not here" in texts
+      assert "Let Kati read my calendars" in texts
+
+      # And the timeline above it is untouched.
+      assert "Standup" in texts
+      refute "Kati cannot see your calendar" in texts
+    end
+
+    test "the button is there for a state Android will still show a dialog for" do
+      for state <- [:unasked, :denied] do
+        texts = texts_of(Schedule.calendars_card(state))
+
+        assert "Let Kati read my calendars" in texts, "#{inspect(state)} drew no button"
+        assert "READ ONLY · YOU PICK WHICH ON 32" in texts
+      end
+    end
+
+    test "and a sentence, not a button, once Android will not ask again" do
+      texts = texts_of(Schedule.calendars_card(:blocked))
+
+      assert "Your other calendars are not here" in texts
+      refute "Let Kati read my calendars" in texts
+
+      # 136's rule, and screen 02's own words for it one card up.
+      assert "Allow Calendars in Settings, under This device." in texts
+      assert "ANDROID GRANTS NO SECOND PROMPT" in texts
+    end
+
+    test "and nothing at all when there is nothing to say" do
+      # Granted needs no card. `:unknown` is the absence of an answer rather
+      # than a refusal — `empty_reason/2`'s careful half, said again: telling a
+      # reader their calendars are not here, on a device that has not answered,
+      # is the claim this card exists to stop.
+      for state <- [:granted, :unknown] do
+        assert texts_of(Schedule.calendars_card(state)) == [],
+               "#{inspect(state)} drew a card about a permission it knows nothing against"
+      end
+    end
+
+    test "the mono line says READ ONLY, which is the permission Kati asks for" do
+      manifest = File.read!("android/app/src/main/AndroidManifest.xml")
+
+      assert manifest =~ "android.permission.READ_CALENDAR"
+
+      refute manifest =~ "android.permission.WRITE_CALENDAR",
+             "board 306's READ AND WRITE would be true and this line should follow it"
+
+      assert "READ ONLY · YOU PICK WHICH ON 32" in texts_of(Schedule.calendars_card(:unasked))
+    end
+
+    test "the button carries a tap, and it is the one that asks" do
+      assert :ask_calendars in tap_tags(Schedule.calendars_card(:unasked))
+      assert tap_tags(Schedule.calendars_card(:blocked)) == []
+    end
+
+    test "and the tap survives a host with no OS to answer it" do
+      # `Mob.Permissions.request/2` raises where there is no bridge. Five
+      # sweeps render this screen on a laptop and one of them presses it.
+      assert {:noreply, _socket} =
+               Schedule.handle_tap(:ask_calendars, mount_screen(Schedule).socket)
+
+      assert :calendar in Kati.Permissions.asked(),
+             "the record of having asked is what tells :unasked from :blocked, and it is " <>
+               "written before the request for exactly this reason"
+    end
+  end
+
   describe "the emptiness this file rests on" do
     test "the transaction is rolled back, so the rest of the suite keeps its rows" do
       # Every assertion above is a claim about a store with nothing in it, and
