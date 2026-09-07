@@ -569,7 +569,7 @@ defmodule Kati.Screens.DataSources do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.row(
-        Kati.UI.SettingsList.icon_tile(source.icon),
+        Kati.Screens.DataSources.source_tile(source.icon, connected?),
         Kati.UI.SettingsList.body(source.name, Kati.Screens.DataSources.sub_line(source, connected?, expanded?)),
         Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.connect_control(connected?, expanded?)),
         on_tap: {self(), String.to_atom("connect_#{source.id}")},
@@ -613,6 +613,37 @@ defmodule Kati.Screens.DataSources do
   def connected_line(:hardcover), do: "Connected as ines.k"
   def connected_line(:thetvdb), do: "Connected as ines.k"
   def connected_line(_other), do: "Connected"
+
+  @doc """
+  The source's glyph, with board 319's status dot on it.
+
+  *"The status dot is the constant across all four: bronze verifying, green
+  connected, red refused, absent unpaired."* Two of the four are reachable —
+  Kati has no pairing flow, so no code is ever issued and nothing can be
+  verifying or refused — and the dot is drawn for the two that are rather than
+  invented for the two that are not.
+
+  Absent rather than grey for unpaired, which is 319's own word: a grey dot is
+  a state, and *not connected* is the absence of one.
+  """
+  @spec source_tile(String.t(), boolean()) :: map()
+  def source_tile(icon, false), do: Kati.UI.SettingsList.icon_tile(icon)
+
+  def source_tile(icon, true) do
+    assigns = %{tile: Kati.UI.SettingsList.icon_tile(icon)}
+
+    ~MOB"""
+    <Box>
+      {@tile}
+      <Box fill_width={true} align="top">
+        <Row fill_width={true}>
+          <Spacer weight={1.0} />
+          <Box width={9} height={9} corner_radius={5} background={Palette.green()} />
+        </Row>
+      </Box>
+    </Box>
+    """
+  end
 
   @doc false
   def connect_control(true, _expanded?) do
@@ -707,14 +738,11 @@ defmodule Kati.Screens.DataSources do
           text_color={Palette.cream_meta()}
         />
         <Spacer size={8} />
-        <Text
-          text={@site}
-          font_family="mono"
-          text_size={16}
-          font_weight="medium"
-          letter_spacing={0.1}
-          text_color={Palette.cream_ink()}
-        />
+        {# Board 319: the 34pt / .14em setting belongs to the six-character code
+         # and nothing else — *"previously the URL was inheriting the code's
+         # typography, which is why a domain was set like a passphrase."* No
+         # code is ever issued here, so what is left is the URL at its own size.}
+        <Text text={@site} font_family="mono" text_size={13} text_color={Palette.cream_ink()} />
         <Spacer size={8} />
         <Text
           text={"Your token lives there. Kati cannot ask for it yet — when it can, this is where it comes from."}
