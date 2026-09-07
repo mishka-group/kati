@@ -291,8 +291,15 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.ImportSources, :source_letterboxd, Kati.Screens.Import},
     {Kati.Screens.ImportSources, :source_anilist, Kati.Screens.Import},
     {Kati.Screens.ImportSources, :source_myanimelist, Kati.Screens.Import},
-    {Kati.Screens.ImportSources, :five_more, Kati.Screens.Import},
     {Kati.Screens.ImportSources, :something_else, Kati.Screens.Import},
+    # Board 328's four, and the same reason as the six tiles above them: the tap
+    # opens the FILE PICKER, and what reaches 141 is what the picker answered.
+    # A row that pushed `%{source: :simkl}` on the tap would be naming a file
+    # nobody has chosen yet.
+    {Kati.Screens.MoreSources, :open_simkl, Kati.Screens.ImportRecognised},
+    {Kati.Screens.MoreSources, :open_tvtime, Kati.Screens.ImportRecognised},
+    {Kati.Screens.MoreSources, :open_libib, Kati.Screens.ImportRecognised},
+    {Kati.Screens.MoreSources, :open_lastfm, Kati.Screens.ImportRecognised},
     {Kati.Screens.RestoreFirstRun, :pick_file, Kati.Screens.Import},
     {Kati.Screens.RestoreFirstRun, :restore_everything, Kati.Screens.Import},
     {Kati.Screens.RestoreFirstRun, :scan_qr, Kati.Screens.Import},

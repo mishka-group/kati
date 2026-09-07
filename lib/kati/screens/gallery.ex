@@ -302,7 +302,12 @@ defmodule Kati.Screens.Gallery do
     # فهرست‌ها, tap any of 289's seven rows, and land on an English LTR page,
     # because `ListDetailFa` did not exist and 12 was the only destination.
     {:open_undrawn_list_detail_fa, "یک فهرست", Kati.Screens.ListDetailFa},
-    {:open_undrawn_add_to_list_fa, "انتخابگر فهرست", Kati.Screens.AddToListFa}
+    {:open_undrawn_add_to_list_fa, "انتخابگر فهرست", Kati.Screens.AddToListFa},
+    # Board 328's screen, and 328 is a state catalogue too — the summary row in
+    # both locales, the screen behind it, and the defect it replaces, in one
+    # frame. It IS reachable, from 140's own summary row; it is here because the
+    # one list that checks every screen has to be able to open it.
+    {:open_undrawn_more_sources, "Four more sources", Kati.Screens.MoreSources}
   ]
 
   # Numbers whose page has left this list, and the route that took it.

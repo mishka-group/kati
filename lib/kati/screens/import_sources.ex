@@ -325,8 +325,16 @@ defmodule Kati.Screens.ImportSources do
   end
 
   @doc """
-  "Four more sources" — the drawing's own way of naming them without drawing
-  four more tiles. See the moduledoc for the fifth name it used to repeat.
+  The summary row, and the door behind it.
+
+  Board 328: *"a count that matches its own names."* Both halves come from
+  `Kati.Screens.MoreSources` now — the heading is counted from the list and the
+  sub-line is joined from it — so the two cannot drift apart again, which is the
+  defect 140 shipped and 278 reproduced.
+
+  And the chevron opens the four. It used to push the manual column mapper with
+  no file and no source, so the one row naming four services opened a mapping
+  screen for none of them.
   """
   def more do
     ~MOB"""
@@ -334,10 +342,13 @@ defmodule Kati.Screens.ImportSources do
       {SettingsList.card([
         SettingsList.row(
           SettingsList.icon_tile("more_horiz"),
-          SettingsList.body("Four more sources", "Simkl · TV Time · Libib · Last.fm"),
+          SettingsList.body(
+            Kati.Screens.MoreSources.heading(),
+            Kati.Screens.MoreSources.names()
+          ),
           SettingsList.trailing(SettingsList.chevron()),
           rule: false,
-          on_tap: {self(), :five_more}
+          on_tap: {self(), :more_sources}
         )
       ])}
       <Spacer size={24} />
@@ -345,7 +356,7 @@ defmodule Kati.Screens.ImportSources do
     """
   end
 
-  @doc "The 12% rule under \"Five more sources\". See the moduledoc for the literal."
+  @doc "The 12% rule under the summary row. See the moduledoc for the literal."
   def full_rule do
     ~MOB"""
     <Column fill_width={true}>
@@ -527,11 +538,11 @@ defmodule Kati.Screens.ImportSources do
 
   defp handle_other(tag, socket), do: fallback(tag, socket)
 
-  # The picker, with no source named — see the moduledoc's "What the row opens".
-  # It pushed the manual mapper with no file, so the one row naming four
-  # services opened a column table about nothing (#126).
-  defp fallback(:five_more, socket),
-    do: {:noreply, Kati.Screens.ImportSources.choose_file(socket, nil)}
+  # Board 328's screen, which is what this row always promised. It pushed the
+  # manual mapper with no file and no source until 7 September, so the one row
+  # naming four services opened a column table about nothing (#126).
+  defp fallback(:more_sources, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MoreSources)}
 
   defp fallback(:something_else, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}
