@@ -117,19 +117,19 @@ defmodule Kati.SearchSuggestionsTest do
       drawn =
         inspect(Kati.Screens.SearchSpec.scopes(), limit: :infinity, printable_limit: :infinity)
 
-      assert drawn =~ "not yet"
+      assert drawn =~ "NOT YET"
 
       # Three of the seven, and no more: a `not yet` against a scope that IS
       # built would be the same lie pointing the other way.
-      assert drawn |> String.split("not yet") |> length() == 4
+      assert drawn |> String.split("NOT YET") |> length() == 4
     end
 
     test "and a built scope carries no pill" do
       built = inspect(Kati.Screens.SearchSpec.state_pill("Screen"), limit: :infinity)
       unbuilt = inspect(Kati.Screens.SearchSpec.state_pill("Music"), limit: :infinity)
 
-      refute built =~ "not yet"
-      assert unbuilt =~ "not yet"
+      refute built =~ "NOT YET"
+      assert unbuilt =~ "NOT YET"
     end
 
     test "screen 86 offers no chip it will then discard" do

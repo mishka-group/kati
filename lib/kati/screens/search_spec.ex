@@ -164,6 +164,23 @@ defmodule Kati.Screens.SearchSpec do
   scopes do — a control the app cannot keep a promise about is marked rather
   than offered — so the mark is one object and not two that could drift apart.
   MOVIES-AND-TV.md #74 and #67.
+
+  ## It is not the greyed chip on 03, and board 322 judged the two together
+
+  This pill and `Kati.UI.chip/2`'s disabled state were invented for the same
+  question — *is there anything behind this?* — and never drawn beside each
+  other, so nobody had said whether they read as one system. 322 draws them side
+  by side and rules that **they mean different things and both stay**:
+
+    * **A greyed chip** is a filter with nothing behind it TODAY and a real
+      count tomorrow. It keeps its tap, and 147 draws what happens when it is
+      pressed. That is data.
+    * **A `NOT YET` pill** is a feature with nothing behind it, and it takes no
+      tap at all. That is scope.
+
+  The casing is the board's. `not yet` in lower case read as a footnote beside a
+  bold label; the board sets it in the same mono capitals every other state mark
+  on this screen uses.
   """
   @spec not_yet_pill() :: map()
   def not_yet_pill do
@@ -177,7 +194,7 @@ defmodule Kati.Screens.SearchSpec do
       align="center"
     >
       <Text
-        text="not yet"
+        text="NOT YET"
         font_family="mono"
         text_size={10}
         letter_spacing={0.08}
@@ -209,6 +226,19 @@ defmodule Kati.Screens.SearchSpec do
   A refused field takes the tertiary ink and a strike, which is the treatment
   `Kati.UI.Segmented`'s disabled segment uses — one visual for *drawn and
   deliberately not doing this*, wherever it appears.
+
+  ## Struck, and never pilled — board 322
+
+  322 divides the two kinds of no by where they sit rather than by how they
+  look, and the difference is legible without reading: **a pill means later, a
+  rule through the word means never.** So a withdrawn FIELD is struck and takes
+  no pill — *"a pill implies a queue, and these are not queued"* — while a
+  deferred SCOPE keeps full ink on its label and trails the pill.
+
+  All three withdrawn fields are here for the same reason and the board names
+  each: `cast` has no person resource (203 declined it, and 311 says so on the
+  page), a book's `series` is not a column, and `invitee names` is excluded on
+  purpose, because searching a calendar is not searching contacts.
   """
   @spec field_chip(String.t()) :: map()
   def field_chip("never" <> _rest = field), do: Kati.Screens.SearchSpec.refused(field)

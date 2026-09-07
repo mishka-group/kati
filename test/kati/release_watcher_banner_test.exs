@@ -131,7 +131,7 @@ defmodule Kati.ReleaseWatcherBannerTest do
       # nothing is the defect this finding reports.
       drawn = inspect(ReleaseWatcher.group(kinds, "kind", 13, 22), limit: :infinity)
 
-      assert drawn =~ "not yet"
+      assert drawn =~ "NOT YET"
       assert length(Regex.scan(~r/:kind_\d/, drawn)) == 1
 
       # The loudness group is untouched by this round and still the drawing's.
