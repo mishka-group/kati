@@ -30,10 +30,16 @@ defmodule Kati.TmdbTokenFieldTest do
       # is drawn instead — `Kati.SecureStore.available?/0` is checked BEFORE
       # the field is offered, which is the rule that module states in its own
       # words.
+      #
+      # Board 318 reworded that reason. It used to say Kati *cannot hold a token
+      # of yours*, which is untrue: it can, unencrypted, the way it holds
+      # everything else on such a device. The board says that instead, and names
+      # the two facts that make it a decision rather than a refusal.
       if Kati.SecureStore.available?() do
         assert under_own =~ "tmdb_token"
       else
-        assert under_own =~ "no encrypted store"
+        assert under_own =~ "no keystore Kati can reach"
+        assert under_own =~ "revoke it from your TMDB account"
         refute under_own =~ "tmdb_token"
       end
     end

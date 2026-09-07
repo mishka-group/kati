@@ -210,41 +210,227 @@ defmodule Kati.Screens.DataSources do
   """
   @spec own_key(atom(), String.t(), boolean(), String.t() | nil, non_neg_integer()) :: map()
   def own_key(:own, token, saved?, error, epoch) do
-    if Kati.SecureStore.available?() do
-      assigns = %{
-        token: token,
-        saved?: saved?,
-        error: error,
-        epoch: epoch,
-        on_change: {self(), :tmdb_token},
-        save: {self(), :save_token}
-      }
+    cond do
+      not Kati.SecureStore.available?() ->
+        Kati.Screens.DataSources.no_keystore()
 
-      ~MOB"""
-      <Column fill_width={true}>
-        {Kati.UI.SettingsList.card([
-          Kati.UI.SettingsList.row(
-            Kati.UI.SettingsList.icon_tile("lock"),
-            Kati.Screens.DataSources.token_field(@token, @on_change, @epoch),
-            Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.save_pill(@save)),
-            padding: 13,
-            rule: false
-          )
-        ])}
-        <Spacer size={10} />
-        {Kati.Screens.DataSources.token_state(@saved?, @error)}
-      </Column>
-      """
-    else
-      Kati.UI.SettingsList.note(
-        "error",
-        "This device has no encrypted store, so Kati cannot hold a token of yours. " <>
-          "Kati’s own key still works."
-      )
+      saved? and error == nil ->
+        Kati.Screens.DataSources.key_in_use()
+
+      true ->
+        Kati.Screens.DataSources.key_field(token, error, epoch)
     end
   end
 
   def own_key(_kati, _token, _saved?, _error, _epoch), do: ~MOB"<Spacer size={0} />"
+
+  @doc """
+  Board 318's SAVED state: the key is in use, so the field is gone.
+
+  The card used to draw the field again over a token already stored, which
+  invites a reader to paste the same thing twice and gives them nowhere to say
+  *take it off this device*. 318 replaces it with what is true — a masked
+  token, when it was saved, and the two things left to do.
+
+  Masked to its first sixteen characters, which is enough to recognise a JWT's
+  header without being enough to use.
+
+      iex> Kati.Screens.DataSources.masked("eyJhbGciOiJIUzI1NiJ9.abcdefgh")
+      "eyJhbGciOiJIUzI1… ••••"
+
+      iex> Kati.Screens.DataSources.masked("short")
+      "short… ••••"
+  """
+  @spec key_in_use() :: map()
+  def key_in_use do
+    assigns = %{
+      masked: Kati.Screens.DataSources.masked(Kati.Screens.DataSources.stored_token()),
+      since: Kati.Screens.DataSources.saved_line()
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.card([
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("lock"),
+          Kati.UI.SettingsList.body("Your key is in use", @since),
+          Kati.UI.SettingsList.trailing(
+            Kati.UI.symbol("check_circle", size: 19, color: Kati.Theme.Palette.green())
+          ),
+          padding: 13,
+          rule: true
+        ),
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("lock"),
+          Kati.Screens.DataSources.masked_text(@masked),
+          Kati.UI.SettingsList.trailing(nil),
+          padding: 13,
+          rule: false
+        )
+      ])}
+      <Spacer size={10} />
+      <Row fill_width={true} align="center">
+        {Kati.UI.SettingsList.action_pill("Replace", {self(), :replace_token})}
+        <Spacer size={10} />
+        {Kati.Screens.DataSources.remove_pill()}
+        <Spacer weight={1.0} />
+      </Row>
+    </Column>
+    """
+  end
+
+  @doc false
+  @spec masked(String.t() | nil) :: String.t()
+  def masked(nil), do: "••••"
+  def masked(token), do: String.slice(token, 0, 16) <> "… ••••"
+
+  # `:own_tmdb_saved_at` and NOT `:tmdb_token_saved_at`. It holds a timestamp and
+  # never the token, but `Kati.SecureStoreTest` matches on the NAME — and it is
+  # right to: `Mob.State` is a plaintext DETS file, and a key that reads like a
+  # credential is one an auditor has to open to rule out.
+  @doc false
+  @spec stamp_saved() :: :ok
+  def stamp_saved do
+    Mob.State.put(:own_tmdb_saved_at, DateTime.to_iso8601(Kati.Time.now()))
+    :ok
+  rescue
+    _error -> :ok
+  end
+
+  @doc false
+  @spec stored_token() :: String.t() | nil
+  def stored_token do
+    case Kati.SecureStore.get("tmdb") do
+      {:ok, token} when is_binary(token) -> token
+      _none -> nil
+    end
+  rescue
+    _error -> nil
+  catch
+    :exit, _reason -> nil
+  end
+
+  @doc """
+  `SAVED 2 MINUTES AGO`, or `SAVED` where the moment was not recorded.
+
+      iex> Kati.Screens.DataSources.saved_line(nil)
+      "SAVED"
+  """
+  @spec saved_line(DateTime.t() | nil) :: String.t()
+  def saved_line(at \\ Kati.Screens.DataSources.saved_at())
+
+  def saved_line(nil), do: "SAVED"
+
+  def saved_line(at) do
+    "SAVED " <>
+      String.upcase(
+        Kati.Settings.Watcher.checked_line(at, false)
+        |> String.replace("checked ", "")
+      )
+  end
+
+  @doc false
+  @spec saved_at() :: DateTime.t() | nil
+  def saved_at do
+    case Mob.State.get(:own_tmdb_saved_at) do
+      stamp when is_binary(stamp) ->
+        case DateTime.from_iso8601(stamp) do
+          {:ok, at, _offset} -> at
+          _unparseable -> nil
+        end
+
+      _none ->
+        nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  @doc false
+  def masked_text(masked) do
+    assigns = %{masked: masked}
+
+    ~MOB"""
+    <Text
+      text={@masked}
+      font_family="mono"
+      text_size={12.5}
+      text_color={Kati.Theme.Palette.sub()}
+      max_lines={1}
+    />
+    """
+  end
+
+  @doc false
+  def remove_pill do
+    Kati.Components.MishkaPill.pill(
+      label: "Remove",
+      on_tap: {self(), :remove_token},
+      background: Palette.red_wash(),
+      text_color: Palette.red(),
+      height: 34,
+      corner_radius: 17,
+      padding: 0,
+      padding_left: 14,
+      padding_right: 14,
+      text_size: 12.5,
+      font_weight: :semibold,
+      max_lines: 1
+    )
+  end
+
+  @doc """
+  The field, empty or refused — board 318's other two states.
+
+  The refusal is 318's own sentence, and it is the one a reader can act on:
+  TMDB issues an **API key** and an **API Read Access Token** on the same page,
+  and pasting the first where the second belongs is the commonest way this
+  fails. A trailing space is the second.
+  """
+  @spec key_field(String.t(), String.t() | nil, non_neg_integer()) :: map()
+  def key_field(token, error, epoch) do
+    assigns = %{
+      token: token,
+      error: error,
+      epoch: epoch,
+      on_change: {self(), :tmdb_token},
+      save: {self(), :save_token}
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.card([
+        Kati.UI.SettingsList.row(
+          Kati.UI.SettingsList.icon_tile("lock"),
+          Kati.Screens.DataSources.token_field(@token, @on_change, @epoch),
+          Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.save_pill(@save)),
+          padding: 13,
+          rule: false
+        )
+      ])}
+      <Spacer size={10} />
+      {Kati.Screens.DataSources.token_state(false, @error)}
+    </Column>
+    """
+  end
+
+  @doc """
+  Board 318's fourth state, and its own sentence.
+
+  The old one said Kati *cannot hold a token of yours*, which is not true — it
+  can, unencrypted, the way it holds everything else on such a device. 318 says
+  that instead, and names the two facts that make it a decision rather than a
+  refusal: Kati sends the token only to TMDB, and TMDB lets you revoke it.
+  """
+  @spec no_keystore() :: map()
+  def no_keystore do
+    Kati.UI.SettingsList.note(
+      "lock",
+      "This device has no keystore Kati can reach, so the token sits unencrypted on " <>
+        "the filesystem like every other. Kati sends it only to TMDB, and you can " <>
+        "revoke it from your TMDB account at any time."
+    )
+  end
 
   @doc false
   def token_field(token, on_change, epoch) do
@@ -797,6 +983,34 @@ defmodule Kati.Screens.DataSources do
      |> Mob.Socket.assign(:token_error, nil)}
   end
 
+  # Board 318's two controls on the saved card. `Replace` puts the field back
+  # WITHOUT clearing the store: a reader who opens it and changes their mind
+  # still has a working key, which is the difference between replacing and
+  # removing.
+  @impl true
+  def handle_tap(:replace_token, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:token_saved?, false)
+     |> Mob.Socket.assign(:token, "")
+     |> Mob.Socket.assign(:token_epoch, Map.get(socket.assigns, :token_epoch, 0) + 1)
+     |> Mob.Socket.assign(:token_error, nil)}
+  end
+
+  def handle_tap(:remove_token, socket) do
+    Kati.SecureStore.delete("tmdb")
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:token_saved?, Kati.Screens.DataSources.own_key_stored?())
+     |> Mob.Socket.assign(:token, "")
+     |> Mob.Socket.assign(:token_epoch, Map.get(socket.assigns, :token_epoch, 0) + 1)
+     |> Mob.Socket.assign(:token_error, nil)}
+  rescue
+    _error ->
+      {:noreply, Mob.Socket.assign(socket, :token_error, "Couldn’t remove it. Nothing changed.")}
+  end
+
   def handle_tap(:save_token, socket) do
     case String.trim(socket.assigns[:token] || "") do
       "" ->
@@ -892,6 +1106,10 @@ defmodule Kati.Screens.DataSources do
   def store_token(socket, token) do
     case Kati.SecureStore.put("tmdb", token) do
       :ok ->
+        # Board 318's saved row says WHEN. Recorded here rather than derived,
+        # because the keystore answers what it holds and not when it took it.
+        Kati.Screens.DataSources.stamp_saved()
+
         socket
         |> Mob.Socket.assign(:token, "")
         # `K-46`: the bridge ignores a `value` for a field it has already drawn
@@ -901,11 +1119,15 @@ defmodule Kati.Screens.DataSources do
         |> Mob.Socket.assign(:token_saved?, true)
         |> Mob.Socket.assign(:token_error, nil)
 
-      {:error, reason} ->
+      {:error, _reason} ->
         Mob.Socket.assign(
           socket,
           :token_error,
-          "That did not save — #{inspect(reason)}. Kati’s own key still works."
+          # Board 318's sentence. `inspect(reason)` named a struct at a reader
+          # who has pasted a string; the two commonest causes are the two named
+          # here, and TMDB issues both on one page.
+          "TMDB didn’t accept this. Check you copied the API Read Access Token " <>
+            "and not the API key, and that it has no trailing space."
         )
     end
   rescue
