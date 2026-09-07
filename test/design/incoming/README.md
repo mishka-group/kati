@@ -85,7 +85,7 @@ about; the right is the section of `D-65` it answers.
 |---|---|---|
 | 306 | 02 — no calendar permission | `D-65` 02 |
 | 307 | 05 + 25 — releases beyond television | `D-65` 05+25 |
-| 308 | 06 — before, during, and found nothing | `D-65` 06 |
+| 308 | 06 — before, during, and found nothing | `D-65` 06 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 309 | 07 — a year with nothing counted | `D-65` 07 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 310 | 13 + 92 + 97 — one sentence, one count | `D-65` 13+92+97 |
 | 311 | 14 — at rest, with its own empty band | `D-65` 14 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
@@ -102,8 +102,8 @@ about; the right is the section of `D-65` it answers.
 | 322 | 88 — deferred, withdrawn, and one pill | `D-65` 88 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 323 | 93 — live, or a specimen | `D-65` 93 |
 | 324 | ۹۷ — فارسی، هیچ‌چیز تنظیم نشده | `D-65` 97 |
-| 325 | Year card · the field face, 4:5 at size | `D-65` 98+100 |
-| 326 | Year card · the genres face + the heading | `D-65` 98+100 |
+| 325 | Year card · the field face, 4:5 at size | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 326 | Year card · the genres face + the heading | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 327 | 112 — medications, nothing due today | `D-65` 112 |
 | 328 | 140 — four more sources, and the door | `D-65` 140 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 329 | 141 — the recognition line, six shapes | `D-65` 141 |
@@ -118,8 +118,8 @@ about; the right is the section of `D-65` it answers.
 
 ## What is built, and why the files stay here
 
-**Fifteen of the thirty-two are built and device-verified**: 309, 311, 312,
-314, 321, 322, 328 and the whole Lists eight, 330–337. Their files stay in this
+**Eighteen of the thirty-two are built and device-verified**: 308, 309, 311,
+312, 314, 321, 322, 325, 326, 328 and the whole Lists eight, 330–337. Their files stay in this
 directory rather than moving to `screens/`, and that is not an oversight — the
 rule at the top of this file says a board moves when its screen renders every
 literal on it, and **most of the 7 September wave are state catalogues**. 330
