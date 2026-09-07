@@ -196,8 +196,20 @@ defmodule Kati.ScreenDarkWidgetsTest do
                "— screen 96's rule — and screen 139 is the board that words this state. The " <>
                "`+` is the FAB `Kati.Screens.HomeDark.dock/0` draws over this page"
 
-      assert drawn?(tree, "REST OF TODAY"),
+      # Board 315 is the dark 139 this screen's moduledoc used to say did not
+      # exist, so the band that stays is 139's own rather than 28's: *The
+      # calendar still works* over the same card, in the words the board that
+      # draws this state uses.
+      assert drawn?(tree, "THE CALENDAR STILL WORKS"),
              "the band stays: 139's whole argument is that the calendar still works"
+
+      refute drawn?(tree, "REST OF TODAY"),
+             "REST OF TODAY is board 28's eyebrow over its own timeline, and this page is 139"
+
+      assert drawn?(tree, "Nothing chosen yet"),
+             "board 315 is the dark 139, and a device with nothing kept is on it"
+
+      assert drawn?(tree, "Choose sections")
     end
 
     test "and the drawing's evening is still there for the board to be compared against" do

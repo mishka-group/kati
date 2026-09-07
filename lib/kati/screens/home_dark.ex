@@ -80,22 +80,31 @@ defmodule Kati.Screens.HomeDark do
   argument is that the calendar still works, and the `+` the sentence names is
   the FAB `dock/0` draws at the bottom of this page.
 
-  ## No dark 139 exists, and that is stated rather than worked around
+  ## The dark 139 exists now, and this page branches to it
 
   Screen 01 has a second board for a device with nothing kept at all — screen
-  139, *Home — nothing set up* — and switches to it whole. **The design draws no
-  dark mirror of 139**, so this page does not branch: it is board 28 with its
-  empty bands omitted, which is a real page (header, search, the calendar band,
-  the dock and the FAB) and needs no copy no designer wrote.
+  139, *Home — nothing set up* — and switches to it whole. This section used to
+  say **the design draws no dark mirror of 139**, and it was true: this page
+  did not branch, and was board 28 with its empty bands omitted.
 
-  It costs less here than it would anywhere else, and the reason is
-  `Kati.AppReachabilityTest`'s own entry for this module: 28 is *"screen 01 in
-  the dark colourway. The same screen, not another one — reached by changing the
-  theme, not by navigating"* — it is registered in `Kati.Screens.Gallery` and
-  named by neither `Kati.Shell.roots/0` nor `Kati.Onboarding.shell_root/1`, so
-  **no fresh install opens on it**. A dark 139 is a drawing to ask for, not one
-  to invent; what could not wait is the fabricated spine, because a gallery is
-  still a place a person looks at this app's answer about their own evening.
+  Board **315** is that mirror. It draws the empty page on near-black and, more
+  usefully, names the four tokens the crossing breaks — *tokens that do not
+  survive the crossing* — so `render/1` branches now and calls
+  `Kati.Screens.HomeEmpty.content/1` inside this file's own frame.
+
+  Two of the four were real. `Kati.Theme.Palette`'s `:red` was `:theme`,
+  identical in both columns and illegible on `#121110`; it is `:step` now and
+  takes 315's `#E08A6E`. The 64pt glyph tile was `paper/0`, which in dark is
+  the page itself, so the tile disappeared; `empty_tile/0` is the token 315
+  asks for. The other two — the secondary ink and the glyph on that tile — the
+  board finds already correct, and they are.
+
+  The cost was always small and it is smaller now, for the reason
+  `Kati.AppReachabilityTest`'s own entry for this module gives: 28 is *"screen
+  01 in the dark colourway. The same screen, not another one — reached by
+  changing the theme, not by navigating"* — it is registered in
+  `Kati.Screens.Gallery` and named by neither `Kati.Shell.roots/0` nor
+  `Kati.Onboarding.shell_root/1`, so **no fresh install opens on it**.
 
   ## The header stays pinned, and that is a decision rather than an omission
 
@@ -151,12 +160,50 @@ defmodule Kati.Screens.HomeDark do
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.dark())
 
+    # The spine first, the gate after — `Kati.Screens.Home.mount/3`'s order and
+    # its moduledoc's warning about doing the second half alone.
+    timeline = Today.rows()
+
     socket
     |> Mob.Socket.assign(:moment, Sample.moment())
     |> Mob.Socket.assign(:hero, Kati.Screens.HomeDark.hero_summary())
     |> Mob.Socket.assign(:continue, Kati.Screens.Home.continue_watching_rows())
-    |> Mob.Socket.assign(:timeline, Today.rows())
+    |> Mob.Socket.assign(:timeline, timeline)
+    # Board 315 is the dark 139 this file's moduledoc said did not exist.
+    |> Mob.Socket.assign(:nothing_kept, Kati.Screens.Home.nothing_kept?(timeline))
     |> then(&{:ok, &1})
+  end
+
+  # Board 315 — the dark 139. The frame is this file's (the scrim, the dock,
+  # the FAB); the page inside it is `Kati.Screens.HomeEmpty.content/1`, called
+  # rather than copied, which is exactly the arrangement screen 01 has with the
+  # light 139 and for the same reason: the module that owns an artboard owns
+  # its copy.
+  #
+  # The header on this branch is HomeEmpty's, so it reads the device clock
+  # rather than `Sample.moment/0`. That is not a departure from this file's
+  # *the header stays pinned* rule but the end of the case for it: the pin
+  # exists because screen 29 draws the lock screen of board 28's own evening
+  # and the two have to agree, and a device with nothing kept has no evening to
+  # agree about.
+  #
+  # HomeEmpty's blocks build their taps as `{self(), tag}` and `self()` here is
+  # this screen, so `:choose_sections`, `:restore_backup` and `:open_search`
+  # arrive at `handle_info/2` below. `:open_calendar` was already answered.
+  def render(%{nothing_kept: true} = assigns) do
+    ~MOB"""
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={Kati.Locale.direction_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
+      {Kati.Screens.HomeEmpty.content(assigns)}
+      {Kati.Screens.HomeDark.scrim()}
+      {Kati.Screens.HomeDark.dock()}
+    </Box>
+    """
   end
 
   def render(assigns) do
@@ -267,6 +314,24 @@ defmodule Kati.Screens.HomeDark do
   # the same disc; this board was the one of the three that differed.
   def handle_info({:tap, :open_calendar}, socket),
     do: {:noreply, leave(socket, "calendar")}
+
+  # Board 315's three doors, borrowed with 139's page. Each answers with the
+  # destination `Kati.Screens.HomeEmpty` answers it with — except the search
+  # disc, which goes where THIS screen's own does, because a dark Home's search
+  # is still this Home's search.
+  def handle_info({:tap, :choose_sections}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}
+
+  def handle_info({:tap, :restore_backup}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}
+
+  def handle_info({:tap, :open_search}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: ""})}
+
+  # 139's header draws a settings disc where 28's draws the inbox bell, so this
+  # tag only ever arrives on the empty branch.
+  def handle_info({:tap, :open_settings}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do

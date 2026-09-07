@@ -815,8 +815,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        "`Kati.Screens.Home.nothing_kept?/1` — one gate for two languages, which is 317's " <>
        "own sentence — so the four lines in @quoted are quoted from 158 rather than from 55. " <>
        "`Kati.Screens.HomeFa.empty_day/0` still words 55's own empty day for a reader who " <>
-       "HAS kept something, and is argued at that function",
-     Kati.ScreenHomeFaEmptyStateTest}
+       "HAS kept something, and is argued at that function", Kati.ScreenHomeFaEmptyStateTest}
   ]
 
   # `{screen number, the board it is quoted from, the line}`.

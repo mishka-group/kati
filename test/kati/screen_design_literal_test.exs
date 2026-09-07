@@ -1345,6 +1345,10 @@ defmodule Kati.ScreenDesignLiteralTest do
       # nothing records when the watcher last swept — can be stated.
       {"28", Kati.Screens.HomeDark,
        &Map.merge(&1, %{
+         # Board 315 gave 28 the gate 139 gives 01, so the flag joins the three
+         # values for 01's reason: board 28 is a device with something on it.
+         # `Kati.ScreenDarkWidgetsTest` holds the other half.
+         nothing_kept: false,
          hero: Kati.Screens.HomeDark.drawn_hero(),
          continue: Kati.Screens.HomeDark.Sample.continue(),
          timeline: Kati.Screens.HomeDark.Sample.rest_of_today()

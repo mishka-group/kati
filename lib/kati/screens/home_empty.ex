@@ -300,8 +300,14 @@ defmodule Kati.Screens.HomeEmpty do
   """
   @spec tile() :: map()
   def tile do
+    # `Palette.empty_tile/0` and NOT `paper/0`, which is what this was. Board
+    # 315 is the dark mirror of this board and the crossing is where the
+    # difference shows: paper in dark is `#121110`, the page itself, so a tile
+    # painted with it disappears. 315's own note — *paper becomes a lifted tile
+    # — a light tile on dark ground would be the loudest thing here* — is the
+    # token's whole reason, and its light value is still paper to the byte.
     MishkaThemeIcon.theme_icon(
-      %{variant: :filled, color: Palette.paper(), size: 64, radius: 20},
+      %{variant: :filled, color: Palette.empty_tile(), size: 64, radius: 20},
       [UI.symbol("grid_view", size: 28, color: Palette.rail_idle())]
     )
   end
