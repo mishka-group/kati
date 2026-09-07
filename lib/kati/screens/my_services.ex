@@ -1058,16 +1058,45 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  @doc "The three rules, each with its consequence written under it."
+  @doc """
+  The three rules, as `{key, title, sentence}`.
+
+  Public because screen 93 draws the same three (board 323) and the private
+  attribute was what made that file copy them: its own comment said the
+  sentences *"are duplicated rather than shared because they live in a private
+  attribute there"*, and a drift would then be found by a literal check rather
+  than made impossible.
+  """
+  @spec rules() :: [{atom(), String.t(), String.t()}]
+  def rules, do: @rules
+
+  @doc """
+  The three rules, each with its consequence written under it.
+
+  Screen 93 draws this group too, and board 323 is why it is this one rather
+  than a copy: *"93 is 92 with nothing configured — not a second screen with
+  its own memory."* Same three rows, the same sentence board 310 counted, and
+  the same persistence.
+
+  The last row takes no hairline, which is what both drawings show and what
+  93's own file had been doing alone.
+  """
   @spec rules_group(map()) :: map()
   def rules_group(rules) do
+    last = length(@rules) - 1
+
     rows =
-      Enum.map(@rules, fn {key, title, why} ->
+      @rules
+      |> Enum.with_index()
+      |> Enum.map(fn {{key, title, why}, index} ->
         SettingsList.row(
           nil,
+          # Three lines, not one: each of these sentences is the *reason* for a
+          # switch, and a reason that ellipsises has been deleted.
           SettingsList.body(title, why, lines: 3),
           SettingsList.trailing(SettingsList.switch(Map.fetch!(rules, key))),
-          on_tap: {self(), String.to_atom("rule_#{key}")}
+          on_tap: {self(), String.to_atom("rule_#{key}")},
+          rule: index < last
         )
       end)
 

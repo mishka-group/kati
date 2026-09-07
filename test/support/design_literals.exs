@@ -523,7 +523,18 @@ defmodule Kati.DesignLiterals do
       {"140", "simkl · tv time · libib · last.fm · anilist"},
       {"141", "10pt → 5★"},
       {"141", "yyyy/mm/dd"},
-      {"141", ". two columns are skipped."}
+      {"141", ". two columns are skipped."},
+      # Board 323 makes screen 93's rules group screen 92's group, live — *"a
+      # specimen switch is a dead control with a costume"*, and *"93 is 92 with
+      # nothing configured, not a second screen with its own memory."* The
+      # third row therefore carries 92's sentence, the one board 310 counted,
+      # and this one goes.
+      #
+      # What it said is still true and is still the reason `hide_unavailable`
+      # defaults to off — 323 calls that *"93's own reasoning, unchanged"* —
+      # but it is a fact about `Kati.Services.default_rules/0` now rather than
+      # a line of copy under a switch.
+      {"93", "off by default — with no services set it would hide everything."}
     ]
   end
 end

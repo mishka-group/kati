@@ -21,6 +21,7 @@ defmodule Kati.ServicesTest do
   alias Kati.Screens.CountryPicker
   alias Kati.Screens.DataSources
   alias Kati.Screens.MyServices
+  alias Kati.Screens.MyServicesEmpty
   alias Kati.Services
   alias Kati.Services.Service
   alias Kati.Sources
@@ -166,6 +167,47 @@ defmodule Kati.ServicesTest do
                  "Removes them from Discover, Up next and What fits tonight. " <>
                    "Your library and wishlist keep everything."
              ) != nil
+    end
+  end
+
+  describe "screen 93's rules — board 323" do
+    test "are screen 92's three rows, sentence for sentence" do
+      tree = tree(mount_screen(MyServicesEmpty))
+
+      for {_key, title, why} <- MyServices.rules() do
+        assert find(tree, :text, text: title) != nil, "93 does not draw #{inspect(title)}"
+        assert find(tree, :text, text: why) != nil, "93 does not draw #{inspect(why)}"
+      end
+    end
+
+    test "and the third one no longer carries a sentence of its own" do
+      refute tree(mount_screen(MyServicesEmpty))
+             |> find(:text,
+               text: "Off by default — with no services set it would hide everything."
+             )
+    end
+
+    test "remember, which is the whole of the ruling" do
+      view = mount_screen(MyServicesEmpty)
+
+      assert assigns(view).rules.hide_unavailable == false
+      assert Services.rules().hide_unavailable == false
+
+      toggled = render_info(view, {:tap, :rule_hide_unavailable})
+
+      assert assigns(toggled).rules.hide_unavailable == true
+
+      # The point of the board. A specimen switch moves in the socket and
+      # nowhere else; this one is in the store, so screen 92 opened next reads
+      # what was set here.
+      assert Services.rules().hide_unavailable == true
+      assert assigns(mount_screen(MyServices)).rules.hide_unavailable == true
+    end
+
+    test "and open at the defaults on the device the board is about" do
+      # Nothing configured, so nothing stored, so `rules/0` IS `default_rules/0`
+      # — which is what makes 93 92-with-nothing-set rather than a second page.
+      assert assigns(mount_screen(MyServicesEmpty)).rules == Services.default_rules()
     end
   end
 

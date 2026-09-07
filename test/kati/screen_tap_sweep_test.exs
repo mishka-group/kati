@@ -766,6 +766,18 @@ defmodule Kati.ScreenTapSweepTest do
     # the whole subject of the board. Same `service_tag/1`, same reason.
     {Kati.Screens.MyServicesEmpty, :edit_service_Aria_Free},
     {Kati.Screens.MyServicesEmpty, :edit_service_Dispatch},
+    # Board 323 made 93's rules screen 92's rules, live — so `Hide titles I
+    # can't watch` joins its twin four screens up on this list, and for the
+    # identical reason: `Kati.Services.toggle_rule/1` writes to `Mob.State`,
+    # which is neither an assign nor a nav action, and the sweep's control
+    # mount re-reads the value the real tap just wrote. `Kati.ServicesTest`
+    # presses it and asserts the stored set moves — and that screen 92 opened
+    # next agrees with it, which is the whole of the ruling.
+    #
+    # Only this one of the three: the sweep still sees `rule_rentals` and
+    # `rule_purchases` move, and this list is what somebody looked at rather
+    # than what looks like it.
+    {Kati.Screens.MyServicesEmpty, :rule_hide_unavailable},
     # Screen 99's scope chips. The board has one section's figures on it and
     # cannot follow them anywhere — relighting a chip over a card that did not
     # move is the one thing it exists to argue against. Its own moduledoc says
