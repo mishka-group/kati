@@ -634,18 +634,12 @@ defmodule Kati.Screens.ImportRecognised do
             />
           </Column>
           <Spacer size={13} />
-          {UI.symbol("check_circle", size: 20, color: Palette.green(), fill: true)}
+          {UI.symbol(Kati.Screens.ImportRecognised.shape_tone(Kati.Screens.ImportRecognised.shape(job)), size: 20, color: Kati.Screens.ImportRecognised.shape_colour(Kati.Screens.ImportRecognised.shape(job)), fill: true)}
         </Row>
         <Spacer size={14} />
         {MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)}
         <Spacer size={13} />
-        <Row fill_width={true} align="center">
-          <Column weight={1.0}>
-            {Kati.Screens.ImportRecognised.source_line(job.source)}
-          </Column>
-          <Spacer size={11} />
-          {Kati.Screens.ImportRecognised.change_pill(job.source)}
-        </Row>
+        {Kati.Screens.ImportRecognised.recognition(job)}
       </Column>
       <Spacer size={11} />
     </Column>
@@ -659,6 +653,178 @@ defmodule Kati.Screens.ImportRecognised do
       [UI.symbol("description", size: 20, color: Palette.ink_soft())]
     )
   end
+
+  @doc """
+  The recognition sentence, in whichever of its six shapes this file is in.
+
+  Board **329**. One shape was drawn and six were written, and it is the
+  sentence a reader trusts to know what they are about to import — so the board
+  puts all six on one artboard in 262's four-panel idiom: *"same card, same
+  glyph tile, same mono sub-line throughout — only the facts change."*
+
+  Three tones carry the difference, and nothing else does:
+
+    * **green** `check_circle` — recognised, and its possessive variant, used
+      *"when the file name carries an account: ownership stated, not assumed."*
+    * **bronze** `help` — *said* and *partial*. Said is Kati QUOTING the file's
+      own header rather than vouching for it; partial is the right source and an
+      old export.
+    * **red** `error` — mismatch, which names what it found and imports nothing,
+      and refused, which *"is not a source question at all — the file is
+      broken."*
+
+      iex> Kati.Screens.ImportRecognised.shape(%{source: "Goodreads", matched: 7, columns_count: 9})
+      :recognised
+
+      iex> Kati.Screens.ImportRecognised.shape(%{source: "Goodreads", refusal: :truncated})
+      :refused
+
+      iex> Kati.Screens.ImportRecognised.shape(%{source: "Goodreads", mismatch: {"Letterboxd", false}})
+      :mismatch
+  """
+  @spec shape(map()) :: :refused | :mismatch | :partial | :said | :possessive | :recognised
+  def shape(job) do
+    cond do
+      Map.get(job, :refusal) -> :refused
+      Map.get(job, :mismatch) -> :mismatch
+      Map.get(job, :missing_column) -> :partial
+      Map.get(job, :claimed_by_header?) -> :said
+      Map.get(job, :yours?) -> :possessive
+      true -> :recognised
+    end
+  end
+
+  @doc """
+  The tone a shape carries — the only thing that differs between the six.
+
+      iex> Kati.Screens.ImportRecognised.shape_tone(:possessive)
+      "check_circle"
+
+      iex> Kati.Screens.ImportRecognised.shape_tone(:partial)
+      "help"
+
+      iex> Kati.Screens.ImportRecognised.shape_tone(:mismatch)
+      "error"
+  """
+  @spec shape_tone(atom()) :: String.t()
+  def shape_tone(shape) when shape in [:recognised, :possessive], do: "check_circle"
+  def shape_tone(shape) when shape in [:said, :partial], do: "help"
+  def shape_tone(_red), do: "error"
+
+  @doc """
+  What each shape says, as `{headline, mono sub-line}`.
+
+      iex> Kati.Screens.ImportRecognised.words(%{source: "Goodreads", matched: 7, columns_count: 9})
+      {"Read as a Goodreads export", "7 of 9 columns matched"}
+
+      iex> Kati.Screens.ImportRecognised.words(%{source: "Goodreads", yours?: true, rows: 418, columns_count: 9})
+      {"Read as your Goodreads export", "418 rows · 9 columns"}
+  """
+  @spec words(map()) :: {String.t(), String.t()}
+  def words(job) do
+    source = Map.get(job, :source) || "file"
+
+    case Kati.Screens.ImportRecognised.shape(job) do
+      :refused ->
+        {"Kati can’t read this file", Map.get(job, :refusal_detail) || "It ends part-way"}
+
+      :mismatch ->
+        {looks_like, _kind?} = Map.get(job, :mismatch)
+
+        {"You picked #{source} — this looks like #{looks_like}",
+         Map.get(job, :found_columns) || "Its columns are somebody else’s"}
+
+      :partial ->
+        {"A #{source} export, from before #{Map.get(job, :export_era) || "2019"}",
+         "No #{Map.get(job, :missing_column)} column — everything else maps"}
+
+      :said ->
+        {"The file says #{source}", "Header row claims it — columns agree"}
+
+      :possessive ->
+        {"Read as your #{source} export",
+         "#{Map.get(job, :rows) || 0} rows · #{Map.get(job, :columns_count) || 0} columns"}
+
+      :recognised ->
+        {"Read as a #{source} export",
+         "#{Map.get(job, :matched) || 0} of #{Map.get(job, :columns_count) || 0} columns matched"}
+    end
+  end
+
+  @doc """
+  Whether *Not <source>? Change* rides on this shape.
+
+  329: *"Change rides on the first three, because only those made a guess."* A
+  refusal made none — the file is broken — and a mismatch has already named what
+  it found, so offering to change the guess is offering to re-make one it just
+  withdrew.
+
+      iex> Kati.Screens.ImportRecognised.guessed?(:said)
+      true
+
+      iex> Kati.Screens.ImportRecognised.guessed?(:refused)
+      false
+  """
+  @spec guessed?(atom()) :: boolean()
+  def guessed?(shape), do: shape in [:recognised, :possessive, :said]
+
+  @doc """
+  Board 329's card: the headline, the mono sub-line, and *Change* where a guess
+  was made.
+
+  The glyph tile and the sub-line never move; only the facts and the tone do,
+  which is the whole of 329's claim about this sentence.
+  """
+  @spec recognition(map()) :: map()
+  def recognition(job) do
+    shape = Kati.Screens.ImportRecognised.shape(job)
+    {headline, sub} = Kati.Screens.ImportRecognised.words(job)
+
+    assigns = %{
+      headline: headline,
+      sub: sub,
+      pill:
+        if(Kati.Screens.ImportRecognised.guessed?(shape),
+          do: Kati.Screens.ImportRecognised.change_pill(Map.get(job, :source) || "this"),
+          else: nil
+        )
+    }
+
+    ~MOB"""
+    <Row fill_width={true} align="center">
+      <Column weight={1.0}>
+        <Text
+          text={@headline}
+          text_size={12.5}
+          text_color={Kati.Theme.Palette.ink_soft()}
+          max_lines={2}
+          line_height={1.4}
+        />
+        <Spacer size={4} />
+        <Text
+          text={@sub}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Kati.Theme.Palette.muted()}
+          max_lines={1}
+        />
+      </Column>
+      <Spacer size={11} />
+      {@pill}
+    </Row>
+    """
+  end
+
+  @doc """
+  Green, bronze or red — 329's three tones and nothing else.
+
+      iex> Kati.Screens.ImportRecognised.shape_colour(:recognised) == Kati.Theme.Palette.green()
+      true
+  """
+  @spec shape_colour(atom()) :: non_neg_integer()
+  def shape_colour(shape) when shape in [:recognised, :possessive], do: Palette.green()
+  def shape_colour(shape) when shape in [:said, :partial], do: Palette.gold_icon()
+  def shape_colour(_red), do: Palette.red()
 
   @doc """
   `Read as a **Goodreads** export`, one bold run inside a running line.
