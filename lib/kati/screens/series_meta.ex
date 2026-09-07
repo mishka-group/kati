@@ -306,6 +306,12 @@ defmodule Kati.Screens.SeriesMeta do
   # has not got. Upper case and interpuncts are the drawing's. The `15`
   # certification the board draws between the year and the genres is still
   # dropped rather than guessed: no column holds one.
+  #
+  # `render/1` draws this at `max_lines={2}`, not 1. The board's own sample fits
+  # on one line and still does; a real title does not. Severance carries three
+  # genres and the line came out `... 3 SEASONS · 19…` on a device — so the
+  # episode count is what truncation ate, every time, being last. Wrapping loses
+  # nothing and truncating always lost the same fact.
   defp meta_line(nil), do: ""
 
   defp meta_line(%CachedTitle{} = cached) do
@@ -433,7 +439,7 @@ defmodule Kati.Screens.SeriesMeta do
             font_family="mono"
             text_size={11}
             text_color={Palette.meta()}
-            max_lines={1}
+            max_lines={2}
           />
         </Column>
       </Box>
