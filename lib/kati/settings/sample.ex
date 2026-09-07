@@ -268,6 +268,17 @@ defmodule Kati.Settings.Sample do
         sub: "Paused, dropped, and gone cold",
         control: :chevron
       },
+      # MOVIES-AND-TV.md #8. 152's own back pill says `Settings` and nothing
+      # pushed it. It is the argument for a feature and the feature exists now
+      # — `Kati.Media.Anime` is its three rules and screen 03 grows the chip it
+      # draws — so the board becomes what it always read as: the place the rule
+      # is written down. Same group and same argument as Dropping above.
+      %{
+        icon: "auto_awesome",
+        title: "Anime",
+        sub: "What makes a title one",
+        control: :chevron
+      },
       # The gallery. It used to be behind Home's bell, which was scaffolding
       # from the round when 53 screens landed at once with no way in. They are
       # all reachable now, so the bell went back to meaning notifications and

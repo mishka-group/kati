@@ -217,8 +217,12 @@ defmodule Kati.ScreenLibraryShelfTest do
       #
       # Asserted as a push and not merely as "something happened": the failure
       # this replaces was a segment that looked live and set a value nobody
-      # read, and `assigns.shelf` staying put is exactly what tells the two
-      # apart.
+      # read.
+      #
+      # The `:shelf` assign that value went into is gone (MOVIES-AND-TV.md
+      # #122). It could only ever hold `"Screen"` — these two segments push —
+      # so the branch of `visible/3` it guarded was unreachable, and a state
+      # nothing can produce is deleted rather than kept.
       view = mount_screen(Library)
 
       for {shelf, screen} <- [{"Books", Kati.Screens.Books}, {"Music", Kati.Screens.Music}] do
@@ -227,9 +231,19 @@ defmodule Kati.ScreenLibraryShelfTest do
         assert navigated_to(switched) == screen,
                "the #{shelf} segment should push #{inspect(screen)}"
 
-        assert assigns(switched).shelf == "Screen",
-               "pushing a shelf must not also switch the one underneath it"
+        refute Map.has_key?(assigns(switched), :shelf),
+               "the assign nothing read is back"
       end
+    end
+
+    test "and pressing Screen, which is the one you are on, changes nothing" do
+      # An already-selected control keeps its tap — pressing what you are on is
+      # how you check you are on it.
+      view = mount_screen(Library)
+      pressed = render_info(view, {:tap, :shelf_Screen})
+
+      assert navigated_to(pressed) == nil
+      assert assigns(pressed).filter == "All"
     end
 
     test "renders a tree the native layer can draw" do

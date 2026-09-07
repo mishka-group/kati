@@ -175,10 +175,6 @@ defmodule Kati.AppReachabilityTest do
        "shipped the states themselves: 141 draws its refusal card with `Pick " <>
        "again` live, and its wrong-guess note over a file that still reads."},
     {Screens.ShelfLarge, "screens 145 and 146 at 235%. As above."},
-    {Screens.AnimeFilter,
-     "a board about one change landing on four existing screens — 03's chip, " <>
-       "26's sub-choice, 37's two tiles, 35's numbering row. 96's reason: a " <>
-       "board about four screens rather than a fifth screen."},
     {Screens.EpisodeRatings,
      "screen 04's episode rows with the rating column added, drawn so the " <>
        "before and after can be compared. A board about a change to 04, not a " <>

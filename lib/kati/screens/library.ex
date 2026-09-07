@@ -114,7 +114,6 @@ defmodule Kati.Screens.Library do
   def load(socket) do
     Mob.Socket.assign(socket,
       filter: "All",
-      shelf: "Screen",
       titles: titles(),
       # The WHOLE shelf's watching count, not the narrowed one. The badge
       # labels a door onto screen 10, and screen 10 shows the queue whole — a
@@ -367,7 +366,16 @@ defmodule Kati.Screens.Library do
       id: tracked.id,
       title: Kati.Screens.Library.name_of(cached),
       seed: cached && cached.poster_path,
-      kind: if(tracked.kind == :movie, do: :film, else: :series),
+      # MOVIES-AND-TV.md #104's latent half. This asked `kind == :movie`, so an
+      # anime FILM — which can exist now that something writes `:anime` —
+      # would have opened the series screen and asked for its seasons. A film
+      # is a film whatever else it is, and the cached row is what knows.
+      kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :film, else: :series),
+      # WHICH kind, beside which SCREEN it opens. `:kind` above is the second
+      # of those and has been since this screen was written — it answers
+      # `:film` or `:series`, which is a route and not a fact about the title.
+      # The Anime chip needs the fact (#8).
+      media_kind: tracked.kind,
       status: tracked.status,
       progress: fraction_for(tracked, cached, ticks, seen),
       meta: meta_for(tracked, cached, ticks, seen),
@@ -530,7 +538,6 @@ defmodule Kati.Screens.Library do
   @doc false
   def content(assigns) do
     filter = assigns.filter
-    shelf = assigns.shelf
     titles = assigns.titles
 
     ~MOB"""
@@ -543,9 +550,9 @@ defmodule Kati.Screens.Library do
         padding_bottom={132}
       >
         {Kati.Screens.Library.header(titles, assigns.menu?)}
-        {Kati.Screens.Library.segments(shelf)}
+        {Kati.Screens.Library.segments("Screen")}
         {Kati.Screens.Library.quick_tiles(Map.get(assigns, :queued, length(titles)))}
-        {Kati.Screens.Library.shelf_body(filter, shelf, titles)}
+        {Kati.Screens.Library.shelf_body(filter, titles)}
       </Column>
     </Scroll>
     """
@@ -561,13 +568,13 @@ defmodule Kati.Screens.Library do
   chips say which one to tap next. Putting *No titles yet* under a shelf that
   holds nine would be a second lie in place of the first.
   """
-  @spec shelf_body(String.t(), String.t(), [map()]) :: map() | [map()]
-  def shelf_body(_filter, _shelf, []), do: Kati.Screens.Library.empty_state()
+  @spec shelf_body(String.t(), [map()]) :: map() | [map()]
+  def shelf_body(_filter, []), do: Kati.Screens.Library.empty_state()
 
-  def shelf_body(filter, shelf, titles) do
+  def shelf_body(filter, titles) do
     [
       Kati.Screens.Library.chips(filter, titles),
-      Kati.Screens.Library.grid(filter, shelf, titles)
+      Kati.Screens.Library.grid(filter, titles)
     ]
   end
 
@@ -1054,12 +1061,42 @@ defmodule Kati.Screens.Library do
   """
   @spec chip_counts([map()]) :: [{String.t(), non_neg_integer()}]
   def chip_counts(titles) do
+    anime = Enum.count(titles, &(Map.get(&1, :media_kind) == :anime))
+
     [
       {"All", length(titles)},
       {"Watching", Enum.count(titles, &(&1.status == :watching))},
       {"Not started", Enum.count(titles, &(&1.status == :not_started))},
       {"Finished", Enum.count(titles, &(&1.status == :finished))}
-    ]
+    ] ++ Kati.Screens.Library.anime_chip(anime)
+  end
+
+  @doc """
+  A fifth chip, once there is enough anime on the shelf to want one.
+
+  Board 152's own rule, in the board's own words: *the tab-row chip appears at
+  10 or more anime titles*. `Kati.Media.AnimeSample.promote_threshold/0` is
+  where the number lives and this reads it rather than typing a second copy,
+  so moving it moves both.
+
+  MOVIES-AND-TV.md #8 asked for the argument to become the feature, and this
+  is the feature half: 152 draws a chip appearing on a shelf; this is the
+  shelf. The other half is #104 — something that writes `:anime` at all, which
+  is `Kati.Media.Anime`'s three rules.
+
+  Below the threshold it is dropped rather than drawn empty, which is why the
+  rule exists: a `0` chip on a shelf with no anime on it is a section nobody
+  asked for.
+
+      iex> Kati.Screens.Library.anime_chip(12)
+      [{"Anime", 12}]
+
+      iex> Kati.Screens.Library.anime_chip(3)
+      []
+  """
+  @spec anime_chip(non_neg_integer()) :: [{String.t(), non_neg_integer()}]
+  def anime_chip(count) do
+    if count >= Kati.Media.AnimeSample.promote_threshold(), do: [{"Anime", count}], else: []
   end
 
   @doc false
@@ -1162,9 +1199,9 @@ defmodule Kati.Screens.Library do
   # Three across, because that is the design's wrap. The width each tile gets is
   # left to the weights in poster/1 — see the moduledoc.
   @doc false
-  def grid(filter, shelf, titles) do
-    case Kati.Screens.Library.visible(titles, filter, shelf) do
-      [] -> Kati.Screens.Library.nothing_here(filter, shelf)
+  def grid(filter, titles) do
+    case Kati.Screens.Library.visible(titles, filter) do
+      [] -> Kati.Screens.Library.nothing_here(filter)
       shown -> Kati.Screens.Library.tiles(Enum.chunk_every(shown, 3))
     end
   end
@@ -1187,46 +1224,59 @@ defmodule Kati.Screens.Library do
   started* and *Finished* matched nothing on every device, so that blank was
   what every reader got from either. MOVIES-AND-TV.md #37.
 
-  Two wordings, because they are two different absences. A Books or Music shelf
-  is empty by decision — #60 settled that v1 ships one media domain — and a
-  status chip with nothing behind it is a shelf that simply has none of those
-  yet. Saying *nothing added yet* over the Books tab would invite an add the
-  app cannot do.
-  """
-  @spec nothing_here(String.t(), String.t()) :: map()
-  def nothing_here(_filter, shelf) when shelf != "Screen",
-    do:
-      nothing_card(
-        "Nothing here yet",
-        "Kati holds films and shows for now. #{shelf} comes later."
-      )
+  ## There was a fifth wording, for a state this screen cannot be in
 
+  A `shelf != "Screen"` clause said *Kati holds films and shows for now. Books
+  comes later.* — MOVIES-AND-TV.md #122 found it unreachable, and it is: the
+  Books and Music segments PUSH screens 20 and 21, so the `:shelf` assign the
+  clause guarded on could only ever hold `"Screen"`. The assign, its writer and
+  the two clauses that read it are gone rather than kept as a state nothing can
+  produce; screens 20 and 21 are where a reader who presses Books lands, and
+  what to say to them there is their own screens' business.
+  """
   # A sentence per chip rather than the chip's own label in a frame. `Nothing
   # not started` reads as a double negative and `No title on your shelf is not
   # started right now` is worse; each of the three says its own thing, and the
   # second line says what would put a title there.
-  def nothing_here("Watching", _shelf),
+  @spec nothing_here(String.t()) :: map()
+  def nothing_here("Watching"),
     do:
       nothing_card(
         "Nothing on the go",
         "Log a watch or tick an episode and the title moves here."
       )
 
-  def nothing_here("Not started", _shelf),
+  def nothing_here("Not started"),
     do:
       nothing_card(
         "Everything here is started",
         "A title you add and have not watched yet waits in this one."
       )
 
-  def nothing_here("Finished", _shelf),
+  def nothing_here("Finished"),
     do:
       nothing_card(
         "Nothing finished yet",
         "A film you log a watch of, or a series whose last episode you tick, lands here."
       )
 
-  def nothing_here(filter, _shelf),
+  def nothing_here("Anime"),
+    do:
+      nothing_card(
+        "No anime on the shelf",
+        "Kati flags one from its genre and origin, or from a MAL or AniList import — " <>
+          "and you can say so yourself from a title's ⋯ menu."
+      )
+
+  def nothing_here("Anime"),
+    do:
+      nothing_card(
+        "No anime on the shelf",
+        "Kati flags one from its genre and origin, or from a MAL or AniList import — " <>
+          "and you can say so yourself from a title's \u22EF menu."
+      )
+
+  def nothing_here(filter),
     do: nothing_card("Nothing #{String.downcase(filter)}", "No title on your shelf matches.")
 
   @doc false
@@ -1273,23 +1323,24 @@ defmodule Kati.Screens.Library do
   end
 
   @doc """
-  The titles a filter and a shelf leave visible.
+  The titles a filter leaves visible.
 
-  Books and Music are drawn but empty: #60 settled that v1 ships one media
-  domain, and the design greys them. Selecting them shows that emptiness
-  honestly rather than pretending the shelf is full of films. `shelf/0` never
-  asks for `:book` or `:album` for the same reason.
+  It used to take a shelf as well, and answer `[]` for anything but `Screen` —
+  a branch nothing could reach, because Books and Music push their own screens
+  rather than swapping this grid (MOVIES-AND-TV.md #122). `shelf/0` never asks
+  for `:book` or `:album` for the same reason: #60 settled that v1 ships one
+  media domain.
 
   The chips read `status`, not a fraction — see `chip_counts/1`.
   """
-  @spec visible([map()], String.t(), String.t()) :: [map()]
-  def visible(_titles, _filter, shelf) when shelf != "Screen", do: []
-
-  def visible(titles, filter, _shelf) do
+  @spec visible([map()], String.t()) :: [map()]
+  def visible(titles, filter) do
     case filter do
       "Watching" -> Enum.filter(titles, &(&1.status == :watching))
       "Not started" -> Enum.filter(titles, &(&1.status == :not_started))
       "Finished" -> Enum.filter(titles, &(&1.status == :finished))
+      # Board 152's chip, over rows that can carry the flag at last (#8, #104).
+      "Anime" -> Enum.filter(titles, &(Map.get(&1, :media_kind) == :anime))
       _all -> titles
     end
   end
@@ -1324,15 +1375,28 @@ defmodule Kati.Screens.Library do
   rows there are no tiles, and a collision that needs two tiles cannot be seen.
   Nothing about that made it not happen on a phone with two films on it.
 
-  The title, because it is what the tile is captioned with and what
-  `Kati.Screens.Library.shelf/0` drops a row for lacking — a row with no title
-  never reaches the grid, so there is no untitled tile to name.
+  ## The id, where there is one — MOVIES-AND-TV.md #121
+
+  The title was the identity and it is not one. `String.replace(" ", "_")`
+  makes *Low Water* and *Low_Water* one tag, so a shelf holding both collapsed
+  them onto one tap target and the first match won — the same collision class
+  #97 fixed one level up, one level down. And `String.to_atom/1` on a
+  provider-supplied title mints an atom per distinct title, none of which the
+  VM ever reclaims.
+
+  The tracked row's id is unique by construction and bounded by the shelf, so
+  it is the identity now. The title stays as the fallback for a row that has
+  no id — `Kati.Library.Sample`'s nine, and every drawing that reuses this —
+  because a tile still has to be nameable when the store is not behind it.
 
       iex> Kati.Screens.Library.poster_tag(%{kind: :film, title: "Low Water"})
       :open_film_Low_Water
 
       iex> Kati.Screens.Library.poster_tag(%{kind: :series, title: "The Long Hollow"})
       :open_series_The_Long_Hollow
+
+      iex> Kati.Screens.Library.poster_tag(%{kind: :film, title: "", id: "abc-123"})
+      :"open_film_abc-123"
 
       iex> Kati.Screens.Library.poster_tag(%{kind: :film, title: ""})
       :open_film
@@ -1341,13 +1405,33 @@ defmodule Kati.Screens.Library do
   def poster_tag(item) do
     base = if Map.get(item, :kind) == :film, do: "open_film", else: "open_series"
 
-    case item
-         |> Map.get(:title, "")
-         |> to_string()
-         |> String.trim()
-         |> String.replace(" ", "_") do
+    case Kati.Screens.Library.tile_key(item) do
       "" -> String.to_atom(base)
-      title -> String.to_atom(base <> "_" <> title)
+      key -> String.to_atom(base <> "_" <> key)
+    end
+  end
+
+  @doc """
+  What names a tile: its id, or its title when it has none.
+
+      iex> Kati.Screens.Library.tile_key(%{id: "abc", title: "Low Water"})
+      "abc"
+
+      iex> Kati.Screens.Library.tile_key(%{title: "Low Water"})
+      "Low_Water"
+  """
+  @spec tile_key(map()) :: String.t()
+  def tile_key(item) do
+    case Map.get(item, :id) do
+      id when is_binary(id) and id != "" ->
+        id
+
+      _none ->
+        item
+        |> Map.get(:title, "")
+        |> to_string()
+        |> String.trim()
+        |> String.replace(" ", "_")
     end
   end
 
@@ -1355,11 +1439,11 @@ defmodule Kati.Screens.Library do
   Open `module` on the tile that carries `tag`.
 
   The tag is resolved back to its row by running `poster_tag/1` over the very
-  list the grid was built from, rather than by reversing the string:
-  `poster_tag/1` replaces spaces with underscores, which makes "Low Water" and
-  "Low_Water" the same tag and the reverse direction a guess. Two rows that
-  produce one tag already share one tap target on the wire, so collapsing them
-  here loses nothing that was not already lost.
+  list the grid was built from, rather than by reversing the string. That was
+  first because the string could not be reversed — `poster_tag/1` replaced
+  spaces with underscores — and it stays so now that it cannot either: a row
+  with an id is named by the id and a row without one by its title, and the
+  list is what knows which.
 
   A row with no id — `Kati.Library.Sample`'s nine, and a tag that matches
   nothing — pushes with **no params at all** rather than with `%{id: nil}`.
@@ -1617,8 +1701,11 @@ defmodule Kati.Screens.Library do
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
 
-      "shelf_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :shelf, label)}
+      # `shelf_Screen`, and only ever that: the other two segments have clauses
+      # of their own that push. Pressing the segment you are on is how you
+      # check you are on it, so it keeps its tap and changes nothing (#122).
+      "shelf_" <> _screen ->
+        {:noreply, socket}
 
       # Every grid tile, by its own title — see `poster_tag/1`. The two bare
       # tags above still have their own clauses because the drawing's own

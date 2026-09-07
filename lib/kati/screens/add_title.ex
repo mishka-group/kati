@@ -640,7 +640,11 @@ defmodule Kati.Screens.AddTitle do
            Ash.create(Kati.Media.TrackedTitle, %{
              source: :tmdb,
              source_id: source_id,
-             kind: kind,
+             # Board 152's third rule, asked of the row the fetch just wrote:
+             # TMDB's Animation + Japanese origin. `:anime` was a kind every
+             # reader in the app knew and nothing ever wrote — MOVIES-AND-TV.md
+             # #104 — and this is the writer.
+             kind: Kati.Media.Anime.kind_for(kind, Map.get(filled, :title), nil),
              status: :watching
            }) do
       # The picture, fetched once, here, because this is the only moment the

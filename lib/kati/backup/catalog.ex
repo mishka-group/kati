@@ -95,7 +95,14 @@ defmodule Kati.Backup.Catalog do
   #     it happened. A version-13 file has none and none can be derived — a
   #     status column says where a title is, never when it got there — so a
   #     restored 13 has a history that starts on the day it was upgraded.
-  @schema_version 14
+  #   * **15** — `tracked_titles` gained `anime_override` and `cached_titles`
+  #     gained `original_language`: the two columns board 152's anime rules
+  #     need, and had neither. Nothing moves, for 10's reason — a version-14
+  #     file has no such columns and every row takes the attribute default,
+  #     which for `anime_override` is `NULL`: *I have not said*, and that is
+  #     the truth about every title written before there was anywhere to say
+  #     it.
+  @schema_version 15
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone

@@ -90,6 +90,11 @@ defmodule Kati.Media.CachedTitle do
     # ── Cached projection ──────────────────────────────────────────────────
     attribute :title, :string, public?: true
     attribute :title_original, :string, public?: true
+
+    # TMDB's own `original_language`, a two-letter tag. Board 152's third rule
+    # is *TMDB's Animation + Japanese origin* and the genre half was already
+    # kept; this is the half that was not, so the rule could not be asked.
+    attribute :original_language, :string, public?: true
     attribute :overview, :string, public?: true
     attribute :poster_path, :string, public?: true
     attribute :backdrop_path, :string, public?: true

@@ -302,18 +302,21 @@ defmodule Kati.ScreenLibraryEmptyTest do
       assert "1 titles · 1 in progress" in drawn
     end
 
-    test "and a shelf Kati does not hold yet would say which" do
-      # `visible/3` answers `[]` for any shelf but Screen, and today no tap can
-      # put screen 03 in that state — `:shelf_Books` pushes screen 20 outright.
-      # The branch guards the read rather than a route, so it is asserted at
-      # the function: an empty Books tab is empty by DECISION (#60 ships one
-      # media domain), and saying *nothing added yet* over it would invite an
-      # add the app cannot do.
-      drawn = inspect(Library.nothing_here("All", "Books"), limit: :infinity)
+    test "and a chip that leaves nothing says which chip, not that the shelf is empty" do
+      # This used to assert a fifth wording — *Kati holds films and shows for
+      # now. Books comes later.* — behind a `shelf != "Screen"` guard, and its
+      # own comment recorded that no tap could put screen 03 in that state.
+      # MOVIES-AND-TV.md #122: it never could, because both other segments
+      # push. The state is gone; these four are the ones a reader can reach.
+      for {filter, line} <- [
+            {"Watching", "Nothing on the go"},
+            {"Not started", "Everything here is started"},
+            {"Finished", "Nothing finished yet"}
+          ] do
+        assert inspect(Library.nothing_here(filter), limit: :infinity) =~ line
+      end
 
-      assert drawn =~ "Nothing here yet"
-      assert drawn =~ "Books comes later"
-      refute drawn =~ "Everything here is started"
+      refute inspect(Library.nothing_here("All"), limit: :infinity) =~ "comes later"
     end
   end
 end

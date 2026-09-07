@@ -1064,17 +1064,33 @@ defmodule Kati.SheetRowIdentityTest do
 
       socket = Mob.Socket.assign(Mob.Socket.new(Kati.Screens.Library), :titles, rows)
 
-      {:noreply, named} = Kati.Screens.Library.handle_tap(:open_series_First_Show, socket)
+      # MOVIES-AND-TV.md #121: a tile is named by its ROW ID now, not by its
+      # title — two titles that differ only by a space versus an underscore
+      # collapsed onto one tap target, and every distinct provider title minted
+      # an atom the VM never reclaims.
+      {:noreply, named} =
+        Kati.Screens.Library.handle_tap(:"open_series_row-identity-title-one", socket)
 
       assert named.__mob__.nav_action ==
                {:push, Kati.Screens.Series, %{id: "row-identity-title-one", back: "Library"}},
              "every poster pushed screen 04 with nothing, so all of them opened whatever " <>
                "the top of the shelf happened to be"
 
-      {:noreply, film} = Kati.Screens.Library.handle_tap(:open_film_Low_Water, socket)
+      {:noreply, film} =
+        Kati.Screens.Library.handle_tap(:"open_film_row-identity-title-two", socket)
 
       assert film.__mob__.nav_action ==
                {:push, Kati.Screens.Film, %{id: "row-identity-title-two", back: "Library"}}
+
+      # And the collision the id fixes: two shelf rows whose titles differ only
+      # by a space versus an underscore are two tiles, not one.
+      collide = [
+        %{id: "collide-a", kind: :film, title: "Low Water"},
+        %{id: "collide-b", kind: :film, title: "Low_Water"}
+      ]
+
+      assert collide |> Enum.map(&Kati.Screens.Library.poster_tag/1) |> Enum.uniq() |> length() ==
+               2
 
       # A row with no id is `Kati.Library.Sample`'s, and it must still name no
       # row — not `%{id: nil}`, which a destination matching on the key would

@@ -328,6 +328,7 @@ defmodule Kati.Screens.Series do
       # title until the bookmark disc could (MOVIES-AND-TV.md #81).
       followed?: tracked.notify_new_episodes,
       private?: tracked.private,
+      anime?: tracked.kind == :anime,
       genres: cached && cached.genres,
       season_count: nil,
       seasons: [%{number: tracked.progress_season || 1, name: nil, total: 0, episodes: []}],
@@ -356,6 +357,7 @@ defmodule Kati.Screens.Series do
       tracked_id: tracked.id,
       followed?: tracked.notify_new_episodes,
       private?: tracked.private,
+      anime?: tracked.kind == :anime,
       genres: cached && cached.genres,
       # The inventory's count, never `length(numbers)` — see the moduledoc.
       season_count: CachedSeason.count(seasons),
@@ -920,8 +922,16 @@ defmodule Kati.Screens.Series do
           Kati.Screens.Film.private_icon(s),
           Kati.Screens.Film.private_label(s),
           :toggle_private
-        )
-      ],
+        ),
+        # And the same for the anime flag, for the same reason: anime is
+        # overwhelmingly series, so a row only on screen 08 would be a rule
+        # about the wrong half of the shelf. MOVIES-AND-TV.md #104.
+        Kati.Screens.Film.anime_item(s)
+      ]
+      # `anime_item/1` answers `[]` over the drawing, where there is no row to
+      # tag — dropped rather than drawn dead, which is screen 08's own rule for
+      # the identical pair.
+      |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
     )
   end
@@ -1459,6 +1469,31 @@ defmodule Kati.Screens.Series do
        socket
        |> Mob.Socket.assign(:menu?, false)
        |> Mob.Socket.assign(:series, %{s | private?: updated.private})}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # Board 152's rule 1, the same write screen 08 makes and for the same reason
+  # its comment gives — a decision about one title belongs on that title's own
+  # page (MOVIES-AND-TV.md #104).
+  def handle_info({:tap, :toggle_anime}, socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         now? <- tracked.kind == :anime,
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{
+             anime_override: not now?,
+             kind: Kati.Media.Anime.kind_for(tracked.kind, nil, not now?)
+           })
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:series, Map.put(s, :anime?, updated.kind == :anime))}
     else
       _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
     end

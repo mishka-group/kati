@@ -59,8 +59,16 @@ defmodule Kati.Import.Job do
     with {:ok, text} <- file(path),
          {:ok, {headers, rows}} <- Csv.read(text) do
       columns = Mapping.columns(headers, rows)
-      records = Mapping.records(headers, rows)
       looks_like = Mapping.looks_like(headers)
+
+      # Board 152's second rule: *a MAL or AniList file marks everything in
+      # it.* The file knows its own service — `looks_like/1` reads the header
+      # vocabulary each one is alone in using — so this needs no column, only
+      # for somebody to ask. MOVIES-AND-TV.md #104.
+      records =
+        headers
+        |> Mapping.records(rows)
+        |> Kati.Import.Job.marked(looks_like)
 
       if Enum.all?(columns, & &1.skipped?) or records == [] do
         {:error, :unrecognised}
@@ -70,6 +78,28 @@ defmodule Kati.Import.Job do
          |> Kati.Import.Job.shaped(headers, rows, columns, records)
          |> Map.put(:looks_like, looks_like)}
       end
+    end
+  end
+
+  @doc """
+  Every record the file's own service marks as anime, marked.
+
+  Board 152's rule 2. `nil` for a record's kind stays `nil` — the record said
+  nothing about what it is and neither does this; what the source knows is
+  that everything in it is anime, not whether any given row is a film.
+
+      iex> Kati.Import.Job.marked([%{kind: :tv}], "myanimelist")
+      [%{kind: :anime}]
+
+      iex> Kati.Import.Job.marked([%{kind: :tv}], "letterboxd")
+      [%{kind: :tv}]
+  """
+  @spec marked([map()], String.t() | nil) :: [map()]
+  def marked(records, source) do
+    if Kati.Media.Anime.source_says?(source) do
+      Enum.map(records, &Map.put(&1, :kind, :anime))
+    else
+      records
     end
   end
 

@@ -112,7 +112,14 @@ defmodule Kati.Backup.Upgrade do
       # be read backwards into when it got there or why, which is the whole
       # reason the table exists. So a restored 13 has a history that starts on
       # the day it was upgraded, and that is the honest answer.
-      {13, 14, &unchanged/1}
+      {13, 14, &unchanged/1},
+      # `tracked_titles` gained `anime_override` and `cached_titles` gained
+      # `original_language`. Nothing moves: a version-14 file has neither
+      # column, and every row takes the attribute default. For
+      # `anime_override` that default is `NULL` — *I have not said* — which is
+      # exactly right for a title written before there was anywhere to say it,
+      # and leaves the provider rule free to answer.
+      {14, 15, &unchanged/1}
     ]
 
   @doc """

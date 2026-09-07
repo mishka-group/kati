@@ -334,6 +334,9 @@ defmodule Kati.Media.Tmdb do
         kind: kind,
         title: body["title"] || body["name"],
         title_original: body["original_title"] || body["original_name"],
+        # Board 152's third rule is *Animation + Japanese origin* and the genre
+        # half was already kept; this is the half that was not (#104).
+        original_language: blank_to_nil(body["original_language"]),
         overview: blank_to_nil(body["overview"]),
         poster_path: body["poster_path"],
         backdrop_path: body["backdrop_path"],

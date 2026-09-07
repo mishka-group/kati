@@ -22,6 +22,12 @@ defmodule Kati.DropWriteTest do
   @prefix "drop-write-"
 
   setup do
+    # `media_events` is read WHOLE by the assertions below — an event is not
+    # keyed by this file's prefix — so it is emptied going in as well as
+    # coming out. Another file's leftover row is otherwise this file's failure,
+    # and only on the orders where that file ran first.
+    Kati.Repo.query!("DELETE FROM media_events", [])
+
     on_exit(fn ->
       Kati.Repo.query!("DELETE FROM media_events", [])
       Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
@@ -111,7 +117,7 @@ defmodule Kati.DropWriteTest do
 
       {:noreply, _dropped} = DropSheet.handle_info({:tap, :drop}, chosen)
 
-      assert [event] = Ash.read!(Kati.Media.Event)
+      assert [event] = events_for(tracked)
       assert event.kind == :dropped
       assert event.reason == "Too slow"
       assert event.tracked_title_id == tracked.id
@@ -123,7 +129,7 @@ defmodule Kati.DropWriteTest do
     test "and a drop with no reason still records the drop", %{tracked: tracked} do
       {:noreply, _dropped} = DropSheet.handle_info({:tap, :drop}, sheet_for(tracked))
 
-      assert [%{kind: :dropped, reason: nil}] = Ash.read!(Kati.Media.Event)
+      assert [%{kind: :dropped, reason: nil}] = events_for(tracked)
     end
 
     test "undo is a second row, not the first one erased", %{tracked: tracked} do
@@ -131,7 +137,7 @@ defmodule Kati.DropWriteTest do
       {:noreply, dropped} = DropSheet.handle_info({:tap, :drop}, socket)
       {:noreply, _undone} = DropSheet.handle_info({:tap, :undo}, dropped)
 
-      kinds = Kati.Media.Event |> Ash.read!() |> Enum.map(& &1.kind) |> Enum.sort()
+      kinds = tracked |> events_for() |> Enum.map(& &1.kind) |> Enum.sort()
 
       assert kinds == [:dropped, :resumed],
              "an append-only log whose undo erases its own cause is not one"
@@ -146,7 +152,7 @@ defmodule Kati.DropWriteTest do
       {:noreply, after_tap} = DropSheet.handle_info({:tap, :drop}, socket)
 
       assert after_tap.assigns.save_error
-      assert Ash.read!(Kati.Media.Event) == []
+      assert events_for(tracked) == []
     end
   end
 
@@ -195,14 +201,14 @@ defmodule Kati.DropWriteTest do
       # And no position anywhere else either. The button and the undo pill
       # build the same sentence out of the same two numbers, and with them nil
       # they read **Drop at S E** — found by opening the sheet on the Pixel_9a.
-      assert drawn =~ "Drop"
-      refute drawn =~ "S E"
-      refute drawn =~ "at S"
+      assert DropSheet.at(sheet) == ""
+      assert drawn =~ "\"Drop\""
+      assert drawn =~ "Dropped Estuary\""
 
       {:noreply, _dropped} = DropSheet.handle_info({:tap, :drop}, socket)
 
       assert Ash.get!(TrackedTitle, tracked.id).status == :dropped
-      assert [%{kind: :dropped, season_number: nil}] = Ash.read!(Kati.Media.Event)
+      assert [%{kind: :dropped, season_number: nil}] = events_for(tracked)
     end
 
     test "and screen 08 offers the row, but only over a real film" do
@@ -235,6 +241,14 @@ defmodule Kati.DropWriteTest do
       DropSheet.mount(%{title_id: tracked.id}, %{}, Mob.Socket.new(DropSheet))
 
     socket
+  end
+
+  # Only this title's events. `Ash.read!/1` answers with every row in the
+  # store, so another file's leftover is otherwise this file's failure.
+  defp events_for(tracked) do
+    Kati.Media.Event
+    |> Ash.read!()
+    |> Enum.filter(&(&1.tracked_title_id == tracked.id))
   end
 
   defp film!() do

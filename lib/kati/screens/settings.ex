@@ -706,6 +706,8 @@ defmodule Kati.Screens.Settings do
     # #7. A reference sheet whose own moduledoc said it was pushed under
     # Settings, and nothing pushed it.
     "Dropping" => Kati.Screens.DropStates,
+    # #8. The board whose subject `Kati.Media.Anime` now implements.
+    "Anime" => Kati.Screens.AnimeFilter,
     "Every screen" => Kati.Screens.Gallery
   }
 

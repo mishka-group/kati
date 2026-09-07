@@ -303,6 +303,8 @@ defmodule Kati.Screens.Film do
       # Kept off a shared card, and off nothing else — see the migration for
       # `Kati.Media.TrackedTitle.private`.
       private?: tracked.private,
+      # Board 152's rule 1, read back: which state the ⋯ row offers to leave.
+      anime?: tracked.kind == :anime,
       actions: @actions
     }
   end
@@ -708,7 +710,8 @@ defmodule Kati.Screens.Film do
         # series-shaped in exactly two places, its header and its position
         # card, and both are answered by the title's own kind now rather than
         # assumed.
-        Kati.Screens.Film.drop_item(f)
+        Kati.Screens.Film.drop_item(f),
+        Kati.Screens.Film.anime_item(f)
       ]
       |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
@@ -1168,6 +1171,31 @@ defmodule Kati.Screens.Film do
     end
   end
 
+  # Board 152's rule 1, written. `anime_override` is three-valued and this only
+  # ever sets it to `true` or `false` — a reader who has pressed the row HAS
+  # said, and `nil` is the state of never having been asked (#104).
+  def handle_info({:tap, :toggle_anime}, socket) do
+    f = socket.assigns.film
+
+    with id when is_binary(id) <- Map.get(f, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         now? <- tracked.kind == :anime,
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{
+             anime_override: not now?,
+             kind: Kati.Media.Anime.kind_for(tracked.kind, nil, not now?)
+           })
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:film, Map.put(f, :anime?, updated.kind == :anime))}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
   def handle_info({:tap, :share_film}, socket) do
     {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
   end
@@ -1224,6 +1252,43 @@ defmodule Kati.Screens.Film do
   """
   @spec private_icon(map()) :: String.t()
   def private_icon(_film), do: "visibility_off"
+
+  @doc """
+  Board 152's first rule, as a row: *Your own tag — always wins, you know.*
+
+  MOVIES-AND-TV.md #104. The reader's own answer is rule 1 and there was
+  nowhere in the app to give it. This is that place, on the same ⋯ that carries
+  *Keep off shared cards* and for its reason: a decision about one title
+  belongs on that title's own page.
+
+  The word says what pressing it does, which is why it is not *Anime* with a
+  tick. A title Kati already files as anime offers to stop; one it does not
+  offers to start.
+
+      iex> Kati.Screens.Film.anime_label(%{anime?: true})
+      "Not anime"
+
+      iex> Kati.Screens.Film.anime_label(%{anime?: false})
+      "Mark as anime"
+  """
+  @spec anime_label(map()) :: String.t()
+  def anime_label(%{anime?: true}), do: "Not anime"
+  def anime_label(_title), do: "Mark as anime"
+
+  @doc """
+  The row, or nothing at all when there is no title behind it.
+
+  Dropped rather than drawn dead over the drawing, which is `drop_item/1`'s
+  rule on this page and the app's everywhere.
+  """
+  @spec anime_item(map()) :: map() | []
+  def anime_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item("auto_awesome", Kati.Screens.Film.anime_label(f), :toggle_anime)
+    else
+      []
+    end
+  end
 
   @doc """
   What gets shared: the title, the year, and where it can be watched.
