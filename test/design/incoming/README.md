@@ -86,35 +86,52 @@ about; the right is the section of `D-65` it answers.
 | 306 | 02 — no calendar permission | `D-65` 02 |
 | 307 | 05 + 25 — releases beyond television | `D-65` 05+25 |
 | 308 | 06 — before, during, and found nothing | `D-65` 06 |
-| 309 | 07 — a year with nothing counted | `D-65` 07 |
+| 309 | 07 — a year with nothing counted | `D-65` 07 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 310 | 13 + 92 + 97 — one sentence, one count | `D-65` 13+92+97 |
-| 311 | 14 — at rest, with its own empty band | `D-65` 14 |
-| 312 | 19 — the field cleared | `D-65` 19 |
+| 311 | 14 — at rest, with its own empty band | `D-65` 14 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 312 | 19 — the field cleared | `D-65` 19 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 313 | 19 + 91 + 261 — chip rows at 235% | `D-65` 19+91 |
-| 314 | 25 — two literals | `D-65` 25 |
+| 314 | 25 — two literals | `D-65` 25 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 315 | 28 — dark, with nothing kept | `D-65` 28 |
 | 316 | 50 + 120 — what the code encodes | `D-65` 50+120 |
 | 317 | 55 — the gate on the Persian empty | `D-65` 55 |
 | 318 | 80 — the token card, three states | `D-65` 80 (1) |
 | 319 | 80 — the pairing card, four states of one row | `D-65` 80 (2) |
 | 320 | 80 + 82 — one retirement, mirrored | `D-65` 80 (3) |
-| 321 | 86 — nothing to suggest from | `D-65` 86 |
-| 322 | 88 — deferred, withdrawn, and one pill | `D-65` 88 |
+| 321 | 86 — nothing to suggest from | `D-65` 86 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 322 | 88 — deferred, withdrawn, and one pill | `D-65` 88 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 323 | 93 — live, or a specimen | `D-65` 93 |
 | 324 | ۹۷ — فارسی، هیچ‌چیز تنظیم نشده | `D-65` 97 |
 | 325 | Year card · the field face, 4:5 at size | `D-65` 98+100 |
 | 326 | Year card · the genres face + the heading | `D-65` 98+100 |
 | 327 | 112 — medications, nothing due today | `D-65` 112 |
-| 328 | 140 — four more sources, and the door | `D-65` 140 |
+| 328 | 140 — four more sources, and the door | `D-65` 140 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 329 | 141 — the recognition line, six shapes | `D-65` 141 |
-| 330 | L1 — removing, deleting, renaming | `D-65` L1 |
-| 331 | L2 — the six states 181 did not draw | `D-65` L2 |
-| 332 | L3 — three artworks, one baseline | `D-65` L3 |
-| 333 | L4 — the sheet as one screen, and empty | `D-65` L4 |
-| 334 | L5 — the door, on a film and a series | `D-65` L5 |
-| 335 | L6 — one naming grammar, one failure rule | `D-65` L6 |
-| 336 | L7 — جزئیات فهرست، فارسی | `D-65` L7 |
-| 337 | L8 — انتخابگر فهرست، فارسی | `D-65` L8 |
+| 330 | L1 — removing, deleting, renaming | `D-65` L1 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 331 | L2 — the six states 181 did not draw | `D-65` L2 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 332 | L3 — three artworks, one baseline | `D-65` L3 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 333 | L4 — the sheet as one screen, and empty | `D-65` L4 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 334 | L5 — the door, on a film and a series | `D-65` L5 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 335 | L6 — one naming grammar, one failure rule | `D-65` L6 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 336 | L7 — جزئیات فهرست، فارسی | `D-65` L7 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 337 | L8 — انتخابگر فهرست، فارسی | `D-65` L8 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+
+## What is built, and why the files stay here
+
+**Fifteen of the thirty-two are built and device-verified**: 309, 311, 312,
+314, 321, 322, 328 and the whole Lists eight, 330–337. Their files stay in this
+directory rather than moving to `screens/`, and that is not an oversight — the
+rule at the top of this file says a board moves when its screen renders every
+literal on it, and **most of the 7 September wave are state catalogues**. 330
+stacks a resting page, an open menu, a confirmation and an undo bar in one
+frame; 333 is 1249pt of states in an 806pt sheet; 328 draws a row in two locales
+beside the screen behind it and the defect it replaces. No screen is ever in
+those states at once.
+
+The repo's answer to that shape is a specimen screen per states board — 155 is
+154's, 95 is 92's — and those are not built. Until they are, the screens are on
+`Kati.Screens.Gallery`'s undrawn list and on `@undesigned`, which skips the
+literal comparison and keeps the render. Each entry says so where it sits.
 
 **325 and 326 carry no phone frame** — a year card is 402×502 and is not a
 screen, so they are drawn at their real size the way `D-65` asked. They amend
