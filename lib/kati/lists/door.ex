@@ -30,6 +30,22 @@ defmodule Kati.Lists.Door do
   end
 
   @doc """
+  The same door, in Persian.
+
+  Board 337 exists because 289 sent «افزودن به فهرست» to the Lists INDEX while
+  182 ruled for English that it opens a sheet over the page you are on — *"the
+  two locales teach two different gestures for one action"*, which is the
+  failure 254 flags by name. Same act, same shape, one language over.
+  """
+  @spec open_fa(Mob.Socket.t(), {atom(), String.t()} | nil, String.t() | nil) :: Mob.Socket.t()
+  def open_fa(socket, nil, _title), do: socket
+
+  def open_fa(socket, {_kind, nil}, _title), do: socket
+
+  def open_fa(socket, member, title),
+    do: Mob.Socket.push_screen(socket, Kati.Screens.AddToListFa, %{member: member, title: title})
+
+  @doc """
   Push the sheet over a selection, the way board 146's *Add to list* pill does.
 
   An empty selection pushes nothing: the pill is drawn live only when something

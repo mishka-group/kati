@@ -64,9 +64,18 @@ defmodule Kati.UI.Sheet do
   `Mob.Socket.pop_screen/1` — named rather than passed, because a sheet whose
   close button does something other than close is not a sheet.
   """
-  @spec sheet(String.t(), term()) :: map()
-  def sheet(title, content, screen \\ nil) do
-    assigns = %{title: title, content: content, screen: screen}
+  @spec sheet(String.t(), term(), String.t() | nil, keyword()) :: map()
+  def sheet(title, content, screen \\ nil, opts \\ []) do
+    assigns = %{
+      title: title,
+      content: content,
+      screen: screen,
+      # `face: "fa"` for a Persian sheet. Without it the title is left in a
+      # Latin face and Android substitutes its own Arabic one — which renders,
+      # in a typeface that is not Kati's, beside sentences that are.
+      # `Kati.PersianFontTest` is what notices.
+      face: Keyword.get(opts, :face)
+    }
 
     ~MOB"""
     <Box
@@ -88,7 +97,7 @@ defmodule Kati.UI.Sheet do
           padding_top={18}
           padding_bottom={34}
         >
-          {Kati.UI.Sheet.header(@title)}
+          {Kati.UI.Sheet.header(@title, @face)}
           {@content}
         </Column>
       </Box>
@@ -113,8 +122,8 @@ defmodule Kati.UI.Sheet do
   See the moduledoc for why the hole is markup rather than a weight.
   """
   @spec header(String.t()) :: map()
-  def header(title) do
-    assigns = %{title: title}
+  def header(title, face \\ nil) do
+    assigns = %{title: title, face: face}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -122,6 +131,7 @@ defmodule Kati.UI.Sheet do
         {Kati.UI.Sheet.close_disc()}
         <Text
           text={@title}
+          font_family={@face}
           weight={1.0}
           text_size={15}
           font_weight="bold"

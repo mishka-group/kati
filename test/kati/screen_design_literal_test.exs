@@ -165,9 +165,11 @@ defmodule Kati.ScreenDesignLiteralTest do
     # an 806pt sheet — so neither can be compared literal-for-literal against a
     # render until a specimen screen per board exists, the way 155 is 154's.
     Kati.Screens.AddToList,
+    Kati.Screens.AddToListFa,
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
     Kati.Screens.ListDetail,
+    Kati.Screens.ListDetailFa,
     Kati.Screens.NotificationsHelp,
     Kati.Screens.Sync
   ]

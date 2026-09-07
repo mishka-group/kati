@@ -952,7 +952,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # skip the literal comparison and keep the render, which is what this list
     # is for. MOVIES-AND-TV.md #106.
     Kati.Screens.AddToList,
-    Kati.Screens.ListDetail
+    Kati.Screens.AddToListFa,
+    Kati.Screens.ListDetail,
+    Kati.Screens.ListDetailFa
   ]
 
   # The fewest strings a whole page can be. Thirteen is the bound the `@undrawn`
@@ -1000,7 +1002,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # there is nothing further to draw, and the empty sheet is the state a
     # reader with no lists always meets first. Five IS the drawing.
     Kati.Screens.AddToList => 5,
-    Kati.Screens.ListDetail => 7
+    # 337's empty sheet is the Persian mirror of the same five.
+    Kati.Screens.AddToListFa => 5,
+    Kati.Screens.ListDetail => 7,
+    # 336's gone card is one line shorter than 331's: the Persian pill reads
+    # «فهرست‌های شما» and there is no eyebrow above the card, because 336 draws
+    # the state as a page rather than as a band in a catalogue.
+    Kati.Screens.ListDetailFa => 5
   }
 
   # Every table an Ash resource in this app is backed by, child tables first so

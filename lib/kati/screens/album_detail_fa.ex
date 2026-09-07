@@ -1012,7 +1012,11 @@ defmodule Kati.Screens.AlbumDetailFa do
     album = socket.assigns.album || %{}
 
     {:noreply,
-     Kati.Lists.Door.open(socket, Kati.Screens.AlbumDetail.member(album), Map.get(album, :title))}
+     Kati.Lists.Door.open_fa(
+       socket,
+       Kati.Screens.AlbumDetail.member(album),
+       Map.get(album, :title)
+     )}
   end
 
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}

@@ -1595,7 +1595,7 @@ defmodule Kati.Screens.BookDetailFa do
     book = socket.assigns.book || %{}
 
     {:noreply,
-     Kati.Lists.Door.open(socket, Kati.Screens.BookDetail.member(book), Map.get(book, :title))}
+     Kati.Lists.Door.open_fa(socket, Kati.Screens.BookDetail.member(book), Map.get(book, :title))}
   end
 
   # تمام شد is a write and then a handover, which is screen 66's `:finish` one

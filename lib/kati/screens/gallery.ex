@@ -296,7 +296,13 @@ defmodule Kati.Screens.Gallery do
     # 146. They are here because the one list that checks every screen has to be
     # able to open them. MOVIES-AND-TV.md #106.
     {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail},
-    {:open_undrawn_add_to_list, "Add to list", Kati.Screens.AddToList}
+    {:open_undrawn_add_to_list, "Add to list", Kati.Screens.AddToList},
+    # And their Persian mirrors, boards 336 and 337. Same reason: both boards
+    # are state catalogues. Before 7 September a Persian reader could open
+    # فهرست‌ها, tap any of 289's seven rows, and land on an English LTR page,
+    # because `ListDetailFa` did not exist and 12 was the only destination.
+    {:open_undrawn_list_detail_fa, "یک فهرست", Kati.Screens.ListDetailFa},
+    {:open_undrawn_add_to_list_fa, "انتخابگر فهرست", Kati.Screens.AddToListFa}
   ]
 
   # Numbers whose page has left this list, and the route that took it.
