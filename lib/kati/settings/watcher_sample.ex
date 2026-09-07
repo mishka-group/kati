@@ -32,6 +32,23 @@ defmodule Kati.Settings.WatcherSample do
     [
       %{icon: "live_tv", title: "New episodes", sub: "Shows you are watching", on: true},
       %{icon: "celebration", title: "Premieres", sub: "New seasons and first episodes", on: true},
+      # Board 307's three shelves. The budget row is `:tv` and its own
+      # documentation always said that slice is films, books and records — the
+      # UI named only television, which made this *"the last place the app is
+      # still TV-only"* once the Books and Music shelves became real.
+      #
+      # Nothing new follows anything: 77 already draws Following and 08 already
+      # draws a wishlist, and 307's own note says there is no separate follow
+      # list — *"both feed here."* 66 gains a Follow row, which is the one piece
+      # of new ink the board asks for.
+      %{icon: "menu_book", title: "New books", sub: "Authors you follow", on: true},
+      %{icon: "graphic_eq", title: "New records", sub: "Artists you follow", on: true},
+      %{
+        icon: "movie",
+        title: "Film releases",
+        sub: "Wishlisted films reaching cinemas or streaming",
+        on: true
+      },
       %{icon: "timer", title: "Leaving soon", sub: "7 days’ notice", on: true},
       %{
         icon: "person",
@@ -46,7 +63,7 @@ defmodule Kati.Settings.WatcherSample do
 
   @doc "How often the watcher runs, and which cadence is chosen."
   @spec cadences() :: [String.t()]
-  def cadences, do: ["Hourly", "Every 6h", "Daily", "Manual"]
+  def cadences, do: ["Hourly", "Every 6h", "Daily"]
 
   @doc "The selected cadence."
   @spec cadence() :: String.t()

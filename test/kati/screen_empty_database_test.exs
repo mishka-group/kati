@@ -1022,7 +1022,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # migrations actually built — a resource added without a line here would
   # otherwise leave rows in place and this file would quietly stop being about
   # an empty database.
-  @tables ~w(list_memberships lists event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending)
+  @tables ~w(list_memberships lists event_occurrence_overrides events calendars calendar_accounts recipe_ingredients recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods licensed_foods media_watches media_events media_content_warnings media_warning_preferences media_title_aliases tracked_titles cached_titles cached_seasons cached_episodes sync_outbox sync_rejected_changes followed_authors book_notes book_reading_sessions books music_listens music_tracks music_albums music_artists services goals expenses health_doses health_readings health_medications notification_pending)
 
   # Tables that are not an Ash resource and are none of this file's business:
   # Ecto's own ledger, and the DETS-replacing store Mob keeps screen state in.

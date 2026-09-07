@@ -130,7 +130,12 @@ defmodule Kati.Backup.Upgrade do
       # series, a book or an album now (board 332). Nothing moves: a version-16
       # row carries `tracked_title_id` and takes `NULL` for the other two, which
       # is the shape the 10 -> 11 `private` step had.
-      {16, 17, &unchanged/1}
+      {16, 17, &unchanged/1},
+      # `followed_authors` arrived (board 307). Nothing derives it — an author
+      # is a free string on `books` and following one is the reader's own
+      # statement — so a version-17 file restores with nobody followed, which
+      # is exactly what the device it came off had.
+      {17, 18, &unchanged/1}
     ]
 
   @doc """

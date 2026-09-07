@@ -65,6 +65,25 @@ defmodule Kati.Screens.Inbox do
       one episode and does not move, so the list is episodes. The green dot the
       design gives a film premiere is therefore drawn only on the drawn rows.
 
+  ## Board 307's three shelves, and why the row still carries a poster
+
+  307 draws this page with four rows across three shelves and one row recipe: a
+  40x40 **glyph tile** instead of the 44x62 poster, because *"a record has
+  square art, a book a portrait cover, an episode a landscape still, and three
+  aspect ratios in one list breaks the row rhythm."*
+
+  The reason is conditional on the list holding more than one shelf, and it
+  holds one. Nothing in the app produces a book release, a record release or a
+  film release — MOVIES-AND-TV.md #132 names the three producers each would
+  need — so swapping a real poster for a generic `live_tv` glyph today would
+  degrade the only state that can occur, to fix a rhythm problem that cannot
+  yet happen. The recipe goes in with the first producer that makes this list
+  hold two kinds of thing.
+
+  What 307 asked for that COULD be true is built: screen 25 offers the three
+  shelves, and screen 66 has the Follow row that feeds one of them
+  (`Kati.Books.FollowedAuthor`).
+
   ### Coming up
 
   Three kinds of thing can be next, and the drawing has one of each: an episode

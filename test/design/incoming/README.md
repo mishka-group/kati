@@ -84,7 +84,7 @@ about; the right is the section of `D-65` it answers.
 | Board | Drawing | Answers |
 |---|---|---|
 | 306 | 02 — no calendar permission | `D-65` 02 |
-| 307 | 05 + 25 — releases beyond television | `D-65` 05+25 |
+| 307 | 05 + 25 — releases beyond television | `D-65` 05+25 | — **partly built 8 Sep**: 25's three shelves and 66's Follow row are real; 05's glyph-tile recipe waits on a producer for a second shelf (MOVIES-AND-TV.md #132) |
 | 308 | 06 — before, during, and found nothing | `D-65` 06 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 309 | 07 — a year with nothing counted | `D-65` 07 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 310 | 13 + 92 + 97 — one sentence, one count | `D-65` 13+92+97 |

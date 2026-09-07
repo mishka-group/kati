@@ -3372,6 +3372,18 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Fix.* Take the label from the push, as `Kati.Screens.Search` already does with its `back:` param.
 
 
+### 132. 05 New releases (Kati.Screens.Inbox) — `missing-feature`
+
+**Board 307 draws the inbox as four rows across three shelves — an episode, a book, a record and a film — and screen 05 can only ever draw the episode. Nothing in the app produces a book release, a record release or a film release, so the other three shelves of board 307's own top frame are unreachable.**
+
+*Proof.* lib/kati/screens/inbox.ex `out_now_rows/5` is episodes and says so in its moduledoc: *"Films are not in this list"*, because a film's date is `Kati.Media.CachedTitle.next_release_at`, which is *the next* release and moves forward — reading it backwards to say *this came out today* asks a forward-looking column a question about the past. Board 307's film row is fed by a **wishlist**, and there is no wishlist: `Kati.Media.TrackedTitle`'s `status` is `one_of: [:not_started, :watching, :paused, :finished, :dropped]`, which is why board 12's `Wishlist` row is on `DesignLiterals.retired_lines/0` already. The book row is fed by `Kati.Books.FollowedAuthor`, which now exists — screen 66 writes it — but Open Library is asked about a title and never about a person's next one. The record row is fed by `Kati.Music.Artist.following`, which is real and has been since screen 77, and no MusicBrainz release feed is read.
+
+*Fix.* Three producers, one per shelf, and each is its own piece of work: a wishlist status on `TrackedTitle`; an Open Library author-works read keyed on `followed_authors`; a MusicBrainz release-group read keyed on `music_artists` where `following == true`.
+
+*Partly done 8 September.* The two halves that do not need a producer are built. Screen 25's *Tell me about* offers the three shelves board 307 lists, and screen 66 (with its Persian mirror, 69) has the **Follow the author** row the board calls *"the only new ink 66 needs"* — `Kati.Books.FollowedAuthor`, backed up at schema version 18.
+
+**The one thing deliberately not built: board 307's row recipe.** The board replaces screen 05's 44×62 poster with a 40×40 glyph tile, and states its reason — *"a record has square art, a book a portrait cover, an episode a landscape still, and three aspect ratios in one list breaks the row rhythm."* That reason is **conditional on the list holding more than one shelf**, and it holds one. Swapping a real poster for a generic `live_tv` glyph today would degrade the only state that can occur, to fix a rhythm problem that cannot yet happen. The recipe goes in with the first producer above; until then screen 05 keeps its poster and its `Watch` pill.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

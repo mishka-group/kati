@@ -76,6 +76,7 @@ defmodule Kati.Screens.BookDetail do
   use Kati.Screens.Pushed, back: "Library"
 
   alias Kati.Books.Book
+  alias Kati.Books.FollowedAuthor
   alias Kati.Books.Note
   alias Kati.Books.ReadingSession
   alias Kati.Books.Sample
@@ -114,9 +115,18 @@ defmodule Kati.Screens.BookDetail do
   def load(socket) do
     named = Map.get(socket.assigns.params || %{}, :book_id)
 
+    shaped = book(named)
+
     socket
     |> Mob.Socket.assign(:book_id, named)
-    |> Mob.Socket.assign(:book, book(named))
+    |> Mob.Socket.assign(:book, shaped)
+    # Board 307's Follow row, read at load rather than carried in the shaped
+    # map. The map is built by `shaped/3` from a Book row and the drawing's
+    # fixture has no row at all — but following is about the AUTHOR, so the
+    # answer is the same question either way and the fixture's author can be
+    # followed like anybody else. That is the point of the feature: you follow
+    # a person to hear about the book you do not have yet.
+    |> Mob.Socket.assign(:following, FollowedAuthor.following?(shaped[:author]))
     |> Mob.Socket.assign(:save_error, nil)
   end
 
@@ -396,6 +406,7 @@ defmodule Kati.Screens.BookDetail do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(b.title, b.author, nil, :name)}
         {Kati.Screens.BookDetail.hero(b)}
+        {Kati.Screens.BookDetail.follow_row(b[:author], assigns[:following])}
         {Kati.Screens.BookDetail.ratings(b)}
         {UI.eyebrow("Status")}
         {Kati.Screens.BookDetail.statuses(b)}
@@ -459,6 +470,54 @@ defmodule Kati.Screens.BookDetail do
     </Column>
     """
   end
+
+  @doc """
+  Board 307's Follow row — *"the only new ink 66 needs."*
+
+  The row names the person, which is what 307 draws: `Follow Ines Karvel`, not
+  a bare `Follow`. Screen 77's `Following` can be anonymous because that whole
+  page is about one artist; this page is about a book, and the author is one
+  fact on it among a dozen.
+
+  Nothing is drawn for a book with no author. `Kati.Books.Book`'s `author` is
+  nullable and screen 67's *partial metadata* state is the case — a row reading
+  `Follow` with nobody named is a switch about nothing, and there would be no
+  key to write it under.
+
+  The sub-line is 77's sentence one shelf over. It states the consequence
+  rather than describing the control, for that row's reason: a switch whose
+  effect is invisible is a switch the reader has to test to understand, and the
+  thing being tested is a notification.
+  """
+  @spec follow_row(String.t() | nil, boolean() | nil) :: map() | []
+  def follow_row(author, following?) when is_binary(author) do
+    if String.trim(author) == "" do
+      []
+    else
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.SettingsList.card([
+          Kati.UI.SettingsList.row(
+            Kati.UI.SettingsList.icon_tile("person"),
+            Kati.UI.SettingsList.body(
+              "Follow " <> String.trim(author),
+              "Feeds 25’s New books alerts",
+              lines: 2
+            ),
+            Kati.UI.SettingsList.trailing(
+              Kati.UI.SettingsList.switch(following? == true)
+            ),
+            rule: false,
+            on_tap: {self(), :toggle_follow_author}
+          )
+        ])}
+        <Spacer size={11} />
+      </Column>
+      """
+    end
+  end
+
+  def follow_row(_nobody, _following?), do: []
 
   # A 86x112 tile with a 2pt card-coloured ring, which is the drawing's own
   # `border: 2px solid #FBFAF8` — the ring is card, not paper, so it reads as a
@@ -1173,6 +1232,33 @@ defmodule Kati.Screens.BookDetail do
 
       {:error, _reason} = error ->
         {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
+  end
+
+  # Board 307's Follow row. Written through and then the assign is set from the
+  # write's own outcome rather than from `not following?` — a refused write must
+  # not leave a switch claiming a state the store does not hold, which is the
+  # difference between this and screen 77's toggle. That page moves its switch
+  # regardless, and says why: it is often drawing a fixture with no row to
+  # write to. Here there is always a row to write — a followed author is keyed
+  # by the NAME, and the drawing's author has one like anybody else — so a
+  # failure here is a real failure and is reported with the same notice the
+  # chips use.
+  def handle_tap(:toggle_follow_author, socket) do
+    author = socket.assigns.book[:author]
+    now = socket.assigns[:following] != true
+
+    result = if now, do: FollowedAuthor.follow(author), else: FollowedAuthor.unfollow(author)
+
+    case result do
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+
+      _written ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:following, FollowedAuthor.following?(author))
+         |> Mob.Socket.assign(:save_error, nil)}
     end
   end
 

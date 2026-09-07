@@ -398,7 +398,25 @@ defmodule Kati.ScreenWriteTargetTest do
     # `Mob.State` at all — see the moduledoc. `Kati.Search.hand_over/1` lives
     # with the specification rather than on the screen, and its own doc says
     # why.
-    {Kati.Screens.Search, :look_up, {:state, :kati_search_query}}
+    {Kati.Screens.Search, :look_up, {:state, :kati_search_query}},
+    # ── Board 307's Follow row, on both faces of the book page.
+    #
+    # The write is about a PERSON, and the person is not a row this page
+    # resolved. `Kati.Books.FollowedAuthor` is keyed by the author's NAME,
+    # which is a string on whatever book the page is drawing — and when the
+    # push named a book that does not exist, the page draws
+    # `Kati.Books.Sample.detail/0` and the name on it is the fixture's,
+    # visibly, in the row's own label: the switch reads `Follow Ines Karvel`
+    # and following Ines Karvel is exactly what it then does.
+    #
+    # That is the distinction this list is for. Screen 66's status chips are
+    # about the row and must refuse a row that has gone; this control is about
+    # the name the reader can see, and there is no id it failed to recover.
+    # `Kati.Books.FollowedAuthor`'s own moduledoc argues the same point from
+    # the other end — following someone is worth doing precisely for the book
+    # you do not have.
+    {Kati.Screens.BookDetail, :toggle_follow_author, {:db, "followed_authors"}},
+    {Kati.Screens.BookDetailFa, :toggle_follow_author, {:db, "followed_authors"}}
     # (Screen 33's `5★` / `10pt` was briefly here. It writes `Mob.State`'s
     # `:rating_scale` — `Kati.Rating.Scale`, a display preference kept beside
     # the locale and the theme, because how a number is READ is not a fact

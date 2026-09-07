@@ -102,6 +102,11 @@ defmodule Kati.Backup.Catalog do
   #     which for `anime_override` is `NULL`: *I have not said*, and that is
   #     the truth about every title written before there was anywhere to say
   #     it.
+  #   * **18** — `followed_authors` arrived: the people whose next book you
+  #     want to hear about (board 307). It has no parent, and nothing derives
+  #     it — an author is a free string on `books` and following one is a
+  #     statement the reader made, so a version-17 file restores with nobody
+  #     followed, which is what that device had.
   #   * **17** — `list_memberships` gained `book_id` and `album_id`, and
   #     `tracked_title_id` became nullable: a list holds a film, a series, a
   #     book or an album (board 332). Exactly one of the three is set, and the
@@ -109,7 +114,7 @@ defmodule Kati.Backup.Catalog do
   #   * **16** — `lists` and `list_memberships` arrived: hand-made lists and
   #     what is in them. A version-15 file has neither and neither can be
   #     derived, so a restored 15 has no lists — which is what that device had.
-  @schema_version 17
+  @schema_version 18
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
@@ -182,6 +187,12 @@ defmodule Kati.Backup.Catalog do
     %{table: "books", resource: Kati.Books.Book, drop: []},
     %{table: "book_reading_sessions", resource: Kati.Books.ReadingSession, drop: []},
     %{table: "book_notes", resource: Kati.Books.Note, drop: []},
+    # Board 307's Follow row. A name the reader typed nowhere and chose
+    # anyway — no source supplies it, no sweep rebuilds it, and losing it in a
+    # restore would silently switch off screen 25's New books alerts. No
+    # foreign key, so its position in this list is free; it sits with the rest
+    # of the books.
+    %{table: "followed_authors", resource: Kati.Books.FollowedAuthor, drop: []},
     # The same line as books, one domain over. MusicBrainz can supply a
     # tracklist and Cover Art Archive an image; neither can supply the evening
     # you played it, the note you left, or the count a scrobble import brought

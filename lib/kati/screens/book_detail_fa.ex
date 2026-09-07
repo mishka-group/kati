@@ -107,6 +107,7 @@ defmodule Kati.Screens.BookDetailFa do
   import Mob.Sigil
 
   alias Kati.Books.Book
+  alias Kati.Books.FollowedAuthor
   alias Kati.Books.Note
   alias Kati.Books.ReadingSession
   alias Kati.Books.SampleFa
@@ -136,11 +137,21 @@ defmodule Kati.Screens.BookDetailFa do
     Kati.Theme.activate()
 
     named = Map.get(params || %{}, :book_id)
+    shaped = book(named)
 
     {:ok,
      socket
      |> Mob.Socket.assign(:book_id, named)
-     |> Mob.Socket.assign(:book, book(named))}
+     |> Mob.Socket.assign(:book, shaped)
+     # Board 307's Follow row, mirrored. `Kati.Books.FollowedAuthor` is keyed by
+     # the name, and the name on this page is Persian — «اینس کارول» is not
+     # `Ines Karvel`, so following from here and following from screen 66 are
+     # two different people as far as the store is concerned. That is the
+     # correct answer and not a defect to paper over: the two pages draw two
+     # different books. `Kati.Screens.ArtistDetailFa`'s own note makes the
+     # opposite call for the opposite reason — the Persian artist page resolves
+     # the SAME artist row, so following from the mirror is the same act.
+     |> Mob.Socket.assign(:following, FollowedAuthor.following?(shaped[:author]))}
   end
 
   @doc """
@@ -651,6 +662,7 @@ defmodule Kati.Screens.BookDetailFa do
         {Kati.Screens.BookDetailFa.chrome()}
         {Kati.Screens.BookDetailFa.title(b)}
         {Kati.Screens.BookDetailFa.hero(b)}
+        {Kati.Screens.BookDetailFa.follow_row(b[:author], assigns[:following])}
         {Kati.Screens.BookDetailFa.ratings(b)}
         {Fa.eyebrow(e.status)}
         {Kati.Screens.BookDetailFa.chips(SampleFa.statuses(), b.status, "status")}
@@ -1202,6 +1214,66 @@ defmodule Kati.Screens.BookDetailFa do
   end
 
   @doc """
+  Board 307's Follow row, in Persian.
+
+  `Kati.Screens.BookDetail.follow_row/2` one language over, and the rules are
+  its rules: the row names the person, and a book with no author draws nothing
+  rather than a switch about nobody.
+
+  Written out here rather than reusing the English row for the reason every
+  Persian face in this app is written out — the two `Text` nodes carry Persian
+  and have to be set in Vazirmatn. The card, the row, the paper tile and the
+  switch are the shared controls, unchanged.
+  """
+  @spec follow_row(String.t() | nil, boolean() | nil) :: map() | []
+  def follow_row(author, following?) when is_binary(author) do
+    if String.trim(author) == "" do
+      []
+    else
+      body =
+        Kati.Screens.BookDetailFa.follow_body(
+          "دنبال‌کردن " <> String.trim(author),
+          "به هشدارهای «کتاب‌های تازه» خبر می‌دهد"
+        )
+
+      row =
+        SettingsList.row(
+          SettingsList.icon_tile("person"),
+          body,
+          SettingsList.trailing(SettingsList.switch(following? == true)),
+          rule: false,
+          on_tap: {self(), :toggle_follow_author}
+        )
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.SettingsList.card([row])}
+        <Spacer size={11} />
+      </Column>
+      """
+    end
+  end
+
+  def follow_row(_nobody, _following?), do: []
+
+  # Two lines, not `row/5`'s one. `row/5` pins a sub-line at a single line and
+  # is right to — every fact row on this page has a short one — but this
+  # sentence states a consequence and runs to two on the device, which is what
+  # screen 77 passes `lines: 2` for and what its Persian mirror does here.
+  @doc false
+  def follow_body(title, sub) do
+    assigns = %{title: title, sub: sub}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.BookDetailFa.fa(@title, 13, :on_surface, weight: "semibold")}
+      <Spacer size={3} />
+      {Kati.Screens.BookDetailFa.fa(@sub, 11.5, Palette.sub(), lines: 2)}
+    </Column>
+    """
+  end
+
+  @doc """
   The warnings block, closed — or, at zero, absent along with its eyebrow.
 
   Closed by default and closed on arrival is the ticket's own instruction and is
@@ -1586,6 +1658,22 @@ defmodule Kati.Screens.BookDetailFa do
 
   def handle_info({:tap, :rate}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
+
+  # Board 307's Follow row. `Kati.Screens.BookDetail.handle_tap/2` is not
+  # reused, unlike `:toggle_following` on the artist mirror: that page hands
+  # over because both faces resolve the SAME artist row, and this one cannot,
+  # because the two book pages draw two different books and therefore two
+  # different names. What is shared is the store — `Kati.Books.FollowedAuthor`
+  # — so the two faces cannot disagree about what following means, only about
+  # who is being followed, which is the truth.
+  def handle_info({:tap, :toggle_follow_author}, socket) do
+    author = (socket.assigns.book || %{})[:author]
+    now = socket.assigns[:following] != true
+
+    if now, do: FollowedAuthor.follow(author), else: FollowedAuthor.unfollow(author)
+
+    {:noreply, Mob.Socket.assign(socket, :following, FollowedAuthor.following?(author))}
+  end
 
   # This clause did not exist. The tap fell through to the generic chip clause,
   # which matched only `status_*` and `format_*`, returned `nil`, and left the

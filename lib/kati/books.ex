@@ -24,6 +24,13 @@ defmodule Kati.Books do
     * `Kati.Books.Note` holds what you wrote — a quote or a note, anchored to a
       page.
 
+  A fourth resource joined later and is not about a book at all.
+  `Kati.Books.FollowedAuthor` is a **person** — board 307 gives screen 25 a
+  *New books* switch subtitled *Authors you follow* and screen 66 the row that
+  fills it — and it lives here because an author is otherwise only a string on
+  `Kati.Books.Book`. It has no relationship to anything: following someone is
+  worth doing precisely for the book you do not own yet.
+
   The position is stored rather than derived from the sessions, and that is a
   deliberate loss of normalisation. A book you read for a year before Kati
   existed has a position and no sessions, and deriving `current_page` from an
@@ -44,5 +51,6 @@ defmodule Kati.Books do
     resource Kati.Books.Book
     resource Kati.Books.ReadingSession
     resource Kati.Books.Note
+    resource Kati.Books.FollowedAuthor
   end
 end

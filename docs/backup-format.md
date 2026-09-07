@@ -161,6 +161,7 @@ reproduce.
 | `Kati.Books.Book` | `books` | Every book, where you are in it, the edition you own, who it is lent to |
 | `Kati.Books.ReadingSession` | `book_reading_sessions` | Each sitting: the pages it covered, the minutes it took, whether it was a re-read |
 | `Kati.Books.Note` | `book_notes` | Quotes copied out and notes left, each anchored to a page |
+| `Kati.Books.FollowedAuthor` | `followed_authors` | The authors whose next book you want to hear about |
 | `Kati.Music.Artist` | `music_artists` | Artists, and whether you follow them |
 | `Kati.Music.Album` | `music_albums` | Releases, your rating, your note, when you first heard it |
 | `Kati.Music.Track` | `music_tracks` | The tracklist, and the per-track play counts a scrobble import brings in |
@@ -235,6 +236,8 @@ before any column is decoded.
 | 8 → 9 | `recipes` gained `slot_name` with screen 116. | **Nothing.** A version-8 archive has every member a version-9 app expects and its recipe rows simply lack one key, which takes the attribute default. The version still moved, because `schema_version` tracks the row shape — the step is here saying so rather than the chain having a hole in it. |
 | 12 → 13 | `media_title_aliases` joined the backup. | Supplied as an empty member. A version-12 file simply has none — the reader had not been asked yet — and Kati asks about a name the first time it hears it, which is what it would have done anyway. |
 | 15 → 16 | `lists` and `list_memberships` joined the backup. | Supplied as empty members. Neither can be derived — a list is a thing the reader made and named, and its order is a thing they chose — so a restored version-15 file has no lists, which is what that device had. |
+| 16 → 17 | `list_memberships` gained `book_id` and `album_id`; `tracked_title_id` stopped being `NOT NULL`. | **Nothing.** A list holds a film, a series, a book or an album now (board 332), and a version-16 membership carries `tracked_title_id` and takes `NULL` for the other two — the shape the 10 → 11 `private` step had. |
+| 17 → 18 | `followed_authors` joined the backup. | Supplied as an empty member. Nothing derives it — an author is a free string on `books` and following one is the reader's own statement — so a restored version-17 file has nobody followed, which is what that device had. |
 | 14 → 15 | `tracked_titles` gained `anime_override`; `cached_titles` gained `original_language`. | **Nothing.** A version-14 archive has neither column and every row takes the attribute default. For `anime_override` that default is `NULL` — *I have not said* — which is the truth about every title written before there was anywhere to say it, and leaves the provider rule free to answer. |
 | 13 → 14 | `media_events` joined the backup. | Supplied as an empty member, and **nothing is reconstructed**. A status column says where a title *is*; it cannot be read backwards into when it got there or why, which is the whole reason the table exists. A restored version-13 file therefore has a history that starts on the day it was upgraded. |
 
