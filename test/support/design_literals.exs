@@ -466,6 +466,15 @@ defmodule Kati.DesignLiterals do
       # is a clause that is dropped entirely when nothing was skipped, which is
       # the same decision one clause smaller: a sentence counting columns that
       # do not exist is what this whole finding was.
+      # Board 140's *Five more sources* names `Simkl · TV Time · Libib · Last.fm
+      # · AniList`, and AniList is already one of the six tiles above it. The
+      # drawing's own closing note counts eleven sources — six tiles, four new
+      # names, the Kati backup row — so the board contradicts itself and the
+      # arithmetic is the half that is right. It draws four now, and the two
+      # lines it stopped drawing are the two the repeat was in.
+      # MOVIES-AND-TV.md #126.
+      {"140", "five more sources"},
+      {"140", "simkl · tv time · libib · last.fm · anilist"},
       {"141", "10pt → 5★"},
       {"141", "yyyy/mm/dd"},
       {"141", ". two columns are skipped."}

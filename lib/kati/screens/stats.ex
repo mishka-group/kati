@@ -129,6 +129,15 @@ defmodule Kati.Screens.Stats do
   # The contribution grid's own span: 26 weeks, which is the caption the design
   # prints under it. Everything the grid needs is derived from this one number,
   # so the squares and the label cannot disagree.
+  #
+  # The caption reads `26 weeks TO TODAY`, and the last two words are
+  # MOVIES-AND-TV.md #124. The grid is 182 days back from today and the header
+  # above it says *Jan – <this month> <this year>*, so in March the two
+  # described different spans and the field was mostly last year under this
+  # year's label. Clipping the grid to the calendar year was the other option
+  # and is worse: on 3 January it would be a field of three squares, and the
+  # thing the grid is for — *have I kept this up* — needs a window long enough
+  # to see a habit in. So the window stays and the label stops pretending.
   @weeks 26
   @grid_days @weeks * 7
 
@@ -417,7 +426,7 @@ defmodule Kati.Screens.Stats do
         <Spacer size={12} />
         <Row fill_width={true}>
           <Text
-            text={"#{year.weeks} weeks"}
+            text={"#{year.weeks} weeks to today"}
             font_family="mono"
             text_size={10}
             text_color={Palette.cream_meta()}
@@ -1335,8 +1344,13 @@ defmodule Kati.Screens.Stats do
     "Habits" => Kati.Screens.Habits,
     "Nutrition" => Kati.Screens.Health,
     "Goals" => Kati.Screens.Goals,
-    "Money" => Kati.Screens.Money,
-    "Recently watched" => Kati.Screens.UpNext
+    "Money" => Kati.Screens.Money
+    # `Recently watched` was here, and `more_numbers/1` rejects that row by
+    # name — so no `go_Recently watched` tag was ever emitted and the entry was
+    # dead code. MOVIES-AND-TV.md #125. Deleted rather than drawn: the row is
+    # rejected because this screen already shows those three watches in full
+    # one section down, and a numbers row that only counts them would be the
+    # page telling you twice.
   }
 
   @impl true

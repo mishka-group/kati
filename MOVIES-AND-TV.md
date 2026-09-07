@@ -2230,12 +2230,12 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 | 120 | 96 Nothing set up — knock-on | `missing-feature` | Screen 96 documents four empty states that no screen can ever enter, and says so itself: the predicate it defines cannot answer false, because 92 falls back to fixtures on an empty store. |
 | 121 | 03 Library | `fixed` | ~~Two shelf titles that differ only by a space versus an underscore collapse onto one tap target, and every distinct cached title mints a new atom.~~ Fixed 7 September: a tile is named by its tracked row's id, which is unique by construction and bounded by the shelf. The title stays as the fallback for a row that has none — `Kati.Library.Sample`'s nine, and every drawing that reuses this — because a tile still has to be nameable when the store is not behind it. Verified on the Pixel_9a: `ui.sh ids` lists `open_film_939417da-…`, one per row. |
 | 122 | 03 Library | `fixed` | ~~The Books/Music branch of visible/3 is unreachable: the shelf assign can never hold anything but "Screen".~~ Fixed 7 September by deleting it. Both other segments PUSH screens 20 and 21, so the assign could only ever hold `"Screen"` — the guard, the assign, its writer and `nothing_here/2`'s first clause are all gone, and what to say to a reader who presses Books is their own screens' business. `shelf_Screen` keeps its tap and changes nothing, because pressing the segment you are on is how you check you are on it. |
-| 123 | 04 Series detail | `polish` | The season pill strip and the EPISODES eyebrow share one un-scrolling Row, so a long-running show overflows: ten 30pt pills plus 5pt gaps is ~345pt against ~369pt of content width on a 411dp device, before the eyebrow takes its share. |
-| 124 | 07 Your year (Kati.Screens.Stats) | `polish` | The contribution grid is the last 182 days ending today, while the header names the calendar year so far — in early months the field is mostly last year under this year's label. |
-| 125 | 07 Your year (Kati.Screens.Stats) | `polish` | @destinations carries a 'Recently watched' -> UpNext entry that more_numbers/1 explicitly filters out, so it is dead code. |
-| 126 | 140 Import — where are you coming from (Kati.Screens.ImportSources) | `polish` | 'Five more sources' lists five names of which one, AniList, is already a tile in the grid above it, and the row itself is a navigation stub with no list behind it. |
+| 123 | 04 Series detail | `fixed` | ~~The season pill strip and the EPISODES eyebrow share one un-scrolling Row, so a long-running show overflows.~~ Fixed 7 September: `season_strip/1` wraps the pills in a horizontal `Scroll` with `weight={1.0}`, which is what keeps the eyebrow its own width — without it the scroll hugs its content and the overflow simply moves. A `Scroll` rather than a second row under the eyebrow, because the board draws them on the eyebrow's line and that is where a reader who has learnt where they are will look. Verified on the Pixel_9a: Severance's S1 · S2 · S3 sit on the eyebrow's line, each with its own tag. |
+| 124 | 07 Your year (Kati.Screens.Stats) | `fixed` | ~~The contribution grid is the last 182 days ending today, while the header names the calendar year so far.~~ Fixed 7 September by taking the ledger's second option and saying so: the caption reads **26 weeks to today**. Clipping the grid to the calendar year was the other and is worse — on 3 January it would be a field of three squares, and the thing the grid is for (*have I kept this up*) needs a window long enough to see a habit in. So the window stays and the label stops pretending. Verified on the Pixel_9a. |
+| 125 | 07 Your year (Kati.Screens.Stats) | `fixed` | ~~@destinations carries a 'Recently watched' -> UpNext entry that more_numbers/1 explicitly filters out, so it is dead code.~~ Fixed 7 September by deleting it. The row is rejected because this screen already shows those three watches in full one section down, and a numbers row that only counted them would be the page telling you twice — so the destination had nothing to be a destination for. |
+| 126 | 140 Import — where are you coming from (Kati.Screens.ImportSources) | `fixed` | ~~'Five more sources' lists five names of which one, AniList, is already a tile in the grid above it, and the row itself is a navigation stub with no list behind it.~~ Fixed 7 September, both halves, and there was no guess to make: the drawing's own closing note counts eleven sources — six tiles, four new names, the Kati backup row — so the board contradicts itself and the arithmetic is the half that is right. It reads **Four more sources · Simkl · TV Time · Libib · Last.fm**, and the two lines it stopped drawing are recorded in `DesignLiterals.retired_lines/0` beside board 80's invented pairing code. The row opens the picker now instead of pushing the manual mapper with no file: mapping is by column header, so a Simkl export reads without a tile to press, and `opens(nil)` answers `Kati.Screens.Import` because a file with no source named has no guess for 141 to describe. |
 | 127 | 149 Dropping — the sheet and after | `fixed` | ~~The 'Change' pill only decrements the captured position one episode at a time and can never go forward, so overshooting requires closing and reopening the sheet.~~ Fixed 7 September: two discs, `remove` and `add`, at the same 30pt the pill was, so the card's geometry is unchanged. `Change` named neither direction and did one; two discs say which way each goes before it is pressed, which one word never could. No ceiling — the cache would know how many episodes the season has, and reading it here would make the pill refuse a number the reader can see is right whenever the cache is behind the broadcast. |
-| 128 | 155 Add by hand — resting & refused (Kati.Screens.AddByHandStates) | `polish` | The empty-title refusal is one line where the board specifies two, and drops the reassurance that nothing was lost. |
+| 128 | 155 Add by hand — resting & refused (Kati.Screens.AddByHandStates) | `fixed` | ~~The empty-title refusal is one line where the board specifies two, and drops the reassurance that nothing was lost.~~ Fixed 7 September with board 155's own two-part card — `error` in `Palette.red/0`, a bold 13.5 line, a 12.5/1.65 body — and its own words: *A title is needed* / *Kati cannot keep a thing with no name. Nothing was written — this form is still open and your other answers are intact.* The second half is the one that matters: somebody whose save just failed does not know whether their other four answers survived it, so `nothing_lost/0` closes every refusal on the form, a store error included. The Title field takes the red inset ring the board draws on it — told *a title is needed* over four fields, a reader had to work out which — at `border_width: 0` when there is no refusal, so the ring appearing does not move the text. Walked on the Pixel_9a. |
 | 129 | 19 Search / 88 Scope & ranking | `fixed` | ~~The tie-break the specification screen renders — tier, then recency — is implemented and never called; results actually tie-break alphabetically.~~ Fixed 7 September by calling it. `Kati.Search.rank/1` is the sort in all four groups now, with the recency each row actually has: the shelf's `last_touched_at` for a title you keep and the cache's `fetched_at` for one you merely looked up, `updated_at` for a book, `dtstart_utc` for an event, `inserted_at` for a note. A title is only the last resort inside it. On the Pixel_9a `er` returns Blade Runner 2049, Severance, Dune — not the alphabet. |
 | 130 | 86 Search idle | `fixed` | ~~A recent query or suggestion is round-tripped through underscore substitution, so any query containing an underscore or a run of spaces comes back changed.~~ Fixed 7 September. There is no inverse to write, because `query_tag/2`'s mapping is not injective — `String.replace(line, "_", " ")` is not the inverse of anything. `resolve/2` resolves the tag against the rows that drew it instead, the way `Kati.Screens.Library.open_tile/3` resolves a poster tag, and each of the two lists answers its own prefix. Walked on the Pixel_9a: `sci_fi` on the recent shelf reopens as `sci_fi`. |
 | 131 | 88 Scope & ranking | `fixed` | ~~88's back pill reads "Settings" but its only route in is the tune disc on the idle search page, and it pops back there.~~ Fixed 7 September: the tune disc names `Search` in its push, as every other push in the app does, and `Settings` stays as the answer for a push that names nowhere — the gallery's. Verified on the Pixel_9a: the pill reads **Search** and lands on 86. |
@@ -3267,6 +3267,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Wrap the pills in a horizontal Scroll, or move the strip to its own row below the eyebrow.
 
+*Fixed 7 September.* `season_strip/1` scrolls horizontally, weighted so the eyebrow keeps its width.
+
 ### 124. 07 Your year (Kati.Screens.Stats) — `polish`
 
 **The contribution grid is the last 182 days ending today, while the header names the calendar year so far — in early months the field is mostly last year under this year's label.**
@@ -3274,6 +3276,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* contributions/1 builds the field from (@grid_days - 1)..0 offsets back from Kati.Time.today() (lib/kati/screens/stats.ex:1043-1055), where @grid_days is 182. range/1 renders 'Jan – <this month> <this year>' (stats.ex:990-992), and the hero prints year.weeks as '26 weeks' (stats.ex:435-441). In March the two describe different spans.
 
 *Fix.* Either clip the grid to the calendar year and let it be short, or label it '26 weeks to today' so the field and the header stop claiming the same span.
+
+*Fixed 7 September.* The caption reads **26 weeks to today**.
 
 ### 125. 07 Your year (Kati.Screens.Stats) — `polish`
 
@@ -3283,6 +3287,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Delete the entry, or draw the row and let it open Up next.
 
+*Fixed 7 September.* Deleted.
+
 ### 126. 140 Import — where are you coming from (Kati.Screens.ImportSources) — `polish`
 
 **'Five more sources' lists five names of which one, AniList, is already a tile in the grid above it, and the row itself is a navigation stub with no list behind it.**
@@ -3290,6 +3296,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/import_sources.ex more/0 draws the sub-line 'Simkl · TV Time · Libib · Last.fm · AniList' while @commonest already contains %{id: :anilist, name: "AniList"}. handle_tap :five_more pushes Kati.Screens.Import (import_sources.ex:405-407), not a list of five. The moduledoc records the repeat as the drawing's own copy error, kept deliberately.
 
 *Fix.* Once a fifth-source list exists, drop AniList from the sub-line and point :five_more at it.
+
+*Fixed 7 September.* **Four more sources**, the drawing's own count, and the row opens the picker.
 
 ### 127. 149 Dropping — the sheet and after — `polish`
 
@@ -3308,6 +3316,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/add_by_hand.ex:463 assigns the single string 'A title is the one thing this needs.' test/design/screens/155.html, band 'The save that refuses': 'A title is needed' / 'Kati cannot keep a thing with no name. Nothing was written — this form is still open and your other answers are intact.' — the same two-part shape screen 95 uses.
 
 *Fix.* Use the board's two-part wording through Kati.UI.SettingsList.note/2, and give the Title field the red inset ring 155 draws.
+
+*Fixed 7 September.* Board 155's two-part card, and the red ring on the field it is about.
 
 ### 129. 19 Search / 88 Scope & ranking — `polish`
 

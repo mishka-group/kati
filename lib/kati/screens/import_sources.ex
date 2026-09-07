@@ -15,9 +15,9 @@ defmodule Kati.Screens.ImportSources do
 
   `@commonest` is the six the grid draws — Goodreads, StoryGraph, Letterboxd,
   Trakt, MyAnimeList, AniList — each a card naming the exact file to bring. The
-  five after them (Simkl, TV Time, Libib, Last.fm, and one more) collapse into
-  one row, `more/0`, because eleven equal cards is more grid than a 402pt board
-  reads — the drawing's own second open choice.
+  four after them (Simkl, TV Time, Libib, Last.fm) collapse into one row,
+  `more/0`, because ten equal cards is more grid than a 402pt board reads —
+  the drawing's own second open choice.
 
   The other two are `kati_backup/0` and `something_else/0`, and the task this
   screen is built from is explicit that they **must not look like** the ten
@@ -91,16 +91,31 @@ defmodule Kati.Screens.ImportSources do
   `:divider` primitive antialiases a 1dp rule into a lighter last pixel row at
   this device's density, and a filled rect does not.
 
-  ## One literal the drawing repeats, kept rather than corrected
+  ## One literal the drawing repeats, corrected by the drawing's own arithmetic
 
-  *"Five more sources"* lists `Simkl · TV Time · Libib · Last.fm · AniList` —
-  and AniList is already one of the six tiles above it. The drawing's own count
-  checks out without the repeat (six tiles plus four new names plus the Kati
-  backup row is eleven, which is what the closing note claims), so the fifth
-  name here reads as the drawing's own copy error rather than a twelfth
-  source. It is kept exactly as drawn rather than silently swapped for a
-  guess at whatever was meant, because guessing would be inventing copy the
-  drawing does not contain.
+  *"Five more sources"* listed `Simkl · TV Time · Libib · Last.fm · AniList` —
+  and AniList is already one of the six tiles above it. This module used to
+  keep the repeat exactly as drawn, on the ground that guessing what was meant
+  would be inventing copy; MOVIES-AND-TV.md #126 is the finding that it reads
+  as a mistake to anybody looking at the grid.
+
+  There is no guess to make. The drawing's own closing note counts eleven
+  sources — six tiles plus four new names plus the Kati backup row — so the
+  drawing says four here and its sub-line says five. It is **four** now, and
+  the four names are the drawing's own minus the one it repeats. That is the
+  same call `Kati.Screens.Season` made about its board's episode numbers: a
+  drawing that contradicts itself is read at the place it is right.
+
+  ## What the row opens, now that it opens something
+
+  It pushed `Kati.Screens.Import` — the manual mapper, with no file. So the
+  one row on this board that names four services took the reader to a column
+  table about nothing. It opens the picker now, exactly as a tile does, and
+  hands what comes back to screen 141 with no source named: the mapping is by
+  column header (`Kati.Import.Mapping`), so a Simkl export reads without a tile
+  to press, and `looks_like/1` tells the reader what it recognised. Naming no
+  source is the honest push — Kati has not been told which of the four it is,
+  and 141 says `CSV` rather than guessing.
 
   ## No Sample module
 
@@ -310,8 +325,8 @@ defmodule Kati.Screens.ImportSources do
   end
 
   @doc """
-  "Five more sources" — the drawing's own way of naming five without drawing
-  five more tiles. See the moduledoc for the repeated `AniList`.
+  "Four more sources" — the drawing's own way of naming them without drawing
+  four more tiles. See the moduledoc for the fifth name it used to repeat.
   """
   def more do
     ~MOB"""
@@ -319,7 +334,7 @@ defmodule Kati.Screens.ImportSources do
       {SettingsList.card([
         SettingsList.row(
           SettingsList.icon_tile("more_horiz"),
-          SettingsList.body("Five more sources", "Simkl · TV Time · Libib · Last.fm · AniList"),
+          SettingsList.body("Four more sources", "Simkl · TV Time · Libib · Last.fm"),
           SettingsList.trailing(SettingsList.chevron()),
           rule: false,
           on_tap: {self(), :five_more}
@@ -499,6 +514,11 @@ defmodule Kati.Screens.ImportSources do
       Kati.Screens.ImportRecognised
   """
   @spec opens(String.t()) :: module()
+  # No source named is the *Four more sources* row (#126) and the host's own
+  # rescue path, and both want the manual mapper: nothing has been said about
+  # which service the file is from, so there is no guess for 141 to describe.
+  def opens(nil), do: Kati.Screens.Import
+
   def opens(id) when id in ~w(letterboxd trakt myanimelist anilist),
     do: Kati.Screens.Import
 
@@ -506,8 +526,11 @@ defmodule Kati.Screens.ImportSources do
 
   defp handle_other(tag, socket), do: fallback(tag, socket)
 
+  # The picker, with no source named — see the moduledoc's "What the row opens".
+  # It pushed the manual mapper with no file, so the one row naming four
+  # services opened a column table about nothing (#126).
   defp fallback(:five_more, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}
+    do: {:noreply, Kati.Screens.ImportSources.choose_file(socket, nil)}
 
   defp fallback(:something_else, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}

@@ -79,7 +79,7 @@ defmodule Kati.Screens.AddByHand do
       ~MOB"""
       <Column fill_width={true}>
         {Kati.Screens.AddByHand.heading()}
-        {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "e.g. The Long Hollow"))}
+        {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "e.g. The Long Hollow", Kati.Screens.AddByHand.untitled?(assigns)))}
         {Kati.Screens.AddByHand.labelled("Kind", Kati.Screens.AddByHand.kinds(assigns.kind))}
         {Kati.Screens.AddByHand.labelled("Year", Kati.Screens.AddByHand.field(:year, assigns.year, "2024"), "optional")}
         {Kati.Screens.AddByHand.labelled("Status", Kati.Screens.AddByHand.statuses(assigns.status))}
@@ -193,12 +193,20 @@ defmodule Kati.Screens.AddByHand do
   end
 
   @doc false
-  def field(tag, value, placeholder) do
+  def field(tag, value, placeholder, refused? \\ false) do
     assigns = %{
       value: value,
       placeholder: placeholder,
       on_change: {self(), tag},
-      id: Atom.to_string(tag)
+      id: Atom.to_string(tag),
+      # Board 155 draws a red inset ring on the field the refusal is ABOUT, and
+      # this drew none — so a reader was told *a title is needed* over four
+      # fields and had to work out which. MOVIES-AND-TV.md #128.
+      #
+      # Width 0 rather than a transparent border: a 1.5pt ring that is only
+      # sometimes coloured would move the text by 1.5pt when it appeared.
+      ring: if(refused?, do: Palette.red(), else: Palette.card()),
+      ring_width: if(refused?, do: 1.5, else: 0)
     }
 
     ~MOB"""
@@ -207,6 +215,8 @@ defmodule Kati.Screens.AddByHand do
       height={48}
       corner_radius={14}
       background={Palette.card()}
+      border_color={@ring}
+      border_width={@ring_width}
       shadow={Kati.Theme.shadow_card_soft()}
       padding_left={15}
       padding_right={15}
@@ -379,15 +389,68 @@ defmodule Kati.Screens.AddByHand do
   @doc false
   def error(nil), do: ~MOB"<Spacer size={0} />"
 
-  def error(message) do
-    assigns = %{message: message}
+  def error({title, body}) do
+    assigns = %{title: title, body: body}
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.note("error", @message)}
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        padding={17}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Row fill_width={true} align="top">
+          {Kati.UI.symbol("error", size: 19, color: Palette.red())}
+          <Spacer size={11} />
+          <Column weight={1.0}>
+            <Text text={@title} text_size={13.5} font_weight="bold" text_color={:on_surface} />
+            <Spacer size={6} />
+            <Text text={@body} text_size={12.5} line_height={1.65} text_color={Palette.ink_soft()} />
+          </Column>
+        </Row>
+      </Column>
       <Spacer size={14} />
     </Column>
     """
+  end
+
+  def error(message) when is_binary(message) do
+    Kati.Screens.AddByHand.error({message, Kati.Screens.AddByHand.nothing_lost()})
+  end
+
+  @doc """
+  Board 155's own reassurance, and the reason it is on every refusal.
+
+  MOVIES-AND-TV.md #128: the empty-title refusal was one line where the board
+  specifies two, and the missing half is the one that matters — a person whose
+  save just failed does not know whether their other four answers survived it.
+  The board says so outright, so every refusal on this form says it: a store
+  error loses nothing either.
+
+      iex> Kati.Screens.AddByHand.nothing_lost()
+      "Nothing was written — this form is still open and your other answers are intact."
+  """
+  @spec nothing_lost() :: String.t()
+  def nothing_lost,
+    do: "Nothing was written — this form is still open and your other answers are intact."
+
+  @doc """
+  Whether the Title field is the one a standing refusal is about.
+
+      iex> Kati.Screens.AddByHand.untitled?(%{save_error: {"A title is needed", "…"}})
+      true
+
+      iex> Kati.Screens.AddByHand.untitled?(%{save_error: nil})
+      false
+  """
+  @spec untitled?(map()) :: boolean()
+  def untitled?(assigns) do
+    case Map.get(assigns, :save_error) do
+      {"A title is needed", _body} -> true
+      _other -> false
+    end
   end
 
   @doc """
@@ -460,7 +523,15 @@ defmodule Kati.Screens.AddByHand do
     title = String.trim(socket.assigns.title)
 
     if title == "" do
-      Mob.Socket.assign(socket, :save_error, "A title is the one thing this needs.")
+      # Board 155's own two lines, which this said one of. The second is the
+      # half that matters: somebody whose save just failed does not know
+      # whether their other four answers survived it (#128).
+      Mob.Socket.assign(
+        socket,
+        :save_error,
+        {"A title is needed",
+         "Kati cannot keep a thing with no name. " <> Kati.Screens.AddByHand.nothing_lost()}
+      )
     else
       with {:ok, _cached} <-
              Kati.Screens.AddTitle.cache(

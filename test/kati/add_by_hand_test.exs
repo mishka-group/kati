@@ -52,18 +52,40 @@ defmodule Kati.AddByHandTest do
   end
 
   describe "the save that refuses" do
-    test "no title writes nothing and says so" do
+    test "no title writes nothing and says so in the board's own two lines" do
       result = AddByHand.save(socket(%{title: ""}))
 
       assert Ash.count!(TrackedTitle) == 0
-      assert result.assigns.save_error =~ "title"
+
+      # MOVIES-AND-TV.md #128: one line where board 155 specifies two, and the
+      # missing half is the one that matters — a person whose save just failed
+      # does not know whether their other four answers survived it.
+      assert {title, body} = result.assigns.save_error
+      assert title == "A title is needed"
+      assert body =~ "Kati cannot keep a thing with no name"
+      assert body =~ "your other answers are intact"
     end
 
     test "a title of only space is no title" do
       result = AddByHand.save(socket(%{title: "   "}))
 
       assert Ash.count!(TrackedTitle) == 0
-      assert is_binary(result.assigns.save_error)
+      assert {"A title is needed", _body} = result.assigns.save_error
+    end
+
+    test "and the Title field takes the ring the board draws on it" do
+      # Told *a title is needed* over four fields, a reader had to work out
+      # which one. Board 155 rings it.
+      refused = AddByHand.save(socket(%{title: ""}))
+
+      assert AddByHand.untitled?(refused.assigns)
+      refute AddByHand.untitled?(%{save_error: nil})
+
+      ringed = inspect(AddByHand.field(:title, "", "e.g.", true), limit: :infinity)
+      plain = inspect(AddByHand.field(:title, "", "e.g.", false), limit: :infinity)
+
+      assert ringed =~ "border_width"
+      refute ringed == plain
     end
   end
 
