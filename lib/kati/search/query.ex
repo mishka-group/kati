@@ -14,7 +14,7 @@ defmodule Kati.Search.Query do
   pulled into the empty-database migration.
   """
 
-  import Kati.Search, only: [long_enough?: 1, normalise: 1, tier: 3]
+  import Kati.Search, only: [long_enough?: 1, tier: 3]
 
   @doc """
   Run one query against the store and answer what screen 19 draws.
@@ -117,11 +117,16 @@ defmodule Kati.Search.Query do
   # `Scroll`, and a search that found ten answers with ten. `rows_per_group/0`
   # stays as what BOARD 19 draws, which is what `Kati.Screens.SearchSpec` is
   # about.
+  # MOVIES-AND-TV.md #129: the tie-break board 88 renders is *tier, then
+  # recency*, `Kati.Search.rank/1` implements exactly that, and nothing called
+  # it — every group tied alphabetically instead, so a title you watched last
+  # night sorted under one you looked up in March because A comes before S.
+  # `rank/1` is the sort now, in all four groups, and the title is only the
+  # last resort inside it.
   defp titles_for(query) do
     query
     |> cached_for(tracked_ids())
-    |> Enum.sort_by(fn {tier, title, _row} -> {tier, title} end)
-    |> Enum.map(fn {_tier, _title, row} -> row end)
+    |> Kati.Search.rank()
   end
 
   # Which cache rows this person actually KEEPS, keyed by the pair the durable
@@ -144,7 +149,10 @@ defmodule Kati.Search.Query do
       |> Ash.Query.for_read(:shelf, %{kind: kind})
       |> Ash.read!()
     end)
-    |> Map.new(&{{&1.source, &1.source_id}, &1.id})
+    # The whole row, not just its id: `title_row/2` needs the id and the sort
+    # needs `last_touched_at`, and reading the shelf twice for the two halves
+    # of one row is how the two would drift.
+    |> Map.new(&{{&1.source, &1.source_id}, &1})
   rescue
     _error -> %{}
   end
@@ -153,27 +161,127 @@ defmodule Kati.Search.Query do
   # shelf and the other way round — one rescue around both would let either
   # failure empty the whole group.
   defp cached_for(query, tracked) do
+    yours = yours_by_tracked_id()
+    aliases = aliases_by_tracked_id()
+
     Kati.Media.CachedTitle
     |> Ash.read!()
-    |> Enum.map(&{tier(query, &1.title || "", &1.overview || ""), &1.title, &1})
-    |> Enum.reject(fn {tier, _title, _row} -> is_nil(tier) end)
-    |> Enum.map(fn {tier, title, row} -> {tier, title, title_row(row, tracked)} end)
+    |> Enum.map(fn row ->
+      mine = Map.get(tracked, {row.source, row.source_id})
+      id = mine && mine.id
+
+      {best_tier(
+         query,
+         Kati.Media.CachedTitle.names(row) ++ Map.get(aliases, id, []),
+         [row.overview | Map.get(yours, id, [])]
+       ), mine, row}
+    end)
+    |> Enum.reject(fn {tier, _mine, _row} -> is_nil(tier) end)
+    |> Enum.map(fn {tier, mine, row} ->
+      {tier, recency_of(mine, row), title_row(row, tracked)}
+    end)
   rescue
     _error -> []
   end
+
+  # MOVIES-AND-TV.md #114. `Kati.Search`'s Screen scope declares six fields and
+  # screen 88 prints the list verbatim; this searched two of them. The other
+  # four are all on the device and were simply never read — `title_original` is
+  # a column of the same row, `Kati.Media.TitleAlias` is the table auto-detect
+  # writes when you connect a name to a title, and `review` and `tags` are the
+  # words the reader typed themselves on screen 24.
+  #
+  # Cast is the one the app cannot keep: nothing in `Kati.Media.CachedTitle`
+  # holds a person, TMDB's credits are not fetched, and there is nowhere to put
+  # them. So it comes off `@scopes` rather than staying as a promise, which is
+  # the same call #74 made at scope level.
+  #
+  # The BEST tier across every name, because a tier is about how well the query
+  # matched and an alt title matching exactly is an exact match. All of the
+  # reader's own words are body, tier 4: finding a film because you wrote its
+  # name in a review is right, and ranking it above the film itself is not.
+  defp best_tier(query, names, bodies) do
+    body = bodies |> Enum.reject(&is_nil/1) |> Enum.join(" ")
+
+    # `[""]` when a cache row has no title at all: it can still match on the
+    # reader's own words, at tier 4, and dropping it would lose the hit.
+    if(names == [], do: [""], else: names)
+    |> Enum.map(&tier(query, &1 || "", body))
+    |> Enum.reject(&is_nil/1)
+    |> Enum.min(fn -> nil end)
+  end
+
+  # Every review and tag list the reader has written, by the title it is about.
+  # One read for the whole search rather than one per row.
+  defp yours_by_tracked_id do
+    Kati.Media.Watch
+    |> Ash.read!()
+    |> Enum.group_by(& &1.tracked_title_id, &[&1.review, &1.tags])
+    |> Map.new(fn {id, pairs} -> {id, pairs |> List.flatten() |> Enum.reject(&is_nil/1)} end)
+  rescue
+    _error -> %{}
+  end
+
+  # The names auto-detect learned: `Kati.Media.TitleAlias.all/0` is keyed by the
+  # heard name because that is what a session hands it, and this needs the
+  # other direction.
+  defp aliases_by_tracked_id do
+    Kati.Media.TitleAlias.all()
+    |> Enum.group_by(fn {_heard, id} -> id end, fn {heard, _id} -> heard end)
+  rescue
+    _error -> %{}
+  end
+
+  # When this title last mattered to the reader: the shelf's own
+  # `last_touched_at` for something they keep, and the cache's `fetched_at` for
+  # something they merely looked up. A cache row nobody has touched is not
+  # newer than a shelf row somebody watched yesterday, which is what the shelf
+  # being read first says.
+  defp recency_of(nil, cached), do: Map.get(cached, :fetched_at)
+
+  defp recency_of(tracked, cached),
+    do: Map.get(tracked, :last_touched_at) || recency_of(nil, cached)
 
   # The author is the secondary field, where a cached title's is its overview.
   # Searching `Karvel` and finding nothing is the half of this a reader notices
   # first, and a book is the one kind here whose second line is a person.
   defp books_for(query) do
+    written = notes_by_book_id()
+
     Kati.Books.Book
     |> Ash.read!()
-    |> Enum.map(&{tier(query, &1.title || "", &1.author || ""), &1.title, &1})
-    |> Enum.reject(fn {tier, _title, _row} -> is_nil(tier) end)
-    |> Enum.sort_by(fn {tier, title, _row} -> {tier, title} end)
-    |> Enum.map(fn {_tier, _title, row} -> book_row(row) end)
+    |> Enum.map(
+      &{tier(
+         query,
+         &1.title || "",
+         join_body([&1.author, &1.isbn | Map.get(written, &1.id, [])])
+       ), &1}
+    )
+    |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
+    |> Enum.map(fn {tier, row} -> {tier, Map.get(row, :updated_at), book_row(row)} end)
+    |> Kati.Search.rank()
   rescue
     _error -> []
+  end
+
+  # Every note and quote, by the book it is about. The Books scope has always
+  # listed *your notes* and *your quotes* and searched neither — the Notes group
+  # draws the note itself, which is a different answer to a different question:
+  # *which book is that in?* is what this makes findable.
+  defp notes_by_book_id do
+    Kati.Books.Note
+    |> Ash.read!()
+    |> Enum.group_by(& &1.book_id, & &1.body)
+  rescue
+    _error -> %{}
+  end
+
+  # One body string out of several fields, blanks dropped. Joined with a space
+  # so a query cannot match across the seam between two of them.
+  defp join_body(parts) do
+    parts
+    |> Enum.reject(&(is_nil(&1) or &1 == ""))
+    |> Enum.join(" ")
   end
 
   defp book_row(row) do
@@ -210,7 +318,7 @@ defmodule Kati.Search.Query do
       # on. `Kati.Screens.Library.shaped/3` collapses the same way: a film is
       # its own screen and everything else is the series screen.
       kind: if(row.kind == :movie, do: :film, else: :series),
-      id: Map.get(tracked, {row.source, row.source_id})
+      id: tracked |> Map.get({row.source, row.source_id}) |> then(&(&1 && &1.id))
     }
   end
 
@@ -228,10 +336,18 @@ defmodule Kati.Search.Query do
   defp calendar_for(query) do
     Kati.Calendars.Event
     |> Ash.read!()
-    |> Enum.map(&{tier(query, &1.summary || "", &1.description || ""), &1})
+    # `location` is the field #74 named at the end: the Calendar scope has always
+    # listed it and the search has never read it, so *Barbican* found nothing
+    # though it is written on four events. It is body rather than a name — an
+    # event is not called by where it is — and joins `description` there.
+    |> Enum.map(
+      &{tier(query, &1.summary || "", [&1.description, &1.location] |> join_body()), &1}
+    )
     |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
-    |> Enum.sort_by(fn {tier, row} -> {tier, row.summary} end)
-    |> Enum.map(fn {_tier, row} -> event_row(row) end)
+    # `dtstart_utc`, which is the board's own word for an event's recency, and
+    # the one field of these four that a reader can see on the row.
+    |> Enum.map(fn {tier, row} -> {tier, row.dtstart_utc, event_row(row)} end)
+    |> Kati.Search.rank()
   rescue
     _error -> []
   end
@@ -262,21 +378,64 @@ defmodule Kati.Search.Query do
   # body — a highlight that pointed at the start of every note would be
   # decoration rather than a result.
   defp note_for(query) do
-    Kati.Books.Note
-    |> Ash.Query.load(:book)
-    |> Ash.read!()
+    # MOVIES-AND-TV.md #114: a review you wrote about a film was not findable
+    # anywhere, though the Notes group and the Screen scope both said it was.
+    # A review IS a note — the same paragraph in the reader's own words about
+    # one thing on their shelf — so it is one of these rather than a group of
+    # its own, and `note_eyebrow/1` already draws the date and what it is about.
+    (book_notes() ++ review_notes())
     |> Enum.map(&{tier(query, &1.body || "", &1.body || ""), &1})
     |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
-    |> Enum.sort_by(fn {tier, row} -> {tier, row.body} end)
+    # The tie-break board 88 renders, here too (#129): two notes at the same
+    # tier are ordered newest first, not alphabetically by their own paragraph.
+    |> Enum.map(fn {tier, row} -> {tier, Map.get(row, :inserted_at), row} end)
+    |> Kati.Search.rank()
     |> List.first()
     |> note_card(query)
   rescue
     _error -> nil
   end
 
+  defp book_notes do
+    Kati.Books.Note
+    |> Ash.Query.load(:book)
+    |> Ash.read!()
+  rescue
+    _error -> []
+  end
+
+  # Every review with words in it, shaped the way `note_card/2` and
+  # `note_eyebrow/1` read a note. `watched_at` is when it was written as far as
+  # a reader is concerned, and the title it is about comes off the cache the
+  # tracked row references.
+  defp review_notes do
+    cached =
+      Kati.Media.CachedTitle
+      |> Ash.read!()
+      |> Map.new(&{{&1.source, &1.source_id}, &1})
+
+    tracked =
+      Kati.Media.TrackedTitle
+      |> Ash.read!()
+      |> Map.new(&{&1.id, Map.get(cached, {&1.source, &1.source_id})})
+
+    Kati.Media.Watch
+    |> Ash.read!()
+    |> Enum.filter(&(is_binary(&1.review) and String.trim(&1.review) != ""))
+    |> Enum.map(fn watch ->
+      %{
+        body: watch.review,
+        inserted_at: watch.watched_at || watch.inserted_at,
+        about: Map.get(tracked, watch.tracked_title_id)
+      }
+    end)
+  rescue
+    _error -> []
+  end
+
   defp note_card(nil, _query), do: nil
 
-  defp note_card({_tier, note}, query) do
+  defp note_card(note, query) do
     body = note.body || ""
 
     case Kati.Search.locate(body, query) do
@@ -324,7 +483,11 @@ defmodule Kati.Search.Query do
   """
   @spec note_eyebrow(map()) :: String.t()
   def note_eyebrow(note) do
-    ["NOTE", note_date(Map.get(note, :inserted_at)), note_book(Map.get(note, :book))]
+    # `:about` is a review's subject and `:book` is a book note's — the same
+    # slot, named for what it is on each row (#114).
+    subject = Map.get(note, :about) || Map.get(note, :book)
+
+    ["NOTE", note_date(Map.get(note, :inserted_at)), note_book(subject)]
     |> Enum.reject(&is_nil/1)
     |> Enum.join(" · ")
   end

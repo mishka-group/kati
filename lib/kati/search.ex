@@ -65,6 +65,32 @@ defmodule Kati.Search do
     {:notes, "Notes", ["every cream card in the app"]}
   ]
 
+  # Fields this list names that a search does not look in, because nothing on
+  # the device holds them — MOVIES-AND-TV.md #74 at the field level, and #114.
+  #
+  # The field is not removed, for `built?/1`'s reason one level down: the
+  # contract is the design's and stating it whole is what screen 88 is FOR;
+  # what was missing is which parts of it are live. So these draw in the same
+  # struck, tertiary treatment `never invitee names` already had — one visual
+  # for *named and not doing this*, whatever the reason.
+  #
+  # `cast` — TMDB's credits are not fetched and `Kati.Media.CachedTitle` has no
+  # column for a person. `series` — `Kati.Books.Book` has no series name. Both
+  # become searchable the day the column does, and nothing else has to change.
+  @unkept ["cast", "series"]
+
+  @doc """
+  Whether a field this board names is one a search actually reads.
+
+      iex> Kati.Search.kept?("your review")
+      true
+
+      iex> Kati.Search.kept?("cast")
+      false
+  """
+  @spec kept?(String.t()) :: boolean()
+  def kept?(field), do: field not in @unkept
+
   # The scopes `Kati.Search.Query.run/1` actually builds a group for. Written
   # as labels rather than derived from `@narrowable`, because that list also
   # holds `All` — which is every group rather than a scope of its own.

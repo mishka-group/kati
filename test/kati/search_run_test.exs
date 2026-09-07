@@ -26,7 +26,8 @@ defmodule Kati.SearchRunTest do
     # `Kati.ScreenTapSweepTest`'s own cleanup comment predicts this failure
     # word for word: *the list did not grow with the write*.
     on_exit(fn ->
-      for table <- ~w(media_watches tracked_titles cached_titles events book_notes) do
+      for table <-
+            ~w(media_watches tracked_titles cached_titles events calendars book_notes books media_title_aliases) do
         Kati.Repo.query!("DELETE FROM " <> table, [])
       end
     end)
@@ -96,6 +97,219 @@ defmodule Kati.SearchRunTest do
     Kati.Repo.query!("DELETE FROM cached_titles", [])
 
     assert %{titles: [], calendar: [], note: nil} = Query.run("hollow")
+  end
+
+  describe "the six fields the Screen scope names" do
+    test "your own review of a film is findable" do
+      # MOVIES-AND-TV.md #114. The Notes group and the Screen scope both said
+      # a review was searchable and neither read one: `note_for/1` knew only
+      # `Kati.Books.Note`, and a film review lives on `Kati.Media.Watch`.
+      tracked = track!("3")
+
+      Ash.create!(Kati.Media.Watch, %{
+        tracked_title_id: tracked.id,
+        review: "A marram-grass film, all wind and no plot.",
+        watched_on: ~D[2026-08-06],
+        watched_at: DateTime.truncate(Kati.Time.now(), :second)
+      })
+
+      found = Query.run("marram")
+
+      assert found.note, "the review was not findable as a note"
+      assert found.note.eyebrow =~ "NOTE"
+      assert found.note.eyebrow =~ "ESTUARY", "the card did not say what the review is about"
+
+      # And as a hit on the film itself, which is the Screen scope's own
+      # `your review` field.
+      assert "Estuary" in Enum.map(found.titles, & &1.title)
+    end
+
+    test "your own tags are findable" do
+      tracked = track!("3")
+
+      Ash.create!(Kati.Media.Watch, %{
+        tracked_title_id: tracked.id,
+        tags: "rainy sunday,comfort",
+        watched_on: ~D[2026-08-06],
+        watched_at: DateTime.truncate(Kati.Time.now(), :second)
+      })
+
+      assert "Estuary" in Enum.map(Query.run("comfort").titles, & &1.title)
+    end
+
+    test "the original title is findable" do
+      Ash.create!(CachedTitle, %{
+        source: :tmdb,
+        source_id: "9",
+        kind: :tv,
+        title: "Frieren: Beyond Journey's End",
+        title_original: "Sousou no Frieren",
+        fetched_at: DateTime.utc_now()
+      })
+
+      titles = Enum.map(Query.run("sousou").titles, & &1.title)
+
+      assert "Frieren: Beyond Journey's End" in titles
+    end
+
+    test "a name auto-detect learned is findable" do
+      tracked = track!("3")
+      Kati.Media.TitleAlias.learn("Estuary Nights 1080p WEB-DL", tracked.id)
+
+      assert "Estuary" in Enum.map(Query.run("WEB-DL").titles, & &1.title)
+    end
+
+    test "and an alt title matching exactly is an exact match" do
+      # The BEST tier across every name: a query that hits an alias head-on
+      # should not sort under a substring hit on somebody else's title.
+      tracked = track!("3")
+      Kati.Media.TitleAlias.learn("Hollow", tracked.id)
+
+      assert [%{title: "Estuary"} | _rest] = Query.run("hollow").titles
+    end
+
+    test "cast is named on the board and searched by nothing, and says so" do
+      # Nothing on the device holds a person, so the field is struck rather
+      # than quietly dropped — #74 at the field level.
+      refute Kati.Search.kept?("cast")
+      assert Kati.Search.kept?("your review")
+
+      drawn = inspect(Kati.Screens.SearchSpec.scopes(), limit: :infinity)
+
+      assert drawn =~ "cast", "the board stopped stating its own contract"
+      assert drawn =~ "your review"
+    end
+  end
+
+  describe "the tie-break board 88 renders" do
+    test "is recency, not the alphabet" do
+      # MOVIES-AND-TV.md #129: `Kati.Search.rank/1` implemented tier-then-
+      # recency, was public, was documented, and had no call site — every
+      # group tied alphabetically instead.
+      older = track!("1", ~U[2026-01-01 09:00:00Z])
+      newer = track!("2", ~U[2026-09-01 09:00:00Z])
+
+      assert older.id != newer.id
+
+      # Both are substring hits on `hollow` at the same tier once the prefix
+      # match is set aside, so only the tie-break can order them.
+      assert [%{title: "Hollow Season"}, %{title: "The Long Hollow"}] =
+               Query.run("hollow").titles
+    end
+
+    test "and an undated thing is not the newest thing" do
+      assert Kati.Search.rank([{1, nil, :undated}, {1, ~D[2020-01-01], :dated}]) ==
+               [:dated, :undated]
+    end
+  end
+
+  describe "the Calendar and Books fields" do
+    test "an event is findable by where it is" do
+      # #74's last field: `location` has been on the board since it was drawn
+      # and read by nothing.
+      calendar =
+        Kati.Calendars.Calendar
+        |> Ash.Changeset.for_create(:create, %{display_name: "Search test", kind: :local})
+        |> Ash.create!()
+
+      Kati.Calendars.Event
+      |> Ash.Changeset.for_create(:create, %{
+        uid: "search-test-barbican@kati",
+        calendar_id: calendar.id,
+        origin: :kati,
+        summary: "Book club",
+        location: "The Barbican, Silk Street",
+        kind: :event,
+        status: :confirmed,
+        dtstart_utc: ~U[2026-09-20 18:00:00Z],
+        dtstart_wall: "20260920T190000",
+        tzid: Kati.Time.device_zone(),
+        duration_iso: "PT120M",
+        sync_state: :local_only
+      })
+      |> Ash.create!()
+
+      assert [%{title: "Book club"}] = Query.run("barbican").calendar
+    end
+
+    test "a book is findable by its ISBN and by what you wrote in it" do
+      book =
+        Ash.create!(Kati.Books.Book, %{
+          title: "The Estuary Notebook",
+          author: "R. Karvel",
+          isbn: "9781234567897",
+          status: :reading
+        })
+
+      Ash.create!(Kati.Books.Note, %{
+        book_id: book.id,
+        body: "The chapter on marram grass is the whole book.",
+        kind: :quote
+      })
+
+      assert [%{title: "The Estuary Notebook"}] = Query.run("9781234567897").books
+      assert [%{title: "The Estuary Notebook"}] = Query.run("marram").books
+    end
+  end
+
+  describe "a recent query reopened from screen 86" do
+    test "comes back exactly as it was typed" do
+      # MOVIES-AND-TV.md #130. `query_tag/2` replaced spaces with underscores
+      # to make an atom a device test can type, and `open/2` undid it by
+      # replacing underscores with spaces — which is not the inverse of
+      # anything. `sci_fi` is stored as typed (`Kati.Search.Recent.remember/1`
+      # "never translates — they are your words"), tagged `:repeat_query_sci_fi`
+      # and came back as `sci fi`: a different search, silently.
+      assert Kati.Screens.SearchIdle.resolve("sci_fi", ["sci_fi"]) == "sci_fi"
+      assert Kati.Screens.SearchIdle.resolve("two__spaces", ["two  spaces"]) == "two  spaces"
+
+      # And the ordinary case still works, both ways round.
+      assert Kati.Screens.SearchIdle.resolve("the_long_hollow", ["the long hollow"]) ==
+               "the long hollow"
+    end
+
+    test "and a row that has since gone still opens something readable" do
+      assert Kati.Screens.SearchIdle.resolve("gone_away", []) == "gone away"
+    end
+
+    test "the tap carries the line the shelf actually holds" do
+      Kati.Search.Recent.forget!()
+      Kati.Search.Recent.remember("sci_fi")
+
+      socket =
+        Kati.Screens.SearchIdle
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:scope, "All")
+        |> Mob.Socket.assign(:query, "")
+        |> Mob.Socket.assign(:history, Kati.Search.Recent.all())
+
+      {:noreply, opened} =
+        Kati.Screens.SearchIdle.handle_info({:tap, :repeat_query_sci_fi}, socket)
+
+      assert {:push, Kati.Screens.Search, %{query: "sci_fi"}} =
+               Map.get(opened.__mob__, :nav_action)
+    end
+  end
+
+  describe "screen 88's back pill" do
+    test "names the page it actually returns to" do
+      # MOVIES-AND-TV.md #131: the board draws `Settings` and the tune disc on
+      # 86 is its only door, so the pill named a screen the pop does not land
+      # on.
+      socket =
+        Kati.Screens.SearchIdle
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:scope, "All")
+        |> Mob.Socket.assign(:query, "")
+        |> Mob.Socket.assign(:history, [])
+
+      {:noreply, pushed} = Kati.Screens.SearchIdle.handle_info({:tap, :filters}, socket)
+
+      assert {:push, Kati.Screens.SearchSpec, %{back: "Search"}} =
+               Map.get(pushed.__mob__, :nav_action)
+
+      assert Kati.Screens.Pushed.back_label(%{back: "Search"}, "Settings") == "Search"
+    end
   end
 
   describe "the history the field keeps" do
@@ -253,9 +467,96 @@ defmodule Kati.SearchRunTest do
       results = Kati.Search.Query.run("estuary")
       drawn = rendered_text(render(results, "Notes"))
 
-      assert Enum.any?(drawn, &String.contains?(&1, "Nothing here for")),
+      # MOVIES-AND-TV.md #117: and what it says is WHERE the answer is, not
+      # that there is none. `Nothing here for estuary` over a query that found
+      # a film is the misreading board 89's third band was drawn to prevent —
+      # this used to assert exactly that sentence.
+      assert Enum.any?(drawn, &String.contains?(&1, "Nothing in Notes.")),
              "the Notes chip with no notes drew neither results nor a state: " <> inspect(drawn)
+
+      assert Enum.any?(drawn, &String.contains?(&1, "in Screen")),
+             "the cross-scope row did not name the scope holding the hits: " <> inspect(drawn)
+
+      refute Enum.any?(drawn, &String.contains?(&1, "Nothing here for")),
+             "a scope with no hits still claimed the query matched nothing: " <> inspect(drawn)
     end
+
+    test "and still says nothing matched when nothing did" do
+      results = Kati.Search.Query.run("zzzznothingatall")
+      drawn = rendered_text(render(results, "All"))
+
+      assert Enum.any?(drawn, &String.contains?(&1, "Nothing here for")),
+             "a query that found nothing anywhere lost its no-match card: " <> inspect(drawn)
+
+      refute Enum.any?(drawn, &String.contains?(&1, "Nothing in")),
+             "the cross-scope row was drawn with nowhere to point: " <> inspect(drawn)
+    end
+
+    test "and the cross-scope row is the chip it names" do
+      Kati.Screens.AddByHand.save(%Mob.Socket{
+        Mob.Socket.new(Kati.Screens.AddByHand)
+        | assigns: %{
+            title: "Estuary Nights",
+            kind: :movie,
+            status: "Not started",
+            save_error: nil
+          }
+      })
+
+      results = Kati.Search.Query.run("estuary")
+
+      assert {"Screen", 2} = Kati.Screens.Search.elsewhere(results, "Notes")
+
+      # Pressing the row and pressing the chip are one action, so the tag is
+      # the chip's own.
+      assert inspect(Kati.Screens.Search.cross_scope("Notes", {"Screen", 2}), limit: :infinity) =~
+               "go_Screen"
+    end
+
+    test "and pressing it moves the lit scope" do
+      # `Kati.ScreenTapSweepTest` renders against an empty store and so cannot
+      # see a control that only exists over data. This presses it over rows.
+      results = Kati.Search.Query.run("hollow")
+
+      socket =
+        Kati.Screens.Search
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:query, "hollow")
+        |> Mob.Socket.assign(:results, results)
+        |> Mob.Socket.assign(:filter, "Notes")
+        |> Mob.Socket.assign(:recent, nil)
+        |> Mob.Socket.assign(:history, [])
+        |> Mob.Socket.assign(:back, "Home")
+
+      {:noreply, moved} = Kati.Screens.Search.handle_info({:tap, :go_Screen}, socket)
+
+      assert moved.assigns.filter == "Screen"
+    end
+
+    test "and the row's tag is not one another node already carries" do
+      # Two nodes may not share an `accessibility_id` — `onNodeWithTag` throws
+      # on the second match. The row drew the chip's own `filter_Screen` first,
+      # and `ui.sh ids` on the Pixel_9a listed it twice.
+      results = Kati.Search.Query.run("hollow")
+      drawn = inspect(render(results, "Notes"), limit: :infinity)
+
+      tags = Regex.scan(~r/:filter_Screen\b/, drawn)
+
+      assert length(tags) == 1,
+             "filter_Screen is drawn #{length(tags)} times on one frame"
+    end
+  end
+
+  # A shelf row for one of the three cached titles the setup makes, so a watch
+  # has something to hang off.
+  defp track!(source_id, touched \\ nil) do
+    Ash.create!(Kati.Media.TrackedTitle, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: :tv,
+      status: :watching,
+      last_touched_at: touched
+    })
   end
 
   defp render(results, filter) do

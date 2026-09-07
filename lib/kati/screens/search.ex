@@ -371,7 +371,13 @@ defmodule Kati.Screens.Search do
   # seventh hit is a change to the result set and not to this case.
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
+      # The chip, and the cross-scope row that offers the same move (#117). Two
+      # prefixes because two nodes cannot share one tag, one clause because it
+      # is one action.
       "filter_" <> label ->
+        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+
+      "go_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
 
       # A Calendar hit, by its own event. Screen 31 answers an id that names
@@ -766,12 +772,99 @@ defmodule Kati.Screens.Search do
       Map.get(results, :idle?, false) ->
         Kati.Screens.Search.waiting(history)
 
-      Kati.Screens.Search.visible_groups(results, filter) == [] ->
-        Kati.Screens.Search.no_matches(results.query)
+      Kati.Screens.Search.visible_groups(results, filter) != [] ->
+        Kati.Screens.Search.groups(results, filter)
+
+      # MOVIES-AND-TV.md #117. *Nothing in this scope* and *nothing anywhere*
+      # are two different things and this page drew the second sentence for
+      # both — narrow to Calendar over a query that found three films and the
+      # page said **Nothing here**, which is the exact misreading board 89's
+      # third band was drawn to prevent. The page already knows where the
+      # answer is; withholding it is the defect.
+      elsewhere = Kati.Screens.Search.elsewhere(results, filter) ->
+        Kati.Screens.Search.cross_scope(filter, elsewhere)
 
       true ->
-        Kati.Screens.Search.groups(results, filter)
+        Kati.Screens.Search.no_matches(results.query)
     end
+  end
+
+  @doc """
+  The scope holding the most hits, when the lit one holds none — or `nil`.
+
+  `All` can never be the answer: it is every group at once, so a search with
+  hits and an empty `All` is not a state. The largest rather than the first,
+  because the offer is *where the answer is* and the answer is where most of
+  it is; ties fall to `Kati.Search`'s own chip order, which is what
+  `visible_groups/2` walks.
+
+      iex> Kati.Screens.Search.elsewhere(%{titles: [1, 2], books: [], calendar: [], note: nil}, "Calendar")
+      {"Screen", 2}
+
+      iex> Kati.Screens.Search.elsewhere(%{titles: [], books: [], calendar: [], note: nil}, "Calendar")
+      nil
+  """
+  @spec elsewhere(map(), String.t()) :: {String.t(), pos_integer()} | nil
+  def elsewhere(results, filter) do
+    results
+    |> Kati.Screens.Search.visible_groups("All")
+    |> Enum.reject(fn {label, _key} -> label == filter end)
+    |> Enum.map(fn {label, key} -> {label, Kati.Screens.Search.count_of(results, key)} end)
+    |> Enum.max_by(fn {_label, n} -> n end, fn -> nil end)
+  end
+
+  @doc false
+  @spec count_of(map(), atom()) :: non_neg_integer()
+  def count_of(results, :note), do: if(results.note, do: 1, else: 0)
+  def count_of(results, key), do: length(Map.get(results, key) || [])
+
+  @doc """
+  Board 89's third band, over a real result set: where the answer actually is.
+
+  One row rather than an empty state, and the board's own argument for it is
+  that the page already knows. `swap_horiz` leads because the offer is a change
+  of scope rather than a new query, and `arrow_forward` closes it because
+  tapping moves you rather than expanding anything in place.
+
+  Its own `go_` tag rather than the chip's `filter_` one, though it does the
+  same thing. Two nodes may not share an `accessibility_id`: `onNodeWithTag`
+  throws on the second match, so a page drawing `filter_Screen` twice is a page
+  no device test can touch — which is what this drew first, and what reading
+  `ui.sh ids` on the Pixel_9a caught.
+  """
+  @spec cross_scope(String.t(), {String.t(), pos_integer()}) :: map()
+  def cross_scope(filter, {label, count}) do
+    assigns = %{
+      lead: "Nothing in #{filter}. ",
+      over: "#{count} #{if count == 1, do: "match", else: "matches"} in #{label}",
+      tap: {self(), String.to_atom("go_" <> label)}
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row
+        fill_width={true}
+        background={Kati.Theme.Palette.card()}
+        corner_radius={20}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={15}
+        align="center"
+        on_tap={@tap}
+      >
+        {Kati.UI.symbol("swap_horiz", size: 19, color: Kati.Theme.Palette.ink_soft())}
+        <Spacer size={12} />
+        <Column weight={1.0}>
+          {Kati.UI.rich_text([
+            {@lead, [text_size: 13, text_color: :on_surface, base: true]},
+            {@over, :bold}
+          ])}
+        </Column>
+        <Spacer size={12} />
+        {Kati.UI.symbol("arrow_forward", size: 17)}
+      </Row>
+      <Spacer size={22} />
+    </Column>
+    """
   end
 
   @doc """

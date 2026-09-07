@@ -36,6 +36,9 @@ defmodule Kati.Screens.SearchSpec do
   process.
   """
 
+  # `Settings` is what board 88 draws, and it is the answer for a push that
+  # names nowhere — the gallery's. The tune disc on 86, which is the only real
+  # door, hands `Search` (#131).
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Search
@@ -199,7 +202,20 @@ defmodule Kati.Screens.SearchSpec do
   @spec field_chip(String.t()) :: map()
   def field_chip("never" <> _rest = field), do: Kati.Screens.SearchSpec.refused(field)
 
-  def field_chip(field) do
+  # MOVIES-AND-TV.md #74 at the field level. `Kati.Search.kept?/1` is the same
+  # seam `built?/1` is one level up, and a field with nothing behind it takes
+  # the same treatment as a refused one — the reasons differ and the reader's
+  # question does not: *is this searched?*
+  def field_chip(field) when is_binary(field) do
+    if Kati.Search.kept?(field) do
+      Kati.Screens.SearchSpec.searched(field)
+    else
+      Kati.Screens.SearchSpec.refused(field)
+    end
+  end
+
+  @doc false
+  def searched(field) do
     assigns = %{field: field}
 
     ~MOB"""

@@ -372,21 +372,49 @@ defmodule Kati.Screens.SearchIdle do
   end
 
   @doc """
-  Open the results page on `line`, a query read back out of a tap tag.
+  The query a tag was built from, found in the list it was built from.
 
-  `query_tag/2` replaces spaces with underscores so the tag is an atom a
-  device test can type, so this puts them back. A round trip rather than a
-  lookup because the shelf and the suggestions are two different lists and
-  both arrive here.
+  MOVIES-AND-TV.md #130. This used to undo `query_tag/2` by hand —
+  `String.replace(line, "_", " ")` — which is not the inverse of anything.
+  `sci_fi` is stored as typed by `Kati.Search.Recent.remember/1`, which "never
+  translates — they are your words", tagged `:repeat_query_sci_fi`, and came
+  back as `sci fi`: a different search, silently. `two  spaces` collapsed the
+  same way.
+
+  There is no inverse to write, because the mapping is not injective. So the
+  tag is resolved against the rows that drew it, the way
+  `Kati.Screens.Library.open_tile/3` resolves a poster tag — the list is right
+  there in the assigns, and the row that made the tag is the row that answers
+  it. Screen 19's own recent shelf never had this bug for the same reason: it
+  carries the label whole.
+
+      iex> Kati.Screens.SearchIdle.resolve("sci_fi", ["sci_fi", "sci fi"])
+      "sci_fi"
+
+      iex> Kati.Screens.SearchIdle.resolve("sci_fi", ["sci fi"])
+      "sci fi"
+
+      iex> Kati.Screens.SearchIdle.resolve("gone", [])
+      "gone"
+  """
+  @spec resolve(String.t(), [String.t()]) :: String.t()
+  def resolve(line, candidates) do
+    Enum.find(candidates, String.replace(line, "_", " "), fn candidate ->
+      Kati.Screens.SearchIdle.query_tag("q", candidate) == String.to_atom("q_" <> line)
+    end)
+  end
+
+  @doc """
+  Open the results page on `line`, a query read back out of a tap tag.
 
   The line is named in the push as well as written to `Mob.State`, which is the
   difference between the results page opening on this row and opening on
   whatever was handed over last. The lit scope rides with it — a person who
   narrowed to Calendar and then tapped a recent query meant both.
   """
-  @spec open(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
-  def open(socket, line) do
-    query = String.replace(line, "_", " ")
+  @spec open(Mob.Socket.t(), String.t(), [String.t()]) :: Mob.Socket.t()
+  def open(socket, line, candidates) do
+    query = Kati.Screens.SearchIdle.resolve(line, candidates)
     Search.hand_over(query)
 
     socket
@@ -395,7 +423,15 @@ defmodule Kati.Screens.SearchIdle do
   end
 
   def handle_tap(:filters, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.SearchSpec, %{
+         # MOVIES-AND-TV.md #131: 88 is drawn with a `Settings` back pill and
+         # this disc is its only door, so the pill named a screen the pop does
+         # not land on. The push says where it came from, as every other push
+         # in the app does.
+         back: "Search"
+       })}
 
   @doc """
   Forget the shelf, and redraw without it.
@@ -450,11 +486,15 @@ defmodule Kati.Screens.SearchIdle do
       # `Kati.Search.Query.run/1` existed there was nothing to carry it to and
       # both pushed bare; a shortcut that opens somebody else's results is
       # worse than one that does nothing.
+      # Each against the list that drew it — the shelf and the suggestions are
+      # two lists and a tag belongs to exactly one of them.
       "repeat_query_" <> line ->
-        {:noreply, Kati.Screens.SearchIdle.open(socket, line)}
+        {:noreply,
+         Kati.Screens.SearchIdle.open(socket, line, Map.get(socket.assigns, :history, []))}
 
       "try_suggestion_" <> line ->
-        {:noreply, Kati.Screens.SearchIdle.open(socket, line)}
+        {:noreply,
+         Kati.Screens.SearchIdle.open(socket, line, Kati.Search.Suggestions.for_reader())}
 
       _other ->
         {:noreply, socket}
