@@ -51,6 +51,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+// KATI-BEGIN(K-47 long-press-import) mob_new=0.4.20
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+// KATI-END(K-47 long-press-import)
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as ComposeSize
 import androidx.compose.ui.graphics.Path
@@ -3232,6 +3236,9 @@ private fun RenderNodeOffset(node: MobNode, modifier: Modifier) {
     }
 }
 
+// KATI-BEGIN(K-47 long-press-optin) mob_new=0.4.20
+@OptIn(ExperimentalFoundationApi::class)
+// KATI-END(K-47 long-press-optin)
 @Composable
 private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // Apply on_tap as a clickable modifier for any node type except button —
@@ -3249,9 +3256,38 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // would wrap the whole node and swallow taps meant for the trigger inside
     // it — the popover would open and then be impossible to operate.
     // was: if (tapHandle != null && node.type != "button")
-    val tapModifier = if (tapHandle != null && node.type != "button" && node.type != "anchored") {
-        modifier.clickable { MobBridge.nativeSendTap(tapHandle) }
+    // KATI-BEGIN(K-47 long-press) mob_new=0.4.20
+    // `on_long_press` was serialised and read by nobody.
+    //
+    // WHY: Mob.Renderer has registered a handle for `on_long_press` since it
+    // was written (`deps/mob/lib/mob/renderer.ex:356-357`) and this file read
+    // only `on_tap`, so every long press in the app was ink. Three boards want
+    // the gesture and all three were stranded: 330's Remove on a list row,
+    // 144's rating on an episode row, and 146's selection on a poster tile.
+    // Board 251 is what settles which meaning belongs where — *"A tile selects.
+    // A row rates."* — so the bridge owes both, not one.
+    //
+    // `combinedClickable` rather than a second modifier: Compose gives one
+    // node one gesture detector, and `clickable` followed by a long-press
+    // modifier is two, of which the first consumes the pointer. It is still
+    // marked experimental in the Foundation API, which is why the opt-in sits
+    // on the composable rather than module-wide.
+    //
+    // A node with only `on_long_press` and no `on_tap` still gets it: a row
+    // that can be held and not tapped is a legal shape, and the old condition
+    // gated everything on `tapHandle`.
+    val holdHandle = intProp(node.props, "on_long_press")
+    val tappable = node.type != "button" && node.type != "anchored"
+    val tapModifier = if (tappable && (tapHandle != null || holdHandle != null)) {
+        modifier.combinedClickable(
+            onClick = { if (tapHandle != null) MobBridge.nativeSendTap(tapHandle) },
+            onLongClick =
+                if (holdHandle != null) {
+                    { MobBridge.nativeSendTap(holdHandle) }
+                } else null
+        )
     } else modifier
+    // KATI-END(K-47 long-press)
     // KATI-END(K-18 anchored-node)
     val m = tapModifier.then(nodeModifier(node.props))
     when (node.type) {

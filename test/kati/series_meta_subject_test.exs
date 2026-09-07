@@ -97,9 +97,21 @@ defmodule Kati.SeriesMetaSubjectTest do
       assert page.cast == []
       assert page.where == []
       assert page.tags == []
-      assert page.ratings == []
       assert page.trailer == nil
       assert page.more == nil
+    end
+
+    test "and the rating trio is the reader's own, not the fixture's", %{page: page} do
+      # Board 311 replaced `Audience` and `Critics` — other people's scores that
+      # nothing caches — with two things the reader's own columns answer:
+      # *"Audience and Critics are gone, not blank."* The labels are the proof
+      # the trio is derived and not the sample's, and every value is the answer
+      # for a series with nothing logged against it.
+      assert Enum.map(page.ratings, & &1.label) == ["Yours", "Episodes", "Hours"]
+      assert Enum.map(page.ratings, & &1.value) == ["—", "0 / 27", "—"]
+
+      refute Enum.any?(page.ratings, & &1.star?),
+             "a star over a dash is a rating of nothing rather than no rating"
     end
 
     test "and the render drops them entirely", %{page: page} do
@@ -109,6 +121,9 @@ defmodule Kati.SeriesMetaSubjectTest do
         refute drawn =~ gone, "screen 14 still draws #{inspect(gone)} over a real series"
       end
 
+      # And board 311's claim card is in their place, so the page names what is
+      # absent instead of leaving 40% of it as paper.
+      assert drawn =~ "No cast, and no scores"
       assert drawn =~ "Severance"
     end
   end

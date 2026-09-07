@@ -359,7 +359,7 @@ defmodule Kati.Screens.AddToList do
       |> Enum.map(fn {row, i} ->
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile(row.icon),
-          Kati.UI.SettingsList.body(row.title, "Kept by Kati — not addable"),
+          Kati.UI.SettingsList.body(row.title, "Kept by Kati — not addable", fallback: true),
           Kati.UI.symbol("lock", size: 17, color: Palette.tertiary()),
           rule: i < length(assigns.kept) - 1
         )

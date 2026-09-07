@@ -88,34 +88,64 @@ defmodule Kati.Screens.ListDetail do
     if Map.get(list, :kept?) do
       SettingsList.chrome(nil, 44)
     else
-      Kati.UI.Menu.overflow(
-        Kati.Screens.ListDetail.menu_trigger(),
-        assigns.menu?,
-        [
-          Kati.UI.Menu.item("edit", "Rename", :rename),
-          Kati.UI.Menu.item("ios_share", "Share", :share_list),
-          Kati.UI.Menu.rule(),
-          Kati.UI.Menu.item("delete", "Delete this list", :confirm_delete, destructive: true)
-        ],
-        dismiss: :close_menu
-      )
+      Kati.Screens.ListDetail.menu_row(assigns.menu?)
     end
   end
 
   def header(_none), do: SettingsList.chrome(nil, 44)
 
-  @doc false
-  def menu_trigger do
+  @doc """
+  The 44pt chrome row, with the ⋯ anchored at its right edge.
+
+  The disc alone is the trigger — `Kati.UI.Anchored` measures the trigger to
+  place the panel against it, so handing it the whole row would open the menu
+  against the row's box and, on this bridge, collapse the row to the trigger's
+  own width. `Kati.Screens.Series.more_disc/4` builds it the same way and for
+  the same reason.
+  """
+  @spec menu_row(boolean()) :: term()
+  def menu_row(menu?) do
+    assigns = %{
+      menu:
+        Kati.UI.Menu.overflow(
+          Kati.Screens.ListDetail.menu_disc(),
+          menu?,
+          [
+            Kati.UI.Menu.item("edit", "Rename", :rename),
+            Kati.UI.Menu.item("ios_share", "Share", :share_list),
+            Kati.UI.Menu.rule(),
+            Kati.UI.Menu.item("delete", "Delete this list", :confirm_delete, destructive: true)
+          ],
+          dismiss: :close_menu
+        )
+    }
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
         <Spacer weight={1.0} />
-        <Box on_tap={{self(), :toggle_menu}} accessibility_id="toggle_menu">
-          {Kati.UI.SettingsList.disc("more_horiz")}
-        </Box>
+        {@menu}
       </Row>
       <Spacer size={16} />
     </Column>
+    """
+  end
+
+  @doc false
+  def menu_disc do
+    ~MOB"""
+    <Box
+      width={44}
+      height={44}
+      corner_radius={22}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_button()}
+      align="center"
+      on_tap={{self(), :toggle_menu}}
+      accessibility_id="toggle_menu"
+    >
+      {Kati.UI.symbol("more_horiz", size: 21)}
+    </Box>
     """
   end
 

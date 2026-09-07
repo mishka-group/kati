@@ -200,21 +200,22 @@ defmodule Kati.Screens.SeriesMeta do
       have no column, so the line is short rather than invented.
     * `synopsis` is `overview`, and `more` is `nil` — there is no expander, and
       a `more` under text that is already whole is a control that lies.
-    * `ratings` is `[]`. `Kati.Media.TrackedTitle.rating` has no writer
-      anywhere in the app (`Kati.Screens.Film.shaped/3` says so at length), and
-      the ratings this app DOES write are `Kati.Media.Watch.rating` on one
-      episode — which is not this show's score. Audience and critics are other
-      people's and nothing caches them.
+    * `ratings` is the reader's own three, per board 311. It used to be `[]`,
+      because the drawing's trio is `Yours`, `Audience` and `Critics` and the
+      last two are other people's scores that nothing caches. 311 replaced them
+      rather than leaving the row out: *"Audience and Critics are gone, not
+      blank… the trio becomes your rating, your progress, your hours — three
+      things the reader's own columns already answer, at the same typography."*
     * `cast`, `where` and `tags` are `[]`, and `trailer` is `nil`, for the four
       reasons the moduledoc gives.
   """
   @spec shaped(TrackedTitle.t(), CachedTitle.t() | nil) :: map()
-  def shaped(_tracked, cached) do
+  def shaped(tracked, cached) do
     %{
       title: (cached && cached.title) || "Untitled",
       seed: cached && cached.poster_path,
       meta: meta_line(cached),
-      ratings: [],
+      ratings: Kati.Screens.SeriesMeta.yours(tracked, cached),
       synopsis: (cached && cached.overview) || "",
       more: nil,
       trailer: nil,
@@ -360,11 +361,80 @@ defmodule Kati.Screens.SeriesMeta do
             {Kati.Screens.SeriesMeta.band(s.cast, "Cast", &Kati.Screens.SeriesMeta.cast/1, s)}
             {Kati.Screens.SeriesMeta.band(s.where, "Where to watch", &Kati.Screens.SeriesMeta.where/1, s)}
             {Kati.Screens.SeriesMeta.band(s.tags, "Your tags", &Kati.Screens.SeriesMeta.tags/1, s)}
+            {Kati.Screens.SeriesMeta.claim(s)}
           </Column>
         </Column>
       </Scroll>
       {Kati.Screens.SeriesMeta.chrome(Map.get(assigns, :back, "Series"))}
     </Box>
+    """
+  end
+
+  @doc """
+  Board 311's claim card: what is absent, and why.
+
+  *"A page is allowed to be short. What it is not allowed to do is imply a
+  missing half — 248's claim card replaces 40% of empty paper with a sentence
+  naming what is absent and why."*
+
+  Cast and the two other-people's scores need resources this app has no column
+  for — a person, and a cached score — and board 203 declined to invent either.
+  The card says so. It is drawn only when a band is actually missing, so a
+  future release that fills them takes it off the page by filling them.
+
+  `Your tags` is named here rather than drawn: 203 ruled the tags are the
+  WATCH's and live on 04, and *"the identical-looking control on 14 was a
+  different column that does not exist"*.
+  """
+  @spec claim(map()) :: term()
+  def claim(%{cast: cast}) when cast != [], do: ~MOB"<Spacer size={0} />"
+
+  def claim(_missing) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("group", size: 21, color: Kati.Theme.Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text="No cast, and no scores"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text="Both need a resource Kati has no column for — a person, and a cached score."
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={8} />
+        <Text
+          text="Your tags are on the series page, which is where they are written."
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={26} />
+    </Column>
     """
   end
 
@@ -563,6 +633,104 @@ defmodule Kati.Screens.SeriesMeta do
       [Kati.UI.symbol("more_horiz", size: 21)]
     )
   end
+
+  @doc """
+  Board 311's trio: what the reader's own columns can answer about this show.
+
+  `Yours` is the average of the episode ratings they left — `Kati.Media.Watch`
+  is where a rating in this app is actually written, and averaging the episodes
+  is the only show-level score the store holds. It draws a dash when they have
+  rated none, rather than a zero, because *not rated* and *rated zero* are
+  different facts.
+
+  `Episodes` is the same numerator screen 04 draws — ticks, not
+  `progress_episode`, which is a bookmark inside a season rather than a total.
+  `Hours` is those ticks against the runtime the cache holds for each.
+
+      iex> Kati.Screens.SeriesMeta.hours_label(0)
+      "—"
+
+      iex> Kati.Screens.SeriesMeta.hours_label(1080)
+      "18h"
+  """
+  @spec yours(TrackedTitle.t() | nil, CachedTitle.t() | nil) :: [map()]
+  def yours(nil, _cached), do: []
+
+  def yours(tracked, cached) do
+    watches = Kati.Screens.SeriesMeta.watches_for(tracked)
+    rated = Enum.filter(watches, &is_integer(&1.rating))
+    total = cached && cached.episode_count
+
+    [
+      %{
+        label: "Yours",
+        value:
+          if(rated == [],
+            do: "—",
+            else:
+              Kati.Rating.Scale.label(Enum.sum(Enum.map(rated, & &1.rating)) / length(rated) / 2)
+          ),
+        # The star is the drawing's, and board 14 tints only `Yours`. It is
+        # dropped when there is no rating, because a star over a dash is a
+        # rating of nothing rather than no rating.
+        color: Palette.accent(),
+        star?: rated != []
+      },
+      %{
+        label: "Episodes",
+        value:
+          if(is_integer(total) and total > 0,
+            do: "#{length(watches)} / #{total}",
+            else: Integer.to_string(length(watches))
+          ),
+        color: Palette.ink(),
+        star?: false
+      },
+      %{
+        label: "Hours",
+        value:
+          Kati.Screens.SeriesMeta.hours_label(Kati.Screens.SeriesMeta.minutes(watches, cached)),
+        color: Palette.ink(),
+        star?: false
+      }
+    ]
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  @spec watches_for(TrackedTitle.t()) :: [term()]
+  def watches_for(tracked) do
+    Kati.Media.Watch
+    |> Ash.Query.for_read(:for_title, %{tracked_title_id: tracked.id})
+    |> Ash.read!()
+  rescue
+    _error -> []
+  end
+
+  @doc false
+  @spec minutes([term()], CachedTitle.t() | nil) :: non_neg_integer()
+  def minutes(watches, cached) do
+    # The cache's per-episode runtime, times the ticks. `Kati.Media.Watch` has
+    # no runtime column of its own — a watch records WHEN, not how long — so
+    # this is the only multiplication the store supports, and it answers `0`
+    # rather than a guess where the cache has no runtime either.
+    each = (cached && cached.runtime_minutes) || 0
+
+    length(watches) * each
+  rescue
+    _error -> 0
+  end
+
+  @doc false
+  @spec hours_label(non_neg_integer()) :: String.t()
+  def hours_label(minutes) when is_integer(minutes) and minutes >= 60,
+    do: Integer.to_string(div(minutes, 60)) <> "h"
+
+  def hours_label(minutes) when is_integer(minutes) and minutes > 0,
+    do: Integer.to_string(minutes) <> "m"
+
+  def hours_label(_none), do: "—"
 
   @doc false
   def ratings(%{ratings: []}), do: ~MOB"<Spacer size={0} />"

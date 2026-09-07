@@ -31,6 +31,9 @@ defmodule Kati.ScreenListsTest do
       Kati.Repo.query!("DELETE FROM media_watches", [])
       Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
+      # The mixed-kind test leaves a book behind, and screen 72's bare mount
+      # draws the newest one — `Kati.SheetRowIdentityTest` is what notices.
+      Kati.Repo.query!("DELETE FROM books WHERE title = ?1", ["The Salt Almanac"])
     end)
 
     :ok
