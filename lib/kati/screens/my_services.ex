@@ -266,10 +266,17 @@ defmodule Kati.Screens.MyServices do
 
   defp shape(%Service{} = service) do
     %{
+      # The row this row IS. Board 95 draws a switch on every service row and
+      # 92 drew none, so nothing on this page could remove, rename or price
+      # one — MOVIES-AND-TV.md #119 — and a row that cannot name itself cannot
+      # be the one that changes.
+      id: service.id,
       badge: Service.badge(service),
       name: service.name,
       price: Service.price(service),
-      pence: service.monthly_pence
+      pence: service.monthly_pence,
+      # For the total over a NARROWED list — see `total_of/1`.
+      currency: service.currency
     }
   end
 
@@ -279,7 +286,139 @@ defmodule Kati.Screens.MyServices do
     save_error = assigns[:save_error]
     services = assigns[:services] || Kati.Screens.MyServices.listed()
 
-    Kati.Screens.MyServices.page_for(assigns, services, query, save_error)
+    Kati.Screens.MyServices.page_for(
+      assigns,
+      Kati.Screens.MyServices.matching(services, query),
+      query,
+      save_error
+    )
+  end
+
+  @doc """
+  The page narrowed to what the field holds.
+
+  MOVIES-AND-TV.md #118: the field typed and filtered nothing — `content/1`
+  passed `query` to `search_field/1` and to no one else — so a reader searching
+  a list of twelve services watched all twelve stay put.
+
+  `subscribed_label/1` and the money line are recomputed from the narrowed
+  lists on purpose. A count over a filtered list is what the filter is for; a
+  count that stayed at the unfiltered number would be the eyebrow disagreeing
+  with the rows under it, which is the same defect #75 fixed between Home and
+  this page.
+
+      iex> Kati.Screens.MyServices.matching(%{subscribed: [%{name: "Mubi"}], free: [], set_up?: true, money: nil}, "mu").subscribed
+      [%{name: "Mubi"}]
+
+      iex> Kati.Screens.MyServices.matching(%{subscribed: [%{name: "Mubi"}], free: [], set_up?: true, money: nil}, "netflix").subscribed
+      []
+  """
+  @spec matching(map(), String.t()) :: map()
+  def matching(services, query) do
+    case Kati.Screens.MyServices.searched_name(query) do
+      "" ->
+        services
+
+      typed ->
+        subscribed = Kati.Screens.MyServices.named(services.subscribed, typed)
+        free = Kati.Screens.MyServices.named(services.free, typed)
+
+        %{
+          services
+          | subscribed: subscribed,
+            free: free,
+            money:
+              Kati.Screens.MyServices.money_line(
+                subscribed,
+                Kati.Screens.MyServices.total_of(subscribed)
+              )
+        }
+    end
+  end
+
+  @doc """
+  The NAME half of what the field holds.
+
+  One field does two jobs on this page — it searches, and it is where a service
+  is typed with its price after it (`Netflix 10.99`). Tapping a row now puts
+  that line back into it (#119), and on the device the two jobs collided at
+  once: `Mubi 9.99` matched no service called *Mubi 9.99*, so the page emptied
+  and said **No service called that** about the row the reader had just tapped.
+
+  So the filter reads the name and ignores the price, which is right for both
+  jobs: mid-edit you see the row you are editing, and mid-add you see whether
+  the thing you are typing is already listed.
+
+      iex> Kati.Screens.MyServices.searched_name("Mubi 9.99")
+      "Mubi"
+
+      iex> Kati.Screens.MyServices.searched_name("mubi plus")
+      "mubi plus"
+  """
+  @spec searched_name(String.t()) :: String.t()
+  def searched_name(query) do
+    query |> Kati.Screens.MyServices.split_price() |> elem(0)
+  end
+
+  @doc false
+  @spec named([map()], String.t()) :: [map()]
+  def named(services, query) do
+    needle = String.downcase(query)
+
+    Enum.filter(services, &String.contains?(String.downcase(&1.name), needle))
+  end
+
+  @doc """
+  What a narrowed list costs a month, in its own currency — or `"—"`.
+
+  `Kati.Services.Service.total/1` answers this for the whole list and takes the
+  structs; this takes the shaped rows the page is already holding, so the
+  filtered total is computed from exactly the rows the filtered count counted.
+
+      iex> Kati.Screens.MyServices.total_of([%{pence: 1099, currency: "GBP"}])
+      "£10.99"
+
+      iex> Kati.Screens.MyServices.total_of([%{pence: nil, currency: "GBP"}])
+      "—"
+  """
+  @spec total_of([map()]) :: String.t()
+  def total_of(services) do
+    case Enum.reject(services, &is_nil(Map.get(&1, :pence))) do
+      [] ->
+        "—"
+
+      priced ->
+        Service.format(
+          Enum.sum(Enum.map(priced, & &1.pence)),
+          Map.get(hd(priced), :currency) || "GBP"
+        )
+    end
+  end
+
+  @doc """
+  Board 95's own sentence, when the field names nothing on the page.
+
+  *No service called that. Kati uses JustWatch's list through TMDB. If it is a
+  real service they do not track, add it as Something else.* — the copy exists
+  on 95 and nothing on 92 could produce it (#118). Drawn immediately above the
+  `Something else` row it names, so the answer and the way out of it are one
+  glance apart.
+
+  Nothing at all when the field is empty, or when it matched: a card that said
+  *no service called that* over a list of services would be worse than none.
+  """
+  @spec no_match(map(), String.t()) :: map()
+  def no_match(services, query) do
+    if Kati.Screens.MyServices.searched_name(query) != "" and services.subscribed == [] and
+         services.free == [] do
+      Kati.UI.SettingsList.note(
+        "search",
+        "No service called that. Kati uses JustWatch’s list through TMDB. " <>
+          "If it is a real service they do not track, add it as Something else."
+      )
+    else
+      ~MOB"<Spacer size={0} />"
+    end
   end
 
   @doc """
@@ -317,10 +456,11 @@ defmodule Kati.Screens.MyServices do
         {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
         {UI.eyebrow("Region")}
         {Kati.Screens.MyServices.region_group(assigns.region)}
-        {Kati.Screens.MyServices.search_field(query, services.set_up?)}
-        {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services))}
-        {Kati.Screens.MyServices.service_group(services.subscribed, true)}
+        {Kati.Screens.MyServices.search_field(query, services.set_up?, Map.get(assigns, :query_epoch, 0))}
+        {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services, query))}
+        {Kati.Screens.MyServices.service_group(services.subscribed, true, query)}
         {Kati.Screens.MyServices.free_band(services.free)}
+        {Kati.Screens.MyServices.no_match(services, query)}
         {Kati.Screens.MyServices.catalogue_group(services, save_error)}
         {UI.eyebrow("Rules")}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
@@ -399,9 +539,9 @@ defmodule Kati.Screens.MyServices do
   than on the field itself.
   """
   @spec search_field(String.t() | nil) :: map()
-  def search_field(query \\ nil, set_up? \\ true)
+  def search_field(query \\ nil, set_up? \\ true, epoch \\ 0)
 
-  def search_field(nil, _set_up?) do
+  def search_field(nil, _set_up?, _epoch) do
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -430,10 +570,17 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  def search_field(query, set_up?) when is_binary(query) do
+  def search_field(query, set_up?, epoch) when is_binary(query) do
     assigns = %{
       query: query,
       on_change: {self(), :service_query},
+      # `Kati.Screens.Search`'s counter, for its reason and `K-46`'s: the
+      # bridge remembers the last epoch it saw per field and ignores a `value`
+      # for a field it has already drawn. Without it a save cleared the assign
+      # and left the line sitting in the box — found on the Pixel_9a, where
+      # correcting Mubi's price wrote £12.99 and the field still read
+      # `Mubi 12.99` over an unfiltered list.
+      epoch: epoch,
       # A field over an empty list cannot be searching it. `Search services`
       # is the right word on a page with services on it and a dead end on one
       # without: there is nothing to search, and the field is in fact the way
@@ -464,6 +611,7 @@ defmodule Kati.Screens.MyServices do
           weight={1.0}
           accessibility_id="service_query"
           on_change={@on_change}
+          value_epoch={@epoch}
         />
       </Row>
       <Spacer size={24} />
@@ -471,10 +619,21 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  @doc "The subscribed eyebrow, carrying the count of what is actually listed."
-  @spec subscribed_label(map()) :: String.t()
-  def subscribed_label(%{subscribed: []}), do: "Subscribed · none yet"
-  def subscribed_label(services), do: "Subscribed · #{length(services.subscribed)}"
+  @doc """
+  The subscribed eyebrow, carrying the count of what is actually listed.
+
+  `none yet` is about a reader who has told Kati nothing, so under a filter it
+  is simply false — they have four and typed a word that matches none. The
+  count is what the eyebrow says then, and `0` is the honest one (#118).
+  """
+  @spec subscribed_label(map(), String.t()) :: String.t()
+  def subscribed_label(services, query \\ "")
+
+  def subscribed_label(%{subscribed: []}, query) when is_binary(query) and query != "",
+    do: "Subscribed · 0"
+
+  def subscribed_label(%{subscribed: []}, _none), do: "Subscribed · none yet"
+  def subscribed_label(services, _query), do: "Subscribed · #{length(services.subscribed)}"
 
   @doc """
   A group of services, with prices where they have them.
@@ -563,7 +722,18 @@ defmodule Kati.Screens.MyServices do
   # somebody what to do and does not offer it is a card they read twice. So
   # the pill goes under the sentence, on the same write as *Something else*,
   # and the field above it is asking for the name.
-  def service_group([], true) do
+  def service_group(services, owner_note?, query \\ "")
+
+  # A GROUP a filter emptied is not a group that is empty. *Nothing here yet*
+  # over a reader with four subscriptions, because they typed `mubi plus`, is
+  # the same misreading #117 fixed on the search screen and #112 on the
+  # activity log — and `no_match/2` is already saying the true thing one row
+  # down. So under a query the group draws nothing and lets it. #118.
+  def service_group([], _owner_note?, query) when is_binary(query) and query != "" do
+    ~MOB"<Spacer size={0} />"
+  end
+
+  def service_group([], true, _query) do
     assigns = %{card: Kati.Screens.MyServicesEmpty.empty_group()}
 
     ~MOB"""
@@ -574,7 +744,7 @@ defmodule Kati.Screens.MyServices do
     """
   end
 
-  def service_group(services, owner_note?) do
+  def service_group(services, owner_note?, _query) do
     rows = Enum.map(services, &Kati.Screens.MyServices.service_row/1)
 
     ~MOB"""
@@ -619,15 +789,98 @@ defmodule Kati.Screens.MyServices do
     end
   end
 
-  @doc false
+  @doc """
+  One service, with the control board 95 draws on it.
+
+  MOVIES-AND-TV.md #119: there was no way to remove, rename or price a service.
+  Once *Something else* wrote a row you were stuck with it — the row's own tap
+  reached `"edit_service_" <> _name -> {:noreply, socket}`, five drawn rows
+  the sweep listed as inert with the reason that no per-service editor is drawn
+  anywhere in the set.
+
+  Board 95 specifies the control and this is it: an on/off pill on every row.
+  Off moves the service to `:not_mine`, which is the tier the *Not mine* group
+  already counts, so it leaves this page's two lists without being deleted —
+  a service you cancelled is not a service you never had, and the reader can
+  turn it back on from the catalogue.
+
+  The row's own tap still opens the price. See `handle_tap/2`'s
+  `"edit_service_"` clause: it puts the service's name and price back in the
+  field the *Something else* row writes from, so correcting `Netflix 10.99` to
+  `Netflix 12.99` is retyping the line you typed, in the place you typed it.
+  """
+  @spec service_row(map()) :: map()
   def service_row(service) do
     SettingsList.row(
       Kati.Screens.MyServices.badge_tile(service.badge),
       SettingsList.body(service.name, nil),
-      SettingsList.trailing(Kati.Screens.MyServices.price(service.price)),
+      SettingsList.trailing(Kati.Screens.MyServices.row_trailing(service)),
       on_tap: {self(), Kati.Screens.MyServices.service_tag(service)}
     )
   end
+
+  @doc false
+  def row_trailing(service) do
+    assigns = %{
+      price: Kati.Screens.MyServices.price(service.price),
+      switch: Kati.Screens.MyServices.mine_switch(service)
+    }
+
+    ~MOB"""
+    <Row align="center">
+      {@price}
+      <Spacer size={11} />
+      {@switch}
+    </Row>
+    """
+  end
+
+  @doc """
+  `Mine` / `Not mine`, per service — board 95's own 46x28 switch.
+
+  Drawn only over a real row. A service with no id is the drawing's, and a
+  switch that turned off a picture would be a control with nothing behind it.
+  """
+  @spec mine_switch(map()) :: map()
+  def mine_switch(service) do
+    Kati.Components.MishkaToggle.toggle(
+      label: "Mine",
+      pressed: true,
+      on_change:
+        if(Map.get(service, :id),
+          do: {self(), Kati.Screens.MyServices.drop_tag(service)}
+        ),
+      color: Palette.ink_fill(),
+      text_color: Palette.on_ink(),
+      background: Palette.paper(),
+      label_color: Palette.ink_soft(),
+      corner_radius: 14,
+      height: 28,
+      padding: 0,
+      padding_left: 12,
+      padding_right: 12,
+      border_width: 0,
+      fill_width: false,
+      align: :center,
+      text_size: 11,
+      font_weight: :semibold,
+      max_lines: 1
+    )
+  end
+
+  @doc """
+  A service's *turn this off* tag, keyed by its id.
+
+  By id and not by name, for `Kati.Screens.Library.poster_tag/1`'s reason one
+  screen over: two services whose names differ only by a space collapse onto
+  one `accessibility_id`, and `onNodeWithTag` throws on the second match.
+
+      iex> Kati.Screens.MyServices.drop_tag(%{id: "abc"})
+      :drop_service_abc
+  """
+  @spec drop_tag(map()) :: atom()
+  def drop_tag(%{id: id}) when is_binary(id), do: String.to_atom("drop_service_" <> id)
+  def drop_tag(_drawn), do: :drop_service
 
   @doc false
   def badge_tile(badge) do
@@ -892,12 +1145,20 @@ defmodule Kati.Screens.MyServices do
         Services.toggle_rule(key)
         {:noreply, Mob.Socket.assign(socket, :rules, Services.rules())}
 
-      # Every service row, by its own name — see `service_tag/1`. It changes
-      # nothing, exactly as the bare `:edit_service` changed nothing before it:
-      # there is no edit sheet to push, and #97 is about being addressable
-      # rather than about wiring a destination this board does not draw.
-      "edit_service_" <> _name ->
-        {:noreply, socket}
+      # Board 95's switch, off. `:not_mine` rather than a destroy: a service you
+      # cancelled is not one you never had, and the *Not mine* group already
+      # counts that tier — so the row leaves this page's two lists and the
+      # reader can put it back from the catalogue. MOVIES-AND-TV.md #119.
+      "drop_service_" <> id ->
+        {:noreply, Kati.Screens.MyServices.drop_service(socket, id)}
+
+      # Every service row, by its own name — see `service_tag/1`. It puts the
+      # service back in the field the *Something else* row writes from, so
+      # correcting `Netflix 10.99` to `Netflix 12.99` is retyping the line you
+      # typed where you typed it — which is the whole of the editor #119 asks
+      # for, without a second sheet drawing a second way to say one thing.
+      "edit_service_" <> name ->
+        {:noreply, Kati.Screens.MyServices.edit_service(socket, name)}
 
       _other ->
         {:noreply, socket}
@@ -954,6 +1215,7 @@ defmodule Kati.Screens.MyServices do
         # back to. Here the screen never left.
         socket
         |> Mob.Socket.assign(:query, "")
+        |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
         |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
         |> Mob.Socket.assign(:save_error, nil)
 
@@ -961,6 +1223,80 @@ defmodule Kati.Screens.MyServices do
         Mob.Socket.assign(socket, :save_error, Write.message(error))
     end
   end
+
+  @doc """
+  Turn a service off: `:not_mine`, and the page re-read.
+
+  Not a destroy. The *Not mine* group already counts this tier, so the row
+  leaves the two lists above without leaving the store — a service you
+  cancelled in March is a thing you had, and `Kati.Screens.Money` reads the
+  history. MOVIES-AND-TV.md #119.
+  """
+  @spec drop_service(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def drop_service(socket, id) do
+    with {:ok, service} <- Ash.get(Service, id),
+         {:ok, _updated} <-
+           service |> Ash.Changeset.for_update(:update, %{tier: :not_mine}) |> Ash.update() do
+      socket
+      |> Mob.Socket.assign(:services, Kati.Screens.MyServices.listed())
+      |> Mob.Socket.assign(:save_error, nil)
+    else
+      error -> Mob.Socket.assign(socket, :save_error, Write.message(error))
+    end
+  end
+
+  @doc """
+  Put a service back in the field, so the next save corrects it.
+
+  `Netflix 10.99` is the line the *Something else* row asks for and
+  `save_service/1` already answers `{:ok, existing}` for a name already listed
+  — so the same field, refilled, is the editor. What was missing was any way
+  to get the line back into it.
+
+  The price goes in only when there is one: `Netflix` for a service with no
+  price is the line a reader would type to give it one, and `Netflix ` with a
+  trailing space is not.
+  """
+  @spec edit_service(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def edit_service(socket, tagged) do
+    services = socket.assigns[:services] || Kati.Screens.MyServices.listed()
+
+    case Kati.Screens.MyServices.by_tag(services, tagged) do
+      nil ->
+        socket
+
+      service ->
+        socket
+        |> Mob.Socket.assign(:query, Kati.Screens.MyServices.line_for(service))
+        # The field has already been drawn, so the refill needs a new epoch
+        # too — otherwise the line goes into the assign and never into the box.
+        |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
+    end
+  end
+
+  @doc false
+  @spec by_tag(map(), String.t()) :: map() | nil
+  def by_tag(services, tagged) do
+    (services.subscribed ++ services.free)
+    |> Enum.find(
+      &(Kati.Screens.MyServices.service_tag(&1) == String.to_atom("edit_service_" <> tagged))
+    )
+  end
+
+  @doc """
+  A service as the line the field takes.
+
+      iex> Kati.Screens.MyServices.line_for(%{name: "Netflix", pence: 1099})
+      "Netflix 10.99"
+
+      iex> Kati.Screens.MyServices.line_for(%{name: "Aria Free", pence: nil})
+      "Aria Free"
+  """
+  @spec line_for(map()) :: String.t()
+  def line_for(%{pence: pence} = service) when is_integer(pence) and pence > 0,
+    do: "#{service.name} #{:erlang.float_to_binary(pence / 100, decimals: 2)}"
+
+  def line_for(service), do: service.name
 
   @doc """
   The write. A service the user typed, in the tier the row's own copy promises.
@@ -982,6 +1318,21 @@ defmodule Kati.Screens.MyServices do
   this screen cannot reach answers `{:error, _}` at one end or the other, which
   is a failure the row reports rather than one it swallows — the whole of #85.
   """
+  @doc """
+  The same service, at the price that was just typed — or untouched.
+
+      iex> Kati.Screens.MyServices.repriced(%{monthly_pence: 1099}, nil)
+      {:ok, %{monthly_pence: 1099}}
+  """
+  @spec repriced(term(), integer() | nil) :: {:ok, term()} | {:error, term()}
+  def repriced(service, nil), do: {:ok, service}
+
+  def repriced(service, pence) do
+    service
+    |> Ash.Changeset.for_update(:update, %{monthly_pence: pence})
+    |> Ash.update()
+  end
+
   @spec save_service(String.t() | nil) :: {:ok, Service.t()} | {:error, term()}
   def save_service(name) when is_binary(name) do
     case String.trim(name) do
@@ -993,7 +1344,15 @@ defmodule Kati.Screens.MyServices do
 
         case Kati.Screens.MyServices.already_listed(name) do
           %Service{} = service ->
-            Write.note({:ok, service}, "add service #{name}")
+            # A name already listed, with a price after it, is somebody
+            # CORRECTING the price — which is the editor MOVIES-AND-TV.md #119
+            # asks for, in the field they typed the line in rather than in a
+            # second sheet drawing a second way to say one thing. A bare name
+            # still writes nothing: re-adding something you already have is
+            # the ordinary way somebody checks whether they already have it,
+            # and it must not blank a price they set earlier.
+            Kati.Screens.MyServices.repriced(service, pence)
+            |> Write.note("add service #{name}")
 
           nil ->
             Kati.Screens.MyServices.create_service(name, pence)

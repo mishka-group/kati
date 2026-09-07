@@ -499,9 +499,15 @@ defmodule Kati.ScreenTapSweepTest do
     # below it. Typing arrives as `{:change, :service_query, _}` and a sweep of
     # taps cannot see it — `Kati.ServiceWriteTest` asserts the field holds what
     # was typed and that the row writes it. What the row's own `on_tap` still
-    # opens is nothing, which is what keeps this entry honest, and
-    # `:edit_service` opens nothing because no per-service editor is drawn
-    # anywhere in the set.
+    # opens is nothing, which is what keeps this entry honest.
+    #
+    # `:edit_service` used to sit under the same sentence — *no per-service
+    # editor is drawn anywhere in the set* — and no longer does. Board 95's
+    # switch is on every service row and the row's own tap refills the field
+    # the service was typed in (MOVIES-AND-TV.md #118, #119). This sweep still
+    # cannot see either: it renders against an empty store, where screen 92 has
+    # no service rows at all. `Kati.ServiceWriteTest` presses them over real
+    # ones, which is the only place that control exists.
     {Kati.Screens.MyServices, :rule_rentals},
     {Kati.Screens.MyServices, :rule_purchases},
     {Kati.Screens.MyServices, :rule_hide_unavailable},

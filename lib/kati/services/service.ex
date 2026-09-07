@@ -131,11 +131,28 @@ defmodule Kati.Services.Service do
         nil
 
       [%__MODULE__{currency: currency} | _rest] ->
-        pence = Enum.sum(Enum.map(priced, & &1.monthly_pence))
-
-        symbol(currency) <>
-          "#{div(pence, 100)}.#{String.pad_leading(Integer.to_string(rem(pence, 100)), 2, "0")}"
+        Kati.Services.Service.format(Enum.sum(Enum.map(priced, & &1.monthly_pence)), currency)
     end
+  end
+
+  @doc """
+  Minor units as money, in one currency's symbol.
+
+  Public because screen 92 has to total a NARROWED list — its search field
+  filters now (MOVIES-AND-TV.md #118) and a count over a filtered list wants a
+  total over the same one — and the rows it holds at that point are the shaped
+  maps it draws from rather than these structs.
+
+      iex> Kati.Services.Service.format(1099, "GBP")
+      "£10.99"
+
+      iex> Kati.Services.Service.format(900, "USD")
+      "$9.00"
+  """
+  @spec format(non_neg_integer(), String.t()) :: String.t()
+  def format(pence, currency) do
+    symbol(currency) <>
+      "#{div(pence, 100)}.#{String.pad_leading(Integer.to_string(rem(pence, 100)), 2, "0")}"
   end
 
   # Three symbols and a fallback that prints the code with a space. Not a

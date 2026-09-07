@@ -315,6 +315,140 @@ defmodule Kati.ServiceWriteTest do
     end
   end
 
+  describe "the field that used to type and filter nothing" do
+    test "narrows both groups, and the count with them" do
+      # MOVIES-AND-TV.md #118: `content/1` passed `query` to `search_field/1`
+      # and to nobody else, so a reader searching a list of twelve watched all
+      # twelve stay put.
+      view = mount_screen(MyServices)
+      view = add(view, @prefix <> "Mubi 10.99")
+      view = add(view, @prefix <> "Kino 11.49")
+
+      narrowed = render_info(view, {:change, :service_query, "mubi"})
+      drawn = text(narrowed)
+
+      assert drawn =~ "Mubi"
+      refute drawn =~ "Kino"
+
+      # The eyebrow counts what is under it. A count that stayed at the
+      # unfiltered number would be the heading disagreeing with its own rows.
+      # Asked of the label rather than of the drawn string, which `UI.eyebrow/1`
+      # upper-cases.
+      assert MyServices.subscribed_label(assigns(narrowed).services) == "Subscribed · 2"
+
+      assert MyServices.matching(assigns(narrowed).services, "mubi")
+             |> MyServices.subscribed_label() == "Subscribed · 1"
+    end
+
+    test "and a name nothing answers to gets board 95's own sentence" do
+      view = mount_screen(MyServices)
+      view = add(view, @prefix <> "Mubi 10.99")
+
+      drawn = text(render_info(view, {:change, :service_query, "mubi plus"}))
+
+      assert drawn =~ "No service called that"
+
+      assert drawn =~ "Something else",
+             "the answer names the way out and the way out is the next row"
+
+      # And NOT the empty-group card. *No subscriptions yet* over a reader who
+      # has one, because they typed a word that matches none of them, is the
+      # misreading #117 fixed on the search screen — found on the Pixel_9a,
+      # where the card pushed the true answer below the fold.
+      refute drawn =~ "No subscriptions yet"
+
+      assert assigns(view).services
+             |> MyServices.matching("mubi plus")
+             |> MyServices.subscribed_label("mubi plus") == "Subscribed · 0"
+    end
+
+    test "and an empty field says nothing at all" do
+      view = mount_screen(MyServices)
+      view = add(view, @prefix <> "Mubi 10.99")
+
+      refute text(render_info(view, {:change, :service_query, ""})) =~ "No service called that"
+    end
+  end
+
+  describe "a service you no longer have" do
+    test "the switch moves it to Not mine rather than deleting it" do
+      # MOVIES-AND-TV.md #119: once *Something else* wrote a row you were stuck
+      # with it — every service row tapped a handler that returned the socket
+      # unchanged. Board 95 specifies the switch and this is it.
+      view = mount_screen(MyServices)
+      view = add(view, @prefix <> "Mubi 10.99")
+
+      service = stored(@prefix <> "Mubi")
+      assert service.tier == :subscribed
+
+      dropped = render_info(view, {:tap, MyServices.drop_tag(%{id: service.id})})
+
+      assert stored(@prefix <> "Mubi").tier == :not_mine,
+             "a service you cancelled is not one you never had"
+
+      refute text(dropped) =~ @prefix <> "Mubi",
+             "the row is still on the page it was taken off"
+    end
+
+    test "and the switch is not drawn over a row that is only a drawing" do
+      drawn = inspect(MyServices.mine_switch(%{name: "Lumen+"}), limit: :infinity)
+
+      refute drawn =~ "drop_service"
+    end
+  end
+
+  describe "a price that was typed wrong" do
+    test "the row puts the line back in the field it was typed in" do
+      view = mount_screen(MyServices)
+      view = add(view, @prefix <> "Mubi 10.99")
+
+      # `service_tag/1` replaces spaces with underscores, so the tag carries
+      # the shaped name and `by_tag/2` resolves it against the very list the
+      # rows were drawn from.
+      tag = MyServices.service_tag(%{name: @prefix <> "Mubi"})
+      "edit_service_" <> tagged = Atom.to_string(tag)
+
+      refilled = render_info(view, {:tap, tag})
+
+      assert assigns(refilled).query == @prefix <> "Mubi 10.99"
+
+      # And the row the reader is editing is still on the page. One field does
+      # two jobs here, and on the Pixel_9a they collided: `Mubi 9.99` matched
+      # no service called *Mubi 9.99*, so the page emptied and said **No
+      # service called that** about the row that had just been tapped.
+      drawn = text(refilled)
+      assert drawn =~ @prefix <> "Mubi"
+      refute drawn =~ "No service called that"
+      assert MyServices.by_tag(assigns(refilled).services, tagged).name == @prefix <> "Mubi"
+
+      # And saving the corrected line changes the price rather than adding a
+      # second Mubi.
+      corrected =
+        refilled
+        |> render_info({:change, :service_query, @prefix <> "Mubi 12.99"})
+        |> render_info({:tap, :add_service})
+
+      assert length(Enum.filter(mine(), &(&1.name == @prefix <> "Mubi"))) == 1
+      assert text(corrected) =~ "12.99"
+
+      # And the field is actually empty afterwards, not just in the assign.
+      # `K-46`: the bridge ignores a `value` for a field it has already drawn
+      # unless the epoch moves — found on the Pixel_9a, where the price saved
+      # and the line stayed sitting in the box.
+      assert assigns(corrected).query == ""
+      assert assigns(corrected).query_epoch > assigns(refilled).query_epoch
+    end
+
+    test "and a service with no price comes back as a bare name" do
+      view = mount_screen(MyServices)
+      view = add(view, @prefix <> "Aria")
+
+      refilled = render_info(view, {:tap, MyServices.service_tag(%{name: @prefix <> "Aria"})})
+
+      assert assigns(refilled).query == @prefix <> "Aria"
+    end
+  end
+
   describe "the field the name comes from" do
     test "screen 92 draws one that can be typed into, and holds what was typed" do
       view = mount_screen(MyServices)
