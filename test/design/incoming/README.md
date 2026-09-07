@@ -95,9 +95,9 @@ about; the right is the section of `D-65` it answers.
 | 315 | 28 — dark, with nothing kept | `D-65` 28 |
 | 316 | 50 + 120 — what the code encodes | `D-65` 50+120 |
 | 317 | 55 — the gate on the Persian empty | `D-65` 55 |
-| 318 | 80 — the token card, three states | `D-65` 80 (1) |
-| 319 | 80 — the pairing card, four states of one row | `D-65` 80 (2) |
-| 320 | 80 + 82 — one retirement, mirrored | `D-65` 80 (3) |
+| 318 | 80 — the token card, three states | `D-65` 80 (1) | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 319 | 80 — the pairing card, four states of one row | `D-65` 80 (2) | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
+| 320 | 80 + 82 — one retirement, mirrored | `D-65` 80 (3) | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 321 | 86 — nothing to suggest from | `D-65` 86 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 322 | 88 — deferred, withdrawn, and one pill | `D-65` 88 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 323 | 93 — live, or a specimen | `D-65` 93 |
@@ -118,8 +118,11 @@ about; the right is the section of `D-65` it answers.
 
 ## What is built, and why the files stay here
 
-**Eighteen of the thirty-two are built and device-verified**: 308, 309, 311,
-312, 314, 321, 322, 325, 326, 328 and the whole Lists eight, 330–337. Their files stay in this
+**Twenty-one of the thirty-two are built and device-verified**: 308, 309, 311,
+312, 314, 318, 319, 320, 321, 322, 325, 326, 328 and the whole Lists eight,
+330–337. Board **320** also needed screen **114** built, which had never
+existed — `Kati.Screens.RetiredReason`, now behind three surfaces that had drawn
+*tap to see why* with nothing under it since they were written. Their files stay in this
 directory rather than moving to `screens/`, and that is not an oversight — the
 rule at the top of this file says a board moves when its screen renders every
 literal on it, and **most of the 7 September wave are state catalogues**. 330
