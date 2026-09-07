@@ -270,7 +270,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       registered = Enum.map(@registry, &elem(&1, 2))
 
       # 165 until 5 September, when the first of the 5-September export's
-      # ninety-one boards were built. `test/design/incoming/README.md` states
+      # ninety-five boards were built. `test/design/incoming/README.md` states
       # the rule this number follows: a board moves into `screens/` in the same
       # commit that builds its screen and registers it here, and this count
       # moves with it.
@@ -282,7 +282,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # What it held was two card faces 98 never previewed, which is what made
       # them unreachable in light. Both are on 98 now (MOVIES-AND-TV.md #3).
       assert length(on_disk) == 172,
-             "expected 173 drawings under test/design/screens, found #{length(on_disk)} — " <>
+             "expected 172 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 

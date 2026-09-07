@@ -1,7 +1,9 @@
 # Boards delivered, screens not built yet
 
-**Ninety-one artboards from Claude Design, 5 September 2026** — every one of the
-twenty-four briefs `D-35`–`D-58`, plus one more for `D-33`. They are here rather
+**Ninety-five artboards from Claude Design, 5 September 2026** — every one of the
+twenty-four briefs `D-35`–`D-58`, plus `D-34`, `D-42`'s open question and two
+answers `D-62` asked for. Eighty-six are here; eight are built and in
+`screens/`; one — 251 — is a receipt and lives in `reference/`. They are here rather
 than in `screens/` because `Kati.ScreenDesignLiteralTest` asserts *every drawing
 has a screen*: a board in `screens/` with no module behind it turns the whole
 suite red, and a red suite is a worse record of "these arrived" than this
@@ -15,7 +17,7 @@ with it.
 
 **The numbers are not the ones the briefs reserved.** `MISSING-CONNECTIONS.md`
 allocated 167–247 across `D-35`–`D-57` and 248–249 to `D-58`. The canvas
-renumbered as it drew: 167–208 and 248–301, with 170–171, 205–207 and 209–247
+renumbered as it drew: 167–208 and 248–305, with 170–171, 205–207 and 209–247
 never used. The table below is the mapping that actually shipped, and it is the
 one to trust. Nothing was lost — every brief has its boards.
 
@@ -30,12 +32,32 @@ Board **134** is in the export too and was NOT taken: it is `D-23b`'s first-run
 flow map, 1720px wide, and it already lives in `test/design/reference/134.html`
 with its own README saying why it is not a screen.
 
-## How they were extracted
+## How they were extracted — and the five it missed
 
 Each `data-screen-label="NN"` and the `<x-import>` block that follows it,
 counting nested opens so a frame is not cut at the first close. The method was
 checked against three boards already in `screens/` before being trusted — which
 is how the re-render difference above was found.
+
+**It was not enough, and it silently lied rather than reporting a miss.**
+Corrected 7 September:
+
+* **251 was a duplicate of 248.** 251 is a 1180px receipt of plain `div`s with
+  no `<x-import>` frame — the same shape as 134, which the *previous* export's
+  README already recorded as invisible to a frame-based splitter. So the walk
+  ran past 251 and captured the next frame it found, which was 248's:
+  `251.html` and `248.html` were byte-identical (`6d597c5c…`). The board is
+  `D-34`'s and now lives in `reference/251.html`.
+* **302–305 were never taken at all.** The 5 September pass stopped at 301.
+  They are `D-62`'s three asks — *One service*, *Lending*, and screen 43's
+  prepped card, which arrived as **304 What a prep is** — plus **305**, which
+  answers `D-62` §2 and §4 by declining to draw them.
+
+The splitter now slices on the labelled element itself, counting that tag's own
+opens and closes, so a board with no phone frame is captured whole. Anything
+added to this table is checked two ways: no two files share an md5, and every
+`data-screen-label` in the export at or above 167 is on disk here, in
+`screens/`, or in `reference/`.
 
 ## What arrived, by brief
 
@@ -81,7 +103,7 @@ is how the re-render difference above was found.
 | 248 | Series — a title with no episodes | `D-58` |
 | 249 | سریال بدون قسمت — no episodes, RTL | `D-58` |
 | 250 | The moment it fills | `D-58` |
-| 251 | Doors for the stranded screens | `D-33` |
+| 251 | Doors for the stranded screens | `D-34` — a receipt, moved to `reference/` |
 | 252 | One service | `D-46` |
 | 253 | One expense | `D-46` |
 | 254 | The service catalogue, and the five edits | `D-46` |
@@ -132,6 +154,10 @@ is how the re-render difference above was found.
 | 299 | هدف تازه — New goal, RTL | `D-57` |
 | 300 | ثبت وزن — Log weight, RTL | `D-57` |
 | 301 | کشور — Your country, RTL | `D-57` |
+| 302 | One service | `D-62` |
+| 303 | Lending | `D-62` |
+| 304 | What a prep is | `D-42` §3 |
+| 305 | §2 and §4 — decided, not drawn | `D-62` |
 
 ## Where to start
 
@@ -146,3 +172,12 @@ suggests: they are the only way to put a book or a record into the app by hand,
 and until they exist the Books and Music shelves can only be verified against
 their fixtures on a device. Phase 3 has moved both onto their tables; nothing can
 reach that code from the UI yet.
+
+**Within Movies & TV — the scope the app is being finished in — these are the
+boards that answer an open defect**, and none of them needs anything drawn
+first: 248/249/250 (04 with no episodes), 167/168 (10's sort, filter and empty),
+169 (11's), 181/182 (the whole Lists feature, which shipped with no board and
+disagrees with both), 201/202/203/204 (33 and 144 reconciled), 252/254 and 302
+(92, 93 and one service), 258/259/260 (05 and the two notification pages),
+261/262 (19's see-all), 270/271/272 (Sync and why nothing arrives), and the RTL
+set 280/281/287/288/289/290/295/297/298.

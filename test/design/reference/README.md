@@ -7,11 +7,12 @@ enforce: `Kati.ScreenDesignLiteralTest` reads every file in `screens/` as the
 claim *a screen exists for this and renders every literal in it*, so a board
 arrives there only once that claim is true.
 
-One remains here.
+Two remain here.
 
 | # | Board | Brief | Why it is still staged |
 |---|---|---|---|
 | 134 | First run — the flow map | `D-23` | Not a screen. See below. |
+| 251 | Doors for the stranded screens | `D-34` | Not a screen — a receipt. See below. |
 
 The twenty-five that left are 128–133 (`D-22`, #25), 135–139 (`D-23`, #11),
 140–142 (`D-24`, #12), 143–144 (`D-25`, #15), 145–147 (`D-26`, #19), 148–149
@@ -47,6 +48,38 @@ It answers all three questions `D-23` left open, on the board:
 
 `D-23b` was written to ask for this board and is unnecessary. Left in
 `design-briefs/` as the record of the wrong call rather than deleted.
+
+---
+
+## Screen 251 is a receipt, and it was extracted wrongly the first time
+
+Same failure as 134, one export later. 251 is a 1180px sheet of plain `div`s —
+*"Not a screen — a receipt, like 134"* in its own closing note — so it carries
+no `<x-import IOSDevice>` frame. The 5 September splitter took each
+`data-screen-label` **and the `<x-import>` block that follows it**, so for 251
+it walked past the receipt and captured **248's** frame instead:
+`incoming/251.html` was byte-identical to `incoming/248.html`
+(`6d597c5c866d910c7dce7219c3c4b206`), and `incoming/README.md` listed it as the
+doors board under the wrong brief. Both are corrected; the duplicate is deleted.
+
+It is the board `D-34` asked for, and it answers the four questions that brief
+left open:
+
+  * **The long-press collision** — *"A tile selects. A row rates."* Both
+    meanings stand, because a grid of artwork and a list of rows are
+    unmistakably different surfaces; every long press added ships with a
+    dismissible cream hint above the surface it applies to.
+  * **The sort disc becomes a filter disc** — `tune` replaces `sort`, because
+    145's sheet already owns sort as its first band and two discs would give
+    one sheet two doors.
+  * **Drop is a board control, not an overflow item** — a standard row with a
+    chevron, because dropping is a decision the detail screen exists to support.
+  * **Auto-detect's mode switch is segmented, not chips** — it changes the whole
+    screen rather than filtering it.
+
+It also records four screens deliberately given **no** door — `AnimeFilter`,
+`EpisodeRatings`, `GoalsEmpty` and ~34 states/reference sheets, and
+`LaunchScreen`, which the OS opens rather than the app.
 
 ---
 
