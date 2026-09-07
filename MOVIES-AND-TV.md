@@ -2895,6 +2895,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Until an offers resource exists these three switches should not be drawn as live controls. Either build the availability filter or replace the switches with the honest note 93 already carries.
 
+*Fixed; the last third landed 8 September.* `Kati.Media.Availability` reads TMDB's provider block and `Kati.Screens.UpNext.watchable/1` and `Kati.Media.Recommendations` filter on it. Screen 13 was the page the sentence had been cut for — it read a fixture, so the rule named two pages instead of three — and board 310 counts the filter rather than remembering it: `Kati.Screens.WhatFits.watchable/1` filters both halves of that page and the sentence names all three again.
+
 ### 78. 94 Country picker — `lies-to-user`
 
 **The field says "Search 190 countries" over a list of seven, and tapping it does nothing.**
@@ -2982,6 +2984,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/what_fits.ex — `grep -n 'on_tap\|handle_tap' lib/kati/screens/what_fits.ex` returns nothing across 424 lines. `length_button/1` (:231), `mood_chip/1` (:263), `defer_pill/1` (:396) and `more_disc/0` (:145) all build their nodes without a tap. `load/1` (:87) assigns `Sample.tonight()` and the screen never reads `Kati.Media`.
 
 *Fix.* The window buttons are the cheap half and the moduledoc says so: `CachedEpisode.runtime_minutes` plus `for_title/2` gives a real "3 episodes fit" for a chosen window. Wire the five buttons to a `:window` assign and derive the list. The mood chips have no data behind them — drop them or mark them unavailable.
+
+*Fixed 7 September; finished 8 September.* The five buttons move a `:window` assign and the list is derived from it. Board 310 closed the last of it: the page is filtered by *Hide titles I can't watch* too, which is what screen 92's sentence had been claiming and could not have meant while this page read a fixture.
 
 ### 89. 141 Import — recognised (Kati.Screens.ImportRecognised) — `inert-control`
 

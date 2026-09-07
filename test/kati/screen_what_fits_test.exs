@@ -32,8 +32,15 @@ defmodule Kati.ScreenWhatFitsTest do
   alias Kati.Media.Watch
   alias Kati.Screens.WhatFits
 
+  require Ash.Query
+
   @prefix "what-fits-"
   @day 24 * 60 * 60
+
+  # `Kati.Services`'s own `@rules_key`. Not exported, and deliberately not made
+  # so for a test: the key is an implementation detail of where a preference is
+  # kept, and naming it here costs one line if it ever moves.
+  @rules_key :kati_availability_rules
 
   setup do
     on_exit(&wipe!/0)
@@ -127,6 +134,54 @@ defmodule Kati.ScreenWhatFitsTest do
 
       refute inspect(WhatFits.more_row(false), limit: :infinity) =~ glyph
       assert inspect(WhatFits.more_row(true), limit: :infinity) =~ glyph
+    end
+  end
+
+  describe "board 310 — Hide titles I can’t watch reaches this page too" do
+    setup :seed_shelf
+
+    test "off, which is every device's default, and the whole shelf is here" do
+      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"]
+      assert WhatFits.tonight(45).over.title == "Quiet Harbour"
+    end
+
+    test "on, and a title known to be unavailable leaves both halves of the page" do
+      offer!("hollow", %{"rent" => ["Apple TV"]})
+      offer!("harbour", %{"rent" => ["Apple TV"]})
+      hide!()
+
+      t = WhatFits.tonight(45)
+
+      assert t.fits == [], "the series is rent-only and rentals are off, so no episode fits"
+
+      # Not `nil`. `Quiet Harbour` at 1h 46m was the nearest film over the
+      # window and is hidden; `The Long One` at 3h has no provider block at
+      # all, which is `:unknown` and stays. So the row moves rather than going
+      # — which is the whole of `hide?/3`'s third answer, seen from a screen.
+      assert t.over.title == "The Long One"
+    end
+
+    test "on, and a title on a service the reader pays for stays" do
+      a_service!("Aria")
+      offer!("hollow", %{"flatrate" => [@prefix <> "Aria"]})
+      hide!()
+
+      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"]
+    end
+
+    test "on, and a title nobody has looked up stays — unknown is not unavailable" do
+      hide!()
+
+      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"],
+             "hiding a title with no provider data would empty the page for a reason " <>
+               "the reader has no way to discover"
+    end
+
+    test "on, with rentals counted, and the rent-only title comes back" do
+      offer!("hollow", %{"rent" => ["Apple TV"]})
+      rules!(%{rentals: true, purchases: false, hide_unavailable: true})
+
+      assert Enum.map(WhatFits.tonight(45).fits, & &1.run) == ["44m", "43m", "41m"]
     end
   end
 
@@ -263,6 +318,27 @@ defmodule Kati.ScreenWhatFitsTest do
     })
   end
 
+  # The reader's answer to screen 92's three switches. `Kati.Services` has no
+  # setter — the screen flips one rule at a time through `toggle_rule/1` — and
+  # a test that tapped its way to a state would be testing screen 92 rather
+  # than this page, so the map goes in under the key `Kati.Services.rules/0`
+  # reads. `@rules_key` is that key, named once here.
+  defp rules!(rules), do: Mob.State.put(@rules_key, rules)
+
+  defp hide!, do: rules!(%{rentals: false, purchases: false, hide_unavailable: true})
+
+  defp offer!(suffix, offers) do
+    Kati.Media.CachedTitle
+    |> Ash.Query.filter(source_id == ^(@prefix <> suffix))
+    |> Ash.read!()
+    |> Elixir.List.first()
+    |> Ash.update!(%{providers: %{Kati.Services.region() => offers}})
+  end
+
+  defp a_service!(name) do
+    Ash.create!(Kati.Services.Service, %{name: @prefix <> name, tier: :subscribed})
+  end
+
   defp wipe! do
     Kati.Repo.query!(
       "DELETE FROM media_watches WHERE tracked_title_id IN " <>
@@ -273,5 +349,6 @@ defmodule Kati.ScreenWhatFitsTest do
     Kati.Repo.query!("DELETE FROM cached_episodes WHERE source_id LIKE ?1", [@prefix <> "%"])
     Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
     Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
+    Kati.Repo.query!("DELETE FROM services WHERE name LIKE ?1", [@prefix <> "%"])
   end
 end

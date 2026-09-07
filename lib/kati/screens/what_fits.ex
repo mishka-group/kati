@@ -73,6 +73,18 @@ defmodule Kati.Screens.WhatFits do
   screen whose *nothing else fits* row is the user's real film while the three
   episodes above it are invented would be making its most specific claim about
   data it does not have. Both land on the round the list above them does.
+
+  ## Board 310 — the third page screen 92's sentence names
+
+  *Hide titles I can't watch* prints *Removes them from Discover, Up next and
+  What fits tonight*, and the app had cut that to two pages. This was the
+  missing one, and honestly so: while the list was a fixture, a switch that
+  claimed to filter it would have been the promise the rule was reported for.
+
+  `watchable/1` closes it, on `shelf/1` so both halves of the page are filtered
+  by one rule — the episodes that fit and the film that does not. 310's own
+  note is the argument for counting rather than remembering: *"Three, counted
+  from the filter and not from memory."*
   """
   use Kati.Screens.Pushed, back: "Library"
 
@@ -344,6 +356,46 @@ defmodule Kati.Screens.WhatFits do
       |> Ash.read!()
     end)
     |> Enum.map(&{&1, Kati.Media.Release.cached_for(&1)})
+    |> Kati.Screens.WhatFits.watchable()
+  end
+
+  @doc """
+  The rows left once *Hide titles I can't watch* has been applied.
+
+  Board 310 is what makes this exist. Screen 92's sentence names three pages —
+  *Removes them from Discover, Up next and What fits tonight* — and the app
+  had cut it to two, because when the rule was wired this screen read a
+  fixture and *"a switch that claimed to filter it would be the same promise
+  the rule was reported for in the first place."* That stopped being true when
+  `fitting/1` and `nearest_over/1` started reading the shelf, and 310 counts
+  the filter rather than remembering it: three, and the sentence goes back.
+
+  `Kati.Screens.UpNext.watchable/1` one screen over, and the shape is the
+  same on purpose — one read of the reader for the whole list, the switch's
+  default is off, and `Kati.Media.Availability.hide?/3` hides only what is
+  KNOWN to be unavailable, so a device with no provider data behaves exactly
+  as it did before. The one difference is that this list already carries its
+  cached row beside each tracked one, so there is no second query to batch.
+  """
+  @spec watchable([{TrackedTitle.t(), term()}]) :: [{TrackedTitle.t(), term()}]
+  def watchable([]), do: []
+
+  def watchable(rows) do
+    reader = Kati.Services.availability()
+
+    if reader.rules[:hide_unavailable] do
+      Enum.reject(rows, fn {_tracked, cached} ->
+        Kati.Media.Availability.hide?(
+          Kati.Media.Availability.offers(cached, reader.region),
+          reader.subscribed,
+          reader.rules
+        )
+      end)
+    else
+      rows
+    end
+  rescue
+    _error -> rows
   end
 
   @doc false

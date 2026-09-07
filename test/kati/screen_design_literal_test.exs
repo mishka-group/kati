@@ -792,20 +792,6 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"42", "united kingdom · 3 subscribed",
        "42 draws 24's row and reaches the same count through it",
        ~r/^.+ · (none yet|\d+ subscribed)$/u},
-      # 92's third rule. The board's sentence names three pages —
-      # *Removes them from Discover, Up next and What fits tonight* — and the
-      # rule empties two of them: screen 13 reads nothing at all
-      # (`Kati.Screens.WhatFits` draws `Kati.WhatFits.Sample.tonight/0`, and
-      # MOVIES-AND-TV.md #88 is that every control on it is decoration), so a
-      # switch that claimed to filter it would be the same promise this rule
-      # was reported for in the first place (#77). It names what it does.
-      # The pattern insists the sentence still names pages and still says what
-      # is kept, so a rule that quietly stopped saying either fails.
-      {"92",
-       "removes them from discover, up next and what fits tonight. your library and " <>
-         "wishlist keep everything.",
-       "the pages the rule actually empties, which is two of the three the board names",
-       ~r/^removes them from .+\. your library and wishlist keep everything\.$/u},
       # 23's back pill, and the twin of this entry is in
       # `Kati.ScreenEmptyDatabaseTest`. Board 23 froze `Stats`; the only route
       # into the page is screen 92's Money row.

@@ -81,8 +81,15 @@ defmodule Kati.Screens.MyServices do
      "A film you would have to rent still shows up in What fits tonight."},
     {:purchases, "Count purchases as available",
      "Titles you would have to buy outright are included too."},
+    # Board 310: three, counted from the filter and not from memory. The
+    # sentence had been cut to two because screen 13 read a fixture and a
+    # switch that claimed to filter it would have been the promise this rule
+    # was reported for. `Kati.Screens.WhatFits.watchable/1` closed that, so the
+    # board's own sentence goes back — 310 counts the pages the filter reaches
+    # (11 Discover, 10 Up next, 13 What fits tonight) and finds three.
     {:hide_unavailable, "Hide titles I can’t watch",
-     "Removes them from Discover and Up next. Your library and wishlist keep everything."}
+     "Removes them from Discover, Up next and What fits tonight. " <>
+       "Your library and wishlist keep everything."}
   ]
 
   # `:query` and `:save_error` open empty and nil, so the resting page is the
