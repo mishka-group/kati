@@ -226,6 +226,14 @@ defmodule Kati.ScreenParamsSweepTest do
     #
     # These are `%{}` because `%{}` is the right argument, which is the one
     # shape this list holds that is not a backlog entry.
+    # ── Screen 49's *Import a plan*, onto screen 120.
+    #
+    # 120 reads `:from` since board 316, and the value it reads is `:code` —
+    # the arrival screen 50's *Scan a plan* row names, which brings settings and
+    # no meals. This row is the other arrival and it is the screen's default: a
+    # file, with conflicts and a merge, which is the page 120 was drawn as.
+    # `%{}` is the right argument here, not a missing one.
+    {Kati.Screens.Plans, :import_plan, Kati.Screens.PlanImport},
     {Kati.Screens.Home, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.HomeDark, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.HomeEmpty, :fab, Kati.Screens.AddTitle},

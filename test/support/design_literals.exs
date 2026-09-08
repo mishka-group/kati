@@ -534,7 +534,17 @@ defmodule Kati.DesignLiterals do
       # defaults to off — 323 calls that *"93's own reasoning, unchanged"* —
       # but it is a fact about `Kati.Services.default_rules/0` now rather than
       # a line of copy under a switch.
-      {"93", "off by default — with no services set it would hide everything."}
+      {"93", "off by default — with no services set it would hide everything."},
+      # Board 316 rewords screen 50's QR card. `Scan to import this plan`
+      # promised an import and the mono line under it has said `SETTINGS ONLY`
+      # since `Kati.Meals.SampleShare.qr_scope/0` was written — the two halves
+      # of one card disagreeing. 316's ruling: *"Two ways out: widen the
+      # encode, or reword the card. Reword. A QR holds about 2,900 bytes and 35
+      # meals with ingredients is tens of kilobytes — widening it is not a
+      # decision, it is a physical impossibility."* The card says `Scan to set
+      # up this plan` now, over a sentence naming what does and does not
+      # travel.
+      {"50", "scan to import this plan"}
     ]
   end
 end

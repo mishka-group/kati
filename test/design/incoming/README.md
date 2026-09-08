@@ -93,7 +93,7 @@ about; the right is the section of `D-65` it answers.
 | 313 | 19 + 91 + 261 — chip rows at 235% | `D-65` 19+91 |
 | 314 | 25 — two literals | `D-65` 25 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 315 | 28 — dark, with nothing kept | `D-65` 28 | — **built 8 Sep**, kept here: it is 139 crossed into dark plus a token table, not a frame of one page |
-| 316 | 50 + 120 — what the code encodes | `D-65` 50+120 |
+| 316 | 50 + 120 — what the code encodes | `D-65` 50+120 | — **built 8 Sep**, kept here: two screens in one frame with the arithmetic between them |
 | 317 | 55 — the gate on the Persian empty | `D-65` 55 | — **built 8 Sep**, kept here: it is a ruling about which board 55 shows, not a frame of one |
 | 318 | 80 — the token card, three states | `D-65` 80 (1) | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 319 | 80 — the pairing card, four states of one row | `D-65` 80 (2) | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |

@@ -3428,6 +3428,16 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *What 327's second frame asks for and was not built.* Its *true empty* — `No medications` over an `Add a medication` ink button, with the Schedules group and its eyebrow both gone — is the state a reader with nothing stored is in, and screen 112 draws the drawing there instead: `doses({false, [], []})` answers `drawn_doses/0`, which is FIDELITY's rule that an empty store answers the board and which `Kati.ScreenEmptyDatabaseTest` pins for all 172 screens. Changing it for one screen is a decision about that rule rather than about this page.
 
+### 136. 50 Share a plan / 120 Import a plan — `lies-to-user`
+
+**Screen 50's QR card was titled `Scan to import this plan` over a mono line reading `SETTINGS ONLY`, said nothing about the 35 meals it cannot carry, and offered no route for them; screen 120 counted `29 New` for an arrival that brings none.**
+
+*Proof.* lib/kati/meals/sample_share.ex `share/0` had `qr_title: "Scan to import this plan"` beside `qr_uri: "KATI://PLAN/CUTTING-V3 · SETTINGS ONLY"` — the two halves of one card disagreeing, and `qr_scope/0`'s own doc already argued at length that a QR cannot hold a meal library. lib/kati/screens/plan_import.ex `counts/0` was a single clause returning `29 / 4 / 2`, and `plan/0` a single clause whose `action` was `Import 35`; nothing distinguished a scanned arrival from a file one, and screen 50's *Scan a plan* row carried no tap at all (`tile_tap/1` matched `picture_as_pdf` and nothing else).
+
+*Fix.* Board 316's ruling: *"Two ways out: widen the encode, or reword the card. Reword. A QR holds about 2,900 bytes and 35 meals with ingredients is tens of kilobytes — widening it is not a decision, it is a physical impossibility."*
+
+*Fixed 8 September.* The card is `Scan to set up this plan` over a sentence naming what does and does not travel, and it offers the route that does carry the meals — screen 128's file, which is the only file this app produces. *Scan a plan* pushes screen 120 with `from: :code`, and that arrival is its own page: `Set up` rather than `Import 35`, `FROM A CODE · SETTINGS ONLY`, four rows saying what came and what could not, three zeroes where the counts were, and no conflict queue — a code cannot conflict with anything. `Kati.PlanQrScopeTest` pins both sides, and pins the card's promise against `qr_scope/0` rather than against a literal.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.
