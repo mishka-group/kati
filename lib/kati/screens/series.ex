@@ -196,6 +196,43 @@ defmodule Kati.Screens.Series do
     Map.put(drawn, :by_season, by_season)
   end
 
+  @doc """
+  Board 248's series: one Kati has, whose episode list it does not.
+
+  A second drawing of screen 04 rather than a screen of its own — 248's own
+  footnote argues that the empty primary slot is what makes it a *state* of 04.
+  `Kati.ScreenDesignLiteralTest`'s `drawn_state/0` installs this so the board is
+  compared against the page in the state it draws, the same way boards 12, 154
+  and 157 are.
+
+  Everything on it is what a hand-added series actually has: a title, a year,
+  a status off the shelf, and nothing else. No seed, so `hero_art/1` draws the
+  `No poster` placeholder; no seasons, so the season bar and the primary are
+  both absent; `episodes: []`, which is the whole subject.
+  """
+  @spec drawn_without_episodes() :: map()
+  def drawn_without_episodes do
+    %{
+      tracked_id: nil,
+      followed?: false,
+      private?: false,
+      anime?: false,
+      media_kind: :tv,
+      status: :not_started,
+      title: "The Northern Gardens",
+      seed: nil,
+      meta: "2023",
+      season: nil,
+      seasons: [],
+      current_season: nil,
+      total: 0,
+      watched: 0,
+      next_air: nil,
+      episodes: [],
+      by_season: %{}
+    }
+  end
+
   # ── Reading `Kati.Media` ────────────────────────────────────────────────────
 
   @doc """
@@ -327,6 +364,7 @@ defmodule Kati.Screens.Series do
       # screen 25 is a page about, which nothing anywhere could set for one
       # title until the bookmark disc could (MOVIES-AND-TV.md #81).
       followed?: tracked.notify_new_episodes,
+      status: tracked.status,
       private?: tracked.private,
       anime?: tracked.kind == :anime,
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
@@ -357,6 +395,7 @@ defmodule Kati.Screens.Series do
       # different title from the one it is drawing.
       tracked_id: tracked.id,
       followed?: tracked.notify_new_episodes,
+      status: tracked.status,
       private?: tracked.private,
       anime?: tracked.kind == :anime,
       media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
@@ -531,6 +570,12 @@ defmodule Kati.Screens.Series do
       # Kind (MOVIES-AND-TV.md #104, #113).
       anime?: Map.get(facts, :anime?, false),
       media_kind: Map.get(facts, :media_kind, :tv),
+      # Board 248 draws the shelf's own chip over the hero — `Not started` on
+      # the frame, `Watching` on the second one — and its caption rules that it
+      # stays the shelf's chip rather than becoming *Added by hand*, "which
+      # would say how the row got here rather than where you are in it". One
+      # more fact this map used to forget.
+      status: Map.get(facts, :status),
       title: facts.title || "Untitled",
       seed: facts.seed,
       meta: meta_line(facts),
@@ -788,6 +833,8 @@ defmodule Kati.Screens.Series do
       </Box>
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
+          {Kati.Screens.Series.status_chip(Map.get(s, :status))}
+          <Spacer size={9} />
           <Text
             text={s.title}
             text_size={30}
@@ -819,7 +866,7 @@ defmodule Kati.Screens.Series do
   def hero_art(seed) do
     case Kati.Design.Images.hero(seed) do
       nil ->
-        ~MOB"<Spacer size={0} />"
+        Kati.Screens.Series.no_poster()
 
       src ->
         ~MOB"""
@@ -827,6 +874,97 @@ defmodule Kati.Screens.Series do
         """
     end
   end
+
+  @doc """
+  Board 248's poster placeholder: a `movie` glyph over the word.
+
+  A title added by hand has no artwork, and until board 248 the hero was 330pt
+  of flat `track_off` with a name floating at the bottom of it — an emptiness
+  the page never explained, which is the shape this repository keeps replacing
+  with a sentence. `No poster` is a fact rather than a fault, and saying it is
+  what stops the band reading as an image that failed to load.
+  """
+  @spec no_poster() :: map()
+  def no_poster do
+    ~MOB"""
+    <Box fill_width={true} height={330} align="center">
+      <Column fill_width={true} align="center">
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          {Kati.UI.symbol("movie", size: 30, color: Palette.rail_idle())}
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={9} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Text
+            text="No poster"
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.rail_idle()}
+            max_lines={1}
+          />
+          <Spacer weight={1.0} />
+        </Row>
+      </Column>
+    </Box>
+    """
+  end
+
+  @doc """
+  The shelf's own status chip, over the hero — or nothing on a page that has no
+  row behind it.
+
+  Board 248 draws it above the title, and its caption settles what it says: the
+  chip is the shelf's, so a hand-added show you are part-way through reads
+  `Watching`. `Kati.Screens.SeriesSettings.status_of/1` is the same mapping
+  read the other way round.
+  """
+  @spec status_chip(atom() | nil) :: map()
+  def status_chip(nil), do: ~MOB"<Spacer size={0} />"
+
+  def status_chip(status) do
+    assigns = %{label: Kati.Screens.Series.status_label(status)}
+
+    ~MOB"""
+    <Row fill_width={true}>
+      <Row
+        height={24}
+        corner_radius={12}
+        background={Palette.card()}
+        align="center"
+        padding_left={10}
+        padding_right={10}
+      >
+        <Text
+          text={@label}
+          text_size={10.5}
+          font_weight="semibold"
+          text_color={Palette.ink_soft()}
+          max_lines={1}
+        />
+      </Row>
+      <Spacer weight={1.0} />
+    </Row>
+    """
+  end
+
+  @doc """
+  A stored status in the shelf's own words.
+
+      iex> Kati.Screens.Series.status_label(:not_started)
+      "Not started"
+
+      iex> Kati.Screens.Series.status_label(:watching)
+      "Watching"
+  """
+  @spec status_label(atom()) :: String.t()
+  def status_label(:not_started), do: "Not started"
+  def status_label(:watching), do: "Watching"
+  def status_label(:paused), do: "Paused"
+  def status_label(:finished), do: "Finished"
+  def status_label(:dropped), do: "Dropped"
+  def status_label(other), do: other |> to_string() |> String.capitalize()
 
   # The floating chrome. `arrow_back_ios_new` rather than a chevron, because
   # that is the glyph the drawing names.
@@ -1078,7 +1216,22 @@ defmodule Kati.Screens.Series do
   # season already on the socket and carries no subject, but the two discs
   # beside it do — one follows this show and one rates it, and both need to
   # know whether there is a row behind the page at all (MOVIES-AND-TV.md #81).
-  @doc false
+  @doc """
+  The primary and the two discs beside it — or, on a series with no episode
+  list, nothing at all.
+
+  Board 248 rules the empty case in its own footnote: *"No primary button here.
+  There is no next episode to mark, and a primary that refuses is worse than
+  none. 04's one primary slot stays empty."* The two discs go with it because
+  the board draws no row of controls at all above its claim card, and a lone
+  disc floating where a button was is a layout the design does not have.
+
+  What replaces them is `episodes/1`'s **What still works** group, which is
+  three real actions rather than one refusing one.
+  """
+  @spec actions(map()) :: map()
+  def actions(%{episodes: []}), do: ~MOB"<Spacer size={0} />"
+
   def actions(s) do
     mark = {self(), :mark_next}
 
@@ -1265,43 +1418,46 @@ defmodule Kati.Screens.Series do
   # is nullable, so `String.to_integer/1` on a special TVmaze never numbered
   # would raise inside a tap handler. `episode/1` keeps its arity because two
   # other screens' moduledocs cite it by name.
-  @doc false
-  def episodes(%{episodes: []}) do
+  @doc """
+  Board 248 — a series Kati has, whose episode list it does not.
+
+  The state a hand-added series opens in, and the one screen 04 could not
+  honestly draw: it said *"Kati has this show but not its episode list. A title
+  added from search brings one with it"* over a centred `playlist_play` tile,
+  which reads as a fault to be repaired and tells the reader nothing they can
+  do. Board 248 answers both halves — it says whose doing it is (*you added
+  this by hand*), it promises what happens if a source finds it later, and it
+  then lists **what still works**, which is the part a person actually needs.
+
+  The three rows are real and are the three the board names. *Log a watch*
+  opens screen 33 over the title, which needs no episode; *Drop this show*
+  opens the drop sheet, which keeps where you stopped; *Remove from library*
+  destroys the tracked row and nothing else, the same removal screen 06's
+  `untrack/1` and board 146's pill perform — the cached title and every logged
+  watch stay, so it is a shelf decision rather than a deletion of history.
+
+  A drawn series carries no `tracked_id`, so on the board itself the three rows
+  have nothing to act on and draw no tap — the rule this repository keeps
+  everywhere, and the reason `Kati.ScreenTapSweepTest` sees a picture here
+  rather than three dead controls.
+  """
+  @spec episodes(map()) :: map()
+  def episodes(%{episodes: []} = s) do
+    tracked = Map.get(s, :tracked_id)
+
+    assigns = %{
+      card: Kati.Screens.Series.no_episodes_card(),
+      group: Kati.Screens.Series.still_works(tracked)
+    }
+
     ~MOB"""
     <Column fill_width={true}>
-      <Column
-        fill_width={true}
-        background={Palette.card()}
-        corner_radius={20}
-        padding={15}
-        shadow={Kati.Theme.shadow_card_soft()}
-      >
-        <Spacer size={4} />
-        <Row fill_width={true} align="center">
-          <Spacer weight={1.0} />
-          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
-            {Kati.UI.symbol("playlist_play", size: 21, color: Palette.rail_idle())}
-          </Box>
-          <Spacer weight={1.0} />
-        </Row>
-        <Spacer size={12} />
-        <Text
-          text="No episodes yet"
-          text_size={13.5}
-          font_weight="bold"
-          text_color={:on_surface}
-          text_align="center"
-        />
-        <Spacer size={6} />
-        <Text
-          text="Kati has this show but not its episode list. A title added from search brings one with it."
-          text_size={12}
-          line_height={1.55}
-          text_color={Palette.sub()}
-          text_align="center"
-        />
-        <Spacer size={4} />
-      </Column>
+      {@card}
+      <Spacer size={16} />
+      {Kati.UI.SettingsList.eyebrow_muted("What still works")}
+      {@group}
+      <Spacer size={14} />
+      {Kati.UI.SettingsList.note("info", Kati.Screens.Series.no_primary_note())}
     </Column>
     """
   end
@@ -1316,6 +1472,82 @@ defmodule Kati.Screens.Series do
        |> Enum.intersperse(Kati.Screens.Series.episode_gap())}
     </Column>
     """
+  end
+
+  @doc false
+  def no_episodes_card do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      padding={15}
+      shadow={Kati.Theme.shadow_card_soft()}
+    >
+      <Row fill_width={true} align="center">
+        <Box width={38} height={38} corner_radius={12} background={Palette.paper()} align="center">
+          {Kati.UI.symbol("live_tv", size: 19, color: Palette.rail_idle())}
+        </Box>
+        <Spacer size={13} />
+        <Text
+          text="No episode list yet."
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          weight={1.0}
+        />
+      </Row>
+      <Spacer size={11} />
+      <Text
+        text="You added this by hand, so Kati has no seasons or episodes for it. If a source finds it later, they arrive here and nothing you typed changes."
+        text_size={12}
+        line_height={1.55}
+        text_color={Palette.sub()}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  The three things a series with no episode list can still do.
+
+  `chevron_right` on each, because each opens something. The taps are `nil` on
+  a drawn series for the reason `action_disc/3` gives one line up: a control
+  with nowhere to go draws no tap.
+  """
+  @spec still_works(binary() | nil) :: map()
+  def still_works(tracked_id) do
+    tap = fn tag -> if is_binary(tracked_id), do: {self(), tag} end
+
+    Kati.UI.SettingsList.card([
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("replay"),
+        Kati.UI.SettingsList.body("Log a watch", "Works without an episode list"),
+        Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+        on_tap: tap.(:rate_title)
+      ),
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("do_not_disturb_on"),
+        Kati.UI.SettingsList.body("Drop this show", "Keeps where you stopped"),
+        Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+        on_tap: tap.(:open_drop_sheet)
+      ),
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("delete"),
+        Kati.UI.SettingsList.body("Remove from library"),
+        Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+        rule: false,
+        on_tap: tap.(:remove_title)
+      )
+    ])
+  end
+
+  @doc "Board 248's dashed footnote, one `Text` so every bold run is findable."
+  @spec no_primary_note() :: String.t()
+  def no_primary_note do
+    "No primary button here. There is no next episode to mark, and a primary " <>
+      "that refuses is worse than none. 04\u2019s one primary slot stays empty " <>
+      "\u2014 which is what makes this a state of 04 rather than a page of its own."
   end
 
   @doc false
@@ -1620,6 +1852,21 @@ defmodule Kati.Screens.Series do
   # show the page is drawing and may be nothing to do with it — a Drop that
   # dropped somebody else's series. The page holds `tracked_id`, so it can say
   # which show the menu row was opened over.
+  # Board 248's third row: take the show off the shelf.
+
+  # It pops rather than redrawing: the page is about a row that no longer
+  # exists, and `Kati.Screens.Resume` makes the shelf behind re-read on the way
+  # out. `remove/1` is where the argument lives.
+  def handle_info({:tap, :remove_title}, socket) do
+    case Kati.Screens.Series.remove(socket.assigns.series) do
+      :ok ->
+        {:noreply, Kati.Screens.Resume.pop(socket)}
+
+      {:error, reason} ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+    end
+  end
+
   def handle_info({:tap, :open_drop_sheet}, socket),
     do:
       {:noreply,
@@ -1672,6 +1919,33 @@ defmodule Kati.Screens.Series do
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  Take the show off the shelf, for real.
+
+  `Ash.destroy/1` on the tracked row and nothing else — the same removal
+  `Kati.Screens.AddTitle.untrack/1` and board 146's pill perform, and
+  deliberately not a cascade. The cached title, its episodes and every logged
+  watch stay, so this is a decision about the shelf rather than a deletion of
+  history, and a title re-added later finds its own past waiting.
+  """
+  @spec remove(map()) :: :ok | {:error, term()}
+  def remove(series) do
+    with id when is_binary(id) <- Map.get(series, :tracked_id),
+         {:ok, row} <- Ash.get(Kati.Media.TrackedTitle, id) do
+      case Ash.destroy(row) do
+        :ok -> :ok
+        {:ok, _row} -> :ok
+        error -> Kati.Write.note(error, "remove from the library")
+      end
+    else
+      # A drawn series, or a row somebody else already removed. Both are the
+      # outcome the tap asked for.
+      _nothing -> :ok
+    end
+  rescue
+    error -> Kati.Write.note({:error, error}, "remove from the library")
+  end
 
   @doc """
   Follow or unfollow this show — `notify_new_episodes` on its tracked row.

@@ -187,7 +187,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 203 | With, and + tag | `D-36` |
 | 204 | 33 and 144, reconciled | `D-36` |
 | 208 | Reference: the settings header | `D-52` |
-| 248 | Series — a title with no episodes | `D-58` |
+| 248 | Series — a title with no episodes | `D-58` — **built 8 Sep**, kept here: it draws a specimen frame AND an annotated variant (*Watching — the same board, chip lit*), so the literal sweep cannot compare it against one render. `Kati.Screens.Series.episodes/1` draws the card, the *What still works* group and the footnote; `Kati.ScreenSeriesTest` asserts the copy, the three taps and the empty primary slot. MOVIES-AND-TV.md #149. |
 | 249 | سریال بدون قسمت — no episodes, RTL | `D-58` |
 | 250 | The moment it fills | `D-58` |
 | 251 | Doors for the stranded screens | `D-34` — a receipt, moved to `reference/` |

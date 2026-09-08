@@ -271,13 +271,63 @@ defmodule Kati.ScreenSeriesTest do
       assert page.watched == 0
     end
 
-    test "and says why the list is empty rather than leaving a gap" do
+    test "and draws board 248: whose doing it is, and what still works" do
       tracked!()
 
       drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
 
-      assert drawn =~ "No episodes yet"
-      assert drawn =~ "A title added from search brings one with it"
+      # The card said "Kati has this show but not its episode list" over a
+      # centred tile — which reads as a fault to be repaired and tells the
+      # reader nothing they can do. Board 248 says whose doing it is, promises
+      # what happens if a source finds it later, and then lists the three
+      # things that still work.
+      assert drawn =~ "No episode list yet."
+      assert drawn =~ "You added this by hand"
+      assert drawn =~ "nothing you typed changes"
+      refute drawn =~ "No episodes yet"
+
+      # `Kati.UI.SettingsList.eyebrow_muted/1` upcases, as every eyebrow does;
+      # the drawing writes it in sentence case and `Kati.DesignLiterals` compares
+      # case-insensitively for exactly this reason.
+      assert drawn =~ "WHAT STILL WORKS"
+
+      for row <- ["Log a watch", "Drop this show", "Remove from library"] do
+        assert drawn =~ row, "board 248's #{row} row is missing"
+      end
+
+      assert drawn =~ "Works without an episode list"
+      assert drawn =~ "Keeps where you stopped"
+      assert drawn =~ "No primary button here."
+    end
+
+    test "and the three rows act, rather than being a picture of three rows" do
+      tracked!()
+
+      drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
+
+      for tag <- [":rate_title", ":open_drop_sheet", ":remove_title"] do
+        assert drawn =~ tag, "board 248's row for #{tag} carries no tap"
+      end
+    end
+
+    test "and a drawn series carries no taps, because there is nothing to act on" do
+      # The rule this repository keeps everywhere: a control with nowhere to go
+      # draws no tap rather than a dead one.
+      drawn = inspect(Series.still_works(nil), limit: :infinity)
+
+      refute drawn =~ ":rate_title"
+      refute drawn =~ ":remove_title"
+    end
+
+    test "and the primary slot stays empty, which is board 248's own ruling" do
+      tracked!()
+
+      # "There is no next episode to mark, and a primary that refuses is worse
+      # than none."
+      drawn = inspect(Series.actions(Series.series()), limit: :infinity)
+
+      refute drawn =~ ":mark_next"
+      refute drawn =~ "Mark"
     end
 
     test "and none of the drawing's episodes are on it" do

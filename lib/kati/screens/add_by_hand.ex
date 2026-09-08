@@ -51,6 +51,9 @@ defmodule Kati.Screens.AddByHand do
   """
   use Kati.Screens.Pushed, back: "Add title"
 
+  # The one-shot key `opened/2` leaves for the Library. See `hand_over/1`.
+  @handover "add_by_hand:open"
+
   alias Kati.Components.MishkaChip
   alias Kati.Theme.Palette
 
@@ -681,12 +684,77 @@ defmodule Kati.Screens.AddByHand do
   `reset_to/3` rather than a push, because the two screens behind — 154 and 06
   — are both about typing a title that now exists, and a back tap onto either
   would be a step backwards through a job that is done.
+
+  ## It resets to the LIBRARY, and the Library opens the title
+
+  Resetting straight to the detail screen made a **pushed page the bottom of
+  the nav stack**, and that is not a cosmetic difference. `Mob.Screen` answers
+  `{:pop}` on an empty history by doing nothing at all, so the back pill —
+  labelled `Library`, which there was no longer any way to reach — was inert;
+  and its handler for the system back gesture is worse: `if nav_history == [],
+  do: :mob_nif.exit_app()`. So a reader who added their first title by hand
+  landed on a page whose own back control did nothing and whose OS back
+  **closed Kati**, on the one path from a fresh install to a library with
+  anything in it.
+
+  The stack has to end in a root, so the reset lands on one: screen 03, which
+  draws the dock and is where `back: "Library"` was already claiming to go.
+  `Kati.Screens.Library.load/1` reads the id out of a one-shot `Mob.State` key
+  and pushes the detail screen itself, which leaves the history as *[Library]*
+  with the detail page on top — board 155's destination, reached in a way the
+  back gesture can undo.
+
+  `send(self(), …)` rather than a `push_screen/3` inside `load/1`: `Mob.Screen`
+  takes an initial mount straight to `do_render/2` and never reads
+  `nav_action`, so a push from a mount is silently discarded.
+  `Kati.Screens.Root`'s own mount uses the same idiom for the first-run
+  redirect and says so.
   """
   @spec opened(Mob.Socket.t(), term()) :: Mob.Socket.t()
   def opened(socket, tracked) do
     Kati.Screens.Resume.announce()
+    Kati.Screens.AddByHand.hand_over(tracked)
 
-    Mob.Socket.reset_to(socket, detail_screen(tracked), %{id: tracked.id, back: "Library"})
+    Mob.Socket.reset_to(socket, Kati.Screens.Library, %{})
+  end
+
+  @doc """
+  The baton `opened/2` leaves for the Library: open this title next.
+
+  A `Mob.State` key rather than a nav param because the two are on opposite
+  sides of a `reset_to/3` — the Library is mounted by `Mob.Screen` from a fresh
+  socket, and nothing a screen assigns survives that.
+
+  One-shot by construction: `take/0` deletes as it reads, so a Library reached
+  any other way afterwards opens nothing. That matters more than it looks —
+  a baton left behind would re-open the same title every time the reader
+  touched the Library tab.
+  """
+  @spec hand_over(term()) :: :ok
+  def hand_over(tracked) do
+    Mob.State.put(@handover, %{id: tracked.id, screen: detail_screen(tracked)})
+    :ok
+  rescue
+    _error -> :ok
+  catch
+    :exit, _reason -> :ok
+  end
+
+  @doc "The baton, taken. `nil` when there is none, and never twice."
+  @spec take() :: %{id: String.t(), screen: module()} | nil
+  def take do
+    case Mob.State.get(@handover) do
+      %{id: id, screen: screen} when is_binary(id) and is_atom(screen) ->
+        Mob.State.delete(@handover)
+        %{id: id, screen: screen}
+
+      _none ->
+        nil
+    end
+  rescue
+    _error -> nil
+  catch
+    :exit, _reason -> nil
   end
 
   defp detail_screen(%{kind: :movie}), do: Kati.Screens.Film

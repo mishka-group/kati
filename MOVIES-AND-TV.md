@@ -3794,6 +3794,25 @@ What was missing is that the **shared** frame did not, so every English page ope
 `Kati.LocaleFaceTest` renders all six in both locales and asserts each draws the leading-edge chevron and not the other one.
 
 
+### 149. 04 Series / 154 Add by hand — `lies-to-user`, `cannot-work`
+
+**Two defects on the one path from a fresh install to a library with anything in it: adding a title by hand left the reader on a page whose back control did nothing and whose system back gesture CLOSED KATI, and the page it left them on explained its own emptiness with a sentence that was not true.**
+
+*Proof, the navigation half.* `Kati.Screens.AddByHand.opened/2` was `Mob.Socket.reset_to(socket, detail_screen(tracked), %{id: tracked.id, back: "Library"})`. `deps/mob/lib/mob/screen.ex:600-610` — the `{:reset, …}` branch — returns `{new_module, mounted, [], :reset}`: **the nav history is emptied**. Two things then follow from Mob's own code rather than from a guess. `{:pop}` on an empty history is `{module, clear_nav_action(socket), [], :none}` (`:571-578`), so the pill labelled `Library` was inert — and there was no Library to reach, because a detail screen draws no dock. And the system back gesture is `if nav_history == [], do: :mob_nif.exit_app()` (`:444-455`).
+
+So: install Kati, add your first title by hand, and you are on a page with one control that does nothing and one gesture that quits the app.
+
+*Fixed 8 September.* The stack has to end in a root, so the reset lands on one — screen 03, which draws the dock and is where `back: "Library"` was already claiming to go. `hand_over/1` leaves the id in a one-shot `Mob.State` key, `Kati.Screens.Library.load/1` takes it (deleting as it reads, so a Library reached any other way afterwards opens nothing) and sends itself `{:kati, :open_added, …}`, and `handle_kati/3` pushes the detail screen. History is *[Library]* with the detail page on top: board 155's destination, reached in a way the back gesture can undo. Through `handle_kati/3` rather than a `handle_info/2` clause because `use Kati.Screens.Root` injects its catch-all at the top of the module, so a later clause could never match — and `send(self(), …)` rather than a push inside `load/1` because Mob takes an initial mount straight to `do_render/2` and never reads `nav_action`, which `Kati.Screens.Root`'s own mount already says.
+
+*Proof, the card half.* Screen 04 drew *"Kati has this show but not its episode list. A title added from search brings one with it"* over a centred `playlist_play` tile — which reads as a fault to be repaired, blames the reader's choice of route, and offers nothing to do. Board 248 answers all three.
+
+*Fixed 8 September.* `episodes/1`'s empty clause is board 248: it says whose doing it is (*You added this by hand*), it promises what happens if a source finds it later (*they arrive here and nothing you typed changes*), and it then draws **What still works** — three rows that are three real actions. *Log a watch* opens screen 33 over the title, which needs no episode. *Drop this show* opens the drop sheet. *Remove from library* is `remove/1`: `Ash.destroy/1` on the tracked row and nothing else, the same removal `Kati.Screens.AddTitle.untrack/1` and board 146's pill perform — the cached title, its episodes and every logged watch stay, so it is a shelf decision rather than a deletion of history.
+
+The primary slot is now **empty** on that state, which is board 248's own footnote: *"There is no next episode to mark, and a primary that refuses is worse than none."* Two more things the board draws and screen 04 had never had: `no_poster/0`, because a hand-added title has no artwork and the hero was 330pt of flat grey with a name floating in it, and `status_chip/1`, which is the shelf's own chip — 248's caption rules that it stays `Watching` rather than becoming *Added by hand*, "which would say how the row got here rather than where you are in it".
+
+*The board stays in `test/design/incoming/`.* It draws a specimen frame and an annotated variant in one file, so the literal sweep cannot compare it against a single render — the same treatment the twenty-one state catalogues of the 7-September wave get, and its README row says so. `Kati.ScreenSeriesTest` carries the copy, the three taps, the tapless drawn state and the empty primary instead.
+
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

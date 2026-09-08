@@ -112,6 +112,22 @@ defmodule Kati.Screens.Library do
 
   @impl true
   def load(socket) do
+    # The baton `Kati.Screens.AddByHand.opened/2` leaves: a title just written
+    # by hand, which board 155 says the reader should land on. It resets HERE
+    # rather than onto the detail screen, because a reset empties the nav
+    # history and a pushed page at the bottom of an empty stack has an inert
+    # back pill and an OS back gesture that closes the app. That module's
+    # `opened/2` carries the whole argument.
+    #
+    # Sent to self rather than pushed here: `Mob.Screen` takes an initial mount
+    # straight to `do_render/2` and never reads `nav_action`, so a push from a
+    # mount is silently discarded — the same reason `Kati.Screens.Root`'s mount
+    # sends itself the first-run redirect.
+    case Kati.Screens.AddByHand.take() do
+      %{} = handover -> send(self(), {:kati, :open_added, handover})
+      nil -> :ok
+    end
+
     Mob.Socket.assign(socket,
       filter: "All",
       titles: titles(),
@@ -142,6 +158,15 @@ defmodule Kati.Screens.Library do
   @impl true
   def handle_kati(:resumed, _payload, socket),
     do: {:noreply, Mob.Socket.assign(socket, titles: titles(), queued: queued())}
+
+  # The title `Kati.Screens.AddByHand` just wrote, opened. Through
+  # `handle_kati/3` — the topic-addressed hook `Kati.Screens.Root` already
+  # routes `{:kati, topic, payload}` to — rather than a `handle_info/2` clause
+  # of its own, which could never match: `use Kati.Screens.Root` injects its
+  # catch-all at the top of this module, so any later clause is unreachable.
+  def handle_kati(:open_added, %{id: id, screen: screen}, socket) do
+    {:noreply, Mob.Socket.push_screen(socket, screen, %{id: id, back: "Library"})}
+  end
 
   @doc """
   The shelf the screen renders: the user's library, and only ever that.
