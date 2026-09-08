@@ -31,6 +31,28 @@ defmodule Kati.Screens.OnboardingFirstTitle do
 
   @suggestions ["The Long Hollow", "Ashfall", "Marram", "Nightbirds"]
 
+  # The design's own photograph for each, by picsum seed, under BOTH spellings
+  # of every title: board 166 is this step in the mirror and shelves through
+  # `shelve/1` here, passing the Persian name deliberately — "a Persian run
+  # should not put an English name on a Persian shelf".
+  #
+  # `Kati.Design.Images` names three of these four itself, and all four crops
+  # are on disk at 400x600. The tile drew `Palette.placeholder()` with nothing
+  # over it, so board 163's poster wall was four grey rectangles on a device;
+  # and the one that was picked reached the shelf, Home and the rating sheet
+  # with no picture either, because the seed was never written down. Two
+  # halves of one defect: `artwork/1` is the first and `shelve/1` the second.
+  @seeds %{
+    "The Long Hollow" => "hollow71",
+    "Ashfall" => "ashfall42",
+    "Marram" => "marram15",
+    "Nightbirds" => "nightbirds24",
+    "گودال بلند" => "hollow71",
+    "بارش خاکستر" => "ashfall42",
+    "مرام" => "marram15",
+    "پرندگان شب" => "nightbirds24"
+  }
+
   @doc """
   Nothing picked, which is what a page nobody has touched holds.
 
@@ -177,6 +199,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
         border_width={if @on?, do: 2.5, else: 0}
         border_color={Palette.ink()}
       >
+        {Kati.Screens.OnboardingFirstTitle.artwork(@title)}
         {Kati.Screens.OnboardingFirstTitle.tick(@on?)}
       </Box>
       <Spacer size={9} />
@@ -189,6 +212,47 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       />
     </Column>
     """
+  end
+
+  @doc """
+  The design's photograph for a suggestion, or nothing.
+
+      iex> Kati.Screens.OnboardingFirstTitle.seed_for("Ashfall")
+      "ashfall42"
+
+      iex> Kati.Screens.OnboardingFirstTitle.seed_for("گودال بلند")
+      "hollow71"
+
+      iex> Kati.Screens.OnboardingFirstTitle.seed_for("Some film nobody drew")
+      nil
+  """
+  @spec seed_for(String.t() | nil) :: String.t() | nil
+  def seed_for(title), do: Map.get(@seeds, title)
+
+  @doc """
+  The poster itself, laid into the tile's own box.
+
+  `nil` is an ordinary answer and draws the placeholder alone — the shape
+  `Kati.Screens.Library.artwork/1` uses, and the reason the box keeps its
+  `Palette.placeholder()` background rather than being replaced by the image.
+  """
+  @spec artwork(String.t()) :: map()
+  def artwork(title) do
+    case Kati.Design.Images.poster(Kati.Screens.OnboardingFirstTitle.seed_for(title)) do
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      src ->
+        ~MOB"""
+        <Image
+          src={src}
+          fill_width={true}
+          fill_height={true}
+          corner_radius={13}
+          content_mode="fill"
+        />
+        """
+    end
   end
 
   @doc """
@@ -254,7 +318,18 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   """
   @spec shelve(String.t() | nil) :: :ok
   def shelve(title) when is_binary(title) do
-    with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, :tv),
+    # The seed travels WITH the row. `Kati.Media.CachedTitle.poster_path` is
+    # what `Kati.Screens.Library.shaped/3` reads back as `:seed`, and what
+    # Home, the shelf and the rating sheet all draw from — so a title picked
+    # here arrives on the shelf carrying the same photograph the poster wall
+    # showed, rather than as the grey rectangle it used to be.
+    extra =
+      case Kati.Screens.OnboardingFirstTitle.seed_for(title) do
+        nil -> %{}
+        seed -> %{poster_path: seed}
+      end
+
+    with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, :tv, extra),
          {:ok, _tracked} <-
            Kati.Screens.AddByHand.track(title, %{kind: :tv, status: :watching}) do
       :ok

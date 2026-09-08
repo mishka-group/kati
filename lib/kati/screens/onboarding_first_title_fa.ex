@@ -149,6 +149,7 @@ defmodule Kati.Screens.OnboardingFirstTitleFa do
         border_width={if @on?, do: 2.5, else: 0}
         border_color={Palette.ink()}
       >
+        {OnboardingFirstTitle.artwork(@title)}
         {OnboardingFirstTitle.tick(@on?)}
       </Box>
       <Spacer size={9} />

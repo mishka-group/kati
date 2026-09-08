@@ -234,6 +234,59 @@ defmodule Kati.FirstRunTest do
       end)
     end
 
+    test "and it arrives carrying the picture the poster wall showed" do
+      # Board 163 draws four posters. `tile/2` drew `Palette.placeholder()`
+      # with nothing over it, so on a device the wall was four grey rectangles
+      # — and the one that was picked reached the shelf, Home and the rating
+      # sheet with no picture either, because the seed was never written.
+      # Walked on the Pixel_9a: all four blank, then the shelved title blank
+      # behind `Continue watching`.
+      #
+      # Two halves, so both are asserted. `artwork/1` is what the wall draws,
+      # and `poster_path` is what everything downstream reads back —
+      # `Kati.Screens.Library.shaped/3` calls it `:seed`.
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:en)
+
+        for title <- Screens.OnboardingFirstTitle.suggestion_list() do
+          seed = Screens.OnboardingFirstTitle.seed_for(title)
+
+          assert is_binary(seed),
+                 "#{title} is on the poster wall with no photograph behind it"
+
+          assert Kati.Design.Images.poster(seed),
+                 "#{seed} is not a crop on disk, so #{title}'s tile draws nothing"
+
+          assert %{type: :image, props: %{src: src}} = Screens.OnboardingFirstTitle.artwork(title)
+          assert is_binary(src) and File.exists?(src)
+        end
+
+        picked = "Marram"
+        clear_manual!(picked)
+        Screens.OnboardingFirstTitle.shelve(picked)
+
+        assert %{poster_path: "marram15"} = cached(picked)
+      end)
+    end
+
+    test "and the Persian mirror shelves the same photograph under its own name" do
+      # Board 166 passes the PERSIAN title to screen 163's `shelve/1` on
+      # purpose — "a Persian run should not put an English name on a Persian
+      # shelf" — so the seed table has to answer both spellings or the mirror
+      # shelves a picture-less row while 163 does not.
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:en)
+
+        picked = "پرندگان شب"
+        clear_manual!(picked)
+        Screens.OnboardingFirstTitle.shelve(picked)
+
+        assert %{poster_path: "nightbirds24", title: ^picked} = cached(picked)
+      end)
+    end
+
     test "skipping adds nothing, because skipping is an answer" do
       rolled_back(fn ->
         Kati.Onboarding.reset!()
