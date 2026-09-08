@@ -2103,8 +2103,12 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**147 findings**, every one traced to a line, and every one carries a closing verdict
-naming the function and the line — so this list can be read rather than re-derived.
+**150 findings**, every one traced to a line. All but one carry a closing verdict
+naming the function and the line, so this list can be read rather than re-derived.
+
+The exception is **#150**, which is open on purpose: an intermittent `SIGBUS`
+inside SQLite that did not reproduce, recorded with its tombstone so a second
+sighting has a baseline rather than a fresh investigation.
 
 Three are closed *partly*, and each says in its own section what is left and what it is
 waiting on: **#51** (screen 14's short page, waiting on a board), **#133** (three of
@@ -3811,6 +3815,28 @@ So: install Kati, add your first title by hand, and you are on a page with one c
 The primary slot is now **empty** on that state, which is board 248's own footnote: *"There is no next episode to mark, and a primary that refuses is worse than none."* Two more things the board draws and screen 04 had never had: `no_poster/0`, because a hand-added title has no artwork and the hero was 330pt of flat grey with a name floating in it, and `status_chip/1`, which is the shelf's own chip — 248's caption rules that it stays `Watching` rather than becoming *Added by hand*, "which would say how the row got here rather than where you are in it".
 
 *The board stays in `test/design/incoming/`.* It draws a specimen frame and an annotated variant in one file, so the literal sweep cannot compare it against a single render — the same treatment the twenty-one state catalogues of the 7-September wave get, and its README row says so. `Kati.ScreenSeriesTest` carries the copy, the three taps, the tapless drawn state and the empty primary instead.
+
+
+### 150. Adding a title from the catalogue — `intermittent-crash`, **open**
+
+**On one run of the device suite the BEAM took `SIGBUS` inside SQLite while caching a TMDB series' episodes, and the app died. It did not reproduce on retry, so this is a record rather than a diagnosis.**
+
+*What happened, from the tombstone.* `FirstRunTest` typed `quiet`, TMDB answered, and the title and its first season cached — the log has the `INSERT INTO "cached_titles"` for *Quiet Please!* and the `INSERT INTO "cached_seasons"` for its Specials. The next statement is a `SELECT … FROM "cached_episodes"`, and then:
+
+```
+F libc: Fatal signal 7 (SIGBUS), code 2 (BUS_ADRERR), fault addr 0x761cca3a2e
+        in tid 4558 (beam-main), pid 4479 (com.example.kati)
+#07 pc 000000000004d8f4  libsqlite3_nif.so (sqlite3_step+372)
+#08 pc 0000000000045a20  libsqlite3_nif.so (exqlite_multi_step+324)
+```
+
+*What it is not.* Not disk: `adb shell df /data` reported 10.9 GB free, and `KatiRule.freeMegabytes()` gates the test above 200 MB. Not SQLite's own database mmap either — `SQLITE_DEFAULT_MMAP_SIZE` is 0 unless a `PRAGMA` raises it, and nothing in `Kati.Repo` does.
+
+*The one mapping that is always there.* `ecto_sqlite3` puts `journal_mode: :wal` in by default (`deps/ecto_sqlite3/lib/ecto/adapters/sqlite3/connection.ex:23`), and WAL memory-maps its `-shm` index whatever `mmap_size` says. `BUS_ADRERR` on a mapped file is what a page beyond the file's end gives, so a `-shm` that could not be grown is the shape that fits every part of this trace. The emulator's `/data` is on `/mnt/pass_through` — a host-backed filesystem — which is a substrate where that failure is known and a real phone's `f2fs` is not, so this may be an AVD artefact rather than a defect a user could hit.
+
+*Why it is filed rather than fixed.* The obvious mitigation is real and documented — a single-connection SQLite can run `PRAGMA locking_mode=EXCLUSIVE`, which makes WAL use heap memory instead of a mapped `-shm` and removes the mapping entirely — and `Kati.Repo` is `pool_size: 1`, so nothing would be given up. But it changes how every write in the app is journalled, on the strength of one crash that did not happen again: the same test, re-staged and re-run on its own, passed. Shipping a change to the storage layer against evidence that thin would be the wrong trade.
+
+*What to do with it.* Keep an eye on the device suite. If it recurs, the experiment is one line — set the pragma, run the catalogue-add path repeatedly, and see whether it stops — and this section is the baseline to compare against.
 
 
 # Pages a user cannot reach except through Settings
