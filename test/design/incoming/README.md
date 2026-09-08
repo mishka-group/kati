@@ -183,7 +183,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 199 | Location | `D-48` |
 | 200 | Event detail — the field card, twice | `D-48` |
 | 201 | Watched on | `D-36` |
-| 202 | Where | `D-36` |
+| 202 | Where | `D-36` — **partly built 8 Sep**. Its substance is in: `Kati.Media.Watch.place` was read by `where_label/1` and written by nothing, so `Lumen+ · living room` could only print half of itself; `Kati.Screens.Rating.place_editor/1` is the section that writes it, and `Not on a service` joins the service row. What is not built is the SHEET — MOVIES-AND-TV.md #95 settled that screen 33's context rows disclose in place rather than push, and board 204 is the reconciliation. MOVIES-AND-TV.md #154. |
 | 203 | With, and + tag | `D-36` |
 | 204 | 33 and 144, reconciled | `D-36` |
 | 208 | Reference: the settings header | `D-52` |

@@ -466,6 +466,7 @@ defmodule Kati.Screens.Rating do
           watched_at: Kati.Time.now(),
           service: nil,
           companions: nil,
+          place: nil,
           context: [],
           tags: [],
           live?: true
@@ -582,6 +583,7 @@ defmodule Kati.Screens.Rating do
       watched_at: logged.watched_at,
       service: presence(logged.service),
       companions: presence(logged.companions),
+      place: presence(logged.place),
       context: context_rows(logged, zone),
       tags: tag_list(logged.tags),
       # This draft has somewhere to be committed, and the drawing's has not.
@@ -1684,7 +1686,7 @@ defmodule Kati.Screens.Rating do
   def editor(:where, w, true) do
     assigns = %{
       chips:
-        Kati.Screens.Rating.where_options(w)
+        (Kati.Screens.Rating.where_options(w) ++ [Kati.Screens.Rating.no_service()])
         |> Enum.map(&Kati.Screens.Rating.choice(&1, "where_" <> &1, &1 == w.service))
         |> Enum.intersperse(Kati.Screens.Rating.tag_gap()),
       empty?: Kati.Screens.Rating.where_options(w) == []
@@ -1696,6 +1698,7 @@ defmodule Kati.Screens.Rating do
         {@chips}
       </Row>
       {Kati.Screens.Rating.where_note(@empty?)}
+      {Kati.Screens.Rating.place_editor(w)}
     </Column>
     """
   end
@@ -2135,6 +2138,12 @@ defmodule Kati.Screens.Rating do
     {:noreply, Mob.Socket.update(socket, :watch, &Map.put(&1, :with_draft, typed))}
   end
 
+  # Board 202's Place field. `Kati.Media.Watch.place` is a column that
+  # `where_label/1` has always printed and nothing ever wrote.
+  def handle_info({:change, :place_draft, typed}, socket) when is_binary(typed) do
+    {:noreply, Mob.Socket.update(socket, :watch, &Map.put(&1, :place_draft, typed))}
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   @doc """
@@ -2193,6 +2202,12 @@ defmodule Kati.Screens.Rating do
       "commit_with" ->
         edit(socket, &commit_with(&1))
 
+      "commit_place" ->
+        edit(socket, &commit_place(&1))
+
+      "place_" <> place ->
+        edit(socket, &choose_place(&1, place))
+
       _other ->
         socket
     end
@@ -2217,6 +2232,135 @@ defmodule Kati.Screens.Rating do
 
   # Choosing the service already set clears it, which is the only way back to
   # "I would rather not say" once a chip has been pressed.
+  @doc """
+  Board 202's second half: **where in the world**, as opposed to on what.
+
+  `Kati.Media.Watch.place` is a column, `where_label/1` already prints it —
+  `Lumen+ · living room` — and **nothing anywhere wrote it**, so the half after
+  the dot could never appear on any device. This is the control that writes it.
+
+  Board 202's own ruling is why it is a section of its own rather than more
+  chips in the row above: *"Two sections, two shapes, because the two halves
+  are stored apart: one is a thing stats group by, the other is a room in a
+  house. Only the printed line joins them."* A service is a name out of a list
+  the reader keeps; a place is a phrase they type.
+
+  The chips are places this reader has already used, so the second night on the
+  sofa is a tap. `Nothing stored` is what the board draws when there are none —
+  a field and nothing else, because a suggestion invented here would be a room
+  in somebody else's house.
+  """
+  @spec place_editor(map()) :: map()
+  def place_editor(w) do
+    used = Kati.Screens.Rating.place_options(w)
+
+    assigns = %{
+      change: {self(), :place_draft},
+      draft: Map.get(w, :place_draft) || Map.get(w, :place) || "",
+      commit: Kati.Screens.Rating.commit_pill("Done", :commit_place),
+      chips:
+        used
+        |> Enum.map(&Kati.Screens.Rating.choice(&1, "place_" <> &1, &1 == Map.get(w, :place)))
+        |> Enum.intersperse(Kati.Screens.Rating.tag_gap()),
+      any?: used != []
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={11} />
+      <Text
+        text="PLACE"
+        font_family="mono"
+        text_size={10}
+        letter_spacing={0.16}
+        text_color={Palette.eyebrow()}
+        max_lines={1}
+      />
+      <Spacer size={8} />
+      <Row fill_width={true} align="center">
+        <Box weight={1.0}>
+          <TextField
+            value={@draft}
+            placeholder="living room"
+            return_key="done"
+            fill_width={true}
+            text_size={13}
+            accessibility_id="place_draft"
+            on_change={@change}
+          />
+        </Box>
+        <Spacer size={8} />
+        {@commit}
+      </Row>
+      {Kati.Screens.Rating.place_chips(@any?, @chips)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def place_chips(false, _chips), do: ~MOB"<Spacer size={0} />"
+
+  def place_chips(true, chips) do
+    assigns = %{chips: chips}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={9} />
+      <Row fill_width={true} align="center">
+        {@chips}
+      </Row>
+    </Column>
+    """
+  end
+
+  @doc """
+  The places this reader has already logged a watch in.
+
+  Their own, and nobody else's: board 202 draws `living room`, `the Rex` and
+  `bed` and its note calls the section *a room in a house*, which is not a
+  thing to supply a default for. A device with none draws the field alone.
+  """
+  @spec place_options(map()) :: [String.t()]
+  def place_options(w) do
+    Watch
+    |> Ash.read!()
+    |> Enum.map(& &1.place)
+    |> Kernel.++(List.wrap(Map.get(w, :place)))
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.uniq()
+    |> Enum.take(6)
+  rescue
+    _error -> []
+  end
+
+  @doc """
+  Board 202's `Not on a service` — a disc, a cinema, a plane.
+
+  A real answer rather than the absence of one, and it is stored as the
+  service: a night at the cinema is a fact about where the film was watched,
+  and leaving the column `nil` would make it indistinguishable from a night
+  nobody said anything about.
+  """
+  @spec no_service() :: String.t()
+  def no_service, do: "Not on a service"
+
+  defp commit_place(draft) do
+    typed = String.trim(Map.get(draft, :place_draft) || "")
+
+    draft
+    |> Map.put(:place, if(typed == "", do: nil, else: typed))
+    |> Map.delete(:place_draft)
+    |> Map.delete(:open_row)
+  end
+
+  defp choose_place(draft, place) do
+    chosen = if Map.get(draft, :place) == place, do: nil, else: place
+
+    draft |> Map.put(:place, chosen) |> Map.delete(:place_draft) |> Map.delete(:open_row)
+  end
+
   defp choose_where(draft, service) do
     chosen = if Map.get(draft, :service) == service, do: nil, else: service
 
@@ -2332,6 +2476,10 @@ defmodule Kati.Screens.Rating do
           tags: stored_tags(Map.get(w, :tags)),
           service: Map.get(w, :service),
           companions: Map.get(w, :companions),
+          # Board 202's second half. The column was read by `where_label/1`
+          # from the day it existed and written by nothing, so `Lumen+ · living
+          # room` could only ever print its first half.
+          place: Map.get(w, :place),
           # The night the reader said, and tonight when they did not — #95 gave
           # the row a writer, so this is no longer always "now".
           watched_on: Map.get(w, :watched_on) || Kati.Time.today(),
@@ -2359,6 +2507,10 @@ defmodule Kati.Screens.Rating do
           tags: stored_tags(Map.get(w, :tags)),
           service: Map.get(w, :service),
           companions: Map.get(w, :companions),
+          # Board 202's second half. The column was read by `where_label/1`
+          # from the day it existed and written by nothing, so `Lumen+ · living
+          # room` could only ever print its first half.
+          place: Map.get(w, :place),
           watched_on: Map.get(w, :watched_on)
         })
         |> Ash.update()

@@ -2103,7 +2103,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**153 findings**, every one traced to a line. All but two carry a closing verdict
+**154 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
 Two are open on purpose. **#153** counts, control by control, why board 169 cannot be
@@ -3909,6 +3909,21 @@ So the board is honest about being a drawing of a sheet over a sample. What it c
 *What would unblock it.* A pick needs a score, a date and a service. The first two come from the provider — TMDB's recommendation payload carries neither in what `picks_for/1` reads — and the third is a catalogue, which is #254's blocker and [mishka-group/kati#100](https://github.com/mishka-group/kati/issues/100)'s shape one domain over. The **Film / Series** half could be built today, and would be two chips and a footer on a sheet whose other nine controls are pictures; board 145's own rule about a chip that would empty the page says what that reads as.
 
 *What is built instead.* Screen 11's `tune` disc opens `tune_panel/2` — a *Picks from* seed chooser, which no board draws and which does the one thing on this page a reader can actually change: which title the recommendations are drawn from. It stays, and this finding is the record of why the drawn sheet is not on top of it.
+
+
+### 154. 33 Log a watch — `cannot-work`
+
+**`Kati.Media.Watch.place` was read and never written, so the line `Lumen+ · living room` could only ever print its first half. Board 202 is the control that writes it.**
+
+*Proof.* `rating.ex:701` — `where_label(%Watch{service: service, place: place})` — is what joins the two with a dot. `grep -rn ":place" lib/ --include=*.ex` outside that function returns exactly one line: `watch.ex:98`, the attribute itself. Nothing anywhere set it. A column that is read and never written is a sentence the app can only ever say half of.
+
+*Fixed 8 September.* `place_editor/1` is board 202's second section: a field, and chips of the places this reader has already logged a watch in. Both save paths carry `place` through, and the shaped draft reads it back, so an edit survives the sheet.
+
+**Two sections, two shapes**, which is the board's own ruling and the reason this is not more chips in the row above: *"the two halves are stored apart: one is a thing stats group by, the other is a room in a house. Only the printed line joins them."* A service is a name out of a list the reader keeps; a place is a phrase they type. `Nothing stored` is what a device with no places gets — a field and nothing else, because a suggestion invented here would be a room in somebody else's house.
+
+**`Not on a service`** joins the service row, and is stored AS the service rather than as its absence. Board 202 words it *a disc, a cinema, a plane*: a night at the cinema is a fact about where a film was watched, and leaving the column `nil` would make it indistinguishable from a night nobody said anything about.
+
+*What board 202 draws that is deliberately not built.* Its frame is a sheet with a close disc and a search field over the service list. MOVIES-AND-TV.md #95 settled the opposite arrangement — screen 33's three context rows **disclose in place** rather than push — and board 204 is the board that reconciles 33 and 144, which is a decision rather than a build. So the substance of 202 is built into the existing disclosure and the sheet is not; the search field is what a service list long enough to need one would want, and `where_options/1` takes six.
 
 
 # Pages a user cannot reach except through Settings
