@@ -224,14 +224,16 @@ defmodule Kati.Settings.Sample do
       # them so. The Persian build reached it and the English one did not,
       # which `routes.txt` found empirically.
       #
-      # Beside Release watcher because they are the two halves of one subject:
+      # **That row is gone, and screen 05 is on the shelf instead.** The owner's
+      # ruling of 9 September: *Settings means toggles, text fields and
+      # dropdowns — a page that only SHOWS things does not belong there.* 05 is
+      # a feed; it hangs off `Kati.Screens.Library`'s ⋯ menu now, beside
+      # `What fits?`, which is the same kind of destination. The Settings row
+      # had been a stopgap for a page with no other door and was read here as
+      # if it were a preference.
+      #
+      # Release watcher stays, and it is the half that was always the setting:
       # 25 is what Kati watches for, and 05 is what it found.
-      %{
-        icon: "inbox",
-        title: "New releases",
-        sub: "What is out, and what is coming",
-        control: :chevron
-      },
       %{
         icon: "notifications_active",
         title: "Release watcher",

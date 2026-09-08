@@ -861,6 +861,7 @@ defmodule Kati.Screens.Library do
       Kati.Screens.Library.disc("more_horiz", :toggle_menu),
       open?,
       [
+        Kati.UI.Menu.item("inbox", "New releases", :open_new_releases),
         Kati.UI.Menu.item("schedule", "What fits?", :open_what_fits),
         Kati.UI.Menu.item("checklist", "Select titles", :open_shelf_selection)
       ],
@@ -1651,6 +1652,26 @@ defmodule Kati.Screens.Library do
 
   def handle_tap(:open_discover, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Discover)}
+
+  # Screen 05, from the shelf rather than from Settings.
+  #
+  # The owner's ruling of 9 September: *Settings means toggles, text fields and
+  # dropdowns — a page that only SHOWS things does not belong there.* 05 is a
+  # feed of new episodes for the shows you follow, and it sat under Settings for
+  # one reason: its only real door was Home's `New this week` hero, which is
+  # omitted unless a followed title has an unticked episode from the last seven
+  # days. The row was a stopgap to make the page openable at all.
+  #
+  # Here rather than as a fourth quick tile: `What fits?` is the same kind of
+  # thing — a content destination hanging off the shelf — and it is already in
+  # this menu, so the idiom is the app's own. Four tiles across a 402pt frame
+  # would also put "New releases" in a slot too narrow to print it.
+  #
+  # `Release watcher` stays in Settings, and should: it is how often Kati looks
+  # and how loudly it says so, which is exactly what a setting is. The two rows
+  # sounded like each other and were not the same thing at all.
+  def handle_tap(:open_new_releases, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox, %{back: "Library"})}
 
   def handle_tap(:open_lists, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}

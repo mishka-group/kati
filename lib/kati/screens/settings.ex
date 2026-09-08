@@ -675,10 +675,13 @@ defmodule Kati.Screens.Settings do
   # on device — export, encrypted export, refused restore, merge, conflicts,
   # rejections — and until these two lines existed no screen in the app invoked
   # any of it, which made them exactly as useful to a user as no engine at all.
+  # `New releases` was here and is not any more. The owner's ruling of
+  # 9 September: *Settings means toggles, text fields and dropdowns* — screen
+  # 05 only SHOWS things, so it belongs on the shelf. It is
+  # `Kati.Screens.Library`'s ⋯ menu now, beside `What fits?`, which is the same
+  # kind of destination. `Release watcher` stays, and is the row that was
+  # always the setting: how often Kati looks, and how loudly it says so.
   @destinations %{
-    # #1. 05's only English door was a Home hero that is omitted when there is
-    # nothing out this week — so the page that says so was unreachable.
-    "New releases" => Kati.Screens.Inbox,
     "Release watcher" => Kati.Screens.ReleaseWatcher,
     "Calendars" => Kati.Screens.Calendars,
     "Auto-detect" => Kati.Screens.AutoDetect,
