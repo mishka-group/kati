@@ -2103,7 +2103,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**157 findings**, every one traced to a line. All but two carry a closing verdict
+**158 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
 Four are open on purpose. **#157** is the recipe for #103's fold, scoped to this section:
@@ -4003,6 +4003,31 @@ Worse than unreachable for the first: `Kati.Subscriptions.row/2` never put `paus
 *What the fold also closes.* Three live language leaks on the Persian Movies & Series path, all of which exist only because the mirrors do: `library_fa.ex:919` pushes the **English** screen 19 with a Persian back label (and its excuse comment is stale — `SearchFa` is screen 90); `Kati.Screens.Fa.dock_tap/3` sends the Persian dock's `+` to the English Add title, on all four Persian roots; and Persian Home pushes the English Inbox, which `routes.txt` records as the app's only proven route to screen 05.
 
 And it is the only route to Persian coverage at all for the **thirteen** Movies & Series screens that have no mirror — Up next, Discover, Film, Season, Series settings, New releases, Release watcher, What fits, Add title, both filter sheets, Rate and Drop — because the ruling of 8 September forbids writing a fourteenth `*Fa` module, and `Kati.PersianScreensRatchetTest` enforces it.
+
+
+### 158. #103's fold, first edit — a control named after the word printed on it, and a status saved as that word
+
+**Screen 154's Kind chip was `:kind_Series` in English and `:kind_سریال` in Persian. Two names for one button, and no device test can type the second. Fixed, with a ratchet, and it turned up a live write defect underneath it.**
+
+*The defect this was filed as.* MOVIES-AND-TV.md #157 named it as the fold's first edit and deliberately did not do it: `Kati.Screens.AddByHand.kind_chip/4` built its tap as `"kind_" <> label`, so the tag changed with the language. `SeriesSettingsTest.kt:122` tapped `kind_Series` on the device and three more device tests reached the same form, so renaming before the fold would have churned a green suite for a benefit only the fold realises. The fold is now the work in hand, so this is the edit that opens it.
+
+`kind_chip/5` takes the stable key beside the label and `Kati.Screens.AddByHand.tag/2` builds the tag from it. `:kind_movie` and `:kind_tv` in every locale; the word is only ever drawn. The same shape closed `status_chip/3` (`:status_not_started`), `Kati.Screens.AddByHandBook.edition_chip/3` (`:edition_paperback`) and screen 35's three status tiles (`:status_watching`), which built their tags from `Watching` / `Paused` / `Dropped`.
+
+*What was underneath it, and is a real write defect.* The `:status` assign held the **label**, and `status_atom/1` mapped that label to a value at save time — from ENGLISH words only:
+
+```elixir
+def status_atom("Watching"), do: :watching
+def status_atom("Finished"), do: :finished
+def status_atom(_other), do: :not_started
+```
+
+`Kati.Screens.AddByHandFa` drew `در حال تماشا`, so every clause fell through. **A Persian reader could choose any of the three statuses and Kati wrote `:not_started` for all of them.** The mirror carried a `status_english/1` to translate its own labels back before saving — one more thing that existed only because the label was the state. The assign holds `:watching` now, `status_atom/1` and `status_english/1` are both gone, and `Kati.Screens.AddByHandFa`'s `handle_info({:tap, :add}, …)` is one line calling screen 154's own `save/1`.
+
+It also found a caller passing a string that had been correct only by coincidence: `Kati.Screens.OnboardingFirstTitle` wrote `status: "Watching"`, which worked because the English mapping existed. It is `:watching` now, and `Kati.FirstRunTest` is what caught it.
+
+*The ratchet.* `Kati.ScreenTapSweepTest` gained *"no control is named after the word printed on it"*: every tap the app draws, in both locales, asserted ASCII. ASCII is not the point and the test says so — a STABLE tag is — but every label Kati would build a tag from in the other script is outside ASCII, so it catches the real thing. It carries one allowance, `@from_the_data`: screen 03's Persian mirror draws six sample series with no id, so `Kati.Screens.LibraryFa.poster_tag/1` falls back to the caption for each. Those are named from a ROW rather than from a label, `Kati.Screens.Library.poster_tag/1` prefers the tracked row's id on a real device, and all six go when the mirror does.
+
+Status: `[x] host 3646 passed`, `[x] device 24/24 on the Pixel_9a`. Four device tests re-typed: `kind_tv`, `status_paused`, `status_watching`.
 
 
 # Pages a user cannot reach except through Settings

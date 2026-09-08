@@ -917,8 +917,9 @@ defmodule Kati.Screens.Series do
 
   Board 248 draws it above the title, and its caption settles what it says: the
   chip is the shelf's, so a hand-added show you are part-way through reads
-  `Watching`. `Kati.Screens.SeriesSettings.status_of/1` is the same mapping
-  read the other way round.
+  `Watching`. `Kati.SeriesSettings.Sample.statuses/0` carries the same three
+  the other way round — a `status` beside each label, so screen 35's tiles are
+  named for the value and not for the word (MOVIES-AND-TV.md #157).
   """
   @spec status_chip(atom() | nil) :: map()
   def status_chip(nil), do: ~MOB"<Spacer size={0} />"

@@ -159,6 +159,20 @@ defmodule Kati.ScreenTapSweepTest do
 
   @locales [:en, :fa]
 
+  # Tags whose non-ASCII comes from a ROW and not from a label — see the test
+  # that reads this. Screen 03's Persian mirror draws six sample series with no
+  # id, so `Kati.Screens.LibraryFa.poster_tag/1` falls back to the caption for
+  # every one. `Kati.ScreenParamsSweepTest` carries the same six by name.
+  # mishka-group/kati#103 deletes the mirror and the list with it.
+  @from_the_data [
+    {Kati.Screens.LibraryFa, :open_series_بارش_خاکستر},
+    {Kati.Screens.LibraryFa, :open_series_بندر_آرام},
+    {Kati.Screens.LibraryFa, :open_series_ساعت_آبی},
+    {Kati.Screens.LibraryFa, :open_series_نمک_و_آهن},
+    {Kati.Screens.LibraryFa, :open_series_پرندگان_شب},
+    {Kati.Screens.LibraryFa, :open_series_گودال_بلند}
+  ]
+
   # The remaining design- and capability-blocked groups are written up in
   # `design-briefs/D-62-the-controls-that-name-a-place-with-nothing-behind-it.md`
   # — seven service rows with no page to open, four chevrons on a book pointing
@@ -286,15 +300,15 @@ defmodule Kati.ScreenTapSweepTest do
     # Screen 154's two resting choices. Board 155 states the default in as many
     # words — "Resting — empty, Film, nothing assumed" — and Not started is the
     # status a title you are adding has — so each is the already-selected member of its family, which
-    # is the first group above. `kind_Film` and the other two statuses all move
+    # is the first group above. `kind_movie` and the other two statuses all move
     # the assign, which is what says the family is wired.
-    {Kati.Screens.AddByHand, :kind_Film},
+    {Kati.Screens.AddByHand, :kind_movie},
     # 157 is 154 in the dark colourway and opens in the same resting state, so
     # its Film chip is the already-selected member of the same family. It was
     # not here before because 157 opened on `:tv` — board 157's captured
     # frame, loaded rather than drawn, which is what let *Add to library*
     # write The Long Hollow into a real library (MOVIES-AND-TV.md #29).
-    {Kati.Screens.AddByHandDark, :kind_Film},
+    {Kati.Screens.AddByHandDark, :kind_movie},
     # Steps 4 and 5's resting choices — the loudness the board opens on and the
     # title it opens with picked. Every other choice in each family moves the
     # assign, which is what says the family is wired.
@@ -394,19 +408,19 @@ defmodule Kati.ScreenTapSweepTest do
     # 157 and 156 are 154 in another colourway and another script, and each is
     # drawn in the state its own board shows — Series chosen so the episode
     # field is visible. The resting member of a family again, three times.
-    {Kati.Screens.AddByHandDark, :kind_Series},
-    {Kati.Screens.AddByHandDark, :"status_Not started"},
-    {Kati.Screens.AddByHandFa, :kind_سریال},
-    {Kati.Screens.AddByHandFa, :"status_شروع نشده"},
-    {Kati.Screens.AddByHand, :"status_Not started"},
+    {Kati.Screens.AddByHandDark, :kind_tv},
+    {Kati.Screens.AddByHandDark, :status_not_started},
+    {Kati.Screens.AddByHandFa, :kind_tv},
+    {Kati.Screens.AddByHandFa, :status_not_started},
+    {Kati.Screens.AddByHand, :status_not_started},
     # Screen 177's three resting choices — the Kind the screen IS, the Edition
     # the form opens on and the status a book you are adding has. The
     # already-selected member of its family, three times, and every other
     # member of each family moves the assign or navigates, which is what says
     # the family is wired.
-    {Kati.Screens.AddByHandBook, :kind_Book},
-    {Kati.Screens.AddByHandBook, :edition_Paperback},
-    {Kati.Screens.AddByHandBook, :"status_Not started"},
+    {Kati.Screens.AddByHandBook, :kind_book},
+    {Kati.Screens.AddByHandBook, :edition_paperback},
+    {Kati.Screens.AddByHandBook, :status_not_started},
     # Screen 176's lit segment and lit chip, for the same reason: کتاب‌ها is the
     # shelf you are on and همه is the filter already showing. نمایش and موسیقی
     # both navigate and the other three chips all move the filter.
@@ -476,13 +490,13 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.RateAlbum, :star_9},
     # ── Screens 178 and 179's already-chosen members, the first category above.
     # Board 178 is drawn with **Album** chosen and the form loads in it, so
-    # `:kind_Album` sets the kind it already has; `:kind_Artist` moves it, and
-    # `:kind_Film`, `:kind_Series` and `:kind_Book` push the form that owns
+    # `:kind_album` sets the kind it already has; `:kind_artist` moves it, and
+    # `:kind_movie`, `:kind_tv` and `:kind_book` push the form that owns
     # those three, which is what says the family is wired. Board 179 is drawn
     # with **Albums** lit because it is the state screen 21's FAB opens, so
     # `:filter_Albums` is that row's settled member; `:filter_Artists` narrows
     # and the other three push screen 06.
-    {Kati.Screens.AddByHandRecord, :kind_Album},
+    {Kati.Screens.AddByHandRecord, :kind_album},
     {Kati.Screens.AddTitleMusic, :filter_Albums},
     # (Screen 83's six link rows were here, and screen 85's four below them.
     # `K-43 open-url` was built and they all open the site they name now —
@@ -1054,6 +1068,53 @@ defmodule Kati.ScreenTapSweepTest do
            "these newly drawn controls reach nothing that changes anything — " <>
              "wire them, or add them to @inert_taps with a reason:\n" <>
              Enum.map_join(new, "\n", fn {module, tag} ->
+               "  {#{inspect(module)}, #{inspect(tag)}}"
+             end)
+  end
+
+  test "no control is named after the word printed on it" do
+    # MOVIES-AND-TV.md #157, and the first edit of #103's fold.
+    #
+    # `Kati.Screens.AddByHand.kind_chip/5` used to build its tap out of the
+    # label — `"kind_" <> label` — so the Persian form's Series chip was
+    # `:kind_سریال`. Two things follow from that and both are defects. A screen
+    # RENAMES ITS OWN CONTROLS when the language changes, so no device test can
+    # type them: `Kati.Screens.OnboardingLoudnessFa.tag/1` had already recorded
+    # it as "an atom made of Persian words is a name no device test can type."
+    # And once the mirrors fold into their English screens, the tag would
+    # change under the same screen depending on who is looking at it.
+    #
+    # An ASCII tag is not the point; a STABLE tag is. ASCII is what can be
+    # checked here, and every label Kati would build a tag from in the other
+    # script is outside it, so the check catches the real thing.
+    #
+    # `@from_the_data` below is the other way a tag can come out non-ASCII, and
+    # it is not this defect: a tag built from a ROW rather than from a label.
+    # `Kati.Screens.Library.poster_tag/1` prefers the tracked row's id and falls
+    # back to the caption only for sample rows that have none, so on a device it
+    # is `open_film_<uuid>`; its Persian mirror has only sample rows, so all six
+    # of its tiles fall back. They go when the mirror goes.
+    named_for_a_word =
+      @locales
+      |> ScreenSweep.per_locale(fn locale ->
+        for {module, {_socket, tags}} <- ScreenSweep.drawn_taps(locale),
+            tag <- tags,
+            not (tag |> Atom.to_string() |> String.printable?(0)) or
+              String.match?(Atom.to_string(tag), ~r/[^\x00-\x7F]/),
+            do: {module, tag}
+      end)
+      |> List.flatten()
+      |> Enum.uniq()
+      |> Kernel.--(@from_the_data)
+      |> Enum.sort()
+
+    assert named_for_a_word == [],
+           "these taps are named after the label drawn on them rather than " <>
+             "after the value behind it, so the control changes name with the " <>
+             "language and no device test can type it — pass the stable key " <>
+             "(`:movie`, `:not_started`) to the chip and build the tag from " <>
+             "that, as `Kati.Screens.AddByHand.tag/2` does:\n" <>
+             Enum.map_join(named_for_a_word, "\n", fn {module, tag} ->
                "  {#{inspect(module)}, #{inspect(tag)}}"
              end)
   end

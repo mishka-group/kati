@@ -27,7 +27,7 @@ defmodule Kati.AddByHandTest do
   end
 
   test "a typed title reaches the store as a manual row" do
-    AddByHand.save(socket(%{title: "The Long Hollow", kind: :tv, status: "Watching"}))
+    AddByHand.save(socket(%{title: "The Long Hollow", kind: :tv, status: :watching}))
 
     assert [row] = Ash.read!(TrackedTitle)
     assert row.source == :manual
@@ -90,13 +90,28 @@ defmodule Kati.AddByHandTest do
   end
 
   test "every status the board draws maps to one the resource takes" do
-    for {label, expected} <- [
-          {"Not started", :not_started},
-          {"Watching", :watching},
-          {"Finished", :finished}
-        ] do
-      assert AddByHand.status_atom(label) == expected
-    end
+    # The label is drawn and the atom is written. They travel together on
+    # `status_list/0` rather than through a `status_atom/1` that read one off
+    # the other — which was a mapping from ENGLISH words, so the Persian form
+    # saved every status as `:not_started`. MOVIES-AND-TV.md #157.
+    assert AddByHand.status_list() == [
+             {"Not started", :not_started},
+             {"Watching", :watching},
+             {"Finished", :finished}
+           ]
+
+    accepted =
+      Kati.Media.TrackedTitle
+      |> Ash.Resource.Info.attribute(:status)
+      |> Map.fetch!(:constraints)
+      |> Keyword.fetch!(:one_of)
+
+    for {_label, status} <- AddByHand.status_list(), do: assert(status in accepted)
+  end
+
+  test "and a chip is named for the value, never for the word on it" do
+    assert AddByHand.tag("kind_", :tv) == :kind_tv
+    assert AddByHand.tag("status_", :not_started) == :status_not_started
   end
 
   describe "a hand-typed title is a title the app can see" do
@@ -109,7 +124,7 @@ defmodule Kati.AddByHandTest do
       #
       # Every test here counted `tracked_titles` and passed, on device and on
       # the host, because the count was never the question.
-      saved(%{title: "Estuary Nights", kind: :movie, status: "Not started"})
+      saved(%{title: "Estuary Nights", kind: :movie, status: :not_started})
 
       titles = Enum.map(Kati.Screens.Library.shelf(), & &1.title)
 
@@ -123,7 +138,7 @@ defmodule Kati.AddByHandTest do
       # fixed together. #92's first criterion is that typing returns rows that
       # match, and a title you added by hand is the one row you are most likely
       # to go looking for.
-      saved(%{title: "Estuary Nights", kind: :movie, status: "Not started"})
+      saved(%{title: "Estuary Nights", kind: :movie, status: :not_started})
 
       found = Enum.map(Kati.Search.Query.run("estuary").titles, & &1.title)
 
@@ -137,8 +152,8 @@ defmodule Kati.AddByHandTest do
       # database constraint and Ash reports it as "Has already been taken",
       # which is a sentence about a column. Someone who has just typed a name
       # they already own needs to be told that.
-      saved(%{title: "Estuary Nights", kind: :movie, status: "Not started"})
-      socket = saved(%{title: "Estuary Nights", kind: :tv, status: "Watching"})
+      saved(%{title: "Estuary Nights", kind: :movie, status: :not_started})
+      socket = saved(%{title: "Estuary Nights", kind: :tv, status: :watching})
 
       assert {title, body} = socket.assigns[:save_error]
       assert title == "You already have this"
@@ -174,7 +189,7 @@ defmodule Kati.AddByHandTest do
         status: :watching
       })
 
-      socket = saved(%{title: "dune", kind: :movie, status: "Not started"})
+      socket = saved(%{title: "dune", kind: :movie, status: :not_started})
 
       assert {"You already have this", _body} = socket.assigns[:save_error],
              "a TMDB row and a typed one are two rows for one film"
@@ -193,7 +208,7 @@ defmodule Kati.AddByHandTest do
       # 154 and no screen in the app could change it — a show picked as a film
       # sat on the wrong screen forever, and the add path refused to let you
       # type it again because the name was taken.
-      saved(%{title: "The Long Hollow", kind: :movie, status: "Watching"})
+      saved(%{title: "The Long Hollow", kind: :movie, status: :watching})
 
       [tracked] = Ash.read!(TrackedTitle)
       assert tracked.kind == :movie

@@ -256,7 +256,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   def shelve(title) when is_binary(title) do
     with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, :tv),
          {:ok, _tracked} <-
-           Kati.Screens.AddByHand.track(title, %{kind: :tv, status: "Watching"}) do
+           Kati.Screens.AddByHand.track(title, %{kind: :tv, status: :watching}) do
       :ok
     else
       _refused -> :ok

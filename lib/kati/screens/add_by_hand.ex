@@ -58,7 +58,7 @@ defmodule Kati.Screens.AddByHand do
   alias Kati.Theme.Palette
 
   @kinds [{"Film", :movie, "movie"}, {"Series", :tv, "live_tv"}]
-  @statuses ["Not started", "Watching", "Finished"]
+  @statuses [{"Not started", :not_started}, {"Watching", :watching}, {"Finished", :finished}]
 
   @impl true
   def load(socket) do
@@ -66,7 +66,7 @@ defmodule Kati.Screens.AddByHand do
       title: "",
       kind: :movie,
       year: "",
-      status: "Not started",
+      status: :not_started,
       episodes: "",
       save_error: nil
     )
@@ -242,7 +242,7 @@ defmodule Kati.Screens.AddByHand do
   def kind_list, do: @kinds
 
   @doc false
-  @spec status_list() :: [String.t()]
+  @spec status_list() :: [{String.t(), atom()}]
   def status_list, do: @statuses
 
   @doc false
@@ -250,21 +250,30 @@ defmodule Kati.Screens.AddByHand do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHand.kind_list(), fn {label, kind, icon} ->
-        Kati.Screens.AddByHand.kind_chip(label, icon, kind == active)
+        Kati.Screens.AddByHand.kind_chip(label, icon, kind == active, kind)
       end)
       |> Enum.intersperse(Kati.Screens.AddByHand.gap())}
     </Row>
     """
   end
 
-  @doc false
-  def kind_chip(label, icon, on?, face \\ "sans") do
+  @doc """
+  One Kind chip.
+
+  `kind` is the tap's name and `label` is only ever drawn. They were the same
+  string until MOVIES-AND-TV.md #157: the tag was `kind_` <> the label, so the
+  Persian form's control was `:kind_فیلم` — a name no device test can type, and
+  a screen that renames its own controls when the language changes. The key is
+  stable across every locale; the word is not.
+  """
+  @spec kind_chip(String.t(), String.t(), boolean(), atom(), String.t()) :: map()
+  def kind_chip(label, icon, on?, kind, face \\ "sans") do
     assigns = %{
       label: label,
       icon: icon,
       on?: on?,
       face: face,
-      tap: {self(), String.to_atom("kind_" <> label)}
+      tap: {self(), Kati.Screens.AddByHand.tag("kind_", kind)}
     }
 
     ~MOB"""
@@ -295,18 +304,18 @@ defmodule Kati.Screens.AddByHand do
   def statuses(active) do
     ~MOB"""
     <Row fill_width={true} align="center">
-      {Enum.map(Kati.Screens.AddByHand.status_list(), fn label -> Kati.Screens.AddByHand.status_chip(label, label == active) end)
+      {Enum.map(Kati.Screens.AddByHand.status_list(), fn {label, status} -> Kati.Screens.AddByHand.status_chip(label, status == active, status) end)
        |> Enum.intersperse(Kati.Screens.AddByHand.gap())}
     </Row>
     """
   end
 
   @doc false
-  def status_chip(label, on?) do
+  def status_chip(label, on?, status) do
     MishkaChip.chip(
       label: label,
       checked: on?,
-      on_toggle: String.to_atom("status_" <> label),
+      on_toggle: Kati.Screens.AddByHand.tag("status_", status),
       height: 32,
       padding_x: 15,
       padding_y: 0,
@@ -484,9 +493,9 @@ defmodule Kati.Screens.AddByHand do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "kind_Film" -> {:noreply, Mob.Socket.assign(socket, :kind, :movie)}
-      "kind_Series" -> {:noreply, Mob.Socket.assign(socket, :kind, :tv)}
-      "status_" <> label -> {:noreply, Mob.Socket.assign(socket, :status, label)}
+      "kind_movie" -> {:noreply, Mob.Socket.assign(socket, :kind, :movie)}
+      "kind_tv" -> {:noreply, Mob.Socket.assign(socket, :kind, :tv)}
+      "status_" <> key -> {:noreply, Kati.Screens.AddByHand.pick(socket, key)}
       _other -> {:noreply, socket}
     end
   end
@@ -603,7 +612,7 @@ defmodule Kati.Screens.AddByHand do
       source: :manual,
       source_id: title,
       kind: assigns.kind,
-      status: Kati.Screens.AddByHand.status_atom(assigns.status)
+      status: assigns.status
     })
     |> Ash.create()
     |> Kati.Screens.AddByHand.logged()
@@ -797,9 +806,31 @@ defmodule Kati.Screens.AddByHand do
 
   def refusal(error, _title), do: Kati.Write.message(error)
 
-  @doc false
-  @spec status_atom(String.t()) :: atom()
-  def status_atom("Watching"), do: :watching
-  def status_atom("Finished"), do: :finished
-  def status_atom(_other), do: :not_started
+  @doc """
+  A control's name: a prefix and the stable key under it.
+
+      iex> Kati.Screens.AddByHand.tag("kind_", :tv)
+      :kind_tv
+
+      iex> Kati.Screens.AddByHand.tag("status_", :not_started)
+      :status_not_started
+
+  Never the label. See `kind_chip/5`.
+  """
+  @spec tag(String.t(), atom()) :: atom()
+  def tag(prefix, key), do: String.to_atom(prefix <> Atom.to_string(key))
+
+  @doc """
+  Take a Status chip's tap, if it names one of the three.
+
+  A tag Kati did not draw leaves the assign alone rather than writing a status
+  the resource would refuse at save time.
+  """
+  @spec pick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def pick(socket, key) do
+    case Enum.find(@statuses, fn {_label, status} -> Atom.to_string(status) == key end) do
+      {_label, status} -> Mob.Socket.assign(socket, :status, status)
+      nil -> socket
+    end
+  end
 end

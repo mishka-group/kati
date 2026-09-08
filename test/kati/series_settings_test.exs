@@ -102,7 +102,7 @@ defmodule Kati.SeriesSettingsTest do
     end
 
     test "write the status they name", %{tracked: tracked} do
-      {:noreply, socket} = press(tracked, :status_Paused)
+      {:noreply, socket} = press(tracked, :status_paused)
 
       assert socket.assigns.show.tracked.status == :paused
       assert Ash.get!(TrackedTitle, tracked.id).status == :paused
@@ -111,7 +111,7 @@ defmodule Kati.SeriesSettingsTest do
     test "and the one already lit writes the same value rather than going dead", %{
       tracked: tracked
     } do
-      {:noreply, socket} = press(tracked, :status_Watching)
+      {:noreply, socket} = press(tracked, :status_watching)
 
       assert socket.assigns.show.tracked.status == :watching
       assert Ash.get!(TrackedTitle, tracked.id).status == :watching
@@ -131,7 +131,7 @@ defmodule Kati.SeriesSettingsTest do
         |> SeriesSettings.status_tiles()
         |> Enum.map(&Map.get(SeriesSettings.status(&1).props, :on_tap))
 
-      assert [{_a, :status_Watching}, {_b, :status_Paused}, {_c, :status_Dropped}] = taps
+      assert [{_a, :status_watching}, {_b, :status_paused}, {_c, :status_dropped}] = taps
     end
 
     test "are drawn without taps over the board, so nothing can be written onto it" do
@@ -219,7 +219,7 @@ defmodule Kati.SeriesSettingsTest do
       socket = socket_over(tracked)
       Ash.destroy!(tracked)
 
-      {:noreply, after_tap} = SeriesSettings.handle_tap(:status_Dropped, socket)
+      {:noreply, after_tap} = SeriesSettings.handle_tap(:status_dropped, socket)
 
       assert after_tap.assigns.show.tracked.status == :watching
     end

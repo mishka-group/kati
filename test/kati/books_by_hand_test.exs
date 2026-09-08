@@ -95,7 +95,7 @@ defmodule Kati.BooksByHandTest do
     end
 
     test "the Kind chips that are another kind of the same form navigate to it" do
-      for tag <- [:kind_Film, :kind_Series] do
+      for tag <- [:kind_movie, :kind_tv] do
         view =
           AddByHandBook
           |> mount_screen()
@@ -137,7 +137,7 @@ defmodule Kati.BooksByHandTest do
       |> render_info({:change, :year, "2024"})
       |> render_info({:change, :length, "240"})
       |> render_info({:change, :isbn, "978-0-571-33915-2"})
-      |> render_info({:tap, :status_Reading})
+      |> render_info({:tap, :status_reading})
       |> render_info({:tap, :add})
 
       assert [book] = shelf()
@@ -156,7 +156,7 @@ defmodule Kati.BooksByHandTest do
       |> mount_screen()
       |> render_info({:change, :title, @prefix <> "Low Water"})
       |> render_info({:change, :length, "680"})
-      |> render_info({:tap, :edition_Audiobook})
+      |> render_info({:tap, :edition_audiobook})
       |> render_info({:tap, :add})
 
       assert [book] = shelf()
@@ -174,7 +174,7 @@ defmodule Kati.BooksByHandTest do
 
       assert find(tree(view), :text, text: "Length · pages") != nil
 
-      switched = render_info(view, {:tap, :edition_Audiobook})
+      switched = render_info(view, {:tap, :edition_audiobook})
 
       assert find(tree(switched), :text, text: "Length · minutes") != nil
       assert find(tree(switched), :text, text: "Length · pages") == nil
@@ -548,8 +548,8 @@ defmodule Kati.BooksByHandTest do
     test "every status chip maps onto a value Kati.Books.Book accepts" do
       accepted = one_of(:status)
 
-      for label <- AddByHandBook.status_list() do
-        assert AddByHandBook.status_atom(label) in accepted
+      for {_label, status} <- AddByHandBook.status_list() do
+        assert status in accepted
       end
 
       # And the two the form does NOT offer are still values the resource has —
@@ -557,15 +557,14 @@ defmodule Kati.BooksByHandTest do
       # them off rather than an omission.
       assert :paused in accepted
       assert :did_not_finish in accepted
-      refute "Paused" in AddByHandBook.status_list()
+      refute :paused in Enum.map(AddByHandBook.status_list(), &elem(&1, 1))
     end
 
     test "every Edition chip maps onto a format the resource accepts" do
       accepted = one_of(:format)
 
-      for {label, format} <- AddByHandBook.edition_list() do
+      for {_label, format} <- AddByHandBook.edition_list() do
         assert format in accepted
-        assert AddByHandBook.format(label) == format
       end
     end
 

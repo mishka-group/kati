@@ -226,16 +226,10 @@ defmodule Kati.Screens.SeriesSettings do
   def status_tiles(%{tracked: t}) do
     Enum.map(Sample.statuses(), fn tile ->
       tile
-      |> Map.put(:on, Kati.Screens.SeriesSettings.status_of(tile.label) == t.status)
+      |> Map.put(:on, tile.status == t.status)
       |> Map.put(:tracked, t)
     end)
   end
-
-  @doc false
-  def status_of("Watching"), do: :watching
-  def status_of("Paused"), do: :paused
-  def status_of("Dropped"), do: :dropped
-  def status_of(_label), do: nil
 
   @doc false
   def content(assigns) do
@@ -283,8 +277,8 @@ defmodule Kati.Screens.SeriesSettings do
   writes a real row and presses the tiles itself.
   """
   @spec status_tap(map()) :: {pid(), atom()} | nil
-  def status_tap(%{tracked: %{}, label: label}),
-    do: {self(), String.to_atom("status_" <> label)}
+  def status_tap(%{tracked: %{}, status: status}),
+    do: {self(), Kati.Screens.AddByHand.tag("status_", status)}
 
   def status_tap(_drawn), do: nil
 
@@ -337,10 +331,10 @@ defmodule Kati.Screens.SeriesSettings do
           key -> {:ok, %{key => not Map.fetch!(tracked, key)}}
         end
 
-      "status_" <> label ->
-        case Kati.Screens.SeriesSettings.status_of(label) do
+      "status_" <> key ->
+        case Enum.find(Kati.SeriesSettings.Sample.statuses(), &(Atom.to_string(&1.status) == key)) do
           nil -> :error
-          status -> {:ok, %{status: status}}
+          tile -> {:ok, %{status: tile.status}}
         end
 
       _other ->

@@ -84,7 +84,7 @@ class SeriesSettingsTest {
      * Adds one series through the form a person would use, and comes back to a
      * root.
      *
-     * `kind_Series` and not the default: `Kati.Screens.AddByHand`'s default is
+     * `kind_tv` and not the default: `Kati.Screens.AddByHand`'s default is
      * Film, and a film tile is tagged `open_film_…` and opens screen 08. The
      * whole journey below is about screen 04.
      *
@@ -117,9 +117,9 @@ class SeriesSettingsTest {
         kati.tap("add_by_hand")
         kati.awaitScreen("add_by_hand")
 
-        // `kind_Series` and not the default: `Kati.Screens.AddByHand` opens on
+        // `kind_tv` and not the default: `Kati.Screens.AddByHand` opens on
         // Film, and a film lands on screen 08 rather than on screen 04.
-        kati.tap("kind_Series")
+        kati.tap("kind_tv")
         kati.device.waitForIdle()
 
         kati.compose.onNodeWithTag("title", useUnmergedTree = true).performTextClearance()
@@ -173,7 +173,7 @@ class SeriesSettingsTest {
             before
         )
 
-        kati.tap("status_Paused")
+        kati.tap("status_paused")
         try {
             kati.compose.waitUntil(20_000) { statusInDb() == "paused" }
         } catch (_: Throwable) {
@@ -206,7 +206,7 @@ class SeriesSettingsTest {
         // And the tile is not one-way. `status_tap/1` keeps the tap on the lit
         // tile on purpose — pressing the one you are on is how you check you
         // are on it — so this also proves that is not a no-op for the other two.
-        kati.tap("status_Watching")
+        kati.tap("status_watching")
         try {
             kati.compose.waitUntil(20_000) { statusInDb() == "watching" }
         } catch (_: Throwable) {

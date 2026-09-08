@@ -48,7 +48,7 @@ defmodule Kati.Screens.AddByHandFa do
   alias Kati.Theme.Palette
 
   @kinds [{"فیلم", :movie, "movie"}, {"سریال", :tv, "live_tv"}]
-  @statuses ["شروع نشده", "در حال تماشا", "تمام‌شده"]
+  @statuses [{"شروع نشده", :not_started}, {"در حال تماشا", :watching}, {"تمام‌شده", :finished}]
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
@@ -64,7 +64,7 @@ defmodule Kati.Screens.AddByHandFa do
        title: "",
        kind: :tv,
        year: "",
-       status: "شروع نشده",
+       status: :not_started,
        episodes: "",
        save_error: nil
      )}
@@ -204,9 +204,9 @@ defmodule Kati.Screens.AddByHandFa do
   is not. Same 32pt height, 15pt inset, 16pt radius and 12.5/600 label as the
   component; only the family is added.
   """
-  @spec status_chip(String.t(), boolean()) :: map()
-  def status_chip(label, on?) do
-    assigns = %{label: label, on?: on?, tap: {self(), String.to_atom("status_" <> label)}}
+  @spec status_chip(String.t(), boolean(), atom()) :: map()
+  def status_chip(label, on?, status) do
+    assigns = %{label: label, on?: on?, tap: {self(), AddByHand.tag("status_", status)}}
 
     ~MOB"""
     <Row
@@ -241,7 +241,7 @@ defmodule Kati.Screens.AddByHandFa do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHandFa.kind_list(), fn {label, kind, icon} ->
-        AddByHand.kind_chip(label, icon, kind == active, "fa")
+        AddByHand.kind_chip(label, icon, kind == active, kind, "fa")
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
@@ -252,8 +252,8 @@ defmodule Kati.Screens.AddByHandFa do
   def statuses(active) do
     ~MOB"""
     <Row fill_width={true} align="center">
-      {Enum.map(Kati.Screens.AddByHandFa.status_list(), fn label ->
-        Kati.Screens.AddByHandFa.status_chip(label, label == active)
+      {Enum.map(Kati.Screens.AddByHandFa.status_list(), fn {label, status} ->
+        Kati.Screens.AddByHandFa.status_chip(label, status == active, status)
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
@@ -267,29 +267,21 @@ defmodule Kati.Screens.AddByHandFa do
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The write is screen 154's, so a hand-typed row is the same row in either
-  # script. `status_atom/1` maps the Persian labels rather than 154's, which is
-  # the one thing the mirror has to own.
-  def handle_info({:tap, :add}, socket) do
-    {:noreply,
-     socket
-     |> Mob.Socket.assign(:status, Kati.Screens.AddByHandFa.status_english(socket.assigns.status))
-     |> AddByHand.save()}
-  end
+  # script — and now literally so. The mirror used to own one thing, a
+  # `status_english/1` that mapped its Persian labels onto 154's English ones
+  # before saving; MOVIES-AND-TV.md #157 made the assign hold `:watching`
+  # rather than the word for it, so there is nothing left to translate.
+  def handle_info({:tap, :add}, socket), do: {:noreply, AddByHand.save(socket)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
-      "kind_فیلم" -> {:noreply, Mob.Socket.assign(socket, :kind, :movie)}
-      "kind_سریال" -> {:noreply, Mob.Socket.assign(socket, :kind, :tv)}
-      "status_" <> label -> {:noreply, Mob.Socket.assign(socket, :status, label)}
+      "kind_movie" -> {:noreply, Mob.Socket.assign(socket, :kind, :movie)}
+      "kind_tv" -> {:noreply, Mob.Socket.assign(socket, :kind, :tv)}
+      "status_" <> key -> {:noreply, AddByHand.pick(socket, key)}
       _other -> Fa.dock_tap(tag, :library, socket)
     end
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
-  @doc "The Persian status label as the English one `Kati.Screens.AddByHand.save/1` maps."
-  @spec status_english(String.t()) :: String.t()
-  def status_english("در حال تماشا"), do: "Watching"
-  def status_english("تمام‌شده"), do: "Finished"
-  def status_english(_other), do: "Not started"
 end

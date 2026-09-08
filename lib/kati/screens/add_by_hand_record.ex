@@ -227,7 +227,7 @@ defmodule Kati.Screens.AddByHandRecord do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHandRecord.kind_list(), fn {label, kind, icon} ->
-        AddByHand.kind_chip(label, icon, kind == active)
+        AddByHand.kind_chip(label, icon, kind == active, kind)
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
@@ -594,10 +594,10 @@ defmodule Kati.Screens.AddByHandRecord do
   # Album and Artist are this form's two states. Film, Series and Book belong to
   # a different write — see the moduledoc — so their chips open the form that
   # owns them rather than pretending this one can file a film.
-  def handle_tap(:kind_Album, socket), do: {:noreply, Mob.Socket.assign(socket, :kind, :album)}
-  def handle_tap(:kind_Artist, socket), do: {:noreply, Mob.Socket.assign(socket, :kind, :artist)}
+  def handle_tap(:kind_album, socket), do: {:noreply, Mob.Socket.assign(socket, :kind, :album)}
+  def handle_tap(:kind_artist, socket), do: {:noreply, Mob.Socket.assign(socket, :kind, :artist)}
 
-  def handle_tap(tag, socket) when tag in [:kind_Film, :kind_Series, :kind_Book],
+  def handle_tap(tag, socket) when tag in [:kind_movie, :kind_tv, :kind_book],
     do: {:noreply, Mob.Socket.push_screen(socket, AddByHand.for_locale())}
 
   def handle_tap(_tag, socket), do: {:noreply, socket}

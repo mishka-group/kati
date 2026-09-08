@@ -184,7 +184,7 @@ defmodule Kati.MusicAddByHandTest do
       view =
         AddByHandRecord
         |> mount_screen()
-        |> render_info({:tap, :kind_Artist})
+        |> render_info({:tap, :kind_artist})
         |> typed(title: @prefix <> "Aud Marne", role: "Composer", country: "Iceland")
         |> render_info({:tap, :toggle_following})
 
@@ -205,7 +205,7 @@ defmodule Kati.MusicAddByHandTest do
       # own annotation. Film, Series and Book are `Kati.Media`'s write, not this
       # one, so their chips push the form that makes it rather than pretending
       # this one can file a film.
-      for tag <- [:kind_Film, :kind_Series, :kind_Book] do
+      for tag <- [:kind_movie, :kind_tv, :kind_book] do
         view =
           AddByHandRecord
           |> mount_screen()
@@ -250,7 +250,7 @@ defmodule Kati.MusicAddByHandTest do
       view =
         AddByHandRecord
         |> mount_screen()
-        |> render_info({:tap, :kind_Artist})
+        |> render_info({:tap, :kind_artist})
         |> render_info({:tap, :add})
 
       assert artists() == []

@@ -111,7 +111,7 @@ defmodule Kati.Screens.AddByHandBook do
 
   @editions [{"Paperback", :paperback}, {"Ebook", :ebook}, {"Audiobook", :audiobook}]
 
-  @statuses ["Not started", "Reading", "Finished"]
+  @statuses [{"Not started", :not_started}, {"Reading", :reading}, {"Finished", :finished}]
 
   @impl true
   def load(socket) do
@@ -122,7 +122,7 @@ defmodule Kati.Screens.AddByHandBook do
       edition: :paperback,
       length: "",
       isbn: "",
-      status: "Not started",
+      status: :not_started,
       save_error: nil
     )
   end
@@ -136,7 +136,7 @@ defmodule Kati.Screens.AddByHandBook do
   def edition_list, do: @editions
 
   @doc false
-  @spec status_list() :: [String.t()]
+  @spec status_list() :: [{String.t(), atom()}]
   def status_list, do: @statuses
 
   @doc false
@@ -217,7 +217,7 @@ defmodule Kati.Screens.AddByHandBook do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHandBook.kind_list(), fn {label, kind, icon} ->
-        AddByHand.kind_chip(label, icon, kind == :book)
+        AddByHand.kind_chip(label, icon, kind == :book, kind)
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
@@ -230,16 +230,17 @@ defmodule Kati.Screens.AddByHandBook do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHandBook.edition_list(), fn {label, format} ->
-        Kati.Screens.AddByHandBook.edition_chip(label, format == active)
+        Kati.Screens.AddByHandBook.edition_chip(label, format == active, format)
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
     """
   end
 
-  @doc false
-  def edition_chip(label, on?) do
-    assigns = %{label: label, on?: on?, tap: {self(), String.to_atom("edition_" <> label)}}
+  @doc "One Edition chip. `format` names the tap and `label` is drawn — `Kati.Screens.AddByHand.kind_chip/5` says why they are two things."
+  @spec edition_chip(String.t(), boolean(), atom()) :: map()
+  def edition_chip(label, on?, format) do
+    assigns = %{label: label, on?: on?, tap: {self(), AddByHand.tag("edition_", format)}}
 
     ~MOB"""
     <Row
@@ -267,8 +268,8 @@ defmodule Kati.Screens.AddByHandBook do
   def statuses(active) do
     ~MOB"""
     <Row fill_width={true} align="center">
-      {Enum.map(Kati.Screens.AddByHandBook.status_list(), fn label ->
-        AddByHand.status_chip(label, label == active)
+      {Enum.map(Kati.Screens.AddByHandBook.status_list(), fn {label, status} ->
+        AddByHand.status_chip(label, status == active, status)
       end)
       |> Enum.intersperse(AddByHand.gap())}
     </Row>
@@ -501,22 +502,19 @@ defmodule Kati.Screens.AddByHandBook do
   # `Kati.Screens.AddByHandRecord` opens on Album and its own Kind row moves to
   # Artist, which is why both chips push the one screen: the record form is one
   # form in two kinds, exactly as this one is.
-  def handle_tap(:kind_Film, socket),
+  def handle_tap(kind, socket) when kind in [:kind_movie, :kind_tv],
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
 
-  def handle_tap(:kind_Series, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand)}
-
-  def handle_tap(kind, socket) when kind in [:kind_Album, :kind_Artist],
+  def handle_tap(kind, socket) when kind in [:kind_album, :kind_artist],
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHandRecord)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "edition_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :edition, Kati.Screens.AddByHandBook.format(label))}
+      "edition_" <> key ->
+        {:noreply, Kati.Screens.AddByHandBook.pick_edition(socket, key)}
 
-      "status_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :status, label)}
+      "status_" <> key ->
+        {:noreply, Kati.Screens.AddByHandBook.pick_status(socket, key)}
 
       _other ->
         {:noreply, socket}
@@ -644,7 +642,7 @@ defmodule Kati.Screens.AddByHandBook do
       published_year: Kati.Screens.AddByHandBook.number(assigns.year),
       format: assigns.edition,
       isbn: Kati.Screens.AddByHandBook.text(assigns.isbn),
-      status: Kati.Screens.AddByHandBook.status_atom(assigns.status)
+      status: assigns.status
     }
     |> Map.merge(Kati.Screens.AddByHandBook.extent(assigns.edition, assigns.length))
   end
@@ -710,15 +708,20 @@ defmodule Kati.Screens.AddByHandBook do
     end
   end
 
-  @doc false
-  @spec status_atom(String.t()) :: atom()
-  def status_atom("Reading"), do: :reading
-  def status_atom("Finished"), do: :finished
-  def status_atom(_other), do: :not_started
+  @doc "Take a Status chip's tap, if it names one of the three. `Kati.Screens.AddByHand.pick/2`'s rule, over this form's own list."
+  @spec pick_status(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def pick_status(socket, key), do: Kati.Screens.AddByHandBook.assign_key(socket, :status, @statuses, key)
+
+  @doc "The same, for the three Edition chips."
+  @spec pick_edition(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def pick_edition(socket, key), do: Kati.Screens.AddByHandBook.assign_key(socket, :edition, @editions, key)
 
   @doc false
-  @spec format(String.t()) :: atom()
-  def format("Ebook"), do: :ebook
-  def format("Audiobook"), do: :audiobook
-  def format(_other), do: :paperback
+  @spec assign_key(Mob.Socket.t(), atom(), [{String.t(), atom()}], String.t()) :: Mob.Socket.t()
+  def assign_key(socket, field, pairs, key) do
+    case Enum.find(pairs, fn {_label, value} -> Atom.to_string(value) == key end) do
+      {_label, value} -> Mob.Socket.assign(socket, field, value)
+      nil -> socket
+    end
+  end
 end
