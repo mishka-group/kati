@@ -2563,6 +2563,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # subscriptions yet* while another said three (MOVIES-AND-TV.md #75).
       {"24", "united kingdom · 3 subscribed", ~r/^.+ · (none yet|\d+ subscribed)$/u},
       {"42", "united kingdom · 3 subscribed", ~r/^.+ · (none yet|\d+ subscribed)$/u},
+      # 05's watcher line, and the twin of this entry is in
+      # `Kati.ScreenDesignLiteralTest`, which carries the full reasoning. Both
+      # halves are stored now — board 314 built the record on the page this
+      # card's cog opens — and an empty `Mob.State` answers `never checked`
+      # beside the default cadence, which is exactly what a fresh install says.
+      {"05", "last checked 18:02 · every 6h",
+       ~r/^(never checked|checking now|checked just now|checked \d+ (minute|hour|day)s? ago) · (hourly|every 6h|daily)$/u},
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},

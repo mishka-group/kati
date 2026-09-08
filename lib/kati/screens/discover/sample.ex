@@ -10,7 +10,6 @@ defmodule Kati.Screens.Discover.Sample do
   identical rows would exercise neither.
   """
 
-  @doc "Everything screen 11 draws."
   @doc """
   How many rows the leaving section holds, as the chip's badge prints it.
 
@@ -20,6 +19,7 @@ defmodule Kati.Screens.Discover.Sample do
   @spec leaving_count() :: String.t()
   def leaving_count, do: Integer.to_string(length(Kati.Screens.Discover.Sample.leaving()))
 
+  @doc "Everything screen 11 draws."
   @spec feed() :: map()
   def feed do
     %{

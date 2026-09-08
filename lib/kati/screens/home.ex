@@ -110,9 +110,11 @@ defmodule Kati.Screens.Home do
       subscribed service — there is nothing to count down from"*, and
       `Kati.Media.Watch.service` is where the user watched something, which is
       a different fact and is per-watch.
-    * *last check 18:02.* `Kati.Screens.Inbox`'s moduledoc records that
-      **nothing stores when the watcher last swept** and why the max of
-      `last_checked_at` is not that fact.
+    * *last check 18:02.* `Kati.Settings.Watcher.last_checked/0` records when a
+      check last COMPLETED — board 314 built it, and screen 05's own card reads
+      it — but only screen 25's **Check now** writes one, so nothing records
+      every sweep. `Kati.Screens.Inbox`'s moduledoc carries why the max of
+      `last_checked_at` is not that fact either. This hero draws no such line.
     * *S2 · E6 · 18m left.* `Kati.Media.TrackedTitle` says of `progress_seconds`
       that *"nothing writes it yet"*, and the same is true of
       `progress_season` and `progress_episode`. The card draws the progress it

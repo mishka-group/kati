@@ -227,7 +227,6 @@ defmodule Kati.Library.Sample do
   def inbox do
     %{
       watching: 24,
-      last_checked: "last checked 18:02 · every 6h",
       out_now: [
         %{
           title: "The Long Hollow",

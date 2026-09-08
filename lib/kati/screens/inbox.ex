@@ -116,26 +116,27 @@ defmodule Kati.Screens.Inbox do
       lands all at once rather than weekly, and nothing records a release
       pattern. A real row draws what is left: `48 min · aired 20:00`, and a
       coming-up line that is the episode's own name and its hour.
-    * **The whole watcher card.** Three values with three different answers, and
-      only one of them is queryable:
+    * **The watcher card's count, until something is followed.** All three of
+      its values move now, and each moves the way the screen its cog opens
+      moves them:
 
-        * `Watching for 24 titles` — real today. `:followed` is precisely the
-          set, and counting it is the number.
-        * `last checked 18:02` — **nothing records when the watcher last ran.**
-          `Kati.Media.CachedTitle.last_checked_at` is per title, not per sweep,
-          and the max across a library is not the same fact: a library where one
-          title was refreshed a minute ago and the rest a week ago would read as
-          fully current.
-        * `every 6h` — the watcher's cadence, which lives in no resource and no
-          policy module (`Kati.Media.CachePolicy` states refresh and eviction
-          horizons in *days*, which is a different clock).
+        * `Watching for 24 titles` is `:followed`, counted — through the same
+          list the two sections below it are built from, so the banner and the
+          inbox it is a banner FOR cannot disagree. A device following nothing
+          keeps the drawing's 24, which is the gate this whole screen is on.
+        * `last checked 18:02` is `Kati.Settings.Watcher.last_checked/0`, drawn
+          relative: `never checked` on a fresh install. This section used to
+          say *nothing records when the watcher last ran*, and board 314 built
+          the record. What records one today is screen 25's **Check now** and
+          nothing else, which `watcher_line/0` states rather than rounds up.
+        * `every 6h` is `Kati.Settings.Watcher.cadence/0`, the interval boot
+          asks the scheduler for. A reader who picks `Daily` is told daily —
+          which is the finding: 05 said `every 6h` to a reader whose own
+          setting, one tap away, said otherwise.
 
-      So the count stays frozen with the other two rather than being wired up on
-      its own. A card that reads `Watching for 7 titles · last checked 18:02`
-      puts a live number beside a frozen one in the same breath, and the second
-      is then indistinguishable from the first — which is `Kati.Library.Sample`'s
-      own warning: *sample data that looks like real data is how a demo quietly
-      becomes a lie*. The whole card moves when the watcher records its own run.
+      The last two are not gated on the library, because neither lives in the
+      store this screen falls back FROM. Screen 25's own line is the precedent:
+      it draws `never checked` on a device that follows nothing.
 
   """
   use Kati.Screens.Pushed, back: "Home"
@@ -150,16 +151,22 @@ defmodule Kati.Screens.Inbox do
   alias Kati.Media.Release
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
+  alias Kati.Settings.Watcher
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  # How far back `Out now` reaches. See the moduledoc: nothing stores when the
-  # watcher last swept, so "new" has to be a window, and this one bounds a
-  # display rather than an alarm.
+  # How far back `Out now` reaches. `Kati.Settings.Watcher.last_checked/0`
+  # exists, but only screen 25's *Check now* writes it — it is not a record of
+  # every sweep, so it cannot bound this list. "New" is therefore still a
+  # window, and this one bounds a display rather than an alarm.
   @recent_days 7
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :inbox, inbox())
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:inbox, inbox())
+    |> Mob.Socket.assign(:save_error, nil)
+  end
 
   @doc """
   The inbox this screen draws: the user's releases, or the drawing's.
@@ -179,7 +186,39 @@ defmodule Kati.Screens.Inbox do
   says why in its own doc.
   """
   @spec drawn_inbox() :: map()
-  def drawn_inbox, do: %{Sample.inbox() | coming_up: coming_up_rows()}
+  def drawn_inbox,
+    do: Map.merge(Sample.inbox(), %{coming_up: coming_up_rows(), last_checked: watcher_line()})
+
+  @doc """
+  The watcher card's mono line: when a check last completed, and how often the
+  watcher is asked to run.
+
+  Board 05 froze `last checked 18:02 · every 6h`, and board 260's note called
+  both halves *recorded nowhere*. Board 314 then built the store for both, on
+  the page this card's cog opens: `Kati.Settings.Watcher.cadence/0` is the
+  interval boot asks the scheduler for, and `Kati.Settings.Watcher.last_checked/0`
+  is a real timestamp.
+
+  So this reads the two functions `Kati.Screens.ReleaseWatcher` reads rather
+  than keeping a second copy of a sentence 25 already tells the truth about —
+  which is the whole finding: 05 said `every 6h` to a reader who had set
+  **Daily** on the screen one tap away.
+
+  **What the first half means, exactly.** `checked!/0` is called from one
+  place, screen 25's *Check now*, so this says when a check last completed AND
+  was recorded. Screen 80's *Refresh* runs the same sweep and records nothing.
+  That is 25's contract, adopted whole; narrowing or widening it is a change to
+  `Kati.Settings.Watcher` and belongs with the screen that writes it.
+
+  Not gated on the library being empty, and screen 25's own line is the
+  precedent — it draws `never checked` on a device that follows nothing.
+  Neither value lives in the store this screen falls back FROM.
+  """
+  @spec watcher_line() :: String.t()
+  def watcher_line do
+    Watcher.checked_line(Watcher.last_checked(), false) <>
+      " · " <> String.downcase(Watcher.cadence())
+  end
 
   @doc """
   The user's own releases, or `nil` when they follow nothing.
@@ -200,10 +239,16 @@ defmodule Kati.Screens.Inbox do
     _ -> nil
   end
 
-  # The watcher card is untouched — see the moduledoc — so the real inbox is the
-  # drawn one with its two lists replaced. Laying it over the drawn map rather
-  # than building a fresh one is what keeps "which parts are still the design's"
-  # a single visible line instead of an omission.
+  # The real inbox is the drawn one with its two lists and its count replaced.
+  # Laying the reader's values over the drawn map rather than building a fresh
+  # one is what keeps "which parts are still the design's" a single visible
+  # line instead of an omission.
+  #
+  # `length(tracked)` rather than `followed_count/0`: `tracked` IS the
+  # `:followed` read that function counts, already in hand, and counting the
+  # list this screen is drawing is what makes *the banner and the list it is a
+  # banner FOR cannot disagree* structural rather than a promise. Screen 25
+  # reaches the same number through `followed_count/0` because it has no list.
   defp assemble(tracked) do
     cache = cached_titles(tracked)
     episodes = scheduled_episodes(tracked)
@@ -211,7 +256,8 @@ defmodule Kati.Screens.Inbox do
 
     %{
       drawn_inbox()
-      | out_now: out_now_rows(tracked, cache, episodes, ticked_ids(tracked), now),
+      | watching: length(tracked),
+        out_now: out_now_rows(tracked, cache, episodes, ticked_ids(tracked), now),
         coming_up: upcoming_rows(tracked, cache, episodes, scheduled_seasons(tracked), now)
     }
   end
@@ -258,11 +304,26 @@ defmodule Kati.Screens.Inbox do
 
   @impl true
   def handle_tap(:mark_all, socket) do
-    socket.assigns.inbox
-    |> Kati.Screens.Inbox.tickable()
-    |> Enum.each(&Kati.Screens.Series.write_tick(&1.tracked_id, &1))
+    # The re-read happens whatever the outcome, because ticks that DID land
+    # must leave the list — a partial run is a true state, and hiding it would
+    # be the same silence this is fixing. Only the FIRST refusal is spoken:
+    # `Kati.Write.message/1` is the app's whole refusal vocabulary and "3 of 5
+    # did not save" is copy no board words. `nil` on a clean run, which clears
+    # a refusal an earlier tap left behind.
+    refused =
+      socket.assigns.inbox
+      |> Kati.Screens.Inbox.tickable()
+      |> Enum.reduce(nil, fn row, first ->
+        case Kati.Screens.Series.write_tick(row.tracked_id, row) do
+          :ok -> first
+          {:error, reason} -> first || Kati.Write.message({:error, reason})
+        end
+      end)
 
-    {:noreply, Mob.Socket.assign(socket, :inbox, inbox())}
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:inbox, inbox())
+     |> Mob.Socket.assign(:save_error, refused)}
   end
 
   # Screen 25, which is what the gear on the cream card has always pointed at.
@@ -286,6 +347,13 @@ defmodule Kati.Screens.Inbox do
   out of `out_now` because `out_now_rows/5` rejects what is already ticked, and
   the subtitle counts the same list. Removing the row here and leaving the
   count alone is how the two come to disagree.
+
+  A refusal is assigned rather than dropped — `Kati.Write.message/1`, drawn by
+  `refusal/1`. Before this, a store that said no left the row in place, the
+  count unmoved and the page saying no more than if the finger had missed the
+  pill. That is the defect MOVIES-AND-TV.md #39 names on screens 04 and 34; it
+  reached this screen with #82, which gave the two controls something to
+  refuse.
   """
   @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def tick(socket, source_id) do
@@ -295,8 +363,21 @@ defmodule Kati.Screens.Inbox do
       |> Enum.find(&(&1.source_id == source_id))
 
     case row && Kati.Screens.Series.write_tick(row.tracked_id, row) do
-      :ok -> Mob.Socket.assign(socket, :inbox, inbox())
-      _refused -> socket
+      :ok ->
+        socket
+        |> Mob.Socket.assign(:inbox, inbox())
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+
+      # MANDATORY, and it must stay silent. A tag naming no row on the page is
+      # not a refused write, it is a tag this screen does not own — the answer
+      # `handle_tap/2`'s `_other` clause already gives. Collapse it into the
+      # error clause and `case nil do` raises `CaseClauseError`, which
+      # `Kati.Screens.Root.rescue_tap/3` then logs as a dead tap.
+      nil ->
+        socket
     end
   end
 
@@ -614,6 +695,7 @@ defmodule Kati.Screens.Inbox do
         {Kati.Screens.Inbox.mark_all(inbox)}
         {Kati.Screens.Inbox.title(inbox)}
         {Kati.Screens.Inbox.watcher(inbox)}
+        {Kati.Screens.Inbox.refusal(Map.get(assigns, :save_error))}
         {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
         {Kati.Screens.Inbox.out_now(inbox)}
         {Kati.UI.eyebrow("Coming up", dash: Palette.rail_idle(), gap: 12)}
@@ -769,6 +851,39 @@ defmodule Kati.Screens.Inbox do
         {Kati.Screens.Inbox.watcher_gear()}
       </Row>
       <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc """
+  A tick the store refused, said out loud.
+
+  The band `Kati.Screens.Series.refusal/1` and `Kati.Screens.Season.refusal/1`
+  already draw, arriving here for the same reason one round later. The `Watch`
+  pill and *Mark all* have been able to fail since MOVIES-AND-TV.md #82 wired
+  them, and both threw the result away — so a refused tick left the row in the
+  list, the subtitle's count unmoved, and the page saying no more than it would
+  have if the finger had missed. #39 is that defect named on 04 and 34; #82's
+  wiring is how it reached a third screen without being named again.
+
+  Where 04 and 34 can be refused for a missing key, this screen cannot:
+  `tickable/1` drops any row without a `source_id` and a `tracked_id` before
+  either control sees it, so what reaches here is the store's own no.
+
+  Above the **Out now** eyebrow — screen 34's placement — because Out now is
+  the list that failed to change, and the watcher card above it is about a
+  different clock entirely.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.note("error", @message)}
+      <Spacer size={14} />
     </Column>
     """
   end

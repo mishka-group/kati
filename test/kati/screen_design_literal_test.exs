@@ -682,7 +682,15 @@ defmodule Kati.ScreenDesignLiteralTest do
       # line checked by contract. The alternative was a second Persian screen
       # for one state, which is the arrangement this file has spent four waves
       # arguing against.
-      assert length(device_values()) <= 52,
+      # Raised again on 8 September for board 05's watcher line, and it is 24's
+      # `Last backup` class rather than a new one: the board froze a value the
+      # screen now reads from a store, and the store is empty in every test
+      # here. Not checking less — the pattern insists on one of the four things
+      # the line can say about the sweep AND one of the three cadences, so a
+      # screen that kept `last checked 18:02 · every 6h` fails it twice over,
+      # where the frozen literal it replaces could only be matched by keeping
+      # the lie.
+      assert length(device_values()) <= 53,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -1058,7 +1066,19 @@ defmodule Kati.ScreenDesignLiteralTest do
        "the Persian mirror of 24's Export row, on the same reading through " <>
          "`Kati.Screens.Settings.last_backup/0`, with the date in Shamsi because that is the " <>
          "calendar this screen is drawn in",
-       ~r/^(آخرین پشتیبان \p{N}+ #{word}|هنوز پشتیبانی گرفته نشده)$/u}
+       ~r/^(آخرین پشتیبان \p{N}+ #{word}|هنوز پشتیبانی گرفته نشده)$/u},
+      # 05's watcher line. Board 05 froze `last checked 18:02 · every 6h` and
+      # board 260's note called both halves *recorded nowhere*; board 314 then
+      # built the record, on the page this card's cog opens.
+      # `Kati.Screens.Inbox.watcher_line/0` reads the two functions screen 25
+      # reads, so a reader who set `Daily` is told daily. In a test it is
+      # always `never checked`, because `Mob.ScreenCase` starts `Mob.State`
+      # empty; `Kati.ScreenInboxTest` reaches the other branches.
+      {"05", "last checked 18:02 · every 6h",
+       "when a check last completed and how often one is asked for, which board 05 froze at " <>
+         "one device's evening and `Kati.Screens.Inbox.watcher_line/0` now reads from " <>
+         "`Kati.Settings.Watcher` — the same store screen 25 writes",
+       ~r/^(never checked|checking now|checked just now|checked \d+ (minute|hour|day)s? ago) · (hourly|every 6h|daily)$/u}
     ]
   end
 

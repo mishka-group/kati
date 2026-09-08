@@ -12,10 +12,12 @@ defmodule Kati.ScreenInboxTest do
       out-now rows and three coming-up ones and pass a bare count.
     * **With nothing followed, it still draws the drawing.** Asserted as map
       equality against `drawn_inbox/0` rather than as "some rows appeared".
-    * **The parts with no store are still frozen.** The watcher card is the one
-      that matters — it is the value most likely to be wired up half-way, and
-      `Kati.Screens.Inbox`'s moduledoc argues at length that a live count beside
-      a frozen timestamp is worse than two frozen values.
+    * **The watcher card reads what screen 25 writes.** It was the last frozen
+      thing on the page — `Watching for 24 titles · last checked 18:02 · every
+      6h` on every device, one tap from a screen that said *Watching 2 titles*
+      and *never checked*. The count rides on the same `:followed` list the two
+      sections do, and the mono line is `Kati.Settings.Watcher`'s, which board
+      314 built. A reader who picks **Daily** is told daily.
     * **`Kati.Media.Release` decides every date and every bell.** A bare year
       never becomes a row, a muted show never arms, and neither rule is
       re-implemented here — this file only checks that the screen honours the
@@ -210,17 +212,45 @@ defmodule Kati.ScreenInboxTest do
   describe "the watcher card" do
     setup :seed_releases
 
-    test "stays the drawing's, all three values, even with a real library" do
-      inbox = Inbox.inbox()
-      drawn = Inbox.drawn_inbox()
+    test "counts the titles the watcher actually watches" do
+      # Three followed: Tidewrack, Vellum and Marram. Harbour is `:dropped`,
+      # which `Kati.Media.TrackedTitle`'s own `:followed` action excludes —
+      # this screen does not get a second opinion about what it watches.
+      assert Inbox.inbox().watching == 3
 
-      assert inbox.watching == drawn.watching
-      assert inbox.last_checked == drawn.last_checked
+      assert Inbox.inbox().watching == Inbox.followed_count(),
+             "the banner on screen 25 and the inbox it is a banner FOR are counting " <>
+               "different things"
 
-      # Two of the three have no store at all — see the moduledoc — and wiring
-      # up the third alone would make the frozen pair indistinguishable from it.
-      assert text(tree(mount_screen(Inbox))) =~ "Watching for 24 titles"
-      assert text(tree(mount_screen(Inbox))) =~ "last checked 18:02 · every 6h"
+      words = text(tree(mount_screen(Inbox)))
+      assert words =~ "Watching for 3 titles"
+
+      refute words =~ "Watching for 24 titles",
+             "the card still says 24 on a phone that follows three"
+    end
+
+    test "says when a check last completed and how often, from the store screen 25 writes" do
+      # `Mob.ScreenCase` starts `Mob.State` empty, so this is a fresh install.
+      assert Inbox.inbox().last_checked == "never checked · every 6h"
+
+      refute text(tree(mount_screen(Inbox))) =~ "last checked 18:02",
+             "board 05's frozen evening is still on the card"
+
+      Kati.Settings.Watcher.put_cadence("Daily")
+      Kati.Settings.Watcher.checked!()
+
+      assert Inbox.inbox().last_checked == "checked just now · daily",
+             "a reader who set Daily on screen 25 is still told every 6h one tap away"
+
+      assert text(tree(mount_screen(Inbox))) =~ "checked just now · daily"
+    end
+
+    test "and screen 25's own line says the same thing" do
+      # One store, two readers. The whole finding was that these two disagreed.
+      Kati.Settings.Watcher.put_cadence("Hourly")
+
+      assert Inbox.inbox().last_checked =~ "hourly"
+      assert Kati.Settings.Watcher.cadence() == "Hourly"
     end
   end
 

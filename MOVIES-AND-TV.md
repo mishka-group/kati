@@ -3678,6 +3678,16 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *One drift left where it is, and written down at the site.* Screen 160's bell keeps `:open_inbox` and keeps opening `Kati.Screens.Inbox`. That page draws no hero, so the name collides with nothing there; renaming it would move a board screen's destination inside a defect fix. `lib/kati/screens/home_fa_omitted_sections.ex` says so above the disc.
 
+### 141. 05 New releases (Kati.Screens.Inbox) — `lies-to-user`
+
+**Screen 05's cream banner told every reader `Watching for 24 titles · last checked 18:02 · every 6h`, one tap from a screen that correctly said *Watching 2 titles* and *never checked* — and a refused tick said nothing at all.**
+
+*Proof.* `assemble/1` overlaid only the two lists onto `drawn_inbox/0`, so all three of the watcher card's values stayed `Kati.Library.Sample`'s. Board 314 had already built the store for two of them — `Kati.Settings.Watcher.last_checked/0` and `cadence/0` — on the very page this card's cog opens, and screen 25 reads both. A reader who chose **Daily** on 25 was still told `every 6h` by 05. Separately, `tick/2` matched `_refused -> socket` and `handle_tap(:mark_all, _)` was an `Enum.each` over `write_tick/2`: both discarded the result, so a store that said no left the row in the list, the count unmoved, and the page saying no more than if the finger had missed the pill. That is the defect #39 names on screens 04 and 34; #82's wiring is how it reached a third screen without being named again.
+
+*Fix.* Count `:followed` through the list the sections are already built from, read the mono line from the store screen 25 writes, and give 05 the `refusal/1` band 04 and 34 have.
+
+*Fixed 8 September.* `watcher_line/0` composes `checked_line/2` and `cadence/0` — one store, two readers, so the two pages cannot disagree — and `assemble/1` overlays `watching: length(tracked)`, which makes *the banner and the list it is a banner FOR cannot disagree* structural rather than a promise. The frozen `last checked 18:02 · every 6h` is bought back by pattern in both sweeps rather than retired, because the line is still drawn and still says one of four things about the sweep beside one of three cadences. *Mark all* speaks the first refusal it meets and re-reads regardless, because ticks that DID land must leave the list; `tick/2` keeps a silent `nil` clause, because a tag naming no row is not a refused write.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.
