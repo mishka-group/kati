@@ -351,8 +351,11 @@ defmodule Kati.Screens.Gallery do
     # Series → ⋯ → Show details. 5915c2a.
     "14",
     # Series → ⋯ → Show settings, which now carries the show it was opened
-    # over. Walked on the device: all three Status tiles and all four
-    # season-pass switches write, and the values survive a back-and-return.
+    # over. The walk is a test now rather than a memory of one:
+    # `SeriesSettingsTest` in `android/app/src/androidTest/` drives the ⋯ menu,
+    # taps the Status tiles and all four season-pass switches, and reads each
+    # write back out of `kati.db` — including after a pop and a return, which
+    # is the half a socket assign would otherwise fake.
     "35",
     # 92 My services → the country row, and 93 → Pick your country. Verified
     # when `Kati.Screens.Resume` made the page behind it re-read.

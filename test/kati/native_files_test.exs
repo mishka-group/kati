@@ -59,6 +59,12 @@ defmodule Kati.NativeFilesTest do
       # platform could not do what the platform could do. `share_screen/1` is
       # the join, and this asserts it exists rather than that it works, because
       # on a host it cannot.
+      # `Code.ensure_loaded?/1` first, and it is not decoration:
+      # `function_exported?/3` answers false for a module that is merely not
+      # loaded yet, so under the full suite this assertion failed depending on
+      # what had already run. Caught on 8 September in a run where it was the
+      # only failure and passed alone.
+      assert Code.ensure_loaded?(Files)
       assert function_exported?(Files, :share_screen, 1)
 
       callers =

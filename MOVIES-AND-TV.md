@@ -3741,6 +3741,18 @@ The counts are screen 10's own arithmetic and not four independent numbers: `ban
 Board 168's fourth state is drawn too. A filter that empties the page now says **Nothing matches** and names the chips that did it, with one control that clears them and leaves the sort — a different card from *Nothing queued*, because *nothing on the go* is a fact about the shelf and *nothing matches* is a fact about the chips, and the one thing that fixes each is different. 168 itself stays in `test/design/incoming/`: it is a state catalogue, four states in one frame, and cannot be compared literal-for-literal against a render.
 
 
+### 146. 35 Show settings — `device-tested`
+
+**Screen 35's writes were verified by a person walking the device once, and a walk somebody did once is not a thing that keeps being true.**
+
+*Proof.* `Kati.Screens.Gallery`'s `@routed` carried the claim in as many words — *"Walked on the device: all three Status tiles and all four season-pass switches write, and the values survive a back-and-return"* — and nothing in the repository could re-check it. The host suite cannot: `Mob.ScreenCase`'s own moduledoc says these helpers *"cannot catch a node that renders wrong or behaves wrong on a real iOS/Android build"*, and the door to screen 35 is the `⋯` panel, `Kati.Components.Anchored` (K-18), which has no host-side existence at all.
+
+*Fixed 8 September.* `android/app/src/androidTest/java/com/example/kati/SeriesSettingsTest.kt`, run on the Pixel_9a: **2 tests, both passing.** It walks the real journey — the dock's `+`, screen 06, *Add "…" by hand*, `kind_Series`, save, and the detail screen board 155 says a save lands on — then the `⋯` disc and *Show settings*. Every assertion is a row read out of `kati.db` through `KatiRule.scalar`, because screen 35 draws `Kati.Screens.SeriesSettings.Sample` over a show it does not have and the two faces are otherwise identical.
+
+The four season-pass switches are asserted **one column at a time**, and that is the point of the second test rather than a flourish: the tap tag is built from the column name (`"pass_" <> Atom.to_string(field)`) and `change_for/2` looks it up in `@pass_columns`, so a typo in one of the four is a tag matching no column, `change_for/2` answering `:error`, and `write/2` returning the socket unchanged — silently. Both tests then pop back to screen 04 and re-enter, because `write/2` assigns the updated struct into the socket and a screen that never wrote looks identical until that socket is thrown away.
+
+*Two things it deliberately does not do.* It keys every query on `id`, read back by `source_id` after the save, rather than on whichever series tile is first on the shelf: step 5 of the first run shelves a series of its own, so the first tile is usually not the row under test — an assertion about the wrong show that looks exactly right. And it does not pin the by-hand form's default status; the first version asserted *Watching* and the device answered `not_started`, so it now checks only that the row is not already the value the tap is about to write.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.
