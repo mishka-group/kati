@@ -385,6 +385,36 @@ defmodule Kati.DiscoverFeedTest do
     end
   end
 
+  describe "a chip that names a section this feed does not carry" do
+    test "says so rather than leaving the rail over a blank page" do
+      # MOVIES-AND-TV.md #24. `shows?/2` answers false for every section under
+      # Awards, so all three vanished together — and the rail IS drawn on the
+      # board's own fixture, which is what a fresh install sees.
+      blank =
+        drawn_with(%{feed: Discover.Sample.feed(), chip: "Awards", scheduled: [], add_error: nil})
+
+      assert blank =~ "Nothing under Awards"
+      assert blank =~ "For you"
+    end
+
+    test "and does not appear under a chip that narrows to a real section" do
+      feed = Discover.Sample.feed()
+
+      for chip <- ["For you", "People", "Leaving"] do
+        refute drawn_with(%{feed: feed, chip: chip, scheduled: [], add_error: nil}) =~
+                 "Nothing under ",
+               "#{chip} narrows to a section that exists and must not draw the card"
+      end
+    end
+
+    test "the card names the chips that do have something" do
+      feed = Discover.Sample.feed()
+
+      assert Discover.other_chips(feed, "Awards") =~ "For you"
+      refute Discover.other_chips(feed, "Awards") =~ "Awards"
+    end
+  end
+
   defp drawn(feed) do
     drawn_with(%{feed: feed, chip: Discover.default_chip(feed), scheduled: [], add_error: nil})
   end

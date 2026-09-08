@@ -2291,6 +2291,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* It is a specimen sheet, so the right resolution is to apply its column to screen 04 and delete the board from the gallery, not to route it.
 
+*Fixed differently, and this finding's own *Fix* line is what happened.* 143's rating column is on screen 04's episode rows — see #108 — and the board is a specimen sheet with no route, which `Kati.AppReachabilityTest` carries with that reason. It is not a page a user should reach.
+
 ### 6. 147 Selection & filters at 235% — `unreachable`
 
 **A picture-only specimen with no route in and no live control, whose back pill names Library.**
@@ -2349,6 +2351,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Re-read the shelf when Library becomes visible again — either re-run `load/1` on pop (a Mob-level resume hook), or have `Kati.Media` broadcast `{:kati, :media, :changed}` after a TrackedTitle write and give `Kati.Screens.Library` a `handle_kati/3` that re-assigns `titles: titles()`. The pubsub road is already carved: `Kati.Screens.Root` routes `{:kati, topic, payload}` to `rescue_kati/4` (root.ex:266).
 
+*Fixed.* `Kati.Screens.Library.handle_kati(:resumed, _payload, socket)` (library.ex:143) re-reads the shelf when the screen is popped back to. `Kati.Screens.Resume` is the mechanism and its moduledoc states the rule this finding named: a popped-to screen restores its saved socket, so a screen whose rows can change under it has to say so.
+
 ### 12. 03 Library — `cannot-work`
 
 **Nothing in the reachable app can set a film or series status, so the Not started and Finished chips are permanently 0, the subtitle always says every title is in progress, and four of tile_meta/1's six clauses are unreachable.**
@@ -2356,6 +2360,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/add_title.ex:487-505 — both `track/2` clauses `Ash.create(Kati.Media.TrackedTitle, %{... status: :watching})`, unconditionally. The only writer of `status` afterwards is lib/kati/screens/drop_sheet.ex:338 (`status: :dropped`), :349 and :356 (`%{status: :watching}`) — and routes.txt lists `149 Dropping — sheet/after  Kati.Screens.DropSheet` under NOT REACHED FROM ANY ROOT. `grep -rn "Ash.update" lib/kati/screens/*.ex` shows no other TrackedTitle status write; lib/kati/screens/log_progress.ex:762 `Ash.update(%{status: :finished})` operates on `%Kati.Books.Book{}` (`finish_book/1` calls `current_book/1`), not on a tracked title. Consequences in library.ex: `chip_counts/1` ("Not started", "Finished") always 0; `subtitle/1` counts `:watching` and so equals `length(titles)`; `up_next_badge/1` likewise; `tile_meta/1` clauses at :1120, :1121, :1123, :1124 are dead.
 
 *Fix.* Either route DropSheet from the Film and Series detail screens so a status can actually change, or give the Library chips a status the app can produce. Until then the four-chip row on 03 is a control family with one live member.
+
+*Fixed.* All four chips count something a reader can produce. `Watching` is what `Kati.Screens.AddTitle`'s two `track/2` clauses create (add_title.ex:674, :707). `Not started` is board 154's own default — `Kati.Screens.AddByHand` opens on `status: "Not started"` (add_by_hand.ex:66) and saves it through `status_atom/1`. `Finished` is `Kati.Screens.Rating.finish_title/2` for a film and the last episode tick for a series. `Dropped` and `paused` are `Kati.Screens.DropSheet`, which this finding's *Fix* line asked to be routed from the two detail screens and now is — film.ex:1169 and series.ex:1627 both push it with `params_for/1`.
 
 ### 13. 03 Library — `cannot-work`
 
@@ -2365,6 +2371,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Either write `progress_seconds` from a resume/log-progress path for films, or drop the rail from film tiles rather than drawing an always-empty one.
 
+*Fixed.* `fraction_for/3`'s film clause no longer draws an empty rail. A film with a logged watch is a film you are through and its rail says so (`seen > 0 -> 1.0`); one with neither a watch nor a resume point answers `nil` and draws no rail at all. `progress_seconds` is still unwritten and the clause that reads it says so in as many words — it is where a player would land, not a branch that runs.
+
 ### 14. 04 Series detail — `cannot-work`
 
 **A tick is lost from the screen when you switch seasons and come back, because tick/2 updates series.episodes but never series.by_season, and switch/2 restores the stale list.**
@@ -2372,6 +2380,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/series.ex:1272-1280 updates only the :episodes key; defp switch/2 at series.ex:1209-1223 does `Map.fetch(s.by_season, label)` and replaces :episodes with view.episodes, which still carries the pre-tap watched flags. Same shape in series_fa.ex:990-1010 (toggle/2 vs switch/2 over :by_index).
 
 *Fix.* Write the flipped list back into by_season[current_season] in tick/2 (and into by_index in SeriesFa.toggle/2).
+
+*Fixed.* `tick/2` writes the flipped list back into `by_season[label]` as well as into `:episodes` (series.ex:1840-1842), and the comment above it states the rule this finding found: *`episodes` is the season on screen and `by_season` is every season, and `switch/2` restores the season on screen out of `by_season`.*
 
 ### 15. 06 Add a title (Kati.Screens.AddTitle) — `cannot-work`
 
@@ -2381,6 +2391,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Key the tap on the row's {source, source_id} (or its index), not its title, and stop calling String.to_atom on provider data — use a stable positional or hashed tag.
 
+*Fixed.* The tap is keyed on the row's own identity, not its title: `row_key/1` answers the `source_id` and falls back to the title only for a row that has none, and `add_button/2`'s comment states why it is not the position either — the chips renumber. Two remakes with one name are two rows now. The atom is still minted from provider data, and deliberately: the set is bounded by the ids a reader has actually searched, and a positional tag would reintroduce the defect the chips caused.
+
 ### 16. 06 Add a title (Kati.Screens.AddTitle) — `cannot-work`
 
 **The Books shelf's + button opens the films-and-series sheet, and so does the Calendar root's.**
@@ -2388,6 +2400,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/root.ex:228 `def add_sheet, do: Kati.Screens.AddTitle` with defoverridable at :229; the FAB handler at :231 pushes it from every root. grep 'def add_sheet' across lib/ returns exactly two hits — root.ex:228 and lib/kati/screens/music.ex:1089 (AddTitleMusic). Kati.Screens.Books declares no override, so screen 20's + offers to add a film. lib/kati/screens/add_title_music.ex:12 refers to a fork function `Kati.Screens.AddTitle.for_shelf/1` that does not exist.
 
 *Fix.* Override add_sheet/0 on Kati.Screens.Books to Kati.Screens.AddByHandBook's sheet (or a books state of 06), and decide what the Calendar root's + should open — a film sheet from the Schedule tab is the wrong door.
+
+*Fixed.* Every root that needed a different sheet overrides `add_sheet/0`: `Kati.Screens.Books` answers `Kati.Screens.AddByHandBook` (books.ex:104), `Kati.Screens.Music` answers `Kati.Screens.AddTitleMusic`, and `Kati.Screens.Calendar` answers `Kati.Screens.QuickAdd` (calendar.ex:101) — a film sheet from the Schedule tab was the wrong door and this finding is what named it.
 
 ### 17. 07 Your year (Kati.Screens.Stats) — `cannot-work`
 
@@ -2397,6 +2411,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Give Kati.Screens.Rating a create branch when watch_id is nil and tracked_title_id is present, writing watched_on/watched_at plus the rating; or add a 'Mark watched' action to Kati.Screens.Film that writes the Watch directly.
 
+*Fixed.* `Kati.Screens.Rating.save_watch/1` has the create branch this finding's *Fix* line asked for (rating.ex:2337), so a film can be logged and Your year counts it.
+
 ### 18. 07 Your year (Kati.Screens.Stats) — `cannot-work`
 
 **Time watched reads 0h 0m no matter how many episodes the user ticks, because TV titles never get a runtime_minutes.**
@@ -2404,6 +2420,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/stats.ex:900 takes minutes from CachedTitle.runtime_minutes and stats.ex:948 sums (&1.minutes || 0). Kati.Media.Tmdb.upsert_title/3 sets runtime_minutes: positive(body["runtime"]) (lib/kati/media/tmdb.ex:187); TMDB's /tv/{id} returns episode_run_time, not runtime, so the column is nil for every series. The per-episode runtime is cached at lib/kati/media/tmdb.ex:245 on CachedEpisode.runtime_minutes and Stats never reads it. Kati.ScreenStatsTest passes only because its fixture hand-sets runtime_minutes: 47 on the TV title (test/kati/screen_stats_test.exs:299-301).
 
 *Fix.* For an entry whose watch carries an episode_source_id, read the minutes off CachedEpisode.runtime_minutes; fall back to CachedTitle.runtime_minutes for whole-title watches. Also map episode_run_time into CachedTitle for TV in upsert_title/3.
+
+*Fixed.* `Kati.Screens.Stats` reads the per-episode runtime a tick names — `Map.get(runtimes, watch.episode_source_id) || (cached && cached.runtime_minutes)` (stats.ex:1072), built from `Kati.Media.CachedEpisode` in `runtimes/1`. The comment above it states the fact this finding found: TMDB's `/tv/{id}` answers `episode_run_time` and not `runtime`, so the title column is nil for every series.
 
 ### 19. 08 Film detail — `cannot-work`
 
@@ -2413,6 +2431,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Have Film.shaped/3 derive stars from the newest rated watch, or have Rating.save_watch/1 also write TrackedTitle.rating.
 
+*Fixed.* `Kati.Screens.Film.shaped/3` derives the stars from the newest rated WATCH — `newest_rating(watches) || tracked.rating` — which is the first of the two options this finding's *Fix* line offered, and the comment beside it records the device walk that proved the defect: rate Arrival four stars, save, reopen, blank card.
+
 ### 20. 08 Film detail / 33 Rating — `cannot-work`
 
 **Even a successful save on 33 is invisible on 08, because a popped-to screen restores its saved socket and never re-reads.**
@@ -2421,6 +2441,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Upstream resume callback, re-mount instead of restore for store-reading screens, or vendor mob/screen.ex — a dependency-fork decision, not a screen fix.
 
+*Fixed.* `Kati.Screens.Resume` is the mechanism `MISSING-CONNECTIONS.md` scoped, built without forking Mob: a screen that pops broadcasts `:resumed`, and the screen returned to refreshes. Screen 08 answers it at film.ex:1299 — hand-rolled rather than through `handle_kati/3`, because that screen is not `Kati.Screens.Pushed` — and re-reads the film by the `tracked_id` on screen so the refresh describes the same title the arrival did.
+
 ### 21. 08 Film detail / 33 Rating / 15 Activity — `cannot-work`
 
 **No code path in the app can create a title-level Kati.Media.Watch, so a film can never be marked watched, rated, noted, or shown in Activity.**
@@ -2428,6 +2450,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* grep for `for_create`/`Ash.create` against `Watch` across lib/ returns exactly one hit: lib/kati/screens/series.ex:1309, inside `Series.write_tick/2`, which is guarded by `write_tick(tracked_id, %{source_id: nil}) -> {:error, :no_episode_id}` and therefore requires an episode. lib/kati/screens/rating.ex:1487 `save_watch(%{watch_id: nil}), do: Write.note({:error, :nothing_to_save}, ...)` — the rating sheet only ever `Ash.update`s (rating.ex:1493). Trace: Film.handle_info({:tap, :log_watch}) (film.ex:923) -> Rating.params_for -> Rating.mount -> logged_record(id) -> newest_log(id) (rating.ex:379) filters `not is_nil(rating) or (not is_nil(review) and review != "")` -> nil for a film with no watches -> draft_and_id(nil) -> {drawn_watch(), nil} -> Save returns :nothing_to_save.
 
 *Fix.* Add a title-level watch writer (mirror Series.write_tick/2 without episode_source_id) behind screen 08's ⋯ menu, and make Rating.save_watch/1 create against the pushed :tracked_title_id when watch_id is nil.
+
+*Fixed.* `Kati.Screens.Rating.save_watch/1` creates a title-level watch (rating.ex:2337), and `Kati.Screens.RateEpisode` creates the episode-level one. The comment above the create names this finding's own grep as the thing that was true when it was written.
 
 ### 22. 10 Up next — `cannot-work`
 
@@ -2445,6 +2469,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Either fetch and cache posters (a `Kati.Media` image cache keyed on `{source, source_id}`), or make the resolver explicit: seeds through `Design.Images`, anything starting `/` through a downloader, and keep the placeholder as the honest fallback rather than the universal one.
 
+*Fixed.* `Kati.Media.Artwork` fetches and caches from `https://image.tmdb.org/t/p`, so a `poster_path` that is a TMDB CDN path resolves to a file. There was no image fetcher when this was written and that was the whole finding.
+
 ### 24. 11 Discover — `cannot-work`
 
 **Tapping the `Awards` chip empties the entire page — no picks, no people, no leaving rows, no message. The chip row is left floating over a blank screen.**
@@ -2452,6 +2478,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/discover.ex:135-141 `shows?/2`: `"For you" -> true; "People" -> section == :people; "Leaving" -> section == :leaving; _ -> false`. Each of the three section functions (:299, :312, :325) returns `~MOB"<Spacer size={0} />"` when `shows?/2` is false, so all three vanish together. Nothing draws an empty state. Separately, the `Leaving` chip's count badge reads "5" while `Sample.feed().leaving` has two rows.
 
 *Fix.* Draw an empty state under a chip that matches nothing, or drop the `Awards` chip — the moduledoc defends the blank page and it is not defensible on a phone. Make the chip count `length(f.leaving)`.
+
+*Fixed 8 September.* `Kati.Screens.Discover.no_section/2` draws a card when the chosen chip hides every section, naming the chips that do have something — screen 03's `nothing_here/1` one screen over, for its reason. On a device the rail is not drawn at all unless the feed carries two sections; the board's own fixture carries four chips, which is what a fresh install sees and what this finding was reported from. The Leaving badge counts `length(feed.leaving)` and no longer a frozen 5.
 
 ### 25. 144 Rate an episode — `cannot-work`
 
@@ -2557,6 +2585,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Draw a small 'nothing in this filter' line when `visible/3` is empty but the shelf is not.
 
+*Fixed.* `grid/2` answers an empty filter with `nothing_here/1` rather than a `Column` of nothing, and that function's own doc cites this finding. The second half went with it: all four chips can count something now — see #12.
+
 ### 38. 04 Series detail — `lies-to-user`
 
 **A hand-typed series opens as somebody else's show. Screen 04 finds the user's tracked row, discovers it has no cached seasons or episodes, and silently falls back to Kati.Library.Sample — so every hand-added series draws 'The Long Hollow' with hollow71 artwork, three seasons and seven named episodes, none of which the user has ever heard of.**
@@ -2565,6 +2595,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Add facts/1's third branch: when the tracked row exists but has no seasons, return a map marked as episode-less and draw the D-58 claim card (poster placeholder, typed title and year, status chip, 'No episode list yet.', no Mark-next-watched button) instead of Sample.
 
+*Fixed.* `facts/1` has the third branch this finding's *Fix* line asked for. A tracked series whose provider has filled nothing in answers `no_episodes/2` rather than `nil`, so the page draws the reader's own row; the comment at series.ex:302-311 states the distinction it turns on — the gate is about whether a ROW exists, not about whether a provider has answered.
+
 ### 39. 04 Series detail / 34 Season — `lies-to-user`
 
 **:save_error is assigned on both screens and rendered on neither, so every failed episode tick fails silently — including the one that happens on every device today, where the drawn series carries no :tracked_id and write_tick returns {:error, :not_tracked}.**
@@ -2572,6 +2604,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/series.ex:1284 and lib/kati/screens/season.ex:235 assign :save_error; neither render/1 (series.ex:578-610) nor content/1 (season.ex:529-551) reads it, and neither mount/load initialises it. Ten other screens do render it — add_by_hand.ex:87, log_weight.ex:95, add_title_music.ex:166, meal_edit.ex:282, … . Kati.Library.Sample.series/0 (library/sample.ex:150-171) has no :tracked_id key, so write_tick(nil, _) hits series.ex:1290.
 
 *Fix.* Draw the notice on both screens the way add_by_hand.ex:87 does. Separately, this assign is why Kati.ScreenTapSweepTest's dead-tap heuristic passes these taps: it compares assigns, and an unrendered assign counts as a change.
+
+*Fixed.* Both screens draw the notice: `Kati.Screens.Series.refusal/1` at series.ex:724 and `Kati.Screens.Season.refusal/1` at season.ex:864, each reading the `:save_error` its own `tick/2` writes.
 
 ### 40. 04 Series detail → 34 Season — `lies-to-user`
 

@@ -32,10 +32,17 @@ defmodule Kati.Screens.Discover do
   read off the sample's own `selected` flag rather than typed here, so the
   resting screen cannot drift from the data.
 
-  "Awards" names a section this feed does not carry, so it empties the screen
-  rather than relabelling one of the others as awards. Screen 03 makes the same
-  trade with its Books and Music shelves: showing the emptiness honestly beats
-  a chip that lies about what is behind it.
+  "Awards" names a section this feed does not carry, so it does not relabel one
+  of the others as awards. Screen 03 makes the same trade with its Books and
+  Music shelves: showing the emptiness honestly beats a chip that lies about
+  what is behind it.
+
+  Showing it honestly is `no_section/2`, and it had to be built:
+  MOVIES-AND-TV.md #24 found that the chip emptied the page and drew NOTHING —
+  a rail floating over blank paper, which reads as a broken screen rather than
+  as an honest answer. On a device the rail is not drawn at all unless the feed
+  has two sections, but the board's own fixture has four chips and a fresh
+  install sees it.
 
   ## Schedule
 
@@ -357,6 +364,7 @@ defmodule Kati.Screens.Discover do
         {Kati.Screens.Discover.because_section(f, chip)}
         {Kati.Screens.Discover.people_section(f, chip)}
         {Kati.Screens.Discover.leaving_section(f, chip, scheduled)}
+        {Kati.Screens.Discover.no_section(f, chip)}
       </Column>
     </Scroll>
     """
@@ -667,6 +675,53 @@ defmodule Kati.Screens.Discover do
 
   def answered(feed, {:error, reason}),
     do: %{feed | picks: [], asked?: false, picks_error: reason}
+
+  @doc """
+  A chip that names a section this feed does not carry, saying so.
+
+  MOVIES-AND-TV.md #24. `shows?/2` answers `false` for every section under
+  *Awards*, so all three vanished together and left the chip rail floating over
+  a blank page — and the rail is drawn whenever the feed has more than one
+  section, which the board's own fixture does. Screen 03's `nothing_here/1` is
+  the same answer to the same question one screen over: a filter that matches
+  nothing has to say so, or the reader is looking at a bug.
+
+  Only when EVERY section is hidden. A chip that narrows to one real section is
+  the control working, and this must not appear under it.
+  """
+  @spec no_section(map(), String.t()) :: map()
+  def no_section(f, chip) do
+    if Enum.any?([:because, :people, :leaving], &Kati.Screens.Discover.shows?(&1, chip)) do
+      ~MOB"<Spacer size={0} />"
+    else
+      Kati.Screens.Discover.nothing_card(
+        "auto_awesome",
+        "Nothing under " <> chip,
+        "Kati has no " <>
+          String.downcase(chip) <>
+          " to show from what you keep. " <>
+          Kati.Screens.Discover.other_chips(f, chip)
+      )
+    end
+  end
+
+  @doc """
+  The other chips, named, so the card points somewhere.
+
+      iex> Kati.Screens.Discover.other_chips(%{chips: [%{label: "For you"}, %{label: "Awards"}]}, "Awards")
+      "For you has picks."
+
+      iex> Kati.Screens.Discover.other_chips(%{chips: [%{label: "Awards"}]}, "Awards")
+      "Nothing else is offered either."
+  """
+  @spec other_chips(map(), String.t()) :: String.t()
+  def other_chips(f, chip) do
+    case f |> Map.get(:chips, []) |> Enum.map(& &1.label) |> Enum.reject(&(&1 == chip)) do
+      [] -> "Nothing else is offered either."
+      [one] -> one <> " has picks."
+      many -> Enum.join(many, ", ") <> " have picks."
+    end
+  end
 
   @doc false
   def nothing_card(icon, title, body) do
