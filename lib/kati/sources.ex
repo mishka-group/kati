@@ -13,6 +13,17 @@ defmodule Kati.Sources do
     * **Tier 0 — works out of the box.** TVmaze, Open Library, MusicBrainz. No
       key, no account, no setup. Screen 80 lists them with a last-reached time
       and nothing to press.
+
+      **Books and Music still need a free API chosen and wired — Open Library
+      and MusicBrainz are named here and neither is called anywhere in `lib/`.**
+      Kati has exactly three HTTP callers: `Kati.Media.Tmdb`, its image CDN in
+      `Kati.Media.Artwork`, and CalDAV. So *works out of the box* is true of
+      TVmaze's tier and of nothing else on this line yet, and the two shelves
+      that depend on it are [mishka-group/kati#100](https://github.com/mishka-group/kati/issues/100)
+      (Books) and [mishka-group/kati#101](https://github.com/mishka-group/kati/issues/101)
+      (Music). Free and keyless is the requirement, not a preference: tier 0
+      is defined by needing no account, so a provider that wants a key belongs
+      in tier 1 or 2 and changes what screen 80 promises.
     * **Tier 1 — better artwork, optional key.** TMDB. Kati ships a key and it
       is public, because Kati is open source. That costs the user nothing —
       TMDB counts requests per IP address, not per key — and the screen says so

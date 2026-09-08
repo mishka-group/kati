@@ -159,6 +159,20 @@ test fails in a way that makes no sense, check `adb shell df /data` first.
   Found by opening the app at 00:01 and reading "Tuesday 18". Enforced by
   `Kati.ScreenDateTest`.
 
+## Persian is a localisation, not a second set of screens
+
+- **Do not write another `*Fa` screen module.** The owner's ruling of 8
+  September: *"we do not need create any pages for persian all in app, we just
+  have all pages we need just with cldr timing and gettext to translate and rtl
+  and ltr just it like web app we created."* A Persian page is the English page
+  with `Kati.Locale.direction_prop/0` and translated strings.
+- The 33 that already exist are a list that may shrink and may not grow, locked
+  by `Kati.PersianScreensRatchetTest`. Folding them into gettext + CLDR + RTL is
+  [mishka-group/kati#103](https://github.com/mishka-group/kati/issues/103).
+- The pieces are in place already: `Kati.Cldr` is generated for `:en`, `:fa` and
+  `:und`, `Kati.Locale.direction/1` answers `rtl`/`ltr`, and `Kati.Gettext` is a
+  `Gettext.Backend`. What is missing is `priv/gettext` and the call sites.
+
 ## Vendored native code
 
 `android/` and `ios/` are third-party. Do not edit outside `KATI-BEGIN`/`KATI-END`
