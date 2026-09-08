@@ -11,9 +11,9 @@ defmodule Kati.Screens.Search do
 
   Three sections, three shapes, on purpose. A title is a card with its poster
   and a chevron, because it is somewhere to go. Calendar hits are rows inside
-  one card, because they are a schedule and the dates are the spine. The note
-  is on cream and quotes itself with the match highlighted in place, because
-  it is the user's own words. Flattening these into one list of identical rows
+  one card, because they are a schedule and the dates are the spine. Note hits
+  are on cream and quote themselves with the match highlighted in place,
+  because they are the user's own words. Flattening these into one list of identical rows
   would lose the only thing the screen is claiming: one query, four kinds of
   answer.
 
@@ -226,13 +226,18 @@ defmodule Kati.Screens.Search do
         %{date: "20 AUG", title: "The Long Hollow S2E6 airs", time: "20:00"},
         %{date: "06 AUG", title: "Hollow Season — watched", time: "21:12"}
       ],
-      note: %{
-        eyebrow: "NOTE · 6 AUG · THE LONG HOLLOW",
-        lead: "…the",
-        match: "hollow",
-        tail: "is a character, not a place. Watch E1 again before S3.",
-        inline_words: 6
-      },
+      # A list of one. The board draws one note because its query matched one,
+      # not because the group holds one — the same thing its two Screen rows
+      # say about `:titles`.
+      notes: [
+        %{
+          eyebrow: "NOTE · 6 AUG · THE LONG HOLLOW",
+          lead: "…the",
+          match: "hollow",
+          tail: "is a character, not a place. Watch E1 again before S3.",
+          inline_words: 6
+        }
+      ],
       recent: Kati.Screens.Search.drawn_recent()
     }
   end
@@ -838,10 +843,10 @@ defmodule Kati.Screens.Search do
   it is; ties fall to `Kati.Search`'s own chip order, which is what
   `visible_groups/2` walks.
 
-      iex> Kati.Screens.Search.elsewhere(%{titles: [1, 2], books: [], calendar: [], note: nil}, "Calendar")
+      iex> Kati.Screens.Search.elsewhere(%{titles: [1, 2], books: [], calendar: [], notes: []}, "Calendar")
       {"Screen", 2}
 
-      iex> Kati.Screens.Search.elsewhere(%{titles: [], books: [], calendar: [], note: nil}, "Calendar")
+      iex> Kati.Screens.Search.elsewhere(%{titles: [], books: [], calendar: [], notes: []}, "Calendar")
       nil
   """
   @spec elsewhere(map(), String.t()) :: {String.t(), pos_integer()} | nil
@@ -855,7 +860,6 @@ defmodule Kati.Screens.Search do
 
   @doc false
   @spec count_of(map(), atom()) :: non_neg_integer()
-  def count_of(results, :note), do: if(results.note, do: 1, else: 0)
   def count_of(results, key), do: length(Map.get(results, key) || [])
 
   @doc """
@@ -926,21 +930,20 @@ defmodule Kati.Screens.Search do
   """
   @spec visible_groups(map(), String.t()) :: [{String.t(), atom()}]
   def visible_groups(results, filter) do
-    [{"Screen", :titles}, {"Books", :books}, {"Calendar", :calendar}, {"Notes", :note}]
+    [{"Screen", :titles}, {"Books", :books}, {"Calendar", :calendar}, {"Notes", :notes}]
     |> Enum.filter(fn {label, _key} -> filter == "All" or filter == label end)
     |> Enum.reject(fn {_label, key} -> Kati.Screens.Search.blank?(results, key) end)
   end
 
   @doc false
   @spec blank?(map(), atom()) :: boolean()
-  def blank?(results, :note), do: is_nil(results.note)
   def blank?(results, key), do: (Map.get(results, key) || []) == []
 
   @doc "Whether a result set matched nothing at all."
   @spec empty?(map()) :: boolean()
   def empty?(results) do
     (results.titles || []) == [] and (Map.get(results, :books) || []) == [] and
-      (results.calendar || []) == [] and results.note == nil
+      (results.calendar || []) == [] and (Map.get(results, :notes) || []) == []
   end
 
   @doc """
@@ -1049,7 +1052,7 @@ defmodule Kati.Screens.Search do
   def body(results, :titles), do: Kati.Screens.Search.titles(results)
   def body(results, :books), do: Kati.Screens.Search.books(results)
   def body(results, :calendar), do: Kati.Screens.Search.calendar(results)
-  def body(results, :note), do: Kati.Screens.Search.note(results)
+  def body(results, :notes), do: Kati.Screens.Search.notes(results)
 
   # `Kati.UI.eyebrow/2` with the accent dash marks the first, strongest group;
   # every group after it takes the drawing's muted #C4BDB3 dash.
@@ -1287,11 +1290,28 @@ defmodule Kati.Screens.Search do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
-  # The note card carries no shadow in the drawing — cream is the ground for
-  # the user's own words, and lifting it would make it compete with the hits.
+  # The note cards carry no shadow in the drawing — cream is the ground for the
+  # user's own words, and lifting them would make them compete with the hits.
+  #
+  # A LIST, not a card. Board 19 draws one note because its query matched one;
+  # the same board draws two Screen rows and two Calendar rows and neither of
+  # those groups is capped to what it drew. `Kati.Search.Query` ranked the
+  # whole list and took the head, so the second-best note about the estuary had
+  # nowhere on this page to be. MOVIES-AND-TV.md #139.
   @doc false
-  def note(results) do
-    note = results.note
+  def notes(results) do
+    assigns = %{cards: Map.get(results, :notes) || []}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Enum.map(@cards, fn card -> Kati.Screens.Search.note_card(card) end)}
+      <Spacer size={15} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def note_card(note) do
     {inline, rest} = note_lines(note)
 
     ~MOB"""
@@ -1336,10 +1356,18 @@ defmodule Kati.Screens.Search do
         {Kati.Screens.Search.note_leading()}
         <Text text={rest} text_size={13} line_height={1.55} text_color={Palette.cream_body()} />
       </Column>
-      <Spacer size={24} />
+      {Kati.Screens.Search.note_gap()}
     </Column>
     """
   end
+
+  # 9 between cards and 15 after the last, which is the 24 the single card
+  # carried — `titles/1` does the identical arithmetic for the Screen group,
+  # and board 19's own `gap:9px; margin-bottom` is where both numbers come
+  # from. Splitting them is what lets a second note sit under the first at the
+  # board's own rhythm instead of 24 away from it.
+  @doc false
+  def note_gap, do: ~MOB"<Spacer size={9} />"
 
   @doc """
   The half-leading `line_height` cannot supply, because it is trimmed away.

@@ -3656,6 +3656,16 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Two outright `arrow_drop_up` glyphs remain and are safe only while their pages are fixtures.* `year_share_books.ex` draws board 99's pages figure, which is a literal that rises by construction, and `stats_fa.ex` draws screen 61 from `Kati.Fa.SampleYear`. Each is the second copy of this decision the day its page reads a real shelf, and both now say so.
 
+### 139. 19 Search (Kati.Search.Query) — `polish`
+
+**The Notes group returns at most one note however many match, and the Notes chip and the All chip agree with the cap.**
+
+*Proof.* lib/kati/search/query.ex `note_for/1` built `book_notes() ++ review_notes()`, tiered them, ranked with `Kati.Search.rank/1` — and then `|> List.first()`. `chip_counts/1` counted it `if note, do: 1, else: 0`, so All added 1 for any number of matching notes. `titles_for/1`, `books_for/1` and `calendar_for/1` all return whole ranked lists: #62 removed the identical `Enum.take/2` from those three and did not reach this one. There is no `See all N →` row anywhere in `lib/`, so the other matches were unreachable from the page — five reviews with the same word in them drew one card and a chip reading `1`.
+
+*Fix.* Drop the `List.first/1`, map `note_card/2` over the ranked list, and rename the result key `:note` to `:notes` — the word `Kati.Search`'s own `@scopes` list already uses, and the one place in the codebase that called it `:note`.
+
+*Fixed 8 September.* `notes_for/1` returns the whole ranked list and screen 19's cream band maps over it. The rename deleted four special cases that existed only to keep a one-of shape working beside three lists — `count_of/2`'s `:note` clause, `blank?/2`'s, `chip_counts/1`'s `if note` and `empty?/1`'s `== nil`. The card's trailing 24 became 9 between cards and 15 after the last, which is board 19's own `gap:9px` rhythm and the arithmetic `titles/1` already does. `Kati.SearchGroupsTest` seeds five matching notes and holds all three claims: the group returns five, the chip says five, and all five are drawn.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

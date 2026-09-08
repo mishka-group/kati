@@ -90,19 +90,22 @@ defmodule Kati.SearchRunTest do
     counts = Query.run("hollow") |> Query.chip_counts() |> Map.new()
 
     assert counts["Screen"] == 2
-    assert counts["All"] == counts["Screen"] + counts["Calendar"] + counts["Notes"]
+    # Books included. It was omitted and passed only because this fixture has
+    # no books — the same arithmetic this round fixed one group over.
+    assert counts["All"] ==
+             counts["Screen"] + counts["Books"] + counts["Calendar"] + counts["Notes"]
   end
 
   test "an empty store answers the no-match state rather than raising" do
     Kati.Repo.query!("DELETE FROM cached_titles", [])
 
-    assert %{titles: [], calendar: [], note: nil} = Query.run("hollow")
+    assert %{titles: [], calendar: [], notes: []} = Query.run("hollow")
   end
 
   describe "the six fields the Screen scope names" do
     test "your own review of a film is findable" do
       # MOVIES-AND-TV.md #114. The Notes group and the Screen scope both said
-      # a review was searchable and neither read one: `note_for/1` knew only
+      # a review was searchable and neither read one: `notes_for/1` knew only
       # `Kati.Books.Note`, and a film review lives on `Kati.Media.Watch`.
       tracked = track!("3")
 
@@ -115,9 +118,12 @@ defmodule Kati.SearchRunTest do
 
       found = Query.run("marram")
 
-      assert found.note, "the review was not findable as a note"
-      assert found.note.eyebrow =~ "NOTE"
-      assert found.note.eyebrow =~ "ESTUARY", "the card did not say what the review is about"
+      # A one-element list, bound rather than checked for truthiness: the
+      # fixture seeds exactly one review and no book notes, so binding is a
+      # stronger claim than the `assert found.note` it replaces.
+      assert [note] = found.notes, "the review was not findable as a note"
+      assert note.eyebrow =~ "NOTE"
+      assert note.eyebrow =~ "ESTUARY", "the card did not say what the review is about"
 
       # And as a hit on the film itself, which is the Screen scope's own
       # `your review` field.
@@ -425,7 +431,7 @@ defmodule Kati.SearchRunTest do
 
       results = Kati.Search.Query.run("estuary")
 
-      assert results.note == nil, "the fixture no longer sets up the case this test is about"
+      assert results.notes == [], "the fixture no longer sets up the case this test is about"
       assert %{type: :box} = render(results, "All")
     end
 

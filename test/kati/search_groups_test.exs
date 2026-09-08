@@ -38,6 +38,9 @@ defmodule Kati.SearchGroupsTest do
     on_exit(fn ->
       Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
       Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", [@prefix <> "%"])
+      # Notes before books: the foreign key refuses the parent delete otherwise.
+      Kati.Repo.query!("DELETE FROM book_notes WHERE body LIKE ?1", [@prefix <> "%"])
+      Kati.Repo.query!("DELETE FROM books WHERE title LIKE ?1", [@prefix <> "%"])
     end)
 
     :ok
@@ -54,14 +57,14 @@ defmodule Kati.SearchGroupsTest do
 
     test "and the screen draws them under their own heading" do
       groups =
-        Search.visible_groups(%{titles: [%{}], books: [%{}], calendar: [], note: nil}, "All")
+        Search.visible_groups(%{titles: [%{}], books: [%{}], calendar: [], notes: []}, "All")
 
       assert {"Screen", :titles} in groups
       assert {"Books", :books} in groups
     end
 
     test "a chip narrows to the group it names" do
-      results = %{titles: [%{}], books: [%{}], calendar: [], note: nil}
+      results = %{titles: [%{}], books: [%{}], calendar: [], notes: []}
 
       assert Search.visible_groups(results, "Books") == [{"Books", :books}]
       assert Search.visible_groups(results, "Screen") == [{"Screen", :titles}]
@@ -89,6 +92,49 @@ defmodule Kati.SearchGroupsTest do
 
       for n <- 1..7 do
         assert drawn =~ "Nightbird #{n}", "match #{n} was capped out of the page"
+      end
+    end
+  end
+
+  describe "the Notes group" do
+    setup do
+      book = Ash.create!(Kati.Books.Book, %{title: @prefix <> "notebook"})
+
+      for n <- 1..5 do
+        Ash.create!(Kati.Books.Note, %{
+          book_id: book.id,
+          body: @prefix <> "marram grass, note #{n}"
+        })
+      end
+
+      :ok
+    end
+
+    test "returns every note that matched, not the best one" do
+      results = Query.run("marram")
+
+      assert length(results.notes) == 5,
+             "the group still ranked the whole list and took the head"
+    end
+
+    test "the Notes chip counts what matched, and All adds all of it" do
+      counts = "marram" |> Query.run() |> Query.chip_counts() |> Map.new()
+
+      assert counts["Notes"] == 5, "the chip agreed with the cap rather than with the match"
+
+      assert counts["All"] ==
+               counts["Screen"] + counts["Books"] + counts["Calendar"] + counts["Notes"]
+    end
+
+    test "and every match is drawn" do
+      drawn =
+        "marram"
+        |> Query.run()
+        |> Kati.Screens.Search.notes()
+        |> inspect(limit: :infinity, printable_limit: :infinity)
+
+      for n <- 1..5 do
+        assert drawn =~ "note #{n}", "note #{n} was capped out of the page"
       end
     end
   end

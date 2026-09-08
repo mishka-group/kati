@@ -16,7 +16,7 @@ defmodule Kati.SearchHighlightTest do
   Two failures, and the second is the worse one. The card highlighted the
   wrong characters — an off-by-a-few that reads as a bug in the search rather
   than in the drawing. And when normalisation shortened the body enough that
-  `at + len` ran off the end, `binary_part/3` raised, `note_for/1`'s rescue
+  `at + len` ran off the end, `binary_part/3` raised, `notes_for/1`'s rescue
   caught it, and the whole Notes group disappeared for the query that matched
   it best.
 

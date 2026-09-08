@@ -628,7 +628,7 @@ defmodule Kati.Screens.SearchFa do
 
   The runs are laid in a `Row` and carry their own spaces. There is no `Spacer`
   between them: `…گودال` has no space and a fixed gap would invent one, and
-  `Kati.Screens.Search.note/1` opens exactly that 4pt gap in the English note
+  `Kati.Screens.Search.note_card/1` opens exactly that 4pt gap in the English note
   because English never asked it the question.
   """
   @spec match_line(map(), number(), term(), term()) :: map()

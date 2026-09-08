@@ -19,7 +19,7 @@ defmodule Kati.Search.Query do
   @doc """
   Run one query against the store and answer what screen 19 draws.
 
-  `%{query:, titles:, calendar:, note:, recent:}` — the same shape
+  `%{query:, titles:, books:, calendar:, notes:, recent:}` — the same shape
   `Kati.Screens.Search.Sample.results/0` held, built from `Kati.Media`,
   `Kati.Calendars` and `Kati.Books` instead of from a drawing.
 
@@ -43,10 +43,10 @@ defmodule Kati.Search.Query do
   nothing is the screen having looked. Screen 19 draws two different things
   for those.
 
-  The groups are **always lists**, never `nil`. The render maps over them, so
-  a `nil` group is a crash rather than a state — which is what the first
-  version of this function shipped to `Kati.ScreenRenderSweepTest` and was
-  told about immediately.
+  The groups are **always lists**, never `nil` — `:notes` included, since #62's
+  treatment reached it. The render maps over them, so a `nil` group is a crash
+  rather than a state, which is what the first version of this function
+  shipped to `Kati.ScreenRenderSweepTest` and was told about immediately.
   """
   @spec run(String.t()) :: map()
   def run(query) when is_binary(query) do
@@ -62,11 +62,11 @@ defmodule Kati.Search.Query do
         # series. MOVIES-AND-TV.md #61.
         books: books_for(query),
         calendar: calendar_for(query),
-        note: note_for(query),
+        notes: notes_for(query),
         recent: []
       }
     else
-      %{query: query, idle?: true, titles: [], books: [], calendar: [], note: nil, recent: []}
+      %{query: query, idle?: true, titles: [], books: [], calendar: [], notes: [], recent: []}
     end
   end
 
@@ -78,18 +78,21 @@ defmodule Kati.Search.Query do
   whole reason screen 88 specifies the chips as counts of the result set.
   """
   @spec chip_counts(map()) :: [{String.t(), non_neg_integer()}]
-  def chip_counts(%{titles: titles, calendar: calendar, note: note} = results) do
+  def chip_counts(%{titles: titles, calendar: calendar} = results) do
     titles = titles || []
     books = Map.get(results, :books) || []
     calendar = calendar || []
-    notes = if note, do: 1, else: 0
+    # Through `Map.get/2` for the reason `:books` already is: the drawn result
+    # set `Kati.Screens.Search.drawn_results/0` is handed straight to this
+    # function, and a required key would raise on the board's own path.
+    notes = Map.get(results, :notes) || []
 
     [
-      {"All", length(titles) + length(books) + length(calendar) + notes},
+      {"All", length(titles) + length(books) + length(calendar) + length(notes)},
       {"Screen", length(titles)},
       {"Books", length(books)},
       {"Calendar", length(calendar)},
-      {"Notes", notes}
+      {"Notes", length(notes)}
     ]
   end
 
@@ -373,11 +376,20 @@ defmodule Kati.Search.Query do
   defp time_label(nil), do: ""
   defp time_label(at), do: Calendar.strftime(at, "%H:%M")
 
-  # One note, because screen 19 draws one card and not a list. The best match
-  # wins, and the card is built around where the query actually fell in the
-  # body — a highlight that pointed at the start of every note would be
-  # decoration rather than a result.
-  defp note_for(query) do
+  # Every note and every review that matched, best first. There is no take.
+  #
+  # This ended `|> List.first()`, under a comment saying one card is what board
+  # 19 draws. The board draws ONE HIT in every group and none of the other
+  # three is capped to it: `titles_for/1`, `books_for/1` and `calendar_for/1`
+  # all return the whole ranked list. MOVIES-AND-TV.md #62 removed the
+  # identical `Enum.take/2` from those three and did not reach this one — so a
+  # reader with four notes about the estuary was shown one, the Notes chip
+  # agreed with the cap and said `1`, the All chip under-added by three, and
+  # the other three were unreachable, because the `See all N →` row
+  # `Kati.Search.rows_per_group/0` promises exists nowhere in `lib/`.
+  #
+  # `note_card/2` was already per-note. Only the take was the cap.
+  defp notes_for(query) do
     # MOVIES-AND-TV.md #114: a review you wrote about a film was not findable
     # anywhere, though the Notes group and the Screen scope both said it was.
     # A review IS a note — the same paragraph in the reader's own words about
@@ -390,10 +402,11 @@ defmodule Kati.Search.Query do
     # tier are ordered newest first, not alphabetically by their own paragraph.
     |> Enum.map(fn {tier, row} -> {tier, Map.get(row, :inserted_at), row} end)
     |> Kati.Search.rank()
-    |> List.first()
-    |> note_card(query)
+    |> Enum.map(&note_card(&1, query))
   rescue
-    _error -> nil
+    # `[]` and not `nil`: an unreadable store is an empty group, which is the
+    # answer the other three give.
+    _error -> []
   end
 
   defp book_notes do
@@ -432,8 +445,6 @@ defmodule Kati.Search.Query do
   rescue
     _error -> []
   end
-
-  defp note_card(nil, _query), do: nil
 
   defp note_card(note, query) do
     body = note.body || ""
