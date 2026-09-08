@@ -2103,10 +2103,11 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**156 findings**, every one traced to a line. All but two carry a closing verdict
+**157 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
-Three are open on purpose. **#155** is a decision rather than a defect: board 204 and
+Four are open on purpose. **#157** is the recipe for #103's fold, scoped to this section:
+its two blockers are fixed and the remaining work is measured rather than estimated. **#155** is a decision rather than a defect: board 204 and
 MOVIES-AND-TV.md #95 answer the same question opposite ways, both boards' substance is
 built, and which shape wins is the owner's call. **#153** counts, control by control, why board 169 cannot be
 built without inventing a recommender — ten of its eleven chips have nothing on a device to
@@ -3960,6 +3961,48 @@ Worse than unreachable for the first: `Kati.Subscriptions.row/2` never put `paus
 *The door is screen 23 rather than 92*, and that is deliberate: 92's row gesture is already #119's price editor and taking it would trade one capability for another. Screen 23's rows already ARE one service each. A drawn row draws no tap, because `find/1` would answer `nil` for a service that is not on this device.
 
 *What it counts, and what it will not.* `watched/1` answers logs and distinct titles off `Kati.Media.Watch.service` — the reader's own answer to *Where*, which is the one thing that connects a night to a service. Not hours, for board 252's reason. Removing a service leaves every watch, the same not-a-cascade rule `Kati.Media.History.clear/0` keeps.
+
+
+### 157. #103's fold, scoped to Movies & Series — the blockers are gone, and here is the recipe
+
+**Both things that made the fold impossible are fixed. What is left is large but mechanical, and this section is the measured cost and the decisions already taken, so the next pass is a build rather than another investigation.**
+
+*What was blocking it, and is not.*
+
+  * **Typography.** `MobBridge`'s `fontFamilyProp` resolved a missing `font_family` to Latin, and a `Text` a COMPONENT builds takes no prop from the screen — so a folded screen drawing Persian through `Kati.UI.SettingsList` would have rendered it in Android's substitute face. `K-48 locale-face` makes the root declare the app's face and the bridge fall back to it: **one branch rather than 77 components**. Board 249 is the proof it works — the first thing in a Persian mirror built out of the shared components.
+  * **A catalogue to fold into.** `priv/gettext` exists with `en` and `fa`, and the translations were verified to compile INTO the backend rather than being read from disk, so the device needs no packaging change. `Kati.Locale.activate/0` resolves the stored locale into each screen process, paired with `Kati.Theme.activate/0` at all 51 mounts and held by `Kati.LocaleActivateTest`.
+  * **RTL** was already done, and `Kati.Screens.Pushed.back_glyph/0` closed the last hole in it (#148).
+
+*The ten Movies & Series mirrors, by size.*
+
+| Module | Lines | Mirrors |
+|---|---|---|
+| `SeriesFa` | 1310 | 04 |
+| `MyServicesFa` | 1047 | 92 |
+| `SearchFa` | 1020 | 19 · 86 · 88 |
+| `DataSourcesFa` | 997 | 80 |
+| `LibraryFa` | 991 | 03 |
+| `YearShareFa` | 796 | 98 |
+| `StatsFa` | 611 | 07 |
+| `ListDetailFa` | 552 | 12 · 181 · 182 |
+| `AddToListFa` | 381 | 333 · 335 |
+| `AddByHandFa` | 295 | 154 · 155 |
+
+7,000 lines, and 324 unique Persian strings between them.
+
+*Three decisions the first fold has to make, and two of them are already settled by evidence.*
+
+**1. A tap tag must not be built from a translated label.** `Kati.Screens.AddByHand.kind_chip/4` builds `kind_` <> the label, so the Persian mirror's control is `:kind_فیلم` — which `Kati.Screens.OnboardingLoudnessFa.tag/1` already records as the trap: *"an atom made of Persian words is a name no device test can type."* A folded screen would rename its own controls with the language. The tag has to come from the stable key (`:movie`, `:tv`, `:not_started`) rather than the word.
+
+  **This was deliberately NOT done in this pass.** `SeriesSettingsTest.kt:122` taps `kind_Series` on the device, and three more device tests reach that form; renaming before the fold lands would churn a green device suite for a benefit only the fold realises. It is the first edit of the fold, not a prelude to it.
+
+**2. Dates and numerals have to become locale-conditional inside the shared screens.** `Kati.Calendar.Shamsi` is called by 17 files and every one is a `*Fa` module or an `Fa` sample — `grep -rln Shamsi lib/kati/screens/ | grep -v fa` returns nothing. So folding `SeriesFa` into `Series` means `episode_title/1` answering `قسمت ۵` or `Episode 5` from the locale, and every date on 04, 08 and 33 doing the same. `Kati.I18n.Digits.to_persian/1` and `Kati.Cldr` both exist; nothing outside the mirrors calls either.
+
+**3. Each deletion is one commit with its own ratchets.** A mirror going takes four things with it: its line in `Kati.PersianScreensRatchetTest`'s `@mirrors`; its entries in `@inert_taps`, `@bare_pushes` and `@undesigned`; its board's registration in `Kati.Screens.Gallery`, which has to move to the English module with the board number added to `Kati.ScreenDesignLiteralTest`'s `@fa_screens` so the sweep renders it in `:fa`; and any locale fork that existed only because it did — `Kati.Screens.Fa.roots/0`, `Fa.dock_tap/3`, `Kati.Lists.Door.open_fa/3`, `AddByHand.for_locale/0`, `Kati.Onboarding.shell_root/1`.
+
+*What the fold also closes.* Three live language leaks on the Persian Movies & Series path, all of which exist only because the mirrors do: `library_fa.ex:919` pushes the **English** screen 19 with a Persian back label (and its excuse comment is stale — `SearchFa` is screen 90); `Kati.Screens.Fa.dock_tap/3` sends the Persian dock's `+` to the English Add title, on all four Persian roots; and Persian Home pushes the English Inbox, which `routes.txt` records as the app's only proven route to screen 05.
+
+And it is the only route to Persian coverage at all for the **thirteen** Movies & Series screens that have no mirror — Up next, Discover, Film, Season, Series settings, New releases, Release watcher, What fits, Add title, both filter sheets, Rate and Drop — because the ruling of 8 September forbids writing a fourteenth `*Fa` module, and `Kati.PersianScreensRatchetTest` enforces it.
 
 
 # Pages a user cannot reach except through Settings
