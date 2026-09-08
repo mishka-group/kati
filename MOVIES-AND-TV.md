@@ -2645,6 +2645,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* untrack/1 must take the row (source + source_id), not the title: `Enum.find(rows, &(&1.source == row.source and &1.source_id == row.source_id))`. add/2 already has the row from :453 — pass it through.
 
+*Fixed.* `untrack/2` resolves the row's own `{source, source_id}` through `tracked_key/2` rather than assuming `:manual` and the title, so a TMDB add is found and destroyed — and a row that is genuinely gone answers `{:ok, :already_gone}` rather than reporting a delete that did not happen.
+
 ### 42. 06 Add a title (Kati.Screens.AddTitle) — `lies-to-user`
 
 **Every write failure on this screen is silent: :save_error is assigned in three places and rendered nowhere, so adding a duplicate title is a tap into total nothing.**
@@ -2652,6 +2654,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/add_title.ex — assigned at :104, :282, :467 and :470; grep for save_error finds no read. render/1 (:114-137) draws header, field, chips, search_notice(:search_error), eyebrow, results, by_hand. The duplicate path: tracked_titles has `index [:source, :source_id], unique: true` (lib/kati/media/tracked_title.ex:64), so a second Ash.create errors, add/2 hits :470, and mark/2 is never called — the disc does not even change.
 
 *Fix.* Draw it. `{Kati.Screens.AddTitle.search_notice(assigns[:save_error])}` above the results (or a dedicated save_notice/1), exactly as Kati.Screens.AddByHand.error/1 does at add_by_hand.ex:373.
+
+*Fixed.* `save_notice(assigns[:save_error])` is drawn at add_title.ex:189, so a refused add says why.
 
 ### 43. 06 Add a title (Kati.Screens.AddTitle) — `lies-to-user`
 
@@ -2661,6 +2665,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Give the screen a real resting state — empty field, no rows, a prompt — and drop the Sample fallback entirely. The fixture rows must not be tappable into the store.
 
+*Fixed.* `mount/3` opens on `results: []` and the eyebrow reads `SEARCH` rather than a count, which is board 308's first band: *`0 results` over a sheet nobody has asked anything of is a report on a search that has not happened.*
+
 ### 44. 06 Add a title (Kati.Screens.AddTitle) — `lies-to-user`
 
 **Typing one or two characters restores the four fixtures under a '4 results' caption, so short real titles (Up, It, Us) are answered with films the user did not search for.**
@@ -2668,6 +2674,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/add_title.ex:222 `@min_query 3`; :228-238 — below the floor the handler assigns `Sample.search_results()` and clears :search_error. render/1 then captions them `#{length(shown)} results` (:112). Deleting a query back to empty does the same, replacing real TMDB results with fixtures.
 
 *Fix.* Below the floor: empty results and a prompt ('Keep typing…'), never the sample. Lower the floor to 1 if TMDB tolerates it; /search/multi does.
+
+*Fixed.* A query below the floor empties the list rather than restoring the drawing's four, and the floor is `Kati.Search.long_enough?/1` — the rule screen 86 already states — rather than a second number that could drift from it. Typing `Up` answers nothing rather than four films nobody searched for.
 
 ### 45. 07 Your year (Kati.Screens.Stats) — `lies-to-user`
 
@@ -2677,6 +2685,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Draw no breakdown card until CachedTitle.genres has a defined separator and a reader, exactly as the empty branch already does; and use more_numbers(false) on both branches until each domain can answer its own line.
 
+*Fixed.* `breakdown: genre_bars(this)` (stats.ex:1166) — the bars are the reader's own watches by genre.
+
 ### 46. 07 Your year (Kati.Screens.Stats) — `lies-to-user`
 
 **Recently watched labels every real episode tick 'SERIES', never 'S2 E5', because the tick writer stores no season or episode number.**
@@ -2684,6 +2694,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* Kati.Screens.Series.write_tick/2 creates a Watch with only tracked_title_id, episode_source_id, watched_at and watched_on (lib/kati/screens/series.ex:1308-1319). Kati.Screens.Stats.recent_label/1 needs integer season and episode to render 'S#E#' (stats.ex:1091-1094) and otherwise falls to the kind clauses (stats.ex:1096-1100). test/kati/screen_stats_test.exs:303-310 sets season_number: 2, episode_number: 5 by hand, which is why the suite never sees this.
 
 *Fix.* Have write_tick/2 carry the episode's season_number and episode_number onto the Watch (the episode map on screen 04 already has both), or have Stats resolve them from CachedEpisode via episode_source_id.
+
+*Fixed.* `write_tick/2` stores `season_number` and `episode_number` on the watch (series.ex:2035-2036), so `recent_label/1` can render `S2 E5`.
 
 ### 47. 07 Your year (Kati.Screens.Stats) — `lies-to-user`
 
@@ -2693,6 +2705,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Draw no pill at all when there is no comparable prior span (the empty-state reasoning from board 123 applies), and pick the wash/text pair from rising? so a fall is not green.
 
+*Fixed.* A year with nothing to compare against carries `change: nil` and `change_pill/1` draws nothing at all for it — no pill rather than a green `↑ 0%` against a year that does not exist. A falling year is `rising?: false`, which takes the red ground and the down arrow together.
+
 ### 48. 08 Film detail — `lies-to-user`
 
 **An untracked shelf tile opens a page titled 'Blue Hour' with a stranger's note and a fabricated £9.99 price, whatever the tile was captioned.**
@@ -2700,6 +2714,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/library/sample.ex:23-33 (@titles) carries no :id key, so Library.open_tile/3 (library.ex:1044-1048) pushes Film bare. film.ex:117 `film/0 = tracked_film(id) || drawn_film()`; with no tracked movie newest_film/0 answers nil and drawn_film/0 = Kati.Library.Sample.film/0 (library/sample.ex:298-316), which carries title 'Blue Hour', a note about the Rex, and `where: [%{name: "Kino store", price: "£9.99"}]`. Kati.Seeds.groups/0 (seeds.ex:143-152) seeds only :calendars and :media (CachedTitle) — no TrackedTitle — so a seeded device has an empty shelf and hits this on every tile.
 
 *Fix.* Draw the empty/unknown state on 08 when the tap carried no id, rather than substituting a different film; and never draw the fixture's `where` rows outside the design gallery.
+
+*Fixed.* `open_tile/3` passes the row's own id when it has one (library.ex:1463-1466), and a shelf row always does — the fixture is no longer what an empty shelf draws, so there is no untracked tile to open. See #11 and #37.
 
 ### 49. 10 Up next — `partly fixed`, 6 September
 
@@ -2765,6 +2781,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Open unfiltered (the state `reset/1` already produces) and compute both numbers off the real shelf.
 
+*Fixed.* `opening/0` reads the shelf twice — as it stands and with nothing selected — and shapes the sheet from both, so `showing N of M` counts this device. An empty shelf still gets `drawn_opening/0`, and `Kati.ScreenEmptyDatabaseTest` compares the two, which is what makes *an empty device draws board 145* a claim a run settles.
+
 ### 55. 148 Drop, DNF & abandon — `lies-to-user`
 
 **The sheet documents five statuses including :gone_cold, which the store cannot hold.**
@@ -2772,6 +2790,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/drop_states.ex:9 states `Kati.Media.TrackedTitle.status` is ':active | :paused | :gone_cold | :dropped | :finished'. lib/kati/media/tracked_title.ex:109 constrains it to `[:not_started, :watching, :paused, :finished, :dropped]`. drop_sheet.ex:31-42 already records the discrepancy and works around it by reading :paused as gone cold.
 
 *Fix.* Either migrate TrackedTitle.status to the five names 148 draws, or redraw 148 in the vocabulary the resource actually holds.
+
+*Fixed.* `drop_states.ex`'s moduledoc says so itself: it *used to claim* the column held `:gone_cold` and it never did. Gone cold is derived by `Kati.Media.Staleness` rather than stored — see #56.
 
 ### 56. 149 Dropping — the sheet and after — `lies-to-user`
 
@@ -2781,6 +2801,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Either write :paused somewhere (a gone-cold detector) or widen gone_cold_title/1 to accept the pushed id regardless of status; and refuse to draw the undo pill when sheet.tracked is nil.
 
+*Fixed.* `cold_or_paused?/1` asks `Kati.Media.Staleness.gone_cold?/1` rather than filtering on a status nothing writes, and the sheet's own moduledoc records the correction. `:paused` is still read alongside it, because a reader who pauses a show has said something and Kati should not argue.
+
 ### 57. 149 Dropping — the sheet and after — `lies-to-user`
 
 **The only write on screen 149 discards its result and rescues to :ok, so a refused or raised update is indistinguishable from a successful drop.**
@@ -2788,6 +2810,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/drop_sheet.ex:364-369: `defp update_tracked(tracked, attrs) do Ash.update(tracked, attrs); :ok rescue _ -> :ok end`. The return value of Ash.update is never inspected. handle_info({:tap, :drop}) (drop_sheet.ex:787) then unconditionally sets dropped?: true. The screen imports neither Kati.Write nor a save_notice, unlike rating.ex:1440 and series.ex:1275.
 
 *Fix.* Return {:ok, _} | {:error, reason} from update_tracked/2, thread it through Kati.Write.note/2, and draw a save_notice on failure instead of flipping dropped?.
+
+*Fixed.* `update_tracked/2` inspects the result — `{:ok, _}` is `:ok`, `{:error, reason}` is returned, and the rescue returns the error rather than swallowing it — so a refused drop is distinguishable from one that landed.
 
 ### 58. 15 Activity — `lies-to-user`
 
@@ -2797,6 +2821,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Gate the fallback on `watches == []` rather than on both dated buckets being empty, and draw a real empty state for a month with no entries.
 
+*Fixed.* The gate is `%{count: 0}` — nothing recorded — rather than `%{today: [], earlier: []}`, which was the state of every reader whose watches are all older than the first of the month. The comment at activity.ex:148 names this finding.
+
 ### 59. 154 Add a title by hand (Kati.Screens.AddByHand) — `lies-to-user`
 
 **Year and Total episodes are typed, held, and silently discarded — and the note under the episode field implies the opposite.**
@@ -2804,6 +2830,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/add_by_hand.ex:477-486 track/2 writes only source, source_id, kind, status. The cache row goes through Kati.Screens.AddTitle.create_cache/2 (lib/kati/screens/add_title.ex:545-562), which writes only source, source_id, kind, title, fetched_at. Kati.Media.CachedTitle has episode_count (lib/kati/media/cached_title.ex:95) — never set — and no year column at all (only next_release_at, :108). The note at add_by_hand.ex:319 reads 'Without it a series still tracks, but its progress bar has no denominator', which is true with it too.
 
 *Fix.* Pass episodes (parsed to a positive integer) into create_cache as :episode_count. Year needs a column — add first_release_year (or first_release_at + date_confidence) to CachedTitle — or the field must come off the form.
+
+*Fixed.* `typed_facts/1` carries both fields into the cache row, parsed rather than trusted: anything that is not a positive integer is absent, and a film's episode field is ignored. The note under the field promised the denominator and it is now the denominator.
 
 ### 60. 156 افزودن دستی (Kati.Screens.AddByHandFa) — `lies-to-user`
 
@@ -2813,6 +2841,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Open empty, as 154 does; the board's typed title is a drawing state, not a default.
 
+*Fixed.* `Kati.Screens.AddByHandFa` mounts on `title: ""` — board 155's resting state one language over — so the commit button has nothing to add until something is typed, and `save/1`'s blank-title refusal is reachable rather than unreachable.
+
 ### 61. 19 Search — `lies-to-user`
 
 **Book results are drawn under the heading SCREEN and counted by the Screen chip, and their chevrons open nothing.**
@@ -2820,6 +2850,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/search/query.ex:104-110 `titles_for/1` is `(cached_for(query, tracked_ids()) ++ books_for(query)) |> Enum.sort_by(...)`, so book rows land in `results.titles`. lib/kati/screens/search.ex `visible_groups/2` labels that key `{"Screen", :titles}` and `Kati.Search.Query.chip_counts/1` counts `length(titles)` as the Screen chip. `book_row/1` (query.ex) sets `kind: :book`, and `Kati.Screens.Search.hit_tag/1` answers `nil` for anything that is not `:film` or `:series`, so `title_row/1` gets `tap = nil`.
 
 *Fix.* Give `run/1` a fourth group keyed `:books`, add "Books" to `Kati.Search.narrowable_scopes/0` and to `chip_counts/1`, and route the hit to `Kati.Screens.BookDetail` once that screen reads its params.
+
+*Fixed.* Books are their own group — `books: books_for(query)` (query.ex:63) with its own heading and its own chip — rather than rows landing in `results.titles` under SCREEN.
 
 ### 62. 19 Search — `lies-to-user`
 
@@ -2829,6 +2861,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Count before taking (carry a `total` alongside each group), and add the `See all N →` row the spec promises, or draw all matches.
 
+*Fixed.* No group ends `Enum.take/2` any more, and the comment at query.ex:110-117 records why the cap went rather than being paired with a *See all*: the groups scroll, and a search that found ten answers with ten.
+
 ### 63. 19 Search — `lies-to-user`
 
 **The idle search page prints a paragraph asserting a 180 ms debounce and seven counted queries, on a screen that runs on every keystroke and draws four chips.**
@@ -2836,6 +2870,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/search.ex `waiting/1` renders `Kati.UI.SettingsList.note("search", Kati.Search.counts_note())`; lib/kati/search.ex `counts_note/0` reads "Keystrokes debounce at 180 ms, so one pause costs seven counted queries, not seven per letter." `handle_info({:change, :query, typed}, socket)` in search.ex re-runs `Kati.Search.Query.run/1` immediately with no timer, and its own @doc says so ("No debounce, and `Kati.Search.debounce_ms/0` is not being ignored"). `chip_counts/1` returns four labels, not seven.
 
 *Fix.* Reword the note for screen 19 (its own scopes and its own no-debounce behaviour), or keep it only on 86/87/88 where seven scopes are actually drawn.
+
+*Fixed.* `counts_note/0` is written beside the three numbers it quotes — `debounce_ms/0`, `minimum/1` and this module's own rule about zero — so the sentence and the behaviour cannot drift, and it counts eight chips because there are eight.
 
 ### 64. 19 Search — `lies-to-user`
 
@@ -2845,6 +2881,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* `Kati.Books.Note` has the book association and a timestamp; compose the same three-part eyebrow.
 
+*Fixed.* `note_eyebrow/1` builds the three-part eyebrow board 19 draws — `NOTE · 6 AUG · THE LONG HOLLOW` — from the note's own date and the title it is about. See the doc at query.ex:463.
+
 ### 65. 19 Search — `lies-to-user`
 
 **A cache-only hit — a title looked up on the add sheet but never shelved — renders as a full result card with a chevron that does nothing.**
@@ -2852,6 +2890,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/search/query.ex `cached_for/1` reads the whole of `Kati.Media.CachedTitle`, and `title_row/2` sets `id: Map.get(tracked, {row.source, row.source_id})` — nil when the title is not on the shelf. lib/kati/screens/search.ex `open_hit/3`: `case row && Map.get(row, :id) do nil -> Mob.Socket.push_screen(socket, module)` — pushes Film/Series with no params, which draws the fixture branch rather than this title. Nothing in `title_row/1` marks the card as unshelved.
 
 *Fix.* Either mark cache-only hits (an 'Add' affordance rather than a chevron) or exclude them from the group.
+
+*Fixed.* `Kati.Search.Query`'s row builders carry the tracked id where there is one and the row draws no chevron where there is not — a cache-only hit is a thing Kati knows about and not a thing you keep, and a chevron that opened nothing was the claim.
 
 ### 66. 23 Subscriptions — `lies-to-user`
 
@@ -2911,6 +2951,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Derive them from the shelf (a title leaving a service, a title with a note) or withhold the section until they can be, the way the counts are withheld.
 
+*Fixed.* `Kati.Screens.SearchIdle.suggestions/0` draws `Kati.Search.Suggestions.derived()` — the newest title on this reader's shelf and the book their newest note is about — and falls back to the board's two strings only on a device with neither. `Kati.ScreenDesignLiteralTest`'s allow-list carries both with a pattern rather than the frozen words.
+
 ### 73. 86 Search idle -> 19 — `lies-to-user`
 
 **Four of the eight scope chips on the idle page are silently discarded when the search runs, and the results page lights All without saying the choice was dropped.**
@@ -2919,6 +2961,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Either build the missing groups, or grey the four unbuildable chips on 86 the way an unavailable control is drawn, so the choice is never offered and then discarded.
 
+*Fixed.* A scope with no group behind it is drawn DISABLED rather than silently collapsed into `All` on the way to screen 19 — search_idle.ex:142-144 states exactly the sequence this finding found: a reader picked a scope, ran the search, and the choice was gone.
+
 ### 74. 88 Scope & ranking — `lies-to-user`
 
 **The contract board renders scopes and fields the query executor does not implement: four of seven scopes do not exist, five of six Screen fields are not searched, and Calendar's location is not read.**
@@ -2926,6 +2970,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/search.ex @scopes lists seven scopes and their fields; lib/kati/screens/search_spec.ex renders them straight out of it. lib/kati/search/query.ex `run/1` builds exactly three groups (`titles`, `calendar`, `note`) — Music, Meals and Money are searched by nothing, Books is folded into `titles`. `cached_for/1` matches title + overview only (no original title, alt titles, cast, tags, review). `calendar_for/1` matches `summary` + `description` only (no location).
 
 *Fix.* Trim @scopes to the built contract, or build the rest. A specification screen that overstates is worse than none, because it is the page a user opens to find out why a search missed.
+
+*Fixed.* `@scopes` is the contract and `built?/1` is what says which half of it runs, so board 88 draws every scope and marks the ones a query does not reach rather than promising all seven. The field-level half is written down beside it (#114).
 
 ### 75. 92 My services — `lies-to-user`
 
