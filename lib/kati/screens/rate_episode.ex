@@ -531,9 +531,9 @@ defmodule Kati.Screens.RateEpisode do
   # context rows say nothing rather than saying today.
   defp context_rows(nil, _zone, _today) do
     [
-      %{icon: "event", title: "Watched on", sub: nil, trailing: nil},
-      %{icon: "tv", title: "Where", sub: nil, trailing: nil},
-      %{icon: "group", title: "With", sub: nil, trailing: nil}
+      %{key: :watched_on, icon: "event", title: "Watched on", sub: nil, trailing: nil},
+      %{key: :where, icon: "tv", title: "Where", sub: nil, trailing: nil},
+      %{key: :with, icon: "group", title: "With", sub: nil, trailing: nil}
     ]
   end
 
@@ -543,14 +543,72 @@ defmodule Kati.Screens.RateEpisode do
 
     [
       %{
+        key: :watched_on,
         icon: "event",
         title: "Watched on",
         sub: when_label(date, hour, today),
         trailing: if(date == today, do: "now")
       },
-      %{icon: "tv", title: "Where", sub: where_label(watch), trailing: nil},
-      %{icon: "group", title: "With", sub: presence(watch.companions), trailing: nil}
+      %{key: :where, icon: "tv", title: "Where", sub: where_label(watch), trailing: nil},
+      %{key: :with, icon: "group", title: "With", sub: presence(watch.companions), trailing: nil}
     ]
+  end
+
+  @doc """
+  The three rows restated from the sheet's own drafts rather than from the row.
+
+  `Kati.Screens.Rating.context_of/1` does exactly this one screen up and for
+  the same reason: the sub-line under *Where* has to say what was just chosen,
+  and a row built once at mount cannot. `context_rows/3` still builds the
+  opening state; this is what the card draws from the second tap on.
+  """
+  @spec context_of(map()) :: [map()]
+  def context_of(s) do
+    today = Kati.Time.today()
+
+    Enum.map(s.context, fn row ->
+      case row.key do
+        :watched_on ->
+          case Map.get(s, :watched_on) do
+            nil ->
+              row
+
+            date ->
+              %{
+                row
+                | sub: Kati.Screens.RateEpisode.day_label(date, today),
+                  trailing: if(date == today, do: "now")
+              }
+          end
+
+        :where ->
+          case Map.get(s, :service) do
+            nil -> row
+            service -> %{row | sub: service}
+          end
+
+        :with ->
+          case Map.get(s, :companions) do
+            nil -> row
+            companions -> %{row | sub: presence(companions)}
+          end
+      end
+    end)
+  end
+
+  @doc """
+  What a chosen day reads as, which is `Kati.Screens.Rating.recent_days/0`'s
+  own wording rather than a second spelling of it.
+
+      iex> Kati.Screens.RateEpisode.day_label(~D[2026-09-08], ~D[2026-09-08])
+      "Today"
+  """
+  @spec day_label(Date.t(), Date.t()) :: String.t()
+  def day_label(date, today) do
+    Enum.find_value(Kati.Screens.Rating.recent_days(), Calendar.strftime(date, "%a %-d %b"), fn
+      {label, ^date} -> if date == today, do: label, else: label
+      _other -> nil
+    end)
   end
 
   # `Tonight · 21:40` for today's date, `Today` with no hour, and the
@@ -643,7 +701,7 @@ defmodule Kati.Screens.RateEpisode do
           {Kati.Screens.RateEpisode.rating_card(s)}
           {Kati.Screens.RateEpisode.rewatch_block(s, expanded?)}
           {Kati.Screens.RateEpisode.review_card(s)}
-          {Kati.Screens.RateEpisode.context_card(s)}
+          {Kati.Screens.RateEpisode.context_card(s, Map.get(assigns, :open_row))}
           {Kati.Screens.RateEpisode.info_note(s)}
           {Kati.Screens.RateEpisode.spoiler_swatch(s)}
           {Kati.Screens.RateEpisode.rewatch_swatch(s, expanded?)}
@@ -969,28 +1027,169 @@ defmodule Kati.Screens.RateEpisode do
     """
   end
 
-  @doc "The three context rows: `SettingsList.card/1` and `.row/4`, no chevron."
-  def context_card(s) do
-    rows = s.context
+  @doc """
+  The three context rows, each of which opens under itself.
+
+  ## Board 204, and the decision behind this
+
+  Board 204 rules that screen 33 keeps three chevrons that PUSH and that this
+  board *"gains the chevrons, keeps its now"* — three rows, three destinations.
+  MOVIES-AND-TV.md #95 had settled the same question the opposite way one
+  screen up, and #155 filed the disagreement as the owner's to settle rather
+  than reversing a design a second time in silence.
+
+  The owner settled it on 8 September: **disclose in place, on both screens.**
+  So this gains what board 204 asked for and screen 33 already had — the rows
+  are live, and they open a row of chips under themselves rather than a page.
+  The reasoning is `Kati.Screens.Rating.context_card/1`'s and is board 201's
+  own argument turned around: *"a person logging a watch is logging tonight's,
+  or last night's"*, and a date you pick from four chips does not need a
+  screen of its own.
+
+  The mono `now` stays, which is the half of board 204 that was never in
+  dispute.
+
+  One row is open at a time, for the reason screen 33 gives: two open editors
+  in one card is a card that jumps under the thumb, and the reader is
+  answering one question anyway.
+  """
+  @spec context_card(map(), atom() | nil) :: map()
+  def context_card(s, open \\ nil) do
+    live? = Kati.Screens.RateEpisode.editable?(s)
+    rows = Kati.Screens.RateEpisode.context_of(s)
     last = length(rows) - 1
 
     body =
       rows
       |> Enum.with_index()
-      |> Enum.map(fn {row, i} ->
-        SettingsList.row(
-          SettingsList.icon_tile(row.icon),
-          SettingsList.body(row.title, row.sub),
-          Kati.Screens.RateEpisode.row_trailing(row.trailing),
-          padding: 13,
-          rule: i < last
-        )
+      |> Enum.flat_map(fn {row, i} ->
+        [
+          SettingsList.row(
+            SettingsList.icon_tile(row.icon),
+            SettingsList.body(row.title, row.sub),
+            Kati.Screens.RateEpisode.row_trailing(row.trailing),
+            padding: 13,
+            rule: i < last,
+            on_tap: if(live?, do: {self(), Kati.Screens.RateEpisode.row_tag(row.key)})
+          ),
+          Kati.Screens.RateEpisode.editor(row.key, s, live? and open == row.key)
+        ]
       end)
 
     ~MOB"""
     <Column fill_width={true}>
       {SettingsList.card(body)}
       <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc """
+  Whether the three rows are controls at all.
+
+  A sheet with no row behind it and nothing to create one is board 144 as a
+  picture, and a picture's rows do not open — the rule this round keeps
+  everywhere. Both live cases are editable: a watch that exists takes an
+  update, and one Save will create means the drafts have somewhere to land.
+
+      iex> Kati.Screens.RateEpisode.editable?(%{watch_id: "abc"})
+      true
+
+      iex> Kati.Screens.RateEpisode.editable?(%{watch_id: nil})
+      false
+  """
+  @spec editable?(map()) :: boolean()
+  def editable?(sheet) do
+    is_binary(Map.get(sheet, :watch_id)) or Kati.Screens.RateEpisode.writable?(sheet)
+  end
+
+  @doc """
+  A row's tap.
+
+      iex> Kati.Screens.RateEpisode.row_tag(:watched_on)
+      :row_watched_on
+
+  Named for the key rather than the label, which MOVIES-AND-TV.md #158 is the
+  argument for.
+  """
+  @spec row_tag(atom()) :: atom()
+  def row_tag(key), do: Kati.Screens.AddByHand.tag("row_", key)
+
+  @doc """
+  What one row discloses when it is the open one.
+
+  Screen 33's own controls, called rather than restated:
+  `Kati.Screens.Rating.recent_days/0`, `where_options/1`, `no_service/0`,
+  `choice/3` and `commit_pill/2`. Two sheets asking the same three questions
+  with two sets of chips would drift within a release, and the drift would be
+  invisible — both would look right on their own board.
+  """
+  @spec editor(atom(), map(), boolean()) :: map()
+  def editor(_key, _sheet, false), do: ~MOB"<Spacer size={0} />"
+
+  def editor(:watched_on, sheet, true) do
+    chosen = Map.get(sheet, :watched_on)
+
+    assigns = %{
+      chips:
+        Kati.Screens.Rating.recent_days()
+        |> Enum.map(fn {label, date} ->
+          Kati.Screens.Rating.choice(label, "day_" <> Date.to_iso8601(date), date == chosen)
+        end)
+        |> Enum.intersperse(Kati.Screens.Rating.tag_gap())
+    }
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={13} padding_right={13} padding_bottom={13}>
+      <Row fill_width={true} align="center">
+        {@chips}
+      </Row>
+    </Column>
+    """
+  end
+
+  def editor(:where, sheet, true) do
+    options = Kati.Screens.Rating.where_options(sheet)
+
+    assigns = %{
+      chips:
+        (options ++ [Kati.Screens.Rating.no_service()])
+        |> Enum.map(&Kati.Screens.Rating.choice(&1, "where_" <> &1, &1 == Map.get(sheet, :service)))
+        |> Enum.intersperse(Kati.Screens.Rating.tag_gap()),
+      empty?: options == []
+    }
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={13} padding_right={13} padding_bottom={13}>
+      <Row fill_width={true} align="center">
+        {@chips}
+      </Row>
+      {Kati.Screens.Rating.where_note(@empty?)}
+    </Column>
+    """
+  end
+
+  def editor(:with, sheet, true) do
+    assigns = %{
+      change: {self(), :with_draft},
+      draft: Map.get(sheet, :with_draft) || Map.get(sheet, :companions) || "",
+      commit: Kati.Screens.Rating.commit_pill("Done", :commit_with)
+    }
+
+    ~MOB"""
+    <Column fill_width={true} padding_left={13} padding_right={13} padding_bottom={13}>
+      <Row fill_width={true} align="center">
+        <TextField
+          value={@draft}
+          placeholder="Jo, and whoever else"
+          return_key="done"
+          weight={1.0}
+          accessibility_id="with_draft"
+          on_change={@change}
+        />
+        <Spacer size={9} />
+        {@commit}
+      </Row>
     </Column>
     """
   end
@@ -1149,18 +1348,38 @@ defmodule Kati.Screens.RateEpisode do
     end
   end
 
+  # `with_draft` is typed rather than tapped, so it arrives as a change and not
+  # as a tap. Screen 33 carries the same pair for the same field.
+  def handle_info({:change, :with_draft, typed}, socket) when is_binary(typed),
+    do: {:noreply, Kati.Screens.RateEpisode.draft(socket, :with_draft, typed)}
+
+  def handle_info({:tap, :commit_with}, socket),
+    do: {:noreply, Kati.Screens.RateEpisode.commit_with(socket)}
+
   def handle_info({:tap, :toggle_verdict}, socket) do
     {:noreply,
      Mob.Socket.assign(socket, :verdict_expanded?, not socket.assigns.verdict_expanded?)}
   end
 
-  # A star. Every other tag this sheet draws has its own clause above, so a tag
-  # that is not a star point falls through to the catch-all rather than being
-  # read as rating `nil`.
+  # A star, or one of the three disclosed rows. Every other tag this sheet
+  # draws has its own clause above, so a tag that is none of these falls
+  # through rather than being read as rating `nil`.
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
-    case Rating.point_of(tag) do
-      nil -> {:noreply, socket}
-      point -> {:noreply, Kati.Screens.RateEpisode.pick(socket, point)}
+    case Atom.to_string(tag) do
+      "row_" <> key ->
+        {:noreply, Kati.Screens.RateEpisode.disclose(socket, key)}
+
+      "day_" <> iso ->
+        {:noreply, Kati.Screens.RateEpisode.commit_day(socket, iso)}
+
+      "where_" <> service ->
+        {:noreply, Kati.Screens.RateEpisode.commit_where(socket, service)}
+
+      _star ->
+        case Rating.point_of(tag) do
+          nil -> {:noreply, socket}
+          point -> {:noreply, Kati.Screens.RateEpisode.pick(socket, point)}
+        end
     end
   end
 
@@ -1208,6 +1427,75 @@ defmodule Kati.Screens.RateEpisode do
   end
 
   @doc """
+  Open one context row, or close it by pressing the one already open.
+
+  A key this sheet never drew closes whatever is open rather than raising —
+  `Kati.Screens.SeriesSettings` records why a tap handler on a pushed screen
+  must not: it is a dead process and a bounce to Home.
+  """
+  @spec disclose(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def disclose(socket, key) do
+    wanted =
+      Enum.find([:watched_on, :where, :with], fn row -> Atom.to_string(row) == key end)
+
+    open = if wanted && Map.get(socket.assigns, :open_row) != wanted, do: wanted
+
+    Mob.Socket.assign(socket, :open_row, open)
+  end
+
+  @doc "Take a day chip. The row closes behind it, which is what one tap answering one question looks like."
+  @spec commit_day(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def commit_day(socket, iso) do
+    case Date.from_iso8601(iso) do
+      {:ok, date} ->
+        socket
+        |> Kati.Screens.RateEpisode.put(:watched_on, date)
+        |> Mob.Socket.assign(:open_row, nil)
+
+      _unparseable ->
+        socket
+    end
+  end
+
+  @doc """
+  Take a service chip, or *Not on a service*, which stores nothing.
+
+  `nil` rather than the words: a watch's `service` column holds a place, and
+  the sentence saying there was none is a label rather than one.
+  """
+  @spec commit_where(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def commit_where(socket, service) do
+    value = if service == Kati.Screens.Rating.no_service(), do: nil, else: service
+
+    socket
+    |> Kati.Screens.RateEpisode.put(:service, value)
+    |> Mob.Socket.assign(:open_row, nil)
+  end
+
+  @doc "Keep what was typed into the *With* field without committing it."
+  @spec draft(Mob.Socket.t(), atom(), String.t()) :: Mob.Socket.t()
+  def draft(socket, field, typed),
+    do: Kati.Screens.RateEpisode.put(socket, field, typed)
+
+  @doc "Commit the *With* draft. An empty field clears the row rather than storing a blank."
+  @spec commit_with(Mob.Socket.t()) :: Mob.Socket.t()
+  def commit_with(socket) do
+    typed = socket.assigns.sheet |> Map.get(:with_draft, "") |> to_string() |> String.trim()
+
+    socket
+    |> Kati.Screens.RateEpisode.put(:companions, if(typed == "", do: nil, else: typed))
+    |> Mob.Socket.assign(:open_row, nil)
+  end
+
+  @doc false
+  @spec put(Mob.Socket.t(), atom(), term()) :: Mob.Socket.t()
+  def put(socket, field, value) do
+    socket
+    |> Mob.Socket.assign(:sheet, Map.put(socket.assigns.sheet, field, value))
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
   Write the sheet's rating onto the episode watch it was opened over.
 
   `Kati.Screens.Rating.ten_point/1` for the scale, because the column is
@@ -1233,13 +1521,53 @@ defmodule Kati.Screens.RateEpisode do
     case Ash.get(Watch, sheet.watch_id) do
       {:ok, record} ->
         record
-        |> Ash.Changeset.for_update(:update, %{rating: Rating.ten_point(sheet.rating)})
+        |> Ash.Changeset.for_update(
+          :update,
+          Map.merge(%{rating: Rating.ten_point(sheet.rating)}, context_changes(sheet))
+        )
         |> Ash.update()
         |> Kati.Write.note("rate an episode")
 
       error ->
         Kati.Write.note(error, "rate an episode")
     end
+  end
+
+  # Only what the reader actually touched. A sheet whose rows were never opened
+  # must not write `nil` over a service somebody set on screen 33 — the three
+  # context keys are absent from the sheet until an editor commits one, which
+  # is what makes "absent" and "cleared" different here.
+  #
+  # `watched_on` also moves `watched_at`, because the two are one fact: a row
+  # dated yesterday whose timestamp says tonight would put the same watch on
+  # two days depending on which column the reader is looking through.
+  defp context_changes(sheet) do
+    %{}
+    |> put_if(sheet, :watched_on)
+    |> put_if(sheet, :service)
+    |> put_if(sheet, :companions)
+    |> then(fn changes ->
+      case Map.fetch(changes, :watched_on) do
+        {:ok, %Date{} = date} -> Map.put(changes, :watched_at, midday(date))
+        _absent -> changes
+      end
+    end)
+  end
+
+  defp put_if(changes, sheet, key) do
+    case Map.fetch(sheet, key) do
+      {:ok, value} -> Map.put(changes, key, value)
+      :error -> changes
+    end
+  end
+
+  # Midday rather than midnight: `Kati.Time.zone/0` can shift a midnight stamp
+  # across the date line in either direction, and a watch logged "yesterday"
+  # that reads as the day before is the defect this is here to avoid.
+  defp midday(date) do
+    date
+    |> DateTime.new!(~T[12:00:00], "Etc/UTC")
+    |> DateTime.truncate(:second)
   end
 
   # The first watch of this episode, made BY the rating. Board 144's own note
@@ -1259,6 +1587,7 @@ defmodule Kati.Screens.RateEpisode do
       watched_at: Kati.Time.now(),
       watched_on: Kati.Time.today()
     }
+    |> Map.merge(context_changes(sheet))
     |> then(&Ash.create(Watch, &1))
     |> case do
       {:ok, watch} ->

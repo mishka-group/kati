@@ -261,6 +261,173 @@ defmodule Kati.RateEpisodeTest do
     %{source_id: @prefix <> "ep", watched: false, season: 2, n: 5}
   end
 
+  describe "the three context rows — board 204's decision, settled" do
+    test "they are dead on the drawing and live over a real episode", %{tracked: tracked} do
+      # A picture's rows do not open, which is the rule this round keeps
+      # everywhere: a control that exists only over data is not drawn live over
+      # a drawing of it.
+      refute RateEpisode.editable?(Kati.Screens.RateEpisode.Sample.sheet())
+
+      live = RateEpisode.sheet(%{tracked_id: tracked.id, episode_source_id: @prefix <> "ep"})
+      assert RateEpisode.editable?(live)
+
+      drawn = inspect(RateEpisode.context_card(live, nil), limit: :infinity)
+      assert drawn =~ "row_watched_on"
+      assert drawn =~ "row_where"
+      assert drawn =~ "row_with"
+    end
+
+    test "one opens at a time, and pressing the open one closes it", %{tracked: tracked} do
+      view = open(tracked)
+
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :row_watched_on}, view.socket)
+      assert socket.assigns.open_row == :watched_on
+
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :row_where}, socket)
+      assert socket.assigns.open_row == :where
+
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :row_where}, socket)
+      assert socket.assigns.open_row == nil
+    end
+
+    test "and a row it never drew closes whatever is open rather than raising", %{
+      tracked: tracked
+    } do
+      view = open(tracked)
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :row_watched_on}, view.socket)
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :row_nothing}, socket)
+
+      assert socket.assigns.open_row == nil
+    end
+
+    test "a day chip dates the watch, and the row says so before it is saved", %{
+      tracked: tracked
+    } do
+      view = open(tracked)
+      yesterday = Date.add(Kati.Time.today(), -1)
+
+      {:noreply, socket} =
+        RateEpisode.handle_info({:tap, :"day_#{Date.to_iso8601(yesterday)}"}, view.socket)
+
+      assert socket.assigns.sheet.watched_on == yesterday
+      assert socket.assigns.open_row == nil
+
+      row = Enum.find(RateEpisode.context_of(socket.assigns.sheet), &(&1.key == :watched_on))
+      assert row.sub == "Yesterday"
+      refute row.trailing, "the mono `now` survived a watch dated yesterday"
+    end
+
+    test "a service chip fills Where, and `Not on a service` stores nothing", %{tracked: tracked} do
+      view = open(tracked)
+
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :"where_Lumen+"}, view.socket)
+      assert socket.assigns.sheet.service == "Lumen+"
+
+      not_on_one = String.to_atom("where_" <> Kati.Screens.Rating.no_service())
+      {:noreply, socket} = RateEpisode.handle_info({:tap, not_on_one}, socket)
+
+      assert socket.assigns.sheet.service == nil
+    end
+
+    test "With is typed and committed, and an empty field clears it", %{tracked: tracked} do
+      view = open(tracked)
+
+      {:noreply, socket} = RateEpisode.handle_info({:change, :with_draft, "Jo"}, view.socket)
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :commit_with}, socket)
+
+      assert socket.assigns.sheet.companions == "Jo"
+      assert socket.assigns.open_row == nil
+
+      {:noreply, socket} = RateEpisode.handle_info({:change, :with_draft, "   "}, socket)
+      {:noreply, socket} = RateEpisode.handle_info({:tap, :commit_with}, socket)
+
+      assert socket.assigns.sheet.companions == nil
+    end
+
+    test "all three reach the store on the row Save creates", %{tracked: tracked} do
+      yesterday = Date.add(Kati.Time.today(), -1)
+
+      sheet =
+        %{tracked_id: tracked.id, episode_source_id: @prefix <> "ep"}
+        |> RateEpisode.sheet()
+        |> Map.merge(%{
+          rating: 4.0,
+          watched_on: yesterday,
+          service: "Lumen+",
+          companions: "Jo"
+        })
+
+      assert {:ok, _watch} = RateEpisode.save_rating(sheet)
+
+      assert [%{watched_on: ^yesterday, service: "Lumen+", companions: "Jo"} = watch] =
+               Ash.read!(Watch)
+
+      # `watched_at` follows `watched_on`, because the two are one fact: a row
+      # dated yesterday whose timestamp says tonight puts the same watch on two
+      # days depending which column you read it through.
+      assert DateTime.to_date(watch.watched_at) == yesterday
+    end
+
+    test "and onto the row it updates", %{tracked: tracked} do
+      # With a rating on it, because that is what `sheet/1` looks for: a tick
+      # is not a verdict, so a watch carrying neither a rating nor a review is
+      # not the row this sheet opens over. `Kati.RateEpisodeTest`'s moduledoc
+      # records that as finding #25's first defect and its fix.
+      created =
+        Ash.create!(Watch, %{
+          tracked_title_id: tracked.id,
+          episode_source_id: @prefix <> "ep",
+          season_number: 2,
+          episode_number: 5,
+          watched_at: Kati.Time.now(),
+          watched_on: Kati.Time.today(),
+          rating: 8,
+          service: "Orbit"
+        })
+
+      sheet =
+        %{tracked_id: tracked.id, episode_source_id: @prefix <> "ep"}
+        |> RateEpisode.sheet()
+        |> Map.merge(%{rating: 3.0, service: "Lumen+"})
+
+      assert {:ok, _watch} = RateEpisode.save_rating(sheet)
+      assert %{service: "Lumen+", rating: 6} = Ash.get!(Watch, created.id)
+    end
+
+    test "a row nobody opened writes nothing over what is already there", %{tracked: tracked} do
+      # The reason `context_changes/1` reads `Map.fetch/2` rather than
+      # `Map.get/2`: a sheet whose rows were never touched must not put `nil`
+      # over a service somebody set on screen 33.
+      created =
+        Ash.create!(Watch, %{
+          tracked_title_id: tracked.id,
+          episode_source_id: @prefix <> "ep",
+          season_number: 2,
+          episode_number: 5,
+          watched_at: Kati.Time.now(),
+          watched_on: Kati.Time.today(),
+          rating: 8,
+          service: "Orbit",
+          companions: "Jo"
+        })
+
+      sheet =
+        %{tracked_id: tracked.id, episode_source_id: @prefix <> "ep"}
+        |> RateEpisode.sheet()
+        |> Map.put(:rating, 2.0)
+
+      assert {:ok, _watch} = RateEpisode.save_rating(sheet)
+      assert %{service: "Orbit", companions: "Jo"} = Ash.get!(Watch, created.id)
+    end
+  end
+
+  defp open(tracked) do
+    mount_screen(RateEpisode, %{
+      tracked_id: tracked.id,
+      episode_source_id: @prefix <> "ep"
+    })
+  end
+
   defp tracked! do
     Ash.create!(CachedTitle, %{
       source: :tmdb,

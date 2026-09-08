@@ -2103,15 +2103,17 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**158 findings**, every one traced to a line. All but two carry a closing verdict
+**160 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
-Four are open on purpose. **#157** is the recipe for #103's fold, scoped to this section:
-its two blockers are fixed and the remaining work is measured rather than estimated. **#155** is a decision rather than a defect: board 204 and
-MOVIES-AND-TV.md #95 answer the same question opposite ways, both boards' substance is
-built, and which shape wins is the owner's call. **#153** counts, control by control, why board 169 cannot be
-built without inventing a recommender — ten of its eleven chips have nothing on a device to
-act on. And **#150**: an intermittent `SIGBUS`
+Two are open on purpose, and two closed on 8 September. **#157** is the recipe for #103's fold, scoped to this
+section: its two blockers are fixed and the remaining work is measured rather than estimated.
+**#155** was a decision rather than a defect — board 204 and MOVIES-AND-TV.md #95 answered the
+same question opposite ways — and the owner settled it: disclose in place, on both screens, so
+screen 144 gained the three live rows it had been drawing dead. **#153** counted, control by
+control, why board 169 could not be built without inventing a recommender; **#159** is that
+count answered by asking TMDB instead, with the five controls no field anywhere can supply
+named rather than faked. And **#150**: an intermittent `SIGBUS`
 inside SQLite that did not reproduce, recorded with its tombstone so a second
 sighting has a baseline rather than a fresh investigation.
 
@@ -3929,9 +3931,9 @@ So the board is honest about being a drawing of a sheet over a sample. What it c
 *What board 202 draws that is deliberately not built.* Its frame is a sheet with a close disc and a search field over the service list. MOVIES-AND-TV.md #95 settled the opposite arrangement — screen 33's three context rows **disclose in place** rather than push — and board 204 is the board that reconciles 33 and 144, which is a decision rather than a build. So the substance of 202 is built into the existing disclosure and the sheet is not; the search field is what a service list long enough to need one would want, and `where_options/1` takes six.
 
 
-### 155. 33 and 144, reconciled — board 204 is a decision, and it is the owner's
+### 155. 33 and 144, reconciled — board 204 was a decision, and the owner made it
 
-**Board 204 rules that screen 33 keeps three chevrons that PUSH, and screen 144 gains them. The build went the other way, deliberately, and neither is wrong — but they cannot both stand.**
+**Board 204 ruled that screen 33 keeps three chevrons that PUSH and that screen 144 gains them. The build went the other way, deliberately, and neither was wrong — but they could not both stand. Closed 8 September: the disclosure wins, and 144 has it now.**
 
 *What the board says.* Its three headings are `The context card`, `33 — unchanged, three chevrons`, `144 — gains the chevrons, keeps its now`. So the intended shape is three rows that open three pages: board 201 (*Watched on*), 202 (*Where*) and 203 (*With, and + tag*).
 
@@ -3941,7 +3943,13 @@ Two verifiers re-checked 201 and 203 against the code and refuted both as open: 
 
 *So the open question is not a missing feature; it is a shape.* Three pages, or three disclosures. The disclosures are live, tested and shipping. The pages would be three new screens, three new routes, and three boards moving into `screens/`.
 
-**This is left for the owner rather than settled here**, because it is the kind of choice a build should not make for a design twice: #95 made it once, board 204 answers back, and a third silent reversal is how a screen ends up with both. What is recorded here is that the boards' substance is not missing, so whichever way it goes is a change of shape rather than of capability.
+**Settled by the owner on 8 September: disclose in place, on both screens.** The three boards were put side by side — 204's card, screen 33 at rest, and screen 33 with *Watched on* open — and the disclosure won on the count that decides it: setting a date is **two taps and no page** rather than three taps and a page you have to come back from, and the half-filled rating stays in front of you while you answer.
+
+So 33 is unchanged, and **144 gained what 204 asked for in the shape 33 already had**: its three context rows are live, they open a row of chips under themselves, and the mono `now` — the half of board 204 that was never in dispute — stays. The rows were read-only until now, so this is board 204's substance built rather than declined; only its chevrons-that-push are.
+
+`Kati.Screens.RateEpisode.context_card/2` carries the decision and the reasoning at the point of use. `editable?/1` keeps the drawn board dead, which is the rule this round keeps everywhere — a control that exists only over data is not drawn live over a drawing of it — so `Kati.ScreenDesignLiteralTest` still compares 144 against its own frame. `Kati.RateEpisodeTest` presses all three rows, both write paths, and the case that matters most: **a row nobody opened writes nothing over what is already there**, because a sheet whose rows were never touched must not put `nil` over a service somebody set on screen 33.
+
+One thing found while building it, and left alone: a watch carrying neither a rating nor a review is invisible to `sheet/1` — *a tick is not a verdict*, which is finding #25's own first defect and its fix — so rating an episode that was merely ticked writes a second row rather than updating the tick. That is existing, documented behaviour rather than something this change introduced, and it is not board 204's question.
 
 
 ### 156. 23 / 92 — one service, and two columns nothing in Kati could set
@@ -4028,6 +4036,53 @@ It also found a caller passing a string that had been correct only by coincidenc
 *The ratchet.* `Kati.ScreenTapSweepTest` gained *"no control is named after the word printed on it"*: every tap the app draws, in both locales, asserted ASCII. ASCII is not the point and the test says so — a STABLE tag is — but every label Kati would build a tag from in the other script is outside ASCII, so it catches the real thing. It carries one allowance, `@from_the_data`: screen 03's Persian mirror draws six sample series with no id, so `Kati.Screens.LibraryFa.poster_tag/1` falls back to the caption for each. Those are named from a ROW rather than from a label, `Kati.Screens.Library.poster_tag/1` prefers the tracked row's id on a real device, and all six go when the mirror does.
 
 Status: `[x] host 3646 passed`, `[x] device 24/24 on the Pixel_9a`. Four device tests re-typed: `kind_tv`, `status_paused`, `status_watching`.
+
+
+### 159. Board 169 built on TMDB `/discover`, and the five controls that no field anywhere answers
+
+**#153 counted eleven controls and said ten of them had nothing on a device to act on. That count was right about the app and wrong about the world: TMDB answers six of them. Built — three with the board's own words, three under different ones — and the other five are named with the field that does not exist.**
+
+*The owner's ruling.* Use the API, compute as little as possible on the device, and put the rating on TMDB's own 1–10 scale inside the UI where it fits the design. That decides every line below.
+
+| Board 169 draws | Built? | What it became, or why not |
+|---|---|---|
+| Sort · **Best match** | reworded | `/discover` has no `sort_by` about *this reader*. Ships as **Most popular** — `popularity.desc`, TMDB's own default ordering, saying what it is. |
+| Sort · **Newest** | yes | `primary_release_date.desc` on film, `first_air_date.desc` on series. |
+| Sort · **Leaving soonest** | **no** | There is no leaving date anywhere in TMDB. `/watch/providers` is a snapshot with no window. |
+| Range · **90% and up** | reworded | `vote_average.gte` exists, but it is a crowd average **out of ten**, not a fit against a history. Ships as **8.0 and up**, with a note naming whose average it is. |
+| Range · **80% and up** | reworded | The same, as **7.0 and up**, plus a third bucket at 6.0 the board does not draw — three buckets is the group's own shape. |
+| Range · **Unscored** | **no** | The inverse of a number Kati does not have, and TMDB has no parameter for *no rating*. |
+| Filter · **Film** | yes | It is the endpoint: `/discover/movie`. |
+| Filter · **Series** | yes | `/discover/tv`. |
+| Filter · **Lumen+** | **no** | `with_watch_providers` needs numeric JustWatch ids, and `Kati.Media.Tmdb.providers/1` keeps only names (`tmdb.ex:267-269`). And the two names are not Discover's fixture at all — they are `Kati.Library.ShelfFiltersSample`'s, board 145's vocabulary. |
+| Filter · **Orbit** | **no** | The same. |
+| Filter · **Only with news** | **no** | No people table, no follow list. `discover.ex:74-79` records that absence as a decision. |
+
+*The eight count badges, and `showing 4 of 8`.* Board 169's own note says where they come from: *"Every count on this sheet comes from Discover's own sample, as every number on 11 does — said here so the build is not asked to infer a recommender from a chip."* A per-chip count is one HTTP request per chip. **So no chip carries one.** The footer prints TMDB's `total_results` for the choice that produced it and **drops it the instant a chip moves** — `Kati.Screens.DiscoverFilters.count_line/2` compares the live choice against the one the sheet opened with. A stale total is exactly the plausible-looking figure this whole section spent a fortnight removing; no total at all is honest, and the next answer brings a true one.
+
+*The vote floor.* `vote_average.desc` on its own returns films with a single ten-out-of-ten vote — a top-rated list nobody would recognise — so every request that sorts or filters on the average carries `vote_count.gte=200`. TMDB's own remedy, and the sheet says so under the buckets rather than hiding it.
+
+*What it also fixes.* A browse needs nothing on the shelf, so a reader who has tracked nothing has something real on screen 11 **for the first time** — that state used to be `Kati.Screens.Discover.Sample` end to end. Under a filter the rail's heading is the question asked, `Newest series, 8.0 and up`, rather than a `Because you watched` premise about a title that had nothing to do with the request.
+
+*Where the door is.* Discover's header gains a `sort` disc beside `tune`, lit while something is narrowing. Two discs, and it is not the pattern `Kati.Screens.Library` ruled against: `tune` answers *what the picks come from* and this answers *how they are sorted*, which is a premise and a query rather than two doors into one room. `sort` and not `filter_list` because the glyph has to be one of the 140 `Kati.Icons` carries — a name outside the subset raises rather than drawing a blank, which `Kati.ThemeCoverageTest` caught on the first attempt.
+
+Board 169 stays in `incoming/`. Registering it would make `Best match`, `Unscored`, `Lumen+` and `showing 4 of 8` compulsory literals. `Kati.DiscoverFiltersTest` covers the page instead, presses all nine controls, and asserts every parameter sent is one TMDB documents — because a parameter TMDB does not have is not an error it returns, it is silently ignored, and a filter that does nothing looks exactly like a filter that works.
+
+Status: `[x] host 3678 passed`, `[ ] device`.
+
+### 160. The poster wall nobody could see, and the picture that never reached the shelf
+
+**Board 163 draws four posters. The tile drew a grey rectangle with nothing over it, and the title you picked arrived on your shelf with no picture either.**
+
+Found by the owner looking at a device screenshot, which is the only way it could have been: every test passed, because nothing asserted that a poster was drawn.
+
+Two halves, and they are separate defects with one cause. `tile/2` built a `Box` with `Palette.placeholder()` and never laid an `<Image>` into it — so all four tiles on screen 163 were blank on any device. And `shelve/1` wrote the tracked row and the cache row without a `poster_path`, so the title that was picked reached Home, the shelf and the rating sheet as a grey rectangle too. All four crops — `hollow71_400x600.jpg` and its three siblings — were on disk the whole time, and `Kati.Design.Images`' own moduledoc already named three of them.
+
+The seed table answers **both spellings** of each title, because board 166 shelves through screen 163's writer and passes the Persian name on purpose: *"a Persian run should not put an English name on a Persian shelf"*.
+
+`Kati.FirstRunTest` now asserts the tile draws an `<Image>` whose `src` is a file that exists, and that the shelved row carries the seed — in both scripts.
+
+Status: `[x] host`, `[ ] device`.
 
 
 # Pages a user cannot reach except through Settings
