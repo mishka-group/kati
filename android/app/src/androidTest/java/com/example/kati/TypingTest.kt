@@ -91,14 +91,31 @@ class TypingTest {
         kati.tap("fab")
         kati.compose.waitUntil(20_000) { kati.present("title_query") }
 
-        // The add control on the first result row. Its tag carries the title,
-        // because the chips renumber the list and `add_1` would mean a
-        // different film under a different filter.
-        val added = kati.tapAny(
-            "add_The Quiet Coast",
-            "add_Quiet Earth"
-        )
-        assertTrue("no add control on any result row", added != null)
+        // This used to tap `add_The Quiet Coast` — a row out of
+        // `Kati.Library.Sample`, which screen 06 drew at rest. Board 308 ended
+        // that: "No recents, no suggestions. 86 owns those for searching what
+        // you keep; this sheet searches a provider, so a history here would be
+        // a list of things you already added." A resting screen 06 has no rows
+        // at all, so the test was tapping fixture titles that are gone.
+        //
+        // The journey this test is named for is the BY-HAND one — its own last
+        // assertion is that the row's source is `manual`, which a catalogue add
+        // never writes. So it types, takes the escape hatch board 308 puts
+        // there from the first keystroke, and saves.
+        val typed = "the salt almanac"
+
+        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+            .performTextInput(typed)
+        kati.device.waitForIdle()
+
+        kati.compose.waitUntil(20_000) { kati.present("add_by_hand") }
+        kati.tap("add_by_hand")
+
+        kati.compose.waitUntil(20_000) { kati.present("title") }
+        kati.compose.onNodeWithTag("title", useUnmergedTree = true).performTextInput(typed)
+        kati.device.waitForIdle()
+
+        kati.tap("add")
 
         kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > 0 }
 

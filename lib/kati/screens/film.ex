@@ -669,7 +669,7 @@ defmodule Kati.Screens.Film do
     assigns = %{back: label}
 
     [
-      Kati.UI.symbol("arrow_back_ios_new", size: 17),
+      Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17),
       ~MOB"<Spacer size={6} />",
       ~MOB"""
       <Text

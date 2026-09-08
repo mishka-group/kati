@@ -44,6 +44,17 @@ class AddByHandTest {
         kati.compose.waitUntil(30_000) { kati.present("fab") }
         kati.tap("fab")
 
+        // The escape hatch NAMES the query, so there is no row until there is
+        // a query: board 308 rules it in as many words — "The add-by-hand row
+        // is absent before a keystroke — it names the query, and there is
+        // none", and present "from the first keystroke". This test used to tap
+        // it straight after the `+` and had been waiting twenty seconds for a
+        // control the design says should not be there.
+        kati.compose.waitUntil(20_000) { kati.present("title_query") }
+        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+            .performTextInput("the salt almanac")
+        kati.device.waitForIdle()
+
         kati.compose.waitUntil(20_000) { kati.present("add_by_hand") }
         kati.tap("add_by_hand")
 
@@ -83,6 +94,13 @@ class AddByHandTest {
 
         kati.compose.waitUntil(30_000) { kati.present("fab") }
         kati.tap("fab")
+
+        // Board 308 again: no query, no by-hand row. See the test above.
+        kati.compose.waitUntil(20_000) { kati.present("title_query") }
+        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+            .performTextInput("nothing in particular")
+        kati.device.waitForIdle()
+
         kati.compose.waitUntil(20_000) { kati.present("add_by_hand") }
         kati.tap("add_by_hand")
         kati.compose.waitUntil(20_000) { kati.present("add") }

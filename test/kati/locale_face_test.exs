@@ -2,7 +2,10 @@ Code.require_file("../support/screen_sweep.exs", __DIR__)
 
 defmodule Kati.LocaleFaceTest do
   @moduledoc """
-  Every screen tells the device which typeface its text is set in.
+  What the shared frames have to answer about the locale, beyond the direction.
+
+  Two things, and both are invisible when they are wrong: the typeface every
+  unstyled `Text` falls back to, and which way the back chevron points.
 
   ## The branch no screen could reach
 
@@ -126,6 +129,54 @@ defmodule Kati.LocaleFaceTest do
       assert Map.get(english.props, :font_family) == "sans"
       assert Map.get(persian.props, :font_family) == "fa"
     end
+  end
+
+  describe "the back chevron" do
+    test "points the way the reader came from, in each direction" do
+      assert Kati.Screens.Pushed.glyph_for(:rtl) == "arrow_forward_ios"
+      assert Kati.Screens.Pushed.glyph_for(:ltr) == "arrow_back_ios_new"
+    end
+
+    test "and a pushed English screen in Persian draws the mirrored one" do
+      # A container flips under RTL and a glyph does not — the arrow is a
+      # codepoint in a font, so `LocalLayoutDirection` mirrors the Row it sits
+      # in and leaves the chevron aimed at the edge the reader did not come
+      # from. The Persian mirrors have always drawn `arrow_forward_ios`
+      # (`Kati.Screens.Fa.pushed_frame/2`); the shared frame did not, so every
+      # English page opened in Persian had the RTL layout and the LTR arrow.
+      # Every screen that draws a back chevron, not just the shared frame: five
+      # of them build their own pill over their own artwork — screens 04, 08,
+      # 14 and 19 are all Movies & Series — and each had the glyph written out.
+      for module <- [
+            Kati.Screens.AddByHand,
+            Kati.Screens.Series,
+            Kati.Screens.Film,
+            Kati.Screens.SeriesMeta,
+            Kati.Screens.Search,
+            Kati.Screens.Meal
+          ] do
+        persian = ScreenSweep.with_locale(:fa, fn -> glyphs(module) end)
+        english = ScreenSweep.with_locale(:en, fn -> glyphs(module) end)
+
+        assert Kati.Icons.glyph("arrow_forward_ios") in persian,
+               "#{inspect(module)} draws no leading-edge chevron in Persian"
+
+        refute Kati.Icons.glyph("arrow_back_ios_new") in persian,
+               "#{inspect(module)} still draws the Latin back chevron in Persian"
+
+        assert Kati.Icons.glyph("arrow_back_ios_new") in english,
+               "#{inspect(module)} draws no back chevron in English"
+      end
+    end
+  end
+
+  defp glyphs(module) do
+    module
+    |> mount_screen()
+    |> tree()
+    |> flatten()
+    |> Enum.filter(&(&1.type == :text))
+    |> Enum.map(&Map.get(&1.props, :text))
   end
 
   # A screen that cannot be mounted bare is not this file's subject — the

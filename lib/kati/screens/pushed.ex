@@ -224,6 +224,43 @@ defmodule Kati.Screens.Pushed do
   end
 
   @doc """
+  Which way back points, which is not a thing `layout_direction` can answer.
+
+  A container flips under RTL and a **glyph does not**: `arrow_back_ios_new` is
+  a codepoint in a font, so `LocalLayoutDirection` mirrors the Row it sits in
+  and leaves the arrow pointing the same way it was drawn. Every pushed screen
+  in Persian therefore drew a chevron aimed at the edge the reader did NOT come
+  from — the commonest RTL bug there is, and the one board 156's caption pins
+  by name.
+
+  The Persian mirrors have always known this: `Kati.Screens.Fa.pushed_frame/2`
+  draws `arrow_forward_ios`, and `Kati.Screens.BookDetailFa` records the same
+  trap for screen 69. What was missing is that the SHARED frame did not, so an
+  English screen opened while the app is in Persian — which is every pushed
+  page the mirrors do not cover, and after
+  [#103](https://github.com/mishka-group/kati/issues/103) will be all of them —
+  got the RTL layout and the LTR arrow.
+
+  Not `rotate={180}` on the `Box`, which is how `Kati.Screens.ShelfFilters`
+  turns its one sort arrow: `arrow_forward_ios` is a glyph Kati already ships
+  (`Kati.Icons`), and turning a chevron that has a real mirrored twin would put
+  its optical weight on the wrong side.
+
+      iex> Kati.Screens.Pushed.glyph_for(:rtl)
+      "arrow_forward_ios"
+
+      iex> Kati.Screens.Pushed.glyph_for(:ltr)
+      "arrow_back_ios_new"
+  """
+  @spec back_glyph() :: String.t()
+  def back_glyph, do: glyph_for(Kati.Locale.direction(Kati.Locale.current()))
+
+  @doc false
+  @spec glyph_for(:rtl | :ltr) :: String.t()
+  def glyph_for(:rtl), do: "arrow_forward_ios"
+  def glyph_for(_ltr), do: "arrow_back_ios_new"
+
+  @doc """
   The floating back pill, or nothing when the screen draws its own.
 
   `nil` is a real answer rather than a missing one. Boards 161, 162 and 163 put
@@ -275,7 +312,7 @@ defmodule Kati.Screens.Pushed do
         align="center"
         on_tap={@tap}
       >
-        {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
+        {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
         <Spacer size={6} />
         <Text
           text={@label}

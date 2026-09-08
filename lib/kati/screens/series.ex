@@ -850,7 +850,7 @@ defmodule Kati.Screens.Series do
           align="center"
           on_tap={back}
         >
-          {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
+          {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
           <Spacer size={6} />
           <Text
             text={@back}

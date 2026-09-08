@@ -3779,6 +3779,21 @@ It came from reading board 163 too literally: the board draws `The Long Hollow` 
 `Kati.FirstRunTest` now taps a tile before asserting the shelf, in both locales, and carries a new test for the half that had never been true: *finishing without choosing shelves nothing at all*.
 
 
+### 148. The back chevron is not mirrored — `cannot-work`
+
+**Every pushed screen in Persian drew a back arrow pointing at the edge the reader did not come from, because a container flips under RTL and a glyph does not.**
+
+*Proof.* `Kati.Screens.Pushed.back_pill/1` drew `Kati.UI.symbol("arrow_back_ios_new", size: 17)`, and five screens draw their own pill over their own artwork with the same literal: `series.ex:853` (04), `film.ex:672` (08), `series_meta.ex:597` (14), `search.ex:502` (19) and `meal.ex:561`. Four of the five are Movies & Series.
+
+`MainActivity` provides `LocalLayoutDirection` from the root node (`K-12 rtl-root`), which mirrors every **container** under it. An arrow is not a container: `arrow_back_ios_new` is a codepoint in a font (`Kati.Icons:19`), so it is drawn exactly as it was designed whatever the direction is. The Persian mirrors have always known this — `Kati.Screens.Fa.pushed_frame/2` draws `arrow_forward_ios`, and board 156's caption pins it by name: *"The back chevron is `arrow_forward_ios`. Back is the way the reader came from, and in Persian that is the right edge — the commonest RTL bug there is."* `Kati.Screens.BookDetailFa` records the same trap for screen 69.
+
+What was missing is that the **shared** frame did not, so every English page opened while the app is in Persian got the RTL layout and the LTR arrow. That is live today — `Kati.Locale` is an in-app setting and `Pushed` already reads it for the direction — and after [#103](https://github.com/mishka-group/kati/issues/103) it would be every pushed page in the app.
+
+*Fixed 8 September.* `Kati.Screens.Pushed.back_glyph/0` answers from `Kati.Locale`, and all six call sites read it. Not `rotate={180}` on the Box — the way `Kati.Screens.ShelfFilters.direction_pill/1` turns its one sort arrow — because that idiom exists for a glyph with no mirrored twin, and this one has a real twin Kati already ships. Turning a chevron instead of swapping it puts its optical weight on the wrong side.
+
+`Kati.LocaleFaceTest` renders all six in both locales and asserts each draws the leading-edge chevron and not the other one.
+
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

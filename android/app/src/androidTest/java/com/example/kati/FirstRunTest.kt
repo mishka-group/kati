@@ -2,6 +2,7 @@ package com.example.kati
 
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
@@ -59,6 +60,29 @@ class FirstRunTest {
         }
     }
 
+    /**
+     * The first `add_<title>` row of the catalogue, never the escape hatch.
+     *
+     * `Kati.Screens.AddTitle` tags each result `add_<title>` and board 308's
+     * by-hand row is `add_by_hand`, so a bare prefix search matches both and
+     * the hatch is usually first on screen.
+     */
+    private fun catalogueRow(): String? =
+        kati.tagStartingWith("add_")?.takeIf { it != "add_by_hand" }
+            ?: kati.compose
+                .onAllNodes(
+                    androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(
+                        androidx.compose.ui.semantics.SemanticsProperties.TestTag
+                    ),
+                    useUnmergedTree = true
+                )
+                .fetchSemanticsNodes()
+                .firstNotNullOfOrNull { node ->
+                    node.config
+                        .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)
+                        ?.takeIf { it.startsWith("add_") && it != "add_by_hand" }
+                }
+
     @Test
     fun a_a_clean_install_hands_over_a_usable_app() {
         assertTrue(
@@ -81,18 +105,23 @@ class FirstRunTest {
         kati.tap("add_title")
         kati.compose.waitUntil(20_000) { kati.present("title_query") }
 
-        // Deliberately NOT a unique string. `Kati.Screens.AddTitle` searches a
-        // catalogue and builds its add control as `add_<title>`, so a name
-        // nothing can match offers nothing to tap — which is a true fact about
-        // an empty catalogue, not about whether the first run works. Typing a
-        // letter and taking whatever is offered keeps this test about the
-        // journey: something could be added, and adding it kept a row.
+        // Deliberately NOT a unique string, and deliberately more than two
+        // characters: `Kati.Screens.AddTitle` runs its search under a
+        // THREE-character floor, so a single letter searches nothing at all.
+        // This typed "a" and then took the first tag starting with `add_` —
+        // which, since board 308 gave the escape hatch a query-shaped label,
+        // is `add_by_hand`. It tapped the by-hand row, landed on the form, and
+        // waited twenty seconds for a row that only a Save would write.
+        //
+        // The catalogue's own rows are what this test is about: something could
+        // be added, and adding it kept a row. So the by-hand row is excluded by
+        // name rather than by hoping it sorts last.
         kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
-            .performTextInput("a")
+            .performTextInput("quiet")
         kati.device.waitForIdle()
-        kati.compose.waitUntil(20_000) { kati.tagStartingWith("add_") != null }
+        kati.compose.waitUntil(30_000) { catalogueRow() != null }
 
-        val addTag = kati.tagStartingWith("add_")
+        val addTag = catalogueRow()
 
         assertTrue(
             "the search offered nothing to add, so the first run hands over an app that " +
