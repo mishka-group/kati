@@ -56,31 +56,42 @@ defmodule Kati.ScreenInboxTest do
   end
 
   describe "a library with nothing followed" do
-    test "answers with the drawing's own inbox, whole" do
-      assert Inbox.inbox() == Inbox.drawn_inbox()
-      assert Inbox.releases() == nil
+    test "answers board 260 rather than the drawing" do
+      # It answered `drawn_inbox/0` — the drawing's three coming-up rows and
+      # `Kati.Library.Sample`'s out-now rows — so the one page whose job is to
+      # say what is new opened, on a fresh install, on three things that were
+      # not. Board 260 is the state it draws instead;
+      # `Kati.ScreenInboxEmptyTest` holds that board's own copy.
+      refute Inbox.releases()
+      assert Inbox.inbox().nothing_followed?
+      refute Inbox.inbox() == Inbox.drawn_inbox()
     end
 
-    test "renders every line frame 05 draws" do
+    test "and draws none of the lines frame 05 holds" do
       words = text(tree(mount_screen(Inbox)))
       drawn = Inbox.drawn_inbox()
 
+      # The name survives — board 260 keeps it, and it is what
+      # `Kati.ScreenEmptyDatabaseTest` quotes for this screen.
       assert words =~ "New releases"
-      assert words =~ "3 out now · 3 coming up"
-      assert words =~ String.upcase("Out now · 3")
 
-      for row <- drawn.out_now do
-        assert words =~ row.title, "the drawn out-now row #{row.title} is missing"
-        assert words =~ row.line
-        assert words =~ row.meta
-      end
+      refute words =~ "3 out now · 3 coming up"
 
-      for row <- drawn.coming_up do
-        assert words =~ row.title
-        assert words =~ row.line
-        assert words =~ row.month
-        assert words =~ row.day
+      for row <- drawn.out_now ++ drawn.coming_up do
+        refute words =~ row.title,
+               "screen 05 drew #{row.title} — a release out of the drawing that nobody follows"
       end
+    end
+
+    test "and board 05's own lines are still checked, in the state that board draws" do
+      # Not lost with the fallback: `drawn_inbox/0` is what
+      # `Kati.ScreenDesignLiteralTest.drawn_state/0` installs for board 05, so
+      # every literal on that frame is still compared — against the page in the
+      # state a reader reaches once they follow something.
+      drawn = Inbox.drawn_inbox()
+
+      assert length(drawn.out_now) == 3
+      assert length(drawn.coming_up) == 3
     end
 
     test "a followed title with nothing scheduled still draws the drawing" do

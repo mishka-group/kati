@@ -726,6 +726,27 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # by `empties/0`, and every line of their empty cards that IS quoted from a
   # board is compared in `@quoted` directly below.
   @no_empty_board [
+    # 05 with nothing followed. Board 05 is drawn with a watcher card that has
+    # a count in it and two sections of releases, and every one of those
+    # belongs to a reader who follows something — so a fresh install used to
+    # get `drawn_inbox/0`: the drawing's three coming-up rows and
+    # `Kati.Library.Sample`'s Out now rows, on the one page whose whole job is
+    # to say what is new. That is #91's sentence about a different screen.
+    #
+    # Board 260 is the state it draws instead, and it is in
+    # `test/design/incoming/` rather than `screens/` because it draws two
+    # frames and a page of notes — the same treatment every state catalogue of
+    # that wave gets. So there is no single artboard to compare this against,
+    # which is what this list is for.
+    #
+    # The board's own ruling is the part worth keeping: **the card became a
+    # sentence.** Setting the watcher count to `0` while keeping its meta line
+    # "would put a live number beside two frozen ones in the same breath".
+    {"05",
+     "board 05's watcher count and both release sections belong to a reader who follows " <>
+       "something. Board 260 is what a fresh install draws — two cards and a way in — and " <>
+       "it is a states board, drawn as two frames with notes, so no single artboard holds " <>
+       "this page", Kati.ScreenInboxEmptyTest},
     # 86 and 87 with nothing stored. Board 86 draws two things a fresh device
     # cannot have: a *Recent* shelf of five queries — this reader's own search
     # history, which `Kati.ScreenDesignLiteralTest.drawn_state/0` installs to
@@ -889,6 +910,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 86 and 87 with nothing stored: the field's own placeholder, the chip row
     # that survives whatever the history held, and the note under it. A page
     # that quietly lost its chips would still have looked like a page.
+    # 05 with nothing followed. Board 260's own copy is on a board that is not
+    # in `screens/` — it draws two frames and a page of notes — so what is
+    # quotable is the chrome of board 05 that survives an empty inbox: the
+    # page's own name. `Kati.ScreenInboxEmptyTest` holds board 260's two cards,
+    # their two doors, and the absence of the meta line the board's note is
+    # about.
+    {"05", "05", "New releases"},
     {"86", "87", "Search anything you keep"},
     {"86", "86", "Screen"},
     {"86", "86", "Try"},
@@ -1809,7 +1837,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # compares the whole map, watcher card included — that card is frozen, so
       # a round that wired its count up on its own would show here as the two
       # sides differing on a key neither list touches.
-      {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.inbox/0, &Kati.Screens.Inbox.drawn_inbox/0},
       {"08", Kati.Screens.Film, &Kati.Screens.Film.film/0, &Kati.Screens.Film.drawn_film/0},
       # 12 does NOT gate the page. Two of its four *Kept automatically* rows
       # are the reader's own counts and the rest of the screen is the drawing's,
@@ -2301,6 +2328,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # which is what puts the page on `Kati.Meals.SampleSwap`'s drawing.
       {"46", Kati.Screens.MealSwap, &Kati.Screens.MealSwap.handed_over/0, nil,
        fn -> "a-slot-id" end},
+      # 05's gate is `releases/0` — the read, which answers `nil` when nothing is
+      # followed and a map when something is. It used to be paired with
+      # `drawn_inbox/0`, because that was what an unfollowed device fell back
+      # to; board 260 replaced the fallback with a page of its own, so the pair
+      # is now *the read answered nothing* against *the read answered something*
+      # rather than *the drawing*.
+      {"05", Kati.Screens.Inbox, &Kati.Screens.Inbox.releases/0, nil,
+       fn -> Kati.Screens.Inbox.drawn_inbox() end},
       {"19", Kati.Screens.Search, fn -> Kati.Search.Query.run("hollow").titles end, [],
        fn -> Kati.Screens.Search.drawn_results().titles end},
       {"89", Kati.Screens.SearchResultStates, fn -> Kati.Search.Query.run("hollow").titles end,
@@ -2600,8 +2635,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # halves are stored now — board 314 built the record on the page this
       # card's cog opens — and an empty `Mob.State` answers `never checked`
       # beside the default cadence, which is exactly what a fresh install says.
-      {"05", "last checked 18:02 · every 6h",
-       ~r/^(never checked|checking now|checked just now|checked \d+ (minute|hour|day)s? ago) · (hourly|every 6h|daily)$/u},
       {"01", "sunday · 16 august", ~r/^\p{L}+ · #{day} \p{L}+$/u},
       {"01", "good evening", ~r/^good (morning|afternoon|evening)$/},
       {"02", "sunday 16 august · 5 items", ~r/^\p{L}+ #{day} \p{L}+ · \d+ items$/u},

@@ -1281,6 +1281,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       # fall back to and three lists nobody made is #75's defect
       # (MOVIES-AND-TV.md #106). `Kati.ScreenEmptyDatabaseTest`'s
       # `@empty_boards` holds that half.
+      # 05 is drawn with a watcher count and two sections of releases, and every
+      # one of those belongs to a reader who follows something. A device that
+      # follows nothing draws board 260 instead — two cards and a way in —
+      # because the alternative was `drawn_inbox/0` on a fresh install: the
+      # drawing's three coming-up rows on the one page whose job is to say what
+      # is new. `Kati.ScreenEmptyDatabaseTest`'s `@no_empty_board` holds that
+      # half; this puts the screen in the state its own board was captured in.
+      {"05", Kati.Screens.Inbox, &Map.put(&1, :inbox, Kati.Screens.Inbox.drawn_inbox())},
       {"12", Kati.Screens.Lists,
        &Map.put(&1, :lists, %{Kati.Screens.Lists.Sample.lists() | kept: Kati.Lists.Shelf.kept()})},
       # 154 is drawn with Series chosen, and its own caption says why: the

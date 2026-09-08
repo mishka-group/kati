@@ -176,7 +176,48 @@ defmodule Kati.Screens.Inbox do
   screen to say and the drawing's three rows would be a false one.
   """
   @spec inbox() :: map()
-  def inbox, do: releases() || drawn_inbox()
+  def inbox, do: releases() || nothing_followed()
+
+  @doc """
+  Board 260 — the watcher is running and has nothing to watch.
+
+  What a device that follows nothing used to get was `drawn_inbox/0`: the
+  drawing's three coming-up rows and `Kati.Library.Sample`'s Out now rows, so
+  a fresh install opened its release inbox on releases nobody was waiting for.
+  That is #91's sentence about a different screen and board 260 is the answer
+  the design gives to this one.
+
+  **The card became a sentence**, which is the board's own note and the part
+  worth keeping: the watcher card's mono line pairs a count with `last checked`
+  and `every 6h`, and setting the count to `0` while keeping the line "would
+  put a live number beside two frozen ones in the same breath". Both halves are
+  real now — board 314 built the store and `watcher_line/0` reads it — but the
+  board's shape is still the better one here, because with nothing followed
+  there is no count to pair them with. So the card is two sentences and a cog,
+  and the cog survives because it is the only thing on this page pointing at
+  screen 25.
+
+  It **offers** rather than only explaining, and the second card says why the
+  offer is what it is: a release inbox is the output of a watcher rather than a
+  shelf, so the ink action opens screen 06 — the only door that puts anything
+  into the followed set — and the quiet alternative is the shelf itself.
+
+  `drawn_inbox/0` is still what `Kati.ScreenDesignLiteralTest` puts the screen
+  into for board 05, and only that: a state a reader reaches once they follow
+  something, not one a fresh install falls into.
+  """
+  @spec nothing_followed() :: map()
+  def nothing_followed do
+    %{
+      subtitle: nil,
+      watching: 0,
+      found: 0,
+      last_checked: nil,
+      out_now: [],
+      coming_up: [],
+      nothing_followed?: true
+    }
+  end
 
   @doc """
   Screen 05 exactly as it is drawn.
@@ -329,6 +370,16 @@ defmodule Kati.Screens.Inbox do
   # Screen 25, which is what the gear on the cream card has always pointed at.
   def handle_tap(:open_watcher, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Inbox"})}
+
+  # Board 260's two ways out of an empty inbox. The ink action opens screen 06,
+  # which is the only door that puts a title into the followed set — this page
+  # is the watcher's output, so a shelf link alone would offer the wrong verb.
+  # The shelf is the quiet alternative underneath, in the board's own words.
+  def handle_tap(:add_title, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+
+  def handle_tap(:open_shelf, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Library)}
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
@@ -694,14 +745,172 @@ defmodule Kati.Screens.Inbox do
       >
         {Kati.Screens.Inbox.mark_all(inbox)}
         {Kati.Screens.Inbox.title(inbox)}
-        {Kati.Screens.Inbox.watcher(inbox)}
-        {Kati.Screens.Inbox.refusal(Map.get(assigns, :save_error))}
-        {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
-        {Kati.Screens.Inbox.out_now(inbox)}
-        {Kati.UI.eyebrow("Coming up", dash: Palette.rail_idle(), gap: 12)}
-        {Kati.Screens.Inbox.coming_up(inbox)}
+        {Kati.Screens.Inbox.body(inbox, Map.get(assigns, :save_error))}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc """
+  The page under its title: board 260's two cards, or the inbox proper.
+
+  Written as two whole pages rather than one page with holes in it, which is
+  the shape screen 07 settled for the same reason: the states share the header
+  and nothing else, and a `Coming up` eyebrow over an empty card is the drawn
+  emptiness this whole board exists to remove.
+  """
+  @spec body(map(), String.t() | nil) :: map()
+  def body(%{nothing_followed?: true}, _save_error) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow("Nothing followed yet")}
+      {Kati.Screens.Inbox.watcher_idle()}
+      <Spacer size={13} />
+      {Kati.Screens.Inbox.offer()}
+    </Column>
+    """
+  end
+
+  def body(inbox, save_error) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.Inbox.watcher(inbox)}
+      {Kati.Screens.Inbox.refusal(save_error)}
+      {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
+      {Kati.Screens.Inbox.out_now(inbox)}
+      {Kati.UI.eyebrow("Coming up", dash: Palette.rail_idle(), gap: 12)}
+      {Kati.Screens.Inbox.coming_up(inbox)}
+    </Column>
+    """
+  end
+
+  @doc "Board 260's first card: the watcher, running, with nothing to do."
+  @spec watcher_idle() :: map()
+  def watcher_idle do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      padding={15}
+      shadow={Kati.Theme.shadow_card_soft()}
+      align="center"
+    >
+      <Box width={38} height={38} corner_radius={12} background={Palette.paper()} align="center">
+        {UI.symbol("auto_awesome", size: 19, color: Palette.rail_idle())}
+      </Box>
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Text
+          text="The watcher is running"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+        />
+        <Spacer size={4} />
+        <Text
+          text="It has nothing to watch yet. Follow a show and it starts here."
+          text_size={12}
+          line_height={1.5}
+          text_color={Palette.sub()}
+        />
+      </Column>
+      <Spacer size={11} />
+      <Box
+        width={34}
+        height={34}
+        corner_radius={11}
+        background={Palette.paper()}
+        align="center"
+        on_tap={{self(), :open_watcher}}
+      >
+        {UI.symbol("settings", size: 17, color: Palette.ink_soft())}
+      </Box>
+    </Row>
+    """
+  end
+
+  @doc """
+  Board 260's second card: why there is nothing, and the one door that changes
+  it.
+
+  The ink action opens screen 06 rather than the shelf, and the sentence above
+  it is what makes that the right way round: this page is the watcher's output,
+  so the thing that fills it is putting a title into the followed set. The
+  shelf is offered underneath as the quieter alternative, in the board's own
+  words.
+  """
+  @spec offer() :: map()
+  def offer do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={22}
+      padding={17}
+      shadow={Kati.Theme.shadow_card_soft()}
+    >
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+          {UI.symbol("movie", size: 22, color: Palette.rail_idle())}
+        </Box>
+        <Spacer weight={1.0} />
+      </Row>
+      <Spacer size={13} />
+      <Text
+        text="Nothing new, because nothing is followed"
+        text_size={14.5}
+        font_weight="bold"
+        letter_spacing={-0.02}
+        text_color={:on_surface}
+        text_align="center"
+      />
+      <Spacer size={7} />
+      <Text
+        text="This page is the watcher's output. Add a show or a film to your library and every new episode lands here first."
+        text_size={12.5}
+        line_height={1.55}
+        text_color={Palette.sub()}
+        text_align="center"
+      />
+      <Spacer size={15} />
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        <Row
+          height={44}
+          corner_radius={22}
+          background={Palette.ink_fill()}
+          align="center"
+          padding_left={18}
+          padding_right={20}
+          on_tap={{self(), :add_title}}
+        >
+          {UI.symbol("add", size: 18, color: Palette.on_ink())}
+          <Spacer size={7} />
+          <Text
+            text="Add a title"
+            text_size={13}
+            font_weight="bold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
+        </Row>
+        <Spacer weight={1.0} />
+      </Row>
+      <Spacer size={11} />
+      <Row fill_width={true} align="center" on_tap={{self(), :open_shelf}}>
+        <Spacer weight={1.0} />
+        <Text
+          text="or open the shelf"
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={Palette.sub()}
+          max_lines={1}
+        />
+        <Spacer weight={1.0} />
+      </Row>
+    </Column>
     """
   end
 
@@ -788,6 +997,27 @@ defmodule Kati.Screens.Inbox do
   end
 
   @doc false
+  def title(%{nothing_followed?: true}) do
+    # Board 260 draws the name and nothing under it. `0 out now · 0 coming up`
+    # is a true sentence and still the wrong one: it counts two sections the
+    # page is no longer drawing, so it reads as a report on a search that ran
+    # rather than as the fact that nothing is being watched for. The eyebrow
+    # under it says that instead.
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text="New releases"
+        text_size={28}
+        max_font_scale={1.6}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
   def title(inbox) do
     subtitle = "#{length(inbox.out_now)} out now · #{length(inbox.coming_up)} coming up"
 

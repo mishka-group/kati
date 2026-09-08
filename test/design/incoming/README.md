@@ -199,7 +199,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 257 | Account states | `D-49` |
 | 258 | Notifications, at rest | `D-50` |
 | 259 | Notifications, nothing waiting | `D-50` |
-| 260 | New releases, nothing followed | `D-50` |
+| 260 | New releases, nothing followed | `D-50` — **built 8 Sep**, kept here: two frames and a page of notes. `Kati.Screens.Inbox.nothing_followed/0` is the state, and it replaces a fallback that drew `Kati.Library.Sample`'s releases to a reader who follows nothing. `Kati.ScreenInboxEmptyTest` holds the copy and both doors. MOVIES-AND-TV.md #151. |
 | 261 | See all, and one group in full | `D-51` |
 | 262 | The four kinds quick add never filed | `D-51` |
 | 263 | An override, worked through on Calendar | `D-53` |

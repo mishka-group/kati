@@ -244,6 +244,11 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.HomeFaOmittedSections, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Library, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.Library, :add_title, Kati.Screens.AddTitle},
+    # Board 260's ink action, and it hands nothing for the same reason screen
+    # 03's empty card does one line up: the sheet's argument is a QUERY, and an
+    # empty inbox has no word to search for. It is an invitation to type rather
+    # than a search somebody started.
+    {Kati.Screens.Inbox, :add_title, Kati.Screens.AddTitle},
     {Kati.Screens.LibraryFa, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.MonthGrid, :fab, Kati.Screens.AddTitle},
     {Kati.Screens.ScheduleFa, :fab, Kati.Screens.AddTitle},

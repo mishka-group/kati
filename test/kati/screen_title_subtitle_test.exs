@@ -133,22 +133,72 @@ defmodule Kati.ScreenTitleSubtitleTest do
 
   # The same triple, read off the rendered tree: the first 28pt bold `Text`, the
   # first `Spacer` after it, and the first `Text` after that.
+  # The line under the title, looked for INSIDE the title's own container.
+  #
+  # `Kati.UI.SettingsList.title/4` puts `title_text/1` and `subtitle/2` next to
+  # each other in one `Column`, and `subtitle/2` wraps its `Spacer` and `Text`
+  # in a container of its own — so the pair is not a flat triple, but it is
+  # always within the siblings that follow the title.
+  #
+  # That bound is the whole correction. This used to flatten the WHOLE screen
+  # and take the first spacer and the first text anywhere after the title,
+  # which answers a different question on a page whose title has no line under
+  # it: the next paragraph further down answers it instead. Screen 05 is where
+  # that showed — board 260 gives it a title, a 20pt spacer and then an
+  # eyebrow, and the sweep reported the eyebrow as a subtitle at the wrong
+  # size. A screen with no line under its title is out of scope here, which is
+  # what the moduledoc already says.
   defp drawn_subtitle(module) do
-    nodes = module |> mount_screen() |> flatten()
-
-    with index when is_integer(index) <- Enum.find_index(nodes, &title?/1),
-         rest = Enum.drop(nodes, index + 1),
-         %{} = spacer <- Enum.find(rest, &(&1.type == :spacer)),
-         %{} = text <- Enum.find(rest, &(&1.type == :text)) do
-      {as_float(text.props[:text_size]), text.props[:font_family], spacer.props[:size]}
-    else
-      _ -> nil
-    end
+    module |> mount_screen() |> tree() |> line_under_title()
   rescue
     # A screen that cannot mount is `Kati.ScreenRenderSweepTest`'s failure to
     # report, not this one's — repeating it here would bury the findings.
     _error -> nil
   end
+
+  defp line_under_title(%{children: children}) when is_list(children) do
+    case among(children) do
+      nil -> Enum.find_value(children, &line_under_title/1)
+      found -> found
+    end
+  end
+
+  defp line_under_title(_leaf), do: nil
+
+  defp among(children) do
+    case Enum.find_index(children, &title?/1) do
+      nil ->
+        nil
+
+      index ->
+        following = children |> Enum.drop(index + 1) |> Enum.flat_map(&flatten/1)
+
+        with %{} = spacer <- Enum.find(following, &(&1.type == :spacer)),
+             %{} = text <- Enum.find(following, &subtitle_candidate?/1) do
+          {as_float(text.props[:text_size]), text.props[:font_family], spacer.props[:size]}
+        else
+          _ -> nil
+        end
+    end
+  end
+
+  # The first `Text` after the title, unless it is an EYEBROW.
+  #
+  # A Material Symbol is a `Text` too — `Kati.UI.symbol/2` builds one in the
+  # `symbols` face — and a glyph is not a line of copy, so those are skipped by
+  # their face.
+  #
+  # `Kati.UI.eyebrow/2` sets `letter_spacing: 0.16` and not one of the 92
+  # drawn subtitles carries any tracking at all, so the prop separates the two
+  # exactly. Without it, a page whose title has no line under it answers with
+  # whatever text comes next — which is how screen 05 came to be compared
+  # against board 05's subtitle while drawing board 260, where the title is
+  # followed by `NOTHING FOLLOWED YET` and nothing else. A screen with no line
+  # under its title is out of scope here, which is what the moduledoc says.
+  defp subtitle_candidate?(%{type: :text, props: props}),
+    do: is_nil(props[:letter_spacing]) and props[:font_family] not in ~w(symbols symbols_filled)
+
+  defp subtitle_candidate?(_node), do: false
 
   defp title?(%{type: :text, props: props}),
     do: props[:text_size] == 28 and props[:font_weight] == "bold"

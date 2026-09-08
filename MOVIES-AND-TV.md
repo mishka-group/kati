@@ -2103,7 +2103,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**150 findings**, every one traced to a line. All but one carry a closing verdict
+**151 findings**, every one traced to a line. All but one carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
 The exception is **#150**, which is open on purpose: an intermittent `SIGBUS`
@@ -3837,6 +3837,27 @@ F libc: Fatal signal 7 (SIGBUS), code 2 (BUS_ADRERR), fault addr 0x761cca3a2e
 *Why it is filed rather than fixed.* The obvious mitigation is real and documented — a single-connection SQLite can run `PRAGMA locking_mode=EXCLUSIVE`, which makes WAL use heap memory instead of a mapped `-shm` and removes the mapping entirely — and `Kati.Repo` is `pool_size: 1`, so nothing would be given up. But it changes how every write in the app is journalled, on the strength of one crash that did not happen again: the same test, re-staged and re-run on its own, passed. Shipping a change to the storage layer against evidence that thin would be the wrong trade.
 
 *What to do with it.* Keep an eye on the device suite. If it recurs, the experiment is one line — set the pragma, run the catalogue-add path repeatedly, and see whether it stops — and this section is the baseline to compare against.
+
+
+### 151. 05 New releases — `lies-to-user`
+
+**A device that follows nothing opened its release inbox on three releases nobody was waiting for.**
+
+*Proof.* `Kati.Screens.Inbox.inbox/0` was `releases() || drawn_inbox()`, and `releases/0` answers `nil` when `:followed` is empty — which is every fresh install. `drawn_inbox/0` is `Kati.Library.Sample`'s **Out now** rows plus this module's own `coming_up_rows/0`: *The Long Hollow — S2E6 · Lumen+ · 20:00*, *Vellum · In cinemas*, *Nightbirds — Season 2 · Full season drop*. So the one page in Kati whose entire job is to report what is new reported three things that were not, to a reader who had followed nothing.
+
+The gate's own doc said why it was written that way — *"'nothing is out this week' is a true thing for this screen to say and the drawing's three rows would be a false one"* — and it is right about the second half and was answering the wrong question with the first. There are two different emptinesses here: *nothing is out this week*, which a reader who follows things reaches, and *nothing is being watched for at all*, which is a fresh install. Board 260 is the second, and it existed, undrawn, since 5 September.
+
+*Fixed 8 September.* `nothing_followed/0` is board 260 and `body/2` draws it: an eyebrow, a card that says the watcher is running and has nothing to watch, and a second card that says why there is nothing and offers the one thing that changes it.
+
+**The card became a sentence**, which is the board's own note and the part worth keeping. Its argument was that the watcher card's `last checked 18:02 · every 6h` is *recorded nowhere*, so setting the count to `0` and keeping the line "would put a live number beside two frozen ones in the same breath". Both halves are real now — board 314 built the store and `watcher_line/0` reads it — so the note is no longer true of the LINE. It is still true of the shape: with nothing followed there is no count to pair them with, and a card reporting a cadence for work with no subject is chrome pretending to be information. The cog survives, because it is the only thing on this page pointing at screen 25.
+
+The subtitle goes with it. `0 out now · 0 coming up` is a true sentence and the wrong one: it counts two sections the page is no longer drawing, so it reads as a report on a search that ran rather than as the fact that nothing is being watched for. `Mark all` stays, because board 260 draws it — without a tap, which `mark_all/1` already distinguishes from inert: there is nothing to mark all OF.
+
+**It offers rather than only explaining**, and the sentence says why the offer is what it is. The ink action opens screen 06 — the only door that puts anything into the followed set — and the shelf is the quiet alternative underneath, because a release inbox is the output of a watcher rather than a shelf.
+
+*Three ratchets moved, and one parser was corrected.* Screen 05 leaves `fallbacks/0` for `empties/0` — the pair is now *the read answered nothing* against *the read answered something*, rather than against the drawing — and joins `@no_empty_board`, since board 260 is a states board and no single artboard holds this page. Board 05's own literals are not lost: `drawn_state/0` puts the screen in the state that board was captured in, which is the same tree it compared before.
+
+`Kati.ScreenTitleSubtitleTest` failed on it, and the parser was at fault rather than the screen: it flattened the WHOLE page and took the first spacer and the first text anywhere after the title, which on a page whose title has no line under it answers with the next paragraph further down. It now searches inside the title's own container, where `Kati.UI.SettingsList.title/4` actually puts the pair, and skips eyebrows and glyphs by their own props. The number of screens compared is unchanged.
 
 
 # Pages a user cannot reach except through Settings
