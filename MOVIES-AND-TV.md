@@ -2461,6 +2461,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Omit an eyebrow whose section is empty (10 already argues this for the cold section elsewhere); draw a placeholder still rather than nothing; and hide the meta Text when it composes to an empty string.
 
+*Fixed.* Both halves. `create_cache/3` takes an `extra` map, so the TMDB branch fills the poster and the runtime that `hero_tail/2` and `hero_art/1` read; a hand-typed row still has neither, which is honest — nothing knows a poster for a title nobody looked up — and draws the placeholder rather than a broken hero. And the two `· 0` labels are gone: `queue/0` answers `empty/0` for a shelf with nothing on the go and `nothing_ready/1` for one that is all cold, on screen 96's rule. See #49.
+
 ### 23. 10 Up next / 05 New releases / 11 Discover — `cannot-work`
 
 **A title added from TMDB has no artwork anywhere in the app. `poster_path` is a TMDB CDN path and every screen resolves it as a filename in `priv/sample/design/`, so `Kati.Design.Images.poster/1` answers `nil` and the row draws a grey placeholder.**
@@ -2489,6 +2491,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Push 144 with the tracked title and episode_source_id from 04; call Rating.stars(s.rating, true) and add the ten star_N handlers; make :save create or update a Watch with the rating before popping.
 
+*Fixed.* `Kati.Screens.RateEpisode.save_rating/1` creates the watch (rate_episode.ex:1261) rather than requiring one to exist, the stars are drawn through `Rating.stars/2` with `writable?/1` deciding whether they are tappable, and Save reports a refusal instead of popping over it.
+
 ### 26. 145 Shelf filter sheet — `cannot-work`
 
 **The sort/filter sheet the Library's sort disc opens is entirely fixture data, has no way to learn which shelf opened it, and hands nothing back — so no sort or filter chosen on it can ever affect the shelf.**
@@ -2496,6 +2500,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/shelf_filters.ex:79 `def mount(_params, _session, socket)` — the params are discarded. Every value comes from lib/kati/library/shelf_filters_sample.ex: `total/0` is the literal 418, `decades/0` 24/38/11/6, `ratings/0` 31/52/9, `genres/0` 41/12/8/0, `services/0` 22/7/3/2. `mount/3` assigns `showing: 41` as a literal. The only exits are `handle_info({:tap, :close})` -> `pop_screen/1` and `:reset`; there is no Apply, and `grep -oiE "Apply|Reset|Done|close" test/design/screens/145.html` returns one Reset and one close, so the board does not draw one either. lib/kati/screens/library.ex:1266 admits it: "there is no key to name a shelf in, and writing one the sheet does not read is an argument nobody can check."
 
 *Fix.* Give `mount/3` a `shelf:` param and derive the facets from `Kati.Screens.Library.shelf/0`, then return the chosen sort and buckets to the caller (a `pop_to` with params, or a `Mob.State` handover the way `Kati.Search.hand_over/1` works). Until then the sort disc on 03 should not open it.
+
+*Fixed.* The choice is durable rather than handed back: `Kati.Library.ShelfFilters` keeps it in `Mob.State` and `Kati.Screens.Library.shelf/1` applies it on every read (library.ex:212, :237). So the sheet needs no Apply and no knowledge of which shelf opened it — which is why the board draws neither. `showing` counts `ShelfFilters.apply/2`'s own result rather than the literal 41.
 
 ### 27. 146 Shelf selection mode — `cannot-work`
 
@@ -2505,6 +2511,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Read `Kati.Screens.Library.shelf/0` and make Remove destroy the selected `TrackedTitle` rows (with a real undo window), or take the screen out of the Library's ⋯ menu until it can.
 
+*Fixed.* Selection mode reaches the store — eight `Ash.` call sites in `Kati.Screens.ShelfSelection` where the grep in this finding returned none.
+
 ### 28. 154 Add a title by hand (Kati.Screens.AddByHand) — `cannot-work`
 
 **A successful save returns the user to screen 06's fixture list, which board 155 explicitly ruled out.**
@@ -2512,6 +2520,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/add_by_hand.ex:467 `Mob.Socket.pop_screen(socket)`. test/design/screens/155.html, band 'Where Add to library goes': 'Straight to the new title's detail screen — 04 for a series, 08 for a film. Returning to 89 would leave the person on a search results page for a title they just finished typing; the detail screen is where the next thing they want to do lives.' The screen popped to (06) also still shows Sample.search_results() (add_title.ex:101), so the user lands on four films they did not add.
 
 *Fix.* reset_to / push the detail screen for the row just written — Kati.Screens.Series for :tv, Kati.Screens.Film for :movie — replacing 154 and 06 in the stack.
+
+*Fixed.* `Kati.Screens.AddByHand.opened/2` resets to the new title's own detail screen — `Kati.Screens.Film` for a film, `Kati.Screens.Series` for a series — carrying its id and a `Library` back label. That is board 155's ruling word for word, and the fixture list this finding landed on is no longer where a save goes.
 
 ### 29. 157 Add by hand — dark (Kati.Screens.AddByHandDark) — `cannot-work`
 
@@ -2521,6 +2531,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Add `def handle_info(msg, socket), do: AddByHand.handle_info(msg, socket)` (or delegate the :change clause), and load/1 should open empty like 154 rather than pre-filled — a form that opens holding a fixture saves the fixture.
 
+*Fixed.* `Kati.Screens.AddByHandDark` answers `{:change, field, typed}` (add_by_hand_dark.ex:66) and hands it to the same handler screen 154 uses, so the three fields hold what was typed and Add to library writes it.
+
 ### 30. 157 Add by hand — dark (Kati.Screens.AddByHandDark) — `cannot-work`
 
 **Opening this board from the gallery leaves the entire app in dark mode until the next mount that reactivates the preference.**
@@ -2528,6 +2540,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/add_by_hand_dark.ex:36 `Mob.Theme.set(Kati.Theme.dark())` in load/1. Mob.Theme.set/1 is global and popping the screen does not remount the screen underneath — the module's own moduledoc states this and names screens 28, 29 and 68 as carrying the same cost.
 
 *Fix.* Restore the previous theme on :back, or delete the module once Kati.Shell carries dark as a mode and 154 renders in it directly.
+
+*Fixed.* `Kati.Screens.Resume.pop/1` calls `Kati.Theme.activate/0` before it pops — one call at the one place every back control in the app already goes through, rather than seven dark boards each remembering to put the preference back. That module's own doc names this finding; a board whose palette IS dark re-asserts it on `handle_kati(:resumed, …)`.
 
 ### 31. 18 Quick add (Kati.Screens.QuickAdd) — `cannot-work`
 
@@ -2537,6 +2551,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Either remove the 'Quick add' item from screen 02's overflow until a parser exists, or replace the drawn sentence with a real <TextField> and an honest 'Kati cannot read that yet' state.
 
+*Fixed.* Screen 18 has two `<TextField>`s, `parsed/1` reads what was typed, and the commit writes: `Ash.create(Kati.Calendars.Event, …)` at quick_add.ex:434, creating a `Personal` calendar to hang it on when the device has none.
+
 ### 32. 19 Search — `cannot-work`
 
 **The note card's highlight is computed against the normalised body and sliced out of the raw body, so any note with leading or doubled whitespace, a ZWNJ or harakat highlights the wrong characters — and a body that lengthens under downcasing takes the whole Notes group out silently.**
@@ -2544,6 +2560,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/search/query.ex `note_card/2`: `case :binary.match(normalise(body), normalise(query)) do {at, len} -> %{lead: body |> binary_part(0, at) ..., match: binary_part(body, at, len), tail: binary_part(body, at + len, byte_size(body) - at - len)}`. `Kati.Search.normalise/1` (lib/kati/search.ex) trims, collapses `~r/\s+/u` to one space, strips ZWNJ and U+064B-0652, and downcases — every one of which shifts byte offsets. Trace: body `"  The hollow ground"`, query `hollow`. normalised = `"the hollow ground"`, match at 4 len 6. Applied to the raw body: lead = `"  Th"`, match = `"e ho"`, tail = `"llow ground"`. When downcasing lengthens (U+0130 -> two codepoints) `at + len` can exceed `byte_size(body)` and `binary_part/3` raises, which `note_for/1`'s `rescue _error -> nil` swallows — the Notes group vanishes with no error.
 
 *Fix.* Match on the raw body with a case- and diacritic-insensitive scan that keeps raw offsets, or normalise once and slice the normalised string for display.
+
+*Fixed.* `Kati.Search.locate/2` finds the match in the RAW body rather than slicing raw offsets out of a normalised one, and a match that cannot be pointed at draws the card whole and unhighlighted rather than dropping it — `note_card/2`'s `:nomatch` clause, with the Persian case that forced it written out beside it.
 
 ### 33. 58 سریال — `cannot-work`
 
@@ -2553,6 +2571,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Carry :tracked_id and each row's :source_id through SeriesFa.shaped/1, and route :mark_next and 'episode_' taps through Kati.Screens.Series.tick/2 the way Kati.Screens.Season.tick/2 already does.
 
+*Fixed.* `Kati.Screens.SeriesFa` carries `tracked_id` (series_fa.ex:219) and its tick calls `Kati.Screens.Series.write_tick/2` (series_fa.ex:1053) — the English screen's writer and not a second one — then restates from the store.
+
 ### 34. 91 Search at 235% — `cannot-work`
 
 **The defect 91 was drawn to document is live on screen 19 and unfixed: at large text a search hit stops showing its own words, and 86's scope chips hide behind a horizontal scroll.**
@@ -2560,6 +2580,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* lib/kati/screens/search.ex `title_row/1` is a `<Row>` whose title and sub `<Text>` both carry `max_lines={1}` inside a fixed-height band. lib/kati/screens/search_large.ex's moduledoc: "That pair of ones IS the row ... at 235% the row does not survive; it just stops showing the words", and "`Kati.Screens.SearchIdle.chips/1`, a `<Scroll axis=\"horizontal\">` ... is the builder this board exists to contradict" — lib/kati/screens/search_idle.ex `chips/1` is indeed `<Scroll axis="horizontal">`.
 
 *Fix.* Apply 91's own answer to 19 and 86: stack the hit above ~200% and wrap the chips three to a row instead of scrolling them.
+
+*Fixed; the last of it 8 September.* The hit row survives large text: `title_row/1`'s two `Text` nodes take `max_lines={3}` and `{2}` where board 91 found a pair of ones inside a fixed-height band. The chip row is board 313's ruling rather than 91's objection — a scroll is right for chrome and a wrap is not available on the bridge (mishka-group/kati#98) — but 313 requires the scroll to carry a mark, and screen 86's row had none. It calls `Kati.Screens.Search.chip_line/1` now, so both pages draw one control.
 
 ### 35. 92 My services / 93 nothing set up — `cannot-work`
 

@@ -13,12 +13,17 @@ defmodule Kati.Screens.AddByHandDark do
   single call screens 28, 29 and 68 make: `Kati.Theme.Palette.mode/0` reads
   whichever theme is installed rather than keeping a second answer.
 
-  It carries the cost those screens carry, stated rather than hidden —
-  `Mob.Theme.set/1` is global and popping back does not remount the screen
-  underneath, so the app stays dark until the next mount activates the
-  preference again. That closes when dark stops being a separate page and
-  becomes a mode `Kati.Shell` carries, which is what `Kati.Screens.HomeDark`
-  is also waiting on.
+  It used to carry a cost those screens carried: `Mob.Theme.set/1` is global
+  and popping back does not remount the screen underneath, so opening this
+  board left the whole app dark — a dark Settings, a dark Library and a dark
+  Home, with nothing to press to undo it (MOVIES-AND-TV.md #30).
+  `Kati.Screens.Resume.pop/1` calls `Kati.Theme.activate/0` before it pops, at
+  the one place every back control in the app already goes through, so the
+  theme goes back with you.
+
+  What is still waiting is the larger thing: dark stops being a separate page
+  when it becomes a mode `Kati.Shell` carries, which is what
+  `Kati.Screens.HomeDark` is also waiting on.
 
   The board is drawn with a title typed and Series chosen, exactly as 154 is,
   and for the same reason: the episode-count field is only visible for a

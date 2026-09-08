@@ -162,13 +162,15 @@ defmodule Kati.Screens.SearchIdle do
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
+    # Board 313's affordance, which screen 19 has carried since that board
+    # landed and this row did not: *"a horizontal scroll with no affordance
+    # hides half the scopes behind a gesture nobody knows is there."* The two
+    # pages draw one control and 86 was the half without the mark
+    # (MOVIES-AND-TV.md #34). `Kati.Screens.Search.chip_line/1` is the recipe
+    # and it is called rather than copied, so the two cannot drift again.
     ~MOB"""
     <Column fill_width={true}>
-      <Scroll axis="horizontal">
-        <Row>
-          {chips}
-        </Row>
-      </Scroll>
+      {Kati.Screens.Search.chip_line(chips)}
       <Spacer size={22} />
     </Column>
     """
