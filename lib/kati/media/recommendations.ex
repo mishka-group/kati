@@ -143,6 +143,51 @@ defmodule Kati.Media.Recommendations do
   end
 
   @doc """
+  The same, for a BROWSE rather than a recommendation.
+
+  `ask/2` answers *what is like the thing you last touched*, which needs
+  something on the shelf. This answers *what is there*, narrowed by board 169's
+  sheet, and needs nothing — so screen 11 has something real to draw for a
+  reader who has tracked nothing at all, which is the state it used to fill
+  with `Kati.Screens.Discover.Sample`.
+
+  The message carries the CHOICE back, for `ask/2`'s own reason: the reader can
+  have changed a chip while a request was in flight, and a rail drawn under the
+  wrong filter is the same defect as a rail drawn under the wrong seed.
+  """
+  @spec browse(pid(), map(), Date.t()) :: :ok
+  def browse(pid, choice, today) when is_pid(pid) and is_map(choice) do
+    work = fn -> send(pid, {:discover, choice, browse_for(choice, today)}) end
+
+    try do
+      Task.Supervisor.start_child(Kati.TaskSupervisor, work)
+      :ok
+    catch
+      :exit, _reason ->
+        spawn(work)
+        :ok
+    end
+  rescue
+    _error -> :ok
+  end
+
+  @doc """
+  The browse itself — the network call, run wherever the caller is.
+
+  Separated from `browse/3` the way `picks_for/1` is separated from `ask/2`, so
+  a test can make the request without a supervisor and without a mailbox.
+  """
+  @spec browse_for(map(), Date.t()) ::
+          {:ok, %{picks: [map()], total: non_neg_integer()}} | {:error, term()}
+  def browse_for(choice, today) do
+    kind = Kati.Discover.Filters.endpoint(choice)
+
+    Tmdb.discover(kind, Kati.Discover.Filters.params(choice, kind, today))
+  rescue
+    _error -> {:error, :unavailable}
+  end
+
+  @doc """
   The picks themselves — the network call, run wherever the caller is.
 
   Separated from `ask/2` so a test can make the request without a supervisor

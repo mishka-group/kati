@@ -280,6 +280,13 @@ defmodule Kati.Screens.Gallery do
     # service. It drops the three groups those boards draw and this device
     # cannot answer, so no artboard holds what it renders.
     {:open_undrawn_service, "One service", Kati.Screens.Service},
+    # Board 169 — Discover's Sort & filter sheet. Six of its eleven controls
+    # cannot be answered by any TMDB field and its eight count badges are one
+    # request each, so the page draws its buildable half and no artboard holds
+    # what it renders. `Kati.Discover.Filters` names each omission with the
+    # reason. Reached from Discover's `sort` disc; here so the one list that
+    # opens every screen can open this one.
+    {:open_undrawn_discover_filters, "Discover sort & filter", Kati.Screens.DiscoverFilters},
     # `Kati.Screens.Backup` left this list on 24 August: #25's drawings landed
     # as 128-133 and it is filed under 128 above, which is the move this
     # comment describes. `Kati.Screens.Sync` is still here — #54's screen has

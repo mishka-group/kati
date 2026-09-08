@@ -399,6 +399,26 @@ defmodule Kati.ScreenWriteTargetTest do
     # with the specification rather than on the screen, and its own doc says
     # why.
     {Kati.Screens.Search, :look_up, {:state, :kati_search_query}},
+    # ── Board 169's sheet, and the nine controls on it.
+    #
+    # Every one writes `Mob.State`'s `"discover:filters"`, which is a VIEW
+    # PREFERENCE for this device and not a row — the same category as
+    # `Kati.Library.ShelfFilters`' key one sheet over. There is no row for it
+    # to have failed to resolve: the sheet takes one param, `:total`, which is
+    # a count it draws and never writes, and it resolves nothing by id at all.
+    #
+    # The sheet has no *Apply*, deliberately — board 169 draws none, and a
+    # reader who closes it with the close disc must not lose what they chose —
+    # so writing on each tap is the design rather than an eager side effect.
+    {Kati.Screens.DiscoverFilters, :kind_movie, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :kind_tv, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :rate_r6, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :rate_r7, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :rate_r8, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :reset, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :sort_newest, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :sort_popular, {:state, "discover:filters"}},
+    {Kati.Screens.DiscoverFilters, :sort_top_rated, {:state, "discover:filters"}},
     # ── Board 307's Follow row, on both faces of the book page.
     #
     # The write is about a PERSON, and the person is not a row this page

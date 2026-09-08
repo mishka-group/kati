@@ -115,6 +115,47 @@ defmodule Kati.Media.Tmdb do
   end
 
   @doc """
+  Browse rather than be recommended: `/discover/movie` and `/discover/tv`.
+
+  The endpoint board 169's sheet is built on. `/movie/{id}/recommendations`
+  answers *what is like this one*, which needs a title to be like; `/discover`
+  answers *what is there*, narrowed by parameters, and needs nothing on the
+  shelf at all. So a reader with an empty library can still be shown something
+  real, and a reader with a full one can ask a question their own history
+  cannot answer.
+
+  `params` is passed to TMDB untouched — `Kati.Discover.Filters.params/3` is
+  the one place that builds it, so the sheet's vocabulary and TMDB's are
+  translated in a single function rather than at each call.
+
+  Answers the shape `recommendations/2` answers, plus the count TMDB itself
+  reports:
+
+      {:ok, %{picks: [%{title: ..., kind: :movie, source_id: ..., ...}], total: 4213}}
+
+  `total` is **TMDB's `total_results`**, not a count of `picks` — one page is
+  20 rows out of it. That distinction is the reason the sheet draws no count
+  badge on a chip: a per-chip figure would need one request per chip, and a
+  badge that is the page size wearing the corpus's name is exactly the kind of
+  plausible number board 169's own note tells the build not to infer.
+  """
+  @spec discover(:movie | :tv, keyword()) ::
+          {:ok, %{picks: [map()], total: non_neg_integer()}} | {:error, term()}
+  def discover(kind, params) when kind in [:movie, :tv] and is_list(params) do
+    with {:ok, key} <- key(),
+         {:ok, body} <- get(key, "/discover/" <> Atom.to_string(kind), params) do
+      {:ok,
+       %{
+         picks: body |> Map.get("results", []) |> Enum.flat_map(&shape_recommendation(&1, kind)),
+         total: body |> Map.get("total_results", 0) |> to_count()
+       }}
+    end
+  end
+
+  defp to_count(n) when is_integer(n) and n >= 0, do: n
+  defp to_count(_other), do: 0
+
+  @doc """
   Where one title can be watched, on its own.
 
   `fetch/2` gets this for free by appending to the detail request, and a title

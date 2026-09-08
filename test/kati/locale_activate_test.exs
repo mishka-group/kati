@@ -73,7 +73,7 @@ defmodule Kati.LocaleActivateTest do
 
       {paired, bare} = Enum.split_with(sites, fn {file, line} -> paired?(file, line) end)
 
-      assert length(paired) == 51,
+      assert length(paired) == 52,
              "expected 51 paired activations, found #{length(paired)} — " <>
                "a screen was added or removed and this number moves with it"
 

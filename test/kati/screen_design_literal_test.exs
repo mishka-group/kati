@@ -177,6 +177,16 @@ defmodule Kati.ScreenDesignLiteralTest do
     # states, the four counts and the promise about what stays.
     Kati.Screens.ClearHistory,
     Kati.Screens.CountryPickerFa,
+    # Board 169 draws eleven controls; six of them cannot be answered by any
+    # field TMDB has — a leaving date, an "unscored" set, two service chips
+    # needing JustWatch ids Kati throws away, and a follow list there is no
+    # people table for — and its eight count badges are one HTTP request each.
+    # `Kati.Discover.Filters` names all six with the reason. Registering the
+    # board would make `Best match`, `90% and up`, `Unscored`, `Lumen+`,
+    # `Orbit` and `showing 4 of 8` compulsory literals, which is to say it
+    # would force back exactly the invented figures the page exists to remove.
+    # `Kati.DiscoverFiltersTest` holds what it does draw.
+    Kati.Screens.DiscoverFilters,
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
     Kati.Screens.ListDetail,

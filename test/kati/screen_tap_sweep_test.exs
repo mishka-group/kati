@@ -413,6 +413,13 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AddByHandFa, :kind_tv},
     {Kati.Screens.AddByHandFa, :status_not_started},
     {Kati.Screens.AddByHand, :status_not_started},
+    # Board 169's two settled members. The sheet opens on `Kati.Discover.Filters.resting/0`
+    # — most popular, no kind, no rating — so `:sort_popular` sets the sort it
+    # already has and `:reset` clears a choice that is already clear. Every
+    # other control on the sheet moves the choice, which is what says the
+    # families are wired: `Kati.DiscoverFiltersTest` presses all nine.
+    {Kati.Screens.DiscoverFilters, :sort_popular},
+    {Kati.Screens.DiscoverFilters, :reset},
     # Screen 177's three resting choices — the Kind the screen IS, the Edition
     # the form opens on and the status a book you are adding has. The
     # already-selected member of its family, three times, and every other

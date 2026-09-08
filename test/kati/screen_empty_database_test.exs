@@ -986,6 +986,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # destructive row without a tap when there is nothing to clear.
     # `Kati.ScreenClearHistoryTest` holds both.
     Kati.Screens.ClearHistory,
+    # Board 169's sheet. It reads no domain at all — the choice lives in
+    # `Mob.State` and the counts it might have drawn come from TMDB rather than
+    # from the store — so an empty database is the only state it ever renders
+    # in, and it is here because six of the board's eleven controls cannot be
+    # answered by any TMDB field and the page therefore draws its buildable
+    # half. `Kati.Discover.Filters` names each omission; `Kati.DiscoverFiltersTest`
+    # holds what it draws.
+    Kati.Screens.DiscoverFilters,
     # Boards 252/302's page. A bare push names no service and answers `nil`,
     # which is the state an empty store is always in — `find/1` does not pick
     # the first service on the shelf, because this page pauses things and takes

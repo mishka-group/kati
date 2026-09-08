@@ -106,10 +106,16 @@ defmodule Kati.Screens.Discover do
 
   @impl true
   def load(socket) do
-    feed = feed()
+    choice = Kati.Discover.Filters.current()
+    feed = feed(choice)
 
     socket
     |> Mob.Socket.assign(
+      filters: choice,
+      # TMDB's `total_results` for the last answer, which is what board 169's
+      # footer is given. `nil` until one arrives, and never inferred from the
+      # twenty rows a page holds.
+      total: nil,
       feed: feed,
       chip: Kati.Screens.Discover.default_chip(feed),
       # Always `[]` now, and kept as an assign rather than removed: it is what
@@ -140,10 +146,72 @@ defmodule Kati.Screens.Discover do
   makes it, and `handle_info/2` fills it in.
   """
   @spec feed() :: map()
-  def feed do
-    case Recommendations.seed() do
-      nil -> Sample.feed()
-      {_tracked, cached} -> real_feed(cached)
+  def feed, do: feed(Kati.Discover.Filters.current())
+
+  @doc """
+  The feed under a filter choice.
+
+  Three states rather than two now. A narrowed sheet browses TMDB and needs
+  nothing on the shelf, so it wins over both of the others — which is what
+  makes board 169 worth having on a device that has tracked nothing: the page
+  had exactly one honest thing to draw for that reader, and it was the drawing.
+  """
+  @spec feed(map()) :: map()
+  def feed(choice) do
+    cond do
+      Kati.Discover.Filters.narrowed?(choice) -> browse_feed(choice)
+      true -> case Recommendations.seed() do
+                nil -> Sample.feed()
+                {_tracked, cached} -> real_feed(cached)
+              end
+    end
+  end
+
+  @doc """
+  A feed that came from board 169's sheet rather than from a title.
+
+  `because` is the heading over the rail, and under a filter it is not a
+  *because* at all — nothing was watched to produce it. It says what was asked
+  instead, which `Kati.Screens.Discover.asked_line/1` builds out of the choice
+  itself so the heading and the request cannot part company.
+  """
+  @spec browse_feed(map()) :: map()
+  def browse_feed(choice) do
+    %{
+      subtitle: nil,
+      chips: [%{label: "For you", count: nil, selected: true}],
+      because: Kati.Screens.Discover.asked_line(choice),
+      seed_id: nil,
+      picks: [],
+      asked?: true,
+      picks_error: nil,
+      people: [],
+      leaving_label: nil,
+      leaving: []
+    }
+  end
+
+  @doc """
+  What the rail's heading says under a filter — the question, not a premise.
+
+      iex> Kati.Screens.Discover.asked_line(%{kind: :tv, sort: :popular, rating: nil})
+      "Most popular series"
+
+      iex> Kati.Screens.Discover.asked_line(%{kind: nil, sort: :newest, rating: :r8})
+      "Newest films, 8.0 and up"
+
+  Film when no kind is chosen, because `/discover` is one kind per request and
+  `Kati.Discover.Filters.endpoint/1` resolves it to film — so the heading names
+  what was actually asked rather than implying both were.
+  """
+  @spec asked_line(map()) :: String.t()
+  def asked_line(choice) do
+    noun = if Kati.Discover.Filters.endpoint(choice) == :tv, do: "series", else: "films"
+    {sort, _sub} = Kati.Discover.Filters.sort_label(Map.get(choice, :sort))
+
+    case Map.get(choice, :rating) do
+      nil -> "#{sort} #{noun}"
+      rating -> "#{sort} #{noun}, #{Kati.Discover.Filters.rating_label(rating)}"
     end
   end
 
@@ -277,13 +345,20 @@ defmodule Kati.Screens.Discover do
   # three picks are already there, and a request keyed on a title nobody
   # tracks has nothing to be keyed on.
   defp ask(socket) do
-    case Recommendations.seed() do
-      nil ->
-        socket
+    choice = Map.get(socket.assigns, :filters, Kati.Discover.Filters.resting())
 
-      {_tracked, cached} ->
-        Recommendations.ask(self(), cached)
-        socket
+    if Kati.Discover.Filters.narrowed?(choice) do
+      Recommendations.browse(self(), choice, Kati.Time.today())
+      socket
+    else
+      case Recommendations.seed() do
+        nil ->
+          socket
+
+        {_tracked, cached} ->
+          Recommendations.ask(self(), cached)
+          socket
+      end
     end
   end
 
@@ -306,11 +381,59 @@ defmodule Kati.Screens.Discover do
     end
   end
 
+  # A browse, when it arrives. The choice is compared rather than trusted, for
+  # the reason the clause above compares the seed: a chip can have moved while
+  # the request was in flight, and a rail drawn under the wrong filter is the
+  # same defect as one drawn under the wrong premise.
+  def handle_info({:discover, choice, result}, socket) do
+    if Map.get(socket.assigns, :filters) == choice do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:feed, Kati.Screens.Discover.browsed(socket.assigns.feed, result))
+       |> Mob.Socket.assign(:total, Kati.Screens.Discover.total_of(result))}
+    else
+      {:noreply, socket}
+    end
+  end
+
   # `Kati.Screens.Pushed` marks `handle_info/2` overridable, so defining a
   # clause here replaces ALL of its clauses — the back pill, `rescue_tap/3` and
   # the `{:kati, …}` bridge among them. `super/2` is what hands the rest back,
   # and without it this screen's own chips would stop answering.
   def handle_info(message, socket), do: super(message, socket)
+
+  @doc """
+  Coming back from the sheet: re-read the choice, redraw, re-ask.
+
+  The sheet writes every tap straight through to `Kati.Discover.Filters` — it
+  has no *Apply* — so what has to happen here is a read rather than a message
+  with a payload. `Kati.Screens.Library` does the same on the same topic for
+  the same sheet-shaped reason.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket) do
+    choice = Kati.Discover.Filters.current()
+
+    if choice == Map.get(socket.assigns, :filters) do
+      {:noreply, socket}
+    else
+      feed = Kati.Screens.Discover.feed(choice)
+
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(
+         filters: choice,
+         feed: feed,
+         chip: Kati.Screens.Discover.default_chip(feed),
+         seed_id: Map.get(feed, :seed_id),
+         total: nil
+       )
+       |> ask()}
+    end
+  end
+
+  def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
+
 
   @doc """
   The chip the data marks selected.
@@ -357,7 +480,7 @@ defmodule Kati.Screens.Discover do
         padding_bottom={40}
       >
         {Kati.Screens.Discover.pill_row()}
-        {Kati.Screens.Discover.header(f, Kati.Screens.Discover.tunable?(f))}
+        {Kati.Screens.Discover.header(f, Kati.Screens.Discover.tunable?(f), Map.get(assigns, :filters))}
         {Kati.Screens.Discover.tune_panel(f, Map.get(assigns, :tune?, false))}
         {Kati.Screens.Discover.chips(f, chip)}
         {Kati.Screens.Discover.add_error(Map.get(assigns, :add_error))}
@@ -375,6 +498,59 @@ defmodule Kati.Screens.Discover do
   # reserves the space it occupies rather than drawing a second one.
   @doc false
   def pill_row, do: ~MOB"<Spacer size={58} />"
+
+  @doc """
+  The `sort` disc that opens board 169's sheet, and nothing at all over a
+  drawing.
+
+  ## Why this is a SECOND disc, next to `tune`
+
+  `Kati.Screens.Library`'s moduledoc settles the rule this looks like it
+  breaks: *"a filter disc beside a sort disc opening the same sheet would be
+  two doors into one room from one wall"*. These open two different rooms.
+  `tune` answers **what the picks come from** — which of your own titles the
+  feed is seeded on — and this answers **how they are sorted and narrowed**,
+  which is a browse of TMDB and does not involve your shelf at all. One is a
+  premise and the other is a query.
+
+  `sort` and not `filter_list`: the glyph has to be one of the 140 in
+  `Kati.Icons`, which is the subset the shipped font actually carries, and a
+  name outside it raises rather than drawing a blank. It is also the same disc
+  screen 03 uses to open the same kind of sheet, so the idiom is the app's own
+  rather than this page's.
+
+  It is lit when something is narrowing the feed, so a reader who set a filter
+  and came back a day later can see that they did without opening the sheet —
+  the state board 145's own disc does not carry and `Kati.Library.ShelfFilters`
+  wanted.
+
+  `nil` draws nothing: over the sample feed there is no live choice, and a
+  control that exists only over data is not drawn live over a drawing of it —
+  the rule the `tune` disc below records.
+  """
+  @spec filter_disc(map() | nil) :: map()
+  def filter_disc(nil), do: ~MOB"<Spacer size={0} />"
+
+  def filter_disc(choice) do
+    assigns = %{on?: Kati.Discover.Filters.narrowed?(choice)}
+
+    ~MOB"""
+    <Row align="center">
+      <Box
+        width={44}
+        height={44}
+        corner_radius={22}
+        background={if @on?, do: Palette.ink_fill(), else: Palette.card()}
+        shadow={Kati.Theme.shadow_button()}
+        align="center"
+        on_tap={{self(), :open_filters}}
+      >
+        {Kati.UI.symbol("sort", size: 21, color: if(@on?, do: Palette.on_ink(), else: Palette.ink()))}
+      </Box>
+      <Spacer size={9} />
+    </Row>
+    """
+  end
 
   @doc """
   The title, and the `tune` disc that decides what the picks come FROM.
@@ -396,9 +572,12 @@ defmodule Kati.Screens.Discover do
   everywhere: a control that exists only over data is not drawn live over a
   drawing of it.
   """
-  @spec header(map(), boolean()) :: map()
-  def header(f, live? \\ false) do
-    assigns = %{tap: if(live?, do: {self(), :open_tune})}
+  @spec header(map(), boolean(), map() | nil) :: map()
+  def header(f, live? \\ false, choice \\ nil) do
+    assigns = %{
+      tap: if(live?, do: {self(), :open_tune}),
+      filters: Kati.Screens.Discover.filter_disc(choice)
+    }
 
     ~MOB"""
     <Column fill_width={true}>
@@ -415,6 +594,7 @@ defmodule Kati.Screens.Discover do
           {Kati.Screens.Discover.subtitle(f.subtitle)}
         </Column>
         <Spacer size={9} />
+        {@filters}
         <Box
           width={44}
           height={44}
@@ -675,6 +855,34 @@ defmodule Kati.Screens.Discover do
 
   def answered(feed, {:error, reason}),
     do: %{feed | picks: [], asked?: false, picks_error: reason}
+
+  @doc """
+  The same, for a browse — which answers a map rather than a list.
+
+      iex> feed = Kati.Screens.Discover.browse_feed(%{kind: nil, sort: :newest, rating: nil})
+      iex> browsed = Kati.Screens.Discover.browsed(feed, {:ok, %{picks: [%{title: "Vellum"}], total: 4213}})
+      iex> {browsed.asked?, length(browsed.picks)}
+      {false, 1}
+  """
+  @spec browsed(map(), {:ok, map()} | {:error, term()}) :: map()
+  def browsed(feed, {:ok, %{picks: picks}}), do: answered(feed, {:ok, picks})
+  def browsed(feed, {:error, reason}), do: answered(feed, {:error, reason})
+
+  @doc """
+  TMDB's own `total_results` for a browse, or nothing.
+
+      iex> Kati.Screens.Discover.total_of({:ok, %{picks: [], total: 4213}})
+      4213
+
+      iex> Kati.Screens.Discover.total_of({:error, :rate_limited})
+      nil
+
+  Board 169's footer takes this and nothing else. A count of `picks` would be
+  the page size — twenty — wearing the corpus's name.
+  """
+  @spec total_of({:ok, map()} | {:error, term()}) :: non_neg_integer() | nil
+  def total_of({:ok, %{total: total}}) when is_integer(total) and total > 0, do: total
+  def total_of(_other), do: nil
 
   @doc """
   A chip that names a section this feed does not carry, saying so.
@@ -1209,6 +1417,16 @@ defmodule Kati.Screens.Discover do
 
       "open_tune" ->
         {:noreply, Mob.Socket.assign(socket, :tune?, not socket.assigns.tune?)}
+
+      # The total travels WITH the push. Board 169's footer describes the
+      # current selection, and the only place that number exists is the answer
+      # this screen already holds — `Kati.Screens.DiscoverFilters.count_line/2`
+      # drops it the moment a chip moves, so it can never go stale on the sheet.
+      "open_filters" ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.DiscoverFilters, %{
+           total: Map.get(socket.assigns, :total)
+         })}
 
       "seed_on_" <> source_id ->
         {:noreply, Kati.Screens.Discover.reseed(socket, source_id)}
