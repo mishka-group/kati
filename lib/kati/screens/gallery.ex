@@ -271,6 +271,11 @@ defmodule Kati.Screens.Gallery do
   # Delete an entry the moment its drawing lands, and add it to `@screens` with
   # the number it was filed under.
   @undrawn [
+    # Board 267 — Clear watch history. A states board (the page and its
+    # confirmation in one frame), so it has no artboard the literal sweep can
+    # compare it against; it is reached from Settings → Data → Clear watch
+    # history, which is the row that opened nothing until it was built.
+    {:open_undrawn_clear_history, "Clear watch history", Kati.Screens.ClearHistory},
     # `Kati.Screens.Backup` left this list on 24 August: #25's drawings landed
     # as 128-133 and it is filed under 128 above, which is the move this
     # comment describes. `Kati.Screens.Sync` is still here — #54's screen has

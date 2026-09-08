@@ -170,6 +170,12 @@ defmodule Kati.ScreenDesignLiteralTest do
     # notes about what screens 94 and 97 got wrong rather than as a numbered
     # artboard, so it stays in `test/design/incoming/` and the screen is not
     # compared against a file.
+    # Board 267 draws the page AND its confirmation in one frame, plus an edit
+    # to screen 24's row and a note about what unticks. Same treatment as 330
+    # and 333: a state catalogue needs a specimen screen before the literal
+    # sweep can hold it. `Kati.ScreenClearHistoryTest` carries the copy, both
+    # states, the four counts and the promise about what stays.
+    Kati.Screens.ClearHistory,
     Kati.Screens.CountryPickerFa,
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,

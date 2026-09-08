@@ -182,7 +182,15 @@ defmodule Kati.Settings.Sample do
         sub: "TVmaze, Open Library, MusicBrainz · 3 reachable",
         control: :chevron
       },
-      %{icon: "delete", title: "Clear watch history", sub: nil, control: :chevron}
+      # Board 267's own edit to this row: it was the only row in this group
+      # "whose meaning cannot be read before tapping it", and a destructive row
+      # is the last one that should be. The line is the board's.
+      %{
+        icon: "delete",
+        title: "Clear watch history",
+        sub: "Ticks, ratings and reviews — the shelves stay",
+        control: :chevron
+      }
     ]
   end
 

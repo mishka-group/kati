@@ -704,6 +704,11 @@ defmodule Kati.Screens.Settings do
     # existed nowhere until its row did.
     "My services" => Kati.Screens.MyServices,
     "Data sources" => Kati.Screens.DataSources,
+    # Board 267. The one row in the Data group that opened nothing — and the
+    # board's own note is that it was also the only row there whose meaning
+    # could not be read before tapping it, which is why it now carries a
+    # second line as well as a destination.
+    "Clear watch history" => Kati.Screens.ClearHistory,
     "Where this comes from" => Kati.Screens.Attribution,
     "Year cards" => Kati.Screens.YearCards,
     # #7. A reference sheet whose own moduledoc said it was pushed under

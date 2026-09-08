@@ -206,7 +206,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 264 | The other four overrides | `D-53` |
 | 265 | Reorder sections | `D-53` |
 | 266 | Reorder sections — states | `D-53` |
-| 267 | Clear watch history | `D-53` |
+| 267 | Clear watch history | `D-53` — **built 8 Sep**, kept here: it draws the page AND its confirmation in one frame, plus an edit to screen 24's row. `Kati.Screens.ClearHistory` is the screen and `Kati.Media.History` the domain; `Kati.ScreenClearHistoryTest` holds the three rules the board makes about numbers. MOVIES-AND-TV.md #152. |
 | 268 | Delete everything | `D-53` |
 | 269 | The destructive confirmation — states | `D-53` |
 | 270 | Sync | `D-54` |

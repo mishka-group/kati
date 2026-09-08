@@ -2103,7 +2103,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**151 findings**, every one traced to a line. All but one carry a closing verdict
+**152 findings**, every one traced to a line. All but one carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
 The exception is **#150**, which is open on purpose: an intermittent `SIGBUS`
@@ -3858,6 +3858,27 @@ The subtitle goes with it. `0 out now · 0 coming up` is a true sentence and the
 *Three ratchets moved, and one parser was corrected.* Screen 05 leaves `fallbacks/0` for `empties/0` — the pair is now *the read answered nothing* against *the read answered something*, rather than against the drawing — and joins `@no_empty_board`, since board 260 is a states board and no single artboard holds this page. Board 05's own literals are not lost: `drawn_state/0` puts the screen in the state that board was captured in, which is the same tree it compared before.
 
 `Kati.ScreenTitleSubtitleTest` failed on it, and the parser was at fault rather than the screen: it flattened the WHOLE page and took the first spacer and the first text anywhere after the title, which on a page whose title has no line under it answers with the next paragraph further down. It now searches inside the title's own container, where `Kati.UI.SettingsList.title/4` actually puts the pair, and skips eyebrows and glyphs by their own props. The number of screens compared is unchanged.
+
+
+### 152. 24 Settings — `inert-control`
+
+**The one destructive row in Settings opened nothing, and was also the only row in its group whose meaning could not be read before tapping it.**
+
+*Proof.* `Kati.Settings.Sample.data/0` drew `%{icon: "delete", title: "Clear watch history", sub: nil, control: :chevron}` — a chevron promising a destination — and `Kati.Screens.Settings`' `@destinations` map had no entry for it. Board 267 makes both points itself: it is the screen that row should open, and its caption says *"The row on 24 has no second line at all — the only row in its group whose meaning cannot be read before tapping it"*, and supplies the line.
+
+*Fixed 8 September.* `Kati.Screens.ClearHistory` is board 267 and `Kati.Media.History` is the domain under it. The row carries the board's own second line — *Ticks, ratings and reviews — the shelves stay* — and a destination.
+
+**Three rules about numbers, and all three are structural rather than stylistic.** *Counted before the delete, never after*: `clear/0` returns the number it removed rather than asking the store afterwards, because a report built from the delete's own row count says nothing was deleted while it deletes everything. *Reviews are named separately*: a count of "entries" hides that this deletes sentences a person wrote, so they get their own line. *No total across the four*: `counts/0` answers four figures and nothing adds them up — there is no such noun in this app, and a destructive confirmation is the last screen that may print an invented one. The test asserts the page does not contain the sum.
+
+**What stays is a list of other tables rather than a promise.** Statuses live on `Kati.Media.TrackedTitle`, sessions on `Kati.Books.ReadingSession`, listens on `Kati.Music.Listen`; `clear/0` names one resource, so the page can make the promise because the code cannot break it.
+
+**The surprise gets said out loud.** Board 267 calls it *"the most surprising thing this act does, and it exists nowhere else in the drawings"*: a tick IS a log row — `Kati.Screens.Series` counts progress from `Kati.Media.Watch` rather than storing it — so clearing the history returns every progress ring to zero. The bookmark survives, because `progress_season` and `progress_episode` are columns, so a shelf reads `S2 · E5` beside a ring at nothing until the reader ticks again.
+
+Two smaller rulings kept: *Keep a copy first* is **offered, not taken** — it opens screen 128 and does nothing else, because a confirmation that silently backed up first would be deciding for the reader on the screen where that is least acceptable — and the destructive row draws **no tap at all** when there is nothing to clear, since a row opening a confirmation about zero logs is a control with nowhere to go.
+
+A store that cannot be read answers `:error` rather than four zeroes, and the page says so instead of offering to clear. A confirmation offering to clear `0 logs` from a database it could not open would be asking permission for something it has not measured.
+
+*The board stays in `test/design/incoming/`*: it draws the page and its confirmation in one frame, plus the edit to screen 24's row — a state catalogue, like 248 and 260.
 
 
 # Pages a user cannot reach except through Settings

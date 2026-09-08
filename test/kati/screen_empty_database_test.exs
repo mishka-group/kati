@@ -979,6 +979,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # a module here that stops reading the store, or that acquires a drawing and
   # joins `Kati.Screens.Gallery`'s registry, fails.
   @undrawn [
+    # Board 267's screen. It reads `Kati.Media.Watch` to count what a clear
+    # would remove, and an empty store is the ordinary case rather than a
+    # fallback: four zeroes is the true answer to "how much have you logged"
+    # on a device that has logged nothing, and `actions/1` draws the
+    # destructive row without a tap when there is nothing to clear.
+    # `Kati.ScreenClearHistoryTest` holds both.
+    Kati.Screens.ClearHistory,
     # The two notification screens. Both read a store — the inbox builds a plan
     # from every domain's candidates, the diagnostic reads the permission state
     # and the same plan — and neither has a drawing to be compared against, so
