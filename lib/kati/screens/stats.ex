@@ -465,6 +465,14 @@ defmodule Kati.Screens.Stats do
   beside an up arrow over a year that fell is the one thing on this card that
   would be actively false rather than merely approximate. The drawn figures
   carry `rising?: true`, so frame 07 is unchanged.
+
+  `opts` is `:size` and `:fill`, and it is here because screen 98's share card
+  draws this same decision at 20pt unfilled where this pill draws it at 14
+  filled. What the two pages share is the GLYPH and the COLOUR — which of the
+  two arrows the font subset actually has, and that down is
+  `Kati.Theme.Palette.red/0` — and a second copy of that is precisely how 98
+  came to congratulate a year 07 had just drawn in red. The two numbers around
+  it are not shared and are the caller's. The defaults are this pill's.
   """
   # `arrow_downward` and not `arrow_drop_down`, which is the glyph this drew
   # until the drawings were re-exported against Kati's font subset. The subset
@@ -472,11 +480,21 @@ defmodule Kati.Screens.Stats do
   # only when a real year is down on the last, and therefore never captured —
   # was a tofu box waiting to happen.
   @spec arrow(map()) :: map()
-  def arrow(%{rising?: false}),
-    do: Kati.UI.symbol("arrow_downward", size: 14, color: Palette.red(), fill: true)
+  @spec arrow(map(), keyword()) :: map()
+  def arrow(year, opts \\ [])
 
-  def arrow(_year),
-    do: Kati.UI.symbol("arrow_drop_up", size: 14, color: Palette.green_text(), fill: true)
+  def arrow(%{rising?: false}, opts),
+    do: Kati.UI.symbol("arrow_downward", arrow_opts(opts, Palette.red()))
+
+  def arrow(_year, opts),
+    do: Kati.UI.symbol("arrow_drop_up", arrow_opts(opts, Palette.green_text()))
+
+  defp arrow_opts(opts, colour),
+    do: [
+      size: Keyword.get(opts, :size, 14),
+      color: colour,
+      fill: Keyword.get(opts, :fill, true)
+    ]
 
   @doc """
   The pill beside *Time watched*, when there is something to compare with.

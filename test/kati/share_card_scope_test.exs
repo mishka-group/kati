@@ -101,11 +101,55 @@ defmodule Kati.ShareCardScopeTest do
 
     test "and the arrow goes with it, because an arrow is a direction" do
       # An up-arrow beside nothing is a claim about a rise nobody measured.
-      absent = YearShare.change_pill(nil) |> inspect(limit: :infinity)
-      present = YearShare.change_pill("18%") |> inspect(limit: :infinity)
+      #
+      # `change_pill/1` takes the hours face WHOLE now: the arrow is that
+      # face's `:direction`, not a decoration around its `:change`. So a
+      # direction has to be supplied here, and the assertions are unchanged.
+      absent = YearShare.change_pill(%{change: nil, direction: :up}) |> inspect(limit: :infinity)
+
+      present =
+        YearShare.change_pill(%{change: "18%", direction: :up}) |> inspect(limit: :infinity)
 
       assert absent == inspect(%{type: :spacer, children: [], props: %{size: 0}})
       assert present =~ "18%"
+    end
+
+    test "and it points the way the year went, which is the half that leaves the phone" do
+      # Screen 07 draws a fallen year red and pointing down; this card drew the
+      # same figure green and pointing up, because it took `:change` alone and
+      # the literal glyph was `arrow_drop_up`. Neither page prints a sign —
+      # `Kati.Screens.Stats`'s year takes `abs/1` — so the arrow was the only
+      # place the direction was written down.
+      up = YearShare.change_pill(%{change: "22%", direction: :up}) |> inspect(limit: :infinity)
+
+      down =
+        YearShare.change_pill(%{change: "22%", direction: :down}) |> inspect(limit: :infinity)
+
+      assert up =~ Kati.Icons.glyph!("arrow_drop_up")
+      assert down =~ Kati.Icons.glyph!("arrow_downward")
+
+      refute down =~ Kati.Icons.glyph!("arrow_drop_up"),
+             "a year that fell must not carry the rising glyph"
+
+      assert up != down, "one year up and the same year down drew the same pill"
+    end
+
+    test "and it is screen 07's decision, asked once rather than copied" do
+      # The two pages share the glyph and the colour and nothing else. A second
+      # copy of that choice is exactly how they came to disagree about one year,
+      # so this asserts the card's pill CONTAINS the node 07's helper builds.
+      for {rising?, direction} <- [{true, :up}, {false, :down}] do
+        from_stats =
+          Kati.Screens.Stats.arrow(%{rising?: rising?}, size: 20, fill: false)
+          |> inspect(limit: :infinity)
+
+        in_card =
+          YearShare.change_pill(%{change: "1%", direction: direction})
+          |> inspect(limit: :infinity)
+
+        assert String.contains?(in_card, from_stats),
+               "the share card built its own #{direction} arrow instead of asking screen 07's"
+      end
     end
   end
 

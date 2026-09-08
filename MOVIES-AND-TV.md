@@ -3644,6 +3644,18 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fixed 8 September.* The card is `Scan to set up this plan` over a sentence naming what does and does not travel, and it offers the route that does carry the meals — screen 128's file, which is the only file this app produces. *Scan a plan* pushes screen 120 with `from: :code`, and that arrival is its own page: `Set up` rather than `Import 35`, `FROM A CODE · SETTINGS ONLY`, four rows saying what came and what could not, three zeroes where the counts were, and no conflict queue — a code cannot conflict with anything. `Kati.PlanQrScopeTest` pins both sides, and pins the card's promise against `qr_scope/0` rather than against a literal.
 
+### 138. 98 Your year, shared (Kati.Screens.YearShare) — `lies-to-user`
+
+**The card you are about to post draws a green up-arrow on a year that fell. Screen 07 one tap earlier draws the same figure red and pointing down.**
+
+*Proof.* lib/kati/screens/year_share.ex `hours_face/1` computes `direction: if(year.rising?, do: :up, else: :down)` and `card/2` rendered `change_pill(@hours.change)` — the string alone — so `:direction` was computed, stored and read by nobody. `change_pill/1`'s drawing clause was unconditional: `Kati.UI.symbol("arrow_drop_up", size: 20, color: Palette.green_text())` over a `Text` in the same colour. Neither page prints a sign — `Kati.Screens.Stats`'s year is `change: change && "#{abs(change)}%"` — so the arrow is the ONLY place the direction is written down, which is why dropping it inverted the claim in silence rather than producing a visible mismatch. And this is the tree `:save_image` captures: there is no second render path.
+
+*Fix.* Pass the hours face whole and ask `Kati.Screens.Stats.arrow/2` for the glyph and the colour, so the two pages cannot disagree about one year.
+
+*Fixed 8 September.* `arrow/1` gained an opts list — `:size` and `:fill`, defaulting to screen 07's own 14pt filled — so 98 draws the same decision at its own 20pt unfilled. `Kati.ShareCardScopeTest` holds it at both ends: that a fallen year carries `arrow_downward` and not `arrow_drop_up`, and that the card's pill CONTAINS the node 07's helper builds rather than a second copy of it.
+
+*Two outright `arrow_drop_up` glyphs remain and are safe only while their pages are fixtures.* `year_share_books.ex` draws board 99's pages figure, which is a literal that rises by construction, and `stats_fa.ex` draws screen 61 from `Kati.Fa.SampleYear`. Each is the second copy of this decision the day its page reads a real shelf, and both now say so.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

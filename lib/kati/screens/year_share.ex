@@ -105,7 +105,7 @@ defmodule Kati.Screens.YearShare do
   end
 
   @doc """
-  `↑ 18%` beside the hours, or nothing at all.
+  `↑ 18%` beside the hours, or nothing at all — pointing the way the year went.
 
   `hours_face/1` has always answered `change: nil` for a first year — the
   comment beside it says so, and cites #47: *a first year has no last year, and
@@ -117,18 +117,40 @@ defmodule Kati.Screens.YearShare do
   The ARROW goes with it. It is not decoration around the number, it is the
   direction — an up-arrow beside nothing is a claim about a rise that has not
   been measured.
-  """
-  @spec change_pill(String.t() | nil) :: map()
-  def change_pill(nil), do: ~MOB"<Spacer size={0} />"
 
-  def change_pill(change) do
-    assigns = %{change: change}
+  And it points the way the year actually went. `hours_face/1` has computed
+  `:direction` since the card stopped being a fixture (#79) and this function
+  took `:change` alone, so the glyph was a literal `arrow_drop_up` in
+  `Kati.Theme.Palette.green_text/0` whatever the figure beside it meant: screen
+  07 drew a fallen year red and pointing down, and one tap later this card said
+  the same `22%` in green pointing up. **That is the copy that leaves the
+  phone** — `:save_image` captures this tree.
+
+  Neither page prints a sign. `Kati.Screens.Stats`'s year takes `abs/1`, so the
+  arrow is not a flourish on the figure; it is the only place the direction is
+  written down, which is why dropping it inverted the claim in silence.
+
+  `Kati.Screens.Stats.arrow/2` makes the choice for both pages, at this card's
+  size. The glyph and the colour are one decision, and a second copy of it is
+  how the two pages came to disagree about one year.
+  """
+  @spec change_pill(map()) :: map()
+  def change_pill(%{change: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def change_pill(face) do
+    falling? = Map.get(face, :direction) == :down
+
+    assigns = %{
+      change: face.change,
+      arrow: Kati.Screens.Stats.arrow(%{rising?: not falling?}, size: 20, fill: false),
+      ink: if(falling?, do: Palette.red(), else: Palette.green_text())
+    }
 
     ~MOB"""
     <Row align="center">
       <Spacer size={10} />
-      {Kati.UI.symbol("arrow_drop_up", size: 20, color: Palette.green_text())}
-      <Text text={@change} font_family="mono" text_size={13} text_color={Palette.green_text()} />
+      {@arrow}
+      <Text text={@change} font_family="mono" text_size={13} text_color={@ink} />
     </Row>
     """
   end
@@ -358,7 +380,7 @@ defmodule Kati.Screens.YearShare do
             letter_spacing={-0.035}
             text_color={:on_surface}
           />
-          {Kati.Screens.YearShare.change_pill(@hours.change)}
+          {Kati.Screens.YearShare.change_pill(@hours)}
           <Spacer weight={1.0} />
           <Text text={@hours.year} font_family="mono" text_size={12} text_color={Palette.muted()} />
         </Row>
