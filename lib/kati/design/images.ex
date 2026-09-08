@@ -72,6 +72,36 @@ defmodule Kati.Design.Images do
     Enum.find_value([{400, 600}, {300, 300}, {520, 384}, {400, 400}], &path(value, &1))
   end
 
+  @doc """
+  The 520x384 card still, or the poster when the design never drew one.
+
+  The design's rule is real and is kept: a still is **a different photograph**
+  from the poster of the same title, not the same image scaled, so `path/2` is
+  asked for the exact crop first. What changed is what happens when there is
+  none.
+
+  Only two of the fifty seeds have a 520x384 — `hollow71` and `saltiron33` —
+  and three of the four titles screen 163's poster wall offers do not. Found on
+  a real phone: picking **Marram** in onboarding put it on Home's *Continue
+  watching* card as a grey rectangle, because the seed reached the card and the
+  crop did not. It only showed up there because the emulator run happened to
+  pick The Long Hollow, which has every crop.
+
+  A different crop of the right title beats a rectangle of nothing, and it is
+  the rule `path/2` already follows one branch up: a DOWNLOADED poster has two
+  crops rather than the design's fifty, and the requested size is answered with
+  whichever is closer. This is the same answer for the bundled half.
+
+      iex> Kati.Design.Images.card("marram15") |> Path.basename()
+      "marram15_400x600.jpg"
+
+      iex> Kati.Design.Images.card("hollow71") |> Path.basename()
+      "hollow71_520x384.jpg"
+  """
+  @spec card(String.t() | nil) :: String.t() | nil
+  def card(nil), do: nil
+  def card(value), do: path(value, {520, 384}) || poster(value)
+
   @doc "The widest crop of a seed, for a hero header."
   @spec hero(String.t()) :: String.t() | nil
   def hero(nil), do: nil

@@ -1011,10 +1011,13 @@ defmodule Kati.Screens.Home do
 
   # The 520x384 crop, which is what the design draws in these cards — a
   # different photograph from the 400x600 poster of the same title, not the
-  # same image scaled.
+  # same image scaled. `Kati.Design.Images.card/1` asks for exactly that and
+  # falls back to the poster for the 48 seeds the design never cropped at this
+  # size, which is what a real phone found: Marram on this card was a grey
+  # rectangle, because the seed arrived and the crop did not.
   @doc false
   def still(seed) do
-    case Kati.Design.Images.path(seed, {520, 384}) do
+    case Kati.Design.Images.card(seed) do
       nil ->
         ~MOB"<Spacer size={0} />"
 

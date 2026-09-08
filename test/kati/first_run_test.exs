@@ -270,6 +270,20 @@ defmodule Kati.FirstRunTest do
       end)
     end
 
+    test "and every one of the four draws on Home's card, not just the one with every crop" do
+      # Found on a real Galaxy A55 rather than on the emulator, and only
+      # because the two runs happened to pick different titles. Home's
+      # `Continue watching` card asks for the 520x384 still, which only two of
+      # the fifty seeds have — so three of the four titles the poster wall
+      # offers reached the card as a grey rectangle.
+      for title <- Screens.OnboardingFirstTitle.suggestion_list() do
+        seed = Screens.OnboardingFirstTitle.seed_for(title)
+
+        assert Kati.Design.Images.card(seed),
+               "#{title} has no picture at Home's card size and no fallback either"
+      end
+    end
+
     test "and the Persian mirror shelves the same photograph under its own name" do
       # Board 166 passes the PERSIAN title to screen 163's `shelve/1` on
       # purpose — "a Persian run should not put an English name on a Persian
