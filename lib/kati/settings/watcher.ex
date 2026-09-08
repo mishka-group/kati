@@ -40,6 +40,7 @@ defmodule Kati.Settings.Watcher do
 
   @cadence_key :watcher_cadence
   @episodes_key :watcher_new_episodes
+  @watching_key :watcher_watching
 
   # The four the board draws, and the interval each asks WorkManager for.
   # `Manual` is `nil`: it is not a long interval, it is no periodic work, and
@@ -65,6 +66,16 @@ defmodule Kati.Settings.Watcher do
   # because the board's order is the board's and an index would silently move
   # with it.
   @live_kinds ["New episodes"]
+
+  # The *How loudly* rows with a consumer. Empty, and the list is the point:
+  # nothing in Kati sends a notification for a release — the only
+  # `Kati.Notifications.Delivery.backend/0` calls in `lib/` are auto-detect's,
+  # a different feature with its own page — so push has no sender, quiet hours
+  # has nothing to quiet, and no weekly job exists.
+  #
+  # `Enum.member?/2` rather than `in`, because `title in []` folds to a literal
+  # `false` and warns.
+  @live_loudness []
 
   @doc """
   The cadence the reader chose, or the board's own.
@@ -96,7 +107,8 @@ defmodule Kati.Settings.Watcher do
   end
 
   @doc """
-  Ask WorkManager for this cadence, or leave it alone on `Manual`.
+  Ask WorkManager for this cadence, or cancel the worker when the master switch
+  is off.
 
   `ensure/1` is `KEEP`, so it does not restart a clock that is already running
   at the same interval — which is why `Kati.App` can call it on every boot. A
@@ -108,18 +120,45 @@ defmodule Kati.Settings.Watcher do
   """
   @spec reschedule(String.t()) :: :ok
   def reschedule(label) do
-    case Kati.Settings.Watcher.interval_for(label) do
-      nil ->
-        :ok
+    case Kati.Settings.Watcher.request(Kati.Settings.Watcher.watching?(), label) do
+      :cancel ->
+        Kati.Background.Periodic.cancel()
 
-      minutes ->
+      {:ensure, minutes} ->
         # Both answers are truthy — `{:error, :no_bridge}` is the normal one off
         # Android — so this is a sequence, not a choice.
         Kati.Background.Periodic.ensure(interval_minutes: minutes)
+
+      :ignore ->
         :ok
     end
+
+    :ok
   rescue
     _error -> :ok
+  end
+
+  @doc """
+  What the scheduler should be asked for, given the switch and the cadence.
+
+  Pure, so the decision is settleable without a JVM — `Kati.Background.Periodic`
+  answers `{:error, :no_bridge}` on a host and the branch taken is the thing
+  worth asserting.
+
+      iex> Kati.Settings.Watcher.request(false, "Hourly")
+      :cancel
+
+      iex> Kati.Settings.Watcher.request(true, "Hourly")
+      {:ensure, 60}
+  """
+  @spec request(boolean(), String.t()) :: :cancel | {:ensure, pos_integer()} | :ignore
+  def request(false, _label), do: :cancel
+
+  def request(true, label) do
+    case Kati.Settings.Watcher.interval_for(label) do
+      nil -> :ignore
+      minutes -> {:ensure, minutes}
+    end
   end
 
   @doc """
@@ -242,6 +281,49 @@ defmodule Kati.Settings.Watcher do
   rescue
     _error -> :ok
   end
+
+  @doc """
+  Whether the watcher may check on its own — the banner's master switch.
+
+  `Kati.Background.Periodic` IS the release watcher's background check and
+  nothing else — *"Periodic work refreshes data. It does not deliver
+  reminders."* — so this switch has exactly one honest meaning and one
+  consumer: off cancels the worker, on enqueues it at the cadence below.
+  **Check now** is untouched, because a one-off run is an action and not a
+  schedule (board 314).
+
+  On by default, which is the state the board draws. A store this cannot reach
+  answers `true`, for `new_episodes?/0`'s reason: a preference Kati cannot read
+  must not silently switch the watcher off.
+  """
+  @spec watching?() :: boolean()
+  def watching? do
+    case Mob.State.get(@watching_key) do
+      value when is_boolean(value) -> value
+      _unset -> true
+    end
+  rescue
+    _error -> true
+  end
+
+  @doc "Set it, and ask the scheduler for what it now means."
+  @spec put_watching(boolean()) :: :ok
+  def put_watching(on?) when is_boolean(on?) do
+    Mob.State.put(@watching_key, on?)
+    Kati.Settings.Watcher.reschedule(Kati.Settings.Watcher.cadence())
+    :ok
+  rescue
+    _error -> :ok
+  end
+
+  @doc """
+  Whether a *How loudly* switch has anything behind it.
+
+      iex> Kati.Settings.Watcher.loud?("Push notifications")
+      false
+  """
+  @spec loud?(String.t()) :: boolean()
+  def loud?(title), do: Enum.member?(@live_loudness, title)
 
   @doc """
   Whether a *Tell me about* switch has anything behind it.

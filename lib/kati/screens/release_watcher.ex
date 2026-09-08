@@ -54,12 +54,13 @@ defmodule Kati.Screens.ReleaseWatcher do
       # a wall-clock time from a column that did not exist.
       checked: Kati.Settings.Watcher.checked_line(Kati.Settings.Watcher.last_checked(), false),
       checking?: false,
-      banner: banner(),
+      banner: %{banner() | on: Kati.Settings.Watcher.watching?()},
       # MOVIES-AND-TV.md #67 and `design-briefs/D-64`. Fifteen controls edited a
-      # socket assign and were forgotten on the pop, and the brief's own table
-      # says which two have a consumer today: the cadence and *New episodes*.
-      # Those two are read from `Mob.State` and written back; the other
-      # thirteen keep the board's values and take the `not yet` mark screen 88
+      # socket assign and were forgotten on the pop, and three of them have a
+      # consumer today: the cadence, *New episodes* and the banner's master
+      # switch. Those three are read from `Mob.State` and written back; the
+      # other twelve — eight *Tell me about* rows and all four *How loudly*
+      # rows — keep the board's values and take the `not yet` mark screen 88
       # already uses for a scope nothing searches (#74).
       #
       # Persisting all fifteen was the obvious patch and is the wrong one — the
@@ -68,7 +69,7 @@ defmodule Kati.Screens.ReleaseWatcher do
       kinds: Kati.Screens.ReleaseWatcher.kinds(),
       cadences: Kati.Settings.Watcher.cadences(),
       cadence: Kati.Settings.Watcher.cadence(),
-      loudness: Sample.loudness(),
+      loudness: Kati.Screens.ReleaseWatcher.loudness(),
       note: Sample.note()
     })
   end
@@ -89,6 +90,34 @@ defmodule Kati.Screens.ReleaseWatcher do
       else
         Map.put(row, :not_yet?, true)
       end
+    end)
+  end
+
+  @doc """
+  The four *How loudly* rows. All four are marked, and the list `loud?/1` reads
+  is empty on purpose.
+
+  Nothing in Kati sends a notification for a release.
+  `Kati.Notifications.Scheduler` is built by `Kati.Screens.InboxNotifications`
+  and armed by nothing; the only `Kati.Notifications.Delivery.backend/0` calls
+  in `lib/` are auto-detect's *What was that?*, a different feature with its
+  own page. So push has no sender, quiet hours has nothing to quiet and no
+  weekly job exists.
+
+  Two of the four have a READER and are still marked. `Kati.Screens.Home`'s
+  unread dot is a real consumer of the badge and `Scheduler.plan/2` takes
+  `:quiet_hours` — but the dot is derived from the plan rather than stored, and
+  quiet hours only shifts a `fire_at` in a plan nothing arms, so either switch
+  would change a printed hour rather than keep the promise it makes.
+  `design-briefs/D-64` asks for the board that decides between a marked group,
+  an absence, and one honest line; until it lands the mark is the answer.
+  """
+  @spec loudness() :: [map()]
+  def loudness do
+    Enum.map(Sample.loudness(), fn row ->
+      if Kati.Settings.Watcher.loud?(row.title),
+        do: row,
+        else: Map.put(row, :not_yet?, true)
     end)
   end
 
@@ -433,9 +462,15 @@ defmodule Kati.Screens.ReleaseWatcher do
         {:noreply,
          Mob.Socket.assign(socket, :watcher, %{w | checking?: true, checked: "checking now"})}
 
+      # The master switch, and the one thing on this page it could mean:
+      # `Kati.Background.Periodic` is the watcher's background check, so off
+      # cancels the worker and on enqueues it at the cadence below. It survives
+      # the pop because it is `Mob.State`'s, beside the cadence.
       "banner" ->
-        {:noreply,
-         Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: not w.banner.on}})}
+        on? = not w.banner.on
+        Kati.Settings.Watcher.put_watching(on?)
+
+        {:noreply, Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: on?}})}
 
       # Only the live one reaches here — a marked row carries no tag at all —
       # and it writes, which is the whole of #67 for this switch.
@@ -448,13 +483,6 @@ defmodule Kati.Screens.ReleaseWatcher do
         end)
 
         {:noreply, Mob.Socket.assign(socket, :watcher, %{w | kinds: flipped})}
-
-      "loud_" <> i ->
-        {:noreply,
-         Mob.Socket.assign(socket, :watcher, %{
-           w
-           | loudness: Kati.Screens.ReleaseWatcher.flip(w.loudness, i)
-         })}
 
       # And the cadence, which `Kati.Background.Periodic.ensure/1`'s own doc
       # named as *a future "check less often" setting* before there was one.

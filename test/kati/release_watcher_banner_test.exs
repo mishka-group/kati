@@ -24,6 +24,7 @@ defmodule Kati.ReleaseWatcherBannerTest do
   alias Kati.Settings.WatcherSample
 
   doctest ReleaseWatcher, only: [watching_line: 1, found_line: 1]
+  doctest Kati.Settings.Watcher, only: [request: 2, loud?: 1]
 
   @prefix "watcher-banner-"
 
@@ -115,7 +116,7 @@ defmodule Kati.ReleaseWatcherBannerTest do
       refute Kati.Notifications.Sources.Media.followed() == []
     end
 
-    test "and the thirteen with no consumer are marked rather than offered" do
+    test "and the twelve with no consumer are marked rather than offered" do
       {:ok, socket} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
       kinds = socket.assigns.watcher.kinds
 
@@ -134,8 +135,44 @@ defmodule Kati.ReleaseWatcherBannerTest do
       assert drawn =~ "NOT YET"
       assert length(Regex.scan(~r/:kind_\d/, drawn)) == 1
 
-      # The loudness group is untouched by this round and still the drawing's.
-      assert socket.assigns.watcher.loudness == WatcherSample.loudness()
+      # And the loudness group, which was the last of #67 on this page: the
+      # board's four rows, all four marked, none of them offering a tap.
+      loudness = socket.assigns.watcher.loudness
+
+      assert Enum.map(loudness, &Map.delete(&1, :not_yet?)) == WatcherSample.loudness()
+
+      for row <- loudness do
+        assert Map.get(row, :not_yet?),
+               "#{row.title} has no sender and is offered as a switch"
+      end
+
+      loud = inspect(ReleaseWatcher.group(loudness, "loud", 14, 22), limit: :infinity)
+
+      assert loud =~ "NOT YET"
+      refute loud =~ "loud_"
+    end
+
+    test "the master switch cancels the worker, and survives the pop" do
+      {:ok, socket} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
+
+      assert socket.assigns.watcher.banner.on, "the board draws it on"
+
+      {:noreply, off} = ReleaseWatcher.handle_tap(:banner, socket)
+
+      refute off.assigns.watcher.banner.on
+      refute Kati.Settings.Watcher.watching?()
+
+      # Off is a cancelled worker, not a remembered flag — which is the whole of
+      # the finding. Asserted on the pure half, because the other half needs a
+      # JVM and answers `{:error, :no_bridge}` here.
+      assert Kati.Settings.Watcher.request(false, "Every 6h") == :cancel
+
+      # And it survives the pop.
+      {:ok, again} = ReleaseWatcher.mount(%{}, %{}, Mob.Socket.new(ReleaseWatcher))
+      refute again.assigns.watcher.banner.on
+
+      Kati.Settings.Watcher.put_watching(true)
+      assert Kati.Settings.Watcher.request(true, "Every 6h") == {:ensure, 360}
     end
   end
 

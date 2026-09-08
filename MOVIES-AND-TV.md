@@ -3698,6 +3698,18 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fixed 8 September.* `Kati.Native.Files.share_screen/1` is `save_screen/1` with `ACTION_SEND` on the far end, and both refuse at the capture on a host. The badge is not reworded, it is not drawn — a marker naming no fence is a marker the next reader believes — so `when file sharing lands` is retired. Screens 99 and 103 borrow the tag rather than growing their own handler, because two boards of one screen that disagreed about what a control does would be two screens; 99 also gained the refusal slot it had been swallowing `Save image`'s errors into since save was wired. Persian 103's moduledoc said *Kati still has no share-sheet fence* and now says what actually changed.
 
+### 143. 25 Release watcher — `inert-control`
+
+**The banner's master switch and the four *How loudly* switches flip and are forgotten. The eight rows above them honestly carry a `not yet` pill, which makes these five read as the working ones.**
+
+*Proof.* `handle_tap/2`'s `"banner"` clause was `%{w | banner: %{w.banner | on: not w.banner.on}}` and its `"loud_" <> i` clause was `flip(w.loudness, i)` — both socket-only, both lost on the pop. Nothing in `lib/` read either value. `Kati.App.on_start/0` called `Kati.Background.Periodic.ensure/1` unconditionally, so even a remembered *off* would have come back on the next cold start.
+
+*Fix.* Wire the master switch to its one honest consumer and mark the four that have no sender.
+
+*Fixed 8 September.* `Kati.Background.Periodic` IS the watcher's background check and nothing else — *"periodic work refreshes data, it does not deliver reminders"* — so the master switch has exactly one meaning: off cancels the worker, on enqueues it at the cadence below. `Kati.Settings.Watcher.watching?/0` stores it beside the cadence, `request/2` is the pure decision both `reschedule/1` and boot ask, and `Kati.BackgroundHandoffTest` greps `on_start`'s source for the cancel branch so boot cannot go back to enqueueing over the switch. **Check now** is untouched: a one-off run is an action, not a schedule.
+
+The four *How loudly* rows are marked, and `@live_loudness` is empty on purpose: nothing in Kati sends a notification for a release. Two of them have a READER and are still marked — the unread dot is derived from a plan rather than stored, and quiet hours only shifts a `fire_at` in a plan nothing arms — so either would change a printed hour rather than keep the promise it makes. The `"loud_"` clause is deleted rather than left flipping an assign: a marked row draws no tag, and a clause that only moves a switch is the defect this closes. `design-briefs/D-64` is where the group's own board is asked for.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

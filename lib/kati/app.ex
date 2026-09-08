@@ -223,19 +223,31 @@ defmodule Kati.App do
     # At the cadence the reader chose on screen 25, which defaults to the
     # constant this used to pass unconditionally. `ensure/1` is `KEEP`, so a
     # boot at the same interval does not restart the clock (#67).
-    case Kati.Background.Periodic.ensure(
-           interval_minutes:
-             Kati.Settings.Watcher.interval_for(Kati.Settings.Watcher.cadence()) ||
-               elem(Kati.Background.Periodic.cadence(), 0)
+    # And the master switch, which is the half that can UNschedule: without it
+    # boot re-enqueues over a reader who turned the watcher off on screen 25,
+    # so it comes back on the next cold start (#67).
+    case Kati.Settings.Watcher.request(
+           Kati.Settings.Watcher.watching?(),
+           Kati.Settings.Watcher.cadence()
          ) do
-      {:ok, %{interval_minutes: minutes}} ->
-        :mob_nif.log("Kati: background refresh every #{minutes}m")
+      :cancel ->
+        _cancelled = Kati.Background.Periodic.cancel()
+        :mob_nif.log("Kati: background refresh off — screen 25's master switch")
 
-      {:error, :no_bridge} ->
+      {:ensure, minutes} ->
+        case Kati.Background.Periodic.ensure(interval_minutes: minutes) do
+          {:ok, %{interval_minutes: got}} ->
+            :mob_nif.log("Kati: background refresh every #{got}m")
+
+          {:error, :no_bridge} ->
+            :ok
+
+          {:error, reason} ->
+            :mob_nif.log("Kati: background refresh unavailable: #{inspect(reason)}")
+        end
+
+      :ignore ->
         :ok
-
-      {:error, reason} ->
-        :mob_nif.log("Kati: background refresh unavailable: #{inspect(reason)}")
     end
 
     # A save the user cancelled, or a process that died mid-save, leaves a full
