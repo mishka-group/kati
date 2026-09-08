@@ -4087,7 +4087,21 @@ Status: `[x] host`, `[ ] device`.
 
 # Pages a user cannot reach except through Settings
 
-Each needs a real door before it can be called finished, and then it comes out of the gallery.
+**The owner's rule, 8 September: a page that is finished belongs where it belongs in the app. The gallery is a testing list, not a route.**
+
+That rule is enforced rather than asserted — `Kati.AppReachabilityTest` walks every root, follows every tap and opens every overflow menu one level deep, and fails if a drawn screen is stranded. A screen with no door has to be on its inventory *with a written reason*, and every reason there is one of four: a states catalogue, a colourway, a text size, or a state you reach by having no data rather than by navigating.
+
+**Six of the entries below were written before their doors existed and are struck through.** Walked on the Pixel_9a on 8 September:
+
+  * **Screen 04's ⋯ menu opens on a device.** The doubt recorded below — *the sweep pressed `:toggle_menu`, got no push back, and never re-rendered* — is settled: the panel draws, and it holds *Show details* (14), *Episode order*, *Show settings* (35), *Drop this show*, *Keep off shared cards*, *Mark as anime* and *This is a film*. `Kati.Components.Anchored` works.
+  * ~~148 Drop, DNF & abandon~~ — Settings → **Dropping** (`settings.ex:716`).
+  * ~~152 Anime~~ — Settings → **Anime** (`settings.ex:718`).
+  * ~~153 Numbering~~ — screen 34 pushes it (`season.ex:206`).
+  * ~~05 New releases~~ — Settings → **New releases**, beside *Release watcher*.
+  * ~~143's rating column~~ — merged into screen 04, which calls `Kati.Screens.EpisodeRatings.rating_node/1` directly (`series.ex:1645`). The board stays as a reference sheet.
+  * **169 Discover sort & filter** never needed one: Discover's `sort` disc opens it, lit while something is narrowing.
+
+What is left below is reference sheets and colourways, which are exactly what the gallery is for.
 
 - adding: 155 Add by hand — states (Kati.Screens.AddByHandStates) — correctly gallery-only; it is a reference sheet, not a place in the app, and app_reachability_test.exs:106 carries it on the inventory with that reason. It is the SPEC for 154 (Film default, blank Year, and 'Add to library goes to the new title's detail screen'), so fix 154 against it and then delete it from Settings.
 - adding: 157 Add by hand — dark (Kati.Screens.AddByHandDark) — gallery-only, and on the inventory as 'the same page in another colourway, reached by having dark on rather than by navigating'. It SHOULD be reachable by turning dark mode on in Settings > Appearance and then opening 154 the normal way (Home > + > Add it by hand); it is a separate module only because Kati.Shell does not yet carry the mode. Until that lands it is also actively harmful (scenarios 30 and 31), so it should come out of Settings whether or not the mode work happens.
