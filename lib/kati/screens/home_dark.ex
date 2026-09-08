@@ -294,7 +294,19 @@ defmodule Kati.Screens.HomeDark do
     }
   end
 
-  def handle_info({:tap, :inbox}, socket),
+  # One atom per control, and screen 01's two names for these two controls.
+  # Both were `:inbox` — the header bell and the hero's `Open inbox` button —
+  # and `Mob.Renderer` derives an `accessibility_id` from every `{pid, atom}`
+  # `on_tap`, so a device that follows one show drew the name twice and
+  # `onNodeWithTag` throws on the second match rather than picking one:
+  # NEITHER control could be addressed from a device test. The bell is the one
+  # with a second meaning available — `Kati.Screens.InboxNotifications`, which
+  # is what screen 01's bell opens — and the hero's button is the one that
+  # means *the release inbox*.
+  def handle_info({:tap, :notifications}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)}
+
+  def handle_info({:tap, :open_inbox}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}
 
   # `query: ""` and no `back:`. This IS Home, so 19's own default pill is right
@@ -371,7 +383,7 @@ defmodule Kati.Screens.HomeDark do
             text_color={0xFFF5F2EE}
           />
         </Column>
-        {Kati.Screens.HomeDark.disc("notifications", :inbox)}
+        {Kati.Screens.HomeDark.disc("notifications", :notifications)}
         <Spacer size={9} />
         {Kati.Screens.HomeDark.disc("calendar_month", :open_calendar)}
       </Row>
@@ -500,7 +512,7 @@ defmodule Kati.Screens.HomeDark do
   # the last thing keeping that module reachable from a render.
   @doc false
   def hero(summary) do
-    tap = {self(), :inbox}
+    tap = {self(), :open_inbox}
 
     ~MOB"""
     <Column fill_width={true}>

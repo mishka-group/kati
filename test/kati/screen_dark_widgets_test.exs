@@ -149,6 +149,20 @@ defmodule Kati.ScreenDarkWidgetsTest do
 
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 
+  # Every tag the tree emits an `accessibility_id` for. `Mob.Renderer` derives
+  # one from each `{pid, atom}` `on_tap`, and `onNodeWithTag` throws on the
+  # second match, so a repeat here is two controls no device test can address.
+  defp tap_tags(tree) do
+    tree
+    |> Mob.ScreenCase.flatten()
+    |> Enum.flat_map(fn node ->
+      case Map.get(node.props || %{}, :on_tap) do
+        {pid, tag} when is_pid(pid) and is_atom(tag) -> [tag]
+        _other -> []
+      end
+    end)
+  end
+
   # ── Screen 28 ───────────────────────────────────────────────────────────────
 
   describe "28 — Home in dark" do
@@ -334,6 +348,40 @@ defmodule Kati.ScreenDarkWidgetsTest do
       refute drawn?(tree, HomeDark.Sample.inbox().sub),
              "availability needs a subscribed service to count down from — screen 96 — and no " <>
                "column holds it"
+    end
+
+    test "the bell and the hero are two names, so a device test can address either" do
+      # Both were `:inbox`. The sweeps never saw it: they render an empty
+      # store, where 28 draws board 315's page — a settings disc, no bell, no
+      # hero. It takes a real episode to bring both nodes back, which is what
+      # this fixture is.
+      tracked = track!("dark-inbox-tags", %{status: :watching}, %{title: "Marram Lights"})
+
+      episode!(tracked.source_id, %{
+        air_at: DateTime.add(DateTime.utc_now(), -2 * 24 * 60 * 60, :second),
+        date_confidence: :exact,
+        season_number: 1,
+        episode_number: 4
+      })
+
+      tags = tap_tags(tree(mount_screen(HomeDark)))
+
+      assert :notifications in tags, "the header bell carries screen 01's name for a bell"
+      assert :open_inbox in tags, "the hero's Open inbox button carries screen 01's name for it"
+
+      assert tags == Enum.uniq(tags),
+             "28 gives one name to two nodes, and `onNodeWithTag` throws on the second " <>
+               "match: #{inspect(tags -- Enum.uniq(tags))}"
+    end
+
+    test "and each opens what screen 01's own opens" do
+      socket = mount_screen(HomeDark).socket
+
+      assert {:noreply, bell} = HomeDark.handle_info({:tap, :notifications}, socket)
+      assert bell.__mob__.nav_action == {:push, Kati.Screens.InboxNotifications, %{}}
+
+      assert {:noreply, hero} = HomeDark.handle_info({:tap, :open_inbox}, socket)
+      assert hero.__mob__.nav_action == {:push, Kati.Screens.Inbox, %{}}
     end
 
     test "a title part-way through draws its own card and none of the drawing's two" do

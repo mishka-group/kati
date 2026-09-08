@@ -26,9 +26,20 @@ defmodule Kati.Screens.HomeFa do
       poster offset 30 — and `Modifier.offset` is direction-aware, so the same
       arithmetic that stacks rightward in English stacks leftward here.
 
-  The header disc, the hero button and the notification bell reach the English
-  inbox: 05 has no Persian mirror in the export yet, and a dead button reads as
-  a bug where an untranslated screen reads as unfinished, which is the truth.
+  The notification bell and the hero's button are **two** controls carrying
+  **two** tags — `:notifications` and `:open_inbox`, which are screen 01's own
+  two names — and they open two English pages,
+  `Kati.Screens.InboxNotifications` and `Kati.Screens.Inbox`. They were one
+  atom over two nodes, which is one `accessibility_id` over two nodes:
+  `onNodeWithTag` throws on the second match rather than picking one, so
+  neither control could be addressed by a device test on the branch that draws
+  both. (The header's other disc is Persian — `:open_calendar` opens
+  `Kati.Screens.ScheduleFa`.)
+
+  English because there is nothing else to reach: 05 has no Persian mirror in
+  the export yet and `Kati.Screens.InboxNotifications` has no drawing at all,
+  and a dead button reads as a bug where an untranslated screen reads as
+  unfinished, which is the truth.
 
   ## Real data versus the drawing
 
@@ -396,7 +407,7 @@ defmodule Kati.Screens.HomeFa do
             text_color={:on_surface}
           />
         </Column>
-        {Fa.disc("notifications", :open_inbox)}
+        {Fa.disc("notifications", :notifications)}
         <Spacer size={9} />
         {Fa.disc("calendar_month", :open_calendar)}
       </Row>
@@ -1092,6 +1103,14 @@ defmodule Kati.Screens.HomeFa do
       render: :box
     )
   end
+
+  # The bell and the hero's button, one atom each, and screen 01's two names.
+  # Both were `:open_inbox`, so one `accessibility_id` named two nodes and
+  # `onNodeWithTag` throws on the second match the moment a device follows one
+  # show and the hero comes back. Both destinations are English for the reason
+  # the moduledoc gives.
+  def handle_info({:tap, :notifications}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.InboxNotifications)}
 
   def handle_info({:tap, :open_inbox}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Inbox)}

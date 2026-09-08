@@ -65,6 +65,13 @@ defmodule Kati.Screens.HomeFaOmittedSections do
     """
   end
 
+  # Screen 160's bell keeps `:open_inbox` and keeps opening
+  # `Kati.Screens.Inbox`. Screens 01, 28 and 55 call their bell
+  # `:notifications` and open `Kati.Screens.InboxNotifications`; this page
+  # draws no hero, so the name collides with nothing here and was left rather
+  # than moved with them. The drift is real and is written down at the site
+  # because this is the file the next reader will be in: a device test that
+  # addresses "the bell" by screen 01's name does not find this one.
   @doc false
   def header do
     assigns = %{moment: HomeFa.moment()}

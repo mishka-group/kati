@@ -3666,6 +3666,18 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fixed 8 September.* `notes_for/1` returns the whole ranked list and screen 19's cream band maps over it. The rename deleted four special cases that existed only to keep a one-of shape working beside three lists — `count_of/2`'s `:note` clause, `blank?/2`'s, `chip_counts/1`'s `if note` and `empty?/1`'s `== nil`. The card's trailing 24 became 9 between cards and 15 after the last, which is board 19's own `gap:9px` rhythm and the arithmetic `titles/1` already does. `Kati.SearchGroupsTest` seeds five matching notes and holds all three claims: the group returns five, the chip says five, and all five are drawn.
 
+### 140. 28 Home dark / 55 خانه — `cannot-work`
+
+**Each screen gives two different nodes one `accessibility_id`, so on any device that follows a show, neither the notification bell nor the hero's *Open inbox* button can be addressed by a device test.**
+
+*Proof.* `Mob.Renderer` emits an `accessibility_id` for every `{pid, atom}` `on_tap`, so the tag IS the id. On 28 the header bell was `disc("notifications", :inbox)` and the hero's button was `tap = {self(), :inbox}`; on 55 both the bell and `باز کردن صندوق` were `:open_inbox`. Espresso's `onNodeWithTag` throws on the second match rather than picking one, so BOTH controls became unaddressable together. `Kati.ScreenTapSweepTest`'s `@known_collisions` used to carry them and they came off it without being fixed — the sweep renders an empty store, where 28 draws board 315's page and 55 draws 158's and neither header has a bell at all, so the debt moved out of the sweep's reach.
+
+*Fix.* Screen 01's two names, on all three: `:notifications` for the bell — which opens `Kati.Screens.InboxNotifications`, the page a bell means — and `:open_inbox` for the hero's button, which means the release inbox.
+
+*Fixed 8 September.* Both screens split, and the claim is held where the fixture can exist: `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomeFaEmptyStateTest` each write a tracked title and an aired episode to bring both nodes back, then assert no tag repeats and that each opens 01's destination. The sweep's own note was rewritten, because it recorded the debt as unpaid and was two versions out of date about which map held what.
+
+*One drift left where it is, and written down at the site.* Screen 160's bell keeps `:open_inbox` and keeps opening `Kati.Screens.Inbox`. That page draws no hero, so the name collides with nothing there; renaming it would move a board screen's destination inside a defect fix. `lib/kati/screens/home_fa_omitted_sections.ex` says so above the disc.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

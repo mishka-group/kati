@@ -154,8 +154,12 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
     test "no name is given to two nodes" do
       # `onNodeWithTag` throws on the second match. 55 used to give
       # `:open_inbox` to both the notification disc and the hero's button —
-      # `Kati.ScreenTapSweepTest`'s `@known_collisions` carried it — and the
-      # collision is gone on this branch because the hero is.
+      # `Kati.ScreenTapSweepTest`'s `@known_collisions` carried it. THIS branch
+      # never showed it: a device that has kept nothing draws board 158, whose
+      # header is a settings disc and no bell, and whose page has no hero. The
+      # collision is gone on the branch that DID show it too — the bell is
+      # `:notifications` now, and the pair of tests under *تازه‌های این هفته*
+      # holds that over a page with a real episode on it.
       tags = with_empty_store(fn -> tap_tags(home_tree()) end)
 
       assert tags == Enum.uniq(tags),
@@ -209,6 +213,40 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
 
       refute Sample.inbox().checked in texts,
              "`Kati.Screens.Inbox` records that nothing stores when the watcher last swept"
+    end
+
+    test "the bell and the hero's button are two names on the page that draws both" do
+      # Both were `:open_inbox`. No sweep saw it: they render an empty store,
+      # where 55 draws board 158 — a settings disc, no bell, no hero. It takes
+      # a real episode to bring both nodes back.
+      tags =
+        with_empty_store(fn ->
+          tracked = track!(%{kind: :tv, title: "Marram Lights"})
+          episode!(tracked, %{season: 1, episode: 4, title: "Low Water", days: -2})
+
+          tap_tags(home_tree())
+        end)
+
+      assert :notifications in tags, "the header bell carries screen 01's name for a bell"
+
+      assert :open_inbox in tags,
+             "`باز کردن صندوق` carries screen 01's name for that button"
+
+      assert tags == Enum.uniq(tags),
+             "55 gives one name to two nodes, and `onNodeWithTag` throws on the second " <>
+               "match: #{inspect(tags -- Enum.uniq(tags))}"
+    end
+
+    test "and each opens the English page screen 01 opens" do
+      socket = with_empty_store(fn -> mount_screen(HomeFa).socket end)
+
+      assert {:noreply, bell} = HomeFa.handle_info({:tap, :notifications}, socket)
+
+      assert bell.__mob__.nav_action == {:push, Kati.Screens.InboxNotifications, %{}},
+             "a bell means the notifications inbox"
+
+      assert {:noreply, hero} = HomeFa.handle_info({:tap, :open_inbox}, socket)
+      assert hero.__mob__.nav_action == {:push, Kati.Screens.Inbox, %{}}
     end
   end
 

@@ -234,21 +234,23 @@ defmodule Kati.ScreenTapSweepTest do
   # full shelf either. `Kati.ScreenCalendarEmptyStateTest` asserts the tag is
   # absent, which is the claim that keeps this struck off.
   #
-  # 28's `inbox` and 55's `open_inbox` are off the list on the round the two
-  # Home mirrors stopped fabricating their spine, and they are off for the same
-  # reason 03 is: this sweep renders against the empty store, and each page's
-  # `New this week` hero — which carried the second copy of the tag, the first
-  # being the notification disc in the header — is now **omitted** when there is
-  # nothing to announce rather than drawn out of a Sample module. 55 leaves the
-  # map entirely; 28 keeps `root_calendar`, which is its header disc and its
-  # dock tab and is drawn on every branch.
+  # 28's `inbox` and 55's `open_inbox` came off this map when the two Home
+  # mirrors stopped fabricating their spine, and they came off WITHOUT being
+  # fixed. This sweep renders against the empty store, and each page's `New
+  # this week` hero — which carried the second copy of the tag, the first being
+  # the notification disc in the header — is omitted when there is nothing to
+  # announce. On that branch 28 draws board 315's page and 55 draws 158's, and
+  # neither of those headers has a bell in it at all. So the debt moved out of
+  # this sweep's reach rather than being paid, and this note said so.
   #
-  # Like 03's, this debt is unpaid rather than fixed: a device that follows one
-  # show draws the hero again and the two nodes collide again. Unlike 03's it is
-  # worth naming where the fix goes — the header disc is the one with a second
-  # meaning available (`Kati.Screens.InboxNotifications`, which is what screen
-  # 01's own bell opens), and the hero's button is the one that means *the
-  # release inbox*.
+  # It is paid now, and by the split this note prescribed: the bell is
+  # `:notifications` on 01, 28 and 55 alike and opens
+  # `Kati.Screens.InboxNotifications`, which is what screen 01's bell has
+  # always opened; the hero's button is `:open_inbox` and means *the release
+  # inbox*. Because this sweep still cannot see the branch that draws both,
+  # the claim is held where the fixture can exist —
+  # `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomeFaEmptyStateTest` each
+  # write a tracked title and an aired episode, then assert no tag repeats.
   #
   # This list may only SHRINK. The test enforces both directions — a new
   # collision fails it, and so does an entry here that no longer collides.
