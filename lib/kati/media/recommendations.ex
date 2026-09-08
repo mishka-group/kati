@@ -182,9 +182,38 @@ defmodule Kati.Media.Recommendations do
   def browse_for(choice, today) do
     kind = Kati.Discover.Filters.endpoint(choice)
 
-    Tmdb.discover(kind, Kati.Discover.Filters.params(choice, kind, today))
+    case Tmdb.discover(kind, Kati.Discover.Filters.params(choice, kind, today)) do
+      {:ok, %{picks: rows, total: total}} ->
+        {:ok, %{picks: shape(rows), total: total}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   rescue
     _error -> {:error, :unavailable}
+  end
+
+  @doc """
+  TMDB rows as the rail draws them.
+
+  The step `browse_for/2` was missing on its first device run, and the symptom
+  was the whole screen: `/discover` answers `poster_path` and the rail reads
+  `:seed`, so `Kati.Screens.Discover.pick/1` raised `KeyError` on the first row
+  and the pushed screen died with it — a tap on *Discover* that bounced
+  straight back to Home. Nothing on the host could have caught it: the host
+  suite never makes the request, and the screen test injects an answer already
+  in the right shape.
+
+  So both producers end here rather than each shaping its own rows. Titles
+  already on the shelf are dropped for `picks_for/1`'s reason — a browse that
+  offers you what you are already keeping is not a browse.
+  """
+  @spec shape([map()]) :: [map()]
+  def shape(rows) do
+    rows
+    |> Enum.reject(&tracked?/1)
+    |> Enum.take(@picks)
+    |> Enum.map(&pick/1)
   end
 
   @doc """

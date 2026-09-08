@@ -276,6 +276,44 @@ defmodule Kati.DiscoverFiltersTest do
       end
     end
 
+    test "a TMDB row reaches the rail in the shape the rail reads" do
+      # The defect the first device run found, and the only place it could have
+      # been found: `/discover` answers `poster_path` and `Kati.Screens.Discover.pick/1`
+      # reads `:seed`, so the first row raised `KeyError` and the pushed screen
+      # died with it — a tap on Discover that bounced straight back to Home.
+      # The host suite never makes the request and the screen test injects an
+      # answer already in the right shape, so nothing here saw it.
+      #
+      # This asserts the SHAPING rather than the request: the same function
+      # both producers now end in.
+      raw = [
+        %{
+          title: "Reacher",
+          year: "2022",
+          kind: :tv,
+          poster_path: "/f1VCQIG2iCyOookdgOzwtUpwWC0.jpg",
+          overview: "…",
+          source_id: "108978"
+        }
+      ]
+
+      assert [pick] = Kati.Media.Recommendations.shape(raw)
+
+      for key <- [:title, :seed, :match, :source_id, :kind, :added] do
+        assert Map.has_key?(pick, key), "the rail reads #{inspect(key)} and the pick has none"
+      end
+
+      assert pick.seed == "/f1VCQIG2iCyOookdgOzwtUpwWC0.jpg"
+      assert pick.added == false
+
+      # And the rail draws it without raising, which is the assertion that
+      # would actually have caught it.
+      feed = Kati.Screens.Discover.browse_feed(%{kind: :tv, sort: :popular, rating: :r8})
+      drawn = Kati.Screens.Discover.browsed(feed, {:ok, %{picks: [pick], total: 851}})
+
+      assert is_map(Kati.Screens.Discover.picks_or_not(drawn))
+    end
+
     test "the total the footer gets is TMDB's own, never a count of the page" do
       # One page is twenty rows. A `length(picks)` here would print `20 titles`
       # for a corpus of four thousand.
