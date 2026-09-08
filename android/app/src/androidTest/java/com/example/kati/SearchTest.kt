@@ -80,6 +80,12 @@ class SearchTest {
         kati.tap("add")
         kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > 0 }
 
+        // A save resets to the LIBRARY and the Library pushes the new title's
+        // detail page, so there is a root under it and back works — see
+        // MOVIES-AND-TV.md #149, which is the defect that made this line time
+        // out: the reset used to land on the detail screen with an empty nav
+        // history, where `{:pop}` does nothing and the system back gesture
+        // calls `exit_app()`.
         kati.popToRoot()
     }
 

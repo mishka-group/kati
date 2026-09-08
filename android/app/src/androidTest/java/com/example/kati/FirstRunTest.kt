@@ -61,6 +61,21 @@ class FirstRunTest {
     }
 
     /**
+     * Whether screen 06 is SAYING why it has no rows.
+     *
+     * `Kati.Media.Tmdb.message/1` owns these sentences and screen 06 draws them
+     * inline rather than as an empty list — the difference between "the
+     * provider answered and had nothing" and "nothing happened" is the whole
+     * reason this is asserted rather than assumed.
+     */
+    private fun providerSaidWhyNot(): Boolean =
+        textPresent("Nothing here for") ||
+            textPresent("Could not look") ||
+            textPresent("No TMDB token") ||
+            textPresent("did not answer") ||
+            textPresent("too many")
+
+    /**
      * The first `add_<title>` row of the catalogue, never the escape hatch.
      *
      * `Kati.Screens.AddTitle` tags each result `add_<title>` and board 308's
@@ -105,31 +120,50 @@ class FirstRunTest {
         kati.tap("add_title")
         kati.compose.waitUntil(20_000) { kati.present("title_query") }
 
-        // Deliberately NOT a unique string, and deliberately more than two
-        // characters: `Kati.Screens.AddTitle` runs its search under a
-        // THREE-character floor, so a single letter searches nothing at all.
-        // This typed "a" and then took the first tag starting with `add_` —
-        // which, since board 308 gave the escape hatch a query-shaped label,
-        // is `add_by_hand`. It tapped the by-hand row, landed on the form, and
-        // waited twenty seconds for a row that only a Save would write.
-        //
-        // The catalogue's own rows are what this test is about: something could
-        // be added, and adding it kept a row. So the by-hand row is excluded by
-        // name rather than by hoping it sorts last.
+        // Deliberately more than two characters: `Kati.Screens.AddTitle` runs
+        // its search under a THREE-character floor, so a single letter searches
+        // nothing at all. This test typed "a" and then took the first tag
+        // beginning `add_` — which, since board 308 gave the escape hatch a
+        // query-shaped label, is `add_by_hand` itself. It tapped the by-hand
+        // row, landed on the form and waited twenty seconds for a row only a
+        // Save would write.
         kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
             .performTextInput("quiet")
         kati.device.waitForIdle()
-        kati.compose.waitUntil(30_000) { catalogueRow() != null }
+
+        // The provider has to ANSWER — with rows, or with a sentence saying why
+        // not. Waiting only for rows makes this test a check on themoviedb.org's
+        // uptime, which is not a fact about a clean install; accepting silence
+        // would let a search that never ran pass. `Kati.Media.Tmdb.message/1`
+        // owns every one of those sentences and screen 06 draws it inline.
+        kati.compose.waitUntil(40_000) {
+            catalogueRow() != null || providerSaidWhyNot()
+        }
 
         val addTag = catalogueRow()
 
-        assertTrue(
-            "the search offered nothing to add, so the first run hands over an app that " +
-                "cannot take its first title",
-            addTag != null
-        )
+        // The by-hand escape hatch is what board 308 puts there for exactly
+        // this case, and it is the route that proves the claim this test is
+        // named for without depending on a third party: the app took something
+        // and kept it.
+        if (addTag == null) {
+            assertTrue(
+                "the provider returned no rows and said nothing about why — so the search " +
+                    "never ran at all, and nothing below this line would mean anything",
+                providerSaidWhyNot()
+            )
 
-        kati.tap(addTag!!)
+            kati.compose.waitUntil(20_000) { kati.present("add_by_hand") }
+            kati.tap("add_by_hand")
+            kati.compose.waitUntil(20_000) { kati.present("title") }
+
+            kati.compose.onNodeWithTag("title", useUnmergedTree = true)
+                .performTextInput("quiet harbour")
+            kati.device.waitForIdle()
+            kati.tap("add")
+        } else {
+            kati.tap(addTag)
+        }
 
         kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > before }
 

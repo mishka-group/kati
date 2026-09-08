@@ -839,7 +839,43 @@ defmodule Kati.Screens.SeriesFa do
     }
   end
 
-  @doc false
+  @doc """
+  Board 249 — همان حالت ۲۴۸، در آینه.
+
+  Screen 58's twin of the state a hand-added series opens in, and the first
+  thing in this file built out of the SHARED components rather than out of a
+  Persian copy of them. `Kati.UI.SettingsList` builds its own `Text` nodes with
+  no `font_family`, which is precisely what `Kati.Screens.Fa`'s moduledoc named
+  as the reason the mirrors adopt so little of the set — and `K-48 locale-face`
+  ended that: the root declares `fa` and every unmarked `Text` under it
+  resolves to Vazirmatn. `Kati.PersianFontTest` asks the same question of the
+  face that will be USED rather than of one node's props, so this is checked
+  rather than assumed.
+
+  The chevrons point the other way. `chevron_left` is what board 249 draws
+  where 248 draws `chevron_right`, for the reason board 156's caption gives
+  about the back arrow: a glyph is a codepoint and does not mirror itself.
+  """
+  def episodes(%{episodes: []} = series) do
+    tracked = Map.get(series, :tracked_id)
+
+    assigns = %{
+      card: Kati.Screens.SeriesFa.no_episodes_card(),
+      group: Kati.Screens.SeriesFa.still_works(tracked)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@card}
+      <Spacer size={16} />
+      {Fa.eyebrow("کارهایی که می‌شود کرد")}
+      {@group}
+      <Spacer size={14} />
+      {Fa.note("info", Kati.Screens.SeriesFa.no_primary_note())}
+    </Column>
+    """
+  end
+
   def episodes(series) do
     ~MOB"""
     <Column fill_width={true}>
@@ -848,6 +884,95 @@ defmodule Kati.Screens.SeriesFa do
        |> Enum.map(fn {ep, i} -> Kati.Screens.SeriesFa.episode(ep, i) end)}
     </Column>
     """
+  end
+
+  @doc false
+  def no_episodes_card do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      padding={15}
+      shadow={Kati.Theme.shadow_card_soft()}
+    >
+      <Row fill_width={true} align="center">
+        <Box width={38} height={38} corner_radius={12} background={Palette.paper()} align="center">
+          {Kati.UI.symbol("live_tv", size: 19, color: Palette.rail_idle())}
+        </Box>
+        <Spacer size={13} />
+        <Box weight={1.0}>
+          {Kati.Screens.BookDetailFa.fa("هنوز فهرست قسمت‌ها نیست.", 13.5, :on_surface, weight: "bold")}
+        </Box>
+      </Row>
+      <Spacer size={11} />
+      {Kati.Screens.BookDetailFa.fa(
+        "این را دستی اضافه کرده‌اید، پس کاتی فصل و قسمتی برایش ندارد. اگر منبعی بعداً پیدایش کند، همین‌جا می‌آیند و چیزی که نوشته‌اید عوض نمی‌شود.",
+        12,
+        Palette.sub(),
+        lines: 5
+      )}
+    </Column>
+    """
+  end
+
+  @doc "Board 249's three rows, which are board 248's three rows in Persian."
+  @spec still_works(binary() | nil) :: map()
+  def still_works(tracked_id) do
+    tap = fn tag -> if is_binary(tracked_id), do: {self(), tag} end
+
+    Kati.UI.SettingsList.card([
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("replay"),
+        Kati.Screens.SeriesFa.row_body("ثبت یک تماشا", "بدون فهرست قسمت‌ها هم کار می‌کند"),
+        Kati.UI.SettingsList.trailing(Kati.Screens.SeriesFa.chevron()),
+        on_tap: tap.(:rate_title)
+      ),
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("do_not_disturb_on"),
+        Kati.Screens.SeriesFa.row_body("رهاکردن این سریال", "جایی که ایستادید نگه داشته می‌شود"),
+        Kati.UI.SettingsList.trailing(Kati.Screens.SeriesFa.chevron()),
+        on_tap: tap.(:open_drop_sheet)
+      ),
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("delete"),
+        Kati.Screens.SeriesFa.row_body("حذف از کتابخانه", nil),
+        Kati.UI.SettingsList.trailing(Kati.Screens.SeriesFa.chevron()),
+        rule: false,
+        on_tap: tap.(:remove_title)
+      )
+    ])
+  end
+
+  @doc false
+  def row_body(title, nil),
+    do: Kati.Screens.BookDetailFa.fa(title, 13.5, :on_surface, weight: "semibold")
+
+  def row_body(title, sub) do
+    assigns = %{
+      heading: Kati.Screens.BookDetailFa.fa(title, 13.5, :on_surface, weight: "semibold"),
+      line: Kati.Screens.BookDetailFa.fa(sub, 11.5, Palette.sub(), lines: 2)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@heading}
+      <Spacer size={3} />
+      {@line}
+    </Column>
+    """
+  end
+
+  @doc "`chevron_left`, because a glyph does not mirror itself. Board 156's rule."
+  @spec chevron() :: map()
+  def chevron, do: Kati.UI.symbol("chevron_left", size: 18, color: Palette.rail_idle())
+
+  @doc false
+  def no_primary_note do
+    "اینجا دکمه اصلی نیست. «قسمت بعد را دیدم» چیزی برای علامت‌زدن ندارد، و " <>
+      "دکمه‌ای که کار نمی‌کند از نبودنش بدتر است. تنها جای دکمه اصلی صفحه ۰۴ " <>
+      "در این حالت خالی می‌ماند — و همین است که این را یک حالت صفحه ۰۴ می‌کند " <>
+      "نه صفحه‌ای تازه."
   end
 
   # The tag carries the episode's position in the list, not its ۱..۷ — those
@@ -971,6 +1096,40 @@ defmodule Kati.Screens.SeriesFa do
   end
 
   def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  # Board 249's three rows. Two of them push the SAME English screens the
+  # English rows open — screen 33 and the drop sheet — which is the arrangement
+  # `Kati.Screens.DataSourcesFa` already records for its own retired-reason
+  # row: one screen, so the two locales cannot drift about what a watch or a
+  # drop is. It is real debt and it is named as such; the fold in
+  # [#103](https://github.com/mishka-group/kati/issues/103) is what closes it,
+  # not a fourth Persian module, which the ruling in `AGENTS.md` forbids.
+  #
+  # The third has no language at all: `remove/1` destroys the tracked row and
+  # pops, so it is correct in either script today.
+  def handle_info({:tap, :rate_title}, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.Rating,
+         Kati.Screens.Rating.params_for(socket.assigns.series)
+       )}
+
+  def handle_info({:tap, :open_drop_sheet}, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.DropSheet, %{
+         tracked_id: Map.get(socket.assigns.series, :tracked_id),
+         back: "سریال"
+       })}
+
+  def handle_info({:tap, :remove_title}, socket) do
+    case Kati.Screens.Series.remove(socket.assigns.series) do
+      :ok -> {:noreply, Kati.Screens.Resume.pop(socket)}
+      {:error, _reason} -> {:noreply, socket}
+    end
+  end
 
   def handle_info({:tap, :toggle_save}, socket) do
     series = socket.assigns.series

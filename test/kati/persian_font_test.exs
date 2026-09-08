@@ -45,7 +45,12 @@ defmodule Kati.PersianFontTest do
 
   ## The rule this enforces
 
-  A string whose letters are **mostly Persian** must be set in `fa`. A string
+  A string whose letters are **mostly Persian** must be set in `fa` — by its own
+  `font_family`, or by the one its ROOT declares, which since `K-48
+  locale-face` is the face every unmarked `Text` under it actually resolves to.
+  The question this file asks is *which face will be used*, not *which prop is
+  on this node*, and those stopped being the same question the day the bridge
+  learned a default. A string
   that is mostly Latin with a Persian word inside it cannot be: one `Text`
   gets one face, and setting Kati's English in Vazirmatn to fix one word is
   the worse trade. Those are named in `@mixed` with the reason, and the
@@ -77,12 +82,31 @@ defmodule Kati.PersianFontTest do
 
   # Mostly-Latin sentences carrying a Persian word, kept in the Latin face on
   # purpose. Each one names a language rather than speaking one.
-  @mixed [
-    {Kati.Screens.LanguagePick, "Picking فارسی flips the whole interface"},
-    {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"},
-    {Kati.Screens.Settings, "English · فارسی"},
-    {Kati.Screens.SearchSpec, "Typing ي finds ی."}
-  ]
+  # Per locale, because since `K-48 locale-face` the answer genuinely differs
+  # and one list would have to be wrong in one of them.
+  #
+  # In **en** the roots declare `sans`, so a mostly-Latin sentence with a
+  # Persian word in it is set in a face with no glyph for that word, and every
+  # one of them is named here.
+  #
+  # In **fa** the roots declare `fa` — and `kati_fa_400.ttf` covers Latin as
+  # well as the Arabic block, which the tests below re-derive from its `cmap`.
+  # So the same sentence is set in a face that can draw both halves, and it is
+  # no longer an offender at all. What is left is the one node that pins `sans`
+  # explicitly: screen 53's specimen line, which is a sample of the LATIN
+  # typography a reader is choosing between and has to stay in Kati's Latin
+  # face to be that.
+  @mixed %{
+    en: [
+      {Kati.Screens.LanguagePick, "Picking فارسی flips the whole interface"},
+      {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"},
+      {Kati.Screens.Settings, "English · فارسی"},
+      {Kati.Screens.SearchSpec, "Typing ي finds ی."}
+    ],
+    fa: [
+      {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"}
+    ]
+  }
 
   describe "the shipped faces" do
     test "the body face has no Persian glyphs, so an unmarked Text leaves the family" do
@@ -113,7 +137,8 @@ defmodule Kati.PersianFontTest do
   describe "every screen" do
     for locale <- [:en, :fa] do
       test "sets its Persian sentences in the Persian face, in #{locale}" do
-        offenders = ScreenSweep.with_locale(unquote(locale), &offenders/0)
+        locale = unquote(locale)
+        offenders = ScreenSweep.with_locale(locale, &offenders/0)
         {mixed, persian} = Enum.split_with(offenders, &mostly_latin?/1)
 
         assert persian == [], """
@@ -129,7 +154,9 @@ defmodule Kati.PersianFontTest do
         #{report(persian)}
         """
 
-        assert named(mixed) == Enum.sort(@mixed), """
+        expected = Enum.sort(Map.fetch!(@mixed, locale))
+
+        assert named(mixed, locale) == expected, """
         The inventory of mostly-Latin sentences carrying a Persian word no
         longer matches what the screens draw.
 
@@ -139,7 +166,7 @@ defmodule Kati.PersianFontTest do
 
         One that has gone: take it out of @mixed.
 
-        drawn: #{inspect(named(mixed), pretty: true)}
+        drawn: #{inspect(named(mixed, locale), pretty: true)}
         """
       end
     end
@@ -148,24 +175,50 @@ defmodule Kati.PersianFontTest do
   defp offenders do
     for module <- ScreenSweep.screens(),
         {:ok, _socket, tree} <- [ScreenSweep.render(module)],
+        # The face the ROOT declares is the one every unmarked `Text` under it
+        # is actually set in — `K-48 locale-face` makes `fontFamilyProp` fall
+        # back to it, and `Kati.Locale.face_prop/0` is what puts it there. So a
+        # Persian sentence on a page whose root says `fa` is correct with no
+        # prop of its own, and that is not a loosening: it is the same question
+        # asked of the value that will be used rather than of one node's props.
+        #
+        # It is also the only way a label a COMPONENT builds can pass at all —
+        # `MishkaChip`'s `expand/3` discards its children, so no caller can mark
+        # it — and it is what mishka-group/kati#103 needs, since a folded screen
+        # draws Persian through the same `Kati.UI` helpers English uses.
+        root_face = root_face(tree),
         node <- Mob.ScreenCase.flatten(tree),
         props = Map.get(node, :props) || %{},
         key <- @readable,
         value = props[key],
         is_binary(value),
         Regex.match?(@persian, value),
-        props[:font_family] != "fa" do
+        face(props, root_face) != "fa" do
       {module, key, value, props[:font_family]}
+    end
+  end
+
+  # An explicit prop wins, exactly as the bridge resolves it: a node that says
+  # `sans` is Latin even under a Persian root, which is what a Latin title
+  # inside a Persian page needs.
+  defp face(props, root_face), do: props[:font_family] || root_face
+
+  defp root_face(tree) do
+    case tree do
+      %{props: %{font_family: face}} when is_binary(face) -> face
+      _no_face -> nil
     end
   end
 
   # Matched on a prefix rather than the whole sentence: these are paragraphs,
   # and an inventory that has to be re-typed every time a comma moves stops
   # being read and starts being pasted over.
-  defp named(offenders) do
+  defp named(offenders, locale) do
+    inventory = Map.fetch!(@mixed, locale)
+
     offenders
     |> Enum.map(fn {module, _key, value, _family} ->
-      Enum.find_value(@mixed, {module, value}, fn
+      Enum.find_value(inventory, {module, value}, fn
         {^module, prefix} -> if String.starts_with?(value, prefix), do: {module, prefix}
         _other -> nil
       end)

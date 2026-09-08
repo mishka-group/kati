@@ -93,6 +93,65 @@ defmodule Kati.SeriesFaTickTest do
     end
   end
 
+  describe "board 249 — a series with no episode list, in the mirror" do
+    test "says whose doing it is, and lists what still works" do
+      # `text/1` rather than `inspect/2`: Persian copy carries U+200C, the
+      # zero-width non-joiner that keeps قسمت‌ها one word, and `inspect`
+      # escapes it to `\\u200C` — so a literal in the source never matches a
+      # literal in an inspected tree, however right the screen is.
+      drawn = text(SeriesFa.episodes(%{episodes: [], tracked_id: "x"}))
+
+      assert drawn =~ "هنوز فهرست قسمت‌ها نیست."
+      assert drawn =~ "این را دستی اضافه کرده‌اید"
+      assert drawn =~ "کارهایی که می‌شود کرد"
+
+      for row <- ["ثبت یک تماشا", "رهاکردن این سریال", "حذف از کتابخانه"] do
+        assert drawn =~ row, "board 249's #{row} row is missing"
+      end
+
+      assert drawn =~ "اینجا دکمه اصلی نیست."
+    end
+
+    test "and its chevrons point the way a Persian reader travels" do
+      # `chevron_left`, not `chevron_right`. A container mirrors under RTL and a
+      # glyph does not — board 156's caption calls that the commonest RTL bug
+      # there is, and board 249 draws the mirrored one.
+      drawn = inspect(SeriesFa.episodes(%{episodes: [], tracked_id: "x"}), limit: :infinity)
+
+      assert drawn =~ Kati.Icons.glyph("chevron_left")
+      refute drawn =~ Kati.Icons.glyph("chevron_right")
+    end
+
+    test "and the three rows act rather than being a picture of three rows" do
+      drawn = inspect(SeriesFa.episodes(%{episodes: [], tracked_id: "x"}), limit: :infinity)
+
+      for tag <- [":rate_title", ":open_drop_sheet", ":remove_title"] do
+        assert drawn =~ tag, "board 249's row for #{tag} carries no tap"
+      end
+    end
+
+    test "and a drawn series carries none, because there is nothing to act on" do
+      drawn = inspect(SeriesFa.episodes(%{episodes: [], tracked_id: nil}), limit: :infinity)
+
+      refute drawn =~ ":rate_title"
+      refute drawn =~ ":remove_title"
+    end
+
+    test "and its rows are set in the Persian face without saying so on each Text" do
+      # The point of `K-48 locale-face`, and the reason this state is the first
+      # thing in `Kati.Screens.SeriesFa` built out of the SHARED components:
+      # `Kati.UI.SettingsList` builds its own `Text` nodes with no
+      # `font_family`, and the root's declared face is what they resolve to.
+      # `Kati.PersianFontTest` is the sweep that holds it for every screen.
+      assert Kati.Locale.face_for(:fa) == "fa"
+
+      tree = tree(mount_screen(SeriesFa))
+
+      assert Map.get(tree.props, :font_family) == "fa",
+             "screen 58's root does not declare the face its unmarked Texts fall back to"
+    end
+  end
+
   describe "a series that is only a drawing" do
     test "writes nothing and says so in Persian" do
       socket =
