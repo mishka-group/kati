@@ -2023,14 +2023,14 @@ Six defects, in order of how hard they bite:
 41. **I press "Save image".**
     Steps: on 98, tap the black **Save image** button.
     Expect: a PNG in my gallery, or the system save dialog.
-    Actual: screen 100 pushes — a spec sheet titled *Year cards · FOUR FACES × TWO RATIOS* with nothing to tap.
-    `[!] known broken — `handle_tap(:save_image, …)` pushes `YearCards` (`year_share.ex:370-371`) though `Kati.Native.Files.save_screen/1` is available.`
+    Actual: the system save dialog, with `kati-year-2026.png` in it.
+    `[x] fixed 6 September — `handle_tap(:save_image, …)` calls `Kati.Native.Files.save_screen/1` and reports a refusal inline; it used to push screen 100. MOVIES-AND-TV.md #80, pinned by `Kati.YearShareSaveTest`.`
 
 42. **I press "Share…".**
-    Steps: on 98, tap **Share…** with its `WHEN FILE SHARING LANDS` chip.
-    Expect: nothing, honestly labelled.
-    Actual: nothing, honestly labelled — but the chip's claim is out of date: `K-20 file-transport` shipped `ACTION_SEND` and `Kati.Native.Files.share/2` exists (`native/files.ex:146`). What is missing is the bytes, not the door.
-    `[!] known broken — the copy names the wrong missing capability.`
+    Steps: on 98, tap **Share…**.
+    Expect: the system share sheet, with the card in it.
+    Actual: the system share sheet, with `kati-year-2026.png` in it.
+    `[x] fixed 8 September — the chip named `K-20 file-transport`, which had already shipped `ACTION_SEND`; `Kati.Native.Files.share_screen/1` joins it to `K-45 capture-screen` the way `save_screen/1` does, and `WHEN FILE SHARING LANDS` is retired in `Kati.DesignLiterals.retired_lines/0`. MOVIES-AND-TV.md #142.`
 
 ---
 
@@ -3687,6 +3687,16 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Fix.* Count `:followed` through the list the sections are already built from, read the mono line from the store screen 25 writes, and give 05 the `refusal/1` band 04 and 34 have.
 
 *Fixed 8 September.* `watcher_line/0` composes `checked_line/2` and `cadence/0` — one store, two readers, so the two pages cannot disagree — and `assemble/1` overlays `watching: length(tracked)`, which makes *the banner and the list it is a banner FOR cannot disagree* structural rather than a promise. The frozen `last checked 18:02 · every 6h` is bought back by pattern in both sweeps rather than retired, because the line is still drawn and still says one of four things about the sweep beside one of three cadences. *Mark all* speaks the first refusal it meets and re-reads regardless, because ticks that DID land must leave the list; `tick/2` keeps a silent `nil` clause, because a tag naming no row is not a refused write.
+
+### 142. 98 Your year, shared (Kati.Screens.YearShare) — `inert-control`
+
+**`Share…` is dead ink under a badge reading `WHEN FILE SHARING LANDS` — a fence that had already landed.**
+
+*Proof.* `actions/0` drew the label with no `on_tap`, which is the right way to draw a control with nowhere to go, over a claim that had stopped being true. `K-20 file-transport` is `ACTION_SEND` behind a FileProvider URI and `native/LEDGER.md` has carried the row since `Kati.Backup` needed a way off the phone; `K-45 capture-screen` supplies the bytes; and `Kati.Native.Files.share/2` reaches the intent. All three existed and nothing joined them — `share/2` had **no caller anywhere in `lib/`**. `Kati.Screens.YearCardsStates` had already written the sentence down: *"`Kati.Screens.YearShare`'s line about there being no way to hand a file out has been overtaken by that fence."*
+
+*Fix.* The join, and it is the join **Save image** already is: capture, then hand over.
+
+*Fixed 8 September.* `Kati.Native.Files.share_screen/1` is `save_screen/1` with `ACTION_SEND` on the far end, and both refuse at the capture on a host. The badge is not reworded, it is not drawn — a marker naming no fence is a marker the next reader believes — so `when file sharing lands` is retired. Screens 99 and 103 borrow the tag rather than growing their own handler, because two boards of one screen that disagreed about what a control does would be two screens; 99 also gained the refusal slot it had been swallowing `Save image`'s errors into since save was wired. Persian 103's moduledoc said *Kati still has no share-sheet fence* and now says what actually changed.
 
 # Pages a user cannot reach except through Settings
 

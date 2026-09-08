@@ -130,7 +130,7 @@ defmodule Kati.Screens.YearShareBooks do
   # thing on both boards. Listed rather than caught, so a fourth control added
   # to 98's markup arrives here as a DEAD TAP report instead of a delegation
   # that quietly does the wrong thing.
-  @borrowed [:toggle_private, :save_image, :aspect_square, :aspect_story]
+  @borrowed [:toggle_private, :save_image, :share_image, :aspect_square, :aspect_story]
 
   @impl true
   def load(socket) do
@@ -161,6 +161,7 @@ defmodule Kati.Screens.YearShareBooks do
         {Kati.Screens.YearShare.privacy_row(assigns.hide_private)}
         <Spacer size={16} />
         {Kati.Screens.YearShare.actions()}
+        {Kati.Screens.YearShare.refusal(Map.get(assigns, :save_error))}
         <Spacer size={16} />
         {Kati.Screens.YearShareBooks.unit_note()}
       </Column>

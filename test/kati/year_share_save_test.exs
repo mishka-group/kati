@@ -52,6 +52,63 @@ defmodule Kati.YearShareSaveTest do
     end
   end
 
+  describe "the share button" do
+    test "is no longer dead ink" do
+      # It drew no `on_tap` under a badge reading WHEN FILE SHARING LANDS, and
+      # the fence that badge named had shipped as `K-20 file-transport`. The tag
+      # being drawn and being answered is the whole of the fix.
+      view = mount_screen(YearShare)
+
+      assert {:noreply, %Mob.Socket{}} =
+               YearShare.handle_tap(:share_image, assigns_socket(view))
+    end
+
+    test "the badge that named a landed fence is not drawn" do
+      words =
+        mount_screen(YearShare)
+        |> assigns_socket()
+        |> Map.fetch!(:assigns)
+        |> YearShare.render()
+        |> inspect(limit: :infinity, printable_limit: :infinity)
+
+      assert words =~ "Share", "the control itself must still be on the page"
+
+      refute words =~ "WHEN FILE SHARING LANDS",
+             "the badge names ACTION_SEND, which `K-20 file-transport` shipped"
+    end
+
+    test "and it refuses into the same band Save image does" do
+      view = mount_screen(YearShare)
+      {:noreply, socket} = YearShare.handle_tap(:share_image, assigns_socket(view))
+
+      # On the host there is no bridge, so both doors refuse at the capture.
+      assert is_binary(socket.assigns.save_error)
+
+      words =
+        socket.assigns
+        |> YearShare.render()
+        |> inspect(limit: :infinity, printable_limit: :infinity)
+
+      assert words =~ socket.assigns.save_error
+    end
+
+    test "the Books card and the Persian mirror answer the same tag" do
+      # Two boards of one screen that disagreed about what a control does would
+      # be two screens, so both borrow 98's handler rather than growing one.
+      assert {:noreply, %Mob.Socket{}} =
+               Kati.Screens.YearShareBooks.handle_tap(
+                 :share_image,
+                 Mob.Socket.new(Kati.Screens.YearShareBooks)
+               )
+
+      assert {:noreply, %Mob.Socket{}} =
+               Kati.Screens.YearShareFa.handle_info(
+                 {:tap, :share_image},
+                 Mob.Socket.new(Kati.Screens.YearShareFa)
+               )
+    end
+  end
+
   describe "the filename" do
     test "carries the year the card is about" do
       assert YearShare.filename() == "kati-year-#{Kati.Time.today().year}.png"

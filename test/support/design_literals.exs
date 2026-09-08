@@ -544,7 +544,16 @@ defmodule Kati.DesignLiterals do
       # decision, it is a physical impossibility."* The card says `Scan to set
       # up this plan` now, over a sentence naming what does and does not
       # travel.
-      {"50", "scan to import this plan"}
+      {"50", "scan to import this plan"},
+      # Board 98's badge under `Share…` named a fence that had already landed.
+      # `K-20 file-transport` is `ACTION_SEND` behind a FileProvider URI and
+      # `native/LEDGER.md` has carried the row since `Kati.Backup` needed a way
+      # off the phone; `K-45 capture-screen` supplied the bytes. Both halves
+      # existed and nothing joined them, so `Kati.Native.Files.share/2` had no
+      # caller in `lib/` at all and the badge went on naming a wait that had
+      # ended. `share_screen/1` is the join, and the badge is not reworded —
+      # a marker naming no fence is a marker the next reader believes.
+      {"98", "when file sharing lands"}
     ]
   end
 end

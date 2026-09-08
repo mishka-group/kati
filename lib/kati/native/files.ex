@@ -275,6 +275,30 @@ defmodule Kati.Native.Files do
     end
   end
 
+  @doc """
+  Rasterise what is on screen and hand it to the system share sheet.
+
+  `save_screen/1`'s other half, and the same two calls in the same order:
+  `capture/1` writes a PNG of the app's content area into the cache directory,
+  and `share/2` offers that file to another app through `ACTION_SEND`.
+
+  Neither half was ever missing. `K-20 file-transport` shipped the intent and
+  `K-45 capture-screen` shipped the readback. What was missing was this
+  function: until it existed `share/2` had **no caller anywhere in `lib/`**,
+  and screen 98 drew a badge saying the platform could not do what the platform
+  had been able to do since `Kati.Backup` needed a way off the phone.
+
+  Returns `:ok` once the chooser is open, and that is all it can mean — Android
+  reports the same result whether a send completed or the sheet was dismissed,
+  which is `share/2`'s own note.
+  """
+  @spec share_screen(String.t()) :: :ok | {:error, term()}
+  def share_screen(name) when is_binary(name) do
+    with {:ok, path} <- capture(name) do
+      share(path, subject: name)
+    end
+  end
+
   @doc false
   @spec capture(String.t()) :: {:ok, Path.t()} | {:error, term()}
   def capture(name) when is_binary(name) do

@@ -21,12 +21,23 @@ defmodule Kati.Screens.YearShare do
   answers.* A wordmark on four cards is branding; a wordmark on the one card
   that provokes the question is an answer.
 
-  ## `Share…` is drawn and not built
+  ## `Share…` had a badge naming a fence that had already landed
 
-  `WHEN FILE SHARING LANDS` sits under it, in the same idiom screen 119 uses
-  for its two unbuilt nutrition paths. Kati has no share-sheet fence — nothing
-  in `native/LEDGER.md` hands a file to the platform — so the control says what
-  it is waiting for rather than failing quietly.
+  It read `WHEN FILE SHARING LANDS`, in the idiom screen 119 uses for its two
+  unbuilt nutrition paths, and the control under it drew no `on_tap` — which is
+  the right way to draw a control with nowhere to go, over a claim that had
+  stopped being true. `K-20 file-transport` is `ACTION_SEND` behind a
+  FileProvider URI, `Kati.Native.Files.share/2` has reached it since
+  `Kati.Backup` needed a way off the phone, and `K-45 capture-screen` supplies
+  the bytes. `Kati.Screens.YearCardsStates` had already written the sentence
+  down: *"`Kati.Screens.YearShare`'s line about there being no way to hand a
+  file out has been overtaken by that fence."*
+
+  What was missing was the join, and it is the join **Save image** already is:
+  capture, then hand over. `Kati.Native.Files.share_screen/1` is that, and
+  until it was written `share/2` had no caller in `lib/` at all. The badge is
+  not reworded, it is **not drawn** — a marker naming no fence is a marker the
+  next reader believes.
   """
 
   use Kati.Screens.Pushed, back: "Stats"
@@ -701,27 +712,9 @@ defmodule Kati.Screens.YearShare do
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={11} />
-      <Row fill_width={true} align="center">
+      <Row fill_width={true} align="center" on_tap={{self(), :share_image}}>
         <Spacer weight={1.0} />
         <Text text="Share…" text_size={13.5} font_weight="semibold" text_color={Palette.ink_soft()} />
-        <Spacer size={9} />
-        <Row
-          height={22}
-          corner_radius={11}
-          background={Palette.track()}
-          padding_left={9}
-          padding_right={9}
-          align="center"
-        >
-          <Text
-            text="WHEN FILE SHARING LANDS"
-            font_family="mono"
-            text_size={9}
-            letter_spacing={0.1}
-            text_color={Palette.sub()}
-            max_lines={1}
-          />
-        </Row>
         <Spacer weight={1.0} />
       </Row>
     </Column>
@@ -763,6 +756,17 @@ defmodule Kati.Screens.YearShare do
   """
   def handle_tap(:save_image, socket) do
     case Kati.Native.Files.save_screen(Kati.Screens.YearShare.filename()) do
+      :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
+      {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}
+    end
+  end
+
+  # `Share…`'s other half, and the same shape: capture, hand over, report a
+  # refusal in the band `Save image` already reports into. Both are `:ok` the
+  # moment the system UI is open — the outcome arrives later as a message, and
+  # neither control can wait for it.
+  def handle_tap(:share_image, socket) do
+    case Kati.Native.Files.share_screen(Kati.Screens.YearShare.filename()) do
       :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
       {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}
     end

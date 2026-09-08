@@ -42,6 +42,35 @@ defmodule Kati.NativeFilesTest do
       assert Files.share(path) == {:error, :no_bridge}
     end
 
+    test "both screen doors refuse at the capture, before any intent" do
+      # `share_screen/1` is `save_screen/1` with ACTION_SEND on the far end, and
+      # on the host neither gets that far: `Kati.Native.Bridge.reply/2` answers
+      # `{:error, :no_bridge}` because the NIF is not bound, so `capture/1`
+      # short-circuits the `with` and neither a chooser nor a picker is asked
+      # for. Screen 98's two buttons are these two functions.
+      assert Files.save_screen("kati-year-2026.png") == {:error, :no_bridge}
+      assert Files.share_screen("kati-year-2026.png") == {:error, :no_bridge}
+    end
+
+    test "the share intent has a caller, which is what the badge was waiting for" do
+      # `katiFileShare` shipped complete as `K-20 file-transport` and
+      # `Kati.Native.Files.share/2` reached it, and for the life of that fence
+      # NOTHING in lib/ called it — so screen 98 drew a badge saying the
+      # platform could not do what the platform could do. `share_screen/1` is
+      # the join, and this asserts it exists rather than that it works, because
+      # on a host it cannot.
+      assert function_exported?(Files, :share_screen, 1)
+
+      callers =
+        "lib"
+        |> Path.join("**/*.ex")
+        |> Path.wildcard()
+        |> Enum.filter(&(File.read!(&1) =~ "Files.share_screen("))
+
+      refute callers == [],
+             "`share_screen/1` has no caller in lib/, which is the defect one layer up"
+    end
+
     test "a missing source file is refused before the bridge is consulted", %{dir: dir} do
       missing = Path.join(dir, "gone.katibackup")
 
