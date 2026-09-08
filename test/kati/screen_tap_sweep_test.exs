@@ -849,7 +849,6 @@ defmodule Kati.ScreenTapSweepTest do
     # These reach a `_tag ->` catch-all (or, on a hand-rolled screen, the
     # `handle_info(_message, socket)` one), which is why `handle_tap/2 answers
     # every tag its screen draws` cannot see them. Delete a line as you wire it.
-    {Kati.Screens.Activity, :open_filters},
     # (The four `:open_sort` discs were here — screens 03, 20, 21 and 57. Board
     # 145 is captioned *One sheet for screens 03, 20 and 21* and has been in
     # `test/design/screens/` since the shelf wave, so the reason on file —

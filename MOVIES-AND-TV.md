@@ -2985,6 +2985,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Wire the star to screen 33 (Rating already writes) and either wire bookmark to TrackedTitle.progress_season or remove the disc; a third inert disc is not a smaller version of a control.
 
+*Fixed.* `action_disc/3` takes a tap and the call sites pass one: the bookmark disc is `:toggle_follow` (series.ex:1167), `bookmarks` is `:add_to_list` (:1185) and the star is `:rate_title` (:1201). Each has a `nil`-tap twin for the drawn page, where there is no row to act on — a control with nowhere to go draws no tap, which is this repo's rule and what the sweep is written to.
+
 ### 82. 05 New releases — `inert-control`
 
 **Every control on screen 05 is dead: `Mark all`, the `Watch` pill on each Out now row, and the `settings` gear on the watcher card. The tap-sweep's own comment claims Mark all "joined this group the round it was wired" — the comment is orphaned; the entry it describes is not in `@inert_taps` because the tag is no longer drawn.**
@@ -2992,6 +2994,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/inbox.ex — `grep -n 'tap' lib/kati/screens/inbox.ex` returns nothing across 816 lines. `mark_all/0` (:502) draws `<Row height={36} corner_radius={18} background=… padding_left={14}…><Text text="Mark all"…/></Row>` with no `on_tap`. `release_row/1` (:694) draws the `Watch` pill the same way. `watcher/1` (:591) ends in a bare `Kati.UI.symbol("settings", …)`. test/kati/screen_tap_sweep_test.exs:328 carries the comment; the next line is `{Kati.Screens.Search, :clear}`, and the file's stale check (:906) would fail on a phantom entry, so `{Kati.Screens.Inbox, :mark_all}` is genuinely absent.
 
 *Fix.* `Mark all` writes one `Kati.Media.Watch` per `out_now` row and re-reads (the moduledoc already describes this behaviour as if it shipped). `Watch` on a row ticks that one episode. The gear pushes `Kati.Screens.ReleaseWatcher`.
+
+*Fixed.* Screen 05's three controls all reach something: `:mark_all` ticks every tickable row and re-reads, `:open_watcher` pushes screen 25, and the `Watch` pill is `watch_tap/1` — a tap for a row carrying an episode reference and none for a drawn one.
 
 ### 83. 06 Add a title (Kati.Screens.AddTitle) — `inert-control`
 
@@ -3009,6 +3013,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Wire Log rewatch to the same title-level watch writer as the ⋯ menu, Schedule to Kati.Screens.Schedule, and Share to the platform share sheet; or drop the buttons until they have destinations.
 
+*Fixed.* `action/4` takes a tag and `@actions` gives all three one — `:add_to_list`, `:schedule_watch`, `:share_film`. The first pill's label follows the film as well: it read *Log rewatch* on a film whose own card said `SEEN never`.
+
 ### 85. 08 Film detail — `inert-control`
 
 **The note card's edit pencil and the whole rating card are painted, not tappable, so a note cannot be edited and a rating cannot be set from screen 08.**
@@ -3016,6 +3022,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/film.ex:724 is a bare `{Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}` inside note/1 with no enclosing tap. rating_card/1 (film.ex:628) and stars/1 (film.ex:~672) draw Rows and Texts with no on_tap. Film's only handle_info clauses are :back, :toggle_menu, :close_menu and :log_watch (film.ex:915-930).
 
 *Fix.* Route the pencil and the rating card into screen 33 with the film's tracked_id, the same way :log_watch already does.
+
+*Fixed.* The rating card carries `:rate` and the note's pencil `:edit_note` (film.ex:781, :1000), both gated on the page having a `tracked_id` — the drawn page has none and draws no tap. `handle_info({:tap, tag}, …)` answers all three doors at film.ex:1142.
 
 ### 86. 10 Up next — `inert-control`
 
@@ -3025,6 +3033,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Give `cold_data/2` and `ready_data/2` the durable row's `id`; hang `on_tap` on the cold pill → `Mob.Socket.push_screen(Kati.Screens.DropSheet, Kati.Screens.DropSheet.params_for(%{tracked_id: id}))` (that sheet already writes `:dropped` — drop_sheet.ex:237). Hang `on_tap` on each play disc and each row → `Kati.Screens.Film` / `Kati.Screens.Series` with the row's id as a param (both are currently pushed bare from Library and resolve "newest tracked" themselves, so the param has to land at the same time). `tune` opens `Kati.Screens.ShelfFilters`, as Library's four sort discs already do.
 
+*Fixed.* Screen 10 has taps: `:open_filters` on the tune disc, `:open_library`, and a play disc per row. The grep in this finding returned nothing and now returns seven call sites.
+
 ### 87. 11 Discover — `inert-control`
 
 **Discover's `tune` disc is drawn as a plain Box with no tap at all, and the `Schedule` buttons that do work forget themselves the moment you go back.**
@@ -3032,6 +3042,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/discover.ex:196-205 — `<Box width={44} height={44} corner_radius={22} background=… shadow=… align="center">{Kati.UI.symbol("tune", size: 21)}</Box>`, no `on_tap`. :105 `scheduled: []` is a socket assign; :612 `handle_tap` "schedule_" toggles it and nothing writes. Same shape as `Kati.Screens.UpNext.tune_disc/0` (up_next.ex:358) and `Kati.Screens.WhatFits.more_disc/0` (what_fits.ex:145) — three discs the boards draw and no code taps.
 
 *Fix.* Wire all three discs to `Kati.Screens.ShelfFilters` (Library's four sort discs already push it) or stop drawing them. `Schedule` needs a `Kati.Calendars.Event` write to survive a pop.
+
+*Fixed.* The tune disc opens the panel (`:tune?`, discover.ex:1211). The Schedule button's second half was fixed the other way and deliberately: `schedule_tap/1` answers `nil` for every row, so the button draws no tap at all rather than a toggle that forgets itself the moment you go back — the same rule `Kati.Screens.PlanShare.tile_tap/1` keeps.
 
 ### 88. 13 What fits? — `inert-control`
 
@@ -3059,6 +3071,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Give each row the tracked title's id and push Kati.Screens.Film or Kati.Screens.Series from it.
 
+*Fixed.* Every entry row carries a tap (activity.ex:626) and opens the title the entry is about.
+
 ### 91. 15 Activity — `inert-control`
 
 **The filter (tune) disc in the Activity header reaches a handler and does nothing.**
@@ -3066,6 +3080,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/activity.ex:288 draws `Kati.Screens.Activity.disc("tune", :open_filters)`; handle_tap/2 (activity.ex:638-643) matches only `"filter_" <> label` and falls through to `_ -> {:noreply, socket}`. Listed at test/kati/screen_tap_sweep_test.exs:772 under the Backlog group; the reason on file (activity.ex:624-626) is 'No board in the 165 draws an activity filter sheet, so it has nowhere to go that would not be invented here.'
 
 *Fix.* Draw the sheet, or remove the disc.
+
+*Fixed 8 September.* `handle_tap(:open_filters, …)` pushes `Kati.Screens.ShelfFilters` — the same sheet the chips narrow with — and the comment beside it names this finding: *alive enough to swallow the tap, dead enough to answer it with silence.* The wiring landed earlier and the entry stayed on `@inert_taps` until today, which is a stale exemption over a live control; it is gone.
 
 ### 92. 152 Anime — `inert-control`
 
@@ -3075,6 +3091,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* None — this is the honest resting-member category. Recorded for completeness.
 
+*Not a defect, and the sweep says so where it counts.* `:pick_screen` and `:watches_yes` are the ALREADY-SELECTED members of two live families: `load/1` opens screen 152 on `onboarding_pick: "Screen"` and `watches_anime?: true`, and their siblings `:pick_books` and `:watches_no` move the screen. That is the first category `@inert_taps` documents and it is confirmed the way that paragraph prescribes. Board 152's own argument became a feature separately — see #8 and #104.
+
 ### 93. 18 Quick add (Kati.Screens.QuickAdd) — `inert-control`
 
 **Five of the six 'Or file it as' chips — including Title, the only one that would add a film — swallow taps and do nothing.**
@@ -3082,6 +3100,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/quick_add.ex:128-129 kind_tap/1 returns {self(), :file_as_expense} for "Expense" and nil for every other label; the nil reaches the chip node at :486 and :511 as no on_tap. Event, Reminder, Title, Habit and Note are drawn identically to Expense and are not tappable.
 
 *Fix.* Until each has a destination, draw the five differently (muted, or with a 'coming' marker) so the user is not invited to tap them; or wire Title straight to Kati.Screens.AddByHand with the sentence pre-filled.
+
+*Fixed.* `kind_tap/1` gives every chip a tag (quick_add.ex:301), and `filing/1` says which write each one is: four file an event by kind, **Title** goes to screen 06 and **Expense** to screen 124.
 
 ### 94. 19 Search — `inert-control`
 
@@ -3091,6 +3111,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* None needed; listed so the sweep entry is not mistaken for a defect. Confirm on device that the bound `<TextField value={@query}>` actually clears visually on re-render.
 
+*Fixed.* The clear disc works on a device with something typed; what the sweep saw was a bare mount, where the field it empties is already empty. Board 312 rewrote what clearing LANDS on — screen 86's recent shelf, carrying the just-cleared query — and `Kati.SearchClearTest` presses it over a real query.
+
 ### 95. 33 Rating — `inert-control`
 
 **The three context rows — Watched on, Where, With — each draw a chevron and carry no tap tag, promising three screens that do not open.**
@@ -3098,6 +3120,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/rating.ex:1300-1320: context_card/1 builds `SettingsList.row(SettingsList.icon_tile(row.icon), SettingsList.body(row.title, row.sub), SettingsList.chevron(), padding: 13, rule: i < last)` — no on_tap is passed to row/4. Because no tag is registered these are invisible to ScreenTapSweepTest and absent from @inert_taps.
 
 *Fix.* Either wire a date picker, a service picker and a names field, or drop the chevrons so the rows read as values rather than as destinations.
+
+*Fixed.* The three rows carry `on_tap: if(live?, do: {self(), row.tag})` (rating.ex:1570) and disclose one at a time — pressing the open row closes it, because a disclosure that only opens is a row you have to leave the screen to be rid of.
 
 ### 96. 33 Rating — `inert-control`
 
@@ -3107,6 +3131,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* add_tag needs a tag field; contains_spoilers is a real column and needs a switch; the scale toggle needs a preference resource (screen 35) before it can be anything but paint.
 
+*Fixed.* All three act: `:toggle_spoilers` flips the line, `:add_tag` opens a tag field that commits on `:commit_tag` (with `:use_tag_` and `:drop_tag_` beside it), and the scale toggle is `scale_toggle(writable?(w))`. Each is live only when the sheet has a row behind it, because a control over a drawn page would be editing nothing.
+
 ### 97. 34 Season — `inert-control`
 
 **The Aired / Absolute / DVD strip is a picture: neither clause of order/2 emits on_tap and handle_tap/2 matches only episode rows, so the screen's central control does nothing. CachedEpisode.in_order/2 already implements :absolute.**
@@ -3114,6 +3140,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/season.ex:580-617 — both `def order(label, true|false)` clauses build Boxes with no on_tap prop. handle_tap/2 at season.ex:192-197 matches `"episode_" <> index` and falls through on everything else, so the sweep's 'answers every tag' check never sees these tiles.
 
 *Fix.* Give the two supported tiles a tag, hold :current_order on the socket, and rebuild the rows through CachedEpisode.in_order/2. Leave DVD unselectable, per CachedEpisode.orders/0.
+
+*Fixed.* Both `order/2` clauses carry `on_tap` (season.ex:984, :1009) and the strip changes the order the episodes are listed in, through `CachedEpisode.in_order/2` which this finding noted already implemented `:absolute`.
 
 ### 98. 34 Season / 35 Series settings — `inert-control`
 

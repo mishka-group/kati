@@ -136,15 +136,17 @@ defmodule Kati.Screens.Rating do
   mounted with, and `Kati.RatingWriteTest` pins the consequence directly:
   rate, save, rate again, save again, one row.
 
-  **Two of the sheet's values are editable, and the other five are not yet.**
-  Each star carries two tap targets — left half and right half, which is
-  precisely what the drawing's own `TAP LEFT OR RIGHT OF CENTRE` promises — so
-  the ten of them address `Kati.Media.Watch.rating`'s ten points one for one,
-  and the review is a real field. `contains_spoilers`, the three context rows
-  and `:add_tag` are still drawn and still inert; each needs a control this
-  screen does not draw (a switch, a date picker, a place picker, a tag field)
-  rather than a write path, and the write path they would use is the one that
-  now exists.
+  **Every value the sheet draws is editable now.** Each star carries two tap
+  targets — left half and right half, which is precisely what the drawing's own
+  `TAP LEFT OR RIGHT OF CENTRE` promises — so the ten of them address
+  `Kati.Media.Watch.rating`'s ten points one for one, and the review is a real
+  field. This paragraph used to end *`contains_spoilers`, the three context
+  rows and `:add_tag` are still drawn and still inert*, and each of those has
+  since been given the control it was waiting for: the spoiler line toggles
+  (`:toggle_spoilers`), the three rows disclose one at a time (#95), and the
+  tag field opens on `:add_tag` and commits on `:commit_tag` (#96). Each is
+  live only when the sheet has a row behind it — `writable?/1` — because a
+  control over a drawn page would be editing nothing.
 
   ## What the tap sweep does with a Save that writes
 
