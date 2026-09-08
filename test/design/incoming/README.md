@@ -185,11 +185,11 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 201 | Watched on | `D-36` |
 | 202 | Where | `D-36` — **partly built 8 Sep**. Its substance is in: `Kati.Media.Watch.place` was read by `where_label/1` and written by nothing, so `Lumen+ · living room` could only print half of itself; `Kati.Screens.Rating.place_editor/1` is the section that writes it, and `Not on a service` joins the service row. What is not built is the SHEET — MOVIES-AND-TV.md #95 settled that screen 33's context rows disclose in place rather than push, and board 204 is the reconciliation. MOVIES-AND-TV.md #154. |
 | 203 | With, and + tag | `D-36` |
-| 204 | 33 and 144, reconciled | `D-36` |
+| 204 | 33 and 144, reconciled | `D-36` — **a decision, not a build**. The board rules three chevrons that push; MOVIES-AND-TV.md #95 built three rows that disclose in place, with the reasoning on file. The substance of 201, 202 and 203 is built either way — see #154 for 202's half — so this is a change of shape rather than of capability, and it is the owner's. MOVIES-AND-TV.md #155. |
 | 208 | Reference: the settings header | `D-52` |
 | 248 | Series — a title with no episodes | `D-58` — **built 8 Sep**, kept here: it draws a specimen frame AND an annotated variant (*Watching — the same board, chip lit*), so the literal sweep cannot compare it against one render. `Kati.Screens.Series.episodes/1` draws the card, the *What still works* group and the footnote; `Kati.ScreenSeriesTest` asserts the copy, the three taps and the empty primary slot. MOVIES-AND-TV.md #149. |
 | 249 | سریال بدون قسمت — no episodes, RTL | `D-58` — **built 8 Sep**, kept here for 248's reason: it draws a specimen frame and an annotated variant in one file. `Kati.Screens.SeriesFa.episodes/1`'s empty clause is the first thing in that module built out of the SHARED components rather than a Persian copy of them, which `K-48 locale-face` is what made possible. `Kati.SeriesFaTickTest` asserts the copy, the mirrored chevrons and the three taps. |
-| 250 | The moment it fills | `D-58` |
+| 250 | The moment it fills | `D-58` — **moved to `reference/`** on 8 Sep. It is a before/after of one page rather than a page: 248's state beside screen 04 proper. It is the spec 248's build was checked against, and `test/design/reference/README.md` records the claim it makes. |
 | 251 | Doors for the stranded screens | `D-34` — a receipt, moved to `reference/` |
 | 252 | One service | `D-46` |
 | 253 | One expense | `D-46` |

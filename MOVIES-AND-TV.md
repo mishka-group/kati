@@ -2103,10 +2103,12 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**154 findings**, every one traced to a line. All but two carry a closing verdict
+**155 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
-Two are open on purpose. **#153** counts, control by control, why board 169 cannot be
+Three are open on purpose. **#155** is a decision rather than a defect: board 204 and
+MOVIES-AND-TV.md #95 answer the same question opposite ways, both boards' substance is
+built, and which shape wins is the owner's call. **#153** counts, control by control, why board 169 cannot be
 built without inventing a recommender — ten of its eleven chips have nothing on a device to
 act on. And **#150**: an intermittent `SIGBUS`
 inside SQLite that did not reproduce, recorded with its tombstone so a second
@@ -3924,6 +3926,21 @@ So the board is honest about being a drawing of a sheet over a sample. What it c
 **`Not on a service`** joins the service row, and is stored AS the service rather than as its absence. Board 202 words it *a disc, a cinema, a plane*: a night at the cinema is a fact about where a film was watched, and leaving the column `nil` would make it indistinguishable from a night nobody said anything about.
 
 *What board 202 draws that is deliberately not built.* Its frame is a sheet with a close disc and a search field over the service list. MOVIES-AND-TV.md #95 settled the opposite arrangement — screen 33's three context rows **disclose in place** rather than push — and board 204 is the board that reconciles 33 and 144, which is a decision rather than a build. So the substance of 202 is built into the existing disclosure and the sheet is not; the search field is what a service list long enough to need one would want, and `where_options/1` takes six.
+
+
+### 155. 33 and 144, reconciled — board 204 is a decision, and it is the owner's
+
+**Board 204 rules that screen 33 keeps three chevrons that PUSH, and screen 144 gains them. The build went the other way, deliberately, and neither is wrong — but they cannot both stand.**
+
+*What the board says.* Its three headings are `The context card`, `33 — unchanged, three chevrons`, `144 — gains the chevrons, keeps its now`. So the intended shape is three rows that open three pages: board 201 (*Watched on*), 202 (*Where*) and 203 (*With, and + tag*).
+
+*What was built, and why.* MOVIES-AND-TV.md #95 closed the same rows the opposite way: `context_card/1` carries `on_tap: if(live?, do: {self(), row.tag})` and `editor/3` **discloses one at a time in place** (`rating.ex:1554-1585`, `:1662-1724`). The reasoning on file is `rating.ex:1726-1737` declining board 201's month grid by name — *"Not a calendar. A person logging a watch is logging tonight's, or last night's"* — and disclosure is what that argument leads to: a date you pick from four chips does not need a page.
+
+Two verifiers re-checked 201 and 203 against the code and refuted both as open: their substance is built. 202's substance is built too, as of #154 — the Place section and `Not on a service` — leaving only its sheet.
+
+*So the open question is not a missing feature; it is a shape.* Three pages, or three disclosures. The disclosures are live, tested and shipping. The pages would be three new screens, three new routes, and three boards moving into `screens/`.
+
+**This is left for the owner rather than settled here**, because it is the kind of choice a build should not make for a design twice: #95 made it once, board 204 answers back, and a third silent reversal is how a screen ends up with both. What is recorded here is that the boards' substance is not missing, so whichever way it goes is a change of shape rather than of capability.
 
 
 # Pages a user cannot reach except through Settings

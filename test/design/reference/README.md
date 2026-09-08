@@ -13,6 +13,7 @@ Two remain here.
 |---|---|---|---|
 | 134 | First run — the flow map | `D-23` | Not a screen. See below. |
 | 251 | Doors for the stranded screens | `D-34` | Not a screen — a receipt. See below. |
+| 250 | The moment it fills | `D-58` | Not a screen — a before/after of one page. See below. |
 
 The twenty-five that left are 128–133 (`D-22`, #25), 135–139 (`D-23`, #11),
 140–142 (`D-24`, #12), 143–144 (`D-25`, #15), 145–147 (`D-26`, #19), 148–149
@@ -116,3 +117,23 @@ old sentence being true:
 
 Building the new 40 would make all three wrong on the same day. Decide the
 product question first; the artboard follows it, not the other way round.
+
+## 250 — the moment it fills
+
+Two frames of **The Northern Gardens** side by side: *Before — a source has not
+found it*, which is board 248, and *After — a source found it*, which is screen
+04 proper with a season bar and `8 episodes arrived`. It is the diff between two
+states of one page rather than a page, so there is nothing for a screen module
+to be.
+
+It is not decoration either — it is the SPEC 248's build was checked against,
+and its note is the claim that build has to keep: *"The claim card is replaced,
+not appended to: once seasons exist, 04's own gate passes and the season bar is
+the truthful thing to draw. The title, the year and the status survive intact —
+154's promise, kept and visible."*
+
+`Kati.Screens.Series.episodes/1` has two clauses for exactly that reason: the
+empty one draws 248's card, and the ordinary one draws the season's rows, and
+nothing appends the first to the second. `Kati.ScreenSeriesTest` asserts both
+sides — that a series with no episodes draws the card and no primary, and that
+one with episodes draws neither the card nor its footnote.
