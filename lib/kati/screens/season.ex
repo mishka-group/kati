@@ -123,15 +123,17 @@ defmodule Kati.Screens.Season do
       strip is drawn with the three tiles the design has and `Aired` is the
       order the list is actually built in — `in_order/2` at `:aired` — rather
       than a label over an arbitrary sort.
-    * **`Include specials` and `Merge multi-part`.** Two switches on a card, and
-      neither has a column. `Kati.Media.TrackedTitle` carries the four per-show
-      switches screen 35 draws and none of these: they are per-*season* display
-      choices about how an order is built, and `Kati.Media.CachedEpisode` is a
-      cache, which is the one place a user's choice must never live. Both are
-      therefore drawn in their design state and neither changes what is read —
-      which is why a real season lists what `for_season/3` returns for the
-      bookmarked number and does not reach into season 0 for the specials the
-      first switch would include.
+    * **`Include specials`.** Honoured. `specials/2` reads season 0 — which is
+      where every provider files them — and merges it into the list, sorted by
+      air date, which is exactly what the sub-line promises. It was drawn ON
+      above a list that contained none, because `for_season/3` reads one season
+      number and 0 is never it (MOVIES-AND-TV.md #69).
+    * **`Merge multi-part`.** Not honoured, and it cannot be yet: merging a
+      two-part finale into one entry needs a column that marks an episode as
+      merged and pairs it with its other half, and `Kati.Media.CachedEpisode`
+      is a cache — the one place a user's choice must never live. The switch is
+      drawn in its design state and changes nothing, which is written down
+      here rather than left to be discovered.
     * **The `PARTS 1–2` badge.** Merging a two-part finale into one entry is a
       transformation of the order with nothing to record that it happened — no
       column marks an episode as merged and none pairs it with its other half.

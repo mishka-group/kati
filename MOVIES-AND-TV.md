@@ -2591,6 +2591,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Either build the provider list (TMDB `/watch/providers/movie?watch_region=<region>`, which is the same client `Kati.Media.Tmdb` already speaks) or remove the row from both boards. It must not point at a states board.
 
+*Fixed.* The *Not mine* row no longer says `Show all 47`; `Kati.Screens.MyServices`'s own doc at :972-990 records the change and what the row says instead. There is still no catalogue screen and the row does not pretend there is.
+
 ### 36. 94 Country picker → 92 My services — `cannot-work`
 
 **Picking a country writes the region but the page you come back to still shows the old one. Mob's pop restores the saved socket rather than re-mounting, and 92's region row is drawn from `assigns.region`, which was read once at mount.**
@@ -2598,6 +2600,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 *Proof.* deps/mob/lib/mob/screen.ex:571 `{:pop} -> case nav_history do [{prev_module, prev_socket} | rest] -> {prev_module, prev_socket, rest, :pop}` — no `mount`, no `load`. lib/kati/screens/my_services.ex:93 `Mob.Socket.assign(:region, Services.region())` in `load/1`; :180 `region_group(assigns.region)`. lib/kati/screens/country_picker.ex:125-127 writes through `Services.put_region/1` then pops. (The service list does refresh, because `content/1` calls `subscribed/0` at render — which makes the inconsistency visible on one screen.)
 
 *Fix.* Have 94 hand the code back — `Mob.Socket.pop_screen` with a result, or have 92 read `Services.region()` in `content/1` the way it already reads `subscribed/0`, not from assigns.
+
+*Fixed.* `Kati.Screens.MyServices.handle_kati(:resumed, …)` re-reads the region when the picker pops back, through `Kati.Screens.Resume` — the mechanism `MISSING-CONNECTIONS.md` scoped for exactly this, built without forking Mob.
 
 ### 37. 03 Library — `lies-to-user`
 
@@ -2901,6 +2905,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Read `Kati.Services.Service` for the rows and `Service.total/1` for the hero figure once a price editor exists — 92 already claims ownership of the prices on screen. Set `back: "My services"`, or make the pill label follow the pusher.
 
+*Fixed.* The back pill reads `My services`, which is the only route in, and `ledger/0` reads `Kati.Subscriptions.ledger/0` — the drawing is what a device with nothing stored falls back to, and `drawn_ledger/0` is what board 23 is compared against.
+
 ### 67. 25 Release watcher — `lies-to-user`
 
 **Ten switches, a master switch and a four-way cadence, all of which edit one socket assign and are forgotten on back. The cadence in particular is a lie against working code: `Kati.Background.Periodic` runs on a compile-time constant six hours and never reads this screen.**
@@ -2919,6 +2925,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Pass Rating.params_for/1 (or a book/album equivalent) from every door; refuse to draw a subject the caller did not name.
 
+*Fixed for the two domains screen 33 rates; the rest is recorded where a run can see it.* `Kati.Screens.Film` and `Kati.Screens.Series` name the title they drew, and screen 74's Rate row moved to `Kati.Screens.RateAlbum`, which names the album. The remaining bare pushes are the book doors, and `Kati.ScreenParamsSweepTest`'s `@bare_pushes` carries each with the reason: 33 reads `:tracked_title_id` and a book is not a tracked title, so making it rate one is a screen build — a second reader, a second writer, and a decision about which rating column the stars commit to.
+
 ### 69. 34 Season — `lies-to-user`
 
 **On a real season, 'Include specials · Shown inline, at air date' and 'Merge multi-part · Treat E7 & E8 as one 2h finale' stay switched on above a list that does neither — assemble/3 replaces only title, eyebrow, episodes and note, and for_season/3 reads one season number and never season 0.**
@@ -2926,6 +2934,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/season.ex:398-411 — the struct update keeps :orders, :current_order, :options and :subtitle from drawn_season(). lib/kati/screens/season.ex:388-393 calls CachedEpisode.for_season(source, source_id, number) for the bookmarked number only.
 
 *Fix.* Either wire the two switches (they are per-season display state, so they can live on the socket) or drop them from the real-season branch rather than carrying the fixture's positions and sub-lines over the user's list.
+
+*Fixed for the half that had an answer.* `Include specials` is honoured: `specials/2` reads season 0 — where every provider files them — and merges it in by air date, which is what the sub-line promises. `Merge multi-part` is not, and cannot be until a column marks an episode as merged and pairs it with its other half; `Kati.Media.CachedEpisode` is a cache and is the one place a reader's choice must never live. The screen's own moduledoc says which is which.
 
 ### 70. 80 Data sources (Kati.Screens.DataSources) — `lies-to-user`
 
@@ -2935,6 +2945,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Gate the chip: either show the key field on selecting :own and only commit the choice once a token is stored, or disable :own until Kati.SecureStore.available?/0 and a writer exist.
 
+*Fixed.* Board 318 built the card the tap needs: choosing *Use my own key* draws a field to paste one into, and the key is stored outside the repo. The choice is no longer a switch to a key the reader has no way to supply.
+
 ### 71. 80 Data sources (Kati.Screens.DataSources) — `lies-to-user`
 
 **The pairing card shows a constant code, a countdown that never counts down, and sends Hardcover and TheTVDB users to ListenBrainz's URL.**
@@ -2942,6 +2954,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/data_sources.ex:397-400 pairing_code/1 returns hardcoded K4Q9B2 / K7M3D8 / K2V6X1; :378 draws the literal 'Expires in 9:48'; :375 draws the literal 'listenbrainz.org/link' inside pairing/2, which is rendered for whichever of the three sources is expanded. Nothing in lib/ implements a client for any of them, and Sources.connected?/1 (lib/kati/sources.ex:144) can never be true because nothing writes a tier-2 token.
 
 *Fix.* Collapse the tier-2 section to a stated 'not built yet' state, or at minimum derive the URL per source and drop the fake code and countdown.
+
+*Fixed.* `pairing_code/1` is gone — the doc at data_sources.ex:841 records what replaced it and why: Kati talks to nothing that issues a code, so a constant one, a countdown that never counts and one provider's URL under three names were three claims about a handshake that does not happen.
 
 ### 72. 86 Search idle — `lies-to-user`
 
@@ -2981,6 +2995,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Gate 92's fallback the way 96's `set_up?/0` was meant to: fixtures only when the store is empty AND the device has never opened 92. Better, draw the 93 empty-state groups inside 92 on an empty store and delete 93 as a separate page.
 
+*Fixed.* Neither group falls back to `Kati.Services.Sample`: `subscribed/0` and `free/0` read what is stored and answer nothing when nothing is. Home and 92 ask one question now, and `Kati.Screens.MyServices`'s own doc names this finding twice.
+
 ### 76. 92 My services — `lies-to-user`
 
 **Adding one service through `Something else` produces a page that is half the user's and half the drawing's. `subscribed/0` and `free/0` fall back independently, so the Subscribed group becomes your one service while the Free group still shows Aria Free and Dispatch, and the Money row still reads £46.47 a month beside a live count of "1 service".**
@@ -2988,6 +3004,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/my_services.ex:101 and :110 — two separate `case stored(tier) do [] -> Sample.x() …` fallbacks. :505 `money_group/0` composes `count = length(subscribed())` (live) with `Sample.monthly_total()` (frozen "£46.47", lib/kati/services/sample.ex:51). test/kati/service_write_test.exs:198 asserts the tier-swap behaviour and never looks at the other group.
 
 *Fix.* One gate for the whole page: if `Service |> Ash.Query.for_read(:listed)` returns anything, draw only stored rows in both groups and compute the total from `Service.total/1` — never `Sample.monthly_total/0`.
+
+*Fixed with #75.* The two groups no longer fall back independently, because neither falls back at all, and the Money row reads the same store.
 
 ### 77. 92 My services / 93 — `lies-to-user`
 
@@ -3006,6 +3024,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/country_picker.ex:85 `text="Search 190 countries"`; lib/kati/services.ex:48-57 `@countries` holds seven pairs. The field's `on_tap={{self(), :search}}` (:80) falls to `handle_info(_message, socket)` (:134); the tap sweep records `{Kati.Screens.CountryPicker, :search}` in @inert_taps.
 
 *Fix.* Ship the real ISO list (or JustWatch's) and make the field filter it, or change the placeholder to the number actually offered. The sheet itself works correctly — it writes and pops.
+
+*Fixed.* The placeholder counts `Kati.Services.countries/0` — `Search 7 countries`, and `Search 190 countries` the day the list is 190 — and the field is a `<TextField>` that filters rather than a picture.
 
 ### 79. 98 Your year, shared (Kati.Screens.YearShare) — `lies-to-user`
 
