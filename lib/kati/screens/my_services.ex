@@ -1195,6 +1195,18 @@ defmodule Kati.Screens.MyServices do
       # correcting `Netflix 10.99` to `Netflix 12.99` is retyping the line you
       # typed where you typed it — which is the whole of the editor #119 asks
       # for, without a second sheet drawing a second way to say one thing.
+      # Board 302: a service row opens its own page now, and that page is where
+      # `paused` and `renews_on` are set — two columns read across the app and
+      # written by nothing until it existed. The row still hands the price back
+      # to the field (`edit_service/2`, #119) when it is opened from there,
+      # which is the arrangement board 252 asks for: the per-service page
+      # DISPLAYS the price and does not own the editor.
+      "open_service_" <> name ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.Service, %{
+           name: String.replace(name, "_", " ")
+         })}
+
       "edit_service_" <> name ->
         {:noreply, Kati.Screens.MyServices.edit_service(socket, name)}
 

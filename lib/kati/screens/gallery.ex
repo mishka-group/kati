@@ -276,6 +276,10 @@ defmodule Kati.Screens.Gallery do
     # compare it against; it is reached from Settings → Data → Clear watch
     # history, which is the row that opened nothing until it was built.
     {:open_undrawn_clear_history, "Clear watch history", Kati.Screens.ClearHistory},
+    # Boards 252 and 302 — one service. Reached from My services, by tapping a
+    # service. It drops the three groups those boards draw and this device
+    # cannot answer, so no artboard holds what it renders.
+    {:open_undrawn_service, "One service", Kati.Screens.Service},
     # `Kati.Screens.Backup` left this list on 24 August: #25's drawings landed
     # as 128-133 and it is filed under 128 above, which is the move this
     # comment describes. `Kati.Screens.Sync` is still here — #54's screen has

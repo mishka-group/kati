@@ -229,7 +229,17 @@ defmodule Kati.Subscriptions do
       pence: service.monthly_pence,
       minutes: minutes,
       rate: rate,
-      rate_tone: colour(tone)
+      rate_tone: colour(tone),
+      # Screen 23 greys a paused row and drops its rate — `service_row/2` reads
+      # `Map.get(row, :paused, false)` — and this map never carried the column,
+      # so that branch fired for the drawing's rows and never for a reader's.
+      # Board 302 is what can now set it.
+      paused: service.paused,
+      # Whose row this is. The drawing's services are not on this device, so
+      # `Kati.Screens.Service.find/1` would answer `nil` for every one of them
+      # and a tap would open a page about nothing. See
+      # `Kati.Screens.Subscriptions.service_tap/1`.
+      live?: true
     }
   end
 

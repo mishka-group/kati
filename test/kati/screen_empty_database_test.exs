@@ -986,6 +986,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # destructive row without a tap when there is nothing to clear.
     # `Kati.ScreenClearHistoryTest` holds both.
     Kati.Screens.ClearHistory,
+    # Boards 252/302's page. A bare push names no service and answers `nil`,
+    # which is the state an empty store is always in — `find/1` does not pick
+    # the first service on the shelf, because this page pauses things and takes
+    # them off it. `Kati.ScreenServiceTest` holds that.
+    Kati.Screens.Service,
     # The two notification screens. Both read a store — the inbox builds a plan
     # from every domain's candidates, the diagnostic reads the permission state
     # and the same plan — and neither has a drawing to be compared against, so

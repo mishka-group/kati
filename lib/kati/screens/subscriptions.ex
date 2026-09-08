@@ -396,15 +396,29 @@ defmodule Kati.Screens.Subscriptions do
     """
   end
 
-  @doc false
+  @doc """
+  One service on the ledger, and the door to the page about it.
+
+  Boards 252 and 302 draw a per-service page and it had no way in: screen 92's
+  row is #119's price editor and owns that gesture, so the door is here, on the
+  page whose rows already ARE one service each. That page is where `paused` and
+  `renews_on` are set — two columns this screen READS (a paused row greys and
+  drops its rate) and nothing could write.
+
+  A drawn row carries no name to look up, so it draws no tap: the fixture's
+  services are not the reader's, and `Kati.Screens.Service.find/1` would answer
+  `nil` for every one of them.
+  """
+  @spec service_row(map(), boolean()) :: map()
   def service_row(row, rule?) do
     paused? = Map.get(row, :paused, false)
     name_color = if paused?, do: Palette.sub(), else: Palette.ink()
     line_color = if paused?, do: Palette.tertiary(), else: Palette.sub()
+    tap = Kati.Screens.Subscriptions.service_tap(row)
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
+      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14} on_tap={tap}>
         {Kati.Screens.Subscriptions.badge(row.badge)}
         <Spacer size={13} />
         <Column weight={1.0}>
@@ -741,17 +755,48 @@ defmodule Kati.Screens.Subscriptions do
   # `:remind` toggles rather than latches, so the one control that arms it can
   # also cancel it. There is nowhere else on this screen to cancel from, and a
   # button that can only be pressed once is a button that lies the second time.
-  @impl true
   # Board 96's button, on the band this screen draws when nothing is set up
   # (#120). All four of the sheet's routes lead to one place.
+  @doc """
+  The tap that opens one service's page, or `nil` on a row that is a picture.
+
+  Keyed on the name, which is what `Kati.Screens.Service.find/1` looks a
+  service up by and what `Kati.Screens.MyServices.service_tag/1` already keys
+  its own row on. `live?` is the ledger's own flag for *these are the reader's
+  services*; the drawing's are not, so they open nothing.
+
+      iex> Kati.Screens.Subscriptions.service_tap(%{name: "Lumen+", live?: false})
+      nil
+  """
+  @spec service_tap(map()) :: {pid(), atom()} | nil
+  def service_tap(%{live?: true, name: name}) when is_binary(name) and name != "",
+    do: {self(), String.to_atom("open_service_" <> String.replace(name, " ", "_"))}
+
+  def service_tap(_drawn), do: nil
+
+  @impl true
   def handle_tap(:my_services_ledger, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
 
-  def handle_tap(:remind, socket) do
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case Atom.to_string(tag) do
+      "open_service_" <> name ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.Service, %{
+           name: String.replace(name, "_", " ")
+         })}
+
+      _other ->
+        Kati.Screens.Subscriptions.other_tap(tag, socket)
+    end
+  end
+
+  @doc false
+  def other_tap(:remind, socket) do
     {:noreply, Mob.Socket.assign(socket, :reminded, not socket.assigns.reminded)}
   end
 
-  def handle_tap(:dismiss, socket) do
+  def other_tap(:dismiss, socket) do
     {:noreply, Mob.Socket.assign(socket, :suggestion, false)}
   end
 
@@ -762,5 +807,5 @@ defmodule Kati.Screens.Subscriptions do
   # invented. Left tappable rather than untapped: the drawing draws a control,
   # and stripping `on_tap` would take its press feedback away too. It is inert
   # and silent — the catch-all, not a raise — until a sheet is drawn.
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  def other_tap(_tag, socket), do: {:noreply, socket}
 end

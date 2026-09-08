@@ -2103,7 +2103,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**155 findings**, every one traced to a line. All but two carry a closing verdict
+**156 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
 Three are open on purpose. **#155** is a decision rather than a defect: board 204 and
@@ -3941,6 +3941,25 @@ Two verifiers re-checked 201 and 203 against the code and refuted both as open: 
 *So the open question is not a missing feature; it is a shape.* Three pages, or three disclosures. The disclosures are live, tested and shipping. The pages would be three new screens, three new routes, and three boards moving into `screens/`.
 
 **This is left for the owner rather than settled here**, because it is the kind of choice a build should not make for a design twice: #95 made it once, board 204 answers back, and a third silent reversal is how a screen ends up with both. What is recorded here is that the boards' substance is not missing, so whichever way it goes is a change of shape rather than of capability.
+
+
+### 156. 23 / 92 — one service, and two columns nothing in Kati could set
+
+**`Kati.Services.Service.paused` and `renews_on` were read across the app and written nowhere. Boards 252 and 302 are the page that writes them, and it had no way in.**
+
+*Proof.* `paused` is read twice: `Kati.Screens.Subscriptions.service_row/2` greys a paused row and drops its rate, and `Kati.Notifications.Sources.Money.candidate/4` refuses to remind about a renewal for one. `renews_on` is read three times — `Kati.Subscriptions.renewal/1`, screen 47's money day, and the same notification source. `grep -rn "paused:\|renews_on" lib/` outside those readers and the attribute list returns no writer.
+
+Worse than unreachable for the first: `Kati.Subscriptions.row/2` never put `paused` on the map screen 23 reads, so `Map.get(row, :paused, false)` answered `false` for every real service and `true` only for `Kati.Subscriptions.Sample`'s. The styling fired for the drawing and could not fire for a reader.
+
+*Fixed 8 September.* `Kati.Screens.Service` is boards 252 and 302, reduced to what this device can answer: the price, the renewal day, the pause switch, what has been watched here, and the way off the shelf. The ledger row carries `paused` and a `live?` flag now, so screen 23's own branch works and its rows know whose they are.
+
+**Three groups both boards draw are dropped rather than drawn dead**, which is the rule `Kati.Screens.SeriesSettings` states and screen 14 settled. *Cost per watched hour* and *hours watched* are argued away by board 252 itself — *"a watch records that an episode was watched, not for how long, and nothing maps a provider to a service"* — and `Kati.Media.Watch` has no duration column. *Shared with* would be one invented name: Kati has no people table, which `Kati.Screens.Rating.commit_with/1` already records about the same absence.
+
+**It displays the price and does not own the editor**, which is board 252's own instruction: *"92's caption already says 'this screen owns these prices' and the editable-price field is its own ticket."* Screen 92's row-tap is #119's editor, so the price row here is a line and a pointer. Two editors for one number is how two screens come to disagree about it.
+
+*The door is screen 23 rather than 92*, and that is deliberate: 92's row gesture is already #119's price editor and taking it would trade one capability for another. Screen 23's rows already ARE one service each. A drawn row draws no tap, because `find/1` would answer `nil` for a service that is not on this device.
+
+*What it counts, and what it will not.* `watched/1` answers logs and distinct titles off `Kati.Media.Watch.service` — the reader's own answer to *Where*, which is the one thing that connects a night to a service. Not hours, for board 252's reason. Removing a service leaves every watch, the same not-a-cascade rule `Kati.Media.History.clear/0` keeps.
 
 
 # Pages a user cannot reach except through Settings

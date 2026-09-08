@@ -190,6 +190,15 @@ defmodule Kati.ScreenDesignLiteralTest do
     # what finally sits behind three surfaces that have drawn *tap to see why*
     # with nothing under it since they were written.
     Kati.Screens.RetiredReason,
+    # Boards 252 and 302 are two takes on one service, and both draw sections
+    # this device cannot answer — a cost per watched hour, hours watched, and a
+    # person the cost is split with. Board 252 argues the first two against
+    # itself ("a watch records that an episode was watched, not for how long"),
+    # and Kati has no people table for the third. The page drops those groups
+    # rather than drawing them dead, so it renders less than either board and
+    # cannot be compared literal-for-literal against one.
+    # `Kati.ScreenServiceTest` holds what it does draw.
+    Kati.Screens.Service,
     Kati.Screens.Sync
   ]
 

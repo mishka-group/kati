@@ -191,7 +191,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 249 | سریال بدون قسمت — no episodes, RTL | `D-58` — **built 8 Sep**, kept here for 248's reason: it draws a specimen frame and an annotated variant in one file. `Kati.Screens.SeriesFa.episodes/1`'s empty clause is the first thing in that module built out of the SHARED components rather than a Persian copy of them, which `K-48 locale-face` is what made possible. `Kati.SeriesFaTickTest` asserts the copy, the mirrored chevrons and the three taps. |
 | 250 | The moment it fills | `D-58` — **moved to `reference/`** on 8 Sep. It is a before/after of one page rather than a page: 248's state beside screen 04 proper. It is the spec 248's build was checked against, and `test/design/reference/README.md` records the claim it makes. |
 | 251 | Doors for the stranded screens | `D-34` — a receipt, moved to `reference/` |
-| 252 | One service | `D-46` |
+| 252 | One service | `D-46` — **partly built 8 Sep** as `Kati.Screens.Service`, reached from screen 23's rows. Built: the price (displayed, not owned — the board says so), the renewal day, the pause switch, what was watched here, and Remove. Dropped rather than drawn dead: cost per watched hour and hours watched, which board 252 argues away itself, and *Shared with*, which needs a people table Kati does not have. MOVIES-AND-TV.md #156. |
 | 253 | One expense | `D-46` |
 | 254 | The service catalogue, and the five edits | `D-46` |
 | 255 | Add an account | `D-49` |
@@ -241,7 +241,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 | 299 | هدف تازه — New goal, RTL | `D-57` |
 | 300 | ثبت وزن — Log weight, RTL | `D-57` |
 | 301 | کشور — Your country, RTL | `D-57` | — **built 8 Sep**, kept here: the frame is a sheet drawn beside three notes about what 94 and 97 got wrong |
-| 302 | One service | `D-62` |
+| 302 | One service | `D-62` — **partly built 8 Sep** as `Kati.Screens.Service`, reached from screen 23's rows. Built: the price (displayed, not owned — the board says so), the renewal day, the pause switch, what was watched here, and Remove. Dropped rather than drawn dead: cost per watched hour and hours watched, which board 252 argues away itself, and *Shared with*, which needs a people table Kati does not have. MOVIES-AND-TV.md #156. |
 | 303 | Lending | `D-62` |
 | 304 | What a prep is | `D-42` §3 |
 | 305 | §2 and §4 — decided, not drawn | `D-62` |
