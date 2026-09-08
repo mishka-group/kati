@@ -30,57 +30,50 @@ defmodule Kati.Screens.Lists do
   same made row, with no artwork in its stack and `0 titles` under its name,
   which is what an empty list looks like.
 
-  The rows themselves are left untappable on purpose. Their chevrons point at a
-  list-detail screen the design never draws and the app does not have, and
-  `on_tap={nil}` — a row that does nothing and admits it — is better than a row
-  that swallows a press.
+  A made row opens the list it names — `made_row/1` carries
+  `open_list_<id>` for any row with an id, and `nil` for one without, which is
+  the drawn page. This section used to say the rows are *left untappable on
+  purpose*, because their chevrons pointed at a list-detail screen the design
+  had never drawn; board 331 drew it and `Kati.Screens.ListDetail` is it.
 
-  ## Why this screen still reads `Kati.Screens.Lists.Sample`
+  ## What this screen reads
 
-  Not a missing column this time — a missing **resource**. `Kati.Media` holds
-  `Kati.Media.CachedTitle`, `Kati.Media.TrackedTitle` and `Kati.Media.Watch`,
-  and that is the whole of it. Nothing in the app names a list, orders one, or
-  records that a title is in one, so unlike screen 03 there is no query to
-  write and no shape to fall back *from*.
+  Not a missing column and no longer a missing resource. `Kati.Lists.List`,
+  `Kati.Lists.Membership` and `Kati.Lists.Shelf` are written, migrated and
+  backed up; the membership table holds three nullable FKs, so a list holds a
+  film, a series, a book or an album (board 332). This section used to say the
+  resource *is not written* and that its chevrons pointed at a board that did
+  not exist, and both were true when they were written.
 
-  Precisely what this screen draws and no resource can express:
+  What the store answers now:
 
-    * **the made lists themselves** — `Best of 2026`, `Rainy Sunday`,
-      `Recommended by Jo`. A name, plus the `ranked` / `shared` badge, which is
-      a list's own state and not a property of anything in it.
-    * **membership** — which is both `14 titles` and the three posters in each
-      fanned stack. A list-to-title join is the table that does not exist, and
-      the stack is its first three rows' `Kati.Media.CachedTitle.poster_path`.
-    * **`7 lists · 2 ranked`** — the count of lists, and of the ranked ones.
-      The drawing means it to exceed the three cards on screen, so it is a
-      count of the table rather than of the section.
-    * **the kept lists** — `Wishlist`, `Rewatches`, `Abandoned`, `Owned on
-      disc`, and their counts. Two of the four could be *inferred* today —
-      `Abandoned` is `status: :dropped` on `Kati.Media.TrackedTitle`, and
-      `Rewatches` is a `Kati.Media.Watch` carrying a `rewatch_number` — and
-      neither is split out, because a card where two rows count the user's real
-      library and two are frozen reads as fully real. `Wishlist` and `Owned on
-      disc` are assertions the user makes and nothing stores.
+    * **the made lists themselves** — name, `ranked` and `shared` badges, and a
+      `name_key` so two lists called `Rainy Sunday` are one list somebody made
+      twice.
+    * **membership** — the count and the fanned stack, which is the first three
+      memberships' `Kati.Media.CachedTitle.poster_path` in the list's own
+      order, so a ranked list fans its top three.
+    * **`7 lists · 2 ranked`** — counted off the table.
+    * **the kept lists** — `Rewatches` and `Abandoned` are one query each.
+      `Wishlist` and `Owned on disc` are assertions a reader makes and no
+      column holds, so they are not drawn rather than drawn frozen; board 12's
+      own two frozen figures are on `DesignLiterals.retired_lines/0`.
 
-  ## What this screen is still waiting for, and it is not a column
+  ## The three surfaces the design owed, and what came of them
 
-  MOVIES-AND-TV.md #106, and the half of it no code can close. Three surfaces
-  the design does not draw:
+  MOVIES-AND-TV.md #106 asked for three drawings, filed as
+  [mishka-group/kati#99](https://github.com/mishka-group/kati/issues/99). The
+  `D-65` wave delivered all three on 7 September and they are built:
 
-    * **nowhere to name a list.** Board 12 has no text entry, so a list created
-      as `New list` with no way to rename it is the same lie one step further
-      in — which is why `Kati.Lists.List` is not written. A resource whose only
-      writer has to invent its own copy is worse than none.
-    * **no list picker.** Board 146's *Add to list* is the membership route the
-      design DOES draw, and it needs somewhere to put the title.
-    * **no list detail.** Every row here drew a `chevron_right` at a board that
-      does not exist; the chevrons are gone rather than left pointing nowhere.
+    * **somewhere to name a list** — board 335's naming field, one grammar for
+      creating and renaming, with one failure rule.
+    * **a list picker** — board 333, `Kati.Screens.AddToList`, a sheet over the
+      page you are on rather than a trip to the index.
+    * **a list detail** — boards 330-332, `Kati.Screens.ListDetail`, with its ⋯
+      menu, its long-press *Remove* and its undo bar.
 
-  Filed as [mishka-group/kati#99](https://github.com/mishka-group/kati/issues/99)
-  with the schema those drawings would need, so design does not have to guess at
-  what is cheap. The rule this follows is `Kati.Screens.ImportSources`'s, for
-  its own repeated literal: guessing what was meant would be inventing copy the
-  drawing does not contain, and three undrawn surfaces is three inventions.
+  Each has a Persian mirror (336, 337). The chevrons that were removed for
+  pointing nowhere point at 331 now.
 
   What HAS shipped is everything the store can answer: two of the four *Kept
   automatically* rows are the reader's own counts, the two that are assertions

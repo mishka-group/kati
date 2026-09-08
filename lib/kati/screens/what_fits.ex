@@ -51,16 +51,22 @@ defmodule Kati.Screens.WhatFits do
       that says where to start reading it.
     * **`3 episodes fit`** — the count follows the list.
 
-  One thing is still genuinely absent, and it is an axis rather than a value:
+  One thing is still genuinely absent, and it is a WRITER rather than a column:
 
-    * **`Light`, `Tense`, `Long-form`** — a mood. `CachedTitle.genres` is a
-      genre, which is a different claim about a title, and `Kati.Media.Watch.tags`
-      is per-watch and written after the fact. Nothing on the new episode
-      resource speaks to it either.
+    * **`Light`, `Tense`, `Long-form`** — a mood. **`Kati.Media.Watch.moods` is
+      real**, and this list used to say it was not: `{:array, :atom}`
+      constrained to `Kati.Media.Mood.vocabulary/0`, migrated by
+      `20260822190546_add_mood_pace_and_content_warnings`, with a whole module
+      built to read it. What does not exist is anything that WRITES it — none
+      of the five paths that create a watch sets it, the importer has no field
+      that could carry one, and no board draws a control that would, board 33's
+      log sheet included. So the column is `[]` on every device and a chip over
+      it narrows nothing.
 
-  So what keeps this screen on its Sample module is now a decision about scope
-  rather than a fact about the schema: the list is derivable and the three chips
-  above it are not, and a page whose rows are real while its only filter is
+  So what keeps this screen on its Sample module is a decision about scope
+  rather than a fact about the schema — and about a missing writer rather than
+  a missing column: the list is derivable and the three chips above it are
+  not, and a page whose rows are real while its only filter is
   invented would be the same kind of half-truth the paragraph below objects to.
   Recorded plainly so the next pass weighs that rather than re-deriving a
   blocker that has already been cleared.
@@ -179,7 +185,8 @@ defmodule Kati.Screens.WhatFits do
         now: Kati.Screens.WhatFits.clock(),
         window: Kati.Screens.WhatFits.window_label(minutes),
         lengths: Enum.map(@windows, fn {label, m} -> %{label: label, selected: m == minutes} end),
-        # No column anywhere speaks to a mood — see `tonight/1`. A chip that
+        # `Kati.Media.Watch.moods` exists and is `[]` on every device, because
+        # none of its five writers sets it — see `tonight/1`. A chip that
         # cannot narrow anything is dropped rather than drawn dead.
         moods: [],
         fits_label: Kati.Screens.WhatFits.fits_label(fits),
@@ -490,7 +497,8 @@ defmodule Kati.Screens.WhatFits do
   The disc is the board's. It was drawn without a tap — MOVIES-AND-TV.md #88
   counts it among this screen's eleven pictures — and there is nothing behind
   it: everything this page can do is on it. The mood chips were the one thing
-  an overflow could have held and they have no column either, so a disc here
+  an overflow could have held and they have no VALUES either —
+  `Kati.Media.Watch.moods` exists and nothing writes it — so a disc here
   would be a second promise of the same missing axis.
 
   So it goes with them, and the row it sat in stays: `Kati.Screens.Pushed`

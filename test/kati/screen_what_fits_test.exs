@@ -16,8 +16,10 @@ defmodule Kati.ScreenWhatFitsTest do
     * **The over-budget row is the nearest film that does NOT fit**, and there
       is no row at all when everything the reader has fits. *Nothing else fits*
       is a sentence about a particular film.
-    * **The mood chips are dropped**, not drawn dead. No column anywhere
-      speaks to a mood, and the board keeps all four.
+    * **The mood chips are dropped**, not drawn dead. `Kati.Media.Watch.moods`
+      is a real column that none of its five writers sets, so it is `[]` on
+      every device and a chip over it narrows nothing; the board keeps all
+      four.
     * **Everything is the board's when nothing is stored**, which is what the
       gallery and every sweep render.
   """
@@ -127,8 +129,9 @@ defmodule Kati.ScreenWhatFitsTest do
 
     test "and the overflow disc goes with them, having nothing left to hold" do
       # The moods were the one thing an overflow on this page could have held,
-      # and they have no column either — a disc here would be a second promise
-      # of the same missing axis. The row stays: it reserves the back pill's
+      # and they have no VALUES either — `Kati.Media.Watch.moods` exists and
+      # nothing writes it — so a disc here would be a second promise of the
+      # same missing axis. The row stays: it reserves the back pill's
       # space, which `Kati.Screens.Pushed` floats.
       glyph = Kati.Icons.glyph!("more_horiz")
 

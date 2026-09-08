@@ -3320,7 +3320,7 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* A `Kati.Lists.List` resource plus a list-title join, a name field on create, and a list-detail screen. Until then the four `Kept automatically` chevrons should be removed — two of the four (`Abandoned` = `status: :dropped`, `Rewatches` = a `Watch` with a `rewatch_number`) are one query each and would be the cheapest real rows on the page.
 
-*Code done 7 September; design filed as [mishka-group/kati#99](https://github.com/mishka-group/kati/issues/99).* The two derivable kept lists are real, the two that store nothing are not drawn, the dead chevrons are gone and `+` stopped lying. What is left needs three drawings.
+*Code done 7 September; design filed as [mishka-group/kati#99](https://github.com/mishka-group/kati/issues/99), and the drawings landed the same day.* The two derivable kept lists are real, the two that store nothing are not drawn, and `+` stopped lying. The three surfaces #99 asked for arrived in the `D-65` wave and are all built: board 335's naming grammar, board 333's picker sheet (`Kati.Screens.AddToList`), and boards 330-332's list detail (`Kati.Screens.ListDetail`), each with a Persian mirror. The chevrons point at 331 now.
 
 ### 107. 143 Episode rows / 144 Rate an episode — `missing-feature`
 

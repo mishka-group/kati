@@ -116,10 +116,15 @@ defmodule Kati.Media.Watch do
     # unsayable.
     #
     # An array rather than `tags`' comma-separated string, and the difference
-    # is not taste. Nothing filters on `tags`; screen 07's distribution and
-    # screen 11's mood filter both read this. On a delimited string those become
-    # `LIKE '%tense%'`, which matches **intense** — a bug that shows up as a
-    # wrong recommendation and never as an error.
+    # is not taste. Nothing filters on `tags`, and the aggregations this column
+    # exists for — a distribution across a year, a local recommender — are
+    # `Kati.Media.Mood.distribution/1` and `for_title/1`. NEITHER HAS A CALLER,
+    # and nothing writes this column either: board 07's *Where the hours went*
+    # is a genre chart and board 11's *Because you watched* draws a `% match`,
+    # so the two readers this comment used to name do not exist. The array is
+    # still the right shape for the day one does — on a delimited string a
+    # filter becomes `LIKE '%tense%'`, which matches **intense**, a bug that
+    # shows up as a wrong recommendation and never as an error.
     #
     # Fixed vocabulary, the fourteen the brief names verbatim. Extensible was
     # the alternative and needs a source Kati does not have: a free-text mood is

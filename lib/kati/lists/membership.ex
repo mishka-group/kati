@@ -11,10 +11,10 @@ defmodule Kati.Lists.Membership do
   somebody checks whether it is already in, which is `Kati.Screens.AddTitle.
   cache/1`'s reasoning and holds here too.
 
-  ## One kind today, three when 181 and 182 are built
+  ## Three kinds, since board 332
 
-  `tracked_title_id` is a hard FK to `tracked_titles`, so a book or an album
-  **cannot be in a list at all**. Boards 181 and 182 both require that it can —
+  `tracked_title_id` WAS a hard FK to `tracked_titles`, so a book or an album
+  could not be in a list at all. Boards 181 and 182 both required that it can —
   181's band 1 draws one list holding a film, a book and an album under the
   heading *"One recipe, three kinds"*, and 182's sheet is opened over an album.
   The owner ratified it on 7 September. Board 12's caption had promised it since

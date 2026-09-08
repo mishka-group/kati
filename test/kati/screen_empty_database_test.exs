@@ -296,8 +296,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 13 joined when its window started filtering something. Its own moduledoc
     # had already recorded that three of the four things blocking it stopped
     # being blocked when `Kati.Media.CachedEpisode` was built; the fourth is a
-    # mood, which no column anywhere speaks to, so the chips are dropped over a
-    # real list rather than drawn dead. On an empty store there is nothing that
+    # mood — `Kati.Media.Watch.moods` is real and nothing writes it, so it is
+    # `[]` on every device — and the chips are dropped over a real list rather
+    # than drawn dead. On an empty store there is nothing that
     # fits and no film that does not, so the page is board 13 whole.
     {"13", Kati.Screens.WhatFits},
     # 37 joined the round the importer was built. It reads the shelf to decide
