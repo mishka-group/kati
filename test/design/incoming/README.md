@@ -152,7 +152,7 @@ with nothing decided; it is decided now"* — and rename reuses the index's own
 |---|---|---|
 | 167 | Up next — sort & filter | `D-35` |
 | 168 | Up next — filtered & empty | `D-35` |
-| 169 | Discover — sort & filter | `D-35` |
+| 169 | Discover — sort & filter | `D-35` — **not built**, and MOVIES-AND-TV.md #153 counts why: ten of its eleven controls have nothing on a real device to act on, because a pick carries no score, no date and no service, and a real feed has no people. The board says so itself — *"every count on this sheet comes from Discover's own sample… so the build is not asked to infer a recommender from a chip"*. Its sibling 167 IS built, because a queue has all four of its keys. |
 | 172 | Next in series | `D-37` |
 | 173 | Lending | `D-37` |
 | 174 | Content warnings | `D-37` |

@@ -2103,10 +2103,12 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**152 findings**, every one traced to a line. All but one carry a closing verdict
+**153 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
-The exception is **#150**, which is open on purpose: an intermittent `SIGBUS`
+Two are open on purpose. **#153** counts, control by control, why board 169 cannot be
+built without inventing a recommender — ten of its eleven chips have nothing on a device to
+act on. And **#150**: an intermittent `SIGBUS`
 inside SQLite that did not reproduce, recorded with its tombstone so a second
 sighting has a baseline rather than a fresh investigation.
 
@@ -3879,6 +3881,34 @@ Two smaller rulings kept: *Keep a copy first* is **offered, not taken** — it o
 A store that cannot be read answers `:error` rather than four zeroes, and the page says so instead of offering to clear. A confirmation offering to clear `0 logs` from a database it could not open would be asking permission for something it has not measured.
 
 *The board stays in `test/design/incoming/`*: it draws the page and its confirmation in one frame, plus the edit to screen 24's row — a state catalogue, like 248 and 260.
+
+
+### 153. 11 Discover — board 169 cannot be built honestly yet, and here is the count
+
+**Board 169 is Discover's sort & filter sheet, board 167's sibling in the same brief. Ten of its eleven controls have nothing on a real device to act on, so building it would ship a sheet of chips over a fixture — which is the defect class this entire list exists to close.**
+
+*The count, control by control.* `Kati.Screens.Discover.real_feed/1` (`discover.ex:152-168`) is what a device with a seed draws, and `Kati.Media.Recommendations.pick/1` (`recommendations.ex:263-283`) is what one pick holds.
+
+| Board 169 draws | What a real pick or feed has |
+|---|---|
+| Sort — **Best match** | `match: nil` on every pick, and `pick/1` says why in its own comment |
+| Sort — **Newest** | a pick carries `title`, `seed`, `source_id`, `kind`, `added` — no date |
+| Sort — **Leaving soonest** | `leaving: []`; nothing in Kati holds a leaving date |
+| Range — **90% and up**, **80% and up** | both empty, for `match: nil` |
+| Range — **Unscored** | every pick, always |
+| Filter — **Film**, **Series** | **this one works** — `kind` rides along on the pick |
+| Filter — **Lumen+**, **Orbit** | a pick carries no service, and nothing in Kati holds a catalogue (the same absence as #254) |
+| Filter — **Only with news** | `people: []` on a real feed |
+
+One of eleven.
+
+*The board says so itself*, which is why this is a reading rather than a refusal: *"Every count on this sheet comes from **Discover's own sample**, as every number on 11 does — said here so the build is not asked to infer a recommender from a chip."* It is explicit that the sheet is drawn against the fixture, and its second note adds that *Only with news* "filters rows the sample already carries; it is not a follow list, and Kati has no people table."
+
+So the board is honest about being a drawing of a sheet over a sample. What it cannot be yet is a control.
+
+*What would unblock it.* A pick needs a score, a date and a service. The first two come from the provider — TMDB's recommendation payload carries neither in what `picks_for/1` reads — and the third is a catalogue, which is #254's blocker and [mishka-group/kati#100](https://github.com/mishka-group/kati/issues/100)'s shape one domain over. The **Film / Series** half could be built today, and would be two chips and a footer on a sheet whose other nine controls are pictures; board 145's own rule about a chip that would empty the page says what that reads as.
+
+*What is built instead.* Screen 11's `tune` disc opens `tune_panel/2` — a *Picks from* seed chooser, which no board draws and which does the one thing on this page a reader can actually change: which title the recommendations are drawn from. It stays, and this finding is the record of why the drawn sheet is not on top of it.
 
 
 # Pages a user cannot reach except through Settings
