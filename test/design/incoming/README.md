@@ -90,7 +90,7 @@ about; the right is the section of `D-65` it answers.
 | 310 | 13 + 92 + 97 — one sentence, one count | `D-65` 13+92+97 | — **built 8 Sep**, kept here: it is a comparison of three screens rather than a frame of one |
 | 311 | 14 — at rest, with its own empty band | `D-65` 14 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 312 | 19 — the field cleared | `D-65` 19 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
-| 313 | 19 + 91 + 261 — chip rows at 235% | `D-65` 19+91 |
+| 313 | 19 + 91 + 261 — chip rows at 235% | `D-65` 19+91 | — **built 7 Sep**, kept here: three screens at one zoom in one frame |
 | 314 | 25 — two literals | `D-65` 25 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 315 | 28 — dark, with nothing kept | `D-65` 28 | — **built 8 Sep**, kept here: it is 139 crossed into dark plus a token table, not a frame of one page |
 | 316 | 50 + 120 — what the code encodes | `D-65` 50+120 | — **built 8 Sep**, kept here: two screens in one frame with the arithmetic between them |
@@ -106,7 +106,7 @@ about; the right is the section of `D-65` it answers.
 | 326 | Year card · the genres face + the heading | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 327 | 112 — medications, nothing due today | `D-65` 112 | — **partly built 8 Sep**: the card is drawn; its sentence and the true-empty frame wait on MOVIES-AND-TV.md #135 |
 | 328 | 140 — four more sources, and the door | `D-65` 140 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
-| 329 | 141 — the recognition line, six shapes | `D-65` 141 |
+| 329 | 141 — the recognition line, six shapes | `D-65` 141 | — **built 7 Sep**, kept here: six states of one card in one frame |
 | 330 | L1 — removing, deleting, renaming | `D-65` L1 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 331 | L2 — the six states 181 did not draw | `D-65` L2 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 332 | L3 — three artworks, one baseline | `D-65` L3 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
