@@ -534,6 +534,12 @@ defmodule Kati.Screens.ShelfSelection do
   own. `1.15` and not `1.0`: this bar is drawn at ordinary size, unlike 147
   whose every `sp` is the 235% figure typed out, so the glyph may grow a
   little before it stops.
+
+  **And it is sized**, at 25 — 21 with the cap's headroom. A `Box` with no
+  width fills its parent, and this one sits in a `Row` beside a `weight={1.0}`
+  title: unsized, the ✕ takes the bar and `N selected` clips away beside it.
+  `Kati.GreedyBoxTest` is the ratchet, and MOVIES-AND-TV.md #161 is the card
+  this was found on.
   """
   @spec close_glyph(boolean()) :: map()
   def close_glyph(false), do: Kati.Screens.ShelfSelection.capped_close()
@@ -551,7 +557,7 @@ defmodule Kati.Screens.ShelfSelection do
   @doc false
   def capped_close do
     ~MOB"""
-    <Box max_font_scale={1.15}>
+    <Box width={25} height={25} align="center" max_font_scale={1.15}>
       {Kati.UI.symbol("close", size: 21)}
     </Box>
     """

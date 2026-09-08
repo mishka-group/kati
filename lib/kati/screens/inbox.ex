@@ -332,12 +332,44 @@ defmodule Kati.Screens.Inbox do
     |> Enum.filter(&(is_binary(Map.get(&1, :source_id)) and is_binary(Map.get(&1, :tracked_id))))
   end
 
+  @doc """
+  The watcher card's headline.
+
+      iex> Kati.Screens.Inbox.watching_line(1)
+      "Watching for 1 title"
+
+      iex> Kati.Screens.Inbox.watching_line(3)
+      "Watching for 3 titles"
+
+  It said *1 titles* until the card could be read on a device at all — which is
+  the small thing that a defect hiding a whole card also hides.
+  """
+  @spec watching_line(non_neg_integer()) :: String.t()
+  def watching_line(1), do: "Watching for 1 title"
+  def watching_line(count), do: "Watching for #{count} titles"
+
   @doc false
   def watcher_gear do
+    # **Sized, and that is the whole of MOVIES-AND-TV.md #161.** A `Box` with no
+    # width fills its parent, so this gear — the last child of the watcher
+    # card's Row — swallowed every point the weighted `Column` beside it should
+    # have had. The card came out as two icons in an empty cream bar: the
+    # Column was left about 20pt wide and `max_lines={1}` clipped both of its
+    # lines to nothing.
+    #
+    # Nothing on the host could see it. `render/1` answers a TREE, the tree was
+    # correct, and `Kati.ScreenInboxTest` reads both strings out of it — so the
+    # whole suite passed while the card was blank on a phone. It took a device
+    # and one deliberately wrapped line, one letter per row, to prove where the
+    # width had gone.
+    #
+    # `Kati.Screens.Inbox.watcher_idle/0`'s own gear is `width={34} height={34}`
+    # and `Kati.UI.SettingsList.icon_tile/1` is sized too, which is why neither
+    # has ever shown this.
     assigns = %{tap: {self(), :open_watcher}}
 
     ~MOB"""
-    <Box on_tap={@tap}>
+    <Box width={24} height={24} align="center" on_tap={@tap}>
       {Kati.UI.symbol("settings", size: 19, color: Palette.gold_icon())}
     </Box>
     """
@@ -1046,6 +1078,9 @@ defmodule Kati.Screens.Inbox do
 
   @doc false
   def watcher(inbox) do
+    # Both glyphs are boxed at their own size, and the trailing one is why this
+    # card was blank on a device for as long as it existed — see
+    # `watcher_gear/0`, which carries the finding.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -1058,11 +1093,13 @@ defmodule Kati.Screens.Inbox do
         padding_bottom={15}
         align="center"
       >
-        {Kati.UI.symbol("auto_awesome", size: 22, color: Palette.gold_icon())}
+        <Box width={22} height={22} align="center">
+          {Kati.UI.symbol("auto_awesome", size: 22, color: Palette.gold_icon())}
+        </Box>
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text={"Watching for #{inbox.watching} titles"}
+            text={Kati.Screens.Inbox.watching_line(inbox.watching)}
             text_size={13.5}
             font_weight="bold"
             text_color={:on_surface}

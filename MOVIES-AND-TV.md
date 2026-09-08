@@ -2103,7 +2103,7 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-**160 findings**, every one traced to a line. All but two carry a closing verdict
+**161 findings**, every one traced to a line. All but two carry a closing verdict
 naming the function and the line, so this list can be read rather than re-derived.
 
 Two are open on purpose, and two closed on 8 September. **#157** is the recipe for #103's fold, scoped to this
@@ -4083,6 +4083,41 @@ The seed table answers **both spellings** of each title, because board 166 shelv
 `Kati.FirstRunTest` now asserts the tile draws an `<Image>` whose `src` is a file that exists, and that the shelved row carries the seed — in both scripts.
 
 Status: `[x] host`, `[ ] device`.
+
+
+### 161. An unsized `Box` fills its parent, and screen 05's watcher card was blank because of it
+
+**The card at the top of New releases was two icons in an empty cream bar. Every test in the suite passed while it was, and only a device could have said otherwise.**
+
+Found by opening screen 05 from its new door on the shelf — the first time anybody had looked at that page on a phone.
+
+*What the card is meant to say.* `Watching for 1 title` over `never checked · every 6h`, with a cog at the trailing edge. What it drew was the sparkle, the cog immediately beside it, and nothing else.
+
+*Why nothing here caught it.* `render/1` answers a **tree**, and the tree was correct — `Kati.Screens.Inbox.watcher/1` produced both strings, `Kati.ScreenInboxTest` read them straight out of it, and a runtime probe on the device confirmed `%{watching: 1, last_checked: "never checked · every 6h"}` reaching the card. A tree is not a layout. Three separate guesses at the cause — boxing the leading glyph, moving the surface from the `Row` to a `Box`, then to a `Column` — changed nothing, because none of them was it.
+
+*What it was.* The cog:
+
+```elixir
+<Box on_tap={@tap}>
+  {Kati.UI.symbol("settings", size: 19, color: Palette.gold_icon())}
+</Box>
+```
+
+**No width, no height.** An unsized `Box` fills its parent, so the cog took every point the `weight={1.0}` `Column` beside it had asked for. The Column was left about 20pt wide and `max_lines={1}` clipped both of its lines to nothing — a control losing its space in silence rather than erroring.
+
+The proof was one deliberate change: dropping `max_lines` made the headline render **one letter per row**, twenty points wide, exactly where the width had gone.
+
+*The fix, and the four more it found.* `width={24} height={24}` on the cog — the shape `watcher_idle/0`'s own cog and `Kati.UI.SettingsList.icon_tile/1` have always had, which is why neither has ever shown this.
+
+`Kati.GreedyBoxTest` is the ratchet, and it is worth more than the fix: **an unsized `Box` may not sit beside a sibling that has `weight`.** It swept every screen in both locales and found four more, all the same shape and none of them looked at:
+
+  * `Kati.Screens.ShelfSelection.capped_close/0` — the ✕ beside `N selected`, which is the one thing board 146's bar exists to say.
+  * `Kati.Screens.ShelfLarge.selection_header/0` — the same control at 235%, where it matters most.
+  * `Kati.UI.Segmented.segment/4` — allow-listed rather than fixed: its `<Box>` has to hug a label whose width is the label's, so it has no width to be given, and the consequence there is a label off centre rather than a card gone blank. It wants a device and a change to a shared component, which is a separate pass.
+
+*And a plural.* The card said `Watching for 1 titles`. It had never been legible enough for anyone to notice.
+
+Status: `[x] verified on the Pixel_9a` — the card reads `Watching for 1 title` over `never checked · every 6h`, cog at the trailing edge.
 
 
 # Pages a user cannot reach except through Settings

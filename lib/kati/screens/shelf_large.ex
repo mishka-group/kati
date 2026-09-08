@@ -226,7 +226,7 @@ defmodule Kati.Screens.ShelfLarge do
   def selection_header do
     ~MOB"""
     <Row fill_width={true} align="center">
-      <Box max_font_scale={Kati.Screens.ShelfLarge.cap()}>
+      <Box width={30} height={30} align="center" max_font_scale={Kati.Screens.ShelfLarge.cap()}>
         {UI.symbol("close", size: 26, color: Palette.ink())}
       </Box>
       <Spacer size={14} />
