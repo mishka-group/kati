@@ -161,6 +161,7 @@ defmodule Kati.Screens.AlbumDetailFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :album, album())}
   end
 

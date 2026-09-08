@@ -221,6 +221,7 @@ defmodule Kati.Screens.ShelfSelection do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, load(socket)}
   end
 
@@ -301,6 +302,7 @@ defmodule Kati.Screens.ShelfSelection do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>

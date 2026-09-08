@@ -213,6 +213,7 @@ defmodule Kati.Screens.RestoreFa do
   @spec mount(map(), map(), Mob.Socket.t()) :: {:ok, Mob.Socket.t()}
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, socket}
   end
 

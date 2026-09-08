@@ -203,6 +203,7 @@ defmodule Kati.Screens.AttributionFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, socket}
   end
 

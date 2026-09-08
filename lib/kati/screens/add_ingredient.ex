@@ -111,6 +111,7 @@ defmodule Kati.Screens.AddIngredient do
   """
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     draft = SampleLibrary.draft()
 

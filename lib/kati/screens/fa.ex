@@ -56,39 +56,56 @@ defmodule Kati.Screens.Fa do
   tracking** in all four drawings. `eyebrow/1` here is that recipe, not
   `Kati.UI.eyebrow/2` with a translated label.
 
-  ## What that costs the vendored components, and it is most of them
+  ## What that used to cost the vendored components — closed 8 September
 
   Both rules above are `font_family`, and **not one of the 77 components in
-  `Kati.Components` accepts it** — re-checked by grep across the whole
-  directory this round: `grep -rl font_family lib/kati/components/` returns
-  nothing at all. Every one of them that renders a label builds the `Text`
-  itself and leaves the prop off, and `MobBridge.kt:4222` is explicit about
-  what that means: *"No prop means body text, and body text is Plus Jakarta
-  Sans. This is the case that matters: it is every unstyled Text in the app."*
+  `Kati.Components` accepts it**: `grep -rl font_family lib/kati/components/`
+  still returns nothing at all. Every one of them that renders a label builds
+  the `Text` itself and leaves the prop off, and the bridge's `fontFamilyProp`
+  was explicit about what that meant: *"No prop means body text, and body text
+  is Plus Jakarta Sans. This is the case that matters: it is every unstyled
+  Text in the app."*
 
   `kati_sans_400.ttf` carries **zero** code points in U+0600-U+06FF — parsed
-  out of its `cmap`, against 142 in `kati_fa_400.ttf`. So a Persian label
-  handed to a Chelekom component is not degraded, it is *absent*: a row of
-  blank boxes. That is the single reason the Persian screens adopt so little
-  of the set. It is not an RTL failure — direction is a container attribute and
-  the components inherit it correctly — it is a typography failure.
+  out of its `cmap` by `Kati.PersianFontTest`, against 142 in
+  `kati_fa_400.ttf`. So a Persian label handed to a Chelekom component was set
+  in a face with no glyph for it. Not blank boxes, which this section used to
+  predict and which would at least have been loud: Compose falls through to
+  Android's own fallback chain, so the sentence rendered, correctly shaped, in
+  somebody else's typeface beside sentences in Kati's. That is the defect
+  `Kati.PersianFontTest`'s moduledoc records having photographed.
 
-  ## The content slot is the way round it, where a component has one
+  **It is fixed, and not by the ask below.** The default itself moved:
+  `MobBridge`'s `fontFamilyProp` now falls back to `LocalKatiFace` — the app's
+  own face, taken off the ROOT node the way `K-12 rtl-root` takes the writing
+  direction (fence `K-48 locale-face`, and `Kati.Locale.face_prop/0` on this
+  side). A `Text` with no `font_family` is set in the app's face rather than in
+  Latin, wherever it was built and whoever built it, so a component's own label
+  is now correct without the component knowing anything about fonts. An
+  explicit `font_family="sans"` still forces Latin, which is what a Latin title
+  inside a Persian page needs.
 
-  A component that builds its own `Text` cannot draw Persian. A component that
-  takes the label as **children** can, because the caller builds the `Text` and
-  puts `font_family="fa"` on it. Four of them do:
+  That is why the two frames below hard-code `font_family="fa"` beside their
+  `layout_direction="rtl"`, and for the same reason: a mirror is the Persian
+  page whatever `Kati.Locale` says.
+
+  ## The content slot, which is still the better shape
+
+  A component that takes its label as **children** lets the caller build the
+  `Text` and put anything on it — a size, a weight, a face. Four of them do:
   `MishkaThemeIcon` (children are the icon), `MishkaActionIcon` (children
   override `icon`), `MishkaPill` and `MishkaToggle` (children replace `label`).
   Every adoption on these eight screens goes through that door.
 
-  The three that would matter most here have no such door — `MishkaChip`'s
-  `expand/3` discards its children outright, `MishkaSegmentedControl` says in
-  as many words that "the label is a prop rather than the slot's children
-  because the control paints it", and `MishkaNavLink` takes `label` and
-  `description` as strings. That is the single upstream ask from this pass, and
-  it is smaller than `font_family` on 77 components: give the three a content
-  slot their siblings already have.
+  Three do not — `MishkaChip`'s `expand/3` discards its children outright,
+  `MishkaSegmentedControl` says in as many words that "the label is a prop
+  rather than the slot's children because the control paints it", and
+  `MishkaNavLink` takes `label` and `description` as strings. That was filed
+  here as the single upstream ask of this pass, on the grounds that it was
+  smaller than `font_family` on 77 components. `K-48` is smaller than either
+  and settles the font question outright, so the ask is no longer blocking
+  anything — it stands only as the reason these screens still cannot give one
+  of those three labels a size or a weight of its own.
 
   ## What these screens adopt
 
@@ -143,6 +160,7 @@ defmodule Kati.Screens.Fa do
       fill_height={true}
       background={:background}
       layout_direction="rtl"
+      font_family="fa"
       accessibility_id={screen}
     >
       {content}
@@ -168,6 +186,7 @@ defmodule Kati.Screens.Fa do
       fill_height={true}
       background={:background}
       layout_direction="rtl"
+      font_family="fa"
       accessibility_id={screen}
     >
       {content}

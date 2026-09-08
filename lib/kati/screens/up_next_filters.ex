@@ -57,6 +57,7 @@ defmodule Kati.Screens.UpNextFilters do
   # pushed bare — it narrows the one Up next there is.
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok, Mob.Socket.assign(socket, Kati.Screens.UpNextFilters.opening())}
   end

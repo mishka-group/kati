@@ -135,6 +135,7 @@ defmodule Kati.Screens.BookDetailFa do
   # `target/1` refuse.
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     named = Map.get(params || %{}, :book_id)
     shaped = book(named)

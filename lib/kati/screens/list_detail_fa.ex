@@ -33,6 +33,7 @@ defmodule Kati.Screens.ListDetailFa do
   @impl true
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket

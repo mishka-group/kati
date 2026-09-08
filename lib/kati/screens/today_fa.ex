@@ -52,6 +52,7 @@ defmodule Kati.Screens.TodayFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :day, SampleToday.day())}
   end
 
@@ -64,6 +65,7 @@ defmodule Kati.Screens.TodayFa do
       fill_height={true}
       background={:background}
       layout_direction="rtl"
+      font_family="fa"
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>

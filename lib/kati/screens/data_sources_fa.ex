@@ -206,6 +206,7 @@ defmodule Kati.Screens.DataSourcesFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket

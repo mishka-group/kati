@@ -95,6 +95,12 @@ defmodule Kati.Shell do
 
     direction = Kati.Locale.direction_prop()
 
+    # The app's own typeface, on the root beside the direction and read the same
+    # way (`K-48 locale-face-root`). It is the default every `Text` under this
+    # frame falls back to, which is the only way a label a COMPONENT builds can
+    # be set in the right face — see `Kati.Locale.face_prop/0`.
+    face = Kati.Locale.face_prop()
+
     # What the device calls this screen. Nothing else on a phone says which of
     # the 152 is on top: the bridge's root state is a counter and a string, and
     # asserting on visible text is not a substitute because Kati draws the same
@@ -112,6 +118,7 @@ defmodule Kati.Shell do
       fill_height={true}
       background={:background}
       layout_direction={direction}
+      font_family={face}
       accessibility_id={screen}
     >
       {assigns.content}

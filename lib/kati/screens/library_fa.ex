@@ -80,6 +80,7 @@ defmodule Kati.Screens.LibraryFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     # The shelf is read once and the three things it decides are derived from
     # that one answer: an empty shelf is what makes this the drawing's page

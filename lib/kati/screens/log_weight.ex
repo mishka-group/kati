@@ -55,6 +55,7 @@ defmodule Kati.Screens.LogWeight do
   # which is why this is derived per unit rather than being one constant.
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket

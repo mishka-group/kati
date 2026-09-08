@@ -234,6 +234,7 @@ defmodule Kati.Screens.MyServicesFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     services = MyServices.listed()
 
     {:ok,
@@ -867,12 +868,22 @@ defmodule Kati.Screens.MyServicesFa do
   end
 
   @doc """
-  The link into screen 23, quoting screen 23's own figure.
+  The link into screen 23, quoting screen 23's own figure — **this reader's**.
 
-  `Kati.Services.Sample.monthly_total/0` and not a sum of the three rows above
-  it: the two numbers differ on purpose, and its doc explains that the row is a
-  link and quotes what it links to. This sheet re-typesets that answer and
-  changes nothing about it.
+  It quoted `Kati.Services.Sample.monthly_total/0` unconditionally, so a
+  Persian reader who had stored three services of their own was told
+  `۳ سرویس · ۴۶٫۴۷ £ در ماه` — a live count beside the drawing's total. That is
+  MOVIES-AND-TV.md #76 exactly, one screen over: the count came off
+  `MyServices.listed/0` and the money did not, and nothing on the page said so.
+  en and fa are one app, and #1 is what happens when a fix lands on one of a
+  pair.
+
+  `Kati.Screens.MyServices.monthly_total/0` is the same answer screen 92 gives,
+  re-typeset: `Kati.Services.Service.total/1` over the stored rows on a set-up
+  device, the drawing's figure only while the page is the drawing's. A device
+  whose services carry no price answers `—` rather than borrowing a figure
+  nobody entered, and `amount/1` passes an em dash through untouched — it has
+  no digits to convert and no currency symbol to move.
 
   The count takes no plural branch. Persian does not inflect a noun after a
   number — `۱ سرویس` and `۳ سرویس` are both correct — which is the same thing
@@ -900,7 +911,9 @@ defmodule Kati.Screens.MyServicesFa do
 
   def money_group(services) do
     count = Digits.to_persian(length(services)) <> " " <> @copy.services
-    total = Kati.Screens.MyServicesFa.amount(Sample.monthly_total()) <> " " <> @copy.a_month
+
+    total =
+      Kati.Screens.MyServicesFa.amount(MyServices.monthly_total()) <> " " <> @copy.a_month
 
     card =
       SettingsList.card([

@@ -52,6 +52,7 @@ defmodule Kati.Screens.Pushed do
         # app, so this was the single call that most often threw the user's
         # choice away.
         Kati.Theme.activate()
+        Kati.Locale.activate()
 
         socket
         |> Mob.Socket.assign(:params, params)
@@ -158,6 +159,9 @@ defmodule Kati.Screens.Pushed do
       content: content,
       back_label: back_label,
       direction: direction,
+      # See `Kati.Locale.face_prop/0`: the default face for every `Text` under
+      # this frame, including the ones components build and no screen can mark.
+      face: Kati.Locale.face_prop(),
       screen: screen && "screen:" <> screen
     }
 
@@ -169,6 +173,7 @@ defmodule Kati.Screens.Pushed do
       fill_height={true}
       background={:background}
       layout_direction={@direction}
+      font_family={@face}
       accessibility_id={@screen}
     >
       {@content}

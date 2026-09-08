@@ -74,6 +74,7 @@ defmodule Kati.Screens.LogProgressFa do
 
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     # The id is kept and not only spent on `sheet/1`. It arrives —
     # `Kati.Screens.BookDetailFa` pushes `%{book_id: id}` — and the session this
@@ -256,6 +257,7 @@ defmodule Kati.Screens.LogProgressFa do
       fill_height={true}
       background={:background}
       layout_direction="rtl"
+      font_family="fa"
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />

@@ -119,6 +119,7 @@ defmodule Kati.Screens.Root do
         # answer, from the stored choice and the device. Every screen still gets
         # a theme installed at mount; it is simply no longer always the same one.
         Kati.Theme.activate()
+        Kati.Locale.activate()
 
         # A fresh install goes to the first-run sequence instead of here.
         #

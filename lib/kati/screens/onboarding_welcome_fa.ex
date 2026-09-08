@@ -38,6 +38,7 @@ defmodule Kati.Screens.OnboardingWelcomeFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     Kati.Onboarding.reached!(:welcome)
     {:ok, socket}
   end

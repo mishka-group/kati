@@ -146,6 +146,7 @@ defmodule Kati.Screens.ArtistDetailFa do
   # follows that name instead of the artist of the shelf's first album.
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     id = Map.get(params || %{}, :artist_id)
 
     {:ok,

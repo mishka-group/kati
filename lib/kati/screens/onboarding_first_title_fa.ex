@@ -34,6 +34,7 @@ defmodule Kati.Screens.OnboardingFirstTitleFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     Kati.Onboarding.reached!(:first_title)
     {:ok, Mob.Socket.assign(socket, :picked, "گودال بلند")}
   end

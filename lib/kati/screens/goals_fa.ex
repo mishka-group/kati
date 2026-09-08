@@ -263,6 +263,7 @@ defmodule Kati.Screens.GoalsFa do
   @doc false
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :goals, goals())}
   end
 

@@ -114,6 +114,7 @@ defmodule Kati.Screens.OnboardingFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     Kati.Onboarding.reached!(:sections)
     {:ok, Mob.Socket.assign(socket, :chosen, Sample.chosen())}
   end

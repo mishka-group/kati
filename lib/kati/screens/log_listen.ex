@@ -91,6 +91,7 @@ defmodule Kati.Screens.LogListen do
 
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     named = Map.get(params, :album_id)
 

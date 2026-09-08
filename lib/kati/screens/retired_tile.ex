@@ -225,6 +225,7 @@ defmodule Kati.Screens.RetiredTile do
   @spec mount(map(), map(), Mob.Socket.t()) :: {:ok, Mob.Socket.t()}
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok, Mob.Socket.assign(socket, :subject, subject(Map.get(params, :section, @drawn)))}
   end

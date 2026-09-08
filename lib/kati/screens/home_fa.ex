@@ -175,6 +175,7 @@ defmodule Kati.Screens.HomeFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     # The spine is queried FIRST and the gate learns about it after, which is
     # `Kati.Screens.Home.mount/3`'s order and its moduledoc's warning: a build

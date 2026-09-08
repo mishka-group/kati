@@ -1,0 +1,9 @@
+## English is the msgid itself, so every entry here is empty on purpose:
+## Gettext falls back to the msgid when a translation is missing, and the
+## msgid IS the English copy. The file exists so `mix gettext.merge` has an
+## `en` to merge into and so a missing English catalogue can never be mistaken
+## for a missing translation.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"

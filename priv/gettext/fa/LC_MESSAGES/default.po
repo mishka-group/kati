@@ -1,0 +1,18 @@
+## Persian. Every string here is lifted from the screen that already drew it —
+## the `*Fa` mirrors — rather than translated afresh, so the fold cannot change
+## a word the drawings settled.
+##
+## Persian has one plural form in CLDR's `other` sense for counted nouns: a
+## noun after a number does not inflect (۱ سرویس and ۳ سرویس are both correct),
+## which `Kati.Screens.MyServicesFa` records as the reason its count has no
+## `if count == 1` branch. `nplurals=2` is still declared because Gettext
+## requires the header and CLDR gives fa two categories (one, other); the
+## `one` form is simply the same word.
+msgid ""
+msgstr ""
+"Language: fa\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: lib/kati/gettext_probe.ex
+msgid "Up next"
+msgstr "بعدی"

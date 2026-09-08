@@ -200,6 +200,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+// KATI-BEGIN(K-48 locale-face-import) mob_new=0.7.24
+import androidx.compose.runtime.staticCompositionLocalOf
+// KATI-END(K-48 locale-face-import)
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -3759,7 +3762,11 @@ private fun MobText(node: MobNode, modifier: Modifier) {
     val textAlign     = textAlignProp(node.props)
     val letterSpacing = floatProp(node.props, "letter_spacing")
     val lineHeightMul = floatProp(node.props, "line_height")
-    val fontFamily    = fontFamilyProp(node.props)
+    // KATI-BEGIN(K-48 locale-face-text) mob_new=0.7.24
+    // The app's face stands in when this node names none. See `K-48
+    // locale-face` for why the null branch could not stay *Latin*.
+    val fontFamily    = fontFamilyProp(node.props, LocalKatiFace.current)
+    // KATI-END(K-48 locale-face-text)
     val tapHandle     = intProp(node.props, "on_tap")
 
     val resolvedLineHeight = if (lineHeightMul != null && fontSize != TextUnit.Unspecified)
@@ -3985,7 +3992,7 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     //
     // The placeholder needs it stated separately — see the `decorationBox`
     // below, which is this file's own and takes the same style.
-    val family = fontFamilyProp(node.props)
+    val family = fontFamilyProp(node.props, LocalKatiFace.current)
     // KATI-END(K-41 text-field-font)
 
     // KATI-BEGIN(K-41 text-field-chrome) mob_new=0.4.20
@@ -5349,14 +5356,37 @@ private val katiMono by lazy { FontFamily(Font(R.font.kati_mono)) }
 private val katiSymbols by lazy { FontFamily(Font(R.font.kati_symbols)) }
 private val katiSymbolsFilled by lazy { FontFamily(Font(R.font.kati_symbols_filled)) }
 
-private fun fontFamilyProp(props: Map<String, Any?>): FontFamily? =
+// KATI-BEGIN(K-48 locale-face) mob_new=0.7.24
+// The app's own default face, taken from the ROOT node the way
+// `K-12 rtl-root` takes the writing direction, and for the same reason:
+// Kati's language is an in-app setting, so a Persian reader on an English
+// phone must get Vazirmatn and the two must never disagree.
+//
+// This exists because `null` used to mean *Latin* rather than *the app's
+// face*, and that is the one branch no screen can reach past. Every Text a
+// screen writes can carry `font_family`; every Text a COMPONENT builds
+// cannot — `MishkaChip`'s `expand/3` discards its children, and
+// `MishkaSegmentedControl` and `MishkaNavLink` take their labels as strings.
+// `Kati.Screens.Fa`'s moduledoc names that as the reason the Persian mirrors
+// adopt so little of `Kati.Components`, and files the upstream ask as *give
+// the three a content slot*. Resolving the null case against the root is
+// strictly better than that ask and than putting `font_family` on all 77
+// components: it fixes every unstyled Text at once, including the ones inside
+// components, and it is one branch rather than a convention to be obeyed.
+//
+// `null` here still means Latin, so a build that sets nothing behaves exactly
+// as before. `Kati.PersianFontTest` is what holds the Elixir side.
+val LocalKatiFace = staticCompositionLocalOf<String?> { null }
+
+private fun fontFamilyProp(props: Map<String, Any?>, fallback: String? = null): FontFamily? =
     // Both spellings. The template reads `font`; ~MOB markup naturally says
     // `font_family`, and a prop that is silently ignored is the single most
     // expensive kind of mistake in this codebase — it renders, it just renders
     // wrong, and nothing anywhere says so.
-    when (val name = (props["font_family"] ?: props["font"]) as? String) {
-        // No prop means body text, and body text is Plus Jakarta Sans. This is
-        // the case that matters: it is every unstyled Text in the app.
+    when (val name = (props["font_family"] ?: props["font"]) as? String ?: fallback) {
+        // No prop AND no app face means body text, and body text is Plus
+        // Jakarta Sans. An explicit `sans` still forces Latin, which is what a
+        // Latin title inside a Persian page needs.
         null, "sans" -> katiSans
         "mono", "monospace" -> katiMono
         "fa" -> katiFa
@@ -5365,6 +5395,7 @@ private fun fontFamilyProp(props: Map<String, Any?>): FontFamily? =
         else -> try { FontFamily(Typeface.create(name, Typeface.NORMAL)) }
                 catch (_: Exception) { katiSans }
     }
+// KATI-END(K-48 locale-face)
 // KATI-END(K-14 bundled-fonts)
 
 // ── Tab bar helpers ───────────────────────────────────────────────────────────

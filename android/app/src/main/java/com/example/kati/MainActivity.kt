@@ -329,7 +329,32 @@ class MainActivity : ComponentActivity() {
                         val rtl = (root.props["layout_direction"] as? String) == "rtl"
                         val direction = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
-                        CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                        // KATI-BEGIN(K-48 locale-face-root) mob_new=0.7.24
+                        // The app's default face, read off the same root node
+                        // and for the same reason as the direction above: the
+                        // language is an in-app setting, so a Persian reader on
+                        // an English phone must get Vazirmatn.
+                        //
+                        // This is the half no screen can reach. A Text a screen
+                        // writes can carry `font_family`; a Text a COMPONENT
+                        // builds cannot, and `MobBridge`'s `fontFamilyProp`
+                        // resolved that missing prop to Latin — so Kati's
+                        // Persian was being set in Android's substitute face,
+                        // one component at a time, legibly enough that nobody
+                        // read it as a bug. `Kati.PersianFontTest`'s moduledoc
+                        // is where that was first written down.
+                        //
+                        // A root that names no face leaves `LocalKatiFace` null
+                        // and every Text behaves exactly as it did before.
+                        val face = root.props["font_family"] as? String
+                        // KATI-END(K-48 locale-face-root)
+
+                        CompositionLocalProvider(
+                            LocalLayoutDirection provides direction,
+                            // KATI-BEGIN(K-48 locale-face-provide) mob_new=0.7.24
+                            LocalKatiFace provides face,
+                            // KATI-END(K-48 locale-face-provide)
+                        ) {
                             // KATI-BEGIN(K-09 bottom-inset-only) mob_new=0.4.20
                             // Bottom inset only, not safeDrawingPadding().
                             //

@@ -210,6 +210,7 @@ defmodule Kati.Screens.DropSheet do
   @impl true
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket
@@ -514,6 +515,7 @@ defmodule Kati.Screens.DropSheet do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
       accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />

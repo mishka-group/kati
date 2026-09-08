@@ -83,6 +83,7 @@ defmodule Kati.UI.Sheet do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
       accessibility_id={@screen}
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />

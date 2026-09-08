@@ -87,6 +87,7 @@ defmodule Kati.Screens.Resume do
   @spec pop(Mob.Socket.t()) :: Mob.Socket.t()
   def pop(socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     announce()
     Mob.Socket.pop_screen(socket)
   end
