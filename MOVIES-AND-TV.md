@@ -2103,7 +2103,11 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-131 findings, every one traced to a line. This is the fix queue.
+137 findings, every one traced to a line. **All 137 are closed** as of 8 September;
+two of them — 133 and 136 — are closed *partly*, and each says in its own section what
+is left and what it is waiting on. Every `### N.` section below carries the verdict that
+closes it, naming the function and the line, so this list can be read rather than
+re-derived.
 
 | # | Page | Severity | What is wrong |
 |---|---|---|---|
@@ -2239,7 +2243,12 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 | 129 | 19 Search / 88 Scope & ranking | `fixed` | ~~The tie-break the specification screen renders — tier, then recency — is implemented and never called; results actually tie-break alphabetically.~~ Fixed 7 September by calling it. `Kati.Search.rank/1` is the sort in all four groups now, with the recency each row actually has: the shelf's `last_touched_at` for a title you keep and the cache's `fetched_at` for one you merely looked up, `updated_at` for a book, `dtstart_utc` for an event, `inserted_at` for a note. A title is only the last resort inside it. On the Pixel_9a `er` returns Blade Runner 2049, Severance, Dune — not the alphabet. |
 | 130 | 86 Search idle | `fixed` | ~~A recent query or suggestion is round-tripped through underscore substitution, so any query containing an underscore or a run of spaces comes back changed.~~ Fixed 7 September. There is no inverse to write, because `query_tag/2`'s mapping is not injective — `String.replace(line, "_", " ")` is not the inverse of anything. `resolve/2` resolves the tag against the rows that drew it instead, the way `Kati.Screens.Library.open_tile/3` resolves a poster tag, and each of the two lists answers its own prefix. Walked on the Pixel_9a: `sci_fi` on the recent shelf reopens as `sci_fi`. |
 | 131 | 88 Scope & ranking | `fixed` | ~~88's back pill reads "Settings" but its only route in is the tune disc on the idle search page, and it pops back there.~~ Fixed 7 September: the tune disc names `Search` in its push, as every other push in the app does, and `Settings` stays as the answer for a push that names nowhere — the gallery's. Verified on the Pixel_9a: the pill reads **Search** and lands on 86. |
-| 132 | 19 Search at 235% | `polish` | The third scope chip on a wrapped line loses its count at 235%. `chip_rows/1` packs three to a line, which is what board 91 draws, and three of these labels are ~17dp wider than a 393dp phone has at that scale — so `Books` keeps its name and drops its `0`. Packing two to a line would guarantee it and would put three lines of chips above every ordinary-size search, which board 19 draws as one. The measurement that would settle it — how wide a chip actually is at the reader's scale — is not available to Elixir: `max_font_scale` caps growth and nothing reports it, and `MobBridge.kt` has no wrapping row. Wants either a `FlowRow` on the bridge or a font-scale read; both are Mob-side.  **Filed upstream-shaped as [mishka-group/kati#98](https://github.com/mishka-group/kati/issues/98)** on 7 September, with the measurement, both candidate fixes and the argument for `FlowRow` over a font-scale read. Nothing in Kati can close this one. |
+| 132 | 19 Search at 235% | `fixed` | ~~The third scope chip on a wrapped line loses its count at 235%.~~ Fixed 7 September by board 313, which settles the row rather than the measurement: `chip_rows/1` returns ONE line and `chip_line/1` scrolls it, so no chip is ever on a wrapped line to lose its count. 313 rejects the wrapped version on its own merits as well as on the bridge's — *better to read, and three lines tall — on a 235% page where the field alone is 62pt, that is the results pushed off-screen* — and requires the scroll to carry a chevron, which screen 86's row got on 8 September (#34). [mishka-group/kati#98](https://github.com/mishka-group/kati/issues/98) stays open for the `FlowRow` itself, which other rows may still want. |
+| 133 | 05 New releases (Kati.Screens.Inbox) | `partly fixed` | Board 307 draws the inbox as four rows across three shelves and only the episode shelf can exist: nothing in the app produces a book, record or film release. 25's *Tell me about* offers all three and 66 has the **Follow the author** row that feeds one; the glyph-tile row recipe waits on the first producer, because 307's own reason for it — three aspect ratios in one list — needs a second shelf to bite. |
+| 134 | 97 سرویس‌های من | `fixed` | ~~The Persian My services printed ایران to every reader whether or not they had chosen a country, drew the drawing's ۴۶٫۴۷ £ over an empty shelf, and its country row opened nothing.~~ Fixed 8 September with boards 324 and 301: `chosen_region/0` can say *no country*, the money row says nothing has been totalled, and `Kati.Screens.CountryPickerFa` is the sheet the row had never had a door to. |
+| 135 | 02 Schedule (Kati.Screens.Calendar) | `fixed` | ~~Screen 02 could only say *Kati cannot see your calendar* on a day that was otherwise empty, so a day holding one habit drew a timeline with the reader's appointments silently missing and no way to ask for them.~~ Fixed 8 September with board 306: `calendars_card/1` sits under the timeline in the three states `Kati.Permissions.affordance/1` names. |
+| 136 | 112 Medication (Kati.Health.Medication) | `partly fixed` | A medication whose schedule reads `Mon, Wed, Fri` is given a dose every day, because `schedule` is free text and only `times` is structured. Board 327's card is drawn and says why nothing is due in the two ways this page can honestly answer; the board's own sentence — *your four schedules all fall on other days, next is Monday at 08:00* — needs a `days` column, which is the fix named in the section. |
+| 137 | 50 Share a plan / 120 Import a plan | `fixed` | ~~The QR card promised the 35 meals a code cannot hold, and the receiving side counted 29 new for an arrival that brings none.~~ Fixed 8 September with board 316: the card says what a scan sets up and offers the file for the rest, and a code arrival is its own page — `Set up`, four rows saying what came and what could not, three zeroes, and no conflict queue. |
 
 ## The proof for each, in order
 
@@ -2641,6 +2650,8 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 *Fix.* Make the two fixtures one — Kati.Season.Sample should derive from Kati.Library.Sample's S2 — or suppress the menu row entirely on the drawn page.
 
+*Fixed.* `Kati.Library.Sample.series/0`'s episodes ARE board 34's list — 34's aired order, runtimes and dates, less the making-of, because a special is what board 34 is about and screen 04 draws no badge to say a row is one. The comment at library/sample.ex:161-173 names this finding and the two lists it reconciled.
+
 ### 41. 06 Add a title (Kati.Screens.AddTitle) — `lies-to-user`
 
 **Removing a title you added from TMDB reports success and deletes nothing — the check flips back to a + while the row stays in the library forever.**
@@ -2769,6 +2780,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Carry the tapped id into ImportRecognised as a screen param and branch the drawn source on it; at minimum add a film/TV job to Kati.Import.Sample so a Letterboxd tap does not draw a book export.
 
+*Fixed.* `tag/1` builds `source_<id>` per tile and `handle_tap/2` splits it back apart, so a tile opens the file picker remembering which source it was — the shape screens 98 and 03 already use for a tag per member of a drawn family.
+
 ### 53. 141 Import — recognised (Kati.Screens.ImportRecognised) — `lies-to-user`
 
 **'Check the mapping' promises the nine columns it just counted and pushes a screen showing five columns of a different file.**
@@ -2776,6 +2789,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* mapping_collapsed/1 draws '#{job.matched} matched · #{job.skipped} skipped' from Kati.Import.Sample.recognised/0 — 7 of 9 on goodreads_library_export.csv — with on_tap :check_mapping (import_recognised.ex:406-425). handle_tap(:check_mapping, …) pushes Kati.Screens.Import (import_recognised.ex:582-584), whose load/1 assigns Kati.Import.Sample.job/0 — trakt-backup.csv, five columns (import.ex:~86, import/sample.ex:44-56). The two maps share no fields.
 
 *Fix.* Pass the job through as a screen param so 37 renders the same job 141 summarised, rather than each screen loading its own Sample function.
+
+*Fixed.* The mapping screen is opened with the job it counted rather than a second file's five columns; `Kati.Screens.ImportRecognised` shapes the recognition line from the file that was chosen (board 329).
 
 ### 54. 145 Shelf filter sheet — `lies-to-user`
 
@@ -3035,6 +3050,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Feed the card from Kati.Screens.Stats.figures/0 — year.time, year.change, year.rising? and a top-titles read off Watch grouped by tracked_title — and take the subtitle from the same range/1 that 07 uses.
 
+*Fixed.* `share/2` reads `Kati.Screens.Stats.figures/0` — the same year screen 07 draws, through the same function rather than a second query — and falls back to the drawing only when there is no year to read. The doc at year_share.ex:60 names this finding and the reason it mattered most here: a share card is the one page whose purpose is to leave the device.
+
 ### 80. 98 Your year, shared (Kati.Screens.YearShare) — `lies-to-user`
 
 **'Save image' saves nothing — it pushes the Year cards reference sheet — even though the screen-to-bitmap fence it is waiting on already shipped and is already used elsewhere.**
@@ -3042,6 +3059,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/year_share.ex:370-371: handle_tap(:save_image, socket) -> push_screen(socket, Kati.Screens.YearCards). Kati.Screens.YearCards.handle_tap/2 is a no-op stub (year_cards.ex:342). Kati.Native.Files.save_screen/1 exists (lib/kati/native/files.ex:271-277) and Kati.Screens.WeekImage calls it (lib/kati/screens/week_image.ex:1072). test/kati/screen_tap_sweep_test.exs:807-809 records YearCards as the last screen in the app stubbing its own save, 'one call away'.
 
 *Fix.* Wire :save_image to Kati.Native.Files.save_screen/1 with a year-card filename, following Kati.Screens.WeekImage's handler; keep the push to 100 only as a 'how this is drawn' link.
+
+*Fixed.* `handle_tap(:save_image, …)` calls `Kati.Native.Files.save_screen/1` and reports a failure rather than pushing the reference sheet.
 
 ### 81. 04 Series detail — `inert-control`
 
@@ -3070,6 +3089,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/add_title.ex:423 `{Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}` — Kati.UI.symbol/2 takes no on_tap, and the enclosing Row (:404-412) has none either.
 
 *Fix.* Wrap it in a tappable Box with {self(), :clear_query} and a handler assigning query: "" and results: [].
+
+*Fixed.* `clear_disc/0` wraps the glyph in a 40pt `<Box>` carrying `:clear_query` — a 19pt target is under every guideline there is, and a tap on the bare glyph fell through to the field underneath and APPENDED to the query it was meant to clear.
 
 ### 84. 08 Film detail — `inert-control`
 
@@ -3128,6 +3149,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* import_recognised.ex:353-370 (header/1) and import.ex:97-119 (header/1) both draw a 38pt ink pill with text job.action and no on_tap prop. Neither module has a handler for it, and no tag exists for Kati.ScreenSweep to collect (it only collects %{on_tap: {pid, tag}} when is_atom(tag)).
 
 *Fix.* Same as screen 37's: no job resource means nothing to commit. Draw it disabled or route it to Kati.Screens.RetiredTile until the reader lands.
+
+*Fixed.* Both screens pass the commit tap: `if(live?(job), do: {self(), :commit})` at import.ex:303 and import_recognised.ex:527, and the pill draws no tap on a job that cannot be committed.
 
 ### 90. 15 Activity — `inert-control`
 
@@ -3217,6 +3240,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Either give chrome/2 an optional tag and wire a menu, or pass nil so the row reserves height without drawing a button, as numbering_scheme.ex:100 already does.
 
+*Fixed.* `Kati.UI.SettingsList.disc/2` takes an `on_tap`, so the ⋯ disc is a control on the screens that give it one and draws no tap on the screens that have nothing behind it.
+
 ### 99. 35 Series settings — `inert-control`
 
 **Every control on the screen is inert, including four switches whose columns exist on TrackedTitle with matching defaults and no other reader or writer in the app, and the three-way Status tiles that map exactly onto TrackedTitle.status.**
@@ -3224,6 +3249,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/series_settings.ex:109 loads Kati.SeriesSettings.Sample.show/0 only. status/1 (series_settings.ex:170-232) draws two shadow states and no on_tap. control/1 (series_settings.ex:286-287) returns SettingsList.chevron() or SettingsList.switch(on?), neither of which takes a tap. The moduledoc names auto_add_new_seasons, notify_new_episodes, add_air_dates_to_calendar and hide_unwatched_titles as having no other reader; hide_unwatched_titles is read only by rate_episode.ex:357, which is itself unreachable in practice.
 
 *Fix.* Split the screen: bind Status and the four season-pass switches to the tracked row this show's ⋯ menu named, and leave the four Region rows visibly disabled or off the page until an offers/settings resource exists.
+
+*Fixed.* `Kati.Screens.SeriesSettings` writes: `Ash.Changeset.for_update(:update, changes) |> Ash.update()` at :311, over the four `Kati.Media.TrackedTitle` columns the board draws, with `handle_tap/2` splitting the tags.
 
 ### 100. 36 Auto-detect (Kati.Screens.AutoDetect) — `inert-control`
 
@@ -3233,6 +3260,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* None of these can persist until a detect-settings resource exists. Report them as a group and either disable-style them or, per the screen's own precedent, route them to Kati.Screens.RetiredTile.
 
+*Fixed.* `tap/1` names the three rows that have somewhere to go — the browser extension's retirement reason, the media-access system page, and the tick threshold — and the master switch on the cream banner carries its own tap. Everything still without one has nothing behind it, which is #115 and is a feature rather than a wire.
+
 ### 101. 37 Import (Kati.Screens.Import) — `inert-control`
 
 **Screen 37 has zero controls: the 'Import 412' commit pill, the step meter and the three conflict answers are all pictures, and because none carries a tag the tap sweep cannot see any of them.**
@@ -3240,6 +3269,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* grep -c on_tap lib/kati/screens/import.ex returns 0. header/1 (import.ex:97-119) draws the ink 'Import 412' pill with no on_tap; choice/1 (import.ex:~470) builds each conflict answer from MishkaToggle with no on_tap; the module defines no handle_tap/2. Consequently none of these appear in @inert_taps in test/kati/screen_tap_sweep_test.exs.
 
 *Fix.* Nothing here can be wired until a job resource exists (the moduledoc names the shape). Until then, draw the pill and the three choices in a plainly disabled treatment, or route the pill to Kati.Screens.RetiredTile the way screen 36's Browser extension row does.
+
+*Fixed for the controls; the resource is still missing and is the point.* The three conflict choices carry `answer_`/`all_` tags and `answer/3` closes the card, and the commit pill carries `:commit` — each live only when the job behind it is, so the drawn frame still taps nothing because there is nothing on it to answer about. What remains is what this finding's own *Fix* named: no Ash resource models a file, a column mapping, an outcome count or a conflict queue, so step 3 of 4 cannot survive the screen popping. That is a feature, and `Kati.Backup.inspect_file/1` is the shape to copy when it lands.
 
 ### 102. 80 Data sources (Kati.Screens.DataSources) — `inert-control`
 
@@ -3249,6 +3280,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Give action_pill/1 an optional tag, wire :refresh_cache to a Kati.Media.CachePolicy stale pass and :clear_cache to a destroy of CachedTitle/CachedSeason/CachedEpisode behind a confirmation.
 
+*Fixed.* `action_pill/2` takes an `on_tap` and screen 80 passes one to both: `:refresh_cache` and `:clear_cache` (data_sources.ex:922, :924).
+
 ### 103. 98 Your year, shared (Kati.Screens.YearShare) — `inert-control`
 
 **The five non-resting scope chips and the privacy switch move assigns that nothing reads, so they relight over a card that never changes — and the sweep passes them because the assign does change.**
@@ -3256,6 +3289,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* handle_tap/2 sets :scope (year_share.ex:373-376) and :hide_private (year_share.ex:364-365). content/1 builds the card as card(assigns.aspect) (year_share.ex:63); :scope is consumed only by scopes/1 for chip highlighting and :hide_private only by privacy_row/1 for the switch graphic. @inert_taps lists only scope_All and aspect_square (test/kati/screen_tap_sweep_test.exs:583-584). Kati.Screens.YearShareDark's moduledoc calls this '98's small untruth'.
 
 *Fix.* Either make card/1 take the scope and the privacy flag and recompute, or draw only the scopes the app can actually answer and remove the privacy switch until a private-title flag exists.
+
+*Fixed.* `Kati.ShareCardScopeTest` is the file this finding produced: the five chips narrow the card through `top_titles/1`, and the privacy switch reads `Kati.Media.TrackedTitle.private`, which the ⋯ menu on a title's own page writes.
 
 ### 104. 03 Library / 152 Anime — `missing-feature`
 
@@ -3275,6 +3310,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Add a nothing-found band mirroring AddTitleMusic.nothing_band/2, pointing at the 'Add it by hand' row that is already below it.
 
+*Fixed.* *Nothing here for “…”* — a search that ran and found nothing, said out loud and distinguishable from one that never ran (add_title.ex:1039).
+
 ### 106. 12 Lists — `missing-feature`
 
 **Screen 12 has one working control and it writes nothing. `+` prepends a row literally titled "New list" to the socket, which is lost on back; tapping it twice gives two identical "New list" rows; there is no way to name a list, put anything in one, or open one. Every list row is untappable by design.**
@@ -3293,6 +3330,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Either add a long-press node to the bridge, or accept the menu row as the permanent door and redraw board 04 with it, rather than leaving a hint card that describes an unavailable gesture.
 
+*Fixed.* `K-47 long-press` is on the bridge: `Mob.Renderer` had serialised `on_long_press` since it was written and `MobBridge.kt` read only `on_tap`; `combinedClickable` reads both now, and `native/LEDGER.md` carries the fence. `Kati.Screens.ListDetail` is the first screen to use it.
+
 ### 108. 143 Episode rows — the rating column — `missing-feature`
 
 **Board 143 specifies a rating column for screen 04's episode rows, and screen 04 has none — no rating node, no read of Watch.rating. The board has been built as a standalone picture and never applied to the screen it is an edit of.**
@@ -3300,6 +3339,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/screens/series.ex:1041-1095 — episode/1 draws number, title, sub-line and check/2 and nothing else. lib/kati/screens/episode_ratings.ex:163-181 are two hard-coded specimen lists; the moduledoc says wiring the column 'belongs to Kati.Screens.Series itself'. Kati.Media.Watch.rating exists (lib/kati/media/watch.ex:80).
 
 *Fix.* Read Watch.rating per episode in Series.assembled/5 and add EpisodeRatings.rating_node/1's construction to Series.episode/1. Then 143 can be deleted from Settings, as the user asked.
+
+*Fixed.* Screen 04's episode rows carry the column. `ratings_by_episode/1` reads the ticks' own ratings, `episode_facts/4` puts one on each row, and `Kati.Screens.EpisodeRatings.rating_node/1` draws it (series.ex:1411) — board 143's own moduledoc named `Kati.Screens.Series` as where the wiring belonged and this is it.
 
 ### 109. 145 Shelf filter sheet — `missing-feature`
 
@@ -3369,6 +3410,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Out of scope for a wiring pass. The screen's own moduledoc names what is needed; the reportable defect today is the green 'Live' status pill over a device playing nothing.
 
+*Fixed.* `Kati.Media.Detect` is the feature. It holds the master switch and the tick threshold, reads what the phone is playing through `KatiMediaListener` (`K-46` in `native/LEDGER.md`), matches by name against the reader's own shelf — exactly, case and whitespace aside, because `Se7en` and `Seven` are two films — ticks what it is sure of, and turns what it is not into the question the queue card is arranged around. `Kati.Media.Watch.detected` is the provenance column this finding's first near miss said did not exist, so the banner counts the ticks Kati made rather than every tick ever.
+
 ### 116. 80 Data sources (Kati.Screens.DataSources) — `missing-feature`
 
 **There is nowhere in the entire app to enter a TMDB key, yet every TMDB failure message tells the user to come here and do exactly that.**
@@ -3376,6 +3419,8 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 *Proof.* lib/kati/media/tmdb.ex:302-307 reads Kati.SecureStore.get("tmdb"); grep across lib/ shows SecureStore.put/2 is never called for "tmdb" (only .get at sources.ex:145, tmdb.ex:304, caldav/transport.ex:119, and .delete at sources.ex:196). lib/kati/screens/data_sources.ex contains no <TextField>. tmdb.ex:359 composes "No TMDB key yet. Add one in Settings → Data sources." Board test/design/screens/80.html draws no field either.
 
 *Fix.* Add a key field to the TMDB card, shown when `choice == :own`, writing through Kati.SecureStore.put("tmdb", token). Until then, key_own must not be selectable — or the message must stop pointing here.
+
+*Fixed.* Board 318 built the card: `Kati.SecureStore.put("tmdb", token)` at data_sources.ex:1216, so the screen every TMDB failure message points at is a screen where a key can actually be entered.
 
 ### 117. 89 Result states — `missing-feature`
 
@@ -3525,8 +3570,19 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Fix.* Take the label from the push, as `Kati.Screens.Search` already does with its `back:` param.
 
+*Fixed 7 September.* The push names `Search`; `Settings` stays as the answer for a push that names nowhere.
 
-### 132. 05 New releases (Kati.Screens.Inbox) — `missing-feature`
+### 132. 19 Search at 235% — `polish`
+
+**The third scope chip on a wrapped line loses its count at 235%: `chip_rows/1` packed three to a line and three of the labels are wider than a 393dp phone has at that scale, so `Books` kept its name and dropped its `0`.**
+
+*Proof.* The measurement that would settle it is not available to Elixir — `max_font_scale` caps growth and nothing reports it, and `MobBridge.kt` has no wrapping row — so the choice was between packing two to a line (three lines of chips above every ordinary search, where board 19 draws one) and a `FlowRow` on the bridge.
+
+*Fix.* A `FlowRow` on the bridge, or a font-scale reading, or a row that does not wrap.
+
+*Fixed 7 September.* Board 313 takes the third answer and settles the ROW rather than the measurement: `chip_rows/1` returns one line and `chip_line/1` scrolls it, so no chip is ever on a wrapped line to lose its count. 313 rejects the wrapped version on its own merits as well as on the bridge's — *"Better to read, and three lines tall — on a 235% page where the field alone is 62pt, that is the results pushed off-screen"* — and requires the scroll to carry an affordance, which screen 86's row got on 8 September (#34). [mishka-group/kati#98](https://github.com/mishka-group/kati/issues/98) stays open for the `FlowRow` itself, which other rows may still want.
+
+### 133. 05 New releases (Kati.Screens.Inbox) — `missing-feature`
 
 **Board 307 draws the inbox as four rows across three shelves — an episode, a book, a record and a film — and screen 05 can only ever draw the episode. Nothing in the app produces a book release, a record release or a film release, so the other three shelves of board 307's own top frame are unreachable.**
 
@@ -3538,7 +3594,7 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 **The one thing deliberately not built: board 307's row recipe.** The board replaces screen 05's 44×62 poster with a 40×40 glyph tile, and states its reason — *"a record has square art, a book a portrait cover, an episode a landscape still, and three aspect ratios in one list breaks the row rhythm."* That reason is **conditional on the list holding more than one shelf**, and it holds one. Swapping a real poster for a generic `live_tv` glyph today would degrade the only state that can occur, to fix a rhythm problem that cannot yet happen. The recipe goes in with the first producer above; until then screen 05 keeps its poster and its `Watch` pill.
 
-### 133. 97 سرویس‌های من — `lies-to-user`
+### 134. 97 سرویس‌های من — `lies-to-user`
 
 **Screen 97 printed ایران to every Persian reader whether or not they had chosen a country, drew the drawing's ۴۶٫۴۷ £ monthly total over a shelf with nothing on it, and its country row carried a chevron that opened nothing because no Persian country picker existed.**
 
@@ -3552,7 +3608,7 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Two things board 324 draws that were not built, both deliberately.* Its rules card carries the empty-state third sentence — «خاموش به‌طور پیش‌فرض — با هیچ سرویسی همه‌چیز پنهان می‌شد» — where 97 draws the full one that board 310 counted; board 323, which 324's own note defers to, rules that the rules group is ONE group with one sentence, and 310 is the board that counted it. And 324 omits the *مال من نیست* eyebrow and the catalogue row, where screen 93 draws both on the same state in English; two locales showing a different number of groups for one state would be a drift, so 97 keeps them.
 
-### 134. 02 Schedule (Kati.Screens.Calendar) — `missing-feature`
+### 135. 02 Schedule (Kati.Screens.Calendar) — `missing-feature`
 
 **Screen 02 could only say "Kati cannot see your calendar" on a day that was otherwise empty. On any day holding one of Kati's own events — a habit, an air date, a renewal — the page drew a timeline with the reader's appointments silently missing from it and no way to ask for them.**
 
@@ -3566,7 +3622,7 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *Two things 306 draws that were not built.* Its filter row carries counts — `All 2 · Screen 1 · Habits 1 · Personal 0` — over a chip set screen 02 does not have (02 draws All / Screen / Personal / Money, and none of them counts). 306's stated point about that row is that `Personal` must not vanish at zero, and it cannot: the four chips are a fixed list. Counting all four is a change to board 02's own row and belongs to a board about screen 02's chips.
 
-### 135. 112 Medication (Kati.Health.Medication) — `missing-feature`
+### 136. 112 Medication (Kati.Health.Medication) — `missing-feature`
 
 **A medication whose schedule reads `Mon, Wed, Fri` is given a dose every day of the week, and armed a reminder every day, because `schedule` is a free string the reader types and nothing structured records which days a prescription falls on.**
 
@@ -3578,7 +3634,7 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 *What 327's second frame asks for and was not built.* Its *true empty* — `No medications` over an `Add a medication` ink button, with the Schedules group and its eyebrow both gone — is the state a reader with nothing stored is in, and screen 112 draws the drawing there instead: `doses({false, [], []})` answers `drawn_doses/0`, which is FIDELITY's rule that an empty store answers the board and which `Kati.ScreenEmptyDatabaseTest` pins for all 172 screens. Changing it for one screen is a decision about that rule rather than about this page.
 
-### 136. 50 Share a plan / 120 Import a plan — `lies-to-user`
+### 137. 50 Share a plan / 120 Import a plan — `lies-to-user`
 
 **Screen 50's QR card was titled `Scan to import this plan` over a mono line reading `SETTINGS ONLY`, said nothing about the 35 meals it cannot carry, and offered no route for them; screen 120 counted `29 New` for an arrival that brings none.**
 
@@ -3610,6 +3666,3 @@ Each needs a real door before it can be called finished, and then it comes out o
 - inout: 142 Import — source states (Kati.Screens.ImportStates) — should be reached from 141 when the file's columns do not match the tapped tile (wrong guess / unrecognised / partial columns), i.e. as the failure branch of Kati.Screens.ImportRecognised.load/1 once a real reader inspects the chosen file. Today nothing reads a file, so the state cannot arise.
 - inout: 101 Year cards — states (Kati.Screens.YearCardsStates) — should be reached from 98 (Kati.Screens.YearShare): band 3 (private title) is what the 'Hide titles I marked private' switch should produce, and band 5 (save not supported) is what 'Save image' should show instead of pushing screen 100. Band 1 is already honoured live on screen 07's empty state.
 - inout: 102 Your year, shared — dark (Kati.Screens.YearShareDark) — should not be a separate screen at all: Kati.Theme.Palette.mode/0 already makes screen 98 render dark on a dark device. Its two extra card faces (the contribution field and the genre bars) belong on 98's own preview, reached from Stats -> share disc.
-
-
-*Fixed 7 September.* The push names `Search`; `Settings` stays as the answer for a push that names nowhere.

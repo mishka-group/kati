@@ -755,7 +755,7 @@ defmodule Kati.Screens.Calendar do
   *"write-back is a separate decision (#54) and would need WRITE_CALENDAR."*
   Screen 40's Calendars row already words it correctly — *"Kati only reads
   them"* — and a button that promised to write would be asking for consent to
-  something the app cannot do. MOVIES-AND-TV.md #134.
+  something the app cannot do. MOVIES-AND-TV.md #135.
   """
   @spec calendars_card(Kati.Permissions.state()) :: map()
   def calendars_card(access) do

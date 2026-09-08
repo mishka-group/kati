@@ -84,7 +84,7 @@ about; the right is the section of `D-65` it answers.
 | Board | Drawing | Answers |
 |---|---|---|
 | 306 | 02 — no calendar permission | `D-65` 02 | — **built 8 Sep**, kept here: it is a state of 02 drawn beside three notes, not a frame of one page |
-| 307 | 05 + 25 — releases beyond television | `D-65` 05+25 | — **partly built 8 Sep**: 25's three shelves and 66's Follow row are real; 05's glyph-tile recipe waits on a producer for a second shelf (MOVIES-AND-TV.md #132) |
+| 307 | 05 + 25 — releases beyond television | `D-65` 05+25 | — **partly built 8 Sep**: 25's three shelves and 66's Follow row are real; 05's glyph-tile recipe waits on a producer for a second shelf (MOVIES-AND-TV.md #133) |
 | 308 | 06 — before, during, and found nothing | `D-65` 06 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 309 | 07 — a year with nothing counted | `D-65` 07 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 310 | 13 + 92 + 97 — one sentence, one count | `D-65` 13+92+97 | — **built 8 Sep**, kept here: it is a comparison of three screens rather than a frame of one |
@@ -104,7 +104,7 @@ about; the right is the section of `D-65` it answers.
 | 324 | ۹۷ — فارسی، هیچ‌چیز تنظیم نشده | `D-65` 97 | — **built 8 Sep**, kept here: 97's board is the full page, and this is a state of it |
 | 325 | Year card · the field face, 4:5 at size | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 326 | Year card · the genres face + the heading | `D-65` 98+100 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
-| 327 | 112 — medications, nothing due today | `D-65` 112 | — **partly built 8 Sep**: the card is drawn; its sentence and the true-empty frame wait on MOVIES-AND-TV.md #135 |
+| 327 | 112 — medications, nothing due today | `D-65` 112 | — **partly built 8 Sep**: the card is drawn; its sentence and the true-empty frame wait on MOVIES-AND-TV.md #136 |
 | 328 | 140 — four more sources, and the door | `D-65` 140 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |
 | 329 | 141 — the recognition line, six shapes | `D-65` 141 | — **built 7 Sep**, kept here: six states of one card in one frame |
 | 330 | L1 — removing, deleting, renaming | `D-65` L1 | — **built 7 Sep**, kept here: a state catalogue needs a specimen screen before the literal sweep can hold it |

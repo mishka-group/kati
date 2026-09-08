@@ -17,20 +17,23 @@ defmodule Kati.Screens.AutoDetect do
 
   No dock — pushed screen — so the frame closes at 40, not 132.
 
-  ## Why this screen is still on `Kati.Settings.DetectSample`
+  ## What this screen reads, and what `Kati.Settings.DetectSample` is now
 
-  None of it has a resource. There is no row for the master switch, none for
-  the per-source switches or their tick counts, none for the tick threshold,
-  none for a playing session, and none for the queue of unsure matches — which
-  is the card the whole screen is arranged around. Detection is a feature that
-  has not been built, not a screen that has not been wired.
+  This section used to be headed *why this screen is still on
+  `Kati.Settings.DetectSample`* and to end *detection is a feature that has not
+  been built, not a screen that has not been wired* (MOVIES-AND-TV.md #115).
+  It is built: `Kati.Media.Detect` holds the master switch and the threshold,
+  reads what the phone is playing through `KatiMediaListener`, matches it
+  against the reader's own shelf by name, ticks what it is sure of and turns
+  what it is not into the question the queue card draws. `Kati.Media.Watch`
+  carries `detected`, so `41 EPISODES TICKED FOR YOU` counts the ticks Kati
+  made rather than every tick ever — the first of the two near misses below,
+  and it is no longer one.
 
-  Two near misses, so the next pass does not re-derive them:
+  The Sample is what a device with detection off or unavailable falls back to,
+  which is the arrangement every other screen here keeps.
 
-    * **`41 EPISODES TICKED FOR YOU`.** `Kati.Media.Watch` holds the ticks, but
-      it records no provenance — there is no column saying a tick was detected
-      rather than tapped — so a count of every tick ever would be a different
-      sentence wearing the same words.
+  The second near miss, kept because the next pass should not re-derive it:
 
     * **`S2E6 · LUMEN+ · APPLE TV`.** `Watch` has `service`, and the episode
       half can now be named — `Kati.Media.CachedEpisode` carries

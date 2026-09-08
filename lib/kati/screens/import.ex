@@ -45,11 +45,18 @@ defmodule Kati.Screens.Import do
 
   **Drawn copy with no stored state: every string is `Kati.Import.Sample` and
   no resource in the app holds an import job**, which the section above sets
-  out in full. Nothing on this screen taps, either — the three conflict choices
-  and the step meter are drawn, not offered — so there is no answer being
-  forgotten, only one that cannot yet be asked for. What it needs is named
-  above: a job resource holding the file, its column mapping, the counted
-  outcome and a conflict queue, so that step 3 of 4 survives the screen popping.
+  out in full.
+
+  The controls are not pictures any more, which is the half of
+  MOVIES-AND-TV.md #101 that could be answered without that resource. The
+  three conflict choices carry `answer_` and `all_` tags and `answer/3` closes
+  the card; the commit pill carries `:commit`. Each is live only when the job
+  behind it is — `live?/1` — so the drawn frame still taps nothing, because
+  there is nothing on it to answer about.
+
+  What is still missing is the resource, and it is named above: a job holding
+  the file, its column mapping, the counted outcome and a conflict queue, so
+  that step 3 of 4 survives the screen popping.
   """
   use Kati.Screens.Pushed, back: "Settings"
 

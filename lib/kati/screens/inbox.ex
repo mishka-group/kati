@@ -74,7 +74,7 @@ defmodule Kati.Screens.Inbox do
 
   The reason is conditional on the list holding more than one shelf, and it
   holds one. Nothing in the app produces a book release, a record release or a
-  film release — MOVIES-AND-TV.md #132 names the three producers each would
+  film release — MOVIES-AND-TV.md #133 names the three producers each would
   need — so swapping a real poster for a generic `live_tv` glyph today would
   degrade the only state that can occur, to fix a rhythm problem that cannot
   yet happen. The recipe goes in with the first producer that makes this list
