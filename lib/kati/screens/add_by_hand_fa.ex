@@ -283,5 +283,4 @@ defmodule Kati.Screens.AddByHandFa do
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
-
 end

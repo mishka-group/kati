@@ -710,11 +710,13 @@ defmodule Kati.Screens.AddByHandBook do
 
   @doc "Take a Status chip's tap, if it names one of the three. `Kati.Screens.AddByHand.pick/2`'s rule, over this form's own list."
   @spec pick_status(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
-  def pick_status(socket, key), do: Kati.Screens.AddByHandBook.assign_key(socket, :status, @statuses, key)
+  def pick_status(socket, key),
+    do: Kati.Screens.AddByHandBook.assign_key(socket, :status, @statuses, key)
 
   @doc "The same, for the three Edition chips."
   @spec pick_edition(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
-  def pick_edition(socket, key), do: Kati.Screens.AddByHandBook.assign_key(socket, :edition, @editions, key)
+  def pick_edition(socket, key),
+    do: Kati.Screens.AddByHandBook.assign_key(socket, :edition, @editions, key)
 
   @doc false
   @spec assign_key(Mob.Socket.t(), atom(), [{String.t(), atom()}], String.t()) :: Mob.Socket.t()

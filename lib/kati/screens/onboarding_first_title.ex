@@ -244,13 +244,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
 
       src ->
         ~MOB"""
-        <Image
-          src={src}
-          fill_width={true}
-          fill_height={true}
-          corner_radius={13}
-          content_mode="fill"
-        />
+        <Image src={src} fill_width={true} fill_height={true} corner_radius={13} content_mode="fill" />
         """
     end
   end

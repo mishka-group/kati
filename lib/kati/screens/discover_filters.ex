@@ -300,8 +300,9 @@ defmodule Kati.Screens.DiscoverFilters do
       nil
   """
   @spec count_line(map(), map()) :: String.t() | nil
-  def count_line(choice, %{opened_with: choice, total: total}) when is_integer(total) and total > 0,
-    do: Kati.Screens.DiscoverFilters.thousands(total) <> " titles"
+  def count_line(choice, %{opened_with: choice, total: total})
+      when is_integer(total) and total > 0,
+      do: Kati.Screens.DiscoverFilters.thousands(total) <> " titles"
 
   def count_line(_choice, _assigns), do: nil
 

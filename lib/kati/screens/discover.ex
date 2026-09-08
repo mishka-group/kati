@@ -159,11 +159,14 @@ defmodule Kati.Screens.Discover do
   @spec feed(map()) :: map()
   def feed(choice) do
     cond do
-      Kati.Discover.Filters.narrowed?(choice) -> browse_feed(choice)
-      true -> case Recommendations.seed() do
-                nil -> Sample.feed()
-                {_tracked, cached} -> real_feed(cached)
-              end
+      Kati.Discover.Filters.narrowed?(choice) ->
+        browse_feed(choice)
+
+      true ->
+        case Recommendations.seed() do
+          nil -> Sample.feed()
+          {_tracked, cached} -> real_feed(cached)
+        end
     end
   end
 
@@ -433,7 +436,6 @@ defmodule Kati.Screens.Discover do
   end
 
   def handle_kati(_topic, _payload, socket), do: {:noreply, socket}
-
 
   @doc """
   The chip the data marks selected.

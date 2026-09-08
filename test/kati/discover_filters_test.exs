@@ -175,7 +175,10 @@ defmodule Kati.DiscoverFiltersTest do
 
       {:noreply, moved} = DiscoverFilters.handle_info({:tap, :kind_tv}, view.socket)
 
-      refute Enum.any?(texts(DiscoverFilters.body(moved.assigns)), &String.contains?(&1, "4,213")),
+      refute Enum.any?(
+               texts(DiscoverFilters.body(moved.assigns)),
+               &String.contains?(&1, "4,213")
+             ),
              "the count survived a chip moving, so it now describes a query nobody ran"
     end
 
@@ -374,12 +377,20 @@ defmodule Kati.DiscoverFiltersTest do
 
     test "the sort disc is lit only while something is narrowing the feed" do
       resting = inspect(Kati.Screens.Discover.filter_disc(Filters.resting()), limit: :infinity)
-      narrowed = inspect(Kati.Screens.Discover.filter_disc(%{kind: :tv, sort: :popular, rating: nil}), limit: :infinity)
+
+      narrowed =
+        inspect(Kati.Screens.Discover.filter_disc(%{kind: :tv, sort: :popular, rating: nil}),
+          limit: :infinity
+        )
 
       refute resting == narrowed
 
       # And over a drawing there is no live choice, so there is no disc.
-      assert Kati.Screens.Discover.filter_disc(nil) == %{type: :spacer, children: [], props: %{size: 0}}
+      assert Kati.Screens.Discover.filter_disc(nil) == %{
+               type: :spacer,
+               children: [],
+               props: %{size: 0}
+             }
     end
   end
 

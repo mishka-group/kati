@@ -1154,7 +1154,9 @@ defmodule Kati.Screens.RateEpisode do
     assigns = %{
       chips:
         (options ++ [Kati.Screens.Rating.no_service()])
-        |> Enum.map(&Kati.Screens.Rating.choice(&1, "where_" <> &1, &1 == Map.get(sheet, :service)))
+        |> Enum.map(
+          &Kati.Screens.Rating.choice(&1, "where_" <> &1, &1 == Map.get(sheet, :service))
+        )
         |> Enum.intersperse(Kati.Screens.Rating.tag_gap()),
       empty?: options == []
     }
