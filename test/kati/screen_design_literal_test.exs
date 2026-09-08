@@ -216,7 +216,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 132 137 176)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 132 137 156 176)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
   # tier. Today: 21, and twenty of them are rating rows the drawing writes as
@@ -1278,6 +1278,14 @@ defmodule Kati.ScreenDesignLiteralTest do
   # read `[]` or `nil` and NOT their drawn value.
   defp drawn_state do
     [
+      # Board 156 is screen 154 in the mirror, and 154 IS the mirror now —
+      # mishka-group/kati#103's first fold. The board is drawn with **Series**
+      # chosen, which matters here rather than being a detail of the capture:
+      # `episodes/1` answers a bare Spacer under `:movie`, so the whole episode
+      # band — its label and the note under it — does not exist in the state
+      # the screen opens in. 154's own board draws Film and is compared at
+      # rest; this is the same module in the other script and the other kind.
+      {"156", Kati.Screens.AddByHand, &Map.put(&1, :kind, :tv)},
       # Home is now five reads and a boolean, so this entry installs the board's
       # own values into all five rather than flipping the flag over a page of
       # literals. Every one of them used to be written out inside `content/1`

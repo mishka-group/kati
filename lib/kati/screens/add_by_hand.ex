@@ -54,11 +54,17 @@ defmodule Kati.Screens.AddByHand do
   # The one-shot key `opened/2` leaves for the Library. See `hand_over/1`.
   @handover "add_by_hand:open"
 
+  use Gettext, backend: Kati.Gettext
+
   alias Kati.Components.MishkaChip
   alias Kati.Theme.Palette
 
-  @kinds [{"Film", :movie, "movie"}, {"Series", :tv, "live_tv"}]
-  @statuses [{"Not started", :not_started}, {"Watching", :watching}, {"Finished", :finished}]
+  # `{key, glyph}` rather than `{label, key, glyph}`: a label is now asked for
+  # at draw time, because it depends on the reader's locale and a module
+  # attribute is frozen at compile time. `kind_list/0` and `status_list/0` are
+  # what call the translation, so a caller still sees `{label, key, …}`.
+  @kinds [{:movie, "movie"}, {:tv, "live_tv"}]
+  @statuses [:not_started, :watching, :finished]
 
   @impl true
   def load(socket) do
@@ -82,27 +88,41 @@ defmodule Kati.Screens.AddByHand do
       ~MOB"""
       <Column fill_width={true}>
         {Kati.Screens.AddByHand.heading()}
-        {Kati.Screens.AddByHand.labelled("Title", Kati.Screens.AddByHand.field(:title, assigns.title, "e.g. The Long Hollow", Kati.Screens.AddByHand.untitled?(assigns)))}
-        {Kati.Screens.AddByHand.labelled("Kind", Kati.Screens.AddByHand.kinds(assigns.kind))}
-        {Kati.Screens.AddByHand.labelled("Year", Kati.Screens.AddByHand.field(:year, assigns.year, "2024"), "optional")}
-        {Kati.Screens.AddByHand.labelled("Status", Kati.Screens.AddByHand.statuses(assigns.status))}
+        {Kati.Screens.AddByHand.labelled(gettext("Title"), Kati.Screens.AddByHand.field(:title, assigns.title, gettext("e.g. The Long Hollow"), Kati.Screens.AddByHand.untitled?(assigns)))}
+        {Kati.Screens.AddByHand.labelled(gettext("Kind"), Kati.Screens.AddByHand.kinds(assigns.kind))}
+        {Kati.Screens.AddByHand.labelled(gettext("Year"), Kati.Screens.AddByHand.field(:year, assigns.year, gettext("2024")), gettext("optional"))}
+        {Kati.Screens.AddByHand.labelled(gettext("Status"), Kati.Screens.AddByHand.statuses(assigns.status))}
         {Kati.Screens.AddByHand.episodes(assigns)}
         {Kati.Screens.AddByHand.error(assigns.save_error)}
-        {Kati.UI.Sheet.commit("Add to library", :add)}
+        {Kati.UI.Sheet.commit(gettext("Add to library"), :add, Kati.Locale.face_prop())}
         <Spacer size={14} />
-        {Kati.Screens.AddByHand.split_note("A hand-typed title carries", "no poster and no episode list", ". If Kati finds it later both arrive, and nothing you typed is overwritten.")}
+        {Kati.Screens.AddByHand.split_note(gettext("A hand-typed title carries"), gettext("no poster and no episode list"), gettext(". If Kati finds it later both arrive, and nothing you typed is overwritten."), Kati.Locale.face_prop())}
       </Column>
       """,
       Kati.Screens.Pushed.content_top()
     )
   end
 
-  @doc false
+  @doc """
+  The title and the line under it, in the reader's own language.
+
+  Neither `Text` names a `font_family`, and that is the point of `K-48
+  locale-face` rather than an omission: the bridge resolves a missing family
+  against the root's, and `Kati.Screens.Pushed.chrome/3` declares the root's as
+  `Kati.Locale.face_prop/0`. So Persian arrives in Vazirmatn without either of
+  these lines mentioning it — which is exactly what the mirror had to write out
+  by hand on every one of its own nodes.
+
+  `Kati.ScreenTitleSubtitleTest` compares this pair against the board and reads
+  an ABSENT family as the design's default, so writing `sans` here explicitly —
+  the same face, said out loud — fails it. That is the test working: an
+  explicit `sans` would force Latin and undo the whole arrangement above.
+  """
   def heading do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Add by hand"
+        text={gettext("Add by hand")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
@@ -111,7 +131,7 @@ defmodule Kati.Screens.AddByHand do
       />
       <Spacer size={7} />
       <Text
-        text="For something Kati could not find. The title is the only thing it needs."
+        text={gettext("For something Kati could not find. The title is the only thing it needs.")}
         text_size={13}
         line_height={1.55}
         text_color={Palette.sub()}
@@ -122,31 +142,42 @@ defmodule Kati.Screens.AddByHand do
   end
 
   @doc """
-  This form in the reader's own script.
+  This form, which is the same module in either script now.
 
-  Screen 89's row pushed the English one whatever the locale was, and
-  `Kati.Screens.AddByHandFa` sat on `Kati.AppReachabilityTest`'s inventory with
-  exactly that as its reason — the last Persian mirror in the app a person
-  could not reach. Both callers go through here now, which is #93's third
-  criterion answered for this screen: *Persian screens are reachable after
-  onboarding, not only during it.*
+  It used to answer `Kati.Screens.AddByHandFa` for a Persian reader, because
+  there were two of these screens. mishka-group/kati#103's fold deleted the
+  mirror: screen 154 rendered under `:fa` IS board 156, so there is nothing
+  left to choose between.
 
-  A function rather than an `if` at each call site, for the reason
-  `Kati.Onboarding.screen_for_step/2` is one: two call sites deciding the same
-  thing separately eventually disagree, and the disagreement shows up as a
-  screen in the wrong language rather than as an error.
+      iex> Kati.Screens.AddByHand.for_locale()
+      Kati.Screens.AddByHand
+
+  Kept as a function rather than deleted with the branch, because both call
+  sites push through it and a push that names a module directly is one more
+  place to change when the next thing about this screen is decided by the
+  locale. `Kati.Onboarding.screen_for_step/2` is the same argument.
   """
   @spec for_locale() :: module()
-  def for_locale do
-    case Kati.Locale.current() do
-      :fa -> Kati.Screens.AddByHandFa
-      _en -> Kati.Screens.AddByHand
-    end
-  end
+  def for_locale, do: Kati.Screens.AddByHand
+
+  @doc """
+  The face an eyebrow label takes.
+
+      iex> Kati.Screens.AddByHand.label_face()
+      "mono"
+
+  Not `Kati.Locale.face_prop/0`, which answers `sans`: these labels are the
+  design's DM Mono small-caps in Latin, and `labelled/4` already carries the
+  reason Persian cannot be that with the family swapped — *DM Mono's 10.5 at
+  .16em is a Latin small-caps effect and the Arabic script has neither case nor
+  a tradition of letter-spacing*.
+  """
+  @spec label_face() :: String.t()
+  def label_face, do: if(Kati.Locale.current() == :fa, do: "fa", else: "mono")
 
   @doc "A field under its own label, with the board's `optional` marker when it has one."
   @spec labelled(String.t(), map(), String.t() | nil) :: map()
-  def labelled(label, body, marker \\ nil, face \\ "mono") do
+  def labelled(label, body, marker \\ nil, face \\ label_face()) do
     # Persian takes Vazirmatn at 11/600 with no tracking, which is
     # `Kati.Screens.Fa.eyebrow/1`'s recipe rather than this one with the family
     # swapped: DM Mono's 10.5 at .16em is a Latin small-caps effect and the
@@ -237,20 +268,43 @@ defmodule Kati.Screens.AddByHand do
     """
   end
 
-  @doc "The two kinds, and the three statuses. Functions and not module attributes: inside `~MOB` an `@name` is an ASSIGN, which is the trap this file hit first."
+  @doc """
+  The two kinds, and the three statuses — **in the reader's own language**.
+
+  Functions and not module attributes for two reasons now. The first is the
+  trap this file hit when it was written: inside `~MOB` an `@name` is an
+  ASSIGN. The second arrived with mishka-group/kati#103's fold — a label is a
+  translation, `gettext/1` resolves against the locale in the calling process,
+  and a module attribute is frozen at compile time. So the KEY is the attribute
+  and the WORD is asked for here.
+
+      iex> Kati.Screens.AddByHand.kind_list() |> Enum.map(&elem(&1, 1))
+      [:movie, :tv]
+  """
   @spec kind_list() :: [{String.t(), atom(), String.t()}]
-  def kind_list, do: @kinds
+  def kind_list, do: Enum.map(@kinds, fn {kind, icon} -> {kind_label(kind), kind, icon} end)
+
+  @doc "What a Kind chip says. The tap is named after `kind` and never after this — MOVIES-AND-TV.md #158."
+  @spec kind_label(atom()) :: String.t()
+  def kind_label(:tv), do: gettext("Series")
+  def kind_label(_movie), do: gettext("Film")
 
   @doc false
   @spec status_list() :: [{String.t(), atom()}]
-  def status_list, do: @statuses
+  def status_list, do: Enum.map(@statuses, &{status_label(&1), &1})
+
+  @doc "What a Status chip says."
+  @spec status_label(atom()) :: String.t()
+  def status_label(:watching), do: gettext("Watching")
+  def status_label(:finished), do: gettext("Finished")
+  def status_label(_not_started), do: gettext("Not started")
 
   @doc false
   def kinds(active) do
     ~MOB"""
     <Row fill_width={true} align="center">
       {Enum.map(Kati.Screens.AddByHand.kind_list(), fn {label, kind, icon} ->
-        Kati.Screens.AddByHand.kind_chip(label, icon, kind == active, kind)
+        Kati.Screens.AddByHand.kind_chip(label, icon, kind == active, kind, Kati.Locale.face_prop())
       end)
       |> Enum.intersperse(Kati.Screens.AddByHand.gap())}
     </Row>
@@ -346,8 +400,8 @@ defmodule Kati.Screens.AddByHand do
   def episodes(assigns) do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.AddByHand.labelled("Total episodes", Kati.Screens.AddByHand.field(:episodes, assigns.episodes, "7"), "optional")}
-      {Kati.Screens.AddByHand.split_note("Without it a series still tracks, but its progress bar has", "no denominator", "— which the app already draws honestly.")}
+      {Kati.Screens.AddByHand.labelled(gettext("Total episodes"), Kati.Screens.AddByHand.field(:episodes, assigns.episodes, gettext("7")), gettext("optional"))}
+      {Kati.Screens.AddByHand.split_note(gettext("Without it a series still tracks, but its progress bar has"), gettext("no denominator"), gettext("— which the app already draws honestly."), Kati.Locale.face_prop())}
       <Spacer size={18} />
     </Column>
     """
@@ -828,9 +882,9 @@ defmodule Kati.Screens.AddByHand do
   """
   @spec pick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
   def pick(socket, key) do
-    case Enum.find(@statuses, fn {_label, status} -> Atom.to_string(status) == key end) do
-      {_label, status} -> Mob.Socket.assign(socket, :status, status)
+    case Enum.find(@statuses, &(Atom.to_string(&1) == key)) do
       nil -> socket
+      status -> Mob.Socket.assign(socket, :status, status)
     end
   end
 end

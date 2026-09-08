@@ -410,8 +410,6 @@ defmodule Kati.ScreenTapSweepTest do
     # field is visible. The resting member of a family again, three times.
     {Kati.Screens.AddByHandDark, :kind_tv},
     {Kati.Screens.AddByHandDark, :status_not_started},
-    {Kati.Screens.AddByHandFa, :kind_tv},
-    {Kati.Screens.AddByHandFa, :status_not_started},
     {Kati.Screens.AddByHand, :status_not_started},
     # Board 169's two settled members. The sheet opens on `Kati.Discover.Filters.resting/0`
     # — most popular, no kind, no rating — so `:sort_popular` sets the sort it

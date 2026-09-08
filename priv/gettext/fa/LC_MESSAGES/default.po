@@ -16,3 +16,107 @@ msgstr ""
 #: lib/kati/gettext_probe.ex
 msgid "Up next"
 msgstr "بعدی"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Add by hand"
+msgstr "افزودن دستی"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "For something Kati could not find. The title is the only thing it needs."
+msgstr "برای چیزی که کاتی پیدا نکرد. عنوان تنها چیز لازم است."
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Title"
+msgstr "عنوان"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "e.g. The Long Hollow"
+msgstr "گودال بلند"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Kind"
+msgstr "نوع"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Film"
+msgstr "فیلم"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Series"
+msgstr "سریال"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Year"
+msgstr "سال"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "optional"
+msgstr "اختیاری"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Status"
+msgstr "وضعیت"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Not started"
+msgstr "شروع نشده"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Watching"
+msgstr "در حال تماشا"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Finished"
+msgstr "تمام‌شده"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Total episodes"
+msgstr "تعداد قسمت‌ها"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Without it a series still tracks, but its progress bar has"
+msgstr "بدون این عدد سریال ردیابی می‌شود اما نوار پیشرفتش"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "no denominator"
+msgstr "مخرج ندارد"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "— which the app already draws honestly."
+msgstr "— کاتی همین را صادقانه نشان می‌دهد."
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Add to library"
+msgstr "افزودن به کتابخانه"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "A hand-typed title carries"
+msgstr "عنوان دست‌نویس"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "no poster and no episode list"
+msgstr "پوستر و فهرست قسمت ندارد"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid ". If Kati finds it later both arrive, and nothing you typed is overwritten."
+msgstr ". اگر کاتی بعداً آن را پیدا کند، هر دو می‌آیند و چیزی که نوشته‌اید دست‌نخورده می‌ماند."
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "2024"
+msgstr "۱۴۰۳"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "7"
+msgstr "۷"
+
+#: lib/kati/screens/pushed.ex
+msgid "Library"
+msgstr "کتابخانه"
+
+#: lib/kati/screens/pushed.ex
+msgid "Add title"
+msgstr "افزودن عنوان"
+
+#: lib/kati/screens/pushed.ex
+msgid "Home"
+msgstr "خانه"

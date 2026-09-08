@@ -120,10 +120,22 @@ defmodule Kati.Screens.Pushed do
   @spec back_label(map() | nil, String.t()) :: String.t()
   def back_label(params, default) do
     case params && Map.get(params, :back) do
-      label when is_binary(label) and label != "" -> label
-      _absent -> default
+      label when is_binary(label) and label != "" -> translated(label)
+      _absent -> translated(default)
     end
   end
+
+  # mishka-group/kati#103. The pill says where the reader came FROM, and every
+  # word it can say is one another screen wrote — `back: "Library"` at a `use`
+  # site, or a `%{back: …}` on a push. Both are compile-time English, so a
+  # folded screen would come out with a Persian page under an English pill.
+  #
+  # `Gettext.dgettext/3` rather than the macro: the macro extracts at compile
+  # time from a literal, and this is a runtime value. An untranslated label
+  # answers itself, so a screen whose word is not in the catalogue yet is
+  # exactly as it was — which is what makes this safe to add before the other
+  # nine mirrors fold.
+  defp translated(label), do: Gettext.dgettext(Kati.Gettext, "default", label)
 
   @doc """
   How far down a pushed screen's content must start.

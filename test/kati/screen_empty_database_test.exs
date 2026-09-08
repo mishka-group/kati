@@ -545,7 +545,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"163", Kati.Screens.OnboardingFirstTitle},
     {"166", Kati.Screens.OnboardingFirstTitleFa},
     {"155", Kati.Screens.AddByHandStates},
-    {"156", Kati.Screens.AddByHandFa},
+    {"156", Kati.Screens.AddByHand},
     {"157", Kati.Screens.AddByHandDark},
     {"158", Kati.Screens.HomeFaEmpty},
     {"159", Kati.Screens.HomeFaEmptyDark},
@@ -689,6 +689,22 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # it answers to the same band of board 155 — see the entry above, and
     # MOVIES-AND-TV.md #29 for what it used to open in instead.
     "157" => [{"155", {"Resting — empty, Film, nothing assumed", "Film is the default"}}],
+    # Board 156 is screen 154 in the mirror, and 154 IS the mirror since
+    # mishka-group/kati#103's first fold. It is drawn with **Series** chosen, and
+    # `episodes/1` answers a bare Spacer under `:movie` — so the episode label,
+    # its `optional` marker, its `۷` placeholder and the note under it are all
+    # in a state the screen does not open in, exactly as 154's own entry above
+    # records for the English board.
+    #
+    # Two bands rather than one, because the part after the note IS drawn at
+    # rest: the commit button and the hand-typed-title note under it. The
+    # episode band between them is the only thing skipped, and
+    # `Kati.ScreenDesignLiteralTest.drawn_state/0` compares it directly by
+    # putting the screen into `:tv`.
+    "156" => [
+      {"156", {"arrow_forward_ios", "تعداد قسمت‌ها"}},
+      {"156", {"کاتی همین را صادقانه نشان می‌دهد.", nil}}
+    ],
     # 188 is 154's case with both states on ONE board: the sheet is drawn
     # resting, with a value in every trough, and again refused, with the card
     # that names what is missing. The refusal is a state a user reaches by
@@ -2421,7 +2437,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"155", Kati.Screens.AddByHandStates,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"156", Kati.Screens.AddByHandFa,
+      {"156", Kati.Screens.AddByHand,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"157", Kati.Screens.AddByHandDark,
@@ -2953,9 +2969,26 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     end
   end
 
+  # The boards whose literals are PERSIAN, rendered in the locale they are drawn
+  # in rather than in `:en`.
+  #
+  # Every other Persian board is a `*Fa` module holding its copy as literals, so
+  # the locale it renders under makes no difference to what it draws. 156 is the
+  # first that is not: mishka-group/kati#103's fold deleted
+  # `Kati.Screens.AddByHandFa`, and board 156 is now screen 154 rendered under
+  # `:fa` — which is also what makes its back chevron `arrow_forward_ios`, since
+  # `Kati.Screens.Pushed.back_glyph/0` reads the direction. Rendered in `:en` it
+  # draws the English page and every one of the board's lines is "missing".
+  #
+  # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
+  # reason, and the two grow together as the fold proceeds.
+  @fa_numbers ~w(156)
+
   defp do_render_migrated do
     for {number, module} <- @migrated do
-      case ScreenSweep.with_locale(:en, fn -> ScreenSweep.render(module) end) do
+      locale = if number in @fa_numbers, do: :fa, else: :en
+
+      case ScreenSweep.with_locale(locale, fn -> ScreenSweep.render(module) end) do
         {:ok, _socket, tree} ->
           texts = DesignLiterals.rendered(tree)
 

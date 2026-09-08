@@ -194,7 +194,12 @@ defmodule Kati.Screens.Gallery do
     {"153", "Numbering — inherited and overridden", Kati.Screens.NumberingScheme, :push},
     {"154", "Add a title by hand", Kati.Screens.AddByHand, :push},
     {"155", "Add by hand — resting & refused", Kati.Screens.AddByHandStates, :push},
-    {"156", "افزودن دستی — Add by hand, RTL", Kati.Screens.AddByHandFa, :push},
+    # mishka-group/kati#103's first fold. Board 156 is screen 154 in the mirror,
+    # and 154 IS the mirror now — the same module rendered under `:fa`. So the
+    # board keeps its number and its row, and points at the English screen,
+    # with "156" added to `Kati.ScreenDesignLiteralTest`'s `@fa_screens` so the
+    # sweep renders it in the locale it is drawn in.
+    {"156", "افزودن دستی — Add by hand, RTL", Kati.Screens.AddByHand, :push},
     {"158", "خانه — nothing stored, RTL", Kati.Screens.HomeFaEmpty, :push},
     {"159", "خانه — nothing stored, dark RTL", Kati.Screens.HomeFaEmptyDark, :push},
     {"160", "The two empty sections — omitted, decided", Kati.Screens.HomeFaOmittedSections,

@@ -7,3 +7,107 @@ msgid ""
 msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Add by hand"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "For something Kati could not find. The title is the only thing it needs."
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Title"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "e.g. The Long Hollow"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Kind"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Film"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Series"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Year"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "optional"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Status"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Not started"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Watching"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Finished"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Total episodes"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Without it a series still tracks, but its progress bar has"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "no denominator"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "— which the app already draws honestly."
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "Add to library"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "A hand-typed title carries"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "no poster and no episode list"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid ". If Kati finds it later both arrive, and nothing you typed is overwritten."
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "2024"
+msgstr ""
+
+#: lib/kati/screens/add_by_hand.ex
+msgid "7"
+msgstr ""
+
+#: lib/kati/screens/pushed.ex
+msgid "Library"
+msgstr ""
+
+#: lib/kati/screens/pushed.ex
+msgid "Add title"
+msgstr ""
+
+#: lib/kati/screens/pushed.ex
+msgid "Home"
+msgstr ""

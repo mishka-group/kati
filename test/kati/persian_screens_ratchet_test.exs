@@ -6,7 +6,7 @@ defmodule Kati.PersianScreensRatchetTest do
 
   ## The ruling this file enforces
 
-  Kati has 33 Persian screen modules — whole second copies of pages that
+  Kati had 33 Persian screen modules — whole second copies of pages that
   already exist, each holding its own Persian copy as literals. The owner's
   ruling, on 8 September, is that **no more are to be written**:
 
@@ -28,12 +28,19 @@ defmodule Kati.PersianScreensRatchetTest do
   episodes after the English one had stopped, and the fix was the same edit
   twice.
 
-  The pieces the ruling names all exist. `ex_cldr` is a dependency and
-  `Kati.Cldr` is generated for `:en`, `:fa` and `:und`; `Kati.Locale.direction/1`
-  and `direction_prop/0` answer `rtl`/`ltr` and are read by `Kati.Shell` and
-  `Kati.UI.Sheet`; `Kati.Gettext` is a `Gettext.Backend`. What is missing is
-  `priv/gettext` and the call sites — which is #103's work and is deliberately
-  not this file's.
+  The pieces the ruling names all exist and are now in use. `ex_cldr` is a
+  dependency and `Kati.Cldr` is generated for `:en`, `:fa` and `:und`;
+  `Kati.Locale.direction/1` and `direction_prop/0` answer `rtl`/`ltr` and are
+  read by `Kati.Shell` and `Kati.UI.Sheet`; `Kati.Gettext` is a
+  `Gettext.Backend` with a `priv/gettext` behind it that screen 154 draws
+  itself out of.
+
+  **The first fold has landed**, which is what turns the paragraph above from a
+  plan into a worked example: `Kati.Screens.AddByHandFa` is gone, board 156 is
+  screen 154 rendered under `:fa`, and `Kati.ScreenDesignLiteralTest` compares
+  the Persian board against the English module. Nine Movies & Series mirrors
+  are left; MOVIES-AND-TV.md #157 is the recipe and #161 is the first one
+  written down.
 
   ## What it does and does not assert
 
@@ -51,11 +58,14 @@ defmodule Kati.PersianScreensRatchetTest do
 
   alias Kati.ScreenSweep
 
-  # The 33 mirrors as of 8 September 2026. `Kati.Screens.Fa` is not here and
-  # is not a screen: it is the shared chrome the mirrors call, and the day the
-  # last mirror goes it goes with them.
+  # The mirrors that are left — 32, and the list only shrinks. There were 33 on
+  # 8 September 2026; the first to go was `Kati.Screens.AddByHandFa`, folded
+  # into `Kati.Screens.AddByHand`, which is what #103's whole fold looks like
+  # one screen at a time.
+  #
+  # `Kati.Screens.Fa` is not here and is not a screen: it is the shared chrome
+  # the mirrors call, and the day the last mirror goes it goes with them.
   @mirrors [
-    Kati.Screens.AddByHandFa,
     Kati.Screens.AddToListFa,
     Kati.Screens.AlbumDetailFa,
     Kati.Screens.ArtistDetailFa,
