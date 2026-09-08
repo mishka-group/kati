@@ -3710,6 +3710,18 @@ The picks are also tappable now (`1b1293f`) — see scenario 14. And screen 11 n
 
 The four *How loudly* rows are marked, and `@live_loudness` is empty on purpose: nothing in Kati sends a notification for a release. Two of them have a READER and are still marked — the unread dot is derived from a plan rather than stored, and quiet hours only shifts a `fire_at` in a plan nothing arms — so either would change a printed hour rather than keep the promise it makes. The `"loud_"` clause is deleted rather than left flipping an assign: a marked row draws no tag, and a clause that only moves a switch is the defect this closes. `design-briefs/D-64` is where the group's own board is asked for.
 
+### 144. 19 Search (Kati.Search.Query) — `missing-feature`
+
+**Cached episodes are never searched. Type the name of an episode TMDB wrote onto the device and you get nothing — though board 19 draws an episode hit and board 88's own tier-2 example is one.**
+
+*Proof.* `Kati.Search.Query` had no reference to `Kati.Media.CachedEpisode` anywhere; `cached_for/2` read `Kati.Media.CachedTitle` only. Board 19 (`test/design/screens/19.html`) draws `Hollow Season · Episode · S2E5` as the second card in the Screen group's `gap:9px` stack — same markup, same 36×51 thumb, same seed as its parent — and board 88's ranking table gives `hollow → Hollow Season` as its tier-2 example, which IS that row. So the design has covered episodes since it was drawn; the read was missing and the field list was silent.
+
+*Fix.* Read them, merge into `:titles` before the rank, and add one field to board 88's Screen scope.
+
+*Fixed 8 September.* `episodes_for/2` matches on the episode's OWN NAME and merges into the Screen group before `Kati.Search.rank/1` — separately-ranked lists joined afterwards would put a substring-tier title above a prefix-tier episode, which is the reason books are concatenated the same way. The card carries the SERIES' poster, because a still is a 16:9 crop in a 36×51 portrait slot, and it opens the series, because screen 04 is where an episode lives and Kati has no episode page. Its tap tag is its own `source_id` and not the parent's id — both rows carrying one `accessibility_id` is what `onNodeWithTag` throws on, and board 19's own frame draws exactly that pair.
+
+*One new field on the contract, nothing retired.* `episode titles` joins the Screen scope's list and is live the moment it is added, so `built?/1` draws it searched rather than struck. The body it matches against is `""` on purpose: an episode's `overview` is a field the board does not name, and searching one the contract never states is #74 pointing the other way. An episode a provider has not titled yet is dropped before the tier, because *TBA* is a string a provider invented rather than a name.
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

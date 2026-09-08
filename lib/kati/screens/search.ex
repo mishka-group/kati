@@ -404,6 +404,14 @@ defmodule Kati.Screens.Search do
       "open_series_" <> _title ->
         {:noreply, Kati.Screens.Search.open_hit(socket, tag, Kati.Screens.Series)}
 
+      # An episode hit opens the SERIES it belongs to, because that is where an
+      # episode lives — screen 04's list is the running order, and Kati has no
+      # episode page. `open_hit/2` needs no change: it re-runs `hit_tag/1` over
+      # `results.titles`, which is the list episodes now live in, and the row's
+      # `:id` is already the tracked title's.
+      "open_episode_" <> _source_id ->
+        {:noreply, Kati.Screens.Search.open_hit(socket, tag, Kati.Screens.Series)}
+
       # The shelf is a shortcut INTO a query, which is what screen 86's own
       # recent rows are — `Kati.Screens.SearchIdle.open/2` opens this page on
       # the line that was tapped. Here the page is already open, so the query
@@ -1135,6 +1143,21 @@ defmodule Kati.Screens.Search do
     # chevron on one title that opened a page about another.
     # MOVIES-AND-TV.md #65.
     case {Map.get(row, :kind), Map.get(row, :id)} do
+      # An episode's `:id` is the id of the TITLE it belongs to — screen 04 is
+      # where an episode lives and Kati has no episode page — so the tag has to
+      # come from somewhere else, or this row and its series row would share
+      # one `accessibility_id` and `onNodeWithTag` would throw on the second
+      # match. `:episode_id` is `Kati.Media.CachedEpisode.source_id`, unique by
+      # that resource's own identity.
+      {:episode, id} when is_binary(id) ->
+        case Map.get(row, :episode_id) do
+          episode_id when is_binary(episode_id) and episode_id != "" ->
+            String.to_atom("open_episode_" <> episode_id)
+
+          _unnamed ->
+            nil
+        end
+
       {kind, id} when kind in [:film, :series] and is_binary(id) ->
         Kati.Screens.Library.poster_tag(row)
 

@@ -126,10 +126,93 @@ defmodule Kati.Search.Query do
   # night sorted under one you looked up in March because A comes before S.
   # `rank/1` is the sort now, in all four groups, and the title is only the
   # last resort inside it.
+  # MOVIES-AND-TV.md #144: an episode TMDB wrote onto the device was findable by
+  # nothing. Board 88's own tier-2 example is `hollow → Hollow Season`, which IS
+  # the row board 19 labels `Episode · S2E5`, so the ranking table has covered
+  # episodes since it was drawn and only the READ was missing.
+  #
+  # Merged into `:titles` rather than given a group of its own: board 19 draws
+  # the episode as a sibling card in the same `gap:9px` stack under the same
+  # `Screen` eyebrow, and its chip row has no fourth chip for one. So
+  # `chip_counts/1` needs nothing added — the Screen chip counts this list.
+  #
+  # Concatenated BEFORE `rank/1` for the reason books are: two lists ranked
+  # separately and joined would put a substring-tier title above a prefix-tier
+  # episode. `tracked_ids/0` is bound once and passed to both, so the shelf is
+  # still read exactly once per query.
   defp titles_for(query) do
-    query
-    |> cached_for(tracked_ids())
+    tracked = tracked_ids()
+
+    (cached_for(query, tracked) ++ episodes_for(query, tracked))
     |> Kati.Search.rank()
+  end
+
+  # Every cached episode whose OWN NAME matches, drawn beside the titles under
+  # the Screen heading.
+  #
+  # Its own read and its own rescue — `cached_episodes` is a different table,
+  # and an unreadable episode cache must still leave the titles standing.
+  #
+  # **The body is `""` on purpose.** The field this adds to board 88 is
+  # `episode titles`, and that is exactly what it searches. An episode's
+  # `overview` is a field the contract does not name, and searching one the
+  # board never states is #74 and #114 pointing the other way — the executor
+  # wider than the contract instead of narrower.
+  defp episodes_for(query, tracked) do
+    parents = cached_titles_by_reference()
+
+    Kati.Media.CachedEpisode
+    |> Ash.read!()
+    # An episode a provider has announced and not yet titled has nothing to put
+    # on the card's bold line — `Kati.Media.CachedEpisode` is explicit that
+    # `title` is nullable because *TBA* is a string a provider invented rather
+    # than a name. Dropped before `tier/3` rather than after, so an untitled
+    # episode cannot match the empty query's body tier.
+    |> Enum.reject(&(is_nil(&1.title) or String.trim(&1.title) == ""))
+    |> Enum.map(fn row -> {tier(query, row.title, ""), row} end)
+    |> Enum.reject(fn {tier, _row} -> is_nil(tier) end)
+    |> Enum.map(fn {tier, row} ->
+      parent = Map.get(parents, {row.source, row.title_source_id})
+      mine = Map.get(tracked, {row.source, row.title_source_id})
+
+      {tier, recency_of(mine, parent || row), episode_row(row, parent, mine)}
+    end)
+  rescue
+    _error -> []
+  end
+
+  # One hit, in the shape board 19 draws it: the episode's own name in bold, its
+  # place under it, and the SERIES' poster — a still is a 16:9 crop and the slot
+  # is 36x51 portrait, which `Kati.Media.CachedEpisode` calls *a different crop
+  # of a different thing*.
+  defp episode_row(row, parent, mine) do
+    %{
+      title: row.title,
+      sub: "Episode" <> episode_place(row),
+      seed: parent && parent.poster_path,
+      kind: :episode,
+      # The id is the TITLE's, because screen 04 is where an episode lives and
+      # Kati has no episode page. `:episode_id` is what keeps this row's tap
+      # tag distinct from its parent's — see `Kati.Screens.Search.hit_tag/1`.
+      id: mine && mine.id,
+      episode_id: row.source_id
+    }
+  end
+
+  defp episode_place(%{season_number: s, episode_number: e})
+       when is_integer(s) and is_integer(e),
+       do: " · S#{s}E#{e}"
+
+  defp episode_place(_unplaced), do: ""
+
+  # Every cache row by the pair the durable rows reference it by. Extracted
+  # because two readers want it now.
+  defp cached_titles_by_reference do
+    Kati.Media.CachedTitle
+    |> Ash.read!()
+    |> Map.new(&{{&1.source, &1.source_id}, &1})
+  rescue
+    _error -> %{}
   end
 
   # Which cache rows this person actually KEEPS, keyed by the pair the durable
@@ -329,6 +412,7 @@ defmodule Kati.Search.Query do
   defp kind_label(:tv), do: "Series"
   defp kind_label(:book), do: "Book"
   defp kind_label(:album), do: "Album"
+  defp kind_label(:episode), do: "Episode"
   defp kind_label(other), do: other |> to_string() |> String.capitalize()
 
   defp status_suffix(%{episode_count: n}) when is_integer(n) and n > 0,

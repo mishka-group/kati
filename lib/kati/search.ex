@@ -42,12 +42,14 @@ defmodule Kati.Search do
   # are the contract screen 88 draws; the module is what makes them true.
   # The contract the design states, and it is WIDER than the executor.
   #
-  # Seven scopes and thirty fields; `Kati.Search.Query.run/1` builds four groups
-  # and matches eight fields. Music, Meals and Money are searched by nothing;
-  # five of Screen's six fields and Calendar's location are not read. That is a
-  # real gap and boards 86, 88, 90 and 91 all draw the wider list — so the list
-  # stays as the design's, and `built?/1` is what says which half of it is
-  # live. A specification screen that overstates is worse than none, because it
+  # Seven scopes and twenty-five fields; `Kati.Search.Query.run/1` builds four
+  # groups. Music, Meals and Money are searched by nothing. On Screen, `cast`
+  # is now the only field nothing reads — `episode titles` joined the list on
+  # the round `Kati.Search.Query.episodes_for/2` landed, LIVE rather than
+  # promised (#144), `location` stopped being a gap when #74 closed, and the
+  # other four came in with #114. That is still a real gap and boards 86, 88,
+  # 90 and 91 all draw the wider list — so the list stays as the design's, and
+  # `built?/1` is what says which half of it is live. A specification screen that overstates is worse than none, because it
   # is the page a reader opens to find out why a search missed
   # (MOVIES-AND-TV.md #74); a specification screen that says *not yet* against
   # four rows is the same page telling the truth.
@@ -56,7 +58,15 @@ defmodule Kati.Search do
   # scope cannot be marked built without a group behind it.
   @scopes [
     {:screen, "Screen",
-     ["title", "original title", "alt titles", "cast", "your tags", "your review"]},
+     [
+       "title",
+       "original title",
+       "alt titles",
+       "episode titles",
+       "cast",
+       "your tags",
+       "your review"
+     ]},
     {:books, "Books", ["title", "author", "series", "ISBN", "your notes", "your quotes"]},
     {:music, "Music", ["album", "artist", "track", "your notes"]},
     {:calendar, "Calendar", ["event title", "location", "notes", "never invitee names"]},

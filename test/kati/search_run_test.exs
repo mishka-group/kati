@@ -27,7 +27,7 @@ defmodule Kati.SearchRunTest do
     # word for word: *the list did not grow with the write*.
     on_exit(fn ->
       for table <-
-            ~w(media_watches tracked_titles cached_titles events calendars book_notes books media_title_aliases) do
+            ~w(media_watches cached_episodes tracked_titles cached_titles events calendars book_notes books media_title_aliases) do
         Kati.Repo.query!("DELETE FROM " <> table, [])
       end
     end)
@@ -102,7 +102,7 @@ defmodule Kati.SearchRunTest do
     assert %{titles: [], calendar: [], notes: []} = Query.run("hollow")
   end
 
-  describe "the six fields the Screen scope names" do
+  describe "the seven fields the Screen scope names" do
     test "your own review of a film is findable" do
       # MOVIES-AND-TV.md #114. The Notes group and the Screen scope both said
       # a review was searchable and neither read one: `notes_for/1` knew only
@@ -184,6 +184,70 @@ defmodule Kati.SearchRunTest do
 
       assert drawn =~ "cast", "the board stopped stating its own contract"
       assert drawn =~ "your review"
+    end
+
+    test "an episode TMDB wrote onto the device is findable by its own name" do
+      # MOVIES-AND-TV.md #144. `Kati.Search.Query` never touched
+      # `Kati.Media.CachedEpisode`, though board 19 draws an episode hit and
+      # board 88's own tier-2 example is `hollow → Hollow Season`.
+      track!("1")
+      episode!("1", "Ash and After")
+
+      found = Query.run("ash and after")
+
+      assert [hit] = found.titles
+      assert hit.title == "Ash and After"
+      assert hit.sub == "Episode · S2E5"
+      assert hit.kind == :episode
+    end
+
+    test "and it sits in the Screen group, counted by the Screen chip" do
+      # Board 19 draws it as a sibling card in the same stack under one
+      # eyebrow, and its chip row has no fourth chip.
+      track!("1")
+      episode!("1", "Hollow Ground")
+
+      counts = "hollow" |> Query.run() |> Query.chip_counts() |> Map.new()
+
+      assert counts["Screen"] == 3, "two titles and one episode, under one chip"
+      refute Map.has_key?(counts, "Episodes")
+    end
+
+    test "it carries the series' poster and opens the series" do
+      # A still is a 16:9 crop and the slot is 36x51 portrait, so the card
+      # draws the parent's poster — which is what board 19 draws, same seed on
+      # both cards.
+      tracked = track!("1")
+      episode!("1", "Ash and After")
+
+      assert [hit] = Query.run("ash and after").titles
+      assert hit.id == tracked.id, "an episode opens the series it belongs to"
+      assert Kati.Screens.Search.hit_tag(hit) != nil
+    end
+
+    test "and its tap tag is its own, not its parent's" do
+      # Both would emit one `accessibility_id` and `onNodeWithTag` throws on the
+      # second match. The episode's `:id` IS its parent's, so the tag cannot
+      # come from there.
+      track!("1")
+      episode!("1", "The Long Hollow")
+
+      tags =
+        "the long hollow"
+        |> Query.run()
+        |> Map.fetch!(:titles)
+        |> Enum.map(&Kati.Screens.Search.hit_tag/1)
+
+      assert length(tags) == 2, "the series and an episode of the same name both matched"
+      assert tags == Enum.uniq(tags), "the two rows share one tag: #{inspect(tags)}"
+    end
+
+    test "an episode a provider has not named yet is not a hit" do
+      # `title` is nullable because *TBA* is a string a provider invented.
+      track!("1")
+      episode!("1", nil, %{season_number: 3, episode_number: 1})
+
+      assert Enum.all?(Query.run("hollow").titles, &(&1.title != nil))
     end
   end
 
@@ -563,6 +627,26 @@ defmodule Kati.SearchRunTest do
       status: :watching,
       last_touched_at: touched
     })
+  end
+
+  # One cached episode of a cached title, which is what TMDB writes when a
+  # series is added and what nothing could find until #144.
+  defp episode!(title_source_id, title, attrs \\ %{}) do
+    Ash.create!(
+      Kati.Media.CachedEpisode,
+      Map.merge(
+        %{
+          source: :tmdb,
+          source_id: "ep-#{System.unique_integer([:positive])}",
+          title_source_id: title_source_id,
+          title: title,
+          season_number: 2,
+          episode_number: 5,
+          fetched_at: Kati.Time.now()
+        },
+        attrs
+      )
+    )
   end
 
   defp render(results, filter) do
