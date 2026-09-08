@@ -1216,7 +1216,17 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #     one node in this app or it is a broken line wrap. Every literal is
   #     still checked for by the test above, and found; this is the count, and
   #     the count is 2 short of what no implementation can reach.
-  @floor_allowance %{"144" => 5, "149" => 3, "190" => 2}
+  #
+  #   * 166 draws a moment too, and it is one tile's tick. Board 163 and its
+  #     Persian mirror draw `گودال بلند` already selected, and the app opened
+  #     that way until 8 September — which meant a reader who pressed **Finish
+  #     setup** without choosing was handed one of the board's four INVENTED
+  #     titles, and screen 139 was unreachable by the path most people walk.
+  #     `Kati.Screens.OnboardingFirstTitle.load/1` carries the argument. The
+  #     glyph is a `Text` node like any other, so a page with no tile ticked
+  #     renders exactly one string fewer than the board it is held to. 163 is
+  #     not here: its own board holds enough copy to clear the floor without it.
+  @floor_allowance %{"144" => 5, "149" => 3, "190" => 2, "166" => 1}
 
   @moment_symbols [
     {"128", "cloud_done"},
@@ -1228,7 +1238,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # holds. `Kati.ScreenDesignLiteralTest`'s `@retired_symbols` is this
     # entry's twin and carries the argument. MOVIES-AND-TV.md #106.
     {"12", "bookmark"},
-    {"12", "inventory_2"}
+    {"12", "inventory_2"},
+    # Boards 163 and 166's ticked tile, in both scripts, and the twin of
+    # `@floor_allowance`'s 166 entry above.
+    # `Kati.ScreenDesignLiteralTest`'s `@unreachable_symbols` carries the same
+    # pair with the whole argument: nothing is picked on a bare mount, and
+    # `Kati.FirstRunTest` taps a tile and asserts what follows.
+    {"163", "check"},
+    {"166", "check"}
   ]
 
   # The floor this screen is actually held to. Three answers, in order: a screen

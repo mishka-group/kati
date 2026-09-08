@@ -2103,11 +2103,20 @@ The user's rule is that a page comes out of `Settings → Every screen` once it 
 
 # The defect list, worst first
 
-137 findings, every one traced to a line. **All 137 are closed** as of 8 September;
-two of them — 133 and 136 — are closed *partly*, and each says in its own section what
-is left and what it is waiting on. Every `### N.` section below carries the verdict that
-closes it, naming the function and the line, so this list can be read rather than
-re-derived.
+**147 findings**, every one traced to a line, and every one carries a closing verdict
+naming the function and the line — so this list can be read rather than re-derived.
+
+Three are closed *partly*, and each says in its own section what is left and what it is
+waiting on: **#51** (screen 14's short page, waiting on a board), **#133** (three of
+board 307's four release shelves, waiting on a producer — Books and Music are
+[#100](https://github.com/mishka-group/kati/issues/100) and
+[#101](https://github.com/mishka-group/kati/issues/101), which are blocked on a free
+API being chosen at all), and **#136** (a medication's days, filed as
+[#102](https://github.com/mishka-group/kati/issues/102) and not this section's).
+
+The table below is the first 137 and is not extended: findings 138-147 landed after it
+and are read in their own sections. It also carries one duplicate row — `103` appears
+twice — which is a defect in the table rather than in the app.
 
 | # | Page | Severity | What is wrong |
 |---|---|---|---|
@@ -3752,6 +3761,23 @@ Board 168's fourth state is drawn too. A filter that empties the page now says *
 The four season-pass switches are asserted **one column at a time**, and that is the point of the second test rather than a flourish: the tap tag is built from the column name (`"pass_" <> Atom.to_string(field)`) and `change_for/2` looks it up in `@pass_columns`, so a typo in one of the four is a tag matching no column, `change_for/2` answering `:error`, and `write/2` returning the socket unchanged — silently. Both tests then pop back to screen 04 and re-enter, because `write/2` assigns the updated struct into the socket and a screen that never wrote looks identical until that socket is thrown away.
 
 *Two things it deliberately does not do.* It keys every query on `id`, read back by `source_id` after the save, rather than on whichever series tile is first on the shelf: step 5 of the first run shelves a series of its own, so the first tile is usually not the row under test — an assertion about the wrong show that looks exactly right. And it does not pin the by-hand form's default status; the first version asserted *Watching* and the device answered `not_started`, so it now checks only that the row is not already the value the tap is about to write.
+
+### 147. 163 / 166 Add your first title — `lies-to-user`
+
+**Step 5 of the first run opened with one of the board's four invented titles already selected, so pressing *Finish setup* without choosing put a film the reader had never heard of on their shelf — and made screen 139 unreachable by the path most people walk.**
+
+*Proof.* `lib/kati/screens/onboarding_first_title.ex:37` was `Mob.Socket.assign(socket, :picked, "The Long Hollow")`, and its Persian mirror `onboarding_first_title_fa.ex:39` was `assign(socket, :picked, "گودال بلند")`. `@suggestions` is `["The Long Hollow", "Ashfall", "Marram", "Nightbirds"]` — the board's four, invented. `handle_tap(:finish, …)` calls `shelve(socket.assigns.picked)`, which caches a `Kati.Media.CachedTitle` and creates a `Kati.Media.TrackedTitle`. So the default was not a drawing state, it was a write.
+
+This is MOVIES-AND-TV.md #91's own sentence about a different screen — *nine invented films on a phone that has tracked nothing is the app lying about the one thing it exists to hold* — and it had been shipping since D-33 split the first run into five steps.
+
+It came from reading board 163 too literally: the board draws `The Long Hollow` **ticked**, which is the drawing showing what a chosen tile looks like, and it was built as an opening value. The board's own footnote is the tell — *"Skipping lands on empty Home — 139. Its skip is the only route to 139"* — and Finish setup was quietly a second route away from it.
+
+*How it surfaced.* Six device tests, all failing on the same line: `could not find any node that satisfies: (TestTag = 'add_title')`. `add_title` is on `Kati.Screens.Library.empty_state/0` and is drawn only while the shelf is empty, and after a first run the shelf was not. `FirstRunTest.assertNothingInvented/1` is the assertion written for exactly this defect and it was one screen too late to catch it — the shelf had a real row on it by then, holding a name the reader never typed.
+
+*Fixed 8 September.* `load/1` assigns `nil` in both scripts. `shelve/1`'s `nil` clause was already correct and simply could not be reached, so **Finish setup** with nothing chosen now finishes and writes nothing — which is what the board's footnote describes Skip doing, minus the wording. Board 163 and 166's `check` moves to `@unreachable_symbols` and `@moment_symbols`, and 166 takes a `@floor_allowance` of 1 because the glyph is a `Text` node like any other. Two entries LEAVE `@inert_taps`: `:pick_The_Long_Hollow` and `:pick_1` were listed as the resting member of their family, and with nothing pre-selected they are live.
+
+`Kati.FirstRunTest` now taps a tile before asserting the shelf, in both locales, and carries a new test for the half that had never been true: *finishing without choosing shelves nothing at all*.
+
 
 # Pages a user cannot reach except through Settings
 

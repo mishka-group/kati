@@ -278,7 +278,23 @@ defmodule Kati.ScreenDesignLiteralTest do
   # backup exists", which seeds the ledger, renders the real screen and asserts
   # `cloud_done`, the date and the size are all on the tree — and that
   # `cloud_off` and `Never` are not. Delete this entry if that test goes.
-  @unreachable_symbols [{"128", "cloud_done"}]
+  #
+  # `check` is boards 163 and 166's ticked tile, in both scripts. Step 5 of the
+  # first run opened with `The Long Hollow` — one of the board's four INVENTED
+  # titles — already selected, because the board draws that tile ticked and the
+  # tick was read as a default rather than as the drawing showing what a chosen
+  # tile looks like. A reader who pressed **Finish setup** without choosing was
+  # handed a film they had never heard of, and screen 139 — the state the app is
+  # in when it holds nothing — was unreachable by the path most people walk.
+  # That is MOVIES-AND-TV.md #91's own sentence, and
+  # `FirstRunTest.assertNothingInvented/1` on the device is the assertion
+  # written for it.
+  #
+  # Nothing is picked on a bare mount now, so no tile carries the tick.
+  # `Kati.FirstRunTest`'s "finishing puts the chosen title on the shelf" taps a
+  # tile and asserts what follows, in both locales — delete these two entries
+  # if that test goes.
+  @unreachable_symbols [{"128", "cloud_done"}, {"163", "check"}, {"166", "check"}]
 
   describe "the registry" do
     test "every drawing has a screen, and every screen but the gallery has a drawing" do

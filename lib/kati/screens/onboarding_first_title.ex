@@ -31,10 +31,34 @@ defmodule Kati.Screens.OnboardingFirstTitle do
 
   @suggestions ["The Long Hollow", "Ashfall", "Marram", "Nightbirds"]
 
+  @doc """
+  Nothing picked, which is what a page nobody has touched holds.
+
+  It opened with `"The Long Hollow"` already selected — board 163 draws that
+  tile ticked, and the tick was read as a default rather than as the drawing
+  showing what a chosen tile looks like. The four suggestions are invented
+  (`@suggestions`), so a reader who pressed **Finish setup** without choosing
+  arrived at a library holding a film they had never heard of, and screen 139 —
+  the state the app is in when it holds nothing — was unreachable by the only
+  path most people walk.
+
+  That is MOVIES-AND-TV.md #91's own sentence about a different screen: *nine
+  invented films on a phone that has tracked nothing is the app lying about the
+  one thing it exists to hold.* `FirstRunTest.assertNothingInvented/1` on the
+  device is the assertion that was written for exactly this and had been failing
+  against it.
+
+  `shelve/1`'s `nil` clause already answered this correctly, so nothing is
+  written and **Finish setup** simply finishes — which is what the board's own
+  footnote describes Skip doing, minus the wording. Board 163's `check` is
+  therefore drawn only once a tile is tapped, and
+  `Kati.ScreenDesignLiteralTest` carries it on `@unreachable_symbols` with
+  `Kati.OnboardingFirstTitleTest` as the run that covers the branch.
+  """
   @impl true
   def load(socket) do
     Kati.Onboarding.reached!(:first_title)
-    Mob.Socket.assign(socket, :picked, "The Long Hollow")
+    Mob.Socket.assign(socket, :picked, nil)
   end
 
   @doc false

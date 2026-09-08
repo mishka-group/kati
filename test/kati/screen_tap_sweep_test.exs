@@ -376,12 +376,21 @@ defmodule Kati.ScreenTapSweepTest do
     # Screen 06's clear disc, for screen 19's reason one line up: the field it
     # empties is already empty on a bare mount.
     {Kati.Screens.OnboardingLoudness, :choose_Quietly},
-    {Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow},
-    # The same two, in the mirror. Their tags are positional rather than
-    # named — `Kati.Screens.OnboardingLoudnessFa.tag/1` says why: an atom made
-    # of Persian words is a name no device test can type.
+    # The same one, in the mirror. Its tag is positional rather than named —
+    # `Kati.Screens.OnboardingLoudnessFa.tag/1` says why: an atom made of
+    # Persian words is a name no device test can type.
     {Kati.Screens.OnboardingLoudnessFa, :choose_quiet},
-    {Kati.Screens.OnboardingFirstTitleFa, :pick_1},
+    #
+    # `{Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow}` and its
+    # mirror `:pick_1` sat here on the same grounds and are GONE, because the
+    # grounds went. Step 5 opened with a tile already ticked, so tapping it was
+    # the resting member of its family — and it opened that way because board
+    # 163 draws that tile ticked, and the tick was read as a DEFAULT rather
+    # than as the drawing showing what a chosen tile looks like. A reader who
+    # pressed Finish setup without choosing was therefore handed one of the
+    # board's four invented films.
+    # `Kati.Screens.OnboardingFirstTitle.load/1` carries the argument. Nothing
+    # is picked now, so both taps are live.
     # 157 and 156 are 154 in another colourway and another script, and each is
     # drawn in the state its own board shows — Series chosen so the episode
     # field is visible. The resting member of a family again, three times.
@@ -840,6 +849,19 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Nutrition, :period_Week},
     {Kati.Screens.ReleaseWatcher, :"cadence_Every 6h"},
     {Kati.Screens.Search, :filter_All},
+    # Board 167's resting sort, and it is an artefact of how this sweep walks
+    # rather than a control that does nothing. Every tag is dispatched against
+    # the SAME starting socket, but `Kati.Library.UpNextFilters` is a
+    # `Mob.State` key, so the store carries each tap forward: by the time
+    # `:recently_touched` is reached another sort has already been written, and
+    # selecting it puts the page back to exactly the state it mounted in.
+    # Identical assigns, identical nav action, and therefore indistinguishable
+    # from a tap that landed nowhere.
+    #
+    # It is live, and a run settles that rather than this comment:
+    # `Kati.UpNextFiltersTest`'s "tapping the row a second time flips it"
+    # dispatches it twice from a known store and asserts the direction moves.
+    {Kati.Screens.UpNextFilters, :recently_touched},
     {Kati.Screens.Series, :season_S2},
 
     # (`Kati.Screens.Calendar`'s selected day cell belongs in the group above

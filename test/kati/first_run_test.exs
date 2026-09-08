@@ -200,8 +200,20 @@ defmodule Kati.FirstRunTest do
         Kati.Onboarding.reset!()
         Kati.Locale.put(:en)
 
-        socket = socket_for(Screens.OnboardingFirstTitle)
+        opened = socket_for(Screens.OnboardingFirstTitle)
+
+        # Nothing is picked until a tile is tapped. It used to open on `The
+        # Long Hollow` — board 163 draws that tile ticked, and the tick was
+        # read as a default rather than as the drawing showing what a CHOSEN
+        # tile looks like — so a reader who pressed Finish setup without
+        # choosing was handed an invented film. See `load/1`.
+        refute opened.assigns.picked
+
+        {:noreply, socket} =
+          Screens.OnboardingFirstTitle.handle_info({:tap, :pick_The_Long_Hollow}, opened)
+
         picked = socket.assigns.picked
+        assert picked == "The Long Hollow"
 
         # The board's four are the suite's own fixture names — `The Long
         # Hollow` is written by `Kati.AddByHandTest` as the same `:manual` row
@@ -257,6 +269,32 @@ defmodule Kati.FirstRunTest do
       end)
     end
 
+    test "and finishing without choosing shelves nothing at all" do
+      # The other half, and the one that had never been true. Board 163's
+      # footnote says its Skip is *the only route to 139* — the state the app is
+      # in when it holds nothing — and Finish setup was quietly a second route
+      # AWAY from it, because the page opened already picked. `shelve/1`'s `nil`
+      # clause was correct all along and simply could not be reached.
+      rolled_back(fn ->
+        Kati.Onboarding.reset!()
+        Kati.Locale.put(:en)
+
+        before = Ash.count!(Kati.Media.TrackedTitle)
+        socket = socket_for(Screens.OnboardingFirstTitle)
+
+        {:noreply, moved} =
+          Screens.OnboardingFirstTitle.handle_info({:tap, :finish}, socket)
+
+        assert Ash.count!(Kati.Media.TrackedTitle) == before,
+               "Finish setup with nothing chosen put a title on the shelf"
+
+        # It still FINISHES. Setup is over either way; the difference is only
+        # whether anything was kept.
+        assert Kati.Onboarding.complete?()
+        assert {:reset, _home, %{}} = moved.__mob__.nav_action
+      end)
+    end
+
     test "a Persian first run shelves the Persian title it drew" do
       # `Kati.Media.CachedTitle.title` is what the shelf draws, so a Persian
       # run must not put an English name on a Persian shelf.
@@ -264,8 +302,14 @@ defmodule Kati.FirstRunTest do
         Kati.Onboarding.reset!()
         Kati.Locale.put(:fa)
 
-        socket = socket_for(Screens.OnboardingFirstTitleFa)
+        opened = socket_for(Screens.OnboardingFirstTitleFa)
+        refute opened.assigns.picked
+
+        {:noreply, socket} =
+          Screens.OnboardingFirstTitleFa.handle_info({:tap, :pick_1}, opened)
+
         picked = socket.assigns.picked
+        assert picked
         clear_manual!(picked)
 
         {:noreply, _moved} =
