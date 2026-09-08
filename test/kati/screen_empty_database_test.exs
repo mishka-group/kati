@@ -251,6 +251,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 145's `41 of 418`. An empty shelf has neither, so it draws the board
     # whole, which is the state the board is a drawing of.
     {"145", Kati.Screens.ShelfFilters},
+    # 167 is 145's sheet with Up next's vocabulary, and it joined for 145's
+    # reason: it reads the queue twice — once as it stands and once with no
+    # chip lit — so `showing N of M` and every chip's badge are counts of what
+    # this reader is actually watching. A device with nothing on the go has
+    # neither, so it draws board 167 whole, which is the state the board is a
+    # drawing of.
+    {"167", Kati.Screens.UpNextFilters},
     # 23 joined when it stopped quoting four services and £46.47 a month at
     # every reader. It gates the page whole — either the ledger is yours or it
     # is the board's — because a page with your one service in it and the
@@ -1849,6 +1856,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # preselection and its `41 of 418`.
       {"145", Kati.Screens.ShelfFilters, &Kati.Screens.ShelfFilters.opening/0,
        &Kati.Screens.ShelfFilters.drawn_opening_for_test/0},
+      # 167 gates the same way and on the same shape: one keyword list holding
+      # the sort, the direction, the two chip rails, both rails' counts and
+      # both figures in `showing N of M`. They arrive together or the board's
+      # do — a sheet offering `Under 30m 5` over a queue holding none would be
+      # the plausible-looking zero screen 96's rule is against.
+      {"167", Kati.Screens.UpNextFilters, &Kati.Screens.UpNextFilters.opening/0,
+       &Kati.Screens.UpNextFilters.drawn_opening_for_test/0},
       # 23 gates on the whole ledger: the count, the total, every row and the
       # advice card arrive together or the board's do.
       {"23", Kati.Screens.Subscriptions, &Kati.Screens.Subscriptions.ledger/0,

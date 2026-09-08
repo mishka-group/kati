@@ -80,11 +80,16 @@ defmodule Kati.UpNextTapsTest do
       assert words =~ "open_"
     end
 
-    test "and the tune disc opens the shelf's own filters" do
+    test "and the tune disc opens board 167, which is this page's own sheet" do
       socket = Mob.Socket.new(Kati.Screens.UpNext)
       {:noreply, pushed} = UpNext.handle_tap(:open_filters, socket)
 
-      assert {:push, Kati.Screens.ShelfFilters, _} = Map.get(pushed.__mob__, :nav_action)
+      # Not `Kati.Screens.ShelfFilters`, which is what it pushed until board
+      # 167 was built. 145 sorts by Recently added, Title, Your rating,
+      # Runtime and Release date, and a queue is ordered by none of those —
+      # and both sheets wrote one stored key, so choosing `Title` on the shelf
+      # silently reordered this page.
+      assert {:push, Kati.Screens.UpNextFilters, _} = Map.get(pushed.__mob__, :nav_action)
     end
   end
 

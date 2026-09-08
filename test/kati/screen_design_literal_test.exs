@@ -295,14 +295,18 @@ defmodule Kati.ScreenDesignLiteralTest do
       # commit that builds its screen and registers it here, and this count
       # moves with it.
       #
+      # 172 until 8 September, when board 167 moved in: screen 10's tune disc
+      # had been pushing board 145's sheet, which sorts by five keys none of
+      # which is an ordering of a queue.
+      #
       # 173 until 7 September, when board 102 moved OUT — the other direction,
       # and `test/design/retired/README.md` is where it went. It was read as a
       # dark colourway of 98 and built as a second screen, and it is not one:
       # `Kati.Theme.Palette.mode/0` already draws 98 dark on a dark device.
       # What it held was two card faces 98 never previewed, which is what made
       # them unreachable in light. Both are on 98 now (MOVIES-AND-TV.md #3).
-      assert length(on_disk) == 172,
-             "expected 172 drawings under test/design/screens, found #{length(on_disk)} — " <>
+      assert length(on_disk) == 173,
+             "expected 173 drawings under test/design/screens, found #{length(on_disk)} — " <>
                "the directory is tracked, so an empty or short answer is a broken checkout, " <>
                "not a reason to check less"
 

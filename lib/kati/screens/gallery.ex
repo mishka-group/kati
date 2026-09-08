@@ -225,7 +225,11 @@ defmodule Kati.Screens.Gallery do
     # pushing screen 33's film sheet for.
     {"178", "Add by hand — a record", Kati.Screens.AddByHandRecord, :push},
     {"179", "Add a title — the music state", Kati.Screens.AddTitleMusic, :push},
-    {"180", "Rate an album", Kati.Screens.RateAlbum, :push}
+    {"180", "Rate an album", Kati.Screens.RateAlbum, :push},
+    # D-46 — the sort disc on screen 10 stopped opening screen 03's sheet.
+    # Board 167 is 145's chrome with Up next's vocabulary; 168 stays in
+    # `incoming/` because it is a state catalogue rather than an artboard.
+    {"167", "Up next sort & filter", Kati.Screens.UpNextFilters, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.
@@ -453,6 +457,9 @@ defmodule Kati.Screens.Gallery do
     "100",
     # Library → the sort disc. #109 settled that as the one door.
     "145",
+    # Up next → the tune disc. Board 167 is what that disc opens now; it used
+    # to push 145, which sorts by keys this page does not have.
+    "167",
     # Home → `+` → Can't find it? Add it by hand. #113 made its Kind
     # correctable and its duplicate guard match on the name.
     "154",

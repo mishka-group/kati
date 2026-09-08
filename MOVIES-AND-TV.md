@@ -3722,6 +3722,23 @@ The four *How loudly* rows are marked, and `@live_loudness` is empty on purpose:
 
 *One new field on the contract, nothing retired.* `episode titles` joins the Screen scope's list and is live the moment it is added, so `built?/1` draws it searched rather than struck. The body it matches against is `""` on purpose: an episode's `overview` is a field the board does not name, and searching one the contract never states is #74 pointing the other way. An episode a provider has not titled yet is dropped before the tier, because *TBA* is a string a provider invented rather than a name.
 
+### 145. 10 Up next (Kati.Screens.UpNext) — `wrong-screen`
+
+**The tune disc opened screen 03's filter sheet — a sheet that cannot sort a queue, and that shares one stored key with the shelf, so choosing `Title` on the Library silently reordered Up next.**
+
+*Proof.* `up_next.ex:122-123` pushed `Kati.Screens.ShelfFilters`. That sheet's five orderings are `Recently added · Title · Your rating · Runtime · Release date` (`Kati.Library.ShelfFiltersSample.sort_options/0`), and a queue is ordered by none of them — *Up next* is a list of things part-watched, not a shelf. Both sheets wrote `Kati.Library.ShelfFilters`' single `Mob.State` key, so the two pages could not hold different answers: a `Title` sort picked on screen 03 reordered screen 10, and clearing the shelf's genre chips cleared whatever screen 10 was narrowed by. Board 167 has drawn the right sheet since the 5-September export and it sat unbuilt in `test/design/incoming/`.
+
+*Fix.* Build 167, give it its own store, and point the disc at it.
+
+*Fixed 8 September.* `Kati.Screens.UpNextFilters` is board 167 and `Kati.Library.UpNextFilters` is its store — a separate `Mob.State` key holding the four orderings board 167 actually draws. The chrome is **shared, not copied**: `sort_row/5`, `chip_row/2`, `facet_chip/4` and `count_card/2` are `Kati.Screens.ShelfFilters`' own functions called from the new screen, so the two sheets are pixel-identical by construction, which is the claim board 167 makes about itself.
+
+Three rulings from board 168 are in the code rather than in a comment. **A sort persists and a filter lasts a session** — one key, with the filter half stamped with `run_id/0`, the millisecond this VM started, and dropped on read when it does not match; on Android the BEAM outlives an activity restart, so *session* means *this launch*, which the moduledoc states rather than leaves to be found. **Reset clears the chips and not the sort**, which is the one place this parts from 145, whose `Reset` clears both. **A newly chosen sort opens at its own natural direction** — `Airing soonest` and `Time left` open `:asc`, not 145's flat DESC, because a sort named *soonest* opening at DESC draws that word over the latest row.
+
+The counts are screen 10's own arithmetic and not four independent numbers: `bands_of/3` answers a LIST because *Airing soon* is a subset of *Ready* rather than a fourth band, so the drawn `12 · 4 · 3` over fifteen rows is the same statement screen 10's header makes. `buckets/1` offers every bucket at its real count **including the zeroes** — a chip at `0` in 145's hairline grey says it would empty the page before it is tapped, where a chip that is not drawn says nothing at all. A row whose sort key cannot be read sorts LAST in both directions by splitting the list rather than by ordering a `{unknown?, value}` pair: whichever way round that flag is written, one of the two comparators puts the unknown group at the front.
+
+Board 168's fourth state is drawn too. A filter that empties the page now says **Nothing matches** and names the chips that did it, with one control that clears them and leaves the sort — a different card from *Nothing queued*, because *nothing on the go* is a fact about the shelf and *nothing matches* is a fact about the chips, and the one thing that fixes each is different. 168 itself stays in `test/design/incoming/`: it is a state catalogue, four states in one frame, and cannot be compared literal-for-literal against a render.
+
+
 # Pages a user cannot reach except through Settings
 
 Each needs a real door before it can be called finished, and then it comes out of the gallery.

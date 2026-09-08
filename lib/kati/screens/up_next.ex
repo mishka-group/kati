@@ -120,13 +120,21 @@ defmodule Kati.Screens.UpNext do
   """
   @impl true
   def handle_tap(:open_filters, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNextFilters)}
 
   # The empty card's own tap (#49). Before the `"open_" <> _id` clause below,
   # which would otherwise swallow it and hand `:open_library` to `open/2` as
   # a title id.
   def handle_tap(:open_library, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Library)}
+
+  # Board 168's *Drop the Gone cold chip*, generalised: the band names every
+  # chip that is lit, so the one control that undoes it clears them all. The
+  # sort is left alone, which is the same split `Reset` makes on board 167.
+  def handle_tap(:clear_filters, socket) do
+    Kati.Library.UpNextFilters.clear_filters(Kati.Library.UpNextFilters.current())
+    {:noreply, Kati.Screens.UpNext.load(socket)}
+  end
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
@@ -154,6 +162,52 @@ defmodule Kati.Screens.UpNext do
   """
   @spec queue() :: map()
   def queue do
+    pool = Kati.Screens.UpNext.pool()
+    choice = Kati.Library.UpNextFilters.current()
+    narrowed = Kati.Library.UpNextFilters.apply(pool, choice)
+
+    case {narrowed.ready, narrowed.cold} do
+      # MOVIES-AND-TV.md #49's remaining half. An empty shelf drew board 10 —
+      # four invented titles, `12 ready` over four rows and `Gone cold · 3` over
+      # one — to a reader who has nothing on the go. That is the same defect
+      # #75 fixed on screen 92 and #58 on screen 15, and the argument screen 96
+      # makes for all of them: *say what is missing and offer the one thing
+      # that fixes it, never render a plausible-looking zero.*
+      #
+      # The drawing is still what a page with NO STORE falls back to — an
+      # `Ash.read!` raising mid-migration is a different fact from a shelf with
+      # nothing on the go, and `tracked/1` rescues both to `[]`. `shelf?/0` is
+      # what separates them. A filter that empties the page is a THIRD fact and
+      # is not this one: `Kati.Library.UpNextFilters.narrowed?/1` is what says
+      # so, and screen 10 draws board 168's *nothing matches* band for it.
+      {[], []} ->
+        cond do
+          Kati.Library.UpNextFilters.narrowed?(choice) ->
+            Kati.Screens.UpNext.nothing_matches(choice)
+
+          Kati.Screens.UpNext.shelf?() ->
+            Kati.Screens.UpNext.empty()
+
+          true ->
+            Sample.queue()
+        end
+
+      {[], cold} ->
+        nothing_ready(cold)
+
+      {[hero | rest], cold} ->
+        assemble(hero, rest, cold)
+    end
+  end
+
+  @doc """
+  The shelf this page is a view of, before any narrowing.
+
+  One read for the screen and for board 167's sheet, so `showing N of M` and
+  the rows below it cannot disagree.
+  """
+  @spec pool() :: map()
+  def pool do
     watching = tracked(:watching)
 
     # Gone cold is DERIVED, not stored. Both bands used to read
@@ -178,27 +232,7 @@ defmodule Kati.Screens.UpNext do
       |> Kati.Media.Staleness.warm()
       |> Kati.Screens.UpNext.watchable()
 
-    case {ready, cold} do
-      # MOVIES-AND-TV.md #49's remaining half. An empty shelf drew board 10 —
-      # four invented titles, `12 ready` over four rows and `Gone cold · 3` over
-      # one — to a reader who has nothing on the go. That is the same defect
-      # #75 fixed on screen 92 and #58 on screen 15, and the argument screen 96
-      # makes for all of them: *say what is missing and offer the one thing
-      # that fixes it, never render a plausible-looking zero.*
-      #
-      # The drawing is still what a page with NO STORE falls back to — an
-      # `Ash.read!` raising mid-migration is a different fact from a shelf with
-      # nothing on the go, and `tracked/1` rescues both to `[]`. `shelf?/0` is
-      # what separates them.
-      {[], []} ->
-        if Kati.Screens.UpNext.shelf?(), do: Kati.Screens.UpNext.empty(), else: Sample.queue()
-
-      {[], cold} ->
-        nothing_ready(cold)
-
-      {[hero | rest], cold} ->
-        assemble(hero, rest, cold)
-    end
+    %{ready: ready, cold: cold, cache: cache_for(ready ++ cold)}
   end
 
   @doc """
@@ -241,6 +275,32 @@ defmodule Kati.Screens.UpNext do
       ready: [],
       cold: [],
       empty?: true
+    }
+  end
+
+  @doc """
+  A filter that leaves nothing, saying so — board 168's *nothing matches* band.
+
+  Distinct from `empty/0`, and the distinction is the whole of it: *nothing on
+  the go* is a fact about the shelf and *nothing matches* is a fact about the
+  chips, and the one thing that fixes each is different. Screen 03's
+  `nothing_here/1` is the same answer to the same question one screen over.
+
+  `narrowed?: true` is what the page reads to draw the clearing control rather
+  than the *add a title* one.
+  """
+  @spec nothing_matches(map()) :: map()
+  def nothing_matches(choice) do
+    %{
+      subtitle: "Nothing matches",
+      ready_label: nil,
+      cold_label: nil,
+      hero: nil,
+      ready: [],
+      cold: [],
+      empty?: true,
+      narrowed?: true,
+      names: Kati.Library.UpNextFilters.names(choice)
     }
   end
 
@@ -308,6 +368,81 @@ defmodule Kati.Screens.UpNext do
   on the page they land on.
   """
   @spec empty_card(map()) :: map()
+  def empty_card(%{narrowed?: true, names: names}) do
+    assigns = %{
+      tap: {self(), :clear_filters},
+      chips: Enum.join(names, " \u00B7 ")
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("search", size: 22, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={13} />
+        <Text
+          text="Nothing matches"
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text={@chips}
+          font_family="mono"
+          text_size={12}
+          text_color={Palette.eyebrow()}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text="is what emptied it. Nothing you are watching is in every one of those buckets at once."
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={14} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Row
+            height={36}
+            corner_radius={18}
+            background={Palette.paper()}
+            align="center"
+            padding_left={16}
+            padding_right={16}
+            on_tap={@tap}
+          >
+            <Text
+              text="Clear the filters"
+              text_size={12.5}
+              font_weight="semibold"
+              text_color={:on_surface}
+              max_lines={1}
+            />
+          </Row>
+          <Spacer weight={1.0} />
+        </Row>
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
   def empty_card(%{empty?: true}) do
     assigns = %{tap: {self(), :open_library}}
 
@@ -555,8 +690,21 @@ defmodule Kati.Screens.UpNext do
   # is that module's way of making "out sometime in 2026" impossible to count as
   # this week, and this counter honours it rather than re-deciding.
   defp airing_soon(rows, cache) do
-    Enum.count(rows, fn row -> ahead?(Release.resolve(row, cached(row, cache))) end)
+    Enum.count(rows, fn row -> Kati.Screens.UpNext.airing?(row, cache) end)
   end
+
+  @doc """
+  Whether this row's next release is a date Kati is willing to name, and still
+  ahead.
+
+  `:exact` or `:day` — the distinction `Kati.Media.Release.resolve/2` exists to
+  make, so a title dated to a bare year is not in the bucket rather than
+  counted as 1 January. Public because board 167's *Airing soon* band asks the
+  same question of one row that the subtitle asks of a list, and two places
+  asking it differently is how the chip and the header come to disagree.
+  """
+  @spec airing?(map(), map()) :: boolean()
+  def airing?(row, cache), do: ahead?(Release.resolve(row, cached(row, cache)))
 
   # `Kati.Time.now/0` rather than `DateTime.utc_now/0`: a screen reads the
   # device's clock through `Kati.Time`, and `Kati.ScreenDateTest` fails the build
@@ -625,10 +773,12 @@ defmodule Kati.Screens.UpNext do
   where a bare centred Text did.
   """
   @spec tune_disc() :: map()
-  # The same sheet screen 03's own `tune` opens — `Kati.Screens.ShelfFilters`,
-  # the sort and filter this reader last chose. Up next narrows the same shelf,
-  # so a second sheet would be a second set of choices able to disagree with
-  # the first.
+  # Board 167's sheet — `Kati.Screens.UpNextFilters` — and not screen 03's.
+  # This disc pushed 145 from the day it got a tap, which was the closest sheet
+  # rather than the right one: 145 sorts by *Recently added · Title · Your
+  # rating · Runtime · Release date* and not one of those four is an ordering
+  # of a queue. They also shared a stored key, so picking `Title` on the shelf
+  # reordered this page. Two boards, two stores, one set of components.
   def tune_disc do
     MishkaActionIcon.action_icon(
       [
