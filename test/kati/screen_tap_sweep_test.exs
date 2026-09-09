@@ -389,11 +389,10 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Search, :clear},
     # Screen 06's clear disc, for screen 19's reason one line up: the field it
     # empties is already empty on a bare mount.
-    {Kati.Screens.OnboardingLoudness, :choose_Quietly},
     # The same one, in the mirror. Its tag is positional rather than named —
-    # `Kati.Screens.OnboardingLoudnessFa.tag/1` says why: an atom made of
+    # `Kati.Screens.OnboardingLoudness`'s own former mirror says why: an atom made of
     # Persian words is a name no device test can type.
-    {Kati.Screens.OnboardingLoudnessFa, :choose_quiet},
+
     #
     # `{Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow}` and its
     # mirror `:pick_1` sat here on the same grounds and are GONE, because the
@@ -411,6 +410,9 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AddByHandDark, :kind_tv},
     {Kati.Screens.AddByHandDark, :status_not_started},
     {Kati.Screens.AddByHand, :status_not_started},
+    # 165's resting choice — the loudness the board opens on. It was its
+    # mirror's entry until mishka-group/kati#103 folded 165 into 162.
+    {Kati.Screens.OnboardingLoudness, :choose_quiet},
     # Board 169's two settled members. The sheet opens on `Kati.Discover.Filters.resting/0`
     # — most popular, no kind, no rating — so `:sort_popular` sets the sort it
     # already has and `:reset` clears a choice that is already clear. Every
@@ -1084,7 +1086,7 @@ defmodule Kati.ScreenTapSweepTest do
     # label — `"kind_" <> label` — so the Persian form's Series chip was
     # `:kind_سریال`. Two things follow from that and both are defects. A screen
     # RENAMES ITS OWN CONTROLS when the language changes, so no device test can
-    # type them: `Kati.Screens.OnboardingLoudnessFa.tag/1` had already recorded
+    # type them: `Kati.Screens.OnboardingLoudness`'s own former mirror had already recorded
     # it as "an atom made of Persian words is a name no device test can type."
     # And once the mirrors fold into their English screens, the tag would
     # change under the same screen depending on who is looking at it.

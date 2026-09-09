@@ -67,7 +67,7 @@ defmodule Kati.FirstRunTest do
       # Persian run into the English drawings for the whole middle of the
       # sequence. #91's fourth criterion, in one assertion.
       Kati.Locale.put(:fa)
-      assert push_of(Screens.LanguagePick, :continue) == Screens.OnboardingWelcomeFa
+      assert push_of(Screens.LanguagePick, :continue) == Screens.OnboardingWelcome
     end
 
     test "161 Continue opens 26" do
@@ -75,7 +75,14 @@ defmodule Kati.FirstRunTest do
     end
 
     test "164 Continue opens 137, which is screen 26 in Persian" do
-      assert push_of(Screens.OnboardingWelcomeFa, :next) == Screens.OnboardingFa
+      # 164 IS 161 under `:fa` since mishka-group/kati#103's fold, so the
+      # assertion is about the LOCALE rather than about a second module: the
+      # same screen has to push a different next step, because 137 is still a
+      # mirror. `Kati.Onboarding.screen_for_step/1` is what makes it so, and
+      # naming `Kati.Screens.PickSections` in the handler is exactly the defect
+      # the fold could have introduced.
+      Kati.Locale.put(:fa)
+      assert push_of(Screens.OnboardingWelcome, :next) == Screens.OnboardingFa
     end
 
     test "26 Continue opens 162, the loudness step" do
@@ -86,12 +93,15 @@ defmodule Kati.FirstRunTest do
       # It drew no `on_tap` for as long as the screen existed: there was no
       # Persian step four to push it to, and a dead button reads as a bug
       # where an untranslated screen reads as unfinished. 165 is that step.
-      assert push_of(Screens.OnboardingFa, :continue) == Screens.OnboardingLoudnessFa
+      assert push_of(Screens.OnboardingFa, :continue) == Screens.OnboardingLoudness
     end
 
     test "162 Continue opens 163, and 165 opens 166" do
       assert push_of(Screens.OnboardingLoudness, :next) == Screens.OnboardingFirstTitle
-      assert push_of(Screens.OnboardingLoudnessFa, :next) == Screens.OnboardingFirstTitleFa
+
+      # And the same screen under `:fa`, which is what 165 is now.
+      Kati.Locale.put(:fa)
+      assert push_of(Screens.OnboardingLoudness, :next) == Screens.OnboardingFirstTitle
     end
 
     test "26's Continue asks for the calendar on the way out" do
@@ -369,21 +379,26 @@ defmodule Kati.FirstRunTest do
         Kati.Onboarding.reset!()
         Kati.Locale.put(:fa)
 
-        opened = socket_for(Screens.OnboardingFirstTitleFa)
+        opened = socket_for(Screens.OnboardingFirstTitle)
         refute opened.assigns.picked
 
+        # The tag is the KEY and stays ASCII in every locale — a control named
+        # after the word printed on it is what MOVIES-AND-TV.md #158 forbids.
+        # What is SHELVED is the caption, and that is the whole assertion here.
         {:noreply, socket} =
-          Screens.OnboardingFirstTitleFa.handle_info({:tap, :pick_1}, opened)
+          Screens.OnboardingFirstTitle.handle_info({:tap, :pick_The_Long_Hollow}, opened)
 
         picked = socket.assigns.picked
-        assert picked
-        clear_manual!(picked)
+        assert picked == "The Long Hollow"
+
+        shelved = Screens.OnboardingFirstTitle.label_for(picked)
+        clear_manual!(shelved)
 
         {:noreply, _moved} =
-          Screens.OnboardingFirstTitleFa.handle_info({:tap, :finish}, socket)
+          Screens.OnboardingFirstTitle.handle_info({:tap, :finish}, socket)
 
-        assert %{title: ^picked} = cached(picked)
-        refute picked =~ ~r/^[[:ascii:]]+$/
+        assert %{title: ^shelved} = cached(shelved)
+        refute shelved =~ ~r/^[[:ascii:]]+$/
       end)
     end
 
@@ -394,9 +409,9 @@ defmodule Kati.FirstRunTest do
         Kati.Locale.put(:fa)
 
         {:noreply, moved} =
-          Screens.OnboardingFirstTitleFa.handle_info(
+          Screens.OnboardingFirstTitle.handle_info(
             {:tap, :finish},
-            socket_for(Screens.OnboardingFirstTitleFa)
+            socket_for(Screens.OnboardingFirstTitle)
           )
 
         assert moved.__mob__.nav_action == {:reset, Screens.HomeFa, %{}}
@@ -411,9 +426,9 @@ defmodule Kati.FirstRunTest do
       Kati.Locale.put(:fa)
 
       {:noreply, moved} =
-        Screens.OnboardingFirstTitleFa.handle_info(
+        Screens.OnboardingFirstTitle.handle_info(
           {:tap, :skip},
-          socket_for(Screens.OnboardingFirstTitleFa)
+          socket_for(Screens.OnboardingFirstTitle)
         )
 
       assert moved.__mob__.nav_action == {:reset, Screens.HomeFaEmpty, %{}}

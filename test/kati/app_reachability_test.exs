@@ -350,7 +350,16 @@ defmodule Kati.AppReachabilityTest do
   @locale_forks [
     {Screens.LanguagePick, :continue},
     {Screens.AddTitle, :add_by_hand},
-    {Screens.Search, :add_by_hand}
+    {Screens.Search, :add_by_hand},
+    # mishka-group/kati#103 moved three forks rather than removing them. 164,
+    # 165 and 166 are the English steps rendered under `:fa` now, so screen 53's
+    # `continue` answers ONE module and the forks travel one step further in:
+    # step 2's `next` is 26 or 137, its `restore` is 55 or 84, and step 5's
+    # `skip` is 139 or 158. Each of those three destinations is still a mirror,
+    # so each is still a fork — and 137 and 158 have no other door at all.
+    {Screens.OnboardingWelcome, :next},
+    {Screens.OnboardingWelcome, :restore},
+    {Screens.OnboardingFirstTitle, :skip}
   ]
 
   defp locale_forks do

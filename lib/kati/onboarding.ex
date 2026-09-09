@@ -182,14 +182,15 @@ defmodule Kati.Onboarding do
   @spec screen_for_step(atom(), :en | :fa) :: module()
   def screen_for_step(step, locale \\ nil) do
     case {step, locale || Kati.Locale.current()} do
-      {:welcome, :fa} -> Kati.Screens.OnboardingWelcomeFa
-      {:welcome, _en} -> Kati.Screens.OnboardingWelcome
+      # Three of the four forks are gone: 164, 165 and 166 are the English
+      # screens rendered under `:fa` since mishka-group/kati#103's fold, so
+      # there is nothing left to choose between. `:sections` still has a mirror
+      # and still forks.
+      {:welcome, _locale} -> Kati.Screens.OnboardingWelcome
       {:sections, :fa} -> Kati.Screens.OnboardingFa
       {:sections, _en} -> Kati.Screens.PickSections
-      {:loudness, :fa} -> Kati.Screens.OnboardingLoudnessFa
-      {:loudness, _en} -> Kati.Screens.OnboardingLoudness
-      {:first_title, :fa} -> Kati.Screens.OnboardingFirstTitleFa
-      {:first_title, _en} -> Kati.Screens.OnboardingFirstTitle
+      {:loudness, _locale} -> Kati.Screens.OnboardingLoudness
+      {:first_title, _locale} -> Kati.Screens.OnboardingFirstTitle
       # The language question is the one step with no Persian mirror, and it
       # should not have one: screen 53 asks in both scripts at once, because
       # nobody who needs it can be assumed to read the other.

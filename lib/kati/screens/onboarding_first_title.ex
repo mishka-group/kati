@@ -19,6 +19,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   shelf.
   """
   use Kati.Screens.Pushed, back: nil
+  use Gettext, backend: Kati.Gettext
 
   # `back: nil` — the board draws no pill. Its back control is the row at
   # the foot of the page, "Back to loudness", which `back_row/1` builds. A
@@ -29,6 +30,12 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   alias Kati.Theme.Palette
   alias Kati.UI.SettingsList
 
+  # The four are KEYS here and words on screen. `label_for/1` translates them —
+  # board 166 draws گودال بلند — and everything that must survive the
+  # translation keys off this list instead: the tap tag, the poster seed and the
+  # tick. What is SHELVED is the label, because a Persian run should not put an
+  # English name on a Persian shelf, which is the rule the mirror was written to
+  # and the only one it owned. mishka-group/kati#103.
   @suggestions ["The Long Hollow", "Ashfall", "Marram", "Nightbirds"]
 
   # The design's own photograph for each, by picsum seed, under BOTH spellings
@@ -89,7 +96,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
     <Column fill_width={true}>
       {OnboardingWelcome.rail(5)}
       <Text
-        text="Add your first title"
+        text={gettext("Add your first title")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
@@ -98,7 +105,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       />
       <Spacer size={10} />
       <Text
-        text="Pick something you are watching now — the calendar fills itself from there."
+        text={gettext("Pick something you are watching now — the calendar fills itself from there.")}
         text_size={13.5}
         line_height={1.55}
         text_color={Palette.ink_soft()}
@@ -106,11 +113,11 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       <Spacer size={20} />
       {Kati.Screens.OnboardingFirstTitle.grid(assigns.picked)}
       <Spacer size={18} />
-      {OnboardingWelcome.forward("Finish setup", :finish)}
+      {OnboardingWelcome.forward(gettext("Finish setup"), :finish)}
       <Spacer size={12} />
       <Box fill_width={true} on_tap={{self(), :skip}}>
         <Text
-          text="Skip — I’ll add things later"
+          text={gettext("Skip — I’ll add things later")}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}
@@ -118,14 +125,31 @@ defmodule Kati.Screens.OnboardingFirstTitle do
         />
       </Box>
       <Spacer size={18} />
-      {SettingsList.note("info", "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner.")}
-      {OnboardingWelcome.back_row("Back to loudness")}
+      {SettingsList.note("info", gettext("Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner."))}
+      {OnboardingWelcome.back_row(gettext("Back to loudness"))}
     </Column>
     """)
   end
 
   @doc false
   def suggestion_list, do: @suggestions
+
+  @doc """
+  What a tile is captioned with, which is not what it is named.
+
+      iex> Kati.Screens.OnboardingFirstTitle.label_for("Marram")
+      "Marram"
+
+  `seed_for/1` takes either spelling, because `@seeds` has carried both since
+  the mirror existed — so the photograph follows the title into whichever
+  script shelves it.
+  """
+  @spec label_for(String.t()) :: String.t()
+  def label_for("The Long Hollow"), do: gettext("The Long Hollow")
+  def label_for("Ashfall"), do: gettext("Ashfall")
+  def label_for("Marram"), do: gettext("Marram")
+  def label_for("Nightbirds"), do: gettext("Nightbirds")
+  def label_for(other), do: other
 
   @doc """
   The four suggestions, two to a row, as 2:3 posters.
@@ -185,7 +209,8 @@ defmodule Kati.Screens.OnboardingFirstTitle do
     assigns = %{
       title: title,
       on?: on?,
-      tap: {self(), String.to_atom("pick_" <> String.replace(title, " ", "_"))}
+      tap: {self(), String.to_atom("pick_" <> String.replace(title, " ", "_"))},
+      label: Kati.Screens.OnboardingFirstTitle.label_for(title)
     }
 
     ~MOB"""
@@ -204,7 +229,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
       </Box>
       <Spacer size={9} />
       <Text
-        text={@title}
+        text={@label}
         text_size={12.5}
         font_weight="bold"
         text_color={:on_surface}
@@ -311,7 +336,13 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   than the defect this fixes. `Kati.Write.note/2` has recorded it by then.
   """
   @spec shelve(String.t() | nil) :: :ok
-  def shelve(title) when is_binary(title) do
+  def shelve(key) when is_binary(key) do
+    # The KEY names the tile and the LABEL is what goes on the shelf — board
+    # 166's own rule, and the only thing its mirror owned: *a Persian run
+    # should not put an English name on a Persian shelf*. `seed_for/1` takes
+    # either spelling, so the photograph follows whichever is written.
+    title = Kati.Screens.OnboardingFirstTitle.label_for(key)
+
     # The seed travels WITH the row. `Kati.Media.CachedTitle.poster_path` is
     # what `Kati.Screens.Library.shaped/3` reads back as `:seed`, and what
     # Home, the shelf and the rating sheet all draw from — so a title picked
@@ -336,6 +367,15 @@ defmodule Kati.Screens.OnboardingFirstTitle do
 
   # Both ways out FINISH the run, and `reset_to/2` rather than `push_screen/2`
   # so Home is the bottom of the stack — pushing would leave the whole first
+  @doc """
+  The empty Home a skipped run lands on.
+
+      iex> Kati.Screens.OnboardingFirstTitle.empty_home()
+      Kati.Screens.HomeEmpty
+  """
+  @spec empty_home() :: module()
+  def empty_home, do: Kati.Locale.pick(Kati.Screens.HomeEmpty, Kati.Screens.HomeFaEmpty)
+
   # run underneath it and the back gesture would walk back into onboarding
   # that has just been completed. Screen 38 settled both points; this is the
   # last of the five steps it split into, so it inherits them.
@@ -343,7 +383,7 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   def handle_tap(:finish, socket) do
     Kati.Screens.OnboardingFirstTitle.shelve(socket.assigns.picked)
     Kati.Onboarding.complete!()
-    {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.Home)}
+    {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.shell_root(Kati.Locale.current()))}
   end
 
   # Skipping is a real answer, so it lands on the state the app draws for
@@ -351,9 +391,12 @@ defmodule Kati.Screens.OnboardingFirstTitle do
   # finishes setup too: the board offers it as a way past adding a title, not
   # as a way to abandon the run, and someone who takes it has still chosen a
   # language and their sections.
+  # 158 in Persian and 139 in English, which is the board's own note and the
+  # one thing this step's mirror owned: *skipping lands on 158, not 139*. Both
+  # empty Homes still exist as separate modules, so this still forks.
   def handle_tap(:skip, socket) do
     Kati.Onboarding.complete!()
-    {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.HomeEmpty)}
+    {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.OnboardingFirstTitle.empty_home())}
   end
 
   def handle_tap(:step_back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}

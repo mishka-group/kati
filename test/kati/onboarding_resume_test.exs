@@ -53,7 +53,7 @@ defmodule Kati.OnboardingResumeTest do
       Kati.Locale.put(:fa)
       Onboarding.reached!(:loudness)
 
-      assert Onboarding.first_screen() == Kati.Screens.OnboardingLoudnessFa
+      assert Onboarding.first_screen() == Kati.Screens.OnboardingLoudness
     end
 
     test "a run interrupted before the split resumes on the last of the five steps" do

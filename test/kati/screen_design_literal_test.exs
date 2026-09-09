@@ -216,7 +216,7 @@ defmodule Kati.ScreenDesignLiteralTest do
   # so only the writing direction actually changes with the locale. Each screen
   # is still rendered in the locale its drawing is written in, because a screen
   # that starts reading `Kati.Locale` should be read the way a user reads it.
-  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 132 137 156 176)
+  @fa_screens ~w(55 56 57 58 59 60 61 62 69 72 76 79 82 85 90 97 103 108 115 132 137 156 164 165 166 176)
 
   # How many of the drawings' literals may rest on `:squashed`, the loosest
   # tier. Today: 21, and twenty of them are rating rows the drawing writes as

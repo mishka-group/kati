@@ -207,9 +207,9 @@ defmodule Kati.Screens.Gallery do
     {"161", "Welcome — step 2 of 5", Kati.Screens.OnboardingWelcome, :push},
     {"162", "Loudness — step 4 of 5", Kati.Screens.OnboardingLoudness, :push},
     {"163", "First title — step 5 of 5", Kati.Screens.OnboardingFirstTitle, :push},
-    {"164", "خوش‌آمد — welcome, RTL", Kati.Screens.OnboardingWelcomeFa, :push},
-    {"165", "اعلان‌ها — loudness, RTL", Kati.Screens.OnboardingLoudnessFa, :push},
-    {"166", "اولین عنوان — first title, RTL", Kati.Screens.OnboardingFirstTitleFa, :push},
+    {"164", "خوش‌آمد — welcome, RTL", Kati.Screens.OnboardingWelcome, :push},
+    {"165", "اعلان‌ها — loudness, RTL", Kati.Screens.OnboardingLoudness, :push},
+    {"166", "اولین عنوان — first title, RTL", Kati.Screens.OnboardingFirstTitle, :push},
     {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push},
     # #D-38 — the shelf, and how a book reaches it, in both languages. 176 is
     # the destination screen 57's کتاب‌ها segment has never had; 177 is the only

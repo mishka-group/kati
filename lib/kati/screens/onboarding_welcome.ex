@@ -15,6 +15,7 @@ defmodule Kati.Screens.OnboardingWelcome do
   because reversing a column is the RTL mistake nobody catches by reading.
   """
   use Kati.Screens.Pushed, back: nil
+  use Gettext, backend: Kati.Gettext
 
   # `back: nil` — the board draws no pill. Its back control is the row at
   # the foot of the page, "Back to language", which `back_row/1` builds. A
@@ -38,34 +39,34 @@ defmodule Kati.Screens.OnboardingWelcome do
       {Kati.Screens.OnboardingWelcome.rail(2)}
       {Kati.Screens.OnboardingWelcome.mark()}
       <Text
-        text="One place for"
+        text={gettext("One place for")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
       />
       <Text
-        text="what you keep"
+        text={gettext("what you keep")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
-        letter_spacing={-0.03}
+        letter_spacing={Kati.Locale.tracking(-0.03)}
         text_color={:on_surface}
       />
-      <Spacer size={10} />
+      <Spacer size={Kati.Locale.pick(10, 14)} />
       <Text
-        text="Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
-        text_size={13.5}
-        line_height={1.55}
+        text={gettext("Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever.")}
+        text_size={Kati.Locale.pick(13.5, 14)}
+        line_height={Kati.Locale.leading(1.55)}
         text_color={Palette.ink_soft()}
       />
       <Spacer size={24} />
-      {Kati.Screens.OnboardingWelcome.forward("Get started", :next)}
+      {Kati.Screens.OnboardingWelcome.forward(gettext("Get started"), :next)}
       <Spacer size={12} />
       <Box fill_width={true} on_tap={{self(), :restore}}>
         <Text
-          text="Already have a Kati backup? Restore it"
+          text={gettext("Already have a Kati backup? Restore it")}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}
@@ -73,8 +74,8 @@ defmodule Kati.Screens.OnboardingWelcome do
         />
       </Box>
       <Spacer size={18} />
-      {SettingsList.note("info", "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below.")}
-      {Kati.Screens.OnboardingWelcome.back_row("Back to language")}
+      {SettingsList.note("info", gettext("Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below."))}
+      {Kati.Screens.OnboardingWelcome.back_row(gettext("Back to language"))}
     </Column>
     """)
   end
@@ -105,7 +106,11 @@ defmodule Kati.Screens.OnboardingWelcome do
 
   `Kati.UI.Sheet.commit/2` is the sentence a sheet completes and carries no
   glyph; a step in a sequence is going somewhere, and the boards say so with
-  `arrow_forward` beside the label.
+  `Kati.Locale.forward_glyph/0` beside the label — `arrow_forward` in Latin and
+  `arrow_back` in Persian. `layout_direction` mirrors a LAYOUT and cannot mirror
+  a picture, and an arrow is a picture; board 164's caption says so in as many
+  words. That glyph was `Kati.Screens.OnboardingWelcomeFa.forward/2`'s whole
+  reason to exist, and mishka-group/kati#103's fold is what made it shared.
   """
   @spec forward(String.t(), atom()) :: map()
   def forward(label, tag) do
@@ -129,7 +134,7 @@ defmodule Kati.Screens.OnboardingWelcome do
         max_lines={1}
       />
       <Spacer size={9} />
-      {Kati.UI.symbol("arrow_forward", size: 18, color: Palette.on_ink())}
+      {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 18, color: Palette.on_ink())}
       <Spacer weight={1.0} />
     </Row>
     """
@@ -137,6 +142,8 @@ defmodule Kati.Screens.OnboardingWelcome do
 
   @doc """
   The step back, named for where it goes.
+
+  `Kati.Locale.back_glyph/0`, the exact inversion of `forward/2` above.
 
   `arrow_back` and not `arrow_back_ios_new`: a sequence steps back through
   itself rather than popping a stack, and the boards draw the difference.
@@ -149,7 +156,7 @@ defmodule Kati.Screens.OnboardingWelcome do
     <Column fill_width={true}>
       <Spacer size={18} />
       <Row align="center" on_tap={@tap}>
-        {Kati.UI.symbol("arrow_back", size: 17, color: Palette.sub())}
+        {Kati.UI.symbol(Kati.Locale.back_glyph(), size: 17, color: Palette.sub())}
         <Spacer size={8} />
         <Text
           text={@label}
@@ -180,12 +187,31 @@ defmodule Kati.Screens.OnboardingWelcome do
     """
   end
 
+  @doc """
+  Where *Restore it* goes, which is a different screen in each script.
+
+  `restore_screen` and not `restore`: `Mob.Screen` already defines a `restore`.
+
+      iex> Kati.Screens.OnboardingWelcome.restore_screen()
+      Kati.Screens.Restore
+
+  `Kati.Screens.RestoreFa` is still a mirror, so this still forks. It stops
+  forking the day that one folds.
+  """
+  @spec restore_screen() :: module()
+  def restore_screen, do: Kati.Locale.pick(Kati.Screens.Restore, Kati.Screens.RestoreFa)
+
+  # `screen_for_step/1` rather than the module by name, because this screen is
+  # now BOTH runs. Board 164's own step forward is 137 — screen 26 in Persian —
+  # and naming `Kati.Screens.PickSections` here would have walked a Persian
+  # reader onto an English page at step 3. mishka-group/kati#103.
   @impl true
   def handle_tap(:next, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Onboarding.screen_for_step(:sections))}
 
   def handle_tap(:restore, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}
+    do:
+      {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingWelcome.restore_screen())}
 
   def handle_tap(:step_back, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 

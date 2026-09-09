@@ -1,3 +1,5 @@
+Code.require_file("../support/screen_sweep.exs", __DIR__)
+
 defmodule Kati.ScreenTitleSubtitleTest do
   @moduledoc """
   The line under a 28pt screen title is drawn in one of three shapes, and this
@@ -51,7 +53,7 @@ defmodule Kati.ScreenTitleSubtitleTest do
         for {number, _label, module, _kind} <- @registry,
             board = board_subtitle(number),
             board != nil,
-            drawn = drawn_subtitle(module),
+            drawn = drawn_subtitle(number, module),
             drawn != nil,
             drawn != board,
             do:
@@ -74,7 +76,7 @@ defmodule Kati.ScreenTitleSubtitleTest do
 
       compared =
         Enum.count(@registry, fn {number, _l, module, _k} ->
-          board_subtitle(number) != nil and drawn_subtitle(module) != nil
+          board_subtitle(number) != nil and drawn_subtitle(number, module) != nil
         end)
 
       assert parsed >= 85,
@@ -98,7 +100,11 @@ defmodule Kati.ScreenTitleSubtitleTest do
          html = File.read!(path),
          [_, style] <- Regex.run(~r/font-size:28px.*?<\/div>\s*<div style="([^"]*)"/s, html),
          [_, size] <- Regex.run(~r/font-size:([\d.]+)px/, style) do
-      {parse_size(size), family(style), gap(style)}
+      # `sans` and not `nil`: a drawing has no root to inherit from, so an
+      # unstated family in the markup IS the design's Latin default. The
+      # rendered side resolves its own `nil` against the LOCALE instead — see
+      # the note beside it.
+      {parse_size(size), family(style) || "sans", gap(style)}
     else
       _ -> nil
     end
@@ -148,8 +154,18 @@ defmodule Kati.ScreenTitleSubtitleTest do
   # eyebrow, and the sweep reported the eyebrow as a subtitle at the wrong
   # size. A screen with no line under its title is out of scope here, which is
   # what the moduledoc already says.
-  defp drawn_subtitle(module) do
-    module |> mount_screen() |> tree() |> line_under_title()
+  # The boards whose copy is Persian. Until mishka-group/kati#103's fold every
+  # one of them was a `*Fa` module holding its own literals, so the locale it
+  # rendered under made no difference; a folded board is the English module and
+  # renders English unless it is asked in the language it is drawn in.
+  @fa_boards ~w(156 164 165 166)
+
+  defp drawn_subtitle(number, module) do
+    locale = if number in @fa_boards, do: :fa, else: :en
+
+    Kati.ScreenSweep.with_locale(locale, fn ->
+      module |> mount_screen() |> tree() |> line_under_title()
+    end)
   rescue
     # A screen that cannot mount is `Kati.ScreenRenderSweepTest`'s failure to
     # report, not this one's — repeating it here would bury the findings.
@@ -175,7 +191,15 @@ defmodule Kati.ScreenTitleSubtitleTest do
 
         with %{} = spacer <- Enum.find(following, &(&1.type == :spacer)),
              %{} = text <- Enum.find(following, &subtitle_candidate?/1) do
-          {as_float(text.props[:text_size]), text.props[:font_family], spacer.props[:size]}
+          # An ABSENT family means the locale's own face, not Latin. That is
+          # `K-48 locale-face` working: the root declares the face and every
+          # `Text` that names none falls back to it, so a folded Persian board
+          # draws Vazirmatn without saying so — and writing `sans` here
+          # explicitly would force Latin and undo it. Resolving `nil` against
+          # the locale is what lets one module be compared with both of its
+          # boards. mishka-group/kati#103.
+          {as_float(text.props[:text_size]), text.props[:font_family] || Kati.Locale.face_prop(),
+           spacer.props[:size]}
         else
           _ -> nil
         end
@@ -210,4 +234,9 @@ defmodule Kati.ScreenTitleSubtitleTest do
 
   defp describe({size, family, gap}),
     do: "#{size}pt #{family || "sans"}, #{gap}pt gap"
+
+  # The board's own side keeps its `nil`, because a drawing has no root to fall
+  # back to — `family/1` reads what the markup says and `sans` is the design's
+  # default. Only the RENDERED side resolves, and only against the locale it
+  # was rendered in.
 end

@@ -120,3 +120,127 @@ msgstr "افزودن عنوان"
 #: lib/kati/screens/pushed.ex
 msgid "Home"
 msgstr "خانه"
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "One place for"
+msgstr "یک جا برای"
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "what you keep"
+msgstr "هر چه نگه می‌دارید"
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
+msgstr "فیلم، سریال، کتاب، عادت — هر کدام یک قفسه‌اند و همه به یک تقویم می‌ریزند. با یکی شروع کنید و بقیه را هر وقت خواستید اضافه کنید."
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Get started"
+msgstr "شروع کنیم"
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Already have a Kati backup? Restore it"
+msgstr "پشتیبان دارید؟ بازگردانی کنید"
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below."
+msgstr "بازگردانی زیر دکمه می‌ماند — جایش عوض نمی‌شود. در RTL همه‌چیز آینه می‌شود جز ترتیب عمودی: عمل اصلی بالا، جایگزین آرام پایین، در هر دو زبان."
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Back to language"
+msgstr "بازگشت به زبان"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "How should we\ntell you?"
+msgstr "چطور به شما خبر بدهیم؟"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Kati checks for new episodes on its own. You choose how loudly it mentions them."
+msgstr "کاتی خودش قسمت‌های تازه را می‌بیند. شما انتخاب می‌کنید چقدر بلند بگوید."
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Quietly"
+msgstr "آرام"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "A card on home. Nothing buzzes."
+msgstr "یک کارت در خانه. هیچ صدایی بلند نمی‌شود."
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Notify me"
+msgstr "خبرم کن"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "A push when something lands."
+msgstr "یک اعلان وقتی چیزی می‌رسد."
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Weekly digest"
+msgstr "خلاصه هفتگی"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "One summary, Sundays at 18:00."
+msgstr "یک خلاصه، جمعه‌ها ساعت ۱۸:۰۰."
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Kati"
+msgstr "کاتی برای اعلان"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "won’t ask"
+msgstr "اجازه نمی‌خواهد"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "for notification permission. Everything arrives in your inbox."
+msgstr ". همه‌چیز در صندوق شما می‌آید."
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Continue"
+msgstr "ادامه"
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136"
+msgstr "اگر «خبرم کن» را انتخاب کنید، گام بعد اجازه سیستم را می‌گیرد — همان بندی که در ۱۳۶ کشیده شده."
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Back to sections"
+msgstr "بازگشت به بخش‌ها"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Add your first title"
+msgstr "اولین عنوان را اضافه کنید"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Pick something you are watching now — the calendar fills itself from there."
+msgstr "چیزی را انتخاب کنید که همین حالا تماشا می‌کنید — تقویم از همان‌جا خودش پر می‌شود."
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "The Long Hollow"
+msgstr "گودال بلند"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Ashfall"
+msgstr "بارش خاکستر"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Marram"
+msgstr "مرام"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Nightbirds"
+msgstr "پرندگان شب"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Finish setup"
+msgstr "پایان راه‌اندازی"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Skip — I’ll add things later"
+msgstr "رد کن — بعداً اضافه می‌کنم"
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner."
+msgstr "رد کردن این گام به خانه خالی می‌رسد — ۱۵۸ در فارسی، ۱۳۹ در انگلیسی. پوسترها هرگز آینه نمی‌شوند؛ فقط تیک به گوشه پیشرو می‌رود."
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Back to loudness"
+msgstr "بازگشت به اعلان‌ها"

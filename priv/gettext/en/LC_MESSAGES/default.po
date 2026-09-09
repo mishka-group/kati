@@ -111,3 +111,127 @@ msgstr ""
 #: lib/kati/screens/pushed.ex
 msgid "Home"
 msgstr ""
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "One place for"
+msgstr ""
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "what you keep"
+msgstr ""
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Films, shows, books, habits — each one is a shelf, and all of them feed a single calendar. Start with one and add the rest whenever."
+msgstr ""
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Get started"
+msgstr ""
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Already have a Kati backup? Restore it"
+msgstr ""
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Restore stays beneath the button in both scripts. RTL mirrors the grid, not the vertical order — primary above, quiet alternative below."
+msgstr ""
+
+#: lib/kati/screens/onboarding_welcome.ex
+msgid "Back to language"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "How should we\ntell you?"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Kati checks for new episodes on its own. You choose how loudly it mentions them."
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Quietly"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "A card on home. Nothing buzzes."
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Notify me"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "A push when something lands."
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Weekly digest"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "One summary, Sundays at 18:00."
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Kati"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "won’t ask"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "for notification permission. Everything arrives in your inbox."
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Continue"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Choosing Notify me or Weekly digest raises the OS prompt on the next step — the band drawn on 136"
+msgstr ""
+
+#: lib/kati/screens/onboarding_loudness.ex
+msgid "Back to sections"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Add your first title"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Pick something you are watching now — the calendar fills itself from there."
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "The Long Hollow"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Ashfall"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Marram"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Nightbirds"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Finish setup"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Skip — I’ll add things later"
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Skipping lands on empty Home — 139. Artwork never mirrors; only the tick moves to the leading corner."
+msgstr ""
+
+#: lib/kati/screens/onboarding_first_title.ex
+msgid "Back to loudness"
+msgstr ""

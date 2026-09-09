@@ -543,7 +543,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # tick and dropped — so a first run ended on a Home with an empty library,
     # which is the one thing screen 163 exists to prevent.
     {"163", Kati.Screens.OnboardingFirstTitle},
-    {"166", Kati.Screens.OnboardingFirstTitleFa},
+    {"166", Kati.Screens.OnboardingFirstTitle},
     {"155", Kati.Screens.AddByHandStates},
     {"156", Kati.Screens.AddByHand},
     {"157", Kati.Screens.AddByHandDark},
@@ -2431,7 +2431,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"163", Kati.Screens.OnboardingFirstTitle,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"166", Kati.Screens.OnboardingFirstTitleFa,
+      {"166", Kati.Screens.OnboardingFirstTitle,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"155", Kati.Screens.AddByHandStates,
@@ -2982,7 +2982,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(156)
+  @fa_numbers ~w(156 164 165 166)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

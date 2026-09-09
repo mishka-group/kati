@@ -91,6 +91,85 @@ defmodule Kati.Locale do
   @spec face_prop() :: String.t()
   def face_prop, do: face_for(current())
 
+  @doc """
+  The glyph that means **forward** — where the reader is going.
+
+      iex> Kati.Locale.forward_glyph()
+      "arrow_forward"
+
+  The twin of `Kati.Screens.Pushed.back_glyph/0`, and it exists for the same
+  reason that one does: `layout_direction` mirrors a LAYOUT and cannot mirror
+  a picture. An arrow is a picture. Under `rtl` the primary action's glyph has
+  to be `arrow_back`, which reads wrong in a diff and right on a phone — the
+  three Persian onboarding boards all draw it that way and say so in their
+  captions.
+
+  `mishka-group/kati#103`'s fold is what made this shared rather than a
+  sentence written twice: `Kati.Screens.OnboardingWelcomeFa.forward/2` was one
+  of the two functions a mirror kept for itself.
+  """
+  @spec forward_glyph() :: String.t()
+  def forward_glyph, do: if(direction(current()) == :rtl, do: "arrow_back", else: "arrow_forward")
+
+  @doc """
+  One of two values, by writing direction.
+
+      iex> Kati.Locale.pick(13.5, 14)
+      13.5
+
+  The general form of `tracking/1` and `leading/1`, for the places a drawing
+  and its mirror differ by a number rather than by a word — a type size, a
+  gap, a glyph. Both values stay at the call site, which is the point: a
+  Persian screen that differs by 0.5pt should say so where it differs, not in a
+  second module.
+  """
+  @spec pick(term(), term()) :: term()
+  def pick(latin, persian), do: if(direction(current()) == :rtl, do: persian, else: latin)
+
+  @doc """
+  The glyph that means **back** — where the reader came from.
+
+      iex> Kati.Locale.back_glyph()
+      "arrow_back"
+
+  The plain arrow, and the exact inversion of `forward_glyph/0`.
+  `Kati.Screens.Pushed.back_glyph/0` is the other one and stays separate: it is
+  the `_ios` chevron the floating pill draws, and a sequence that steps back
+  through itself is not a stack being popped — the boards draw the difference.
+  """
+  @spec back_glyph() :: String.t()
+  def back_glyph, do: if(direction(current()) == :rtl, do: "arrow_forward", else: "arrow_back")
+
+  @doc """
+  Latin tracking, or none.
+
+      iex> Kati.Locale.tracking(-0.03)
+      -0.03
+
+  The design tightens its 28pt headings by a fraction of an em. Arabic script
+  has no such tradition and Vazirmatn is not drawn for it — the mirrors all
+  dropped `letter_spacing` rather than mirroring it, and
+  `Kati.Screens.AddByHand.labelled/4` already carries the long version of the
+  argument for the eyebrow labels.
+  """
+  @spec tracking(number()) :: number()
+  def tracking(latin), do: if(direction(current()) == :rtl, do: 0, else: latin)
+
+  @doc """
+  A paragraph's line height: the design's own, or Persian's.
+
+      iex> Kati.Locale.leading(1.55)
+      1.55
+
+  `Kati.Theme.fa_line_height/0` is the constant and its doc is where the
+  reasoning lives — Vazirmatn's metrics are not Plus Jakarta's, so a fixed-height
+  row measured against the Latin screen breaks on its Persian twin. This is that
+  constant applied per paragraph, with the Latin value as the argument so both
+  numbers stay visible at the call site.
+  """
+  @spec leading(number()) :: number()
+  def leading(latin), do: if(direction(current()) == :rtl, do: 1.95, else: latin)
+
   @doc "The CLDR locale name for the active locale."
   @spec cldr_name() :: String.t()
   def cldr_name, do: Atom.to_string(current())

@@ -74,7 +74,7 @@ defmodule Kati.Screens.OnboardingFa do
   tile draws reaches a named `handle_info/2` clause — none of the six fall
   through to the catch-all.
 
-  ادامه با X بخش now pushes `Kati.Screens.OnboardingLoudnessFa`. For as long
+  ادامه با X بخش now pushes `Kati.Onboarding.screen_for_step(:loudness)`. For as long
   as this screen existed before that it drew **no `on_tap` at all**, and the
   reason is worth keeping: there was no Persian step four to push it to,
   `Kati.Screens.Onboarding` is English, and pushing an English screen from a
@@ -138,7 +138,7 @@ defmodule Kati.Screens.OnboardingFa do
       # screen reads as unfinished, which is the truth." Screen 165 is that
       # step, so the button is a button.
       "continue" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.OnboardingLoudnessFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Onboarding.screen_for_step(:loudness))}
 
       "back_to_welcome" ->
         {:noreply, Kati.Screens.Resume.pop(socket)}
