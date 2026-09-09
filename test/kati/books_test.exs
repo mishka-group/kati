@@ -31,7 +31,14 @@ defmodule Kati.BooksTest do
   alias Kati.Books.Note
   alias Kati.Books.ReadingSession
   alias Kati.Screens.BookDetail
+  alias Kati.Screens.Books
   alias Kati.Screens.LogProgress
+
+  # The four pure functions screen 20's shelf is arithmetic in. Nothing here
+  # touches the store, and each was documented with an example before it was
+  # run as one — which is the whole difference between a doc and a doctest.
+  doctest Kati.Screens.Books,
+    only: [visible: 2, book_tag: 1, subtitle: 1, chip_counts: 1]
 
   @prefix "books-test-"
 
@@ -295,6 +302,202 @@ defmodule Kati.BooksTest do
       # from the screen that opened it would write a session against the wrong
       # title.
       assert LogProgress.book() == BookDetail.drawn_book()
+    end
+  end
+
+  describe "screen 20 with a shelf" do
+    test "one book on the shelf is one tile, and the drawing's six are gone" do
+      a_book!(%{title: @prefix <> "Estuary Nights", current_page: 88, page_count: 240})
+
+      page = Books.page()
+
+      assert length(page.books) == 1
+      assert [%{title: @prefix <> "Estuary Nights", line: "p.88/240"}] = page.books
+
+      # Not merely "the shelf is short": the fixture's own titles must be off
+      # the screen entirely. A grid that drew the user's book AND the drawing's
+      # six would satisfy every count above.
+      drawn = MapSet.new(Books.drawn_books(), & &1.title)
+      assert Enum.all?(page.books, &(not MapSet.member?(drawn, &1.title)))
+
+      # The header and the chips count the shelf they are over. `64` is the
+      # drawing's window onto a library of 64 and stops being a defence the
+      # moment there is a real shelf to count.
+      assert page.subtitle == "1 books · 1 reading"
+      assert page.chips == [{"All", "1"}, {"Reading", "1"}, {"Finished", nil}, {"To read", nil}]
+    end
+
+    test "one book is drawn at one fraction, in the grid and in the hero alike" do
+      # The grid shapes a row through `shaped/1` and the hero through screen
+      # 66's `shelved_book/1`, and the two used to disagree about a book with no
+      # denominator: `Kati.Books.Book.fraction/1` answers `nil`, the grid read
+      # that as *finished means full*, the hero as `|| 0.0`. A finished
+      # audiobook was then drawn FULL in the grid and EMPTY in the hero, in one
+      # render — the same book, twice, at 100% and 0%.
+      a_book!(%{
+        title: @prefix <> "Audio Done",
+        format: :audiobook,
+        duration_minutes: 680,
+        page_count: nil,
+        current_page: 0,
+        status: :finished
+      })
+
+      page = Books.page()
+      [tile] = page.books
+
+      assert tile.id == page.hero.id, "the fixture no longer sets up the case this is about"
+      assert tile.progress == page.hero.progress
+      assert tile.progress == 1.0
+    end
+
+    test "a write acts on the book the page was NAMED, not on the shelf's newest" do
+      # The wrong-row write, and the reason screen 66 keeps `:book_id` beside
+      # `:book`. `book/1` collapses *nobody named a book* and *the named book is
+      # gone* into one value — `Kati.Books.Sample.detail/0`, which has no id —
+      # so a write recovering its target from `assigns.book[:id]` got `nil` for
+      # both, and `apply_change/2`'s `nil` means the shelf's newest. A page
+      # showing the drawing would pause a real book the reader is not looking
+      # at.
+      newest = a_book!(%{title: @prefix <> "Still Reading", status: :reading})
+      gone = Ecto.UUID.generate()
+
+      {:ok, socket} =
+        Kati.Screens.BookDetail.mount(%{book_id: gone}, %{}, Mob.Socket.new(BookDetail))
+
+      assert socket.assigns.book_id == gone
+
+      assert socket.assigns.book == BookDetail.drawn_book(),
+             "a named-but-gone book is the drawing"
+
+      {:noreply, _after} = BookDetail.handle_tap(:toggle_owned, socket)
+
+      assert Ash.get!(Kati.Books.Book, newest.id).owned == newest.owned,
+             "the write reached the shelf's newest book while the page drew the drawing"
+    end
+
+    test "a page that named nothing still writes to the shelf's newest" do
+      # The other half, and the reason the fix is not `refuse when book[:id] is
+      # nil`: a bare push means *no particular book*, and the shelf's newest is
+      # the right target for it. Screen 20's hero and every other door that
+      # opens 66 without an id depend on this.
+      book = a_book!(%{title: @prefix <> "Only One", status: :reading, owned: false})
+
+      {:ok, socket} = Kati.Screens.BookDetail.mount(%{}, %{}, Mob.Socket.new(BookDetail))
+
+      refute socket.assigns.book_id
+      {:noreply, _after} = BookDetail.handle_tap(:toggle_owned, socket)
+
+      assert Ash.get!(Kati.Books.Book, book.id).owned == true
+    end
+
+    test "a shelf row is named by its id and a drawn row by nothing" do
+      book = a_book!(%{title: @prefix <> "Estuary Nights"})
+
+      [row] = Books.page().books
+
+      assert row.id == book.id
+      assert Books.book_tag(row) == String.to_atom("open_book_" <> book.id)
+      assert BookDetail.params_for(row) == %{book_id: book.id}
+
+      # The other half, and the one that has to keep working: a fixture row has
+      # no id and must yield `%{}`, never `%{book_id: nil}`. A destination that
+      # matches on the key would otherwise take a `nil` for an answer.
+      for drawn <- Books.drawn_books(), do: assert(BookDetail.params_for(drawn) == %{})
+      assert BookDetail.params_for(Books.drawn_page().hero) == %{}
+      assert LogProgress.params_for(Books.drawn_page().hero) == %{}
+    end
+
+    test "the hero is the book being read, not the row the shelf happens to head" do
+      reading = a_book!(%{title: @prefix <> "Estuary Nights", status: :reading})
+
+      Ash.create!(ReadingSession, %{
+        book_id: reading.id,
+        read_on: Kati.Time.today(),
+        from_page: 168,
+        to_page: 214,
+        minutes: 38
+      })
+
+      # Written after, so it heads `:shelf` on `updated_at` — the hero must not
+      # follow it, because nobody is reading it.
+      a_book!(%{title: @prefix <> "Low Water", status: :not_started, current_page: 0})
+
+      page = Books.page()
+
+      assert page.hero.id == reading.id
+      assert page.hero.title == @prefix <> "Estuary Nights"
+      assert page.hero.author == "Ines Karvel"
+      assert page.hero.label == "Reading now"
+
+      # The pace is screen 66's own arithmetic, reached through 66's reader:
+      # one 38-minute sitting over the seven-day window is 5 min/day.
+      assert page.hero.pace == "p. 214 / 380 · 5 MIN/DAY PACE"
+
+      # And the shelf's head is still the shelf's head — the grid is not
+      # reordered to agree with the hero.
+      assert [%{title: @prefix <> "Low Water"}, %{title: @prefix <> "Estuary Nights"}] =
+               page.books
+    end
+
+    test "with nothing marked reading the hero is the shelf's head, not the drawing's book" do
+      a_book!(%{title: @prefix <> "Estuary Nights", status: :not_started, current_page: 0})
+
+      hero = Books.page().hero
+
+      assert hero.title == @prefix <> "Estuary Nights"
+      refute hero.title == Books.drawn_page().hero.title
+    end
+
+    test "the page renders the row's copy and none of the drawing's" do
+      a_book!(%{title: @prefix <> "Estuary Nights", current_page: 88, page_count: 240})
+
+      tree = tree(mount_screen(Books))
+
+      assert find(tree, :text, text: @prefix <> "Estuary Nights") != nil
+      assert find(tree, :text, text: "p.88/240") != nil
+      assert find(tree, :text, text: "1 books · 1 reading") != nil
+
+      for drawn <- Books.drawn_books() do
+        assert find(tree, :text, text: drawn.title) == nil,
+               "the drawing's #{drawn.title} is still on a shelf that holds one real book"
+      end
+
+      assert find(tree, :text, text: "64 books · 2 reading") == nil
+    end
+
+    test "a book with no denominator still gets a rail, and an honest line" do
+      # `Kati.Books.Book.fraction/1` answers `nil` rather than a zero, and the
+      # grid draws its rail under every cover — so the rail reads the status and
+      # the line under it says what is actually known.
+      a_book!(%{page_count: nil, status: :finished, title: @prefix <> "Estuary Nights"})
+
+      assert [%{progress: 1.0, line: "finished"}] = Books.page().books
+    end
+  end
+
+  describe "screen 20 with nothing shelved" do
+    test "the drawing is what the screen reads, whole" do
+      # The values `test/design/screens/20.html` was captured from, and the
+      # branch `Kati.ScreenDesignLiteralTest` renders. Compared as the whole map
+      # rather than as the grid alone: a hero that had stopped falling back
+      # would pass a check on the six covers.
+      assert Books.page() == Books.drawn_page()
+      assert Books.drawn_page().hero == Kati.Books.Sample.reading_now()
+      assert Books.drawn_page().subtitle == Kati.Books.Sample.subtitle()
+      assert Books.drawn_page().chips == Kati.Books.Sample.chips()
+
+      assert Enum.map(Books.page().books, & &1.title) ==
+               Enum.map(Kati.Books.Sample.books(), & &1.title)
+    end
+
+    test "the drawn rows carry a status, so the chips filter both kinds of row alike" do
+      # The fixture has a fraction where a real row has a status.
+      # `Kati.Screens.Books.drawn_books/0` derives one, so `visible/2` asks a
+      # single question — and the drawing's own chip says the answer is 2.
+      assert length(Books.visible(Books.page().books, "Reading")) == 2
+      assert length(Books.visible(Books.page().books, "Finished")) == 2
+      assert length(Books.visible(Books.page().books, "To read")) == 2
     end
   end
 

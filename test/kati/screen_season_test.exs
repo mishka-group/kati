@@ -9,12 +9,14 @@ defmodule Kati.ScreenSeasonTest do
       column on `Kati.Media.CachedEpisode` or `Kati.Media.CachedSeason`, and the
       tick is a `Kati.Media.Watch` row keyed on `episode_source_id` — which is
       the footnote's own rule, *your ticks follow the episode, not the number*.
-    * **The order strip, the two switches and the `PARTS 1–2` badge are not**,
-      and must still be drawn beside a real season. Each is a column that does
-      not exist rather than a query nobody wrote, and
-      `Kati.Screens.Season`'s moduledoc says which is which. A round that
-      quietly wired one of them up would be inventing a column, so this file
-      asserts they are unchanged rather than merely present.
+    * **The order strip offers only the tiles it can fill, and the `PARTS 1–2`
+      badge is still the drawing's.** MOVIES-AND-TV.md #97: the strip was the
+      screen's central control and none of its three tiles was tappable.
+      Making all three live would have been the worse fix — DVD has no numbers
+      anywhere and Absolute had none either — so a tile with nothing behind it
+      is dropped, and a strip of one is dropped whole. The tiles that remain
+      renumber something, and that is asserted from both ends: the seasons a
+      cache can renumber, and the seasons it cannot.
     * **The footnote loses its first sentence and keeps its second.** `Absolute
       order renumbers this season 27–35` is a claim about one particular season;
       *your ticks follow the episode, not the number* is true of every one.
@@ -158,23 +160,55 @@ defmodule Kati.ScreenSeasonTest do
       refute season.note =~ "27"
     end
 
-    test "leaves the order strip, the switches and the subtitle exactly as drawn" do
+    test "drops the whole order strip when nothing here can be renumbered" do
       season = Season.season()
-      drawn = Season.drawn_season()
 
-      # None of these has a column — see `Kati.Screens.Season`'s moduledoc — and
-      # a round that wired one up would have invented one.
-      assert season.orders == drawn.orders
-      assert season.current_order == drawn.current_order
-      assert season.options == drawn.options
-      assert season.subtitle == drawn.subtitle
+      # One cached season and nothing before it, so `derived_absolute/1`
+      # declines: numbering S2E1 as 1 is a claim about a season the user never
+      # watched. What is left is one tile, and one segment is not a control.
+      assert season.orders == ["Aired"]
+      assert season.current_order == "Aired"
+      refute text(tree(mount_screen(Season))) =~ "Absolute"
     end
 
-    test "the DVD tile is still offered, and CachedEpisode still has two orders" do
-      # The strip is the design's, and the data can fill two of its three tiles.
-      # Both halves are pinned so the drawn tile and the missing order cannot
-      # drift apart without one of them failing.
-      assert "DVD" in Season.season().orders
+    test "and leaves the subtitle exactly as drawn" do
+      # This one has no column — see `Kati.Screens.Season`'s moduledoc — and a
+      # round that wired it up would have invented one.
+      assert Season.season().subtitle == Season.drawn_season().subtitle
+    end
+
+    test "and offers only the switch it can honour" do
+      # `Include specials` was drawn ON above a list `for_season/3` could not
+      # put a season-0 special into, and `Merge multi-part` promised a merge
+      # nothing records — MOVIES-AND-TV.md #69. Season 0 is read now, and the
+      # switch that cannot be honoured is not offered.
+      assert Enum.map(Season.season().options, & &1.title) == ["Include specials"]
+
+      assert Enum.map(Season.drawn_season().options, & &1.title) == [
+               "Include specials",
+               "Merge multi-part"
+             ]
+    end
+
+    test "and says where the specials actually are" do
+      [specials] = Season.season().options
+
+      assert specials.on, "this season has one and the switch reads off"
+
+      assert specials.sub == "Listed first, before the season",
+             "the board's *Shown inline, at air date* is what `in_order(:aired)` cannot " <>
+               "deliver: it sorts by {season, episode} and season 0 sorts ahead of the season"
+    end
+
+    test "the DVD tile is only ever the board's, and it is not tappable there" do
+      # No source in `Kati.Media.CachePolicy.sources/0` provides per-episode DVD
+      # numbering — `CachedEpisode`'s moduledoc gives the whole reason — so the
+      # tile is never offered over real episodes and the board's own is a
+      # picture rather than a dead control. Both halves pinned, so the drawn
+      # tile and the missing order cannot drift apart without one failing.
+      refute "DVD" in Season.season().orders
+      assert "DVD" in Season.drawn_season().orders
+      assert Season.order_tap("DVD", :aired) == nil
       assert CachedEpisode.orders() == [:aired, :absolute]
     end
 
@@ -187,10 +221,15 @@ defmodule Kati.ScreenSeasonTest do
       assert words =~ "SPECIAL"
       assert words =~ String.upcase("Episodes · 5 in this order")
 
-      # Still drawn, because none of these can be read.
-      assert words =~ "DVD"
+      # Gone: this cache can renumber nothing, so the strip is dropped whole
+      # rather than drawn with one live tile and two dead ones.
+      refute words =~ "DVD"
+
+      # Wired, and drawn in the state the list is actually in.
       assert words =~ "Include specials"
-      assert words =~ "Merge multi-part"
+
+      refute words =~ "Merge multi-part",
+             "a switch that promises a merge nothing records is still offered"
 
       # All of these are in the drawn season and in none of these rows. A screen
       # that fell back would still draw a full running order.
@@ -233,6 +272,150 @@ defmodule Kati.ScreenSeasonTest do
   # One bookmarked season: a special, two that have aired, one that has not, and
   # one a provider has announced without a number, a name, a runtime or a date
   # it is willing to stand behind.
+  describe "a tick made on screen 34" do
+    setup :seed_season
+
+    test "is accepted, which it was not" do
+      # The row carried `number: "E2"` — a STRING, because it is a label that
+      # can also be `S1` or `""` — and `Kati.Screens.Series.write_tick/2` falls
+      # back to it for `Kati.Media.Watch.episode_number`, an integer column. So
+      # every tick made on this screen came back `Is invalid.` and the ring
+      # never filled. Screen 04's rows have carried `:n` and `:season` since
+      # #46; this screen's never did, and its tick had never been pressed on a
+      # real season.
+      socket = mount_screen(Season).socket
+      row = Enum.find_index(socket.assigns.season.episodes, &(&1.title == "Saltmarsh"))
+
+      {:noreply, after_tap} =
+        Season.handle_tap(String.to_atom("episode_#{row}"), socket)
+
+      assert after_tap.assigns.save_error == nil
+      assert Enum.at(after_tap.assigns.season.episodes, row).watched
+    end
+
+    test "and records the season and number the SHOW uses, not the label drawn" do
+      socket = mount_screen(Season).socket
+      row = Enum.find_index(socket.assigns.season.episodes, &(&1.title == "Saltmarsh"))
+
+      {:noreply, _ticked} = Season.handle_tap(String.to_atom("episode_#{row}"), socket)
+
+      written = Ash.read!(Watch) |> Enum.find(&(&1.episode_number == 3))
+
+      assert written.season_number == 2
+      assert written.episode_number == 3
+    end
+  end
+
+  describe "a series the cache holds whole" do
+    setup :seed_whole_series
+
+    test "offers Absolute beside Aired, and never DVD", %{} do
+      assert Season.season(%{}, :aired).orders == ["Aired", "Absolute"]
+    end
+
+    test "renumbers the season from the first episode of the show" do
+      season = Season.season(%{}, :absolute)
+
+      assert season.current_order == "Absolute"
+      assert Enum.map(season.episodes, & &1.number) == ["E4", "E5", "E6"]
+      assert Enum.map(season.episodes, & &1.title) == ["Four", "Five", "Six"]
+    end
+
+    test "and the same list in aired order is numbered within the season" do
+      assert Season.season(%{}, :aired).episodes
+             |> Enum.reject(& &1.special)
+             |> Enum.map(& &1.number) == ["E1", "E2", "E3"]
+    end
+
+    test "drops the special, which is what absolute order means" do
+      aired = Season.season(%{}, :aired)
+      absolute = Season.season(%{}, :absolute)
+
+      assert Enum.any?(aired.episodes, & &1.special)
+      refute Enum.any?(absolute.episodes, & &1.special)
+      assert absolute.eyebrow == "Episodes · 3 in this order"
+    end
+
+    test "a tick survives the renumbering, which is the footnote's own claim" do
+      watched = fn season ->
+        season.episodes |> Enum.filter(& &1.watched) |> Enum.map(& &1.title)
+      end
+
+      assert watched.(Season.season(%{}, :aired)) == ["Five"]
+      assert watched.(Season.season(%{}, :absolute)) == ["Five"]
+    end
+
+    test "pressing a tile redraws the list in that order" do
+      socket = mount_screen(Season).socket
+
+      {:noreply, absolute} = Season.handle_tap(:order_Absolute, socket)
+      assert absolute.assigns.season.current_order == "Absolute"
+      assert Enum.map(absolute.assigns.season.episodes, & &1.number) == ["E4", "E5", "E6"]
+
+      {:noreply, back} = Season.handle_tap(:order_Aired, absolute)
+      assert back.assigns.season.current_order == "Aired"
+      assert Enum.any?(back.assigns.season.episodes, & &1.special)
+    end
+
+    test "and pressing the tile already lit redraws the same list rather than nothing" do
+      socket = mount_screen(Season).socket
+
+      {:noreply, again} = Season.handle_tap(:order_Aired, socket)
+
+      assert again.assigns.season.episodes == socket.assigns.season.episodes
+    end
+
+    test "a tag no order answers to leaves the screen alone" do
+      socket = mount_screen(Season).socket
+
+      {:noreply, after_tap} = Season.handle_tap(:order_DVD, socket)
+
+      assert after_tap.assigns.season == socket.assigns.season
+    end
+
+    test "and a gap anywhere in the cache withdraws the offer" do
+      # One episode deleted out of the middle of season 1, which is what a
+      # half-finished fetch leaves behind. Absolute cannot be derived from it,
+      # so the tile goes rather than drawing a list numbered from a guess.
+      Kati.Repo.query!("delete from cached_episodes where title = 'Two'")
+
+      assert Season.season(%{}, :absolute).orders == ["Aired"]
+      assert Season.season(%{}, :absolute).current_order == "Aired"
+    end
+  end
+
+  # Three episodes in S1, three in S2 plus a special, and the bookmark on S2 —
+  # the smallest shape `derived_absolute/1` will answer for, and the one the
+  # design's own note describes: *absolute order renumbers this season and
+  # drops the special*.
+  defp seed_whole_series(_context) do
+    tracked = track!(%{title: "Tidewrack", season: 2})
+
+    season!(tracked, %{number: 1, name: "Season 1", episode_count: 3})
+    season!(tracked, %{number: 2, name: "Season 2", episode_count: 3})
+
+    for {n, title} <- [{1, "One"}, {2, "Two"}, {3, "Three"}] do
+      episode!(tracked, %{season: 1, number: n, title: title, runtime: 50, days: -100 + n})
+    end
+
+    episode!(tracked, %{
+      season: 0,
+      number: 1,
+      title: "Marsh",
+      runtime: 22,
+      days: -60,
+      special: true
+    })
+
+    episode!(tracked, %{season: 2, number: 1, title: "Four", runtime: 50, days: -50})
+    five = episode!(tracked, %{season: 2, number: 2, title: "Five", runtime: 50, days: -40})
+    episode!(tracked, %{season: 2, number: 3, title: "Six", runtime: 50, days: -30})
+
+    tick!(tracked, five)
+
+    %{tracked: tracked}
+  end
+
   defp seed_season(_context) do
     tracked = track!(%{title: "Tidewrack", season: 2})
 
@@ -304,7 +487,7 @@ defmodule Kati.ScreenSeasonTest do
       source: tracked.source,
       source_id: source_id,
       title_source_id: tracked.source_id,
-      season_number: tracked.progress_season,
+      season_number: attrs[:season] || tracked.progress_season,
       episode_number: attrs[:number],
       special: attrs[:special] || false,
       title: attrs[:title],

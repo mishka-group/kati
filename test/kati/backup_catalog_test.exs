@@ -25,9 +25,9 @@ defmodule Kati.BackupCatalogTest do
   # merge kept them for. That took `schema_version` to 2 and added the 1 -> 2
   # upgrade step, which is what `Kati.BackupFormatTest` and
   # `Kati.BackupRoundTripTest` hold to a version-1 file that must still open.
-  @fingerprint "c2c06099a6e2be7aa799d9e36dfa4a1a72b1877681810efaa21ff58f6bffcaf2"
+  @fingerprint "3ce021f2f1a76ab077ad753db0d230995f4c927ae23617e18fe89a9dbb2432e7"
 
-  @schema_version 9
+  @schema_version 18
 
   describe "every resource is classified" do
     test "no resource in any domain is missing from both lists" do
@@ -55,7 +55,11 @@ defmodule Kati.BackupCatalogTest do
         assert String.length(why) > 40, "#{inspect(resource)} needs a reason, not a label"
       end
 
-      assert length(Catalog.excluded()) == 8
+      # 8 until `Kati.Spike.Thing` was deleted with the rest of the migration
+      # spike. A number here is not ceremony: an exclusion is a resource whose
+      # rows a backup deliberately leaves behind, so one appearing without
+      # anybody noticing is user data silently dropped from every backup.
+      assert length(Catalog.excluded()) == 7
     end
 
     test "the domains it checks are the domains the app configures" do
@@ -140,7 +144,7 @@ defmodule Kati.BackupCatalogTest do
 
     test "every table appears exactly once" do
       assert Catalog.tables() == Enum.uniq(Catalog.tables())
-      assert length(Catalog.tables()) == 29
+      assert length(Catalog.tables()) == 34
     end
 
     test "every backed-up resource keys on a single :id column" do

@@ -162,6 +162,17 @@ defmodule Kati.Notifications.Sources.Calendar do
   defp body(%Event{kind: :reminder}), do: "Reminder"
   defp body(%Event{}), do: nil
 
+  # `event_id` and `uid` are both here because they answer different questions.
+  # `uid` is what an id is REBUILT from — `id/1` joins `["cal", uid]`, and
+  # re-planning has to recognise an alarm it already armed without asking the
+  # database. `event_id` is the row's primary key, which is what a SCREEN is
+  # opened with: `Kati.Screens.EventDetail` does `Ash.get/2` on it, so handing
+  # that page a uid draws the sample event instead — the wrong page, and a wrong
+  # page that looks entirely right.
+  #
+  # The shape `Kati.Notifications.Sources.Meals` (`slot_id`) and `Sources.Health`
+  # (`medication_id`) already use: the row's key travels on the candidate, so
+  # whatever draws it can name what it is about without a second read.
   defp meta(%Event{} = event),
-    do: %{uid: event.uid, kind: event.kind, origin: event.origin}
+    do: %{event_id: event.id, uid: event.uid, kind: event.kind, origin: event.origin}
 end

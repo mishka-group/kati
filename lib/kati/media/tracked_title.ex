@@ -81,8 +81,32 @@ defmodule Kati.Media.TrackedTitle do
     attribute :source, :atom,
       allow_nil?: false,
       public?: true,
+      # `:manual` is a title someone typed in and `:import` one that came out of
+      # somebody's export, and neither has a provider behind it.
+      #
+      # Every other member of this list is a place a row can be looked up
+      # again; those two are the ones that cannot, and that is the point. A row
+      # with no source would have been the alternative, and `allow_nil?: false`
+      # here is load-bearing — a title that belongs to nothing cannot be
+      # reconciled with a provider row later, when there is one to reconcile
+      # against.
+      #
+      # `:import` is kept apart from `:manual` because the difference decides
+      # what may be done TO the row: `Kati.Media.Cache.tracked/0` refreshes only
+      # `:tmdb` rows, and a name a file supplied must not be overwritten by a
+      # provider's answer for a different film that happens to share it.
       constraints: [
-        one_of: [:tmdb, :tvmaze, :anilist, :jikan, :openlibrary, :musicbrainz, :wikidata]
+        one_of: [
+          :manual,
+          :import,
+          :tmdb,
+          :tvmaze,
+          :anilist,
+          :jikan,
+          :openlibrary,
+          :musicbrainz,
+          :wikidata
+        ]
       ]
 
     attribute :source_id, :string, allow_nil?: false, public?: true
@@ -143,6 +167,19 @@ defmodule Kati.Media.TrackedTitle do
 
     # Spoiler-safe episode names on screen 04.
     attribute :hide_unwatched_titles, :boolean, allow_nil?: false, default: false, public?: true
+
+    # Kept off a shared card, and off nothing else. See the migration: screen
+    # 98's switch reads *Hide titles I marked private* and there was nothing to
+    # mark. The shelf, Up next and the year's own numbers are unchanged — a
+    # private title is still a title you watched.
+    attribute :private, :boolean, allow_nil?: false, default: false, public?: true
+
+    # Board 152's first rule: *Your own tag — always wins, you know.* Three
+    # valued, and that is the point: `nil` is *I have not said*, which is not
+    # the same as *no*. A boolean defaulting to `false` could not tell the
+    # guess being right from the reader having overruled it, and overruling it
+    # is the whole of what this column is for. MOVIES-AND-TV.md #104.
+    attribute :anime_override, :boolean, public?: true
 
     # ── Shelf order ────────────────────────────────────────────────────────
     attribute :last_touched_at, :utc_datetime_usec,

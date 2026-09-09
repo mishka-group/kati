@@ -226,6 +226,7 @@ defmodule Kati.Screens.WeekImage do
         {SettingsList.chrome(nil)}
         {MealPlan.title(Kati.Screens.WeekImage.heading(), :meta)}
         {Kati.Screens.WeekImage.page(pages.en)}
+        {Kati.UI.notice(assigns[:save_error])}
         {Kati.Screens.WeekImage.save_button()}
         {Kati.Screens.WeekImage.rtl_eyebrow()}
         {Kati.Screens.WeekImage.page(pages.fa)}
@@ -1046,15 +1047,53 @@ defmodule Kati.Screens.WeekImage do
   defp named({dish, :approx}, dishes), do: %{name: Map.fetch!(dishes, dish), approx: true}
   defp named(dish, dishes), do: %{name: Map.fetch!(dishes, dish), approx: false}
 
-  # Drawing the page is all this screen can do, and saying so here is the point.
-  #
-  # `Save image` needs a node tree rasterised to a file, and nothing on this
-  # bridge can do it: there is no snapshot, no `PixelCopy`, no canvas readback
-  # anywhere in `MobBridge.kt`, and no Elixir side to receive bytes if there
-  # were. So the tap is matched and answered with the socket unchanged, which
-  # is a wired control with nothing to do rather than an unwired one — the
-  # distinction `Kati.Screens.Pushed`'s DEAD TAP report exists to keep, and the
-  # reason there is no catch-all clause under this one.
+  @doc """
+  Save the page as a PNG, through the picker every other file in Kati uses.
+
+  This comment used to say the opposite, and the sentence it said is worth
+  keeping because it was true for a year: *`Save image` needs a node tree
+  rasterised to a file, and nothing on this bridge can do it — there is no
+  snapshot, no `PixelCopy`, no canvas readback anywhere in `MobBridge.kt`, and
+  no Elixir side to receive bytes if there were.* `K-45 capture-screen` is the
+  readback, `Kati.Native.Files.save_screen/1` joins it to the saving half that
+  had existed all along, and the button does what it says.
+
+  The filename carries the week the page is about, so a folder with four of
+  these in it can be read. `Kati.Screens.WeekImage` knows the range; nothing
+  else on the path does.
+
+  A refusal is drawn rather than swallowed — the capture can find nothing
+  drawn, or time out, or there may be no picker — because a save button that
+  appears to work and silently does not is the defect screen 06's search taught
+  this codebase to stop shipping.
+  """
   @impl true
-  def handle_tap(:save_image, socket), do: {:noreply, socket}
+  def handle_tap(:save_image, socket) do
+    case Kati.Native.Files.save_screen(Kati.Screens.WeekImage.filename()) do
+      :ok -> {:noreply, Mob.Socket.assign(socket, :save_error, nil)}
+      {:error, why} -> {:noreply, Mob.Socket.assign(socket, :save_error, message(why))}
+    end
+  end
+
+  @doc """
+  The name the file is offered under: `kati-week-2026-09-05.png`.
+
+  ASCII and hyphenated on purpose — the Kotlin half strips anything else out of
+  a filename, and a name that arrived back different from the one composed here
+  would be a small lie in a folder listing.
+  """
+  @spec filename() :: String.t()
+  def filename do
+    "kati-week-" <> Date.to_iso8601(Kati.Time.today()) <> ".png"
+  end
+
+  # One sentence per way this can fail, in `Kati.Write.message/1`'s register:
+  # what happened, and whether anything was lost. Nothing ever is — the capture
+  # writes to the cache and the picker is the only thing that writes anywhere
+  # else — so every one of these ends by saying so.
+  defp message(:no_activity), do: "Kati is not on screen. Nothing was saved."
+  defp message(:nothing_drawn), do: "There was nothing to capture. Nothing was saved."
+  defp message(:timeout), do: "The page took too long to capture. Nothing was saved."
+  defp message(:no_bridge), do: "Saving images does not work here yet."
+  defp message(_other), do: "That did not save. The page is unchanged."
 end

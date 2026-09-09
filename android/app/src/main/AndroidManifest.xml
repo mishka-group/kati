@@ -97,6 +97,32 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/AppTheme">
 
+        <!-- KATI-BEGIN(K-46 media-session-listener) mob_new=0.7.24
+             Auto-detect: what this phone is playing.
+
+             `MediaSessionManager.getActiveSessions` takes the ComponentName of
+             an ENABLED notification listener as its proof of consent, so the
+             service exists to be enabled rather than to receive anything — see
+             KatiMediaListener, which overrides no callback. There is no runtime
+             dialog for this permission; the user grants it in system settings,
+             which is why screen 36 opens that page rather than asking.
+
+             `android:exported="false"` and no `permission` attribute would make
+             the service unbindable by the system: a notification listener MUST
+             declare BIND_NOTIFICATION_LISTENER_SERVICE and be exported, because
+             the thing that binds it is the OS.
+        -->
+        <service
+            android:name=".KatiMediaListener"
+            android:exported="true"
+            android:label="Kati"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        <!-- KATI-END(K-46 media-session-listener) -->
+
         <!-- Main activity -->
         <activity android:name=".MainActivity"
             android:exported="true"

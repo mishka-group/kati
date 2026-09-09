@@ -70,7 +70,7 @@ defmodule Kati.Screens.SearchResultStates do
 
   ## What is reused, and the three places the board and 19 disagree
 
-  The field is `Kati.Screens.Search.field/1`, called twice with two different
+  The field is `Kati.Screens.Search.field/2` at `live?: false`, called twice with two different
   queries. The ink ring, the 2pt orange caret and the filled `cancel` glyph are
   19's own, so a change to the field arrives on this sheet the next time it
   renders and the comparison cannot quietly go stale — which is the whole reason
@@ -218,12 +218,12 @@ defmodule Kati.Screens.SearchResultStates do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title("Search results", "four edge states", nil, :name)}
         {UI.eyebrow("One scope only — seven zeroes are not a fault")}
-        {SearchScreen.field(%{query: "quinoa"})}
+        {SearchScreen.field("quinoa", false)}
         {Kati.Screens.SearchResultStates.chips(s.in_scope, "Meals")}
         {SettingsList.eyebrow_muted("Meals · 3")}
         {Kati.Screens.SearchResultStates.found(s.hits)}
         {SettingsList.eyebrow_muted("No results anywhere")}
-        {SearchScreen.field(%{query: "vellichor"})}
+        {SearchScreen.field("vellichor", false)}
         {Kati.Screens.SearchResultStates.nothing("vellichor")}
         {SettingsList.eyebrow_muted("Nothing in this scope, something elsewhere")}
         {Kati.Screens.SearchResultStates.chips(s.elsewhere, "Calendar")}
@@ -441,8 +441,8 @@ defmodule Kati.Screens.SearchResultStates do
   because a title Kati has never heard of is likelier to be findable than to be
   worth typing out.
   """
-  @spec nothing(String.t()) :: map()
-  def nothing(query) do
+  @spec nothing(String.t(), keyword()) :: map()
+  def nothing(query, taps \\ []) do
     # The sigil is uppercase, so `#{}` inside it is literal text and both
     # quoted strings have to be built out here.
     title = "Nothing here for “" <> query <> "”"
@@ -491,6 +491,7 @@ defmodule Kati.Screens.SearchResultStates do
           corner_radius={22}
           background={Palette.ink_fill()}
           align="center"
+          on_tap={taps[:lookup]}
         >
           <Spacer weight={1.0} />
           {UI.symbol("add", size: 18, color: Palette.on_ink())}
@@ -505,13 +506,15 @@ defmodule Kati.Screens.SearchResultStates do
           <Spacer weight={1.0} />
         </Row>
         <Spacer size={13} />
-        <Text
-          text="or add it by hand"
-          text_size={12.5}
-          font_weight="semibold"
-          text_color={Palette.sub()}
-          text_align="center"
-        />
+        <Box fill_width={true} on_tap={taps[:by_hand]}>
+          <Text
+            text="or add it by hand"
+            text_size={12.5}
+            font_weight="semibold"
+            text_color={Palette.sub()}
+            text_align="center"
+          />
+        </Box>
       </Column>
       <Spacer size={22} />
     </Column>

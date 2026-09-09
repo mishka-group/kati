@@ -89,12 +89,11 @@ defmodule Kati.Screens.HealthEmptyStates do
 
   ## Four things the drawing asks for that do not arrive
 
-    * **`Tapping one opens 114`, and `Tap to see why`.** Screen 114 is the
-      retired-tile explainer and there is no module for it yet, so both lines are
-      drawn and neither is wired. An inert tag would be reported as a dead tap,
-      and a tap that pushed nothing would be the same lie in a quieter voice.
-      When 114 lands, `retired_tile/1` is where the `on_tap` goes and this
-      paragraph is what should be deleted.
+    * **`Tapping one opens 114`, and `Tap to see why`.** Both are wired as of
+      7 September: `Kati.Screens.RetiredReason` IS board 114, and `retired_tile/1`
+      carries the `on_tap` this paragraph said it would when the screen landed.
+      A tile whose name `Kati.Retired` does not know keeps `nil` and stays
+      untappable, rather than opening a page about nothing.
     * **Dashed borders are solid**, at the drawing's own 1.5pt and
       `rgba(26,25,23,.14)`. `Modifier.border` takes a width and a colour and no
       `PathEffect`; `Kati.Screens.Health` and `Kati.UI.SettingsList` both record
@@ -210,7 +209,9 @@ defmodule Kati.Screens.HealthEmptyStates do
   """
   @spec nothing_set_up() :: [map()]
   def nothing_set_up do
-    Enum.map(buildable(), fn tile -> %{tile | on?: false, line: "Not set up"} end)
+    Enum.map(buildable(), fn tile ->
+      tile |> Map.merge(%{on?: false, line: "Not set up"}) |> Map.put(:band, "nothing_set_up")
+    end)
   end
 
   @doc """
@@ -229,8 +230,9 @@ defmodule Kati.Screens.HealthEmptyStates do
   def meals_off do
     {meals, running} = Enum.split_with(buildable(), &(&1.icon == "restaurant"))
 
-    Enum.map(running, &live/1) ++
-      Enum.map(meals, fn tile -> %{tile | on?: false, line: "Switched off"} end)
+    (Enum.map(running, &live/1) ++
+       Enum.map(meals, fn tile -> %{tile | on?: false, line: "Switched off"} end))
+    |> Enum.map(&Map.put(&1, :band, "meals_off"))
   end
 
   @doc """
@@ -423,6 +425,19 @@ defmodule Kati.Screens.HealthEmptyStates do
   """
   @spec retired_tile(map()) :: map()
   def retired_tile(section) do
+    assigns = %{
+      section: section,
+      # Board 114 landed on 7 September as `Kati.Screens.RetiredReason`, and
+      # this is the `on_tap` the moduledoc above said would go here when it did.
+      # `Kati.Retired` holds the reason; a tile whose name it does not know keeps
+      # `nil` and stays untappable rather than opening a page about nothing.
+      tap:
+        if(Kati.Retired.known?(section.name),
+          do:
+            {self(), String.to_atom("why_" <> Atom.to_string(Kati.Retired.id_for(section.name)))}
+        )
+    }
+
     ~MOB"""
     <Column
       weight={1.0}
@@ -430,15 +445,16 @@ defmodule Kati.Screens.HealthEmptyStates do
       border_width={1.5}
       border_color={Palette.border_soft()}
       padding={16}
+      on_tap={@tap}
     >
       <Row fill_width={true} align="center">
-        {UI.symbol(section.icon, size: 22, color: Palette.tertiary())}
+        {UI.symbol(@section.icon, size: 22, color: Palette.tertiary())}
         <Spacer weight={1.0} />
         {Kati.Screens.HealthEmptyStates.badge()}
       </Row>
       <Spacer size={14} />
       <Text
-        text={section.name}
+        text={@section.name}
         text_size={14.5}
         font_weight="bold"
         letter_spacing={-0.02}
@@ -446,7 +462,7 @@ defmodule Kati.Screens.HealthEmptyStates do
         max_lines={1}
       />
       <Spacer size={4} />
-      <Text text={section.line} text_size={11} text_color={Palette.rail_idle()} max_lines={1} />
+      <Text text={@section.line} text_size={11} text_color={Palette.rail_idle()} max_lines={1} />
     </Column>
     """
   end
@@ -570,14 +586,39 @@ defmodule Kati.Screens.HealthEmptyStates do
   # The board draws screen 42's Meals tile, so it draws that tile's tag. It is
   # a picture of a tile rather than a tile — 27's reason — and answering it
   # quietly is what keeps a press from raising into `rescue_tap/3`.
-  def handle_tap(:open_meals, socket), do: {:noreply, socket}
+  # The tags arrive banded since #97 — `open_habits_nothing_set_up`,
+  # `open_habits_meals_off` and so on — because this board draws the same grid
+  # twice and one tag on two grids was one accessibility_id on two nodes. The
+  # band is dropped here: which of the two grids a tile was pressed in changes
+  # nothing about where it goes, and the moduledoc's argument for answering
+  # these at all is unchanged.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case tag |> Atom.to_string() |> String.split("_") do
+      # Board 114, built 7 September. Sleep and Workouts have said *tap to see
+      # why* since this board was drawn and had nothing behind it.
+      ["why", id] ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.RetiredReason, %{
+           id: String.to_existing_atom(id),
+           back: "Health"
+         })}
 
-  def handle_tap(:open_habits, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
+      ["open", "meals" | _band] ->
+        {:noreply, socket}
 
-  def handle_tap(:open_weight, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Weight)}
+      ["open", "habits" | _band] ->
+        {:noreply, push(socket, Kati.Screens.Habits)}
 
-  def handle_tap(:open_medication, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Medication)}
+      ["open", "weight" | _band] ->
+        {:noreply, push(socket, Kati.Screens.Weight)}
+
+      ["open", "medication" | _band] ->
+        {:noreply, push(socket, Kati.Screens.Medication)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  defp push(socket, screen), do: Mob.Socket.push_screen(socket, screen)
 end

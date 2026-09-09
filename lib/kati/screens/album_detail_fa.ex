@@ -132,7 +132,8 @@ defmodule Kati.Screens.AlbumDetailFa do
     note: "یادداشت شما",
     primary: "ثبت شنیدن",
     rate: "امتیاز",
-    list: "فهرست"
+    # Board 337: the same string 69 renders — a verb, because the control writes.
+    list: "افزودن به فهرست"
   }
 
   # Keyed by position rather than listed, because the position is what survives
@@ -160,10 +161,11 @@ defmodule Kati.Screens.AlbumDetailFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :album, album())}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The album this screen is about: the shelf's, in Persian chrome, or the
@@ -180,10 +182,35 @@ defmodule Kati.Screens.AlbumDetailFa do
   @spec album() :: map()
   def album do
     case AlbumDetail.shelved_album() do
-      nil -> Map.merge(drawn(), own(AlbumDetail.drawn_album()))
-      shelved -> Map.merge(drawn(), Map.merge(own(shelved), words(shelved)))
+      nil ->
+        Map.merge(drawn(), own(AlbumDetail.drawn_album()))
+
+      shelved ->
+        drawn()
+        |> Map.merge(own(shelved))
+        |> Map.merge(words(shelved))
+        |> Map.merge(refs(shelved))
     end
   end
+
+  @doc """
+  The two references a shelved album carries, and neither is a word.
+
+  Their own function rather than a line in `own/1`, because `own/1` is called
+  with `Kati.Screens.AlbumDetail.drawn_album/0` too and the drawing has no ids
+  at all — its four fields are facts about a picture and a rating, and an id is
+  neither. Kept out of `words/1` for the opposite reason: nothing here is
+  language.
+
+  `id` names the record to screen 73, which **writes** — the ثبت یک شنیدن
+  button opened a sheet that re-read the shelf and credited the play to
+  whichever album came back first. `artist_id` names the musician to screen 79,
+  so the هنرمند row opens the person this page is drawing. Both are read
+  straight through: the shelved row is `Kati.Screens.AlbumDetail.shaped/4`'s and
+  always carries the pair.
+  """
+  @spec refs(map()) :: map()
+  def refs(shelved), do: %{id: shelved.id, artist_id: shelved.artist_id}
 
   @doc "The drawing's Persian copy, unconditionally."
   @spec drawn() :: map()
@@ -213,8 +240,12 @@ defmodule Kati.Screens.AlbumDetailFa do
   @doc """
   The parts of a shelved album that are the user's rather than the chrome's.
 
-  Deliberately short, and shorter than `Kati.Screens.BookDetailFa.own/1` by one
-  kind of field: the dates are not here. A shelved album's `first_heard` and
+  Deliberately short. `Kati.Screens.BookDetailFa.own/3` is the same idea on the
+  book page and is no longer a fair comparison for length — D-59 grew it from
+  five keys to every key its page draws, because a page carrying a few of a
+  row's fields over a fixture's is the defect that ticket is named after. This
+  one is still short, and its shortness is a parked question rather than a
+  settled one: the dates are not here. A shelved album's `first_heard` and
   `last_played` arrive as `Date` structs wanting a Shamsi rendering, and
   shaping a date belongs in `Kati.Music` next to the Gregorian shaping
   `Kati.Screens.AlbumDetail.shaped/4` already does — not on a screen. Until it
@@ -223,10 +254,39 @@ defmodule Kati.Screens.AlbumDetailFa do
   @spec words(map()) :: map()
   def words(shelved) do
     %{
+      # The two ids, so every write-bearing control on this page names the
+      # record the page is about. `Kati.Screens.AlbumDetail.shaped/4` carries
+      # them for the reason it gives — the sheet must not re-read the shelf and
+      # guess — and a mirror that dropped them sent screen 73's Save and screen
+      # 77's هنرمند row to the shelf's head instead.
+      id: shelved[:id],
+      artist_id: shelved[:artist_id],
       title: shelved.title,
       byline: shelved.byline,
       artist: shelved.artist,
-      note: shelved.note
+      note: shelved.note,
+      # **Absent, not the drawing's.** These five are facts about a record and
+      # the frame's are facts about a DIFFERENT record: `دیروز`, `۱۳ اسفند
+      # ۱۴۰۲`, `۴ آلبوم · ۶۱ ساعت`, `۴۱ پخش`. Merged over a real row they told
+      # a reader who had typed one album a minute earlier that they last played
+      # it yesterday, first heard it in Esfand 1402, and that its artist has
+      # four records and six hundred and ten hours behind them — which is
+      # `D-59`'s defect, reported from a device on screen 76 the way it was
+      # reported on screen 69.
+      #
+      # Absent rather than composed, because each of the five is a Persian
+      # sentence no board writes for a real row: the two dates want a Shamsi
+      # rendering that belongs in `Kati.Music` beside the Gregorian one (see
+      # below, and it has not moved), and the two count lines are worded
+      # SHORTER on this board than on screen 74 — `۴ آلبوم · ۶۱ ساعت` against
+      # *4 albums · 61h listened* — so composing them here would be inventing
+      # the short form rather than quoting it. `stat_tile/2` already draws `—`
+      # for a nil and the two body lines take their own node with them.
+      first_heard: nil,
+      last_played: nil,
+      note_on: nil,
+      artist_line: nil,
+      plays_line: nil
     }
   end
 
@@ -486,7 +546,40 @@ defmodule Kati.Screens.AlbumDetailFa do
     )
   end
 
-  @doc "The artist's name over the two totals the row exists to carry."
+  @doc """
+  A second line under a name, with the 3pt gap that belongs to it — or neither.
+
+  `words/1` answers `nil` for `artist_line` on a real album, because the
+  frame's `۴ آلبوم · ۶۱ ساعت` is a fact about a different record and this board
+  words the line more briefly than screen 74 does, so there is nothing to quote
+  and nothing to compose. A nil handed to `fa/4` is the word **nil** on a
+  device — `Kati.ScreenNilTextTest` sweeps for exactly that — and an empty
+  line under a name is `D-58`'s hole, so the gap goes with the words.
+  """
+  @spec second_line(String.t() | nil) :: map() | []
+  def second_line(line) when line in [nil, ""], do: []
+
+  def second_line(line) do
+    assigns = %{line: line}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      {Kati.Screens.BookDetailFa.fa(@line, 11.5, Kati.Theme.Palette.sub())}
+    </Column>
+    """
+  end
+
+  @doc "The plays caption, or nothing — `second_line/1`'s argument, in the tracklist's type."
+  @spec plays_node(String.t() | nil) :: map() | []
+  def plays_node(line) when line in [nil, ""], do: []
+
+  # `fa/4` answers a node already, so this hands it back rather than wrapping
+  # it: `~MOB` needs one root element and a bare interpolation is not one.
+  def plays_node(line),
+    do: Kati.Screens.BookDetailFa.fa(line, 10, Kati.Theme.Palette.tertiary())
+
+  @doc "The artist's name, over the totals the row carries when it has any."
   @spec artist_body(map()) :: map()
   def artist_body(a) do
     assigns = %{a: a}
@@ -494,8 +587,7 @@ defmodule Kati.Screens.AlbumDetailFa do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.Screens.BookDetailFa.fa(@a.artist, 13, :on_surface, weight: "semibold")}
-      <Spacer size={3} />
-      {Kati.Screens.BookDetailFa.fa(@a.artist_line, 11.5, Palette.sub())}
+      {Kati.Screens.AlbumDetailFa.second_line(@a.artist_line)}
     </Column>
     """
   end
@@ -754,7 +846,7 @@ defmodule Kati.Screens.AlbumDetailFa do
         <Row fill_width={true} align="center">
           {Kati.Screens.BookDetailFa.fa(@a.month, 10, Palette.tertiary())}
           <Spacer weight={1.0} />
-          {Kati.Screens.BookDetailFa.fa(@a.plays_line, 10, Palette.tertiary())}
+          {Kati.Screens.AlbumDetailFa.plays_node(@a.plays_line)}
         </Row>
       </Column>
       <Spacer size={24} />
@@ -873,7 +965,7 @@ defmodule Kati.Screens.AlbumDetailFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The four destinations are `Kati.Screens.AlbumDetail.handle_tap/2`'s, exactly
   # — a mirror that navigated somewhere else would be a second app rather than
@@ -882,20 +974,51 @@ defmodule Kati.Screens.AlbumDetailFa do
   # `Kati.Screens.Rating`, and `Kati.Screens.Fa`'s moduledoc names the cost: a
   # push that changes the app's language out from under the reader, and RTL with
   # it. Screen 77's Persian mirror pays down the artist row's share of it.
+  #
+  # The sheet is handed the id of the album this page is drawing, through the
+  # same builder screen 74 uses, so the mirror and the original cannot disagree
+  # about which record a play is credited to. This was the worst of the five
+  # bare pushes because screen 73 WRITES: the page said کارهای جزر و مد and the
+  # count moved on whichever album the shelf returned first (#84).
   def handle_info({:tap, :log_listen}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogListen)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogListen,
+         Kati.Screens.LogListen.params_for(socket.assigns.album)
+       )}
 
   # The Persian artist page, not the English one. A mirror that pushed its
   # LTR sibling would change the app's language out from under the reader —
   # the same failure `Kati.Screens.Fa` records for the آمار tab's stand-in.
+  #
+  # And the artist this album points at, not the artist of the shelf's first:
+  # the row draws `a.artist` and `a.artist_line` and then opened somebody else.
   def handle_info({:tap, :open_artist}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ArtistDetailFa)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.ArtistDetailFa,
+         Kati.Screens.ArtistDetail.params_for(socket.assigns.album)
+       )}
 
   def handle_info({:tap, :rate}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
-  def handle_info({:tap, :add_to_list}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+  # Board 337: the Persian picker, over this page. It pushed screen 12 — an
+  # English LTR page with a Latin back label — until 7 September.
+  def handle_info({:tap, :add_to_list}, socket) do
+    album = socket.assigns.album || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open_fa(
+       socket,
+       Kati.Screens.AlbumDetail.member(album),
+       Map.get(album, :title)
+     )}
+  end
 
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}

@@ -242,16 +242,111 @@ defmodule Kati.ScreenSeriesTest do
                "fails for a lost fallback on either side"
     end
 
-    test "a tracked series with nothing cached about it still draws the drawing" do
-      # The gate is the whole page, not the title: an episode tick names an
-      # episode id and cannot name an episode, so a series with no season and no
-      # episode cached has nothing on this page that is the user's. Half a real
-      # page reads as a whole real page, which is the argument screen 08 credits
-      # this screen with.
+    test "a tracked series with nothing cached about it draws ITSELF, empty" do
+      # This asserted the opposite until 6 September, and the opposite was
+      # MOVIES-AND-TV.md #38: a hand-typed series has no cached seasons and no
+      # cached episodes, so `facts/1` answered `nil` and every one of them
+      # opened as **The Long Hollow** — hollow71 artwork, three seasons and
+      # seven named episodes, none of which the reader had ever heard of.
+      #
+      # The gate this screen keeps is about whether a ROW exists, not about
+      # whether a provider has filled it in. There is a row, so the page is
+      # that row's: its own title, an empty strip, `0 of 0 watched`, and a card
+      # where the list would be.
+      tracked = tracked!()
+
+      facts = Series.tracked_series()
+
+      refute facts == nil
+      assert facts.tracked_id == tracked.id
+      assert facts.seasons == [%{number: 2, name: nil, total: 0, episodes: []}]
+
+      page = Series.series()
+
+      refute page == Series.drawn_series(),
+             "a reader's own hand-typed series opened as somebody else's show"
+
+      assert page.episodes == []
+      assert page.total == 0
+      assert page.watched == 0
+    end
+
+    test "and draws board 248: whose doing it is, and what still works" do
       tracked!()
 
-      assert Series.tracked_series() == nil
-      assert Series.series() == Series.drawn_series()
+      drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
+
+      # The card said "Kati has this show but not its episode list" over a
+      # centred tile — which reads as a fault to be repaired and tells the
+      # reader nothing they can do. Board 248 says whose doing it is, promises
+      # what happens if a source finds it later, and then lists the three
+      # things that still work.
+      assert drawn =~ "No episode list yet."
+      assert drawn =~ "You added this by hand"
+      assert drawn =~ "nothing you typed changes"
+      refute drawn =~ "No episodes yet"
+
+      # `Kati.UI.SettingsList.eyebrow_muted/1` upcases, as every eyebrow does;
+      # the drawing writes it in sentence case and `Kati.DesignLiterals` compares
+      # case-insensitively for exactly this reason.
+      assert drawn =~ "WHAT STILL WORKS"
+
+      for row <- ["Log a watch", "Drop this show", "Remove from library"] do
+        assert drawn =~ row, "board 248's #{row} row is missing"
+      end
+
+      assert drawn =~ "Works without an episode list"
+      assert drawn =~ "Keeps where you stopped"
+      assert drawn =~ "No primary button here."
+    end
+
+    test "and the three rows act, rather than being a picture of three rows" do
+      tracked!()
+
+      drawn = inspect(Series.episodes(Series.series()), limit: :infinity)
+
+      for tag <- [":rate_title", ":open_drop_sheet", ":remove_title"] do
+        assert drawn =~ tag, "board 248's row for #{tag} carries no tap"
+      end
+    end
+
+    test "and a drawn series carries no taps, because there is nothing to act on" do
+      # The rule this repository keeps everywhere: a control with nowhere to go
+      # draws no tap rather than a dead one.
+      drawn = inspect(Series.still_works(nil), limit: :infinity)
+
+      refute drawn =~ ":rate_title"
+      refute drawn =~ ":remove_title"
+    end
+
+    test "and the primary slot stays empty, which is board 248's own ruling" do
+      tracked!()
+
+      # "There is no next episode to mark, and a primary that refuses is worse
+      # than none."
+      drawn = inspect(Series.actions(Series.series()), limit: :infinity)
+
+      refute drawn =~ ":mark_next"
+      refute drawn =~ "Mark"
+    end
+
+    test "and none of the drawing's episodes are on it" do
+      tracked!()
+
+      words =
+        inspect(
+          Series.render(%{
+            series: Series.series(),
+            back: "Library",
+            menu?: false,
+            save_error: nil
+          }),
+          limit: :infinity
+        )
+
+      for ep <- Sample.series().episodes do
+        refute words =~ ep.title, "the drawing's episodes are on a real reader's series"
+      end
     end
 
     test "every string the drawing carries reaches screen 04's tree" do

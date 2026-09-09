@@ -137,7 +137,6 @@ defmodule Kati.Screens.Gallery do
     {"89", "Search — result states", Kati.Screens.SearchResultStates, :push},
     {"90", "جست‌وجو", Kati.Screens.SearchFa, :push},
     {"91", "Search at 235%", Kati.Screens.SearchLarge, :push},
-    {"102", "Your year, shared — dark", Kati.Screens.YearShareDark, :push},
     {"103", "سال شما", Kati.Screens.YearShareFa, :push},
     {"105", "Goals — empty", Kati.Screens.GoalsEmpty, :push},
     {"110", "Weight — states", Kati.Screens.WeightStates, :push},
@@ -192,7 +191,50 @@ defmodule Kati.Screens.Gallery do
     {"151", "Notification access", Kati.Screens.NotificationAccess, :push},
     # #21 — anime as a type rather than a section.
     {"152", "Anime — a type, not a section", Kati.Screens.AnimeFilter, :push},
-    {"153", "Numbering — inherited and overridden", Kati.Screens.NumberingScheme, :push}
+    {"153", "Numbering — inherited and overridden", Kati.Screens.NumberingScheme, :push},
+    {"154", "Add a title by hand", Kati.Screens.AddByHand, :push},
+    {"155", "Add by hand — resting & refused", Kati.Screens.AddByHandStates, :push},
+    # mishka-group/kati#103's first fold. Board 156 is screen 154 in the mirror,
+    # and 154 IS the mirror now — the same module rendered under `:fa`. So the
+    # board keeps its number and its row, and points at the English screen,
+    # with "156" added to `Kati.ScreenDesignLiteralTest`'s `@fa_screens` so the
+    # sweep renders it in the locale it is drawn in.
+    {"156", "افزودن دستی — Add by hand, RTL", Kati.Screens.AddByHand, :push},
+    {"158", "خانه — nothing stored, RTL", Kati.Screens.HomeFaEmpty, :push},
+    {"159", "خانه — nothing stored, dark RTL", Kati.Screens.HomeFaEmptyDark, :push},
+    {"160", "The two empty sections — omitted, decided", Kati.Screens.HomeFaOmittedSections,
+     :push},
+    {"161", "Welcome — step 2 of 5", Kati.Screens.OnboardingWelcome, :push},
+    {"162", "Loudness — step 4 of 5", Kati.Screens.OnboardingLoudness, :push},
+    {"163", "First title — step 5 of 5", Kati.Screens.OnboardingFirstTitle, :push},
+    {"164", "خوش‌آمد — welcome, RTL", Kati.Screens.OnboardingWelcomeFa, :push},
+    {"165", "اعلان‌ها — loudness, RTL", Kati.Screens.OnboardingLoudnessFa, :push},
+    {"166", "اولین عنوان — first title, RTL", Kati.Screens.OnboardingFirstTitleFa, :push},
+    {"157", "Add by hand — dark", Kati.Screens.AddByHandDark, :push},
+    # #D-38 — the shelf, and how a book reaches it, in both languages. 176 is
+    # the destination screen 57's کتاب‌ها segment has never had; 177 is the only
+    # control in the app that creates a `Kati.Books.Book`.
+    {"176", "کتاب‌ها — the Persian Books shelf", Kati.Screens.BooksFa, :push},
+    {"177", "Add by hand — Book", Kati.Screens.AddByHandBook, :push},
+    # D-43 — the three boards that let a medication be owned rather than only
+    # read. 188 is the sheet behind screen 112's `add` disc, 189 the page
+    # behind its four chevrons, and 190 the empty frame `D-19-medication.md`
+    # asked for in 2026 and nobody drew.
+    {"188", "Add a medication", Kati.Screens.AddMedication, :push},
+    {"189", "One medication", Kati.Screens.MedicationDetail, :push},
+    {"190", "Medication — empty and annotated", Kati.Screens.MedicationEmpty, :push},
+    # D-39 — the read-only music shelf gets a way in, and a way to rate what is
+    # already there. 178 and 179 are the add path: nothing in `lib/` wrote a
+    # `Kati.Music.Album` before them, so screen 21 was permanently on its
+    # fixture. 180 is the album rating sheet screen 74's Rate row had been
+    # pushing screen 33's film sheet for.
+    {"178", "Add by hand — a record", Kati.Screens.AddByHandRecord, :push},
+    {"179", "Add a title — the music state", Kati.Screens.AddTitleMusic, :push},
+    {"180", "Rate an album", Kati.Screens.RateAlbum, :push},
+    # D-46 — the sort disc on screen 10 stopped opening screen 03's sheet.
+    # Board 167 is 145's chrome with Up next's vocabulary; 168 stays in
+    # `incoming/` because it is a state catalogue rather than an artboard.
+    {"167", "Up next sort & filter", Kati.Screens.UpNextFilters, :push}
   ]
 
   # Screens with no drawing, kept **out** of `@screens` on purpose.
@@ -234,6 +276,22 @@ defmodule Kati.Screens.Gallery do
   # Delete an entry the moment its drawing lands, and add it to `@screens` with
   # the number it was filed under.
   @undrawn [
+    # Board 267 — Clear watch history. A states board (the page and its
+    # confirmation in one frame), so it has no artboard the literal sweep can
+    # compare it against; it is reached from Settings → Data → Clear watch
+    # history, which is the row that opened nothing until it was built.
+    {:open_undrawn_clear_history, "Clear watch history", Kati.Screens.ClearHistory},
+    # Boards 252 and 302 — one service. Reached from My services, by tapping a
+    # service. It drops the three groups those boards draw and this device
+    # cannot answer, so no artboard holds what it renders.
+    {:open_undrawn_service, "One service", Kati.Screens.Service},
+    # Board 169 — Discover's Sort & filter sheet. Six of its eleven controls
+    # cannot be answered by any TMDB field and its eight count badges are one
+    # request each, so the page draws its buildable half and no artboard holds
+    # what it renders. `Kati.Discover.Filters` names each omission with the
+    # reason. Reached from Discover's `sort` disc; here so the one list that
+    # opens every screen can open this one.
+    {:open_undrawn_discover_filters, "Discover sort & filter", Kati.Screens.DiscoverFilters},
     # `Kati.Screens.Backup` left this list on 24 August: #25's drawings landed
     # as 128-133 and it is filed under 128 above, which is the move this
     # comment describes. `Kati.Screens.Sync` is still here — #54's screen has
@@ -249,11 +307,462 @@ defmodule Kati.Screens.Gallery do
     {:open_undrawn_notifications, "Notifications", Kati.Screens.InboxNotifications},
     {:open_undrawn_notifications_help, "Why am I not getting these?",
      Kati.Screens.NotificationsHelp},
-    {:open_undrawn_sync, "Sync", Kati.Screens.Sync}
+    {:open_undrawn_sync, "Sync", Kati.Screens.Sync},
+    # The two Lists screens. Boards 330-333 and 335 draw them and arrived on
+    # 7 September, so neither is undrawn any more — what they are is drawn by a
+    # STATE CATALOGUE: 330 stacks the resting page, an open menu, a confirmation
+    # and an undo bar in one frame, and 333 is 1249pt of states in an 806pt
+    # sheet. Neither is a state a screen is ever in, so neither board can be
+    # compared literal-for-literal against a render, and both stay here until a
+    # specimen screen per board is built the way 155 was for 154.
+    #
+    # Both are reachable from the app: `ListDetail` from screen 12's rows, and
+    # `AddToList` from the *Add to list* control on 08, 04, 66, 68, 74, 76 and
+    # 146. They are here because the one list that checks every screen has to be
+    # able to open them. MOVIES-AND-TV.md #106.
+    {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail},
+    {:open_undrawn_add_to_list, "Add to list", Kati.Screens.AddToList},
+    # And their Persian mirrors, boards 336 and 337. Same reason: both boards
+    # are state catalogues. Before 7 September a Persian reader could open
+    # فهرست‌ها, tap any of 289's seven rows, and land on an English LTR page,
+    # because `ListDetailFa` did not exist and 12 was the only destination.
+    {:open_undrawn_list_detail_fa, "یک فهرست", Kati.Screens.ListDetailFa},
+    {:open_undrawn_add_to_list_fa, "انتخابگر فهرست", Kati.Screens.AddToListFa},
+    # Board 328's screen, and 328 is a state catalogue too — the summary row in
+    # both locales, the screen behind it, and the defect it replaces, in one
+    # frame. It IS reachable, from 140's own summary row; it is here because the
+    # one list that checks every screen has to be able to open it.
+    {:open_undrawn_more_sources, "Four more sources", Kati.Screens.MoreSources},
+    # Board 114. Screen 42's two dashed tiles, board 320's retired Hardcover row
+    # and the three importers `Kati.Sources.refused/0` names have all drawn *tap
+    # to see why* with nothing behind it since they were written; this is the
+    # screen that was missing. Reachable from 80 and 82, and here for the same
+    # reason as its neighbours.
+    {:open_undrawn_retired_reason, "Why not in v1", Kati.Screens.RetiredReason},
+    # Board 301, the Persian country sheet. It is reachable — screen 97's
+    # country row opens it, which is the door that row has never had — and it
+    # is here for its neighbours' reason: the one list that checks every screen
+    # has to be able to open it. 301 is in `test/design/incoming/` rather than
+    # `screens/` because its frame is a sheet drawn beside three notes about
+    # what screens 94 and 97 got wrong, not a numbered artboard of one page.
+    {:open_undrawn_country_picker_fa, "کشور شما", Kati.Screens.CountryPickerFa}
+  ]
+
+  # Numbers whose page has left this list, and the route that took it.
+  #
+  # The owner's rule, in his own words: *"each screen we did and connected in
+  # our pages must be deleted in Every screen in settings — its routing not
+  # there, it must have its own routing from the actual app."* A page that a
+  # user reaches by going where the page lives is finished with this
+  # scaffolding, and leaving it here invites the next person to check it from
+  # the wrong door.
+  #
+  # It leaves the LIST, not the registry. `screens/0` still answers with every
+  # number, because three sweeps read it as the app's number → drawing map —
+  # `Kati.ScreenDesignLiteralTest` pairs each with `test/design/screens/NN.html`,
+  # `Kati.ScreenEmptyDatabaseTest` asks it whether a drawing exists, and
+  # `Kati.AppReachabilityTest` walks it to ask whether a user can get there.
+  # Deleting the tuple would quietly delete all three checks, which is the
+  # opposite of finishing a page.
+  #
+  # A number goes here when both halves of MOVIES-AND-TV.md's rule are true:
+  # a real route in, and every scenario under it passing on the device. The
+  # commit that retires it says which route was walked.
+  @routed [
+    # Series → ⋯ → Show details. 5915c2a.
+    "14",
+    # Series → ⋯ → Show settings, which now carries the show it was opened
+    # over. The walk is a test now rather than a memory of one:
+    # `SeriesSettingsTest` in `android/app/src/androidTest/` drives the ⋯ menu,
+    # taps the Status tiles and all four season-pass switches, and reads each
+    # write back out of `kati.db` — including after a pop and a return, which
+    # is the half a socket assign would otherwise fake.
+    "35",
+    # 92 My services → the country row, and 93 → Pick your country. Verified
+    # when `Kati.Screens.Resume` made the page behind it re-read.
+    "94",
+    # Series → an episode's rating column. e44d44d, which built that column.
+    "144",
+    # Library → ⋯ → Select titles. c946a49.
+    "146",
+    # ── Retired 7 September, at the end of the MOVIES-AND-TV pass. Every one
+    # was walked on the Pixel_9a in the commit that closed its finding, and
+    # the route is named beside it.
+    #
+    # Settings → New releases. #1 — this page had no English door at all
+    # until that row: its only one was Home's hero, which is omitted when
+    # there is nothing out this week, so the page that says so was the page
+    # you could not reach.
+    "05",
+    # Library → Up next. #49 — an empty shelf drew the board's four invented
+    # titles; it draws its own empty card now.
+    "10",
+    # Library → Lists. #106 — the lists are the reader's, `+` makes one that
+    # survives the pop, and a row opens it.
+    "12",
+    # Library → ⋯ → What fits? #88 wired its window; #120 put board 96's band
+    # over the count.
+    "13",
+    # Stats → Activity log. #112 — the `Added` chip finds real rows, and a
+    # chip that matches nothing says which.
+    "15",
+    # Home → the search field. #114, #117, #129, #130, #131 — the fields it
+    # names are searched, and narrowing to an empty scope says where the
+    # answer is.
+    "19",
+    # 92 My services → the Money row. #120 — board 96's empty ledger is what a
+    # device with no service draws.
+    "23",
+    # Settings → Release watcher, and Home → the bell. #67 — the cadence and
+    # *New episodes* are read by something; the rest carry `not yet`.
+    "25",
+    # Series → ⋯ → Episode order. #34's ticks write, the order strip reorders,
+    # and #9's help disc explains the choice.
+    "34",
+    # Settings → Import → a source tile → Check the mapping. #101 built the
+    # importer; #4 made 141 say when a file cannot be read.
+    "37",
+    # Home → My services, and Settings → My services. #118, #119 — the field
+    # filters, every row has a switch, and a price can be corrected.
+    "92",
+    # Settings → Import. #52 sends each tile to the right board; #126 made the
+    # *Four more sources* row open the picker.
+    "140",
+    # 140 → a source tile → pick a file. #4 — the three edge states board 142
+    # draws are what a real file produces now.
+    "141",
+    # Settings → Dropping. #7 — the sheet said it was pushed under Settings
+    # and nothing pushed it.
+    "148",
+    # Series → ⋯ → Drop this show, and Film → ⋯ → Drop this film. #110, #111,
+    # #127 — a film can be dropped, the reason is kept, and the position pill
+    # goes both ways.
+    "149",
+    # Settings → Anime. #8 — the rule it argues for is a Library chip now, and
+    # `Kati.Media.Anime` is its three lines.
+    "152",
+    # Season → the help disc beside the order strip. #9.
+    "153",
+    # Settings → Year cards → When a card cannot be made. #2.
+    "101",
+    # ── The four dock roots, and the hub in one of them. The owner's words:
+    # *"01 - Home exist in the first page of app, no need in all screens, and
+    # Library menu exists in the dock on all pages — no need again inside All
+    # screens."* A page you land on when the app opens cannot be checked from
+    # anywhere else, and listing it here is a door beside a doorway.
+    "01",
+    "02",
+    "03",
+    "07",
+    # Home → Settings. The hub every Settings row below is reached through.
+    "24",
+    # ── The Movies and TV pages, each in its own place in the app.
+    #
+    # Library → a series poster. The page a season strip, an episode list, a
+    # tick and a rating all hang off.
+    "04",
+    # Any dock root → the `+` FAB.
+    "06",
+    # Library → a film poster.
+    "08",
+    # Library → Discover.
+    "11",
+    # Film → Log a watch, and Series → an episode's rating column.
+    "33",
+    # Settings → Auto-detect.
+    "36",
+    # Home → the search field, which opens idle before a query exists.
+    "86",
+    # 86 → the tune disc. #131 made its back pill name the page it returns to.
+    "88",
+    # Stats → the share disc. #3 gave it board 102's two missing card faces.
+    "98",
+    # Settings → Year cards.
+    "100",
+    # Library → the sort disc. #109 settled that as the one door.
+    "145",
+    # Up next → the tune disc. Board 167 is what that disc opens now; it used
+    # to push 145, which sorts by keys this page does not have.
+    "167",
+    # Home → `+` → Can't find it? Add it by hand. #113 made its Kind
+    # correctable and its duplicate guard match on the name.
+    "154",
+    # Home with nothing stored — board 139 is what Home draws on a fresh
+    # install, and a fresh install is how you reach it.
+    "139",
+    # ── Retired in the same pass, once every remaining row had been checked
+    # for a real door. The route beside each is the one a person walks; a
+    # 12-agent survey found them and `Kati.AppReachabilityTest` proves them,
+    # because a number here with no route in makes that test fail.
+    #
+    # What is LEFT in the list after this is what the list is for: reference
+    # sheets in screen 27's manner, dark and 235% colourways of pages that are
+    # themselves reachable, the three home-screen and lock-screen marks, and
+    # the state boards. Not one of them is a page of the app.
+    # ── The calendar pages. Reached from the Schedule tab, its ⋯ and its own rows.
+    # Calendar → a second tap on the already-selected day cell
+    #   (calendar.ex:1351); also the Day segment of the view switcher.
+    "09",
+    # Calendar → the month name at the top of the page (calendar.ex:1262).
+    "16",
+    # Calendar → month name → Month grid → the Week segment of the view
+    #   switcher (view_switcher.ex:137,154).
+    "17",
+    # Calendar → ⋯ → Quick add (calendar.ex:1272); also Film → ⋯ → Schedule
+    #   watch.
+    "18",
+    # Calendar → ⋯ → Agenda (calendar.ex:1270); also the Agenda segment of the
+    #   view switcher.
+    "30",
+    # Calendar → a personal event row in the day timeline
+    #   (calendar.ex:1237,1417); also Home and Day.
+    "31",
+    # Settings → Sources → Calendars (settings.ex:683,846).
+    "32",
+    # ── The Books shelf and what hangs off it. Library → the Books segment.
+    # Library → the Books segment of the shelf switcher (library.ex:1702).
+    "20",
+    # Library → Books → a book cover or the Reading-now hero
+    #   (books.ex:984,1109); also after a by-hand save.
+    "66",
+    # Library → Books → Log progress on the Reading-now hero, or the timer
+    #   disc (books.ex:950,976); also Book detail.
+    "70",
+    # Library → Books → the + FAB, which the Books shelf overrides to the by-
+    #   hand book form (books.ex:105; root.ex:232).
+    "177",
+    # ── The Music shelf and what hangs off it. Library → the Music segment.
+    # Library → the Music segment of the shelf switcher (library.ex:1705);
+    #   also from Books.
+    "21",
+    # Library → Music → an album tile → Log a listen (album_detail.ex:914).
+    "73",
+    # Library → Music → an album tile (music.ex:1051); also Artist detail's
+    #   album rail.
+    "74",
+    # Library → Music → a row in the releases band (music.ex:1071); also Album
+    #   detail's artist row.
+    "77",
+    # Settings → Auto-detect → the Music half of the segmented control, or its
+    #   Music tile (auto_detect.ex:889,987).
+    "150",
+    # Library → Music → + → Can't find it? Add it by hand
+    #   (add_title_music.ex:435,614); also the Album/Artist chip on 177.
+    "178",
+    # Library → Music → the + FAB, which the Music shelf overrides
+    #   (music.ex:1089; root.ex:232).
+    "179",
+    # Library → Music → an album tile → Rate (album_detail.ex:52,945).
+    "180",
+    # ── The meal pages. Home → Meals, and the tiles on the day.
+    # Home → the Meals tile (home.ex:1372); also Health → the Meals card.
+    "43",
+    # Meals today → the Week tile, or the calendar_view_week disc
+    #   (meals_today.ex:1377,1382).
+    "44",
+    # Meals today → any meal card on the day's timeline
+    #   (meals_today.ex:1220,1481).
+    "45",
+    # Meals today → a meal card's Swap button (meals_today.ex:1200,1419); also
+    #   Meal → the swap disc.
+    "46",
+    # Meals today → the Nutrition tile (meals_today.ex:1432).
+    "47",
+    # Meals today → the Shop tile (meals_today.ex:1386).
+    "48",
+    # Meals today → the Plan tile or the plan-name pill
+    #   (meals_today.ex:1438,1441); also Meal plan → the edit disc.
+    "49",
+    # Plans → the ⋯ disc on the active plan card (plans.ex:410).
+    "50",
+    # Meals today → ⋯ → Reminders (meals_today.ex:1454); also Notifications →
+    #   a held meal reminder.
+    "51",
+    # Schedule → ⋯ → Meals on the calendar (calendar.ex:1274); also Meals
+    #   today → See tomorrow.
+    "52",
+    # Meals today → the Library tile (meals_today.ex:1380).
+    "116",
+    # Meal library → the + disc for a new meal, or a meal tile to edit one
+    #   (meal_library.ex:609,627).
+    "118",
+    # Create or edit a meal → Add an ingredient, or an ingredient row
+    #   (meal_edit.ex:798,800,856).
+    "119",
+    # Plans → the Import a plan row (plans.ex:92,407).
+    "120",
+    # Plans → Share a plan → Print the week (plan_share.ex:266,362).
+    "121",
+    # ── Health, habits and weight. Stats → More numbers, and Health's own tiles.
+    # Stats → More numbers → Habits (stats.ex:1407); also Home's Habits
+    #   shortcut and Health's Habits tile.
+    "22",
+    # Stats → More numbers → Nutrition (stats.ex:1408) — the only non-gallery
+    #   door, and it survives a fresh install.
+    "42",
+    # Stats → More numbers → Nutrition → Health → the Weight tile
+    #   (health.ex:937,1102).
+    "109",
+    # Health → Weight → the + disc (weight.ex:475).
+    "111",
+    # Health → the Medication tile (health.ex:1105); also Notifications → a
+    #   health reminder.
+    "112",
+    # Health → the dashed Sleep or Workouts tile (health.ex:1111,1145); also
+    #   Auto-detect → the Browser extension tile.
+    "114",
+    # Health → Medication → the + disc in the header (medication.ex:1330).
+    "188",
+    # Health → Medication → a row in the Schedules band
+    #   (medication.ex:1080-1088,1351).
+    "189",
+    # ── Goals. Stats → More numbers → Goals.
+    # Stats → More numbers → Goals (stats.ex:1409).
+    "104",
+    # Stats → More numbers → Goals → the + disc (goals.ex:269,520).
+    "106",
+    # ── Money. Stats → More numbers → Money.
+    # Stats → More numbers → Money (stats.ex:1410) — the only non-gallery
+    #   door.
+    "122",
+    # Schedule → ⋯ → Quick add → the Expense chip in the file-as row
+    #   (quick_add.ex:301,343).
+    "124",
+    # Settings → Language → the Currency row (language.ex:429,503).
+    "125",
+    # Schedule → ⋯ → Money on the calendar (calendar.ex:1276); also a money
+    #   row in the day timeline.
+    "126",
+    # ── Settings' own rows, each reached from the row that names it.
+    # Settings → Appearance → Widgets (settings.ex:699,846).
+    "39",
+    # Settings → About → This device (settings.ex:700,846).
+    "40",
+    # Settings → Appearance → Text size (settings.ex:702,846).
+    "41",
+    # Settings → the Language row (settings.ex:701,846); also Persian Settings
+    #   → زبان → تغییر.
+    "54",
+    # Settings → Data → Data sources (settings.ex:706).
+    "80",
+    # Settings → About → Where this comes from (settings.ex:707).
+    "83",
+    # ── The first-run chain. Reached by being a fresh install.
+    # First run: 53 → Welcome → Get started (onboarding_welcome.ex:185); also
+    #   Home-with-nothing → Choose sections.
+    "26",
+    # First run: 26 Pick sections → import a backup → 135 Restore → Back to
+    #   welcome (restore_first_run.ex:178).
+    "38",
+    # The screen a fresh install opens on — Kati.Onboarding.first_screen/0 via
+    #   root.ex:176.
+    "53",
+    # First run: 162 Loudness → Notify me / Weekly digest → Continue
+    #   (onboarding_loudness.ex:217,234).
+    "136",
+    # First run, step 2: 53 Language → Continue (language_pick.ex:541;
+    #   onboarding.ex:186).
+    "161",
+    # First run, step 4: 26 Pick sections → Continue
+    #   (pick_sections.ex:180,221).
+    "162",
+    # First run, step 5: 162 Loudness → Continue, direct or via 136
+    #   (onboarding_loudness.ex:233; loudness_prompt.ex:412).
+    "163",
+    # ── Backup and restore. Settings → the Data group.
+    # Settings → Data → Back up everything, or Export everything
+    #   (settings.ex:690,696); also Persian Settings.
+    "128",
+    # Settings → Data → Restore a Kati backup (settings.ex:697); also Home-
+    #   with-nothing, Library's empty card and first-run Welcome.
+    "129",
+    # First run: 26 Pick sections → Restore from a backup instead
+    #   (pick_sections.ex:157).
+    "135",
+    # ── The Persian app. Settings → Language → فارسی, then its own dock — en and fa are one app, and its pages are reached the same way.
+    # Settings → Language → فارسی (language.ex:533,542); the Persian dock's
+    #   Home tab and the Persian shell root.
+    "55",
+    # Persian dock → the calendar tab, or Persian Home's calendar disc
+    #   (fa.ex:127,458; home_fa.ex:1057).
+    "56",
+    # Persian dock → the grid tab (fa.ex:128,458).
+    "57",
+    # Persian Library → a poster tile (library_fa.ex:964); also Persian Search
+    #   → a result.
+    "58",
+    # Persian Home → the وعده‌ها tile (home_fa.ex:1060).
+    "59",
+    # Persian Home → وعده‌ها → امروز → the week disc (today_fa.ex:711).
+    "60",
+    # Persian dock → the آمار tab (fa.ex:129,458).
+    "61",
+    # Persian Home → the تنظیمات tile (home_fa.ex:1063); also the Persian
+    #   empty Home's tune disc.
+    "62",
+    # Persian Library → کتاب‌ها → Persian Books shelf → a book cover
+    #   (books_fa.ex:940,1018).
+    "69",
+    # Persian Books shelf → ثبت پیشرفت, or the timer disc
+    #   (books_fa.ex:914,929).
+    "72",
+    # Persian Books shelf → the موسیقی segment (books_fa.ex:968).
+    "76",
+    # Persian album page → the artist row (album_detail_fa.ex:1001).
+    "79",
+    # Persian Settings → منابع داده under داده‌ها (settings_fa.ex:523,941).
+    "82",
+    # Persian Settings → منابع (پروانه‌ها و اعتبارها)
+    #   (settings_fa.ex:524,941).
+    "85",
+    # Persian Home → the search field (home_fa.ex:1054); also the Persian
+    #   empty Home.
+    "90",
+    # Persian Settings → سرویس‌های من (settings_fa.ex:522,941); also Persian
+    #   Money → a subscription row.
+    "97",
+    # Persian Stats → the share disc (stats_fa.ex:590).
+    "103",
+    # Persian Stats → the اهداف card (stats_fa.ex:593).
+    "108",
+    # Persian Stats → the سلامت card (stats_fa.ex:599).
+    "115",
+    # Persian Stats → the پول card (stats_fa.ex:596).
+    "127",
+    # Persian first run → the بازگردانی link on 164/137, or the Persian empty
+    #   Home's restore invitation (home_fa_empty.ex:309).
+    "132",
+    # Persian first run: 164 Persian welcome → بعدی
+    #   (onboarding_welcome_fa.ex:168).
+    "137",
+    # The same door in Persian — AddByHand.for_locale/0 answers this module
+    #   while the locale is :fa (add_by_hand.ex:139).
+    "156",
+    # Persian first run: 53 → فارسی → Continue (language_pick.ex:541;
+    #   onboarding.ex:185).
+    "164",
+    # Persian first run: 137 Persian sections → ادامه (onboarding_fa.ex:140).
+    "165",
+    # Persian first run: 165 Persian loudness → its continue pill
+    #   (onboarding_loudness_fa.ex:247).
+    "166",
+    # Persian Library → the کتاب‌ها segment (library_fa.ex:931).
+    "176"
   ]
 
   @doc false
   def screens, do: @screens
+
+  @doc """
+  The screens this page still lists — every drawing that has not been retired.
+
+  See `@routed` for what retires one and why the registry keeps it.
+  """
+  @spec listed() :: [{String.t(), String.t(), module(), :root | :push}]
+  def listed, do: Enum.reject(@screens, fn {number, _, _, _} -> number in @routed end)
+
+  @doc false
+  def routed, do: @routed
 
   @doc false
   def undrawn, do: @undrawn
@@ -262,7 +771,7 @@ defmodule Kati.Screens.Gallery do
   def content(_assigns) do
     # Bound to a local: inside ~MOB an `@name` means an ASSIGN, so `@screens`
     # would be read as `assigns.screens` and fail.
-    count = length(@screens) + length(@undrawn)
+    count = length(Kati.Screens.Gallery.listed()) + length(@undrawn)
 
     ~MOB"""
     <LazyList>
@@ -345,7 +854,7 @@ defmodule Kati.Screens.Gallery do
   # One lazy item per row, not one item holding every row — see `cap/0`.
   @doc false
   def rows do
-    screens = @screens
+    screens = Kati.Screens.Gallery.listed()
     last = length(screens) - 1
 
     caps =
@@ -415,6 +924,23 @@ defmodule Kati.Screens.Gallery do
   def undrawn_row({tag, name, module}, rule?),
     do: Kati.Screens.Gallery.row({"--", name, module, :push}, rule?, tag)
 
+  @doc """
+  The face a registry label is set in: Vazirmatn once it carries any Persian.
+
+  Twenty-two of these rows are named in Persian, and three name a Persian
+  screen in both scripts at once. Left unmarked they came out in Android's
+  own fallback Arabic face — legible, and not the one the rest of the app is
+  set in, which is the failure `Kati.PersianFontTest` exists to make loud.
+
+  Vazirmatn covers Latin and the em dash as well, so the mixed rows take it
+  whole rather than being split into two `Text`s to keep three English words
+  in Plus Jakarta Sans.
+  """
+  @spec face(String.t()) :: String.t()
+  def face(label) do
+    if String.match?(label, ~r/[\x{0600}-\x{06FF}]/u), do: "fa", else: "sans"
+  end
+
   @doc false
   def row(entry, rule?), do: Kati.Screens.Gallery.row(entry, rule?, nil)
 
@@ -437,6 +963,7 @@ defmodule Kati.Screens.Gallery do
         <Column weight={1.0}>
           <Text
             text={name}
+            font_family={Kati.Screens.Gallery.face(name)}
             text_size={14}
             font_weight="semibold"
             text_color={:on_surface}
@@ -477,7 +1004,7 @@ defmodule Kati.Screens.Gallery do
   def open_numbered(tag, socket) do
     number = tag |> Atom.to_string() |> String.replace_prefix("open_", "")
 
-    case Enum.find(@screens, fn {n, _, _, _} -> n == number end) do
+    case Enum.find(Kati.Screens.Gallery.listed(), fn {n, _, _, _} -> n == number end) do
       # A root is swapped rather than pushed: pushing Home over the gallery
       # would leave the dock showing Home while the back stack says otherwise.
       {_, _, module, :root} -> {:noreply, Mob.Socket.reset_to(socket, module)}

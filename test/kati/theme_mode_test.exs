@@ -478,11 +478,12 @@ defmodule Kati.ThemeModeTest do
         end)
 
       assert Enum.sort(pinning) == [
+               Kati.Screens.AddByHandDark,
                Kati.Screens.BackupDark,
                Kati.Screens.BookDetailDark,
                Kati.Screens.HomeDark,
-               Kati.Screens.Lock,
-               Kati.Screens.YearShareDark
+               Kati.Screens.HomeFaEmptyDark,
+               Kati.Screens.Lock
              ]
     end
   end

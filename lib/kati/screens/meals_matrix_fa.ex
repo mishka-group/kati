@@ -67,6 +67,7 @@ defmodule Kati.Screens.MealsMatrixFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, plan: SampleWeek.plan(), view: 0)}
   end
 
@@ -75,7 +76,14 @@ defmodule Kati.Screens.MealsMatrixFa do
     view = assigns.view
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction="rtl"
+      font_family="fa"
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
       <Scroll>
         <Column
           fill_width={true}
@@ -353,7 +361,7 @@ defmodule Kati.Screens.MealsMatrixFa do
           <Spacer size={2} />
           <Text
             text={row.time}
-            font_family="mono"
+            font_family="fa"
             text_size={9.5}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -605,7 +613,7 @@ defmodule Kati.Screens.MealsMatrixFa do
         <Spacer size={13} />
         <Text
           text={meal.calories}
-          font_family="mono"
+          font_family="fa"
           text_size={11}
           text_color={Palette.muted()}
           max_lines={1}
@@ -671,7 +679,7 @@ defmodule Kati.Screens.MealsMatrixFa do
     MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do

@@ -131,8 +131,15 @@ defmodule Kati.UI.SettingsList do
   `Row` is layout-neutral and the disc would still render identically; the theme
   icon simply produces the same tree with one node fewer, and keeps this
   file's two containers on one component.
+
+  ## The tap is optional, and `nil` is a real answer
+
+  Ten screens draw this disc and most of them open nothing — see
+  `Kati.Screens.ShowPages`, which is where two of them stopped. A disc with
+  something to open passes its tag; one without passes nothing and gets the
+  same pixels, so a screen cannot half-wire it.
   """
-  def disc(icon) do
+  def disc(icon, on_tap \\ nil) do
     Kati.Components.MishkaThemeIcon.theme_icon(
       %{
         variant: :filled,
@@ -142,7 +149,8 @@ defmodule Kati.UI.SettingsList do
         color: Kati.Theme.card(Palette.mode()),
         size: 44,
         radius: 22,
-        shadow: Kati.Theme.shadow_button()
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: on_tap
       },
       [Kati.UI.symbol(icon, size: 21)]
     )
@@ -225,6 +233,13 @@ defmodule Kati.UI.SettingsList do
   one of them wrong.
   """
   @spec subtitle(String.t(), :meta | :meta_tight | :name) :: map()
+  # A page with nothing to say under its title says nothing. `text={nil}` is
+  # not an empty line: the prop reaches the bridge as the atom and Compose
+  # draws the word **nil** under the heading, which is what screen 66 printed
+  # under the first book anybody added without an author. Found on a device;
+  # `Kati.ScreenNilTextTest` is the sweep that keeps it found.
+  def subtitle(nil, _style), do: ~MOB"<Spacer size={0} />"
+
   def subtitle(sub, :name) do
     ~MOB"""
     <Column fill_width={true}>
@@ -313,9 +328,13 @@ defmodule Kati.UI.SettingsList do
     # A row that names a screen should open it. Without a tap the whole
     # settings tree is a picture of a settings tree.
     tap = Keyword.get(opts, :on_tap)
+    # Board 330 puts `Remove` behind a long press on a list row — the gesture
+    # 146 already owns for a shelf tile. `nil` registers nothing, which is what
+    # every other caller passes.
+    hold = Keyword.get(opts, :on_long_press)
 
     ~MOB"""
-    <Column fill_width={true} on_tap={tap}>
+    <Column fill_width={true} on_tap={tap} on_long_press={hold}>
       <Row fill_width={true} align="center" padding_top={pad} padding_bottom={pad}>
         {leading}
         <Spacer size={13} />
@@ -416,15 +435,15 @@ defmodule Kati.UI.SettingsList do
     # lines this particular sentence needs and every other row keeps its one.
     lines = Keyword.get(opts, :lines, 1)
 
+    # `fallback: true` is board 331's rule for a title the store could not
+    # answer: *"Untitled sits in secondary ink so it reads as a fallback rather
+    # than a name."* The weight does not change with it — a lighter weight would
+    # read as a disabled row rather than as a missing fact.
+    ink = if Keyword.get(opts, :fallback, false), do: Palette.sub(), else: :on_surface
+
     ~MOB"""
     <Column fill_width={true}>
-      <Text
-        text={title}
-        text_size={13.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Text text={title} text_size={13.5} font_weight="semibold" text_color={ink} max_lines={1} />
       <Spacer size={3} />
       <Text
         text={sub}
@@ -692,9 +711,13 @@ defmodule Kati.UI.SettingsList do
   `Text` squeezed narrower than its content wraps character by character, and a
   pill that does not quite fit its row would render as a stack of letters.
   """
-  def action_pill(label) do
+  def action_pill(label, on_tap \\ nil) do
     Kati.Components.MishkaPill.pill(
       label: label,
+      # `nil` is the ordinary answer: most of the eight screens that draw this
+      # pill have nothing behind it yet, and `nil` reaches the node as no
+      # `on_tap` — not tappable rather than broken.
+      on_tap: on_tap,
       background: Kati.Theme.paper(Palette.mode()),
       color: :on_surface,
       corner_radius: 15,

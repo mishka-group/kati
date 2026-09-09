@@ -85,6 +85,74 @@ defmodule Kati.ScreenUpNextTest do
     end
   end
 
+  describe "a shelf with nothing on the go" do
+    # MOVIES-AND-TV.md #49's remaining half. `queue/0` fell back to the drawing
+    # whenever there was no `:watching` row AND nothing cold — so a reader who
+    # had finished everything they own was shown four invented titles, `12
+    # ready` over four rows and `Gone cold · 3` over one.
+    #
+    # An empty DATABASE still draws the board, and that is the distinction the
+    # branch turns on: a store that cannot be read at all is not a shelf with
+    # nothing on the go.
+
+    test "says its queue is empty rather than showing somebody else's" do
+      track!(%{status: :finished, title: "Ashfall"})
+
+      queue = UpNext.queue()
+
+      assert queue.empty?
+      assert queue.subtitle == "Nothing queued"
+      assert queue.ready == []
+      assert queue.cold == []
+
+      refute queue == Sample.queue()
+
+      words = text(tree(mount_screen(UpNext)))
+      assert words =~ "Nothing queued"
+      assert words =~ "Start something on your shelf"
+
+      for row <- Sample.queue().ready do
+        refute words =~ row.title, "#{row.title} is the drawing's own title"
+      end
+    end
+
+    test "and no heading stands over an empty card" do
+      track!(%{status: :finished, title: "Ashfall"})
+
+      queue = UpNext.queue()
+
+      assert queue.ready_label == nil
+      assert queue.cold_label == nil
+    end
+
+    test "and the card opens the shelf, which is where starting one happens" do
+      track!(%{status: :finished, title: "Ashfall"})
+
+      {:noreply, opened} =
+        UpNext.handle_tap(
+          :open_library,
+          Mob.Socket.assign(Mob.Socket.new(UpNext), :queue, UpNext.empty())
+        )
+
+      assert {:push, Kati.Screens.Library, _params} = Map.get(opened.__mob__, :nav_action)
+    end
+
+    test "but an empty DATABASE still draws the board" do
+      # `shelf?/0` is the seam. A page that dies is worse than one showing the
+      # values it was drawn from, which is `Kati.Screens.Library.shelf/0`'s own
+      # degradation.
+      refute UpNext.shelf?()
+      assert UpNext.queue() == Sample.queue()
+    end
+
+    test "and a dropped title is a shelf, so its owner is told" do
+      track!(%{status: :dropped, title: "Ashfall"})
+
+      assert UpNext.shelf?()
+      assert UpNext.queue().empty?
+    end
+  end
+
   describe "a library with titles in it" do
     setup :seed_library
 
@@ -333,5 +401,66 @@ defmodule Kati.ScreenUpNextTest do
       fetched_at: DateTime.utc_now()
     })
     |> Ash.create!()
+  end
+
+  describe "a library whose shows are all paused" do
+    # `queue/0` used to branch on `tracked(:watching) == []` alone, so a reader
+    # who had paused everything got four invented titles and none of their own
+    # — and `tracked(:paused)`, the read that would have found theirs, was only
+    # reached on the branch that was not taken. The board is for a library with
+    # nothing in it, not for one with nothing ready.
+    setup do
+      on_exit(fn ->
+        Kati.Repo.query!("DELETE FROM tracked_titles WHERE source_id LIKE ?1", ["paused-only-%"])
+        Kati.Repo.query!("DELETE FROM cached_titles WHERE source_id LIKE ?1", ["paused-only-%"])
+      end)
+
+      Ash.create!(Kati.Media.CachedTitle, %{
+        source: :tmdb,
+        source_id: "paused-only-one",
+        kind: :tv,
+        title: "Salt & Iron",
+        fetched_at: Kati.Time.now()
+      })
+
+      Ash.create!(Kati.Media.TrackedTitle, %{
+        source: :tmdb,
+        source_id: "paused-only-one",
+        kind: :tv,
+        status: :paused
+      })
+
+      :ok
+    end
+
+    test "draws the reader's own paused titles, not the drawing's" do
+      q = UpNext.queue()
+
+      assert Enum.map(q.cold, & &1.title) == ["Salt & Iron"]
+      refute Enum.any?(q.cold, &(&1.title == "The Quiet Ones"))
+    end
+
+    test "has no hero, because there is nothing to watch next" do
+      q = UpNext.queue()
+
+      assert q.hero == nil
+      assert q.ready == []
+      assert q.ready_label == nil
+      assert q.subtitle == "Nothing ready · 1 gone cold"
+    end
+
+    test "says so where the hero would be, and draws no empty section" do
+      words = text(tree(mount_screen(UpNext)))
+
+      assert words =~ "Nothing ready to watch"
+      assert words =~ "Salt & Iron"
+      refute words =~ "READY TO WATCH"
+
+      # The four titles board 10 draws. A screen that still fell back would
+      # show every one of them over a shelf that holds one paused show.
+      for drawn <- ["Ashfall", "The Cartographer", "Marram", "The Long Hollow"] do
+        refute words =~ drawn, "screen 10 fell back to the drawing over a real paused shelf"
+      end
+    end
   end
 end

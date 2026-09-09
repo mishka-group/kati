@@ -25,6 +25,45 @@ defmodule Kati.Screens.Goals do
   lives on `Kati.Goals.Goal.counts/1` beside the kind, not in this screen, so a
   goal type cannot arrive without one.
 
+  ## Repeat belongs to a goal, not to the page
+
+  This page used to carry ONE repeat switch, and its own doc argued for it: the
+  drawing has one row, and a page where half the goals repeated and half did
+  not would have to say which, on every card, forever.
+
+  Both halves of that were wrong. The drawing is a picture of three goals that
+  happen to agree — it is not a claim that they must — and the switch answered
+  the question by writing `repeat` to **every** live goal at once. Toggling it
+  on a page of four goals rewrote four rows to answer something asked about
+  one, and there was no way to tell from the screen which goal you had changed,
+  because the row never named one.
+
+  So the Repeat group draws a row per goal, each **titled by the goal it
+  changes** and tagged `goal_repeat_<id>`. The tag is an atom carrying the id
+  for the reason `Kati.Screens.ImportSources.tag/1` sets out at length: only an
+  atom tag reaches Compose as a `testTag` and emits an `accessibility_id`, so a
+  tuple would render a switch that no device test and no screen reader could
+  address. The write reads that one row back by its id and updates it; nothing
+  else on the page moves.
+
+  Then the page re-reads. A switch that moved because a tap was *sent* is the
+  shape of defect `Kati.Write` exists for — on a page there is no sheet to hold
+  open, so the version of that promise is that the switch shows what the store
+  says and snaps back when a write did not land. It is also what happens to a
+  row that was deleted under a screen still holding it: the re-read drops it,
+  rather than leaving a switch for a goal nobody has.
+
+  The drawn sentence stays on every row — *Repeat each period — a yearly goal
+  restarts on 1 January, indefinitely* — because it states the RULE rather than
+  a fact about the goal above it, and the rule is the same on all of them.
+
+  ## What a drawn row's switch does
+
+  With nothing stored the page is `Kati.Goals.Sample`'s three, which have no
+  ids. Their switches still move, because a control that cannot be pressed is a
+  picture of a control and a fresh install is where most people meet this page.
+  Nothing is written, because there is no row to write to.
+
   ## A goal is not a habit
 
   The last row on the page draws the line and then offers the other thing:
@@ -39,40 +78,61 @@ defmodule Kati.Screens.Goals do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  def load(socket) do
-    socket
-    |> Mob.Socket.assign(:goals, goals())
-    |> Mob.Socket.assign(:repeat, repeat?())
-  end
+  # The drawn sub-line, kept verbatim so the frame comparison keeps working, and
+  # said on every row because it is the rule rather than a fact about one goal.
+  @repeat_line "Repeat each period — a yearly goal restarts on 1 January, indefinitely"
 
-  @doc """
-  Whether the goals on this page come back when their period closes.
-
-  One switch for the page rather than one per card, because that is what the
-  drawing gives it — and because a goals page where half the goals repeated and
-  half did not would need to say which, on every card, forever. With nothing
-  stored it answers the drawing's `true`.
-  """
-  @spec repeat?() :: boolean()
-  def repeat? do
-    case stored() do
-      [] -> true
-      goals -> Enum.all?(goals, & &1.repeat)
-    end
-  end
+  def load(socket), do: Mob.Socket.assign(socket, :goals, goals())
 
   @doc "The live goals: what is stored, or the drawing's three."
   @spec goals() :: [map()]
   def goals do
     case stored() do
-      [] -> Sample.goals()
+      [] -> drawn_goals()
       goals -> Enum.map(goals, &shaped(&1, Kati.Time.today()))
     end
   end
 
-  @doc "The drawing's three, unconditionally."
+  @doc """
+  The drawing's three, unconditionally.
+
+  Stamped with the same `:id`, `:repeat` and `:repeat_tag` a stored goal
+  carries, so one row builder draws both and the empty-database gate still
+  compares this to `goals/0` term for term. `id: nil` is the whole of what
+  separates them, and it is what `handle_tap/2` reads to decide there is
+  nothing to write.
+  """
   @spec drawn_goals() :: [map()]
-  def drawn_goals, do: Sample.goals()
+  def drawn_goals do
+    Sample.goals()
+    |> Enum.with_index(1)
+    |> Enum.map(fn {goal, position} ->
+      Map.merge(goal, %{id: nil, repeat: true, repeat_tag: drawn_tag(position)})
+    end)
+  end
+
+  @doc """
+  A goal's repeat switch, as an atom naming the goal it belongs to.
+
+  An atom rather than `{:goal, id}` for the reason
+  `Kati.Screens.ImportSources.tag/1` gives: `Mob.Renderer` emits
+  `accessibility_id` only for the `is_atom(tag)` clause, so a tuple-tagged
+  switch fires on device and is invisible to every sweep and unnamed to a
+  screen reader.
+
+  The id rather than the row's position, because position is what the sort
+  happens to give today — `:live` orders by `ends_on`, so a goal's row moves
+  the day another one is added — and a tag that moves is a tag that names a
+  different goal tomorrow.
+  """
+  @spec repeat_tag(String.t()) :: atom()
+  def repeat_tag(id) when is_binary(id), do: String.to_atom("goal_repeat_" <> id)
+
+  # The drawing's rows have no id and cannot borrow one, so they are tagged by
+  # the position the drawing draws them in — which for a fixture is identity.
+  # Held apart from a stored goal's tag by the `drawn_` prefix, so the two
+  # namespaces cannot collide and a device test can tell which page it is on.
+  defp drawn_tag(position), do: String.to_atom("goal_repeat_drawn_#{position}")
 
   defp stored do
     Goal
@@ -96,6 +156,15 @@ defmodule Kati.Screens.Goals do
     projected = Goal.project(goal, today)
 
     %{
+      # The id is what makes the repeat row a row about THIS goal rather than
+      # about goals in general — see the moduledoc's second section.
+      id: goal.id,
+      # `== true` rather than the value: the column is `allow_nil?: false`, so
+      # this is an identity on anything Ash read back, and it keeps
+      # `Kati.UI.SettingsList.switch/1`'s boolean guard true for a `%Goal{}`
+      # built in memory, which is how the projection is tested without a store.
+      repeat: goal.repeat == true,
+      repeat_tag: goal.id && repeat_tag(goal.id),
       pace: pace,
       pace_label: pace_label(pace),
       title: Goal.title(goal),
@@ -170,7 +239,7 @@ defmodule Kati.Screens.Goals do
         {SettingsList.title("Goals", Kati.Screens.Goals.subtitle())}
         {Kati.Screens.Goals.cards(assigns.goals)}
         {UI.eyebrow("Repeat")}
-        {Kati.Screens.Goals.repeat_group(assigns.repeat)}
+        {Kati.Screens.Goals.repeat_group(assigns.goals)}
       </Column>
     </Scroll>
     """
@@ -385,50 +454,111 @@ defmodule Kati.Screens.Goals do
   defp maybe(runs, _value, extra), do: runs ++ extra
 
   @doc """
-  Repeat, and the row that says what a goal is not.
+  One repeat row per goal, then the row that says what a goal is not.
 
   Both are on the page rather than in a menu, because both answer a question
   somebody asks on their first visit: *does this come back*, and *why is this
   not the streak page*.
+
+  The goal's own title is the row's first line — that is the whole of the fix:
+  a switch that does not name what it changes is a switch you cannot use
+  correctly, whatever it writes.
   """
-  @spec repeat_group(boolean()) :: map()
-  def repeat_group(repeat?) do
+  @spec repeat_group([map()]) :: map()
+  def repeat_group(goals) do
+    rows = Enum.map(goals, &Kati.Screens.Goals.repeat_row/1) ++ [habits_row()]
+
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.card([
-        Kati.UI.SettingsList.row(
-          Kati.UI.SettingsList.icon_tile("repeat"),
-          Kati.UI.SettingsList.body("Repeat each period", "A yearly goal restarts on 1 January, indefinitely", lines: 2),
-          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.switch(repeat?)),
-          on_tap: {self(), :toggle_repeat}
-        ),
-        Kati.UI.SettingsList.row(
-          Kati.UI.SettingsList.icon_tile("bolt"),
-          Kati.UI.SettingsList.body("Habits", "“Read every day” is a habit. “Read 52 books” is a goal.", lines: 2),
-          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
-          on_tap: {self(), :open_habits}
-        )
-      ])}
+      {Kati.UI.SettingsList.card(rows)}
     </Column>
     """
   end
 
-  @doc false
-  # Writes through to every live goal, then re-reads. One switch, one meaning:
-  # see `repeat?/0` for why the page has one rather than one per card.
-  def handle_tap(:toggle_repeat, socket) do
-    now = not socket.assigns.repeat
-    Enum.each(stored(), fn goal -> Ash.update(goal, %{repeat: now}) end)
-    {:noreply, Mob.Socket.assign(socket, :repeat, now)}
-  rescue
-    _error -> {:noreply, Mob.Socket.assign(socket, :repeat, not socket.assigns.repeat)}
+  @doc "One goal's repeat switch, tapped by the tag that names that goal."
+  @spec repeat_row(map()) :: map()
+  def repeat_row(goal) do
+    SettingsList.row(
+      SettingsList.icon_tile("repeat"),
+      SettingsList.body(goal.title, @repeat_line, lines: 2),
+      SettingsList.trailing(SettingsList.switch(goal.repeat)),
+      on_tap: {self(), goal.repeat_tag}
+    )
   end
 
-  def handle_tap(:open_habits, socket),
+  defp habits_row do
+    SettingsList.row(
+      SettingsList.icon_tile("bolt"),
+      SettingsList.body("Habits", "“Read every day” is a habit. “Read 52 books” is a goal.",
+        lines: 2
+      ),
+      SettingsList.trailing(SettingsList.chevron()),
+      on_tap: {self(), :open_habits}
+    )
+  end
+
+  @doc false
+  # Every tag on this page is an atom, and the repeat tags are the ones that
+  # carry an id — so the page's own goals are what a tag is resolved against,
+  # rather than the tag being parsed back into an id. Nothing else can then
+  # spoof a row that is not on the screen.
+  #
+  # `Map.get/3` rather than `socket.assigns.goals`: screen 105 forwards its
+  # `:add` here (`Kati.Screens.GoalsEmpty.handle_tap/2`) with its own socket,
+  # which has no goals on it at all.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case Enum.find(Map.get(socket.assigns, :goals, []), &(&1[:repeat_tag] == tag)) do
+      nil -> other_tap(tag, socket)
+      goal -> {:noreply, toggle_repeat(socket, goal)}
+    end
+  end
+
+  defp other_tap(:open_habits, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}
 
-  def handle_tap(:add, socket),
+  defp other_tap(:add, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.NewGoal)}
 
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  defp other_tap(_tag, socket), do: {:noreply, socket}
+
+  # A drawn row has nothing to write to, so its switch is moved in place. The
+  # alternative is a control that visibly does nothing on the screen most
+  # people meet first.
+  defp toggle_repeat(socket, %{id: nil} = goal) do
+    Mob.Socket.assign(socket, :goals, flip(socket.assigns.goals, goal, not goal.repeat))
+  end
+
+  # A stored row is written and then the page is READ BACK, rather than the
+  # switch being moved on the strength of having asked.
+  #
+  # That is `Kati.Write`'s contract as a page rather than as a sheet: a sheet
+  # that stays open is how a failed save stays visible, and a page's version is
+  # a switch that snaps back to whatever the store actually says. It also
+  # answers the case the sweep found — the row deleted underneath a screen that
+  # is still holding it — because the re-read drops it from the page instead of
+  # leaving a switch that toggles a goal nobody has.
+  defp toggle_repeat(socket, goal) do
+    write_repeat(goal.id, not goal.repeat)
+
+    Mob.Socket.assign(socket, :goals, goals())
+  end
+
+  defp flip(goals, %{repeat_tag: tag}, repeat?) do
+    Enum.map(goals, fn goal ->
+      if goal.repeat_tag == tag, do: %{goal | repeat: repeat?}, else: goal
+    end)
+  end
+
+  # Reads the one row back by id and updates that row. The old switch wrote to
+  # `stored()` — every live goal — which is the defect this screen was opened
+  # for.
+  defp write_repeat(id, repeat?) do
+    with {:ok, goal} <- Ash.get(Goal, id) do
+      Ash.update(goal, %{repeat: repeat?})
+    end
+    |> Kati.Write.note("goal repeat")
+  rescue
+    # No store at all — the same state `stored/0` rescues, one write later.
+    error -> Kati.Write.note({:error, error}, "goal repeat")
+  end
 end

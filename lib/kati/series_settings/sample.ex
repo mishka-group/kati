@@ -35,9 +35,9 @@ defmodule Kati.SeriesSettings.Sample do
   @spec statuses() :: [map()]
   def statuses do
     [
-      %{icon: "play_circle", label: "Watching", on: true},
-      %{icon: "pause_circle", label: "Paused", on: false},
-      %{icon: "do_not_disturb_on", label: "Dropped", on: false}
+      %{icon: "play_circle", label: "Watching", status: :watching, on: true},
+      %{icon: "pause_circle", label: "Paused", status: :paused, on: false},
+      %{icon: "do_not_disturb_on", label: "Dropped", status: :dropped, on: false}
     ]
   end
 

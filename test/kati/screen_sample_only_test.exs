@@ -3,19 +3,30 @@ Code.require_file("../support/design_literals.exs", __DIR__)
 
 defmodule Kati.ScreenSampleOnlyTest do
   @moduledoc """
-  The four screens that could **not** move onto the domains still draw their
+  The screens that could **not** move onto the domains still draw their
   drawings when nothing is stored.
 
-  ## Why these four are here rather than in `Kati.ScreenEmptyDatabaseTest`
+  ## Why these are here rather than in `Kati.ScreenEmptyDatabaseTest`
 
   That file covers the screens the migration *moved*, and its question is
   whether a migrated screen kept the Sample fallback that makes a fresh install
-  render. These four never moved. Each one names, in its own moduledoc, exactly
+  render. These never moved. Each one names, in its own moduledoc, exactly
   which resource or column it is waiting on:
 
-    * **06 Add a title** — no provider search client, and no first-release
-      year or availability on `Kati.Media.CachedTitle`.
-    * **11 Discover** — no recommender, no person, no service availability.
+  **06 Add a title and 11 Discover left this list on 6 September.** 06 no
+  longer draws its Sample at rest: board 06 is a drawing of a search somebody
+  has run, and opening the sheet on its four results meant a reader who had
+  typed nothing was shown four invented films. It draws a card now, and
+  `Kati.ScreenDesignLiteralTest` renders it in the state the board WAS captured
+  in.
+
+  **11 Discover left on the same day.** Its first band — the picks
+  under *Because you watched* — is now `Kati.Media.Recommendations`, keyed on
+  the newest title the reader touched and answered by TMDB. The other two
+  bands still cannot move, and no longer pretend to: on a real device they are
+  empty and their headings and chips are dropped. It is gated in
+  `Kati.ScreenEmptyDatabaseTest` now, at `Kati.Screens.Discover.feed/0`.
+
     * **18 Quick add** — no natural-language parser anywhere in `lib/`.
     * **19 Search** — no index. Nothing anywhere matches a title, an episode,
       an event or a review by substring.
@@ -70,24 +81,31 @@ defmodule Kati.ScreenSampleOnlyTest do
   #     occurrence can be called off and cannot be ticked. Every number the
   #     screen draws — the streak, the seven squares, the 13-week field, the
   #     header's best — is a count over that missing history.
-  #   * **23 Subscriptions** — no table in the app holds a **price**. The
-  #     nearest thing is a `kind: :money` event with an amount in its free-text
-  #     `description`, which is two of the four services and not a source.
+  #
+  # **23 Subscriptions left this list on 6 September.** Its reason was that no
+  # table held a price — `Kati.Services.Service.monthly_pence` does, and has
+  # since screen 92 could write one. What it was still missing was the HOURS,
+  # and `Kati.Media.CachedTitle.providers` supplies those without asking
+  # anybody to log where they watched something: a title is on the services
+  # JustWatch says it is on, and a watch of it is an hour spent on one of them.
+  # `Kati.Subscriptions` carries the argument, MOVIES-AND-TV.md #66 the
+  # defect.
+  #
+  # **18 Quick add left this list on 6 September.** Its reason was that it had
+  # no field, no parser and no writer. `Kati.QuickAdd.Parse` is the parser,
+  # `Kati.Calendars.Today.timed/1` is where the clash comes from, and
+  # `Kati.Screens.QuickAdd.commit/1` writes a `Kati.Calendars.Event`.
+  # MOVIES-AND-TV.md #31.
   @on_sample [
-    {"06", Kati.Screens.AddTitle},
-    {"11", Kati.Screens.Discover},
-    {"18", Kati.Screens.QuickAdd},
-    {"19", Kati.Screens.Search},
-    {"22", Kati.Screens.Habits},
-    {"23", Kati.Screens.Subscriptions}
+    {"22", Kati.Screens.Habits}
   ]
 
   # Ecto's own ledger and the DETS-replacing store Mob keeps screen state in.
   # Everything else in the schema is an Ash resource's table and gets emptied.
   @not_resources ~w(schema_migrations mob_screen_states)
 
-  # What these four screens would read from once they move — the two domains
-  # their moduledocs name. Asked through Ash rather than through Ecto, because
+  # What these screens would read from once they move — the two domains their
+  # moduledocs name. Asked through Ash rather than through Ecto, because
   # `count(*)` returning zero and `Ash.read!` returning `[]` are different
   # claims and it is the second one a screen depends on.
   @resources [
@@ -105,8 +123,8 @@ defmodule Kati.ScreenSampleOnlyTest do
 
       # A derived list cannot go stale, but it can come back empty — a changed
       # pragma, a renamed system table — and emptying nothing would make every
-      # assertion below vacuous. So the tables the four screens' own domains sit
-      # on are named here, and only here, as proof the read worked.
+      # assertion below vacuous. So the tables these screens' own domains sit on
+      # are named here, and only here, as proof the read worked.
       for table <-
             ~w(cached_titles media_content_warnings tracked_titles media_watches events calendars) do
         assert table in tables,

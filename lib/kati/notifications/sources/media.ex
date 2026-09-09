@@ -81,10 +81,19 @@ defmodule Kati.Notifications.Sources.Media do
   """
   @spec followed() :: [pair()]
   def followed do
-    TrackedTitle
-    |> Ash.Query.for_read(:followed)
-    |> Ash.read!()
-    |> Enum.map(fn tracked -> {tracked, Release.cached_for(tracked)} end)
+    # MOVIES-AND-TV.md #67, and `design-briefs/D-64`'s own table: the global
+    # gate over every title's `notify_new_episodes`, which is one of the two
+    # controls on screen 25 the brief marks **yes** — a consumer exists, and
+    # this is it. Off means Kati does not tell you about an episode however
+    # many shows you have followed, which is what the switch says.
+    if Kati.Settings.Watcher.new_episodes?() do
+      TrackedTitle
+      |> Ash.Query.for_read(:followed)
+      |> Ash.read!()
+      |> Enum.map(fn tracked -> {tracked, Release.cached_for(tracked)} end)
+    else
+      []
+    end
   end
 
   @doc "The stable id for a title's next release."

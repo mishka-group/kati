@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    e2e-only permissions.
+
+    WRITE_CALENDAR and nothing else. A calendar journey has to plant a real
+    event in CalendarContract before it can prove Kati ingested one, and the
+    shipping manifest deliberately declares only READ_CALENDAR — see the K-01
+    permission-trim fence there for why that list is kept short.
+
+    Manifest merging adds this to the e2e variant only, so the APK a user could
+    ever install is unchanged.
+
+    Note that bin/deploy_native.sh already tries to `pm grant` WRITE_CALENDAR.
+    On the shipping manifest that grant silently does nothing, which is its own
+    evidence that this has been assumed to work for some time.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+</manifest>

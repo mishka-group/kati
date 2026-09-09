@@ -164,8 +164,8 @@ defmodule Kati.Screens.Currency do
         SettingsList.trailing(Kati.Screens.Currency.example(code, "en"))
       ),
       SettingsList.row(
-        Kati.Screens.Currency.locale_tile("فا"),
-        SettingsList.body("فارسی", nil),
+        Kati.Screens.Currency.locale_tile("فا", "fa"),
+        Kati.Screens.Currency.persian_body("فارسی"),
         SettingsList.trailing(Kati.Screens.Currency.example(code, "fa"))
       )
     ]
@@ -181,13 +181,14 @@ defmodule Kati.Screens.Currency do
   end
 
   @doc false
-  def locale_tile(label) do
-    assigns = %{label: label}
+  def locale_tile(label, face \\ "sans") do
+    assigns = %{label: label, face: face}
 
     ~MOB"""
     <Box width={40} height={40} corner_radius={12} background={Palette.paper()} align="center">
       <Text
         text={@label}
+        font_family={@face}
         text_size={13}
         font_weight="semibold"
         text_align="center"
@@ -197,15 +198,54 @@ defmodule Kati.Screens.Currency do
     """
   end
 
-  @doc "`£1,234.56`, in the named locale, straight from CLDR."
+  @doc """
+  The row title of the Persian locale, in the Persian face.
+
+  `Kati.UI.SettingsList.body/2` builds its own `Text` and takes no
+  `font_family` — the shape `Kati.Screens.Fa` calls the reason the mirrors
+  adopt so little of `Kati.Components` — so the one Persian title on this
+  screen is built here instead of translated into a prop the component does
+  not have.
+  """
+  @spec persian_body(String.t()) :: map()
+  def persian_body(title) do
+    assigns = %{title: title}
+
+    ~MOB"""
+    <Column weight={1.0}>
+      <Text
+        text={@title}
+        font_family="fa"
+        text_size={14.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  `£1,234.56`, in the named locale, straight from CLDR.
+
+  The Persian example leaves the mono face, and it is the same trade
+  `Kati.Screens.Fa` records for every Persian numeral in the app:
+  `kati_mono.ttf` carries none of U+06F0–U+06F9 and none of the words, so
+  `۱٬۲۳۴٫۵۶ پوند بریتانیا` in mono is drawn by Android's fallback face beside
+  the English row's real DM Mono. Vazirmatn at the same size is the wrong face
+  and the right glyphs, which is the better half of it.
+  """
   @spec example(String.t(), String.t()) :: map()
   def example(code, locale) do
-    assigns = %{text: Kati.Screens.Currency.formatted_example(code, locale)}
+    assigns = %{
+      text: Kati.Screens.Currency.formatted_example(code, locale),
+      face: if(locale == "fa", do: "fa", else: "mono")
+    }
 
     ~MOB"""
     <Text
       text={@text}
-      font_family="mono"
+      font_family={@face}
       text_size={12.5}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}
@@ -255,68 +295,22 @@ defmodule Kati.Screens.Currency do
   def confirmation(%{confirming: nil}), do: []
 
   def confirmation(assigns) do
+    from = Money.currency()
     to = assigns.confirming
-    from = assigns.currency
 
-    assigns = %{
+    # 269's recipe, which board 330 widened for a list delete. This screen drew
+    # it first; `Kati.UI.Destructive.confirm/1` is that drawing lifted so the
+    # second caller does not redraw it.
+    Kati.UI.Destructive.confirm(
+      eyebrow: "Changing it",
       title: "Switch to #{to}?",
-      example:
+      changes: "the symbol and the number formatting, everywhere.",
+      keeps:
         "any amount you have already recorded — #{Money.symbol(from)}8.99 becomes " <>
           "#{Money.symbol(to)}8.99, not #{Money.symbol(to)}10.42.",
-      keep: "Keep #{from}"
-    }
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.eyebrow("Changing it", dash: Kati.Theme.Palette.bronze())}
-      <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
-        <Row fill_width={true} align="center">
-          {Kati.UI.symbol("error", size: 18, color: Palette.gold_icon())}
-          <Spacer size={11} />
-          <Text
-            text={@title}
-            text_size={15}
-            font_weight="bold"
-            text_color={Palette.cream_ink()}
-            max_lines={1}
-          />
-        </Row>
-        <Spacer size={13} />
-        {Kati.Screens.Currency.clause("Changes:", "the symbol and the number formatting, everywhere.")}
-        <Spacer size={9} />
-        {Kati.Screens.Currency.clause("Does not change:", @example)}
-        <Spacer size={15} />
-        <Row fill_width={true} align="center">
-          <Row
-            height={38}
-            corner_radius={19}
-            background={Palette.ink_fill()}
-            padding_left={16}
-            padding_right={16}
-            align="center"
-            on_tap={{self(), :switch}}
-          >
-            <Text
-              text="Switch anyway"
-              text_size={12.5}
-              font_weight="bold"
-              text_color={Palette.on_ink()}
-              max_lines={1}
-            />
-          </Row>
-          <Spacer size={14} />
-          <Text
-            text={@keep}
-            text_size={12.5}
-            font_weight="semibold"
-            text_color={Palette.cream_sub()}
-            on_tap={{self(), :keep}}
-          />
-          <Spacer weight={1.0} />
-        </Row>
-      </Column>
-    </Column>
-    """
+      confirm: {"Switch anyway", :switch},
+      keep: {"Keep #{from}", :keep}
+    )
   end
 
   @doc """
@@ -361,29 +355,6 @@ defmodule Kati.Screens.Currency do
         />
       </Column>
     </Row>
-    """
-  end
-
-  @doc """
-  One half of the confirmation: a bold label and the sentence under it.
-
-  Two `Text` nodes rather than one `Kati.UI.rich_text/1` run, and this is the
-  one place in the app where that is the right call. `rich_text/1` merges its
-  runs into a single node, which is correct for a sentence with a number
-  emphasised inside it — and wrong here, because these are a **heading and a
-  clause**, and a reader skimming for "does it touch my money" needs the two
-  labels to be findable rather than buried mid-paragraph.
-  """
-  @spec clause(String.t(), String.t()) :: map()
-  def clause(label, body) do
-    assigns = %{label: label, body: body}
-
-    ~MOB"""
-    <Column fill_width={true}>
-      <Text text={@label} text_size={13} font_weight="semibold" text_color={Palette.cream_ink()} />
-      <Spacer size={4} />
-      <Text text={@body} text_size={13} line_height={1.5} text_color={Palette.cream_body()} />
-    </Column>
     """
   end
 

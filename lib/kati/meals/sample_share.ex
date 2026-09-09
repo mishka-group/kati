@@ -26,7 +26,8 @@ defmodule Kati.Meals.SampleShare do
       plan: "Cutting v3",
       subtitle: "share & transfer",
       qr: qr(),
-      qr_title: "Scan to import this plan",
+      qr_title: "Scan to set up this plan",
+      qr_body: qr_body(),
       qr_uri: "KATI://PLAN/CUTTING-V3 · SETTINGS ONLY",
       travels: travels(),
       shared_with: shared_with(),
@@ -64,6 +65,51 @@ defmodule Kati.Meals.SampleShare do
   """
   @spec qr_scope() :: String.t()
   def qr_scope, do: "SETTINGS ONLY"
+
+  @doc """
+  What the card says the code carries, in words — board 316.
+
+  The mono line has said `SETTINGS ONLY` since `qr_scope/0` was written, and
+  316's ruling is that the rest of the card has to agree with it: *"Two ways
+  out: widen the encode, or reword the card. Reword. A QR holds about 2,900
+  bytes and 35 meals with ingredients is tens of kilobytes — widening it is not
+  a decision, it is a physical impossibility."*
+
+  The title moved with it. `Scan to import this plan` promised an import; what
+  a scan actually does is set the plan up, and the second sentence says what
+  the person on the other end will be looking at — an empty week with the right
+  shape, which is 44's matrix with five named slots and every cell free.
+  """
+  @spec qr_body() :: String.t()
+  def qr_body do
+    "Carries the targets, meal times and reminder settings — not the 35 meals. " <>
+      "The recipient gets an empty Cutting v3 to fill with their own."
+  end
+
+  @doc """
+  What a scanned plan brings, and the one thing it cannot — board 316's
+  receiving side.
+
+  Three carried and one refused, and the refusal is the point: *"The one thing
+  a code-import must never do is print a meal count it cannot deliver."*
+  """
+  @spec carried() :: [map()]
+  def carried do
+    [
+      %{
+        state: :carried,
+        title: "Targets",
+        sub: "2,100 kcal · 168P 210C 70F"
+      },
+      %{state: :carried, title: "Meal times", sub: "5 slots · 07:30 to 19:30"},
+      %{state: :carried, title: "Reminders", sub: "Evening preview · 15 min before"},
+      %{
+        state: :refused,
+        title: "The 35 meals",
+        sub: "Ask for the file — a code cannot hold them"
+      }
+    ]
+  end
 
   @doc "The 9x9 module grid the design draws, one string per row, 1 = ink."
   @spec qr() :: [String.t()]

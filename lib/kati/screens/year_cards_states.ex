@@ -48,15 +48,27 @@ defmodule Kati.Screens.YearCardsStates do
   Elixir through `{:kati_files, …}` — so `Kati.Screens.YearShare`'s line about
   there being no way to hand a file out has been overtaken by that fence.
 
-  What is missing is one step earlier: **nothing turns a rendered node tree
-  into image bytes.** `Kati.Native.Files.save_as/2` streams a file that already
-  exists on disk — `:source_missing` is one of its own error reasons — and
-  there is no offscreen rasteriser anywhere in the bridge to produce that file.
-  So the card can be composed, laid out and painted on screen, and still not be
-  written. That is exactly what the copy says, and it is why the offer under it
-  is *Show me the card full-screen* rather than a retry: the pixels are real
-  and already on the device's own display, so a screenshot is the same picture.
-  A button that offered to try again would be offering to fail again.
+  ## Band 5 is a state the app can no longer be in — MOVIES-AND-TV.md #2
+
+  This paragraph used to read *nothing turns a rendered node tree into image
+  bytes*, and it has been false since `K-45 capture-screen` landed:
+  `Kati.Native.Files.save_screen/1` does exactly that, `Kati.Screens.WeekImage`
+  has been saving its own page with it, and `Kati.Screens.YearShare.handle_tap
+  (:save_image, …)` has since #80. So the band that says *saving is not
+  supported on this device* names a capability the app has.
+
+  The band stays drawn, because a board is a record of what was decided and
+  deleting the picture would delete the argument. What it is a picture OF has
+  changed: it is the state a device without the fence is in — an unpatched
+  build, a platform whose capture call refuses — and `save_screen/1` answers
+  `{:error, reason}` for exactly that, which screen 98 draws inline as a
+  refusal rather than by opening this sheet. A whole board for a failed button
+  press would be a worse answer than the sentence beside the button.
+
+  The offer under it is still *Show me the card full-screen* rather than a
+  retry, and that reasoning is unchanged: the pixels are real and already on
+  the device's own display, so a screenshot is the same picture, and a button
+  offering to try again would be offering to fail again.
 
   ## One eyebrow keeps the orange dash
 

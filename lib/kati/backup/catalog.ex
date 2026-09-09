@@ -83,20 +83,51 @@ defmodule Kati.Backup.Catalog do
   #   * **2** — `sync_rejected_changes` joined the backup. A version-1 file has
   #     no such member, so `Kati.Backup.Upgrade`'s 1 -> 2 step supplies an empty
   #     one before anything looks for it.
-  @schema_version 9
+  #   * **10** — `recipes` gained `bookmarked` with screen 45's disc. Nothing
+  #     moves, for the same reason 8 -> 9 moves nothing: a missing column takes
+  #     the attribute default, where a missing table would raise.
+  #   * **11** — `tracked_titles` gained `private`, which screen 98's share card
+  #     reads: *Hide titles I marked private* was a switch with nothing to
+  #     mark. Nothing moves, for 10's reason — a version-10 file has no such
+  #     column and every row takes the attribute default of `false`, which is
+  #     what a title nobody has marked is.
+  #   * **14** — `media_events` arrived: what happened to a title, in the order
+  #     it happened. A version-13 file has none and none can be derived — a
+  #     status column says where a title is, never when it got there — so a
+  #     restored 13 has a history that starts on the day it was upgraded.
+  #   * **15** — `tracked_titles` gained `anime_override` and `cached_titles`
+  #     gained `original_language`: the two columns board 152's anime rules
+  #     need, and had neither. Nothing moves, for 10's reason — a version-14
+  #     file has no such columns and every row takes the attribute default,
+  #     which for `anime_override` is `NULL`: *I have not said*, and that is
+  #     the truth about every title written before there was anywhere to say
+  #     it.
+  #   * **18** — `followed_authors` arrived: the people whose next book you
+  #     want to hear about (board 307). It has no parent, and nothing derives
+  #     it — an author is a free string on `books` and following one is a
+  #     statement the reader made, so a version-17 file restores with nobody
+  #     followed, which is what that device had.
+  #   * **17** — `list_memberships` gained `book_id` and `album_id`, and
+  #     `tracked_title_id` became nullable: a list holds a film, a series, a
+  #     book or an album (board 332). Exactly one of the three is set, and the
+  #     store holds that with a CHECK.
+  #   * **16** — `lists` and `list_memberships` arrived: hand-made lists and
+  #     what is in them. A version-15 file has neither and neither can be
+  #     derived, so a restored 15 has no lists — which is what that device had.
+  @schema_version 18
 
   # Every domain whose resources must be classified. Not read from
   # `:ash_domains`: that key is host-only config and is `nil` on a phone
   # (`Kati.Runtime`'s moduledoc), so a device-side check would silently pass by
   # finding nothing.
   @domains [
-    Kati.Spike,
     Kati.Books,
     Kati.Calendars,
     Kati.Media,
     Kati.Meals,
     Kati.Goals,
     Kati.Health,
+    Kati.Lists,
     Kati.Money,
     Kati.Music,
     Kati.Notifications,
@@ -120,6 +151,22 @@ defmodule Kati.Backup.Catalog do
     # silently forget.
     %{table: "media_content_warnings", resource: Kati.Media.ContentWarning, drop: []},
     %{table: "media_warning_preferences", resource: Kati.Media.WarningPreference, drop: []},
+    # A name the reader taught Kati, and nothing could regenerate it: there is
+    # no shared id between a media player and a title database — see
+    # `Kati.Media.TitleAlias` — so *this is the show that announces itself as
+    # “Sousou no Frieren”* exists only because somebody answered a question.
+    # Losing it on a restore means being asked all of them again.
+    %{table: "media_title_aliases", resource: Kati.Media.TitleAlias, drop: []},
+    # The reader's own history — what they added, dropped, and why. Nothing can
+    # regenerate it: `Kati.Media.TrackedTitle.status` says where a title IS, and
+    # every change to it overwrites the one before. Losing this on a restore
+    # would leave a shelf with no story behind it, which is what screen 15 is.
+    %{table: "media_events", resource: Kati.Media.Event, drop: []},
+    # Hand-made lists. Nothing derives one: a list is a thing the reader made and
+    # named. `list_memberships` is NOT here — it points at `books` and
+    # `music_albums` as well as `tracked_titles` now, and `entries/0` is in
+    # foreign-key order, so it sits below all three.
+    %{table: "lists", resource: Kati.Lists.List, drop: []},
     %{table: "foods", resource: Kati.Meals.Food, drop: []},
     %{table: "recipes", resource: Kati.Meals.Recipe, drop: []},
     %{
@@ -140,6 +187,12 @@ defmodule Kati.Backup.Catalog do
     %{table: "books", resource: Kati.Books.Book, drop: []},
     %{table: "book_reading_sessions", resource: Kati.Books.ReadingSession, drop: []},
     %{table: "book_notes", resource: Kati.Books.Note, drop: []},
+    # Board 307's Follow row. A name the reader typed nowhere and chose
+    # anyway — no source supplies it, no sweep rebuilds it, and losing it in a
+    # restore would silently switch off screen 25's New books alerts. No
+    # foreign key, so its position in this list is free; it sits with the rest
+    # of the books.
+    %{table: "followed_authors", resource: Kati.Books.FollowedAuthor, drop: []},
     # The same line as books, one domain over. MusicBrainz can supply a
     # tracklist and Cover Art Archive an image; neither can supply the evening
     # you played it, the note you left, or the count a scrobble import brought
@@ -149,6 +202,9 @@ defmodule Kati.Backup.Catalog do
     %{table: "music_albums", resource: Kati.Music.Album, drop: []},
     %{table: "music_tracks", resource: Kati.Music.Track, drop: []},
     %{table: "music_listens", resource: Kati.Music.Listen, drop: []},
+    # What is in each list, written after all three tables a membership can
+    # point at. Its order is a thing the reader chose and nothing derives it.
+    %{table: "list_memberships", resource: Kati.Lists.Membership, drop: []},
     # What you pay for and what you have said is not yours. JustWatch can list
     # every service in a country; only this device knows which three of them
     # are on your card, what they cost you, and which ones you have ruled out.
@@ -205,11 +261,6 @@ defmodule Kati.Backup.Catalog do
       why:
         "The CC0 corpus shipped in priv/. Byte-identical on every install, so a copy " <>
           "in the backup is size for nothing."
-    },
-    %{
-      resource: Kati.Spike.Thing,
-      class: :internal,
-      why: "A migration spike. Holds no user data and is not drawn anywhere."
     },
     %{
       resource: Kati.Notifications.Pending,

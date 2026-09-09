@@ -135,10 +135,341 @@ defmodule Kati.Screens.ImportRecognised do
 
   @impl true
   def load(socket) do
-    Mob.Socket.assign(socket, :job, Sample.recognised())
+    params = socket.assigns.params || %{}
+
+    socket
+    |> Mob.Socket.assign(:job, Kati.Screens.ImportRecognised.job_for(params))
+    |> Mob.Socket.assign(:file, {Map.get(params, :path), Map.get(params, :name)})
+    |> Mob.Socket.assign(:result, nil)
+  end
+
+  @doc """
+  The file this screen describes: the one that was picked, or the drawing's.
+
+  Screen 140 opens the document picker and pushes the result here, so this is
+  the first screen in the flow that has ever had a real file behind it. A push
+  naming none — the gallery, a sweep — gets `Kati.Import.Sample.recognised/0`,
+  which is the state board 141 was captured in.
+  """
+  @spec job_for(map()) :: map()
+  def job_for(params) do
+    path = Map.get(params, :path)
+    name = Map.get(params, :name)
+    picked = Map.get(params, :source)
+
+    with true <- is_binary(path) and is_binary(name),
+         {:ok, job} <- Kati.Import.Job.read(path, name) do
+      job
+      |> Kati.Import.Job.recognised()
+      |> Map.put(:source, Kati.Screens.ImportRecognised.source_name(picked))
+      |> Map.put(:mismatch, Kati.Screens.ImportRecognised.mismatch(job, picked))
+    else
+      # A file that could NOT be read is not the same as a push that named
+      # none, and this is the whole of board 142's objection: a reader who
+      # handed Kati a photo was shown somebody else's Goodreads export and
+      # told it had 418 rows. So a refusal is its own small map rather than
+      # the fixture with a note on top — there is no count to draw, no
+      # mapping table to check and nothing to import, and a page that draws
+      # them anyway is lying in nine places to apologise in one.
+      {:error, reason} ->
+        %{
+          refusal: reason,
+          refused_name: name,
+          source: Kati.Screens.ImportRecognised.source_name(picked)
+        }
+
+      _no_file ->
+        Sample.recognised()
+    end
+  end
+
+  @doc """
+  When the file disagrees with the tile the reader tapped, or `nil`.
+
+  Board 142's first edge state — *wrong guess* — and the file itself is what
+  knows: `Bookshelves` is Goodreads' column and nobody else's. The reader is
+  told rather than corrected, because the mapping is by header and works
+  either way; what a wrong tile actually costs them is a wrong expectation.
+
+      iex> Kati.Screens.ImportRecognised.mismatch(%{looks_like: "goodreads"}, "letterboxd")
+      {"Goodreads", true}
+
+      iex> Kati.Screens.ImportRecognised.mismatch(%{looks_like: "letterboxd"}, "letterboxd")
+      nil
+
+      iex> Kati.Screens.ImportRecognised.mismatch(%{looks_like: nil}, "letterboxd")
+      nil
+  """
+  @spec mismatch(map(), String.t() | atom()) :: {String.t(), boolean()} | nil
+  def mismatch(job, picked) when is_atom(picked) and not is_nil(picked),
+    do: Kati.Screens.ImportRecognised.mismatch(job, Atom.to_string(picked))
+
+  def mismatch(job, picked) do
+    case Map.get(job, :looks_like) do
+      nil ->
+        nil
+
+      ^picked ->
+        nil
+
+      other ->
+        # A films reader who has landed on a books export has made a different
+        # mistake from one who picked the wrong film service, and the sentence
+        # differs.
+        {Kati.Screens.ImportRecognised.source_name(other),
+         Kati.Import.Mapping.books?(other) != Kati.Import.Mapping.books?(picked)}
+    end
+  end
+
+  @doc """
+  Board 142's *wrong guess*, drawn over a file that still reads — or nothing.
+
+  Gold `help`, not red `error`, and the board's own paragraph on the two
+  glyphs says why: this is not a hard stop. The mapping is by column name, so
+  a Letterboxd file picked under the Trakt tile imports exactly as well as it
+  would have under its own. What the wrong tile actually cost the reader is an
+  expectation, and an expectation is corrected with a sentence.
+  """
+  @spec mismatch_band(map()) :: map()
+  def mismatch_band(job) do
+    case Map.get(job, :mismatch) do
+      nil ->
+        ~MOB"<Spacer size={0} />"
+
+      {looks_like, different_kind?} ->
+        Kati.Screens.ImportRecognised.notice(
+          "help",
+          "This looks like a #{looks_like} export",
+          Kati.Screens.ImportRecognised.mismatch_line(looks_like, different_kind?)
+        )
+    end
+  end
+
+  @doc """
+  The whole page, when the file could not be read.
+
+  Board 142's red `error` card with its `Pick again` pill live — the one
+  control a refusal can honestly offer, and the one board 142 draws inert at
+  `Kati.Screens.ImportStates.unrecognised/0`. `Something else` is named in the
+  sentence rather than drawn beside it, exactly as the board names it: it is
+  the picker's own manual-mapping tile, one pop away, not a second button
+  competing here.
+  """
+  @spec refused(map()) :: map()
+  def refused(job) do
+    assigns = %{
+      card:
+        Kati.Screens.ImportRecognised.notice(
+          "error",
+          Kati.Screens.ImportRecognised.refusal_title(Map.get(job, :refusal)),
+          Kati.Screens.ImportRecognised.refusal_body(
+            Map.get(job, :refusal),
+            Map.get(job, :refused_name)
+          )
+        ),
+      source: Map.get(job, :source)
+    }
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
+        <Spacer size={44} />
+        <Text text={@source} text_size={26} font_weight="bold" text_color={:on_surface} />
+        <Spacer size={18} />
+        {@card}
+      </Column>
+    </Scroll>
+    """
   end
 
   @doc false
+  def mismatch_line(looks_like, true),
+    do:
+      "Its columns are #{Kati.Screens.ImportRecognised.possessive(looks_like)}. Kati maps by " <>
+        "column name, so it will still read — but a books export has no watches in it."
+
+  def mismatch_line(looks_like, false),
+    do:
+      "Its columns are #{Kati.Screens.ImportRecognised.possessive(looks_like)}. Kati maps by " <>
+        "column name, so it will still read."
+
+  @doc """
+  A source's name, owning something — and `Goodreads` is why this is a function.
+
+      iex> Kati.Screens.ImportRecognised.possessive("Letterboxd")
+      "Letterboxd's"
+
+      iex> Kati.Screens.ImportRecognised.possessive("Goodreads")
+      "Goodreads'"
+  """
+  @spec possessive(String.t()) :: String.t()
+  def possessive(name) do
+    if String.ends_with?(name, "s"), do: name <> "'", else: name <> "'s"
+  end
+
+  @doc """
+      iex> Kati.Screens.ImportRecognised.refusal_title(:unrecognised)
+      "Kati could not read that file"
+  """
+  @spec refusal_title(atom()) :: String.t()
+  def refusal_title(:unreadable), do: "That file could not be opened"
+  def refusal_title(:empty), do: "That file is empty"
+  def refusal_title(_unrecognised), do: "Kati could not read that file"
+
+  @doc false
+  def refusal_body(:unreadable, name),
+    do:
+      "#{Kati.Screens.ImportRecognised.said(name)} Nothing on this device has changed. " <>
+        "Pick again, or choose Something else to map a file by hand."
+
+  def refusal_body(:empty, name),
+    do:
+      "#{Kati.Screens.ImportRecognised.said(name)} It has no rows in it. " <>
+        "Pick again, or choose Something else to map a file by hand."
+
+  def refusal_body(_unrecognised, name),
+    do:
+      "#{Kati.Screens.ImportRecognised.said(name)} None of its column names is one Kati " <>
+        "knows, so there is nothing it could safely put on your shelf. Pick again, or " <>
+        "choose Something else to map it by hand."
+
+  @doc false
+  def said(name) when is_binary(name) and name != "", do: "You chose “#{name}”."
+  def said(_none), do: ""
+
+  @doc """
+  Board 142's card, rebuilt around a real file's own words.
+
+  Same geometry as `Kati.Screens.ImportStates.unrecognised/0` — card ground,
+  22pt radius, 17pt padding, the glyph in its own column beside a bold line
+  and a soft body — because the board is what a reader has already been shown
+  this state in, and a flow that answers with a different-looking card reads
+  as a different thing happening.
+
+  Rebuilt rather than called, for `source_tile/3`'s reason on that board: the
+  sheet's cards are literals about Goodreads and Letterboxd by name, and a
+  live file is about whatever it turned out to be.
+  """
+  @spec notice(String.t(), String.t(), String.t()) :: map()
+  def notice(tone, title, body) do
+    assigns = %{
+      title: title,
+      body: body,
+      glyph: tone,
+      colour: Kati.Screens.ImportRecognised.tone(tone),
+      # Only a refusal has somewhere to go. A wrong guess is already on the
+      # page it belongs on: the file reads, and the way out of it is to keep
+      # reading.
+      pick_again: if(tone == "error", do: {self(), :change_source})
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        padding={17}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Row fill_width={true} align="top">
+          {UI.symbol(@glyph, size: 19, color: @colour)}
+          <Spacer size={11} />
+          <Column weight={1.0}>
+            <Text text={@title} text_size={13.5} font_weight="bold" text_color={:on_surface} />
+            <Spacer size={6} />
+            <Text text={@body} text_size={12.5} line_height={1.65} text_color={Palette.ink_soft()} />
+          </Column>
+        </Row>
+        {Kati.Screens.ImportRecognised.pick_again(@pick_again)}
+      </Column>
+      <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  @doc """
+  `Pick again`, or nothing at all — never a pill that does nothing.
+
+      iex> Kati.Screens.ImportRecognised.pick_again(nil)
+      Kati.Screens.ImportRecognised.blank()
+  """
+  @spec pick_again(term()) :: map()
+  def pick_again(nil), do: Kati.Screens.ImportRecognised.blank()
+
+  def pick_again(tap) do
+    assigns = %{tap: tap}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={14} />
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        {SettingsList.action_pill("Pick again", @tap)}
+      </Row>
+    </Column>
+    """
+  end
+
+  @doc false
+  def blank, do: ~MOB"<Spacer size={0} />"
+
+  @doc """
+  Red when Kati refused the file, gold when it merely disagrees with the tile.
+
+      iex> Kati.Screens.ImportRecognised.tone("error") == Kati.Theme.Palette.red()
+      true
+  """
+  @spec tone(String.t()) :: term()
+  def tone("error"), do: Palette.red()
+  def tone(_help), do: Palette.gold_icon()
+
+  @doc """
+  The source the reader said they were coming from, named as they would say it.
+
+  *Read as a **Letterboxd** export* — the tile they pressed on screen 140, not
+  the file name, which is what the first version of this read and made the line
+  say *Read as a watched.csv export*.
+
+  A file arriving by some other door names none, and the line then says what it
+  can: the file itself.
+
+  Screen 140's tiles carry their ids as ATOMS — `%{id: :goodreads, ...}` — and
+  this read strings only, so every tile in the picker landed on the last
+  clause and every real import was headed *CSV*. Both are answered now, at the
+  door, because a source is a source whichever module spelled it.
+
+      iex> Kati.Screens.ImportRecognised.source_name("myanimelist")
+      "MyAnimeList"
+
+      iex> Kati.Screens.ImportRecognised.source_name(:letterboxd)
+      "Letterboxd"
+
+      iex> Kati.Screens.ImportRecognised.source_name(nil)
+      "CSV"
+  """
+  @spec source_name(String.t() | atom()) :: String.t()
+  def source_name(id) when is_atom(id) and not is_nil(id),
+    do: Kati.Screens.ImportRecognised.source_name(Atom.to_string(id))
+
+  def source_name("letterboxd"), do: "Letterboxd"
+  def source_name("trakt"), do: "Trakt"
+  def source_name("myanimelist"), do: "MyAnimeList"
+  def source_name("anilist"), do: "AniList"
+  def source_name("goodreads"), do: "Goodreads"
+  def source_name("storygraph"), do: "StoryGraph"
+  def source_name(_none), do: "CSV"
+
+  @doc false
+  def content(%{job: %{refusal: _reason}} = assigns),
+    do: Kati.Screens.ImportRecognised.refused(assigns.job)
+
   def content(assigns) do
     job = assigns.job
 
@@ -152,10 +483,12 @@ defmodule Kati.Screens.ImportRecognised do
         padding_bottom={40}
       >
         {Kati.Screens.ImportRecognised.header(job)}
+        {Kati.Screens.Import.result_notice(Map.get(assigns, :result))}
         {Kati.Screens.ImportRecognised.title(job)}
+        {Kati.Screens.ImportRecognised.mismatch_band(job)}
         {Kati.Screens.ImportRecognised.steps(job)}
         {Kati.Screens.ImportRecognised.file_card(job)}
-        {Kati.Screens.ImportRecognised.matched_note()}
+        {Kati.Screens.ImportRecognised.matched_note(job)}
         {UI.SettingsList.eyebrow_muted("Mapping — collapsed")}
         {Kati.Screens.ImportRecognised.mapping_collapsed(job)}
         {UI.eyebrow("Mapping — expanded")}
@@ -170,33 +503,39 @@ defmodule Kati.Screens.ImportRecognised do
   # Same 44pt reservation Import.header/1 draws for the same reason: the
   # pushed macro floats the back pill over this row, so the row only owns the
   # ink pill on the right.
-  @doc false
+  @doc """
+  The ink `Import 412` pill, and the commit behind it.
+
+  MOVIES-AND-TV.md #89: this is the commit action of the whole import flow and
+  it carried no tap on either screen that draws it. Screen 37's was wired with
+  #101; this one was not, and hand-drawing the pill here rather than calling
+  the shared builder is how it was missed — an audit caught it.
+
+  So it is `Kati.UI.ImportChrome.header/2` now, the same pill 37, 120 and 142
+  draw, and pressing it commits the file this page is describing without
+  making the reader walk through the mapping table first. The mapping is still
+  one row down for anybody who wants to check it; this is the *I know what this
+  file is* path.
+
+  No tap over the board, for 37's reason: committing the drawing would file
+  four hundred invented titles under the reader's own shelf.
+  """
+  @spec header(map()) :: map()
   def header(job) do
-    ~MOB"""
-    <Column fill_width={true}>
-      <Row fill_width={true} height={44} align="center">
-        <Spacer weight={1.0} />
-        <Row
-          height={38}
-          corner_radius={19}
-          background={Palette.ink_fill()}
-          padding_left={16}
-          padding_right={16}
-          align="center"
-        >
-          <Text
-            text={job.action}
-            text_size={13}
-            font_weight="bold"
-            text_color={Palette.on_ink()}
-            max_lines={1}
-          />
-        </Row>
-      </Row>
-      <Spacer size={16} />
-    </Column>
-    """
+    Kati.UI.ImportChrome.header(
+      job.action,
+      if(Kati.Screens.ImportRecognised.live?(job), do: {self(), :commit})
+    )
   end
+
+  @doc """
+  Whether this page is describing a real file or the board.
+
+      iex> Kati.Screens.ImportRecognised.live?(Kati.Import.Sample.recognised())
+      false
+  """
+  @spec live?(map()) :: boolean()
+  def live?(job), do: is_map(Map.get(job, :job))
 
   @doc false
   def title(job) do
@@ -295,18 +634,12 @@ defmodule Kati.Screens.ImportRecognised do
             />
           </Column>
           <Spacer size={13} />
-          {UI.symbol("check_circle", size: 20, color: Palette.green(), fill: true)}
+          {UI.symbol(Kati.Screens.ImportRecognised.shape_tone(Kati.Screens.ImportRecognised.shape(job)), size: 20, color: Kati.Screens.ImportRecognised.shape_colour(Kati.Screens.ImportRecognised.shape(job)), fill: true)}
         </Row>
         <Spacer size={14} />
         {MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)}
         <Spacer size={13} />
-        <Row fill_width={true} align="center">
-          <Column weight={1.0}>
-            {Kati.Screens.ImportRecognised.source_line(job.source)}
-          </Column>
-          <Spacer size={11} />
-          {Kati.Screens.ImportRecognised.change_pill(job.source)}
-        </Row>
+        {Kati.Screens.ImportRecognised.recognition(job)}
       </Column>
       <Spacer size={11} />
     </Column>
@@ -320,6 +653,178 @@ defmodule Kati.Screens.ImportRecognised do
       [UI.symbol("description", size: 20, color: Palette.ink_soft())]
     )
   end
+
+  @doc """
+  The recognition sentence, in whichever of its six shapes this file is in.
+
+  Board **329**. One shape was drawn and six were written, and it is the
+  sentence a reader trusts to know what they are about to import — so the board
+  puts all six on one artboard in 262's four-panel idiom: *"same card, same
+  glyph tile, same mono sub-line throughout — only the facts change."*
+
+  Three tones carry the difference, and nothing else does:
+
+    * **green** `check_circle` — recognised, and its possessive variant, used
+      *"when the file name carries an account: ownership stated, not assumed."*
+    * **bronze** `help` — *said* and *partial*. Said is Kati QUOTING the file's
+      own header rather than vouching for it; partial is the right source and an
+      old export.
+    * **red** `error` — mismatch, which names what it found and imports nothing,
+      and refused, which *"is not a source question at all — the file is
+      broken."*
+
+      iex> Kati.Screens.ImportRecognised.shape(%{source: "Goodreads", matched: 7, columns_count: 9})
+      :recognised
+
+      iex> Kati.Screens.ImportRecognised.shape(%{source: "Goodreads", refusal: :truncated})
+      :refused
+
+      iex> Kati.Screens.ImportRecognised.shape(%{source: "Goodreads", mismatch: {"Letterboxd", false}})
+      :mismatch
+  """
+  @spec shape(map()) :: :refused | :mismatch | :partial | :said | :possessive | :recognised
+  def shape(job) do
+    cond do
+      Map.get(job, :refusal) -> :refused
+      Map.get(job, :mismatch) -> :mismatch
+      Map.get(job, :missing_column) -> :partial
+      Map.get(job, :claimed_by_header?) -> :said
+      Map.get(job, :yours?) -> :possessive
+      true -> :recognised
+    end
+  end
+
+  @doc """
+  The tone a shape carries — the only thing that differs between the six.
+
+      iex> Kati.Screens.ImportRecognised.shape_tone(:possessive)
+      "check_circle"
+
+      iex> Kati.Screens.ImportRecognised.shape_tone(:partial)
+      "help"
+
+      iex> Kati.Screens.ImportRecognised.shape_tone(:mismatch)
+      "error"
+  """
+  @spec shape_tone(atom()) :: String.t()
+  def shape_tone(shape) when shape in [:recognised, :possessive], do: "check_circle"
+  def shape_tone(shape) when shape in [:said, :partial], do: "help"
+  def shape_tone(_red), do: "error"
+
+  @doc """
+  What each shape says, as `{headline, mono sub-line}`.
+
+      iex> Kati.Screens.ImportRecognised.words(%{source: "Goodreads", matched: 7, columns_count: 9})
+      {"Read as a Goodreads export", "7 of 9 columns matched"}
+
+      iex> Kati.Screens.ImportRecognised.words(%{source: "Goodreads", yours?: true, rows: 418, columns_count: 9})
+      {"Read as your Goodreads export", "418 rows · 9 columns"}
+  """
+  @spec words(map()) :: {String.t(), String.t()}
+  def words(job) do
+    source = Map.get(job, :source) || "file"
+
+    case Kati.Screens.ImportRecognised.shape(job) do
+      :refused ->
+        {"Kati can’t read this file", Map.get(job, :refusal_detail) || "It ends part-way"}
+
+      :mismatch ->
+        {looks_like, _kind?} = Map.get(job, :mismatch)
+
+        {"You picked #{source} — this looks like #{looks_like}",
+         Map.get(job, :found_columns) || "Its columns are somebody else’s"}
+
+      :partial ->
+        {"A #{source} export, from before #{Map.get(job, :export_era) || "2019"}",
+         "No #{Map.get(job, :missing_column)} column — everything else maps"}
+
+      :said ->
+        {"The file says #{source}", "Header row claims it — columns agree"}
+
+      :possessive ->
+        {"Read as your #{source} export",
+         "#{Map.get(job, :rows) || 0} rows · #{Map.get(job, :columns_count) || 0} columns"}
+
+      :recognised ->
+        {"Read as a #{source} export",
+         "#{Map.get(job, :matched) || 0} of #{Map.get(job, :columns_count) || 0} columns matched"}
+    end
+  end
+
+  @doc """
+  Whether *Not <source>? Change* rides on this shape.
+
+  329: *"Change rides on the first three, because only those made a guess."* A
+  refusal made none — the file is broken — and a mismatch has already named what
+  it found, so offering to change the guess is offering to re-make one it just
+  withdrew.
+
+      iex> Kati.Screens.ImportRecognised.guessed?(:said)
+      true
+
+      iex> Kati.Screens.ImportRecognised.guessed?(:refused)
+      false
+  """
+  @spec guessed?(atom()) :: boolean()
+  def guessed?(shape), do: shape in [:recognised, :possessive, :said]
+
+  @doc """
+  Board 329's card: the headline, the mono sub-line, and *Change* where a guess
+  was made.
+
+  The glyph tile and the sub-line never move; only the facts and the tone do,
+  which is the whole of 329's claim about this sentence.
+  """
+  @spec recognition(map()) :: map()
+  def recognition(job) do
+    shape = Kati.Screens.ImportRecognised.shape(job)
+    {headline, sub} = Kati.Screens.ImportRecognised.words(job)
+
+    assigns = %{
+      headline: headline,
+      sub: sub,
+      pill:
+        if(Kati.Screens.ImportRecognised.guessed?(shape),
+          do: Kati.Screens.ImportRecognised.change_pill(Map.get(job, :source) || "this"),
+          else: nil
+        )
+    }
+
+    ~MOB"""
+    <Row fill_width={true} align="center">
+      <Column weight={1.0}>
+        <Text
+          text={@headline}
+          text_size={12.5}
+          text_color={Kati.Theme.Palette.ink_soft()}
+          max_lines={2}
+          line_height={1.4}
+        />
+        <Spacer size={4} />
+        <Text
+          text={@sub}
+          font_family="mono"
+          text_size={10.5}
+          text_color={Kati.Theme.Palette.muted()}
+          max_lines={1}
+        />
+      </Column>
+      <Spacer size={11} />
+      {@pill}
+    </Row>
+    """
+  end
+
+  @doc """
+  Green, bronze or red — 329's three tones and nothing else.
+
+      iex> Kati.Screens.ImportRecognised.shape_colour(:recognised) == Kati.Theme.Palette.green()
+      true
+  """
+  @spec shape_colour(atom()) :: non_neg_integer()
+  def shape_colour(shape) when shape in [:recognised, :possessive], do: Palette.green()
+  def shape_colour(shape) when shape in [:said, :partial], do: Palette.gold_icon()
+  def shape_colour(_red), do: Palette.red()
 
   @doc """
   `Read as a **Goodreads** export`, one bold run inside a running line.
@@ -365,7 +870,7 @@ defmodule Kati.Screens.ImportRecognised do
   That is exactly why the `5★` in it is the character rather than a spliced
   glyph — see "The star the font turned out to have" in this module's doc.
   """
-  def matched_note do
+  def matched_note(job) do
     ~MOB"""
     <Column fill_width={true}>
       <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
@@ -373,7 +878,7 @@ defmodule Kati.Screens.ImportRecognised do
           {UI.symbol("auto_awesome", size: 18, color: Palette.gold_icon())}
           <Spacer size={11} />
           <Column weight={1.0}>
-            {Kati.Screens.ImportRecognised.note()}
+            {Kati.Screens.ImportRecognised.note(job)}
           </Column>
         </Row>
       </Column>
@@ -382,20 +887,97 @@ defmodule Kati.Screens.ImportRecognised do
     """
   end
 
-  @doc false
-  def note do
+  @doc """
+  What Kati made of the file, counted rather than stated.
+
+  The board's own sentence — *Kati matched 7 of 9 columns … Two columns are
+  skipped* — was a literal, and over a real export it contradicted the counts
+  in the card directly above it. Every number in it is now the file's own, and
+  the clause about skipped columns is dropped when nothing was skipped: a
+  sentence ending *Two columns are skipped* over a file where none were is the
+  same defect one clause smaller.
+  """
+  @spec note(map()) :: map()
+  def note(job) do
     body = [text_size: 12.5, line_height: 1.65, text_color: Palette.cream_body()]
 
-    UI.rich_text([
-      {"Kati matched ", [base: true] ++ body},
-      {"7 of 9 columns", :semibold},
-      {" and set the conversions: ", body},
-      {"10pt → 5★", :semibold},
-      {", and dates read as ", body},
-      {"YYYY/MM/DD", :semibold},
-      {". Two columns are skipped.", body}
-    ])
+    UI.rich_text(
+      [
+        {"Kati matched ", [base: true] ++ body},
+        {"#{job.matched} of #{job.total_columns} columns", :semibold},
+        {" and set the conversions: ", body},
+        {Kati.Screens.ImportRecognised.scale_line(job), :semibold},
+        {", and dates read as ", body},
+        {Kati.Screens.ImportRecognised.date_line(job), :semibold},
+        {".", body}
+      ] ++ Kati.Screens.ImportRecognised.skipped_clause(job.skipped, body)
+    )
   end
+
+  @doc """
+  Which way the rating column is being converted, or that none is.
+
+  The board says `10pt → 5★` because the file it was captured from wrote ten
+  points. `Kati.Import.Mapping.scale_of/2` reads the column, so this says what
+  is actually happening to this file — and `no rating column` when there is
+  nothing to convert, which is a true sentence where the drawing's would be a
+  claim about a column the file does not have.
+  """
+  @spec scale_line(map()) :: String.t()
+  def scale_line(job) do
+    # `Map.get` with a default: board 141's own columns carry no `:sample` —
+    # they are a mapping table, not a preview — and the drawing must keep its
+    # sentence.
+    case Kati.Screens.ImportRecognised.sample_for(job, "Rating") do
+      nil -> "no rating column"
+      "" -> "10pt → 5★"
+      sample -> if String.contains?(sample, "."), do: "5★ → 10pt", else: "10pt → 5★"
+    end
+  end
+
+  @doc false
+  @spec sample_for(map(), String.t()) :: String.t() | nil
+  def sample_for(job, field) do
+    case Enum.find(job.columns, &(&1.field == field)) do
+      nil -> nil
+      column -> Map.get(column, :sample, "")
+    end
+  end
+
+  @doc """
+  The date format the file is being read in, from its own first row.
+
+  `YYYY/MM/DD` on the board. Every shape `Kati.Import.Mapping.date/1` accepts
+  is named here by what it looks like rather than by a parser flag, because
+  this line is read by somebody checking that Kati understood their file.
+  """
+  @spec date_line(map()) :: String.t()
+  def date_line(job) do
+    case Kati.Screens.ImportRecognised.sample_for(job, "Watched on") do
+      nil ->
+        "no date column"
+
+      sample ->
+        cond do
+          # `Regex.compile!` and not `~r{}`: the braces of a `{4}` quantifier
+          # close the sigil. `Kati.QuickAdd.Parse` hit the same thing.
+          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d-")) -> "YYYY-MM-DD"
+          String.match?(sample, Regex.compile!("^\\d\\d\\d\\d/")) -> "YYYY/MM/DD"
+          String.match?(sample, Regex.compile!("^\\d\\d?/")) -> "DD/MM/YYYY"
+          # The board's own, for the board's own columns: 141 draws a mapping
+          # table with no sampled values, and its sentence says YYYY/MM/DD.
+          sample == "" -> "YYYY/MM/DD"
+          true -> "as written"
+        end
+    end
+  end
+
+  @doc false
+  def skipped_clause(0, _body), do: []
+
+  def skipped_clause(1, body), do: [{" One column is skipped.", body}]
+
+  def skipped_clause(n, body), do: [{" #{n} columns are skipped.", body}]
 
   @doc """
   The mapping at rest: one row, the counts, and the chevron that opens it.
@@ -577,13 +1159,81 @@ defmodule Kati.Screens.ImportRecognised do
     """
   end
 
+  @doc """
+  Which file this screen is about, for the screen its chevron opens.
+
+  MOVIES-AND-TV.md #53: the row promised *the nine columns it just counted*
+  and pushed screen 37 bare, which drew five columns of `trakt-backup.csv` —
+  a different file, one tap later, contradicting every number on the page it
+  was opened from.
+
+  An atom rather than the job, because the push names WHICH file and the
+  sample module answers with it. `Kati.Import.Sample.job/1` is where the two
+  jobs live and the only place either is described.
+
+      iex> Kati.Screens.ImportRecognised.source()
+      :goodreads
+  """
+  @spec source() :: atom()
+  def source, do: :goodreads
+
   @doc false
   @impl true
   def handle_tap(:check_mapping, socket) do
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Import)}
+    {path, name} = Map.get(socket.assigns, :file, {nil, nil})
+
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.Import, %{
+       # The same file, not the same fixture. 141 and 37 drew two jobs and
+       # contradicted each other about one export (#53); they are now two views
+       # of one `Kati.Import.Job`, and the path is what carries it across.
+       path: path,
+       name: name,
+       source: Kati.Screens.ImportRecognised.source(),
+       back: "Recognised"
+     })}
+  end
+
+  @doc """
+  Commit from here, or hand the reader to 37 when there is something to answer.
+
+  MOVIES-AND-TV.md #89. A file that disagrees with nothing on your shelf needs
+  no mapping table read and no questions answered — this page has already said
+  what it found, and one press is the whole of what a reader wants. A file that
+  DOES conflict is the other case: `Kati.Import.Commit.run/2` reads silence as
+  *keep mine*, which is the safe reading but not one to make on somebody's
+  behalf without showing them, so the pill opens 37 where the queue can be
+  answered.
+
+  Neither branch commits the board: `live?/1` is what keeps the drawing's
+  `Import 412` a picture.
+  """
+  def handle_tap(:commit, socket) do
+    job = socket.assigns.job
+
+    cond do
+      not Kati.Screens.ImportRecognised.live?(job) ->
+        {:noreply, socket}
+
+      job.job.plan.conflicts != [] ->
+        {path, name} = Map.get(socket.assigns, :file, {nil, nil})
+
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.Import, %{
+           path: path,
+           name: name,
+           source: Kati.Screens.ImportRecognised.source(),
+           back: "Recognised"
+         })}
+
+      true ->
+        {:ok, tally} = Kati.Import.Commit.run(job.job, %{})
+
+        {:noreply, Mob.Socket.assign(socket, :result, Kati.Screens.Import.result_line(tally))}
+    end
   end
 
   def handle_tap(:change_source, socket) do
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    {:noreply, Kati.Screens.Resume.pop(socket)}
   end
 end

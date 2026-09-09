@@ -23,6 +23,21 @@ defmodule Kati.Screens.QuickAddExpense do
 
   Orange means *new or now*, and the empty field is the only thing on the page
   that is asking for something. Nothing else here takes it.
+
+  ## A save that did not land does not close the sheet
+
+  This screen used to commit and pop in the same breath, and `save_expense/1`
+  returned `:ok` whether or not anything reached the database. The sheet closed,
+  screen 18 redrew its sample sentence behind it, and the two outcomes were
+  pixel-identical — the one place in the app where a lost expense looked exactly
+  like a saved one.
+
+  So the tap now branches on `Kati.Write`'s contract. A failure keeps the sheet
+  up with the amount still typed into the field, because the recovery is to
+  press the button again and the typed value is the thing that must survive to
+  make that worth doing. The sentence goes directly above the commit row: it is
+  the control that just failed, and an error anywhere else on a scrolling page
+  can be off-screen at the moment it appears.
   """
 
   use Mob.Screen
@@ -33,18 +48,22 @@ defmodule Kati.Screens.QuickAddExpense do
   alias Kati.Screens.QuickAdd.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
+  alias Kati.Write
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket
      |> Mob.Socket.assign(:draft, Kati.Screens.QuickAddExpense.draft())
-     |> Mob.Socket.assign(:saved?, false)}
+     |> Mob.Socket.assign(:saved?, false)
+     |> Mob.Socket.assign(:save_error, nil)}
   end
 
   def render(assigns) do
     draft = assigns.draft
+    save_error = assigns[:save_error]
 
     ~MOB"""
     <Box
@@ -52,6 +71,8 @@ defmodule Kati.Screens.QuickAddExpense do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column
@@ -67,6 +88,7 @@ defmodule Kati.Screens.QuickAddExpense do
           {Kati.Screens.QuickAddExpense.parsed(draft)}
           {UI.eyebrow("Or file it as")}
           {QuickAdd.kinds(draft)}
+          {Kati.Screens.QuickAddExpense.save_notice(save_error)}
           {QuickAdd.actions(draft)}
         </Column>
       </Scroll>
@@ -151,7 +173,8 @@ defmodule Kati.Screens.QuickAddExpense do
     assigns = %{
       symbol: Money.symbol(Money.currency()),
       placeholder: draft.amount_placeholder,
-      value: draft.amount
+      value: draft.amount,
+      on_change: {self(), :amount}
     }
 
     ~MOB"""
@@ -174,16 +197,17 @@ defmodule Kati.Screens.QuickAddExpense do
         padding_left={15}
         padding_right={15}
         align="center"
-        on_tap={{self(), :edit_amount}}
       >
         <Text text={@symbol} font_family="mono" text_size={17} text_color={Palette.cream_ink()} />
         <Spacer size={9} />
-        <Text
-          text={@value || @placeholder}
-          text_size={14}
-          text_color={Palette.cream_sub()}
+        <TextField
+          value={@value || ""}
+          placeholder={@placeholder}
+          keyboard="decimal"
+          return_key="done"
           weight={1.0}
-          max_lines={1}
+          accessibility_id="amount"
+          on_change={@on_change}
         />
       </Row>
       <Spacer size={11} />
@@ -198,18 +222,74 @@ defmodule Kati.Screens.QuickAddExpense do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  @doc """
+  The one line that says the expense did not save.
 
-  def handle_info({:tap, :add}, socket) do
-    save_expense(socket.assigns.draft)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+  A `Kati.UI` text line rather than a component, because the screen's own
+  design has nowhere a notice belongs: the cream card is *what Kati understood*
+  and putting a write failure inside it would claim the parse was wrong, which
+  it was not. Red is the only colour on the page that is not the orange ring —
+  and the ring means *asked for*, which is the opposite of what this says.
+
+  `nil` renders a zero spacer rather than nothing at all, so the row is a
+  constant in the tree and the button does not move between renders for any
+  reason other than the message arriving.
+  """
+  @spec save_notice(String.t() | nil) :: term()
+  def save_notice(nil), do: ~MOB"<Spacer size={0} />"
+
+  def save_notice(message) when is_binary(message) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.rich_text([
+        {message,
+         [
+           text_size: 13,
+           font_weight: "semibold",
+           line_height: 1.45,
+           text_color: Palette.red()
+         ]}
+      ])}
+      <Spacer size={12} />
+    </Column>
+    """
   end
 
-  # The amount field has no keyboard behind it — Mob has no text input, which is
-  # why every field in this app is drawn rather than typed into. Marking the
-  # draft as touched is a real change and is what the sweep sees; typing is #45.
-  def handle_info({:tap, :edit_amount}, socket),
-    do: {:noreply, Mob.Socket.assign(socket, :saved?, false)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, :add}, socket) do
+    case save_expense(socket.assigns.draft) do
+      {:ok, _expense} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Kati.Screens.Resume.pop()}
+
+      error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
+  end
+
+  @doc """
+  What was typed into the amount field.
+
+  This screen carried a comment saying Mob had no text input and that every
+  field in the app was therefore drawn rather than typed into. That was not
+  true when it was written: `<TextField>` is in the pinned Mob and
+  `Kati.Screens.Backup` has been using it for the passphrase all along. The
+  belief cost more than the feature would have — it is why nine screens draw a
+  caret nothing can type into.
+
+  Kept as a string rather than parsed on every keystroke: a half-typed "12."
+  is not a number and must not become one, and the field has to be able to show
+  what you actually typed while you are still typing it.
+  """
+  def handle_info({:change, :amount, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     socket
+     |> Mob.Socket.update(:draft, &Map.put(&1, :amount, typed))
+     |> Mob.Socket.assign(:saved?, false)}
+  end
 
   def handle_info(_message, socket), do: {:noreply, socket}
 
@@ -219,19 +299,61 @@ defmodule Kati.Screens.QuickAddExpense do
   The section comes from what the sentence was parsed as — `EXPENSE · BOOKS` —
   and is the only classification stored, because `Kati.Money` has no categories
   and screen 122 says so.
+
+  Returns what `Ash.create/2` returned. It stood here as `:ok` over a
+  `rescue _error -> :ok`, which was wrong twice: `Ash.create/2` does not raise,
+  so the rescue caught nothing worth catching, and the `{:error, changeset}` it
+  does return was dropped a line earlier by the bare `:ok`. `Kati.Write.note/2`
+  puts the reason where a device failure can still be read afterwards, since a
+  phone has no console and the message a person sees is deliberately short.
   """
-  @spec save_expense(map()) :: :ok
+  @spec save_expense(map()) :: {:ok, struct()} | {:error, term()}
   def save_expense(draft) do
-    Ash.create(Kati.Money.Expense, %{
+    Kati.Money.Expense
+    |> Ash.create(%{
       description: draft.title,
-      amount_pence: draft.amount,
+      amount_pence: Kati.Screens.QuickAddExpense.pence(draft.amount),
       currency: Money.currency(),
       spent_on: Kati.Time.today(),
       section: :books
     })
-
-    :ok
-  rescue
-    _error -> :ok
+    |> Write.note("quick add expense")
   end
+
+  @doc """
+  A typed amount as pence, or `nil`.
+
+  `nil` rather than zero for anything that is not a number, because the screen's
+  own copy makes the distinction load-bearing — *"an expense with no amount
+  still counts as a thing that happened"*. Zero would be a claim that something
+  cost nothing; `nil` is the absence the card is describing.
+
+  Rounded rather than truncated: `12.567` is 1257p, not 1256p. Nobody types
+  three decimal places on purpose, but silently losing a penny is the kind of
+  thing that is noticed much later and trusted much less.
+
+      iex> Kati.Screens.QuickAddExpense.pence("12.50")
+      1250
+      iex> Kati.Screens.QuickAddExpense.pence("8")
+      800
+      iex> Kati.Screens.QuickAddExpense.pence("12.")
+      1200
+      iex> Kati.Screens.QuickAddExpense.pence("")
+      nil
+      iex> Kati.Screens.QuickAddExpense.pence("abc")
+      nil
+  """
+  @spec pence(term()) :: non_neg_integer() | nil
+  def pence(amount) when is_integer(amount), do: amount
+
+  def pence(amount) when is_binary(amount) do
+    cleaned = amount |> String.replace(",", ".") |> String.trim()
+
+    case Float.parse(cleaned) do
+      {value, _rest} when value >= 0 -> round(value * 100)
+      _other -> nil
+    end
+  end
+
+  def pence(_other), do: nil
 end

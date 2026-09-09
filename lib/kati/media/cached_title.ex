@@ -52,8 +52,32 @@ defmodule Kati.Media.CachedTitle do
     attribute :source, :atom,
       allow_nil?: false,
       public?: true,
+      # `:manual` is a title someone typed in and `:import` one that came out of
+      # somebody's export, and neither has a provider behind it.
+      #
+      # Every other member of this list is a place a row can be looked up
+      # again; those two are the ones that cannot, and that is the point. A row
+      # with no source would have been the alternative, and `allow_nil?: false`
+      # here is load-bearing — a title that belongs to nothing cannot be
+      # reconciled with a provider row later, when there is one to reconcile
+      # against.
+      #
+      # `:import` is kept apart from `:manual` because the difference decides
+      # what may be done TO the row: `Kati.Media.Cache.tracked/0` refreshes only
+      # `:tmdb` rows, and a name a file supplied must not be overwritten by a
+      # provider's answer for a different film that happens to share it.
       constraints: [
-        one_of: [:tmdb, :tvmaze, :anilist, :jikan, :openlibrary, :musicbrainz, :wikidata]
+        one_of: [
+          :manual,
+          :import,
+          :tmdb,
+          :tvmaze,
+          :anilist,
+          :jikan,
+          :openlibrary,
+          :musicbrainz,
+          :wikidata
+        ]
       ]
 
     attribute :source_id, :string, allow_nil?: false, public?: true
@@ -66,11 +90,39 @@ defmodule Kati.Media.CachedTitle do
     # ── Cached projection ──────────────────────────────────────────────────
     attribute :title, :string, public?: true
     attribute :title_original, :string, public?: true
+
+    # TMDB's own `original_language`, a two-letter tag. Board 152's third rule
+    # is *TMDB's Animation + Japanese origin* and the genre half was already
+    # kept; this is the half that was not, so the rule could not be asked.
+    attribute :original_language, :string, public?: true
     attribute :overview, :string, public?: true
     attribute :poster_path, :string, public?: true
     attribute :backdrop_path, :string, public?: true
     attribute :runtime_minutes, :integer, public?: true
     attribute :genres, :string, public?: true
+
+    # Where this title can be watched, by region — see the migration for the
+    # shape and for why it is a map rather than a list.
+    #
+    #     %{"GB" => %{"flatrate" => ["Netflix"], "rent" => ["Apple TV"]}}
+    #
+    # `nil` means nobody has asked. `%{}` means somebody asked and the answer
+    # was nowhere, which is a thing worth saying to a reader and `nil` is not.
+    attribute :providers, :map, public?: true
+    attribute :providers_checked_at, :utc_datetime, public?: true
+
+    # The year a title first came out — a YEAR, not a date.
+    #
+    # `next_release_at` is the NEXT release and was the only date this resource
+    # held, so screen 14's meta line could not draw the `2024` its board does,
+    # screen 145 had nothing to bucket its decade chips by, and screen 154's
+    # form collected a Year and dropped it. `Kati.Media.Release` is explicit
+    # that a bare year must not become 1 January; this is the column that lets
+    # a bare year stay one.
+    #
+    # Nullable: unknown for a hand-typed title and for anything a provider has
+    # not dated, and an unknown year is not a year of zero.
+    attribute :first_release_year, :integer, public?: true, constraints: [min: 1888]
 
     # ── Shelf denominators ─────────────────────────────────────────────────
     # The totals screens 03 and 20 divide a stored position by. All three are
@@ -158,6 +210,44 @@ defmodule Kati.Media.CachedTitle do
           {:fraction, non_neg_integer(), pos_integer()}
           | {:position, pos_integer()}
           | :unknown
+
+  @doc """
+  Every name this title answers to, and none of them empty.
+
+  Two, because one show has two: TMDB's `title` is the name the reader's shelf
+  draws and `title_original` is the name their player may well announce —
+  `Frieren: Beyond Journey's End` and `Sousou no Frieren` are the same show,
+  and anime is where that gap shows first.
+
+  `title_original` has been filled from TMDB's `original_name` since the ingest
+  was written (`Kati.Media.Tmdb`) and nothing read it. Two callers do now, and
+  they are the two places a name arrives from outside and has to be recognised:
+  `Kati.Media.Detect` matching what the phone is playing, and
+  `Kati.Import.Job` matching a row of somebody's export.
+
+  Here rather than in either of them, because *what is this title called* is a
+  fact about the title. Two copies would drift the first time a third name was
+  worth keeping.
+
+      iex> alias Kati.Media.CachedTitle
+      iex> CachedTitle.names(%CachedTitle{title: "Frieren", title_original: "Sousou no Frieren"})
+      ["Frieren", "Sousou no Frieren"]
+
+      iex> alias Kati.Media.CachedTitle
+      iex> CachedTitle.names(%CachedTitle{title: "Dune", title_original: "Dune"})
+      ["Dune"]
+
+      iex> Kati.Media.CachedTitle.names(nil)
+      []
+  """
+  @spec names(t() | nil) :: [String.t()]
+  def names(nil), do: []
+
+  def names(%__MODULE__{} = cached) do
+    [cached.title, cached.title_original]
+    |> Enum.filter(&(is_binary(&1) and String.trim(&1) != ""))
+    |> Enum.uniq()
+  end
 
   @doc """
   The total this title's progress is measured against, or `nil`.

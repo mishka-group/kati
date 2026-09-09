@@ -89,6 +89,50 @@ verified on device by killing `:mob_screen` and watching it come back.
   `adb shell "run-as com.example.kati cat files/otp/kati/Elixir.Kati.App.beam"`
   piped into `beam_lib:chunks(…, [exports])` says what is actually on the device.
 
+## Testing on a device
+
+The host suite renders screens in a GenServer on a laptop. It cannot see the
+native layer at all — Mob says so itself in the moduledoc of the case template
+the whole suite is built on: those helpers *"cannot catch a node that renders
+wrong or behaves wrong on a real iOS/Android build."* Everything below is for
+the claims only a phone can settle.
+
+**The loop is `assembleE2e`, not `mix mob.deploy`.**
+
+```
+mix kati.e2e.stage                    # stage the runtime into the APK
+cd android && ./gradlew connectedE2eAndroidTest
+```
+
+In Android Studio: select the **e2e** build variant, then the gutter arrow on
+any `@Test` in `android/app/src/androidTest/`.
+
+**Re-stage after touching Elixir.** The `e2e` APK carries its own BEAMs in
+`src/e2e/assets/otp.zip` so a device test cannot silently run whatever
+`mix mob.deploy` last pushed. That only holds while the zip is current, and
+`assembleE2e` repackages whatever is on disk — so a screen written and never
+re-staged is absent from the device while present in the source, and the symptom
+is a test waiting thirty seconds for a tag that exists in `lib/`. A
+`preE2eBuild` guard fails the build rather than letting that happen, but the fix
+is always the same: run `mix kati.e2e.stage`.
+
+**Addressing a control.** Every atom tap tag reaches Compose as a `testTag`
+(`K-35 test-tag`), so `onNodeWithTag("choose_en")` finds the control Elixir
+named. Every screen also stamps `screen:<name>` — `Kati.Screens.Identity`
+derives it from the module — which is what `KatiRule.awaitScreen/1` waits on.
+Do not wait on visible text: Kati draws the same strings in an English screen
+and its Persian mirror, and again in a live screen and its `— states` sheet.
+
+**The receipt is never the screen.** A screen redrawing a `*Sample*` module is
+indistinguishable from one redrawing a row, so any assertion about state reads
+`files/kati.db` or `files/mob_state.dets` through `KatiRule`.
+
+**Disk.** The e2e APK is ~127MB because it carries a runtime. A stock AVD runs
+out of `/data`, and a Gradle install that fails for storage presents as a
+*failing test* — `am instrument` runs the previously installed APK and reports a
+stack trace against line numbers the current source does not have. If a device
+test fails in a way that makes no sense, check `adb shell df /data` first.
+
 ## Starting applications on device
 
 - **Never `Application.ensure_all_started(:ash)`.** `ash.app` names `:igniter` —
@@ -114,6 +158,20 @@ verified on device by killing `:mob_screen` and watching it come back.
   the first two hours of every Amsterdam day a UTC-derived date names yesterday.
   Found by opening the app at 00:01 and reading "Tuesday 18". Enforced by
   `Kati.ScreenDateTest`.
+
+## Persian is a localisation, not a second set of screens
+
+- **Do not write another `*Fa` screen module.** The owner's ruling of 8
+  September: *"we do not need create any pages for persian all in app, we just
+  have all pages we need just with cldr timing and gettext to translate and rtl
+  and ltr just it like web app we created."* A Persian page is the English page
+  with `Kati.Locale.direction_prop/0` and translated strings.
+- The 33 that already exist are a list that may shrink and may not grow, locked
+  by `Kati.PersianScreensRatchetTest`. Folding them into gettext + CLDR + RTL is
+  [mishka-group/kati#103](https://github.com/mishka-group/kati/issues/103).
+- The pieces are in place already: `Kati.Cldr` is generated for `:en`, `:fa` and
+  `:und`, `Kati.Locale.direction/1` answers `rtl`/`ltr`, and `Kati.Gettext` is a
+  `Gettext.Backend`. What is missing is `priv/gettext` and the call sites.
 
 ## Vendored native code
 

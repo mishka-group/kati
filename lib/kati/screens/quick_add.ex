@@ -80,13 +80,167 @@ defmodule Kati.Screens.QuickAdd do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  def mount(_params, _session, socket) do
+  # A caller may name the sentence. Screen 08's *Schedule* opens this with
+  # `Watch <title>` already typed, because the verb and the subject are the
+  # part a reader should not have to retype — what they came here to say is
+  # WHEN.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :draft, Sample.draft())}
+
+    sentence = Map.get(params || %{}, :sentence, "")
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:params, params)
+     |> Mob.Socket.assign(:sentence, sentence)
+     |> Mob.Socket.assign(:save_error, nil)
+     # Which chip is lit, and therefore what the sentence becomes. Its own
+     # assign rather than a key on the draft: `read_draft/1` rebuilds the draft
+     # on every keystroke, so a choice held there would be un-made by the next
+     # character typed.
+     |> Mob.Socket.assign(:filed_as, :event)
+     |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(sentence))}
+  end
+
+  @doc """
+  What the page draws for a typed sentence: the board's own until one is typed.
+
+  MOVIES-AND-TV.md #31 — the field, the parse card, the clash warning and the
+  commit button were all `Kati.Screens.QuickAdd.Sample.draft/0`, which is one
+  sentence somebody typed into a design tool. Every one of them is read from
+  what the reader typed now, through `Kati.QuickAdd.Parse`.
+
+  An empty field keeps the board, and that is not a fallback for want of
+  anything better: board 18 is drawn MID-TYPING, and its sentence is the
+  clearest statement of the syntax this screen has. Somebody who opens the
+  page and types nothing is looking at an example, which is exactly what they
+  need.
+  """
+  @spec draft(String.t()) :: map()
+  def draft(sentence) when is_binary(sentence) do
+    case String.trim(sentence) do
+      "" -> Sample.draft()
+      typed -> Kati.Screens.QuickAdd.read_draft(typed)
+    end
+  end
+
+  @doc false
+  @spec read_draft(String.t()) :: map()
+  def read_draft(typed) do
+    today = Kati.Time.today()
+    read = Kati.QuickAdd.Parse.read(typed, today)
+
+    %{
+      query: Kati.Screens.QuickAdd.echo(typed, read.spans),
+      title: read.title || "Nothing to add yet",
+      kind: Kati.Screens.QuickAdd.kind_line(read),
+      facts: Kati.Screens.QuickAdd.facts(read),
+      clash: Kati.Screens.QuickAdd.clash_for(read),
+      kinds: Sample.kinds(),
+      cta: Kati.Screens.QuickAdd.cta(read, today),
+      read: read,
+      # The commit button is a control only when there is something to commit.
+      # A sentence with no day gets the button drawn and untappable, which is
+      # `nil`'s own meaning in `Kati.ScreenSweep.tap_tags/1` — not tappable
+      # rather than broken — and the button says what is missing.
+      on_commit: if(Kati.QuickAdd.Parse.committable?(read), do: {self(), :commit})
+    }
+  end
+
+  @doc """
+  The typed sentence with the tokens Kati recognised marked in it — board 18's
+  *parsed tokens are highlighted in place*, over the reader's own words.
+
+  One line, because a `Row` does not wrap and the sentence is short; the board
+  draws two because its own sentence is long enough to. The pieces are the
+  same three the board uses, so the styling is unchanged and only the words
+  are the reader's.
+  """
+  @spec echo(String.t(), [{non_neg_integer(), pos_integer()}]) :: [map()]
+  def echo(typed, spans) do
+    {pieces, at} =
+      Enum.reduce(Enum.sort(spans), {[], 0}, fn {start, len}, {acc, at} ->
+        before = binary_part(typed, at, start - at)
+        token = binary_part(typed, start, len)
+
+        {acc ++ [{:plain, String.trim(before), gap(before)}, {:token, token, gap(before)}],
+         start + len}
+      end)
+
+    tail = binary_part(typed, at, byte_size(typed) - at)
+    pieces = pieces ++ [{:plain, String.trim(tail), gap(tail)}]
+
+    [%{caret: true, pieces: Enum.reject(pieces, fn {_kind, text, _gap} -> text == "" end)}]
+  end
+
+  defp gap(""), do: 0
+  defp gap(_text), do: 4
+
+  @doc """
+  The mono line under the title: what Kati will make, in capitals, the way
+  board 18 types it.
+  """
+  @spec kind_line(map()) :: String.t()
+  def kind_line(%{date: nil}), do: "NEEDS A DAY"
+  def kind_line(%{time: nil}), do: "ALL-DAY EVENT"
+  def kind_line(_read), do: "PERSONAL EVENT"
+
+  @doc """
+  The chips: the day, the hours, the alert. Each one dropped when it is not
+  known, rather than guessed — the rule this app keeps everywhere a meta line
+  is composed.
+  """
+  @spec facts(map()) :: [[{String.t(), String.t()}]]
+  def facts(read) do
+    [
+      read.date && {"calendar_today", Calendar.strftime(read.date, "%a %-d %b")},
+      Kati.Screens.QuickAdd.hours(read),
+      read.remind && {"notifications", Kati.Screens.QuickAdd.alert_line(read)}
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> Enum.chunk_every(2)
+  end
+
+  @doc false
+  def hours(%{time: nil}), do: nil
+
+  def hours(%{time: time, minutes: nil}),
+    do: {"schedule", Calendar.strftime(time, "%H:%M")}
+
+  def hours(%{time: time, minutes: minutes}) do
+    ends = Time.add(time, minutes * 60)
+    {"schedule", Calendar.strftime(time, "%H:%M") <> " – " <> Calendar.strftime(ends, "%H:%M")}
+  end
+
+  @doc false
+  def alert_line(%{time: nil, remind: minutes}), do: "#{minutes}m before"
+
+  def alert_line(%{time: time, remind: minutes}) do
+    Calendar.strftime(Time.add(time, -minutes * 60), "%H:%M") <> " alert"
+  end
+
+  @doc """
+  What the commit button says: the day it will land on.
+
+  Board 18's own `Add to Thursday`, from the day the sentence names rather
+  than from the drawing's. A sentence with no day cannot be added and the
+  button says what is missing instead of naming a day nobody typed.
+  """
+  @spec cta(map(), Date.t()) :: String.t()
+  def cta(%{date: nil}, _today), do: "Say when, and Kati will add it"
+
+  def cta(%{date: date}, today) do
+    cond do
+      date == today -> "Add to today"
+      date == Date.add(today, 1) -> "Add to tomorrow"
+      true -> "Add to " <> Calendar.strftime(date, "%A")
+    end
   end
 
   def render(assigns) do
     draft = assigns.draft
+    sentence = Map.get(assigns, :sentence, "")
+    save_error = Map.get(assigns, :save_error)
 
     ~MOB"""
     <Box
@@ -94,6 +248,8 @@ defmodule Kati.Screens.QuickAdd do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column
@@ -104,11 +260,13 @@ defmodule Kati.Screens.QuickAdd do
           padding_bottom={40}
         >
           {Kati.Screens.QuickAdd.header()}
+          {Kati.Screens.QuickAdd.input(sentence)}
           {Kati.Screens.QuickAdd.field(draft)}
+          {Kati.Screens.QuickAdd.refusal(save_error)}
           {UI.eyebrow("Kati read that as")}
           {Kati.Screens.QuickAdd.parsed(draft)}
           {UI.eyebrow("Or file it as")}
-          {Kati.Screens.QuickAdd.kinds(draft)}
+          {Kati.Screens.QuickAdd.kinds(draft, Map.get(assigns, :filed_as, :event))}
           {Kati.Screens.QuickAdd.actions(draft)}
         </Column>
       </Scroll>
@@ -117,22 +275,197 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   @doc """
-  The tag a kind chip sends, or `nil` for one with nowhere to go.
+  The tag a kind chip sends. Six chips, six tags — MOVIES-AND-TV.md #93.
 
-  `nil` rather than an inert tag, because a chip that sends a tag nothing
-  answers is reported as a dead tap — and these five are not dead, they are
-  undrawn. When each gets its own screen it gets its own tag here.
+  Five of them used to answer `nil`, with the reason *these are not dead, they
+  are undrawn: when each gets its own screen it gets its own tag*. Five of the
+  six do not want a screen. `Kati.Calendars.Event.kind` already takes
+  `:event`, `:reminder`, `:habit`, `:note` and `:money`, so four of the chips
+  are one attribute on the row this screen already writes — the sentence is
+  parsed the same way whichever is lit, and the chip says what the parsed thing
+  IS.
+
+  **Title** is the exception and the one the finding is named for: a film is
+  not an event, so it cannot be a value of that column. It hands the parsed
+  title to screen 06 through `Kati.Search.hand_over/1` — the same handover
+  screen 19's *Look it up* makes — and pushes it, so the add sheet opens
+  already searching for what was typed.
+
+  **Expense** keeps the push it had: screen 124 is drawn for it, and an amount
+  is a parse this screen does not do.
+
+      iex> {_pid, tag} = Kati.Screens.QuickAdd.kind_tap("Reminder")
+      iex> tag
+      :file_as_reminder
   """
-  @spec kind_tap(String.t()) :: {pid(), atom()} | nil
-  def kind_tap("Expense"), do: {self(), :file_as_expense}
-  def kind_tap(_label), do: nil
+  @spec kind_tap(String.t()) :: {pid(), atom()}
+  def kind_tap(label), do: {self(), String.to_atom("file_as_" <> String.downcase(label))}
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  @doc """
+  The `Kati.Calendars.Event.kind` a chip files the sentence as, or `nil`.
+
+  `nil` for the two chips that do not write an event here: **Title** goes to
+  screen 06 and **Expense** to screen 124.
+
+      iex> Kati.Screens.QuickAdd.filing("Note")
+      :note
+
+      iex> Kati.Screens.QuickAdd.filing("Title")
+      nil
+  """
+  @spec filing(String.t()) :: atom() | nil
+  def filing("Event"), do: :event
+  def filing("Reminder"), do: :reminder
+  def filing("Habit"), do: :habit
+  def filing("Note"), do: :note
+  def filing(_elsewhere), do: nil
+
+  def handle_info({:change, :sentence, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:sentence, typed)
+     |> Mob.Socket.assign(:draft, Kati.Screens.QuickAdd.draft(typed))
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  def handle_info({:tap, :commit}, socket) do
+    case Kati.Screens.QuickAdd.commit(socket.assigns.draft, socket.assigns.filed_as) do
+      {:ok, _event} ->
+        {:noreply, Kati.Screens.Resume.pop(socket)}
+
+      {:error, reason} ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+    end
+  end
+
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :file_as_expense}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.QuickAddExpense)}
 
+  # A film is not an event, so this chip is a door rather than a setting. The
+  # handover is what screen 19's *Look it up* makes, so the add sheet opens
+  # already searching for what was typed rather than asking for it again.
+  def handle_info({:tap, :file_as_title}, socket) do
+    # In the PUSH, not through `Kati.Search.hand_over/1`. That key is screen
+    # 19's, and screen 06 has never read it — handing over there would have
+    # opened this sheet blank while quietly changing what the Library's search
+    # disc opens next.
+    {:noreply,
+     Mob.Socket.push_screen(socket, Kati.Screens.AddTitle, %{
+       query: Kati.Screens.QuickAdd.typed_title(socket)
+     })}
+  end
+
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    case Atom.to_string(tag) do
+      "file_as_" <> label ->
+        {:noreply, Kati.Screens.QuickAdd.file_as(socket, label)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc """
+  The words the Title chip hands over: the parsed title, or the whole sentence.
+
+  The parse strips the day, the hour, the duration and the reminder, which is
+  exactly what should not go into a title search — but a sentence it could
+  make nothing of leaves `title` nil, and the raw sentence is a better search
+  term than an empty one.
+  """
+  @spec typed_title(Mob.Socket.t()) :: String.t()
+  def typed_title(socket) do
+    case get_in(socket.assigns, [:draft, :read]) do
+      %{title: title} when is_binary(title) and title != "" -> title
+      _unparsed -> socket.assigns.sentence
+    end
+  end
+
+  @doc false
+  @spec file_as(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def file_as(socket, label) do
+    case Kati.Screens.QuickAdd.filing(String.capitalize(label)) do
+      nil -> socket
+      kind -> Mob.Socket.assign(socket, :filed_as, kind)
+    end
+  end
+
+  @doc """
+  Write the event the sentence describes.
+
+  `Kati.Calendars.Event`'s own create, with the fields a typed sentence can
+  fill and no others: a summary, a start, and an end when a duration was
+  given. `origin: :local` because nobody synced this and `uid` is Kati's own,
+  which is what the resource asks of anything it did not import.
+
+  A sentence with no day is refused rather than filed on today —
+  `Kati.QuickAdd.Parse.committable?/1` states that rule and this is the one
+  place it is enforced. The drawing is refused for the same reason it refuses
+  everything: there is no sentence behind it.
+  """
+  @spec commit(map()) :: {:ok, struct()} | {:error, term()}
+  def commit(draft, filed_as \\ :event)
+
+  def commit(%{read: read}, filed_as) do
+    if Kati.QuickAdd.Parse.committable?(read) do
+      zone = Kati.Time.device_zone()
+      time = read.time || ~T[00:00:00]
+      starts = DateTime.new!(read.date, time, zone) |> DateTime.shift_zone!("Etc/UTC")
+
+      %{
+        uid: "kati-quick-" <> Integer.to_string(System.unique_integer([:positive])),
+        calendar_id: Kati.Screens.QuickAdd.personal_calendar().id,
+        origin: :kati,
+        summary: read.title,
+        # What the lit chip says this is. Four of the six chips are this one
+        # attribute — see `filing/1` — so the sentence is parsed once and filed
+        # under whichever the reader picked.
+        kind: filed_as,
+        dtstart_utc: starts,
+        dtstart_date: read.date,
+        tzid: zone,
+        is_all_day: read.time == nil,
+        dtend_utc: read.minutes && DateTime.add(starts, read.minutes * 60, :second),
+        duration_iso: read.minutes && "PT#{read.minutes}M"
+      }
+      |> then(&Ash.create(Kati.Calendars.Event, &1))
+      |> Kati.Write.note("quick add")
+    else
+      Kati.Write.note({:error, :nothing_to_save}, "quick add")
+    end
+  end
+
+  def commit(_drawn, _filed_as), do: Kati.Write.note({:error, :nothing_to_save}, "quick add")
+
+  @doc """
+  The calendar a quick-added event goes on: the reader's own local one.
+
+  `Kati.Calendars.Event` requires a calendar, which is right — an event has to
+  be somewhere, and *somewhere* is what the visibility switches on screen 32
+  and the colours on screen 02 are about. Board 18's own parse card names it:
+  `label · Personal`.
+
+  Made if it is not there. A phone that has synced nothing has no calendar at
+  all, and refusing the first quick add because of that would be refusing it
+  for a reason the reader cannot act on — there is no *make a calendar* screen
+  in this app. The first local calendar wins if one exists, so somebody who
+  has synced keeps their own.
+  """
+  @spec personal_calendar() :: struct()
+  def personal_calendar do
+    Kati.Calendars.Calendar
+    |> Ash.read!()
+    |> Enum.filter(&(&1.kind == :local))
+    |> List.first()
+    |> case do
+      nil -> Ash.create!(Kati.Calendars.Calendar, %{display_name: "Personal", kind: :local})
+      calendar -> calendar
+    end
+  end
 
   @doc false
   def header do
@@ -191,6 +524,67 @@ defmodule Kati.Screens.QuickAdd do
   # offset draws nothing under the card's own elevation, so it is a 2px border
   # here and the drawing's second layer stays a shadow.
   @doc false
+  # The field itself, which this screen did not have.
+  #
+  # MOVIES-AND-TV.md #31 — the drawn sentence was `Kati.Screens.QuickAdd.
+  # Sample`'s styled pieces, so the page was a picture of somebody typing. A
+  # `TextField` cannot carry styled runs on this bridge, so the highlighting
+  # stays where it was — under the field, over the reader's own words, which is
+  # `field/1` below and is board 18's *highlighted in place* said in the one
+  # primitive there is.
+  #
+  # The placeholder is the board's own sentence. That is not a fallback: board
+  # 18 is drawn MID-TYPING and its sentence is the clearest statement of the
+  # syntax this screen has, so somebody who opens the page and types nothing is
+  # looking at the example they need.
+  @spec input(String.t()) :: map()
+  def input(sentence) do
+    assigns = %{sentence: sentence, on_change: {self(), :sentence}}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row
+        fill_width={true}
+        min_height={52}
+        corner_radius={26}
+        background={Palette.card()}
+        border_width={2}
+        border_color={Palette.ink()}
+        shadow="0 10 22 -14 #991A1917"
+        padding_left={18}
+        padding_right={18}
+        padding_top={6}
+        padding_bottom={6}
+        align="center"
+      >
+        <TextField
+          value={@sentence}
+          placeholder="dentist thu 11am for 45m, remind 1h before"
+          return_key="done"
+          weight={1.0}
+          accessibility_id="quick_add_sentence"
+          on_change={@on_change}
+        />
+      </Row>
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.notice(@message)}
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
   def field(draft) do
     ~MOB"""
     <Column fill_width={true}>
@@ -420,6 +814,57 @@ defmodule Kati.Screens.QuickAdd do
   # Three Texts rather than one, because the drawing bolds the clashing event's
   # name inside the sentence and there is no inline span on this bridge.
   @doc false
+  # What this event would run into, or `nil`.
+  #
+  # Board 18 draws `Clashes with Design review — add anyway?` and the caption
+  # says why it is above the button rather than after it: *the clash warning
+  # appears before the save, not after.* It was `Kati.Screens.QuickAdd.Sample`'s
+  # one sentence; it is the reader's own calendar now.
+  #
+  # An overlap, not a same-day list: two things on Thursday are not a clash and
+  # saying so on every save would train somebody to ignore the line. An all-day
+  # event has no hours to overlap with and clashes with nothing.
+  #
+  # The first one only. A sentence that collides with three things has a
+  # scheduling problem this card cannot express, and naming one of the three is
+  # what makes somebody go and look.
+  @spec clash_for(map()) :: {String.t(), String.t(), String.t()} | nil
+  def clash_for(%{date: %Date{} = date, time: %Time{} = time} = read) do
+    minutes = read.minutes || 60
+    from = DateTime.new!(date, time, Kati.Time.device_zone())
+    to = DateTime.add(from, minutes * 60, :second)
+
+    Kati.Calendars.Today.timed(date)
+    |> Enum.find(&Kati.Screens.QuickAdd.overlaps?(&1, from, to))
+    |> case do
+      nil -> nil
+      event -> {"Clashes with", event.summary || "another event", "— add anyway?"}
+    end
+  rescue
+    _error -> nil
+  end
+
+  def clash_for(_read), do: nil
+
+  @doc """
+  Whether an event runs across the window this sentence asks for.
+
+  An event with no end is given an hour, which is what a calendar entry with
+  no duration means to everybody who has ever made one — and is the same hour
+  `clash_for/1` gives a sentence that named no `for`.
+  """
+  @spec overlaps?(struct(), DateTime.t(), DateTime.t()) :: boolean()
+  def overlaps?(event, from, to) do
+    case event.dtstart_utc do
+      %DateTime{} = starts ->
+        ends = event.dtend_utc || DateTime.add(starts, 3600, :second)
+        DateTime.compare(starts, to) == :lt and DateTime.compare(ends, from) == :gt
+
+      _undated ->
+        false
+    end
+  end
+
   def clash(%{clash: nil}), do: []
 
   def clash(draft) do
@@ -445,12 +890,33 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   @doc false
-  def kinds(draft) do
+  def kinds(draft, filed_as \\ nil)
+
+  # Screen 124 draws this same row and answers none of its tags — it has its
+  # own chip lit and its own screen behind it — so it gets the picture, which
+  # is the rule `Kati.Screens.Rating.scale_toggle/1` states for the toggle it
+  # lends the same way.
+  def kinds(draft, nil) do
     ~MOB"""
     <Column fill_width={true}>
       {draft.kinds
        |> Enum.chunk_every(3)
-       |> Enum.map(fn row -> Kati.Screens.QuickAdd.kind_row(row) end)
+       |> Enum.map(fn row -> Kati.Screens.QuickAdd.kind_row(row, false) end)
+       |> Enum.intersperse(Kati.Screens.QuickAdd.gap())}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def kinds(draft, filed_as) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {draft.kinds
+       |> Enum.map(fn {icon, label, _drawn} ->
+         {icon, label, Kati.Screens.QuickAdd.filing(label) == filed_as}
+       end)
+       |> Enum.chunk_every(3)
+       |> Enum.map(fn row -> Kati.Screens.QuickAdd.kind_row(row, true) end)
        |> Enum.intersperse(Kati.Screens.QuickAdd.gap())}
       <Spacer size={22} />
     </Column>
@@ -458,22 +924,24 @@ defmodule Kati.Screens.QuickAdd do
   end
 
   @doc false
-  def kind_row(row) do
+  def kind_row(row, live?) do
     ~MOB"""
     <Row fill_width={true} align="center">
       {row
-       |> Enum.map(fn kind -> Kati.Screens.QuickAdd.kind(kind) end)
+       |> Enum.map(fn kind -> Kati.Screens.QuickAdd.kind(kind, live?) end)
        |> Enum.intersperse(Kati.Screens.QuickAdd.gap())}
     </Row>
     """
   end
 
-  # The chips are the design's real claim — *one field for the whole app* — so
-  # they have to change what the sentence became. Only `Expense` has a screen
-  # drawn for it (124); the other five would each need their own parse of the
-  # same sentence, and the design draws none of them.
+  # The chips are the design's real claim — *one field for the whole app* — and
+  # they change what the sentence became: four of the six are one value of
+  # `Kati.Calendars.Event.kind`, Title is a door onto screen 06 and Expense one
+  # onto 124. See `kind_tap/1` and `filing/1`.
   @doc false
-  def kind({icon, label, true}) do
+  def kind(chip, live? \\ true)
+
+  def kind({icon, label, true}, live?) do
     ~MOB"""
     <Row
       height={34}
@@ -482,7 +950,7 @@ defmodule Kati.Screens.QuickAdd do
       padding_left={13}
       padding_right={13}
       align="center"
-      on_tap={Kati.Screens.QuickAdd.kind_tap(label)}
+      on_tap={if(live?, do: Kati.Screens.QuickAdd.kind_tap(label))}
     >
       {Kati.UI.symbol(icon, size: 16, color: Palette.on_ink())}
       <Spacer size={7} />
@@ -497,7 +965,7 @@ defmodule Kati.Screens.QuickAdd do
     """
   end
 
-  def kind({icon, label, false}) do
+  def kind({icon, label, false}, live?) do
     ~MOB"""
     <Row
       height={34}
@@ -507,7 +975,7 @@ defmodule Kati.Screens.QuickAdd do
       padding_left={13}
       padding_right={13}
       align="center"
-      on_tap={Kati.Screens.QuickAdd.kind_tap(label)}
+      on_tap={if(live?, do: Kati.Screens.QuickAdd.kind_tap(label))}
     >
       {Kati.UI.symbol(icon, size: 16, color: Palette.sub())}
       <Spacer size={7} />

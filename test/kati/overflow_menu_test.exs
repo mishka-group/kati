@@ -91,7 +91,14 @@ defmodule Kati.OverflowMenuTest do
         socket = socket_after(unquote(module), unquote(open_tag))
         {:noreply, moved} = unquote(module).handle_info({:tap, unquote(tag)}, socket)
 
-        assert moved.__mob__.nav_action == {:push, unquote(dest), %{}}
+        # The expected params are per-destination now: Calendar's two
+        # calendar-day items name the day the strip is on, and everything else
+        # still pushes bare. Written as a function beside the helpers rather
+        # than as a literal here, so a menu item that starts carrying an
+        # argument declares it in one place instead of loosening this assertion
+        # for every menu in the app.
+        assert moved.__mob__.nav_action ==
+                 {:push, unquote(dest), expected_params(unquote(module), unquote(tag), socket)}
       end
     end
 
@@ -132,6 +139,15 @@ defmodule Kati.OverflowMenuTest do
       refute Enum.any?(flatten(rule), &Map.has_key?(&1.props, :on_tap))
     end
   end
+
+  # What each item is expected to hand its destination. Screens 52 and 126 are
+  # about a DAY, and the one thing the menu knows that they cannot ask for is
+  # which day the strip it was opened from is on.
+  defp expected_params(Screens.Calendar, tag, socket)
+       when tag in [:open_meals_day, :open_money_day],
+       do: %{date: socket.assigns.date}
+
+  defp expected_params(_module, _tag, _socket), do: %{}
 
   defp render_after(module, tag), do: module.render(socket_after(module, tag).assigns)
 

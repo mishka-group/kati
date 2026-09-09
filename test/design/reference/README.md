@@ -7,11 +7,13 @@ enforce: `Kati.ScreenDesignLiteralTest` reads every file in `screens/` as the
 claim *a screen exists for this and renders every literal in it*, so a board
 arrives there only once that claim is true.
 
-One remains here.
+Two remain here.
 
 | # | Board | Brief | Why it is still staged |
 |---|---|---|---|
 | 134 | First run — the flow map | `D-23` | Not a screen. See below. |
+| 251 | Doors for the stranded screens | `D-34` | Not a screen — a receipt. See below. |
+| 250 | The moment it fills | `D-58` | Not a screen — a before/after of one page. See below. |
 
 The twenty-five that left are 128–133 (`D-22`, #25), 135–139 (`D-23`, #11),
 140–142 (`D-24`, #12), 143–144 (`D-25`, #15), 145–147 (`D-26`, #19), 148–149
@@ -50,6 +52,38 @@ It answers all three questions `D-23` left open, on the board:
 
 ---
 
+## Screen 251 is a receipt, and it was extracted wrongly the first time
+
+Same failure as 134, one export later. 251 is a 1180px sheet of plain `div`s —
+*"Not a screen — a receipt, like 134"* in its own closing note — so it carries
+no `<x-import IOSDevice>` frame. The 5 September splitter took each
+`data-screen-label` **and the `<x-import>` block that follows it**, so for 251
+it walked past the receipt and captured **248's** frame instead:
+`incoming/251.html` was byte-identical to `incoming/248.html`
+(`6d597c5c866d910c7dce7219c3c4b206`), and `incoming/README.md` listed it as the
+doors board under the wrong brief. Both are corrected; the duplicate is deleted.
+
+It is the board `D-34` asked for, and it answers the four questions that brief
+left open:
+
+  * **The long-press collision** — *"A tile selects. A row rates."* Both
+    meanings stand, because a grid of artwork and a list of rows are
+    unmistakably different surfaces; every long press added ships with a
+    dismissible cream hint above the surface it applies to.
+  * **The sort disc becomes a filter disc** — `tune` replaces `sort`, because
+    145's sheet already owns sort as its first band and two discs would give
+    one sheet two doors.
+  * **Drop is a board control, not an overflow item** — a standard row with a
+    chevron, because dropping is a decision the detail screen exists to support.
+  * **Auto-detect's mode switch is segmented, not chips** — it changes the whole
+    screen rather than filtering it.
+
+It also records four screens deliberately given **no** door — `AnimeFilter`,
+`EpisodeRatings`, `GoalsEmpty` and ~34 states/reference sheets, and
+`LaunchScreen`, which the OS opens rather than the app.
+
+---
+
 ## Screen 40 was redrawn and the redraw is NOT staged
 
 The export replaces screen 40 outright and the replacement contradicts a locked
@@ -83,3 +117,23 @@ old sentence being true:
 
 Building the new 40 would make all three wrong on the same day. Decide the
 product question first; the artboard follows it, not the other way round.
+
+## 250 — the moment it fills
+
+Two frames of **The Northern Gardens** side by side: *Before — a source has not
+found it*, which is board 248, and *After — a source found it*, which is screen
+04 proper with a season bar and `8 episodes arrived`. It is the diff between two
+states of one page rather than a page, so there is nothing for a screen module
+to be.
+
+It is not decoration either — it is the SPEC 248's build was checked against,
+and its note is the claim that build has to keep: *"The claim card is replaced,
+not appended to: once seasons exist, 04's own gate passes and the season bar is
+the truthful thing to draw. The title, the year and the status survive intact —
+154's promise, kept and visible."*
+
+`Kati.Screens.Series.episodes/1` has two clauses for exactly that reason: the
+empty one draws 248's card, and the ordinary one draws the season's rows, and
+nothing appends the first to the second. `Kati.ScreenSeriesTest` asserts both
+sides — that a series with no episodes draws the card and no primary, and that
+one with episodes draws neither the card nor its footnote.

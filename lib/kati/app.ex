@@ -77,6 +77,21 @@ defmodule Kati.App do
     trace("priv probe")
     {:ok, _} = Application.ensure_all_started(:ecto_sqlite3)
     trace("ecto_sqlite3")
+
+    # Req owns a Finch pool, and a pool is a supervision tree — so it has to be
+    # started, and on a device nothing else starts it. `mix` starts every
+    # application in the project's closure on the host, which is why this is
+    # invisible there; Mob boots `start_clean` with an empty `.app` env and
+    # walks nothing, so an application Kati depends on is merely LOADED unless
+    # a line like this one starts it. `start_ash!/0` below is the same problem
+    # solved the same way for Ash's closure.
+    #
+    # Without it the first HTTPS call on a phone dies with `unknown registry:
+    # Req.Finch` — Finch's pool never having been supervised — and it takes
+    # every HTTP caller with it: TMDB and CalDAV sync both. Found by calling
+    # `Kati.Media.Tmdb.search/1` over distribution against the emulator.
+    {:ok, _} = Application.ensure_all_started(:req)
+    trace("req")
     start_ash!()
     trace("ash")
     {:ok, _} = Kati.Repo.start_link()
@@ -102,7 +117,29 @@ defmodule Kati.App do
     # missing table renders as a frozen screen, because the screen GenServer
     # crashes on its first query with nothing on screen to say so.
     trace("migrations")
-    Kati.Runtime.assert!(~w(schema_migrations spike_things))
+    # Every table a screen queries, not a sample of two.
+    #
+    # This asserted `schema_migrations` and `spike_things` — one bookkeeping
+    # table and one throwaway whose own moduledoc asked to be deleted. A phone
+    # that had run two of eighteen migrations passed it, and all 36 real domain
+    # tables went unchecked, which makes the check worse than none: it reads as
+    # a schema guarantee and is not one. A missing table renders as a frozen
+    # screen, because the screen GenServer crashes on its first query with
+    # nothing on screen to say so — which is exactly what this was written to
+    # prevent.
+    #
+    # `Kati.ScreenEmptyDatabaseTest` pins the same list from the other side, so
+    # a table added to one and not the other fails on the host rather than on a
+    # phone.
+    Kati.Runtime.assert!(
+      ~w(event_occurrence_overrides events calendars calendar_accounts recipe_ingredients
+      recipes meal_plan_slots meal_plans meal_logs shopping_list_items foods bundled_foods
+      licensed_foods media_watches media_content_warnings media_warning_preferences
+      tracked_titles cached_titles cached_seasons cached_episodes sync_outbox
+      sync_rejected_changes book_notes book_reading_sessions books music_listens music_tracks
+      music_albums music_artists services goals expenses health_doses health_readings
+      health_medications notification_pending)
+    )
 
     # The root screen starts UNDER Kati.Supervisor, not here. Mob's
     # start_root/3 is a bare GenServer.start_link, so an unsupervised screen
@@ -110,6 +147,19 @@ defmodule Kati.App do
     trace("assert")
     {:ok, _} = Kati.Supervisor.start_link()
     trace("supervisor")
+
+    # The pictures of titles that have not got one yet — see
+    # `Kati.Media.Artwork.backfill/0`. Off the boot path entirely: it is a
+    # network round trip per missing poster and the first frame must not wait
+    # for it. Under `Kati.TaskSupervisor` rather than a bare `spawn/1`, which
+    # is what that supervisor is here for, so a crash in it cannot reach a
+    # screen.
+    #
+    # A no-op on a device that is up to date: one query, no requests.
+    _backfill =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        Kati.Media.ArtworkBackfill.run()
+      end)
 
     # `Kati.Components.register_all/0` is deliberately NOT called here.
     #
@@ -147,6 +197,20 @@ defmodule Kati.App do
     # `{:mob_device, :did_become_active}`, because a cold launch never sends
     # that message and a cold launch is exactly the case where the inbox is
     # full.
+    # #100's third leg, and the same shape as #58's below it. `KatiMediaListener`
+    # records what played while the BEAM was dead — a session is gone by the
+    # time Kati is next opened, which is the one case auto-detect exists for —
+    # and this is where it is read back and acted on. A no-op when detection is
+    # off or notification access has not been granted, which is the normal
+    # state and not an error.
+    _detected =
+      Task.Supervisor.start_child(Kati.TaskSupervisor, fn ->
+        case Kati.Media.Detect.drain() do
+          [] -> :ok
+          done -> :mob_nif.log("Kati: auto-detect applied #{inspect(done)}")
+        end
+      end)
+
     case Kati.Background.Handoff.drain() do
       [] -> :ok
       runs -> :mob_nif.log("Kati: drained #{length(runs)} background refresh runs")
@@ -156,15 +220,34 @@ defmodule Kati.App do
     # enqueue is `ExistingPeriodicWorkPolicy.KEEP`, so calling it on every boot
     # does NOT restart the interval clock. `{:error, :no_bridge}` is the normal
     # answer off Android and must not be logged as a fault.
-    case Kati.Background.Periodic.ensure() do
-      {:ok, %{interval_minutes: minutes}} ->
-        :mob_nif.log("Kati: background refresh every #{minutes}m")
+    # At the cadence the reader chose on screen 25, which defaults to the
+    # constant this used to pass unconditionally. `ensure/1` is `KEEP`, so a
+    # boot at the same interval does not restart the clock (#67).
+    # And the master switch, which is the half that can UNschedule: without it
+    # boot re-enqueues over a reader who turned the watcher off on screen 25,
+    # so it comes back on the next cold start (#67).
+    case Kati.Settings.Watcher.request(
+           Kati.Settings.Watcher.watching?(),
+           Kati.Settings.Watcher.cadence()
+         ) do
+      :cancel ->
+        _cancelled = Kati.Background.Periodic.cancel()
+        :mob_nif.log("Kati: background refresh off — screen 25's master switch")
 
-      {:error, :no_bridge} ->
+      {:ensure, minutes} ->
+        case Kati.Background.Periodic.ensure(interval_minutes: minutes) do
+          {:ok, %{interval_minutes: got}} ->
+            :mob_nif.log("Kati: background refresh every #{got}m")
+
+          {:error, :no_bridge} ->
+            :ok
+
+          {:error, reason} ->
+            :mob_nif.log("Kati: background refresh unavailable: #{inspect(reason)}")
+        end
+
+      :ignore ->
         :ok
-
-      {:error, reason} ->
-        :mob_nif.log("Kati: background refresh unavailable: #{inspect(reason)}")
     end
 
     # A save the user cancelled, or a process that died mid-save, leaves a full

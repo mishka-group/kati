@@ -1,6 +1,11 @@
 defmodule Kati.Screens.Lists.Sample do
   @moduledoc """
-  Stand-in list data for screen 12, until the Screen domain exists.
+  Stand-in list data for screen 12 — the board's own values, and what a device
+  with no lists on it falls back to.
+
+  It used to say *until the Screen domain exists*. `Kati.Lists` exists:
+  `Kati.Lists.Shelf.page/0` is what a reader's own shelf answers with, and this
+  is the frame board 12 was captured in.
 
   Two kinds of list, which is the whole point of the screen: the three at the
   top are hand-made and carry a fanned stack of the artwork they hold, the four

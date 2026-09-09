@@ -85,11 +85,70 @@ defmodule Kati.Screens.Film do
   # class of literal as screen 03's `Up next` tile — so they live in the screen
   # beside the markup that draws them rather than being read back out of the
   # fixture, which would be a lie about where a real render's copy came from.
-  @actions [{"replay", "Log rewatch"}, {"event", "Schedule"}, {"ios_share", "Share"}]
+  # The three pills under the rating card. Each carries the tag it sends, or
+  # `nil` for the two that have nowhere to go yet — they were ALL `nil` and
+  # none of them said so: `action/2` drew a `<Box>` with no `on_tap`, so the
+  # row was three pictures of buttons. A control that sends nothing is
+  # invisible to `Kati.ScreenTapSweepTest`, which walks the tags a tree draws,
+  # so nothing in the suite could report them either. Found by pressing *Log
+  # rewatch* on a Pixel 9a and watching the page not move.
+  #
+  # All three go somewhere now, and the two that did not were each waiting on
+  # something that has since landed (MOVIES-AND-TV.md #84).
+  #
+  # `Schedule` wanted a date sheet this app did not have. It has one: screen 18
+  # takes a sentence and writes a calendar event, so *Schedule* opens it with
+  # the film's own name already typed. One field, and the reader adds the when.
+  #
+  # `Share` wanted the Android share intent, and the note here said it was a
+  # fence nobody had written. `Mob.Share.text/2` is Mob's own — `ACTION_SEND`
+  # through `Intent.createChooser` — and has been there all along.
+  #
+  # Board 334 put **Add to list** in the first slot and moved *Log rewatch* out
+  # of the row into the ink button it always deserved: both 181's empty card and
+  # 182's sheet promise *"open a film, book or album and tap Add to list"*, and
+  # until 7 September no film page had one. The `:log_watch` tap is unchanged —
+  # `menu/1` and `rating_card/1` still carry it, and `action_label/3` still
+  # answers *Log a watch* for a film nobody has seen.
+  @actions [
+    {"bookmarks", "Add to list", :add_to_list},
+    {"event", "Schedule", :schedule_watch},
+    {"ios_share", "Share", :share_film}
+  ]
 
-  def mount(_params, _session, socket) do
+  @doc """
+  What the first pill says, which depends on whether you have seen it.
+
+  It read **Log rewatch** on a film whose own card said `SEEN never` — the
+  label was a constant. A rewatch is a second watch; there is no such thing
+  until there has been a first.
+
+      iex> Kati.Screens.Film.action_label("Log rewatch", :log_watch, 0)
+      "Log a watch"
+
+      iex> Kati.Screens.Film.action_label("Log rewatch", :log_watch, 2)
+      "Log rewatch"
+
+      iex> Kati.Screens.Film.action_label("Schedule", nil, 0)
+      "Schedule"
+  """
+  @spec action_label(String.t(), atom() | nil, non_neg_integer()) :: String.t()
+  def action_label(_drawn, :log_watch, seen) when is_integer(seen) and seen > 0, do: "Log rewatch"
+  def action_label(_drawn, :log_watch, _never), do: "Log a watch"
+  def action_label(drawn, _other, _seen), do: drawn
+
+  # `use Mob.Screen` and not `Kati.Screens.Root`, so this screen's own `mount/3`
+  # takes the push's params directly where a pushed screen reads them off
+  # `assigns.params`. `Map.get/2` and not a pattern match on the key, so a bare
+  # push — the gallery's, every sweep's — still takes the drawing's branch.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, socket |> Mob.Socket.assign(:film, film()) |> Mob.Socket.assign(:menu?, false)}
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:film, film(Map.get(params || %{}, :id)))
+     |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
+     |> Mob.Socket.assign(:menu?, false)}
   end
 
   @doc """
@@ -99,10 +158,14 @@ defmodule Kati.Screens.Film do
   `Kati.Screens.Series` gives for not moving half of itself: a page whose title
   is a real film and whose note is somebody else's evening reads as entirely
   real. Either every value is this user's or every value is the drawing's.
+
+  `id` names the shelf row the caller meant. Without one — the gallery's door,
+  and every arrival before there was anything to name — it is the top of the
+  film shelf, which is what this screen has always drawn.
   """
-  @spec film() :: map()
-  def film do
-    tracked_film() || drawn_film()
+  @spec film(String.t() | nil) :: map()
+  def film(id \\ nil) do
+    tracked_film(id) || drawn_film()
   end
 
   @doc """
@@ -123,15 +186,50 @@ defmodule Kati.Screens.Film do
   `Ash.read!` on a device mid-migration raises, and a screen that dies is
   strictly worse than a screen showing the values it was drawn from — the same
   degradation `Kati.Screens.Library.shelf/0` and `Kati.Calendars.Today` make.
+
+  An id that names no shelf row answers `nil` as well, rather than the top of
+  the shelf. That is `Kati.Screens.BookDetail.shelved_book/1`'s rule and its
+  reason: a row archived or deleted under the user is not the same fact as an
+  empty shelf, and substituting a different film is the swap the argument exists
+  to prevent.
   """
-  @spec tracked_film() :: map() | nil
-  def tracked_film do
-    case newest_film() do
+  @spec tracked_film(String.t() | nil) :: map() | nil
+  def tracked_film(id \\ nil) do
+    case film_record(id) do
       nil -> nil
       tracked -> shaped(tracked, cached_for(tracked), watches_of(tracked))
     end
   rescue
     _ -> nil
+  end
+
+  # The film the caller named, or — given no id — the top of the shelf, which is
+  # what every arrival at this screen used to get and what a bare push still
+  # gets. Read THROUGH `:shelf` rather than with `Ash.get/2` for the reason
+  # `newest_film/0` states below: `:shelf` is where *keeps history, hides from
+  # shelf* is enforced, so an id fetched around it would open a title the user
+  # archived.
+  defp film_record(nil), do: newest_film()
+
+  # ACROSS the Screen kinds, not `:movie` alone. `:anime` is a kind something
+  # writes now (MOVIES-AND-TV.md #104), and a film marked as anime keeps its
+  # `:movie` cache row and opens this screen — `Kati.Media.Anime.film?/2` is
+  # what routes it. Read against `:movie` only, this answered `nil` for exactly
+  # that title and the page fell back to the DRAWING: the reader tapped their
+  # own film and got somebody else's. Found on the Pixel_9a, one tap after
+  # marking one as anime.
+  #
+  # Still through `:shelf`, which is where *keeps history, hides from shelf* is
+  # enforced, and `Kati.Screens.Series.series_record/1` reads its two kinds the
+  # same way for the same reason.
+  defp film_record(title_id) do
+    [:movie, :tv, :anime]
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Enum.find(&(&1.id == title_id))
   end
 
   # The top of the film shelf. `:shelf` rather than a filter written out here:
@@ -187,16 +285,49 @@ defmodule Kati.Screens.Film do
     dated = Enum.sort_by(watches, &sort_key(&1, zone), {:desc, Date})
     noted = Enum.find(dated, &noted?/1)
 
+    where_rows = Kati.Screens.SeriesMeta.where_rows(cached)
+
     %{
+      # The row a log is written against. Carried for the same reason
+      # `Kati.Screens.Series` carries `tracked_id`: the film on screen and the
+      # film a sheet's own query returns first are two different facts, and
+      # `:log_watch` is the tap that has to know which.
+      tracked_id: tracked.id,
       title: title_of(cached),
       seed: seed_of(tracked, cached),
       meta: meta_line(cached),
       watched: watched_label(tracked, dated, zone),
-      stars: star_count(tracked.rating),
+      # The rating comes off the newest WATCH, not off the tracked row.
+      # `Kati.Media.TrackedTitle.rating` has no writer anywhere in the app —
+      # screen 33's Save writes `Kati.Media.Watch.rating`, which is the rating
+      # OF a viewing and is what a person actually gives — so reading the
+      # tracked column meant this card drew five empty stars however many times
+      # somebody rated the film. Found on a device: rate Arrival four stars,
+      # save, reopen, and the card is blank.
+      stars: star_count(newest_rating(watches) || tracked.rating),
       seen: seen_line(watches),
+      # The COUNT as well as the sentence: `action_label/2` needs to know
+      # whether a rewatch is even a thing yet, and `seen_line/1` answers in
+      # words rather than in a number.
+      seen_count: length(watches),
       note_date: noted && note_date(noted, zone),
       note: noted && noted.review,
-      where: [],
+      # Where this film can be watched — the same band screen 14 draws and the
+      # same column it reads. It was `[]` on both, for want of an offers
+      # resource; `Kati.Media.CachedTitle.providers` is that resource now
+      # (MOVIES-AND-TV.md #77). `price` is `nil` on every row because TMDB
+      # says where and never how much, and the row draws it as nothing.
+      where: where_rows,
+      where_line: Kati.Screens.Film.where_line(where_rows),
+      # Kept off a shared card, and off nothing else — see the migration for
+      # `Kati.Media.TrackedTitle.private`.
+      private?: tracked.private,
+      # Board 152's rule 1, read back: which state the ⋯ row offers to leave.
+      anime?: tracked.kind == :anime,
+      # Film or series, for the row that corrects it (#113). `:anime` reads as
+      # whichever the cache says it is, so *This is a film* on an anime series
+      # still means the right thing.
+      media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       actions: @actions
     }
   end
@@ -264,6 +395,16 @@ defmodule Kati.Screens.Film do
   # draws four. Rounding 9 up to five would claim half a star nobody gave. An
   # unrated film is five empty stars, which is what "you have not rated this"
   # looks like — the card is the user's own rating and is never hidden.
+  # The rating on the most recent watch that carries one. Watches arrive newest
+  # first, and a rewatch logged without a rating does not erase the rating of
+  # the viewing before it — *unrated* is a thing a log can be, and it is not a
+  # statement about the film.
+  defp newest_rating(watches) when is_list(watches) do
+    Enum.find_value(watches, fn w -> w.rating end)
+  end
+
+  defp newest_rating(_other), do: nil
+
   defp star_count(rating) when is_integer(rating), do: div(rating, 2)
   defp star_count(_rating), do: 0
 
@@ -327,6 +468,8 @@ defmodule Kati.Screens.Film do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column fill_width={true}>
@@ -345,7 +488,7 @@ defmodule Kati.Screens.Film do
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Film.chrome(assigns.menu?)}
+      {Kati.Screens.Film.chrome(assigns.menu?, Map.get(assigns, :back, "Library"), f)}
     </Box>
     """
   end
@@ -468,7 +611,7 @@ defmodule Kati.Screens.Film do
   end
 
   @doc false
-  def chrome(menu?) do
+  def chrome(menu?, label \\ "Library", f \\ %{}) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     # `box-shadow:0 6px 16px -8px rgba(26,25,23,.6)` — this screen floats its
@@ -479,9 +622,9 @@ defmodule Kati.Screens.Film do
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
       <Row fill_width={true} padding_left={21} padding_right={21} padding_top={60} align="center">
-        {Kati.Screens.Film.back_pill(back, fill, lift)}
+        {Kati.Screens.Film.back_pill(back, fill, lift, label)}
         <Spacer weight={1.0} />
-        {Kati.Screens.Film.more_disc(fill, lift, menu?)}
+        {Kati.Screens.Film.more_disc(fill, lift, menu?, f)}
       </Row>
     </Box>
     """
@@ -503,8 +646,8 @@ defmodule Kati.Screens.Film do
   empty one where a ✕ would sit) all hug and all centre vertically by default,
   so the chevron, the 6pt gap and `Library` sit where they sat.
   """
-  @spec back_pill(term(), non_neg_integer(), String.t()) :: map()
-  def back_pill(back, fill, lift) do
+  @spec back_pill(term(), non_neg_integer(), String.t(), String.t()) :: map()
+  def back_pill(back, fill, lift, label \\ "Library") do
     MishkaPill.pill(
       [
         background: fill,
@@ -517,18 +660,20 @@ defmodule Kati.Screens.Film do
         align: :center,
         on_tap: back
       ],
-      Kati.Screens.Film.back_content()
+      Kati.Screens.Film.back_content(label)
     )
   end
 
   @doc false
-  def back_content do
+  def back_content(label \\ "Library") do
+    assigns = %{back: label}
+
     [
-      Kati.UI.symbol("arrow_back_ios_new", size: 17),
+      Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17),
       ~MOB"<Spacer size={6} />",
       ~MOB"""
       <Text
-        text="Library"
+        text={@back}
         text_size={13.5}
         font_weight="semibold"
         letter_spacing={-0.01}
@@ -553,7 +698,7 @@ defmodule Kati.Screens.Film do
   centred Text did.
   """
   @spec more_disc(non_neg_integer(), String.t(), boolean()) :: map()
-  def more_disc(fill, lift, menu?) do
+  def more_disc(fill, lift, menu?, f \\ %{}) do
     trigger =
       MishkaActionIcon.action_icon(
         [
@@ -573,9 +718,48 @@ defmodule Kati.Screens.Film do
     Kati.UI.Menu.overflow(
       trigger,
       menu?,
-      [Kati.UI.Menu.item("star", "Log a watch", :log_watch)],
+      [
+        Kati.UI.Menu.item("star", "Log a watch", :log_watch),
+        # The one control that can set `Kati.Media.TrackedTitle.private`, and
+        # therefore the one thing that makes screen 98's *Hide titles I marked
+        # private* a switch about anything (MOVIES-AND-TV.md #103). A decision
+        # about one title belongs on that title's own page.
+        Kati.UI.Menu.item(
+          Kati.Screens.Film.private_icon(f),
+          Kati.Screens.Film.private_label(f),
+          :toggle_private
+        ),
+        # MOVIES-AND-TV.md #110: a film could not be dropped, abandoned or
+        # DNF'd anywhere in the app. Screen 149 is the sheet for it — it is
+        # series-shaped in exactly two places, its header and its position
+        # card, and both are answered by the title's own kind now rather than
+        # assumed.
+        Kati.Screens.Film.drop_item(f),
+        Kati.Screens.Film.anime_item(f),
+        Kati.Screens.Film.kind_item(f)
+      ]
+      |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
     )
+  end
+
+  @doc """
+  *Drop this film*, or nothing at all when there is no film to drop.
+
+  MOVIES-AND-TV.md #110 gives the row and the app's own rule takes it away
+  again over the drawing: screen 08 renders a fixture when nothing is tracked,
+  and a Drop row there would open the sheet on whatever the newest gone-cold
+  title happens to be — the exact swap `Kati.Screens.DropSheet.sheet/1`'s
+  argument exists to prevent. Dropped rather than drawn dead, which is what
+  `rating_card/1` already does with its own tap on the same page.
+  """
+  @spec drop_item(map()) :: map() | []
+  def drop_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item("do_not_disturb_on", "Drop this film", :open_drop_sheet)
+    else
+      []
+    end
   end
 
   # Two hugging children with a weighted Spacer between them, not a weighted
@@ -585,6 +769,18 @@ defmodule Kati.Screens.Film do
   # 333dp tall against the drawing's 84 and the stars did not appear at all.
   @doc false
   def rating_card(f) do
+    # The card is the door to the sheet that sets a rating — MOVIES-AND-TV.md
+    # #85. It was painted, so a reader looking at their own four stars had no
+    # way to change them from the page that shows them; screen 33 is where a
+    # rating is written, and this is the only thing on 08 that is about one.
+    #
+    # `:rate` rather than `:log_watch`, though it opens the same sheet. Three
+    # controls on this page carried `:log_watch` and two of them are drawn at
+    # once, so `ui.sh ids` on the Pixel_9a listed the tag twice — and two nodes
+    # may not share an `accessibility_id`: `onNodeWithTag` throws on the second
+    # match. One action, three doors, three names.
+    tap = if Map.get(f, :tracked_id), do: {self(), :rate}
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -593,6 +789,7 @@ defmodule Kati.Screens.Film do
       shadow={Kati.Theme.shadow_card()}
       padding={17}
       align="center"
+      on_tap={tap}
     >
       <Column weight={1.0}>
         <Text
@@ -680,7 +877,7 @@ defmodule Kati.Screens.Film do
             text_color={Palette.cream_meta()}
           />
           <Spacer weight={1.0} />
-          {Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}
+          {Kati.Screens.Film.note_pencil(f)}
         </Row>
         <Spacer size={9} />
         <Text text={f.note} text_size={14} line_height={1.55} text_color={Palette.cream_body()} />
@@ -703,9 +900,41 @@ defmodule Kati.Screens.Film do
   A list, so the flattened result is the two nodes `render/1` used to name
   itself and the drawn film is unchanged to the node.
   """
-  @spec where_section(map()) :: [map()]
-  def where_section(%{where: []}), do: []
-  def where_section(f), do: [UI.eyebrow("Where to watch"), Kati.Screens.Film.where(f)]
+  @spec where_section(map(), boolean() | nil) :: [map()]
+  # MOVIES-AND-TV.md #120. Board 96's first band — *Set up your services to see
+  # where this is streaming* — is a section screen 08 replaces, and 08 drew
+  # nothing at all instead. The two absences are different and only one of them
+  # is the reader's to fix: *nothing you pay for carries this film* is a fact
+  # about the film, and *you have not told Kati what you pay for* is a fact
+  # about the account, with a button on it.
+  #
+  # `set_up?/0` could not answer `false` until #75 took the fixture fallback
+  # off `Kati.Screens.MyServices.listed/0`; screen 96's own moduledoc named
+  # that as the change these four bands were waiting on.
+  def where_section(film, set_up? \\ nil)
+
+  def where_section(%{where: []}, set_up?) do
+    # The gate as an argument, defaulting to the live one. A caller that already
+    # knows — a captured frame, a test about one branch — says so rather than
+    # writing a service into a store the rest of the suite shares.
+    gate = if is_nil(set_up?), do: Kati.Screens.NothingSetUpKnockOn.set_up?(), else: set_up?
+
+    if gate do
+      []
+    else
+      [
+        UI.eyebrow("Where to watch"),
+        Kati.Screens.NothingSetUpKnockOn.prompt(
+          "Set up your services to see where this is streaming",
+          "Kati knows this film exists. It cannot say whether you can watch it tonight " <>
+            "until it knows what you pay for.",
+          :my_services_where_to_watch
+        )
+      ]
+    end
+  end
+
+  def where_section(f, _set_up?), do: [UI.eyebrow("Where to watch"), Kati.Screens.Film.where(f)]
 
   @doc false
   def where(f) do
@@ -743,7 +972,7 @@ defmodule Kati.Screens.Film do
           max_lines={1}
         />
         <Text
-          text={row.price}
+          text={Map.get(row, :line) || Map.get(row, :price) || ""}
           font_family="mono"
           text_size={11}
           text_color={Palette.muted()}
@@ -752,6 +981,29 @@ defmodule Kati.Screens.Film do
       </Row>
       {Kati.Screens.Film.hairline(rule?)}
     </Column>
+    """
+  end
+
+  @doc """
+  The pencil on the note card: the sheet the note was written in.
+
+  Screen 33 holds the review — it is the one field in this app that writes
+  `Kati.Media.Watch.review` — so *edit this note* is *open the log this note
+  belongs to*. MOVIES-AND-TV.md #85; it was a painted glyph.
+
+  A drawn film has no row to edit and gets a picture, which is what board 08's
+  own state is.
+  """
+  @spec note_pencil(map()) :: map()
+  def note_pencil(f) do
+    # `:edit_note`, not `:log_watch` — see `rating_card/1` on why each door
+    # onto screen 33 carries its own tag.
+    assigns = %{tap: if(Map.get(f, :tracked_id), do: {self(), :edit_note})}
+
+    ~MOB"""
+    <Box on_tap={@tap} fill_width={false}>
+      {Kati.UI.symbol("edit", size: 17, color: Palette.gold_icon())}
+    </Box>
     """
   end
 
@@ -822,7 +1074,7 @@ defmodule Kati.Screens.Film do
     <Column fill_width={true}>
       <Spacer size={14} />
       <Row fill_width={true} align="top">
-        {f.actions |> Enum.map(fn {icon, label} -> Kati.Screens.Film.action(icon, label) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
+        {f.actions |> Enum.map(fn {icon, label, tag} -> Kati.Screens.Film.action(icon, label, tag, Map.get(f, :seen_count, 0)) end) |> Enum.intersperse(Kati.Screens.Film.action_gap())}
       </Row>
     </Column>
     """
@@ -836,9 +1088,15 @@ defmodule Kati.Screens.Film do
   # to the left edge — the icons and labels sat against the button's left side.
   # A Box centres its content in both axes when given `align`.
   @doc false
-  def action(icon, label) do
+  def action(icon, drawn_label, tag, seen \\ 0) do
+    label = Kati.Screens.Film.action_label(drawn_label, tag, seen)
+    # `nil` for the two pills with nowhere to go — a `<Box>` with a nil
+    # `on_tap` draws no tap at all, which is what they did before and is the
+    # honest state until each has a destination.
+    tap = if tag, do: {self(), tag}
+
     ~MOB"""
-    <Box weight={1.0}>
+    <Box weight={1.0} on_tap={tap}>
       <Box
         fill_width={true}
         height={52}
@@ -868,7 +1126,7 @@ defmodule Kati.Screens.Film do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :toggle_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
@@ -876,12 +1134,371 @@ defmodule Kati.Screens.Film do
   def handle_info({:tap, :close_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
 
-  def handle_info({:tap, :log_watch}, socket) do
+  # The sheet is about a watch OF this film, so it is told which. Bare, "Log a
+  # watch" on one film opened whatever the newest logged watch in the whole
+  # library happened to be.
+  # Three doors onto screen 33 — the action pill, the rating card and the note
+  # pencil — and one behaviour. Three tags because two nodes may not share an
+  # `accessibility_id`; one clause because it is one action.
+  def handle_info({:tap, tag}, socket) when tag in [:log_watch, :rate, :edit_note] do
     {:noreply,
      socket
      |> Mob.Socket.assign(:menu?, false)
-     |> Mob.Socket.push_screen(Kati.Screens.Rating)}
+     |> Mob.Socket.push_screen(
+       Kati.Screens.Rating,
+       Kati.Screens.Rating.params_for(socket.assigns.film)
+     )}
+  end
+
+  # Drop this film: screen 149, over the title this page is drawing.
+  #
+  # MOVIES-AND-TV.md #110. The sheet was reachable only from a series, so a
+  # film had no way to be dropped, abandoned or DNF'd at all.
+  #
+  # Named, exactly as screen 04's row is and for the same reason its comment
+  # gives: bare, the sheet opens on the newest gone-cold title in the store,
+  # which is not the film in front of the reader and may be nothing to do with
+  # it — a Drop that dropped somebody else's title.
+  #
+  # A comment rather than a `@doc`, because these are clauses of one
+  # `handle_info/2` and a second doc on it discards the first.
+  def handle_info({:tap, :open_drop_sheet}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(
+       Kati.Screens.DropSheet,
+       Kati.Screens.DropSheet.params_for(socket.assigns.film)
+     )}
+  end
+
+  @doc """
+  Put this film on the calendar: screen 18, with its name already typed.
+
+  A film you mean to watch is a thing that is going to happen, and screen 18
+  is the one field in this app that takes *a thing that is going to happen*.
+  It is pre-filled with `Watch <title>` rather than the bare title, because
+  the sentence a reader completes is *watch Dune tomorrow 8pm* and the verb is
+  the part they should not have to type.
+  """
+  def handle_info({:tap, :schedule_watch}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:menu?, false)
+     |> Mob.Socket.push_screen(Kati.Screens.QuickAdd, %{
+       sentence: "Watch " <> socket.assigns.film.title
+     })}
+  end
+
+  # Mark this film private, or unmark it — the one write behind screen 98's
+  # *Hide titles I marked private*, which was a switch with nothing to mark.
+  #
+  # It hides the title from that CARD and from nowhere else. The shelf, Up next
+  # and the year's own numbers are unchanged, because a private title is still a
+  # title you watched.
+  def handle_info({:tap, :toggle_private}, socket) do
+    f = socket.assigns.film
+
+    with id when is_binary(id) <- Map.get(f, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{private: not tracked.private})
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:film, %{f | private?: updated.private})}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # Board 152's rule 1, written. `anime_override` is three-valued and this only
+  # ever sets it to `true` or `false` — a reader who has pressed the row HAS
+  # said, and `nil` is the state of never having been asked (#104).
+  def handle_info({:tap, :toggle_anime}, socket) do
+    f = socket.assigns.film
+
+    with id when is_binary(id) <- Map.get(f, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         now? <- tracked.kind == :anime,
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{
+             anime_override: not now?,
+             kind: Kati.Media.Anime.kind_for(tracked.kind, nil, not now?)
+           })
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:film, Map.put(f, :anime?, updated.kind == :anime))}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # Kind, corrected. MOVIES-AND-TV.md #113: a hand-typed title takes its Kind
+  # from a two-chip answer on 154 and nothing could change it afterwards — a
+  # show picked as a film sat on the wrong screen forever, and the add path
+  # refused to let you type it again because the name was taken.
+  #
+  # `Kati.Screens.Resume.pop/1` rather than a push: the title has moved to the
+  # other screen, and the page the reader is on is now about a kind this title
+  # is not. Popping puts them back where they came from, and the tile there
+  # opens the right screen.
+  def handle_info({:tap, :swap_kind}, socket) do
+    f = socket.assigns.film
+
+    with id when is_binary(id) <- Map.get(f, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         swapped <- Kati.Screens.Film.swapped(Map.get(f, :media_kind, :movie)),
+         {:ok, _updated} <- Kati.Screens.Film.rekind(tracked, swapped) do
+      {:noreply, socket |> Mob.Socket.assign(:menu?, false) |> Kati.Screens.Resume.pop()}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # Board 96's button, on the band above. One clause, because the sheet's whole
+  # point is that one screen answers all four (#120).
+  def handle_info({:tap, :my_services_where_to_watch}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+
+  # Hand the film to the system share sheet.
+  #
+  # `Mob.Share.text/2`, which is Mob's own and needed no fence: `ACTION_SEND`
+  # through `Intent.createChooser` on Android, `UIActivityViewController` on
+  # iOS. The comment beside `@actions` said this was waiting on something
+  # nobody had written; it was there all along.
+  #
+  # Fire-and-forget by construction — nothing comes back into the BEAM — so
+  # there is nothing to report and nothing to draw. The socket is unchanged,
+  # which `Mob.Share.text/2` documents in as many words.
+  # Board 334's door, over this page and carrying this film.
+  def handle_info({:tap, :add_to_list}, socket) do
+    film = socket.assigns.film || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Lists.Door.title_member(film), Map.get(film, :title))}
+  end
+
+  def handle_info({:tap, :share_film}, socket) do
+    {:noreply, Mob.Share.text(socket, Kati.Screens.Film.share_line(socket.assigns.film))}
+  end
+
+  # Coming back from the log sheet, or from anything else pushed over this
+  # page. See `Kati.Screens.Resume`: a popped-to screen restores its saved
+  # socket, so *Log a watch* → Save → back left the stars empty, `SEEN never`
+  # and the first pill still reading *Log a watch* — the write had landed and
+  # the page in front of the reader said it had not.
+  #
+  # This screen is hand-rolled rather than `Kati.Screens.Pushed`, so nothing
+  # routes `{:kati, …}` to a `handle_kati/3` for it; the clause is the routing.
+  # The id is re-read off the film on screen so the refresh describes the same
+  # title the arrival did.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply, Mob.Socket.assign(socket, :film, film(Map.get(socket.assigns.film, :tracked_id)))}
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  Where this film can be watched, as one line, or `nil`.
+
+  The FIRST row of the band, which is the first way it is offered — what the
+  reader pays for, then free, then rent, then buy, in `Kati.Screens.SeriesMeta.
+  where_rows/1`'s own order.
+
+  Not `Kati.Media.Availability.line/3`, and the difference matters here: that
+  one answers *what can YOU watch*, which is the right question for hiding a
+  title and the wrong one for telling somebody else about it. A film on
+  Kanopy is on Kanopy whether or not the person sharing it subscribes.
+
+  `nil` for a film nobody has looked up, which keeps *Dune* out of a share
+  that would otherwise claim it was available nowhere.
+
+      iex> Kati.Screens.Film.where_line([])
+      nil
+
+      iex> Kati.Screens.Film.where_line([%{name: "Kanopy", line: "included"}])
+      "On Kanopy"
+
+      iex> Kati.Screens.Film.where_line([%{name: "Apple TV", line: "rent"}])
+      "Rent from Apple TV"
+  """
+  @spec where_line([map()]) :: String.t() | nil
+  def where_line([]), do: nil
+  def where_line([%{name: name, line: "rent"} | _rest]), do: "Rent from " <> name
+  def where_line([%{name: name, line: "buy"} | _rest]), do: "Buy from " <> name
+  def where_line([%{name: name} | _rest]), do: "On " <> name
+
+  @doc """
+  The ⋯ row that marks a title private, and what it says.
+
+  Two labels rather than a switch, because an overflow row is a verb: *Keep off
+  shared cards* is what pressing it does, and *Show on shared cards* is what
+  pressing it does when it is already off one.
+  """
+  @spec private_label(map()) :: String.t()
+  def private_label(%{private?: true}), do: "Show on shared cards"
+  def private_label(_film), do: "Keep off shared cards"
+
+  @doc """
+  The glyph beside it.
+
+  `visibility_off` both ways, and `lock` is not the alternative it looks like:
+  Kati's icon subset carries exactly two of this family — `Kati.Icons.glyph!/1`
+  raises on anything else, which is how a `visibility` here took the film
+  screen down on the Pixel_9a and sent the app back to Home. The row's WORD
+  carries the state; the glyph names the subject.
+  """
+  @spec private_icon(map()) :: String.t()
+  def private_icon(_film), do: "visibility_off"
+
+  @doc """
+  Board 152's first rule, as a row: *Your own tag — always wins, you know.*
+
+  MOVIES-AND-TV.md #104. The reader's own answer is rule 1 and there was
+  nowhere in the app to give it. This is that place, on the same ⋯ that carries
+  *Keep off shared cards* and for its reason: a decision about one title
+  belongs on that title's own page.
+
+  The word says what pressing it does, which is why it is not *Anime* with a
+  tick. A title Kati already files as anime offers to stop; one it does not
+  offers to start.
+
+      iex> Kati.Screens.Film.anime_label(%{anime?: true})
+      "Not anime"
+
+      iex> Kati.Screens.Film.anime_label(%{anime?: false})
+      "Mark as anime"
+  """
+  @spec anime_label(map()) :: String.t()
+  def anime_label(%{anime?: true}), do: "Not anime"
+  def anime_label(_title), do: "Mark as anime"
+
+  @doc """
+  The row, or nothing at all when there is no title behind it.
+
+  Dropped rather than drawn dead over the drawing, which is `drop_item/1`'s
+  rule on this page and the app's everywhere.
+  """
+  @spec anime_item(map()) :: map() | []
+  def anime_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item("auto_awesome", Kati.Screens.Film.anime_label(f), :toggle_anime)
+    else
+      []
+    end
+  end
+
+  @doc """
+  *This is a series* / *This is a film* — the one row that corrects a Kind.
+
+  MOVIES-AND-TV.md #113. A hand-typed title takes its Kind from a two-chip
+  answer on screen 154, and no screen in the app could change it afterwards:
+  picking Film for a show meant a title on the wrong screen forever, with the
+  add path refusing to let you type it again because the name was taken.
+
+  It is a menu row rather than a control on the page, for `private`'s reason
+  and `anime`'s: a decision about one title belongs on that title's own page,
+  and the ⋯ is where the decisions that are not about watching live.
+
+      iex> Kati.Screens.Film.kind_label(:movie)
+      "This is a series"
+
+      iex> Kati.Screens.Film.kind_label(:tv)
+      "This is a film"
+  """
+  @spec kind_label(atom()) :: String.t()
+  def kind_label(:movie), do: "This is a series"
+  def kind_label(_series), do: "This is a film"
+
+  @doc false
+  @spec kind_item(map()) :: map() | []
+  def kind_item(f) do
+    if Map.get(f, :tracked_id) do
+      Kati.UI.Menu.item(
+        "swap_horiz",
+        Kati.Screens.Film.kind_label(Map.get(f, :media_kind, :movie)),
+        :swap_kind
+      )
+    else
+      []
+    end
+  end
+
+  @doc """
+  The other kind.
+
+      iex> Kati.Screens.Film.swapped(:movie)
+      :tv
+
+      iex> Kati.Screens.Film.swapped(:tv)
+      :movie
+  """
+  @spec swapped(atom()) :: atom()
+  def swapped(:movie), do: :tv
+  def swapped(_series), do: :movie
+
+  @doc """
+  Write the corrected kind to BOTH rows, because both hold one.
+
+  `Kati.Media.TrackedTitle.kind` is what the shelf queries and
+  `Kati.Media.CachedTitle.kind` is what decides which screen a tile opens
+  (`Kati.Media.Anime.film?/2`), so correcting one and not the other would put
+  the title on the right shelf behind the wrong door.
+
+  An anime keeps being an anime: the tracked row's `:anime` is the flag, and
+  the cache is where film-or-series lives — see `Kati.Media.Anime`.
+  """
+  @spec rekind(term(), atom()) :: {:ok, term()} | {:error, term()}
+  def rekind(tracked, kind) do
+    Kati.Media.CachedTitle
+    |> Ash.Query.filter(source == ^tracked.source and source_id == ^tracked.source_id)
+    |> Ash.read!()
+    |> Enum.each(&(&1 |> Ash.Changeset.for_update(:update, %{kind: kind}) |> Ash.update!()))
+
+    tracked
+    |> Ash.Changeset.for_update(:update, %{
+      kind: if(tracked.kind == :anime, do: :anime, else: kind)
+    })
+    |> Ash.update()
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc """
+  What gets shared: the title, the year, and where it can be watched.
+
+  The last part is the one worth sending. `Kati.Media.Availability` knows it
+  now, and *Dune (2021) — On Netflix* is a message somebody can act on where
+  *Dune* is a message they have to look up.
+
+      iex> Kati.Screens.Film.share_line(%{title: "Dune", meta: "2021 · SCI-FI", where_line: nil})
+      "Dune (2021)"
+
+      iex> Kati.Screens.Film.share_line(%{title: "Dune", meta: nil, where_line: "On Netflix"})
+      "Dune — On Netflix"
+  """
+  @spec share_line(map()) :: String.t()
+  def share_line(film) do
+    [
+      film.title <> year_suffix(Map.get(film, :meta)),
+      Map.get(film, :where_line)
+    ]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" — ")
+  end
+
+  defp year_suffix(meta) when is_binary(meta) do
+    case Regex.run(~r/\b(\d{4})\b/, meta) do
+      [_all, year] -> " (" <> year <> ")"
+      _no_year -> ""
+    end
+  end
+
+  defp year_suffix(_none), do: ""
 end

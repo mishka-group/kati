@@ -49,7 +49,7 @@ defmodule Kati.ScreenActivityTest do
   @drawn_day ~D[2026-08-16]
 
   # Children first: media_watches carries the foreign key into tracked_titles.
-  @tables ~w(media_watches media_content_warnings tracked_titles cached_titles)
+  @tables ~w(media_events media_watches media_content_warnings tracked_titles cached_titles)
 
   # The whole suite shares one SQLite file (test/test_helper.exs), so an empty
   # database has to be made rather than assumed — and made again afterwards,
@@ -130,13 +130,21 @@ defmodule Kati.ScreenActivityTest do
       [drawn_rewatch | _finished_dropped_imported] = Sample.earlier()
       [drawn_count | _] = Sample.rewatch()
 
-      assert log.today == [drawn_tick, drawn_rating],
+      # Compared on the DRAWING's own keys. A real row also carries `:id` and
+      # `:kind`, which is what makes it openable — MOVIES-AND-TV.md #90 — and
+      # a drawn row carries neither, which is what keeps board 15's rows
+      # pictures rather than dead controls. That difference is the feature;
+      # asserting the whole map would be asserting it away.
+      assert drawn_only(log.today) == [drawn_tick, drawn_rating],
              "a watch and a rating no longer shape into the rows the drawing " <>
                "shows. Got #{inspect(log.today)}"
 
-      assert log.earlier == [drawn_rewatch],
+      assert drawn_only(log.earlier) == [drawn_rewatch],
              "a rewatch no longer shapes into `#{drawn_rewatch.rest}`. " <>
                "Got #{inspect(log.earlier)}"
+
+      assert Enum.all?(log.today ++ log.earlier, &is_binary(&1.id)),
+             "a row with no id cannot be opened, which is the whole of #90"
 
       assert log.rewatch == [drawn_count]
       assert log.entries_line == "3 entries"
@@ -156,6 +164,54 @@ defmodule Kati.ScreenActivityTest do
       refute text(view) =~ "8"
     end
   end
+
+  describe "opening an entry" do
+    test "the row carries the title it is about" do
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      watch!(hollow, %{watched_at: at(Kati.Time.today(), ~T[21:12:00])})
+
+      [row] = Activity.entries(Kati.Time.today()).today
+
+      assert row.id == hollow.id
+      assert row.kind == :tv
+      assert Activity.open_tag(row) == String.to_atom("open_" <> hollow.id)
+    end
+
+    test "and tapping it opens that title, under a pill reading Activity" do
+      blue = title!("bluehour58", "Blue Hour", :movie)
+      watch!(blue, %{watched_at: at(Kati.Time.today(), ~T[20:40:00])})
+
+      view = mount_screen(Activity)
+      [row] = assigns(view).log.today
+
+      socket =
+        Kati.Screens.Activity
+        |> Mob.Socket.new()
+        |> Mob.Socket.assign(:log, assigns(view).log)
+
+      pushed = Activity.open(socket, Activity.open_tag(row))
+
+      assert {:push, Kati.Screens.Film, %{id: id, back: "Activity"}} =
+               Map.get(pushed.__mob__, :nav_action)
+
+      assert id == blue.id
+    end
+
+    test "a drawn row opens nothing, because there is no title behind it" do
+      assert Enum.all?(Kati.Activity.Sample.today(), &(Activity.open_tag(&1) == nil))
+    end
+
+    test "and the tune disc opens the sheet the chips narrow with" do
+      socket = Mob.Socket.new(Kati.Screens.Activity)
+      {:noreply, pushed} = Activity.handle_tap(:open_filters, socket)
+
+      assert {:push, Kati.Screens.ShelfFilters, _} = Map.get(pushed.__mob__, :nav_action)
+    end
+  end
+
+  # The row as the drawing describes it: every key board 15 has, and none of
+  # the two a device adds so the entry can be opened.
+  defp drawn_only(rows), do: Enum.map(rows, &Map.drop(&1, [:id, :kind]))
 
   describe "real rows replace the drawing" do
     test "a watch recorded today is the log, and the sample is gone" do
@@ -189,7 +245,12 @@ defmodule Kati.ScreenActivityTest do
       refute copy =~ "REWATCH COUNT"
     end
 
-    test "a watch from before this month leaves the drawing standing" do
+    test "a watch from before this month is still this reader's history" do
+      # This used to assert the opposite, and the opposite was
+      # MOVIES-AND-TV.md #58: the gate was `%{today: [], earlier: []}`, both of
+      # which are month-scoped, so a reader whose watches are all older than
+      # the first was handed `1,204 entries` over seven invented rows — and the
+      # rewatch card, which counts their WHOLE history, was replaced too.
       hollow = title!("hollow71", "The Long Hollow", :tv)
       last_month = Date.add(Date.beginning_of_month(Kati.Time.today()), -3)
 
@@ -200,12 +261,31 @@ defmodule Kati.ScreenActivityTest do
       })
 
       view = mount_screen(Activity)
+      copy = text(view)
 
-      assert assigns(view).log == Activity.drawn(),
-             "a watch older than this month belongs to neither group, so the " <>
-               "screen has nothing of its own to show and must draw the drawing."
+      refute assigns(view).log == Activity.drawn(),
+             "a reader with a history was shown the drawing's"
 
+      assert assigns(view).log.count == 1
+      assert copy =~ "1 entry"
+      refute copy =~ Sample.entries_line()
+
+      # Neither month group can hold it, so the page says which month is empty
+      # rather than leaving two silent gaps under the header.
+      assert copy =~ "Nothing this month"
+
+      # And none of the seven rows the drawing carries.
+      for row <- Sample.today() ++ Sample.earlier() do
+        refute copy =~ row.rest, "the drawing's rows are still on a real reader's log"
+      end
+    end
+
+    test "and a device that has recorded nothing at all still draws the drawing" do
+      view = mount_screen(Activity)
+
+      assert assigns(view).log == Activity.drawn()
       assert text(view) =~ Sample.entries_line()
+      refute text(view) =~ "Nothing this month"
     end
   end
 
@@ -235,6 +315,78 @@ defmodule Kati.ScreenActivityTest do
              "the Rated chip matched a plain tick. The chip filters on `lead` " <>
                "and nothing else, so a tick shaped with the wrong verb passes " <>
                "every other test in this file and fails here."
+    end
+
+    test "Added finds a real add, which nothing could produce before" do
+      # MOVIES-AND-TV.md #112: `verb/2` returned only Watched, Rated or
+      # Rewatched, so the fourth chip matched nothing on any device — and
+      # nothing recorded that a title had arrived at all.
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      Kati.Media.Log.write(hollow, :added, %{from_status: nil})
+
+      added = Activity |> mount_screen() |> render_info({:tap, :filter_Added}) |> text()
+
+      assert added =~ "The Long Hollow"
+      assert added =~ "Added"
+    end
+
+    test "a drop carries its position and its reason into the log" do
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+
+      Kati.Media.Log.write(hollow, :dropped, %{
+        season_number: 1,
+        episode_number: 3,
+        reason: "Too slow"
+      })
+
+      drawn = text(mount_screen(Activity))
+
+      assert drawn =~ "Dropped"
+      assert drawn =~ "after S1E3"
+      assert drawn =~ "too slow"
+    end
+
+    test "an import is a row with no title behind it" do
+      # `tracked_title_id` is nullable for exactly this: screen 15's own sample
+      # carries *Imported 412 titles from a CSV backup*.
+      title!("hollow71", "The Long Hollow", :tv)
+      Kati.Media.Log.imported(412, "goodreads_library_export.csv")
+
+      drawn = text(mount_screen(Activity))
+
+      assert drawn =~ "Imported"
+      assert drawn =~ "412 titles"
+    end
+
+    test "a chip that matches nothing says so rather than drawing a blank" do
+      # The second half of #112: the page kept its header and its chips over
+      # nothing at all, which reads as a search that broke.
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      watch!(hollow, %{watched_at: at(Kati.Time.today(), ~T[12:00:00])})
+
+      added = Activity |> mount_screen() |> render_info({:tap, :filter_Added}) |> text()
+
+      assert added =~ "No added entries this month"
+      assert added =~ "Press All to see it"
+
+      # And pressing the card is the same move the `All` chip is.
+      back = Activity |> mount_screen() |> render_info({:tap, :show_all}) |> text()
+      assert back =~ "The Long Hollow"
+    end
+
+    test "and the card's tap is not a tag another node already carries" do
+      hollow = title!("hollow71", "The Long Hollow", :tv)
+      watch!(hollow, %{watched_at: at(Kati.Time.today(), ~T[12:00:00])})
+
+      drawn =
+        Activity
+        |> mount_screen()
+        |> render_info({:tap, :filter_Added})
+        |> tree()
+        |> inspect(limit: :infinity)
+
+      assert length(Regex.scan(~r/:filter_All\b/, drawn)) == 1,
+             "filter_All is drawn twice on one frame; onNodeWithTag throws on the second"
     end
   end
 

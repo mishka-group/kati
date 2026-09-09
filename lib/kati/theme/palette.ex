@@ -49,7 +49,7 @@ defmodule Kati.Theme.Palette do
     * `:theme` — the value is already in `Kati.Theme`'s dark palette
       (`@paper_dark`, `@card_dark`, `@cream_dark`, `@ink_on_dark`,
       `@hairline_dark`), or `Kati.Theme.dark/0` deliberately keeps the light
-      one (`secondary: @accent`, `error: @red`).
+      one (`secondary: @accent`).
 
     * `:hue` / `:media` — deliberately identical in both modes. `:hue` is a
       colour that means something by being that colour: orange is new/now,
@@ -63,8 +63,8 @@ defmodule Kati.Theme.Palette do
       the five rules below. These are the ones the design does not answer, and
       calling them anything else would be a lie. Thirty-four tokens.
 
-  The tally is `:drawn` 24, `:theme` 3, `:hue` 11, `:media` 15, `:alpha` 18,
-  `:ramp` 10, `:recession` 1, `:inversion` 3, `:step` 2 — and the test asserts
+  The tally is `:drawn` 28, `:theme` 2, `:hue` 13, `:media` 15, `:alpha` 18,
+  `:ramp` 10, `:recession` 1, `:inversion` 3, `:step` 4 — and the test asserts
   it, so this paragraph cannot quietly stop being true.
 
   ## The five derivations, stated
@@ -113,7 +113,9 @@ defmodule Kati.Theme.Palette do
   **`:step` — a shaded hue unshades on a dark ground.** `#3E8460` is `#4E9A73`
   darkened so green text reads on a 16% green wash over paper. Over near-black
   the shading is backwards, so the token takes the undarkened hue. Same for
-  `#96723C`, which is `#C98A3E` darkened.
+  `#96723C`, which is `#C98A3E` darkened, and for `#B4553C`, whose unshaded
+  `#E08A6E` board 315 supplies: red was `:theme` and identical in both columns
+  until 186 found it illegible on `#121110`.
 
   ## One literal, several meanings — which is the whole point
 
@@ -214,6 +216,11 @@ defmodule Kati.Theme.Palette do
      "A card whose row is done or past — sunk back toward the page."},
     {:cream, 0xFFFBF1DE, 0xFF2A2622, :drawn,
      "The warm card. Dark warms it to a lit-lamp brown rather than darkening it."},
+    {:empty_tile, 0xFFEFECE7, 0xFF2A2826, :drawn,
+     "The 64pt glyph tile an empty state leads with. Light is paper — a tile that is one " <>
+       "tile among rows; dark is NOT, because paper in dark is the page itself and the tile " <>
+       "would disappear. Board 315: *paper becomes a lifted tile — a light tile on dark " <>
+       "ground would be the loudest thing here*."},
     {:placeholder, 0xFFE4E0D9, 0xFF2A2826, :drawn,
      "The grey standing in for an image, and the trough a segmented control sits in — the design uses one value for both."},
     {:poster_on_cream, 0xFFEADFC6, 0xFF3A342D, :drawn,
@@ -298,8 +305,11 @@ defmodule Kati.Theme.Palette do
     {:green_wash, 0x294E9A73, 0x294E9A73, :hue, "The ground of a live status pill."},
     {:green_text, 0xFF3E8460, 0xFF4E9A73, :step,
      "Green text on the green wash — shaded for paper, unshaded for near-black."},
-    {:red, 0xFFB4553C, 0xFFB4553C, :theme,
-     "Destructive, stale, over. `Kati.Theme.dark/0` keeps `error: @red`."},
+    {:red, 0xFFB4553C, 0xFFE08A6E, :step,
+     "Destructive, stale, over. `#B4553C` is a shaded red and the shading is backwards on " <>
+       "near-black, so the dark value unshades it to `#E08A6E` — board 315's finding, and " <>
+       "186's before it: the two columns were byte-identical and the light value is " <>
+       "illegible on `#121110`."},
     {:red_wash, 0x1AB4553C, 0x1AB4553C, :hue, "A 10% red ground behind a destructive glyph."},
     {:red_wash_strong, 0x24B4553C, 0x24B4553C, :hue, "The ground of a stale status pill."},
     {:red_ring, 0x4DB4553C, 0x4DB4553C, :hue, "The ring around a destructive control."},

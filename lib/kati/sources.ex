@@ -13,6 +13,17 @@ defmodule Kati.Sources do
     * **Tier 0 — works out of the box.** TVmaze, Open Library, MusicBrainz. No
       key, no account, no setup. Screen 80 lists them with a last-reached time
       and nothing to press.
+
+      **Books and Music still need a free API chosen and wired — Open Library
+      and MusicBrainz are named here and neither is called anywhere in `lib/`.**
+      Kati has exactly three HTTP callers: `Kati.Media.Tmdb`, its image CDN in
+      `Kati.Media.Artwork`, and CalDAV. So *works out of the box* is true of
+      TVmaze's tier and of nothing else on this line yet, and the two shelves
+      that depend on it are [mishka-group/kati#100](https://github.com/mishka-group/kati/issues/100)
+      (Books) and [mishka-group/kati#101](https://github.com/mishka-group/kati/issues/101)
+      (Music). Free and keyless is the requirement, not a preference: tier 0
+      is defined by needing no account, so a provider that wants a key belongs
+      in tier 1 or 2 and changes what screen 80 promises.
     * **Tier 1 — better artwork, optional key.** TMDB. Kati ships a key and it
       is public, because Kati is open source. That costs the user nothing —
       TMDB counts requests per IP address, not per key — and the screen says so
@@ -69,6 +80,11 @@ defmodule Kati.Sources do
       icon: "graphic_eq",
       name: "ListenBrainz",
       supplies: "Scrobbles, listening history",
+      # Where a reader goes to get their own token. One per provider, and it
+      # was one for all three: screen 80's pairing card printed
+      # `listenbrainz.org/link` under every code, so a Hardcover reader was
+      # sent to somebody else's site (MOVIES-AND-TV.md #71).
+      site: "listenbrainz.org/profile",
       why:
         "ListenBrainz needs your own token because it writes to your account, not Kati’s. " <>
           "Nothing is shared between users."
@@ -78,6 +94,7 @@ defmodule Kati.Sources do
       icon: "menu_book",
       name: "Hardcover",
       supplies: "Community book ratings",
+      site: "hardcover.app/account/api",
       why:
         "Hardcover’s ratings are read with your own token, so your reading is not " <>
           "attributed to anyone else."
@@ -87,6 +104,7 @@ defmodule Kati.Sources do
       icon: "tv",
       name: "TheTVDB",
       supplies: "Artwork, absolute ordering",
+      site: "thetvdb.com/dashboard/account/apikey",
       why: "TheTVDB issues a per-user key you can revoke from your own account page."
     }
   ]
@@ -169,6 +187,23 @@ defmodule Kati.Sources do
         "store yet. Kati sends each one only to the service it belongs to. Kati never asks " <>
         "for a password — only for tokens you can revoke from the provider’s own site."
     end
+  end
+
+  @doc """
+  Forget one provider's token.
+
+  What the `Disconnect` on a connected tier-2 row does, and the whole reason
+  only revocable-token providers are on that list — see the moduledoc. Deleting
+  the token IS the disconnection: `connected?/1` asks `Kati.SecureStore` rather
+  than keeping a second list, so no row can still say *Connected* afterwards,
+  and there is no second place for the two to drift apart.
+  """
+  @spec disconnect(atom()) :: :ok
+  def disconnect(id) when is_atom(id) do
+    SecureStore.delete(key_for(id))
+    :ok
+  rescue
+    _error -> :ok
   end
 
   @doc "Forget every provider token on this device."

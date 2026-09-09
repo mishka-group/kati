@@ -190,6 +190,8 @@ defmodule Kati.Screens.Lock do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
       on_tap={dismiss}
     >
       {Kati.Screens.Lock.wallpaper()}
@@ -212,7 +214,7 @@ defmodule Kati.Screens.Lock do
     """
   end
 
-  def handle_info({:tap, :dismiss}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :dismiss}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @doc false

@@ -26,12 +26,24 @@ defmodule Kati.ScreenRatingLogTest do
 
   ## What is deliberately NOT asserted here: a write
 
-  Screen 33 reads. `Kati.Screens.Rating`'s moduledoc gives the reason at length
-  — the sheet draws exactly three tap targets and none of them can change a
-  value, so a `Save` wired today would write back what it had just read. When
-  the write lands, the tests it needs are not these: they are about a changeset,
-  and about `Kati.ScreenTapSweepTest` no longer being able to create rows in the
-  shared database by tapping `:save` on every run.
+  Screen 33 now writes — #88 gave it ten star targets and a real review field —
+  and none of that is asserted here. It is asserted in
+  `Kati.RatingWriteTest`, and the split is the one this file's own title makes:
+  everything below is about the sheet READING the right watch and shaping it
+  right, which is a question about a query and a map. A write is a question
+  about a changeset and about there still being one row afterwards.
+
+  The two halves meet in exactly one place, and it is the reason this paragraph
+  is not simply deleted: the draft the write commits is the map every test below
+  measures, so a shaping bug here becomes a wrong value in the store there.
+
+  ## The review is read out of a field, not a `Text`
+
+  `texts/1` reads `:text_field` as well as `:text` for that reason, and it is
+  the only accommodation the write cost this file. `Kati.DesignLiterals` made
+  the same one long ago — `content_props/0` lists `:value` beside `:text`
+  precisely so a drawing's copy is still found once the screen it belongs to
+  can be typed into.
   """
   use Mob.ScreenCase, async: false
 
@@ -110,7 +122,13 @@ defmodule Kati.ScreenRatingLogTest do
     tracked
   end
 
-  defp texts(tree), do: tree |> find_all(:text) |> Enum.map(&(&1.props[:text] || ""))
+  # Both nodes that carry copy. The review body is a `<TextField>` since #88,
+  # so a helper that read `:text` alone would report the user's own words as
+  # absent from a tree they are the largest thing in.
+  defp texts(tree) do
+    (find_all(tree, :text) ++ find_all(tree, :text_field))
+    |> Enum.map(&(&1.props[:text] || &1.props[:value] || ""))
+  end
 
   defp drawn?(tree, string), do: Enum.any?(texts(tree), &(&1 == string))
 
@@ -122,13 +140,13 @@ defmodule Kati.ScreenRatingLogTest do
              "a watch answered against an empty log, so nothing below is measuring the " <>
                "fallback"
 
-      assert Rating.watch() == Sample.watch(),
+      assert Rating.watch(tracked_id()) == Sample.watch(),
              "the fallback is not `Kati.Rating.Sample.watch/0` verbatim, and that fixture " <>
                "is what `.scratch/design/audit/33.png` was captured from"
     end
 
     test "every string the drawing carries reaches the rendered tree" do
-      tree = tree(mount_screen(Rating))
+      tree = tree(mount_rating())
       w = Sample.watch()
 
       for string <- [w.title, w.meta, w.rewatch, w.spoilers, w.review, w.characters] ++ w.tags do
@@ -160,7 +178,7 @@ defmodule Kati.ScreenRatingLogTest do
              "a tick filled the sheet. It has no rating, no review and no context, so what " <>
                "it fills the sheet with is five empty cards"
 
-      assert Rating.watch() == Sample.watch()
+      assert Rating.watch(tracked_id()) == Sample.watch()
     end
 
     test "a review of nothing but whitespace is not a log either" do
@@ -175,7 +193,7 @@ defmodule Kati.ScreenRatingLogTest do
     test "the sheet draws that watch and none of the drawn values" do
       a_logged_watch!()
 
-      w = Rating.watch()
+      w = Rating.watch(tracked_id())
       assert w.title == "Paper Cities"
       assert w.meta == "1H 40M"
       assert w.rewatch == "3rd rewatch"
@@ -185,7 +203,7 @@ defmodule Kati.ScreenRatingLogTest do
       assert w.characters == "14 characters"
       assert w.tags == ["coastal", "slow burn"]
 
-      tree = tree(mount_screen(Rating))
+      tree = tree(mount_rating())
 
       for string <- ["Paper Cities", "1H 40M", "3rd rewatch", "3.5", "coastal", "slow burn"] do
         assert drawn?(tree, string), "#{inspect(string)} is nowhere in the tree"
@@ -202,7 +220,7 @@ defmodule Kati.ScreenRatingLogTest do
     test "when, where and who with are the three columns that hold them" do
       a_logged_watch!()
 
-      [when_row, where_row, with_row] = Rating.watch().context
+      [when_row, where_row, with_row] = Rating.watch(tracked_id()).context
 
       # `watched_on` carries the date and `watched_at` the hour, which is the
       # whole reason `Kati.Media.Watch` keeps the two apart.
@@ -217,7 +235,7 @@ defmodule Kati.ScreenRatingLogTest do
       watch!(tracked, %{watched_at: ~U[2026-01-01 20:00:00.000000Z], rating: 4, review: "older"})
       watch!(tracked, %{watched_at: ~U[2026-08-01 20:00:00.000000Z], rating: 6, review: "newer"})
 
-      assert Rating.watch().review == "newer"
+      assert Rating.watch(tracked_id()).review == "newer"
     end
 
     test "the year is absent from the meta line, because nothing stores one" do
@@ -225,17 +243,17 @@ defmodule Kati.ScreenRatingLogTest do
 
       # `next_release_at` is the NEXT release and would print next Tuesday as a
       # film's year. The same gap `Kati.Screens.Film` records.
-      refute Rating.watch().meta =~ ~r/\d{4}/
+      refute Rating.watch(tracked_id()).meta =~ ~r/\d{4}/
     end
 
     test "a rating this screen cannot claim is drawn as five empty stars and a dash" do
       tracked = track!("log-unrated", %{title: "Marram", runtime_minutes: 92})
       watch!(tracked, %{watched_on: ~D[2026-07-04], review: "No score, just words."})
 
-      assert Rating.watch().rating == nil
+      assert Rating.watch(tracked_id()).rating == nil
       assert Rating.rating_label(nil) == "—"
 
-      tree = tree(mount_screen(Rating))
+      tree = tree(mount_rating())
       empties = stars(tree) |> Enum.map(& &1.props.text_color) |> Enum.uniq()
 
       assert length(stars(tree)) == 5, "an unrated log draws five stars, all of them empty"
@@ -247,34 +265,42 @@ defmodule Kati.ScreenRatingLogTest do
       tracked = track!("log-whole", %{title: "Ashfall"})
       watch!(tracked, %{watched_on: ~D[2026-07-04], rating: 8})
 
-      assert Rating.watch().rating == 4.0
+      assert Rating.watch(tracked_id()).rating == 4.0
       assert Rating.rating_label(4.0) == "4"
-      assert drawn?(tree(mount_screen(Rating)), "4")
+      assert drawn?(tree(mount_rating()), "4")
     end
 
-    test "a review with no spoilers draws neither the label nor the glyph" do
+    test "a review with no spoilers is offered the flag rather than told it is set" do
       tracked = track!("log-clean", %{title: "Harbour"})
       watch!(tracked, %{watched_on: ~D[2026-07-04], rating: 6, review: "Nothing given away."})
 
-      assert Rating.watch().spoilers == nil
+      assert Rating.watch(tracked_id()).spoilers == nil
 
-      tree = tree(mount_screen(Rating))
+      tree = tree(mount_rating())
 
       refute drawn?(tree, "Spoilers hidden"),
-             "`contains_spoilers` is false, so nothing is hidden and the toggle is asserting " <>
-               "the opposite of the sentence beside it"
+             "`contains_spoilers` is false, so nothing is hidden and the badge would be " <>
+               "asserting the opposite of the sentence beside it"
 
-      refute drawn?(tree, Kati.Icons.glyph!("visibility_off"))
+      # MOVIES-AND-TV.md #96. The badge used to draw NOTHING here, which left a
+      # reader writing a review with a twist in it no way to say so. The rule
+      # that produced that — the icon must not assert the opposite — is kept by
+      # not changing the icon: `visibility_off` in the gold pair is the claim,
+      # the same glyph in the eyebrow colour beside *Mark spoilers* is the
+      # offer. It could not swap regardless; `Kati.Icons.glyph!/1` raises on
+      # `visibility`.
+      assert drawn?(tree, "Mark spoilers")
+      assert drawn?(tree, Kati.Icons.glyph!("visibility_off"))
     end
 
     test "a first watch carries no rewatch badge" do
       tracked = track!("log-first", %{title: "Vellum"})
       watch!(tracked, %{watched_on: ~D[2026-07-04], rating: 6, rewatch_number: 1})
 
-      assert Rating.watch().rewatch == nil,
+      assert Rating.watch(tracked_id()).rewatch == nil,
              "`rewatch_number` of 1 is a first watch, which is not a rewatch"
 
-      refute drawn?(tree(mount_screen(Rating)), "1st rewatch")
+      refute drawn?(tree(mount_rating()), "1st rewatch")
     end
 
     test "an evicted cache leaves the review and takes the title" do
@@ -283,7 +309,7 @@ defmodule Kati.ScreenRatingLogTest do
       tracked = track!("log-evicted", nil)
       watch!(tracked, %{watched_on: ~D[2026-07-04], rating: 6, review: "Still mine."})
 
-      w = Rating.watch()
+      w = Rating.watch(tracked_id())
       assert w.title == "Untitled"
       assert w.review == "Still mine."
       assert w.meta == "", "there is no cache row, so there is no runtime to print"
@@ -291,7 +317,7 @@ defmodule Kati.ScreenRatingLogTest do
 
     test "the scale toggle and the half-star note stay the drawing's either way" do
       a_logged_watch!()
-      tree = tree(mount_screen(Rating))
+      tree = tree(mount_rating())
 
       # Both are display preferences and no resource holds one — see
       # `Kati.Screens.Rating`'s moduledoc. They are the same on a real log as on
@@ -300,5 +326,31 @@ defmodule Kati.ScreenRatingLogTest do
 
       for %{label: label} <- Sample.scales(), do: assert(drawn?(tree, label))
     end
+  end
+
+  # The subject, which the sheet used to run without.
+  #
+  # `newest_log/1` ran its query UNNARROWED when the push named nothing, so a
+  # sheet opened with no subject showed the newest rated watch anywhere in the
+  # library — somebody else's film, with their stars and their review, and a
+  # Save that would then edit that row. Six of the seven doors into screen 33
+  # push it bare (MOVIES-AND-TV.md #68) and the gallery's is a seventh, so the
+  # unnarrowed read was what every one of them got.
+  #
+  # This file's fixtures all hang off one tracked title, and naming it is what
+  # every door will do — screen 08's already does, through
+  # `Kati.Screens.Rating.params_for/1`.
+  defp tracked_id do
+    Kati.Media.TrackedTitle
+    |> Ash.read!()
+    |> List.first()
+    |> then(&(&1 && &1.id))
+  end
+
+  # `Mob.ScreenCase.mount_screen/1` pushes bare, and this sheet now refuses a
+  # push that names nothing. `render_view/2` is the same mount with the subject
+  # on it, in the shape `tree/1` reads.
+  defp mount_rating do
+    mount_screen(Rating, %{tracked_title_id: tracked_id()})
   end
 end

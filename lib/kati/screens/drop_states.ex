@@ -3,11 +3,22 @@ defmodule Kati.Screens.DropStates do
   Screen 148 — Drop states, a reference sheet pushed under Settings.
 
   Built to `test/design/reference/148.html` in screen 27's own manner —
-  27 drew the four states nobody designs, this draws the five `TrackedTitle`
+  27 drew the four states nobody designs, this draws the five a tracked title
   can be in, three media wide, so the parallel between Show, Book and Album
-  is *visible* rather than *asserted*. `Kati.Media.TrackedTitle.status` is
-  `:active | :paused | :gone_cold | :dropped | :finished`; this sheet is
-  what each of those five looks like, once per medium, side by side.
+  is *visible* rather than *asserted*.
+
+  Four of the five are `Kati.Media.TrackedTitle.status`, which holds
+  `:not_started | :watching | :paused | :finished | :dropped` — this sheet's
+  *Active* is `:watching` and its *Dropped* and *Finished* are those. This
+  moduledoc used to claim the column held `:gone_cold` as well, and it never
+  has (MOVIES-AND-TV.md #55).
+
+  **Gone cold is the fifth, and it is derived.** That is not a gap: this
+  board's own footnote is the argument for it — *Paused and Dropped are things
+  a person decided; Gone cold is something Kati noticed* — and a thing Kati
+  noticed is a question asked of the row, not a value written to it.
+  `Kati.Media.Staleness` asks it, on `last_touched_at` and this board's own
+  four-month figure, and screens 10 and 149 read it.
 
   ## The one distinction the whole board exists to draw
 

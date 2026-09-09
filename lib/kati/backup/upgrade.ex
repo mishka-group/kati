@@ -48,6 +48,13 @@ defmodule Kati.Backup.Upgrade do
     * **7 -> 8** — `health_medications`, `health_readings` and `health_doses`
       joined with screens 109 and 112.
 
+    * **9 -> 10** — `recipes` gained `bookmarked`, which is what screen 45's
+      bookmark disc writes. Nothing moves, for the reason the step below it
+      gives in full: a version-9 archive has every member a version-10 app
+      expects and its recipe rows simply lack one key, which `Ash.Seed.seed!/2`
+      fills with the attribute default — `false`, which is what an unbookmarked
+      recipe is.
+
     * **8 -> 9** — `recipes` gained `slot_name` with screen 116. **Nothing
       moves**, and that is the point of the step existing: a version-8 archive
       has every member a version-9 app expects, and its recipe rows simply lack
@@ -82,7 +89,53 @@ defmodule Kati.Backup.Upgrade do
       {5, 6, &add_services/1},
       {6, 7, &add_goals_and_expenses/1},
       {7, 8, &add_health/1},
-      {8, 9, &unchanged/1}
+      {8, 9, &unchanged/1},
+      {9, 10, &unchanged/1},
+      # `tracked_titles` gained `private`, which screen 98's share card reads.
+      # Nothing moves: a version-10 file has no such column and every row takes
+      # the attribute default of `false`, which is what a title nobody has
+      # marked private is.
+      {10, 11, &unchanged/1},
+      # `media_watches` gained `detected`, which screen 36's banner counts.
+      # Nothing moves: a version-11 file has no such column and every row takes
+      # the attribute default of `false`, which is the truth about every watch
+      # written before Kati could notice one — the reader tapped it.
+      {11, 12, &unchanged/1},
+      # `media_title_aliases` arrived, and a version-12 file simply has none —
+      # the reader had not been asked yet. Nothing to move: an absent table
+      # restores as an empty one, and Kati asks about a name the first time it
+      # hears it, which is what it would have done anyway.
+      {12, 13, &unchanged/1},
+      # `media_events` arrived, and a version-13 file has none: nothing wrote
+      # one before this version existed. Nothing to move, and nothing to
+      # reconstruct either — a status column says where a title IS and cannot
+      # be read backwards into when it got there or why, which is the whole
+      # reason the table exists. So a restored 13 has a history that starts on
+      # the day it was upgraded, and that is the honest answer.
+      {13, 14, &unchanged/1},
+      # `tracked_titles` gained `anime_override` and `cached_titles` gained
+      # `original_language`. Nothing moves: a version-14 file has neither
+      # column, and every row takes the attribute default. For
+      # `anime_override` that default is `NULL` — *I have not said* — which is
+      # exactly right for a title written before there was anywhere to say it,
+      # and leaves the provider rule free to answer.
+      {14, 15, &unchanged/1},
+      # `lists` and `list_memberships` arrived. Both are supplied as empty
+      # members and neither can be derived: a list is a thing the reader made
+      # and named, and its order is a thing they chose. A restored version-15
+      # file therefore has no lists — which is what that device had.
+      {15, 16, &unchanged/1},
+      # `list_memberships` gained `book_id` and `album_id`, and
+      # `tracked_title_id` stopped being `NOT NULL` — a list holds a film, a
+      # series, a book or an album now (board 332). Nothing moves: a version-16
+      # row carries `tracked_title_id` and takes `NULL` for the other two, which
+      # is the shape the 10 -> 11 `private` step had.
+      {16, 17, &unchanged/1},
+      # `followed_authors` arrived (board 307). Nothing derives it — an author
+      # is a free string on `books` and following one is the reader's own
+      # statement — so a version-17 file restores with nobody followed, which
+      # is exactly what the device it came off had.
+      {17, 18, &unchanged/1}
     ]
 
   @doc """

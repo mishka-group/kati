@@ -27,6 +27,31 @@ defmodule Kati.Screens.LogProgress do
   a separate consequence, and it sits below the ink button rather than beside
   it.
 
+  ## The sheet logs against the book that opened it, and used not to
+
+  This sheet took no params and re-read the shelf, taking its first row — for
+  the book row at the top, for the number the stepper opened on, for the
+  session it wrote and for `Finished the book`. Screen 66 opened on the third
+  book logged a session against the first, moved *that* book's `current_page`,
+  and could mark it finished. Nothing on the way through said so: the row it
+  drew and the row it wrote were read by two calls that happened to agree
+  whenever the shelf had one book, which is every screenshot ever taken of it.
+
+  So `mount/3` takes `%{book_id: id}` and every one of those four reads takes
+  the id. The caller supplies it — `params_for/1` is the shape, so the key is
+  spelled in one place — and a sheet handed nothing still answers with the
+  shelf's first and then with the drawing, which is what the empty-database
+  sweep renders. See #84.
+
+  ## The sheet closes because the session landed, not because you pressed Save
+
+  Both commits used to dismiss unconditionally: the write returned a bare `:ok`
+  whatever the store said, so a session that never reached disk closed the
+  sheet exactly as one that did. On a fresh install that is undetectable —
+  `book/0` falls back to `Sample.detail/0`, so the screen behind draws the same
+  book either way. Now a failure keeps the sheet open, keeps the number you
+  stepped to, and says so in red above the button. See `Kati.Write`.
+
   ## What is stored and what is derived
 
   Only the position, the minutes and the day are stored. The delta, the pace
@@ -53,27 +78,59 @@ defmodule Kati.Screens.LogProgress do
   # minutes of an audiobook and have no page to report.
   @units [{"Page", :unit_page}, {"Percent", :unit_percent}, {"Minutes", :unit_minutes}]
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
+
+    id = Map.get(params, :book_id)
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:book, book())
+     |> Mob.Socket.assign(:book_id, id)
+     |> Mob.Socket.assign(:book, book(id))
      |> Mob.Socket.assign(:unit, :unit_page)
      |> Mob.Socket.assign(:timing?, false)
-     |> Mob.Socket.assign(:page, starting_page())}
+     |> Mob.Socket.assign(:save_error, nil)
+     |> Mob.Socket.assign(:page, starting_page(id))}
   end
+
+  @doc """
+  The params that name a book to this sheet, built from a shaped book.
+
+  The push site's half of the contract, and it lives here rather than at each
+  caller so the key cannot be spelled two ways. A shaped row carries `:id`; the
+  drawing does not, and a book with no id yields `%{}` — which is the no-id
+  mount the empty-database sweep renders.
+  """
+  @spec params_for(map()) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{book_id: id}
+  def params_for(_book), do: %{}
 
   @doc """
   The book being logged against: the shelf's first, or the drawing's.
 
-  Same referent as screen 66, and deliberately the same rule — this sheet is
-  pushed *from* that screen, so a different answer here would log a session
-  against a book other than the one the user was looking at.
+  The no-id answer, and the one the sweep renders. See `book/1` for why an id
+  is the answer whenever there is one.
   """
   @spec book() :: map()
-  def book do
-    case Kati.Screens.BookDetail.shelved_book() do
+  def book, do: book(nil)
+
+  @doc """
+  The book this sheet was handed, or — given no id — the shelf's first.
+
+  Read through screen 66's own reader, never a second one: a sheet aimed at a
+  different book from the screen that opened it would write a session against
+  the wrong title, and two readers is two chances to drift into exactly that.
+
+  The id is what makes that promise keepable. Until #84 this sheet re-read the
+  shelf and took its head, so a page opened on the third book logged against
+  the first — the same words, the wrong row. The caller now names the book and
+  this reads it; the shelf's head is what remains for a sheet nobody handed
+  anything to, and the drawing is what remains when the shelf is empty.
+  """
+  @spec book(String.t() | nil) :: map()
+  def book(id) do
+    case Kati.Screens.BookDetail.shelved_book(id) do
       nil -> Sample.detail()
       shaped -> shaped
     end
@@ -89,14 +146,25 @@ defmodule Kati.Screens.LogProgress do
   page and the drawing's 260 is what it looks like after use.
   """
   @spec starting_page() :: integer()
-  def starting_page do
-    case current_book() do
+  def starting_page, do: starting_page(nil)
+
+  @doc """
+  The stepper's opening number for one named book.
+
+  It has to take the same id `book/1` does, and for a reason a screenshot would
+  not show: the row above the stepper is the handed book's and the number in it
+  was the shelf head's, so a sheet opened on a 90-page novella could open on
+  page 214 of something else.
+  """
+  @spec starting_page(String.t() | nil) :: integer()
+  def starting_page(id) do
+    case current_book(id) do
       %Book{current_page: page} -> page
       nil -> 260
     end
   end
 
-  defp current_book do
+  defp current_book(nil) do
     case Ash.read(Book, action: :shelf) do
       {:ok, [book | _rest]} -> book
       _other -> nil
@@ -105,8 +173,17 @@ defmodule Kati.Screens.LogProgress do
     _error -> nil
   end
 
+  defp current_book(id) when is_binary(id) do
+    case Ash.get(Book, id) do
+      {:ok, %Book{} = book} -> book
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
   def render(assigns) do
-    Sheet.sheet("Log progress", body(assigns))
+    Sheet.sheet("Log progress", body(assigns), Kati.Screens.Identity.of(__MODULE__))
   end
 
   @doc false
@@ -115,6 +192,7 @@ defmodule Kati.Screens.LogProgress do
     unit = assigns.unit
     page = assigns.page
     timing? = assigns.timing?
+    save_error = assigns.save_error
 
     ~MOB"""
     <Column fill_width={true}>
@@ -127,6 +205,7 @@ defmodule Kati.Screens.LogProgress do
       <Spacer size={14} />
       {Kati.Screens.LogProgress.insight(b, page)}
       <Spacer size={14} />
+      {Kati.Screens.LogProgress.error_line(save_error)}
       {Sheet.commit("Save session", :save)}
       <Spacer size={15} />
       {Kati.Screens.LogProgress.finished_row()}
@@ -464,6 +543,40 @@ defmodule Kati.Screens.LogProgress do
   end
 
   @doc """
+  The one line that says the session did not land, directly above the button
+  that failed.
+
+  This sheet has no notice slot of its own, and the cream insight card is not
+  one: it carries a claim about what the entry *means*, so borrowing it to
+  carry a failure would make the sentence *That's 46 pages in 38 minutes* and
+  the sentence *that did not save* the same shape. Red, in body weight, in the
+  gap immediately above `Save session` — the eye is already there, because that
+  is the control the person just pressed.
+
+  Absent rather than empty when there is nothing to say, so a sheet that has
+  never failed is the pixels it always was.
+  """
+  @spec error_line(String.t() | nil) :: term()
+  def error_line(nil), do: []
+
+  def error_line(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.35}
+        text_color={Palette.red()}
+      />
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  @doc """
   The second commit, under the first.
 
   Centred rather than full-width, and set in body weight rather than as a
@@ -498,7 +611,7 @@ defmodule Kati.Screens.LogProgress do
     """
   end
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :step_up}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :page, socket.assigns.page + 1)}
@@ -515,15 +628,34 @@ defmodule Kati.Screens.LogProgress do
   def handle_info({:tap, :start_timer}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :timing?, not socket.assigns.timing?)}
 
+  # The sheet closes because the session is stored, not because the button was
+  # pressed. Those were the same line until now, and on a fresh install — where
+  # this screen draws a sample book whatever the store holds — a lost session
+  # and a kept one dismissed to exactly the same pixels.
   def handle_info({:tap, :save}, socket) do
-    save_session(socket.assigns.page)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    case save_session(socket.assigns.page, socket.assigns.book_id) do
+      {:ok, _session} ->
+        {:noreply, socket |> Mob.Socket.assign(:save_error, nil) |> Kati.Screens.Resume.pop()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}
+    end
   end
 
+  # `Finished the book` is two writes and one handover, so it needs both to
+  # land before it hands over: pushing screen 33 on a failed write would ask
+  # someone to rate a book the shelf still has them halfway through.
   def handle_info({:tap, :finish}, socket) do
-    save_session(socket.assigns.page)
-    finish_book()
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
+    with {:ok, _session} <- save_session(socket.assigns.page, socket.assigns.book_id),
+         {:ok, _book} <- finish_book(socket.assigns.book_id) do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:save_error, nil)
+       |> Mob.Socket.push_screen(Kati.Screens.Rating)}
+    else
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}
+    end
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -533,47 +665,106 @@ defmodule Kati.Screens.LogProgress do
 
   Two writes, and the order matters: the session first, so a failure to update
   the book leaves a sitting that happened rather than a position with no
-  history behind it. Both are best-effort — the sheet closes either way,
-  because a modal that refuses to dismiss when the disk is full is a worse
-  failure than a lost session.
+  history behind it.
+
+  ## Why the session's result is the answer and the book's is not
+
+  The session is the save. If it fails, nothing happened and the caller must
+  say so. If it lands and the position update then fails, something *did*
+  happen — and returning an error there would put *that did not save* over a
+  session that is on disk, and invite a second press that logs it twice. So
+  the book update is noted to the log under its own name and cannot turn a
+  stored session into a lie. Screen 20's pace figure is derived from the
+  sessions, not from `current_page`, so it recovers on its own.
+
+  No `rescue`. `Ash.create/2` returns `{:error, changeset}` rather than
+  raising, so the rescue this function used to carry caught nothing while the
+  bare `:ok` under it threw the failure away.
+
+  An empty shelf is `{:error, :nothing_to_save}` rather than a silent success:
+  there is no book to log against, and that is a sentence
+  `Kati.Write.message/1` already has.
+
+  ## Which book, and why that is one default argument rather than two clauses
+
+  It writes against the book the sheet was handed. That is the half of #84 a
+  screenshot cannot show, and the worse half: loading the right book and then
+  writing against the shelf's head names one title on screen and moves another
+  one's numbers, so the session and the `current_page` both land on a book the
+  person never opened.
+
+  The id defaults to `nil` — the shelf's first — because a sheet can genuinely
+  be opened from a screen with no row to name. One clause and not two, so the
+  whole write, including its `Kati.Write.note/2`, is one thing a reader (and
+  `Kati.WriteContractTest`, which reads a clause at a time) sees whole.
   """
-  @spec save_session(integer()) :: :ok
-  def save_session(page) do
-    with %Book{} = book <- current_book() do
-      Ash.create(ReadingSession, %{
-        book_id: book.id,
-        read_on: Kati.Time.today(),
-        from_page: book.current_page,
-        to_page: page,
-        source: :manual,
-        reread: page < book.current_page
-      })
+  @spec save_session(integer(), String.t() | nil) :: {:ok, term()} | {:error, term()}
+  def save_session(page, id \\ nil) do
+    case current_book(id) do
+      %Book{} = book ->
+        session =
+          ReadingSession
+          |> Ash.create(%{
+            book_id: book.id,
+            read_on: Kati.Time.today(),
+            from_page: book.current_page,
+            to_page: page,
+            source: :manual,
+            reread: page < book.current_page
+          })
+          |> Kati.Write.note("log progress session")
 
-      if page > book.current_page do
-        Ash.update(book, %{current_page: page, status: :reading})
-      end
+        if match?({:ok, _record}, session), do: move_position(book, page)
+
+        session
+
+      nil ->
+        Kati.Write.note({:error, :nothing_to_save}, "log progress session")
     end
+  end
 
-    :ok
-  rescue
-    _error -> :ok
+  # Only forwards. A page below the book's position is a re-read, which the
+  # session already records as `reread: true` — moving `current_page` backwards
+  # for it would make the shelf claim you have un-read the difference.
+  defp move_position(book, page) do
+    if page > book.current_page do
+      book
+      |> Ash.update(%{current_page: page, status: :reading})
+      |> Kati.Write.note("log progress position")
+    else
+      :ok
+    end
   end
 
   @doc """
-  Set the shelf's first book to `:finished`.
+  Set one book to `:finished` — the one named, or the shelf's first.
 
   Public because screen 66's `Finish` button is the same consequence reached
   from a different control, and two copies of "what finishing a book means"
-  would be two things to keep in step.
-  """
-  @spec finish_book() :: :ok
-  def finish_book do
-    with %Book{} = book <- current_book() do
-      Ash.update(book, %{status: :finished})
-    end
+  would be two things to keep in step. Which is also why it hands back the
+  tuple rather than swallowing it: a caller that wants to push the rating
+  screen only when the book is actually finished now has something to ask.
 
-    :ok
-  rescue
-    _error -> :ok
+  It takes the id for the reason `save_session/2` does: `Finished the book` is
+  this sheet's second commit and has to finish the book the sheet is about.
+  Finishing the shelf's head instead marks a title the person is halfway
+  through as read, and then pushes them to screen 33 to rate it. Absent — the
+  shelf's first — is still the answer for a caller with no row to name.
+
+  `Ash.update/2` returns `{:error, changeset}`, so there is nothing here for a
+  `rescue` to catch — it only ever hid the empty-shelf case, which is
+  `{:error, :nothing_to_save}` and a sentence a person can read.
+  """
+  @spec finish_book(String.t() | nil) :: {:ok, term()} | {:error, term()}
+  def finish_book(id \\ nil) do
+    case current_book(id) do
+      %Book{} = book ->
+        book
+        |> Ash.update(%{status: :finished})
+        |> Kati.Write.note("finish book")
+
+      nil ->
+        Kati.Write.note({:error, :nothing_to_save}, "finish book")
+    end
   end
 end

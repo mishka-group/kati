@@ -36,25 +36,82 @@ defmodule Kati.Screens.Stats do
 
   **Still the drawing's own copy**, because the domain cannot say it yet:
 
-    * **Where the hours went.** `Kati.Media.CachedTitle.genres` is one free-text
-      column with no defined separator, written by nothing and read by nothing.
-      Splitting it here would be inventing a format and then reporting hours
-      against it.
     * **More numbers.** Four rows belonging to four other domains, and three of
       them — Habits, Nutrition, Subscriptions — have no resource at all. The
       card stays whole rather than having one real line among three stand-ins.
+
+  *Where the hours went* was in that list until 6 September, on the argument
+  that `Kati.Media.CachedTitle.genres` is *"one free-text column with no defined
+  separator, written by nothing and read by nothing"*. Two thirds of that had
+  gone stale: `Kati.Media.Tmdb.genres/1` writes it `", "`-separated, and screens
+  04 and 14 both read it back that way. It is `genre_bars/1` now — see there for
+  the one judgement it does make, which is that a watch counts in full towards
+  each genre it names.
 
   A watch with no date at all is real — *"I have seen this, I do not remember
   when"* is an answer `Kati.Media.Watch` deliberately allows — and it takes part
   in none of the figures above, all of which are questions about *when*.
 
-  ## An empty database still draws the drawing
+  ## A year nobody has watched anything of
 
-  No watches means no year, and this screen is also the reference for frame 07,
-  so `load/1` falls back to `Kati.Stats.Sample` whole — the same fallback
-  `Kati.Screens.Home.rest_of_today/1` and `Kati.Screens.Calendar.day_rows/1`
-  make. All of it or none of it: a real 312 hours over the drawing's own
-  contribution grid would be two different years in one card.
+  This screen used to answer an empty database with `Kati.Stats.Sample` whole —
+  `312h 40m`, `84 Films`, `4.1 Avg ★`, a 182-day contribution field and three
+  invented titles — on the argument that frame 07 was captured from those
+  values and a device with nothing tracked must still draw them. That argument
+  is about the frame, and the person holding the phone is not looking at the
+  frame. What they saw on a fresh install was somebody else's year with their
+  name on it.
+
+  **No board in the 152 draws screen 07 with no history.** So this is built to
+  the nearest four that *are* drawn, and each decision below names which:
+
+    * **101 — Year cards, states**, band 1 *Not enough data*. The only place the
+      design draws the year's own figures with too little behind them, and what
+      it draws is not a dashboard of zeroes: the card's contents are replaced by
+      one glyph and the sentence *"Not much to show yet"*. That literal is this
+      card's headline, and the replacement — figures out, sentence in — is this
+      screen's whole empty state. 101's fifth band also decides the share disc:
+      *SAVE STAYS AVAILABLE* in the not-enough-data state, so `share_disc/0`
+      stays wired.
+    * **27 — States**, the reference sheet every empty state in the app quotes:
+      a 64pt paper tile carrying the glyph of the thing that is empty, a bold
+      headline, one sentence. `Kati.Screens.HomeEmpty.invitation/0` is the same
+      recipe on a root, and its numbers are the ones used here.
+    * **123 — Money**, which is reached *from this screen* and states the rule
+      for a statistic with nothing under it: *"The rate reads —, never £0.00 and
+      never infinity. Dividing by no hours has no answer, so Kati declines to
+      invent one."* An empty ledger is drawn as an empty ledger and not as a
+      measured zero. A year with nothing watched is the same thing: not `0h 0m`
+      over a field of 182 grey squares, which is a measurement of nothing, but a
+      year that has not started being recorded.
+    * **110 — Weight**, which refuses a chart that would mean nothing — *"a
+      chart with a single point would be a flat line that means nothing"* — and
+      says so in words instead. A contribution grid at level zero for 182 days
+      is that flat line, so it is not drawn.
+
+  ### What is drawn when nothing is counted
+
+  The header, because `Your year` and the range under it are the page's identity
+  and the range is the device's own clock. The share disc, per 101. One card in
+  27's geometry. Then `More numbers`, kept — screen 139's empty Home *"states
+  which parts still work, because an empty Home that looks broken sends a new
+  user back out"*, and these five rows are the only route to Activity, Habits,
+  Nutrition, Goals and Money outside the gallery. They keep their titles, their
+  tiles and their chevrons, and lose their second lines: `1,204 entries` and
+  `4 active · 12-day best` are figures this app cannot ask for, and a row with no
+  second line is the same recipe minus a line it has no source for.
+
+  Nothing else. No hero figure, no change pill, no grid, no count cards, no
+  breakdown bars, no `Recently watched`.
+
+  ### Two fabrications this screen still carries, and they are not the empty state
+
+  Both are drawn on a device that *has* watched things, so neither is reachable
+  from a fresh install any more, and both are recorded here rather than quietly
+  left:
+
+    * `More numbers`' second lines are `Kati.Stats.Sample.more_numbers/0` on
+      every device. Three of the five domains have no resource at all.
   """
   use Kati.Screens.Root, root: :stats
 
@@ -72,8 +129,28 @@ defmodule Kati.Screens.Stats do
   # The contribution grid's own span: 26 weeks, which is the caption the design
   # prints under it. Everything the grid needs is derived from this one number,
   # so the squares and the label cannot disagree.
+  #
+  # The caption reads `26 weeks TO TODAY`, and the last two words are
+  # MOVIES-AND-TV.md #124. The grid is 182 days back from today and the header
+  # above it says *Jan – <this month> <this year>*, so in March the two
+  # described different spans and the field was mostly last year under this
+  # year's label. Clipping the grid to the calendar year was the other option
+  # and is worse: on 3 January it would be a field of three squares, and the
+  # thing the grid is for — *have I kept this up* — needs a window long enough
+  # to see a habit in. So the window stays and the label stops pretending.
   @weeks 26
   @grid_days @weeks * 7
+
+  @doc """
+  The grid's span in weeks — 26, and the one place it is written down.
+
+  Public because screen 98's share card draws the same field and board 100
+  labels it `26 WEEKS`; reading it here rather than typing it again is what
+  stops the squares and the label disagreeing, which is the reason this
+  attribute exists at all.
+  """
+  @spec weeks() :: pos_integer()
+  def weeks, do: @weeks
 
   @impl true
   def load(socket) do
@@ -83,30 +160,51 @@ defmodule Kati.Screens.Stats do
   @doc """
   Everything this screen draws that is not a fixed label.
 
-  `[year: …, grid: …, recent: …]`, from `Kati.Media` when the user has watched
-  anything and from `Kati.Stats.Sample` when they have not. See the moduledoc
-  for which line is which column, and for the two sections that are stand-ins
-  either way.
+  `[year: …, grid: …, recent: …, range: …]`, all of it out of `Kati.Media`.
+
+  **`year` is `nil` when nothing has been watched**, and that is the whole
+  signal the screen's two states turn on. Not an empty map and not a map of
+  zeroes: every figure on this card is an answer to a question about a year that
+  has begun, and there is no honest zero for *"how much of your year has Kati
+  seen"* — see the moduledoc's reading of board 123. `grid` and `recent` are
+  `[]` beside it, so nothing downstream can draw half a card.
+
+  `range` is on its own key and is answered on both branches, because the header
+  under `Your year` is the device's own clock rather than a figure — it is true
+  on a phone that has watched nothing, and it is the one line of this screen
+  that never needed a database.
   """
   @spec figures() :: keyword()
   def figures do
     case entries() do
       [] ->
-        [
-          year: Map.put(Sample.year(), :rising?, true),
-          grid: Sample.contributions(),
-          recent: recent()
-        ]
+        [year: nil, grid: [], recent: [], range: range(Kati.Time.today())]
 
       entries ->
-        [year: year(entries), grid: contributions(entries), recent: recent(entries)]
+        year = year(entries)
+
+        [
+          year: year,
+          grid: contributions(entries),
+          recent: recent(entries),
+          range: year.range
+        ]
     end
   end
 
   @doc false
   def content(assigns) do
-    year = assigns.year
+    case assigns.year do
+      nil -> nothing_counted(assigns.range)
+      year -> counted(year, assigns.range, assigns.grid, assigns.recent)
+    end
+  end
 
+  # The two states are written out as two whole pages rather than one page with
+  # a hole in it, because they share only the header: the counted page is the
+  # drawing, node for node, and the empty page is a card and a list.
+  @doc false
+  def counted(year, range, grid, recent) do
     ~MOB"""
     <Scroll>
       <Column
@@ -116,24 +214,50 @@ defmodule Kati.Screens.Stats do
         padding_top={64}
         padding_bottom={132}
       >
-        {Kati.Screens.Stats.header(year)}
-        {Kati.Screens.Stats.hero(year, assigns.grid)}
+        {Kati.Screens.Stats.header(range)}
+        {Kati.Screens.Stats.hero(year, grid)}
         {Kati.Screens.Stats.counts(year)}
         {UI.eyebrow("Where the hours went")}
         {Kati.Screens.Stats.breakdown(year)}
         <Spacer size={26} />
         {UI.eyebrow("More numbers")}
-        {Kati.Screens.Stats.more_numbers()}
+        {Kati.Screens.Stats.more_numbers(true)}
         <Spacer size={26} />
         {UI.eyebrow("Recently watched", dash: Palette.rail_idle(), gap: 12)}
-        {Kati.Screens.Stats.recently_watched(assigns.recent)}
+        {Kati.Screens.Stats.recently_watched(recent)}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc """
+  Screen 07 on a phone that has watched nothing.
+
+  Header, one card, and the `More numbers` list with its invented second lines
+  gone. See the moduledoc for which board decided each of those three.
+  """
+  @spec nothing_counted(String.t()) :: map()
+  def nothing_counted(range) do
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={132}
+      >
+        {Kati.Screens.Stats.header(range)}
+        {Kati.Screens.Stats.nothing_yet()}
+        {UI.eyebrow("More numbers")}
+        {Kati.Screens.Stats.more_numbers(false)}
       </Column>
     </Scroll>
     """
   end
 
   @doc false
-  def header(year) do
+  def header(range) do
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -148,7 +272,7 @@ defmodule Kati.Screens.Stats do
           />
           <Spacer size={5} />
           <Text
-            text={year.range}
+            text={range}
             font_family="mono"
             text_size={11}
             text_color={Palette.muted()}
@@ -185,6 +309,98 @@ defmodule Kati.Screens.Stats do
     )
   end
 
+  @doc """
+  The card that stands where the year's figures would be.
+
+  Board 101's *Not enough data* decision — the card's contents replaced by a
+  glyph and a sentence — drawn at board 27's geometry, which is the one every
+  empty state in the app quotes and which
+  `Kati.Screens.HomeEmpty.invitation/0` already re-derives for a root screen.
+  The numbers are that card's: radius 22 at 17pt of padding on `card/0` under
+  `shadow_card_soft/0`, a 64pt tile, 18 above the headline, 9 between the two
+  texts.
+
+  **Card white, not this screen's cream.** Cream is the house style's *"a card
+  that carries a claim or a warning"*, which is what the hero is; every empty
+  state the design draws — 27, 110, 113, 117, 123, 139 — is on card white, and
+  this card carries no claim.
+
+  **No ink action and no quiet alternative**, which is where this leaves 27's
+  full recipe. Board 113's Health card is the drawn precedent for an empty
+  state without one: it omits the button because the acts it would offer are
+  already on the page. So are these — the `+` in the dock is the app's one add
+  action on every root, and `More numbers` sits directly below. A second ink
+  pill here would be a third route to the same thing, and it would put a tap
+  tag on a page whose whole point is that it is not pretending.
+  """
+  @spec nothing_yet() :: map()
+  def nothing_yet do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        padding={17}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={14} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          {Kati.Screens.Stats.nothing_yet_tile()}
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={18} />
+        <Text
+          text="Not much to show yet"
+          text_size={17}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_align="center"
+          text_color={:on_surface}
+        />
+        <Spacer size={9} />
+        <Text
+          text="Your year is counted from what you tick off. Mark one thing watched and this page starts filling itself."
+          text_size={13}
+          line_height={1.6}
+          text_align="center"
+          text_color={Palette.sub()}
+        />
+        <Spacer size={14} />
+      </Column>
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The 64pt paper square the empty card is headed by.
+
+  `bar_chart_4_bars` — the glyph `Kati.Shell` already gives this tab, and the
+  rule every drawn empty state follows: 27 heads its own with `movie`, 113 with
+  `monitor_heart`, 117 with `restaurant`, 110 with `monitor_weight`, 123 with
+  `payments`. Each is the glyph of the thing that is empty, and here the thing
+  that is empty is the statistics.
+
+  Board 101 uses `schedule` instead, and it is the closer board — but its card
+  is 160pt wide with no room for a tile, and its sentence is about *how long
+  Kati has been counting* rather than about there being nothing to count. At
+  zero there is no elapsed span to point at, so the tab's own glyph wins.
+
+  Metrics and construction are `Kati.Screens.HomeEmpty.tile/0`'s: 64 square,
+  radius 20, `rail_idle/0` on `paper/0`, and the glyph passed as a child rather
+  than through `theme_icon/2`'s `icon` shorthand, which would typeset
+  `bar_chart_4_bars` as four words.
+  """
+  @spec nothing_yet_tile() :: map()
+  def nothing_yet_tile do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: Palette.paper(), size: 64, radius: 20],
+      [UI.symbol("bar_chart_4_bars", size: 28, color: Palette.rail_idle())]
+    )
+  end
+
   @doc false
   def hero(year, grid) do
     ~MOB"""
@@ -214,33 +430,14 @@ defmodule Kati.Screens.Stats do
               text_color={:on_surface}
             />
           </Column>
-          <Column padding_bottom={5}>
-            <Row
-              height={28}
-              corner_radius={14}
-              background={Palette.green_wash()}
-              padding_left={11}
-              padding_right={11}
-              align="center"
-            >
-              {Kati.Screens.Stats.arrow(year)}
-              <Spacer size={5} />
-              <Text
-                text={year.change}
-                font_family="mono"
-                text_size={11.5}
-                font_weight="medium"
-                text_color={Palette.green_text()}
-              />
-            </Row>
-          </Column>
+          {Kati.Screens.Stats.change_pill(year)}
         </Row>
         <Spacer size={18} />
         {Kati.Screens.Stats.grid(grid)}
         <Spacer size={12} />
         <Row fill_width={true}>
           <Text
-            text={"#{year.weeks} weeks"}
+            text={"#{year.weeks} weeks to today"}
             font_family="mono"
             text_size={10}
             text_color={Palette.cream_meta()}
@@ -268,6 +465,14 @@ defmodule Kati.Screens.Stats do
   beside an up arrow over a year that fell is the one thing on this card that
   would be actively false rather than merely approximate. The drawn figures
   carry `rising?: true`, so frame 07 is unchanged.
+
+  `opts` is `:size` and `:fill`, and it is here because screen 98's share card
+  draws this same decision at 20pt unfilled where this pill draws it at 14
+  filled. What the two pages share is the GLYPH and the COLOUR — which of the
+  two arrows the font subset actually has, and that down is
+  `Kati.Theme.Palette.red/0` — and a second copy of that is precisely how 98
+  came to congratulate a year 07 had just drawn in red. The two numbers around
+  it are not shared and are the caller's. The defaults are this pill's.
   """
   # `arrow_downward` and not `arrow_drop_down`, which is the glyph this drew
   # until the drawings were re-exported against Kati's font subset. The subset
@@ -275,11 +480,75 @@ defmodule Kati.Screens.Stats do
   # only when a real year is down on the last, and therefore never captured —
   # was a tofu box waiting to happen.
   @spec arrow(map()) :: map()
-  def arrow(%{rising?: false}),
-    do: Kati.UI.symbol("arrow_downward", size: 14, color: Palette.green_text(), fill: true)
+  @spec arrow(map(), keyword()) :: map()
+  def arrow(year, opts \\ [])
 
-  def arrow(_year),
-    do: Kati.UI.symbol("arrow_drop_up", size: 14, color: Palette.green_text(), fill: true)
+  def arrow(%{rising?: false}, opts),
+    do: Kati.UI.symbol("arrow_downward", arrow_opts(opts, Palette.red()))
+
+  def arrow(_year, opts),
+    do: Kati.UI.symbol("arrow_drop_up", arrow_opts(opts, Palette.green_text()))
+
+  defp arrow_opts(opts, colour),
+    do: [
+      size: Keyword.get(opts, :size, 14),
+      color: colour,
+      fill: Keyword.get(opts, :fill, true)
+    ]
+
+  @doc """
+  The pill beside *Time watched*, when there is something to compare with.
+
+  Two halves of MOVIES-AND-TV.md #47, and they are different mistakes.
+
+  **A first year has no last year.** `change/2` answered `0` for a prior year
+  of zero minutes, so a device whose history begins today drew `↑ 0%` in green
+  — a claim of *level with last year* about a year that does not exist. It
+  answers `nil` now and this draws nothing at all: the headline stands on its
+  own, which is what it is.
+
+  **A year that fell was green.** The arrow had a falling branch and the
+  colours did not: both the glyph and the number were `green_text` on a
+  `green_wash` ground whatever the direction, so watching less than last year
+  was congratulated. Down is `Palette.red/0` on `red_wash`, which is the pair
+  this app already uses for a figure going the wrong way.
+
+  The drawn year rises, so board 07 is unchanged.
+  """
+  @spec change_pill(map()) :: map()
+  def change_pill(%{change: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def change_pill(year) do
+    assigns = %{
+      year: year,
+      arrow: arrow(year),
+      ground: if(year.rising?, do: Palette.green_wash(), else: Palette.red_wash()),
+      ink: if(year.rising?, do: Palette.green_text(), else: Palette.red())
+    }
+
+    ~MOB"""
+    <Column padding_bottom={5}>
+      <Row
+        height={28}
+        corner_radius={14}
+        background={@ground}
+        padding_left={11}
+        padding_right={11}
+        align="center"
+      >
+        {@arrow}
+        <Spacer size={5} />
+        <Text
+          text={@year.change}
+          font_family="mono"
+          text_size={11.5}
+          font_weight="medium"
+          text_color={@ink}
+        />
+      </Row>
+    </Column>
+    """
+  end
 
   # 26 columns per row, one per week. 26*8 + 25*4 = 308, inside the 360 the
   # gutters leave, which is why the design's wrap lands on 26 as well.
@@ -419,9 +688,30 @@ defmodule Kati.Screens.Stats do
     """
   end
 
-  @doc false
-  def more_numbers do
-    rows = Enum.reject(Kati.Stats.Sample.more_numbers(), &(&1.title == "Recently watched"))
+  @doc """
+  The five rows under `More numbers`.
+
+  `counted?` is whether this device has watched anything, and it decides one
+  thing: whether each row carries its second line. Those lines —
+  `1,204 entries`, `4 active · 12-day best`, `Cutting v3 · 86%`,
+  `3 active · 38 of 52 books`, `£46.47 a month · 7 expenses` — are
+  `Kati.Stats.Sample`'s, and three of the five domains behind them have no
+  resource at all. On a phone that has counted nothing they are the defect this
+  round exists to remove, so they are not drawn.
+
+  The rows themselves stay on both branches, and that is deliberate: screen
+  139's empty Home *"states which parts still work"*, and these five are the
+  only route to Activity, Habits, Nutrition, Goals and Money outside the
+  gallery. Dropping them would make half the app unreachable for exactly the
+  person who has just installed it.
+  """
+  @spec more_numbers(boolean()) :: map()
+  def more_numbers(counted?) do
+    rows =
+      Kati.Stats.Sample.more_numbers()
+      |> Enum.reject(&(&1.title == "Recently watched"))
+      |> Enum.map(&entries_line/1)
+
     last = length(rows) - 1
 
     ~MOB"""
@@ -435,13 +725,113 @@ defmodule Kati.Screens.Stats do
       padding_top={4}
       padding_bottom={4}
     >
-      {rows |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Stats.number_row(row, i < last) end)}
+      {rows |> Enum.with_index() |> Enum.map(fn {row, i} -> Kati.Screens.Stats.number_row(row, i < last, counted?) end)}
     </Column>
     """
   end
 
+  # The one row of the five whose second line this app can actually answer.
+  #
+  # `1,204 entries` was `Kati.Stats.Sample`'s on every device — a specific claim
+  # about the reader's own history, of exactly the kind #91 and MOVIES-AND-TV.md
+  # #45 are about, sitting on a phone that may hold four watches. Activity is a
+  # `Kati.Media.Watch` count and nothing else, so it is counted.
+  #
+  # The other four stay the drawing's, and the moduledoc's reason stands for
+  # them: Habits, Nutrition and Money have no resource behind them at all, and a
+  # card with one real line among three stand-ins would be harder to read as a
+  # stand-in card than one that is wholly frozen. What changes here is that the
+  # line the app CAN answer is no longer among the frozen ones.
+  # MOVIES-AND-TV.md #45's remainder. Four rows carried the drawing's own
+  # figures on every device — `4 active · 12-day best`, `Cutting v3 · 86%`,
+  # `3 active · 38 of 52 books`, `£46.47 a month · 7 expenses` — beside one
+  # that counts. Two of the four can be counted now and are; the other two
+  # cannot and say nothing rather than saying somebody else's numbers, which
+  # is the call #75 made on screen 92 and #58 on screen 15.
+  defp entries_line(%{title: "Activity log"} = row) do
+    %{row | sub: Kati.Screens.Stats.entries_count()}
+  end
+
+  defp entries_line(%{title: "Goals"} = row), do: %{row | sub: Kati.Screens.Stats.goals_line()}
+  defp entries_line(%{title: "Money"} = row), do: %{row | sub: Kati.Screens.Stats.money_line()}
+
+  # `Kati.Habits` is a `Sample` module and nothing else — no resource, no
+  # table — and `Nutrition`'s `Cutting v3 · 86%` is a diet plan, which
+  # `Kati.Health` holds no column for either. Both rows stay, because the row
+  # is the door to a page that exists; what goes is the figure.
+  #
+  # `nil` until board 309, which is the half this got wrong: *"The row was
+  # shipping with no second line while every other row on the page carried
+  # one."* A row missing its sub-line is not the same claim as a row that has
+  # one and says the honest thing — the first reads as a rendering fault, and
+  # the second as an answer. **Not set up** is what the page behind each of them
+  # says, which is 309's rule for the whole card.
+  defp entries_line(%{title: title} = row) when title in ["Habits", "Nutrition"],
+    do: %{row | sub: "Not set up"}
+
+  defp entries_line(row), do: row
+
+  @doc """
+  `3 active` — the goals the reader is running, counted.
+
+      iex> is_binary(Kati.Screens.Stats.goals_line())
+      true
+  """
+  @spec goals_line() :: String.t()
+  def goals_line do
+    case Kati.Goals.Goal |> Ash.read!() |> length() do
+      # Board 309's wording, which says what 105 says: the count runs whether or
+      # not a goal has been set, so *none set* is not *nothing counted*.
+      0 -> "No goals set — Kati counts anyway"
+      1 -> "1 goal"
+      n -> "#{n} goals"
+    end
+  rescue
+    _error -> "None set"
+  end
+
+  @doc """
+  `£46.47 a month · 7 expenses` — the reader's own, both halves.
+
+  The subscription total is `Kati.Screens.MyServices`'s, read through the same
+  function screen 92's own Money row reads, so the two pages cannot disagree
+  about what a month costs.
+  """
+  @spec money_line() :: String.t()
+  def money_line do
+    total = Kati.Screens.MyServices.monthly_total()
+    n = Kati.Money.Expense |> Ash.read!() |> length()
+
+    [
+      if(total in [nil, "—"], do: nil, else: "#{total} a month"),
+      if(n == 0, do: nil, else: "#{n} #{if n == 1, do: "expense", else: "expenses"}")
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      # 309's wording for a money row at zero: what 123's page says of itself.
+      [] -> "Nothing to add up yet"
+      parts -> Enum.join(parts, " · ")
+    end
+  rescue
+    _error -> "Nothing added yet"
+  end
+
+  @doc """
+  How many watches there are, in `Kati.Screens.Activity`'s own words.
+
+  Counted through `Ash` rather than `count(*)`, because `[]` from Ash is the
+  claim the screens depend on. A store that cannot be read at all answers the
+  empty wording rather than raising: this is a subtitle on a settings row.
+  """
+  @spec entries_count() :: String.t()
+  def entries_count do
+    Watch |> Ash.read!() |> length() |> Kati.Screens.Activity.entries_line()
+  rescue
+    _error -> Kati.Screens.Activity.entries_line(0)
+  end
+
   @doc false
-  def number_row(row, rule?) do
+  def number_row(row, rule?, counted?) do
     tap = {self(), String.to_atom("go_" <> row.title)}
 
     ~MOB"""
@@ -457,13 +847,32 @@ defmodule Kati.Screens.Stats do
             text_color={:on_surface}
             max_lines={1}
           />
-          <Spacer size={3} />
-          <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
+          {Kati.Screens.Stats.row_sub(row, counted?)}
         </Column>
         <Spacer size={12} />
         {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Stats.hairline(rule?)}
+    </Column>
+    """
+  end
+
+  # The second line, or nothing where there is no figure to put on it. A row of
+  # a title and a chevron is the settings-list recipe the whole app is built
+  # from; a row of a title and an invented figure is not a recipe at all.
+  @doc false
+  def row_sub(_row, false), do: ~MOB"<Spacer size={0} />"
+
+  # A row whose figure is nobody's draws no second line at all — #45. `Habits`
+  # and `Nutrition` have no resource to count, and a subtitle that says nothing
+  # is better than one that says the drawing's.
+  def row_sub(%{sub: nil}, true), do: ~MOB"<Spacer size={0} />"
+
+  def row_sub(row, true) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      <Text text={row.sub} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
     </Column>
     """
   end
@@ -515,9 +924,12 @@ defmodule Kati.Screens.Stats do
   these are the library's own titles and their photographs, so the section is
   the drawn shape filled with the data this build actually has.
 
-  This is the **drawn** three, kept as the fallback and as the fixture the
-  frame was captured from. `recent/1` builds the same shape out of
-  `Kati.Media.Watch`.
+  This is the **drawn** three, and it is no longer a fallback: a phone that has
+  watched nothing draws no `Recently watched` section at all. It is kept as the
+  fixture frame 07 was captured from and as the shape `recent/1` has to agree
+  with — `Kati.ScreenStatsTest` asserts the real reader answers exactly this
+  against a fixture built to match, so the meta line and the star count are
+  pinned against the drawing rather than against literals typed into a test.
   """
   @spec recent() :: [map()]
   def recent do
@@ -649,18 +1061,19 @@ defmodule Kati.Screens.Stats do
       |> Ash.read!()
 
     cache = cache_for(watches)
+    runtimes = runtimes_for(watches)
     zone = Kati.Time.device_zone()
 
     watches
     |> Enum.reject(&is_nil(&1.tracked_title))
-    |> Enum.map(&entry(&1, cache, zone))
+    |> Enum.map(&entry(&1, cache, runtimes, zone))
   rescue
     # A stats screen is not worth a crash: off device, or before the repo is
     # up, there is no history and the drawing stands in for it.
     _ -> []
   end
 
-  defp entry(watch, cache, zone) do
+  defp entry(watch, cache, runtimes, zone) do
     tracked = watch.tracked_title
     cached = Map.get(cache, {tracked.source, tracked.source_id})
 
@@ -668,8 +1081,17 @@ defmodule Kati.Screens.Stats do
       tracked_id: tracked.id,
       on: watched_on(watch, zone),
       at: watch.watched_at,
-      minutes: cached && cached.runtime_minutes,
+      # The EPISODE's runtime for an episode tick, and the title's for a film.
+      # This read the title's for both, and TMDB puts a series' duration on
+      # each episode — `/tv/{id}` answers `episode_run_time` and not `runtime`,
+      # so `Kati.Media.CachedTitle.runtime_minutes` is `nil` for every series
+      # in the store. *Time watched* therefore read `0h 0m` however many
+      # episodes somebody ticked. MOVIES-AND-TV.md #18.
+      minutes: Map.get(runtimes, watch.episode_source_id) || (cached && cached.runtime_minutes),
       kind: tracked.kind,
+      # For `breakdown/1`. The title's, because a genre is a property of the
+      # show rather than of one night of it.
+      genres: cached && cached.genres,
       title: cached && cached.title,
       seed: cached && cached.poster_path,
       season: watch.season_number,
@@ -695,6 +1117,33 @@ defmodule Kati.Screens.Stats do
 
   defp watched_on(%Watch{watched_at: at}, zone),
     do: at |> Kati.Time.in_zone(zone) |> DateTime.to_date()
+
+  # `%{episode_source_id => runtime_minutes}` for every episode a tick names.
+  # One query for the whole history, the shape `cache_for/1` already uses, and
+  # an episode with no runtime is simply absent — `entry/4` falls through to
+  # the title's, which is right for a film and `nil` for a series nobody has
+  # runtimes for.
+  defp runtimes_for(watches) do
+    ids =
+      watches
+      |> Enum.map(& &1.episode_source_id)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    case ids do
+      [] ->
+        %{}
+
+      ids ->
+        Kati.Media.CachedEpisode
+        |> Ash.Query.filter(source_id in ^ids)
+        |> Ash.read!()
+        |> Enum.reject(&is_nil(&1.runtime_minutes))
+        |> Map.new(&{&1.source_id, &1.runtime_minutes})
+    end
+  rescue
+    _error -> %{}
+  end
 
   defp cache_for([]), do: %{}
 
@@ -727,15 +1176,98 @@ defmodule Kati.Screens.Stats do
     %{
       range: range(today),
       time: hours_and_minutes(minutes),
-      change: "#{abs(change)}%",
-      rising?: change >= 0,
+      change: change && "#{abs(change)}%",
+      rising?: is_nil(change) or change >= 0,
       weeks: @weeks,
       streak: streak(this),
       counts: count_cards(this),
-      # Not derivable — see the moduledoc. The drawing's own bars.
-      breakdown: Sample.year().breakdown
+      breakdown: genre_bars(this)
     }
   end
+
+  # The genre bars, from the genres the provider actually gave.
+  #
+  # This was `Kati.Stats.Sample.year/0`'s five frozen bars on every device, and
+  # the moduledoc's reason was that `Kati.Media.CachedTitle.genres` is *"one
+  # free-text column with no defined separator, written by nothing and read by
+  # nothing"*. Two thirds of that went stale: `Kati.Media.Tmdb.genres/1` writes
+  # it, `", "`-separated, and screens 04 and 14 both read it back that way. So
+  # the separator is defined, by the only writer there is.
+  #
+  # What is still true is that a title has SEVERAL genres and one duration, and
+  # there is no honest way to divide ninety minutes between *Drama* and
+  # *Mystery*. So a watch counts in full towards each genre it names — the
+  # question the band asks is *where did the hours go*, and an hour of a
+  # drama-mystery went to both — and the bars are scaled against the largest
+  # rather than against a total that would then exceed the year. The value
+  # under each is the hours themselves, so the arithmetic is visible rather
+  # than implied.
+  #
+  # Five bars, because the drawing has five: the top four by hours and
+  # `Everything else` for the rest, which is exactly what board 07 draws.
+  # MOVIES-AND-TV.md #45.
+  # The drawing's five, named rather than written out — `Kati.Theme.PaletteTest`
+  # is right that a hex in a screen is a colour that cannot follow the mode, and
+  # these five have to, because the bars sit on a card. Functions rather than a
+  # module attribute for the same reason: the palette resolves at call time.
+  defp genre_colours,
+    do: [Palette.ink(), Palette.green(), Palette.accent(), Palette.bronze()]
+
+  defp rest_colour, do: Palette.rail_idle()
+
+  defp genre_bars([]), do: []
+
+  defp genre_bars(entries) do
+    by_genre =
+      entries
+      |> Enum.flat_map(fn entry ->
+        Enum.map(genres_of(entry), &{&1, entry.minutes || 0})
+      end)
+      |> Enum.reduce(%{}, fn {genre, minutes}, acc ->
+        Map.update(acc, genre, minutes, &(&1 + minutes))
+      end)
+      |> Enum.sort_by(fn {genre, minutes} -> {-minutes, genre} end)
+
+    case by_genre do
+      [] -> []
+      ranked -> bars(ranked)
+    end
+  end
+
+  defp bars(ranked) do
+    colours = genre_colours()
+    {top, rest} = Enum.split(ranked, length(colours))
+    top_minutes = Enum.map(top, &elem(&1, 1))
+    rest_minutes = Enum.sum(Enum.map(rest, &elem(&1, 1)))
+    largest = Enum.max([rest_minutes | top_minutes])
+
+    named =
+      top
+      |> Enum.zip(colours)
+      |> Enum.map(fn {{genre, minutes}, colour} -> bar_row(genre, minutes, largest, colour) end)
+
+    if rest == [],
+      do: named,
+      else: named ++ [bar_row("Everything else", rest_minutes, largest, rest_colour())]
+  end
+
+  defp bar_row(name, minutes, largest, colour) do
+    fraction = if largest > 0, do: minutes / largest, else: 0.0
+
+    {name, Float.round(fraction, 2), "#{div(minutes, 60)}h", colour}
+  end
+
+  # `Drama, Mystery, Sci-Fi & Fantasy` as it is stored, split on the separator
+  # its only writer uses. A title with no genres takes part in no bar rather
+  # than becoming an `Unknown` one, which would be a genre nobody named.
+  defp genres_of(%{genres: genres}) when is_binary(genres) and genres != "" do
+    genres
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp genres_of(_entry), do: []
 
   defp in_year?(%{on: %Date{} = on}, year), do: on.year == year
   defp in_year?(_entry, _year), do: false
@@ -751,7 +1283,12 @@ defmodule Kati.Screens.Stats do
 
   # A first year has nothing to be up on. Reporting that as 100% rather than as
   # a division by zero, and as 0% when there is nothing either side.
-  defp change(_now, 0), do: 0
+  # `nil` and not `0` when there is nothing to compare with. A first year has no
+  # last year, and `0%` beside a green up arrow is a claim that this year is
+  # level with one that does not exist — the pill said *unchanged* to somebody
+  # whose history begins today. MOVIES-AND-TV.md #47. `change_pill/1` draws
+  # nothing for `nil`.
+  defp change(_now, 0), do: nil
   defp change(now, before), do: round((now - before) / before * 100)
 
   # Distinct TITLES, not ticks: a series watched every week of the year is one
@@ -909,8 +1446,13 @@ defmodule Kati.Screens.Stats do
     "Habits" => Kati.Screens.Habits,
     "Nutrition" => Kati.Screens.Health,
     "Goals" => Kati.Screens.Goals,
-    "Money" => Kati.Screens.Money,
-    "Recently watched" => Kati.Screens.UpNext
+    "Money" => Kati.Screens.Money
+    # `Recently watched` was here, and `more_numbers/1` rejects that row by
+    # name — so no `go_Recently watched` tag was ever emitted and the entry was
+    # dead code. MOVIES-AND-TV.md #125. Deleted rather than drawn: the row is
+    # rejected because this screen already shows those three watches in full
+    # one section down, and a numbers row that only counts them would be the
+    # page telling you twice.
   }
 
   @impl true

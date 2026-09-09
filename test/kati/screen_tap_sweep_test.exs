@@ -86,11 +86,66 @@ defmodule Kati.ScreenTapSweepTest do
   # `Kati.ScreenSweep.rolled_back/1` explains it in full and is what the other
   # two tap-dispatching sweeps go through. This one deletes instead, because
   # its dispatch is spread across several tests rather than gathered into one
-  # function call — three tables named explicitly, and the list grows the day a
+  # function call — the tables named explicitly, and the list grows the day a
   # new sheet starts committing.
+  #
+  # ## The day it grew, and how it was found
+  #
+  # `tracked_titles` and `cached_titles` are here because #87 gave
+  # `Kati.Screens.AddTitle` a real write, and this sweep taps every `add_<title>`
+  # control that screen draws: three rows in each table, `Kati.Library.Sample`'s
+  # own titles, left behind on every run since. The list did not grow with the
+  # write, which is the failure mode the paragraph above predicts word for word.
+  #
+  # It cost nothing until the module count changed. `Kati.ServicesTest` asserts
+  # `Kati.Screens.DataSources.cache_size/0` reads "Nothing cached yet", which is
+  # `Ash.count(CachedTitle) == 0` and nothing else, and it wipes no tables of its
+  # own — so it passes or fails purely on where the seed drops it relative to
+  # this file. Adding one test module reshuffles that, and #88's did: seed 7 went
+  # green before it and red after, on a leak neither file had anything to do
+  # with. Measured by counting `cached_titles` after every module.
+  #
+  # Watches are deliberately NOT in the list. This sweep creates none — screen
+  # 33's Save can only UPDATE, and on the empty database the sweep sees it
+  # refuses outright — so a `media_watches` row present here would be somebody
+  # else's leak, and a blanket DELETE would tidy away the evidence of it. SQLite
+  # enforces the foreign key, so it would announce itself rather than pass
+  # quietly: this callback raises on the `tracked_titles` delete.
   setup do
     on_exit(fn ->
-      for table <- ~w(goals expenses health_readings) do
+      # `health_doses` before `health_medications`: a dose `belongs_to` its
+      # medication with `allow_nil? false`, so the child table goes first or
+      # SQLite refuses the parent delete. Both joined the list when screen 188
+      # gave this app its first way to create a medication — the sweep taps
+      # `Save` on every sheet, and that sheet's draft has a name in it, so a
+      # row lands exactly as screen 106's `New goal` lands one in `goals`.
+      #
+      # `music_tracks`, `music_albums` and `music_artists` joined on
+      # 5 September with `D-39`: screens 178 and 179 are the first writers the
+      # music domain has ever had, and this sweep presses every `add_<title>`
+      # disc screen 179 draws. Left behind, those rows stop
+      # `Kati.Screens.Music.page/0` falling back to `Kati.Music.Sample`, and the
+      # failure surfaces on `Kati.ScreenDesignLiteralTest`'s board 21 — a file
+      # this one never touched — for the seeds that order them the wrong way
+      # round. That is the paragraph above happening again, so the list grew
+      # with the write rather than after it.
+      #
+      # Child first here too: `music_tracks` and `music_listens` both reference
+      # `music_albums`, which references `music_artists`.
+      #
+      # `music_listens` was left out on the argument `media_watches` is left
+      # out on — *this sweep creates none, so a listen here is somebody else's
+      # leak and the foreign key should announce it.* The foreign key
+      # immediately did, and the argument was wrong on the very run that made
+      # it: screen 111's `Save reading` refuses on an empty shelf, and the
+      # shelf is no longer empty by the time the sweep reaches it, because
+      # screen 179's `add_<title>` discs shelved albums earlier in the same
+      # sweep. A screen that no-ops against an empty table stops no-opping the
+      # moment another screen in the sweep can fill that table, so the two
+      # arguments are not the same argument: `media_watches` has no writer in
+      # this sweep at all, and `music_listens` now has one at one remove.
+      for table <-
+            ~w(goals expenses health_readings health_doses health_medications tracked_titles cached_titles music_tracks music_listens music_albums music_artists) do
         Kati.Repo.query!("DELETE FROM " <> table, [])
       end
     end)
@@ -104,6 +159,30 @@ defmodule Kati.ScreenTapSweepTest do
 
   @locales [:en, :fa]
 
+  # Tags whose non-ASCII comes from a ROW and not from a label — see the test
+  # that reads this. Screen 03's Persian mirror draws six sample series with no
+  # id, so `Kati.Screens.LibraryFa.poster_tag/1` falls back to the caption for
+  # every one. `Kati.ScreenParamsSweepTest` carries the same six by name.
+  # mishka-group/kati#103 deletes the mirror and the list with it.
+  @from_the_data [
+    {Kati.Screens.LibraryFa, :open_series_بارش_خاکستر},
+    {Kati.Screens.LibraryFa, :open_series_بندر_آرام},
+    {Kati.Screens.LibraryFa, :open_series_ساعت_آبی},
+    {Kati.Screens.LibraryFa, :open_series_نمک_و_آهن},
+    {Kati.Screens.LibraryFa, :open_series_پرندگان_شب},
+    {Kati.Screens.LibraryFa, :open_series_گودال_بلند}
+  ]
+
+  # The remaining design- and capability-blocked groups are written up in
+  # `design-briefs/D-62-the-controls-that-name-a-place-with-nothing-behind-it.md`
+  # — seven service rows with no page to open, four chevrons on a book pointing
+  # at two screens nobody drew, screen 43's *Done prepping* and its five
+  # neighbours waiting on an answer to *what does done mean*, and *Save image*
+  # waiting on a fence that turns a composable into a bitmap. Filed rather than
+  # fixed, because each needs a drawing that does not exist or a decision about
+  # what the app means, and inventing either in a screen file is the one thing
+  # this pipeline does not allow.
+  #
   # Every tap this sweep knows to be dead right now. Each entry is a screen
   # that draws a control and cannot answer it, kept so the sweep fails on a
   # NEW one instead of failing on the backlog. Delete an entry when you wire
@@ -123,6 +202,88 @@ defmodule Kati.ScreenTapSweepTest do
   # Taps that reach a handler and change nothing, as of 2026-08-20. See `no new
   # dead-looking taps` for what this list is and, more importantly, what it is
   # not. Two groups, and the difference matters when you read a name here.
+  # The screens that still give one name to more than one node, with the tags
+  # they repeat. `Mob.Renderer` derives an `accessibility_id` from every atom
+  # `on_tap`, so a tag drawn twice is an id drawn twice, and
+  # `onNodeWithTag` throws on the second match rather than picking one. Every
+  # entry here is a control no device test can address.
+  #
+  # ## Why a list and not twenty-two fixes
+  #
+  # The check above was blind from the day it was written, so this is not new
+  # breakage — it is breakage that was always there and could not be seen. The
+  # honest move on finding twenty-four of them was to make them visible and fix
+  # the ones on the journey this ticket had to test, rather than to redraw
+  # twenty-four screens' tags in the same commit and verify none of it.
+  #
+  # 43 and 118 are absent because they were fixed: `Kati.Screens.MealsToday`
+  # names each card after its slot AND its clock — two `Snack` rows in one day
+  # made the slot alone collide, which this check caught — and
+  # `Kati.Screens.MealEdit` names each line after its ingredient. Those two are
+  # the meals journey's own doors, so they are the ones #95 had to open; the
+  # device test that walks through them still needs a meal to attach an
+  # ingredient to, which is #91's work, not this ticket's.
+  #
+  # The shape of the fix is the same every time and is written down in
+  # `Kati.Screens.MealsToday.meal_tag/1`: give the repeated control the identity
+  # of the row it belongs to. `Kati.Screens.ImportSources.tag/1` and
+  # `Kati.Screens.AddIngredient`'s aisle chips are the same pattern.
+  #
+  # 03 is off the list as of #91, and NOT by the fix above — its two tags are
+  # still one name over every poster in a full grid. This sweep renders against
+  # the empty store (see `setup`), and `Kati.Screens.Library` no longer answers
+  # an empty shelf with `Kati.Library.Sample`'s nine films: it draws screen
+  # 27's `No titles yet` card, which has no grid and therefore no repeated tag.
+  # The debt is unpaid and has moved out of this sweep's reach; it comes back
+  # the day a device test puts two titles on the shelf, and the fix is still
+  # `meal_tag/1`'s.
+  #
+  # 02 is off the list as of #91, and unlike 03 it is off for good rather than
+  # out of reach. `row_event` was the BARE tag — `Kati.Screens.Calendar.tag/1`'s
+  # no-id branch — and only `drawn_rows/0` ever produced one: two of the
+  # drawing's five cards are `kind: "event"` with no stored event to name, so
+  # one page carried the name twice. Nothing renders `drawn_rows/0` any more,
+  # and every row the timeline draws now comes from `Kati.Calendars.Today` and
+  # carries its event's own id, so a second `row_event` cannot be minted on a
+  # full shelf either. `Kati.ScreenCalendarEmptyStateTest` asserts the tag is
+  # absent, which is the claim that keeps this struck off.
+  #
+  # 28's `inbox` and 55's `open_inbox` came off this map when the two Home
+  # mirrors stopped fabricating their spine, and they came off WITHOUT being
+  # fixed. This sweep renders against the empty store, and each page's `New
+  # this week` hero — which carried the second copy of the tag, the first being
+  # the notification disc in the header — is omitted when there is nothing to
+  # announce. On that branch 28 draws board 315's page and 55 draws 158's, and
+  # neither of those headers has a bell in it at all. So the debt moved out of
+  # this sweep's reach rather than being paid, and this note said so.
+  #
+  # It is paid now, and by the split this note prescribed: the bell is
+  # `:notifications` on 01, 28 and 55 alike and opens
+  # `Kati.Screens.InboxNotifications`, which is what screen 01's bell has
+  # always opened; the hero's button is `:open_inbox` and means *the release
+  # inbox*. Because this sweep still cannot see the branch that draws both,
+  # the claim is held where the fixture can exist —
+  # `Kati.ScreenDarkWidgetsTest` and `Kati.ScreenHomeFaEmptyStateTest` each
+  # write a tracked title and an aired episode, then assert no tag repeats.
+  #
+  # This list may only SHRINK. The test enforces both directions — a new
+  # collision fails it, and so does an entry here that no longer collides.
+  # Empty, and the ratchet is what keeps it that way: a new collision fails
+  # `no two nodes in one screen carry the same accessibility_id`, and an entry
+  # that no longer collides fails it too, so this map cannot rot in either
+  # direction.
+  #
+  # It held twenty-four when #97 opened and nineteen when the last of them was
+  # picked up. Screen 03 is the one to read about before adding an entry here
+  # rather than a fix: it left this map early, on the grounds that the sweep
+  # saw no collision — and the sweep saw none because the shelf is empty in
+  # every test, so the grid had no tiles to collide. `Kati.Screens.Library`
+  # then carried one tag per KIND on a real phone's shelf for as long as it
+  # took someone to look. An empty register is evidence of nothing on its own;
+  # what it means is that every screen with two of a kind on it has been drawn
+  # with two of a kind on it.
+  @known_collisions %{}
+
   @inert_taps [
     # ── Correct. The selected member of a family of controls: the filter that
     # is already showing, the shelf you are already on. Tapping it sets the
@@ -136,6 +297,140 @@ defmodule Kati.ScreenTapSweepTest do
     # member of its family. Both are covered properly by
     # `Kati.ScreenLanguagePickTest`, which asserts the locale actually moves
     # and the tick follows it.
+    # Screen 154's two resting choices. Board 155 states the default in as many
+    # words — "Resting — empty, Film, nothing assumed" — and Not started is the
+    # status a title you are adding has — so each is the already-selected member of its family, which
+    # is the first group above. `kind_movie` and the other two statuses all move
+    # the assign, which is what says the family is wired.
+    {Kati.Screens.AddByHand, :kind_movie},
+    # 157 is 154 in the dark colourway and opens in the same resting state, so
+    # its Film chip is the already-selected member of the same family. It was
+    # not here before because 157 opened on `:tv` — board 157's captured
+    # frame, loaded rather than drawn, which is what let *Add to library*
+    # write The Long Hollow into a real library (MOVIES-AND-TV.md #29).
+    {Kati.Screens.AddByHandDark, :kind_movie},
+    # Steps 4 and 5's resting choices — the loudness the board opens on and the
+    # title it opens with picked. Every other choice in each family moves the
+    # assign, which is what says the family is wired.
+    # Screen 19's clear disc, on a page the sweep opens with nothing typed.
+    # Clearing an empty field is correctly a no-op; the sweep reaches 19
+    # without a query because 86 is what hands it one, and there is no board
+    # that draws 19 mid-query AND its clear having been pressed.
+    # Screen 36's own mode segment. `Kati.Screens.AutoDetectMusic` answers its
+    # already-selected one the same way and says why: there is no second state
+    # for a screen to move to when you tap the mode you are already in, and a
+    # segment drawn without a tap at all would read as a broken control rather
+    # than a settled one.
+    {Kati.Screens.AutoDetect, :tv},
+    # Screen 36's permission row and its threshold, on a host with no bridge.
+    # MOVIES-AND-TV.md #100 wired both: *This phone* opens the system page that
+    # grants notification access — there is no runtime dialog for a
+    # notification listener, so a door is the only honest shape — and *Tick at*
+    # steps the threshold `Kati.Media.Detect.threshold/0` reads.
+    #
+    # Neither can change anything here. `Kati.Native.Links.settings/1` answers
+    # `{:error, :no_bridge}` off a device, and `Mob.State` is not running in
+    # this sweep so the threshold write is rescued into a no-op. Both are
+    # pressed over a real preference store in `Kati.MediaDetectTest`.
+    {Kati.Screens.AutoDetect, :open_media_access},
+    {Kati.Screens.AutoDetect, :cycle_threshold},
+    # Screen 13's own selected window, for screen 36's reason one line up. The
+    # board is drawn at `45m` and this sweep renders it, so pressing `45m`
+    # re-reads the same window and answers the same page. The other four move
+    # it, and are swept. `Kati.ScreenWhatFitsTest` presses all five over a real
+    # shelf, where the list under them actually changes.
+    {Kati.Screens.WhatFits, :window_45m},
+    # Screen 18's own lit chip, for screen 36's reason one line up. *Or file it
+    # as* is a choice of one, and `Event` is what a bare sentence is already
+    # filed as, so pressing it sets `:filed_as` to what it already holds. The
+    # other five move the screen — four set a different
+    # `Kati.Calendars.Event.kind`, Title opens screen 06 — and are swept.
+    {Kati.Screens.QuickAdd, :file_as_event},
+    # Screen 43's **Mark eaten** on the DRAWN day, which is the only day the
+    # sweep sees. With a plan in the store the tag carries the slot's id and
+    # writes a `Kati.Meals.MealLog` — `Kati.MealsTodayWriteTest` asserts that
+    # against real rows. `Kati.Meals.SampleToday` is a transcription of board
+    # 43 rather than rows, so its meals have no slot to log against and
+    # `Kati.Screens.MealsToday.tag/2` hands back the bare tag rather than one
+    # ending in `_nil`. A button that wrote a log for a meal nobody planned
+    # would be inventing the row it then displayed.
+    # Screen 46's two commitments, on the drawn page — which is the only page
+    # this sweep sees. With a slot handed over by screen 43 they write:
+    # **Swap just today** logs the candidate as `:planned` and **Every week**
+    # moves the slot onto it, and `Kati.MealSwapTest` asserts both against real
+    # rows, including that neither does the other's job. Reached from the
+    # gallery there is no slot, so the page is `Kati.Meals.SampleSwap`'s
+    # drawing and committing would be committing a swap of nothing.
+    # Screen 45's bookmark disc, on the drawn page. With a plan there is a
+    # recipe and the disc toggles `Kati.Meals.Recipe.bookmarked` —
+    # `Kati.MealSwapTest` asserts it both ways round. `Kati.Meals.SampleRecipe`
+    # is a transcription of board 45 rather than a row, so there is nothing to
+    # bookmark and the tap changes nothing rather than inventing the recipe it
+    # would have to write against.
+    {Kati.Screens.Meal, :save},
+    {Kati.Screens.MealSwap, :swap_once},
+    {Kati.Screens.MealSwap, :swap_forever},
+    {Kati.Screens.MealsToday, :mark_eaten},
+    # (The comment that stood here described screen 05's **Mark all** as having
+    # joined this group "the round it was wired", and MOVIES-AND-TV.md #82
+    # pointed out that it was orphaned: the control had no tap at all, so the
+    # entry it described had been struck as a phantom and the sentence outlived
+    # it. #82 wired all three of screen 05's controls on 7 September, and the
+    # sentence is true now and belongs to none of them — a control drawn
+    # without a tap over an empty list is not a tag this sweep can see.
+    # `Kati.ScreenInboxTest` presses them over real rows.)
+    #
+    # Screen 19's clear disc. This entry outlived its own reason too: #94 found
+    # the control HALF working on the device — the counts went to zero and the
+    # typed word stayed in the field — and it is fixed. It stays here for the
+    # reason it was first written, which is about the SWEEP and not the screen:
+    # 19 is reached with an empty field, 86 is what hands it a query, and
+    # clearing an empty field is correctly a no-op.
+    {Kati.Screens.Search, :clear},
+    # Screen 06's clear disc, for screen 19's reason one line up: the field it
+    # empties is already empty on a bare mount.
+    {Kati.Screens.OnboardingLoudness, :choose_Quietly},
+    # The same one, in the mirror. Its tag is positional rather than named —
+    # `Kati.Screens.OnboardingLoudnessFa.tag/1` says why: an atom made of
+    # Persian words is a name no device test can type.
+    {Kati.Screens.OnboardingLoudnessFa, :choose_quiet},
+    #
+    # `{Kati.Screens.OnboardingFirstTitle, :pick_The_Long_Hollow}` and its
+    # mirror `:pick_1` sat here on the same grounds and are GONE, because the
+    # grounds went. Step 5 opened with a tile already ticked, so tapping it was
+    # the resting member of its family — and it opened that way because board
+    # 163 draws that tile ticked, and the tick was read as a DEFAULT rather
+    # than as the drawing showing what a chosen tile looks like. A reader who
+    # pressed Finish setup without choosing was therefore handed one of the
+    # board's four invented films.
+    # `Kati.Screens.OnboardingFirstTitle.load/1` carries the argument. Nothing
+    # is picked now, so both taps are live.
+    # 157 and 156 are 154 in another colourway and another script, and each is
+    # drawn in the state its own board shows — Series chosen so the episode
+    # field is visible. The resting member of a family again, three times.
+    {Kati.Screens.AddByHandDark, :kind_tv},
+    {Kati.Screens.AddByHandDark, :status_not_started},
+    {Kati.Screens.AddByHand, :status_not_started},
+    # Board 169's two settled members. The sheet opens on `Kati.Discover.Filters.resting/0`
+    # — most popular, no kind, no rating — so `:sort_popular` sets the sort it
+    # already has and `:reset` clears a choice that is already clear. Every
+    # other control on the sheet moves the choice, which is what says the
+    # families are wired: `Kati.DiscoverFiltersTest` presses all nine.
+    {Kati.Screens.DiscoverFilters, :sort_popular},
+    {Kati.Screens.DiscoverFilters, :reset},
+    # Screen 177's three resting choices — the Kind the screen IS, the Edition
+    # the form opens on and the status a book you are adding has. The
+    # already-selected member of its family, three times, and every other
+    # member of each family moves the assign or navigates, which is what says
+    # the family is wired.
+    {Kati.Screens.AddByHandBook, :kind_book},
+    {Kati.Screens.AddByHandBook, :edition_paperback},
+    {Kati.Screens.AddByHandBook, :status_not_started},
+    # Screen 176's lit segment and lit chip, for the same reason: کتاب‌ها is the
+    # shelf you are on and همه is the filter already showing. نمایش and موسیقی
+    # both navigate and the other three chips all move the filter.
+    {Kati.Screens.BooksFa, :shelf_1},
+    {Kati.Screens.BooksFa, :filter_0},
     {Kati.Screens.LanguagePick, :choose_en},
     {Kati.Screens.LanguagePick, :choose_fa},
     # ── Drawn, reachable, and pushing nothing because the design draws no
@@ -147,12 +442,27 @@ defmodule Kati.ScreenTapSweepTest do
     # drawn. Delete these the moment either is.
     {Kati.Screens.BookDetail, :open_series},
     {Kati.Screens.BookDetail, :open_lending},
+    # (Screen 177's Album and Artist Kind chips were here, with the instruction
+    # *delete both the moment 178 lands*. It landed with `D-39`, and both now
+    # push `Kati.Screens.AddByHandRecord` — the record form, which opens on
+    # Album and whose own Kind row moves to Artist. Struck out rather than
+    # deleted, because a list that only grows is a list nobody believes.)
     {Kati.Screens.Activity, :filter_All},
+    # Screen 06's × clears the field. On this sweep there is nothing to clear:
+    # every screen is pressed on the socket it MOUNTED with, and screen 06
+    # mounts with an empty query and the board's four rows — which is exactly
+    # what the tap resets to. The control is live and was not: it was drawn as
+    # a bare `Kati.UI.symbol("cancel", …)` with no `on_tap`, so a tap fell
+    # through to the `<TextField>` under it and the next thing typed was
+    # appended to the query somebody was trying to delete. Found on a device.
+    {Kati.Screens.AddTitle, :clear_query},
     {Kati.Screens.AddTitle, :filter_Everything},
     {Kati.Screens.Calendar, :filter_All},
     {Kati.Screens.Discover, :"filter_For you"},
     {Kati.Screens.EventDetail, :section_Work},
-    {Kati.Screens.Library, :filter_All},
+    # Screen 20's, which joined the day its chip rail was wired: `All` is the
+    # chip `load/1` opens on, so tapping it re-selects what is selected.
+    {Kati.Screens.Books, :filter_All},
     # Screen 70's unit segments. `Page` is the one the sheet opens on, so
     # tapping it sets the unit it already has; `unit_percent` and
     # `unit_minutes` both move, which is what proves the family is wired.
@@ -161,18 +471,47 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.Screens.LogListen`'s moduledoc for why that rather than `Whole
     # album` — so it is this one that sets the value it already has.
     {Kati.Screens.LogListen, :scope_selected},
-    # ── Screen 83's six link rows. Every card and the notices row opens a URL
-    # in the platform browser, and Kati has no fence for that: nothing in
-    # `native/LEDGER.md` opens an external link, and inventing one to make six
-    # taps look alive would be shipping a native change for a test. The rows
-    # are drawn, reachable, and honest about being links; what they would open
-    # is the browser, through a bridge that does not exist yet.
-    {Kati.Screens.Attribution, :open_tmdb},
-    {Kati.Screens.Attribution, :open_justwatch},
-    {Kati.Screens.Attribution, :open_tvmaze},
-    {Kati.Screens.Attribution, :open_open_library},
-    {Kati.Screens.Attribution, :open_musicbrainz},
-    {Kati.Screens.Attribution, :open_notices},
+    # ── Screen 33's ninth point of ten, and only the ninth.
+    #
+    # The first category above, drawn as a row rather than a strip: the sheet's
+    # five stars carry ten half-star tap targets, `:star_1` to `:star_10`, and
+    # tapping one sets the rating it names. This sweep runs against a database
+    # with no logged watch in it — every test that writes one empties
+    # `media_watches` on the way out — so the sheet is `Kati.Rating.Sample`'s
+    # 4.5 stars, which is nine points, and `:star_9` is the point already set.
+    # The other nine all move the rating, which is what proves the family is
+    # wired rather than decorative.
+    #
+    # `:save` is deliberately NOT here. On the same empty database it answers
+    # `{:error, :nothing_to_save}` and puts that sentence on the sheet, which is
+    # a change this heuristic can see — and the reason it can is the whole of
+    # #85: a save that fails has to leave a mark.
+    {Kati.Screens.Rating, :star_9},
+    # ── Screen 180's ninth point, for exactly the reason above, one domain
+    # over. `Kati.Screens.RateAlbum` opens on the album screen 74 was about,
+    # which on an empty shelf is `Kati.Music.Sample.album/0` — rating 9, which
+    # is 4.5 stars. `:save` is deliberately not here either: it answers
+    # `{:error, :nothing_to_save}` and draws the sentence.
+    {Kati.Screens.RateAlbum, :star_9},
+    # ── Screens 178 and 179's already-chosen members, the first category above.
+    # Board 178 is drawn with **Album** chosen and the form loads in it, so
+    # `:kind_album` sets the kind it already has; `:kind_artist` moves it, and
+    # `:kind_movie`, `:kind_tv` and `:kind_book` push the form that owns
+    # those three, which is what says the family is wired. Board 179 is drawn
+    # with **Albums** lit because it is the state screen 21's FAB opens, so
+    # `:filter_Albums` is that row's settled member; `:filter_Artists` narrows
+    # and the other three push screen 06.
+    {Kati.Screens.AddByHandRecord, :kind_album},
+    {Kati.Screens.AddTitleMusic, :filter_Albums},
+    # (Screen 83's six link rows were here, and screen 85's four below them.
+    # `K-43 open-url` was built and they all open the site they name now —
+    # `Kati.Screens.Attribution.site_for/1` is the table and
+    # `Kati.Screens.Attribution.follow/2` is the tap. The reason on file was
+    # *every one opens a URL in the platform browser, and Kati has no fence
+    # that does*, which was true for as long as nobody built the fence. Struck
+    # out rather than deleted, because a list that only grows is a list nobody
+    # believes.)
+
     # ── Screen 92's three rule switches and both search fields.
     #
     # The rules ARE wired: each writes through `Kati.Services.toggle_rule/1` and
@@ -184,14 +523,35 @@ defmodule Kati.ScreenTapSweepTest do
     # by `Kati.ServicesTest`, which asserts the stored set actually moves.
     #
     # The two search fields and the service row are drawn, reachable and open
-    # nothing: neither a service search nor a per-service editor is drawn
-    # anywhere in the 127 artboards.
+    # nothing. `:search` is the field's ROW, and since #95 the row is no longer
+    # the whole control: screen 92's field is a `<TextField>`, because screen 95
+    # draws it mid-query and points what you type at the `Something else` row
+    # below it. Typing arrives as `{:change, :service_query, _}` and a sweep of
+    # taps cannot see it — `Kati.ServiceWriteTest` asserts the field holds what
+    # was typed and that the row writes it. What the row's own `on_tap` still
+    # opens is nothing, which is what keeps this entry honest.
+    #
+    # `:edit_service` used to sit under the same sentence — *no per-service
+    # editor is drawn anywhere in the set* — and no longer does. Board 95's
+    # switch is on every service row and the row's own tap refills the field
+    # the service was typed in (MOVIES-AND-TV.md #118, #119). This sweep still
+    # cannot see either: it renders against an empty store, where screen 92 has
+    # no service rows at all. `Kati.ServiceWriteTest` presses them over real
+    # ones, which is the only place that control exists.
     {Kati.Screens.MyServices, :rule_rentals},
     {Kati.Screens.MyServices, :rule_purchases},
     {Kati.Screens.MyServices, :rule_hide_unavailable},
     {Kati.Screens.MyServices, :search},
-    {Kati.Screens.MyServices, :edit_service},
-    {Kati.Screens.CountryPicker, :search},
+    # One entry per drawn service since #97 gave the rows their own names
+    # (`Kati.Screens.MyServices.service_tag/1`). They are listed rather than
+    # matched by prefix because that is what this list is: a control named here
+    # is a control somebody looked at. Naming them changes nothing about what
+    # they open, which is still nothing — the paragraph above is unaltered.
+    # `{Kati.Screens.CountryPicker, :search}` left this list on 6 September.
+    # The field was a picture whose tap fell through to
+    # `handle_info(_message, …)`, over a placeholder that promised 190
+    # countries against a list of seven (MOVIES-AND-TV.md #78). It is a
+    # `<TextField>` that filters now, and the placeholder counts the list.
     # ── Screen 66's status and edition chips.
     #
     # All seven write: `Kati.Screens.BookDetail.apply_change/1` updates the
@@ -228,12 +588,14 @@ defmodule Kati.ScreenTapSweepTest do
     # into, which is #45. The field is honest about being empty and the sheet
     # saves without it, which is the screen's whole subject.
     #
-    # `file_as_expense` is the Expense chip, and on this screen it is the
-    # selected one: you are already looking at what it files the sentence as.
-    # On screen 18 the same chip pushes here, which is what makes the family
-    # live.
-    {Kati.Screens.QuickAddExpense, :edit_amount},
-    {Kati.Screens.QuickAddExpense, :file_as_expense},
+    # (`{Kati.Screens.QuickAddExpense, :file_as_expense}` was here, for the
+    # already-selected reason: on this screen the Expense chip is the one you
+    # are already looking at. MOVIES-AND-TV.md #93 wired the other five on
+    # screen 18, and screen 124 answers none of them — it has its own chip lit
+    # and its own screen behind it — so it now draws the whole row as a
+    # picture, the rule `Kati.Screens.Rating.scale_toggle/1` states for the
+    # toggle it lends 73 the same way. A picture draws no tags, so the entry
+    # became a phantom. Screen 18's own lit chip is in this list instead.)
     # ── Screen 111's three.
     #
     # `unit_kg` is the one the sheet opens on, and `unit_st` writes through
@@ -249,21 +611,30 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.LogWeight, :unit_kg},
     {Kati.Screens.LogWeight, :unit_st},
     {Kati.Screens.LogWeight, :now},
-    # ── Screen 112's four.
+    # ── Screen 112's two.
     #
     # `mark_taken` and `mark_skipped` write, and the write lands on the first
-    # dose of the day that has not been decided about. This sweep runs against
-    # an empty database, where there are no doses at all and the page is the
-    # drawing's — so the write is a no-op, which is correct rather than dead.
-    # `Kati.HealthTest` asserts both with doses stored.
+    # dose of the day that has not been decided about — resolved against the
+    # socket each screen was mounted with, since D-59, rather than re-queried
+    # at tap time.
     #
-    # `add` and `open_schedule` are drawn and reachable and open nothing:
-    # neither a new-medication sheet nor a per-medication page is drawn
-    # anywhere in the 127 artboards.
-    {Kati.Screens.Medication, :mark_taken},
-    {Kati.Screens.Medication, :mark_skipped},
-    {Kati.Screens.Medication, :add},
-    {Kati.Screens.Medication, :open_schedule},
+    # This sweep runs against an empty database, so that list is
+    # `drawn_doses/0` and the row it hands `save_dose/2` carries no
+    # `:medication_id`: the write is REFUSED rather than absent. It sets
+    # `:save_error` and writes no row, which is why these two stay here — the
+    # tag is answered and the store is untouched — and why the old word
+    # *no-op* has been dropped. `Kati.HealthTest` asserts both with doses
+    # stored.
+    #
+    # It was four until D-43. `add` and the four `open_schedule` tags were
+    # here with the reason *"neither a new-medication sheet nor a
+    # per-medication page is drawn anywhere in the artboards"*; boards 188 and
+    # 189 are those two drawings, and the disc and the chevrons push
+    # `Kati.Screens.AddMedication` and `Kati.Screens.MedicationDetail` now. The
+    # four chevrons still hand the page `%{}` on an empty store, because the
+    # drawing's four schedules carry no id — that fact lives on
+    # `Kati.ScreenParamsSweepTest`'s `@empty_builders`, which is where a door
+    # that names something empty belongs rather than here.
     # ── Screen 119's four.
     #
     # `aisle_Uncategorised` is the aisle the draft opens on, the same
@@ -276,7 +647,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AddIngredient, :aisle_Uncategorised},
     {Kati.Screens.AddIngredient, :edit_name},
     {Kati.Screens.AddIngredient, :edit_quantity},
-    {Kati.Screens.AddIngredient, :edit_ingredient},
     {Kati.Screens.AddIngredient, :edit_unit},
     # `Type it in` is the built path and opens a form Mob cannot draw yet — the
     # same #45 gap. The row is honest: the two beside it carry `NOT IN V1`, and
@@ -303,14 +673,19 @@ defmodule Kati.ScreenTapSweepTest do
     # `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` carries Play-policy risk. The row
     # is drawn, reachable and honest about waiting on that fence — the same
     # state screen 83's six link rows are in.
-    {Kati.Screens.NotificationsHelp, :open_battery},
+
     # ── Screen 151, the notification-listener sheet. Both `Open system
     # settings` rows want the Android notification-listener settings intent,
     # which no fence in `native/LEDGER.md` launches — the same missing fence
     # `:open_battery` above is waiting on, one permission over. `:log_by_hand`
     # is NOT here: it pushes `Kati.Screens.LogListen`, because this sheet gates
     # auto-detecting a listen and hand-logging one is a screen Kati already has.
-    {Kati.Screens.NotificationAccess, :open_settings},
+
+    # The revoked band's pill, renamed for the band it belongs to (#97). Both
+    # pills say *Open system settings* and both did it under one tag, so the
+    # two states of this board were one id. Neither opens anything: Mob has no
+    # route out to the system settings app.
+
     # ── Screen 136, the loudness prompt's `Continue`. Wired, and the change
     # lives outside the socket twice over: `Mob.Permissions.request/2` raises
     # the system dialog, and `Permissions.note_asked/1` writes `Mob.State` so a
@@ -341,7 +716,23 @@ defmodule Kati.ScreenTapSweepTest do
     # that behaved differently from the page it mirrors would be the defect
     # worth catching, and it would show up as one of these going live alone.
     {Kati.Screens.BookDetailFa, :finish},
+    # `add_to_list` on the four detail pages, and why it reads inert HERE and
+    # only here. Board 334 wired all four on 7 September: each now pushes
+    # `Kati.Screens.AddToList` carrying the member the page is about, and on a
+    # real book or album the sheet opens with its ticks populated. On a DRAWN
+    # fixture there is no row — `Kati.Screens.BookDetail.member/1` answers `nil`
+    # for a map with no id — and `Kati.Lists.Door.open/3` then answers the
+    # socket unchanged rather than pushing a sheet that would write to a row the
+    # reader never chose.
+    #
+    # This is `Kati.Screens.Series.follow_disc/1`'s rule, one page over: a
+    # control over a picture stays a picture. The sweep mounts the drawing, so
+    # the drawing is what it sees.
     {Kati.Screens.BookDetailFa, :add_to_list},
+    {Kati.Screens.BookDetail, :add_to_list},
+    {Kati.Screens.BookDetailDark, :add_to_list},
+    {Kati.Screens.AlbumDetail, :add_to_list},
+    {Kati.Screens.AlbumDetailFa, :add_to_list},
     {Kati.Screens.BookDetailFa, :open_series},
     {Kati.Screens.BookDetailFa, :open_lending},
     {Kati.Screens.BookDetailFa, :status_reading},
@@ -389,12 +780,7 @@ defmodule Kati.ScreenTapSweepTest do
     # platform browser, and Kati has no fence that does.
     {Kati.Screens.AttributionStates, :open_tmdb},
     {Kati.Screens.AttributionStates, :open_listenbrainz},
-    # Screen 85's link rows, the Persian mirror of 83's. Same reason: every one
-    # opens a URL in the platform browser and Kati has no fence that does.
-    {Kati.Screens.AttributionFa, :open_tmdb},
-    {Kati.Screens.AttributionFa, :open_tvmaze},
-    {Kati.Screens.AttributionFa, :open_open_library},
-    {Kati.Screens.AttributionFa, :open_musicbrainz},
+
     # Screen 82's TMDB key choice, opening on Kati's own — the already-selected
     # member of a family whose other half does move.
     {Kati.Screens.DataSourcesFa, :key_kati},
@@ -406,7 +792,22 @@ defmodule Kati.ScreenTapSweepTest do
     # `Kati.ServicesTest`. The two on 93 open no keyboard (#45).
     {Kati.Screens.DataSourcesFa, :key_own},
     {Kati.Screens.MyServicesEmpty, :search},
-    {Kati.Screens.MyServicesEmpty, :edit_service},
+    # Two, not five: 93 draws only the free card — having no subscriptions is
+    # the whole subject of the board. Same `service_tag/1`, same reason.
+    {Kati.Screens.MyServicesEmpty, :edit_service_Aria_Free},
+    {Kati.Screens.MyServicesEmpty, :edit_service_Dispatch},
+    # Board 323 made 93's rules screen 92's rules, live — so `Hide titles I
+    # can't watch` joins its twin four screens up on this list, and for the
+    # identical reason: `Kati.Services.toggle_rule/1` writes to `Mob.State`,
+    # which is neither an assign nor a nav action, and the sweep's control
+    # mount re-reads the value the real tap just wrote. `Kati.ServicesTest`
+    # presses it and asserts the stored set moves — and that screen 92 opened
+    # next agrees with it, which is the whole of the ruling.
+    #
+    # Only this one of the three: the sweep still sees `rule_rentals` and
+    # `rule_purchases` move, and this list is what somebody looked at rather
+    # than what looks like it.
+    {Kati.Screens.MyServicesEmpty, :rule_hide_unavailable},
     # Screen 99's scope chips. The board has one section's figures on it and
     # cannot follow them anywhere — relighting a chip over a card that did not
     # move is the one thing it exists to argue against. Its own moduledoc says
@@ -426,28 +827,40 @@ defmodule Kati.ScreenTapSweepTest do
     # and 102 and 103 are 98's board with its own opening scope and ratio.
     {Kati.Screens.SearchTyping, :scope_All},
     {Kati.Screens.SearchFa, :scope_all},
-    {Kati.Screens.YearShareDark, :scope_All},
-    {Kati.Screens.YearShareDark, :aspect_square},
     {Kati.Screens.YearShareFa, :scope_All},
     {Kati.Screens.YearShareFa, :aspect_square},
     # Screen 113 draws screen 42's Meals tile as one of the states it is about.
     # A picture of a tile, not a tile.
-    {Kati.Screens.HealthEmptyStates, :open_meals},
+    # Once per grid since #97 banded the tags — this board draws the same four
+    # sections twice, so the Meals tile is two nodes. Both are inert for the
+    # reason the single entry was: the tile is drawn OFF in both states, and a
+    # switched-off section has nothing to open.
+    {Kati.Screens.HealthEmptyStates, :open_meals_nothing_set_up},
+    {Kati.Screens.HealthEmptyStates, :open_meals_meals_off},
     # Screen 115's dose buttons and its opening range. The two writes land on
-    # the first undecided dose of the day and there are none on an empty
-    # database, which is the same no-op screen 112's English entries record.
+    # the first undecided dose of the day, resolved against the socket this
+    # screen was mounted with; on an empty database that is the drawing's list,
+    # whose rows carry no `:medication_id`, so the write is refused and no row
+    # is created — the same answer, in the same words, as screen 112's English
+    # entries above.
     {Kati.Screens.HealthFa, :mark_taken},
     {Kati.Screens.HealthFa, :mark_skipped},
     {Kati.Screens.HealthFa, :range_month},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
-    {Kati.Screens.Medication, :toggle_dose},
     # Screen 109's current range. The chart draws every reading whatever the
     # segment says — the range is drawn and not yet applied, because a series
     # of four readings has no month to narrow to. It narrows when there is
     # something to narrow.
     {Kati.Screens.Weight, :range_month},
     {Kati.Screens.Library, :shelf_Screen},
+    # The same segment on the other two shelves. Screens 03, 20 and 21 draw one
+    # control three times, and on each of them one segment is the shelf you are
+    # already looking at. The other two now move — see
+    # `Kati.Screens.Books.handle_tap/2` — which is what makes these two the
+    # resting member of a family rather than two more dead tabs.
+    {Kati.Screens.Books, :open_books},
+    {Kati.Screens.Music, :segment_music},
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},
     {Kati.Screens.MealsDay, :filter_All},
@@ -455,9 +868,20 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.Nutrition, :period_Week},
     {Kati.Screens.ReleaseWatcher, :"cadence_Every 6h"},
     {Kati.Screens.Search, :filter_All},
+    # Board 167's resting sort, and it is an artefact of how this sweep walks
+    # rather than a control that does nothing. Every tag is dispatched against
+    # the SAME starting socket, but `Kati.Library.UpNextFilters` is a
+    # `Mob.State` key, so the store carries each tap forward: by the time
+    # `:recently_touched` is reached another sort has already been written, and
+    # selecting it puts the page back to exactly the state it mounted in.
+    # Identical assigns, identical nav action, and therefore indistinguishable
+    # from a tap that landed nowhere.
+    #
+    # It is live, and a run settles that rather than this comment:
+    # `Kati.UpNextFiltersTest`'s "tapping the row a second time flips it"
+    # dispatches it twice from a known store and asserts the direction moves.
+    {Kati.Screens.UpNextFilters, :recently_touched},
     {Kati.Screens.Series, :season_S2},
-    {Kati.Screens.Settings, :theme_Auto},
-    {Kati.Screens.SettingsFa, :theme_0},
 
     # (`Kati.Screens.Calendar`'s selected day cell belongs in the group above
     # and cannot be written here: its tag carries today's ISO date, so a
@@ -468,45 +892,50 @@ defmodule Kati.ScreenTapSweepTest do
     # These reach a `_tag ->` catch-all (or, on a hand-rolled screen, the
     # `handle_info(_message, socket)` one), which is why `handle_tap/2 answers
     # every tag its screen draws` cannot see them. Delete a line as you wire it.
-    {Kati.Screens.Activity, :open_filters},
-    {Kati.Screens.Activity, :open_search},
-    {Kati.Screens.Books, :open_books},
-    {Kati.Screens.Books, :open_music},
-    {Kati.Screens.Books, :open_search},
-    {Kati.Screens.Books, :open_sort},
+    # (The four `:open_sort` discs were here — screens 03, 20, 21 and 57. Board
+    # 145 is captioned *One sheet for screens 03, 20 and 21* and has been in
+    # `test/design/screens/` since the shelf wave, so the reason on file —
+    # `books.ex:642`'s *no board in the 165 draws a sort sheet for any shelf* —
+    # had outlived itself. All four now push `Kati.Screens.ShelfFilters`, and
+    # all four push it BARE: `shelf_filters.ex:79` discards params, so a
+    # `%{shelf: …}` would be an argument nobody reads. Struck together, because
+    # three of four would be the inconsistency the sheet's own caption names.)
     {Kati.Screens.Health, :open_filters},
-    {Kati.Screens.Home, :open_calendar},
+    # (`{Kati.Screens.Home, :open_calendar}` was here. #91 wired it: screen
+    # 139's *Today* row carries the same tag as screen 01's header disc, and a
+    # page borrowed from `Kati.Screens.HomeEmpty` could not ship with it still
+    # dead. Struck off as this list's own header asks.)
     {Kati.Screens.Language, :add_language},
-    {Kati.Screens.Library, :open_sort},
-    {Kati.Screens.LibraryFa, :open_sort},
-    {Kati.Screens.Meal, :more},
-    {Kati.Screens.Meal, :save},
-    {Kati.Screens.MealSwap, :swap_forever},
-    {Kati.Screens.MealSwap, :swap_once},
+    # Screen 43's **Done prepping**. `Kati.Meals.Recipe` stores a method, a
+    # duration and an oven temperature, and nothing anywhere records that a
+    # prep was DONE — screen 43's own moduledoc says the card stays on
+    # `Kati.Meals.SampleToday.prep/0` rather than being faked for exactly that
+    # reason. The button is drawn because the board draws it; it marks nothing
+    # because there is no column to mark, and inventing one to quiet a sweep is
+    # what this list exists to prevent.
     {Kati.Screens.MealsToday, :done_prepping},
-    {Kati.Screens.MealsToday, :mark_eaten},
-    {Kati.Screens.MealsToday, :open_week},
-    {Kati.Screens.MealsToday, :see_tomorrow},
-    {Kati.Screens.MealsToday, :swap},
-    {Kati.Screens.MealsToday, :switch_plan},
-    {Kati.Screens.Music, :open_search},
-    {Kati.Screens.Music, :open_sort},
-    {Kati.Screens.Music, :segment_books},
-    {Kati.Screens.Music, :segment_music},
+    {Kati.Screens.Meal, :more},
     {Kati.Screens.Nutrition, :share},
-    {Kati.Screens.Rating, :add_tag},
+    # (`{Kati.Screens.Rating, :add_tag}` was here, filed under Backlog as *a
+    # sheet that never opens*. MOVIES-AND-TV.md #96 struck it off, and there is
+    # still no sheet: a tag is one short word, so the field opens under the
+    # chips with the tags this reader has used before beside it. The tag is now
+    # a phantom to this sweep for the reason screen 35's status tiles are —
+    # the sweep renders against an empty store, where the sheet draws
+    # `Kati.Rating.Sample` and the chips carry no taps at all. `Kati.RatingTagsTest`
+    # presses them over a real watch.)
     {Kati.Screens.ScheduleFa, :open_menu},
-    {Kati.Screens.Subscriptions, :open_menu},
-    # ── Blocked on a capability the app does not have. Screen 121 is the week
-    # rendered as one printable page, and its button says Save image. Kati can
-    # put a file into `ACTION_CREATE_DOCUMENT` or `ACTION_SEND` —
-    # `Kati.Native.Files.save_as/2` and `share/2` — but it has no way to turn a
-    # rendered screen into a bitmap to hand them, and no screen in the app does:
-    # `Kati.Screens.YearCards.handle_tap/2` stubs its own save for exactly the
-    # same reason. The tap is drawn because the button is drawn, and the button
-    # is drawn because it is on the board. It stops being inert the day the
-    # bridge gains a screen-to-bitmap call, and not before.
-    {Kati.Screens.WeekImage, :save_image}
+    {Kati.Screens.Subscriptions, :open_menu}
+    # (Screen 121's `save_image` was here, with the sentence *it stops being
+    # inert the day the bridge gains a screen-to-bitmap call, and not before.*
+    # `K-45 capture-screen` is that call: `Kati.Native.Files.save_screen/1`
+    # draws the content view into a PNG in the cache and hands it to the same
+    # `ACTION_CREATE_DOCUMENT` picker the backups go through. Struck out rather
+    # than deleted, because a list that only grows is a list nobody believes.
+    #
+    # `Kati.Screens.YearCards.handle_tap/2` stubs its own save for the reason
+    # this one used to, and is now the last screen in the app that does. It is
+    # one call away.)
   ]
 
   test "both locales are swept" do
@@ -582,6 +1011,38 @@ defmodule Kati.ScreenTapSweepTest do
              end)
   end
 
+  test "the inert list names no tag that is not drawn" do
+    # `@inert_taps` had no stale check, and a list with no stale check is a
+    # list that accumulates fiction. It is documented as a FLOOR rather than an
+    # inventory — an entry that comes good costs nothing — but an entry naming
+    # a tag no screen draws at all is a different thing: it is a sentence about
+    # a control that does not exist, and the next person to read the list
+    # believes it.
+    #
+    # Found by counting. `{Kati.Screens.QuickAddExpense, :edit_amount}` carried
+    # a paragraph about Mob having no text input, on a screen that no longer
+    # draws that tag at all — and by then every add form in the app had a real
+    # `<TextField>` in it.
+    #
+    # Both locales, because a tag drawn only in Persian is still drawn.
+    drawn =
+      for locale <- @locales,
+          {module, {_socket, tags}} <- ScreenSweep.drawn_taps(locale),
+          tag <- tags,
+          into: MapSet.new(),
+          do: {module, tag}
+
+    phantom = Enum.reject(@inert_taps, &MapSet.member?(drawn, &1))
+
+    assert phantom == [],
+           "these entries name a tag no screen draws, in either locale. The control was " <>
+             "renamed or removed and the entry outlived it — delete each one, so the list " <>
+             "stays a description of the app rather than of an app that used to exist:\n" <>
+             Enum.map_join(phantom, "\n", fn {module, tag} ->
+               "  {#{inspect(module)}, #{inspect(tag)}}"
+             end)
+  end
+
   test "no new dead-looking taps" do
     # A ratchet, not a proof, and the difference is worth being clear about.
     #
@@ -612,6 +1073,53 @@ defmodule Kati.ScreenTapSweepTest do
            "these newly drawn controls reach nothing that changes anything — " <>
              "wire them, or add them to @inert_taps with a reason:\n" <>
              Enum.map_join(new, "\n", fn {module, tag} ->
+               "  {#{inspect(module)}, #{inspect(tag)}}"
+             end)
+  end
+
+  test "no control is named after the word printed on it" do
+    # MOVIES-AND-TV.md #157, and the first edit of #103's fold.
+    #
+    # `Kati.Screens.AddByHand.kind_chip/5` used to build its tap out of the
+    # label — `"kind_" <> label` — so the Persian form's Series chip was
+    # `:kind_سریال`. Two things follow from that and both are defects. A screen
+    # RENAMES ITS OWN CONTROLS when the language changes, so no device test can
+    # type them: `Kati.Screens.OnboardingLoudnessFa.tag/1` had already recorded
+    # it as "an atom made of Persian words is a name no device test can type."
+    # And once the mirrors fold into their English screens, the tag would
+    # change under the same screen depending on who is looking at it.
+    #
+    # An ASCII tag is not the point; a STABLE tag is. ASCII is what can be
+    # checked here, and every label Kati would build a tag from in the other
+    # script is outside it, so the check catches the real thing.
+    #
+    # `@from_the_data` below is the other way a tag can come out non-ASCII, and
+    # it is not this defect: a tag built from a ROW rather than from a label.
+    # `Kati.Screens.Library.poster_tag/1` prefers the tracked row's id and falls
+    # back to the caption only for sample rows that have none, so on a device it
+    # is `open_film_<uuid>`; its Persian mirror has only sample rows, so all six
+    # of its tiles fall back. They go when the mirror goes.
+    named_for_a_word =
+      @locales
+      |> ScreenSweep.per_locale(fn locale ->
+        for {module, {_socket, tags}} <- ScreenSweep.drawn_taps(locale),
+            tag <- tags,
+            not (tag |> Atom.to_string() |> String.printable?(0)) or
+              String.match?(Atom.to_string(tag), ~r/[^\x00-\x7F]/),
+            do: {module, tag}
+      end)
+      |> List.flatten()
+      |> Enum.uniq()
+      |> Kernel.--(@from_the_data)
+      |> Enum.sort()
+
+    assert named_for_a_word == [],
+           "these taps are named after the label drawn on them rather than " <>
+             "after the value behind it, so the control changes name with the " <>
+             "language and no device test can type it — pass the stable key " <>
+             "(`:movie`, `:not_started`) to the chip and build the tag from " <>
+             "that, as `Kati.Screens.AddByHand.tag/2` does:\n" <>
+             Enum.map_join(named_for_a_word, "\n", fn {module, tag} ->
                "  {#{inspect(module)}, #{inspect(tag)}}"
              end)
   end
@@ -663,6 +1171,107 @@ defmodule Kati.ScreenTapSweepTest do
              "and no screen reader can see it. Give each one an atom tag — " <>
              "`Kati.Screens.ImportSources.tag/1` is the shape to copy:\n" <>
              Enum.join(malformed, "\n")
+  end
+
+  test "every screen says which screen it is, exactly once" do
+    # What a device test waits on.
+    #
+    # Nothing else on a phone identifies a screen: the bridge's root state is a
+    # counter and a string, and asserting on visible text cannot substitute,
+    # because Kati draws the same words in an English screen and its Persian
+    # mirror, and again in a live screen and its `— states` sheet. So
+    # `Kati.Shell.render/1` and `Kati.Screens.Pushed.chrome/3` each stamp an
+    # `accessibility_id` of `screen:<name>`, which `K-35 test-tag` turns into a
+    # Compose `testTag` the harness can wait for.
+    #
+    # Exactly once, not at least once: two stamps on one tree is a screen
+    # wrapped in another screen's chrome, and a `waitUntil` that matched either
+    # would be waiting on the wrong thing.
+    counts =
+      for {number, _label, module, _kind} <- Kati.Screens.Gallery.screens(),
+          {:ok, _socket, tree} <- [ScreenSweep.render(module)] do
+        stamps =
+          tree
+          |> Mob.ScreenCase.flatten()
+          |> Enum.count(fn node ->
+            case Map.get(node.props || %{}, :accessibility_id) do
+              "screen:" <> _rest -> true
+              _other -> false
+            end
+          end)
+
+        {number, module, stamps}
+      end
+
+    wrong = for {n, m, c} <- counts, c != 1, do: "  #{n} #{inspect(m)} stamps #{c}"
+
+    assert wrong == [],
+           "these screens do not say which screen they are, or say it twice:\n" <>
+             Enum.join(wrong, "\n")
+  end
+
+  test "no two nodes in one screen carry the same accessibility_id" do
+    # A tag that names two things names neither. `onNodeWithTag` throws on a
+    # second match rather than picking one, so a duplicate is a device test that
+    # cannot be written rather than one that quietly passes.
+    #
+    # ## This check was blind, and said so confidently
+    #
+    # It read `props[:accessibility_id]` off the pre-serialization tree. Almost
+    # nothing sets that by hand: `Mob.Renderer` DERIVES the id at serialization
+    # from `on_tap`, emitting `Atom.to_string(tag)` for a `{pid, atom}` tuple
+    # (`deps/mob/lib/mob/renderer.ex:313`). So the pre-serialization tree
+    # carried exactly one id on 148 of 152 screens — `Pushed.chrome/3`'s
+    # `screen:` stamp — and two on the four that also tag a `TextField` by
+    # hand. One id per screen cannot repeat, so the assertion could not go red,
+    # measured by histogram rather than argued.
+    #
+    # Its own comment predicted `Kati.Screens.Library` would collide "as soon as
+    # a shelf holds two of a kind" and that it "draws too few against an empty
+    # store to collide yet". Both halves were wrong: 03 repeated `:open_film`
+    # AND `:open_series` against the empty store, and had since the screen was
+    # written, because the empty store drew nine invented films. A guard that
+    # names the defect it is blind to is worse than no guard, because it is
+    # cited as cover. (#91 took the nine films away, so 03 is off the register
+    # below without the collision having been fixed — see the note there.)
+    #
+    # This reads the union of both: ids set by hand, and the ids the renderer
+    # will derive. That is what the device addresses.
+    collisions =
+      for {number, _label, module, _kind} <- Kati.Screens.Gallery.screens(),
+          {:ok, _socket, tree} <- [ScreenSweep.render(module)],
+          repeated = repeated_ids(tree),
+          repeated != [],
+          do: {number, module, repeated}
+
+    found = Map.new(collisions, fn {number, _m, tags} -> {number, tags} end)
+
+    # Grew: a screen that collides and is not written down below.
+    grew =
+      for {number, module, tags} <- collisions,
+          known = Map.get(@known_collisions, number, []),
+          new_tags = tags -- known,
+          new_tags != [],
+          do: "  #{number} #{inspect(module)} repeats #{inspect(new_tags)}"
+
+    assert grew == [],
+           "these screens give one name to more than one node, so no device test can " <>
+             "address either — `onNodeWithTag` throws on the second match:\n" <>
+             Enum.join(grew, "\n")
+
+    # Went stale: written down below, but fixed. The list is a debt register,
+    # and a register nobody strikes entries off is a list of lies within a
+    # month — which is exactly how the check above came to be cited for four
+    # years of collisions it could not see.
+    stale =
+      for {number, tags} <- @known_collisions,
+          fixed = tags -- Map.get(found, number, []),
+          fixed != [],
+          do: "  #{number} no longer repeats #{inspect(fixed)}"
+
+    assert stale == [],
+           "these are fixed — strike them off `@known_collisions` so the ratchet " <>
+             "tightens:\n" <> Enum.join(stale, "\n")
   end
 
   test "neither shell macro supplies a default handle_tap/2" do
@@ -785,5 +1394,39 @@ defmodule Kati.ScreenTapSweepTest do
       {:error, message} ->
         "#{inspect(module)} raised on {:tap, #{inspect(tag)}}:\n  #{message}"
     end
+  end
+
+  # Every id the DEVICE will see for this tree: the ones set by hand, plus the
+  # ones `Mob.Renderer` derives from an atom `on_tap` at serialization. Reading
+  # only the first is what made the duplicate check above vacuous for the life
+  # of the project.
+  defp emitted_ids(tree) do
+    tree
+    |> Mob.ScreenCase.flatten()
+    |> Enum.flat_map(fn node ->
+      props = node.props || %{}
+
+      explicit =
+        case Map.get(props, :accessibility_id) do
+          id when is_binary(id) -> [id]
+          _other -> []
+        end
+
+      derived =
+        case Map.get(props, :on_tap) do
+          {pid, tag} when is_pid(pid) and is_atom(tag) -> [Atom.to_string(tag)]
+          _other -> []
+        end
+
+      explicit ++ derived
+    end)
+  end
+
+  defp repeated_ids(tree) do
+    ids = emitted_ids(tree)
+
+    (ids -- Enum.uniq(ids))
+    |> Enum.uniq()
+    |> Enum.sort()
   end
 end

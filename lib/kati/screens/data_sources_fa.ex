@@ -154,8 +154,13 @@ defmodule Kati.Screens.DataSourcesFa do
       "کلید کاتی عمومی است، چون کاتی متن‌باز است. این برای شما هزینه‌ای ندارد — " <>
         "TMDB درخواست‌ها را بر اساس نشانی IP می‌شمارد، نه بر اساس کلید.",
     pairing: "در حال جفت‌شدن",
-    enter_code: "کد را وارد کنید",
-    link: "listenbrainz.org/link",
+    # Was `کد را وارد کنید` — *enter the code* — over a code Kati had invented
+    # and a countdown that never counted, with ListenBrainz's address under all
+    # three providers (MOVIES-AND-TV.md #71). en and fa are one app: the
+    # English card stopped saying it and so does this one.
+    not_connected: "هنوز وصل نشده",
+    token_lives_there:
+      "توکن شما آنجاست. کاتی هنوز نمی‌تواند آن را بخواهد — وقتی بتواند، از همان‌جا می‌آید.",
     connect: "اتصال",
     disconnect: "قطع اتصال",
     connected: "متصل",
@@ -201,6 +206,7 @@ defmodule Kati.Screens.DataSourcesFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket
@@ -212,7 +218,7 @@ defmodule Kati.Screens.DataSourcesFa do
      |> Mob.Socket.assign(:expanded, :listenbrainz)}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The page, in the order 82 stacks it.
@@ -568,6 +574,75 @@ defmodule Kati.Screens.DataSourcesFa do
   """
   @spec tier2_row(map(), atom() | nil, boolean()) :: map()
   def tier2_row(source, expanded, rule?) do
+    if Kati.Retired.known?(source.name) do
+      Kati.Screens.DataSourcesFa.retired_row(source, rule?)
+    else
+      Kati.Screens.DataSourcesFa.live_row(source, expanded, rule?)
+    end
+  end
+
+  @doc """
+  Hardcover, retired — the mirror of 80's row, which board 320 exists to make
+  identical.
+
+  254's failure, named on 80's own page: *«اگر ردیف‌های چپ‌به‌راست در بگیرند و
+  آینه‌ها نگیرند، دو زبان دربارهٔ اینکه کدام ردیف جایی می‌رود اختلاف پیدا
+  می‌کنند.»* 320's own note settles the wording: the pill translates —
+  «در نسخه ۱ نیست» — and the provider name does not, because Hardcover is a
+  trade name.
+  """
+  @spec retired_row(map(), boolean()) :: map()
+  def retired_row(source, rule?) do
+    assigns = %{
+      icon: source.icon,
+      name: source.name,
+      line: "راه‌اندازی نشده — برای دیدن دلیل بزنید",
+      tap: {self(), String.to_atom("why_#{source.id}")},
+      rule: rule?
+    }
+
+    ~MOB"""
+    <Column fill_width={true} on_tap={@tap}>
+      <Row fill_width={true} align="center" padding_top={13} padding_bottom={13}>
+        {Kati.Screens.DataSources.dimmed_tile(@icon)}
+        <Spacer size={13} />
+        <Column weight={1.0}>
+          <Text
+            text={@name}
+            text_size={13.5}
+            font_weight="semibold"
+            text_color={Kati.Theme.Palette.rail_idle()}
+            max_lines={1}
+          />
+          <Spacer size={3} />
+          {Kati.Screens.BookDetailFa.fa(@line, 11.5, Kati.Theme.Palette.sub())}
+        </Column>
+        <Spacer size={12} />
+        {Kati.Screens.DataSourcesFa.not_in_v1()}
+      </Row>
+      {SettingsList.hairline(@rule)}
+    </Column>
+    """
+  end
+
+  @doc false
+  def not_in_v1 do
+    ~MOB"""
+    <Row
+      height={22}
+      corner_radius={11}
+      background={Kati.Theme.Palette.placeholder()}
+      padding_left={9}
+      padding_right={9}
+      align="center"
+    >
+      {Kati.Screens.BookDetailFa.fa("در نسخه ۱ نیست", 9.5, Kati.Theme.Palette.rail_idle())}
+    </Row>
+    """
+  end
+
+  @doc false
+  def live_row(source, expanded, rule?) do
     source = Kati.Screens.DataSourcesFa.localise(source)
     connected? = Sources.connected?(source.id)
     expanded? = expanded == source.id
@@ -648,12 +723,17 @@ defmodule Kati.Screens.DataSourcesFa do
   password, only a token you can revoke — is kept by there being no field here
   to type one into.
 
-  The code is `Kati.Screens.DataSources.pairing_code/1`, folded to Persian
-  digits and set in Vazirmatn; see the moduledoc for why it cannot stay in DM
-  Mono. The site is screen 80's literal for all three providers, which is right
-  for the one the drawing captured and wrong for the other two — the fix is a
-  `link` beside `why` in `Kati.Sources`, where the real code will come from
-  too, rather than two URLs invented here.
+  It drew a code and a countdown and does not any more, for the reason
+  `Kati.Screens.DataSources.pairing/2` gives at length: Kati talks to none of
+  these three providers, so the code was derived from the provider id, the
+  clock never started, and the address under it was ListenBrainz's for all
+  three. That last was noted here as a thing to fix with *a `link` beside
+  `why` in `Kati.Sources`* — which is what `:site` is, and it is now where
+  both cards read it from.
+
+  The address stays in DM Mono: it is a URL, not Persian, and folding
+  `listenbrainz.org` to Persian digits would be folding something that has
+  none.
   """
   @spec pairing(map(), boolean()) :: map() | []
   def pairing(_source, false), do: []
@@ -662,10 +742,9 @@ defmodule Kati.Screens.DataSourcesFa do
     assigns = %{
       label: @copy.pairing,
       why: Map.get(source, :why, ""),
-      enter: @copy.enter_code,
-      code: Digits.to_persian(DataSources.pairing_code(source.id)),
-      link: @copy.link,
-      expires: "تا " <> Digits.to_persian("9:48") <> " دیگر معتبر است"
+      enter: @copy.not_connected,
+      code: Map.get(source, :site, ""),
+      link: @copy.token_lives_there
     }
 
     ~MOB"""
@@ -679,8 +758,8 @@ defmodule Kati.Screens.DataSourcesFa do
         <Spacer size={12} />
         <Text
           text={@code}
-          font_family="fa"
-          text_size={34}
+          font_family="mono"
+          text_size={16}
           font_weight="medium"
           letter_spacing={0.14}
           text_align="center"
@@ -688,16 +767,7 @@ defmodule Kati.Screens.DataSourcesFa do
           max_lines={1}
         />
         <Spacer size={12} />
-        <Text
-          text={@link}
-          font_family="mono"
-          text_size={11}
-          text_align="center"
-          text_color={Kati.Theme.Palette.cream_sub()}
-          max_lines={1}
-        />
-        <Spacer size={9} />
-        {BookDetailFa.fa(@expires, 11.5, Palette.cream_meta(), align: "center")}
+        {Kati.Screens.DataSourcesFa.paragraph(@link, Palette.cream_sub())}
       </Column>
     </Column>
     """
@@ -880,7 +950,7 @@ defmodule Kati.Screens.DataSourcesFa do
   def age(days) when days < 31, do: Digits.to_persian(days) <> " روز"
   def age(days), do: Digits.to_persian(div(days, 30)) <> " ماه"
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :key_kati}, socket) do
     Sources.put_tmdb_key(:kati)
@@ -903,6 +973,16 @@ defmodule Kati.Screens.DataSourcesFa do
   # exists, and a tag that does not is a bug rather than a new atom.
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
+      # Board 114's sheet, which 320 is what finally needs — and it is the SAME
+      # screen the English row opens, so the two locales cannot drift about the
+      # reason the way they drifted about the row.
+      "why_" <> id ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.RetiredReason, %{
+           id: String.to_existing_atom(id),
+           back: "منابع داده"
+         })}
+
       "connect_" <> id ->
         source = String.to_existing_atom(id)
         now = if socket.assigns.expanded == source, do: nil, else: source

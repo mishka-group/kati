@@ -1,3 +1,5 @@
+Code.require_file("../support/screen_sweep.exs", __DIR__)
+
 defmodule Kati.ServicesTest do
   @moduledoc """
   What you pay for, what country Kati answers *available* for, and where the
@@ -19,6 +21,7 @@ defmodule Kati.ServicesTest do
   alias Kati.Screens.CountryPicker
   alias Kati.Screens.DataSources
   alias Kati.Screens.MyServices
+  alias Kati.Screens.MyServicesEmpty
   alias Kati.Services
   alias Kati.Services.Service
   alias Kati.Sources
@@ -153,8 +156,12 @@ defmodule Kati.ServicesTest do
     test "every rule row states its consequence" do
       tree = tree(mount_screen(MyServices))
 
-      # `Hide titles I can't watch` empties three other screens, so its own
-      # line names them and names what it does not touch.
+      # `Hide titles I can't watch` empties three other screens, so its own line
+      # names them and names what it does not touch. It said two until board
+      # 310, because screen 13 read a fixture then and a rule that claimed to
+      # filter it would have been the promise this one was reported for
+      # (MOVIES-AND-TV.md #77 and #88). `Kati.Screens.WhatFits.watchable/1` is
+      # what earns the third name back.
       assert find(tree, :text,
                text:
                  "Removes them from Discover, Up next and What fits tonight. " <>
@@ -163,12 +170,53 @@ defmodule Kati.ServicesTest do
     end
   end
 
+  describe "screen 93's rules — board 323" do
+    test "are screen 92's three rows, sentence for sentence" do
+      tree = tree(mount_screen(MyServicesEmpty))
+
+      for {_key, title, why} <- MyServices.rules() do
+        assert find(tree, :text, text: title) != nil, "93 does not draw #{inspect(title)}"
+        assert find(tree, :text, text: why) != nil, "93 does not draw #{inspect(why)}"
+      end
+    end
+
+    test "and the third one no longer carries a sentence of its own" do
+      refute tree(mount_screen(MyServicesEmpty))
+             |> find(:text,
+               text: "Off by default — with no services set it would hide everything."
+             )
+    end
+
+    test "remember, which is the whole of the ruling" do
+      view = mount_screen(MyServicesEmpty)
+
+      assert assigns(view).rules.hide_unavailable == false
+      assert Services.rules().hide_unavailable == false
+
+      toggled = render_info(view, {:tap, :rule_hide_unavailable})
+
+      assert assigns(toggled).rules.hide_unavailable == true
+
+      # The point of the board. A specimen switch moves in the socket and
+      # nowhere else; this one is in the store, so screen 92 opened next reads
+      # what was set here.
+      assert Services.rules().hide_unavailable == true
+      assert assigns(mount_screen(MyServices)).rules.hide_unavailable == true
+    end
+
+    test "and open at the defaults on the device the board is about" do
+      # Nothing configured, so nothing stored, so `rules/0` IS `default_rules/0`
+      # — which is what makes 93 92-with-nothing-set rather than a second page.
+      assert assigns(mount_screen(MyServicesEmpty)).rules == Services.default_rules()
+    end
+  end
+
   describe "screen 92 with services stored" do
     test "the groups read the rows and the eyebrow carries the count" do
       a_service!(%{name: @prefix <> "Aria", monthly_pence: 1099})
       a_service!(%{name: @prefix <> "Beacon", monthly_pence: 499})
 
-      assert MyServices.subscribed_label() == "Subscribed · 2"
+      assert MyServices.subscribed_label(MyServices.listed()) == "Subscribed · 2"
       assert Enum.map(MyServices.subscribed(), & &1.price) == ["£10.99", "£4.99"]
     end
 
@@ -195,8 +243,16 @@ defmodule Kati.ServicesTest do
   end
 
   describe "screen 92 with nothing stored" do
-    test "both groups fall back to the drawing, whole" do
-      assert MyServices.listed() == MyServices.drawn()
+    test "both groups are empty, and neither falls back to the drawing" do
+      # #75. They used to answer `Kati.Services.Sample` — three subscriptions
+      # and two free services — on a phone that had been told nothing.
+      assert MyServices.listed().subscribed == []
+      assert MyServices.listed().free == []
+      refute MyServices.listed() == MyServices.drawn_page()
+    end
+
+    test "and the drawing is still there to compare the board against" do
+      assert MyServices.drawn_page().subscribed == Kati.Services.Sample.subscribed()
     end
   end
 
@@ -234,9 +290,40 @@ defmodule Kati.ServicesTest do
 
       tree = tree(view)
       assert find(tree, :text, text: "Pairing — expanded") != nil
-      assert find(tree, :text, text: "K4Q9B2") != nil
       # Expanding must not take the answer to *what is this for* away.
       assert find(tree, :text, text: "Scrobbles, listening history") != nil
+    end
+
+    test "and the card names the site the token comes from, not a code nobody issued" do
+      tree = tree(mount_screen(DataSources))
+
+      assert find(tree, :text, text: "listenbrainz.org/profile") != nil
+      assert find(tree, :text, text: "Not connected yet") != nil
+
+      # MOVIES-AND-TV.md #71. `K4Q9B2` came from `pairing_code/1`, which
+      # derives six characters from the provider id because Kati talks to none
+      # of these three; `listenbrainz.org/link` was under all three, so a
+      # Hardcover reader was sent to somebody else's site; and `Expires in
+      # 9:48` never counted, because nothing had started.
+      assert find(tree, :text, text: "K4Q9B2") == nil
+      assert find(tree, :text, text: "listenbrainz.org/link") == nil
+      assert find(tree, :text, text: "Expires in 9:48") == nil
+    end
+
+    test "each provider is sent to its own site" do
+      for {id, site} <- [
+            listenbrainz: "listenbrainz.org/profile",
+            hardcover: "hardcover.app/account/api",
+            thetvdb: "thetvdb.com/dashboard/account/apikey"
+          ] do
+        source = Enum.find(Sources.tier2(), &(&1.id == id))
+
+        assert source.site == site
+      end
+    end
+
+    test "and Kati says plainly that it cannot pair with any of them yet" do
+      refute Enum.any?([:listenbrainz, :hardcover, :thetvdb], &DataSources.ready?/1)
     end
 
     test "tapping a connected row's provider collapses and expands it" do
@@ -260,8 +347,20 @@ defmodule Kati.ServicesTest do
     end
 
     test "an empty cache says so rather than reporting nought megabytes" do
-      assert DataSources.cache_size() == "Nothing cached yet"
-      assert DataSources.oldest_entry() == "NOTHING TO REFRESH"
+      # Inside a rolled-back transaction that empties the table first, because
+      # otherwise this test is a lottery on the seed. `cached_titles` is shared
+      # by every test module in the run, several sweeps press controls that
+      # fill it — screen 154's `Add to library` is one — and this file wipes no
+      # table of its own. It went red on seed 7 the day a module was ADDED, on
+      # a leak it had nothing to do with, and the sweeps grew a `DELETE` list
+      # in answer. A test that asserts a table is empty should be the thing
+      # that empties it; then no ordering can decide whether it means anything.
+      Kati.ScreenSweep.rolled_back(fn ->
+        Kati.Repo.query!("DELETE FROM cached_titles", [])
+
+        assert DataSources.cache_size() == "Nothing cached yet"
+        assert DataSources.oldest_entry() == "NOTHING TO REFRESH"
+      end)
     end
 
     test "an age is written in the units the row uses" do

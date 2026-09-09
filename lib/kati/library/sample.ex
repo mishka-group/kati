@@ -158,14 +158,27 @@ defmodule Kati.Library.Sample do
       watched: 5,
       total: 7,
       next_air: "Thu 20 Aug, 20:00",
+      # Board 34's Season 2, which is the only board that NAMES these episodes
+      # — screen 04's frame draws `{{ ep.title }}` and nothing else, so it has
+      # no opinion about them and this fixture invented seven of its own.
+      # Opening *Episode order* from here then showed a different Season 2 one
+      # tap apart: *The Weight of Water / Hollow Ground / Salt in the Wound*
+      # here, *Low Water / The Cull / Blackthorn* there, same show, same
+      # season, same evening (MOVIES-AND-TV.md #40).
+      #
+      # So this list is 34's, in 34's aired order, at 34's runtimes and dates.
+      # It is 34's list less the making-of, because a special is exactly what
+      # board 34 is ABOUT — *Include specials* is one of its two switches —
+      # and 04 draws no badge to say a row is one. Seven rows either way, so
+      # the drawing's `5 of 7 watched` and its three row states are untouched.
       episodes: [
-        %{n: 1, title: "The Weight of Water", sub: "48 min · 2 Jul", watched: true},
-        %{n: 2, title: "Hollow Ground", sub: "51 min · 9 Jul", watched: true},
-        %{n: 3, title: "What the Tide Left", sub: "47 min · 16 Jul", watched: true},
-        %{n: 4, title: "Salt in the Wound", sub: "52 min · 23 Jul", watched: true},
-        %{n: 5, title: "The Longest Night", sub: "49 min · 30 Jul", watched: true},
-        %{n: 6, title: "Ash and After", sub: "50 min · 6 Aug", watched: false},
-        %{n: 7, title: "Homecoming", sub: "Airs Thu 20 Aug", watched: false, aired: false}
+        %{n: 1, title: "Low Water", sub: "54 min · 9 Jul", watched: true},
+        %{n: 2, title: "The Cull", sub: "49 min · 16 Jul", watched: true},
+        %{n: 3, title: "Blackthorn", sub: "52 min · 23 Jul", watched: true},
+        %{n: 4, title: "What the Tide Left", sub: "51 min · 30 Jul", watched: true},
+        %{n: 5, title: "Hollow Season", sub: "47 min · 6 Aug", watched: true},
+        %{n: 6, title: "The Undertow", sub: "55 min · 20 Aug", watched: false},
+        %{n: 7, title: "Long Hollow", sub: "Airs Thu 27 Aug", watched: false, aired: false}
       ]
     }
   end
@@ -214,12 +227,11 @@ defmodule Kati.Library.Sample do
   def inbox do
     %{
       watching: 24,
-      last_checked: "last checked 18:02 · every 6h",
       out_now: [
         %{
           title: "The Long Hollow",
           seed: "hollow71",
-          line: "S2 E6 — Ash and After",
+          line: "S2 E6 — The Undertow",
           meta: "48 min · LUMEN+ · aired 20:00",
           dot: 0xFFE8823C
         },
@@ -311,7 +323,17 @@ defmodule Kati.Library.Sample do
         %{badge: "L", name: "Lumen+", price: "included"},
         %{badge: "K", name: "Kino store", price: "£9.99"}
       ],
-      actions: [{"replay", "Log rewatch"}, {"event", "Schedule"}, {"ios_share", "Share"}]
+      # `{icon, tag}` rather than `{icon, label}`, matching
+      # `Kati.Screens.Film`'s own list. The label is decided by
+      # `Kati.Screens.Film.action_label/2` because it depends on whether the
+      # film has been seen — a *rewatch* is a second watch, and this drawing's
+      # film has two, so board 08's word is unchanged.
+      actions: [
+        {"replay", "Log rewatch", :log_watch},
+        {"event", "Schedule", nil},
+        {"ios_share", "Share", nil}
+      ],
+      seen_count: 2
     }
   end
 end

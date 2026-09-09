@@ -130,7 +130,7 @@ defmodule Kati.Screens.YearShareBooks do
   # thing on both boards. Listed rather than caught, so a fourth control added
   # to 98's markup arrives here as a DEAD TAP report instead of a delegation
   # that quietly does the wrong thing.
-  @borrowed [:toggle_private, :save_image, :aspect_square, :aspect_story]
+  @borrowed [:toggle_private, :save_image, :share_image, :aspect_square, :aspect_story]
 
   @impl true
   def load(socket) do
@@ -161,6 +161,7 @@ defmodule Kati.Screens.YearShareBooks do
         {Kati.Screens.YearShare.privacy_row(assigns.hide_private)}
         <Spacer size={16} />
         {Kati.Screens.YearShare.actions()}
+        {Kati.Screens.YearShare.refusal(Map.get(assigns, :save_error))}
         <Spacer size={16} />
         {Kati.Screens.YearShareBooks.unit_note()}
       </Column>
@@ -171,10 +172,14 @@ defmodule Kati.Screens.YearShareBooks do
   @doc """
   The pages face, in `Kati.Stats.ShareSample.hours/0`'s shape.
 
-  `:direction` is carried and unread, exactly as it is on the hours face — the
-  frame draws `arrow_drop_up` outright — so that these figures are the same map
-  the moment they move into `ShareSample`, rather than a map that has to be
-  reshaped on the way. `:denominator` is the one key the hours face has no use
+  `:direction` is carried and unread HERE, where screen 98's hours face now
+  reads it: board 99's pages figure is this module's own — `pages_face/0` is a
+  literal — and rises by construction, so `card/0` draws `arrow_drop_up`
+  outright rather than asking `Kati.Screens.Stats.arrow/2` a question with one
+  answer. The day 99 reads a real shelf, that outright glyph is the second copy
+  of the decision and goes the way 98's went. The key is present so that these
+  figures are the same map the moment they move into `ShareSample`, rather than
+  a map that has to be reshaped on the way. `:denominator` is the one key the hours face has no use
   for; see the moduledoc on why a page count needs one and an hour count does
   not.
   """

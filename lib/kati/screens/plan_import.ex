@@ -127,11 +127,19 @@ defmodule Kati.Screens.PlanImport do
 
   @impl true
   def load(socket) do
+    # Board 316's receiving side. Screen 50's *Scan a plan* row pushes here with
+    # `from: :code`, and a code arrival is a different page: a QR holds about
+    # 2,900 bytes, so nothing merges, nothing conflicts, and there is nothing
+    # to count. Everything else opens the file flow this screen was drawn as.
+    from = Map.get(socket.assigns.params || %{}, :from)
+
     Mob.Socket.assign(socket, :import, %{
-      plan: plan(),
-      counts: counts(),
+      from: from,
+      plan: plan(from),
+      counts: counts(from),
       conflict: conflict(),
-      as_is: as_is()
+      as_is: as_is(),
+      carried: SampleShare.carried()
     })
   end
 
@@ -146,6 +154,32 @@ defmodule Kati.Screens.PlanImport do
   `Kati.UI.eyebrow/2`.
   """
   @spec content(map()) :: term()
+  def content(%{import: %{from: :code}} = assigns) do
+    job = assigns.import
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={64}
+        padding_bottom={40}
+      >
+        {Kati.UI.ImportChrome.header(job.plan.action)}
+        {Kati.Screens.PlanImport.steps(job.plan)}
+        {Kati.Screens.PlanImport.title(job.plan)}
+        {Kati.Screens.PlanImport.source_card(job.plan)}
+        {UI.eyebrow("What the code carries")}
+        {Kati.Screens.PlanImport.carried(job.carried)}
+        {UI.eyebrow("What will happen")}
+        {Kati.Screens.PlanImport.count_row(job.counts)}
+        {Kati.Screens.PlanImport.footer()}
+      </Column>
+    </Scroll>
+    """
+  end
+
   def content(assigns) do
     job = assigns.import
 
@@ -158,7 +192,7 @@ defmodule Kati.Screens.PlanImport do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.Import.header(job.plan)}
+        {Kati.UI.ImportChrome.header(job.plan.action)}
         {Kati.Screens.PlanImport.steps(job.plan)}
         {Kati.Screens.PlanImport.title(job.plan)}
         {Kati.Screens.PlanImport.source_card(job.plan)}
@@ -188,8 +222,27 @@ defmodule Kati.Screens.PlanImport do
   `action` is a count of meals rather than of rows: a plan arrives as 35 slots,
   and `35 MEALS` is already the last thing the URI line says.
   """
-  @spec plan() :: map()
-  def plan do
+  @spec plan(atom() | nil) :: map()
+  def plan(from \\ nil)
+
+  # Board 316. `Import 35` is a meal count and a code carries none of them —
+  # *"the one thing a code-import must never do is print a meal count it cannot
+  # deliver"* — so the header verb loses its number, the mono line says where
+  # the plan came from, and the meter is two steps rather than four: there is
+  # no conflict queue to walk.
+  def plan(:code) do
+    share = SampleShare.share()
+
+    %{
+      action: "Set up",
+      name: share.plan,
+      uri: "FROM A CODE · " <> SampleShare.qr_scope(),
+      steps: 2,
+      step: 2
+    }
+  end
+
+  def plan(_file) do
     share = SampleShare.share()
 
     %{action: "Import 35", name: share.plan, uri: share.qr_uri, steps: 4, step: 3}
@@ -206,8 +259,23 @@ defmodule Kati.Screens.PlanImport do
   Green for merged and red for conflicts, because those are the two outcomes a
   person has to think about; new meals are the boring majority and stay ink.
   """
-  @spec counts() :: [map()]
-  def counts do
+  @spec counts(atom() | nil) :: [map()]
+  def counts(from \\ nil)
+
+  # Board 316: *"120's counts read 0 new rather than 29, so the pre-write
+  # summary matches what lands."* A code carries settings, so the write adds no
+  # meal, merges none and conflicts with none — three zeroes that are the truth
+  # rather than a plausible-looking one, because the card that was scanned said
+  # exactly this before the scan.
+  def counts(:code) do
+    [
+      %{value: "0", label: "New", tone: :ink},
+      %{value: "0", label: "Merged", tone: :green},
+      %{value: "0", label: "Conflicts", tone: :red}
+    ]
+  end
+
+  def counts(_file) do
     [
       %{value: "29", label: "New", tone: :ink},
       %{value: "4", label: "Merged", tone: :green},
@@ -283,8 +351,8 @@ defmodule Kati.Screens.PlanImport do
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
         {1..plan.steps
-         |> Enum.map(fn i -> Kati.Screens.Import.step_bar(i <= plan.step) end)
-         |> Enum.intersperse(Kati.Screens.Import.step_gap())}
+         |> Enum.map(fn i -> Kati.UI.ImportChrome.step_bar(i <= plan.step) end)
+         |> Enum.intersperse(Kati.UI.ImportChrome.step_gap())}
       </Row>
       <Spacer size={20} />
     </Column>
@@ -414,7 +482,7 @@ defmodule Kati.Screens.PlanImport do
       <Row fill_width={true} align="top">
         {cards
          |> Enum.map(fn card -> Kati.Screens.PlanImport.count_card(card) end)
-         |> Enum.intersperse(Kati.Screens.Import.outcome_gap())}
+         |> Enum.intersperse(Kati.UI.ImportChrome.outcome_gap())}
       </Row>
       <Spacer size={22} />
     </Column>
@@ -514,8 +582,8 @@ defmodule Kati.Screens.PlanImport do
         <Spacer size={13} />
         <Row fill_width={true} align="center">
           {c.choices
-           |> Enum.map(fn choice -> Kati.Screens.Import.choice(choice) end)
-           |> Enum.intersperse(Kati.Screens.Import.choice_gap())}
+           |> Enum.map(fn choice -> Kati.UI.ImportChrome.choice(choice) end)
+           |> Enum.intersperse(Kati.UI.ImportChrome.choice_gap())}
         </Row>
         <Spacer size={12} />
         <Text
@@ -550,6 +618,54 @@ defmodule Kati.Screens.PlanImport do
     MishkaThemeIcon.theme_icon(
       %{variant: :filled, color: Palette.poster_on_cream(), size: 40, radius: 11},
       [UI.symbol(icon, size: 19, color: Palette.gold_icon())]
+    )
+  end
+
+  @doc """
+  Board 316's four rows: three checks and one block.
+
+  `as_is/1`'s geometry, because it is the same kind of band — a list of facts
+  about the arrival, each with a tinted tile and two lines — and the difference
+  is which of them are good news. The refused row takes red rather than a
+  missing tick: it is not an omission the reader has to notice, it is the whole
+  reason the card they scanned said `SETTINGS ONLY`.
+  """
+  @spec carried([map()]) :: term()
+  def carried(rows) do
+    last = length(rows) - 1
+
+    built =
+      rows
+      |> Enum.with_index()
+      |> Enum.map(fn {row, i} ->
+        SettingsList.row(
+          Kati.Screens.PlanImport.carried_tile(row.state),
+          SettingsList.body(row.title, row.sub, lines: 2),
+          nil,
+          rule: i < last
+        )
+      end)
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {SettingsList.card(built)}
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def carried_tile(:refused) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :light, color: Palette.red(), size: 30, radius: 9},
+      [UI.symbol("block", size: 16, color: Palette.red())]
+    )
+  end
+
+  def carried_tile(_carried) do
+    MishkaThemeIcon.theme_icon(
+      %{variant: :light, color: Palette.green(), size: 30, radius: 9},
+      [UI.symbol("check", size: 16, color: Palette.green_text())]
     )
   end
 

@@ -119,6 +119,7 @@ defmodule Kati.Screens.Root do
         # answer, from the stored choice and the device. Every screen still gets
         # a theme installed at mount; it is simply no longer always the same one.
         Kati.Theme.activate()
+        Kati.Locale.activate()
 
         # A fresh install goes to the first-run sequence instead of here.
         #
@@ -208,19 +209,53 @@ defmodule Kati.Screens.Root do
       # The FAB opens the add sheet from every root — screen 06's note calls it
       # "one sheet reached from the + button", so it belongs here rather than
       # in four copies.
+      #
+      # Which STATE of that sheet opens is the shelf's own business, so it is
+      # answered by an overridable function ON the shelf rather than by a
+      # lookup table the shelf is passed to. Board 179 is board 06 with the
+      # `Albums` chip lit and it is what the Music shelf's `+` opens — `D-39`
+      # is explicit that this is a state rather than a new control, because a
+      # second add control on screen 21 would be a second door to a sheet that
+      # already has one.
+      #
+      # A table on `Kati.Screens.AddTitle` was written first and had to be
+      # withdrawn, which is worth recording because the defect is invisible:
+      # `Kati.Screens.AddTitle` reads `Kati.Media`, so a CALL to it from this
+      # macro put every root inside `Kati.ScreenEmptyDatabaseTest`'s transitive
+      # closure of screens that reach the store — and screens 16, 17 and 30
+      # read nothing at all and were suddenly demanded to prove an empty state
+      # they do not have. A module named in a `def` body is an atom and not a
+      # call, so this answer costs no edge.
+      def add_sheet, do: Kati.Screens.AddTitle
+      defoverridable add_sheet: 0
+
       def handle_info({:tap, :fab}, socket) do
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+        {:noreply, Mob.Socket.push_screen(socket, add_sheet())}
       end
 
       def handle_info({:tap, tag}, socket) do
         case Atom.to_string(tag) do
           "root_" <> id ->
             target = String.to_existing_atom(id)
+            screen = Kati.Shell.screen_for(target)
 
-            if target == @root do
+            # The test used to be `target == @root`, and that made the tab dead
+            # on every root screen that is not its root's own page. Screens 16,
+            # 17 and 30 all declare `root: :calendar` and are PUSHED over 02 by
+            # `Kati.Screens.ViewSwitcher`, so the Calendar tab resolved to "you
+            # are already here" on three pages the Schedule could not be reached
+            # from at all — they draw a dock rather than a back pill, so the OS
+            # gesture was the only way home. 20/21 under Library and 139 under
+            # Home are the same shape one root over.
+            #
+            # Comparing the SCREEN keeps the no-op exactly where it belongs —
+            # the root's own page, where re-entering the root you are on would
+            # throw away the scroll position for nothing — and makes the tab a
+            # way home everywhere else.
+            if screen == __MODULE__ do
               {:noreply, socket}
             else
-              {:noreply, Mob.Socket.reset_to(socket, Kati.Shell.screen_for(target))}
+              {:noreply, Mob.Socket.reset_to(socket, screen)}
             end
 
           _ ->

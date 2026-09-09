@@ -65,6 +65,25 @@ defmodule Kati.Screens.Inbox do
       one episode and does not move, so the list is episodes. The green dot the
       design gives a film premiere is therefore drawn only on the drawn rows.
 
+  ## Board 307's three shelves, and why the row still carries a poster
+
+  307 draws this page with four rows across three shelves and one row recipe: a
+  40x40 **glyph tile** instead of the 44x62 poster, because *"a record has
+  square art, a book a portrait cover, an episode a landscape still, and three
+  aspect ratios in one list breaks the row rhythm."*
+
+  The reason is conditional on the list holding more than one shelf, and it
+  holds one. Nothing in the app produces a book release, a record release or a
+  film release — MOVIES-AND-TV.md #133 names the three producers each would
+  need — so swapping a real poster for a generic `live_tv` glyph today would
+  degrade the only state that can occur, to fix a rhythm problem that cannot
+  yet happen. The recipe goes in with the first producer that makes this list
+  hold two kinds of thing.
+
+  What 307 asked for that COULD be true is built: screen 25 offers the three
+  shelves, and screen 66 has the Follow row that feeds one of them
+  (`Kati.Books.FollowedAuthor`).
+
   ### Coming up
 
   Three kinds of thing can be next, and the drawing has one of each: an episode
@@ -97,26 +116,27 @@ defmodule Kati.Screens.Inbox do
       lands all at once rather than weekly, and nothing records a release
       pattern. A real row draws what is left: `48 min · aired 20:00`, and a
       coming-up line that is the episode's own name and its hour.
-    * **The whole watcher card.** Three values with three different answers, and
-      only one of them is queryable:
+    * **The watcher card's count, until something is followed.** All three of
+      its values move now, and each moves the way the screen its cog opens
+      moves them:
 
-        * `Watching for 24 titles` — real today. `:followed` is precisely the
-          set, and counting it is the number.
-        * `last checked 18:02` — **nothing records when the watcher last ran.**
-          `Kati.Media.CachedTitle.last_checked_at` is per title, not per sweep,
-          and the max across a library is not the same fact: a library where one
-          title was refreshed a minute ago and the rest a week ago would read as
-          fully current.
-        * `every 6h` — the watcher's cadence, which lives in no resource and no
-          policy module (`Kati.Media.CachePolicy` states refresh and eviction
-          horizons in *days*, which is a different clock).
+        * `Watching for 24 titles` is `:followed`, counted — through the same
+          list the two sections below it are built from, so the banner and the
+          inbox it is a banner FOR cannot disagree. A device following nothing
+          keeps the drawing's 24, which is the gate this whole screen is on.
+        * `last checked 18:02` is `Kati.Settings.Watcher.last_checked/0`, drawn
+          relative: `never checked` on a fresh install. This section used to
+          say *nothing records when the watcher last ran*, and board 314 built
+          the record. What records one today is screen 25's **Check now** and
+          nothing else, which `watcher_line/0` states rather than rounds up.
+        * `every 6h` is `Kati.Settings.Watcher.cadence/0`, the interval boot
+          asks the scheduler for. A reader who picks `Daily` is told daily —
+          which is the finding: 05 said `every 6h` to a reader whose own
+          setting, one tap away, said otherwise.
 
-      So the count stays frozen with the other two rather than being wired up on
-      its own. A card that reads `Watching for 7 titles · last checked 18:02`
-      puts a live number beside a frozen one in the same breath, and the second
-      is then indistinguishable from the first — which is `Kati.Library.Sample`'s
-      own warning: *sample data that looks like real data is how a demo quietly
-      becomes a lie*. The whole card moves when the watcher records its own run.
+      The last two are not gated on the library, because neither lives in the
+      store this screen falls back FROM. Screen 25's own line is the precedent:
+      it draws `never checked` on a device that follows nothing.
 
   """
   use Kati.Screens.Pushed, back: "Home"
@@ -131,16 +151,22 @@ defmodule Kati.Screens.Inbox do
   alias Kati.Media.Release
   alias Kati.Media.TrackedTitle
   alias Kati.Media.Watch
+  alias Kati.Settings.Watcher
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  # How far back `Out now` reaches. See the moduledoc: nothing stores when the
-  # watcher last swept, so "new" has to be a window, and this one bounds a
-  # display rather than an alarm.
+  # How far back `Out now` reaches. `Kati.Settings.Watcher.last_checked/0`
+  # exists, but only screen 25's *Check now* writes it — it is not a record of
+  # every sweep, so it cannot bound this list. "New" is therefore still a
+  # window, and this one bounds a display rather than an alarm.
   @recent_days 7
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :inbox, inbox())
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:inbox, inbox())
+    |> Mob.Socket.assign(:save_error, nil)
+  end
 
   @doc """
   The inbox this screen draws: the user's releases, or the drawing's.
@@ -150,7 +176,48 @@ defmodule Kati.Screens.Inbox do
   screen to say and the drawing's three rows would be a false one.
   """
   @spec inbox() :: map()
-  def inbox, do: releases() || drawn_inbox()
+  def inbox, do: releases() || nothing_followed()
+
+  @doc """
+  Board 260 — the watcher is running and has nothing to watch.
+
+  What a device that follows nothing used to get was `drawn_inbox/0`: the
+  drawing's three coming-up rows and `Kati.Library.Sample`'s Out now rows, so
+  a fresh install opened its release inbox on releases nobody was waiting for.
+  That is #91's sentence about a different screen and board 260 is the answer
+  the design gives to this one.
+
+  **The card became a sentence**, which is the board's own note and the part
+  worth keeping: the watcher card's mono line pairs a count with `last checked`
+  and `every 6h`, and setting the count to `0` while keeping the line "would
+  put a live number beside two frozen ones in the same breath". Both halves are
+  real now — board 314 built the store and `watcher_line/0` reads it — but the
+  board's shape is still the better one here, because with nothing followed
+  there is no count to pair them with. So the card is two sentences and a cog,
+  and the cog survives because it is the only thing on this page pointing at
+  screen 25.
+
+  It **offers** rather than only explaining, and the second card says why the
+  offer is what it is: a release inbox is the output of a watcher rather than a
+  shelf, so the ink action opens screen 06 — the only door that puts anything
+  into the followed set — and the quiet alternative is the shelf itself.
+
+  `drawn_inbox/0` is still what `Kati.ScreenDesignLiteralTest` puts the screen
+  into for board 05, and only that: a state a reader reaches once they follow
+  something, not one a fresh install falls into.
+  """
+  @spec nothing_followed() :: map()
+  def nothing_followed do
+    %{
+      subtitle: nil,
+      watching: 0,
+      found: 0,
+      last_checked: nil,
+      out_now: [],
+      coming_up: [],
+      nothing_followed?: true
+    }
+  end
 
   @doc """
   Screen 05 exactly as it is drawn.
@@ -160,7 +227,39 @@ defmodule Kati.Screens.Inbox do
   says why in its own doc.
   """
   @spec drawn_inbox() :: map()
-  def drawn_inbox, do: %{Sample.inbox() | coming_up: coming_up_rows()}
+  def drawn_inbox,
+    do: Map.merge(Sample.inbox(), %{coming_up: coming_up_rows(), last_checked: watcher_line()})
+
+  @doc """
+  The watcher card's mono line: when a check last completed, and how often the
+  watcher is asked to run.
+
+  Board 05 froze `last checked 18:02 · every 6h`, and board 260's note called
+  both halves *recorded nowhere*. Board 314 then built the store for both, on
+  the page this card's cog opens: `Kati.Settings.Watcher.cadence/0` is the
+  interval boot asks the scheduler for, and `Kati.Settings.Watcher.last_checked/0`
+  is a real timestamp.
+
+  So this reads the two functions `Kati.Screens.ReleaseWatcher` reads rather
+  than keeping a second copy of a sentence 25 already tells the truth about —
+  which is the whole finding: 05 said `every 6h` to a reader who had set
+  **Daily** on the screen one tap away.
+
+  **What the first half means, exactly.** `checked!/0` is called from one
+  place, screen 25's *Check now*, so this says when a check last completed AND
+  was recorded. Screen 80's *Refresh* runs the same sweep and records nothing.
+  That is 25's contract, adopted whole; narrowing or widening it is a change to
+  `Kati.Settings.Watcher` and belongs with the screen that writes it.
+
+  Not gated on the library being empty, and screen 25's own line is the
+  precedent — it draws `never checked` on a device that follows nothing.
+  Neither value lives in the store this screen falls back FROM.
+  """
+  @spec watcher_line() :: String.t()
+  def watcher_line do
+    Watcher.checked_line(Watcher.last_checked(), false) <>
+      " · " <> String.downcase(Watcher.cadence())
+  end
 
   @doc """
   The user's own releases, or `nil` when they follow nothing.
@@ -181,10 +280,16 @@ defmodule Kati.Screens.Inbox do
     _ -> nil
   end
 
-  # The watcher card is untouched — see the moduledoc — so the real inbox is the
-  # drawn one with its two lists replaced. Laying it over the drawn map rather
-  # than building a fresh one is what keeps "which parts are still the design's"
-  # a single visible line instead of an omission.
+  # The real inbox is the drawn one with its two lists and its count replaced.
+  # Laying the reader's values over the drawn map rather than building a fresh
+  # one is what keeps "which parts are still the design's" a single visible
+  # line instead of an omission.
+  #
+  # `length(tracked)` rather than `followed_count/0`: `tracked` IS the
+  # `:followed` read that function counts, already in hand, and counting the
+  # list this screen is drawing is what makes *the banner and the list it is a
+  # banner FOR cannot disagree* structural rather than a promise. Screen 25
+  # reaches the same number through `followed_count/0` because it has no list.
   defp assemble(tracked) do
     cache = cached_titles(tracked)
     episodes = scheduled_episodes(tracked)
@@ -192,9 +297,186 @@ defmodule Kati.Screens.Inbox do
 
     %{
       drawn_inbox()
-      | out_now: out_now_rows(tracked, cache, episodes, ticked_ids(tracked), now),
+      | watching: length(tracked),
+        out_now: out_now_rows(tracked, cache, episodes, ticked_ids(tracked), now),
         coming_up: upcoming_rows(tracked, cache, episodes, scheduled_seasons(tracked), now)
     }
+  end
+
+  @doc """
+  The `Watch` pill's tap, or `nil` for a row with no episode behind it.
+
+  The drawing's rows are literal maps with an artwork seed and no `source_id`,
+  so the board draws the pill and it is not tappable — the rule the whole
+  round keeps. A real row carries the reference `Kati.Media.Watch` names an
+  episode by, and the tag carries it.
+  """
+  @spec watch_tap(map()) :: {pid(), atom()} | nil
+  def watch_tap(%{source_id: id, tracked_id: tracked}) when is_binary(id) and is_binary(tracked),
+    do: {self(), String.to_atom("watch_" <> id)}
+
+  def watch_tap(_drawn), do: nil
+
+  @doc """
+  The Out now rows a tick can actually be written for.
+
+  Both controls read it: the pill needs one row and *Mark all* needs the set,
+  and a row that cannot be ticked is a row that was never in the set — which
+  is what makes an empty inbox the smallest case of *Mark all* rather than a
+  failure of it.
+  """
+  @spec tickable(map()) :: [map()]
+  def tickable(inbox) do
+    inbox
+    |> Map.get(:out_now, [])
+    |> Enum.filter(&(is_binary(Map.get(&1, :source_id)) and is_binary(Map.get(&1, :tracked_id))))
+  end
+
+  @doc """
+  The watcher card's headline.
+
+      iex> Kati.Screens.Inbox.watching_line(1)
+      "Watching for 1 title"
+
+      iex> Kati.Screens.Inbox.watching_line(3)
+      "Watching for 3 titles"
+
+  It said *1 titles* until the card could be read on a device at all — which is
+  the small thing that a defect hiding a whole card also hides.
+  """
+  @spec watching_line(non_neg_integer()) :: String.t()
+  def watching_line(1), do: "Watching for 1 title"
+  def watching_line(count), do: "Watching for #{count} titles"
+
+  @doc false
+  def watcher_gear do
+    # **Sized, and that is the whole of MOVIES-AND-TV.md #161.** A `Box` with no
+    # width fills its parent, so this gear — the last child of the watcher
+    # card's Row — swallowed every point the weighted `Column` beside it should
+    # have had. The card came out as two icons in an empty cream bar: the
+    # Column was left about 20pt wide and `max_lines={1}` clipped both of its
+    # lines to nothing.
+    #
+    # Nothing on the host could see it. `render/1` answers a TREE, the tree was
+    # correct, and `Kati.ScreenInboxTest` reads both strings out of it — so the
+    # whole suite passed while the card was blank on a phone. It took a device
+    # and one deliberately wrapped line, one letter per row, to prove where the
+    # width had gone.
+    #
+    # `Kati.Screens.Inbox.watcher_idle/0`'s own gear is `width={34} height={34}`
+    # and `Kati.UI.SettingsList.icon_tile/1` is sized too, which is why neither
+    # has ever shown this.
+    assigns = %{tap: {self(), :open_watcher}}
+
+    ~MOB"""
+    <Box width={24} height={24} align="center" on_tap={@tap}>
+      {Kati.UI.symbol("settings", size: 19, color: Palette.gold_icon())}
+    </Box>
+    """
+  end
+
+  @impl true
+  def handle_tap(:mark_all, socket) do
+    # The re-read happens whatever the outcome, because ticks that DID land
+    # must leave the list — a partial run is a true state, and hiding it would
+    # be the same silence this is fixing. Only the FIRST refusal is spoken:
+    # `Kati.Write.message/1` is the app's whole refusal vocabulary and "3 of 5
+    # did not save" is copy no board words. `nil` on a clean run, which clears
+    # a refusal an earlier tap left behind.
+    refused =
+      socket.assigns.inbox
+      |> Kati.Screens.Inbox.tickable()
+      |> Enum.reduce(nil, fn row, first ->
+        case Kati.Screens.Series.write_tick(row.tracked_id, row) do
+          :ok -> first
+          {:error, reason} -> first || Kati.Write.message({:error, reason})
+        end
+      end)
+
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:inbox, inbox())
+     |> Mob.Socket.assign(:save_error, refused)}
+  end
+
+  # Screen 25, which is what the gear on the cream card has always pointed at.
+  def handle_tap(:open_watcher, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ReleaseWatcher, %{back: "Inbox"})}
+
+  # Board 260's two ways out of an empty inbox. The ink action opens screen 06,
+  # which is the only door that puts a title into the followed set — this page
+  # is the watcher's output, so a shelf link alone would offer the wrong verb.
+  # The shelf is the quiet alternative underneath, in the board's own words.
+  def handle_tap(:add_title, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddTitle)}
+
+  def handle_tap(:open_shelf, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Library)}
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "watch_" <> source_id ->
+        {:noreply, Kati.Screens.Inbox.tick(socket, source_id)}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
+  Tick one Out now row, and re-read.
+
+  Re-read rather than dropped from the list in place: a tick moves the episode
+  out of `out_now` because `out_now_rows/5` rejects what is already ticked, and
+  the subtitle counts the same list. Removing the row here and leaving the
+  count alone is how the two come to disagree.
+
+  A refusal is assigned rather than dropped — `Kati.Write.message/1`, drawn by
+  `refusal/1`. Before this, a store that said no left the row in place, the
+  count unmoved and the page saying no more than if the finger had missed the
+  pill. That is the defect MOVIES-AND-TV.md #39 names on screens 04 and 34; it
+  reached this screen with #82, which gave the two controls something to
+  refuse.
+  """
+  @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def tick(socket, source_id) do
+    row =
+      socket.assigns.inbox
+      |> Kati.Screens.Inbox.tickable()
+      |> Enum.find(&(&1.source_id == source_id))
+
+    case row && Kati.Screens.Series.write_tick(row.tracked_id, row) do
+      :ok ->
+        socket
+        |> Mob.Socket.assign(:inbox, inbox())
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+
+      # MANDATORY, and it must stay silent. A tag naming no row on the page is
+      # not a refused write, it is a tag this screen does not own — the answer
+      # `handle_tap/2`'s `_other` clause already gives. Collapse it into the
+      # error clause and `case nil do` raises `CaseClauseError`, which
+      # `Kati.Screens.Root.rescue_tap/3` then logs as a dead tap.
+      nil ->
+        socket
+    end
+  end
+
+  @doc """
+  How many titles the watcher is watching.
+
+  Screen 25's banner draws this number and drew `24` on every device. Exposed
+  here rather than counted there because `:followed` is the read that decides
+  what the watcher watches, and two places asking that question differently is
+  how the banner and the list it is a banner FOR come to disagree.
+  """
+  @spec followed_count() :: non_neg_integer()
+  def followed_count do
+    length(followed())
+  rescue
+    _error -> 0
   end
 
   defp followed do
@@ -280,20 +562,32 @@ defmodule Kati.Screens.Inbox do
     |> Enum.sort_by(fn {_episode, air} -> resolved_date(air) end, {:desc, Date})
     |> Enum.map(fn {episode, air} ->
       tracked_row = Map.get(by_reference, {episode.source, episode.title_source_id})
-      out_now_row(episode, air, cached_for(tracked_row, cache), now)
+      out_now_row(episode, air, cached_for(tracked_row, cache), now, tracked_row)
     end)
   end
 
   # The show's name and poster, the episode's number and name, and how long it
   # is beside when it went out. `dot` is the design's orange in every real row:
   # its green is the film premiere this list deliberately does not hold.
-  defp out_now_row(episode, air, cached, now) do
+  defp out_now_row(episode, air, cached, now, tracked) do
     %{
       title: show_title(cached),
       seed: cached && cached.poster_path,
       line: episode_line(episode),
       meta: join([episode_runtime(episode), aired_label(air, now)]),
-      dot: Palette.accent()
+      dot: Palette.accent(),
+      # What a tick is written against, and none of it is drawn.
+      # MOVIES-AND-TV.md #82: the `Watch` pill on every row and `Mark all` at
+      # the top had no taps, and the rows had nothing to carry a tap's meaning
+      # even if they had. `Kati.Media.Watch` names an episode by
+      # `episode_source_id` and nothing else, and takes the season and number
+      # off the COLUMNS — the same shape screen 34's rows carry, for the same
+      # reason: the numbering is a label and the tick follows the episode.
+      tracked_id: tracked && tracked.id,
+      source_id: episode.source_id,
+      season: episode.season_number,
+      n: episode.episode_number,
+      watched: false
     }
   end
 
@@ -481,15 +775,174 @@ defmodule Kati.Screens.Inbox do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.Inbox.mark_all()}
+        {Kati.Screens.Inbox.mark_all(inbox)}
         {Kati.Screens.Inbox.title(inbox)}
-        {Kati.Screens.Inbox.watcher(inbox)}
-        {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
-        {Kati.Screens.Inbox.out_now(inbox)}
-        {Kati.UI.eyebrow("Coming up", dash: Palette.rail_idle(), gap: 12)}
-        {Kati.Screens.Inbox.coming_up(inbox)}
+        {Kati.Screens.Inbox.body(inbox, Map.get(assigns, :save_error))}
       </Column>
     </Scroll>
+    """
+  end
+
+  @doc """
+  The page under its title: board 260's two cards, or the inbox proper.
+
+  Written as two whole pages rather than one page with holes in it, which is
+  the shape screen 07 settled for the same reason: the states share the header
+  and nothing else, and a `Coming up` eyebrow over an empty card is the drawn
+  emptiness this whole board exists to remove.
+  """
+  @spec body(map(), String.t() | nil) :: map()
+  def body(%{nothing_followed?: true}, _save_error) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {UI.eyebrow("Nothing followed yet")}
+      {Kati.Screens.Inbox.watcher_idle()}
+      <Spacer size={13} />
+      {Kati.Screens.Inbox.offer()}
+    </Column>
+    """
+  end
+
+  def body(inbox, save_error) do
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.Screens.Inbox.watcher(inbox)}
+      {Kati.Screens.Inbox.refusal(save_error)}
+      {UI.eyebrow("Out now · #{length(inbox.out_now)}")}
+      {Kati.Screens.Inbox.out_now(inbox)}
+      {Kati.UI.eyebrow("Coming up", dash: Palette.rail_idle(), gap: 12)}
+      {Kati.Screens.Inbox.coming_up(inbox)}
+    </Column>
+    """
+  end
+
+  @doc "Board 260's first card: the watcher, running, with nothing to do."
+  @spec watcher_idle() :: map()
+  def watcher_idle do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      padding={15}
+      shadow={Kati.Theme.shadow_card_soft()}
+      align="center"
+    >
+      <Box width={38} height={38} corner_radius={12} background={Palette.paper()} align="center">
+        {UI.symbol("auto_awesome", size: 19, color: Palette.rail_idle())}
+      </Box>
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Text
+          text="The watcher is running"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+        />
+        <Spacer size={4} />
+        <Text
+          text="It has nothing to watch yet. Follow a show and it starts here."
+          text_size={12}
+          line_height={1.5}
+          text_color={Palette.sub()}
+        />
+      </Column>
+      <Spacer size={11} />
+      <Box
+        width={34}
+        height={34}
+        corner_radius={11}
+        background={Palette.paper()}
+        align="center"
+        on_tap={{self(), :open_watcher}}
+      >
+        {UI.symbol("settings", size: 17, color: Palette.ink_soft())}
+      </Box>
+    </Row>
+    """
+  end
+
+  @doc """
+  Board 260's second card: why there is nothing, and the one door that changes
+  it.
+
+  The ink action opens screen 06 rather than the shelf, and the sentence above
+  it is what makes that the right way round: this page is the watcher's output,
+  so the thing that fills it is putting a title into the followed set. The
+  shelf is offered underneath as the quieter alternative, in the board's own
+  words.
+  """
+  @spec offer() :: map()
+  def offer do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={22}
+      padding={17}
+      shadow={Kati.Theme.shadow_card_soft()}
+    >
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+          {UI.symbol("movie", size: 22, color: Palette.rail_idle())}
+        </Box>
+        <Spacer weight={1.0} />
+      </Row>
+      <Spacer size={13} />
+      <Text
+        text="Nothing new, because nothing is followed"
+        text_size={14.5}
+        font_weight="bold"
+        letter_spacing={-0.02}
+        text_color={:on_surface}
+        text_align="center"
+      />
+      <Spacer size={7} />
+      <Text
+        text="This page is the watcher's output. Add a show or a film to your library and every new episode lands here first."
+        text_size={12.5}
+        line_height={1.55}
+        text_color={Palette.sub()}
+        text_align="center"
+      />
+      <Spacer size={15} />
+      <Row fill_width={true} align="center">
+        <Spacer weight={1.0} />
+        <Row
+          height={44}
+          corner_radius={22}
+          background={Palette.ink_fill()}
+          align="center"
+          padding_left={18}
+          padding_right={20}
+          on_tap={{self(), :add_title}}
+        >
+          {UI.symbol("add", size: 18, color: Palette.on_ink())}
+          <Spacer size={7} />
+          <Text
+            text="Add a title"
+            text_size={13}
+            font_weight="bold"
+            text_color={Palette.on_ink()}
+            max_lines={1}
+          />
+        </Row>
+        <Spacer weight={1.0} />
+      </Row>
+      <Spacer size={11} />
+      <Row fill_width={true} align="center" on_tap={{self(), :open_shelf}}>
+        <Spacer weight={1.0} />
+        <Text
+          text="or open the shelf"
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={Palette.sub()}
+          max_lines={1}
+        />
+        <Spacer weight={1.0} />
+      </Row>
+    </Column>
     """
   end
 
@@ -498,8 +951,22 @@ defmodule Kati.Screens.Inbox do
   # not the 36 of the control inside it — the drawing centres a 36 pill against
   # a 44 one, and a row that measured 36 pulled the title and everything under
   # it 8 up the frame.
-  @doc false
-  def mark_all do
+  @doc """
+  *Mark all*, and nothing when there is nothing to mark.
+
+  MOVIES-AND-TV.md #82: this was drawn without a tap, over rows that carried
+  nothing to write a tick against. It writes one `Kati.Media.Watch` per **Out
+  now** row and re-reads, which empties the section and recounts the subtitle —
+  the behaviour the moduledoc already described as if it had shipped.
+
+  Drawn without a tap when the list is empty, and that is not the same as
+  inert: there is nothing to mark all OF. Over the board it is likewise a
+  picture, because the drawing's rows have no episode behind them.
+  """
+  @spec mark_all(map()) :: map()
+  def mark_all(inbox \\ %{}) do
+    assigns = %{tap: if(Kati.Screens.Inbox.tickable(inbox) != [], do: {self(), :mark_all})}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
@@ -511,6 +978,7 @@ defmodule Kati.Screens.Inbox do
           padding_left={14}
           padding_right={14}
           align="center"
+          on_tap={@tap}
         >
           <Text
             text="Mark all"
@@ -561,6 +1029,27 @@ defmodule Kati.Screens.Inbox do
   end
 
   @doc false
+  def title(%{nothing_followed?: true}) do
+    # Board 260 draws the name and nothing under it. `0 out now · 0 coming up`
+    # is a true sentence and still the wrong one: it counts two sections the
+    # page is no longer drawing, so it reads as a report on a search that ran
+    # rather than as the fact that nothing is being watched for. The eyebrow
+    # under it says that instead.
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text="New releases"
+        text_size={28}
+        max_font_scale={1.6}
+        font_weight="bold"
+        letter_spacing={-0.03}
+        text_color={:on_surface}
+      />
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
   def title(inbox) do
     subtitle = "#{length(inbox.out_now)} out now · #{length(inbox.coming_up)} coming up"
 
@@ -589,6 +1078,9 @@ defmodule Kati.Screens.Inbox do
 
   @doc false
   def watcher(inbox) do
+    # Both glyphs are boxed at their own size, and the trailing one is why this
+    # card was blank on a device for as long as it existed — see
+    # `watcher_gear/0`, which carries the finding.
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -601,11 +1093,13 @@ defmodule Kati.Screens.Inbox do
         padding_bottom={15}
         align="center"
       >
-        {Kati.UI.symbol("auto_awesome", size: 22, color: Palette.gold_icon())}
+        <Box width={22} height={22} align="center">
+          {Kati.UI.symbol("auto_awesome", size: 22, color: Palette.gold_icon())}
+        </Box>
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text={"Watching for #{inbox.watching} titles"}
+            text={Kati.Screens.Inbox.watching_line(inbox.watching)}
             text_size={13.5}
             font_weight="bold"
             text_color={:on_surface}
@@ -621,9 +1115,42 @@ defmodule Kati.Screens.Inbox do
           />
         </Column>
         <Spacer size={12} />
-        {Kati.UI.symbol("settings", size: 19, color: Palette.gold_icon())}
+        {Kati.Screens.Inbox.watcher_gear()}
       </Row>
       <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc """
+  A tick the store refused, said out loud.
+
+  The band `Kati.Screens.Series.refusal/1` and `Kati.Screens.Season.refusal/1`
+  already draw, arriving here for the same reason one round later. The `Watch`
+  pill and *Mark all* have been able to fail since MOVIES-AND-TV.md #82 wired
+  them, and both threw the result away — so a refused tick left the row in the
+  list, the subtitle's count unmoved, and the page saying no more than it would
+  have if the finger had missed. #39 is that defect named on 04 and 34; #82's
+  wiring is how it reached a third screen without being named again.
+
+  Where 04 and 34 can be refused for a missing key, this screen cannot:
+  `tickable/1` drops any row without a `source_id` and a `tracked_id` before
+  either control sees it, so what reaches here is the store's own no.
+
+  Above the **Out now** eyebrow — screen 34's placement — because Out now is
+  the list that failed to change, and the watcher card above it is about a
+  different clock entirely.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.note("error", @message)}
+      <Spacer size={14} />
     </Column>
     """
   end
@@ -689,6 +1216,7 @@ defmodule Kati.Screens.Inbox do
           padding_left={14}
           padding_right={14}
           align="center"
+          on_tap={Kati.Screens.Inbox.watch_tap(row)}
         >
           <Text
             text="Watch"

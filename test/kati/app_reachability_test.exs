@@ -1,4 +1,5 @@
 Code.require_file("../support/screen_sweep.exs", __DIR__)
+Code.require_file("../support/sync_fixtures.exs", __DIR__)
 
 defmodule Kati.AppReachabilityTest do
   @moduledoc """
@@ -22,11 +23,48 @@ defmodule Kati.AppReachabilityTest do
   first-run sequence is a second legitimate entry point rather than an orphan.
   The gallery is excluded on purpose — leaving it in makes the question
   unanswerable.
+
+  ## Two stores, because half the doors in this app are rows
+
+  A door is a rendered `on_tap`, and a rendered `on_tap` can depend on what is
+  in the database. Until issue #91 that was invisible here, because every root
+  answered an empty store with a `Sample` module: screen 03 drew nine invented
+  films whether or not anything was tracked, so `:open_series` and `:open_film`
+  were always on the tree and 04, 08, 14, 34 and 35 were always walkable. That
+  fallback was the defect — a fresh install showed somebody else's shelf — and
+  the roots now draw their real emptiness instead.
+
+  The walk went with it. Six drawn destinations went dark in one commit and not
+  one of them had moved: **04, 08, 14, 34, 35** behind screen 03's poster tiles,
+  and **31** behind screen 02's event rows. The inventory was not wrong and the
+  count was not wrong; the graph had stopped being the whole graph.
+
+  So this walks **two stores and unions the result**, which is what "reachable"
+  actually means — *there is a state this app can be in from which a user gets
+  there*:
+
+    * **a fresh install**, nothing stored. This is the only pass that sees the
+      doors an empty state draws: screen 27's `Add a title` and `or import a
+      backup` on the Library, which exist precisely because the shelf is empty.
+    * **a device in use**, `populate!/0`'s rows written into the store and rolled
+      back after. This is the only pass that sees the doors a row draws.
+
+  Neither pass alone is the app. The empty pass strands the six above; the
+  populated pass strands 21, 74 and 77, because a shelf with titles on it draws
+  poster tiles where the empty card drew its two invitations. The union is
+  exactly the 105 drawings a user can reach, against the 47 on `@no_route`.
+
+  Nothing on that inventory changed for this, and nothing should have: the
+  question "can a user get here" did not change its answer for a single screen.
+  Only the walk's idea of what a user's phone looks like did.
   """
   use Mob.ScreenCase, async: false
 
+  alias Kati.Media.CachedTitle
+  alias Kati.Media.TrackedTitle
   alias Kati.Screens
   alias Kati.ScreenSweep
+  alias Kati.SyncFixtures
 
   @roots [Screens.LanguagePick | Enum.map(Kati.Shell.roots(), & &1.screen)]
 
@@ -54,7 +92,28 @@ defmodule Kati.AppReachabilityTest do
     {Screens.DataSourcesStates, "screen 80's states, in 27's manner. As above."},
     {Screens.AttributionStates, "screen 83's states, in 27's manner. As above."},
     {Screens.MyServicesStates, "screen 92's states, in 27's manner. As above."},
-    {Screens.YearCardsStates, "screen 100's states, in 27's manner. As above."},
+    {Screens.HomeFaOmittedSections,
+     "the decision that an empty section is omitted rather than worded, drawn " <>
+       "on a Persian Home so both cases can be seen at once. A board about a " <>
+       "rule rather than a place in the app — screen 96's reason."},
+    {Screens.HomeFaEmptyDark,
+     "158 in the dark colourway — the same page in another colourway, " <>
+       "reached by having dark on and having kept nothing."},
+    {Screens.AddByHandDark,
+     "screen 154 in the dark colourway. The same page in another colourway, " <>
+       "reached by having dark on rather than by navigating — screen 28's " <>
+       "reason, and it waits on the same fix."},
+    {Screens.AddByHandStates,
+     "screen 154's two states and the three decisions behind them, in 27's " <>
+       "manner. A picture of two situations rather than a situation the app " <>
+       "can be in."},
+    {Screens.MyServicesEmpty,
+     "screen 92 with nothing set up. `Kati.Screens.MyServices.content/1` " <>
+       "CALLS this module's `content/1` when no service is stored — Home's " <>
+       "own arrangement with screen 139 — so a user reaches it by having no " <>
+       "services rather than by navigating, and nothing pushes it. The row " <>
+       "that used to, `Show all 47`, was opening it over a page listing three " <>
+       "subscriptions: MOVIES-AND-TV.md #35."},
     {Screens.MoneyStates, "screen 122's states, in 27's manner. As above."},
     {Screens.MealLibraryEmpty,
      "screen 116 with nothing in it, and the same board in Persian. The same " <>
@@ -65,15 +124,18 @@ defmodule Kati.AppReachabilityTest do
        "another one — reached by having no goals, not by navigating."},
     {Screens.WeightStates, "screen 109's states, in 27's manner. As above."},
     {Screens.HealthEmptyStates, "screen 42's empty states, in 27's manner. As above."},
+    {Screens.MedicationEmpty,
+     "screen 112 empty, with its two destinations, its reminder caption and " <>
+       "the failure line annotated beside it — a board about one page rather " <>
+       "than a second page. 27's reason, and 96's: reached by having no " <>
+       "medications, not by navigating. The two destinations it names are " <>
+       "both live from 112 itself."},
     {Screens.SearchTyping, "screen 86's three states before results, in 27's manner. As above."},
     {Screens.SearchResultStates,
      "screen 86's four result edge states, in 27's manner. As above."},
     {Screens.SearchLarge,
      "screen 86 at 235% text size. The same screen at a system setting, not " <>
        "another one — reached by changing the setting, not by navigating."},
-    {Screens.YearShareDark,
-     "screen 98 in the dark colourway. The same screen, not another one — " <>
-       "reached by changing the theme, exactly as 28 and 68 are."},
     {Screens.YearShareBooks,
      "screen 98 with one scope selected, drawn so the two can be compared. A " <>
        "board about a choice rather than a place the choice is made — 98 is where " <>
@@ -103,24 +165,19 @@ defmodule Kati.AppReachabilityTest do
     {Screens.BackupLarge,
      "screens 128 and 129 at 235% text size. The same screens at a system " <>
        "setting, not other ones — reached by changing the setting, as 91 is."},
-    {Screens.RestoreFa,
-     "screen 129 in Persian. The same screen, not another one — reached by " <>
-       "choosing فارسی, exactly as every other Persian mirror is."},
-    {Screens.OnboardingFa, "the onboarding chain in Persian. As above."},
     {Screens.OnboardingLarge, "the onboarding chain at 235%. As above."},
-    {Screens.ImportStates, "screen 140's edge states, in 27's manner. As above."},
+    {Screens.ImportStates,
+     "screen 140's edge states, in 27's manner. As above — and #4 has since " <>
+       "shipped the states themselves: 141 draws its refusal card with `Pick " <>
+       "again` live, and its wrong-guess note over a file that still reads."},
     {Screens.ShelfLarge, "screens 145 and 146 at 235%. As above."},
-    {Screens.DropStates,
-     "the drop, DNF and abandon states across all three media at once, in " <>
-       "27's manner — a board about five states rather than a sixth place."},
-    {Screens.AnimeFilter,
-     "a board about one change landing on four existing screens — 03's chip, " <>
-       "26's sub-choice, 37's two tiles, 35's numbering row. 96's reason: a " <>
-       "board about four screens rather than a fifth screen."},
     {Screens.EpisodeRatings,
      "screen 04's episode rows with the rating column added, drawn so the " <>
        "before and after can be compared. A board about a change to 04, not a " <>
-       "screen beside it."},
+       "screen beside it — and the change has shipped: " <>
+       "`Kati.Screens.Series.rating_column/1` draws that column beside every " <>
+       "aired episode on 04 and 34, and opens screen 144 over the one you " <>
+       "tapped."},
     # ── Drawn, built, and waiting on an entry point ──────────────────────
     #
     # These eight are NOT reference sheets. Each is a real destination whose
@@ -131,39 +188,8 @@ defmodule Kati.AppReachabilityTest do
     #
     # Each entry names the edit it is waiting for, so this list stays a queue
     # rather than becoming a graveyard.
-    {Screens.LoudnessPrompt,
-     "the three outcomes of 38·3's loudness choice. Its entry is 38·3 itself " <>
-       "routing forward, which needs 38 renumbered to five steps — the flow " <>
-       "map (134) names that as the build task."},
-    {Screens.RateEpisode,
-     "screen 33 in its episode variant. Its entry is a LONG PRESS on an " <>
-       "episode row in screen 04, and 04's board has not been redrawn to carry " <>
-       "the affordance hint that teaches it. #15."},
-    {Screens.ShelfFilters,
-     "the shelf filter sheet. Its entry is a trailing filter disc in the " <>
-       "header of screens 03, 20 and 21, and none of the three boards has been " <>
-       "redrawn with it. #19."},
-    {Screens.ShelfSelection,
-     "the shelf in selection mode. Its entry is a LONG PRESS on a poster " <>
-       "tile — the same gesture 04 uses for a different meaning, which #15 and " <>
-       "#19 agree has to be decided on both boards before either ships it."},
-    {Screens.DropSheet,
-     "the drop sheet. Its entry is a Drop action on a title, and the three " <>
-       "detail boards (04, 66, 74) have not been redrawn with it. #17."},
-    {Screens.AutoDetectMusic,
-     "auto-detect in music mode. #20 draws it as a MODE of screen 36 rather " <>
-       "than a second screen, so its entry is a mode switch at the top of 36 — " <>
-       "drawn on 150 and not yet on 36. `Kati.Screens.AutoDetect.handle_tap/2` " <>
-       "already answers `:open_music`; only the control is missing."},
     {Screens.NotificationAccess,
      "the special-access row. Reached from 150, which is itself waiting."},
-    {Screens.NumberingScheme,
-     "the per-show numbering row. Its entry is a row on screen 35, whose " <>
-       "board has not been redrawn. #21."},
-    {Screens.HomeEmpty,
-     "screen 01 with nothing set up. The same screen in the state a skipped " <>
-       "onboarding leaves it in — reached by skipping, not by navigating, " <>
-       "exactly as 105 and 117 are."},
     # 63, 64 and 65 — the three drawings of Kati seen from outside the app.
     # 29's reason, three more times: an app cannot navigate to the surface it
     # is being launched from.
@@ -204,6 +230,24 @@ defmodule Kati.AppReachabilityTest do
     assert wired == [],
            "these are reachable now. Delete their lines from @no_route:\n" <>
              Enum.join(wired, "\n")
+  end
+
+  test "a screen retired from the gallery is one the app can actually reach" do
+    reached = reachable(push_graph(), @roots)
+    exempt = MapSet.new(Enum.map(@no_route, &elem(&1, 0)))
+
+    stranded =
+      for {number, label, module, _kind} <- Screens.Gallery.screens(),
+          number in Screens.Gallery.routed(),
+          not MapSet.member?(reached, module) or MapSet.member?(exempt, module),
+          do: "  #{number}  #{label}  #{inspect(module)}"
+
+    assert stranded == [],
+           "these screens have been taken out of Settings > Every screen as " <>
+             "finished, and the walk cannot reach them — so they are now in the " <>
+             "app with no door at all. Put the number back in " <>
+             "`Kati.Screens.Gallery`'s `@routed` only once the route is " <>
+             "there:\n" <> Enum.join(stranded, "\n")
   end
 
   test "the roots are themselves drawn screens" do
@@ -255,35 +299,339 @@ defmodule Kati.AppReachabilityTest do
   # and the recursion is bounded by that rather than by a visited set.
   # Rolled back, because a few of the tags this dispatches are commits — see
   # `Kati.ScreenSweep.rolled_back/1` for the defect that made it necessary.
+  #
+  # Memoised for the run, because three of the four tests below ask the same
+  # question of the same graph and building it is two passes over 156 screens.
+  # Same mechanism and the same reason as `Kati.ScreenSweep.drawn_taps/1`: a
+  # graph depends only on code, which does not change inside a run.
   defp push_graph do
+    key = {__MODULE__, :push_graph}
+
+    case :persistent_term.get(key, :miss) do
+      :miss ->
+        graph = build_graph()
+        :persistent_term.put(key, graph)
+        graph
+
+      graph ->
+        graph
+    end
+  end
+
+  # The union of the two stores. See the moduledoc for why one of them is not
+  # enough — and note the direction of the merge does not matter, because a
+  # union is a union; `Enum.uniq/1` is tidiness, not correctness.
+  defp build_graph do
+    Map.merge(
+      with_stored_settings(&fresh_install_edges/0),
+      with_stored_settings(&in_use_edges/0),
+      fn _module, empty, in_use -> Enum.uniq(empty ++ in_use) end
+    )
+    |> Map.merge(with_stored_settings(&locale_forks/0), fn _m, a, b -> Enum.uniq(a ++ b) end)
+  end
+
+  # The three taps whose destination is the locale, taken both ways.
+  #
+  # The pass above runs in one locale, which is the right shape for a graph of
+  # a single app — but three controls answer `Kati.Locale` rather than a
+  # module, and in one locale the walk sees one of their two destinations.
+  #
+  # Which one it saw used to be decided by tag ORDER, which is worse. Screen
+  # 53's tags come off the tree as `[:choose_en, :choose_fa, :continue]` and
+  # each was evaluated against the store the tag before it left, so `continue`
+  # answered after `choose_fa` had written فارسی — and every module rendered
+  # after 53 in the same comprehension inherited that. `pinned/1` below is what
+  # stopped a tap deciding the next tap's answer; this is what puts back the
+  # branch it removed.
+  #
+  # A whole second pass in `:fa` is the general form and costs a render of
+  # every screen in the app. Three controls need it, and they are named here
+  # rather than swept for.
+  @locale_forks [
+    {Screens.LanguagePick, :continue},
+    {Screens.AddTitle, :add_by_hand},
+    {Screens.Search, :add_by_hand}
+  ]
+
+  defp locale_forks do
+    for {module, tag} <- @locale_forks, locale <- [:en, :fa], reduce: %{} do
+      acc ->
+        edges =
+          ScreenSweep.rolled_back(fn ->
+            ScreenSweep.with_locale(locale, fn ->
+              case ScreenSweep.render(module) do
+                {:ok, socket, tree} ->
+                  # This tag only, and from a socket mounted in this locale.
+                  # Handing the whole tag list to `targets/3` would defeat the
+                  # point on screen 53: `choose_fa` sits before `continue` in
+                  # draw order and writes the setting `continue` reads.
+                  #
+                  # Typed first, because board 308 put screen 06's own fork one
+                  # keystroke away: the add-by-hand row is absent before a
+                  # keystroke, since it NAMES the query and there is none. A
+                  # fork that only appears after typing is still a fork.
+                  {socket, tree} = Kati.AppReachabilityTest.after_typing(module, socket, tree)
+
+                  if tag in ScreenSweep.tap_tags(tree),
+                    do: targets(module, socket, [tag]),
+                    else: []
+
+                _unrenderable ->
+                  []
+              end
+            end)
+          end)
+
+        Map.update(acc, module, edges, &Enum.uniq(&1 ++ edges))
+    end
+  end
+
+  defp fresh_install_edges do
+    ScreenSweep.rolled_back(fn -> edges(ScreenSweep.drawn_taps(:en)) end)
+  end
+
+  # The same walk over a store with rows in it.
+  #
+  # Deliberately NOT through `Kati.ScreenSweep.drawn_taps/1`: that memo is keyed
+  # by locale alone and is handed to two other sweeps that mean it to be the
+  # empty store. Filling it from inside this transaction would hand them a
+  # populated one, and the rows would be gone by the time they read it.
+  defp in_use_edges do
     ScreenSweep.rolled_back(fn ->
-      ScreenSweep.with_locale(:en, fn ->
-        for {module, {socket, tags}} <- ScreenSweep.drawn_taps(:en),
-            module != Screens.Gallery,
-            into: %{} do
-          {module, targets(module, socket, tags) ++ opened_targets(module, socket, tags)}
-        end
-      end)
+      populate!()
+      edges(ScreenSweep.with_locale(:en, &drawn_taps_now/0))
     end)
   end
 
+  defp drawn_taps_now do
+    for module <- ScreenSweep.screens(),
+        {:ok, socket, tree} <- [ScreenSweep.render(module)],
+        into: %{},
+        do: {module, {socket, ScreenSweep.tap_tags(tree)}}
+  end
+
+  defp edges(taps) do
+    ScreenSweep.with_locale(:en, fn ->
+      for {module, {socket, tags}} <- taps,
+          module != Screens.Gallery,
+          into: %{} do
+        {module,
+         targets(module, socket, tags) ++
+           opened_targets(module, socket, tags) ++
+           typed_targets(module, socket)}
+      end
+    end)
+  end
+
+  # Rows a real device has, written by this test and rolled back with the rest
+  # of the pass. A fixture in the store, never a `Sample` module rendered to
+  # anybody — that distinction is the whole of issue #91, and the four roots'
+  # moduledocs spend their length on it.
+  #
+  # Every row here exists to open a door the empty store cannot draw, and the
+  # test that fails when one goes missing names the screen:
+  #
+  #   * a tracked **series** and a tracked **film** put two poster tiles on
+  #     screen 03's shelf. `Kati.Screens.Library.poster/1` picks the tag off the
+  #     kind — `:open_series` or `:open_film` — so it takes one of each to reach
+  #     04 and 08, and 04's overflow menu is the only route to 14, 34 and 35.
+  #   * one **event today** puts a row on screen 02's day. `row_event_*` is
+  #     the only route to 31.
+  #
+  # A cached title with no `title` is dropped by `Kati.Screens.Library.shelf/0`
+  # and a watch is not needed by any of it, so this is the smallest store that
+  # draws both tiles.
+  defp populate! do
+    track!(:tv, "The Long Hollow", "hollow71")
+    track!(:movie, "Blue Hour", "bluehour58")
+
+    today = Kati.Time.today()
+
+    SyncFixtures.event!(SyncFixtures.calendar!(), %{
+      summary: "Standup",
+      dtstart_utc: DateTime.new!(today, ~T[09:00:00.000000], "Etc/UTC"),
+      duration_iso: "PT30M"
+    })
+  end
+
+  defp track!(kind, title, seed) do
+    source_id = "reachability:#{System.unique_integer([:positive])}"
+
+    CachedTitle
+    |> Ash.Changeset.for_create(:create, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: kind,
+      title: title,
+      # `Kati.Seeds` stores the design's seed here, so the tile resolves its
+      # artwork through `Kati.Design.Images.poster/1` the way a seeded row does.
+      poster_path: seed,
+      fetched_at: Kati.Time.now()
+    })
+    |> Ash.create!()
+
+    TrackedTitle
+    |> Ash.Changeset.for_create(:create, %{
+      source: :tmdb,
+      source_id: source_id,
+      kind: kind,
+      status: :watching
+    })
+    |> Ash.create!()
+
+    if kind == :tv, do: episode!(source_id)
+  end
+
+  # One cached episode for the tracked series, and it is the difference between
+  # a populated store and a populated store a user would recognise. A series
+  # you are watching has episodes; this one had none, so screen 04 drew its
+  # "nothing cached yet" state in the pass that is supposed to be the device in
+  # use — and every door an episode ROW draws was invisible to the walk.
+  #
+  # That is not hypothetical. Screen 144 is reached by tapping the rating
+  # column beside an episode (`Kati.Screens.Series.rating_column/1`), which is
+  # drawn per episode and cannot exist without one, and the walk called it
+  # stranded on the day that route shipped.
+  defp episode!(title_source_id) do
+    Kati.Media.CachedEpisode
+    |> Ash.Changeset.for_create(:create, %{
+      source: :tmdb,
+      title_source_id: title_source_id,
+      source_id: "#{title_source_id}:s1e1",
+      season_number: 1,
+      episode_number: 1,
+      title: "The Weight of Water",
+      runtime_minutes: 48,
+      fetched_at: Kati.Time.now()
+    })
+    |> Ash.create!()
+  end
+
+  # `Mob.State` is the third global a tap pass writes to, and the only one
+  # nothing was guarding.
+  #
+  # A pass presses every control every screen draws, and some of those controls
+  # are settings: screen 141's section toggles land in `Kati.Sections`, which is
+  # `Mob.State`. `Kati.Screens.Library.kept_segments/1` then draws a segment per
+  # section kept — so a first pass that switched Music off leaves the second
+  # pass looking at a shelf switcher with no `:shelf_Music` on it, and 21, 74
+  # and 77 vanish from a graph that has nothing to do with sections. Measured,
+  # not feared: that is exactly what the two passes did before this existed.
+  #
+  # `Kati.ScreenSweep.rolled_back/1` is this guard for the database and
+  # `with_theme/1` is it for the palette; the whole table goes back rather than
+  # one key, because the next setting a screen learns to write should not need
+  # anyone to remember this function.
+  defp with_stored_settings(fun) do
+    stored = Mob.State.match(:_)
+
+    try do
+      fun.()
+    after
+      for {key, _value} <- Mob.State.match(:_), do: Mob.State.delete(key)
+      for {key, value} <- stored, do: Mob.State.put(key, value)
+    end
+  end
+
+  # The locale is re-pinned around EVERY tap, not once around the pass.
+  #
+  # Screen 53's taps write `Kati.Locale`, and the tags come off a tree in draw
+  # order — `[:choose_en, :choose_fa, :continue]` — so `continue` was answered
+  # against a store `choose_fa` had just written, and every module rendered
+  # after 53 in the same comprehension inherited it. Anything that routes on
+  # the locale then answered for a reader who had not chosen: the first run's
+  # five steps, and `Kati.Screens.AddByHand.for_locale/0`. The graph was
+  # smaller than the app and the count still balanced, because the screens it
+  # lost were on `@no_route` for unrelated reasons.
+  #
+  # Cheap, because it is a comparison and only writes when the answer moved.
   defp targets(module, socket, tags) do
     for tag <- tags,
-        {:ok, dest} <- [ScreenSweep.safely(fn -> push_target(module, socket, tag) end)],
+        {:ok, dest} <- [
+          ScreenSweep.safely(fn -> pinned(fn -> push_target(module, socket, tag) end) end)
+        ],
         is_atom(dest),
         dest != nil,
         uniq: true,
         do: dest
   end
 
+  defp pinned(fun) do
+    before = Kati.Locale.current()
+
+    try do
+      fun.()
+    after
+      if Kati.Locale.current() != before, do: Kati.Locale.put(before)
+    end
+  end
+
   defp opened_targets(module, socket, tags) do
     for tag <- tags,
-        {:ok, opened} <- [ScreenSweep.safely(fn -> open_only(module, socket, tag) end)],
+        {:ok, opened} <-
+          [ScreenSweep.safely(fn -> pinned(fn -> open_only(module, socket, tag) end) end)],
         opened != nil,
         {:ok, tree} <- [ScreenSweep.safely(fn -> module.render(opened.assigns) end)],
         dest <- targets(module, opened, ScreenSweep.tap_tags(tree)),
         uniq: true,
         do: dest
+  end
+
+  # The same move for a field rather than a control. **A door that only appears
+  # after a keystroke is invisible to a walk that only taps**, and board 308
+  # made screen 06's add-by-hand row exactly that: absent before a keystroke,
+  # because it names the query and there is none. `Kati.Screens.AddByHandFa`
+  # went unreachable here while staying one letter away for a person.
+  #
+  # `@typed` is two characters because that is the app's own floor
+  # (`Kati.Search.long_enough?/1`), and a word rather than a letter so a screen
+  # that searches on it has something to search for.
+  # Re-rendered here rather than carried on the memo: `ScreenSweep.drawn_taps/1`
+  # is shared with four other sweeps that destructure its 2-tuple, and widening
+  # it for one caller is a change to all of them.
+  defp typed_targets(module, socket) do
+    with {:ok, tree} <- ScreenSweep.safely(fn -> module.render(socket.assigns) end) do
+      typed_targets(module, socket, tree)
+    else
+      _unrenderable -> []
+    end
+  end
+
+  defp typed_targets(module, socket, tree) do
+    for tag <- ScreenSweep.change_tags(tree),
+        {:ok, typed} <-
+          [ScreenSweep.safely(fn -> pinned(fn -> typed_only(module, socket, tag) end) end)],
+        typed != nil,
+        {:ok, after_typing} <- [ScreenSweep.safely(fn -> module.render(typed.assigns) end)],
+        dest <- targets(module, typed, ScreenSweep.tap_tags(after_typing)),
+        uniq: true,
+        do: dest
+  end
+
+  @typed "up"
+
+  @doc false
+  @spec after_typing(module(), Mob.Socket.t(), term()) :: {Mob.Socket.t(), term()}
+  def after_typing(module, socket, tree) do
+    ScreenSweep.change_tags(tree)
+    |> Enum.reduce({socket, tree}, fn tag, {so_far, drawn} ->
+      with typed when not is_nil(typed) <- typed_only(module, so_far, tag),
+           {:ok, redrawn} <- ScreenSweep.safely(fn -> module.render(typed.assigns) end) do
+        {typed, redrawn}
+      else
+        _unchanged -> {so_far, drawn}
+      end
+    end)
+  end
+
+  defp typed_only(module, socket, tag) do
+    case module.handle_info({:change, tag, @typed}, socket) do
+      {:noreply, %Mob.Socket{__mob__: %{nav_action: nil}} = moved} ->
+        if moved.assigns == socket.assigns, do: nil, else: moved
+
+      _ ->
+        nil
+    end
   end
 
   # A tap that changed the assigns and navigated nowhere — opening a panel,

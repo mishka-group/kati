@@ -246,11 +246,12 @@ defmodule Kati.Screens.SearchFa do
   @doc false
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, scope: :all, recent: nil)}
   end
 
   @doc false
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The page, in the order 90 stacks it.
@@ -628,7 +629,7 @@ defmodule Kati.Screens.SearchFa do
 
   The runs are laid in a `Row` and carry their own spaces. There is no `Spacer`
   between them: `…گودال` has no space and a fixed gap would invent one, and
-  `Kati.Screens.Search.note/1` opens exactly that 4pt gap in the English note
+  `Kati.Screens.Search.note_card/1` opens exactly that 4pt gap in the English note
   because English never asked it the question.
   """
   @spec match_line(map(), number(), term(), term()) :: map()
@@ -944,7 +945,7 @@ defmodule Kati.Screens.SearchFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Clearing the field leaves the screen, and that is not a shortcut. There is
   # no text input on this bridge (#45), so an empty field is not a state this
@@ -953,7 +954,7 @@ defmodule Kati.Screens.SearchFa do
   # nothing: it is the English screen, and there is no Persian idle board among
   # the 127, so tapping ✕ would change the app's language out from under the
   # reader — the failure `Kati.Screens.Fa` records for the آمار tab's stand-in.
-  def handle_info({:tap, :clear}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :clear}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # One clause for every chip on the page, so a scope added to `Kati.Search` or
   # a fourth recent query is a change to the data and not to a handler. Each tag
@@ -973,7 +974,7 @@ defmodule Kati.Screens.SearchFa do
       # sibling. A mirror that pushed an LTR screen would change the reader's
       # language mid-navigation.
       "hit_" <> _index ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa, %{back: "جست‌وجو"})}
 
       _other ->
         {:noreply, socket}

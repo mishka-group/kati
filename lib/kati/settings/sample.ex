@@ -65,13 +65,41 @@ defmodule Kati.Settings.Sample do
       %{
         icon: "subscriptions",
         title: "My services",
-        sub:
-          "#{Kati.Services.region_name(Kati.Services.region())} · " <>
-            "#{length(Kati.Screens.MyServices.subscribed())} subscribed",
+        sub: Kati.Settings.Sample.services_line(),
         control: :chevron
       }
     ]
   end
+
+  @doc """
+  The *My services* row's second line: the country, and how many services.
+
+  `none yet` rather than `0 subscribed`, which is Home's own wording for the
+  same fact one screen away and board 93's for it on the page this row opens.
+  A zero is an answer; this is the absence of one, and the two read
+  differently to somebody who has just installed the app.
+
+      iex> Kati.Settings.Sample.services_line(:gb, 0)
+      "United Kingdom · none yet"
+
+      iex> Kati.Settings.Sample.services_line(:gb, 1)
+      "United Kingdom · 1 subscribed"
+
+      iex> Kati.Settings.Sample.services_line(:gb, 3)
+      "United Kingdom · 3 subscribed"
+  """
+  @spec services_line() :: String.t()
+  def services_line do
+    services_line(
+      Kati.Services.region_name(Kati.Services.region()),
+      length(Kati.Screens.MyServices.subscribed())
+    )
+  end
+
+  @doc false
+  def services_line(:gb, count), do: services_line("United Kingdom", count)
+  def services_line(region, 0), do: "#{region} · none yet"
+  def services_line(region, count), do: "#{region} · #{count} subscribed"
 
   @doc """
   Sections — the growth mechanic made literal.
@@ -154,7 +182,15 @@ defmodule Kati.Settings.Sample do
         sub: "TVmaze, Open Library, MusicBrainz · 3 reachable",
         control: :chevron
       },
-      %{icon: "delete", title: "Clear watch history", sub: nil, control: :chevron}
+      # Board 267's own edit to this row: it was the only row in this group
+      # "whose meaning cannot be read before tapping it", and a destructive row
+      # is the last one that should be. The line is the board's.
+      %{
+        icon: "delete",
+        title: "Clear watch history",
+        sub: "Ticks, ratings and reviews — the shelves stay",
+        control: :chevron
+      }
     ]
   end
 
@@ -181,6 +217,23 @@ defmodule Kati.Settings.Sample do
         sub: "Which calendars Kati may read",
         control: :chevron
       },
+      # MOVIES-AND-TV.md #1. Screen 05 had no English door at all: its only one
+      # was Home's *New this week* hero, which is omitted unless a followed
+      # title has an unticked episode from the last seven days — so a reader
+      # with nothing out this week could not reach the page that would tell
+      # them so. The Persian build reached it and the English one did not,
+      # which `routes.txt` found empirically.
+      #
+      # **That row is gone, and screen 05 is on the shelf instead.** The owner's
+      # ruling of 9 September: *Settings means toggles, text fields and
+      # dropdowns — a page that only SHOWS things does not belong there.* 05 is
+      # a feed; it hangs off `Kati.Screens.Library`'s ⋯ menu now, beside
+      # `What fits?`, which is the same kind of destination. The Settings row
+      # had been a stopgap for a page with no other door and was read here as
+      # if it were a preference.
+      #
+      # Release watcher stays, and it is the half that was always the setting:
+      # 25 is what Kati watches for, and 05 is what it found.
       %{
         icon: "notifications_active",
         title: "Release watcher",
@@ -224,6 +277,31 @@ defmodule Kati.Settings.Sample do
         icon: "grid_view",
         title: "Year cards",
         sub: "How a shared card is drawn",
+        control: :chevron
+      },
+      # MOVIES-AND-TV.md #7. Screen 148's own moduledoc says it is "a reference
+      # sheet pushed under Settings" and its back pill says `Settings`, and
+      # nothing pushed it — it was gallery-only, exactly as Year cards above
+      # was until its row existed. Same argument, same group: the app
+      # describing itself. It is where the one distinction the app makes about
+      # a shelf is written down — *Paused and Dropped are things a person
+      # decided; Gone cold is something Kati noticed* — and the reader meets
+      # all three without ever being told which is which.
+      %{
+        icon: "do_not_disturb_on",
+        title: "Dropping",
+        sub: "Paused, dropped, and gone cold",
+        control: :chevron
+      },
+      # MOVIES-AND-TV.md #8. 152's own back pill says `Settings` and nothing
+      # pushed it. It is the argument for a feature and the feature exists now
+      # — `Kati.Media.Anime` is its three rules and screen 03 grows the chip it
+      # draws — so the board becomes what it always read as: the place the rule
+      # is written down. Same group and same argument as Dropping above.
+      %{
+        icon: "auto_awesome",
+        title: "Anime",
+        sub: "What makes a title one",
         control: :chevron
       },
       # The gallery. It used to be behind Home's bell, which was scaffolding

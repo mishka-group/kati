@@ -78,6 +78,7 @@ defmodule Kati.Screens.LanguagePick do
 
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+    Kati.Onboarding.reached!(:language)
     {:ok, Mob.Socket.assign(socket, :pick, Kati.Screens.LanguagePick.pick())}
   end
 
@@ -130,6 +131,8 @@ defmodule Kati.Screens.LanguagePick do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column
@@ -532,7 +535,11 @@ defmodule Kati.Screens.LanguagePick do
         {:noreply, choose(code, socket)}
 
       "continue" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}
+        # Through the router rather than at `Kati.Screens.PickSections`
+        # directly: the tap the reader just made was the language, so this is
+        # the first push that can honour it. A Persian run went from here into
+        # the English drawings for the whole middle of the sequence.
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Onboarding.screen_for_step(:welcome))}
 
       _ ->
         {:noreply, socket}

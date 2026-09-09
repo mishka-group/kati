@@ -784,7 +784,11 @@ defmodule Kati.Screens.Health do
   def next_meal(nil), do: ~MOB"<Spacer size={0} />"
 
   def next_meal(m) do
-    tap = {self(), :open_meals}
+    # Not `:open_meals`, which is the grid tile's — see `tile_tap/1`. Both open
+    # the same screen and they are two different controls, and #97 is that a
+    # tag is an id: one name on two nodes is one id on two nodes, and
+    # `onNodeWithTag` throws on the second match.
+    tap = {self(), :open_next_meal}
 
     # `rail_idle` is right by value and wrong by name: the token whose MEANING
     # is "a faint chevron" is `tertiary`, but its light value is `0xFFB3ACA2`
@@ -900,16 +904,79 @@ defmodule Kati.Screens.Health do
   still says *not built*; the tap says *and here is why*.
   """
   @spec tile_tap(String.t()) :: {pid(), atom()} | nil
-  def tile_tap("Meals"), do: {self(), :open_meals}
-  def tile_tap("Habits"), do: {self(), :open_habits}
-  def tile_tap("Weight"), do: {self(), :open_weight}
-  def tile_tap("Medication"), do: {self(), :open_medication}
+  def tile_tap(name), do: tile_tap(name, nil)
+
+  @doc """
+  The same, with the band a reference sheet draws the grid in.
+
+  Screen 42 draws one grid and passes `nil`, so its tags are unchanged.
+  `Kati.Screens.HealthEmptyStates` draws the SAME grid twice — nothing set up,
+  and meals off — and reusing `tile/1` brought one tag onto two nodes for
+  every live tile on the board (#97). The band is what tells them apart, and
+  it comes off the section map so the sheet marks its own second grid rather
+  than this screen learning what a reference sheet is.
+  """
+  @spec tile_tap(String.t(), String.t() | nil) :: {pid(), atom()} | nil
+  def tile_tap(name, nil), do: {self(), base_tag(name)}
+
+  def tile_tap(name, band) do
+    suffix = band |> to_string() |> String.trim() |> String.replace(" ", "_")
+
+    case suffix do
+      "" ->
+        {self(), base_tag(name)}
+
+      s ->
+        {self(),
+         name |> base_tag() |> Atom.to_string() |> Kernel.<>("_" <> s) |> String.to_atom()}
+    end
+  end
+
+  defp base_tag("Meals"), do: :open_meals
+  defp base_tag("Habits"), do: :open_habits
+  defp base_tag("Weight"), do: :open_weight
+  defp base_tag("Medication"), do: :open_medication
 
   # Sleep and Workouts are still unbuilt, and now they say so out loud: screen
   # 114 is the explainer behind a tile that reads `Not set up`, which is a
   # better answer than a tile that swallows the press. The dashed outline still
   # says *not built*; the tap says *and here is why, and what it would take*.
-  def tile_tap(_unbuilt), do: {self(), :open_retired}
+  # Named per section rather than one `:open_retired` for both. Sleep and
+  # Workouts are two tiles on one grid, so one tag was one accessibility_id on
+  # two nodes (#97) — and the explainer they open is the same explainer, which
+  # was never the question.
+  defp base_tag(unbuilt) do
+    case unbuilt |> to_string() |> String.trim() |> String.replace(" ", "_") do
+      "" -> :open_retired
+      name -> String.to_atom("open_retired_" <> name)
+    end
+  end
+
+  @doc """
+  The section an `open_retired_*` tag names, or `nil` for any other tag.
+
+  The exact inverse of `base_tag/1`'s underscore substitution, and it lives
+  beside it for that reason: one of the two turns `"Workouts"` into
+  `:open_retired_Workouts`, this one turns it back, and 42 stays the single
+  place that decides both — the same argument `tile_tap/1`'s own doc makes
+  about where a tile goes.
+
+  Screen 114 takes `%{section: name}` and has since it was written:
+  `Kati.Screens.States`, `Kati.Screens.AutoDetect` and
+  `Kati.Screens.NotificationAccess` all push it that way. This grid did not, so
+  both dashed tiles opened `Kati.Screens.RetiredTile`'s default subject and
+  pressing **Workouts** was answered with *Sleep isn't in this version* — a
+  wrong answer delivered confidently, which is the one thing the sheet's own
+  `subject/1` doc says it must not do.
+  """
+  @spec retired_section(atom()) :: String.t() | nil
+  def retired_section(tag) do
+    name = Atom.to_string(tag)
+
+    if String.starts_with?(name, "open_retired_") do
+      name |> String.replace_prefix("open_retired_", "") |> String.replace("_", " ")
+    end
+  end
 
   @doc """
   Whether a section has a screen of its own.
@@ -931,7 +998,7 @@ defmodule Kati.Screens.Health do
       corner_radius={20}
       shadow={Kati.Theme.shadow_card_soft()}
       padding={16}
-      on_tap={Kati.Screens.Health.tile_tap(section.name)}
+      on_tap={Kati.Screens.Health.tile_tap(section.name, Map.get(section, :band))}
     >
       <Row fill_width={true} align="center">
         {Kati.UI.symbol(section.icon, size: 22)}
@@ -968,7 +1035,7 @@ defmodule Kati.Screens.Health do
       border_width={1.5}
       border_color={Palette.border_soft()}
       padding={16}
-      on_tap={Kati.Screens.Health.tile_tap(section.name)}
+      on_tap={Kati.Screens.Health.tile_tap(section.name, Map.get(section, :band))}
     >
       <Row fill_width={true} align="center">
         {Kati.UI.symbol(section.icon, size: 22, color: Palette.tertiary())}
@@ -1023,6 +1090,11 @@ defmodule Kati.Screens.Health do
   def handle_tap(:open_meals, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
 
+  # The next-meal card, which opens what the Meals tile opens and is a
+  # different control (#97).
+  def handle_tap(:open_next_meal, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsToday)}
+
   # Weight and Medication stopped being outlines when screens 109 and 112
   # landed. Sleep and Workouts are still unbuilt and still fall through to the
   # catch-all below, which is what their dashed tiles say.
@@ -1039,7 +1111,7 @@ defmodule Kati.Screens.Health do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile)}
 
   def handle_tap(:open_services, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices, %{back: "Health"})}
 
   # `:open_filters` — the header's `tune` disc — is deliberately inert.
   #
@@ -1056,5 +1128,23 @@ defmodule Kati.Screens.Health do
   # is that it is a *quiet* no-op: without a catch-all, the tap raises
   # `UndefinedFunctionError` inside `Kati.Screens.Root.rescue_tap/3` and logs an
   # error on every press, which reads like a bug rather than an unbuilt control.
+  # Sleep and Workouts, each by its own name — see `tile_tap/1`. Both open the
+  # explainer the single `:open_retired` opened; naming them is what lets a
+  # device test press one rather than whichever `onNodeWithTag` reached first,
+  # and it is also what lets the tap say *which* tile was pressed:
+  # `retired_section/1` reads the name back out of the tag and 114 is pushed
+  # about that section rather than about the one it was drawn for.
+  #
+  # Below the named clauses, above the catch-all.
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case retired_section(tag) do
+      nil ->
+        {:noreply, socket}
+
+      section ->
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RetiredTile, %{section: section})}
+    end
+  end
+
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

@@ -61,6 +61,12 @@ defmodule Kati.Screens.Onboarding do
   alias Kati.Onboarding.Sample
   alias Kati.Theme.Palette
 
+  # Records no step. This screen left the first run when `D-33`'s boards split
+  # its three panels into screens 161, 162 and 163 — it is the original
+  # drawing, kept because `Kati.Screens.Gallery` is the app's number → drawing
+  # register and 38 is still a drawing. `Kati.Onboarding.reached!/1` would now
+  # raise on the `:finish` it used to write, which is the right shape: a step
+  # that no longer exists should not be quietly accepted.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
     {:ok, Mob.Socket.assign(socket, :flow, Sample.flow())}
@@ -75,6 +81,8 @@ defmodule Kati.Screens.Onboarding do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column
@@ -398,7 +406,7 @@ defmodule Kati.Screens.Onboarding do
         />
       </Box>
       <Spacer size={14} />
-      <Box fill_width={true} on_tap={{self(), :finish}}>
+      <Box fill_width={true} on_tap={{self(), :finish_skip}}>
         <Text
           text={f.skip}
           text_size={13}
@@ -523,7 +531,7 @@ defmodule Kati.Screens.Onboarding do
   #
   # The root follows the locale chosen on screen 53, so a user who picked
   # فارسی lands on screen 55 and not on an English home page.
-  def handle_info({:tap, tag}, socket) when tag in [:get_started, :finish] do
+  def handle_info({:tap, tag}, socket) when tag in [:get_started, :finish, :finish_skip] do
     Kati.Onboarding.complete!()
     {:noreply, Mob.Socket.reset_to(socket, Kati.Onboarding.first_screen())}
   end

@@ -33,6 +33,18 @@ defmodule Kati.Media.CachePolicy do
 
   # {refresh_after_days, evict_after_days | :never}
   @policies %{
+    # A title someone typed in. Never refreshed and never evicted, because
+    # there is nothing behind it to refresh FROM and it is the only copy that
+    # exists.
+    #
+    # This entry is not bookkeeping. `evict_after_days/1` is `Map.fetch!/2`, so
+    # a `:manual` row without it raises rather than defaulting — and the
+    # default, had there been one, would have been worse: every other source
+    # here can be re-fetched, so evicting one costs a request. Evicting a
+    # hand-typed title deletes the only record that it ever existed. #60 ships
+    # film and TV in v1 and has no provider client, which makes `:manual` the
+    # ONLY way a title enters Kati today.
+    manual: {:never, :never},
     # Hard legal ceiling of 180 days. 150 leaves a month of slack for a device
     # that has been offline, and refresh at 30 keeps most rows far from it.
     tmdb: {30, 150},
@@ -64,7 +76,14 @@ defmodule Kati.Media.CachePolicy do
   @doc "True when a row is old enough to refresh."
   @spec stale?(source(), DateTime.t(), DateTime.t()) :: boolean()
   def stale?(source, fetched_at, now \\ DateTime.utc_now()) do
-    DateTime.diff(now, fetched_at, :day) >= refresh_after_days(source)
+    # `:never` is matched rather than compared. `integer >= :never` happens to
+    # be `false` — atoms sort above numbers in Elixir's term order — so the
+    # answer was already right, by an ordering rule that has nothing to do with
+    # what this function means. A source that is never refreshed should say so.
+    case refresh_after_days(source) do
+      :never -> false
+      days -> DateTime.diff(now, fetched_at, :day) >= days
+    end
   end
 
   @doc """
@@ -103,6 +122,11 @@ defmodule Kati.Media.CachePolicy do
   @spec attribution(source()) :: String.t()
   def attribution(:tmdb),
     do: "This product uses the TMDB API but is not endorsed or certified by TMDB."
+
+  # Nobody to credit. A hand-typed title came from the person using the app,
+  # and an attribution line naming a provider it never had would be a false
+  # claim on screen 83 — which exists precisely to say where facts come from.
+  def attribution(:manual), do: "Added by you."
 
   def attribution(:tvmaze), do: "Data provided by TVmaze (CC BY-SA)."
   def attribution(:anilist), do: "Data provided by AniList."

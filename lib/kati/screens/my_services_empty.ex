@@ -34,18 +34,36 @@ defmodule Kati.Screens.MyServicesEmpty do
   *does*, this one says what happens while it is not set, which is the whole
   difference between a preference and a precondition.
 
-  ## The three rule defaults are read, not typed
+  ## The rules group is screen 92's group, live — board 323
 
-  `Kati.Services.default_rules/0` is already the map a device that has never
-  opened screen 92 gets — rentals on, purchases off, `Hide titles I can't
-  watch` off — so this board asks for it rather than writing three booleans of
-  its own. A board about defaults that hardcoded them would be the one place
-  they could silently stop being the defaults.
+  This file used to own three rules of its own: 92's first two sentences
+  copied, a third written for this state (*Off by default — with no services
+  set it would hide everything*), and a `flip/2` that moved the switch in the
+  socket and nowhere else. The argument was that a board about defaults which
+  remembered a tap would stop drawing defaults after the first one.
 
-  Off is not timidity on the third one, and the row says so rather than leaving
-  it to be inferred: with no services configured, hiding what you cannot watch
-  hides everything. That sentence is the only line of copy on this board that
-  could not be shared with 92 — see `rules_group/1`.
+  Board 323 overturns it, and the sentence it overturns it with is the one this
+  whole file is written around: *"A specimen switch is a dead control with a
+  costume, and this file has spent four waves removing those. 93 is 92 with
+  nothing configured — not a second screen with its own memory."*
+
+  So `Kati.Screens.MyServices.rules_group/1` draws the group, the tap calls
+  `Kati.Services.toggle_rule/1`, and `load/1` reads `Kati.Services.rules/0`.
+  On the device this board is about those answer the defaults anyway, because
+  nothing has been stored — which is what makes the two pages one page in two
+  states rather than two pages.
+
+  `Hide titles I can't watch` is still off with nothing configured, for this
+  board's own reason: it would hide everything. That is now a fact about
+  `Kati.Services.default_rules/0` rather than a sentence under a switch, and
+  323 says so — *"93's own reasoning, unchanged."*
+
+  Flipping one changes no screen on a device with no country and no services,
+  and 323 rules that acceptable rather than papering it: *"it is a preference
+  stored ahead of the data it governs. The page does not pretend otherwise, and
+  it does not refuse the tap."* The `not yet` mark board 322 defines is
+  deliberately not used here — that mark is for a control with nothing behind
+  it, and these have something behind them the moment a country is picked.
 
   ## The Money row reads "Nothing to add up yet"
 
@@ -87,23 +105,21 @@ defmodule Kati.Screens.MyServicesEmpty do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  # The same three rules screen 92 lists, with the sentence each one carries.
-  # The first two sentences are that file's word for word and are duplicated
-  # rather than shared because they live in a private attribute there; both
-  # drawings print both of them, so a drift shows up as a failed literal check
-  # on whichever board moved. The third sentence is this board's subject and
-  # exists nowhere else.
-  @rules [
-    {:rentals, "Count rentals as available",
-     "A film you would have to rent still shows up in What fits tonight."},
-    {:purchases, "Count purchases as available",
-     "Titles you would have to buy outright are included too."},
-    {:hide_unavailable, "Hide titles I can’t watch",
-     "Off by default — with no services set it would hide everything."}
-  ]
-
   @doc false
-  def load(socket), do: Mob.Socket.assign(socket, :rules, Services.default_rules())
+  def load(socket) do
+    socket
+    # Board 323: the reader's own answer, not `default_rules/0`. This page had
+    # read the defaults because the rules group below it was a specimen; it is
+    # 92's live group now, so reading anything but what 92 wrote would be the
+    # page disagreeing with itself the moment it was opened twice.
+    #
+    # On the device this board is about, the two are the same map: nothing has
+    # been configured, so nothing has been stored, and `rules/0` answers
+    # `default_rules/0`. That is the point rather than a coincidence — it is
+    # what makes 93 *92 with nothing configured* instead of a second screen.
+    |> Mob.Socket.assign(:rules, Services.rules())
+    |> Mob.Socket.assign(:chosen_region, Services.chosen_region())
+  end
 
   @doc false
   def content(assigns) do
@@ -119,7 +135,7 @@ defmodule Kati.Screens.MyServicesEmpty do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
         {UI.eyebrow("Region")}
-        {Kati.Screens.MyServicesEmpty.region_group()}
+        {Kati.Screens.MyServicesEmpty.region_group(assigns[:chosen_region])}
         {Kati.Screens.MyServices.search_field()}
         {UI.eyebrow("Subscribed · none yet")}
         {Kati.Screens.MyServicesEmpty.empty_group()}
@@ -127,7 +143,7 @@ defmodule Kati.Screens.MyServicesEmpty do
         {Kati.Screens.MyServicesEmpty.free_group()}
         {Kati.Screens.MyServicesEmpty.catalogue_group()}
         {UI.eyebrow("Rules")}
-        {Kati.Screens.MyServicesEmpty.rules_group(assigns.rules)}
+        {Kati.Screens.MyServices.rules_group(assigns.rules)}
         {SettingsList.eyebrow_muted("Money")}
         {Kati.Screens.MyServicesEmpty.money_group()}
       </Column>
@@ -145,8 +161,19 @@ defmodule Kati.Screens.MyServicesEmpty do
   the other while a designer is still deciding whether the frame is a border or
   a cream card.
   """
-  @spec region_group() :: map()
-  def region_group do
+  @spec region_group(String.t() | nil) :: map()
+  # A country the reader has chosen is drawn as screen 92 draws it — the flag,
+  # the name, the chevron — because this page is 92 with no services on it, not
+  # 92 with nothing known about it. `Pick your country · Nothing works until
+  # this is set` is true of a phone nobody has told anything and false the
+  # moment somebody has, and `Kati.Services.chosen_region/0` is the difference:
+  # `region/0` answers `"GB"` on a fresh install so the availability questions
+  # have an answer, which is a working assumption rather than a claim about the
+  # reader.
+  def region_group(code) when is_binary(code) and code != "",
+    do: Kati.Screens.MyServices.region_group(code)
+
+  def region_group(_unset) do
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card([
@@ -304,6 +331,15 @@ defmodule Kati.Screens.MyServicesEmpty do
   JustWatch's on both boards, and only its trustworthiness differs.
   """
   @spec catalogue_group() :: map()
+  # `Show all 47` is the board's own row and it opens nothing, here as on 92.
+  #
+  # It used to open screen 23 — the money ledger, a read-only page about what
+  # you already spend, which is not a catalogue of anything (MOVIES-AND-TV.md
+  # #35). There is no catalogue in this app to open: `Kati.Services.Service`
+  # holds the services a person has told Kati about, and `47` is a number from
+  # the drawing. The row keeps the board's words, because this board is what a
+  # device with nothing set up looks like, and loses its chevron and its tap,
+  # because there is nothing on the other side.
   def catalogue_group do
     ~MOB"""
     <Column fill_width={true}>
@@ -312,48 +348,10 @@ defmodule Kati.Screens.MyServicesEmpty do
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("more_horiz"),
           Kati.UI.SettingsList.body(Kati.Services.Sample.catalogue_count(), "Pick a country first for an accurate list"),
-          Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
-          on_tap: {self(), :show_all},
+          Kati.UI.SettingsList.trailing(nil),
           rule: false
         )
       ])}
-      <Spacer size={24} />
-    </Column>
-    """
-  end
-
-  @doc """
-  The three rules at their defaults, each with its consequence written under it.
-
-  Two of the three sentences are screen 92's exactly; the third is replaced,
-  and the replacement is the reason this board exists. On 92, *Hide titles I
-  can't watch* names the three screens it empties — Discover, Up next and What
-  fits tonight — because a person with services configured needs to know which
-  pages will change. Here nothing is configured, so the sentence that matters
-  is the one about the switch's own position: **Off by default — with no
-  services set it would hide everything.** The same control, one state earlier,
-  answering a different question.
-  """
-  @spec rules_group(map()) :: map()
-  def rules_group(rules) do
-    rows =
-      @rules
-      |> Enum.with_index()
-      |> Enum.map(fn {{key, title, why}, index} ->
-        SettingsList.row(
-          nil,
-          # Three lines, not one: each of these sentences is the *reason* for a
-          # switch, and a reason that ellipsises has been deleted.
-          SettingsList.body(title, why, lines: 3),
-          SettingsList.trailing(SettingsList.switch(Map.fetch!(rules, key))),
-          on_tap: {self(), String.to_atom("rule_#{key}")},
-          rule: index < length(@rules) - 1
-        )
-      end)
-
-    ~MOB"""
-    <Column fill_width={true}>
-      {Kati.UI.SettingsList.card(rows)}
       <Spacer size={24} />
     </Column>
     """
@@ -390,9 +388,6 @@ defmodule Kati.Screens.MyServicesEmpty do
   def handle_tap(:pick_country, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.CountryPicker)}
 
-  def handle_tap(:show_all, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
-
   def handle_tap(:open_subscriptions, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Subscriptions)}
 
@@ -406,7 +401,25 @@ defmodule Kati.Screens.MyServicesEmpty do
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "rule_" <> rule ->
-        {:noreply, flip(socket, String.to_existing_atom(rule))}
+        # Board 323's ruling, in one line: *"92 and 97 remember; 93 forgets —
+        # deliberately"* was the old reading and 323 overturns it. *"A specimen
+        # switch is a dead control with a costume."* So the write goes through
+        # `Kati.Services.toggle_rule/1`, the same call screen 92's identical
+        # clause makes, and the assign is re-read from the store rather than
+        # flipped in place.
+        #
+        # What flipping one does today is nothing visible, and 323 answers that
+        # too: *"it is a preference stored ahead of the data it governs. The
+        # page does not pretend otherwise, and it does not refuse the tap."*
+        Services.toggle_rule(String.to_existing_atom(rule))
+        {:noreply, Mob.Socket.assign(socket, :rules, Services.rules())}
+
+      # The same two-tags-borrowed-from-92 argument as the clause above, for the
+      # per-row form `Kati.Screens.MyServices.service_tag/1` now gives them
+      # (#97). Answered here rather than left to fall through, because the
+      # clause below reports what it does not recognise and this is recognised.
+      "edit_service_" <> _name ->
+        {:noreply, socket}
 
       _other ->
         # Reported, not swallowed. A bare `{:noreply, socket}` here would be the
@@ -414,14 +427,5 @@ defmodule Kati.Screens.MyServicesEmpty do
         # hand one file lower down.
         Kati.Screens.Root.unhandled_tap(__MODULE__, tag, socket)
     end
-  end
-
-  # The switch moves in the socket and nowhere else. `Kati.Services.toggle_rule/1`
-  # would write through to `Mob.State`, and a board whose subject is what the
-  # defaults are would then show them exactly once and never again — the first
-  # tap would turn the reference into somebody's settings.
-  defp flip(socket, key) do
-    rules = socket.assigns.rules
-    Mob.Socket.assign(socket, :rules, Map.put(rules, key, not Map.fetch!(rules, key)))
   end
 end

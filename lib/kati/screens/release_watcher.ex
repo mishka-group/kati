@@ -49,14 +49,136 @@ defmodule Kati.Screens.ReleaseWatcher do
   @impl true
   def load(socket) do
     Mob.Socket.assign(socket, :watcher, %{
-      checked: Sample.checked(),
-      banner: Sample.banner(),
-      kinds: Sample.kinds(),
-      cadences: Sample.cadences(),
-      cadence: Sample.cadence(),
-      loudness: Sample.loudness(),
+      # Board 314: a relative line from a real timestamp, and `never checked` —
+      # which is every fresh install — where there is none. `checked 18:02` was
+      # a wall-clock time from a column that did not exist.
+      checked: Kati.Settings.Watcher.checked_line(Kati.Settings.Watcher.last_checked(), false),
+      checking?: false,
+      banner: %{banner() | on: Kati.Settings.Watcher.watching?()},
+      # MOVIES-AND-TV.md #67 and `design-briefs/D-64`. Fifteen controls edited a
+      # socket assign and were forgotten on the pop, and three of them have a
+      # consumer today: the cadence, *New episodes* and the banner's master
+      # switch. Those three are read from `Mob.State` and written back; the
+      # other twelve — eight *Tell me about* rows and all four *How loudly*
+      # rows — keep the board's values and take the `not yet` mark screen 88
+      # already uses for a scope nothing searches (#74).
+      #
+      # Persisting all fifteen was the obvious patch and is the wrong one — the
+      # brief says why in a sentence: it turns *forgotten on the pop* into
+      # *remembered, and still inert*, which is a worse lie.
+      kinds: Kati.Screens.ReleaseWatcher.kinds(),
+      cadences: Kati.Settings.Watcher.cadences(),
+      cadence: Kati.Settings.Watcher.cadence(),
+      loudness: Kati.Screens.ReleaseWatcher.loudness(),
       note: Sample.note()
     })
+  end
+
+  @doc """
+  The six *Tell me about* rows, with the one that is live reading its own state.
+
+  `New episodes` is the global gate over every title's `notify_new_episodes`
+  and `Kati.Notifications.Sources.Media.followed/0` reads it. The other five
+  keep the board's value and are marked, because a switch a reader can move
+  that changes nothing is the defect #67 reports.
+  """
+  @spec kinds() :: [map()]
+  def kinds do
+    Enum.map(Sample.kinds(), fn row ->
+      if Kati.Settings.Watcher.live?(row.title) do
+        %{row | on: Kati.Settings.Watcher.new_episodes?()}
+      else
+        Map.put(row, :not_yet?, true)
+      end
+    end)
+  end
+
+  @doc """
+  The four *How loudly* rows. All four are marked, and the list `loud?/1` reads
+  is empty on purpose.
+
+  Nothing in Kati sends a notification for a release.
+  `Kati.Notifications.Scheduler` is built by `Kati.Screens.InboxNotifications`
+  and armed by nothing; the only `Kati.Notifications.Delivery.backend/0` calls
+  in `lib/` are auto-detect's *What was that?*, a different feature with its
+  own page. So push has no sender, quiet hours has nothing to quiet and no
+  weekly job exists.
+
+  Two of the four have a READER and are still marked. `Kati.Screens.Home`'s
+  unread dot is a real consumer of the badge and `Scheduler.plan/2` takes
+  `:quiet_hours` — but the dot is derived from the plan rather than stored, and
+  quiet hours only shifts a `fire_at` in a plan nothing arms, so either switch
+  would change a printed hour rather than keep the promise it makes.
+  `design-briefs/D-64` asks for the board that decides between a marked group,
+  an absence, and one honest line; until it lands the mark is the answer.
+  """
+  @spec loudness() :: [map()]
+  def loudness do
+    Enum.map(Sample.loudness(), fn row ->
+      if Kati.Settings.Watcher.loud?(row.title),
+        do: row,
+        else: Map.put(row, :not_yet?, true)
+    end)
+  end
+
+  @doc """
+  The cream banner: how many titles are being watched, and what that found.
+
+  `Watching 24 titles · 3 FOUND THIS WEEK` was `Kati.Settings.WatcherSample`'s
+  on every device — two specific claims about the reader's own library, of
+  exactly the kind MOVIES-AND-TV.md #67 and #50 are about, on a phone that may
+  follow none. Both are counts and both are countable: the followed rows, and
+  the `out_now` list screen 05 already builds out of them.
+
+  A device following nothing keeps the board's line. That is the gate every
+  other screen on this list keeps — an empty store answers the drawing — and
+  `Watching 0 titles` over a page of switches would be a page about nothing.
+  """
+  @spec banner() :: map()
+  def banner do
+    case Kati.Screens.Inbox.releases() do
+      nil ->
+        Sample.banner()
+
+      inbox ->
+        %{
+          Sample.banner()
+          | title: watching_line(%{followed: Kati.Screens.Inbox.followed_count()}),
+            meta: found_line(inbox)
+        }
+    end
+  rescue
+    _error -> Sample.banner()
+  end
+
+  @doc """
+  `Watching 1 title`, or `Watching 24 titles`.
+
+      iex> Kati.Screens.ReleaseWatcher.watching_line(%{followed: 1})
+      "Watching 1 title"
+
+      iex> Kati.Screens.ReleaseWatcher.watching_line(%{followed: 24})
+      "Watching 24 titles"
+  """
+  @spec watching_line(map()) :: String.t()
+  def watching_line(%{followed: 1}), do: "Watching 1 title"
+  def watching_line(%{followed: n}), do: "Watching #{n} titles"
+
+  @doc """
+  `3 FOUND THIS WEEK`, in the mono capitals the banner draws.
+
+      iex> Kati.Screens.ReleaseWatcher.found_line(%{out_now: []})
+      "NOTHING NEW THIS WEEK"
+
+      iex> Kati.Screens.ReleaseWatcher.found_line(%{out_now: [%{}]})
+      "1 FOUND THIS WEEK"
+  """
+  @spec found_line(map()) :: String.t()
+  def found_line(inbox) do
+    case length(Map.get(inbox, :out_now, [])) do
+      0 -> "NOTHING NEW THIS WEEK"
+      n -> "#{n} FOUND THIS WEEK"
+    end
   end
 
   @doc false
@@ -157,17 +279,33 @@ defmodule Kati.Screens.ReleaseWatcher do
   # two groups cannot collide on a shared name.
   @doc false
   def row(row, key, i, pad, rule?) do
-    tap = {self(), String.to_atom(key <> "_" <> Integer.to_string(i))}
+    # A row with nothing behind it carries no tap and says so instead of its
+    # switch — `Kati.Screens.SearchSpec.state_pill/1`'s `not yet`, which is the
+    # same mark for the same thing one screen over (#74, #67).
+    not_yet? = Map.get(row, :not_yet?, false)
 
     SettingsList.row(
       SettingsList.icon_tile(row.icon),
       SettingsList.body(row.title, row.sub),
-      SettingsList.switch(row.on),
+      if(not_yet?, do: Kati.Screens.ReleaseWatcher.not_yet(), else: SettingsList.switch(row.on)),
       padding: pad,
       rule: rule?,
-      on_tap: tap
+      on_tap:
+        if(not_yet?, do: nil, else: {self(), String.to_atom(key <> "_" <> Integer.to_string(i))})
     )
   end
+
+  @doc """
+  `not yet`, on a control this app cannot keep a promise about.
+
+  Screen 88's own pill, drawn here for the same argument: the contract is the
+  design's and stating it whole is what the page is for; what was missing is
+  which half of it is live. `design-briefs/D-64` lists what each of the
+  thirteen would need, and every one becomes a switch again the day its
+  resource exists.
+  """
+  @spec not_yet() :: map()
+  def not_yet, do: Kati.Screens.SearchSpec.not_yet_pill()
 
   @doc """
   Four segments on an `#E4E0D9` trough, each taking a weight so they divide the
@@ -202,8 +340,48 @@ defmodule Kati.Screens.ReleaseWatcher do
       >
         {tiles}
       </Row>
+      <Spacer size={14} />
+      {Kati.Screens.ReleaseWatcher.check_now(w)}
       <Spacer size={22} />
     </Column>
+    """
+  end
+
+  @doc """
+  **Check now** — board 314's replacement for the `Manual` segment.
+
+  *"Nothing schedules a manual run, so Manual is never — and a segment that
+  silently switches the watcher off is worse than no segment… A one-off run is
+  an action, not a schedule."* It runs `Kati.Media.Cache.ask/1`, which is the
+  same sweep screen 80's *Refresh* pill runs, and stamps the line this board
+  also fixed.
+  """
+  @spec check_now(map()) :: term()
+  def check_now(w) do
+    assigns = %{
+      label: if(Map.get(w, :checking?), do: "Checking…", else: "Check"),
+      tap: unless(Map.get(w, :checking?), do: {self(), :check_now})
+    }
+
+    ~MOB"""
+    <Row
+      fill_width={true}
+      height={56}
+      corner_radius={20}
+      background={Palette.card()}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={15}
+      padding_right={15}
+      align="center"
+    >
+      {Kati.UI.SettingsList.icon_tile("sync")}
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        {Kati.UI.SettingsList.body("Check now", "Runs once, here, and updates the line above")}
+      </Column>
+      <Spacer size={12} />
+      {Kati.UI.SettingsList.action_pill(@label, @tap)}
+    </Row>
     """
   end
 
@@ -250,6 +428,25 @@ defmodule Kati.Screens.ReleaseWatcher do
     List.update_at(rows, String.to_integer(index), fn row -> %{row | on: not row.on} end)
   end
 
+  # The sweep answering. It stamps the timestamp board 314 asks for and redraws
+  # the line from it, so the page says what actually happened rather than what
+  # was hoped: a refresh that could not start — no TMDB key is the usual reason
+  # — leaves *never checked* standing, which is true.
+  @impl true
+  def handle_info({:cache_refreshed, result}, socket) do
+    w = socket.assigns.watcher
+    if match?({:ok, _tally}, result), do: Kati.Settings.Watcher.checked!()
+
+    {:noreply,
+     Mob.Socket.assign(socket, :watcher, %{
+       w
+       | checking?: false,
+         checked: Kati.Settings.Watcher.checked_line(Kati.Settings.Watcher.last_checked(), false)
+     })}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
   # Every control on this screen edits the one `:watcher` map, so there is a
   # clause per kind of control rather than per row.
   @impl true
@@ -257,25 +454,41 @@ defmodule Kati.Screens.ReleaseWatcher do
     w = socket.assigns.watcher
 
     case Atom.to_string(tag) do
+      # Board 314's button. `Kati.Media.Cache.ask/1` is the same sweep screen
+      # 80's *Refresh* pill runs, and it answers on this pid when it is done.
+      "check_now" ->
+        Kati.Media.Cache.ask(self())
+
+        {:noreply,
+         Mob.Socket.assign(socket, :watcher, %{w | checking?: true, checked: "checking now"})}
+
+      # The master switch, and the one thing on this page it could mean:
+      # `Kati.Background.Periodic` is the watcher's background check, so off
+      # cancels the worker and on enqueues it at the cadence below. It survives
+      # the pop because it is `Mob.State`'s, beside the cadence.
       "banner" ->
-        {:noreply,
-         Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: not w.banner.on}})}
+        on? = not w.banner.on
+        Kati.Settings.Watcher.put_watching(on?)
 
+        {:noreply, Mob.Socket.assign(socket, :watcher, %{w | banner: %{w.banner | on: on?}})}
+
+      # Only the live one reaches here — a marked row carries no tag at all —
+      # and it writes, which is the whole of #67 for this switch.
       "kind_" <> i ->
-        {:noreply,
-         Mob.Socket.assign(socket, :watcher, %{
-           w
-           | kinds: Kati.Screens.ReleaseWatcher.flip(w.kinds, i)
-         })}
+        flipped = Kati.Screens.ReleaseWatcher.flip(w.kinds, i)
 
-      "loud_" <> i ->
-        {:noreply,
-         Mob.Socket.assign(socket, :watcher, %{
-           w
-           | loudness: Kati.Screens.ReleaseWatcher.flip(w.loudness, i)
-         })}
+        Enum.each(flipped, fn row ->
+          if Kati.Settings.Watcher.live?(row.title),
+            do: Kati.Settings.Watcher.put_new_episodes(row.on)
+        end)
 
+        {:noreply, Mob.Socket.assign(socket, :watcher, %{w | kinds: flipped})}
+
+      # And the cadence, which `Kati.Background.Periodic.ensure/1`'s own doc
+      # named as *a future "check less often" setting* before there was one.
       "cadence_" <> label ->
+        Kati.Settings.Watcher.put_cadence(label)
+
         {:noreply, Mob.Socket.assign(socket, :watcher, %{w | cadence: label})}
 
       _ ->

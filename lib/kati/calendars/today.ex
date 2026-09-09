@@ -7,10 +7,22 @@ defmodule Kati.Calendars.Today do
 
   ## A row carries its kind; the label is a rendering decision
 
-  A row is `%{time, title, meta, kind, location, now?}`. `kind` is the event's
-  own `Kati.Calendars.Event` kind, **verbatim** rather than collapsed, and
-  `location` is the event's own — so a screen has the two facts the sub-line is
-  made of, not only the one sentence one language wrote out of them.
+  A row is `%{id, time, title, meta, kind, location, now?}`. `kind` is the
+  event's own `Kati.Calendars.Event` kind, **verbatim** rather than collapsed,
+  and `location` is the event's own — so a screen has the two facts the
+  sub-line is made of, not only the one sentence one language wrote out of
+  them.
+
+  ## A row carries WHICH event it is
+
+  `id` is the event's primary key, and it is here for the same reason `kind` is:
+  a screen that draws a list of rows and then opens one has to be able to say
+  which one, and everything else on a row is a rendering of the event rather
+  than a handle on it. Without it screen 02's timeline could push screen 31 and
+  screen 31 could only re-query and take the first row back — tap the third
+  event, edit the first (#84). `occurrences/1` has carried `:id` since it was
+  written, because `Kati.Calendar.Layout` cannot lane rows it cannot tell
+  apart; the timeline rows had the same need and not the field.
 
   `meta` is that sentence **in English**: it is what screens 01, 02 and 28
   draw and what their captured frames hold, so it does not move. A screen
@@ -64,6 +76,26 @@ defmodule Kati.Calendars.Today do
     end
   rescue
     _ -> []
+  end
+
+  @doc """
+  The day's events, as rows — the resource, not a rendering.
+
+  `rows/1` answers what a timeline draws and drops the instants doing it;
+  `Kati.Screens.QuickAdd` needs the instants, because a clash is an overlap
+  and `"11:00"` cannot overlap anything. Same query, so the two can never
+  disagree about what is on a day, which is what `events/2`'s own comment
+  says it is for.
+
+  All-day events are out: they have no hours to overlap with.
+  """
+  @spec timed(Date.t() | nil) :: [struct()]
+  def timed(date \\ nil) do
+    zone = Kati.Time.device_zone()
+
+    (date || Kati.Time.today())
+    |> events(zone)
+    |> Enum.reject(& &1.is_all_day)
   end
 
   @doc """
@@ -130,6 +162,9 @@ defmodule Kati.Calendars.Today do
     now = DateTime.utc_now()
 
     %{
+      # The handle, not a rendering. See the moduledoc: a row that cannot name
+      # its own event is a row a screen can draw and cannot open.
+      id: event.id,
       time: Calendar.strftime(local, "%H:%M"),
       title: event.summary || "Untitled",
       # The event's own kind, uncollapsed. `:reminder` and `:event` share a

@@ -37,6 +37,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+// KATI-BEGIN(K-35 semantics-imports) mob_new=0.7.24
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+// KATI-END(K-35 semantics-imports)
 // KATI-BEGIN(K-12 rtl-imports) mob_new=0.4.20
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -51,6 +55,21 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val TAG = "Kati"
         init { System.loadLibrary("kati") }
+
+        // KATI-BEGIN(K-38 one-beam-per-process-flag) mob_new=0.7.24
+        // Companion to `K-38 one-beam-per-process`, and IN the companion object
+        // for the reason that fence exists: it has to outlive any single
+        // Activity. An instance field is recreated alongside the Activity it
+        // belongs to, so it would read `false` on exactly the second `onCreate`
+        // the guard is there to catch — a guard that is only ever true when it
+        // is not needed.
+        //
+        // Written after making that mistake: the field was first placed below
+        // `nativeStartBeam()`, which reads as though it were in this block and
+        // is not, because the companion closes two lines above it.
+        @JvmStatic
+        private val beamStarted = java.util.concurrent.atomic.AtomicBoolean(false)
+        // KATI-END(K-38 one-beam-per-process-flag)
     }
 
     // KATI-BEGIN(K-15 device-timezone-publish) mob_new=0.4.20
@@ -61,6 +80,7 @@ class MainActivity : ComponentActivity() {
 
     external fun nativeSetActivity(activity: Activity)
     external fun nativeStartBeam()
+
 
     // KATI-BEGIN(K-31 drop-camera-launchers) mob_new=0.4.20
     // The photo and video capture launchers went with androidx.camera (#75).
@@ -156,6 +176,30 @@ class MainActivity : ComponentActivity() {
         if (requestCode == 9001) {
             val granted = grantResults.isNotEmpty() &&
                 grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+
+            // KATI-BEGIN(K-37 republish-on-grant) mob_new=0.7.24
+            // Re-read the calendar the moment it is granted, before Elixir is
+            // told.
+            //
+            // `KatiCalendarReader.publish/1` runs in `onCreate` and nowhere
+            // else, and it writes an empty array when the permission is
+            // missing. So on the launch where someone grants access, the files
+            // on disk are the empty ones written seconds earlier, and
+            // `Kati.Calendars.DeviceImport.run/0` has nothing to ingest — the
+            // permission is granted and the calendar stays empty until the next
+            // cold start. Publishing here closes that gap; the ordering matters
+            // because the Elixir side re-runs the import as soon as it hears
+            // `{:permission, :calendar, :granted}`, and the files must already
+            // be current when it does.
+            if (granted) {
+                try {
+                    KatiCalendarReader.publish(this)
+                } catch (e: Throwable) {
+                    android.util.Log.w("Kati", "calendar re-publish after grant failed", e)
+                }
+            }
+            // KATI-END(K-37 republish-on-grant)
+
             MobBridge.onPermissionResult(granted)
         }
     }
@@ -285,7 +329,32 @@ class MainActivity : ComponentActivity() {
                         val rtl = (root.props["layout_direction"] as? String) == "rtl"
                         val direction = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
 
-                        CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                        // KATI-BEGIN(K-48 locale-face-root) mob_new=0.7.24
+                        // The app's default face, read off the same root node
+                        // and for the same reason as the direction above: the
+                        // language is an in-app setting, so a Persian reader on
+                        // an English phone must get Vazirmatn.
+                        //
+                        // This is the half no screen can reach. A Text a screen
+                        // writes can carry `font_family`; a Text a COMPONENT
+                        // builds cannot, and `MobBridge`'s `fontFamilyProp`
+                        // resolved that missing prop to Latin — so Kati's
+                        // Persian was being set in Android's substitute face,
+                        // one component at a time, legibly enough that nobody
+                        // read it as a bug. `Kati.PersianFontTest`'s moduledoc
+                        // is where that was first written down.
+                        //
+                        // A root that names no face leaves `LocalKatiFace` null
+                        // and every Text behaves exactly as it did before.
+                        val face = root.props["font_family"] as? String
+                        // KATI-END(K-48 locale-face-root)
+
+                        CompositionLocalProvider(
+                            LocalLayoutDirection provides direction,
+                            // KATI-BEGIN(K-48 locale-face-provide) mob_new=0.7.24
+                            LocalKatiFace provides face,
+                            // KATI-END(K-48 locale-face-provide)
+                        ) {
                             // KATI-BEGIN(K-09 bottom-inset-only) mob_new=0.4.20
                             // Bottom inset only, not safeDrawingPadding().
                             //
@@ -305,6 +374,15 @@ class MainActivity : ComponentActivity() {
                                 root,
                                 modifier = Modifier
                                     .fillMaxSize()
+                                    // KATI-BEGIN(K-35 test-tags-as-resource-id) mob_new=0.7.24
+                                    // Publishes every `testTag` under the tree as an Android
+                                    // `resource-id`. Compose keeps test tags to itself by
+                                    // default: `onNodeWithTag` sees them, a `uiautomator dump`
+                                    // does not. Set once at the root, it applies to the whole
+                                    // tree, and it is what lets a UI Automator test address a
+                                    // Kati control by the same name the Elixir side gave it.
+                                    .semantics { testTagsAsResourceId = true }
+                                    // KATI-END(K-35 test-tags-as-resource-id)
                                     .padding(
                                         bottom = WindowInsets.safeDrawing
                                             .asPaddingValues()
@@ -328,7 +406,33 @@ class MainActivity : ComponentActivity() {
 
         Log.i(TAG, "onCreate — handing off to BEAM")
         nativeSetActivity(this)
-        Thread({ nativeStartBeam() }, "beam-main").start()
+
+        // KATI-BEGIN(K-38 one-beam-per-process) mob_new=0.7.24
+        // Start the BEAM once per PROCESS, not once per Activity.
+        //
+        // `onCreate` runs again whenever Android recreates the Activity in a
+        // live process, and this line started a second `beam-main` thread every
+        // time. Two BEAMs in one process take SIGABRT in `beam-main` — no
+        // Elixir exception, because it is not an Elixir error — and the process
+        // dies with a `crash_dump helper` message that names nothing useful.
+        //
+        // `android:configChanges` in the manifest currently absorbs rotation,
+        // `fontScale` and `uiMode`, which is why this has not been seen in
+        // ordinary use. It does NOT absorb Android restoring a task from
+        // recents, a locale change, or an Activity recreated for any reason the
+        // manifest does not list — and every one of those is a real thing that
+        // happens to a real phone. It was found by a device test whose two
+        // methods shared a process (#96).
+        //
+        // `nativeSetActivity` stays OUTSIDE the guard: the new Activity is a
+        // different object and the running BEAM has to be told about it, or it
+        // draws into a window that is gone.
+        if (beamStarted.compareAndSet(false, true)) {
+            Thread({ nativeStartBeam() }, "beam-main").start()
+        } else {
+            Log.i(TAG, "onCreate — BEAM already running, re-attached only")
+        }
+        // KATI-END(K-38 one-beam-per-process)
     }
 
     private fun extractPythonAssetsIfNeeded() {

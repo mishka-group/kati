@@ -35,16 +35,59 @@ defmodule Kati.Screens.Weight do
 
   @ranges [{"Week", :range_week}, {"Month", :range_month}, {"All", :range_all}]
 
+  # How far back each segment reaches, in days. Read off the segment's own label
+  # rather than invented — `Week` is seven days and `Month` is thirty — and
+  # `nil` for the one that reaches all the way back.
+  #
+  # Keyed by `@ranges`' tags, so a fourth segment added above without a window
+  # here falls through `within?/2`'s `nil` and takes everything, which is the
+  # segment behaving as `All` rather than as an empty chart.
+  @windows %{range_week: 7, range_month: 30, range_all: nil}
+
+  # The segment the page opens on, in one place, because the list is read for it
+  # and the chip is lit for it and those two must not be able to disagree.
+  # `Month` is the drawing's lit chip — `test/design/screens/109.html` — so this
+  # is the design's own choice rather than a default.
+  @opening :range_month
+
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:entries, entries())
+    |> Mob.Socket.assign(:entries, entries(@opening))
     |> Mob.Socket.assign(:latest, latest())
-    |> Mob.Socket.assign(:range, :range_month)
+    |> Mob.Socket.assign(:range, @opening)
   end
 
   @doc "The readings: what is stored, or the drawing's four."
   @spec entries() :: [map()]
-  def entries do
+  def entries, do: entries(:range_all)
+
+  @doc """
+  The same, narrowed to one segment of the range row.
+
+  `:range_all` is the identity and `entries/0` is defined as that call, so the
+  callers with no range on hand — `Kati.Screens.LogWeight` five times over,
+  `Kati.Screens.WeightStates` and `Kati.Screens.HealthFa` — keep the whole
+  series they have always read.
+
+  ## The window is measured, the drawing is not
+
+  Narrowing applies to stored readings only. The drawing's four carry
+  `date: "16 AUG"` as a string rather than a `Date`, and there is nothing else
+  on the sample path a window could be measured against. So a fresh install
+  lists the same four rows under every segment, which is the state the design
+  was captured in: a series of four readings has no month to narrow to, and it
+  narrows once there is something to narrow.
+
+  ## The delta belongs to the series, not to the window
+
+  The zip happens before the filter, so the oldest row inside a week still
+  compares itself with the reading before it rather than reporting `nil`.
+  Narrowing the view must not change what a row *means* — `Kati.Health.Reading`
+  settles that: there is one row per weighing, and a delta is the step from the
+  weighing before it.
+  """
+  @spec entries(atom()) :: [map()]
+  def entries(range) do
     case stored() do
       [] ->
         WeightSample.entries()
@@ -54,6 +97,7 @@ defmodule Kati.Screens.Weight do
 
         readings
         |> Enum.zip(Enum.drop(readings, 1) ++ [nil])
+        |> Enum.filter(fn {reading, _previous} -> within?(reading, range) end)
         |> Enum.map(fn {reading, previous} ->
           %{
             date: String.upcase(Calendar.strftime(reading.taken_on, "%d %b")),
@@ -124,6 +168,22 @@ defmodule Kati.Screens.Weight do
     _error -> []
   end
 
+  # Whether one stored reading falls inside a segment's window, measured back
+  # from today. `:range_all` — and any tag that is not a range at all — takes
+  # everything, which is what keeps `entries/0` and `bars/0` the whole series
+  # for the callers outside this screen that have no range in hand.
+  #
+  # Only a `Kati.Health.Reading` can be asked this. The drawing's four carry
+  # their dates as strings and `Kati.Health.WeightSample.bars/0` carries no
+  # dates at all, so there is nothing on the sample path to measure a window
+  # against — see `entries/1`.
+  defp within?(reading, range) do
+    case Map.get(@windows, range) do
+      nil -> true
+      days -> Date.diff(Kati.Time.today(), reading.taken_on) < days
+    end
+  end
+
   @doc false
   def content(assigns) do
     ~MOB"""
@@ -140,7 +200,7 @@ defmodule Kati.Screens.Weight do
         {Kati.Screens.Weight.hero(assigns.latest)}
         {Kati.UI.Segmented.plain(Kati.Screens.Weight.ranges(), assigns.range)}
         <Spacer size={16} />
-        {Kati.Screens.Weight.chart()}
+        {Kati.Screens.Weight.chart(assigns.range)}
         {UI.eyebrow("Entries")}
         {Kati.Screens.Weight.entry_list(assigns.entries)}
         {Kati.Screens.Weight.privacy_note()}
@@ -228,8 +288,21 @@ defmodule Kati.Screens.Weight do
   would clip the second.
   """
   @spec chart() :: map()
-  def chart do
-    bars = Kati.Screens.Weight.bars()
+  def chart, do: chart(:range_all)
+
+  @doc """
+  The same, drawn for one segment of the range row.
+
+  The two axis labels stay `Kati.Health.WeightSample.axis/0`'s under every
+  segment, and that is deliberate rather than overlooked: they are the
+  *drawing's* labels, printed under a chart that is the drawing's fourteen bars
+  whenever nothing is stored, which is every state the captures render. A
+  window has no month name to put there that would not be invented on the one
+  path the labels are read on.
+  """
+  @spec chart(atom()) :: map()
+  def chart(range) do
+    bars = Kati.Screens.Weight.bars(range)
     {left, right} = WeightSample.axis()
 
     assigns = %{
@@ -285,18 +358,40 @@ defmodule Kati.Screens.Weight do
   bars of identical height and says nothing.
   """
   @spec bars() :: [float()]
-  def bars do
+  def bars, do: bars(:range_all)
+
+  @doc """
+  The same, narrowed to one segment — and normalised against what is left.
+
+  Against the window's own low and high rather than the whole series', because
+  the reason the chart is not zero-based is that a weight series is a large
+  number close to every other large number, and that argument is stronger
+  inside a week than across a year.
+
+  `[]` when readings are stored and none of them falls inside the window. An
+  empty chart is the honest answer to *no weighings this week*, and it is why
+  the low/high pair is computed inside a `case` — `Enum.min/1` raises on `[]`.
+  """
+  @spec bars(atom()) :: [float()]
+  def bars(range) do
     case stored() do
       [] ->
         WeightSample.bars()
 
       readings ->
-        grams = readings |> Enum.map(& &1.grams) |> Enum.reverse()
-        low = Enum.min(grams)
-        high = Enum.max(grams)
-        span = max(high - low, 1)
+        windowed = readings |> Enum.filter(&within?(&1, range)) |> Enum.map(& &1.grams)
 
-        Enum.map(grams, fn g -> 0.35 + (g - low) / span * 0.65 end)
+        case Enum.reverse(windowed) do
+          [] ->
+            []
+
+          grams ->
+            low = Enum.min(grams)
+            high = Enum.max(grams)
+            span = max(high - low, 1)
+
+            Enum.map(grams, fn g -> 0.35 + (g - low) / span * 0.65 end)
+        end
     end
   end
 
@@ -379,8 +474,15 @@ defmodule Kati.Screens.Weight do
   def handle_tap(:add, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogWeight)}
 
-  def handle_tap(range, socket) when range in [:range_week, :range_month, :range_all],
-    do: {:noreply, Mob.Socket.assign(socket, :range, range)}
+  # The list is re-read; the chart is not. `content/1` hands `assigns.range` to
+  # `chart/1` at render, so the bars follow the chip without being carried on
+  # the socket — one fewer assign that could go stale against the other.
+  def handle_tap(range, socket) when range in [:range_week, :range_month, :range_all] do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:range, range)
+     |> Mob.Socket.assign(:entries, Kati.Screens.Weight.entries(range))}
+  end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

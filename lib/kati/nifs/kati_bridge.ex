@@ -124,6 +124,83 @@ defmodule Kati.Nifs.KatiBridge do
   @spec permission_status(binary()) :: binary()
   def permission_status(_capability), do: :erlang.nif_error(:nif_not_loaded)
 
+  # ── K-43: opening a link the app does not own ───────────────────────────
+
+  @doc """
+  `"ok"`, or `"error:<reason>"`, for handing one URL to the platform browser.
+
+  The capability fifteen drawn controls were waiting on — screen 83's six
+  source cards and its notices row, 84's two, 85's four, and the three *Open
+  system settings* pills. Each of them named a place and went nowhere, and
+  `Kati.ScreenTapSweepTest` recorded the same sentence against every one:
+  *Kati has no fence that opens an external link.*
+
+  `http` and `https` only; the Kotlin side refuses everything else rather than
+  becoming a way to launch arbitrary intents from a string.
+  """
+  @spec open_url(binary()) :: binary()
+  def open_url(_url), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  `"ok"`, or `"error:<reason>"`, for opening one of the phone's own settings
+  screens by Kati name — `"battery"`, `"notification_listener"`, `"app"`.
+
+  A closed set rather than an action string, because `startActivity` with a
+  caller-supplied action is a way to launch anything on the device from a
+  string, and the strings in this app come from screens. `Kati.Native.Links`
+  refuses non-http URLs for the same reason.
+  """
+  @spec open_settings(binary()) :: binary()
+  def open_settings(_which), do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  `"ok:<path>"` for a PNG of what is on screen, written into the cache
+  directory, or `"error:<reason>"`.
+
+  Registered `ERL_NIF_DIRTY_JOB_IO_BOUND`: the Kotlin half posts to the UI
+  thread — `view.draw` cannot run anywhere else — and waits on a latch, and a
+  wait of up to five seconds must not sit on a normal scheduler.
+  """
+  @spec capture_screen(binary()) :: binary()
+  def capture_screen(_name), do: :erlang.nif_error(:nif_not_loaded)
+
+  # ── K-46: what the phone is playing ─────────────────────────────────────
+
+  @doc """
+  `"ok:<json array>"` — every active media session on the device, or `[]`.
+
+  `[]` is a complete answer and the commonest one: nothing is playing, or
+  Kati has not been allowed to look. `media_access/0` tells the two apart,
+  because a screen that says *nothing is playing* when it is not allowed to
+  know is exactly the kind of claim MOVIES-AND-TV.md #100 is about.
+  """
+  @spec now_playing() :: binary()
+  def now_playing, do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  `"ok:granted"` or `"ok:denied"` — whether Kati may read media sessions.
+
+  Granted in system settings and nowhere else: there is no runtime dialog for
+  `BIND_NOTIFICATION_LISTENER_SERVICE`. Read every time rather than cached,
+  for `K-33 permission-status`'s reason — a permission a person changes in
+  Settings changes while Kati is backgrounded.
+  """
+  @spec media_access() :: binary()
+  def media_access, do: :erlang.nif_error(:nif_not_loaded)
+
+  @doc """
+  `"ok:<json array>"` — every session the listener heard while the BEAM was
+  not running, and clear it.
+
+  `now_playing/0` answers what is playing AT THIS MOMENT, which is almost never
+  the thing Kati wants: you finish an episode, close the app, and the session
+  is gone before Kati is next opened. The listener records instead, and this
+  drains what it recorded — the shape `Kati.Background.Handoff` already uses
+  for the periodic worker.
+  """
+  @spec drain_sessions() :: binary()
+  def drain_sessions, do: :erlang.nif_error(:nif_not_loaded)
+
   # ── #58: periodic refresh ───────────────────────────────────────────────
 
   @doc """

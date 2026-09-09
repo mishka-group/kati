@@ -126,6 +126,18 @@ defmodule Kati.Screens.HealthFa do
   The identity check against `drawn_doses/0` is how the question is asked
   without a second query.
 
+  D-59 made the medication half honest and this page got the fix for free.
+  `Kati.Screens.Medication.doses/0` used to gate on `Kati.Health.Dose` alone,
+  so a device with a medication and no dose row answered with the English
+  page's four drawn tablets — the check below then matched, and this page drew
+  its own three Persian fixtures beside a real weight. That was the same defect
+  one locale over. The gate is the medication and the day together now, and the
+  check does not change a character; what it has to survive is two new answers.
+  `doses/0` can come back **derived** — rows composed from a medication's
+  `times`, with no id, which is why the tap tags travel with a row rather than
+  being rebuilt from an id it may not have — and it can come back `[]`, which
+  is medications stored and nothing due. `dose_list/1` words that state.
+
   Dates are Solar Hijri and `Kati.Calendar.Shamsi` can actually say them, so the
   line under وزن is a real date the moment anything is stored. With nothing
   stored it stays the drawing's یکشنبه ۲۵ مرداد, for screen 112's reason:
@@ -173,7 +185,28 @@ defmodule Kati.Screens.HealthFa do
     latest_prefix: "آخرین · ",
     doses: "داروهای امروز",
     taken: "خوردم",
-    skip: "رد کن"
+    skip: "رد کن",
+    # D-59. `Kati.Screens.Medication.doses/0` gates on the medication now as
+    # well as on the dose, so it can answer `[]` — you have medications and
+    # none is due today — and this page inherits that state through the
+    # identity check in `doses/0` below.
+    #
+    # The words are `Kati.Screens.HomeFa.empty_day/0`'s first clause verbatim:
+    # چیزی برای امروز نیست. Its «— هر چیزی را با + اضافه کنید» tail is dropped,
+    # for the reason that function's own doc gives for having written a tail at
+    # all — *the control it names is real*. Neither pointer the English
+    # sentence takes is true here: this page draws no Schedules group (see
+    # `content/1`) and its `+` opens `Kati.Screens.LogWeight`, a weight sheet.
+    # So Persian says the half that is true and stops, and the asymmetry with
+    # `Kati.Screens.Medication.nothing_due/1` is the rule being followed rather
+    # than a gap in the translation.
+    #
+    # Here rather than in a function of its own because this file's moduledoc
+    # requires it: *`labels/0`, `drawn_doses/0` and `note_text/0` hold every
+    # string in one place so a native reader correcting one corrects it once* —
+    # and `labels/0` is public, so a test points at `labels().nothing_due` as
+    # readily as at a function.
+    nothing_due: "چیزی برای امروز نیست"
   }
 
   # Keyed by `Kati.Screens.Weight.ranges/0`'s own tags rather than listed in
@@ -192,8 +225,9 @@ defmodule Kati.Screens.HealthFa do
   @axis {"۱۴ اردیبهشت", "امروز"}
 
   # The three doses the frame prints, in clock order. `line` carries no state
-  # word: the suffix is composed the way `Kati.Screens.Medication.dose_row/1`
-  # composes it, so both pages spell "missed" in one place each.
+  # word: the suffix is composed the way `Kati.Screens.Medication.state_line/1`
+  # composes it — rejected when empty, joined with a middot — so both pages
+  # spell "missed" in one place each.
   @doses [
     %{time: "۰۸:۰۰", name: "لووتیروکسین", line: "۵۰ میکروگرم", state: :taken},
     %{time: "۱۴:۰۰", name: "آهن", line: "۶۵ میلی‌گرم", state: :missed},
@@ -220,6 +254,7 @@ defmodule Kati.Screens.HealthFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket
@@ -229,7 +264,7 @@ defmodule Kati.Screens.HealthFa do
      |> Mob.Socket.assign(:range, :range_month)}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc "Every Persian string this screen owns, in one map — see the moduledoc."
   @spec labels() :: map()
@@ -324,9 +359,13 @@ defmodule Kati.Screens.HealthFa do
   @doc """
   Today's doses: what is stored, or the frame's three.
 
-  `Kati.Screens.Medication.doses/0` answers the store and falls back to
+  `Kati.Screens.Medication.doses/0` answers the reader and falls back to
   `drawn_doses/0`, so comparing the two is how this screen asks *did anything
-  come back?* without running the query again. When something did, the name and
+  come back?* without running the query again. What comes back may be composed
+  from a medication's `times` rather than read from `health_doses` — see the
+  moduledoc and D-59 — so a row on this page can be one that does not exist
+  yet, and `[]` is a real answer meaning *medications, nothing due today*. When
+  something did come back, the name and
   the dose line are left exactly as they are: those are the user's own and
   nothing in `Kati.Health` translates anything — screen 69's rule for a shelved
   book, applied to a prescription. Only the digits inside them move.
@@ -339,12 +378,46 @@ defmodule Kati.Screens.HealthFa do
       @doses
     else
       Enum.map(stored, fn dose ->
-        %{
+        # `:id` and screen 112's three tap tags travel with the row.
+        #
+        # They used to be dropped, and `Kati.Screens.Medication`'s moduledoc
+        # spelled out the consequence: *its chips have no row in them to act
+        # on, and they come through `handle_tap/2` here to reach
+        # `next_undecided/1`* — so pressing **خورده شد** on the 21:00 dose
+        # recorded whichever dose the day had not decided about yet, which on
+        # any day with more than one is a different tablet. The same moduledoc
+        # named the fix: *wiring them properly means giving 115's own list ids,
+        # which is 115's change.* This is that change.
+        #
+        # The tags are TAKEN from 112's row rather than rebuilt from its id, and
+        # D-59 is why. They used to be `Medication.tags(dose.id)` here, which
+        # was a claim that two builders agree; carrying them is the same claim
+        # by construction, and it is the only version that works at all now
+        # that a dose can be DERIVED from a medication's `times` and have no id
+        # to rebuild from. `Medication.tags/1` guards on `is_binary(key)`, so
+        # the first derived row on a Persian device was a FunctionClauseError
+        # inside `mount/3` — screen 115 failing to open for anybody with a
+        # medication.
+        #
+        # `:time` is Persian digits for the eye and `:due_at` is the ASCII
+        # clock the write stores, which is why both travel. One field would put
+        # ۰۸:۰۰ into `health_doses.due_at`, where neither
+        # `Kati.Health.Dose.resolve/2` nor `:for_day`'s sort can read it —
+        # rule 10 of this file's own type rules, arriving in the store.
+        #
+        # `:medication_id` and `:due_on` travel for the same reason: this page
+        # can materialise a dose now, and a write has to carry the row it was
+        # drawn for. The drawing's three rows keep none of these — `@doses`
+        # above has no `:id` key — so a page drawing the fixture still reaches
+        # `next_undecided/1`, which is the honest answer when nothing is stored.
+        dose
+        |> Map.take([:id, :medication_id, :due_on, :due_at, :tap, :taken, :skip])
+        |> Map.merge(%{
           time: persian(dose.time),
           name: dose.name,
           line: persian(dose.line),
           state: dose.state
-        }
+        })
       end)
     end
   end
@@ -404,7 +477,7 @@ defmodule Kati.Screens.HealthFa do
         {Kati.Screens.HealthFa.title(subtitle)}
         {Kati.Screens.HealthFa.hero(reading)}
         {Kati.Screens.HealthFa.range_row(range)}
-        {Kati.Screens.HealthFa.chart()}
+        {Kati.Screens.HealthFa.chart(range)}
         {Kati.Screens.Fa.eyebrow(eyebrow)}
         {Kati.Screens.HealthFa.dose_list(doses)}
         {Kati.Screens.HealthFa.note()}
@@ -682,11 +755,15 @@ defmodule Kati.Screens.HealthFa do
   `Kati.Screens.WeightStates.gridlines/1`, which is where 109's chart's rules
   are written down; the `Box` stacks them behind the bars, which is the same
   thing `Kati.Screens.Pushed.chrome/2` relies on to float a back pill.
+
+  The segment is the one the range row above the card is lighting. 115 and 109
+  are the same chart, so a chip means the same thing on both boards or the
+  mirror is a second opinion rather than a translation.
   """
-  @spec chart() :: map()
-  def chart do
+  @spec chart(atom()) :: map()
+  def chart(range) do
     {oldest, newest} = @axis
-    bars = Kati.Screens.HealthFa.bars()
+    bars = Kati.Screens.HealthFa.bars(range)
     rules = WeightStates.gridlines(Palette.mode())
     track = @track
 
@@ -720,15 +797,17 @@ defmodule Kati.Screens.HealthFa do
   @doc """
   One bar per reading, oldest first, with the newest tipped in ink.
 
-  `Kati.Screens.Weight.bars/0` supplies the fractions and
+  `Kati.Screens.Weight.bars/1` supplies the fractions — for the segment this
+  board is lighting, so the narrowing is 109's and not a second one — and
   `Kati.Screens.Weight.bar/1` draws all but the last, so this chart and 109's
   are the same chart and not two series that happen to agree. The last one is
   by position rather than by value: the newest reading is the newest whatever
-  it weighed.
+  it weighed. An empty window leaves `last` at `-1`, which no bar's index can
+  equal, and the row draws nothing rather than tipping something.
   """
-  @spec bars() :: [map()]
-  def bars do
-    fractions = Weight.bars()
+  @spec bars(atom()) :: [map()]
+  def bars(range) do
+    fractions = Weight.bars(range)
     last = length(fractions) - 1
 
     fractions
@@ -763,10 +842,65 @@ defmodule Kati.Screens.HealthFa do
     """
   end
 
-  @doc "Today's doses, each in its own time gutter."
+  @doc """
+  Today's doses, each in its own time gutter — or the sentence a quiet day gets.
+
+  D-59. `Kati.Screens.Medication.doses/0` gates on the medication as well as on
+  the dose now, so it can answer `[]`, and `doses/0` above passes that straight
+  through: `[]` is not `drawn_doses/0` and never could be, so the mapping runs
+  over nothing and this list arrives empty. Left alone that drew داروهای امروز
+  over an empty column, which is D-58's defect in Persian.
+
+  The eyebrow stays and the sentence is drawn — screen 112's decision, on board
+  160's argument, which 160 made in this language: *یک ردیف خالی می‌گوید چیزی
+  خراب است؛ نبودن ردیف می‌گوید هنوز شروع نکرده‌اید*. Somebody with prescriptions
+  has started, so the section that quietly disappeared would be the lie.
+
+  Full width rather than inside a row's 44pt gutter: `dose_row/1` puts a clock
+  time out there, which is screen 59's geometry, and a sentence about a whole
+  day has no clock time to put in it. The card is `dose_card/1`'s non-due
+  treatment, so it belongs to the set of rows it stands in for.
+  """
   @spec dose_list([map()]) :: map()
+  def dose_list([]) do
+    text = @labels.nothing_due
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={18}
+        padding={14}
+        shadow={Theme.shadow_card()}
+      >
+        {Kati.Screens.BookDetailFa.fa(text, 12.5, Palette.sub(), lines: 2)}
+      </Column>
+    </Column>
+    """
+  end
+
+  # The two verbs are drawn ONCE, against the day's first undecided dose, and
+  # `Kati.Screens.Medication.undecided/1` is what picks it — the same function,
+  # asked the same question, so this mirror and screen 112 cannot come to
+  # disagree about which tablet the pair is about.
+  #
+  # Once, rather than per card, because they are tagged `mark_taken` and
+  # `mark_skipped` with no row in them: two undecided doses each drawing a pair
+  # gives one `accessibility_id` to two nodes, `onNodeWithTag` throws on the
+  # second match, and `Kati.ScreenTapSweepTest` says so. Screen 112 draws its
+  # pair once under the whole list for the same reason; 115 draws it inside the
+  # one card it belongs to, which is what board 115 draws.
   def dose_list(doses) do
-    rows = Enum.map(doses, &Kati.Screens.HealthFa.dose_row/1)
+    verbs = Kati.Screens.Medication.undecided(doses)
+
+    rows =
+      Enum.map(doses, fn dose ->
+        # Compared as whole rows rather than on a key: `undecided/1` answers
+        # with an element of this very list, and the drawing's rows carry
+        # neither `:tap` nor `:id` to compare on.
+        Kati.Screens.HealthFa.dose_row(dose, dose == verbs)
+      end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -786,7 +920,7 @@ defmodule Kati.Screens.HealthFa do
   higher than 59's card that pads 11.
   """
   @spec dose_row(map()) :: map()
-  def dose_row(dose) do
+  def dose_row(dose, verbs? \\ false) do
     state = Kati.Screens.HealthFa.meal_state(dose.state)
 
     ~MOB"""
@@ -804,7 +938,7 @@ defmodule Kati.Screens.HealthFa do
         </Column>
         <Spacer size={12} />
         <Box weight={1.0}>
-          {Kati.Screens.HealthFa.dose_card(dose)}
+          {Kati.Screens.HealthFa.dose_card(dose, verbs?)}
         </Box>
       </Row>
       <Spacer size={9} />
@@ -839,9 +973,25 @@ defmodule Kati.Screens.HealthFa do
   `rtl`, so 59's 15 needs no second arrangement here.
   """
   @spec dose_card(map()) :: map()
-  def dose_card(%{state: :due} = dose) do
-    line = Kati.Screens.HealthFa.line(dose)
+  # `:missed` takes this card too, not the settled one below it. The two verbs
+  # are drawn from here and from nowhere else on screen 115 — there is no
+  # page-level pair the way screen 112 has one — so a dose that reached its
+  # clock time untouched had no control at all and a Persian reader could not
+  # record a tablet once its minute had passed. Before D-59 no real dose could
+  # reach `:missed` on this page, because nothing in `lib/` created a
+  # `Kati.Health.Dose` at all; the first medication anybody adds reaches it the
+  # same afternoon.
+  #
+  # `undecided/1` on screen 112 already draws exactly this line — `state in
+  # [:due, :missed]` — and says why: *a page opened at 21:00 with an untouched
+  # 14:00 tablet on it has one thing left to answer and it is that one.* One
+  # question, asked the same way on both pages.
+  def dose_card(dose, verbs? \\ false)
+
+  def dose_card(%{state: state} = dose, verbs?) when state in [:due, :missed] do
+    second = second_line(Kati.Screens.HealthFa.line(dose))
     rail = @rail
+    verbs = Kati.Screens.HealthFa.verbs_band(dose, verbs?)
 
     ~MOB"""
     <Column
@@ -856,20 +1006,18 @@ defmodule Kati.Screens.HealthFa do
         <Spacer size={12} />
         <Column weight={1.0}>
           {BookDetailFa.fa(dose.name, 13, :on_surface, weight: "bold")}
-          <Spacer size={4} />
-          {BookDetailFa.fa(line, 10.5, Palette.muted())}
+          {second}
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.HealthFa.ring(:due)}
+        {Kati.Screens.HealthFa.ring(dose.state)}
       </Row>
-      <Spacer size={13} />
-      {Kati.Screens.HealthFa.actions()}
+      {verbs}
     </Column>
     """
   end
 
-  def dose_card(dose) do
-    line = Kati.Screens.HealthFa.line(dose)
+  def dose_card(dose, _verbs?) do
+    second = second_line(Kati.Screens.HealthFa.line(dose))
 
     ~MOB"""
     <Row
@@ -885,8 +1033,7 @@ defmodule Kati.Screens.HealthFa do
     >
       <Column weight={1.0}>
         {BookDetailFa.fa(dose.name, 13, Kati.Screens.HealthFa.name_colour(dose.state), weight: "semibold")}
-        <Spacer size={4} />
-        {BookDetailFa.fa(line, 10.5, Palette.muted())}
+        {second}
       </Column>
       <Spacer size={12} />
       {Kati.Screens.HealthFa.ring(dose.state)}
@@ -894,20 +1041,38 @@ defmodule Kati.Screens.HealthFa do
     """
   end
 
+  # The gap and the second line, or neither — `Kati.Screens.Medication.dose_line_nodes/1`
+  # in Persian, and the same rule for the same reason: a medication typed on
+  # board 188 with a name and nothing else has nothing to say on this line, and
+  # `Kati.Screens.BookDetailFa.title/1` is this file's own precedent for a page
+  # with nothing to say under its title saying nothing. `Kati.ScreenNilTextTest`
+  # cannot see the difference, because `""` is not the word `nil`.
+  defp second_line(""), do: []
+
+  defp second_line(line) do
+    [~MOB"<Spacer size={4} />", BookDetailFa.fa(line, 10.5, Palette.muted())]
+  end
+
   @doc """
   A dose's line with its state word after it, composed as 112 composes it.
 
-  `Kati.Screens.Medication.dose_row/1` appends `Kati.Health.Dose.state_suffix/1`
-  behind a middot, and this appends the Persian of the same two words behind the
-  same middot — so the shape of the line is written once and only the vocabulary
-  is mirrored.
+  `Kati.Screens.Medication.state_line/1` rejects the empty parts and joins what
+  is left with a middot, and this does the same with the Persian of the same two
+  words — so the shape of the line is written once and only the vocabulary is
+  mirrored.
+
+  It appended rather than joined until D-59, which was invisible for as long as
+  every dose on this page came from `@doses`. A medication saved on board 188
+  with a name and nothing else has no dose line at all
+  (`Kati.Health.Medication.dose_line/1` answers `""` for it), so the Persian
+  card printed ` · جا افتاد` — a leading middot with nothing before it — the
+  moment that dose's time passed. `dose_card/1` draws no second line for `""`.
   """
   @spec line(map()) :: String.t()
   def line(dose) do
-    case Map.get(@suffixes, dose.state) do
-      nil -> dose.line
-      suffix -> dose.line <> " · " <> suffix
-    end
+    [dose.line, Map.get(@suffixes, dose.state)]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" · ")
   end
 
   @doc "The taken card sits flat on the settled fill; the rest lift on 109's card shadow."
@@ -950,23 +1115,57 @@ defmodule Kati.Screens.HealthFa do
   end
 
   @doc """
-  The two verbs a dose takes, inside the card that is due.
+  The two verbs and the gap above them, or neither.
 
-  112 puts them under the whole list as two full-width buttons and answers
+  112 puts the pair under the whole list as two full-width buttons and answers
   *which dose* with the next one you have not decided about; this frame puts
   them in the card, which answers it by sitting there. The write is still 112's
   — see `handle_info/2` — so both pages mark a dose the same way.
+
+  Drawn for ONE card per page, the one `Kati.Screens.Medication.undecided/1`
+  picks, because the pair is tagged `mark_taken` and `mark_skipped` with no row
+  in it: two cards each drawing a pair gives one `accessibility_id` to two
+  nodes and `onNodeWithTag` throws on the second match.
+
+  The 13pt gap comes with them rather than sitting in the card, so a settled
+  card closes on its ring instead of on empty space.
   """
-  @spec actions() :: map()
-  def actions do
+  @spec verbs_band(map(), boolean()) :: map() | []
+  def verbs_band(_dose, false), do: []
+
+  def verbs_band(dose, true) do
+    assigns = %{verbs: Kati.Screens.HealthFa.actions(dose)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={13} />
+      {@verbs}
+    </Column>
+    """
+  end
+
+  @spec actions(map()) :: map()
+  def actions(dose \\ %{}) do
     taken = @labels.taken
     skip = @labels.skip
 
+    # The dose's own two tags when the row has them, and screen 115's old pair
+    # when it does not — which is the drawing, whose three rows carry no id.
+    #
+    # The pair used to be unconditional, so both verbs named the CARD rather
+    # than the dose in it and `Kati.Screens.Medication.handle_tap/2` fell
+    # through to `next_undecided/1`: pressing *taken* on the 21:00 tablet
+    # recorded whichever dose the day had not decided about. `doses/0` carries
+    # `Medication.tags/1` now, so these are the same atoms screen 112 draws and
+    # the same `decision/2` clause answers them.
+    yes = Map.get(dose, :taken, :mark_taken)
+    no = Map.get(dose, :skip, :mark_skipped)
+
     ~MOB"""
     <Row fill_width={true} align="center" padding_left={15}>
-      {Kati.Screens.HealthFa.pill(taken, Palette.ink_fill(), Palette.on_ink(), :mark_taken)}
+      {Kati.Screens.HealthFa.pill(taken, Palette.ink_fill(), Palette.on_ink(), yes)}
       <Spacer size={8} />
-      {Kati.Screens.HealthFa.pill(skip, Palette.paper(), Palette.ink_soft(), :mark_skipped)}
+      {Kati.Screens.HealthFa.pill(skip, Palette.paper(), Palette.ink_soft(), no)}
     </Row>
     """
   end
@@ -1024,7 +1223,7 @@ defmodule Kati.Screens.HealthFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # 111 has no Persian mirror in the 127, so the disc opens the English sheet
   # rather than going nowhere — which is what `Kati.Screens.Fa.dock_tap/3` does
@@ -1040,11 +1239,25 @@ defmodule Kati.Screens.HealthFa do
   # screen's own reader, because 112 leaves English doses on the socket behind
   # it. Marking a dose from the mirror and marking it from 112 must be the same
   # act, and this is the only way to say that without a second copy of it.
-  def handle_info({:tap, tag}, socket) when tag in [:mark_taken, :mark_skipped] do
-    {:noreply, written} = Medication.handle_tap(tag, socket)
-    {:noreply, Mob.Socket.assign(written, :doses, doses())}
+  # `dose_<id>_taken` and `dose_<id>_skip` as well as the two old bare tags: the
+  # first pair is what a real dose draws now, the second what the drawing still
+  # draws. Both go to screen 112's writer, which finds the row by tag in
+  # `socket.assigns.doses` — this screen's own list, in Persian, with ids.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    if tag in [:mark_taken, :mark_skipped] or dose_verb?(socket, tag) do
+      {:noreply, written} = Medication.handle_tap(tag, socket)
+      {:noreply, Mob.Socket.assign(written, :doses, doses())}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  defp dose_verb?(socket, tag) do
+    Enum.any?(Map.get(socket.assigns, :doses, []), fn dose ->
+      Map.get(dose, :taken) == tag or Map.get(dose, :skip) == tag
+    end)
+  end
 end

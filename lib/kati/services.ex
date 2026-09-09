@@ -75,6 +75,30 @@ defmodule Kati.Services do
     end
   end
 
+  @doc """
+  The country the reader has actually CHOSEN, or `nil`.
+
+  `region/0` answers `"GB"` on a phone nobody has told anything, because every
+  page that asks *what is available here* needs an answer and the drawings were
+  captured in one country. That default is a working assumption, not a fact
+  about the reader, and board 93 is the board that knows the difference: its
+  region row reads *Pick your country — nothing works until this is set*.
+
+  So there are two questions and now two functions. `region/0` is "which
+  country am I answering for"; this is "has anyone said".
+  """
+  @spec chosen_region() :: String.t() | nil
+  def chosen_region do
+    case Mob.State.get(@region_key) do
+      code when is_binary(code) -> code
+      _unset -> nil
+    end
+  rescue
+    _error -> nil
+  catch
+    :exit, _reason -> nil
+  end
+
   @doc "Set the region. Screen 94's only side effect."
   @spec put_region(String.t()) :: :ok
   def put_region(code) when is_binary(code) do
@@ -109,6 +133,70 @@ defmodule Kati.Services do
 
   defp flag_or(<<a, b>>, _fallback) when a in ?A..?Z and b in ?A..?Z, do: flag(<<a, b>>)
   defp flag_or(_upcased, fallback), do: fallback
+
+  @doc """
+  How many services this device says it pays for.
+
+  A count of `Kati.Services.Service`'s own `:subscribed` action, which is the
+  action screen 92 groups by — not a length of whatever a screen happened to
+  list, because `Kati.Screens.MyServices.subscribed/0` still answers an empty
+  table with `Kati.Subscriptions.Sample`'s three rows and is therefore the one
+  reader that cannot be asked *how many are really there*. Screen 01's Watching
+  card asked it anyway and printed `United Kingdom · 3 subscribed` on a device
+  with no services at all; #95 gave 92 a write path, so the true number exists
+  and this is where it is read from.
+
+  **Zero is a real answer and is returned as one.** Screen 96 draws the empty
+  ledger as *No subscriptions yet* — *"an empty ledger, not £0.00 a month —
+  there is nothing here to be zero"* — so a caller is expected to word `0`
+  rather than print it.
+
+  A read that fails answers `0` for `Kati.Screens.Library.shelf/0`'s reason: a
+  screen that cannot reach its store degrades rather than taking the activity
+  down. Both `0`s mean "say nothing is set up", which is the safe sentence in
+  either case — unlike a count, which would be wrong.
+  """
+  @spec subscribed_count() :: non_neg_integer()
+  def subscribed_count do
+    Kati.Services.Service
+    |> Ash.Query.for_read(:subscribed)
+    |> Ash.count()
+    |> case do
+      {:ok, count} when is_integer(count) -> count
+      _unreadable -> 0
+    end
+  rescue
+    _error -> 0
+  end
+
+  @doc """
+  Everything an availability question needs about this reader, read once.
+
+  The region, the services they pay for, and the three rules — `Kati.Media.
+  Availability` takes this and a title's offers and answers. Gathered here
+  rather than in that module because this one already reads the store and that
+  one is arithmetic on what it is handed: `Kati.ScreenEmptyDatabaseTest`
+  derives *reaches the store* from the compiled call graph, so a pure module
+  that grew two reads would drag every screen that imports it onto that list.
+
+  `subscribed` is names, because that is what both sides of the match are: a
+  service is keyed on what somebody typed, and TMDB answers `provider_name`.
+  """
+  @spec availability() :: %{region: String.t(), subscribed: [String.t()], rules: map()}
+  def availability do
+    %{region: region(), subscribed: subscribed_names(), rules: rules()}
+  end
+
+  @doc "The names of the services the reader pays for."
+  @spec subscribed_names() :: [String.t()]
+  def subscribed_names do
+    Kati.Services.Service
+    |> Ash.Query.for_read(:subscribed)
+    |> Ash.read!()
+    |> Enum.map(& &1.name)
+  rescue
+    _error -> []
+  end
 
   @doc "The three availability rules, as a map of booleans."
   @spec rules() :: %{rentals: boolean(), purchases: boolean(), hide_unavailable: boolean()}

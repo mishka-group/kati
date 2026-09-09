@@ -5,9 +5,9 @@ defmodule Kati.Media.Mood do
   ## Why a closed list
 
   Fourteen values, fixed. #16 leaves "fixed or extensible" open and this closes
-  it: the whole point of recording a mood is that it aggregates — screen 07
-  draws a distribution across a year and screen 11 filters on it — and free
-  text does not aggregate. "tense", "Tense", "tense!" and "a bit tense" are
+  it: the whole point of recording a mood is that it aggregates — a
+  distribution across a year, and a local recommender that filters on it — and
+  free text does not aggregate. "tense", "Tense", "tense!" and "a bit tense" are
   four moods to a database and one to a person.
 
   Extensible needs a vocabulary source, and Kati has none. StoryGraph's list is
@@ -28,6 +28,22 @@ defmodule Kati.Media.Mood do
   recommend from other people's behaviour. Mood and pace are the only inputs
   that make a purely local recommender produce something a genre filter cannot.
   This is infrastructure for screen 11, not decoration.
+
+  ## Nothing writes a mood yet, and no board draws the control that would
+
+  Stated here because this module reads as finished and is not. The column is
+  real — `Kati.Media.Watch.moods`, `{:array, :atom}` over the fourteen below,
+  migrated by `20260822190546_add_mood_pace_and_content_warnings` — and it is
+  `[]` on every device that has ever existed. All five places that create a
+  watch write rating, review, tags, context and the stamps, and none of them
+  writes this. `parse/1` says *from an import or a form* and neither exists:
+  `Kati.Import.Mapping` has no mood field, so a column named for one is
+  *Skipped*. Board 33 — the log sheet, the one place a mood could be picked —
+  draws a rating, a review, three context rows and three tags, and no mood.
+
+  So `distribution/1` and `for_title/1` answer emptily for every reader, and
+  screen 13's four mood chips are dropped rather than drawn dead. The order is
+  writer, then control, then chips; a writer alone would still not light them.
   """
 
   @vocabulary [
@@ -47,7 +63,7 @@ defmodule Kati.Media.Mood do
     :tense
   ]
 
-  @doc "Every mood, in the order screen 33 draws its chips."
+  @doc "Every mood, alphabetically. No board draws them yet; see the moduledoc."
   @spec vocabulary() :: [atom()]
   def vocabulary, do: @vocabulary
 

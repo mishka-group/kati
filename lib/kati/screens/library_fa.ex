@@ -80,6 +80,7 @@ defmodule Kati.Screens.LibraryFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     # The shelf is read once and the three things it decides are derived from
     # that one answer: an empty shelf is what makes this the drawing's page
@@ -132,16 +133,45 @@ defmodule Kati.Screens.LibraryFa do
   def shelf, do: Enum.map(Library.shelf(), &shaped/1)
 
   @doc """
+  The *بعدی* tile's count in Persian digits, or `nil` when nothing is next.
+
+  `Kati.Screens.Library.up_next_badge/1`'s answer put through
+  `Kati.Calendar.Shamsi.to_persian_digits/1`, so the mirror counts the same
+  rows the English shelf counts and prints them in the script this screen
+  reads in. `nil` stays `nil`: the tile then draws no badge, which is what the
+  board's own Discover tile has always done.
+
+      iex> Kati.Screens.LibraryFa.up_next_badge([])
+      nil
+
+      iex> Kati.Screens.LibraryFa.up_next_badge([%{status: :watching}])
+      "۱"
+  """
+  @spec up_next_badge([map()]) :: String.t() | nil
+  def up_next_badge(titles) do
+    case Kati.Screens.Library.up_next_badge(titles) do
+      nil -> nil
+      count -> Kati.Calendar.Shamsi.to_persian_digits(count)
+    end
+  end
+
+  @doc """
   One shelf row as the grid draws it.
 
   `progress` goes through `Kati.Screens.Library.fraction/1` so it is always a
   float the rail can sweep: an unknown ratio is an empty track and a finished
   title a full one, and neither invents a percentage — `meta/1` says so in
   words in exactly the case this returns `0.0`.
+
+  `id` is `Kati.Screens.Library.shaped/3`'s, carried through rather than
+  dropped: the mirror's poster has to be able to name the same title the English
+  grid names, and a Persian screen that looked the row up again would be the
+  second query this file exists not to write.
   """
   @spec shaped(map()) :: map()
   def shaped(row) do
     %{
+      id: row.id,
       title: row.title,
       seed: row.seed,
       status: row.status,
@@ -245,7 +275,11 @@ defmodule Kati.Screens.LibraryFa do
   end
 
   def render(assigns) do
-    Fa.frame(:library, Kati.Screens.LibraryFa.content(assigns))
+    Fa.frame(
+      :library,
+      Kati.Screens.LibraryFa.content(assigns),
+      Kati.Screens.Identity.of(__MODULE__)
+    )
   end
 
   @doc false
@@ -267,7 +301,7 @@ defmodule Kati.Screens.LibraryFa do
       >
         {Kati.Screens.LibraryFa.header(header)}
         {Kati.Screens.LibraryFa.segments(shelf)}
-        {Kati.Screens.LibraryFa.quick_tiles()}
+        {Kati.Screens.LibraryFa.quick_tiles(assigns.titles)}
         {Kati.Screens.LibraryFa.chips(filter, counts)}
         {Kati.Screens.LibraryFa.grid(titles)}
       </Column>
@@ -457,9 +491,30 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
-  @doc false
-  def quick_tiles do
+  @doc """
+  The Persian tiles, with the two counts read rather than drawn.
+
+  `Kati.Screens.Library.up_next_badge/1`'s argument, in the script this screen
+  is written in: the labels and icons stay `Kati.Screens.LibraryFa.Sample`'s,
+  because those are the drawing's words and the drawing is where Persian copy
+  comes from — but `۱۲` and `۷` were the board's numbers, and a Persian phone
+  with nothing tracked announced them exactly as the English one did.
+
+  The digits go through `Kati.Calendar.Shamsi.to_persian_digits/1`, which is
+  how every other number on this screen is written.
+  """
+  # None of the three carries a tap, and the reason is not that nobody wired
+  # them. Their destinations are boards 287 (بعدی), 288 (کشف) and 289
+  # (فهرست‌ها) — all three delivered on 5 September and all three still in
+  # `test/design/incoming/`. `Kati.Screens.UpNext`, `Discover` and `Lists` are
+  # English LTR screens, so pointing a Persian tile at one repeats the defect
+  # screen 76 has: a Persian page handing the reader an English one. The tiles
+  # get their taps in the commit that builds those three screens, not before.
+  def quick_tiles(titles) do
     [up_next, discover, lists] = Sample.quick_tiles()
+
+    up_next = %{up_next | count: Kati.Screens.LibraryFa.up_next_badge(titles)}
+    lists = %{lists | count: nil}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -676,11 +731,56 @@ defmodule Kati.Screens.LibraryFa do
   @doc false
   def grid_gap, do: ~MOB"<Spacer size={12} />"
 
+  @doc """
+  One grid tile's tag, built from the title the tile is captioned with.
+
+  The mirror of `Kati.Screens.Library.poster_tag/1` and collided for the same
+  reason: every poster drew `:open_series`, so the whole grid was one
+  `accessibility_id` and `onNodeWithTag` throws on the second match (#97).
+
+  The prefix stays `open_series` in both scripts — a tag is an id, not copy,
+  and a Persian screen whose ids were Persian would be addressable only by a
+  test that could type them.
+
+      iex> Kati.Screens.LibraryFa.poster_tag(%{title: "گودال بلند"})
+      :"open_series_گودال_بلند"
+
+      iex> Kati.Screens.LibraryFa.poster_tag(%{title: ""})
+      :open_series
+  """
+  @spec poster_tag(map()) :: atom()
+  def poster_tag(item) do
+    case item
+         |> Map.get(:title, "")
+         |> to_string()
+         |> String.trim()
+         |> String.replace(" ", "_") do
+      "" -> :open_series
+      title -> String.to_atom("open_series_" <> title)
+    end
+  end
+
+  @doc """
+  The grid row a poster tag names, or `nil` when it names none.
+
+  The tag carries a TITLE, and a title is a caption rather than an identity —
+  two shelved titles spelled the same collide, and a caption is the one field on
+  this row a provider can change under you. So the tag is matched back against
+  the rows this screen actually drew, through `poster_tag/1` itself rather than
+  by parsing the prefix off, and what travels to screen 58 is the row's `:id`
+  and not its name. `nil` is an ordinary answer: a tag from the dock, or a grid
+  redrawn under a tap in flight.
+  """
+  @spec tapped(atom(), [map()]) :: map() | nil
+  def tapped(tag, titles) do
+    Enum.find(titles, &(Kati.Screens.LibraryFa.poster_tag(&1) == tag))
+  end
+
   @doc false
   def poster(nil), do: ~MOB"<Box weight={1.0} />"
 
   def poster(item) do
-    tap = {self(), :open_series}
+    tap = {self(), Kati.Screens.LibraryFa.poster_tag(item)}
 
     # Weighted rather than 112 wide: three equal shares of the real content
     # width fill the row on any device, where a fixed 112 only fills the
@@ -780,30 +880,100 @@ defmodule Kati.Screens.LibraryFa do
     """
   end
 
+  # `:open_series` is the tag `poster_tag/1` falls back to for a row with no
+  # caption, so it is one tile like any other and is looked up the same way.
   def handle_info({:tap, :open_series}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SeriesFa)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.SeriesFa,
+         Kati.Screens.Series.params_for(
+           Kati.Screens.LibraryFa.tapped(:open_series, socket.assigns.titles)
+         )
+       )}
+
+  # کتابخانه, this screen's own name, because that is where `pop_screen/1` goes.
+  # The page it opens is still English — there is no Persian screen 19 in the
+  # 127 drawings — so this is the pill naming a Persian screen truthfully rather
+  # than the whole page changing language, and `Kati.Screens.OnboardingFa`
+  # already sets the precedent for a Persian back label. `query: ""` is the disc
+  # saying what it has, which is nothing typed: bare, screen 19 fell through to
+  # `Kati.Search.handed_over/0`, a DETS key nothing clears, so the disc opened
+  # somebody's last search from a previous launch.
+  # The sort disc, which board 145 has drawn a destination for since the shelf
+  # wave landed. Bare, like screens 20 and 21's: `shelf_filters.ex:79` is
+  # `def mount(_params, _session, socket)` and its five sort rows come from
+  # `Kati.Library.ShelfFiltersSample.sort_options/0`, where `Runtime` is a
+  # literal — there is no key to name a shelf in, and writing one the sheet
+  # does not read is an argument nobody can check. When 145 learns which shelf
+  # opened it, all four pushes gain a third argument together.
+  #
+  # 145's caption names *screens 03, 20 and 21*, 03 first, so this disc and
+  # 03's are the two that make the sheet what its own board says it is.
+  def handle_info({:tap, :open_sort}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
 
   def handle_info({:tap, :open_search}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "کتابخانه"})}
 
   # One clause for every chip and every segment, because the tag carries the
   # index: a fifth chip is a change to `Sample.chips/0` and nothing else.
   # Anything left over is the dock's.
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case Atom.to_string(tag) do
-      # Index 1 is کتاب — the Books shelf — and it pushes screen 69 rather than
-      # switching the assign, exactly as screen 03's Books segment pushes screen
-      # 20. There is no Persian Books SHELF in the 127 drawings, so the segment
-      # opens the one Persian book page that exists; screen 69's own caption
-      # records that its parent was inferred for the same reason.
+      # Index 1 is کتاب‌ها — the Books shelf — and it pushes screen 176, exactly
+      # as screen 03's Books segment pushes screen 20.
+      #
+      # It used to push screen 69, and the reason it gave was true when it was
+      # written: *there is no Persian Books SHELF in the 127 drawings, so the
+      # segment opens the one Persian book page that exists.* `D-38` drew one.
+      # Until it did, a Persian reader tapping this segment was dropped into
+      # one fixture book — سالنامه نمک — with no grid, no chips, no
+      # Reading-now hero and no list to come back to. 69 is now reached from
+      # 176's covers, which is where a book detail is reached from on every
+      # other shelf in the app.
       "shelf_1" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BookDetailFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BooksFa)}
 
-      # Index 2 is موسیقی, and it opens the one Persian album page that exists —
-      # the same reasoning as the Books segment above, and the same absence: the
-      # 127 hold no Persian music SHELF.
+      # Index 2 is موسیقی, and it opens the music SHELF — screen 21, in English,
+      # because no board in the set draws a Persian one.
+      #
+      # It used to push screen 76, the one Persian album page that exists, and
+      # that was the Books segment's old mistake with a different noun: you
+      # pressed *Music* and arrived at ONE record, with a back pill saying
+      # کتابخانه and no way to reach any other. Reported from a device in
+      # exactly those words — *when I click on the music tab the library tab
+      # opens* — and the reporter was right about the symptom and generous
+      # about the cause.
+      #
+      # A shelf in the wrong language beats one album in the right one: the
+      # destination is what the control names, and screen 21 lists everything
+      # the reader owns, opens each record, and carries the `+` that adds one.
+      # `Kati.Screens.HealthFa` makes the same trade for the same reason and
+      # says so — *111 has no Persian mirror in the 127, so the disc opens the
+      # English sheet rather than going nowhere.* `D-57` is the standing
+      # ticket for the language half; `D-61` is the board this segment wants.
       "shelf_2" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetailFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Music)}
+
+      # Every grid tile, by its own title — see `poster_tag/1`. Answered inside
+      # this case rather than in a clause above it: a second
+      # `handle_info({:tap, tag}, socket) when is_atom(tag)` placed earlier
+      # shadows this one entirely, taking the search disc, every chip and every
+      # segment with it. Written that way first, and nothing but reading the
+      # clause order showed it.
+      "open_series_" <> _title ->
+        {:noreply,
+         Mob.Socket.push_screen(
+           socket,
+           Kati.Screens.SeriesFa,
+           Kati.Screens.Series.params_for(
+             Kati.Screens.LibraryFa.tapped(tag, socket.assigns.titles)
+           )
+         )}
 
       "shelf_" <> index ->
         {:noreply, Mob.Socket.assign(socket, :shelf, String.to_integer(index))}

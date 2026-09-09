@@ -52,6 +52,7 @@ defmodule Kati.Screens.TodayFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :day, SampleToday.day())}
   end
 
@@ -59,7 +60,14 @@ defmodule Kati.Screens.TodayFa do
     day = assigns.day
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction="rtl"
+      font_family="fa"
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
       <Scroll>
         <Column
           fill_width={true}
@@ -353,7 +361,7 @@ defmodule Kati.Screens.TodayFa do
         <Column width={44} padding_top={Kati.Screens.TodayFa.gutter_top(meal.state)}>
           <Text
             text={meal.time}
-            font_family="mono"
+            font_family="fa"
             text_size={12}
             font_weight={Kati.Screens.TodayFa.gutter_weight(meal.state)}
             text_color={Kati.Screens.TodayFa.gutter_color(meal.state)}
@@ -696,7 +704,7 @@ defmodule Kati.Screens.TodayFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # The week disc opens screen 60, which is what the English pair does: screen
   # 43's Week tile opens 44. 60's own back pill reads وعده‌ها, naming this

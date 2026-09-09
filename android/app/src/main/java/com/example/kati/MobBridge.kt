@@ -51,6 +51,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+// KATI-BEGIN(K-47 long-press-import) mob_new=0.4.20
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+// KATI-END(K-47 long-press-import)
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as ComposeSize
 import androidx.compose.ui.graphics.Path
@@ -101,12 +105,21 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+// KATI-BEGIN(K-35 test-tag-imports) mob_new=0.7.24
+import androidx.compose.ui.platform.testTag
+// KATI-END(K-35 test-tag-imports)
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontFamily
+// KATI-BEGIN(K-41 text-field-font-imports) mob_new=0.4.20
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+// KATI-END(K-41 text-field-font-imports)
 // KATI-BEGIN(K-14 bundled-fonts-import) mob_new=0.4.20
 import androidx.compose.ui.text.font.Font
 // KATI-END(K-14 bundled-fonts-import)
@@ -187,6 +200,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+// KATI-BEGIN(K-48 locale-face-import) mob_new=0.7.24
+import androidx.compose.runtime.staticCompositionLocalOf
+// KATI-END(K-48 locale-face-import)
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -770,6 +786,326 @@ object MobBridge {
     // The `denied:false` + asked case is the one that matters on screen: once
     // permanently denied, `request/2` will not re-prompt, so the row has to
     // offer system settings instead of an Allow button that does nothing.
+    // KATI-BEGIN(K-45 capture-screen) mob_new=0.4.20
+    /**
+     * Rasterise what is on screen to a PNG in the cache directory and answer
+     * its path.
+     *
+     * Screen 121 is the week rendered as one printable page and its button
+     * says **Save image**. The saving half has existed since `katiFileSaveAs`
+     * — `ACTION_CREATE_DOCUMENT`, a real file, the user's own folder — and the
+     * half that turns a screen into a file did not, so the button was matched,
+     * answered and inert, and `Kati.ScreenTapSweepTest` recorded it as *blocked
+     * on a capability the app does not have*. This is that capability.
+     *
+     * The content view rather than `PixelCopy`. Compose draws into the view's
+     * canvas, so `view.draw(canvas)` gets the composed frame without the async
+     * listener dance, and without the window decorations — `android.R.id.content`
+     * is the app's own area, which is what *this page* means. The status bar is
+     * not part of the week.
+     *
+     * **On the UI thread, and the NIF is dirty.** `view.draw` must run on the
+     * main thread and the call arrives on an Erlang scheduler, so this posts
+     * and waits on a latch; the NIF is registered `ERL_NIF_DIRTY_JOB_IO_BOUND`
+     * so that wait cannot stall a normal scheduler. Five seconds is the bound,
+     * after which it answers `error:timeout` rather than hanging a screen.
+     *
+     * Into `cacheDir`, never anywhere the user can see. The file is an
+     * intermediate: `Kati.Native.Files.save_as/2` is what puts it somewhere
+     * permanent, and the picker is where the user chooses. A capture that
+     * wrote to Pictures itself would be saving without being asked.
+     */
+    @JvmStatic
+    fun katiCaptureScreen(name: String): String {
+        val activity = activityRef?.get() ?: return "error:no_activity"
+
+        val result = java.util.concurrent.atomic.AtomicReference<String>("error:timeout")
+        val latch = java.util.concurrent.CountDownLatch(1)
+
+        activity.runOnUiThread {
+            try {
+                val view = activity.findViewById<android.view.View>(android.R.id.content)
+
+                if (view == null || view.width <= 0 || view.height <= 0) {
+                    result.set("error:nothing_drawn")
+                    latch.countDown()
+                } else {
+                    val bitmap = android.graphics.Bitmap.createBitmap(
+                        view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888
+                    )
+
+                    // PixelCopy, not `view.draw(Canvas(bitmap))`.
+                    //
+                    // That is the obvious one and it worked on exactly the
+                    // pages with no pictures on them. Coil decodes into
+                    // HARDWARE bitmaps, and a software Canvas cannot draw one:
+                    // `IllegalArgumentException: Software rendering doesn't
+                    // support hardware bitmaps`, thrown from inside Compose's
+                    // own draw pass. So screen 121 — a week, all type — saved
+                    // fine, and screen 98 — a share card with three posters on
+                    // it — could not, which is MOVIES-AND-TV.md #80's second
+                    // half and the reason it looked like a screen problem.
+                    //
+                    // PixelCopy reads the window's rendered surface instead of
+                    // replaying the view hierarchy, so what it copies is what
+                    // the GPU actually drew, hardware layers included. It is
+                    // also what the platform documents for this: `View.draw`
+                    // is for rendering a view somewhere, and this is asking
+                    // for a picture of the screen.
+                    //
+                    // The fallback is the old path. PixelCopy needs a window
+                    // with a surface and answers `ERROR_SOURCE_NO_DATA` when
+                    // there is not one yet; a page of pure type still captures
+                    // the old way rather than not at all.
+                    val location = IntArray(2)
+                    view.getLocationInWindow(location)
+                    val source = android.graphics.Rect(
+                        location[0], location[1],
+                        location[0] + view.width, location[1] + view.height
+                    )
+
+                    val onCopied = { ok: Boolean ->
+                        if (ok) {
+                            result.set(katiWriteCapture(activity, bitmap, name))
+                        } else {
+                            result.set(katiDrawCapture(activity, view, bitmap, name))
+                        }
+                        latch.countDown()
+                    }
+
+                    try {
+                        android.view.PixelCopy.request(
+                            activity.window, source, bitmap,
+                            { code -> onCopied(code == android.view.PixelCopy.SUCCESS) },
+                            android.os.Handler(android.os.Looper.getMainLooper())
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.w("KatiCapture", "PixelCopy refused, drawing instead", e)
+                        onCopied(false)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("KatiCapture", "capture failed", e)
+                result.set("error:" + (e.javaClass.simpleName))
+                latch.countDown()
+            }
+        }
+
+        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        return result.get()
+    }
+    /**
+     * The old capture, kept as the fallback PixelCopy falls back TO.
+     *
+     * Replays the view hierarchy onto a software Canvas. Correct for a page
+     * of pure type and unable to draw a hardware bitmap, which is every page
+     * with a poster on it — see `katiCaptureScreen`.
+     */
+    @JvmStatic
+    private fun katiDrawCapture(
+        activity: android.app.Activity,
+        view: android.view.View,
+        bitmap: android.graphics.Bitmap,
+        name: String
+    ): String {
+        return try {
+            view.draw(android.graphics.Canvas(bitmap))
+            katiWriteCapture(activity, bitmap, name)
+        } catch (e: Exception) {
+            android.util.Log.e("KatiCapture", "software capture failed", e)
+            "error:" + e.javaClass.simpleName
+        }
+    }
+
+    /** The PNG, written to the cache under a filename Android will accept. */
+    @JvmStatic
+    private fun katiWriteCapture(
+        activity: android.app.Activity,
+        bitmap: android.graphics.Bitmap,
+        name: String
+    ): String {
+        return try {
+            val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_").take(64)
+            val file = File(activity.cacheDir, if (safe.isEmpty()) "kati.png" else safe)
+
+            java.io.FileOutputStream(file).use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+            }
+            bitmap.recycle()
+
+            "ok:" + file.absolutePath
+        } catch (e: Exception) {
+            android.util.Log.e("KatiCapture", "writing the capture failed", e)
+            "error:" + e.javaClass.simpleName
+        }
+    }
+    // KATI-END(K-45 capture-screen)
+
+    // KATI-BEGIN(K-44 open-settings) mob_new=0.4.20
+    /**
+     * Open one of the phone's own settings screens, by name.
+     *
+     * Three controls needed it and had nowhere to go: the battery row on the
+     * notifications diagnostic, and both *Open system settings* pills on the
+     * notification-listener sheet. `Kati.ScreenTapSweepTest` recorded the same
+     * reason against each — *no fence in `native/LEDGER.md` launches an
+     * Android settings intent* — and the research beside them is explicit that
+     * the battery exemption has to be reached by the user rather than granted.
+     * Reaching it is exactly what this does; it grants nothing.
+     *
+     * **A closed set of names, never a caller-supplied action string.** The
+     * whole hazard of a settings bridge is that `startActivity` with an
+     * arbitrary action is a way to launch anything on the device from a
+     * string, and strings in this app come from screens. So the argument is a
+     * Kati word — `battery`, `notification_listener`, `app` — and an unknown
+     * one is refused rather than passed through. `K-43` refuses non-http
+     * schemes for the same reason and says so in the same words.
+     *
+     * `battery` goes to the LIST of battery-optimised apps rather than to
+     * `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, which is a permission
+     * prompt Google's policy restricts and which an app of this kind should
+     * not be firing. The list is where a person turns it off deliberately,
+     * which is the honest route and the one the diagnostic's own copy
+     * describes.
+     */
+    @JvmStatic
+    fun katiOpenSettings(which: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        val action = when (which) {
+            "battery" -> android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+            "notification_listener" ->
+                android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS
+            "app" -> android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            else -> return "error:unknown_destination"
+        }
+
+        return try {
+            val intent = android.content.Intent(action)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            if (which == "app") {
+                intent.data = android.net.Uri.fromParts("package", ctx.packageName, null)
+            }
+
+            ctx.startActivity(intent)
+            "ok"
+        } catch (e: android.content.ActivityNotFoundException) {
+            "error:no_handler"
+        } catch (e: Exception) {
+            "error:" + (e.message ?: "open_failed")
+        }
+    }
+    // KATI-END(K-44 open-settings)
+
+    // KATI-BEGIN(K-46 media-session-bridge) mob_new=0.7.24
+    /**
+     * What this phone is playing, as a JSON array. See [KatiMediaListener].
+     *
+     * `ok:[]` is a complete answer and the commonest one: nothing is playing,
+     * or Kati has not been allowed to look. The two are told apart by
+     * [katiMediaAccessGranted] rather than by an empty list, because a screen
+     * that says *nothing is playing* when it is not allowed to know is the
+     * kind of lie this whole round is about.
+     */
+    @JvmStatic
+    fun katiNowPlaying(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        return "ok:" + KatiMediaListener.nowPlaying(ctx)
+    }
+
+    /**
+     * `ok:granted` or `ok:denied` — whether Kati may read media sessions.
+     *
+     * Read every time rather than cached: this permission is granted in system
+     * settings, which means it changes while Kati is backgrounded, which is
+     * the normal way it changes. `K-33 permission-status` says the same thing
+     * about the runtime ones and is right for the same reason.
+     */
+    @JvmStatic
+    fun katiMediaAccessGranted(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        return if (KatiMediaListener.granted(ctx)) "ok:granted" else "ok:denied"
+    }
+
+    /**
+     * Everything the listener heard while the BEAM was not running, and clear
+     * it. See [KatiMediaListener] for why it records rather than only
+     * answering: a session is gone by the time Kati is next opened, which is
+     * the one case the whole feature exists for.
+     *
+     * The same shape `KatiRefreshWorker` and `Kati.Background.Handoff` already
+     * use — work happens while the BEAM is dead and is read back when it is up.
+     */
+    @JvmStatic
+    fun katiDrainSessions(): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        // Bind again if the process was restarted while the grant stood: the
+        // service is bound by the OS, and a launch that beat the bind would
+        // otherwise stop recording until the next one.
+        KatiMediaListener.watch(ctx)
+
+        return "ok:" + KatiMediaListener.drain(ctx)
+    }
+    // KATI-END(K-46 media-session-bridge)
+
+    // KATI-BEGIN(K-43 open-url) mob_new=0.4.20
+    /**
+     * Hand a URL to whatever the phone opens URLs with.
+     *
+     * Fifteen controls in Kati were drawn, reachable and dead for want of this
+     * one method: screen 83's six source cards and its notices row, screen
+     * 84's two, screen 85's four in Persian, and the three *Open system
+     * settings* pills on the battery and notification-listener sheets. Every
+     * one of them says the name of a place and then does not go there.
+     * `Kati.ScreenTapSweepTest` listed them with the same sentence each time —
+     * *Kati has no fence that opens an external link* — which was true and is
+     * the reason this exists.
+     *
+     * `FLAG_ACTIVITY_NEW_TASK` because the call arrives on the BEAM's thread
+     * with an application context, not an Activity: without it Android throws
+     * rather than opening anything.
+     *
+     * A URL with no handler — no browser installed, or a scheme nothing claims
+     * — is `ActivityNotFoundException` and comes back as `error:no_handler`
+     * rather than a crash. `Kati.Native.Links` turns that into a sentence the
+     * screen can draw, which is the half that makes this honest: a link that
+     * cannot open should say so, not fail silently the way the search did.
+     *
+     * Only `http` and `https`. A bridge that opened any scheme would open
+     * `intent:` and `file:` too, and the strings reaching it come from
+     * `Kati.Services.Attribution` today but are one refactor away from coming
+     * from a cached API response.
+     */
+    @JvmStatic
+    fun katiOpenUrl(url: String): String {
+        val ctx = katiContext() ?: return "error:no_context"
+
+        val parsed = try {
+            android.net.Uri.parse(url)
+        } catch (e: Exception) {
+            return "error:unparseable"
+        }
+
+        val scheme = parsed.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") return "error:unsupported_scheme"
+
+        return try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, parsed)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+            "ok"
+        } catch (e: android.content.ActivityNotFoundException) {
+            "error:no_handler"
+        } catch (e: Exception) {
+            "error:" + (e.message ?: "open_failed")
+        }
+    }
+    // KATI-END(K-43 open-url)
+
     @JvmStatic
     fun katiPermissionStatus(cap: String): String {
         val ctx = katiContext() ?: return "error:no_context"
@@ -2903,6 +3239,9 @@ private fun RenderNodeOffset(node: MobNode, modifier: Modifier) {
     }
 }
 
+// KATI-BEGIN(K-47 long-press-optin) mob_new=0.4.20
+@OptIn(ExperimentalFoundationApi::class)
+// KATI-END(K-47 long-press-optin)
 @Composable
 private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // Apply on_tap as a clickable modifier for any node type except button —
@@ -2920,9 +3259,38 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // would wrap the whole node and swallow taps meant for the trigger inside
     // it — the popover would open and then be impossible to operate.
     // was: if (tapHandle != null && node.type != "button")
-    val tapModifier = if (tapHandle != null && node.type != "button" && node.type != "anchored") {
-        modifier.clickable { MobBridge.nativeSendTap(tapHandle) }
+    // KATI-BEGIN(K-47 long-press) mob_new=0.4.20
+    // `on_long_press` was serialised and read by nobody.
+    //
+    // WHY: Mob.Renderer has registered a handle for `on_long_press` since it
+    // was written (`deps/mob/lib/mob/renderer.ex:356-357`) and this file read
+    // only `on_tap`, so every long press in the app was ink. Three boards want
+    // the gesture and all three were stranded: 330's Remove on a list row,
+    // 144's rating on an episode row, and 146's selection on a poster tile.
+    // Board 251 is what settles which meaning belongs where — *"A tile selects.
+    // A row rates."* — so the bridge owes both, not one.
+    //
+    // `combinedClickable` rather than a second modifier: Compose gives one
+    // node one gesture detector, and `clickable` followed by a long-press
+    // modifier is two, of which the first consumes the pointer. It is still
+    // marked experimental in the Foundation API, which is why the opt-in sits
+    // on the composable rather than module-wide.
+    //
+    // A node with only `on_long_press` and no `on_tap` still gets it: a row
+    // that can be held and not tapped is a legal shape, and the old condition
+    // gated everything on `tapHandle`.
+    val holdHandle = intProp(node.props, "on_long_press")
+    val tappable = node.type != "button" && node.type != "anchored"
+    val tapModifier = if (tappable && (tapHandle != null || holdHandle != null)) {
+        modifier.combinedClickable(
+            onClick = { if (tapHandle != null) MobBridge.nativeSendTap(tapHandle) },
+            onLongClick =
+                if (holdHandle != null) {
+                    { MobBridge.nativeSendTap(holdHandle) }
+                } else null
+        )
     } else modifier
+    // KATI-END(K-47 long-press)
     // KATI-END(K-18 anchored-node)
     val m = tapModifier.then(nodeModifier(node.props))
     when (node.type) {
@@ -3394,7 +3762,11 @@ private fun MobText(node: MobNode, modifier: Modifier) {
     val textAlign     = textAlignProp(node.props)
     val letterSpacing = floatProp(node.props, "letter_spacing")
     val lineHeightMul = floatProp(node.props, "line_height")
-    val fontFamily    = fontFamilyProp(node.props)
+    // KATI-BEGIN(K-48 locale-face-text) mob_new=0.7.24
+    // The app's face stands in when this node names none. See `K-48
+    // locale-face` for why the null branch could not stay *Latin*.
+    val fontFamily    = fontFamilyProp(node.props, LocalKatiFace.current)
+    // KATI-END(K-48 locale-face-text)
     val tapHandle     = intProp(node.props, "on_tap")
 
     val resolvedLineHeight = if (lineHeightMul != null && fontSize != TextUnit.Unspecified)
@@ -3511,9 +3883,96 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
         else     -> ImeAction.Done
     }
 
-    var localValue by remember(node.props["value"]) {
-        mutableStateOf(node.props["value"] as? String ?: "")
+    // KATI-BEGIN(K-42 text-field-echo) mob_new=0.4.20
+    // The stock line is `remember(node.props["value"]) { mutableStateOf(...) }`,
+    // which resets what the user has typed every time the host re-renders with
+    // a new value. That is fine when the host echoes synchronously. Kati's
+    // echo is a NIF round trip into the BEAM and back, and it loses the race:
+    // typing `Marram` into screen 154 produced `Mamr`, and twelve backspaces
+    // left an `r` in the field that could not be deleted, because the host was
+    // still re-asserting a value the field had already moved past.
+    //
+    // So keep the local value authoritative and reconcile against what we have
+    // SENT. Every keystroke is appended to `outstanding`. An incoming value
+    // found in that list is our own echo, possibly a stale one — drop it and
+    // everything queued before it, and leave what the user typed alone. An
+    // incoming value that is NOT in the list came from the host deciding
+    // something, which is the clear disc on screen 19 and the refusal path on
+    // 154, and that one wins outright.
+    //
+    // `outstanding` cannot grow without bound: every echo drains it to the
+    // matching entry, and a host-set value clears it.
+    val incoming = node.props["value"] as? String ?: ""
+    var localValue by remember { mutableStateOf(incoming) }
+    // A plain list and not `mutableStateListOf`: nothing reads it to draw
+    // with, and a snapshot list mutated during composition would schedule a
+    // recomposition for a bookkeeping change nobody is looking at.
+    val outstanding = remember { mutableListOf<String>() }
+
+    //
+    // **A host value is only taken when nothing is in flight**, and that is the
+    // half this fence was missing. The rule above assumed every value the host
+    // sends is either our own echo or a decision; it is neither when the host
+    // simply re-renders a screen whose `:query` assign is a keystroke or two
+    // behind. Then `indexOf` misses, `localValue` is clobbered back, the
+    // keystroke that arrives next is appended to the OLD value, and both are
+    // sent — which is how `matrix` typed one character at a time, two seconds
+    // apart, came out as `mamrtriix` on a Pixel 9a and then stopped accepting
+    // input at all: every subsequent keystroke was overwritten by the same
+    // stale re-render before it could be echoed, and the clear disc could not
+    // get a word in either.
+    //
+    // So an unrecognised value wins ONLY when `outstanding` is empty. With
+    // something in flight it is ignored and our own echo — which is coming —
+    // drains the queue. The two cases the paragraph above names still work,
+    // because both are the host answering a tap rather than a keystroke: by
+    // the time a disc is pressed the field's last keystroke has long since
+    // echoed and the queue is empty.
+    if (incoming != localValue) {
+        val echoed = outstanding.indexOf(incoming)
+
+        if (echoed >= 0) {
+            repeat(echoed + 1) { outstanding.removeAt(0) }
+        } else if (outstanding.isEmpty()) {
+            localValue = incoming
+        }
     }
+    // KATI-END(K-42 text-field-echo)
+
+    // KATI-BEGIN(K-46 text-field-epoch) mob_new=0.4.20
+    // The half K-42 cannot express: a host value that is a DECISION and must
+    // land whatever is in flight.
+    //
+    // K-42's rule is that an unrecognised value wins only when `outstanding`
+    // is empty, and its own comment states the assumption that makes that
+    // safe: *by the time a disc is pressed the field's last keystroke has long
+    // since echoed.* Typing quickly breaks it. On a Pixel 9a, clearing screen
+    // 06's field with the × reset the RESULTS — the host had set `:query` to
+    // "" and re-rendered — and left `zzqwxseverance` sitting in the field,
+    // because a keystroke was still in flight and the empty string looked like
+    // one more stale re-render. The next thing typed was then appended to text
+    // the person had just asked to delete.
+    //
+    // So the host says which it means. `value_epoch` is a number a screen
+    // bumps when it is REPLACING the field rather than echoing it; a change in
+    // it takes the value unconditionally and drops everything queued, because
+    // a decision supersedes every keystroke made before it. Screens that never
+    // replace their field send no epoch and behave exactly as before.
+    //
+    // Deliberately not a boolean `authoritative` prop: the host re-renders for
+    // reasons of its own, and a flag that stayed true would make every one of
+    // those re-renders clobber the field, which is the defect K-42 exists to
+    // stop. A number that only changes when the screen decides something is
+    // the difference between "this value is special" and "this MOMENT is".
+    val epoch = (node.props["value_epoch"] as? Number)?.toInt() ?: 0
+    var seenEpoch by remember { mutableStateOf(epoch) }
+
+    if (epoch != seenEpoch) {
+        seenEpoch = epoch
+        localValue = incoming
+        outstanding.clear()
+    }
+    // KATI-END(K-46 text-field-epoch)
 
     // Only fill width when explicitly asked. The unconditional fillMaxWidth
     // we used to apply broke layouts like ImperialInput's row of three
@@ -3522,13 +3981,83 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     val fillWidth = boolProp(node.props, "fill_width") ?: false
     val tfModifier = if (fillWidth) modifier.fillMaxWidth() else modifier
 
-    TextField(
+    // KATI-BEGIN(K-41 text-field-font) mob_new=0.4.20
+    // The stock field reads no font at all, so `font_family` on a text_field
+    // was a prop the bridge silently dropped — the failure `fontFamilyProp`'s
+    // own comment above calls the most expensive kind in this codebase. It
+    // matters here because Kati's Persian form (screen 156) is three fields
+    // and an empty one is all placeholder: Plus Jakarta Sans carries no
+    // Arabic-script glyph, so both the typed text and the hint fell through
+    // to Android's fallback face.
+    //
+    // The placeholder needs it stated separately — see the `decorationBox`
+    // below, which is this file's own and takes the same style.
+    val family = fontFamilyProp(node.props, LocalKatiFace.current)
+    // KATI-END(K-41 text-field-font)
+
+    // KATI-BEGIN(K-41 text-field-chrome) mob_new=0.4.20
+    // `BasicTextField`, not Material3's `TextField`, and this is the third
+    // thing wrong with the same twelve lines.
+    //
+    // The stock call is the FILLED variant. It brings a container painted in
+    // `surfaceVariant`, an indicator line, `contentPadding` of its own and a
+    // **56dp minimum height** — a whole second field, drawn underneath the one
+    // Kati had already drawn. Every field in this app sits inside a Kati
+    // container by construction: screen 154's is a white pill at radius 14 with
+    // the card shadow, screen 86's is a 52pt search bar. What a person saw was
+    // a near-black slab inside that pill on the hand-add form, and the same in
+    // every search box in the app.
+    //
+    // The 56dp minimum is why the placeholder was **not drawn at all** rather
+    // than merely mis-coloured. Kati's field is 48 tall, so Material's
+    // decoration box was laid out taller than its container and the hint fell
+    // outside it — `e.g. The Long Hollow` is on board 154 and was on no
+    // device. Sampled to be sure: the interior of that field was a uniform
+    // `#FBFAF8` across every pixel, so there was nothing faint to find.
+    //
+    // `BasicTextField` is the text and the cursor and nothing else, which is
+    // the whole of what a bridge should draw when the host draws its own
+    // chrome. The placeholder comes back as a decoration this file controls.
+    //
+    // It also lets the props Mob ALREADY SENDS be honoured. `Mob.Renderer`'s
+    // defaults for a `text_field` include `text_color`, `placeholder_color`
+    // and `text_size`; the stock call read none of them, which is the same
+    // class of silence as the missing `font_family` above.
+    val style = LocalTextStyle.current.copy(
+        fontFamily = family,
+        color = colorProp(node.props, "text_color").takeIf { it != Color.Unspecified }
+            ?: LocalContentColor.current,
+        fontSize = floatProp(node.props, "text_size")?.sp ?: LocalTextStyle.current.fontSize,
+    )
+
+    val hintColor = colorProp(node.props, "placeholder_color")
+        .takeIf { it != Color.Unspecified }
+        ?: style.color.copy(alpha = 0.5f)
+    // KATI-END(K-41 text-field-chrome)
+
+    BasicTextField(
         value         = localValue,
         onValueChange = { new ->
             localValue = new
+            // KATI-BEGIN(K-42 text-field-echo-send) mob_new=0.4.20
+            // Recorded before it is sent, so the echo that comes back can be
+            // recognised as ours. See the block above `BasicTextField`.
+            outstanding.add(new)
+            // KATI-END(K-42 text-field-echo-send)
             changeHandle?.let { MobBridge.nativeSendChangeStr(it, new) }
         },
-        placeholder   = { Text(placeholder) },
+        // KATI-BEGIN(K-41 text-field-chrome-apply) mob_new=0.4.20
+        textStyle       = style,
+        cursorBrush     = SolidColor(style.color),
+        decorationBox   = { field ->
+            Box(contentAlignment = Alignment.CenterStart) {
+                if (localValue.isEmpty() && placeholder.isNotEmpty()) {
+                    Text(placeholder, style = style, color = hintColor, maxLines = 1)
+                }
+                field()
+            }
+        },
+        // KATI-END(K-41 text-field-chrome-apply)
         modifier      = tfModifier
             .onFocusChanged { state ->
                 if (state.isFocused) focusHandle?.let { MobBridge.nativeSendFocus(it) }
@@ -4425,6 +4954,40 @@ private fun MobTabBar(node: MobNode, modifier: Modifier) {
 
 private fun nodeModifier(props: Map<String, Any?>): Modifier {
     var m: Modifier = Modifier
+
+    // KATI-BEGIN(K-35 test-tag) mob_new=0.7.24
+    // `accessibility_id` reaches the bridge and nothing reads it.
+    //
+    // `Mob.Renderer` emits the prop for every atom-tagged control — that is the
+    // whole reason Kati insists tap tags are atoms rather than tuples — and it
+    // arrives here in `props` under exactly that key. Before this fence the
+    // bridge dropped it on the floor, so a control the Elixir side had named
+    // was anonymous by the time Compose drew it: nothing on the device could
+    // address it, which is why the app has 1794 passing host tests and no test
+    // that has ever tapped it on a phone.
+    //
+    // ONLY `testTag`, never `contentDescription`. Setting both was the first
+    // attempt and it is an accessibility regression: `contentDescription` is
+    // what TalkBack speaks, so every control in the app would announce its
+    // machine name — "choose en", "root library", "screen home" — over the
+    // label a person is meant to hear. In an app that carries a 235% Dynamic
+    // Type sweep and an RTL mirror for every screen, shipping that would be a
+    // poor trade for a test convenience.
+    //
+    // Nothing is lost. `testTagsAsResourceId` on the root `RenderNode`
+    // publishes every tag under the tree as an Android `resource-id`, which is
+    // what a `uiautomator dump` reads and how a test reaches another process's
+    // window. Verified on a device: the dump returns
+    // `resource-id="choose_en"` with no `contentDescription` set anywhere.
+    //
+    // Applied here rather than per-composable because every node type routes
+    // its modifier through this one function, so one edit names all 152
+    // screens' controls at once.
+    (props["accessibility_id"] as? String)?.takeIf { it.isNotEmpty() }?.let { id ->
+        m = m.testTag(id)
+    }
+    // KATI-END(K-35 test-tag)
+
     val cornerRadius = floatProp(props, "corner_radius") ?: 0f
     val shape = if (cornerRadius > 0f) RoundedCornerShape(cornerRadius.dp) else null
 
@@ -4793,14 +5356,37 @@ private val katiMono by lazy { FontFamily(Font(R.font.kati_mono)) }
 private val katiSymbols by lazy { FontFamily(Font(R.font.kati_symbols)) }
 private val katiSymbolsFilled by lazy { FontFamily(Font(R.font.kati_symbols_filled)) }
 
-private fun fontFamilyProp(props: Map<String, Any?>): FontFamily? =
+// KATI-BEGIN(K-48 locale-face) mob_new=0.7.24
+// The app's own default face, taken from the ROOT node the way
+// `K-12 rtl-root` takes the writing direction, and for the same reason:
+// Kati's language is an in-app setting, so a Persian reader on an English
+// phone must get Vazirmatn and the two must never disagree.
+//
+// This exists because `null` used to mean *Latin* rather than *the app's
+// face*, and that is the one branch no screen can reach past. Every Text a
+// screen writes can carry `font_family`; every Text a COMPONENT builds
+// cannot — `MishkaChip`'s `expand/3` discards its children, and
+// `MishkaSegmentedControl` and `MishkaNavLink` take their labels as strings.
+// `Kati.Screens.Fa`'s moduledoc names that as the reason the Persian mirrors
+// adopt so little of `Kati.Components`, and files the upstream ask as *give
+// the three a content slot*. Resolving the null case against the root is
+// strictly better than that ask and than putting `font_family` on all 77
+// components: it fixes every unstyled Text at once, including the ones inside
+// components, and it is one branch rather than a convention to be obeyed.
+//
+// `null` here still means Latin, so a build that sets nothing behaves exactly
+// as before. `Kati.PersianFontTest` is what holds the Elixir side.
+val LocalKatiFace = staticCompositionLocalOf<String?> { null }
+
+private fun fontFamilyProp(props: Map<String, Any?>, fallback: String? = null): FontFamily? =
     // Both spellings. The template reads `font`; ~MOB markup naturally says
     // `font_family`, and a prop that is silently ignored is the single most
     // expensive kind of mistake in this codebase — it renders, it just renders
     // wrong, and nothing anywhere says so.
-    when (val name = (props["font_family"] ?: props["font"]) as? String) {
-        // No prop means body text, and body text is Plus Jakarta Sans. This is
-        // the case that matters: it is every unstyled Text in the app.
+    when (val name = (props["font_family"] ?: props["font"]) as? String ?: fallback) {
+        // No prop AND no app face means body text, and body text is Plus
+        // Jakarta Sans. An explicit `sans` still forces Latin, which is what a
+        // Latin title inside a Persian page needs.
         null, "sans" -> katiSans
         "mono", "monospace" -> katiMono
         "fa" -> katiFa
@@ -4809,6 +5395,7 @@ private fun fontFamilyProp(props: Map<String, Any?>): FontFamily? =
         else -> try { FontFamily(Typeface.create(name, Typeface.NORMAL)) }
                 catch (_: Exception) { katiSans }
     }
+// KATI-END(K-48 locale-face)
 // KATI-END(K-14 bundled-fonts)
 
 // ── Tab bar helpers ───────────────────────────────────────────────────────────

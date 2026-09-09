@@ -45,6 +45,12 @@ defmodule Kati.Theme do
   @green 0xFF4E9A73
   @bronze 0xFFB08E55
   @red 0xFFB4553C
+
+  # Board 315, and 186's finding before it: `@red` was kept unchanged in the
+  # dark palette and is illegible on `#121110`. `#E08A6E` is the same red
+  # unshaded — the `:step` derivation `Kati.Theme.Palette` names, the one
+  # `#3E8460` and `#96723C` already take.
+  @red_dark 0xFFE08A6E
   @hairline_light 0x14000000
 
   # ── Dark ─────────────────────────────────────────────────────────────────
@@ -102,7 +108,7 @@ defmodule Kati.Theme do
       on_surface: @ink_on_dark,
       muted: @muted_dark,
       border: @hairline_dark,
-      error: @red,
+      error: @red_dark,
       on_error: @ink,
       radius_sm: 2,
       radius_md: 20,

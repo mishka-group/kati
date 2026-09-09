@@ -131,26 +131,35 @@ defmodule Kati.Screens.Series do
   # #60 draws inactive, so these two are the whole of it.
   @series_kinds [:tv, :anime]
 
-  def mount(_params, _session, socket) do
+  # `use Mob.Screen` and not `Kati.Screens.Root`, so this screen's own `mount/3`
+  # takes the push's params directly. `Map.get/2` rather than a pattern match on
+  # the key, so a bare push — the gallery's, every sweep's — still gets the top
+  # of the shelf, which is what this screen has always drawn.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:series, series())
+     |> Mob.Socket.assign(:series, series(Map.get(params || %{}, :id)))
+     |> Mob.Socket.assign(:back, Kati.Screens.Pushed.back_label(params, "Library"))
+     |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:menu?, false)}
   end
 
   @doc """
   The series this screen draws: the user's, or the drawing's.
 
-  The English page. `tracked_series/0` is the half that reads the store and it
+  The English page. `tracked_series/1` is the half that reads the store and it
   answers in no language at all; everything below this line is presentation,
   which is what lets `Kati.Screens.SeriesFa` share the reads without sharing
   the wording.
+
+  `id` is the tracked row a poster carried here. Without one the referent is
+  the top of the shelf, which is what every arrival used to get.
   """
-  @spec series() :: map()
-  def series do
-    case tracked_series() do
+  @spec series(String.t() | nil) :: map()
+  def series(id \\ nil) do
+    case tracked_series(id) do
       nil -> drawn_series()
       facts -> shaped(facts)
     end
@@ -187,6 +196,43 @@ defmodule Kati.Screens.Series do
     Map.put(drawn, :by_season, by_season)
   end
 
+  @doc """
+  Board 248's series: one Kati has, whose episode list it does not.
+
+  A second drawing of screen 04 rather than a screen of its own — 248's own
+  footnote argues that the empty primary slot is what makes it a *state* of 04.
+  `Kati.ScreenDesignLiteralTest`'s `drawn_state/0` installs this so the board is
+  compared against the page in the state it draws, the same way boards 12, 154
+  and 157 are.
+
+  Everything on it is what a hand-added series actually has: a title, a year,
+  a status off the shelf, and nothing else. No seed, so `hero_art/1` draws the
+  `No poster` placeholder; no seasons, so the season bar and the primary are
+  both absent; `episodes: []`, which is the whole subject.
+  """
+  @spec drawn_without_episodes() :: map()
+  def drawn_without_episodes do
+    %{
+      tracked_id: nil,
+      followed?: false,
+      private?: false,
+      anime?: false,
+      media_kind: :tv,
+      status: :not_started,
+      title: "The Northern Gardens",
+      seed: nil,
+      meta: "2023",
+      season: nil,
+      seasons: [],
+      current_season: nil,
+      total: 0,
+      watched: 0,
+      next_air: nil,
+      episodes: [],
+      by_season: %{}
+    }
+  end
+
   # ── Reading `Kati.Media` ────────────────────────────────────────────────────
 
   @doc """
@@ -201,14 +247,19 @@ defmodule Kati.Screens.Series do
   names, or which episodes are ticked, and the first eviction would be the day
   it did.
 
-  **Which series.** Nothing hands this screen an id — `Kati.Screens.Library`
-  taps a poster and pushes this module with no title attached, exactly as
-  `Kati.Screens.Film` is pushed. So the referent is the one the shelf itself
-  puts first, and `:shelf` is what decides that: it is the action
+  **Which series.** The one the caller names, and otherwise the one the shelf
+  itself puts first. `:shelf` decides both: it is the action
   `Kati.Media.TrackedTitle` names for "screens 03, 20 and 21" and it is where
-  *keeps history, hides from shelf* is enforced. Two reads because `:tv` and
-  `:anime` are two sections of one shelf, re-sorted as one because
+  *keeps history, hides from shelf* is enforced, so a title read around it
+  would be a title the user archived, reachable again by id. Two reads because
+  `:tv` and `:anime` are two sections of one shelf, re-sorted as one because
   `last_touched_at` is the order and it does not restart per kind.
+
+  An id that names no shelf row answers `nil` rather than the shelf's head.
+  That is `Kati.Screens.BookDetail.shelved_book/1`'s rule and its reason:
+  a title archived or deleted under the user is not the same fact as an empty
+  shelf, and quietly showing a different show is the swap this argument exists
+  to prevent.
 
   `nil` is the ordinary answer on a fresh install, and a database that cannot
   be read at all answers `nil` too: `Ash.read!` on a device mid-migration
@@ -216,14 +267,52 @@ defmodule Kati.Screens.Series do
   values it was drawn from — the same degradation `Kati.Screens.Film` and
   `Kati.Calendars.Today` make.
   """
-  @spec tracked_series() :: map() | nil
-  def tracked_series do
-    case newest_series() do
+  @spec tracked_series(String.t() | nil) :: map() | nil
+  def tracked_series(id \\ nil) do
+    case series_record(id) do
       nil -> nil
       tracked -> facts(tracked)
     end
   rescue
     _ -> nil
+  end
+
+  @doc """
+  The params that name a series to screen 04, or to its Persian twin.
+
+  Here rather than at each caller so the key is spelled once. The argument is a
+  shelf row — `Kati.Screens.Library.shaped/3`'s, or `Kati.Screens.LibraryFa`'s
+  copy of it — and the only field on it that is an identity rather than a
+  caption is `:id`. A row without one is `Kati.Library.Sample`'s, and it yields
+  `%{}`: the drawing has no tracked row to name, and a title carried as a name
+  would be a caption pretending to be an identity.
+
+      iex> Kati.Screens.Series.params_for(%{id: "abc", title: "The Long Hollow"})
+      %{id: "abc"}
+
+      iex> Kati.Screens.Series.params_for(%{title: "The Long Hollow"})
+      %{}
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{id: id}
+  def params_for(_row), do: %{}
+
+  # The series the caller named, or — given no id — the top of the shelf.
+  # `Enum.find` over the SAME `:shelf` reads rather than an `Ash.Query.filter`
+  # expression, so this screen goes on reading by action name only and the note
+  # beside the aliases stays true. The per-kind `limit(1)` is deliberately gone
+  # from this direction: the row the caller named need not be the newest of its
+  # kind, and `newest_series/0` — which does need it — is left alone below.
+  defp series_record(nil), do: newest_series()
+
+  defp series_record(title_id) do
+    @series_kinds
+    |> Enum.flat_map(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.read!()
+    end)
+    |> Enum.find(&(&1.id == title_id))
   end
 
   # The top of the series shelf, newest touch first across both kinds.
@@ -247,13 +336,53 @@ defmodule Kati.Screens.Series do
     episodes = CachedEpisode.for_title(tracked.source, tracked.source_id)
 
     case season_numbers(seasons, episodes) do
-      [] -> nil
+      # A tracked series with no cached episodes. `nil` here sent the page to
+      # `drawn_series/0`, so **every hand-typed series opened as The Long
+      # Hollow** — hollow71 artwork, three seasons and seven named episodes,
+      # none of which the reader had ever heard of. MOVIES-AND-TV.md #38.
+      #
+      # There IS a row, so the page draws it. The gate this screen keeps —
+      # *either every value is this user's or every value is the drawing's* —
+      # is about whether a row exists, not about whether a provider has filled
+      # it in; a title with no episodes yet is an ordinary state and
+      # `no_episodes/2` is what it looks like.
+      [] -> no_episodes(tracked, cached)
       numbers -> assembled(tracked, cached, seasons, episodes, numbers)
     end
   end
 
+  # The reader's own series, with nothing under it. One season labelled by the
+  # bookmark or by 1, holding no episodes — which `shaped/1` turns into an
+  # empty strip, `0 of 0 watched`, and the card `episodes/1` draws in place of
+  # a list.
+  defp no_episodes(tracked, cached) do
+    %{
+      title: cached && cached.title,
+      seed: seed_of(tracked, cached),
+      tracked_id: tracked.id,
+      # Whether Kati tells you about new episodes of this show — the column
+      # screen 25 is a page about, which nothing anywhere could set for one
+      # title until the bookmark disc could (MOVIES-AND-TV.md #81).
+      followed?: tracked.notify_new_episodes,
+      status: tracked.status,
+      private?: tracked.private,
+      anime?: tracked.kind == :anime,
+      media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
+      genres: cached && cached.genres,
+      season_count: nil,
+      seasons: [%{number: tracked.progress_season || 1, name: nil, total: 0, episodes: []}],
+      current: tracked.progress_season || 1,
+      next_air: :unknown
+    }
+  end
+
   defp assembled(tracked, cached, seasons, episodes, numbers) do
-    ticked = tracked |> episode_ticks() |> CachedEpisode.ticked_ids()
+    watches = episode_ticks(tracked)
+    ticked = CachedEpisode.ticked_ids(watches)
+    # The same rows the ticks come from, read once for the rating column board
+    # 143 specifies — see `episode_facts/4`. A second query would be a second
+    # set of ratings able to disagree with the ticks drawn beside them.
+    ratings = Kati.Screens.Series.ratings_by_episode(watches)
     now = Kati.Time.now()
     inventory = Map.new(seasons, &{&1.season_number, &1})
     grouped = Enum.group_by(episodes, & &1.season_number)
@@ -261,13 +390,29 @@ defmodule Kati.Screens.Series do
     %{
       title: cached && cached.title,
       seed: seed_of(tracked, cached),
+      # The row a tick belongs to. Carried on the assembled map rather than
+      # re-read in the handler, so the page cannot write a tick against a
+      # different title from the one it is drawing.
+      tracked_id: tracked.id,
+      followed?: tracked.notify_new_episodes,
+      status: tracked.status,
+      private?: tracked.private,
+      anime?: tracked.kind == :anime,
+      media_kind: if(Kati.Media.Anime.film?(tracked.kind, cached), do: :movie, else: :tv),
       genres: cached && cached.genres,
       # The inventory's count, never `length(numbers)` — see the moduledoc.
       season_count: CachedSeason.count(seasons),
       seasons:
         Enum.map(
           numbers,
-          &season_facts(&1, Map.get(inventory, &1), Map.get(grouped, &1, []), ticked, now)
+          &season_facts(
+            &1,
+            Map.get(inventory, &1),
+            Map.get(grouped, &1, []),
+            ticked,
+            ratings,
+            now
+          )
         ),
       current: current_number(tracked, numbers),
       next_air: next_airing(episodes, now)
@@ -299,28 +444,62 @@ defmodule Kati.Screens.Series do
     if n in numbers, do: n, else: List.first(numbers)
   end
 
-  defp season_facts(number, inventory, episodes, ticked, now) do
+  defp season_facts(number, inventory, episodes, ticked, ratings, now) do
     %{
       number: number,
       name: inventory && inventory.name,
       # The provider's count when it gave one, and how many are cached when it
       # did not. `denominator/1` is what turns a stored zero back into nil.
       total: CachedSeason.denominator(inventory) || length(episodes),
-      episodes: Enum.map(episodes, &episode_facts(&1, ticked, now))
+      episodes: Enum.map(episodes, &episode_facts(&1, ticked, ratings, now))
     }
   end
 
-  defp episode_facts(episode, ticked, now) do
+  defp episode_facts(episode, ticked, ratings, now) do
     air = Release.air(episode)
 
     %{
       number: episode.episode_number,
+      # Which season this episode belongs to, off the cached row rather than
+      # off the strip's label — the label is `S2` and this is `2`, and a
+      # provider's specials sit in season 0.
+      season: episode.season_number,
       title: episode.title,
       runtime: episode.runtime_minutes,
       air: air,
       airing: Release.airing(air, now),
-      watched: CachedEpisode.ticked?(episode, ticked)
+      watched: CachedEpisode.ticked?(episode, ticked),
+      # Your own verdict on this episode, in the five-point scale the column
+      # prints. Board 143 is the drawing of it and its own moduledoc names this
+      # function's caller as where the wiring belongs: *"Wiring the column to
+      # `Watch.for_episode/2` belongs to `Kati.Screens.Series` itself."*
+      rating: Map.get(ratings, episode.source_id),
+      # What a tick is written against. `Kati.Media.Watch` names an episode by
+      # `episode_source_id` and nothing else, so a row drawn without one can be
+      # flipped on screen and never persisted — which is what #90 opened on.
+      source_id: episode.source_id
     }
+  end
+
+  @doc """
+  The rating standing against each episode, in the five-point display scale.
+
+  Newest first wins, the same rule `Kati.Screens.Rating.newest_log/0` applies
+  at the title level: a rewatch you rated last night is what the column
+  should print, not the verdict you left in 2021. A tick with no rating
+  contributes nothing, so an unrated watched episode draws no column at all —
+  board 143's own words, and the reason `Kati.Screens.EpisodeRatings.
+  rating_node/1` answers `[]` rather than five hollow stars.
+
+      iex> Kati.Screens.Series.ratings_by_episode([])
+      %{}
+  """
+  @spec ratings_by_episode([Watch.t()]) :: map()
+  def ratings_by_episode(watches) do
+    watches
+    |> Enum.filter(&(is_binary(&1.episode_source_id) and is_integer(&1.rating)))
+    |> Enum.sort_by(& &1.inserted_at, {:asc, DateTime})
+    |> Map.new(&{&1.episode_source_id, &1.rating / 2})
   end
 
   # The next episode is the first one still ahead, in aired order — which is
@@ -371,6 +550,32 @@ defmodule Kati.Screens.Series do
     view = Map.fetch!(by_season, current)
 
     %{
+      # `assembled/5` puts `tracked_id` on the facts and this map used to drop
+      # it, which is why `tick/2`'s `Map.get(series, :tracked_id)` was always
+      # `nil` and no tick on a real series ever reached `write_tick/2`. It is
+      # also what the ⋯ menu needs: a row that opens screen 34 has to name the
+      # series the page is drawing. `Map.get/2` rather than `facts.tracked_id`
+      # so a facts map built without the key raises nothing.
+      tracked_id: Map.get(facts, :tracked_id),
+      # The same class of key, dropped the same way: `assembled/5` puts it on
+      # the facts and this map is where a fact goes to be forgotten. The
+      # bookmark disc reads it, and a disc that cannot tell whether it is on
+      # is a disc that cannot be drawn filled.
+      followed?: Map.get(facts, :followed?, false),
+      private?: Map.get(facts, :private?, false),
+      # Two more of the same class, and this map is where a fact goes to be
+      # forgotten — the ⋯ rows that read them drew *Mark as anime* on a title
+      # already marked and *This is a series* on a series, because neither key
+      # survived the rebuild. Found on the Pixel_9a one tap after correcting a
+      # Kind (MOVIES-AND-TV.md #104, #113).
+      anime?: Map.get(facts, :anime?, false),
+      media_kind: Map.get(facts, :media_kind, :tv),
+      # Board 248 draws the shelf's own chip over the hero — `Not started` on
+      # the frame, `Watching` on the second one — and its caption rules that it
+      # stays the shelf's chip rather than becoming *Added by hand*, "which
+      # would say how the row got here rather than where you are in it". One
+      # more fact this map used to forget.
+      status: Map.get(facts, :status),
       title: facts.title || "Untitled",
       seed: facts.seed,
       meta: meta_line(facts),
@@ -413,7 +618,35 @@ defmodule Kati.Screens.Series do
       title: episode_title(episode),
       sub: episode_sub(episode, zone),
       watched: episode.watched,
-      aired: episode.airing != :upcoming
+      aired: episode.airing != :upcoming,
+      # Carried through to the view, and this is the one key that is not for
+      # drawing. `episode_facts/3` above puts it on the fact map with a comment
+      # saying why — *a row drawn without one can be flipped on screen and
+      # never persisted* — and then this function, which rebuilds the map for
+      # the tree, dropped it.
+      #
+      # `write_tick/2` matches on `%{source_id: _}` and has no clause for a map
+      # without the key, so **Mark next watched killed the screen**: a
+      # `FunctionClauseError` out of `handle_info/2`, the screen process gone,
+      # and `Kati.Supervisor` restarting the root — so the app jumped to Home
+      # and the episode stayed unticked. Invisible until a real series existed
+      # to press it on, because `Kati.Library.Sample`'s episodes carry no
+      # `source_id` either and its ticks were refused politely by the
+      # `%{source_id: nil}` clause.
+      #
+      # `Map.get/2` rather than a dot: the drawing's episodes have no such key
+      # and must keep reaching that refusing clause rather than raising here.
+      source_id: Map.get(episode, :source_id),
+      # The other three that are not for drawing, and that were dropped here
+      # for the same reason `source_id` was. `Kati.Media.Watch` has columns for
+      # the season and the episode number and nothing wrote them, so screen 07
+      # labelled every tick `SERIES` where board 07 draws `S2 E5`
+      # (MOVIES-AND-TV.md #46) — and `Time watched` read `0h 0m` however many
+      # episodes were ticked, because it looked for a runtime on the TITLE and
+      # TMDB puts a series' runtime on each EPISODE (#18).
+      season: Map.get(episode, :season),
+      runtime: Map.get(episode, :runtime),
+      rating: Map.get(episode, :rating)
     }
   end
 
@@ -520,6 +753,8 @@ defmodule Kati.Screens.Series do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column fill_width={true}>
@@ -532,14 +767,42 @@ defmodule Kati.Screens.Series do
             padding_bottom={40}
           >
             {Kati.Screens.Series.season_card(s, pct)}
-            {Kati.Screens.Series.actions()}
+            {Kati.Screens.Series.refusal(Map.get(assigns, :save_error))}
+            {Kati.Screens.Series.actions(s)}
             {Kati.Screens.Series.episodes_header(s)}
             {Kati.Screens.Series.episodes(s)}
           </Column>
         </Column>
       </Scroll>
-      {Kati.Screens.Series.chrome(assigns.menu?)}
+      {Kati.Screens.Series.chrome(assigns.menu?, Map.get(assigns, :back, "Library"), s)}
     </Box>
+    """
+  end
+
+  @doc """
+  A tick the store refused, said out loud.
+
+  `tick/2` has assigned `:save_error` since the day it could fail, and nothing
+  drew it — so a refused tick was a tap into total nothing: the row did not
+  fill, the counter did not move, and the page said no more than it would have
+  if the finger had missed. MOVIES-AND-TV.md #39, and the same defect `D-60`
+  describes on the Persian side.
+
+  Between the season card and the buttons, which is where screen 112 puts its
+  own: after the thing that failed to change and before the controls that were
+  just pressed.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={14} />
+      {Kati.UI.SettingsList.note("error", @message)}
+    </Column>
     """
   end
 
@@ -570,6 +833,8 @@ defmodule Kati.Screens.Series do
       </Box>
       <Box fill_width={true} fill_height={true} align="bottom">
         <Column fill_width={true} padding_left={21} padding_right={21} padding_bottom={6}>
+          {Kati.Screens.Series.status_chip(Map.get(s, :status))}
+          <Spacer size={9} />
           <Text
             text={s.title}
             text_size={30}
@@ -601,7 +866,7 @@ defmodule Kati.Screens.Series do
   def hero_art(seed) do
     case Kati.Design.Images.hero(seed) do
       nil ->
-        ~MOB"<Spacer size={0} />"
+        Kati.Screens.Series.no_poster()
 
       src ->
         ~MOB"""
@@ -610,13 +875,106 @@ defmodule Kati.Screens.Series do
     end
   end
 
+  @doc """
+  Board 248's poster placeholder: a `movie` glyph over the word.
+
+  A title added by hand has no artwork, and until board 248 the hero was 330pt
+  of flat `track_off` with a name floating at the bottom of it — an emptiness
+  the page never explained, which is the shape this repository keeps replacing
+  with a sentence. `No poster` is a fact rather than a fault, and saying it is
+  what stops the band reading as an image that failed to load.
+  """
+  @spec no_poster() :: map()
+  def no_poster do
+    ~MOB"""
+    <Box fill_width={true} height={330} align="center">
+      <Column fill_width={true} align="center">
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          {Kati.UI.symbol("movie", size: 30, color: Palette.rail_idle())}
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={9} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Text
+            text="No poster"
+            font_family="mono"
+            text_size={11}
+            text_color={Palette.rail_idle()}
+            max_lines={1}
+          />
+          <Spacer weight={1.0} />
+        </Row>
+      </Column>
+    </Box>
+    """
+  end
+
+  @doc """
+  The shelf's own status chip, over the hero — or nothing on a page that has no
+  row behind it.
+
+  Board 248 draws it above the title, and its caption settles what it says: the
+  chip is the shelf's, so a hand-added show you are part-way through reads
+  `Watching`. `Kati.SeriesSettings.Sample.statuses/0` carries the same three
+  the other way round — a `status` beside each label, so screen 35's tiles are
+  named for the value and not for the word (MOVIES-AND-TV.md #157).
+  """
+  @spec status_chip(atom() | nil) :: map()
+  def status_chip(nil), do: ~MOB"<Spacer size={0} />"
+
+  def status_chip(status) do
+    assigns = %{label: Kati.Screens.Series.status_label(status)}
+
+    ~MOB"""
+    <Row fill_width={true}>
+      <Row
+        height={24}
+        corner_radius={12}
+        background={Palette.card()}
+        align="center"
+        padding_left={10}
+        padding_right={10}
+      >
+        <Text
+          text={@label}
+          text_size={10.5}
+          font_weight="semibold"
+          text_color={Palette.ink_soft()}
+          max_lines={1}
+        />
+      </Row>
+      <Spacer weight={1.0} />
+    </Row>
+    """
+  end
+
+  @doc """
+  A stored status in the shelf's own words.
+
+      iex> Kati.Screens.Series.status_label(:not_started)
+      "Not started"
+
+      iex> Kati.Screens.Series.status_label(:watching)
+      "Watching"
+  """
+  @spec status_label(atom()) :: String.t()
+  def status_label(:not_started), do: "Not started"
+  def status_label(:watching), do: "Watching"
+  def status_label(:paused), do: "Paused"
+  def status_label(:finished), do: "Finished"
+  def status_label(:dropped), do: "Dropped"
+  def status_label(other), do: other |> to_string() |> String.capitalize()
+
   # The floating chrome. `arrow_back_ios_new` rather than a chevron, because
   # that is the glyph the drawing names.
   @doc false
-  def chrome(menu?) do
+  def chrome(menu?, label \\ "Library", s \\ %{}) do
     back = {self(), :back}
     fill = Palette.chrome_disc()
     lift = "0 6 16 -8 #991A1917"
+    assigns = %{back: label}
 
     ~MOB"""
     <Box fill_width={true} fill_height={true} align="top">
@@ -631,10 +989,10 @@ defmodule Kati.Screens.Series do
           align="center"
           on_tap={back}
         >
-          {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
+          {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
           <Spacer size={6} />
           <Text
-            text="Library"
+            text={@back}
             text_size={13.5}
             font_weight="semibold"
             letter_spacing={-0.01}
@@ -642,7 +1000,7 @@ defmodule Kati.Screens.Series do
           />
         </Row>
         <Spacer weight={1.0} />
-        {Kati.Screens.Series.more_disc(fill, lift, menu?)}
+        {Kati.Screens.Series.more_disc(fill, lift, menu?, s)}
       </Row>
     </Box>
     """
@@ -662,7 +1020,7 @@ defmodule Kati.Screens.Series do
   # inside a SQUARE `size x size` box, so a 42-tall pill 100-odd wide has no
   # shape to be built out of.
   @doc false
-  def more_disc(fill, lift, menu?) do
+  def more_disc(fill, lift, menu?, s \\ %{}) do
     trigger =
       MishkaActionIcon.action_icon(
         [
@@ -690,8 +1048,43 @@ defmodule Kati.Screens.Series do
         Kati.UI.Menu.item("info", "Show details", :show_details),
         Kati.UI.Menu.item("checklist", "Episode order", :episode_order),
         Kati.UI.Menu.rule(),
-        Kati.UI.Menu.item("tune", "Show settings", :open_settings)
-      ],
+        Kati.UI.Menu.item("tune", "Show settings", :open_settings),
+        # #94's row. `Kati.Screens.DropSheet`'s drawn entry is a Drop action on
+        # this board, which is not a gesture 04, 66 or 74 draw, so it was
+        # reachable only from the developer gallery that #94 deletes. A menu
+        # row rather than dead code, on the precedent
+        # `Kati.Screens.Library.menu/1` argues at length: the alternative was
+        # leaving a finished screen unreachable forever.
+        #
+        # *Rate an episode* used to sit beside it and no longer does. That row
+        # opened `Kati.Screens.RateEpisode` with no subject — the sheet then
+        # picked the newest episode log in the whole store, which is a
+        # different show as often as not. Its own comment said it was a
+        # placeholder until 04 drew the gesture; the gesture is drawn, in
+        # `rating_column/1`, one per episode, so the row's exit condition has
+        # been met and the row is gone. You rate the episode you tapped.
+        Kati.UI.Menu.item("do_not_disturb_on", "Drop this show", :open_drop_sheet),
+        # The same row screen 08 carries, for the same reason: a series is as
+        # private as a film, and screen 98's *Hide titles I marked private* has
+        # to be able to reach both or it is a switch about half a shelf.
+        Kati.UI.Menu.item(
+          Kati.Screens.Film.private_icon(s),
+          Kati.Screens.Film.private_label(s),
+          :toggle_private
+        ),
+        # And the same for the anime flag, for the same reason: anime is
+        # overwhelmingly series, so a row only on screen 08 would be a rule
+        # about the wrong half of the shelf. MOVIES-AND-TV.md #104.
+        Kati.Screens.Film.anime_item(s),
+        # And the same row screen 08 carries: a Kind picked wrong on 154 could
+        # never be corrected anywhere (#113), and a series that is really a
+        # film is the same mistake the other way round.
+        Kati.Screens.Film.kind_item(s)
+      ]
+      # `anime_item/1` answers `[]` over the drawing, where there is no row to
+      # tag — dropped rather than drawn dead, which is screen 08's own rule for
+      # the identical pair.
+      |> Enum.reject(&(&1 == [])),
       dismiss: :close_menu
     )
   end
@@ -814,8 +1207,35 @@ defmodule Kati.Screens.Series do
     )
   end
 
-  @doc false
-  def actions do
+  # `test/design/screens/04.html:33` draws this button as `onClick="{{ markNext
+  # }}"` — one of only five onClick attributes in the whole board set, so the
+  # drawing names the handler rather than leaving it to be inferred. The tag is
+  # built into a variable first, the way `Kati.Screens.SeriesFa.actions/1`
+  # already does for the mirror of this same button.
+  #
+  # `actions/1` takes the series, and did not: the mark button acts on the
+  # season already on the socket and carries no subject, but the two discs
+  # beside it do — one follows this show and one rates it, and both need to
+  # know whether there is a row behind the page at all (MOVIES-AND-TV.md #81).
+  @doc """
+  The primary and the two discs beside it — or, on a series with no episode
+  list, nothing at all.
+
+  Board 248 rules the empty case in its own footnote: *"No primary button here.
+  There is no next episode to mark, and a primary that refuses is worse than
+  none. 04's one primary slot stays empty."* The two discs go with it because
+  the board draws no row of controls at all above its claim card, and a lone
+  disc floating where a button was is a layout the design does not have.
+
+  What replaces them is `episodes/1`'s **What still works** group, which is
+  three real actions rather than one refusing one.
+  """
+  @spec actions(map()) :: map()
+  def actions(%{episodes: []}), do: ~MOB"<Spacer size={0} />"
+
+  def actions(s) do
+    mark = {self(), :mark_next}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} align="center">
@@ -826,6 +1246,7 @@ defmodule Kati.Screens.Series do
             corner_radius={25}
             background={Palette.ink_fill()}
             align="center"
+            on_tap={mark}
           >
             <Spacer weight={1.0} />
             {Kati.UI.symbol("check", size: 19, color: Palette.on_ink())}
@@ -841,9 +1262,11 @@ defmodule Kati.Screens.Series do
           </Row>
         </Box>
         <Spacer size={10} />
-        {Kati.Screens.Series.action_disc("bookmark")}
+        {Kati.Screens.Series.list_disc(s)}
         <Spacer size={10} />
-        {Kati.Screens.Series.action_disc("star")}
+        {Kati.Screens.Series.follow_disc(s)}
+        <Spacer size={10} />
+        {Kati.Screens.Series.rate_disc(s)}
       </Row>
     </Column>
     """
@@ -855,22 +1278,83 @@ defmodule Kati.Screens.Series do
   # the design's own `shadow_card_soft()`.
   #
   # `shape: :circle` computes `50 / 2` = 25.0 where the Box stated 25;
-  # `floatProp` reads both as 25.0f. No handler is passed and none is wanted —
-  # bookmark and rate are not built — and the component omits the key entirely
-  # rather than sending a null, so no `clickable` is attached and the disc is as
-  # inert as the Box was.
+  # `floatProp` reads both as 25.0f.
+  #
+  # This used to say *bookmark and rate are not built*, and pass no handler.
+  # Both are built now (MOVIES-AND-TV.md #81). A `nil` tap still omits the key
+  # entirely rather than sending a null, so a drawn series keeps two discs
+  # that are pictures — which is the honest state for a show with no row
+  # behind it.
   @doc false
-  def action_disc(icon) do
+  def action_disc(icon, tap \\ nil, ink \\ nil) do
     MishkaActionIcon.action_icon(
       [
         size: 50,
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
-        shadow: Theme.shadow_card_soft()
+        shadow: Theme.shadow_card_soft(),
+        on_tap: tap
       ],
-      [Kati.UI.symbol(icon, size: 21)]
+      [Kati.UI.symbol(icon, size: 21, color: ink, fill: ink != nil)]
     )
+  end
+
+  @doc """
+  The bookmark disc: whether Kati tells you about new episodes of this show.
+
+  `Kati.Media.TrackedTitle.notify_new_episodes` is the column, and it has had
+  one since the resource was written — screen 25 is the page ABOUT it, and
+  there was nothing anywhere that could set it for one show. So the disc is
+  *follow this*, which is what a bookmark on a series page means, and it fills
+  when it is on.
+
+  A drawn series has no row and gets a picture.
+  """
+  @spec follow_disc(map()) :: map()
+  def follow_disc(s) do
+    case Map.get(s, :tracked_id) do
+      nil ->
+        action_disc("bookmark")
+
+      _id ->
+        ink = if Map.get(s, :followed?), do: Palette.accent()
+        action_disc("bookmark", {self(), :toggle_follow}, ink)
+    end
+  end
+
+  @doc """
+  The bookmark disc board 334 puts in the first circular slot.
+
+  *"Same slot, same glyph, same label on both"* — 08 and 04 — because both 181's
+  empty card and 182's sheet promise *"open a film, book or album and tap Add to
+  list"*, and until 7 September no title page had one.
+
+  A drawn series has no tracked id and keeps a picture of the disc, which is
+  the honest state for a show with no row behind it — `follow_disc/1`'s own rule.
+  """
+  @spec list_disc(map()) :: map()
+  def list_disc(s) do
+    case Map.get(s, :tracked_id) do
+      nil -> action_disc("bookmarks")
+      _id -> action_disc("bookmarks", {self(), :add_to_list})
+    end
+  end
+
+  @doc """
+  The star disc: the rating sheet for this show, which is where a rating is
+  written.
+
+  Screen 33's own, the same sheet screen 08 opens — one place a rating is set,
+  so the series page and the film page cannot come to disagree about what
+  setting one means.
+  """
+  @spec rate_disc(map()) :: map()
+  def rate_disc(s) do
+    case Map.get(s, :tracked_id) do
+      nil -> action_disc("star")
+      _id -> action_disc("star", {self(), :rate_title})
+    end
   end
 
   @doc false
@@ -935,7 +1419,50 @@ defmodule Kati.Screens.Series do
   # is nullable, so `String.to_integer/1` on a special TVmaze never numbered
   # would raise inside a tap handler. `episode/1` keeps its arity because two
   # other screens' moduledocs cite it by name.
-  @doc false
+  @doc """
+  Board 248 — a series Kati has, whose episode list it does not.
+
+  The state a hand-added series opens in, and the one screen 04 could not
+  honestly draw: it said *"Kati has this show but not its episode list. A title
+  added from search brings one with it"* over a centred `playlist_play` tile,
+  which reads as a fault to be repaired and tells the reader nothing they can
+  do. Board 248 answers both halves — it says whose doing it is (*you added
+  this by hand*), it promises what happens if a source finds it later, and it
+  then lists **what still works**, which is the part a person actually needs.
+
+  The three rows are real and are the three the board names. *Log a watch*
+  opens screen 33 over the title, which needs no episode; *Drop this show*
+  opens the drop sheet, which keeps where you stopped; *Remove from library*
+  destroys the tracked row and nothing else, the same removal screen 06's
+  `untrack/1` and board 146's pill perform — the cached title and every logged
+  watch stay, so it is a shelf decision rather than a deletion of history.
+
+  A drawn series carries no `tracked_id`, so on the board itself the three rows
+  have nothing to act on and draw no tap — the rule this repository keeps
+  everywhere, and the reason `Kati.ScreenTapSweepTest` sees a picture here
+  rather than three dead controls.
+  """
+  @spec episodes(map()) :: map()
+  def episodes(%{episodes: []} = s) do
+    tracked = Map.get(s, :tracked_id)
+
+    assigns = %{
+      card: Kati.Screens.Series.no_episodes_card(),
+      group: Kati.Screens.Series.still_works(tracked)
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@card}
+      <Spacer size={16} />
+      {Kati.UI.SettingsList.eyebrow_muted("What still works")}
+      {@group}
+      <Spacer size={14} />
+      {Kati.UI.SettingsList.note("info", Kati.Screens.Series.no_primary_note())}
+    </Column>
+    """
+  end
+
   def episodes(s) do
     rows = s.episodes |> Enum.with_index() |> Enum.map(fn {ep, i} -> Map.put(ep, :index, i) end)
 
@@ -946,6 +1473,82 @@ defmodule Kati.Screens.Series do
        |> Enum.intersperse(Kati.Screens.Series.episode_gap())}
     </Column>
     """
+  end
+
+  @doc false
+  def no_episodes_card do
+    ~MOB"""
+    <Column
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      padding={15}
+      shadow={Kati.Theme.shadow_card_soft()}
+    >
+      <Row fill_width={true} align="center">
+        <Box width={38} height={38} corner_radius={12} background={Palette.paper()} align="center">
+          {Kati.UI.symbol("live_tv", size: 19, color: Palette.rail_idle())}
+        </Box>
+        <Spacer size={13} />
+        <Text
+          text="No episode list yet."
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          weight={1.0}
+        />
+      </Row>
+      <Spacer size={11} />
+      <Text
+        text="You added this by hand, so Kati has no seasons or episodes for it. If a source finds it later, they arrive here and nothing you typed changes."
+        text_size={12}
+        line_height={1.55}
+        text_color={Palette.sub()}
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  The three things a series with no episode list can still do.
+
+  `chevron_right` on each, because each opens something. The taps are `nil` on
+  a drawn series for the reason `action_disc/3` gives one line up: a control
+  with nowhere to go draws no tap.
+  """
+  @spec still_works(binary() | nil) :: map()
+  def still_works(tracked_id) do
+    tap = fn tag -> if is_binary(tracked_id), do: {self(), tag} end
+
+    Kati.UI.SettingsList.card([
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("replay"),
+        Kati.UI.SettingsList.body("Log a watch", "Works without an episode list"),
+        Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+        on_tap: tap.(:rate_title)
+      ),
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("do_not_disturb_on"),
+        Kati.UI.SettingsList.body("Drop this show", "Keeps where you stopped"),
+        Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+        on_tap: tap.(:open_drop_sheet)
+      ),
+      Kati.UI.SettingsList.row(
+        Kati.UI.SettingsList.icon_tile("delete"),
+        Kati.UI.SettingsList.body("Remove from library"),
+        Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
+        rule: false,
+        on_tap: tap.(:remove_title)
+      )
+    ])
+  end
+
+  @doc "Board 248's dashed footnote, one `Text` so every bold run is findable."
+  @spec no_primary_note() :: String.t()
+  def no_primary_note do
+    "No primary button here. There is no next episode to mark, and a primary " <>
+      "that refuses is worse than none. 04\u2019s one primary slot stays empty " <>
+      "\u2014 which is what makes this a state of 04 rather than a page of its own."
   end
 
   @doc false
@@ -998,10 +1601,84 @@ defmodule Kati.Screens.Series do
             max_lines={1}
           />
         </Column>
+        {Kati.Screens.Series.rating_column(ep)}
         <Spacer size={13} />
         {Kati.Screens.Series.check(ep.watched, aired?)}
       </Row>
     </Column>
+    """
+  end
+
+  @doc """
+  The trailing rating column, and the door onto the sheet that writes it.
+
+  This is board 143 in its live position, and the route MOVIES-AND-TV.md #25
+  was missing. Screen 144 could only be opened from Settings → Every screen,
+  which is not a route: you rate the episode you just watched by going to the
+  series, opening the season, and tapping beside the episode — so that is what
+  this is.
+
+  Two states, and the third is the whole point:
+
+    * A rated episode prints its numeral and one star — `Kati.Screens.
+      EpisodeRatings.rating_node/1`, called rather than redrawn, so the
+      specimen board and the live column cannot disagree about what a rating
+      looks like.
+    * An episode that has aired but carries no rating draws a hollow star
+      instead. Board 143 says an unrated row shows *"nothing at all, not five
+      hollow stars"*, and it is right about the COLUMN: five glyphs would be a
+      smear. One outline is not that column — it is the affordance, and a door
+      nobody can see is a door nobody opens.
+    * An episode that has not aired gets nothing. There is no opinion to have.
+
+  The tap sits on this Row rather than on the episode Row, which already has
+  one: a Box renders children back to front and Compose hit-tests them front
+  to back, so the inner control takes the tap and the rest of the row still
+  ticks. `Kati.Screens.RateEpisode` is then pushed with the pair it writes by,
+  and with the back label naming where you actually came from.
+  """
+  @spec rating_column(map()) :: map() | []
+  def rating_column(%{aired: false}), do: []
+
+  def rating_column(ep) do
+    case Map.get(ep, :source_id) do
+      nil -> Kati.Screens.EpisodeRatings.rating_node(Map.get(ep, :rating))
+      _id -> Kati.Screens.Series.rating_door(ep)
+    end
+  end
+
+  @doc false
+  def rating_door(ep) do
+    tap = {self(), String.to_atom("rate_#{ep.index}")}
+    assigns = %{tap: tap, body: rating_face(Map.get(ep, :rating))}
+
+    ~MOB"""
+    <Row align="center" padding_left={13} padding_right={4} on_tap={@tap}>
+      {@body}
+    </Row>
+    """
+  end
+
+  @doc false
+  def rating_face(nil) do
+    Kati.UI.symbol("star", size: 13, color: Palette.bar_neutral())
+  end
+
+  def rating_face(rating) do
+    assigns = %{label: Kati.Screens.EpisodeRatings.rating_label(rating)}
+
+    ~MOB"""
+    <Row align="center">
+      <Text
+        text={@label}
+        font_family="mono"
+        text_size={12}
+        text_color={Palette.meta()}
+        max_lines={1}
+      />
+      <Spacer size={3} />
+      {Kati.UI.symbol("star", size: 11, color: Palette.accent(), fill: true)}
+    </Row>
     """
   end
 
@@ -1035,7 +1712,93 @@ defmodule Kati.Screens.Series do
   # Not aired yet: no affordance at all, because there is nothing to mark.
   def check(false, false), do: ~MOB"<Spacer size={27} />"
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, :toggle_follow}, socket),
+    do: {:noreply, Kati.Screens.Series.follow(socket)}
+
+  # Board 334's door, over this page and carrying this show.
+  def handle_info({:tap, :add_to_list}, socket) do
+    series = socket.assigns.series || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Lists.Door.title_member(series), Map.get(series, :title))}
+  end
+
+  @doc """
+  Keep this show off a shared card, or put it back — screen 08's own write,
+  on the resource both pages share.
+  """
+  def handle_info({:tap, :toggle_private}, socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{private: not tracked.private})
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:series, %{s | private?: updated.private})}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # The same row and the same write screen 08 carries (#113). A series that is
+  # really a film is the same mistake as a film that is really a series, and
+  # neither could be corrected anywhere in the app.
+  def handle_info({:tap, :swap_kind}, socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         swapped <- Kati.Screens.Film.swapped(Map.get(s, :media_kind, :tv)),
+         {:ok, _updated} <- Kati.Screens.Film.rekind(tracked, swapped) do
+      {:noreply, socket |> Mob.Socket.assign(:menu?, false) |> Kati.Screens.Resume.pop()}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # Board 152's rule 1, the same write screen 08 makes and for the same reason
+  # its comment gives — a decision about one title belongs on that title's own
+  # page (MOVIES-AND-TV.md #104).
+  def handle_info({:tap, :toggle_anime}, socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         now? <- tracked.kind == :anime,
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{
+             anime_override: not now?,
+             kind: Kati.Media.Anime.kind_for(tracked.kind, nil, not now?)
+           })
+           |> Ash.update() do
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:menu?, false)
+       |> Mob.Socket.assign(:series, Map.put(s, :anime?, updated.kind == :anime))}
+    else
+      _refused -> {:noreply, Mob.Socket.assign(socket, :menu?, false)}
+    end
+  end
+
+  # Before the `"rate_" <> index` clause below, and it has to be: `rate_title`
+  # matches that prefix and `String.to_integer("title")` raises inside a tap
+  # handler, which kills the screen process.
+  def handle_info({:tap, :rate_title}, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.Rating,
+         Kati.Screens.Rating.params_for(socket.assigns.series)
+       )}
 
   def handle_info({:tap, :toggle_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
@@ -1043,14 +1806,93 @@ defmodule Kati.Screens.Series do
   def handle_info({:tap, :close_menu}, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, false)}
 
+  # Screen 14 describes a show, so it is told which. Bare, *Show details* on
+  # any series drew `Kati.Screens.SeriesMeta.Sample` — Severance's overflow
+  # menu opened a full page about The Long Hollow, and every fact on it was
+  # confident, specific and about something else.
   def handle_info({:tap, :show_details}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesMeta)}
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.SeriesMeta,
+         Kati.Screens.SeriesMeta.params_for(socket.assigns.series)
+       )}
 
+  # The page knows both halves of what screen 34 is about: which series it is
+  # drawing, and which pill on the season strip is lit. Bare, "Episode order"
+  # opened whichever season the newest title's bookmark happened to name.
   def handle_info({:tap, :episode_order}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.Season)}
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.Season,
+         Kati.Screens.Season.params_for(socket.assigns.series)
+       )}
 
+  # Named, for the reason the two rows below it are. Screen 35 writes now —
+  # four season-pass switches and the three Status tiles, over columns that had
+  # no reader until MOVIES-AND-TV.md #99 — so a bare push here is a settings
+  # page that saves onto whichever show `show/1` happened to find. It saves
+  # onto this one, and its back pill says Series because that is where it came
+  # from.
   def handle_info({:tap, :open_settings}, socket),
-    do: {:noreply, Kati.Screens.Series.pick(socket, Kati.Screens.SeriesSettings)}
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.SeriesSettings,
+         Kati.Screens.SeriesSettings.params_for(socket.assigns.series)
+       )}
+
+  # #94's two. See the menu above for why they are rows rather than the
+  # gestures the design intends, and for what takes them out of it.
+  # Named, since `Kati.Screens.DropSheet` reads an argument now. Bare, this row
+  # opened the sheet on the newest PAUSED title in the store, which is not the
+  # show the page is drawing and may be nothing to do with it — a Drop that
+  # dropped somebody else's series. The page holds `tracked_id`, so it can say
+  # which show the menu row was opened over.
+  # Board 248's third row: take the show off the shelf.
+
+  # It pops rather than redrawing: the page is about a row that no longer
+  # exists, and `Kati.Screens.Resume` makes the shelf behind re-read on the way
+  # out. `remove/1` is where the argument lives.
+  def handle_info({:tap, :remove_title}, socket) do
+    case Kati.Screens.Series.remove(socket.assigns.series) do
+      :ok ->
+        {:noreply, Kati.Screens.Resume.pop(socket)}
+
+      {:error, reason} ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+    end
+  end
+
+  def handle_info({:tap, :open_drop_sheet}, socket),
+    do:
+      {:noreply,
+       Kati.Screens.Series.pick(
+         socket,
+         Kati.Screens.DropSheet,
+         Kati.Screens.DropSheet.params_for(socket.assigns.series)
+       )}
+
+  # Board 04's `{{ markNext }}`. "Next" is the first episode of the season on
+  # screen that has aired and is not ticked — the same list, in the same order,
+  # that a tap on a row ticks, so the button and the rows cannot disagree about
+  # which episode is next. It goes through `tick/2` rather than writing its own
+  # `Kati.Media.Watch`: one write path, and one place the `:ok`-before-the-assign
+  # rule is kept.
+  #
+  # A season with nothing left to mark answers by doing nothing rather than by
+  # wrapping round to the first episode — `Kati.Screens.SeriesFa`'s clause for
+  # the mirror of this button answers the same way.
+  def handle_info({:tap, :mark_next}, socket) do
+    case Kati.Screens.Series.next_unwatched(socket.assigns.series) do
+      nil -> {:noreply, socket}
+      index -> {:noreply, Kati.Screens.Series.tick(socket, Integer.to_string(index))}
+    end
+  end
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
@@ -1058,14 +1900,108 @@ defmodule Kati.Screens.Series do
         {:noreply, Mob.Socket.assign(socket, :series, switch(socket.assigns.series, label))}
 
       "episode_" <> index ->
-        {:noreply, Mob.Socket.assign(socket, :series, toggle(socket.assigns.series, index))}
+        {:noreply, Kati.Screens.Series.tick(socket, index)}
+
+      "rate_" <> index ->
+        {:noreply, Kati.Screens.Series.rate(socket, index)}
 
       _ ->
         {:noreply, socket}
     end
   end
 
+  # Coming back from the season screen, the rate-an-episode sheet or the drop
+  # sheet — all three write, and all three end in a pop. See
+  # `Kati.Screens.Resume`, and `Kati.Screens.Film` for why the clause is here
+  # rather than in a `handle_kati/3`.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply,
+     Mob.Socket.assign(socket, :series, series(Map.get(socket.assigns.series, :tracked_id)))}
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  Take the show off the shelf, for real.
+
+  `Ash.destroy/1` on the tracked row and nothing else — the same removal
+  `Kati.Screens.AddTitle.untrack/1` and board 146's pill perform, and
+  deliberately not a cascade. The cached title, its episodes and every logged
+  watch stay, so this is a decision about the shelf rather than a deletion of
+  history, and a title re-added later finds its own past waiting.
+  """
+  @spec remove(map()) :: :ok | {:error, term()}
+  def remove(series) do
+    with id when is_binary(id) <- Map.get(series, :tracked_id),
+         {:ok, row} <- Ash.get(Kati.Media.TrackedTitle, id) do
+      case Ash.destroy(row) do
+        :ok -> :ok
+        {:ok, _row} -> :ok
+        error -> Kati.Write.note(error, "remove from the library")
+      end
+    else
+      # A drawn series, or a row somebody else already removed. Both are the
+      # outcome the tap asked for.
+      _nothing -> :ok
+    end
+  rescue
+    error -> Kati.Write.note({:error, error}, "remove from the library")
+  end
+
+  @doc """
+  Follow or unfollow this show — `notify_new_episodes` on its tracked row.
+
+  The one write behind screen 25's whole page, and nothing anywhere could make
+  it for a single title: the watcher's ten switches are a page about a
+  preference nobody could express. The disc fills when it is on.
+  """
+  @spec follow(Mob.Socket.t()) :: Mob.Socket.t()
+  def follow(socket) do
+    s = socket.assigns.series
+
+    with id when is_binary(id) <- Map.get(s, :tracked_id),
+         {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, id),
+         {:ok, updated} <-
+           tracked
+           |> Ash.Changeset.for_update(:update, %{
+             notify_new_episodes: not tracked.notify_new_episodes
+           })
+           |> Ash.update() do
+      Mob.Socket.assign(socket, :series, %{s | followed?: updated.notify_new_episodes})
+    else
+      _refused -> socket
+    end
+  end
+
+  @doc """
+  Open the rating sheet over one episode of the season on screen.
+
+  The pair, not the position: `Kati.Screens.RateEpisode` writes by
+  `{tracked_title_id, episode_source_id}` — which is what `Kati.Media.Watch`
+  names an episode by — so what it is handed is what it writes, and the index
+  never leaves this function.
+
+  A drawn episode has no `source_id` and no tracked row behind it, so it opens
+  nothing. That is the same all-or-nothing gate `tick/2` applies for the same
+  reason: there is no episode behind `Kati.Library.Sample`, so there is
+  nothing to rate.
+  """
+  @spec rate(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def rate(socket, index) do
+    s = socket.assigns.series
+    episode = Enum.at(s.episodes, String.to_integer(index))
+    tracked_id = Map.get(s, :tracked_id)
+    source_id = episode && Map.get(episode, :source_id)
+
+    if is_binary(tracked_id) and is_binary(source_id) do
+      Mob.Socket.push_screen(socket, Kati.Screens.RateEpisode, %{
+        tracked_id: tracked_id,
+        episode_source_id: source_id
+      })
+    else
+      socket
+    end
+  end
 
   # The season the pill names, out of the map both paths built — the drawing's
   # three from `Kati.Library.Sample.season_episodes/1`, a real title's from
@@ -1088,9 +2024,306 @@ defmodule Kati.Screens.Series do
     end
   end
 
-  defp toggle(s, index) do
-    flip = fn ep -> %{ep | watched: not ep.watched} end
-    recount(%{s | episodes: List.update_at(s.episodes, String.to_integer(index), flip)})
+  @doc """
+  The position of the first aired, unticked episode of the season on screen, or
+  `nil` when there is none.
+
+  A POSITION and not an episode number, because that is what `tick/2` takes and
+  what `episodes/1` tags a row with — `Kati.Media.Watch` is explicit that a tick
+  follows the episode and not the number, and a real episode's number is
+  nullable.
+
+  `Map.get(ep, :aired, true)` is `episode/1`'s own read, so **Mark next
+  watched** cannot mark something the row beside it refuses to: an episode that
+  has not aired draws no tap at all, and a button that skipped over that rule
+  would be marking an episode nobody could have seen. `:unknown` is grouped with
+  `:aired` by `episode_row/2` above, for the reason its comment gives.
+  """
+  @spec next_unwatched(map()) :: non_neg_integer() | nil
+  def next_unwatched(%{episodes: episodes}) when is_list(episodes) do
+    Enum.find_index(episodes, fn ep -> not ep.watched and Map.get(ep, :aired, true) end)
+  end
+
+  def next_unwatched(_series), do: nil
+
+  @doc """
+  Tick or untick one episode, and write it.
+
+  This moved a boolean on the socket and nothing else, which is the sentence
+  #90 opens with. What it writes is a `Kati.Media.Watch` row, and what it
+  deletes on a second tap is that same row — the resource says so itself:
+  *"an episode is watched when a row for it exists, so unticking destroys and
+  rewatching simply adds another"*. Untick therefore removes rather than
+  writing a second row saying "not watched", which is the third criterion.
+
+  The screen follows the store rather than leading it: the assign flips only
+  after the write answers `:ok`, so a refused write leaves the tick where it
+  was instead of showing a state the database does not hold. That is the same
+  rule `Kati.Screens.MealsToday` keeps for a dose.
+
+  An episode with no `source_id` and a page with no `tracked_id` cannot be
+  written against anything, so they flip nothing and say so — a drawn series
+  that nobody has tracked is exactly that case.
+  """
+  @spec tick(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def tick(socket, index) do
+    series = socket.assigns.series
+    position = String.to_integer(index)
+    episode = Enum.at(series.episodes, position)
+
+    case Kati.Screens.Series.tick_result(Map.get(series, :tracked_id), episode) do
+      :ok ->
+        flip = fn ep -> %{ep | watched: not ep.watched} end
+        episodes = List.update_at(series.episodes, position, flip)
+
+        socket
+        |> Mob.Socket.assign(:series, recount(restored(series, episodes)))
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+    end
+  end
+
+  # The tick written into BOTH lists the screen holds.
+  #
+  # `episodes` is the season on screen and `by_season` is every season, and
+  # `switch/2` restores the season on screen out of `by_season`. Updating only
+  # the first meant a tick survived until you tapped S2 and back, and then
+  # vanished: the ring emptied, the counter fell, and the store still held the
+  # watch. MOVIES-AND-TV.md #14, and it is the tick disappearing rather than
+  # the write failing — which is why nothing in the log said anything.
+  @doc """
+  `restored/2` and `switch/2`, reachable from a test.
+
+  Both are private because they are bookkeeping rather than API, and both are
+  exactly where MOVIES-AND-TV.md #14 lived: a tick written into one of the two
+  lists this screen holds and read back out of the other. The round trip needs
+  no store and no device, and a test that could only reach it through `tick/2`
+  could not reach it at all — the drawn series carries no `:source_id`, so
+  `tick_result/2` refuses the write and the success branch never runs.
+  """
+  @spec restored_for_test(map(), [map()]) :: map()
+  def restored_for_test(series, episodes), do: restored(series, episodes)
+
+  @doc false
+  @spec switch_for_test(map(), String.t()) :: map()
+  def switch_for_test(series, label), do: switch(series, label)
+
+  defp restored(series, episodes) do
+    label = series.current_season
+
+    by_season =
+      case Map.fetch(series.by_season, label) do
+        {:ok, view} -> Map.put(series.by_season, label, %{view | episodes: episodes})
+        :error -> series.by_season
+      end
+
+    %{series | episodes: episodes, by_season: by_season}
+  end
+
+  @doc """
+  `write_tick/2`, with a raise turned into a refusal the page can draw.
+
+  This screen is hand-rolled: it defines its own `handle_info/2` clauses
+  instead of taking `Kati.Screens.Pushed`'s, so a tap here never passes
+  through `Kati.Screens.Root.rescue_tap/3` and a raise in a handler kills the
+  screen process. `Kati.Supervisor` then restarts the ROOT — so the symptom is
+  not a crash dialog, it is the app silently jumping to Home with the tap
+  undone.
+
+  That is exactly what *Mark next watched* did on a Pixel 9a the first time a
+  real series existed to press it on: `episode_row/2` had dropped
+  `source_id`, no `write_tick/2` clause matched a map without the key, and the
+  page bounced to Home. The missing key is fixed above; this is the second
+  half, because the next unhandled shape should cost a red line and not the
+  screen.
+
+  Not a `rescue` inside `write_tick/2` itself: that function's clauses ARE the
+  contract — an id and an episode, or a named refusal — and swallowing a
+  raise inside it would hide a caller passing the wrong thing. The rescue
+  belongs at the boundary the screen owns.
+  """
+  @spec tick_result(binary() | nil, map() | nil) :: :ok | {:error, term()}
+  def tick_result(tracked_id, episode) do
+    case Kati.Screens.Series.write_tick(tracked_id, episode) do
+      :ok ->
+        Kati.Screens.Series.restate(tracked_id)
+        :ok
+
+      other ->
+        other
+    end
+  rescue
+    error ->
+      require Logger
+      Logger.error("series tick: #{Exception.message(error)}")
+      {:error, :nothing_to_save}
+  end
+
+  @doc """
+  Where you are in a series, as a season and an episode number.
+
+  `Kati.Media.TrackedTitle` calls `progress_episode` *a bookmark inside a
+  season* and **nothing wrote it**: the only writer was
+  `Kati.Screens.DropSheet`, which has no route in. So every screen that reads
+  the bookmark had nothing to read — `Kati.Screens.UpNext`'s hero drew a title
+  with a blank line under it where board 10 puts `S2 · E6`, and it drew that
+  for a series whose episodes the reader had been ticking all along.
+
+  Derived from the ticks rather than tracked alongside them, and written here
+  so it is derived ONCE. Screens that want the position read a column; they do
+  not each grow their own count, which is how two of them come to disagree.
+
+  The furthest episode ticked, not the last one tapped: ticking episode 3 after
+  episode 7 does not move you back to 3. `nil` for a title whose ticked
+  episodes are not in the cache, which leaves the bookmark alone rather than
+  clearing it.
+  """
+  @spec bookmark(binary()) :: map()
+  def bookmark(tracked_id) when is_binary(tracked_id) do
+    ids =
+      Kati.Media.Watch
+      |> Ash.Query.for_read(:for_title, %{tracked_title_id: tracked_id})
+      |> Ash.read!()
+      |> Enum.map(& &1.episode_source_id)
+      |> Enum.reject(&is_nil/1)
+
+    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, tracked_id),
+         %CachedEpisode{season_number: s, episode_number: e} <- furthest(tracked, ids) do
+      %{progress_season: s, progress_episode: e}
+    else
+      _nothing -> %{}
+    end
+  rescue
+    _error -> %{}
+  end
+
+  # Through `:for_title`, the named read, for the reason at the top of this
+  # file: no `require Ash.Query` here, so the narrowing to the ticked episodes
+  # happens in Elixir over one title's own list rather than in a filter
+  # expression over every episode in the store.
+  defp furthest(_tracked, []), do: nil
+
+  defp furthest(tracked, source_ids) do
+    ticked = MapSet.new(source_ids)
+
+    CachedEpisode
+    |> Ash.Query.for_read(:for_title, %{
+      source: tracked.source,
+      title_source_id: tracked.source_id
+    })
+    |> Ash.read!()
+    |> Enum.filter(&MapSet.member?(ticked, &1.source_id))
+    |> Enum.max_by(&{&1.season_number || 0, &1.episode_number || 0}, fn -> nil end)
+  rescue
+    _error -> nil
+  end
+
+  @doc """
+  What the shelf calls a series after a tick: `:finished`, or `:watching`.
+
+  Nothing in the reachable app could set a title's status — the only writer
+  was `Kati.Screens.DropSheet`, which is gallery-only — so screen 03's chips
+  read `Not started 0` and `Finished 0` on every device, and a series whose
+  last episode had just been ticked still said *watching*.
+
+  Counted rather than asserted: the ticks against this title, against the
+  episode count the cache holds. `Kati.Media.TrackedTitle` names the set of
+  ticks as the authority on how much is watched, and this is the same question
+  asked once more at the moment the answer can have changed.
+
+  A cache with no `episode_count` — a series the provider has not filled, or
+  a hand-typed one — leaves the status alone. *Watching* is right for a series
+  you are watching, and inventing *finished* out of a total nobody knows would
+  be the page asserting the one thing it cannot.
+
+  Failure here does not fail the tick, for `Kati.Screens.Rating.finish_title/2`'s
+  reason: the tick is what the person asked for and is already written.
+  """
+  @spec restate(binary() | nil) :: :ok
+  def restate(tracked_id) when is_binary(tracked_id) do
+    with {:ok, tracked} <- Ash.get(Kati.Media.TrackedTitle, tracked_id),
+         %CachedTitle{episode_count: total} when is_integer(total) and total > 0 <-
+           Release.cached_for(tracked) do
+      # Through the named action rather than a `filter` expression, for the
+      # reason stated at the top of this file: no `require Ash.Query` here, and
+      # `:for_title` is the read this screen already makes about its own ticks.
+      ticked =
+        Kati.Media.Watch
+        |> Ash.Query.for_read(:for_title, %{tracked_title_id: tracked_id})
+        |> Ash.read!()
+        |> Enum.map(& &1.episode_source_id)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.uniq()
+        |> length()
+
+      status = if ticked >= total, do: :finished, else: :watching
+
+      changes =
+        %{status: status}
+        |> Map.merge(Kati.Screens.Series.bookmark(tracked_id))
+        |> Map.reject(fn {key, value} -> Map.get(tracked, key) == value end)
+
+      if changes != %{} do
+        tracked
+        |> Ash.Changeset.for_update(:update, changes)
+        |> Ash.update()
+      end
+    end
+
+    :ok
+  rescue
+    _error -> :ok
+  end
+
+  def restate(_none), do: :ok
+
+  @doc false
+  @spec write_tick(binary() | nil, map() | nil) :: :ok | {:error, term()}
+  def write_tick(nil, _episode), do: {:error, :not_tracked}
+  def write_tick(_tracked_id, nil), do: {:error, :no_episode}
+
+  def write_tick(tracked_id, %{source_id: nil}) when is_binary(tracked_id),
+    do: {:error, :no_episode_id}
+
+  def write_tick(tracked_id, %{source_id: source_id, watched: watched?} = episode) do
+    if watched? do
+      Kati.Media.Watch
+      |> Ash.Query.for_read(:for_episode, %{
+        tracked_title_id: tracked_id,
+        episode_source_id: source_id
+      })
+      |> Ash.read!()
+      |> Enum.each(&Ash.destroy!/1)
+
+      :ok
+    else
+      Kati.Media.Watch
+      |> Ash.Changeset.for_create(:create, %{
+        tracked_title_id: tracked_id,
+        episode_source_id: source_id,
+        # Which episode, in words a person recognises. The columns have always
+        # existed and nothing wrote them, so every tick was anonymous once it
+        # left this screen: `Kati.Screens.Stats` had `S2 E5` to draw and no
+        # numbers to draw it from. `Map.get/2` because the drawing's episodes
+        # carry neither and are refused above anyway.
+        season_number: Map.get(episode, :season),
+        episode_number: Map.get(episode, :n) || Map.get(episode, :number),
+        # `Kati.Time` and not `DateTime.utc_now/0`: a tick is stamped in the
+        # device's zone, which is what `Kati.ScreenDateTest` enforces and what
+        # makes "watched today" mean the user's today rather than UTC's.
+        watched_at: Kati.Time.now(),
+        watched_on: Kati.Time.today()
+      })
+      |> Ash.create()
+      |> case do
+        {:ok, _watch} -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  rescue
+    error -> {:error, error}
   end
 
   @doc """
@@ -1100,10 +2333,14 @@ defmodule Kati.Screens.Series do
   panel being on screen again when the user comes back — this socket is what
   `Mob.Screen` saves onto the nav history, so a menu left open is a menu that
   reopens itself on every return from the screen it opened.
+
+  `params` defaults to `%{}`, which is what `Mob.Socket.push_screen/3` sends
+  when nobody passes any: one menu row can name its destination's subject
+  without the other four gaining an argument they have nothing to fill.
   """
-  def pick(socket, module) do
+  def pick(socket, module, params \\ %{}) do
     socket
     |> Mob.Socket.assign(:menu?, false)
-    |> Mob.Socket.push_screen(module)
+    |> Mob.Socket.push_screen(module, params)
   end
 end

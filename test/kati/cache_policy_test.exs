@@ -68,7 +68,16 @@ defmodule Kati.Media.CachePolicyTest do
   describe "every source is complete" do
     test "has a refresh horizon, an eviction rule and an attribution" do
       for source <- CachePolicy.sources() do
-        assert is_integer(CachePolicy.refresh_after_days(source))
+        # `:never` became a legal refresh horizon with `:manual` (#87): a title
+        # someone typed has nothing behind it to refresh FROM, so a number here
+        # would be a schedule for a request that can never be made. Every
+        # source that IS a provider still has to name one, which is what the
+        # second assertion below keeps true.
+        assert CachePolicy.refresh_after_days(source) == :never or
+                 is_integer(CachePolicy.refresh_after_days(source))
+
+        assert source == :manual or is_integer(CachePolicy.refresh_after_days(source)),
+               "#{source} is a provider and must say how often it is refreshed"
 
         assert CachePolicy.evict_after_days(source) == :never or
                  is_integer(CachePolicy.evict_after_days(source))

@@ -125,12 +125,15 @@ defmodule Kati.Screens.YearShareFa do
   98 sets `WHEN FILE SHARING LANDS` beside it in DM Mono caps. 103 draws the
   label alone, and the reason is the same one that keeps `Kati.UI.eyebrow/2`
   out of this file: that badge is an uppercased Latin mono token and Persian has
-  no uppercase to set it in. So the marker goes and the row carries no `on_tap`
-  instead — which says the same thing in the idiom
-  `Kati.Screens.Stats.share_disc/0` established and 98 quotes: *a disc that
-  swallowed a tap silently would be worse than one that plainly does nothing.*
-  Kati still has no share-sheet fence; nothing in `native/LEDGER.md` hands a
-  file to the platform.
+  no uppercase to set it in.
+
+  The badge is gone from 98 as well, and for a better reason than typography:
+  it named `K-20 file-transport`, which had already shipped. `ACTION_SEND` is
+  in `native/LEDGER.md` and `Kati.Native.Files.share/2` has reached it since
+  `Kati.Backup` needed a way off the phone; what was missing was the join to
+  `K-45 capture-screen`, which `share_screen/1` now is. So `هم‌رسانی…` carries
+  `:share_image` — 98's own tag, through `@borrowed` — rather than saying what
+  it is waiting for.
 
   ## The disc on screen 61 is what pushes this, and it is not wired yet
 
@@ -222,7 +225,7 @@ defmodule Kati.Screens.YearShareFa do
   # thing in both languages. Listed rather than caught, so a control added to
   # 98's markup arrives here as an unanswered tag instead of a delegation that
   # quietly does the wrong thing.
-  @borrowed [:toggle_private, :save_image, :aspect_square, :aspect_story]
+  @borrowed [:toggle_private, :save_image, :share_image, :aspect_square, :aspect_story]
 
   @doc """
   The three opening positions, taken from screen 98 rather than restated.
@@ -237,6 +240,7 @@ defmodule Kati.Screens.YearShareFa do
   @spec mount(map(), map(), Mob.Socket.t()) :: {:ok, Mob.Socket.t()}
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, YearShare.load(socket)}
   end
 
@@ -252,7 +256,7 @@ defmodule Kati.Screens.YearShareFa do
   disprove. `Kati.Screens.Fa.pushed_frame/1` is that root and nothing else.
   """
   @spec render(map()) :: map()
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The page, in the order 103 stacks it — which is 98's order with the pager
@@ -496,7 +500,7 @@ defmodule Kati.Screens.YearShareFa do
         <Spacer size={6} />
         <Text
           text={Kati.Screens.YearShareFa.drawn().wordmark}
-          font_family="mono"
+          font_family="fa"
           text_size={10.5}
           text_color={Kati.Theme.Palette.sub()}
           max_lines={1}
@@ -688,12 +692,13 @@ defmodule Kati.Screens.YearShareFa do
   end
 
   @doc """
-  Save, and the share that is waiting on a fence.
+  Save, and share.
 
-  `ذخیره تصویر` takes the ink because it is the one that works, at screen 98's
-  52 by radius 26. `هم‌رسانی…` carries no badge and no `on_tap` — see the
-  moduledoc for why the Latin marker could not come across and why an untapped
-  control says the same thing.
+  `ذخیره تصویر` takes the ink at screen 98's 52 by radius 26. `هم‌رسانی…` was
+  drawn with no `on_tap`, over a Latin badge on 98 that named a fence which had
+  already landed; both are controls now, and both are 98's — `@borrowed`
+  carries `:share_image` beside `:save_image`, because two boards of one screen
+  that disagreed about what a control does would be two screens.
   """
   @spec actions() :: map()
   def actions do
@@ -712,7 +717,7 @@ defmodule Kati.Screens.YearShareFa do
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={11} />
-      <Row fill_width={true} align="center">
+      <Row fill_width={true} align="center" on_tap={{self(), :share_image}}>
         <Spacer weight={1.0} />
         {BookDetailFa.fa(Kati.Screens.YearShareFa.drawn().share, 13.5, Palette.ink_soft(),
           weight: "semibold"
@@ -775,7 +780,7 @@ defmodule Kati.Screens.YearShareFa do
   does not catch a raise in a tap handler.
   """
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, tag}, socket) when tag in @borrowed,
     do: YearShare.handle_tap(tag, socket)

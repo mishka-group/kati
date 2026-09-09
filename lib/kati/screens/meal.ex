@@ -30,11 +30,12 @@ defmodule Kati.Screens.Meal do
 
   ## Where the data comes from
 
-  `Kati.Meals`, through `meal/1` — the day's earliest unlogged slot and its
-  recipe, ingredient lines loaded, because nothing hands this screen an id.
-  Every figure is that recipe's own cached total at the slot's portion, and the
-  three history rows are drawn one per fact the recipe can answer for. With no
-  active plan the screen falls back to `Kati.Meals.SampleRecipe`.
+  `Kati.Meals`, through `meal/2` — the slot the push named, or, handed nothing,
+  the day's earliest unlogged slot; either way with its recipe's ingredient
+  lines loaded. Every figure is that recipe's own cached total at the slot's
+  portion, and the three history rows are drawn one per fact the recipe can
+  answer for. With no active plan the screen falls back to
+  `Kati.Meals.SampleRecipe`.
 
   The drawing's rating row reads `★★★★★ · a keeper`, and the two words are
   lost: *"a keeper"* is an adjective for a five rather than a column. The stars
@@ -59,31 +60,101 @@ defmodule Kati.Screens.Meal do
   alias Kati.Theme.Palette
   alias Kati.UI
 
-  def mount(_params, _session, socket) do
+  # `use Mob.Screen` rather than `Kati.Screens.Pushed`, so there is no `load/1`
+  # and no `:params` assign — the push's params arrive here, one step earlier,
+  # and this is the screen reading them.
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :meal, meal(Kati.Time.today()))}
+    {:ok, Mob.Socket.assign(socket, :meal, meal(Kati.Time.today(), params))}
   end
 
   @doc """
-  The meal this screen opens on: the day's next one, or the drawing's.
+  The meal this screen opens on when it was handed nothing: the day's next one,
+  or the drawing's.
 
-  Nothing hands this screen an id — `Kati.Screens.MealsToday` pushes it from a
-  row that carries the tag `:open_meal` and no meal with it — so the referent
-  is the one the drawing itself names in its eyebrow: *"Dinner · 19:30 ·
-  today"*, the earliest slot today that has not been logged yet. Failing that
-  (a day already fully logged) it is the day's first planned meal.
+  Named no slot, the referent is the one the drawing itself names in its
+  eyebrow — *"Dinner · 19:30 · today"*, the earliest slot today that has not
+  been logged yet. Failing that (a day already fully logged) it is the day's
+  first planned meal.
 
   With no active plan there is no such meal, and `Kati.Meals.SampleRecipe` is
   drawn instead — the values `test/design/screens/45.html` was captured
   from. FIDELITY's rule: *missing data is not a reason for a blank screen*.
   """
   @spec meal(Date.t()) :: map()
-  def meal(date) do
-    case next_meal(date) do
-      {slot, recipe} -> cooked(slot, recipe)
-      nil -> drawn_meal()
+  def meal(date), do: meal(date, %{})
+
+  @doc """
+  The meal a push named, or — named nothing — `meal/1`'s answer.
+
+  `%{slot_id: id}` is what a card on screen 43 now pushes.
+  `Kati.Screens.MealsToday.meal_tag/1` gives every card a tag and
+  `Kati.Screens.MealsToday.open_meal/2` resolves that tag back to the row it was
+  drawn from, so tapping the 13:00 lunch opens the 13:00 lunch rather than the
+  day's next unlogged meal — the same #84 that `Kati.Screens.MealEdit.meal/1`
+  records on the editor, arriving here from the timeline rather than from the
+  grid.
+
+  ## Named-and-missing is NOT the same as named-nothing
+
+  This paragraph used to say a slot that had gone *falls through to exactly the
+  no-id answer*, and that was the defect. The two are different questions and
+  `next_meal/1` only answers one of them: it is the earliest unlogged slot
+  TODAY, so a card whose dinner had been removed from the plan opened on the
+  LUNCH, drew the lunch's title and macros, and — because `mark_eaten/1` writes
+  whatever this page resolved — logged the lunch when the reader pressed the
+  button. You named one meal and the app ate another.
+
+  Screen 66 carries the same distinction for the same reason, in
+  `Kati.Screens.BookDetail.book/1`'s own words: *named-and-missing refuses,
+  named-nothing is still the newest and still correct*. So:
+
+    * **no `:slot_id` at all** — the gallery, the board, the dock — is
+      `next_meal/1` and then the drawing. Unchanged, and it has to stay
+      unchanged: `test/design/screens/45.html` was captured in exactly that
+      state.
+    * **a `:slot_id` that names nothing** is the DRAWING, straight away. It
+      carries no `slot_id` and no `recipe_id`, so
+      `Kati.Meals.MealLog.log_eaten/1` refuses it and the button writes
+      nothing. A page that cannot name what it drew must not be able to write.
+
+  Falling to the drawing rather than to a blank screen is still FIDELITY's
+  rule; what changed is that it no longer falls to somebody else's dinner on
+  the way.
+  """
+  @spec meal(Date.t(), map() | nil) :: map()
+  def meal(date, params) do
+    case Map.get(params || %{}, :slot_id) do
+      id when is_binary(id) and id != "" ->
+        case named_slot(params) do
+          {slot, recipe} -> cooked(slot, recipe)
+          nil -> drawn_meal()
+        end
+
+      _unnamed ->
+        case next_meal(date) do
+          {slot, recipe} -> cooked(slot, recipe)
+          nil -> drawn_meal()
+        end
     end
   end
+
+  @doc """
+  The params that name a meal to this screen, from a screen 43 timeline row.
+
+  Here rather than at the timeline so the key is spelled once — the reason
+  `Kati.Screens.MealEdit.params_for/1` sits on the editor and not on the grid.
+  `:slot_id` and not `:meal_id`: what a timeline row identifies is the plan
+  slot, which is what `Kati.Screens.MealSwap` already calls a swap's subject and
+  what `mark_eaten/1` already writes against.
+
+  A `Kati.Meals.SampleToday` row carries no slot id, and neither does a logged
+  one — `Kati.Screens.MealsToday`'s `log_row/1` sets `slot_id: nil` on purpose —
+  so both yield `%{}` and the bare push this replaced.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{slot_id: id}) when is_binary(id) and id != "", do: %{slot_id: id}
+  def params_for(_meal), do: %{}
 
   @doc "Screen 45 exactly as it is drawn, from `Kati.Meals.SampleRecipe`."
   @spec drawn_meal() :: map()
@@ -97,6 +168,43 @@ defmodule Kati.Screens.Meal do
       method: Sample.method(),
       history: Sample.history()
     })
+  end
+
+  # The slot a push named, loaded with the recipe behind it. `nil` for no id,
+  # for an id that names nothing, and for a slot whose recipe has gone — each of
+  # which leaves `meal/2` on `next_meal/1`, which is where it was before any of
+  # this. A caller that names a row deleted under it must not fall through to
+  # somebody else's dinner, and `next_meal/1` is not somebody else's: it is the
+  # screen's own no-argument answer.
+  #
+  # Every named slot comes off screen 43's timeline, which is a timeline of
+  # today — which is what keeps `cooked/2`'s eyebrow honest, since it writes
+  # *"· today"* as a literal. A screen that one day opens a slot from another
+  # day has to derive that word before it can.
+  defp named_slot(params) do
+    with id when is_binary(id) and id != "" <- Map.get(params || %{}, :slot_id),
+         %MealPlanSlot{} = slot <- slot_for(id),
+         %Recipe{} = recipe <- with_ingredients(slot.recipe_id) do
+      {slot, recipe}
+    else
+      _none -> nil
+    end
+  end
+
+  # `Ash.Query.filter` + `read_one`, the shape `Kati.Screens.MealSwap`'s own
+  # `slot_for/1` already uses for the same lookup, rather than `Ash.get/2`.
+  # `rescue` because a screen can be rendered before the repo is up, which is
+  # the window `Kati.Screens.MealSwap.handed_over/0` documents at length.
+  defp slot_for(id) do
+    MealPlanSlot
+    |> Ash.Query.filter(id == ^id)
+    |> Ash.read_one()
+    |> case do
+      {:ok, slot} -> slot
+      _error -> nil
+    end
+  rescue
+    _error -> nil
   end
 
   defp next_meal(date) do
@@ -154,6 +262,24 @@ defmodule Kati.Screens.Meal do
       title: recipe.title,
       seed: recipe.photo_seed,
       portion: portion_label(portion / Nutrition.one_portion()),
+      # Carried so **Mark eaten** can write one. Without them the button had
+      # nothing to log against, so it toggled a flag on the socket instead —
+      # which drew a tick, survived until the screen was popped, and left
+      # nothing behind. A control that looks like it worked is worse than one
+      # that plainly does not.
+      slot_id: slot.id,
+      recipe_id: recipe.id,
+      bookmarked: recipe.bookmarked,
+      portion_milli: portion,
+      plan_id: slot.meal_plan_id,
+      # The eyebrow above is a SENTENCE — `Dinner · 19:30 · today` — and a
+      # sentence cannot be written to a log. These two are the same two facts
+      # unjoined, carried for `Kati.Meals.MealLog.log_eaten/1` so a meal logged
+      # here keeps the name and the clock it keeps when it is logged from
+      # screen 43's card. Parsing them back out of `:slot` would be a second
+      # implementation of the format one line above.
+      slot_name: slot.slot_name,
+      slot_time: slot.slot_time,
       calories: "#{figures.kcal}",
       unit: " kcal",
       split: split(figures),
@@ -323,6 +449,8 @@ defmodule Kati.Screens.Meal do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column fill_width={true}>
@@ -335,7 +463,7 @@ defmodule Kati.Screens.Meal do
             padding_bottom={40}
           >
             {Kati.Screens.Meal.portion_card(meal)}
-            {Kati.Screens.Meal.actions()}
+            {Kati.Screens.Meal.actions(meal)}
             {UI.eyebrow("Ingredients · 1 portion")}
             {Kati.Screens.Meal.ingredients(meal.ingredients)}
             {Kati.Screens.Meal.muted_eyebrow("Method")}
@@ -430,7 +558,7 @@ defmodule Kati.Screens.Meal do
           align="center"
           on_tap={back}
         >
-          {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
+          {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
           <Spacer size={6} />
           <Text
             text="Meals"
@@ -714,7 +842,7 @@ defmodule Kati.Screens.Meal do
   # The shadow keeps the drawing's own recipe; dark's card treatment is
   # `Kati.Theme`'s business, not a colour table's.
   @doc false
-  def actions do
+  def actions(meal) do
     eat = {self(), :mark_eaten}
 
     ~MOB"""
@@ -748,7 +876,7 @@ defmodule Kati.Screens.Meal do
         <Spacer size={10} />
         {Kati.Screens.Meal.disc("swap_horiz", :swap)}
         <Spacer size={10} />
-        {Kati.Screens.Meal.disc("bookmark", :save)}
+        {Kati.Screens.Meal.bookmark(meal)}
       </Row>
       <Spacer size={24} />
     </Column>
@@ -762,6 +890,46 @@ defmodule Kati.Screens.Meal do
   # does not interpret it, it hands the string to the container.
   #
   # `shape: :circle` computes 50 / 2 = 25.0, the radius that was written here.
+  @doc """
+  The bookmark disc, filled when the recipe is bookmarked.
+
+  The disc drew and did nothing for as long as the screen existed, because
+  `Kati.Meals.Recipe` had no column to hold the answer —
+  `Kati.ScreenTapSweepTest`'s backlog listed it under *a button that never
+  marks anything*. It has one now.
+
+  Filled rather than merely darker, because the glyph is the state: an outline
+  bookmark and a solid one are what the Material set gives for exactly this,
+  and a disc that changed only its background would be saying the same thing in
+  a way that has to be learned.
+
+  On the drawing — no plan, so no recipe — it stays outlined and inert. There
+  is nothing to bookmark, and inventing a row to record the tap against would
+  be inventing the meal it belongs to.
+  """
+  @spec bookmark(map()) :: map()
+  def bookmark(meal) do
+    on? = Map.get(meal, :bookmarked, false)
+
+    MishkaActionIcon.action_icon(
+      [
+        size: 50,
+        shape: :circle,
+        variant: :filled,
+        background: if(on?, do: Palette.ink_fill(), else: Palette.card()),
+        shadow: Kati.Theme.shadow_card_soft(),
+        on_tap: :save
+      ],
+      [
+        Kati.UI.symbol("bookmark",
+          size: 21,
+          fill: on?,
+          color: if(on?, do: Palette.on_ink(), else: Palette.ink())
+        )
+      ]
+    )
+  end
+
   @doc false
   def disc(icon, tag) do
     MishkaActionIcon.action_icon(
@@ -1022,10 +1190,22 @@ defmodule Kati.Screens.Meal do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
-  def handle_info({:tap, :swap}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap)}
+  # The meal on screen goes with the tap. Screen 43 hands its slot to 46 through
+  # `Mob.State` — `Kati.Screens.MealSwap.hand_over/1` — and this disc handed over
+  # nothing at all, so 46 opened on whatever slot the store still held from an
+  # earlier tap on a different screen, or on `Kati.Meals.SampleSwap`. Named in
+  # the push rather than in the store because the push is the thing that cannot
+  # go stale: it is written and read inside one navigation.
+  #
+  # A drawn meal has no slot id and pushes `%{}`, which leaves 46 reading the
+  # store exactly as it does today.
+  def handle_info({:tap, :swap}, socket) do
+    params = Kati.Screens.MealSwap.params_for(socket.assigns.meal)
+
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealSwap, params)}
+  end
 
   # The stepper moves in quarters and stops at 0.5x, which is what the drawing
   # implies by muting `remove` at 1.0x rather than hiding it: there is a floor,
@@ -1051,14 +1231,100 @@ defmodule Kati.Screens.Meal do
      Mob.Socket.assign(socket, :meal, %{meal | portion: Kati.Screens.Meal.portion_label(factor)})}
   end
 
-  def handle_info({:tap, :mark_eaten}, socket) do
-    meal = socket.assigns.meal
+  @doc """
+  Bookmark the recipe, or take the bookmark off.
 
-    {:noreply,
-     Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))}
+  A toggle on the row rather than an add-only action: the disc is the same disc
+  either way, and a control that can only ever be pressed once is a control
+  that lies the second time.
+
+  On the drawing there is no recipe, so nothing is written and nothing is
+  toggled — see `bookmark/1`.
+  """
+  def handle_info({:tap, :save}, socket) do
+    {:noreply, Kati.Screens.Meal.toggle_bookmark(socket)}
+  end
+
+  # Mark the meal eaten, for real. A comment rather than a second `@doc`,
+  # because these are clauses of one `handle_info/2` and the clause above
+  # already carries the doc.
+  #
+  # This used to flip `:eaten` on the socket — a tick that drew, survived until
+  # the screen was popped, and left nothing in the store. Screen 43's button had
+  # the same shape and `Kati.MealsTodayWriteTest` is what settled it; this is the
+  # same write from the detail page, through the same action, so the two cannot
+  # come to disagree about what marking a meal means.
+  #
+  # `Kati.Meals.MealLog`'s `:log_recipe` freezes the figures at the moment of the
+  # claim, which is why the portion goes in as the slot's rather than as this
+  # screen's label: `portion_label/1` is for reading and `portion_milli` is what
+  # the arithmetic is done on.
+  #
+  # With no active plan the screen is `Kati.Meals.SampleRecipe`'s drawing and
+  # there is no slot to log against, so the tap keeps its old local toggle. A
+  # drawn meal is not a planned one, and writing a log for a meal nobody planned
+  # would be inventing the row it then displayed.
+  def handle_info({:tap, :mark_eaten}, socket) do
+    {:noreply, Kati.Screens.Meal.mark_eaten(socket)}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc false
+  @spec toggle_bookmark(Mob.Socket.t()) :: Mob.Socket.t()
+  def toggle_bookmark(socket) do
+    meal = socket.assigns.meal
+    wanted = not Map.get(meal, :bookmarked, false)
+
+    with id when is_binary(id) <- meal[:recipe_id],
+         {:ok, recipe} <- Ash.get(Kati.Meals.Recipe, id),
+         {:ok, _updated} <-
+           recipe
+           |> Ash.Changeset.for_update(:update, %{bookmarked: wanted})
+           |> Ash.update()
+           |> Kati.Write.note("bookmark #{meal.title}") do
+      Mob.Socket.assign(socket, :meal, Map.put(meal, :bookmarked, wanted))
+    else
+      _drawn_or_failed -> socket
+    end
+  end
+
+  @doc """
+  Write that this page's meal was eaten.
+
+  **Through `Kati.Meals.MealLog.log_eaten/1`, which screen 43's timeline card
+  also calls.** The two used to spell the same seven attributes out separately,
+  and both spellings were missing `slot_name` and `slot_time` — so a meal
+  logged from either screen came back with no clock and no eyebrow. Two copies
+  of one write is two chances to lose the same field, which is what happened,
+  and one function is the fix `Kati.Screens.Books.rail/2` records for a value
+  read twice.
+
+  The row is `socket.assigns.meal` — what `meal/2` RESOLVED at mount and this
+  page has been drawing since. `log_eaten/1` reads its ids and queries for
+  nothing, so there is no path from this button to a slot the reader is not
+  looking at, and a page showing `Kati.Meals.SampleRecipe` has no ids to give:
+  the store is left alone and only the tick moves, which is what
+  `Kati.MealsTodayWriteTest` pins.
+  """
+  @spec mark_eaten(Mob.Socket.t()) :: Mob.Socket.t()
+  def mark_eaten(socket) do
+    meal = socket.assigns.meal
+
+    case Kati.Meals.MealLog.log_eaten(meal) do
+      {:ok, _log} ->
+        Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, true))
+
+      :error ->
+        # The drawing. It has no slot and no recipe, so there is nothing to log
+        # — the tick is local and dies with the screen, which is the honest
+        # thing a board-shaped page can do with the tap.
+        Mob.Socket.assign(socket, :meal, Map.put(meal, :eaten, not Map.get(meal, :eaten, false)))
+
+      {:error, _reason} ->
+        socket
+    end
+  end
 
   @doc false
   @spec portion_factor(String.t()) :: float()

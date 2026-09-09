@@ -213,6 +213,7 @@ defmodule Kati.Screens.RestoreFa do
   @spec mount(map(), map(), Mob.Socket.t()) :: {:ok, Mob.Socket.t()}
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, socket}
   end
 
@@ -226,7 +227,7 @@ defmodule Kati.Screens.RestoreFa do
   `font_family` — a left-pointing chevron beside a row of empty boxes.
   """
   @spec render(map()) :: map()
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc "The page, in the order 132 stacks it — 129's own order, unchanged."
   @spec content(map()) :: map()
@@ -780,7 +781,7 @@ defmodule Kati.Screens.RestoreFa do
 
   @doc "The one tap this board draws. See Audited in the moduledoc for why there is only one."
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}
 end

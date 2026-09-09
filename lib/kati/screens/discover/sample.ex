@@ -10,6 +10,15 @@ defmodule Kati.Screens.Discover.Sample do
   identical rows would exercise neither.
   """
 
+  @doc """
+  How many rows the leaving section holds, as the chip's badge prints it.
+
+      iex> Kati.Screens.Discover.Sample.leaving_count()
+      "2"
+  """
+  @spec leaving_count() :: String.t()
+  def leaving_count, do: Integer.to_string(length(Kati.Screens.Discover.Sample.leaving()))
+
   @doc "Everything screen 11 draws."
   @spec feed() :: map()
   def feed do
@@ -18,7 +27,12 @@ defmodule Kati.Screens.Discover.Sample do
       chips: [
         %{label: "For you", count: nil, selected: true},
         %{label: "People", count: nil, selected: false},
-        %{label: "Leaving", count: "5", selected: false},
+        # The count follows the list. Board 11 draws `5` over two leaving rows —
+        # MOVIES-AND-TV.md #24's second half — and a badge that disagrees with
+        # the section under it is the plausible-looking figure screen 96's rule
+        # is against. `leaving_count/0` reads `leaving/0`, so the two cannot
+        # part company again.
+        %{label: "Leaving", count: Kati.Screens.Discover.Sample.leaving_count(), selected: false},
         %{label: "Awards", count: nil, selected: false}
       ],
       because: "Because you watched The Long Hollow",
@@ -33,21 +47,27 @@ defmodule Kati.Screens.Discover.Sample do
         %{name: "Ada Vance", line: "Actor · nothing new", seed: "face45", new?: false}
       ],
       leaving_label: "Leaving Lumen+ in 7 days",
-      leaving: [
-        %{
-          title: "Nightbirds",
-          seed: "nightbirds24",
-          line: "on your wishlist",
-          action: "Schedule"
-        },
-        %{
-          title: "A Quieter Place to Land",
-          seed: "quieterplace8",
-          line: "never started",
-          action: "Schedule"
-        }
-      ]
+      leaving: Kati.Screens.Discover.Sample.leaving()
     }
+  end
+
+  @doc "The rows the leaving section holds, which is what its badge counts."
+  @spec leaving() :: [map()]
+  def leaving do
+    [
+      %{
+        title: "Nightbirds",
+        seed: "nightbirds24",
+        line: "on your wishlist",
+        action: "Schedule"
+      },
+      %{
+        title: "A Quieter Place to Land",
+        seed: "quieterplace8",
+        line: "never started",
+        action: "Schedule"
+      }
+    ]
   end
 
   @doc "A poster or a face, whichever the seed was drawn as."

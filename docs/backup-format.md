@@ -36,6 +36,7 @@ kati-backup-2026-08-21.katibackup
     ├── media_watches.json
     ├── media_content_warnings.json
     ├── media_warning_preferences.json
+    ├── media_title_aliases.json
     ├── foods.json
     ├── recipes.json
     ├── recipe_ingredients.json
@@ -146,6 +147,10 @@ reproduce.
 | `Kati.Media.Watch` | `media_watches` | Every tick, log, review, rewatch, place, companion, mood and pace |
 | `Kati.Media.ContentWarning` | `media_content_warnings` | Warnings the user recorded on a title, and whether each came from them or from an import |
 | `Kati.Media.WarningPreference` | `media_warning_preferences` | What to do with a warning category — avoid, warn, or show |
+| `Kati.Media.TitleAlias` | `media_title_aliases` | A name the reader taught Kati is one of their titles, so auto-detect stops asking |
+| `Kati.Lists.List` | `lists` | A hand-made list: its name, and whether it is ranked or shared |
+| `Kati.Lists.Membership` | `list_memberships` | One title in one list, with the position that makes a ranked list ranked |
+| `Kati.Media.Event` | `media_events` | What happened to a title and when — added, dropped and why, resumed, imported |
 | `Kati.Meals.Food` | `foods` | Foods Kati or the user wrote, and remembered prices |
 | `Kati.Meals.Recipe` | `recipes` | Recipes, methods, notes, ratings, cached totals |
 | `Kati.Meals.RecipeIngredient` | `recipe_ingredients` | Every ingredient line, with its own figures |
@@ -156,6 +161,7 @@ reproduce.
 | `Kati.Books.Book` | `books` | Every book, where you are in it, the edition you own, who it is lent to |
 | `Kati.Books.ReadingSession` | `book_reading_sessions` | Each sitting: the pages it covered, the minutes it took, whether it was a re-read |
 | `Kati.Books.Note` | `book_notes` | Quotes copied out and notes left, each anchored to a page |
+| `Kati.Books.FollowedAuthor` | `followed_authors` | The authors whose next book you want to hear about |
 | `Kati.Music.Artist` | `music_artists` | Artists, and whether you follow them |
 | `Kati.Music.Album` | `music_albums` | Releases, your rating, your note, when you first heard it |
 | `Kati.Music.Track` | `music_tracks` | The tracklist, and the per-track play counts a scrobble import brings in |
@@ -228,6 +234,12 @@ before any column is decoded.
 | 6 → 7 | `goals` and `expenses` joined with screens 104 and 122. | Supplies both as empty members. |
 | 7 → 8 | `health_medications`, `health_readings` and `health_doses` joined with screens 109 and 112. | Supplies all three as empty members. |
 | 8 → 9 | `recipes` gained `slot_name` with screen 116. | **Nothing.** A version-8 archive has every member a version-9 app expects and its recipe rows simply lack one key, which takes the attribute default. The version still moved, because `schema_version` tracks the row shape — the step is here saying so rather than the chain having a hole in it. |
+| 12 → 13 | `media_title_aliases` joined the backup. | Supplied as an empty member. A version-12 file simply has none — the reader had not been asked yet — and Kati asks about a name the first time it hears it, which is what it would have done anyway. |
+| 15 → 16 | `lists` and `list_memberships` joined the backup. | Supplied as empty members. Neither can be derived — a list is a thing the reader made and named, and its order is a thing they chose — so a restored version-15 file has no lists, which is what that device had. |
+| 16 → 17 | `list_memberships` gained `book_id` and `album_id`; `tracked_title_id` stopped being `NOT NULL`. | **Nothing.** A list holds a film, a series, a book or an album now (board 332), and a version-16 membership carries `tracked_title_id` and takes `NULL` for the other two — the shape the 10 → 11 `private` step had. |
+| 17 → 18 | `followed_authors` joined the backup. | Supplied as an empty member. Nothing derives it — an author is a free string on `books` and following one is the reader's own statement — so a restored version-17 file has nobody followed, which is what that device had. |
+| 14 → 15 | `tracked_titles` gained `anime_override`; `cached_titles` gained `original_language`. | **Nothing.** A version-14 archive has neither column and every row takes the attribute default. For `anime_override` that default is `NULL` — *I have not said* — which is the truth about every title written before there was anywhere to say it, and leaves the provider rule free to answer. |
+| 13 → 14 | `media_events` joined the backup. | Supplied as an empty member, and **nothing is reconstructed**. A status column says where a title *is*; it cannot be read backwards into when it got there or why, which is the whole reason the table exists. A restored version-13 file therefore has a history that starts on the day it was upgraded. |
 
 Row counts are checked against the manifest **before** the walk runs, because the
 manifest describes the file as it was written: a table a step invents has no count in a

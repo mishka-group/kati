@@ -1,0 +1,336 @@
+package com.example.kati
+
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.performTextInput
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * #91 — a clean install hands over an app you can use.
+ *
+ * The ticket exists because of one sentence from the person whose app this is,
+ * after installing it on his own phone: *"you all show dummy data and it is not
+ * connected to database"*. That was literally true. Every root screen answered
+ * an empty store with a Sample module, so the first thing anybody saw on a new
+ * phone was nine films they had never added, drawn in the shape and colour of
+ * their own shelf.
+ *
+ * These assertions are therefore two-sided everywhere it matters: the empty
+ * state's own words must be PRESENT **and** the invented content must be
+ * ABSENT. Checking only the first would pass on a screen still full of samples
+ * sitting under a new heading.
+ *
+ * ## What this file cannot test, and where that is covered
+ *
+ * "The run resumes at the step it was killed on" wants a dead process. An
+ * instrumentation test shares the app's process, so `am force-stop` would take
+ * the test with it. What is asserted here is the reachable half — the run does
+ * not restart from the beginning when the Activity is recreated. The other
+ * half, that `Mob.State` carries the step across a real restart, is asserted
+ * on the host in `test/kati/onboarding_resume_test.exs`.
+ */
+@RunWith(AndroidJUnit4::class)
+class FirstRunTest {
+
+    @get:Rule
+    val kati = KatiRule()
+
+    private fun textPresent(text: String): Boolean =
+        kati.compose
+            .onAllNodesWithText(text, substring = true, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
+
+    /** Every invented title `Kati.Library.Sample` holds. None may reach a screen. */
+    private val invented = listOf("The Long Hollow", "Salt & Iron", "Blue Hour", "Ashfall")
+
+    private fun assertNothingInvented(where: String) {
+        for (title in invented) {
+            assertTrue(
+                "$where drew \"$title\" — a film out of Kati.Library.Sample that nobody " +
+                    "added. This is the defect #91 reports, back again.",
+                !textPresent(title)
+            )
+        }
+    }
+
+    /**
+     * Whether screen 06 is SAYING why it has no rows.
+     *
+     * `Kati.Media.Tmdb.message/1` owns these sentences and screen 06 draws them
+     * inline rather than as an empty list — the difference between "the
+     * provider answered and had nothing" and "nothing happened" is the whole
+     * reason this is asserted rather than assumed.
+     */
+    private fun providerSaidWhyNot(): Boolean =
+        textPresent("Nothing here for") ||
+            textPresent("Could not look") ||
+            textPresent("No TMDB token") ||
+            textPresent("did not answer") ||
+            textPresent("too many")
+
+    /**
+     * The first `add_<title>` row of the catalogue, never the escape hatch.
+     *
+     * `Kati.Screens.AddTitle` tags each result `add_<title>` and board 308's
+     * by-hand row is `add_by_hand`, so a bare prefix search matches both and
+     * the hatch is usually first on screen.
+     */
+    private fun catalogueRow(): String? =
+        kati.tagStartingWith("add_")?.takeIf { it != "add_by_hand" }
+            ?: kati.compose
+                .onAllNodes(
+                    androidx.compose.ui.test.SemanticsMatcher.keyIsDefined(
+                        androidx.compose.ui.semantics.SemanticsProperties.TestTag
+                    ),
+                    useUnmergedTree = true
+                )
+                .fetchSemanticsNodes()
+                .firstNotNullOfOrNull { node ->
+                    node.config
+                        .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)
+                        ?.takeIf { it.startsWith("add_") && it != "add_by_hand" }
+                }
+
+    @Test
+    fun a_a_clean_install_hands_over_a_usable_app() {
+        assertTrue(
+            "less than 200MB free on /data — a failed install would present as a failed test",
+            kati.freeMegabytes() > 200
+        )
+
+        kati.launch()
+        kati.firstRun()
+
+        // The receipt for "usable": not that a screen drew, but that the app
+        // took something and kept it. A shelf is the app's own subject.
+        val before = kati.count("tracked_titles")
+
+        kati.tap("root_library")
+        kati.compose.waitUntil(20_000) { textPresent("No titles yet") }
+
+        assertNothingInvented("the Library, straight after the first run,")
+
+        kati.tap("add_title")
+        kati.compose.waitUntil(20_000) { kati.present("title_query") }
+
+        // Deliberately more than two characters: `Kati.Screens.AddTitle` runs
+        // its search under a THREE-character floor, so a single letter searches
+        // nothing at all. This test typed "a" and then took the first tag
+        // beginning `add_` — which, since board 308 gave the escape hatch a
+        // query-shaped label, is `add_by_hand` itself. It tapped the by-hand
+        // row, landed on the form and waited twenty seconds for a row only a
+        // Save would write.
+        kati.compose.onNodeWithTag("title_query", useUnmergedTree = true)
+            .performTextInput("quiet")
+        kati.device.waitForIdle()
+
+        // The provider has to ANSWER — with rows, or with a sentence saying why
+        // not. Waiting only for rows makes this test a check on themoviedb.org's
+        // uptime, which is not a fact about a clean install; accepting silence
+        // would let a search that never ran pass. `Kati.Media.Tmdb.message/1`
+        // owns every one of those sentences and screen 06 draws it inline.
+        kati.compose.waitUntil(40_000) {
+            catalogueRow() != null || providerSaidWhyNot()
+        }
+
+        val addTag = catalogueRow()
+
+        // The by-hand escape hatch is what board 308 puts there for exactly
+        // this case, and it is the route that proves the claim this test is
+        // named for without depending on a third party: the app took something
+        // and kept it.
+        if (addTag == null) {
+            assertTrue(
+                "the provider returned no rows and said nothing about why — so the search " +
+                    "never ran at all, and nothing below this line would mean anything",
+                providerSaidWhyNot()
+            )
+
+            kati.compose.waitUntil(20_000) { kati.present("add_by_hand") }
+            kati.tap("add_by_hand")
+            kati.compose.waitUntil(20_000) { kati.present("title") }
+
+            kati.compose.onNodeWithTag("title", useUnmergedTree = true)
+                .performTextInput("quiet harbour")
+            kati.device.waitForIdle()
+            kati.tap("add")
+        } else {
+            kati.tap(addTag)
+        }
+
+        kati.compose.waitUntil(20_000) { kati.count("tracked_titles") > before }
+
+        assertEquals(
+            "the first run completed but the app could not keep a title — that is not a " +
+                "usable app, it is a walkthrough",
+            before + 1,
+            kati.count("tracked_titles")
+        )
+    }
+
+    @Test
+    fun b_every_root_draws_its_own_emptiness() {
+        kati.launch()
+        kati.firstRun()
+
+        // Each root is waited for by its own `screen:` stamp before its copy is
+        // read. Waiting on the TEXT alone conflates "the screen has not arrived
+        // yet" with "the screen says the wrong thing", and the first is a
+        // timeout that reads like the second — which is exactly how this test
+        // first reported a Calendar that was in fact drawing the right words.
+        kati.tap("root_library")
+        kati.awaitScreen("library")
+        kati.compose.waitUntil(20_000) { textPresent("No titles yet") }
+        assertNothingInvented("the Library")
+
+        // Stats — a year counted from nothing is not a year of zeroes.
+        kati.tap("root_stats")
+        kati.awaitScreen("stats")
+        kati.compose.waitUntil(20_000) { textPresent("Not much to show yet") }
+        assertNothingInvented("Stats")
+
+        // Calendar — the two states are DIFFERENT facts and a person has to be
+        // able to tell them apart: nothing on today, versus Kati not being
+        // allowed to look. The permission is not granted in this run, so it is
+        // the second one that must be drawn. Accepting either would let a
+        // permission failure hide behind a normal-looking empty day.
+        // The Calendar is asserted only for what is true of it in EVERY state.
+        //
+        // Its two empty states — a day with nothing on it, and a calendar Kati
+        // is not allowed to read — are real and distinct, and both are asserted
+        // on the host in `Kati.ScreenCalendarEmptyStateTest`, where the
+        // permission and the store can both be set. On a device neither is
+        // determinable here: `KatiRule.firstRun/0` answers the permission
+        // dialog with Allow, so this run can SEE the device calendar, and the
+        // emulator's calendar holds whatever previous runs left on it. Asserting
+        // "nothing scheduled" here asserted that the device was empty, which is
+        // not a fact about Kati at all.
+        //
+        // What must hold whatever the calendar contains: nothing invented is
+        // drawn on it.
+        kati.tap("root_calendar")
+        kati.awaitScreen("calendar")
+        assertNothingInvented("the Calendar")
+
+        kati.tap("root_home")
+        kati.awaitScreen("home")
+        assertNothingInvented("Home")
+    }
+
+    @Test
+    fun c_the_run_does_not_restart_from_the_beginning() {
+        kati.launch()
+        kati.compose.waitUntil(60_000) { kati.present("choose_en") }
+
+        // Answer step one and move on, so there is something to lose.
+        kati.tap("continue")
+        kati.compose.waitUntil(20_000) { !kati.present("choose_en") }
+        kati.systemDialog("Allow", "While using the app", "Allow all the time")
+
+        // Recreating the Activity re-reads `Kati.Onboarding.first_screen/0`,
+        // which is the decision this ticket changed.
+        kati.launch()
+        kati.device.waitForIdle()
+        kati.compose.waitUntil(30_000) { !kati.present("choose_en") || kati.present("fab") }
+
+        assertTrue(
+            "the run reopened on the language step and asked a question already " +
+                "answered — the first thing this person told Kati did not count",
+            !kati.present("choose_en")
+        )
+    }
+
+    @Test
+    fun d_a_backup_can_be_restored_during_the_first_run() {
+        kati.launch()
+        kati.compose.waitUntil(60_000) { kati.present("choose_en") }
+
+        kati.tap("continue")
+        kati.compose.waitUntil(20_000) { !kati.present("choose_en") }
+        kati.systemDialog("Allow", "While using the app", "Allow all the time")
+
+        // Step two offers it first. Board 161 draws "Already have a Kati
+        // backup? Restore it" under its own button — a decision the board makes
+        // explicitly, and the earliest point in the run a person with a backup
+        // can act on it.
+        kati.compose.waitUntil(20_000) { kati.present("restore") || kati.present("import_backup") }
+
+        assertTrue(
+            "the welcome step offers no restore, so a person with a backup has to walk " +
+                "further into a setup they did not want before they can use it",
+            kati.present("restore") || kati.present("import_backup")
+        )
+
+        // And step three offers it again, which is the one this criterion was
+        // written against. `:import_backup` — screen 26 draws it as "Restore
+        // from a backup instead". Named exactly, because a check that accepts
+        // any tag containing "restore" would pass on a screen that merely
+        // mentions one.
+        //
+        // Stepped by hand rather than through `KatiRule.toSections`: that
+        // helper starts from screen 53 and this test is already past it, so it
+        // would sit out its own timeout waiting for a language question that
+        // has been answered.
+        kati.tap("next")
+        kati.systemDialog("Allow", "While using the app", "Allow all the time")
+        kati.compose.waitUntil(30_000) { kati.present("import_backup") }
+
+        assertTrue(
+            "nothing on the sections step offers a restore, so a person who walked past " +
+                "the welcome has no second chance at it",
+            kati.present("import_backup")
+        )
+    }
+
+    /**
+     * #93 — the loudness step routes forward into board 136.
+     *
+     * `Kati.Screens.LoudnessPrompt` sat on `Kati.AppReachabilityTest`'s
+     * stranded inventory with its own entry naming the blocker: *"its entry is
+     * 38·3 itself routing forward, which needs 38 renumbered to five steps"*.
+     * `D-33` renumbered it. This is the tap that proves the door is open, which
+     * is the criterion — reachable **by tapping from a root**, on a device.
+     *
+     * The quiet option is asserted too, and it is the half that matters more:
+     * Kati raises no notification prompt at all for a reader who chose it, and
+     * a screen that took everybody through the permission band would satisfy
+     * "reachable" while breaking the decision the board makes.
+     */
+    @Test
+    fun e_a_loud_choice_takes_the_permission_band_and_a_quiet_one_does_not() {
+        kati.launch()
+        kati.toSections()
+        kati.tap("continue")
+        kati.systemDialog("Allow", "While using the app", "Allow all the time")
+
+        kati.awaitScreen("onboarding_loudness")
+
+        // Quietly is where the board opens, so Continue from here must NOT
+        // reach 136. Asserted by arriving at step five instead.
+        kati.tap("next")
+        kati.awaitScreen("onboarding_first_title")
+
+        assertTrue(
+            "the quiet choice was taken through the OS permission band, which is the one " +
+                "thing this step promises not to do",
+            !kati.present("screen:loudness_prompt")
+        )
+
+        // Back to step four and choose a loud one.
+        kati.tap("step_back")
+        kati.awaitScreen("onboarding_loudness")
+        kati.tap("choose_Weekly digest")
+        kati.device.waitForIdle()
+
+        kati.tap("next")
+        kati.awaitScreen("loudness_prompt")
+    }
+
+}

@@ -13,6 +13,8 @@ defmodule Kati.GoalsMoneyTest do
   """
   use Mob.ScreenCase, async: false
 
+  doctest Kati.Screens.QuickAddExpense, import: true
+
   alias Kati.Goals.Goal
   alias Kati.Money
   alias Kati.Money.Expense
@@ -170,17 +172,13 @@ defmodule Kati.GoalsMoneyTest do
       assert Goals.goals() == Goals.drawn_goals()
     end
 
-    test "repeat writes through to every live goal" do
-      goal = a_goal!(%{repeat: true})
-
-      view = mount_screen(Goals)
-      assert assigns(view).repeat == true
-
-      toggled = render_info(view, {:tap, :toggle_repeat})
-
-      assert assigns(toggled).repeat == false
-      assert Ash.get!(Goal, goal.id).repeat == false
-    end
+    # `repeat writes through to every live goal` stood here and asserted the
+    # defect: one `:toggle_repeat` switch, `Enum.each(stored(), …)`, every goal
+    # on the page rewritten to answer a question asked about one. The switch is
+    # now a row per goal carrying that goal's id, and
+    # `Kati.GoalRepeatRowTest` is where the replacement lives — it taps the
+    # SECOND row and asserts the first is untouched, which is the assertion the
+    # old test could not have made.
 
     test "with nothing stored the drawing renders, whole" do
       assert Goals.goals() == Goals.drawn_goals()
@@ -331,7 +329,16 @@ defmodule Kati.GoalsMoneyTest do
     test "the field says saving without an amount is allowed" do
       tree = tree(mount_screen(QuickAddExpense))
 
-      assert find(tree, :text, text: "no amount found") != nil
+      # The placeholder lives on the `<TextField>` now, not in a `<Text>` beside
+      # it. Screen 124 drew a caret nothing could type into and a comment saying
+      # Mob had no text input; `<TextField>` was in the pinned Mob the whole
+      # time, and `Kati.Screens.Backup` had been using it for the passphrase.
+      assert find(tree, :text_field, placeholder: "no amount found") != nil,
+             "the amount field lost its placeholder, which is the copy that tells " <>
+               "someone an expense with no amount is still worth saving"
+
+      assert find(tree, :text_field, accessibility_id: "amount") != nil,
+             "the amount field is not addressable, so no device test can type into it"
 
       # One `Text` rather than three, because `Kati.UI.rich_text/1` merges its
       # runs — the emphasis is real and the node is one.

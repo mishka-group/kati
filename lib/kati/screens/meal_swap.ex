@@ -34,17 +34,203 @@ defmodule Kati.Screens.MealSwap do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
+  require Ash.Query
+
+  alias Kati.Meals.Nutrition
   alias Kati.Meals.SampleSwap, as: Sample
   alias Kati.Theme
   alias Kati.Theme.Palette
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
-    {:ok, Mob.Socket.assign(socket, :candidates, Sample.candidates())}
+    swap = Kati.Screens.MealSwap.swap(params)
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:candidates, swap.candidates)
+     |> Mob.Socket.assign(:replacing, swap.replacing)
+     |> Mob.Socket.assign(:slot_id, swap.slot_id)
+     |> Mob.Socket.assign(:picked, swap.picked)}
+  end
+
+  @doc """
+  The swap this screen is a swap OF when the push named nothing: the store's.
+
+  Screen 43 hands the slot over the way screen 86 hands a query to 19 — a key
+  in `Mob.State` — and this is the reader of that key. With no slot, or no
+  plan, it is `Kati.Meals.SampleSwap`'s drawing, which is what the gallery
+  shows and what the design sweeps compare against.
+  """
+  @spec swap() :: map()
+  def swap, do: swap(%{})
+
+  @doc """
+  The swap this screen is a swap OF, given the push's own params.
+
+  `%{slot_id: id}` is what screen 45's `swap_horiz` disc pushes — the meal that
+  was on screen — rather than whatever `Mob.State` still held from an earlier
+  tap somewhere else. Screen 43 still hands its slot over through the store, so
+  a push that names nothing is exactly `handed_over/0`, and `swap/0` is that
+  call unchanged.
+
+  The two doors are ordered, and the order is the point: the push is written and
+  read inside one navigation and cannot be stale, the store can.
+
+  ## The candidates are the meal library, ranked by what the swap costs
+
+  The design's caption is the specification: *"A swap is only useful if it
+  tells you what it costs."* So a candidate is any other recipe you keep, and
+  the delta is the difference in energy between it and the meal being replaced
+  — computed here rather than typed, which is what makes the number true of the
+  two rows it sits between.
+
+  Ranked by absolute distance, nearest first, and capped at three because that
+  is what the board draws. `BEST` goes on the first and only because it IS the
+  closest; the drawing does not decorate the others.
+  """
+  @spec swap(map() | nil) :: map()
+  def swap(params) do
+    with slot_id when is_binary(slot_id) <- named(params),
+         %{} = slot <- slot_for(slot_id),
+         %Kati.Meals.Recipe{} = recipe <- slot.recipe do
+      figures = Nutrition.scale(recipe_figures(recipe), slot.portion_milli)
+
+      %{
+        slot_id: slot.id,
+        replacing: %{
+          label: "Replacing",
+          title: recipe.title,
+          macros: macro_line(figures),
+          seed: recipe.photo_seed
+        },
+        candidates: candidates_for(recipe, figures),
+        picked: nil
+      }
+    else
+      _drawn ->
+        %{
+          slot_id: nil,
+          replacing: Sample.replacing(),
+          candidates: Sample.candidates(),
+          picked: nil
+        }
+    end
+  end
+
+  @doc """
+  The slot screen 43 handed over. See `swap/0`.
+
+  `catch :exit` as well as `rescue`, and the difference is not academic.
+  `Mob.State` is a GenServer: when it is not running, a call to it **exits**
+  rather than raising, and `rescue` does not catch an exit. On the host that is
+  a test whose harness has already torn the store down; on a device it is the
+  window between the BEAM starting and `Mob.State` opening its table, which is
+  a window a screen can be rendered in.
+  """
+  @spec handed_over() :: String.t() | nil
+  def handed_over do
+    case Mob.State.get(:kati_swap_slot) do
+      id when is_binary(id) and id != "" -> id
+      _nothing -> nil
+    end
+  rescue
+    _error -> nil
+  catch
+    :exit, _reason -> nil
+  end
+
+  @doc "Put a slot where this screen will look for it. See `handed_over/0`."
+  @spec hand_over(String.t()) :: :ok
+  def hand_over(slot_id) do
+    Mob.State.put(:kati_swap_slot, slot_id)
+    :ok
+  rescue
+    _error -> :ok
+  catch
+    :exit, _reason -> :ok
+  end
+
+  @doc """
+  The params that name a slot to this screen, from a screen 45 meal.
+
+  Here rather than at screen 45 so `:slot_id` is spelled once on this side of
+  the push, the way `Kati.Screens.MealEdit.params_for/1` spells `:meal_id` once
+  on its own. A drawn meal has no slot id and yields `%{}`, which sends this
+  screen back to `handed_over/0` — the door it has always had.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{slot_id: id}) when is_binary(id) and id != "", do: %{slot_id: id}
+  def params_for(_meal), do: %{}
+
+  # The push's own slot, and the store only when the push named none. See
+  # `swap/1` for why that order and not the other.
+  defp named(params) do
+    case Map.get(params || %{}, :slot_id) do
+      id when is_binary(id) and id != "" -> id
+      _none -> handed_over()
+    end
+  end
+
+  defp slot_for(id) do
+    Kati.Meals.MealPlanSlot
+    |> Ash.Query.filter(id == ^id)
+    |> Ash.Query.load(:recipe)
+    |> Ash.read_one()
+    |> case do
+      {:ok, slot} -> slot
+      _error -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  defp candidates_for(replacing, figures) do
+    Kati.Meals.Recipe
+    |> Ash.read!()
+    |> Enum.reject(&(&1.id == replacing.id))
+    |> Enum.map(fn recipe ->
+      theirs = Nutrition.scale(recipe_figures(recipe), Nutrition.one_portion())
+      {abs(theirs.kcal - figures.kcal), recipe, theirs}
+    end)
+    |> Enum.sort_by(&elem(&1, 0))
+    |> Enum.take(3)
+    |> Enum.with_index()
+    |> Enum.map(fn {{_distance, recipe, theirs}, i} ->
+      %{
+        id: recipe.id,
+        title: recipe.title,
+        badge: if(i == 0, do: "BEST"),
+        macros: String.downcase(macro_line(theirs)),
+        delta: delta_label(theirs.kcal - figures.kcal),
+        delta_color: if(theirs.kcal <= figures.kcal, do: Sample.green(), else: Sample.red()),
+        selected?: i == 0,
+        seed: recipe.photo_seed
+      }
+    end)
+  rescue
+    _error -> []
+  end
+
+  # The drawing writes a signed number with a MINUS SIGN, not a hyphen — the
+  # same character `Kati.Meals.SampleSwap` types, and the reason the two agree
+  # is that this is where a real delta has to look like the drawn one.
+  defp delta_label(0), do: "same"
+  defp delta_label(diff) when diff < 0, do: "−#{abs(diff)} kcal"
+  defp delta_label(diff), do: "+#{diff} kcal"
+
+  defp macro_line(f) do
+    "#{f.kcal} KCAL · #{grams(f.protein_mg)}P #{grams(f.carbs_mg)}C #{grams(f.fat_mg)}F"
+  end
+
+  defp grams(mg), do: round(mg / 1000)
+
+  defp recipe_figures(recipe) do
+    Map.new(Nutrition.fields(), fn field -> {field, Map.fetch!(recipe, :"total_#{field}")} end)
   end
 
   def render(assigns) do
     candidates = assigns.candidates
+    picked = assigns.picked
 
     ~MOB"""
     <Box
@@ -52,6 +238,8 @@ defmodule Kati.Screens.MealSwap do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column
@@ -65,7 +253,7 @@ defmodule Kati.Screens.MealSwap do
           {Kati.Screens.MealSwap.replacing()}
           {Kati.Screens.MealSwap.arrow()}
           {Kati.Screens.MealSwap.filters()}
-          {Kati.Screens.MealSwap.candidates(candidates)}
+          {Kati.Screens.MealSwap.candidates(candidates, picked)}
           {Kati.Screens.MealSwap.muted_eyebrow("Effect on today")}
           {Kati.Screens.MealSwap.effect()}
           {Kati.Screens.MealSwap.commit()}
@@ -255,21 +443,39 @@ defmodule Kati.Screens.MealSwap do
   end
 
   @doc false
-  def candidates(candidates) do
+  def candidates(candidates, picked \\ nil) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(candidates, fn row -> Kati.Screens.MealSwap.candidate(row) end)}
+      {candidates
+       |> Enum.with_index()
+       |> Enum.map(fn {row, i} -> Kati.Screens.MealSwap.candidate(row, i, picked) end)}
       <Spacer size={12} />
     </Column>
     """
   end
 
-  @doc false
-  def candidate(row) do
-    border = if row.selected?, do: 2, else: 0
+  @doc """
+  One candidate, and the 2pt ring that says it is the one in force.
+
+  The screen has assigned `:picked` and read it since it was written, and the
+  doc on the two commit clauses further down this file says *"A tap picks a
+  candidate first"* — no control ever sent one, so the ring could only sit where
+  `candidates_for/2` put it, and `commit_swap/2` could only ever commit the
+  first.
+
+  `picked` is the INDEX rather than the recipe id, because
+  `Kati.Meals.SampleSwap`'s three cards are a transcription of board 46 and
+  carry no id at all; indexing is what keeps all three tappable on the drawn
+  page, and it keeps the tag off `String.to_atom/1`-over-a-stored-id. With none
+  picked the ring falls back to `selected?`, which is the drawing.
+  """
+  def candidate(row, index, picked \\ nil) do
+    on? = if is_integer(picked), do: index == picked, else: row.selected?
+    border = if on?, do: 2, else: 0
+    tap = {self(), String.to_atom("pick_" <> Integer.to_string(index))}
 
     ~MOB"""
-    <Column fill_width={true}>
+    <Column fill_width={true} on_tap={tap}>
       <Row
         fill_width={true}
         background={Palette.card()}
@@ -525,6 +731,125 @@ defmodule Kati.Screens.MealSwap do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  @doc """
+  The two commitments, which drew and committed nothing.
+
+  The board's own words are the specification and so is
+  `Kati.Meals.MealLog`'s: its moduledoc already says a `:planned` log "is what
+  screen 46's *swap just today* writes". So the two buttons are two different
+  writes rather than one write with a flag:
+
+    * **Swap just today** logs the candidate as `:planned` against this slot.
+      Today's plan changes and next week's does not, which is what "just today"
+      means — and it is a claim about a day, so it belongs in the day's log.
+    * **Every week** moves the slot itself onto the new recipe. The plan is
+      what repeats, so a permanent swap is a change to the plan.
+
+  A tap picks a candidate first; with none picked the first is the one in
+  force, which is what the drawing shows selected. On the drawn screen — no
+  plan, no slot — both are no-ops, because there is no slot to swap and the
+  candidates are `Kati.Meals.SampleSwap`'s rather than rows.
+  """
+  def handle_info({:tap, :swap_once}, socket),
+    do: {:noreply, Kati.Screens.MealSwap.commit_swap(socket, :once)}
+
+  def handle_info({:tap, :swap_forever}, socket),
+    do: {:noreply, Kati.Screens.MealSwap.commit_swap(socket, :forever)}
+
+  # The three candidate cards, which drew a ring they could not move. AFTER the
+  # three named clauses above and BEFORE the catch-all below, or it swallows
+  # them: `:back`, `:swap_once` and `:swap_forever` are atoms too.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    case Atom.to_string(tag) do
+      "pick_" <> index ->
+        {:noreply, Mob.Socket.assign(socket, :picked, String.to_integer(index))}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @doc false
+  @spec commit_swap(Mob.Socket.t(), :once | :forever) :: Mob.Socket.t()
+  def commit_swap(socket, how) do
+    slot_id = socket.assigns[:slot_id]
+    picked = Kati.Screens.MealSwap.picked(socket)
+
+    if is_binary(slot_id) and picked do
+      Kati.Screens.MealSwap.write(slot_id, picked, how)
+      Kati.Screens.Resume.pop(socket)
+    else
+      socket
+    end
+  end
+
+  @doc """
+  The candidate in force: the one tapped, or the one the drawing selects.
+
+  An INTEGER `:picked` is a position in the same `:candidates` this render drew
+  from, which is what a card's `pick_N` tag carries and why — see
+  `candidate/3`. The id branch is kept for a `:picked` that names a row, so a
+  caller that hands this screen a recipe id still resolves; neither `swap/1`
+  clause sets one today.
+  """
+  @spec picked(Mob.Socket.t()) :: map() | nil
+  def picked(socket) do
+    candidates = socket.assigns[:candidates] || []
+
+    tapped =
+      case socket.assigns[:picked] do
+        index when is_integer(index) -> Enum.at(candidates, index)
+        nil -> nil
+        id -> Enum.find(candidates, &(&1[:id] && &1.id == id))
+      end
+
+    tapped || Enum.find(candidates, & &1[:selected?])
+  end
+
+  @doc false
+  @spec write(String.t(), map(), :once | :forever) :: :ok
+  def write(slot_id, picked, :once) do
+    with %{} = slot <- slot_for(slot_id), true <- is_binary(picked[:id]) do
+      Kati.Meals.MealLog
+      |> Ash.Changeset.for_create(:log_recipe, %{
+        recipe_id: picked.id,
+        portion_milli: slot.portion_milli,
+        logged_on: Kati.Time.today(),
+        logged_at: Kati.Time.now() |> DateTime.truncate(:microsecond),
+        state: :planned,
+        meal_plan_id: slot.meal_plan_id,
+        meal_plan_slot_id: slot.id,
+        # The slot's own eyebrow and clock, off the slot this function already
+        # RESOLVED. Without them screen 43 redrew the swapped meal with a blank
+        # time gutter and no slot name — `timeline_rows/2` lays a log over the
+        # slot it belongs to, so the log's blanks replaced the card's `Dinner`
+        # and `19:30` — and then sorted it to the bottom of the day, because a
+        # timeless row orders last. `Kati.Meals.MealLog.log_eaten/1` carries the
+        # same two for the same reason; this is the third writer of
+        # `:log_recipe` and the rule has to hold at all three or the timeline
+        # keeps a hole one path wide.
+        slot_name: slot.slot_name,
+        slot_time: slot.slot_time
+      })
+      |> Ash.create()
+      |> Kati.Write.note("swap today #{picked.title}")
+    end
+
+    :ok
+  end
+
+  def write(slot_id, picked, :forever) do
+    with %{} = slot <- slot_for(slot_id), true <- is_binary(picked[:id]) do
+      slot
+      |> Ash.Changeset.for_update(:update, %{recipe_id: picked.id})
+      |> Ash.update()
+      |> Kati.Write.note("swap every week #{picked.title}")
+    end
+
+    :ok
+  end
 end

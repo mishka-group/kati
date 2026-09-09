@@ -18,6 +18,24 @@ defmodule Kati.Meals.SampleSwap do
   @green 0xFF4E9A73
   @red 0xFFB4553C
 
+  @doc """
+  The two colours a delta can be, as the board draws them.
+
+  Read by `Kati.Screens.MealSwap`, which builds the same rows out of real
+  recipes and coloured them with a bare `@green`/`@red` that was never set in
+  that module — so every row built from a plan carried `delta_color: nil` into
+  `text_color=` while the fixture's three carried the drawing's colours. Two
+  functions rather than two more attributes, because one copy of the number is
+  the only arrangement in which the row a plan builds and the row the drawing
+  builds cannot come out different colours.
+  """
+  @spec green() :: integer()
+  def green, do: @green
+
+  @doc "See `green/0`."
+  @spec red() :: integer()
+  def red, do: @red
+
   @doc "The screen's own title — a swap is always a swap of something."
   @spec heading() :: String.t()
   def heading, do: "Swap dinner"

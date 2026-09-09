@@ -121,7 +121,8 @@ defmodule Kati.Screens.GoalsFa do
   Two differences are the drawings' own rather than anybody's drift, and they
   are reproduced rather than reconciled. 104 closes with the Repeat switch and
   the Habits row; **108 draws neither**, so `Kati.Screens.Goals.repeat_group/1`
-  and `repeat?/0` are deliberately not called and this screen owns no switch.
+  and `Kati.Screens.Goals.repeat_row/1` are deliberately not called and this
+  screen owns no switch.
   And `Kati.Goals.Goal.counts/1` guarantees a *what counts* sentence for all
   ten kinds, but 104 draws two of the three and **108 draws one** — the books
   card only. The other nine sentences exist and have no Persian yet; that is
@@ -262,11 +263,12 @@ defmodule Kati.Screens.GoalsFa do
   @doc false
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :goals, goals())}
   end
 
   @doc false
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The goals on the page: screen 104's, with the Persian half added.
@@ -900,7 +902,7 @@ defmodule Kati.Screens.GoalsFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Screen 106, which is English. The same debt `Kati.Screens.AlbumDetailFa`
   # carries against `Kati.Screens.Rating` and `Kati.Screens.Fa`'s moduledoc

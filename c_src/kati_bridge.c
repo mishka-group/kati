@@ -142,6 +142,70 @@ static ERL_NIF_TERM kb_permission_status(ErlNifEnv *env, int argc, const ERL_NIF
     return reply;
 }
 
+/* ── K-43: opening a link the app does not own ───────────────────────────── */
+
+static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *url;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    url = kati_take_cstr(env, argv[0]);
+    if (url == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call(env, "katiOpenUrl", "(Ljava/lang/String;)Ljava/lang/String;",
+                             url, NULL);
+    kati_free_cstr(url);
+    return reply;
+}
+
+static ERL_NIF_TERM kb_capture_screen(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *name;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    name = kati_take_cstr(env, argv[0]);
+    if (name == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call(env, "katiCaptureScreen", "(Ljava/lang/String;)Ljava/lang/String;",
+                             name, NULL);
+    kati_free_cstr(name);
+    return reply;
+}
+
+static ERL_NIF_TERM kb_open_settings(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    char *which;
+    ERL_NIF_TERM reply;
+
+    (void)argc;
+    which = kati_take_cstr(env, argv[0]);
+    if (which == NULL) return enif_make_badarg(env);
+
+    reply = kati_bridge_call(env, "katiOpenSettings", "(Ljava/lang/String;)Ljava/lang/String;",
+                             which, NULL);
+    kati_free_cstr(which);
+    return reply;
+}
+
+/* ── K-46: what the phone is playing ─────────────────────────────────────── */
+
+static ERL_NIF_TERM kb_now_playing(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kati_bridge_call(env, "katiNowPlaying", "()Ljava/lang/String;", NULL, NULL);
+}
+
+static ERL_NIF_TERM kb_media_access(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kati_bridge_call(env, "katiMediaAccessGranted", "()Ljava/lang/String;", NULL, NULL);
+}
+
+static ERL_NIF_TERM kb_drain_sessions(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kati_bridge_call(env, "katiDrainSessions", "()Ljava/lang/String;", NULL, NULL);
+}
+
 /* ── #58: the periodic refresh worker ────────────────────────────────────── */
 
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
@@ -231,6 +295,24 @@ static ERL_NIF_TERM kb_notify_status(ErlNifEnv *env, int argc, const ERL_NIF_TER
     return kb_unavailable(env);
 }
 
+static ERL_NIF_TERM kb_open_url(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
+static ERL_NIF_TERM kb_open_settings(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
+static ERL_NIF_TERM kb_capture_screen(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
+    (void)argc;
+    (void)argv;
+    return kb_unavailable(env);
+}
+
 static ERL_NIF_TERM kb_periodic_ensure(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[]) {
     (void)argc;
     (void)argv;
@@ -253,6 +335,14 @@ static ErlNifFunc nif_funcs[] = {
     {"notify_cancel", 1, kb_notify_cancel, 0},
     {"notify_status", 0, kb_notify_status, 0},
     {"permission_status", 1, kb_permission_status, 0},
+    {"open_url", 1, kb_open_url, 0},
+    {"open_settings", 1, kb_open_settings, 0},
+    /* Dirty: the Kotlin half posts to the UI thread and waits on a latch, and
+       a wait of up to five seconds must not sit on a normal scheduler. */
+    {"capture_screen", 1, kb_capture_screen, ERL_NIF_DIRTY_JOB_IO_BOUND},
+    {"now_playing", 0, kb_now_playing, 0},
+    {"media_access", 0, kb_media_access, 0},
+    {"drain_sessions", 0, kb_drain_sessions, 0},
     {"periodic_ensure", 1, kb_periodic_ensure, 0},
     {"periodic_cancel", 0, kb_periodic_cancel, 0},
 };

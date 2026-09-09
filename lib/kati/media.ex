@@ -36,5 +36,12 @@ defmodule Kati.Media do
     resource Kati.Media.Watch
     resource Kati.Media.ContentWarning
     resource Kati.Media.WarningPreference
+    # The names a reader has taught Kati — see `Kati.Media.TitleAlias`. There is
+    # no shared id between a media player and a title database, so the last
+    # resort when a name matches nothing is to ask once and remember.
+    resource Kati.Media.TitleAlias
+    # What happened to a title, in the order it happened — screen 15's log had
+    # no store until this, and screen 149's *why* was thrown away.
+    resource Kati.Media.Event
   end
 end

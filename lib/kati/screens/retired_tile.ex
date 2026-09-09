@@ -225,6 +225,7 @@ defmodule Kati.Screens.RetiredTile do
   @spec mount(map(), map(), Mob.Socket.t()) :: {:ok, Mob.Socket.t()}
   def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok, Mob.Socket.assign(socket, :subject, subject(Map.get(params, :section, @drawn)))}
   end
@@ -237,7 +238,8 @@ defmodule Kati.Screens.RetiredTile do
   headline underneath is where the sheet says what it is.
   """
   @spec render(map()) :: map()
-  def render(assigns), do: Sheet.sheet(assigns.subject.name, body(assigns))
+  def render(assigns),
+    do: Sheet.sheet(assigns.subject.name, body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   The sheet's four blocks: what it is, why it is not here, what works, and out.
@@ -256,7 +258,7 @@ defmodule Kati.Screens.RetiredTile do
       {Kati.Screens.RetiredTile.hero(subject)}
       {Kati.Screens.RetiredTile.explainer(subject.why, subject.noun)}
       {Kati.Screens.RetiredTile.instead(subject.instead)}
-      {Kati.UI.Sheet.commit("Fair enough", :close)}
+      {Kati.UI.Sheet.commit("Fair enough", :close_acknowledged)}
     </Column>
     """
   end
@@ -505,7 +507,8 @@ defmodule Kati.Screens.RetiredTile do
   `Kati.Screens.LogProgress` pushes screen 33 out of a sheet the same way.
   """
   @spec handle_info(term(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, tag}, socket) when tag in [:close, :close_acknowledged],
+    do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   def handle_info({:tap, :open_habits}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Habits)}

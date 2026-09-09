@@ -64,9 +64,18 @@ defmodule Kati.UI.Sheet do
   `Mob.Socket.pop_screen/1` — named rather than passed, because a sheet whose
   close button does something other than close is not a sheet.
   """
-  @spec sheet(String.t(), term()) :: map()
-  def sheet(title, content) do
-    assigns = %{title: title, content: content}
+  @spec sheet(String.t(), term(), String.t() | nil, keyword()) :: map()
+  def sheet(title, content, screen \\ nil, opts \\ []) do
+    assigns = %{
+      title: title,
+      content: content,
+      screen: screen,
+      # `face: "fa"` for a Persian sheet. Without it the title is left in a
+      # Latin face and Android substitutes its own Arabic one — which renders,
+      # in a typeface that is not Kati's, beside sentences that are.
+      # `Kati.PersianFontTest` is what notices.
+      face: Keyword.get(opts, :face)
+    }
 
     ~MOB"""
     <Box
@@ -74,6 +83,8 @@ defmodule Kati.UI.Sheet do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={@screen}
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">
@@ -87,7 +98,7 @@ defmodule Kati.UI.Sheet do
           padding_top={18}
           padding_bottom={34}
         >
-          {Kati.UI.Sheet.header(@title)}
+          {Kati.UI.Sheet.header(@title, @face)}
           {@content}
         </Column>
       </Box>
@@ -112,8 +123,8 @@ defmodule Kati.UI.Sheet do
   See the moduledoc for why the hole is markup rather than a weight.
   """
   @spec header(String.t()) :: map()
-  def header(title) do
-    assigns = %{title: title}
+  def header(title, face \\ nil) do
+    assigns = %{title: title, face: face}
 
     ~MOB"""
     <Column fill_width={true}>
@@ -121,6 +132,7 @@ defmodule Kati.UI.Sheet do
         {Kati.UI.Sheet.close_disc()}
         <Text
           text={@title}
+          font_family={@face}
           weight={1.0}
           text_size={15}
           font_weight="bold"
@@ -168,8 +180,8 @@ defmodule Kati.UI.Sheet do
   finished rather than what it did.
   """
   @spec commit(String.t(), atom()) :: map()
-  def commit(label, tag) do
-    assigns = %{label: label, tag: tag}
+  def commit(label, tag, face \\ "sans") do
+    assigns = %{label: label, tag: tag, face: face}
 
     ~MOB"""
     <Row
@@ -183,6 +195,7 @@ defmodule Kati.UI.Sheet do
       <Spacer weight={1.0} />
       <Text
         text={@label}
+        font_family={@face}
         text_size={14.5}
         font_weight="bold"
         text_color={Palette.on_ink()}

@@ -15,11 +15,23 @@ defmodule Kati.Screens.ShelfLarge do
   backup's — a specimen to be checked by looking, not a screen a user reaches
   by tapping anything.
 
-  Board 146 is itself unbuilt (`test/design/reference/README.md` still
-  lists it `queued`), so unlike `Kati.Screens.SearchLarge`, which can lean on
-  `Kati.Screens.Search` for chrome and `Kati.Search.chip_labels/0` for data,
-  this file has no sibling selection-mode module to borrow from. Every
-  literal below is typed from board 147 itself — the same choice
+  ## Its findings are on 146 now — MOVIES-AND-TV.md #6
+
+  Board 146 was unbuilt when this file was written and is not any more:
+  `Kati.Screens.ShelfSelection` is the shelf's selection mode, reachable from
+  the Library's ⋯. So the two things this sheet exists to specify have been
+  moved into it as real behaviour, which is exactly what #6 asks for:
+
+    * **`4 selected` grows.** Both lines of `count_body/1` carried
+      `max_lines={1}` — so at the largest text size the one thing that bar
+      exists to say was the first thing to lose its end. The cap is gone.
+    * **The close glyph caps.** `close_glyph/1` wraps its symbol in
+      `max_font_scale`, because it is chrome whose size carries structure and
+      a glyph that grew with the text would push the count off its own bar.
+
+  This sheet stays as the specimen it is — the picture the rule was read off,
+  in 27's manner, like 91 for search and 133 for backup. Every literal below is
+  typed from board 147 itself — the same choice
   `Kati.Screens.BackupLarge`'s moduledoc defends for its own board: a
   specimen, not a stand-in for a screen that is nearly ready. The zero-result
   card is new content besides — 145's own board never draws it, for the
@@ -214,7 +226,7 @@ defmodule Kati.Screens.ShelfLarge do
   def selection_header do
     ~MOB"""
     <Row fill_width={true} align="center">
-      <Box max_font_scale={Kati.Screens.ShelfLarge.cap()}>
+      <Box width={30} height={30} align="center" max_font_scale={Kati.Screens.ShelfLarge.cap()}>
         {UI.symbol("close", size: 26, color: Palette.ink())}
       </Box>
       <Spacer size={14} />
@@ -251,6 +263,18 @@ defmodule Kati.Screens.ShelfLarge do
   10% tint — `rgba(180,85,60,.1)` — the same pairing
   `Kati.Screens.SeriesSettings.danger_tile/1` uses for its 30pt tile, restated
   here at the row's own full width because that tile has no full-width form.
+
+  ## Why these three stay pictures, and board 334
+
+  334 lists 147 among the screens whose *Add to list* gains a tap. It does not
+  get one, and the reason is the one this screen exists for: 147 is 146 at 235%,
+  drawn over a fixture selection whose ids name no row. A tap here would push
+  the picker over nothing — `Kati.Lists.Door.open_many/2` answers the socket
+  unchanged for an empty selection — which is a live affordance that does
+  nothing, the exact thing the ledger was closed against.
+
+  146's row is wired, and 147 is a picture of 146. The day this screen draws a
+  real selection is the day the tap belongs on it.
   """
   @spec action_row(String.t(), String.t(), non_neg_integer(), non_neg_integer()) :: map()
   def action_row(icon, label, background, ink) do

@@ -12,10 +12,12 @@ defmodule Kati.ScreenInboxTest do
       out-now rows and three coming-up ones and pass a bare count.
     * **With nothing followed, it still draws the drawing.** Asserted as map
       equality against `drawn_inbox/0` rather than as "some rows appeared".
-    * **The parts with no store are still frozen.** The watcher card is the one
-      that matters — it is the value most likely to be wired up half-way, and
-      `Kati.Screens.Inbox`'s moduledoc argues at length that a live count beside
-      a frozen timestamp is worse than two frozen values.
+    * **The watcher card reads what screen 25 writes.** It was the last frozen
+      thing on the page — `Watching for 24 titles · last checked 18:02 · every
+      6h` on every device, one tap from a screen that said *Watching 2 titles*
+      and *never checked*. The count rides on the same `:followed` list the two
+      sections do, and the mono line is `Kati.Settings.Watcher`'s, which board
+      314 built. A reader who picks **Daily** is told daily.
     * **`Kati.Media.Release` decides every date and every bell.** A bare year
       never becomes a row, a muted show never arms, and neither rule is
       re-implemented here — this file only checks that the screen honours the
@@ -54,31 +56,42 @@ defmodule Kati.ScreenInboxTest do
   end
 
   describe "a library with nothing followed" do
-    test "answers with the drawing's own inbox, whole" do
-      assert Inbox.inbox() == Inbox.drawn_inbox()
-      assert Inbox.releases() == nil
+    test "answers board 260 rather than the drawing" do
+      # It answered `drawn_inbox/0` — the drawing's three coming-up rows and
+      # `Kati.Library.Sample`'s out-now rows — so the one page whose job is to
+      # say what is new opened, on a fresh install, on three things that were
+      # not. Board 260 is the state it draws instead;
+      # `Kati.ScreenInboxEmptyTest` holds that board's own copy.
+      refute Inbox.releases()
+      assert Inbox.inbox().nothing_followed?
+      refute Inbox.inbox() == Inbox.drawn_inbox()
     end
 
-    test "renders every line frame 05 draws" do
+    test "and draws none of the lines frame 05 holds" do
       words = text(tree(mount_screen(Inbox)))
       drawn = Inbox.drawn_inbox()
 
+      # The name survives — board 260 keeps it, and it is what
+      # `Kati.ScreenEmptyDatabaseTest` quotes for this screen.
       assert words =~ "New releases"
-      assert words =~ "3 out now · 3 coming up"
-      assert words =~ String.upcase("Out now · 3")
 
-      for row <- drawn.out_now do
-        assert words =~ row.title, "the drawn out-now row #{row.title} is missing"
-        assert words =~ row.line
-        assert words =~ row.meta
-      end
+      refute words =~ "3 out now · 3 coming up"
 
-      for row <- drawn.coming_up do
-        assert words =~ row.title
-        assert words =~ row.line
-        assert words =~ row.month
-        assert words =~ row.day
+      for row <- drawn.out_now ++ drawn.coming_up do
+        refute words =~ row.title,
+               "screen 05 drew #{row.title} — a release out of the drawing that nobody follows"
       end
+    end
+
+    test "and board 05's own lines are still checked, in the state that board draws" do
+      # Not lost with the fallback: `drawn_inbox/0` is what
+      # `Kati.ScreenDesignLiteralTest.drawn_state/0` installs for board 05, so
+      # every literal on that frame is still compared — against the page in the
+      # state a reader reaches once they follow something.
+      drawn = Inbox.drawn_inbox()
+
+      assert length(drawn.out_now) == 3
+      assert length(drawn.coming_up) == 3
     end
 
     test "a followed title with nothing scheduled still draws the drawing" do
@@ -210,17 +223,45 @@ defmodule Kati.ScreenInboxTest do
   describe "the watcher card" do
     setup :seed_releases
 
-    test "stays the drawing's, all three values, even with a real library" do
-      inbox = Inbox.inbox()
-      drawn = Inbox.drawn_inbox()
+    test "counts the titles the watcher actually watches" do
+      # Three followed: Tidewrack, Vellum and Marram. Harbour is `:dropped`,
+      # which `Kati.Media.TrackedTitle`'s own `:followed` action excludes —
+      # this screen does not get a second opinion about what it watches.
+      assert Inbox.inbox().watching == 3
 
-      assert inbox.watching == drawn.watching
-      assert inbox.last_checked == drawn.last_checked
+      assert Inbox.inbox().watching == Inbox.followed_count(),
+             "the banner on screen 25 and the inbox it is a banner FOR are counting " <>
+               "different things"
 
-      # Two of the three have no store at all — see the moduledoc — and wiring
-      # up the third alone would make the frozen pair indistinguishable from it.
-      assert text(tree(mount_screen(Inbox))) =~ "Watching for 24 titles"
-      assert text(tree(mount_screen(Inbox))) =~ "last checked 18:02 · every 6h"
+      words = text(tree(mount_screen(Inbox)))
+      assert words =~ "Watching for 3 titles"
+
+      refute words =~ "Watching for 24 titles",
+             "the card still says 24 on a phone that follows three"
+    end
+
+    test "says when a check last completed and how often, from the store screen 25 writes" do
+      # `Mob.ScreenCase` starts `Mob.State` empty, so this is a fresh install.
+      assert Inbox.inbox().last_checked == "never checked · every 6h"
+
+      refute text(tree(mount_screen(Inbox))) =~ "last checked 18:02",
+             "board 05's frozen evening is still on the card"
+
+      Kati.Settings.Watcher.put_cadence("Daily")
+      Kati.Settings.Watcher.checked!()
+
+      assert Inbox.inbox().last_checked == "checked just now · daily",
+             "a reader who set Daily on screen 25 is still told every 6h one tap away"
+
+      assert text(tree(mount_screen(Inbox))) =~ "checked just now · daily"
+    end
+
+    test "and screen 25's own line says the same thing" do
+      # One store, two readers. The whole finding was that these two disagreed.
+      Kati.Settings.Watcher.put_cadence("Hourly")
+
+      assert Inbox.inbox().last_checked =~ "hourly"
+      assert Kati.Settings.Watcher.cadence() == "Hourly"
     end
   end
 
@@ -274,6 +315,84 @@ defmodule Kati.ScreenInboxTest do
 
   # One followed series with a week of history and a fortnight of schedule, one
   # muted film, one dropped title and one title whose only date is a bare year.
+  describe "the three controls that were drawn without taps" do
+    setup :seed_releases
+
+    test "Mark all writes one tick per Out now row, and the section empties" do
+      socket = mount_screen(Inbox).socket
+      before = length(socket.assigns.inbox.out_now)
+
+      assert before > 0
+
+      {:noreply, marked} = Inbox.handle_tap(:mark_all, socket)
+
+      assert marked.assigns.inbox.out_now == []
+      assert length(Ash.read!(Watch)) == before + 1, "the seeded tick is still there"
+    end
+
+    test "and the subtitle recounts with it" do
+      socket = mount_screen(Inbox).socket
+      {:noreply, marked} = Inbox.handle_tap(:mark_all, socket)
+
+      assert inspect(Inbox.title(marked.assigns.inbox), limit: :infinity) =~ "0 out now"
+    end
+
+    test "Watch on one row ticks that episode and leaves the others" do
+      socket = mount_screen(Inbox).socket
+      row = hd(socket.assigns.inbox.out_now)
+
+      {:noreply, ticked} = Inbox.handle_tap(String.to_atom("watch_" <> row.source_id), socket)
+
+      refute Enum.any?(ticked.assigns.inbox.out_now, &(&1.source_id == row.source_id))
+      assert length(ticked.assigns.inbox.out_now) == length(socket.assigns.inbox.out_now) - 1
+    end
+
+    test "and the tick records the season and number the show uses" do
+      socket = mount_screen(Inbox).socket
+      row = Enum.find(socket.assigns.inbox.out_now, &(&1.line =~ "Ash and After"))
+
+      {:noreply, _ticked} = Inbox.handle_tap(String.to_atom("watch_" <> row.source_id), socket)
+
+      written = Ash.read!(Watch) |> Enum.find(&(&1.episode_source_id == row.source_id))
+
+      assert written.season_number == 2
+      assert written.episode_number == 6
+    end
+
+    test "the gear on the cream card opens screen 25" do
+      socket = mount_screen(Inbox).socket
+
+      {:noreply, pushed} = Inbox.handle_tap(:open_watcher, socket)
+
+      assert {:push, Kati.Screens.ReleaseWatcher, %{back: "Inbox"}} =
+               Map.get(pushed.__mob__, :nav_action)
+    end
+
+    test "and a tag naming no row on the page changes nothing" do
+      socket = mount_screen(Inbox).socket
+
+      {:noreply, after_tap} = Inbox.handle_tap(:watch_nothing, socket)
+
+      assert after_tap.assigns.inbox == socket.assigns.inbox
+    end
+  end
+
+  describe "the same three over the drawing" do
+    test "carry no taps, because the board's rows have no episode behind them" do
+      drawn = Inbox.drawn_inbox()
+
+      assert Inbox.tickable(drawn) == []
+      assert Enum.all?(drawn.out_now, &(Inbox.watch_tap(&1) == nil))
+      refute inspect(Inbox.mark_all(drawn), limit: :infinity) =~ "mark_all"
+    end
+
+    test "and Mark all is drawn without a tap on an inbox with nothing out now" do
+      # Not the same as inert: there is nothing to mark all OF, which is the
+      # smallest case of the gesture rather than a failure of it.
+      refute inspect(Inbox.mark_all(%{out_now: []}), limit: :infinity) =~ "mark_all"
+    end
+  end
+
   defp seed_releases(_context) do
     series = track!(%{title: "Tidewrack", seed: "hollow71", kind: :tv})
 

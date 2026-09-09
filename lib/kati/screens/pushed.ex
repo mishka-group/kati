@@ -33,6 +33,9 @@ defmodule Kati.Screens.Pushed do
   """
 
   defmacro __using__(opts) do
+    # `Keyword.fetch!` still, so `back:` cannot be forgotten — but the value may
+    # be `nil`, which means "this board draws its own back control in the flow".
+    # See `back_pill/1`.
     back_label = Keyword.fetch!(opts, :back)
 
     quote do
@@ -49,6 +52,7 @@ defmodule Kati.Screens.Pushed do
         # app, so this was the single call that most often threw the user's
         # choice away.
         Kati.Theme.activate()
+        Kati.Locale.activate()
 
         socket
         |> Mob.Socket.assign(:params, params)
@@ -59,11 +63,16 @@ defmodule Kati.Screens.Pushed do
       def load(socket), do: socket
 
       def render(assigns) do
-        Kati.Screens.Pushed.chrome(@back_label, content(assigns))
+        Kati.Screens.Pushed.chrome(
+          @back_label &&
+            Kati.Screens.Pushed.back_label(Map.get(assigns, :params), @back_label),
+          content(assigns),
+          Kati.Screens.Pushed.screen_name(__MODULE__)
+        )
       end
 
       def handle_info({:tap, :back}, socket) do
-        {:noreply, Mob.Socket.pop_screen(socket)}
+        {:noreply, Kati.Screens.Resume.pop(socket)}
       end
 
       # Everything except `:back` is the screen's own control, so the screen
@@ -84,6 +93,51 @@ defmodule Kati.Screens.Pushed do
   end
 
   @doc """
+  What the back pill says: where you came FROM, not where the screen assumes.
+
+  The label was a compile-time constant per screen — `use Kati.Screens.Pushed,
+  back: "Library"` — and the hand-rolled pages wrote the word into their own
+  markup. So a film opened from Home's *Continue watching* offered to take you
+  back to the Library, which is not where you were and, on a phone whose back
+  gesture pops one screen, is not where the pill takes you either: the word and
+  the behaviour disagreed.
+
+  The pushing screen is the only thing that knows, so it says so — `%{back:
+  "Home"}` alongside whatever else it carries — and this reads it with the
+  screen's own declaration as the fallback. A screen pushed from the gallery,
+  or by a test, or by anything that does not care, keeps exactly the label it
+  had.
+
+      iex> Kati.Screens.Pushed.back_label(%{back: "Home"}, "Library")
+      "Home"
+
+      iex> Kati.Screens.Pushed.back_label(%{}, "Library")
+      "Library"
+
+      iex> Kati.Screens.Pushed.back_label(nil, "Library")
+      "Library"
+  """
+  @spec back_label(map() | nil, String.t()) :: String.t()
+  def back_label(params, default) do
+    case params && Map.get(params, :back) do
+      label when is_binary(label) and label != "" -> translated(label)
+      _absent -> translated(default)
+    end
+  end
+
+  # mishka-group/kati#103. The pill says where the reader came FROM, and every
+  # word it can say is one another screen wrote — `back: "Library"` at a `use`
+  # site, or a `%{back: …}` on a push. Both are compile-time English, so a
+  # folded screen would come out with a Persian page under an English pill.
+  #
+  # `Gettext.dgettext/3` rather than the macro: the macro extracts at compile
+  # time from a literal, and this is a runtime value. An untranslated label
+  # answers itself, so a screen whose word is not in the catalogue yet is
+  # exactly as it was — which is what makes this safe to add before the other
+  # nine mirrors fold.
+  defp translated(label), do: Gettext.dgettext(Kati.Gettext, "default", label)
+
+  @doc """
   How far down a pushed screen's content must start.
 
   The pill floats at 54 and is 42 tall, so anything a screen draws at the
@@ -93,22 +147,146 @@ defmodule Kati.Screens.Pushed do
   @spec content_top() :: pos_integer()
   def content_top, do: 110
 
+  @doc """
+  A screen's name on the device, derived from its module.
+
+  `Kati.Screens.BookDetailFa` becomes `book_detail_fa`. Derived rather than
+  written by hand because 152 hand-written names is 152 chances to give two
+  screens the same one, and the whole point of the stamp is that it says which
+  screen you are on.
+  """
+  @spec screen_name(module()) :: String.t()
+  def screen_name(module) do
+    module
+    |> Module.split()
+    |> List.last()
+    |> Macro.underscore()
+  end
+
   @doc "The pushed-screen frame: a back pill over the content, no tab bar."
-  def chrome(back_label, content) do
+  def chrome(back_label, content, screen \\ nil) do
     direction = Kati.Locale.direction_prop()
-    assigns = %{content: content, back_label: back_label, direction: direction}
+
+    assigns = %{
+      content: content,
+      back_label: back_label,
+      direction: direction,
+      # See `Kati.Locale.face_prop/0`: the default face for every `Text` under
+      # this frame, including the ones components build and no screen can mark.
+      face: Kati.Locale.face_prop(),
+      screen: screen && "screen:" <> screen
+    }
 
     import Mob.Sigil
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction={@direction}>
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction={@direction}
+      font_family={@face}
+      accessibility_id={@screen}
+    >
       {@content}
       {Kati.Screens.Pushed.back_pill(@back_label)}
     </Box>
     """
   end
 
+  @doc """
+  The scrolling body of a pushed screen: 21pt sides, 40 below, `top` above.
+
+  `chrome/3` is the root `Box` and the floating pill, and nothing else — every
+  screen inside it has been writing this same `Scroll` and padded `Column` by
+  hand. Six written in one round did not, and what a device shows for one of
+  those is content starting at the pixel: the first line hard against the left
+  edge and the top of the page underneath the status bar.
+
+  Nothing in the suite had an opinion about that, which is why
+  `Kati.PushedFrameTest` now does.
+
+  `top` is the one number that varies, and the two values are the two shapes a
+  board draws:
+
+    * **`content_top/0`** — the board draws a back pill. The macro floats one
+      at 54, 42 tall, so content has to clear it. 154 and 155 are this shape.
+    * **64** — the board draws no pill and puts its back control in the flow,
+      which is what the five-step first run does. Those screens pass
+      `back: nil` and get no floating pill to clear.
+  """
+  @spec page(map(), pos_integer()) :: map()
+  def page(content, top \\ 64) do
+    import Mob.Sigil
+    assigns = %{content: content, top: top}
+
+    ~MOB"""
+    <Scroll>
+      <Column
+        fill_width={true}
+        padding_left={21}
+        padding_right={21}
+        padding_top={@top}
+        padding_bottom={40}
+      >
+        {@content}
+      </Column>
+    </Scroll>
+    """
+  end
+
+  @doc """
+  Which way back points, which is not a thing `layout_direction` can answer.
+
+  A container flips under RTL and a **glyph does not**: `arrow_back_ios_new` is
+  a codepoint in a font, so `LocalLayoutDirection` mirrors the Row it sits in
+  and leaves the arrow pointing the same way it was drawn. Every pushed screen
+  in Persian therefore drew a chevron aimed at the edge the reader did NOT come
+  from — the commonest RTL bug there is, and the one board 156's caption pins
+  by name.
+
+  The Persian mirrors have always known this: `Kati.Screens.Fa.pushed_frame/2`
+  draws `arrow_forward_ios`, and `Kati.Screens.BookDetailFa` records the same
+  trap for screen 69. What was missing is that the SHARED frame did not, so an
+  English screen opened while the app is in Persian — which is every pushed
+  page the mirrors do not cover, and after
+  [#103](https://github.com/mishka-group/kati/issues/103) will be all of them —
+  got the RTL layout and the LTR arrow.
+
+  Not `rotate={180}` on the `Box`, which is how `Kati.Screens.ShelfFilters`
+  turns its one sort arrow: `arrow_forward_ios` is a glyph Kati already ships
+  (`Kati.Icons`), and turning a chevron that has a real mirrored twin would put
+  its optical weight on the wrong side.
+
+      iex> Kati.Screens.Pushed.glyph_for(:rtl)
+      "arrow_forward_ios"
+
+      iex> Kati.Screens.Pushed.glyph_for(:ltr)
+      "arrow_back_ios_new"
+  """
+  @spec back_glyph() :: String.t()
+  def back_glyph, do: glyph_for(Kati.Locale.direction(Kati.Locale.current()))
+
   @doc false
+  @spec glyph_for(:rtl | :ltr) :: String.t()
+  def glyph_for(:rtl), do: "arrow_forward_ios"
+  def glyph_for(_ltr), do: "arrow_back_ios_new"
+
+  @doc """
+  The floating back pill, or nothing when the screen draws its own.
+
+  `nil` is a real answer rather than a missing one. Boards 161, 162 and 163 put
+  their back control **in the flow at the foot of the page** — `Back to
+  language`, under the note — and draw no pill at the top at all. Floating one
+  over them would be a second way back that the design did not draw, sitting on
+  top of the step rail.
+  """
+  @spec back_pill(String.t() | nil) :: map()
+  def back_pill(nil) do
+    import Mob.Sigil
+    ~MOB"<Spacer size={0} />"
+  end
+
   def back_pill(label) do
     import Mob.Sigil
     tap = {self(), :back}
@@ -146,7 +324,7 @@ defmodule Kati.Screens.Pushed do
         align="center"
         on_tap={@tap}
       >
-        {Kati.UI.symbol("arrow_back_ios_new", size: 17)}
+        {Kati.UI.symbol(Kati.Screens.Pushed.back_glyph(), size: 17)}
         <Spacer size={6} />
         <Text
           text={@label}

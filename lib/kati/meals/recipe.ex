@@ -83,6 +83,17 @@ defmodule Kati.Meals.Recipe do
     attribute :serves, :integer, allow_nil?: false, default: 1, public?: true
     attribute :photo_seed, :string, public?: true
 
+    # Screen 45's bookmark disc had nothing to hold it. The board draws the
+    # control and the resource had no column, so the tap was on
+    # `Kati.ScreenTapSweepTest`'s backlog — "a button that never marks
+    # anything" — for as long as both existed.
+    #
+    # On the recipe rather than on a separate list, because a bookmark is a
+    # fact about the recipe and not a row of its own: one boolean cannot get
+    # out of step with the thing it describes, and a join table for a flag is
+    # a second place for the same truth to live.
+    attribute :bookmarked, :boolean, allow_nil?: false, default: false, public?: true
+
     # Which meal of the day this one usually is — `Breakfast`, `Lunch`,
     # `Dinner`, `Snack`, `Brunch`. Screen 116's chips group the library by it.
     #
@@ -138,6 +149,12 @@ defmodule Kati.Meals.Recipe do
       # Screen 118's slot chips are the only control on that editor that
       # commits, so this is the only new field the editor can accept.
       :slot_name,
+      # Screen 45's bookmark disc. On the accept list rather than behind an
+      # action of its own because it is an ordinary edit to an ordinary field —
+      # the narrowness this list is protecting is the TOTALS and the two revs,
+      # which is what "an ordinary edit to the title cannot quietly rewrite a
+      # cached macro figure" is about.
+      :bookmarked,
       :rating,
       :note,
       :source_url,

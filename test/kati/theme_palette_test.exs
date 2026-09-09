@@ -40,6 +40,7 @@ defmodule Kati.Theme.PaletteTest do
     card: {0xFFFBFAF8, 0xFF1E1D1B},
     card_settled: {0xFFF4F1EC, 0xFF161514},
     cream: {0xFFFBF1DE, 0xFF2A2622},
+    empty_tile: {0xFFEFECE7, 0xFF2A2826},
     placeholder: {0xFFE4E0D9, 0xFF2A2826},
     poster_on_cream: {0xFFEADFC6, 0xFF3A342D},
     track: {0xFFE7E3DC, 0xFF312F2C},
@@ -90,7 +91,7 @@ defmodule Kati.Theme.PaletteTest do
     green: {0xFF4E9A73, 0xFF4E9A73},
     green_wash: {0x294E9A73, 0x294E9A73},
     green_text: {0xFF3E8460, 0xFF4E9A73},
-    red: {0xFFB4553C, 0xFFB4553C},
+    red: {0xFFB4553C, 0xFFE08A6E},
     red_wash: {0x1AB4553C, 0x1AB4553C},
     red_wash_strong: {0x24B4553C, 0x24B4553C},
     red_ring: {0x4DB4553C, 0x4DB4553C},
@@ -139,7 +140,7 @@ defmodule Kati.Theme.PaletteTest do
     lock_ground: {0xFF1C1A18, 0xFF1C1A18}
   }
 
-  @count 93
+  @count 94
 
   # Screen 28 (Home, dark) is the same page as screen 01, so these pairs are
   # read straight off the two drawings rather than derived. If a derivation
@@ -167,15 +168,15 @@ defmodule Kati.Theme.PaletteTest do
   }
 
   @sources %{
-    drawn: 27,
-    theme: 3,
+    drawn: 28,
+    theme: 2,
     hue: 13,
     media: 15,
     alpha: 18,
     ramp: 10,
     recession: 1,
     inversion: 3,
-    step: 3
+    step: 4
   }
 
   # Meant. Each is a light literal the screens use for more than one thing;
@@ -183,7 +184,10 @@ defmodule Kati.Theme.PaletteTest do
   @light_collisions %{
     0xFFFBFAF8 => [:card, :fab_glyph, :on_ink, :on_media],
     0xFF1A1917 => [:cream_ink, :fab_fill, :ink, :ink_fill],
-    0xFFEFECE7 => [:paper, :tab_well],
+    # `empty_tile` is paper in light and a lifted tile in dark, which is the
+    # whole of board 315's third row — so it lands here in light and parts
+    # company on near-black, exactly as `:tab_well` does not.
+    0xFFEFECE7 => [:empty_tile, :paper, :tab_well],
     0x00FFFFFF => [:card_hairline, :cream_hairline, :transparent],
     0x99FFFFFF => [:cream_raise, :lock_ink_60]
   }
@@ -193,7 +197,11 @@ defmodule Kati.Theme.PaletteTest do
   # unshaded hue, so they land on it.
   @dark_collisions %{
     0xFF6A6560 => [:muted, :segment_idle, :tertiary],
-    0xFF2A2826 => [:placeholder, :star_empty],
+    # `empty_tile` joins them. It is the 64pt tile an empty state leads with
+    # (board 315) and its LIGHT value is paper, not the placeholder grey — the
+    # three part company in light and land together on near-black, which is
+    # exactly what this map is for.
+    0xFF2A2826 => [:empty_tile, :placeholder, :star_empty],
     0xFF3A342D => [:cream_raise, :poster_on_cream],
     0xFF1A1917 => [:on_ink, :on_ink_glyph],
     0xFFF5F2EE => [:fab_fill, :ink],
@@ -591,7 +599,11 @@ defmodule Kati.Theme.PaletteTest do
       |> Enum.map(& &1.name)
       |> Enum.sort()
 
-    assert unchanged == [:accent, :bronze, :red]
+    # `:red` left this list on 8 September. It was `:theme` — kept unchanged in
+    # `Kati.Theme.dark/0` — and board 315 makes it `:step`: `#B4553C` is a
+    # shaded red, the shading is backwards on near-black, and `#E08A6E` is it
+    # unshaded. 186 found it illegible before the board named the value.
+    assert unchanged == [:accent, :bronze]
   end
 
   test "both hairlines are fully transparent in light, so light draws no border" do
@@ -632,7 +644,12 @@ defmodule Kati.Theme.PaletteTest do
     assert Palette.dark(:card) == Kati.Theme.card(:dark)
     assert Palette.dark(:cream) == Kati.Theme.cream(:dark)
     assert Palette.dark(:accent) == Kati.Theme.accent()
-    assert Palette.dark(:red) == Kati.Theme.red()
+
+    # `Kati.Theme.red/0` is the LIGHT red and stays the light red — it is what
+    # `Kati.Theme.light/0` puts in `error:`. The dark palette's `error:` is
+    # `#E08A6E` now (board 315), so the two columns agree with the two themes
+    # and no longer with each other.
+    assert Palette.dark(:red) == 0xFFE08A6E
     assert Palette.dark(:bronze) == Kati.Theme.bronze()
   end
 

@@ -37,9 +37,15 @@ defmodule Kati.Screens.RateEpisode.Sample do
       rating: 4.5,
       review: "",
       context: [
-        %{icon: "event", title: "Watched on", sub: "Tonight · 21:40", trailing: "now"},
-        %{icon: "tv", title: "Where", sub: "Lumen+ · living room", trailing: nil},
-        %{icon: "group", title: "With", sub: "Jo", trailing: nil}
+        %{
+          key: :watched_on,
+          icon: "event",
+          title: "Watched on",
+          sub: "Tonight · 21:40",
+          trailing: "now"
+        },
+        %{key: :where, icon: "tv", title: "Where", sub: "Lumen+ · living room", trailing: nil},
+        %{key: :with, icon: "group", title: "With", sub: "Jo", trailing: nil}
       ],
       previous: nil
     }

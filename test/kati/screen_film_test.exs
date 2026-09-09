@@ -207,6 +207,15 @@ defmodule Kati.ScreenFilmTest do
     end
 
     test "the availability card and its eyebrow are not drawn at all" do
+      # With a service set up. Without one the eyebrow stays and board 96's
+      # band goes under it (MOVIES-AND-TV.md #120), which is a different
+      # absence: the account, not the film.
+      Ash.create!(Kati.Services.Service, %{name: "screen-film-test-Mubi", tier: :subscribed})
+
+      on_exit(fn ->
+        Kati.Repo.query!("DELETE FROM services WHERE name LIKE ?1", ["screen-film-test-%"])
+      end)
+
       a_watched_film!()
       tree = tree(mount_screen(Film))
 
@@ -233,7 +242,12 @@ defmodule Kati.ScreenFilmTest do
       a_watched_film!()
       tree = tree(mount_screen(Film))
 
-      for label <- ["Log rewatch", "Schedule", "Share"], do: assert(drawn?(tree, label))
+      # `Add to list` took the first slot on 7 September — board 334, because
+      # both 181's empty card and 182's sheet promise "open a film, book or
+      # album and tap Add to list" and until then no film page had one. The
+      # `:log_watch` tap is unchanged and still reachable from ⋯ and from the
+      # rating card; what moved is which control sits in the circular row.
+      for label <- ["Add to list", "Schedule", "Share"], do: assert(drawn?(tree, label))
     end
 
     test "the newest film on the shelf is the one drawn" do

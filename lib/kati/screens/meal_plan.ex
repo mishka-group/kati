@@ -355,9 +355,27 @@ defmodule Kati.Screens.MealPlan do
   # replacing: `rowAlignProp` defaults to `CenterVertically`, and all three
   # segments are 34 tall anyway.
   #
-  # No `on_change`: this strip has never been wired, and `Event.handler/2`
-  # returns nil for a missing handler, so no segment gains a tap it did not
-  # have.
+  # Still no `on_change`, and now for a reason rather than for want of trying.
+  #
+  # Wiring it is one word — `on_change: :pick` — and the destinations exist:
+  # **Day** is board 43 and **Shop** is board 48. What stops it is the
+  # component's own contract. `Kati.Components.MishkaSegmentedControl` sends
+  # `{:tap, {tag, option_id}}`, so every segment's tap term is a TUPLE, and
+  # `Kati.ScreenTapSweepTest`'s *every on_tap the app draws is a shape the
+  # bridge actually registers* rejects exactly that: a `{pid, term}` whose term
+  # is not an atom fires, but emits no `accessibility_id`, so no device test and
+  # no screen reader can address the segment. A control nobody can reach by name
+  # is not the fix for a control that does nothing.
+  #
+  # It is also why this is the app's only call to that component — every other
+  # screen that wanted a segmented strip says in its own prose that the
+  # component is the wrong shape and draws its own. This strip should follow
+  # them: three chips with atom tags, the way `Kati.Screens.ImportSources.tag/1`
+  # mints `:source_<id>`. That is a redraw of board 44's header rather than a
+  # handler, so it waits for the round that touches the drawing.
+  #
+  # `Event.handler/2` returns nil for a missing handler, so no segment gains a
+  # tap it did not have.
   @doc false
   def segments do
     [first | _rest] = labels = Sample.segments()

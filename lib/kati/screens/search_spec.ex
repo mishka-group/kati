@@ -36,6 +36,9 @@ defmodule Kati.Screens.SearchSpec do
   process.
   """
 
+  # `Settings` is what board 88 draws, and it is the answer for a push that
+  # names nowhere — the gallery's. The tune disc on 86, which is the only real
+  # door, hands `Search` (#131).
   use Kati.Screens.Pushed, back: "Settings"
 
   alias Kati.Search
@@ -104,7 +107,7 @@ defmodule Kati.Screens.SearchSpec do
       |> Enum.map(&Kati.Screens.SearchSpec.field_row/1)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
-    assigns = %{label: label, rows: rows}
+    assigns = %{label: label, rows: rows, state: Kati.Screens.SearchSpec.state_pill(label)}
 
     ~MOB"""
     <Column
@@ -114,16 +117,91 @@ defmodule Kati.Screens.SearchSpec do
       padding={16}
       shadow={Kati.Theme.shadow_card()}
     >
-      <Text
-        text={@label}
-        text_size={13.5}
-        font_weight="bold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Row fill_width={true} align="center">
+        <Text
+          text={@label}
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer weight={1.0} />
+        {@state}
+      </Row>
       <Spacer size={11} />
       {@rows}
     </Column>
+    """
+  end
+
+  @doc """
+  `not yet`, on a scope a search does not look in.
+
+  This board is the SPECIFICATION and its list is wider than the executor:
+  `Kati.Search.Query.run/1` builds four of its seven groups, so Music, Meals
+  and Money are searched by nothing at all. A specification screen that
+  overstates is worse than none, because it is the page a reader opens to find
+  out why a search missed — MOVIES-AND-TV.md #74.
+
+  The scope is not removed. The contract is the design's and stating it whole
+  is what this board is for; what was missing is which half of it is live.
+  `Kati.Search.built?/1` is the seam, and screen 86 greys the same four chips
+  from the same predicate.
+  """
+  @spec state_pill(String.t()) :: map()
+  def state_pill(label) do
+    if Kati.Search.built?(label) do
+      ~MOB"<Spacer size={0} />"
+    else
+      Kati.Screens.SearchSpec.not_yet_pill()
+    end
+  end
+
+  @doc """
+  The pill itself, for the other screens that owe the same answer.
+
+  Screen 25's *Tell me about* rows take it for exactly the reason this screen's
+  scopes do — a control the app cannot keep a promise about is marked rather
+  than offered — so the mark is one object and not two that could drift apart.
+  MOVIES-AND-TV.md #74 and #67.
+
+  ## It is not the greyed chip on 03, and board 322 judged the two together
+
+  This pill and `Kati.UI.chip/2`'s disabled state were invented for the same
+  question — *is there anything behind this?* — and never drawn beside each
+  other, so nobody had said whether they read as one system. 322 draws them side
+  by side and rules that **they mean different things and both stay**:
+
+    * **A greyed chip** is a filter with nothing behind it TODAY and a real
+      count tomorrow. It keeps its tap, and 147 draws what happens when it is
+      pressed. That is data.
+    * **A `NOT YET` pill** is a feature with nothing behind it, and it takes no
+      tap at all. That is scope.
+
+  The casing is the board's. `not yet` in lower case read as a footnote beside a
+  bold label; the board sets it in the same mono capitals every other state mark
+  on this screen uses.
+  """
+  @spec not_yet_pill() :: map()
+  def not_yet_pill do
+    ~MOB"""
+    <Row
+      height={22}
+      corner_radius={11}
+      background={Palette.placeholder()}
+      padding_left={9}
+      padding_right={9}
+      align="center"
+    >
+      <Text
+        text="NOT YET"
+        font_family="mono"
+        text_size={10}
+        letter_spacing={0.08}
+        text_color={Palette.muted()}
+        max_lines={1}
+      />
+    </Row>
     """
   end
 
@@ -148,11 +226,37 @@ defmodule Kati.Screens.SearchSpec do
   A refused field takes the tertiary ink and a strike, which is the treatment
   `Kati.UI.Segmented`'s disabled segment uses — one visual for *drawn and
   deliberately not doing this*, wherever it appears.
+
+  ## Struck, and never pilled — board 322
+
+  322 divides the two kinds of no by where they sit rather than by how they
+  look, and the difference is legible without reading: **a pill means later, a
+  rule through the word means never.** So a withdrawn FIELD is struck and takes
+  no pill — *"a pill implies a queue, and these are not queued"* — while a
+  deferred SCOPE keeps full ink on its label and trails the pill.
+
+  All three withdrawn fields are here for the same reason and the board names
+  each: `cast` has no person resource (203 declined it, and 311 says so on the
+  page), a book's `series` is not a column, and `invitee names` is excluded on
+  purpose, because searching a calendar is not searching contacts.
   """
   @spec field_chip(String.t()) :: map()
   def field_chip("never" <> _rest = field), do: Kati.Screens.SearchSpec.refused(field)
 
-  def field_chip(field) do
+  # MOVIES-AND-TV.md #74 at the field level. `Kati.Search.kept?/1` is the same
+  # seam `built?/1` is one level up, and a field with nothing behind it takes
+  # the same treatment as a refused one — the reasons differ and the reader's
+  # question does not: *is this searched?*
+  def field_chip(field) when is_binary(field) do
+    if Kati.Search.kept?(field) do
+      Kati.Screens.SearchSpec.searched(field)
+    else
+      Kati.Screens.SearchSpec.refused(field)
+    end
+  end
+
+  @doc false
+  def searched(field) do
     assigns = %{field: field}
 
     ~MOB"""

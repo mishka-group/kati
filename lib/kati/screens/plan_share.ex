@@ -83,7 +83,15 @@ defmodule Kati.Screens.PlanShare do
           text_align="center"
           max_lines={1}
         />
-        <Spacer size={6} />
+        <Spacer size={7} />
+        <Text
+          text={share.qr_body}
+          text_size={12.5}
+          line_height={1.65}
+          text_color={Palette.cream_sub()}
+          text_align="center"
+        />
+        <Spacer size={10} />
         <Text
           text={share.qr_uri}
           font_family="mono"
@@ -94,9 +102,50 @@ defmodule Kati.Screens.PlanShare do
         />
         <Spacer size={16} />
         {Kati.Screens.PlanShare.qr_actions()}
+        <Spacer size={9} />
+        {Kati.Screens.PlanShare.whole_plan()}
       </Column>
       <Spacer size={20} />
     </Column>
+    """
+  end
+
+  @doc """
+  Board 316's ink row: the route that DOES carry the meals.
+
+  The card above it now says what the code cannot hold, and 316's rule is that
+  saying so is only half of it — *"the ink button offers the route that does
+  carry the meals — the file, which 128 already built."* So the row goes to
+  screen 128, which is the only thing in this app that writes a file with the
+  meals in it.
+
+  It sits under `qr_actions/0` rather than replacing `Copy link`, because both
+  of those are true about the code and neither stopped being an affordance;
+  what was missing was an answer to *then how do I send the rest*.
+  """
+  @spec whole_plan() :: map()
+  def whole_plan do
+    ~MOB"""
+    <Box
+      fill_width={true}
+      height={42}
+      corner_radius={21}
+      background={0xA6FFFFFF}
+      align="center"
+      on_tap={{self(), :send_whole_plan}}
+    >
+      <Row align="center">
+        {Kati.UI.symbol("upload_file", size: 17, color: Palette.gold_text())}
+        <Spacer size={7} />
+        <Text
+          text="Send the whole plan"
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={Palette.cream_sub()}
+          max_lines={1}
+        />
+      </Row>
+    </Box>
     """
   end
 
@@ -264,6 +313,12 @@ defmodule Kati.Screens.PlanShare do
   """
   @spec tile_tap(map()) :: {pid(), atom()} | nil
   def tile_tap(%{icon: "picture_as_pdf"}), do: {self(), :print_week}
+
+  # Board 316's receiving side. *Scan a plan* drew a chevron and reached
+  # nothing; screen 120 is where a scanned plan lands, and 316 is the board
+  # that says what it lands AS — settings, and a row saying the meals are not
+  # here.
+  def tile_tap(%{icon: "qr_code_scanner"}), do: {self(), :scan_plan}
   def tile_tap(_row), do: nil
 
   @doc false
@@ -358,6 +413,16 @@ defmodule Kati.Screens.PlanShare do
   # every non-`:back` tag through here — the same shape `Kati.Screens.Plans`
   # uses for its own two.
   @impl true
+  # Board 316. The file with the meals in it is screen 128's — *"the file,
+  # which 128 already built"* — and it is the only file this app can produce.
+  # A per-plan export has no writer, and a button that promised one would be
+  # the promise this whole board is about removing.
+  def handle_tap(:send_whole_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Backup)}
+
+  def handle_tap(:scan_plan, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PlanImport, %{from: :code})}
+
   def handle_tap(:print_week, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.WeekImage)}
 end

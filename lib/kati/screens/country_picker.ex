@@ -36,10 +36,16 @@ defmodule Kati.Screens.CountryPicker do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
-    {:ok, Mob.Socket.assign(socket, :region, Services.region())}
+    Kati.Locale.activate()
+
+    {:ok,
+     socket
+     |> Mob.Socket.assign(:region, Services.region())
+     |> Mob.Socket.assign(:query, "")}
   end
 
-  def render(assigns), do: Sheet.sheet("Your country", body(assigns))
+  def render(assigns),
+    do: Sheet.sheet("Your country", body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do
@@ -47,9 +53,9 @@ defmodule Kati.Screens.CountryPicker do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.CountryPicker.search_field()}
+      {Kati.Screens.CountryPicker.search_field(Map.get(assigns, :query, ""))}
       <Spacer size={16} />
-      {Kati.Screens.CountryPicker.list(region)}
+      {Kati.Screens.CountryPicker.list(region, Map.get(assigns, :query, ""))}
       <Spacer size={14} />
       {Kati.UI.SettingsList.note("info", "Availability is per country. Changing this changes what Kati shows as watchable — it never touches your library, ratings or history.")}
     </Column>
@@ -59,13 +65,26 @@ defmodule Kati.Screens.CountryPicker do
   @doc """
   The search field, whose placeholder carries the real total.
 
-  190 is the count of countries JustWatch answers for, and it is a literal here
-  because `Kati.Services.countries/0` holds the seven the drawing lists rather
-  than all of them — a placeholder that said `Search 7 countries` would be
-  telling the truth about the wrong thing.
+  The placeholder counts `Kati.Services.countries/0`. It said `Search 190
+  countries` — JustWatch's number, over Kati's seven — on the argument that
+  saying `Search 7` would be *telling the truth about the wrong thing*. It is
+  the truth about the thing this field actually filters, which is what a
+  placeholder is for; the day the list is 190 the placeholder says 190 without
+  anybody remembering to come back here.
   """
-  @spec search_field() :: map()
-  def search_field do
+  @spec search_field(String.t()) :: map()
+  def search_field(query \\ "") do
+    assigns = %{
+      query: query,
+      on_change: {self(), :country_query},
+      # `Search 190 countries` over a list of seven, and the field was a
+      # picture — its `on_tap` fell through to `handle_info(_message, …)`, and
+      # the tap sweep had it on `@inert_taps`. MOVIES-AND-TV.md #78. Both
+      # halves are fixed here: the field is a `<TextField>` that filters, and
+      # the placeholder counts the list it is over.
+      placeholder: "Search #{length(Services.countries())} countries"
+    }
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -76,30 +95,80 @@ defmodule Kati.Screens.CountryPicker do
       padding_left={17}
       padding_right={17}
       align="center"
-      on_tap={{self(), :search}}
     >
       {UI.symbol("search", size: 19, color: Palette.tertiary())}
       <Spacer size={11} />
-      <Text
-        text="Search 190 countries"
-        text_size={14}
-        text_color={Palette.tertiary()}
+      <TextField
+        value={@query}
+        placeholder={@placeholder}
+        return_key="search"
         weight={1.0}
-        max_lines={1}
+        accessibility_id="country_query"
+        on_change={@on_change}
       />
     </Row>
     """
   end
 
+  @doc """
+  The countries a query leaves, by name or by code.
+
+  By code as well, because a reader who knows `NL` should not have to remember
+  whether Kati calls it *Netherlands* or *The Netherlands*.
+
+      iex> Kati.Screens.CountryPicker.matching("ger")
+      [{"DE", "Germany"}]
+
+      iex> Kati.Screens.CountryPicker.matching("NL")
+      [{"NL", "Netherlands"}]
+
+      iex> Kati.Screens.CountryPicker.matching("") == Kati.Services.countries()
+      true
+  """
+  @spec matching(String.t()) :: [{String.t(), String.t()}]
+  def matching(query) do
+    case String.trim(query) do
+      "" ->
+        Services.countries()
+
+      typed ->
+        needle = String.downcase(typed)
+
+        Enum.filter(Services.countries(), fn {code, name} ->
+          String.contains?(String.downcase(name), needle) or
+            String.contains?(String.downcase(code), needle)
+        end)
+    end
+  end
+
   @doc "Every country, the current one marked."
   @spec list(String.t()) :: map()
-  def list(region) do
-    rows =
-      Enum.map(Services.countries(), fn {code, name} ->
-        Kati.Screens.CountryPicker.row(code, name, code == region)
-      end)
+  def list(region, query \\ "") do
+    case Kati.Screens.CountryPicker.matching(query) do
+      [] -> Kati.Screens.CountryPicker.nothing_card(query)
+      countries -> SettingsList.card(Enum.map(countries, &row_for(&1, region)))
+    end
+  end
 
-    SettingsList.card(rows)
+  defp row_for({code, name}, region),
+    do: Kati.Screens.CountryPicker.row(code, name, code == region)
+
+  @doc "A query that matches no country, said rather than left as a gap."
+  @spec nothing_card(String.t()) :: map()
+  def nothing_card(query) do
+    typed = String.trim(query)
+
+    SettingsList.card([
+      SettingsList.row(
+        SettingsList.icon_tile("search"),
+        Kati.UI.SettingsList.body(
+          "No country matches",
+          "Kati lists #{length(Services.countries())}, and none of them is “#{typed}”."
+        ),
+        SettingsList.trailing(nil),
+        rule: false
+      )
+    ])
   end
 
   @doc false
@@ -117,13 +186,16 @@ defmodule Kati.Screens.CountryPicker do
 
   def tick(true), do: UI.symbol("check", size: 20, color: Palette.green())
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:change, :country_query, typed}, socket) when is_binary(typed),
+    do: {:noreply, Mob.Socket.assign(socket, :query, typed)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
       "pick_" <> code ->
         Services.put_region(code)
-        {:noreply, socket |> Mob.Socket.assign(:region, code) |> Mob.Socket.pop_screen()}
+        {:noreply, socket |> Mob.Socket.assign(:region, code) |> Kati.Screens.Resume.pop()}
 
       _other ->
         {:noreply, socket}

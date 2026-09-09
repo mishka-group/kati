@@ -104,6 +104,7 @@ defmodule Kati.Screens.SettingsFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :settings, settle(SampleSettings.settings()))}
   end
 
@@ -138,7 +139,14 @@ defmodule Kati.Screens.SettingsFa do
     settings = assigns.settings
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction="rtl"
+      font_family="fa"
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
+    >
       <Scroll>
         <Column
           fill_width={true}
@@ -515,7 +523,20 @@ defmodule Kati.Screens.SettingsFa do
     # translation table between them.
     "subscriptions" => Kati.Screens.MyServicesFa,
     "dns" => Kati.Screens.DataSourcesFa,
-    "info" => Kati.Screens.AttributionFa
+    "info" => Kati.Screens.AttributionFa,
+    # 62's own caption is *Settings rows mirror wholesale*, and these two were
+    # the mirror stopping short: screen 24's Import row reaches
+    # `Kati.Screens.ImportSources` and its Text size row reaches
+    # `Kati.Screens.Accessibility`, while درون‌ریزی and اندازه متن drew a
+    # chevron over `tap_for(_row, _si, _ri), do: nil`.
+    #
+    # Neither destination has a Persian mirror, which is the trade `upload` and
+    # `sync` above already make and is the right way round: an English screen a
+    # Persian reader can reach beats a chevron that points at nothing. Both
+    # carry `back: "Settings"`, so the pill over them reads English until the
+    # mirrors exist.
+    "download" => Kati.Screens.ImportSources,
+    "format_size" => Kati.Screens.Accessibility
   }
 
   @doc false
@@ -870,7 +891,7 @@ defmodule Kati.Screens.SettingsFa do
     MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
   # Positional tags, parsed back to positions. Nothing here raises on a tag it
   # does not recognise: this screen is a bare `Mob.Screen` with no rescue

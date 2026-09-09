@@ -578,21 +578,41 @@ defmodule Kati.Screens.BookDetailDark do
 
   @doc false
   @spec handle_tap(atom(), Mob.Socket.t()) :: {:noreply, Mob.Socket.t()}
+  # Screen 66's push, and named the same way: the sheet is handed the id of the
+  # book this page is drawing rather than left to re-read the shelf and take its
+  # first row (#84). The dark page draws `BookDetail.book/0`, so it is the same
+  # book and the same id.
   def handle_tap(:log_progress, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogProgress,
+         Kati.Screens.LogProgress.params_for(socket.assigns.book)
+       )}
 
   def handle_tap(:rate, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
-  def handle_tap(:add_to_list, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+  # Board 334, the same control as 66's.
+  def handle_tap(:add_to_list, socket) do
+    book = socket.assigns.book || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.BookDetail.member(book), Map.get(book, :title))}
+  end
 
   # `Finish` writes and then hands to the rating screen, which is the handover
   # screen 66 makes and the one screen 70 makes from the other direction. The
   # write itself lives in `Kati.Screens.LogProgress` so that three controls on
   # three screens cannot drift about what finishing a book means.
+  # And it names the book, for the reason the push above it does. The comment
+  # over this clause promises three controls that cannot drift about what
+  # finishing a book means; finishing the shelf's head from a page drawing
+  # something else is that drift, arriving through the argument rather than
+  # through the write. `book[:id]` because the drawing has no id to read.
   def handle_tap(:finish, socket) do
-    Kati.Screens.LogProgress.finish_book()
+    Kati.Screens.LogProgress.finish_book(socket.assigns.book[:id])
     {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
   end
 

@@ -55,6 +55,7 @@ defmodule Kati.Screens.StatsFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :year, SampleYear.year())}
   end
 
@@ -62,7 +63,13 @@ defmodule Kati.Screens.StatsFa do
     shell = Kati.Shell.render(%{root: :stats, content: content(assigns)})
 
     ~MOB"""
-    <Box fill_width={true} fill_height={true} background={:background} layout_direction="rtl">
+    <Box
+      fill_width={true}
+      fill_height={true}
+      background={:background}
+      layout_direction="rtl"
+      font_family="fa"
+    >
       {shell}
     </Box>
     """
@@ -221,7 +228,7 @@ defmodule Kati.Screens.StatsFa do
             <Row align="bottom">
               <Text
                 text={year.hours}
-                font_family="mono"
+                font_family="fa"
                 text_size={32}
                 font_weight="medium"
                 text_color={:on_surface}
@@ -253,7 +260,7 @@ defmodule Kati.Screens.StatsFa do
               <Spacer size={5} />
               <Text
                 text={year.change}
-                font_family="mono"
+                font_family="fa"
                 text_size={11.5}
                 text_color={Palette.green_text()}
                 max_lines={1}
@@ -366,7 +373,7 @@ defmodule Kati.Screens.StatsFa do
       >
         <Text
           text={number}
-          font_family="mono"
+          font_family="fa"
           text_size={25}
           font_weight="medium"
           text_color={:on_surface}
@@ -480,7 +487,7 @@ defmodule Kati.Screens.StatsFa do
         <Column width={30}>
           <Text
             text={value}
-            font_family="mono"
+            font_family="fa"
             text_size={11}
             text_color={Palette.muted()}
             text_align="absolute_left"

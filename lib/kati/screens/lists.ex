@@ -30,42 +30,55 @@ defmodule Kati.Screens.Lists do
   same made row, with no artwork in its stack and `0 titles` under its name,
   which is what an empty list looks like.
 
-  The rows themselves are left untappable on purpose. Their chevrons point at a
-  list-detail screen the design never draws and the app does not have, and
-  `on_tap={nil}` — a row that does nothing and admits it — is better than a row
-  that swallows a press.
+  A made row opens the list it names — `made_row/1` carries
+  `open_list_<id>` for any row with an id, and `nil` for one without, which is
+  the drawn page. This section used to say the rows are *left untappable on
+  purpose*, because their chevrons pointed at a list-detail screen the design
+  had never drawn; board 331 drew it and `Kati.Screens.ListDetail` is it.
 
-  ## Why this screen still reads `Kati.Screens.Lists.Sample`
+  ## What this screen reads
 
-  Not a missing column this time — a missing **resource**. `Kati.Media` holds
-  `Kati.Media.CachedTitle`, `Kati.Media.TrackedTitle` and `Kati.Media.Watch`,
-  and that is the whole of it. Nothing in the app names a list, orders one, or
-  records that a title is in one, so unlike screen 03 there is no query to
-  write and no shape to fall back *from*.
+  Not a missing column and no longer a missing resource. `Kati.Lists.List`,
+  `Kati.Lists.Membership` and `Kati.Lists.Shelf` are written, migrated and
+  backed up; the membership table holds three nullable FKs, so a list holds a
+  film, a series, a book or an album (board 332). This section used to say the
+  resource *is not written* and that its chevrons pointed at a board that did
+  not exist, and both were true when they were written.
 
-  Precisely what this screen draws and no resource can express:
+  What the store answers now:
 
-    * **the made lists themselves** — `Best of 2026`, `Rainy Sunday`,
-      `Recommended by Jo`. A name, plus the `ranked` / `shared` badge, which is
-      a list's own state and not a property of anything in it.
-    * **membership** — which is both `14 titles` and the three posters in each
-      fanned stack. A list-to-title join is the table that does not exist, and
-      the stack is its first three rows' `Kati.Media.CachedTitle.poster_path`.
-    * **`7 lists · 2 ranked`** — the count of lists, and of the ranked ones.
-      The drawing means it to exceed the three cards on screen, so it is a
-      count of the table rather than of the section.
-    * **the kept lists** — `Wishlist`, `Rewatches`, `Abandoned`, `Owned on
-      disc`, and their counts. Two of the four could be *inferred* today —
-      `Abandoned` is `status: :dropped` on `Kati.Media.TrackedTitle`, and
-      `Rewatches` is a `Kati.Media.Watch` carrying a `rewatch_number` — and
-      neither is split out, because a card where two rows count the user's real
-      library and two are frozen reads as fully real. `Wishlist` and `Owned on
-      disc` are assertions the user makes and nothing stores.
+    * **the made lists themselves** — name, `ranked` and `shared` badges, and a
+      `name_key` so two lists called `Rainy Sunday` are one list somebody made
+      twice.
+    * **membership** — the count and the fanned stack, which is the first three
+      memberships' `Kati.Media.CachedTitle.poster_path` in the list's own
+      order, so a ranked list fans its top three.
+    * **`7 lists · 2 ranked`** — counted off the table.
+    * **the kept lists** — `Rewatches` and `Abandoned` are one query each.
+      `Wishlist` and `Owned on disc` are assertions a reader makes and no
+      column holds, so they are not drawn rather than drawn frozen; board 12's
+      own two frozen figures are on `DesignLiterals.retired_lines/0`.
 
-  `handle_tap(:new_list, ...)` is the same gap seen from the writing side: it
-  makes a list in the socket's assigns, which lasts exactly as long as the
-  screen does. With a resource behind it, `add_list/1` is where the create
-  goes.
+  ## The three surfaces the design owed, and what came of them
+
+  MOVIES-AND-TV.md #106 asked for three drawings, filed as
+  [mishka-group/kati#99](https://github.com/mishka-group/kati/issues/99). The
+  `D-65` wave delivered all three on 7 September and they are built:
+
+    * **somewhere to name a list** — board 335's naming field, one grammar for
+      creating and renaming, with one failure rule.
+    * **a list picker** — board 333, `Kati.Screens.AddToList`, a sheet over the
+      page you are on rather than a trip to the index.
+    * **a list detail** — boards 330-332, `Kati.Screens.ListDetail`, with its ⋯
+      menu, its long-press *Remove* and its undo bar.
+
+  Each has a Persian mirror (336, 337). The chevrons that were removed for
+  pointing nowhere point at 331 now.
+
+  What HAS shipped is everything the store can answer: two of the four *Kept
+  automatically* rows are the reader's own counts, the two that are assertions
+  nothing holds are not drawn, and `+` says what it is waiting for instead of
+  reporting a change nothing kept.
   """
   use Kati.Screens.Pushed, back: "Library"
 
@@ -77,7 +90,64 @@ defmodule Kati.Screens.Lists do
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, :lists, Sample.lists())
+  # No params. It read `:adding` — board 146's selection — until board 333 moved
+  # that route onto `Kati.Screens.AddToList`, a sheet over the page you are on.
+  def load(socket) do
+    socket
+    |> Mob.Socket.assign(:lists, Kati.Screens.Lists.lists())
+    |> Mob.Socket.assign(:name, "")
+    |> Mob.Socket.assign(:naming?, false)
+    |> Mob.Socket.assign(:name_epoch, 0)
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
+  The page: the drawing's made lists, and the reader's own kept ones.
+
+  MOVIES-AND-TV.md #106. Two of the four *Kept automatically* rows are one
+  query each and were frozen at the drawing's numbers on every device —
+  `Abandoned` is `status: :dropped` on `Kati.Media.TrackedTitle` and
+  `Rewatches` is a `Kati.Media.Watch` carrying a `rewatch_number`. The other
+  two are assertions nothing stores: `Wishlist` and `Owned on disc` are things
+  a reader says about a title and no column holds, so they are not drawn rather
+  than drawn frozen — a card where two rows count the reader's real library and
+  two are somebody else's reads as fully real, which is the argument this
+  screen's own moduledoc already makes and #75 settled one screen over.
+
+  The made lists are still the fixture, and that is the half no code can fix:
+  see the moduledoc's *what this screen is still waiting for*.
+  """
+  @spec lists() :: map()
+  def lists do
+    page = Kati.Lists.Shelf.page()
+
+    # Not the board. Screen 03 falls back to its drawing because a shelf has a
+    # drawn empty state to fall back TO — board 27's card — and 12 has none, so
+    # falling back here would show three lists nobody made to somebody who has
+    # made none. That is the defect #75 fixed on screen 92 and #58 on screen
+    # 15. `empty_card/0` is the state instead, and it says the one thing that
+    # fixes it.
+    page
+  end
+
+  @doc """
+  The two kept lists the store can actually answer, with the reader's counts.
+
+  Both are `Kati.Media`'s own questions asked once. A count of nothing is still
+  drawn — `Abandoned · 0` is a true answer about a shelf nobody has dropped
+  anything from, unlike the drawing's `3`, and the row is what tells a reader
+  the rule exists.
+  """
+  @spec kept_rows() :: [map()]
+  defdelegate kept_rows(), to: Kati.Lists.Shelf, as: :kept
+
+  @doc "How many watches the reader has marked as a rewatch."
+  @spec rewatch_count() :: non_neg_integer()
+  defdelegate rewatch_count(), to: Kati.Lists.Shelf, as: :rewatches
+
+  @doc "How many titles the reader has dropped."
+  @spec abandoned_count() :: non_neg_integer()
+  defdelegate abandoned_count(), to: Kati.Lists.Shelf, as: :abandoned
 
   @doc false
   def content(assigns) do
@@ -94,6 +164,7 @@ defmodule Kati.Screens.Lists do
       >
         {Kati.Screens.Lists.pill_row()}
         {Kati.Screens.Lists.header(l)}
+        {Kati.Screens.Lists.name_field(assigns)}
         {Kati.Screens.Lists.made(l)}
         {UI.eyebrow("Kept automatically")}
         {Kati.Screens.Lists.kept(l)}
@@ -109,6 +180,15 @@ defmodule Kati.Screens.Lists do
 
   @doc false
   def header(l) do
+    # No tap. MOVIES-AND-TV.md #106: this disc prepended a row literally titled
+    # `New list` to the socket, which was lost on back, and pressing it twice
+    # gave two identical rows — a control that reports a change nothing kept.
+    #
+    # Dropped rather than drawn dead is this app's rule everywhere else, and it
+    # is not what happens here: the disc is the board's only control and a page
+    # with none is a page nobody would press. What is dropped is the LIE. It
+    # draws, it is nameable, and it says what it is waiting for — see
+    # `handle_tap/2` and the moduledoc's own account of the missing resource.
     tap = {self(), :new_list}
 
     ~MOB"""
@@ -151,6 +231,52 @@ defmodule Kati.Screens.Lists do
   end
 
   @doc false
+  def made(%{made: []}) do
+    # `:name_this_one`, not the disc's own `:new_list`: two nodes may not share
+    # an `accessibility_id` — `onNodeWithTag` throws on the second match — and
+    # both are drawn at once on an empty page. One action, two doors, two names.
+    assigns = %{tap: {self(), :name_this_one}}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+        on_tap={@tap}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+            {UI.symbol("bookmarks", size: 22, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={13} />
+        <Text
+          text="No lists yet"
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text="A list is yours to name — press + and call it something. Titles go in from your shelf."
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+      </Column>
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
   def made(l) do
     ~MOB"""
     <Column fill_width={true}>
@@ -162,6 +288,19 @@ defmodule Kati.Screens.Lists do
 
   @doc false
   def made_row(row) do
+    # A row opens the list it names. It used to carry a second verb — arriving
+    # from 146 with a selection in hand swapped every row from *open it* to *add
+    # to it*, announced by a note and by nothing else — and board 333 retired
+    # that: a title is put in a list from a SHEET over the page you are on, not
+    # by a page whose rows quietly change meaning. `Kati.Screens.AddToList` is
+    # where the selection goes now.
+    #
+    # `nil` over the board's own three, which belong to nobody: not tappable
+    # rather than opening somebody else's.
+    tap = if Map.get(row, :id), do: {self(), String.to_atom("open_list_" <> row.id)}
+
+    assigns = %{tap: tap}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -171,6 +310,7 @@ defmodule Kati.Screens.Lists do
         shadow={Kati.Theme.shadow_card_soft()}
         padding={13}
         align="center"
+        on_tap={@tap}
       >
         {Kati.Screens.Lists.stack(row.seeds)}
         <Spacer size={14} />
@@ -326,8 +466,6 @@ defmodule Kati.Screens.Lists do
           text_color={Palette.muted()}
           max_lines={1}
         />
-        <Spacer size={13} />
-        {Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())}
       </Row>
       {Kati.Screens.Lists.hairline(rule?)}
     </Column>
@@ -369,23 +507,215 @@ defmodule Kati.Screens.Lists do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
-  @impl true
-  def handle_tap(:new_list, socket) do
-    {:noreply, Mob.Socket.update(socket, :lists, &Kati.Screens.Lists.add_list/1)}
+  @doc """
+  The field `+` opens, where the list is named.
+
+  Board 12 draws no text entry — it draws three lists that already have names —
+  so this is a departure, made deliberately and recorded here: the alternative
+  was a `+` that creates `New list` with no way to rename it, which is the same
+  lie one step further in. `Kati.UI.SettingsList`'s own field geometry, so it is
+  the app's field and not a new one.
+
+  It appears on the press and not before, which is why the board is unchanged
+  for a reader who has not pressed anything.
+  """
+  @spec name_field(map()) :: map()
+  def name_field(assigns) do
+    if Map.get(assigns, :naming?, false) do
+      inner = %{
+        name: Map.get(assigns, :name, ""),
+        epoch: Map.get(assigns, :name_epoch, 0),
+        on_change: {self(), :list_name},
+        on_submit: {self(), :save_list},
+        save: {self(), :save_list},
+        error: Kati.UI.notice(Map.get(assigns, :save_error))
+      }
+
+      assigns = inner
+
+      ~MOB"""
+      <Column fill_width={true}>
+        {@error}
+        <Row fill_width={true} align="center">
+          <Row
+            weight={1.0}
+            height={48}
+            corner_radius={14}
+            background={Kati.Theme.Palette.card()}
+            shadow={Kati.Theme.shadow_card_soft()}
+            padding_left={15}
+            padding_right={15}
+            align="center"
+          >
+            <TextField
+              value={@name}
+              placeholder="Name this list"
+              return_key="done"
+              weight={1.0}
+              accessibility_id="list_name"
+              on_change={@on_change}
+              on_submit={@on_submit}
+              value_epoch={@epoch}
+            />
+          </Row>
+          <Spacer size={9} />
+          {Kati.UI.SettingsList.action_pill("Make it", @save)}
+        </Row>
+        <Spacer size={18} />
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
   end
 
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  @doc """
+  What `+` can honestly do today, which is say why it cannot make a list.
+
+  MOVIES-AND-TV.md #106. It used to prepend a row titled `New list` to this
+  screen's assigns: lost the moment you went back, duplicated if you pressed
+  twice, and holding nothing either way. A control that reports a change
+  nothing kept is worse than one that reports none.
+
+  What it needs is not a column but a **drawing**. `Kati.Lists.List` is a
+  resource nobody has designed a name field for — board 12 draws no text entry
+  anywhere, and a list created as `New list` with no way to rename it is the
+  same lie one step further in. Board 146's *Add to list* is the membership
+  route the design DOES draw and it needs a list picker, which is also not
+  drawn. Filed as a design gap rather than guessed at here, which is the rule
+  `Kati.Screens.ImportSources` states for its own repeated literal: guessing
+  would be inventing copy the drawing does not contain.
+
+  So the disc says that, in one line, where the row it used to invent went.
+  """
+  @impl true
+  def handle_tap(tag, socket) when tag in [:new_list, :name_this_one] do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:naming?, not Map.get(socket.assigns, :naming?, false))
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  # Make the list the field names, and put it on the page.
+  #
+  # Board 335 changed what a taken name does. `Kati.Lists.Shelf.create/1` used
+  # to answer `{:ok, existing}` and write nothing, which was *indistinguishable
+  # from making one*: a reader who thought they had two lists called `Rainy
+  # Sunday` had no way to learn they had one. It answers `{:exists, list}` now
+  # and the page says so, naming the count — *"It has 3 titles. Nothing was
+  # made."*
+  #
+  # Every other refusal is the one every write in this app gives,
+  # `Kati.Write.message/1`, so a store that cannot be reached says so instead of
+  # looking like a press that missed.
+  def handle_tap(:save_list, socket) do
+    case Kati.Lists.Shelf.create(Map.get(socket.assigns, :name, "")) do
+      {:ok, _list} ->
+        {:noreply, Kati.Screens.Lists.named(socket)}
+
+      {:exists, list} ->
+        {:noreply,
+         Mob.Socket.assign(
+           socket,
+           :save_error,
+           Kati.Screens.Lists.taken_line(list)
+         )}
+
+      error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))}
+    end
+  end
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "open_list_" <> id ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.ListDetail, %{id: id, back: "Lists"})}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
 
   @doc """
-  A new hand-made list, at the top of the made section.
+  The sentence board 335 puts under a name that is already a list.
 
-  Newest first, because the point of pressing `+` is to see the thing you just
-  made: at the bottom of three cards it would be off the bottom of the phone on
-  a longer list, and a control whose result is out of frame reads as broken.
-
-  It carries no artwork and no badge, so it falls through to the same empty
-  stack and the same chevron the design already draws for an unbadged list.
+      iex> Kati.Screens.Lists.taken_line(%{name: "Rainy Sunday", id: nil})
+      "Rainy Sunday already exists. Nothing was made — open it from the list above."
   """
+  @spec taken_line(map()) :: String.t()
+  def taken_line(list),
+    do: list.name <> " already exists. Nothing was made — open it from the list above."
+
+  @doc false
+  @spec named(Mob.Socket.t()) :: Mob.Socket.t()
+  def named(socket) do
+    socket
+    |> Mob.Socket.assign(:lists, Kati.Screens.Lists.lists())
+    |> Mob.Socket.assign(:name, "")
+    # `K-46`: the bridge ignores a `value` for a field it has already drawn
+    # unless the epoch moves.
+    |> Mob.Socket.assign(:name_epoch, Map.get(socket.assigns, :name_epoch, 0) + 1)
+    |> Mob.Socket.assign(:naming?, false)
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc false
+  def blank, do: ~MOB"<Spacer size={0} />"
+
+  @doc false
+  @impl true
+  def handle_info({:change, :list_name, typed}, socket) when is_binary(typed) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:name, typed)
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  # The keyboard's own key. A submit is not a tap — `mob_send_submit/1` sends
+  # `{:submit, tag}` — so `handle_tap/2` never sees it.
+  def handle_info({:submit, :save_list}, socket),
+    do: Kati.Screens.Lists.handle_tap(:save_list, socket)
+
+  # Coming back from a list: the counts and the fans have moved, and the page
+  # was still showing what it mounted with. `Kati.Screens.Resume` is what
+  # announces it, and screens 08 and 02 answer the same message the same way.
+  def handle_info({:kati, :resumed, _payload}, socket) do
+    {:noreply, Mob.Socket.assign(socket, :lists, Kati.Screens.Lists.lists())}
+  end
+
+  def handle_info(message, socket), do: super(message, socket)
+
+  @doc """
+  The line `+` leaves behind, or nothing.
+
+  `Kati.UI.SettingsList.note/2`'s `info`, which is what every other screen in
+  this app uses to say *this is what would happen and here is why it cannot
+  yet* — screens 37, 92 and 141 all carry one.
+  """
+  @spec waiting(boolean()) :: map()
+  def waiting(true) do
+    assigns = %{
+      note:
+        Kati.UI.SettingsList.note(
+          "info",
+          "A hand-made list needs a name, and there is nowhere to type one yet — " <>
+            "board 12 draws no field. Titles go into a list from the shelf: select " <>
+            "them and press Add to list."
+        )
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@note}
+      <Spacer size={18} />
+    </Column>
+    """
+  end
+
+  def waiting(_quiet), do: ~MOB"<Spacer size={0} />"
+
+  @doc false
   @spec add_list(map()) :: map()
   def add_list(l) do
     row = %{title: "New list", count: "0 titles", badge: nil, seeds: []}

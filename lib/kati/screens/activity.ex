@@ -120,6 +120,7 @@ defmodule Kati.Screens.Activity do
         {Kati.Screens.Activity.filters(filter)}
         {Kati.Screens.Activity.group(today, UI.eyebrow("Today"), 44, 11, 0.0)}
         {Kati.Screens.Activity.group(earlier, Kati.UI.Eyebrow.quiet("Earlier this month"), 44, 10, 0.06)}
+        {Kati.Screens.Activity.nothing_here(log, today, earlier, filter)}
         {Kati.Screens.Activity.rewatch_section(log.rewatch)}
       </Column>
     </Scroll>
@@ -144,7 +145,13 @@ defmodule Kati.Screens.Activity do
   @spec log() :: map()
   def log do
     case entries() do
-      %{today: [], earlier: []} -> drawn()
+      # NOTHING RECORDED, and not *nothing this month*. The gate was
+      # `%{today: [], earlier: []}`, which is the state of every reader whose
+      # watches are all older than the first of the month — so somebody with a
+      # real history was shown `1,204 entries` over seven invented rows, and
+      # the rewatch card underneath, which counts their WHOLE history, was
+      # replaced by the drawing's too. MOVIES-AND-TV.md #58.
+      %{count: 0} -> drawn()
       log -> log
     end
   rescue
@@ -161,6 +168,7 @@ defmodule Kati.Screens.Activity do
   @spec drawn() :: map()
   def drawn do
     %{
+      count: 0,
       entries_line: Sample.entries_line(),
       today: Sample.today(),
       earlier: Sample.earlier(),
@@ -196,29 +204,40 @@ defmodule Kati.Screens.Activity do
     month = Date.beginning_of_month(today)
 
     watches = watches()
-    cached = cached_by_reference(watches)
+    events = events()
+    cached = cached_by_reference(watches ++ events)
 
+    # MOVIES-AND-TV.md #112. `Added` and `Dropped` are two of the four chips
+    # this screen offers and neither could ever match, because `Kati.Media.Watch`
+    # is the only thing it read and a watch is never either. `Kati.Media.Event`
+    # is the store screen 15's own moduledoc named as missing; both kinds of row
+    # go into one stream here, because the log is one list sorted by time and
+    # the reader does not think of them as two tables.
     dated =
-      watches
-      |> Enum.map(&stamped(&1, zone))
-      |> Enum.reject(fn {date, _clock, _watch} -> is_nil(date) end)
-      |> Enum.sort_by(fn {date, clock, watch} ->
-        {Date.to_erl(date), clock || "", watch.id}
+      (Enum.map(watches, &stamped(&1, zone)) ++ Enum.map(events, &stamped(&1, zone)))
+      |> Enum.reject(fn {date, _clock, _entry} -> is_nil(date) end)
+      |> Enum.sort_by(fn {date, clock, entry} ->
+        {Date.to_erl(date), clock || "", entry.id}
       end)
       |> Enum.reverse()
 
     %{
-      entries_line: entries_line(length(watches)),
+      # What `log/0` gates on. `today` and `earlier` are both month-scoped and
+      # neither can answer *has this reader recorded anything at all*.
+      count: length(watches) + length(events),
+      entries_line: entries_line(length(watches) + length(events)),
       today:
-        for {date, clock, watch} <- dated, date == today, not is_nil(clock) do
-          row(watch, clock, cached)
+        for {date, clock, entry} <- dated, date == today, not is_nil(clock) do
+          row(entry, clock, cached)
         end,
       earlier:
-        for {date, _clock, watch} <- dated,
+        for {date, _clock, entry} <- dated,
             Date.compare(date, month) != :lt,
             Date.compare(date, today) == :lt do
-          row(watch, date_stamp(date), cached)
+          row(entry, date_stamp(date), cached)
         end,
+      # Watches only. The card counts *how many times have I seen this*, and an
+      # add is not a viewing.
       rewatch: rewatch_counts(watches, cached)
     }
   end
@@ -253,6 +272,155 @@ defmodule Kati.Screens.Activity do
   def group(rows, eyebrow, stamp_width, stamp_size, stamp_spacing) do
     [eyebrow, entries(rows, stamp_width, stamp_size, stamp_spacing)]
   end
+
+  @doc """
+  Which of the two empty states this is — or neither.
+
+  MOVIES-AND-TV.md #112: pressing a chip that matches nothing left the header
+  and the chips over a blank page. That is the same misreading #117 fixed on
+  the search screen: *nothing under this chip* and *nothing this month* are two
+  different things, and the second one's sentence — *everything you have logged
+  is older than the first* — is simply false when the month is full of rows the
+  chip filtered out.
+
+  So the filter is asked first. `All` can only be the month case; any other chip
+  over an unfiltered month that HAS rows is the filter case.
+  """
+  @spec nothing_here(map(), [map()], [map()], String.t()) :: term()
+  def nothing_here(log, [], [], filter) when filter != "All" do
+    Kati.Screens.Activity.no_matches(filter, Kati.Screens.Activity.month_has_rows?(log))
+  end
+
+  def nothing_here(log, today, earlier, _filter),
+    do: Kati.Screens.Activity.nothing_this_month(log, today, earlier)
+
+  @doc false
+  @spec month_has_rows?(map()) :: boolean()
+  def month_has_rows?(log), do: Map.get(log, :today, []) != [] or Map.get(log, :earlier, []) != []
+
+  @doc """
+  Nothing under this chip, said as that rather than as nothing at all.
+
+  Two sentences, because the two cases differ in what the reader should do:
+  a month with other rows in it wants *press All*, and a month with none wants
+  the same sentence `nothing_this_month/3` gives, since the chip is not why the
+  page is empty.
+  """
+  # `sort` rather than `filter_alt`, which is not in Kati's icon subset — the
+  # subset is generated from what the drawings use, and adding a glyph for one
+  # empty state would mean a font rebuild for a card.
+  @spec no_matches(String.t(), boolean()) :: map()
+  def no_matches(filter, month_has_rows?) do
+    assigns = %{
+      title: "No #{String.downcase(filter)} entries this month",
+      body:
+        if month_has_rows? do
+          "There is other activity this month. Press All to see it."
+        else
+          "Everything you have logged is older than the first. " <>
+            "The rewatch counts below still cover all of it."
+        end,
+      # `:show_all`, not the `All` chip's own `filter_All`: two nodes may not
+      # share an `accessibility_id` — `onNodeWithTag` throws on the second
+      # match, which is what the cross-scope row on screen 19 hit first.
+      tap: {self(), :show_all}
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+        on_tap={@tap}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {UI.symbol("sort", size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text={@title}
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text={@body}
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc """
+  A month with nothing in it, on a device that has a history.
+
+  Both groups on this page are month-scoped and `group/5` draws nothing for an
+  empty one, so a reader whose watches are all older than the first of the
+  month used to be handed the fixture — and now, correctly, gets their own real
+  count in the header over two blank gaps. The gaps are what this fills.
+
+  Not drawn on a device with nothing recorded at all: that one is on the
+  drawing, which is what `log/0` answers with, and the drawing has rows.
+  """
+  @spec nothing_this_month(map(), [map()], [map()]) :: term()
+  def nothing_this_month(%{count: count}, [], []) when count > 0 do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={20}
+        padding={15}
+        shadow={Kati.Theme.shadow_card_soft()}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {UI.symbol("history", size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text="Nothing this month"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text="Everything you have logged is older than the first. The rewatch counts below still cover all of it."
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def nothing_this_month(_log, _today, _earlier), do: []
 
   # `Kati.Screens.Pushed` floats the back pill over the content, so the content
   # has to leave room for it: the drawing's pill is 42 tall with a 16 gap under
@@ -451,9 +619,11 @@ defmodule Kati.Screens.Activity do
   # in both the drawing and here.
   @doc false
   def entry_row(row, stamp_width, stamp_size, stamp_spacing, rule?) do
+    tap = Kati.Screens.Activity.open_tap(row)
+
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={12} padding_bottom={12}>
+      <Row fill_width={true} align="center" padding_top={12} padding_bottom={12} on_tap={tap}>
         <Column width={stamp_width}>
           <Text
             text={row.stamp}
@@ -612,14 +782,89 @@ defmodule Kati.Screens.Activity do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
-  # One clause for all four chips: the tag carries the label. The two discs
-  # fall through deliberately — search and the filter sheet are screens this
-  # one does not own, and the drawing gives neither a destination.
+  @doc """
+  The search disc, which drew and opened nothing.
+
+  Screen 19 is where a query goes from everywhere else in the app — 03's disc,
+  20's and 21's — and there is no second search to point this one at. It said
+  *"the drawing gives neither a destination"*, which was true of the drawing
+  and not of the app: 19 has existed the whole time and every other header disc
+  already opened it.
+
+  The filter disc stays on `Kati.ScreenTapSweepTest`'s backlog. No board in the
+  165 draws an activity filter sheet, so it has nowhere to go that would not be
+  invented here.
+  """
   @impl true
+  # `back: "Activity"` and not `"Stats"`: this screen is itself pushed, so
+  # opening 19 from here is a second push and its back pill pops onto this page
+  # rather than onto the one above it.
+  def handle_tap(:open_search, socket),
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Activity"})}
+
+  # `tune` opens the same sheet the filter chips narrow with. It reached
+  # `handle_tap/2`'s catch-all and did nothing — MOVIES-AND-TV.md #91 — which
+  # is the worst kind of control: alive enough to swallow the tap, dead enough
+  # to answer it with silence.
+  def handle_tap(:open_filters, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ShelfFilters)}
+
+  # One clause for all four chips: the tag carries the label. And one for the
+  # rows, which open the title the entry is about.
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
       "filter_" <> label -> {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      # The empty-state card, which offers the same move the `All` chip does.
+      "show_all" -> {:noreply, Mob.Socket.assign(socket, :filter, "All")}
+      "open_" <> _id -> {:noreply, Kati.Screens.Activity.open(socket, tag)}
       _ -> {:noreply, socket}
+    end
+  end
+
+  @doc """
+  The tap that opens a log entry's title, or `nil`.
+
+  MOVIES-AND-TV.md #90. A history you cannot walk back into is a list; the one
+  thing somebody wants from *you watched Dune on 3 March* is Dune.
+
+  `nil` on a drawn row, which is `Kati.Activity.Sample`'s: not tappable rather
+  than broken.
+
+      iex> Kati.Screens.Activity.open_tag(%{stamp: "3 MAR"})
+      nil
+  """
+  @spec open_tap(map()) :: {pid(), atom()} | nil
+  def open_tap(row) do
+    case open_tag(row) do
+      nil -> nil
+      tag -> {self(), tag}
+    end
+  end
+
+  @doc false
+  @spec open_tag(map()) :: atom() | nil
+  def open_tag(%{id: id}) when is_binary(id), do: String.to_atom("open_" <> id)
+  def open_tag(_drawn), do: nil
+
+  @doc """
+  Open the title a row named — the series screen for a series, the film screen
+  for a film, under a pill reading `Activity`.
+  """
+  @spec open(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def open(socket, tag) do
+    log = socket.assigns.log
+
+    (Map.get(log, :today, []) ++ Map.get(log, :earlier, []))
+    |> Enum.find(&(Kati.Screens.Activity.open_tag(&1) == tag))
+    |> case do
+      nil ->
+        socket
+
+      row ->
+        module = if row.kind == :movie, do: Kati.Screens.Film, else: Kati.Screens.Series
+        Mob.Socket.push_screen(socket, module, %{id: row.id, back: "Activity"})
     end
   end
 
@@ -632,6 +877,19 @@ defmodule Kati.Screens.Activity do
     Watch
     |> Ash.Query.load(:tracked_title)
     |> Ash.read!()
+  end
+
+  # An import has no title behind it, and its row says so — *Imported 412
+  # titles from a CSV backup* is the sample's own line and needs no poster.
+  # Every other kind does, and a row whose title has since been deleted is
+  # dropped rather than drawn nameless: the event cascades with the title, so
+  # this only ever fires mid-delete.
+  defp events do
+    Kati.Media.Event
+    |> Ash.Query.load(:tracked_title)
+    |> Ash.read!()
+  rescue
+    _error -> []
   end
 
   # The cache half, keyed by the VALUE PAIR the durable half references it by
@@ -651,6 +909,13 @@ defmodule Kati.Screens.Activity do
 
   # {date, clock, watch}. See `entries/0` on why a date-only watch has no clock
   # and therefore never lands in Today.
+  # An event always knows its hour, unlike a watch: it is something the app
+  # itself observed rather than something the reader remembered.
+  defp stamped(%Kati.Media.Event{at: at} = event, zone) do
+    local = Kati.Time.in_zone(at, zone)
+    {DateTime.to_date(local), Calendar.strftime(local, "%H:%M"), event}
+  end
+
   defp stamped(watch, zone) do
     cond do
       watch.watched_at ->
@@ -669,12 +934,38 @@ defmodule Kati.Screens.Activity do
   # makes `07 AUG` and `12 AUG` line up in a 44pt mono column.
   defp date_stamp(date), do: date |> Calendar.strftime("%d %b") |> String.upcase()
 
+  defp row(%Kati.Media.Event{} = event, stamp, cached) do
+    {lead, rest} = event_verb(event, event.tracked_title, cached)
+
+    event.tracked_title
+    |> case do
+      nil -> %{seed: nil, id: nil, kind: nil}
+      tracked -> %{seed: seed_of(tracked, cached), id: tracked.id, kind: tracked.kind}
+    end
+    |> Map.merge(%{stamp: stamp, lead: lead, rest: rest})
+  end
+
   defp row(watch, stamp, cached) do
     tracked = watch.tracked_title
     named = named(title_of(tracked, cached), episode_label(watch))
     {lead, rest} = verb(watch, named)
 
-    row = %{stamp: stamp, seed: seed_of(tracked, cached), lead: lead, rest: rest}
+    row = %{
+      stamp: stamp,
+      seed: seed_of(tracked, cached),
+      lead: lead,
+      rest: rest,
+      # The title this entry is about, so the row can open it — MOVIES-AND-TV.md
+      # #90: *no row in the activity log is tappable, so the user cannot open a
+      # title from their own history*, which is the one thing a history is for.
+      # Absent on a drawn row, the way `:stars` is, so the two shapes stay
+      # indistinguishable and the fallback stays one.
+      # `tracked` cannot be nil here: `Kati.Media.Watch`'s `belongs_to` is
+      # `allow_nil?: false`, and `title_of/2` has already read `tracked.source`
+      # two lines up — a guard here would fire after the crash it guards.
+      id: tracked.id,
+      kind: tracked.kind
+    }
 
     # The key is absent rather than nil when there is no rating, because that is
     # what `Kati.Activity.Sample` produces and `entry_row/5` reads it with
@@ -697,6 +988,48 @@ defmodule Kati.Screens.Activity do
   end
 
   defp verb(_watch, named), do: {"Watched", named}
+
+  # The verb an event gets, and the sentence after it. `Dropped … after S1E3`
+  # is screen 15's own drawn line and this is where it comes from; the reason,
+  # where there is one, closes it — that answer had nowhere to go at all until
+  # `Kati.Media.Event` existed (#111).
+  defp event_verb(%{kind: :imported} = event, _tracked, _cached) do
+    n = event.count || 0
+    from = if event.source_label, do: " from #{event.source_label}", else: ""
+
+    {"Imported", "#{n} #{if n == 1, do: "title", else: "titles"}#{from}"}
+  end
+
+  defp event_verb(event, nil, _cached),
+    do: {event_word(event.kind), "Untitled"}
+
+  defp event_verb(event, tracked, cached) do
+    title = title_of(tracked, cached)
+
+    {event_word(event.kind),
+     [title, event_position(event), event_reason(event)]
+     |> Enum.reject(&is_nil/1)
+     |> Enum.join(" · ")}
+  end
+
+  defp event_word(:added), do: "Added"
+  defp event_word(:dropped), do: "Dropped"
+  defp event_word(:abandoned), do: "Abandoned"
+  defp event_word(:dnf), do: "Did not finish"
+  defp event_word(:resumed), do: "Resumed"
+  defp event_word(:finished), do: "Finished"
+  defp event_word(other), do: other |> to_string() |> String.capitalize()
+
+  defp event_position(%{season_number: s, episode_number: e})
+       when is_integer(s) and is_integer(e),
+       do: "after S#{s}E#{e}"
+
+  defp event_position(_event), do: nil
+
+  defp event_reason(%{reason: reason}) when is_binary(reason) and reason != "",
+    do: String.downcase(reason)
+
+  defp event_reason(_event), do: nil
 
   defp named(title, nil), do: title
   defp named(title, label), do: title <> " " <> label
@@ -758,11 +1091,30 @@ defmodule Kati.Screens.Activity do
     Integer.to_string(n) <> suffix
   end
 
-  # "1,204 entries". Grouped by hand rather than through `Kati.Cldr` because
-  # the drawing's line is ASCII digits and a locale switch would silently turn
-  # it into Persian ones — the Persian mirrors are their own screens.
-  defp entries_line(1), do: "1 entry"
-  defp entries_line(n), do: delimited(n) <> " entries"
+  @doc """
+  `1,204 entries`, `1 entry`, or `nothing logged yet`.
+
+  Grouped by hand rather than through `Kati.Cldr` because the drawing's line is
+  ASCII digits and a locale switch would silently turn it into Persian ones —
+  the Persian mirrors are their own screens.
+
+  Public because screen 07's *More numbers* draws the same sentence about the
+  same rows, and drew `Kati.Stats.Sample`'s frozen `1,204 entries` on every
+  device until 6 September. One wording, one place.
+
+      iex> Kati.Screens.Activity.entries_line(0)
+      "nothing logged yet"
+
+      iex> Kati.Screens.Activity.entries_line(1)
+      "1 entry"
+
+      iex> Kati.Screens.Activity.entries_line(1204)
+      "1,204 entries"
+  """
+  @spec entries_line(non_neg_integer()) :: String.t()
+  def entries_line(0), do: "nothing logged yet"
+  def entries_line(1), do: "1 entry"
+  def entries_line(n), do: delimited(n) <> " entries"
 
   defp delimited(n) do
     n

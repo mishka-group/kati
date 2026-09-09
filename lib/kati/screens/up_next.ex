@@ -100,6 +100,60 @@ defmodule Kati.Screens.UpNext do
   def load(socket), do: Mob.Socket.assign(socket, :queue, queue())
 
   @doc """
+  Coming back to the queue after something was ticked above it.
+
+  See `Kati.Screens.Resume`. The one assign is the read, so this is `load/1` —
+  and this screen is where a stale socket showed worst: the whole point of
+  *Up next* is what to watch NEXT, and marking an episode watched on screen 04
+  left the same episode at the top of it.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket), do: {:noreply, load(socket)}
+
+  @doc """
+  Every control this screen draws, and it drew none until 6 September.
+
+  MOVIES-AND-TV.md #86. The play discs open the title, the `tune` disc opens
+  the shelf's own filter sheet, and a cold row's `Drop` pill opens the drop
+  sheet over that show. A drawn row carries no id and therefore no tag, so
+  the board's discs stay pictures.
+  """
+  @impl true
+  def handle_tap(:open_filters, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.UpNextFilters)}
+
+  # The empty card's own tap (#49). Before the `"open_" <> _id` clause below,
+  # which would otherwise swallow it and hand `:open_library` to `open/2` as
+  # a title id.
+  def handle_tap(:open_library, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Library)}
+
+  # Board 168's *Drop the Gone cold chip*, generalised: the band names every
+  # chip that is lit, so the one control that undoes it clears them all. The
+  # sort is left alone, which is the same split `Reset` makes on board 167.
+  def handle_tap(:clear_filters, socket) do
+    Kati.Library.UpNextFilters.clear_filters(Kati.Library.UpNextFilters.current())
+    {:noreply, Kati.Screens.UpNext.load(socket)}
+  end
+
+  def handle_tap(tag, socket) do
+    case Atom.to_string(tag) do
+      "open_" <> _id ->
+        {:noreply, Kati.Screens.UpNext.open(socket, tag)}
+
+      "drop_" <> id ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.DropSheet, %{
+           tracked_id: id,
+           back: "Up next"
+         })}
+
+      _other ->
+        {:noreply, socket}
+    end
+  end
+
+  @doc """
   The queue as `content/1` draws it: a hero, the rest of the ready list, and
   the cold one.
 
@@ -108,12 +162,188 @@ defmodule Kati.Screens.UpNext do
   """
   @spec queue() :: map()
   def queue do
-    case tracked(:watching) do
-      [] -> Sample.queue()
-      [hero | rest] -> assemble(hero, rest, tracked(:paused))
+    pool = Kati.Screens.UpNext.pool()
+    choice = Kati.Library.UpNextFilters.current()
+    narrowed = Kati.Library.UpNextFilters.apply(pool, choice)
+
+    case {narrowed.ready, narrowed.cold} do
+      # MOVIES-AND-TV.md #49's remaining half. An empty shelf drew board 10 —
+      # four invented titles, `12 ready` over four rows and `Gone cold · 3` over
+      # one — to a reader who has nothing on the go. That is the same defect
+      # #75 fixed on screen 92 and #58 on screen 15, and the argument screen 96
+      # makes for all of them: *say what is missing and offer the one thing
+      # that fixes it, never render a plausible-looking zero.*
+      #
+      # The drawing is still what a page with NO STORE falls back to — an
+      # `Ash.read!` raising mid-migration is a different fact from a shelf with
+      # nothing on the go, and `tracked/1` rescues both to `[]`. `shelf?/0` is
+      # what separates them. A filter that empties the page is a THIRD fact and
+      # is not this one: `Kati.Library.UpNextFilters.narrowed?/1` is what says
+      # so, and screen 10 draws board 168's *nothing matches* band for it.
+      {[], []} ->
+        cond do
+          Kati.Library.UpNextFilters.narrowed?(choice) ->
+            Kati.Screens.UpNext.nothing_matches(choice)
+
+          Kati.Screens.UpNext.shelf?() ->
+            Kati.Screens.UpNext.empty()
+
+          true ->
+            Sample.queue()
+        end
+
+      {[], cold} ->
+        nothing_ready(cold)
+
+      {[hero | rest], cold} ->
+        assemble(hero, rest, cold)
     end
   end
 
+  @doc """
+  The shelf this page is a view of, before any narrowing.
+
+  One read for the screen and for board 167's sheet, so `showing N of M` and
+  the rows below it cannot disagree.
+  """
+  @spec pool() :: map()
+  def pool do
+    watching = tracked(:watching)
+
+    # Gone cold is DERIVED, not stored. Both bands used to read
+    # `status == :paused` — a value nothing in the app ever wrote — so the cold
+    # band was empty on every device that has ever existed, and a title nobody
+    # had touched in four months sat at the top of *Ready to watch*.
+    # MOVIES-AND-TV.md #55 and #56; `Kati.Media.Staleness` carries the
+    # argument, including why a stored status would have been the wrong answer.
+    #
+    # `:paused` is still read alongside it, because a reader who pauses a show
+    # once something can write that has said so and Kati should not argue.
+    cold = Kati.Media.Staleness.cold(watching) ++ tracked(:paused)
+
+    # *Hide titles I can't watch* — screen 92's third switch, which prints the
+    # three pages it empties and this is one of them. It removes only what is
+    # KNOWN to be unavailable in the reader's country: a title nobody has
+    # fetched providers for is not one they cannot watch, and a shelf emptied
+    # by data they cannot see is a shelf they cannot understand.
+    # MOVIES-AND-TV.md #77; `Kati.Media.Availability` carries the argument.
+    ready =
+      watching
+      |> Kati.Media.Staleness.warm()
+      |> Kati.Screens.UpNext.watchable()
+
+    %{ready: ready, cold: cold, cache: cache_for(ready ++ cold)}
+  end
+
+  @doc """
+  Whether this reader has a Screen shelf at all.
+
+  The question that separates *nothing is ready* from *nothing is here*: a
+  shelf holding dropped and finished titles is a shelf, and its owner is told
+  their queue is empty rather than shown somebody else's four. A store that
+  cannot be read answers `false` and the drawing stands, which is
+  `Kati.Screens.Library.shelf/0`'s own degradation.
+  """
+  @spec shelf?() :: boolean()
+  def shelf? do
+    [:movie, :tv, :anime]
+    |> Enum.any?(fn kind ->
+      TrackedTitle
+      |> Ash.Query.for_read(:shelf, %{kind: kind})
+      |> Ash.Query.limit(1)
+      |> Ash.read!()
+      |> Enum.any?()
+    end)
+  rescue
+    _error -> false
+  end
+
+  @doc """
+  A queue with nothing in it, on a shelf that has something on it.
+
+  Every label is the true one rather than a zero dressed as a count: the
+  subtitle says what is missing, and both eyebrow labels are `nil` so no
+  heading stands over an empty card. `empty_card/1` is what goes there.
+  """
+  @spec empty() :: map()
+  def empty do
+    %{
+      subtitle: "Nothing queued",
+      ready_label: nil,
+      cold_label: nil,
+      hero: nil,
+      ready: [],
+      cold: [],
+      empty?: true
+    }
+  end
+
+  @doc """
+  A filter that leaves nothing, saying so — board 168's *nothing matches* band.
+
+  Distinct from `empty/0`, and the distinction is the whole of it: *nothing on
+  the go* is a fact about the shelf and *nothing matches* is a fact about the
+  chips, and the one thing that fixes each is different. Screen 03's
+  `nothing_here/1` is the same answer to the same question one screen over.
+
+  `narrowed?: true` is what the page reads to draw the clearing control rather
+  than the *add a title* one.
+  """
+  @spec nothing_matches(map()) :: map()
+  def nothing_matches(choice) do
+    %{
+      subtitle: "Nothing matches",
+      ready_label: nil,
+      cold_label: nil,
+      hero: nil,
+      ready: [],
+      cold: [],
+      empty?: true,
+      narrowed?: true,
+      names: Kati.Library.UpNextFilters.names(choice)
+    }
+  end
+
+  @doc """
+  The titles screen 92's *Hide titles I can't watch* leaves on this shelf.
+
+  The whole list when the switch is off, which is its default and the state
+  every device is in until somebody turns it on.
+
+  One read of the reader — region, services, rules — for the whole list, and
+  one read of the cache: `Kati.Services.availability/0` and a single
+  `cache_for/1` rather than a pair per row.
+  """
+  @spec watchable([TrackedTitle.t()]) :: [TrackedTitle.t()]
+  def watchable([]), do: []
+
+  def watchable(tracked) do
+    reader = Kati.Services.availability()
+
+    if reader.rules[:hide_unavailable] do
+      cache = cache_for(tracked)
+
+      Enum.reject(tracked, fn row ->
+        Kati.Media.Availability.hide?(
+          Kati.Media.Availability.offers(
+            Map.get(cache, {row.source, row.source_id}),
+            reader.region
+          ),
+          reader.subscribed,
+          reader.rules
+        )
+      end)
+    else
+      tracked
+    end
+  end
+
+  # The two numbers count different things on purpose, and each counts its own
+  # thing exactly: the subtitle is everything ready — the hero included — and
+  # the eyebrow labels the section under the hero, which is the rows it is
+  # sitting on. Board 10's `12 ready` over `Ready to watch · 12` over four rows
+  # is a drawing showing a slice of a longer list, and is not a semantics a
+  # page that draws the whole list can copy.
   defp assemble(hero, rest, cold) do
     cache = cache_for([hero | rest] ++ cold)
 
@@ -123,6 +353,165 @@ defmodule Kati.Screens.UpNext do
       cold_label: "Gone cold · #{length(cold)}",
       hero: hero_row(hero, cache),
       ready: Enum.map(rest, &ready_data(&1, cache)),
+      cold: Enum.map(cold, &cold_data(&1, cache))
+    }
+  end
+
+  @doc """
+  What an empty queue says, and the one thing that fixes it.
+
+  Screen 96's rule, which this app keeps everywhere: *say what is missing and
+  offer the one thing that fixes it.* A queue is empty because nothing on the
+  shelf is being watched, and the way out is to start something — so the card
+  opens the shelf rather than the add screen: a reader with dropped and
+  finished titles has things to start, and one with none finds an Add button
+  on the page they land on.
+  """
+  @spec empty_card(map()) :: map()
+  def empty_card(%{narrowed?: true, names: names}) do
+    assigns = %{
+      tap: {self(), :clear_filters},
+      chips: Enum.join(names, " \u00B7 ")
+    }
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("search", size: 22, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={13} />
+        <Text
+          text="Nothing matches"
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text={@chips}
+          font_family="mono"
+          text_size={12}
+          text_color={Palette.eyebrow()}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text="is what emptied it. Nothing you are watching is in every one of those buckets at once."
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={14} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Row
+            height={36}
+            corner_radius={18}
+            background={Palette.paper()}
+            align="center"
+            padding_left={16}
+            padding_right={16}
+            on_tap={@tap}
+          >
+            <Text
+              text="Clear the filters"
+              text_size={12.5}
+              font_weight="semibold"
+              text_color={:on_surface}
+              max_lines={1}
+            />
+          </Row>
+          <Spacer weight={1.0} />
+        </Row>
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def empty_card(%{empty?: true}) do
+    assigns = %{tap: {self(), :open_library}}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+        on_tap={@tap}
+      >
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+            {Kati.UI.symbol("play_arrow", size: 22, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={13} />
+        <Text
+          text="Nothing queued"
+          text_size={14.5}
+          font_weight="bold"
+          letter_spacing={-0.02}
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={7} />
+        <Text
+          text="Up next follows what you are watching. Start something on your shelf and it arrives here."
+          text_size={12.5}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  def empty_card(_queue), do: ~MOB"<Spacer size={0} />"
+
+  @doc """
+  A library whose shows are all paused.
+
+  `queue/0` used to fall back to `Kati.Screens.UpNext.Sample` on
+  `tracked(:watching) == []` alone, so a reader who had paused everything was
+  shown four invented titles and none of their own — and `tracked(:paused)`,
+  the read that would have found theirs, was only reached on the other branch.
+  The board is for a library with nothing in it, not for one with nothing
+  ready.
+
+  There is no hero, because a hero is *the next thing to watch* and there is
+  not one. `hero/1` draws the reason instead, and the ready section is dropped
+  entirely rather than drawn as an eyebrow over nothing.
+  """
+  @spec nothing_ready([term()]) :: map()
+  def nothing_ready(cold) do
+    cache = cache_for(cold)
+
+    %{
+      subtitle: "Nothing ready · #{length(cold)} gone cold",
+      ready_label: nil,
+      cold_label: "Gone cold · #{length(cold)}",
+      hero: nil,
+      ready: [],
       cold: Enum.map(cold, &cold_data(&1, cache))
     }
   end
@@ -164,13 +553,27 @@ defmodule Kati.Screens.UpNext do
       title: title_of(c),
       seed: seed_of(c),
       meta: join(episode(row) ++ hero_tail(row, c)),
-      progress: fraction(row, c)
+      progress: fraction(row, c),
+      # The row a tap opens. Carried on the shape rather than looked up again
+      # in the handler, for `Kati.Screens.Series`' reason: the title the reader
+      # pressed and the title a second query happens to return first are two
+      # different facts. `nil` on the drawing, which is what makes its discs
+      # pictures rather than dead controls (MOVIES-AND-TV.md #86).
+      id: row.id,
+      kind: row.kind
     }
   end
 
   defp ready_data(row, cache) do
     c = cached(row, cache)
-    %{title: title_of(c), seed: seed_of(c), meta: join(episode(row) ++ runtime(c))}
+
+    %{
+      title: title_of(c),
+      seed: seed_of(c),
+      meta: join(episode(row) ++ runtime(c)),
+      id: row.id,
+      kind: row.kind
+    }
   end
 
   # `action` is the offer this screen makes on a thread that has gone quiet, not
@@ -179,6 +582,8 @@ defmodule Kati.Screens.UpNext do
     c = cached(row, cache)
 
     %{
+      id: row.id,
+      kind: row.kind,
       title: title_of(c),
       seed: seed_of(c),
       meta: join(episode(row) ++ [age(row.last_touched_at)]),
@@ -285,8 +690,21 @@ defmodule Kati.Screens.UpNext do
   # is that module's way of making "out sometime in 2026" impossible to count as
   # this week, and this counter honours it rather than re-deciding.
   defp airing_soon(rows, cache) do
-    Enum.count(rows, fn row -> ahead?(Release.resolve(row, cached(row, cache))) end)
+    Enum.count(rows, fn row -> Kati.Screens.UpNext.airing?(row, cache) end)
   end
+
+  @doc """
+  Whether this row's next release is a date Kati is willing to name, and still
+  ahead.
+
+  `:exact` or `:day` — the distinction `Kati.Media.Release.resolve/2` exists to
+  make, so a title dated to a bare year is not in the bucket rather than
+  counted as 1 January. Public because board 167's *Airing soon* band asks the
+  same question of one row that the subtitle asks of a list, and two places
+  asking it differently is how the chip and the header come to disagree.
+  """
+  @spec airing?(map(), map()) :: boolean()
+  def airing?(row, cache), do: ahead?(Release.resolve(row, cached(row, cache)))
 
   # `Kati.Time.now/0` rather than `DateTime.utc_now/0`: a screen reads the
   # device's clock through `Kati.Time`, and `Kati.ScreenDateTest` fails the build
@@ -312,10 +730,10 @@ defmodule Kati.Screens.UpNext do
       >
         {Kati.Screens.UpNext.tune_row()}
         {Kati.Screens.UpNext.header(q)}
+        {Kati.Screens.UpNext.empty_card(q)}
         {Kati.Screens.UpNext.hero(q)}
-        {UI.eyebrow(q.ready_label)}
-        {Kati.Screens.UpNext.ready(q)}
-        {Kati.UI.Eyebrow.quiet(q.cold_label)}
+        {Kati.Screens.UpNext.ready_section(q)}
+        {Kati.Screens.UpNext.cold_eyebrow(q.cold_label)}
         {Kati.Screens.UpNext.cold(q)}
       </Column>
     </Scroll>
@@ -355,6 +773,12 @@ defmodule Kati.Screens.UpNext do
   where a bare centred Text did.
   """
   @spec tune_disc() :: map()
+  # Board 167's sheet — `Kati.Screens.UpNextFilters` — and not screen 03's.
+  # This disc pushed 145 from the day it got a tap, which was the closest sheet
+  # rather than the right one: 145 sorts by *Recently added · Title · Your
+  # rating · Runtime · Release date* and not one of those four is an ordering
+  # of a queue. They also shared a stored key, so picking `Title` on the shelf
+  # reordered this page. Two boards, two stores, one set of components.
   def tune_disc do
     MishkaActionIcon.action_icon(
       [
@@ -362,7 +786,8 @@ defmodule Kati.Screens.UpNext do
         shape: :circle,
         variant: :filled,
         background: Palette.card(),
-        shadow: Kati.Theme.shadow_button()
+        shadow: Kati.Theme.shadow_button(),
+        on_tap: {self(), :open_filters}
       ],
       [Kati.UI.symbol("tune", size: 21)]
     )
@@ -398,6 +823,47 @@ defmodule Kati.Screens.UpNext do
   # a Box stacks its children, so the gradient, the caption row and the progress
   # bar can all sit at the bottom edge without fighting for the same slot.
   @doc false
+  def hero(%{hero: nil}) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={15}
+      >
+        <Spacer size={4} />
+        <Row fill_width={true} align="center">
+          <Spacer weight={1.0} />
+          <Box width={44} height={44} corner_radius={14} background={Palette.paper()} align="center">
+            {UI.symbol("pause_circle", size: 21, color: Palette.rail_idle())}
+          </Box>
+          <Spacer weight={1.0} />
+        </Row>
+        <Spacer size={12} />
+        <Text
+          text="Nothing ready to watch"
+          text_size={13.5}
+          font_weight="bold"
+          text_color={:on_surface}
+          text_align="center"
+        />
+        <Spacer size={6} />
+        <Text
+          text="Everything on your shelf is paused. Picking one up puts it here."
+          text_size={12}
+          line_height={1.55}
+          text_color={Palette.sub()}
+          text_align="center"
+        />
+        <Spacer size={4} />
+      </Column>
+      <Spacer size={22} />
+    </Column>
+    """
+  end
+
   def hero(q) do
     h = q.hero
 
@@ -442,7 +908,7 @@ defmodule Kati.Screens.UpNext do
                 />
               </Column>
               <Spacer size={8} />
-              {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media(), Palette.ink(:light))}
+              {Kati.Screens.UpNext.play_disc(44, 24, Palette.on_media(), Palette.ink(:light), Kati.Screens.UpNext.open_tap(q.hero))}
             </Row>
           </Box>
           <Box fill_width={true} fill_height={true} align="bottom">
@@ -516,6 +982,31 @@ defmodule Kati.Screens.UpNext do
     """
   end
 
+  @doc """
+  The cold eyebrow, or nothing at all when there is no cold section.
+
+  `nil` is a label `ready_section/1` has always answered to and this heading
+  never could — `Kati.UI.Eyebrow.quiet/1` upcases what it is given, so an empty
+  queue (#49) died on a heading over a section it does not have.
+  """
+  @spec cold_eyebrow(String.t() | nil) :: map()
+  def cold_eyebrow(nil), do: ~MOB"<Spacer size={0} />"
+  def cold_eyebrow(label), do: Kati.UI.Eyebrow.quiet(label)
+
+  @doc false
+  def ready_section(%{ready_label: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def ready_section(q) do
+    assigns = %{eyebrow: UI.eyebrow(q.ready_label), rows: ready(q)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {@eyebrow}
+      {@rows}
+    </Column>
+    """
+  end
+
   @doc false
   def ready(q) do
     ~MOB"""
@@ -562,11 +1053,63 @@ defmodule Kati.Screens.UpNext do
           />
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.UpNext.play_disc(34, 19, Palette.paper())}
+        {Kati.Screens.UpNext.play_disc(34, 19, Palette.paper(), Palette.ink(), Kati.Screens.UpNext.open_tap(row))}
       </Row>
       <Spacer size={9} />
     </Column>
     """
+  end
+
+  @doc """
+  The tap that opens a row's title, or `nil` for one with nothing behind it.
+
+  MOVIES-AND-TV.md #86: this screen drew no tappable control at all — the
+  hero's play disc, four ready-row discs, the tune disc and every Drop pill
+  were built without one, and `Kati.ScreenTapSweepTest` is blind to that by
+  construction, because it collects the tags a screen DOES draw and a screen
+  with none passes every check in the file.
+
+  `nil` for a drawn row, which is what `Kati.Library.Sample.queue/0` is: not
+  tappable rather than broken, the value that sweep's own docs name for a
+  control with nowhere to go. Every real row carries the id it was read from.
+
+      iex> Kati.Screens.UpNext.open_tag(%{id: nil})
+      nil
+  """
+  @spec open_tap(map()) :: {pid(), atom()} | nil
+  def open_tap(row) do
+    case open_tag(row) do
+      nil -> nil
+      tag -> {self(), tag}
+    end
+  end
+
+  @doc false
+  @spec open_tag(map()) :: atom() | nil
+  def open_tag(%{id: id}) when is_binary(id), do: String.to_atom("open_" <> id)
+  def open_tag(_drawn), do: nil
+
+  @doc """
+  Open the title a tap named — the series screen for a series, the film screen
+  for a film, which is what the design draws them as.
+
+  `:back` says *Up next*, because that is where the reader is; see
+  `Kati.Screens.Pushed.back_label/2` for what a pill that names the wrong
+  screen does to somebody's sense of where they are.
+  """
+  @spec open(Mob.Socket.t(), atom()) :: Mob.Socket.t()
+  def open(socket, tag) do
+    q = socket.assigns.queue
+    rows = [q.hero | q.ready ++ q.cold] |> Enum.reject(&is_nil/1)
+
+    case Enum.find(rows, &(Kati.Screens.UpNext.open_tag(&1) == tag)) do
+      nil ->
+        socket
+
+      row ->
+        module = if row.kind == :movie, do: Kati.Screens.Film, else: Kati.Screens.Series
+        Mob.Socket.push_screen(socket, module, %{id: row.id, back: "Up next"})
+    end
   end
 
   @doc """
@@ -606,10 +1149,10 @@ defmodule Kati.Screens.UpNext do
   passed `Palette.ink(:light)` at the hero. Light mode is untouched: the two
   are the same `#1A1917` there, which is what the drawing has.
   """
-  @spec play_disc(number(), number(), non_neg_integer(), non_neg_integer()) :: map()
-  def play_disc(size, glyph, background, ink \\ Palette.ink()) do
+  @spec play_disc(number(), number(), non_neg_integer(), non_neg_integer(), term()) :: map()
+  def play_disc(size, glyph, background, ink \\ Palette.ink(), tap \\ nil) do
     MishkaActionIcon.action_icon(
-      [size: size, shape: :circle, variant: :filled, background: background],
+      [size: size, shape: :circle, variant: :filled, background: background, on_tap: tap],
       [Kati.UI.symbol("play_arrow", size: glyph, fill: true, color: ink)]
     )
   end
@@ -675,7 +1218,7 @@ defmodule Kati.Screens.UpNext do
           />
         </Column>
         <Spacer size={12} />
-        {Kati.Screens.UpNext.drop_pill(row.action)}
+        {Kati.Screens.UpNext.drop_pill(row.action, Kati.Screens.UpNext.drop_tap(row))}
       </Row>
     </Column>
     """
@@ -698,7 +1241,7 @@ defmodule Kati.Screens.UpNext do
   the pill's own default and is what this Text already carried.
   """
   @spec drop_pill(String.t()) :: map()
-  def drop_pill(label) do
+  def drop_pill(label, tap \\ nil) do
     MishkaPill.pill(
       label: label,
       background: Palette.placeholder(),
@@ -710,9 +1253,21 @@ defmodule Kati.Screens.UpNext do
       padding_right: 12,
       align: :center,
       text_size: 11.5,
-      font_weight: :semibold
+      font_weight: :semibold,
+      on_tap: tap
     )
   end
+
+  @doc """
+  The tap on a cold row's `Drop` pill — the drop sheet, over that title.
+
+  `Kati.Screens.DropSheet` is screen 149, and its own moduledoc says the row
+  must name which show: pushed bare it opens on the newest paused title in the
+  store, which is not the one the reader pressed.
+  """
+  @spec drop_tap(map()) :: {pid(), atom()} | nil
+  def drop_tap(%{id: id}) when is_binary(id), do: {self(), String.to_atom("drop_" <> id)}
+  def drop_tap(_drawn), do: nil
 
   # The drawing tones the cold poster back with `opacity:.6`. There is no
   # opacity prop on an Image node, so the same result is composited: 40% of the

@@ -28,12 +28,13 @@ defmodule Kati.Screens.BookDetail do
 
   ## Where the data comes from
 
-  `Kati.Books`, through `book/0`. Same shape as `Kati.Screens.Film`: the shelf's
-  own order decides the referent, because nothing hands this screen an id — a
-  poster tap on screen 20 pushes this module and no more, exactly as screen 43
-  pushes `Kati.Screens.Meal`. So the book is the one the shelf puts first, and
-  with nothing shelved `Kati.Books.Sample.detail/0` is drawn instead, which is
-  the values `test/design/screens/66.html` was captured from.
+  `Kati.Books`, through `book/1`. Same shape as `Kati.Screens.Film`: the push
+  names the book and the shelf's own order is what answers when it does not. A
+  cover tap on screen 20 pushes `%{book_id: id}` — that shelf reads
+  `Kati.Books.Book` now, so its rows have ids to push — and a bare push, which
+  is what the gallery and the sweeps make, is still the shelf's first. With
+  nothing shelved `Kati.Books.Sample.detail/0` is drawn instead, which is the
+  values `test/design/screens/66.html` was captured from.
 
   FIDELITY's rule, again: missing data is not a reason for a blank screen.
 
@@ -49,17 +50,40 @@ defmodule Kati.Screens.BookDetail do
       caption and is not repeated here.
     * **The community rating**, for the reason above — and that one is frozen
       in both directions, because there is nothing to read.
+
+  ## A chip that does not write now says so
+
+  The seven status and edition chips are the only controls here that change the
+  row, and they used to swallow the answer. `apply_change/1` ended `:ok`
+  whatever `Ash.update/2` returned, the page re-read, and a chip that had
+  written nothing was indistinguishable from one that had. On a fresh install
+  it was worse than quiet: the shelf is empty, `book/0` falls through to
+  `Kati.Books.Sample.detail/0`, and the re-read hands back the same sample
+  either way — so the two outcomes were the same pixels.
+
+  `Kati.Write` is the contract now. The write answers `{:ok, book}` or
+  `{:error, reason}`, the tap either re-reads or reports, and the reason goes
+  to the log on its way past.
+
+  The report is drawn above the action row rather than beside the chip that
+  failed. One line serves both writes this screen makes — the chips and
+  `Finish` — and a second failure idiom in the chip band would be a second
+  thing to keep true. `Finish` is the write with the worse failure anyway: it
+  hands to screen 33, and handing over on a lost write asks someone to rate a
+  book the shelf still has them halfway through.
   """
 
   use Kati.Screens.Pushed, back: "Library"
 
   alias Kati.Books.Book
+  alias Kati.Books.FollowedAuthor
   alias Kati.Books.Note
   alias Kati.Books.ReadingSession
   alias Kati.Books.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
+  alias Kati.Write
 
   # The three secondary actions, in the drawing's order. `Log progress` is not
   # here: it is the ink button and is drawn by `actions/1` itself, so the list
@@ -70,17 +94,88 @@ defmodule Kati.Screens.BookDetail do
     {"bookmarks", "Add to list", :add_to_list}
   ]
 
-  def load(socket), do: Mob.Socket.assign(socket, :book, book())
+  # `:save_error` opens as `nil` so the notice has a value to be absent as, and
+  # so a re-mount never inherits the last failure a previous visit reported.
+  #
+  # `:book_id` is read here rather than in `book/0` because the id arrives on
+  # the push and nowhere else. Screen 20's grid pushes one — its rows carry the
+  # book's own id now — and everything else that opens this screen still pushes
+  # nothing, which is the shelf's-first path `book/0` keeps.
+  #
+  # `:book_id` is assigned as well as spent, and the difference between the two
+  # is a write to the wrong row. `book/1` collapses two facts into one value —
+  # *nobody named a book* and *the named book is gone* both answer
+  # `Sample.detail()`, which has no id — so a write recovering its target from
+  # `assigns.book[:id]` gets `nil` for both, and `apply_change/2`'s `nil` means
+  # *the shelf's newest*. A page showing the drawing would then pause, own or
+  # finish a real book the reader is not looking at. Keeping the NAMED id
+  # separate is what lets a write refuse: named-and-missing is `nil` from
+  # `Ash.get/2` and a refusal, where named-nothing is still the shelf's newest
+  # and still correct.
+  def load(socket) do
+    named = Map.get(socket.assigns.params || %{}, :book_id)
+
+    shaped = book(named)
+
+    socket
+    |> Mob.Socket.assign(:book_id, named)
+    |> Mob.Socket.assign(:book, shaped)
+    # Board 307's Follow row, read at load rather than carried in the shaped
+    # map. The map is built by `shaped/3` from a Book row and the drawing's
+    # fixture has no row at all — but following is about the AUTHOR, so the
+    # answer is the same question either way and the fixture's author can be
+    # followed like anybody else. That is the point of the feature: you follow
+    # a person to hear about the book you do not have yet.
+    |> Mob.Socket.assign(:following, FollowedAuthor.following?(shaped[:author]))
+    |> Mob.Socket.assign(:save_error, nil)
+  end
+
+  @doc """
+  The book a write on this screen must act on.
+
+  The id the push NAMED, when it named one, and otherwise the id of the book
+  that was resolved — which is the shelf's newest, and the right target for a
+  screen nobody told which book to open. `Map.get/2` on both, because the dark
+  and Persian twins build their own sockets and neither carries `:book_id`.
+  """
+  @spec target(map()) :: String.t() | nil
+  def target(assigns) do
+    Map.get(assigns, :book_id) || Map.get(assigns, :book, %{})[:id]
+  end
+
+  @doc """
+  The params that name a book to this screen, built from a shaped book.
+
+  The push site's half of the contract, spelled once here rather than at each
+  caller — the same arrangement `Kati.Screens.LogProgress.params_for/1` has,
+  and the same key, because the sheet and the page are about the same row and
+  two spellings of one id is one more thing to keep true. A row with no id
+  yields `%{}` and never `%{book_id: nil}`: `Kati.Books.Sample`'s rows have no
+  id, and the fallback is the branch that has to survive.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{book_id: id}
+  def params_for(_book), do: %{}
 
   @doc """
   The book this screen is about: the shelf's first, or the drawing's.
 
-  Public because `Kati.ScreenEmptyDatabaseTest` asks a screen what it would
-  show, and because the dark twin (screen 68) is this screen under a different
-  theme rather than a second reader.
+  The no-id answer, and the one `Kati.ScreenEmptyDatabaseTest` renders. Public
+  also because the dark twin (screen 68) is this screen under a different theme
+  rather than a second reader.
   """
   @spec book() :: map()
-  def book, do: shelved_book() || Sample.detail()
+  def book, do: book(nil)
+
+  @doc """
+  The book this screen was handed, or — given no id — the shelf's first.
+
+  An id that names no row answers with the drawing rather than with the head of
+  the shelf, for `shelved_book/1`'s reason: a row deleted under you is not the
+  same fact as an empty shelf.
+  """
+  @spec book(String.t() | nil) :: map()
+  def book(id), do: shelved_book(id) || Sample.detail()
 
   @doc "The drawing's values, unconditionally. The fixture, not a fallback path."
   @spec drawn_book() :: map()
@@ -94,14 +189,43 @@ defmodule Kati.Screens.BookDetail do
   for the same reason `Kati.Screens.Film` takes three: a band is not a query.
   """
   @spec shelved_book() :: map() | nil
-  def shelved_book do
-    case newest() do
+  def shelved_book, do: shelved_book(nil)
+
+  @doc """
+  One shelved book by id, shaped for the render — the shelf's first when no id
+  is named.
+
+  Both arities exist because two different questions are asked of this reader.
+  Screen 66 opened from nowhere in particular still has to draw *something*, and
+  the shelf's first is the standing answer to that; a sheet pushed **off a row**
+  is asking about that row and nothing else, and #84 is the whole class of
+  defect where the second question was answered with the first.
+
+  An id that names no row answers `nil` rather than falling back to the head of
+  the shelf. A row that has been deleted under you is not the same fact as an
+  empty shelf, and quietly substituting a different book would be the very
+  swap this reader now exists to prevent — the caller draws its sample instead.
+  """
+  @spec shelved_book(String.t() | nil) :: map() | nil
+  def shelved_book(id) do
+    case row(id) do
       nil ->
         nil
 
       %Book{} = book ->
         shaped(book, sessions_of(book), notes_of(book))
     end
+  end
+
+  defp row(nil), do: newest()
+
+  defp row(id) when is_binary(id) do
+    case Ash.get(Book, id) do
+      {:ok, %Book{} = book} -> book
+      _other -> nil
+    end
+  rescue
+    _error -> nil
   end
 
   defp newest do
@@ -146,6 +270,12 @@ defmodule Kati.Screens.BookDetail do
   @spec shaped(Book.t(), [ReadingSession.t()], [Note.t()]) :: map()
   def shaped(%Book{} = book, sessions, notes) do
     %{
+      # The row's own id, carried so a control on this page can name the book it
+      # is about rather than leaving the screen it pushes to guess. `Log
+      # progress` is the one that needs it; `Kati.Books.Sample.detail/0` has no
+      # id and is not given a `nil` one, so `book[:id]` is the read and the
+      # sample answers `nil` by absence.
+      id: book.id,
       title: book.title,
       author: book.author,
       seed: book.cover_seed,
@@ -259,6 +389,10 @@ defmodule Kati.Screens.BookDetail do
   @doc false
   def content(assigns) do
     b = assigns.book
+    # Read through `Access` rather than the dot: this screen's own mount always
+    # sets it, and a caller that builds assigns by hand to draw one band should
+    # not have to know about a key it is not asking for.
+    save_error = assigns[:save_error]
 
     ~MOB"""
     <Scroll>
@@ -272,6 +406,7 @@ defmodule Kati.Screens.BookDetail do
         {SettingsList.chrome(nil, 44)}
         {SettingsList.title(b.title, b.author, nil, :name)}
         {Kati.Screens.BookDetail.hero(b)}
+        {Kati.Screens.BookDetail.follow_row(b[:author], assigns[:following])}
         {Kati.Screens.BookDetail.ratings(b)}
         {UI.eyebrow("Status")}
         {Kati.Screens.BookDetail.statuses(b)}
@@ -282,6 +417,7 @@ defmodule Kati.Screens.BookDetail do
         {Kati.Screens.BookDetail.notes_section(b)}
         {Kati.Screens.BookDetail.series_section(b)}
         {Kati.Screens.BookDetail.history_section(b)}
+        {Kati.Screens.BookDetail.save_notice(save_error)}
         {Kati.Screens.BookDetail.actions(b)}
       </Column>
     </Scroll>
@@ -334,6 +470,54 @@ defmodule Kati.Screens.BookDetail do
     </Column>
     """
   end
+
+  @doc """
+  Board 307's Follow row — *"the only new ink 66 needs."*
+
+  The row names the person, which is what 307 draws: `Follow Ines Karvel`, not
+  a bare `Follow`. Screen 77's `Following` can be anonymous because that whole
+  page is about one artist; this page is about a book, and the author is one
+  fact on it among a dozen.
+
+  Nothing is drawn for a book with no author. `Kati.Books.Book`'s `author` is
+  nullable and screen 67's *partial metadata* state is the case — a row reading
+  `Follow` with nobody named is a switch about nothing, and there would be no
+  key to write it under.
+
+  The sub-line is 77's sentence one shelf over. It states the consequence
+  rather than describing the control, for that row's reason: a switch whose
+  effect is invisible is a switch the reader has to test to understand, and the
+  thing being tested is a notification.
+  """
+  @spec follow_row(String.t() | nil, boolean() | nil) :: map() | []
+  def follow_row(author, following?) when is_binary(author) do
+    if String.trim(author) == "" do
+      []
+    else
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.SettingsList.card([
+          Kati.UI.SettingsList.row(
+            Kati.UI.SettingsList.icon_tile("person"),
+            Kati.UI.SettingsList.body(
+              "Follow " <> String.trim(author),
+              "Feeds 25’s New books alerts",
+              lines: 2
+            ),
+            Kati.UI.SettingsList.trailing(
+              Kati.UI.SettingsList.switch(following? == true)
+            ),
+            rule: false,
+            on_tap: {self(), :toggle_follow_author}
+          )
+        ])}
+        <Spacer size={11} />
+      </Column>
+      """
+    end
+  end
+
+  def follow_row(_nobody, _following?), do: []
 
   # A 86x112 tile with a 2pt card-coloured ring, which is the drawing's own
   # `border: 2px solid #FBFAF8` — the ring is card, not paper, so it reads as a
@@ -595,7 +779,20 @@ defmodule Kati.Screens.BookDetail do
   end
 
   @doc false
-  def mono(nil), do: Kati.Screens.BookDetail.value(nil)
+  # `Add ISBN`, not `value(nil)`'s `Add page count`. The two rows are drawn by
+  # one card and shared one empty affordance, so a book with neither offered
+  # **Add page count** twice, on the Length row and on the ISBN row under it.
+  # Only visible on a device with a book that has no ISBN, which is to say only
+  # since screen 177 shipped.
+  def mono(nil) do
+    ~MOB"""
+    <Row align="center">
+      {Kati.UI.symbol("add", size: 17, color: Kati.Theme.Palette.muted())}
+      <Spacer size={6} />
+      <Text text="Add ISBN" text_size={13} text_color={Kati.Theme.Palette.muted()} />
+    </Row>
+    """
+  end
 
   def mono(text) do
     ~MOB"""
@@ -615,7 +812,14 @@ defmodule Kati.Screens.BookDetail do
       SettingsList.row(
         SettingsList.icon_tile("inventory_2"),
         SettingsList.body("This is the edition I own", nil),
-        SettingsList.trailing(SettingsList.switch(owned?))
+        SettingsList.trailing(SettingsList.switch(owned?)),
+        # The whole row and not the track. `Kati.UI.SettingsList.switch/1`'s own
+        # doc offers `on_toggle` for this and says wiring it adds a `clickable`
+        # to the track — a 46x28 target where the row is the full card width,
+        # and the row already carries the label a person is aiming at.
+        # `row/4`'s `:on_tap` exists for exactly this: *a row that names a
+        # screen should open it*.
+        on_tap: {self(), :toggle_owned}
       )
     ])
   end
@@ -895,23 +1099,167 @@ defmodule Kati.Screens.BookDetail do
     """
   end
 
+  @doc """
+  What a write that did not land says, in red, above the action row.
+
+  Red type on the page's own paper rather than a card: every other block on
+  this screen is a standing fact about the book, and a failure is not one — it
+  happened once, to the tap just made, and borrowing the cream card would give
+  it the same permanence as the edition facts.
+
+  It carries its own trailing `Spacer`, so a page with nothing to report is
+  spaced to the pixel it was before.
+  """
+  @spec save_notice(String.t() | nil) :: map() | []
+  def save_notice(nil), do: []
+
+  def save_notice(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.35}
+        text_color={Palette.red()}
+      />
+      <Spacer size={12} />
+    </Column>
+    """
+  end
+
+  # The sheet is pushed with the id of the book this page is drawing, not with
+  # nothing. Screen 70 used to re-read the shelf and take its first row, so a
+  # page opened on the third book logged a session against the first — #84. The
+  # sample has no id, and a sheet handed none still falls back to the drawing,
+  # which is what the empty-database sweep renders.
+  @doc """
+  This page's member tuple for a list, or `nil` for a drawn fixture.
+
+      iex> Kati.Screens.BookDetail.member(%{id: "abc"})
+      {:book, "abc"}
+
+      iex> Kati.Screens.BookDetail.member(%{title: "Drawn"})
+      nil
+  """
+  @spec member(map()) :: {atom(), String.t()} | nil
+  def member(%{id: id}) when is_binary(id), do: {:book, id}
+  def member(_drawn), do: nil
+
   @doc false
   def handle_tap(:log_progress, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogProgress,
+         Kati.Screens.LogProgress.params_for(socket.assigns.book)
+       )}
 
   def handle_tap(:rate, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
 
-  def handle_tap(:add_to_list, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+  # Board 334: the sheet, over this page, carrying this book — not the index
+  # carrying nothing, which is what it pushed until 7 September.
+  def handle_tap(:add_to_list, socket) do
+    book = socket.assigns.book || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.BookDetail.member(book), Map.get(book, :title))}
+  end
 
   # `Finish` is a write, not a navigation: it sets the book finished and then
   # hands to screen 33, which is the same handover screen 70's `Finished the
   # book` makes. Two controls, one consequence, and the consequence lives in
   # `Kati.Screens.LogProgress` so neither can drift from the other.
+  #
+  # The push waits on the write for the same reason screen 70's `Finished the
+  # book` does: screen 33 asks you to rate a book you just finished, and
+  # arriving there off a write that failed would ask you to rate one the shelf
+  # still has you halfway through.
+  # It finishes the book this page is drawing, for the reason `:log_progress`
+  # above names one: `finish_book/1` defaults to the shelf's head, so a page
+  # opened on the third book marked the first as finished and then handed the
+  # reader to screen 33 to rate it. The two controls on this row now name the
+  # same book, which is the book on the page.
+  #
+  # `book[:id]` and not `book.id`: `Kati.Books.Sample.detail/0` has no id and is
+  # not given a `nil` one, so the sample answers `nil` by absence — the same
+  # read `shaped/3` documents at the top of this file.
   def handle_tap(:finish, socket) do
-    Kati.Screens.LogProgress.finish_book()
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
+    case Kati.Screens.LogProgress.finish_book(target(socket.assigns)) do
+      {:ok, _book} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Mob.Socket.push_screen(Kati.Screens.Rating)}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
+  end
+
+  # The edition switch, which is a write like the chips below and takes their
+  # path: `apply_change/1` sets one attribute and answers for it, and the page
+  # re-reads afterwards rather than assigning the new value on its own — the
+  # hero band, the extent and the meta line are all derived from the row, and
+  # this row is no different for being a boolean.
+  #
+  # `true` and `false` are atoms, so `{:owned, not owned?}` is the same
+  # `{attribute, value}` pair `chip_change/1` produces and needs no second
+  # writer.
+  #
+  # Read through `Access`: `Kati.Books.Sample.detail/0` carries `owned: true`
+  # and a shaped row carries `book.owned` — `Kati.Books.Book.owned` is
+  # `allow_nil?: false` — so the key is always there, and a caller that builds
+  # assigns by hand to draw one band still reads it the way `content/1`
+  # documents at the top of this file.
+  #
+  # Above the catch-all, because `chip_change/1` answers `nil` for
+  # `:toggle_owned` and the catch-all would then eat it silently, which is the
+  # exact defect this control was.
+  def handle_tap(:toggle_owned, socket) do
+    id = target(socket.assigns)
+
+    case Kati.Screens.BookDetail.apply_change(id, {:owned, not socket.assigns.book[:owned]}) do
+      {:ok, _book} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book(id))
+         |> Mob.Socket.assign(:save_error, nil)}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
+  end
+
+  # Board 307's Follow row. Written through and then the assign is set from the
+  # write's own outcome rather than from `not following?` — a refused write must
+  # not leave a switch claiming a state the store does not hold, which is the
+  # difference between this and screen 77's toggle. That page moves its switch
+  # regardless, and says why: it is often drawing a fixture with no row to
+  # write to. Here there is always a row to write — a followed author is keyed
+  # by the NAME, and the drawing's author has one like anybody else — so a
+  # failure here is a real failure and is reported with the same notice the
+  # chips use.
+  def handle_tap(:toggle_follow_author, socket) do
+    author = socket.assigns.book[:author]
+    now = socket.assigns[:following] != true
+
+    result = if now, do: FollowedAuthor.follow(author), else: FollowedAuthor.unfollow(author)
+
+    case result do
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+
+      _written ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:following, FollowedAuthor.following?(author))
+         |> Mob.Socket.assign(:save_error, nil)}
+    end
   end
 
   # Everything that is not a chip: the series row and the lending row. Answered
@@ -931,8 +1279,22 @@ defmodule Kati.Screens.BookDetail do
         {:noreply, socket}
 
       change ->
-        Kati.Screens.BookDetail.apply_change(change)
-        {:noreply, Mob.Socket.assign(socket, :book, Kati.Screens.BookDetail.book())}
+        id = target(socket.assigns)
+
+        case Kati.Screens.BookDetail.apply_change(id, change) do
+          {:ok, _book} ->
+            {:noreply,
+             socket
+             |> Mob.Socket.assign(:book, Kati.Screens.BookDetail.book(id))
+             |> Mob.Socket.assign(:save_error, nil)}
+
+          # No re-read on failure: the row did not move, so re-reading would
+          # redraw the same page under a message saying nothing was written —
+          # and on an empty shelf it would redraw the sample, which is the
+          # picture that hid this in the first place.
+          {:error, _reason} = error ->
+            {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+        end
     end
   end
 
@@ -954,14 +1316,42 @@ defmodule Kati.Screens.BookDetail do
     end
   end
 
-  @doc false
-  def apply_change({attribute, value}) do
-    with %Book{} = book <- newest() do
-      Ash.update(book, %{attribute => value})
-    end
+  @doc """
+  Set one attribute on the shelved book, and answer for it.
 
-    :ok
-  rescue
-    _error -> :ok
+  **The book the page is on**, which is what `id` is for. It defaulted to the
+  shelf's newest and could not do otherwise while nothing named a book to this
+  screen; screen 20's grid names one now, so a chip pressed on the third book
+  would have moved the first book's status — `handle_tap(:finish, …)`'s own
+  comment describes that defect, one control along, and this is the same one.
+  `nil` is still the shelf's newest, which is what a page opened from nowhere
+  in particular is about.
+
+  Answers `{:ok, book}` or `{:error, reason}`, never a bare `:ok` —
+  `Kati.Write`'s contract, and the whole of what was wrong here: the old body
+  discarded `Ash.update/2`'s answer, returned `:ok` regardless, and left the
+  caller no way to tell a chip that wrote from one that did not.
+
+  An empty shelf is `{:error, :nothing_to_save}` rather than a silent no-op.
+  The chips are drawn against `Kati.Books.Sample.detail/0` when nothing is
+  shelved, so they are tappable with no row behind them — and "Nothing to save
+  yet." is the true answer to that tap, where doing nothing quietly reads as a
+  change the page then fails to show.
+
+  No `rescue`. `Ash.update/2` returns `{:error, changeset}`; it does not raise,
+  which is why the rescue that used to sit here caught almost nothing while
+  looking like the failure was handled.
+  """
+  @spec apply_change(String.t() | nil, {atom(), atom()}) :: {:ok, term()} | {:error, term()}
+  def apply_change(id \\ nil, {attribute, value}) do
+    case row(id) do
+      %Book{} = book ->
+        book
+        |> Ash.update(%{attribute => value})
+        |> Write.note("book #{attribute}")
+
+      nil ->
+        Write.note({:error, :nothing_to_save}, "book #{attribute}")
+    end
   end
 end

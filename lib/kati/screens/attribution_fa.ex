@@ -203,10 +203,11 @@ defmodule Kati.Screens.AttributionFa do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, socket}
   end
 
-  def render(assigns), do: Fa.pushed_frame(content(assigns))
+  def render(assigns), do: Fa.pushed_frame(content(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc """
   Kati's own strings on this page, in one map.
@@ -266,7 +267,7 @@ defmodule Kati.Screens.AttributionFa do
   the moduledoc.
   """
   @spec content(map()) :: map()
-  def content(_assigns) do
+  def content(assigns) do
     ~MOB"""
     <Scroll>
       <Column
@@ -278,6 +279,7 @@ defmodule Kati.Screens.AttributionFa do
       >
         {Kati.Screens.AttributionFa.chrome()}
         {Kati.Screens.AttributionFa.title()}
+        {Kati.UI.notice(assigns[:link_error])}
         {Kati.Screens.AttributionFa.source_cards()}
         {Kati.Screens.AttributionFa.eyebrow()}
         {Kati.Screens.AttributionFa.open_source_card()}
@@ -743,12 +745,29 @@ defmodule Kati.Screens.AttributionFa do
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
-  # Every card opens a URL and Kati has no in-app browser, so the four taps are
-  # answered rather than left to raise: the control is drawn, it is reachable,
-  # and what it would open is the platform's browser through a fence that does
-  # not exist yet. Screen 83 carries the same four with the same reason.
+  # Every card opens the site it names, through screen 83's own table.
+  #
+  # The four taps were answered-and-inert until `K-43 open-url` was built: the
+  # control was drawn, it was reachable, and what it would open was the
+  # platform's browser through a fence that did not exist. It exists now, and
+  # the URL comes from `Kati.Screens.Attribution.site_for/1` rather than from a
+  # second table here — the source list is the same list, the licence
+  # conditions are the same conditions, and a Persian page pointing somewhere
+  # else would be a licence problem rather than a copy one.
+  #
+  # The refusal is drawn in ENGLISH, and that is not an oversight: no board
+  # writes a Persian failure line and `Kati.Native.Links.message/1` answers in
+  # one language, which is `D-60`'s subject. An English sentence a reader can
+  # act on beats a silence they cannot.
+  def handle_info({:tap, tag}, socket) when is_atom(tag) do
+    case Kati.Screens.Attribution.site_for(tag) do
+      nil -> {:noreply, socket}
+      url -> {:noreply, Kati.Screens.Attribution.follow(socket, url)}
+    end
+  end
+
   def handle_info({:tap, _tag}, socket), do: {:noreply, socket}
   def handle_info(_message, socket), do: {:noreply, socket}
 end

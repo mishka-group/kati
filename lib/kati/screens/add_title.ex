@@ -85,7 +85,6 @@ defmodule Kati.Screens.AddTitle do
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
-  alias Kati.Library.Sample
   alias Kati.Theme
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -93,16 +92,79 @@ defmodule Kati.Screens.AddTitle do
   # `results` is the whole answer to the query and never shrinks — the chip
   # narrows the VIEW, so a title added under `Films` is still added when the
   # user goes back to `Everything`.
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+    # What the caller wanted looked up, if it named one. MOVIES-AND-TV.md #93:
+    # screen 18's *Title* chip is a door onto this sheet, and a sheet that
+    # opened blank after the reader had already typed the film's name is an
+    # invitation to type it a second time.
+    #
+    # `query_epoch` starts at 1 rather than 0 when there is one, and that is
+    # the whole of what makes the text appear: the bridge remembers the last
+    # epoch it saw per field, so a `value` handed to a field it has already
+    # drawn is ignored unless the epoch moves. See `K-46` in `native/LEDGER.md`.
+    handed = Kati.Screens.AddTitle.opening_query(params)
 
-    {:ok, Mob.Socket.assign(socket, results: Sample.search_results(), filter: "Everything")}
+    if handed != "", do: Kati.Media.SearchDebounce.ask(self(), handed)
+
+    {:ok,
+     Mob.Socket.assign(socket,
+       # EMPTY, not the drawing's four. Board 06 is drawn mid-query and its
+       # four results belong to that query; opening the sheet on them meant a
+       # reader who had typed nothing was shown four invented films with real
+       # poster images, a `4 results` caption, fabricated availability lines,
+       # and one of them ticked as already in their library.
+       # MOVIES-AND-TV.md #43. `resting_card/2` is what a sheet nobody has
+       # typed into draws instead.
+       results: [],
+       filter: "Everything",
+       query: handed,
+       # Bumped when this screen REPLACES the field rather than echoing it —
+       # see `clear_disc/0` and the `K-46 text-field-epoch` fence. It starts at
+       # zero and the bridge remembers the last one it saw, so a mount is not
+       # itself a replacement.
+       query_epoch: if(handed == "", do: 0, else: 1),
+       # Board 308's second band, from the first frame: a sheet handed a query
+       # by screen 19's *Look it up* has a request in flight before it draws, so
+       # it opens on the skeletons rather than on the empty card and then them.
+       searching?: handed != "",
+       save_error: nil,
+       search_error: nil
+     )}
+  end
+
+  @doc """
+  The query a push named, trimmed, or `""`.
+
+  Under the minimum it is still put in the field and simply not searched —
+  the same floor `handle_info({:change, :title_query, …})` keeps. Two letters
+  the reader typed are two letters they should not have to type again.
+
+      iex> Kati.Screens.AddTitle.opening_query(%{query: "  Arrival "})
+      "Arrival"
+
+      iex> Kati.Screens.AddTitle.opening_query(%{})
+      ""
+  """
+  @spec opening_query(map() | nil) :: String.t()
+  def opening_query(params) do
+    case Map.get(params || %{}, :query) do
+      typed when is_binary(typed) -> String.trim(typed)
+      _none -> ""
+    end
   end
 
   def render(assigns) do
     filter = assigns.filter
     shown = visible(assigns.results, filter)
-    count = "#{length(shown)} results"
+    # Board 308's first band draws no count before a keystroke: `0 results` over
+    # a sheet nobody has asked anything of is a report on a search that has not
+    # happened. `Kati.Search.long_enough?/1` is the same seam the search itself
+    # gates on, so the eyebrow and the query cannot disagree.
+    count =
+      if Kati.Search.long_enough?(assigns.query),
+        do: "#{length(shown)} results",
+        else: "SEARCH"
 
     ~MOB"""
     <Box
@@ -110,6 +172,8 @@ defmodule Kati.Screens.AddTitle do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column
@@ -120,18 +184,185 @@ defmodule Kati.Screens.AddTitle do
           padding_bottom={40}
         >
           {Kati.Screens.AddTitle.header()}
-          {Kati.Screens.AddTitle.field()}
+          {Kati.Screens.AddTitle.field(assigns.query, assigns[:query_epoch] || 0)}
           {Kati.Screens.AddTitle.chips(filter)}
+          {Kati.Screens.AddTitle.search_notice(assigns[:search_error])}
+          {Kati.Screens.AddTitle.save_notice(assigns[:save_error])}
           {UI.eyebrow(count)}
-          {Kati.Screens.AddTitle.results(shown)}
-          {Kati.Screens.AddTitle.by_hand()}
+          {Kati.Screens.AddTitle.body(shown, assigns)}
+          {Kati.Screens.AddTitle.by_hand(assigns.query)}
         </Column>
       </Scroll>
     </Box>
     """
   end
 
-  def handle_info({:tap, :back}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  @doc """
+  Why the search came back with nothing, when there is a reason to give.
+
+  `search/1` has assigned `:search_error` since it was written and **nothing
+  drew it**, which was found on a device: typing `matrix` on a phone answers
+  `RESULTS 0` and says nothing at all, because a release carries no
+  `TMDB_READ_TOKEN` and `Kati.Media.Tmdb.key/0` answers `{:error,
+  :no_api_key}`. The sentence that would have explained it — *No TMDB key
+  yet. Add one in Settings → Data sources.* — was composed on line 254,
+  put on the socket, and thrown away by a render that never read the key.
+
+  A search that fails silently is indistinguishable from a catalogue with
+  nothing in it, and the difference is the whole of what a person needs to
+  know: one is fixed in Settings and the other is not fixable at all.
+
+  Above the count rather than below it, because the count is `0 results` and
+  the reason has to reach the reader before they believe it.
+  `Kati.Screens.Medication.save_notice/1` is the same band on the same
+  argument — a failure reported into a tree with nowhere to render it is a
+  silence — and this borrows its type rather than restating it.
+  """
+  @spec search_notice(String.t() | nil) :: map() | []
+  def search_notice(nil), do: []
+
+  def search_notice(message), do: Kati.UI.notice(message)
+
+  @doc """
+  Why the add — or the remove — did not happen.
+
+  `:save_error` has been assigned in three places on this screen since it could
+  write, and drawn in none of them. So adding a title that is already in the
+  library was a tap into total nothing: the check did not fill, no row
+  appeared, and the page said no more than it would have if the finger had
+  missed. MOVIES-AND-TV.md #42, and it is `D-60`'s defect in English on the one
+  screen a new install is most likely to be on.
+
+  `Kati.UI.notice/1` and not a second band of its own: the search failure two
+  lines above already uses it, and two shapes for *this did not work* on one
+  page is how a person learns to read neither.
+  """
+  @spec save_notice(String.t() | nil) :: term()
+  def save_notice(nil), do: []
+
+  def save_notice(message), do: Kati.UI.notice(message)
+
+  def handle_info({:tap, :back}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  # The escape hatch, finally wired. This row has been drawn on artboard 89
+  # since the screen was written and rendered with no `on_tap` at all, because
+  # no board drew what it would open — the moduledoc has carried that apology
+  # for as long. Board 154 is that form, and #91's "a clean install hands over
+  # a usable app" is what it answers: until the catalogue lands, every title
+  # this screen can find is invented, and this is the only way to put a real
+  # one in the library.
+  # The locale's own form, not the English one. A Persian reader who taps this
+  # row and lands on an English page has been dropped out of the mirror
+  # mid-journey — `Kati.Onboarding.shell_root/1` answers the same question the
+  # same way for where a first run lands.
+  # Screen 154, unconditionally. Branching on the locale here was the obvious
+  # thing and it is wrong for a reason worth recording: `Kati.AppReachabilityTest`
+  # builds its graph by dispatching real taps and MEMOISES it in
+  # `:persistent_term`, so a locale-dependent edge makes the graph answer
+  # differently depending on which test file built it first — 156 reachable in
+  # one run and stranded in the next, from the same code.
+  #
+  # 156 is therefore on that file's inventory, which is where every other
+  # Persian mirror already sits: `Kati.Screens.RestoreFa` and
+  # `Kati.Screens.OnboardingFa` are stranded in exactly the same way and for
+  # exactly the same reason. Routing the mirrors properly is #93's third
+  # criterion — "Persian screens are reachable after onboarding, not only
+  # during it" — and it wants one answer for all of them rather than a
+  # different `if` on each row that opens one.
+  def handle_info({:tap, :add_by_hand}, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddByHand.for_locale())}
+
+  @doc """
+  What was typed into the search field, and the search it eventually runs.
+
+  **Not debounced, and deliberately not.** The obvious shape is a timer —
+  bump a counter, `Process.send_after` a `{:search, n}`, run only the newest —
+  and `Kati.SupervisionRuleTest` forbids it in as many words: a screen is
+  transient, Mob keeps one alive at a time and it dies on every root switch, so
+  a timer a screen sets outlives the screen that set it. Written that way
+  first; the lint is what caught it.
+
+  So the search runs in the change handler, under a three-character floor. Two
+  consequences worth naming rather than discovering:
+
+    * one request per keystroke past the floor, where a debounce would make one
+      per pause;
+    * the handler blocks while the request is in flight, so the field lags by
+      the round trip.
+
+  Both are fixed by the same thing — a supervised worker that owns the
+  debounce and hands answers back — and neither is fixed by a timer here.
+  `handle_info/2` is sequential, so at least the answers cannot arrive out of
+  order and overwrite a newer list with an older one.
+  """
+
+  # Board 308: *"Two characters to start — one in فارسی, العربية, 中文, 日本語."*
+  # It was a flat three, which asked a Persian reader for three characters where
+  # one is a word. `Kati.Search.long_enough?/1` is the rule screen 86 already
+  # states in its own note, and this sheet now uses the same one rather than a
+  # second number that could drift from it.
+
+  def handle_info({:change, :title_query, typed}, socket) when is_binary(typed) do
+    socket = Mob.Socket.assign(socket, :query, typed)
+    query = String.trim(typed)
+
+    if not Kati.Search.long_enough?(query) do
+      # Back to the drawing, not to nothing. Board 06 is drawn mid-query and no
+      # board draws this screen before anyone has typed — the rule
+      # `Kati.Screens.Library` moved off its Sample under is that the design
+      # must draw the emptiness first, and here it does not. `D-31` is the
+      # brief that would settle it.
+      # And emptied, not restored to the drawing's four. Typing `Up` used to
+      # answer with four films nobody had searched for — MOVIES-AND-TV.md #44,
+      # and the same defect as the resting sheet one keystroke along.
+      {:noreply,
+       socket
+       |> Mob.Socket.assign(:results, [])
+       |> Mob.Socket.assign(:searching?, false)
+       |> Mob.Socket.assign(:search_error, nil)}
+    else
+      # NOT searched here. This handler runs on every keystroke, so searching
+      # from it made one TMDB request per letter — nine for `severance`, eight
+      # of them thrown away by the ninth. `Kati.Media.SearchDebounce` waits for
+      # the typing to stop and sends `{:search_ready, query}` back; the clause
+      # below decides whether that answer is still the one wanted.
+      Kati.Media.SearchDebounce.ask(self(), query)
+
+      # Board 308's second band. Set here rather than when the request goes out,
+      # because from the reader's side the wait starts at the keystroke — the
+      # debounce is part of it — and a sheet that shows nothing for 300ms and
+      # then skeletons has two waits in it.
+      {:noreply, Mob.Socket.assign(socket, :searching?, true)}
+    end
+  end
+
+  # The × at the end of the field. Back to the state the sheet mounts in —
+  # the query empty, the board's rows, and no refusal left standing from a
+  # search that is no longer on screen. Not `searched/2` with an empty string:
+  # an empty field is under the floor and must not reach the network.
+  def handle_info({:tap, :clear_query}, socket) do
+    {:noreply,
+     socket
+     |> Mob.Socket.assign(:query, "")
+     # The bump is what makes the FIELD empty as well as the assign. Without
+     # it the results reset and the typed text stayed — see `K-46` in
+     # `native/LEDGER.md`, found doing exactly this on a device.
+     |> Mob.Socket.assign(:query_epoch, (socket.assigns[:query_epoch] || 0) + 1)
+     |> Mob.Socket.assign(:searching?, false)
+     # Back to the state the sheet mounts in, which is empty — clearing the
+     # field used to put the drawing's four results back under it.
+     |> Mob.Socket.assign(:results, [])
+     |> Mob.Socket.assign(:search_error, nil)
+     |> Mob.Socket.assign(:save_error, nil)}
+  end
+
+  @doc false
+  # A door for a test to put result rows on the socket without a network call.
+  # The sheet opens empty and the only other way in is `{:search_ready, …}`,
+  # which makes a TMDB request — `Kati.AddTitleWriteTest` is about the WRITE
+  # behind a row and has no business making one.
+  def handle_info({:results_for_test, rows}, socket) when is_list(rows),
+    do: {:noreply, Mob.Socket.assign(socket, :results, rows)}
 
   def handle_info({:tap, tag}, socket) do
     case Atom.to_string(tag) do
@@ -142,19 +373,104 @@ defmodule Kati.Screens.AddTitle do
       # user tapped is identified by its title, so which chip was on when they
       # tapped it cannot matter.
       "add_" <> title ->
-        results =
-          Enum.map(socket.assigns.results, fn r ->
-            if r.title == title, do: %{r | added: not r.added}, else: r
-          end)
-
-        {:noreply, Mob.Socket.assign(socket, :results, results)}
+        {:noreply, Kati.Screens.AddTitle.add(socket, title)}
 
       _ ->
         {:noreply, socket}
     end
   end
 
+  # The debounce coming back. The query is searched only if it is still what
+  # the person has typed — see `Kati.Media.SearchDebounce` for why that
+  # comparison is the whole mechanism and needs no sequence number.
+  #
+  # Re-checked against the floor as well: `sev` can arrive after the field has
+  # been cleared back to `se`, and a request for a query the screen would now
+  # refuse to make is a request it should not make late either.
+  def handle_info({:search_ready, query}, socket) when is_binary(query) do
+    current = socket.assigns |> Map.get(:query, "") |> String.trim()
+
+    if query == current and Kati.Search.long_enough?(query) do
+      {:noreply, Kati.Screens.AddTitle.searched(socket, query)}
+    else
+      # A stale answer, for a query the reader has typed past. The rows are not
+      # touched — a newer request is already out — but the flag is, because this
+      # one is no longer the thing being waited for.
+      {:noreply, socket}
+    end
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  Run one search and put its answer on the socket.
+
+  A failure is **shown**, not swallowed: #89's fourth criterion is that a
+  failed or rate-limited request is visible to the user, and
+  `Kati.Media.Tmdb.message/1` is where the wording lives. The results already
+  on screen are cleared with it — a stale list under an error message reads as
+  though the error were about something else.
+  """
+  @spec searched(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def searched(socket, query) do
+    socket = Mob.Socket.assign(socket, :searching?, false)
+
+    case Kati.Media.Tmdb.search(query) do
+      {:ok, rows} ->
+        socket
+        |> Mob.Socket.assign(:results, Enum.map(rows, &Kati.Screens.AddTitle.row/1))
+        |> Mob.Socket.assign(:search_error, nil)
+
+      {:error, reason} ->
+        socket
+        |> Mob.Socket.assign(:results, [])
+        |> Mob.Socket.assign(:search_error, Kati.Media.Tmdb.message(reason))
+        |> Mob.Socket.assign(:save_error, nil)
+    end
+  end
+
+  @doc """
+  One TMDB result in the shape this screen draws.
+
+  `seed` carries the CDN path. It was `nil` with the note *the honest answer
+  until posters are fetched* — they are fetched now, by `Kati.Media.Artwork`,
+  and `Kati.Design.Images` resolves a path like `/kBf3g9....jpg` to the file
+  on this device. A row already added therefore shows its own poster, and a
+  row not yet added shows `thumb/1`'s paper placeholder, because nothing is
+  downloaded until somebody asks for the title.
+
+  `source_id` and `kind` ride along because `track/2` needs them: a row added
+  from TMDB is tracked under its TMDB id, not under its title.
+  """
+  @spec row(map()) :: map()
+  def row(result) do
+    %{
+      title: result.title,
+      # The CDN path, not `nil`. `Kati.Design.Images` resolves one of these to
+      # the file `Kati.Media.Artwork` downloaded, so a result the person has
+      # already added shows its own poster here instead of the placeholder —
+      # and a result they have not shows the placeholder exactly as before,
+      # because nothing is fetched until a title is added. See `thumb/1`.
+      seed: result.poster_path,
+      meta: Kati.Screens.AddTitle.meta_line(result),
+      note: result.overview,
+      added: false,
+      source: :tmdb,
+      source_id: result.source_id,
+      kind: result.kind
+    }
+  end
+
+  @doc false
+  @spec meta_line(map()) :: String.t()
+  def meta_line(result) do
+    kind = if result.kind == :movie, do: "FILM", else: "SERIES"
+
+    case result.year do
+      nil -> kind
+      year -> year <> " · " <> kind
+    end
+  end
 
   @doc """
   The results a chip leaves visible.
@@ -216,8 +532,23 @@ defmodule Kati.Screens.AddTitle do
   # The focused field. `0 0 0 2px #1A1917` in the drawing is a ring, not a
   # shadow, so it is a 2px border here — a shadow at zero blur and zero offset
   # would be invisible under the card's own elevation.
-  @doc false
-  def field do
+  @doc """
+  The search field, which is now a field.
+
+  It was a `<Text>` reading "quiet" beside a 2×19 orange `<Box>` drawn to look
+  like a caret — a picture of a focused input. The moduledoc above still
+  describes the ring and the caret, and both are real; what was missing was
+  anything to type into.
+
+  Nine screens carry a comment saying Mob has no text input. It does:
+  `<TextField>` is in the pinned Mob and `Kati.Screens.Backup` has used it for
+  the passphrase all along. The belief cost more than the feature — every
+  search box in the app is a drawing because of it.
+  """
+  @spec field(String.t()) :: map()
+  def field(query, epoch \\ 0) do
+    assigns = %{query: query, epoch: epoch, on_change: {self(), :title_query}}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row
@@ -234,21 +565,302 @@ defmodule Kati.Screens.AddTitle do
       >
         {Kati.UI.symbol("search", size: 20)}
         <Spacer size={11} />
-        <Text
-          text="quiet"
-          text_size={14.5}
-          font_weight="medium"
-          text_color={:on_surface}
-          max_lines={1}
+        <TextField
+          value={@query}
+          value_epoch={@epoch}
+          placeholder="quiet"
+          return_key="search"
+          weight={1.0}
+          accessibility_id="title_query"
+          on_change={@on_change}
         />
-        <Spacer size={2} />
-        <Box width={2} height={19} background={Palette.accent()} />
-        <Spacer weight={1.0} />
-        {Kati.UI.symbol("cancel", size: 19, color: Palette.rail_idle(), fill: true)}
+        {Kati.Screens.AddTitle.clear_disc()}
       </Row>
       <Spacer size={16} />
     </Column>
     """
+  end
+
+  @doc """
+  Track a title, for real.
+
+  Until now this toggled a boolean on a socket and the row died with the
+  screen. #60 decided v1 ships film and TV, and film and TV was the one domain
+  in the app with no write path at all: nine screens queried `Kati.Media`
+  correctly and every one of them queried a table that could not hold a row.
+
+  Two rows, not one. `CachedTitle` is what a provider would have said about
+  this title and `TrackedTitle` is what you decided about it — the split is why
+  a provider can be reconciled in later without touching your rating or your
+  history, which `Kati.Media.TrackedTitle`'s own moduledoc argues at length.
+  Typing a title by hand is simply the first writer of both.
+
+  The source is `:manual` and the id is the title itself. There is no provider
+  to ask for a stable id, and inventing one would make the row unreconcilable
+  later — a `:manual` row is honest about being unlookupable.
+
+  Untracking deletes the `TrackedTitle` and leaves the `CachedTitle`: what you
+  decided is yours to undo, what a title IS is not a decision.
+  """
+  @spec add(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def add(socket, key) do
+    row = Enum.find(socket.assigns.results, &(Kati.Screens.AddTitle.row_key(&1) == key))
+    title = row && row.title
+    tracked? = row && row.added
+
+    result =
+      if tracked? do
+        Kati.Screens.AddTitle.untrack(title, row)
+      else
+        Kati.Screens.AddTitle.track(title, row)
+      end
+
+    case result do
+      {:ok, _record} ->
+        socket
+        |> Mob.Socket.assign(:results, Kati.Screens.AddTitle.mark(socket.assigns.results, key))
+        |> Mob.Socket.assign(:save_error, nil)
+
+      {:error, _reason} = error ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message(error))
+    end
+  end
+
+  @doc """
+  What names a row among the rows beside it.
+
+  The title was the key, and two results with the same title made the second
+  one unusable: TMDB answers `arrival` with **Arrival (2016)** and **Arrival
+  (1986)**, both rows drew the tag `add_Arrival`, `Mob.Renderer` gave one
+  `accessibility_id` to two nodes, and `add/2`'s `Enum.find/2` matched the
+  first — so tapping the 1986 film added the 2016 one and ticked both discs.
+  Reproduced on a Pixel 9a with that exact query.
+
+  A TMDB row is named by its own id, which is what the store keys on anyway;
+  the design's four fixture rows have none and keep their titles, so board 06's
+  tags — `add_The Quiet Coast` and the rest — are unchanged and every sweep
+  that names them still names them.
+
+      iex> Kati.Screens.AddTitle.row_key(%{title: "Arrival", source_id: "329865"})
+      "329865"
+
+      iex> Kati.Screens.AddTitle.row_key(%{title: "The Quiet Coast"})
+      "The Quiet Coast"
+  """
+  @spec row_key(map()) :: String.t()
+  def row_key(%{source_id: id}) when is_binary(id) and id != "", do: id
+  def row_key(%{title: title}), do: title
+
+  @doc false
+  @spec track(String.t(), map() | nil) :: {:ok, term()} | {:error, term()}
+  def track(title, %{source: :tmdb, source_id: source_id, kind: kind}) do
+    # The detail call, and the only place it is made. It fills
+    # `Kati.Media.CachedTitle`, `CachedSeason` and `CachedEpisode` — the
+    # episodes are the point, because nothing can be ticked before they exist,
+    # and a series tracked without them is a row with no progress possible.
+    #
+    # A tracked row under the TMDB id rather than under the title: the cached
+    # episodes reference `title_source_id`, so a `:manual` row keyed on a
+    # string would sit beside its own episode list and never join to it.
+    with {:ok, filled} <- Kati.Media.Tmdb.fetch(source_id, tmdb_kind(kind)),
+         {:ok, tracked} <-
+           Ash.create(Kati.Media.TrackedTitle, %{
+             source: :tmdb,
+             source_id: source_id,
+             # Board 152's third rule, asked of the row the fetch just wrote:
+             # TMDB's Animation + Japanese origin. `:anime` was a kind every
+             # reader in the app knew and nothing ever wrote — MOVIES-AND-TV.md
+             # #104 — and this is the writer.
+             kind: Kati.Media.Anime.kind_for(kind, Map.get(filled, :title), nil),
+             status: :watching
+           }) do
+      # The picture, fetched once, here, because this is the only moment the
+      # app knows a title is wanted and is allowed to be slow. `poster_path` is
+      # a path on TMDB's CDN and every screen resolves artwork through
+      # `Kati.Design.Images`, which can only answer for a file already on the
+      # device — so without this line every title a user added drew a grey
+      # placeholder on Home, on the shelf, on Up next and on its own page.
+      #
+      # The result is deliberately dropped. A poster that did not download is a
+      # grey card, which is what the app drew before; refusing to add the title
+      # would let the network decide what is on somebody's shelf.
+      _artwork = Kati.Media.Artwork.cache(Kati.Screens.AddTitle.poster_of(filled))
+
+      # MOVIES-AND-TV.md #112: screen 15's `Added` chip could never match a row,
+      # because nothing recorded that a title arrived. `from_status` is nil on
+      # an add — there was no before.
+      Kati.Media.Log.write(tracked, :added, %{from_status: nil})
+
+      {:ok, tracked}
+    end
+    |> Kati.Write.note("track #{title}")
+  end
+
+  def track(title, row) do
+    kind = Kati.Screens.AddTitle.kind_of(row)
+
+    with {:ok, _cached} <- Kati.Screens.AddTitle.cache(title, kind),
+         {:ok, tracked} <-
+           Ash.create(Kati.Media.TrackedTitle, %{
+             source: :manual,
+             source_id: title,
+             kind: kind,
+             status: :watching
+           }) do
+      Kati.Media.Log.write(tracked, :added, %{from_status: nil})
+
+      {:ok, tracked}
+    end
+    |> Kati.Write.note("track #{title}")
+  end
+
+  @doc """
+  The CDN path on the row `Kati.Media.Tmdb.fetch/2` just wrote, or `nil`.
+
+  `fetch/2` answers `%{title: %Kati.Media.CachedTitle{}, seasons: n, episodes:
+  n}` — the counts are what the caller usually wants and the row is what this
+  wants. Written as a function with a nil clause rather than a chain of
+  `Map.get/2` so a shape change here is a compile-time surprise in one place
+  instead of a silently absent poster on every screen.
+  """
+  @spec poster_of(term()) :: String.t() | nil
+  def poster_of(%{title: %{poster_path: path}}) when is_binary(path), do: path
+  def poster_of(_other), do: nil
+
+  # `Kati.Media.TrackedTitle` calls a show `:tv` and so does TMDB; anime and
+  # books are Kati's own kinds and have no TMDB endpoint, so they fetch as
+  # films — the detail call still answers, and the episode walk is what a
+  # series gets that they do not.
+  defp tmdb_kind(:tv), do: :tv
+  defp tmdb_kind(_other), do: :movie
+
+  @doc """
+  The cached row for a title, creating it only if it is not already there.
+
+  Idempotent on purpose, and the reason is `untrack/1`: removing a title
+  deletes what you DECIDED and keeps what the title IS, so the cached row
+  outlives the tracking row. Re-adding a title you had removed would otherwise
+  violate the `[:source, :source_id]` unique index, fail, and — before this —
+  report "that did not save" for a title that saves perfectly well.
+
+  Found by the test that adds, removes and adds again. It is the ordinary way
+  someone changes their mind.
+  """
+  @spec cache(String.t(), :movie | :tv) :: {:ok, term()} | {:error, term()}
+  def cache(title, kind, extra \\ %{}) do
+    existing =
+      case Ash.read(Kati.Media.CachedTitle) do
+        {:ok, rows} -> Enum.find(rows, &(&1.source == :manual and &1.source_id == title))
+        _error -> nil
+      end
+
+    if existing, do: {:ok, existing}, else: Kati.Screens.AddTitle.create_cache(title, kind, extra)
+  end
+
+  @doc false
+  def create_cache(title, kind, extra \\ %{}) do
+    Ash.create(
+      Kati.Media.CachedTitle,
+      Map.merge(
+        %{
+          source: :manual,
+          source_id: title,
+          kind: kind,
+          title: title,
+          # `Kati.Time.now/0`, not `DateTime.utc_now/0` — `Kati.ScreenDateTest`
+          # forbids the latter in a screen, because a screen that reads the wall
+          # clock directly cannot be tested against a fixed day.
+          #
+          # `allow_nil?: false`, because the resource's own moduledoc says a row
+          # with no age cannot be evicted and would quietly break TMDB's six-month
+          # ceiling. A `:manual` row is never evicted — see
+          # `Kati.Media.CachePolicy`'s `manual: {:never, :never}` — but it still
+          # carries an honest timestamp rather than a placeholder, because "when
+          # did this enter Kati" is a real question with a real answer.
+          fetched_at: Kati.Time.now() |> DateTime.truncate(:second)
+        },
+        # What screen 154's form collected and nothing wrote. `episode_count`
+        # is the denominator every progress bar in the app divides by, and the
+        # note under that field promised it — MOVIES-AND-TV.md #59.
+        extra
+      )
+    )
+  end
+
+  @doc false
+  @spec untrack(String.t()) :: {:ok, term()} | {:error, term()}
+  def untrack(title, row \\ nil) do
+    {source, source_id} = tracked_key(title, row)
+
+    case Ash.read(Kati.Media.TrackedTitle) do
+      {:ok, rows} ->
+        rows
+        |> Enum.find(&(&1.source == source and &1.source_id == source_id))
+        |> case do
+          nil ->
+            {:ok, :already_gone}
+
+          found ->
+            Ash.destroy(found) |> then(fn r -> if r == :ok, do: {:ok, :removed}, else: r end)
+        end
+
+      error ->
+        error
+    end
+    |> Kati.Write.note("untrack #{title}")
+  end
+
+  @doc """
+  The `{source, source_id}` pair a tracked row is actually keyed on.
+
+  This function is MOVIES-AND-TV.md #41 in one line. `untrack/1` looked for
+  `source == :manual and source_id == title`, which is the pair a HAND-TYPED
+  title is stored under — and `track/2` stores a TMDB title under `{:tmdb,
+  "329865"}`, deliberately, because the cached episodes reference the provider
+  id. So removing something added from TMDB found nothing, answered
+  `{:ok, :already_gone}`, and reported success: the check flipped back to a `+`
+  and the title stayed in the library forever.
+
+  The row is the caller's, and it is the row the same tap added — `row/1` puts
+  `source` and `source_id` on it for exactly this reason. Without one, the
+  title is the key, which is the drawing's four fixtures and every hand-typed
+  title.
+
+      iex> Kati.Screens.AddTitle.tracked_key("Arrival", %{source: :tmdb, source_id: "329865"})
+      {:tmdb, "329865"}
+
+      iex> Kati.Screens.AddTitle.tracked_key("The Quiet Coast", nil)
+      {:manual, "The Quiet Coast"}
+
+      iex> Kati.Screens.AddTitle.tracked_key("Typed by hand", %{title: "Typed by hand"})
+      {:manual, "Typed by hand"}
+  """
+  @spec tracked_key(String.t(), map() | nil) :: {:tmdb | :manual, String.t()}
+  def tracked_key(_title, %{source: :tmdb, source_id: id}) when is_binary(id) and id != "",
+    do: {:tmdb, id}
+
+  def tracked_key(title, _row), do: {:manual, title}
+
+  @doc """
+  What a result row is, read off the `meta` line the drawing writes.
+
+  `"2019 · FILM · 1h 48m"` is a film; `"2023 · SERIES · 2 SEASONS"` is tv.
+  Parsed rather than stored because the sample rows carry no kind of their own,
+  and a title typed by hand carries none either — a guess that reads the words
+  already on screen is better than a default nobody chose.
+  """
+  @spec kind_of(map() | nil) :: :movie | :tv
+  def kind_of(%{meta: meta}) when is_binary(meta) do
+    if String.contains?(String.upcase(meta), "SERIES"), do: :tv, else: :movie
+  end
+
+  def kind_of(_row), do: :movie
+
+  @doc false
+  def mark(results, key) do
+    Enum.map(results, fn r ->
+      if Kati.Screens.AddTitle.row_key(r) == key, do: %{r | added: not r.added}, else: r
+    end)
   end
 
   @doc false
@@ -364,7 +976,7 @@ defmodule Kati.Screens.AddTitle do
           <Text text={r.note} text_size={11.5} text_color={Palette.sub()} max_lines={1} />
         </Column>
         <Spacer size={13} />
-        {Kati.Screens.AddTitle.add_button(r.added, r.title)}
+        {Kati.Screens.AddTitle.add_button(r.added, Kati.Screens.AddTitle.row_key(r))}
       </Row>
     </Column>
     """
@@ -405,10 +1017,11 @@ defmodule Kati.Screens.AddTitle do
   # structural difference is the `<Row>` the component wraps children in, which
   # hugs its single Text and is centred by the same Box — no measurement moves.
   @doc false
-  def add_button(added?, title) do
-    # Keyed on the title, not the row's position: the chips reorder nothing but
-    # they do renumber, and `add_1` would mean a different film under `Films`.
-    tap = {self(), String.to_atom("add_" <> title)}
+  def add_button(added?, key) do
+    # Keyed on the row's own identity, not its position: the chips reorder
+    # nothing but they do renumber, and `add_1` would mean a different film
+    # under `Films`. See `row_key/1` for why it is not the title either.
+    tap = {self(), String.to_atom("add_" <> key)}
     bg = if added?, do: Palette.placeholder(), else: Palette.ink_fill()
     icon = if added?, do: "check", else: "add"
     ink = if added?, do: Palette.sub(), else: Palette.on_ink()
@@ -423,8 +1036,179 @@ defmodule Kati.Screens.AddTitle do
   # solid borders, so the dash is the one thing here that is not the design;
   # the COLOUR is now the design's own 16% ink rather than the opaque
   # #D8D2C8 that stood in for it, which read a shade light on paper.
+  @doc """
+  *Nothing here for “…”* — a search that ran and found nothing, said out loud.
+
+  A query with no matches drew the eyebrow `0 results` and then a blank page:
+  the sheet looked broken rather than answered, and the only thing under the
+  hole was a by-hand row that gave no reason for being the last resort. Found
+  by typing a query TMDB has nothing for, on a device.
+
+  The sentence is **not new**. `Kati.Screens.AddTitleMusic.nothing_card/1`
+  words this exact state on the sheet built beside this one, and its headline
+  is quoted here character for character. Its body is not: that one says *Kati
+  has no music catalogue to look in*, which is true of music and false here —
+  this search did look. So there is no body at all, and the row below is the
+  action, because a second *Add it by hand* button over the one this screen
+  already draws would be the same offer twice.
+
+  Drawn only when a search has actually run and come back empty. Three states
+  are deliberately not this one:
+
+    * **Under the floor.** Fewer than three characters is not a search that
+      found nothing, it is a search that has not been made, and the sheet is
+      showing the board's rows.
+    * **A refusal.** `search_notice/1` is already above with the reason — no
+      key, no network — and a card saying *nothing here* under a line saying
+      *could not look* would be the app contradicting itself.
+    * **A filter with nothing under it.** `Films` over a page of series is a
+      chip the user can undo, and the count above already says `0 results`.
+  """
+  @spec nothing_card([map()], String.t(), String.t() | nil) :: map() | []
+  def nothing_card(shown, query, error)
+
+  def nothing_card(_shown, _query, error) when not is_nil(error), do: []
+
+  def nothing_card([], query, _error) do
+    typed = String.trim(query)
+
+    cond do
+      typed == "" ->
+        card(
+          "search",
+          "Search for something to add",
+          "Type a film or a show and Kati looks it up."
+        )
+
+      not Kati.Search.long_enough?(typed) ->
+        card(
+          "search",
+          "Keep typing",
+          "Two characters to start — one in فارسی, العربية, 中文, 日本語, where one is a word."
+        )
+
+      true ->
+        found_nothing(typed)
+    end
+  end
+
+  def nothing_card(_shown, _query, _error), do: []
+
   @doc false
-  def by_hand do
+  def found_nothing(typed) do
+    card("search", "Nothing here for \u201C" <> typed <> "\u201D", nil)
+  end
+
+  # Board 87's card at this screen's size, which is what board 06's own
+  # `nothing` state would be if one had been drawn — see `D-31`. One shape for
+  # the three empty answers, because they differ in what they say and not in
+  # how they look.
+  @doc false
+  def card(icon, headline, body) do
+    assigns = %{icon: icon, headline: headline, body: body}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+        align="center"
+      >
+        <Box width={48} height={48} corner_radius={15} background={Palette.paper()} align="center">
+          {Kati.UI.symbol(@icon, size: 22, color: Palette.rail_idle())}
+        </Box>
+        <Spacer size={13} />
+        <Text text={@headline} text_size={14} font_weight="bold" text_color={:on_surface} />
+        {Kati.Screens.AddTitle.card_body(@body)}
+      </Column>
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def card_body(nil), do: ~MOB"<Spacer size={0} />"
+
+  def card_body(body) do
+    assigns = %{body: body}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={6} />
+      <Text
+        text={@body}
+        text_size={12}
+        line_height={1.55}
+        text_color={Palette.sub()}
+        text_align="center"
+      />
+    </Column>
+    """
+  end
+
+  @doc """
+  The × at the end of the field, which is a control and was a picture.
+
+  It was drawn as a bare `Kati.UI.symbol("cancel", …)` with no `on_tap`, so a
+  tap on it fell through to the `<TextField>` underneath — the keyboard opened
+  and the next thing typed was APPENDED to the query the person was trying to
+  get rid of. Found on a device: clearing `zzqwx` and typing `severance` gave
+  `zzqwxseverance` and no results.
+
+  A `<Box>` around the glyph rather than an `on_tap` on the symbol itself,
+  because the glyph is 19pt and a 19pt target is under every guideline there
+  is; the box is 40 and centres it. Nothing else about the row moves — the
+  glyph keeps its size, colour and fill.
+  """
+  @spec clear_disc() :: map()
+  def clear_disc do
+    ~MOB"""
+    <Box width={40} height={40} align="center" on_tap={{self(), :clear_query}}>
+      {Kati.UI.symbol("cancel", size: 19, color: Kati.Theme.Palette.rail_idle(), fill: true)}
+    </Box>
+    """
+  end
+
+  @doc """
+  The escape hatch — absent before a keystroke, and naming the query after one.
+
+  Board 308: *"The add-by-hand row is absent before a keystroke — it names the
+  query, and there is none"*, and *"present from the first keystroke: the query
+  exists, so the escape hatch can name it."*
+
+  Naming it is the whole difference. `Can't find it? Add it by hand` asks the
+  reader to retype what they have just typed; `Add "vellichor" by hand` is the
+  same control having read the field.
+
+      iex> Kati.Screens.AddTitle.by_hand_label("")
+      nil
+
+      iex> Kati.Screens.AddTitle.by_hand_label("vellichor")
+      "Add “vellichor” by hand"
+  """
+  @spec by_hand_label(String.t()) :: String.t() | nil
+  def by_hand_label(query) do
+    case String.trim(query) do
+      "" -> nil
+      typed -> "Add \u201C" <> typed <> "\u201D by hand"
+    end
+  end
+
+  @doc false
+  def by_hand(query \\ "") do
+    case Kati.Screens.AddTitle.by_hand_label(query) do
+      nil -> ~MOB"<Spacer size={0} />"
+      label -> Kati.Screens.AddTitle.by_hand_row(label)
+    end
+  end
+
+  @doc false
+  def by_hand_row(label) do
+    assigns = %{label: label}
+
     ~MOB"""
     <Row
       fill_width={true}
@@ -433,19 +1217,89 @@ defmodule Kati.Screens.AddTitle do
       border_color={Palette.border()}
       padding_top={14}
       padding_bottom={14}
+      padding_left={13}
+      padding_right={13}
       align="center"
+      on_tap={{self(), :add_by_hand}}
     >
       <Spacer weight={1.0} />
       {Kati.UI.symbol("edit_note", size: 18, color: Palette.sub())}
       <Spacer size={7} />
       <Text
-        text="Can’t find it? Add it by hand"
+        text={@label}
         text_size={13}
         font_weight="semibold"
         text_color={Palette.ink_soft()}
         max_lines={1}
       />
       <Spacer weight={1.0} />
+    </Row>
+    """
+  end
+
+  @doc """
+  The list, the skeletons, or the card — board 308's three states.
+
+  In flight is `:searching?`, which the debounce sets on the keystroke and the
+  answer clears. Before that the sheet has nothing to say and says the shortest
+  true thing; after it, either rows or 89's card.
+  """
+  @spec body([map()], map()) :: term()
+  def body(shown, assigns) do
+    cond do
+      Map.get(assigns, :searching?, false) and shown == [] ->
+        Kati.Screens.AddTitle.skeletons()
+
+      shown != [] ->
+        Kati.Screens.AddTitle.results(shown)
+
+      true ->
+        Kati.Screens.AddTitle.nothing_card(shown, assigns.query, assigns[:search_error])
+    end
+  end
+
+  @doc """
+  Three skeleton rows in the result row's own shape, while a query is in flight.
+
+  Board 308: *"never a spinner — 87's rule, and this sheet is the same list."*
+  A spinner says *something is happening*; a skeleton says *what is coming and
+  how much of it*, which is the honest claim for a list.
+  """
+  @spec skeletons() :: map()
+  def skeletons do
+    ~MOB"""
+    <Column fill_width={true}>
+      {[1, 2, 3]
+       |> Enum.map(fn _row -> Kati.Screens.AddTitle.skeleton_row() end)
+       |> Enum.intersperse(Kati.Screens.AddTitle.row_gap())}
+      <Spacer size={26} />
+    </Column>
+    """
+  end
+
+  @doc false
+  def skeleton_row do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={18}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={13}
+      padding_right={13}
+      padding_top={11}
+      padding_bottom={11}
+      align="center"
+    >
+      <Box width={44} height={62} corner_radius={10} background={Palette.placeholder()} />
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Box width={150} height={13} corner_radius={6} background={Palette.placeholder()} />
+        <Spacer size={9} />
+        <Box width={92} height={10} corner_radius={5} background={Palette.placeholder()} />
+        <Spacer size={9} />
+        <Box width={120} height={10} corner_radius={5} background={Palette.placeholder()} />
+      </Column>
     </Row>
     """
   end

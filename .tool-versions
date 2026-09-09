@@ -1,6 +1,13 @@
 # Aligned to Mob's device OTP runtime tarball (otp-5c9c69fc), which ships
 # erts-17.0 (OTP 29). mob_dev's elixir_skew check compares MINOR versions.
 # zig is the Android/iOS cross-compiler mob_dev shells out to.
+#
+# zig was 0.15.2 until 4 September. On macOS 26 (CommandLineTools SDK 27.0)
+# 0.15.2 cannot link its own build runner: `zig build` on an EMPTY build.zig
+# fails with ~24 undefined libSystem symbols (_malloc, _fork, _dispatch_*,
+# std.Build.Watch.FsEvents). Nothing to do with this project. `SDKROOT` is not
+# a way out — 0.15.2 emits `-syslibroot .../MacOSX.sdk` regardless of it, and
+# the 26.5 and 27.0 SDKs carry identical libSystem.B.tbd target lists anyway.
 erlang 29.0.2
 elixir 1.20.2-otp-29
-zig 0.15.2
+zig 0.16.0

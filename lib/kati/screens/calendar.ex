@@ -10,10 +10,55 @@ defmodule Kati.Screens.Calendar do
   between similar and identical.
 
   The events are real — `Kati.Calendars.Today`, which is the device's own
-  calendar via `CalendarContract` — and on a device with nothing mirrored yet
-  TODAY falls back to `drawn_rows/0`, the five rows the drawing itself shows,
-  so the screen can still be compared with its frame. Any other day the user
-  taps shows its real emptiness.
+  calendar via `CalendarContract` — and every day the user selects, **today
+  included**, shows its real emptiness.
+
+  ## Today used to be dressed in the drawing, and that was the defect (#91)
+
+  `day_rows/1` fell TODAY back to `drawn_rows/0` on an empty store, on
+  FIDELITY's *missing data is not a reason for a blank screen*. On a device
+  that reading is wrong, and the owner said so after installing it: the first
+  thing a person saw on this screen was a dentist appointment, a passport
+  reminder and a renewal, none of which were theirs. A frame that can only be
+  compared with its drawing when the app is lying is not a comparison worth
+  keeping. `drawn_rows/0` is still here — it is the transcription of the board
+  and the sweeps read it — and nothing renders it.
+
+  ## Two different emptinesses, and a person can tell them apart
+
+  A calendar with nothing on it and a calendar Kati is not allowed to read are
+  not the same fact, and #82 made both reachable: `Kati.Calendars.DeviceImport`
+  only ever ingests what `Mob.Permissions` has been granted. `empty_reason/2`
+  is the pure split and `timeline/2` draws the two cards.
+
+  **No board draws either card.** 02 draws a day with five items on it, and no
+  artboard anywhere draws a Schedule that Kati cannot see. So both are built
+  from the boards that *do* write this copy, and from nothing else:
+
+    * 139 (*Home — nothing set up*) is the only board that words the calendar's
+      own emptiness — a `calendar_month` tile, a title, and
+      `Nothing scheduled — add anything with +` — and its caption is the
+      argument for drawing it at all: *the calendar and quick-add are
+      section-agnostic and stay live*. That row is transcribed here, minus its
+      chevron, because this card opens nothing and the house style says a
+      chevron means *leads elsewhere*.
+    * 40 (*Account & permissions*) writes the Calendars row: purpose before the
+      ask, *To show your appointments beside your episodes. Kati only reads
+      them.* That sentence is used verbatim.
+    * 151 (*Notification access*) fixes the ORDER a permission state is stated
+      in — purpose, then scope, then where the control is — and 136's caption
+      the reason there is no button here: *a button that silently does nothing
+      is worse than a sentence that tells the truth*. The Allow control is
+      drawn on 40 and only on 40, so this card names that place instead of
+      growing a second copy of it.
+    * 96 (*Nothing set up — knock-on*) is the rule both obey: *an empty state
+      should say what is missing and offer the one thing that fixes it — never
+      render a plausible-looking zero.*
+
+  `:unknown` — the native half absent, which is every host test and any device
+  whose bridge method has gone — is deliberately NOT read as denied. It means
+  *no answer*, and claiming Kati is locked out on no answer is the same class
+  of lie as claiming five events on no data.
 
   ## The route to screen 09
 
@@ -22,8 +67,38 @@ defmodule Kati.Screens.Calendar do
   seven cells the drawing already gives, so the resting frame is unchanged.
   The argument for that cell over the `Today` pill is at the `"day_" <> iso`
   clause of `handle_tap/2`, next to the code it decides.
+
+  ## A row names its own event
+
+  Every card on the timeline carries `row_<kind>_<event id>` rather than
+  `row_<kind>`, so the screen it opens is about the row that was tapped. See
+  `tag/1`: without the id, screen 31 could only re-query the day and take the
+  first event back, which meant tapping the third row and editing the first.
+  The drawn day's rows have no stored event to name and keep the bare tag,
+  which is what keeps screen 31's sample reachable. Nothing this screen renders
+  takes that branch any more — every row it draws comes from a stored event and
+  carries that event's id — which is what struck `row_event` off the tap
+  sweep's `@known_collisions`.
   """
   use Kati.Screens.Root, root: :calendar
+
+  @doc """
+  What the `+` opens from the Schedule: `Kati.Screens.QuickAdd`.
+
+  It opened `Kati.Screens.AddTitle` — the films-and-series search sheet — from
+  the calendar, which is the half of MOVIES-AND-TV.md #16 that stayed open
+  because no board said which door was right. Board 18 does, in its own
+  caption: *One field for the whole app.* A `+` on the Schedule is somebody
+  saying *something is happening*, and 18 is the screen that takes that
+  sentence.
+
+  It is also screen 18's route. Until this it was reachable from the Calendar
+  dock the same way — the FAB pushed the wrong sheet — and the page it should
+  have been pushing had no field, no parser and no writer (#31). Both halves
+  landed together, which is why the door could be moved: a `+` that opened a
+  page of fixtures would have been a worse answer than the wrong page.
+  """
+  def add_sheet, do: Kati.Screens.QuickAdd
 
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaChip
@@ -32,39 +107,67 @@ defmodule Kati.Screens.Calendar do
   alias Kati.Theme
   alias Kati.Theme.Palette
 
+  @doc """
+  Coming back to the Schedule, from anything pushed over it.
+
+  See `Kati.Screens.Resume`. The rows are read at mount and a pop does not
+  remount, so quick-adding an event and pressing back left the day reading
+  `0 items` over an event that had just been written — the same defect the
+  shelf had, one root over (MOVIES-AND-TV.md #11).
+
+  The rows only. `date` is the day the reader has selected and `filter` is
+  what they narrowed to; neither is the sheet's to reset, which is the whole
+  reason `:resumed` is opt-in per screen rather than a re-run of `load/1`.
+  """
+  @impl true
+  def handle_kati(:resumed, _payload, socket) do
+    {:noreply, Mob.Socket.assign(socket, :rows, day_rows(socket.assigns.date))}
+  end
+
   @impl true
   def load(socket) do
     date = Kati.Time.today()
-    Mob.Socket.assign(socket, date: date, rows: day_rows(date), filter: "All", menu?: false)
+
+    Mob.Socket.assign(socket,
+      date: date,
+      rows: day_rows(date),
+      filter: "All",
+      menu?: false,
+      # Read, never remembered. `Kati.Permissions` says why at length: a
+      # permission can be revoked in system settings while Kati is
+      # backgrounded, so a cached boolean becomes a lie exactly when it
+      # matters. Answered once per mount, which is once per arrival at the
+      # screen.
+      access: Kati.Permissions.status(:calendar)
+    )
   end
 
   @doc """
   The day's rows, each carrying the shape the drawing gives it.
 
   `Kati.Calendars.Today` answers with the device's own events, and on a device
-  with nothing mirrored it answers with nothing — which drew a single grey
-  "Nothing scheduled today" card where the design draws five rows in five
-  different shapes, so the screen could not be compared with its frame at all.
-  FIDELITY's rule covers this: *missing data is not a reason for a blank
-  screen*. TODAY therefore falls back to the drawn day; any other date the
-  user taps still shows its real emptiness, so the empty state stays reachable
-  and no other day is dressed up with events that are not there.
+  with nothing mirrored it answers with nothing. Nothing is what this returns,
+  for every date including today — see the moduledoc for why the today
+  exception was removed rather than narrowed.
   """
   @spec day_rows(Date.t()) :: [map()]
   def day_rows(date) do
-    case Kati.Calendars.Today.rows(date) do
-      [] -> if date == Kati.Time.today(), do: drawn_rows(), else: []
-      rows -> Enum.map(rows, &Kati.Screens.Calendar.shaped/1)
-    end
+    date
+    |> Kati.Calendars.Today.rows()
+    |> Enum.map(&Kati.Screens.Calendar.shaped/1)
   end
 
   @doc """
   The five rows of `test/design/screens/02.html`, in its own order.
 
-  Stand-in data, and marked as such — but the SHAPES are not stand-in: the
-  design draws a done habit, an appointment, a reminder, a renewal and an
-  airing group as five different cards, and every one of them is a state the
-  real timeline will need.
+  **The screen does not render these and no code path reaches them.** They are
+  the board's transcription, kept because that is a thing worth keeping: the
+  design sweeps read them to compare the board against something, and
+  `Kati.CalendarsTodayTest` reads them to check `kind/1` against every shape
+  the drawing spends a page proving are not one row repeated — a done habit, an
+  appointment, a reminder, a renewal and an airing group. Deleting them would
+  delete the record of the frame, not the defect; the defect was `day_rows/1`
+  handing them to a person as their own day, and that is gone.
   """
   @spec drawn_rows() :: [map()]
   def drawn_rows do
@@ -140,6 +243,12 @@ defmodule Kati.Screens.Calendar do
     date = assigns.date
     rows = assigns.rows
 
+    # Read off the UNFILTERED rows. A day that holds a renewal and nothing else
+    # goes empty under the Personal chip, and that emptiness is the filter's,
+    # not the calendar's — offering "Kati cannot see your calendar" there would
+    # be a second false statement in the place the first one was removed from.
+    reason = Kati.Screens.Calendar.empty_reason(rows, Map.get(assigns, :access, :unknown))
+
     ~MOB"""
     <Scroll>
       <Column
@@ -155,7 +264,8 @@ defmodule Kati.Screens.Calendar do
         {Kati.Screens.Calendar.rule()}
         <Spacer size={16} />
         {Kati.Screens.Calendar.filters(assigns.filter)}
-        {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter))}
+        {Kati.Screens.Calendar.timeline(Kati.Screens.Calendar.visible(rows, assigns.filter), reason)}
+        {Kati.Screens.Calendar.calendars_card(Map.get(assigns, :access, :unknown))}
       </Column>
     </Scroll>
     """
@@ -498,28 +608,263 @@ defmodule Kati.Screens.Calendar do
   @doc false
   def chip_gap, do: ~MOB"<Spacer size={7} />"
 
+  @doc """
+  Which of the two emptinesses the timeline is looking at.
+
+  Pure, and separate from the render for the reason
+  `Kati.Permissions.affordance/1` is: the choice between *your calendar is
+  empty* and *Kati cannot read your calendar* is the whole of what this screen
+  decides about a permission, and it should be settleable without a device. On
+  a host `Kati.Permissions.status/1` answers `:unknown` for want of a bridge,
+  so a test that could only go through `load/1` could never reach the second
+  card at all.
+
+  `:unknown` answers `:no_events`, and that is the careful half. Android's four
+  states are asymmetric (see `Kati.Permissions`) but they are all ANSWERS;
+  `:unknown` is the absence of one, and an absent answer is not a denial. Being
+  wrong the other way — a granted calendar told it is locked out — would send a
+  person into system settings to fix a permission they already gave.
+  """
+  @spec empty_reason([map()], Kati.Permissions.state()) :: :no_events | :no_permission
+  def empty_reason([], access) when access in [:unasked, :denied, :blocked], do: :no_permission
+  def empty_reason(_rows, _access), do: :no_events
+
   @doc false
-  def timeline([]) do
-    ~MOB"""
-    <Box
-      fill_width={true}
-      background={Palette.card()}
-      corner_radius={18}
-      shadow={Kati.Theme.shadow_card()}
-      padding={18}
-    >
-      <Text text="Nothing scheduled today" text_size={14} text_color={Palette.sub()} />
-    </Box>
-    """
+  def timeline(rows, reason \\ :no_events)
+
+  def timeline([], :no_permission) do
+    Kati.Screens.Calendar.empty_card("lock", "Kati cannot see your calendar", [
+      # Screen 40's Calendars row, word for word. Purpose first, then scope —
+      # 151's fixed order for stating a permission.
+      "To show your appointments beside your episodes. Kati only reads them.",
+      # Where the control is, rather than a second copy of it. 40 is the board
+      # that draws Allow, and 136's caption is why this is a sentence and not a
+      # button: for a permanently refused permission the button would do
+      # nothing, and a button that does nothing is worse than the truth.
+      "Allow Calendars in Settings, under This device."
+    ])
   end
 
-  def timeline(rows) do
+  def timeline([], :no_events) do
+    # Screen 139's row, which is the only place any board words this. Its
+    # em-dashed sentence is split at the dash into the row's own two lines, and
+    # its trailing chevron is dropped: that row pushes the calendar and this
+    # card IS the calendar.
+    Kati.Screens.Calendar.empty_card("calendar_month", "Nothing scheduled", [
+      "Add anything with +"
+    ])
+  end
+
+  def timeline(rows, _reason) do
     ~MOB"""
     <Column fill_width={true}>
       {rows
        |> Enum.map(fn row -> Kati.Screens.Calendar.event_row(row) end)
        |> Enum.intersperse(Kati.Screens.Calendar.row_gap())}
     </Column>
+    """
+  end
+
+  # Screen 139's list row, built to its own numbers: a 30x30 paper tile at
+  # radius 9 with a 17pt `#5C574F` glyph, a 13.5/600 ink title, and 11.5pt
+  # `#8A8479` under it. The card is 139's too — radius 20 and the soft card
+  # shadow — rather than the timeline's 18 and lifted one, because 139 is the
+  # board this content is drawn on and 02 draws no card of this kind at all.
+  @doc false
+  def empty_card(icon, title, lines) do
+    ~MOB"""
+    <Row
+      fill_width={true}
+      background={Palette.card()}
+      corner_radius={20}
+      shadow={Kati.Theme.shadow_card_soft()}
+      padding_left={15}
+      padding_right={15}
+      padding_top={17}
+      padding_bottom={17}
+      align="top"
+    >
+      {Kati.Screens.Calendar.empty_tile(icon)}
+      <Spacer size={13} />
+      <Column weight={1.0}>
+        <Text text={title} text_size={13.5} font_weight="semibold" text_color={:on_surface} />
+        {Enum.map(lines, fn line -> Kati.Screens.Calendar.empty_line(line) end)}
+      </Column>
+    </Row>
+    """
+  end
+
+  # The same Theme Icon `payments_tile/0` uses, and for the same reason: a
+  # themed container around exactly one icon, and the card around it is not
+  # tappable either, so an Action Icon would be claiming an affordance that is
+  # not there.
+  @doc false
+  def empty_tile(icon) do
+    MishkaThemeIcon.theme_icon(
+      [variant: :filled, color: Palette.paper(), size: 30, radius: 9],
+      [Kati.UI.symbol(icon, size: 17, color: Palette.ink_soft())]
+    )
+  end
+
+  @doc false
+  def empty_line(line) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      <Text text={line} text_size={11.5} line_height={1.5} text_color={Palette.sub()} />
+    </Column>
+    """
+  end
+
+  @doc """
+  Board 306's card — *the one control that asks*.
+
+  306's whole subject is screen 02 on a phone whose calendars Kati cannot read,
+  and its finding is that the page had nothing to say about it unless the day
+  was **also** empty. `empty_reason/2` chooses between two emptinesses and
+  never runs on a day that holds a habit and an air date, which is exactly the
+  day 306 draws — *"Kati's own events still draw"* — so a reader with one
+  appointment of Kati's own was never told why their dentist was missing.
+
+  So this is a card and not a state: it sits under the timeline whenever the
+  permission has not been given, and the timeline above it is unchanged.
+
+  ## Three states, and `Kati.Permissions.affordance/1` picks
+
+    * `:allow` — the button. Android will show the dialog.
+    * `:settings` — the same card, reworded. 306: *"Declined and never asked
+      again? The card stays, reworded to send you to system settings — Android
+      grants no second prompt. Same rule as 136's notification denial."* A
+      button here would do nothing, and a button that does nothing is worse
+      than the truth — screen 40's own argument.
+    * `:none` — nothing. Granted needs no card, and `:unknown` is the absence
+      of an answer rather than a denial, which is `empty_reason/2`'s careful
+      half said again: telling a reader their calendars are not here, on a
+      device that has not answered, would be the claim this card exists to
+      stop.
+
+  Pure over the state for `empty_reason/2`'s reason: on a host
+  `Kati.Permissions.status/1` answers `:unknown` for want of a bridge, so a
+  card only reachable through `load/1` could not be looked at at all.
+
+  ## `READ ONLY`, where 306 draws `READ AND WRITE`
+
+  The board's mono line is `READ AND WRITE · YOU PICK WHICH ON 32` and Kati
+  asks for neither half of that. `AndroidManifest.xml`'s own `K-26
+  read-calendar` fence declares `READ_CALENDAR` alone and says why:
+  *"write-back is a separate decision (#54) and would need WRITE_CALENDAR."*
+  Screen 40's Calendars row already words it correctly — *"Kati only reads
+  them"* — and a button that promised to write would be asking for consent to
+  something the app cannot do. MOVIES-AND-TV.md #135.
+  """
+  @spec calendars_card(Kati.Permissions.state()) :: map()
+  def calendars_card(access) do
+    case Kati.Permissions.affordance(access) do
+      :allow ->
+        Kati.Screens.Calendar.ask_card(
+          Kati.Screens.Calendar.ask_button(),
+          "READ ONLY · YOU PICK WHICH ON 32"
+        )
+
+      :settings ->
+        Kati.Screens.Calendar.ask_card(
+          Kati.Screens.Calendar.settings_line(),
+          "ANDROID GRANTS NO SECOND PROMPT"
+        )
+
+      :none ->
+        ~MOB"<Spacer size={0} />"
+    end
+  end
+
+  @doc false
+  def ask_card(control, mono) do
+    assigns = %{control: control, mono: mono}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={22} />
+      <Column
+        fill_width={true}
+        background={Palette.card()}
+        corner_radius={22}
+        shadow={Kati.Theme.shadow_card_soft()}
+        padding={17}
+      >
+        <Row fill_width={true} align="top">
+          {MishkaThemeIcon.theme_icon(
+            [variant: :filled, color: Palette.paper(), size: 36, radius: 12],
+            [Kati.UI.symbol("calendar_month", size: 19, color: Palette.ink_soft())]
+          )}
+          <Spacer size={12} />
+          <Column weight={1.0}>
+            <Text
+              text="Your other calendars are not here"
+              text_size={14}
+              font_weight="bold"
+              text_color={:on_surface}
+              max_lines={2}
+            />
+            <Spacer size={7} />
+            <Text
+              text="Calendars already on this phone are not connected here — they arrive with the Android permission and land with no account row at all."
+              text_size={12.5}
+              line_height={1.65}
+              text_color={Palette.ink_soft()}
+            />
+          </Column>
+        </Row>
+        <Spacer size={15} />
+        {@control}
+        <Spacer size={12} />
+        <Text
+          text={@mono}
+          font_family="mono"
+          text_size={10.5}
+          text_align="center"
+          text_color={Palette.muted()}
+        />
+      </Column>
+    </Column>
+    """
+  end
+
+  @doc false
+  def ask_button do
+    ~MOB"""
+    <Box
+      fill_width={true}
+      height={54}
+      corner_radius={27}
+      background={Palette.ink_fill()}
+      shadow={Kati.Theme.shadow_card()}
+      align="center"
+      on_tap={{self(), :ask_calendars}}
+    >
+      <Text
+        text="Let Kati read my calendars"
+        text_size={14.5}
+        font_weight="bold"
+        text_color={Palette.on_ink()}
+      />
+    </Box>
+    """
+  end
+
+  # A sentence, not a button. Nothing in Kati launches a system-settings
+  # intent — `Kati.Screens.NotificationsHelp` states the same wall — and the
+  # words are screen 02's own `:no_permission` card's, so the two places this
+  # page can say it cannot say it differently.
+  @doc false
+  def settings_line do
+    ~MOB"""
+    <Text
+      text="Allow Calendars in Settings, under This device."
+      text_size={12.5}
+      line_height={1.65}
+      text_color={:on_surface}
+      font_weight="semibold"
+    />
     """
   end
 
@@ -939,7 +1284,47 @@ defmodule Kati.Screens.Calendar do
   end
 
   @doc false
-  def tap(row), do: {self(), String.to_atom("row_" <> row.kind)}
+  def tap(row), do: {self(), Kati.Screens.Calendar.tag(row)}
+
+  @doc """
+  The tag a timeline row's card carries: `row_<kind>_<event id>`.
+
+  ## Why the id is on the tag at all
+
+  A tap arrives as one atom and nothing else — `handle_info({:tap, tag})` is the
+  whole of what the bridge sends back — so whatever the destination screen needs
+  to know has to be IN it. Before this the tag was `row_<kind>`, which named the
+  destination and not the row, and screen 31 had no choice but to re-query and
+  take the first event of the day: tap the third row, edit the first (#84).
+
+  ## Why an atom and not a tuple
+
+  `{:row, "event", id}` would render — mob puts whatever term it is given on
+  `on_tap` — and it would draw a control with **no `accessibility_id`**, because
+  the id is derived from an atom tag. A row nothing can address by name is a row
+  no device test and no screen reader can reach, which is a worse defect than
+  the one being fixed. `Kati.Screens.ImportSources.tag/1` settled this shape
+  already and this is the same one.
+
+  The atom per event is the cost, and it is bounded by what the user has
+  actually looked at: a row re-rendered is the same string and therefore the
+  same atom, so a day browsed twice mints nothing the first pass did not.
+
+  ## Why the id is OPTIONAL
+
+  `drawn_rows/0` is the day the drawing shows, and its rows are not stored
+  anywhere — there is no event to name. Those keep the bare `row_<kind>` tag,
+  and screen 31 answers a push with no id with its own sample, which is what
+  the empty-database sweep renders. Splitting on the first `_` after the kind is
+  unambiguous in both directions: no kind contains one and a UUID contains none.
+  """
+  @spec tag(map()) :: atom()
+  def tag(row) do
+    case Map.get(row, :id) do
+      nil -> String.to_atom("row_" <> Kati.Screens.Calendar.kind(row))
+      id -> String.to_atom("row_" <> Kati.Screens.Calendar.kind(row) <> "_" <> to_string(id))
+    end
+  end
 
   @doc """
   Rows a filter leaves visible.
@@ -1017,11 +1402,37 @@ defmodule Kati.Screens.Calendar do
     {:noreply, Mob.Socket.assign(socket, airing_open?: open?, rows: rows)}
   end
 
+  # `%{query: "", back: "Calendar"}` for `open_row/4`'s own reason two hundred
+  # lines down: the push names what the tap knows. Here that is an empty field
+  # and this root's name — 19's pill read `Home` from every one of its doors,
+  # and none of them is Home.
   def handle_tap(:open_search, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Search)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(socket, Kati.Screens.Search, %{query: "", back: "Calendar"})}
 
   def handle_tap(:open_month, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MonthGrid)}
+
+  @doc """
+  Board 306's button. `Kati.Screens.PickSections.ask_for_calendar/1`'s call,
+  made from the page the permission is actually about.
+
+  `note_asked/1` before the request, for that function's reason:
+  `Mob.Permissions.request/2` raises where there is no bridge, and a note
+  written after it never runs — losing the one record that tells `:unasked`
+  from `:blocked`. Nothing is assigned: the answer arrives as
+  `{:permission, :calendar, _}` and `load/1` reads the platform on every
+  render, which is `Kati.Permissions`' whole argument.
+  """
+  def handle_tap(:ask_calendars, socket) do
+    Kati.Permissions.note_asked(:calendar)
+    {:noreply, Mob.Permissions.request(socket, :calendar)}
+  rescue
+    # The host has no OS to answer and `request/2` raises there. This screen is
+    # rendered by five sweeps on a laptop; a raising tap would fail them all.
+    _error -> {:noreply, socket}
+  end
 
   def handle_tap(:toggle_menu, socket),
     do: {:noreply, Mob.Socket.assign(socket, :menu?, not socket.assigns.menu?)}
@@ -1039,8 +1450,19 @@ defmodule Kati.Screens.Calendar do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "row_" <> kind ->
-        {:noreply, Mob.Socket.push_screen(socket, Map.fetch!(@row_screens, kind))}
+      # The row's own event rides across as `%{id: id}`, so the screen that
+      # opens is about the row that was tapped rather than about whatever the
+      # destination's own query happens to return first. A row with no id — the
+      # drawn day — pushes with no params at all rather than with `%{id: nil}`:
+      # a destination that pattern-matches on the key would then take a nil for
+      # an answer, and the sample fallback is the branch that has to survive.
+      #
+      # The routing itself is `open_timeline_row/3` and is public, because this
+      # is not the only screen that draws these rows — see its own doc. The day
+      # it passes is the day the strip is on, which is what this branch has
+      # always used and is the whole of what changed here.
+      "row_" <> _rest ->
+        {:noreply, Kati.Screens.Calendar.open_timeline_row(socket, tag, socket.assigns.date)}
 
       "filter_" <> label ->
         {:noreply, Mob.Socket.assign(socket, :filter, label)}
@@ -1094,14 +1516,11 @@ defmodule Kati.Screens.Calendar do
         date = Date.from_iso8601!(iso)
 
         if date == socket.assigns.date do
-          # The date rides along as a param even though `Kati.Screens.Day`
-          # currently throws it away — `day.ex`'s `load/1` assigns
-          # `date: Kati.Time.today()` and never reads `assigns.params`. Said
-          # out loud rather than left as a surprise: this is the route stating
-          # which day was opened, and the day the drawing titles (`Thu 20
-          # Aug`) is whichever cell was tapped. Teaching 09 to read it is a
-          # change to `day.ex`, which this screen does not own; passing
-          # nothing would mean changing both files instead of one.
+          # The date is the whole of what this route carries, and screen 09
+          # reads it now: `day.ex`'s `load/1` titles the page with the day it
+          # was handed and draws that day's own events. This comment used to
+          # record the opposite — the param was passed and thrown away — which
+          # is the same defect the row tags below had, one screen along.
           {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Day, %{date: date})}
         else
           {:noreply,
@@ -1116,12 +1535,76 @@ defmodule Kati.Screens.Calendar do
     end
   end
 
+  # `row_event_9f3c…` → `{"event", "9f3c…"}`, `row_event` → `{"event", nil}`.
+  # `parts: 2` so the id is never split further; a UUID has no underscore, and
+  # neither has any of the four names `@row_screens` is keyed on, so the first
+  # separator is the only one that means anything.
+  defp split_row(rest) do
+    case String.split(rest, "_", parts: 2) do
+      [kind, id] when id != "" -> {kind, id}
+      [kind] -> {kind, nil}
+      [kind, _empty] -> {kind, nil}
+    end
+  end
+
+  # Two of `@row_screens`' four destinations are about a DAY and two are about a
+  # ROW, and the tag carries the wrong one of those for half of them. 52 and 126
+  # title themselves with a date and read no id at all, so handing them the
+  # tapped event's uuid named nothing either of them could look up — it was
+  # thrown away on arrival and the page opened on its own fixture's day. 08 and
+  # 31 are the other way round and keep the id.
+  @day_screens [Kati.Screens.MealsDay, Kati.Screens.MoneyDay]
+
+  @doc """
+  Open the screen a timeline-row tag names, for a row drawn on `date`.
+
+  Public because this screen is not the only one that draws these rows. Screen
+  01's *Rest of today* card and screen 56's timeline are the same
+  `Kati.Calendars.Today` shape carrying the same `tag/1`, and the mapping from
+  a row's kind to a screen is a fact about the app rather than about this page.
+  Restating it per screen is how `kind/1` came to be derived twice and disagree
+  with itself — the defect that doc spends a section on — and a second copy of
+  `@row_screens` is that same shape one level up.
+
+  `date` is a parameter rather than a read off `socket.assigns`: the two other
+  callers have no day strip, so their day is today, and this screen's is
+  whichever day the strip is on. Passing it makes the difference the caller's
+  to state and keeps `%{date: …}` honest on both.
+
+  The split between the two push shapes is `@day_screens`': 52 and 126 title
+  themselves with a date and read no id, so they take the day; 08 and 31 are
+  about the row and take its id. A row with no id — the drawn day — pushes with
+  no params at all, which is what keeps each destination's sample reachable.
+  """
+  @spec open_timeline_row(Mob.Socket.t(), atom(), Date.t()) :: Mob.Socket.t()
+  def open_timeline_row(socket, tag, date) do
+    {kind, id} = tag |> Atom.to_string() |> String.replace_prefix("row_", "") |> split_row()
+
+    open_row(socket, Map.fetch!(@row_screens, kind), id, date)
+  end
+
+  defp open_row(socket, module, _id, date) when module in @day_screens,
+    do: Mob.Socket.push_screen(socket, module, %{date: date})
+
+  defp open_row(socket, module, nil, _date), do: Mob.Socket.push_screen(socket, module)
+  defp open_row(socket, module, id, _date), do: Mob.Socket.push_screen(socket, module, %{id: id})
+
   # Close the menu, then go. The socket this returns is what `Mob.Screen` saves
   # onto the nav history, so a menu left open is a menu that reopens itself
   # every time the user comes back from what it opened.
   defp pick(socket, module) do
     socket
     |> Mob.Socket.assign(:menu?, false)
-    |> Mob.Socket.push_screen(module)
+    |> Mob.Socket.push_screen(module, pick_params(socket, module))
   end
+
+  # `Meals on the calendar` and `Money on the calendar` mean THIS calendar — the
+  # day the strip is on — and the menu was sending neither of them which day
+  # that was. Agenda and Quick add take nothing: 30 is a root, whose mount
+  # discards params outright (`Kati.Screens.Root`), and 18 draws a frozen parse
+  # with no date anywhere on it.
+  defp pick_params(socket, module) when module in @day_screens,
+    do: %{date: socket.assigns.date}
+
+  defp pick_params(_socket, _module), do: %{}
 end

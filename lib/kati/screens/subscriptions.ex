@@ -57,14 +57,31 @@ defmodule Kati.Screens.Subscriptions do
 
   ## Why this screen is still on `Kati.Subscriptions.Sample`
 
-  There is no subscription resource, and this is the one screen in the app
-  where that is a statement about the schema rather than about the round it
-  landed in: **no table anywhere holds a price.** Not `Kati.Media`, not
-  `Kati.Calendars`, not `Kati.Meals`. Every figure this screen prints — the
-  `£46.47` hero, the four prices, the change since March — has nowhere to come
-  from.
+  This section used to open *no table anywhere holds a price*, and that stopped
+  being true. `Kati.Services.Service` carries `monthly_pence` and `currency`,
+  screen 92 owns them and says so on the page, and since #95 a person can put a
+  service into that table themselves — the `Something else` row, through
+  `Kati.Screens.MyServices.save_service/1`. So a price has a home and a door
+  now, and the paragraph claiming otherwise would have sent the next reader off
+  to build one that exists.
 
-  The nearest thing that exists is `Kati.Calendars.Event.kind`'s `:money`
+  What it does not have is a **figure**, and that is why this screen has not
+  moved. `Something else` writes a name and no price, because band 6 of ticket
+  `D-10` asks for an editable price and no artboard in the set draws the editor.
+  A service created today is a row with `monthly_pence: nil`, which screen 92
+  renders honestly as a name with a blank right-hand column and this screen
+  could only render as `£0.00` or as a hole. Neither is one of the four rows the
+  drawing has.
+
+  And there is no control on **this** screen to fix that with. 23.html holds one
+  `more_horiz` and no menu, sheet or popover anywhere in the export — see
+  `handle_tap/2`'s last clause — so a *New subscription* sheet here would be a
+  screen invented rather than built, which is the one thing 152 drawn artboards
+  exist to make unnecessary.
+
+  The rest of the gap is untouched by any of that, and it is the part the screen
+  is actually about. The nearest thing that exists is
+  `Kati.Calendars.Event.kind`'s `:money`
   value, and `Kati.Seeds` does write two renewal events with a price in the
   `description`. That is not a source and must not be treated as one:
 
@@ -83,25 +100,64 @@ defmodule Kati.Screens.Subscriptions do
   carries `runtime_minutes`, so hours per *service* would additionally need a
   provider→service mapping, which nothing holds either.
 
-  So the ask here is a domain, not a column: a service with a price and a
+  So the ask here was a domain, not a column: a service with a price and a
   cadence, a link from a tracked title to the service that carries it, and a
-  duration on a watch. Until all three exist, every row on this screen is the
-  drawing's, and a screen half-priced from calendar descriptions would be
-  worse than one that is honestly a drawing.
+  duration on a watch. The first of the three landed with `Kati.Services`; the
+  other two have not, and the rate is the one this screen exists for. Until they
+  do, every row here is the drawing's, and a screen half-priced from a table
+  that holds names without figures would be worse than one that is honestly a
+  drawing.
   """
-  use Kati.Screens.Pushed, back: "Stats"
+  # `My services`, not `Stats`. Board 23's pill reads Stats and the only route
+  # into this page is screen 92's Money row — MOVIES-AND-TV.md #66 — so the
+  # word and the gesture disagreed. `Kati.Screens.Pushed.back_label/2` takes a
+  # caller's own word ahead of this one, so a door that opens it from anywhere
+  # else says so without touching this line.
+  use Kati.Screens.Pushed, back: "My services"
 
   alias Kati.Subscriptions.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
 
   @impl true
-  def load(socket), do: Mob.Socket.assign(socket, suggestion: true, reminded: false)
+  def load(socket) do
+    Mob.Socket.assign(socket,
+      ledger: Kati.Screens.Subscriptions.ledger(),
+      # Read once, at mount, and carried — so the page cannot change its mind
+      # mid-render, and so a captured frame can put this screen in the state
+      # its own board draws without writing a service into the store.
+      set_up?: Kati.Screens.NothingSetUpKnockOn.set_up?(),
+      suggestion: true,
+      reminded: false
+    )
+  end
+
+  @doc """
+  The ledger this page draws: the reader's, or the drawing's.
+
+  All-or-nothing, the gate screens 04 and 92 keep: a page with the reader's
+  one service in it and the drawing's other three under it reads as entirely
+  real and is three-quarters invented. MOVIES-AND-TV.md #66.
+  """
+  @spec ledger() :: map()
+  def ledger, do: Kati.Subscriptions.ledger() || Kati.Screens.Subscriptions.drawn_ledger()
+
+  @doc "Board 23 exactly as it is drawn, from `Kati.Subscriptions.Sample`."
+  @spec drawn_ledger() :: map()
+  def drawn_ledger do
+    %{
+      active_line: Sample.active_line(),
+      monthly: Sample.monthly(),
+      services: Sample.services(),
+      suggestion: Sample.suggestion()
+    }
+  end
 
   @doc false
   def content(assigns) do
     shown? = assigns.suggestion
     reminded? = assigns.reminded
+    ledger = assigns[:ledger] || Kati.Screens.Subscriptions.ledger()
 
     ~MOB"""
     <Scroll>
@@ -113,14 +169,52 @@ defmodule Kati.Screens.Subscriptions do
         padding_bottom={40}
       >
         {Kati.Screens.Subscriptions.back_row()}
-        {Kati.Screens.Subscriptions.title()}
-        {Kati.Screens.Subscriptions.monthly()}
-        {UI.eyebrow("Services")}
-        {Kati.Screens.Subscriptions.services()}
-        {Kati.Screens.Subscriptions.suggestion(shown?, reminded?)}
+        {Kati.Screens.Subscriptions.body(ledger, shown?, reminded?, Map.get(assigns, :set_up?, true))}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The page, or board 96's fourth band in place of it.
+
+  MOVIES-AND-TV.md #120. Screen 96 draws *an empty ledger* — **No subscriptions
+  yet**, and explicitly not `£0.00 a month`, because a zero total is a sentence
+  about your spending and it would be false. Nothing in the app could ever
+  enter that state: this screen fell back to `Kati.Subscriptions.Sample` when
+  the store had nothing, so a reader with no services was shown somebody
+  else's four.
+
+  The band's own note says what the decision takes out with it — the delta
+  badge, the per-service rows and the Worth-a-look card, all of which would
+  otherwise report a change of nothing against nothing — so this branch draws
+  none of them rather than drawing them empty.
+
+  `set_up?/0` could not answer `false` until #75 took the fixture fallback off
+  `Kati.Screens.MyServices.listed/0`; screen 96's moduledoc named exactly that
+  as the change these four bands were waiting on.
+  """
+  @spec body(map(), boolean(), boolean(), boolean()) :: term()
+  def body(ledger, shown?, reminded?, set_up?) do
+    if set_up? do
+      [
+        Kati.Screens.Subscriptions.title(ledger),
+        Kati.Screens.Subscriptions.monthly(ledger),
+        UI.eyebrow("Services"),
+        Kati.Screens.Subscriptions.services(ledger),
+        Kati.Screens.Subscriptions.suggestion(ledger.suggestion, shown?, reminded?)
+      ]
+    else
+      # ONE replaced section, which is board 96's own caption: *each band is a
+      # single replaced section of a screen that already exists*. The page keeps
+      # its header — 23 still has a page — and what goes is the ledger under it:
+      # the monthly total, the services and the Worth-a-look card, all three of
+      # which would otherwise report a change of nothing against nothing.
+      [
+        Kati.Screens.Subscriptions.title(%{ledger | active_line: "NONE YET"}),
+        Kati.Screens.NothingSetUpKnockOn.ledger()
+      ]
+    end
   end
 
   # The back pill itself is drawn by Kati.Screens.Pushed as floating chrome;
@@ -174,7 +268,9 @@ defmodule Kati.Screens.Subscriptions do
   end
 
   @doc false
-  def title do
+  def title(ledger) do
+    assigns = %{active_line: ledger.active_line}
+
     ~MOB"""
     <Column fill_width={true}>
       <Text
@@ -187,7 +283,7 @@ defmodule Kati.Screens.Subscriptions do
       />
       <Spacer size={5} />
       <Text
-        text={Kati.Subscriptions.Sample.active_line()}
+        text={@active_line}
         font_family="mono"
         text_size={11}
         text_color={Palette.muted()}
@@ -199,8 +295,8 @@ defmodule Kati.Screens.Subscriptions do
   end
 
   @doc false
-  def monthly do
-    m = Sample.monthly()
+  def monthly(ledger) do
+    m = ledger.monthly
 
     ~MOB"""
     <Column fill_width={true}>
@@ -226,42 +322,54 @@ defmodule Kati.Screens.Subscriptions do
           letter_spacing={-0.04}
           text_color={:on_surface}
         />
-        <Spacer size={12} />
-        <Row fill_width={true} align="center">
-          {Kati.UI.symbol("trending_up", size: 15, color: Palette.red())}
-          <Spacer size={7} />
-          <Text
-            text={m.change_lead}
-            text_size={12.5}
-            text_color={Palette.cream_sub()}
-            max_lines={1}
-          />
-          <Spacer size={4} />
-          <Text
-            text={m.change_amount}
-            text_size={12.5}
-            font_weight="semibold"
-            text_color={:on_surface}
-            max_lines={1}
-          />
-          <Spacer size={4} />
-          <Text
-            text={m.change_rest}
-            text_size={12.5}
-            text_color={Palette.cream_sub()}
-            max_lines={1}
-          />
-          <Spacer weight={1.0} />
-        </Row>
+        {Kati.Screens.Subscriptions.change_line(m)}
       </Column>
       <Spacer size={22} />
     </Column>
     """
   end
 
+  @doc """
+  `↗ Up £4.00 since March — Orbit raised its price`, or nothing at all.
+
+  Nothing at all is what a real account gets, and will until something records
+  what a price used to be: `Kati.Services.Service` holds the price a service
+  is at, not the one it was. Board 23 draws the line because board 23's reader
+  had a rise; inventing one for anybody else would be inventing the number
+  this page is about.
+  """
+  @spec change_line(map()) :: map()
+  def change_line(%{change_amount: nil}), do: ~MOB"<Spacer size={0} />"
+
+  def change_line(m) do
+    assigns = %{lead: m.change_lead, amount: m.change_amount, rest: m.change_rest}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={12} />
+      <Row fill_width={true} align="center">
+        {Kati.UI.symbol("trending_up", size: 15, color: Palette.red())}
+        <Spacer size={7} />
+        <Text text={@lead} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
+        <Spacer size={4} />
+        <Text
+          text={@amount}
+          text_size={12.5}
+          font_weight="semibold"
+          text_color={:on_surface}
+          max_lines={1}
+        />
+        <Spacer size={4} />
+        <Text text={@rest} text_size={12.5} text_color={Palette.cream_sub()} max_lines={1} />
+        <Spacer weight={1.0} />
+      </Row>
+    </Column>
+    """
+  end
+
   @doc false
-  def services do
-    rows = Sample.services()
+  def services(ledger) do
+    rows = ledger.services
     last = length(rows) - 1
 
     children =
@@ -288,15 +396,29 @@ defmodule Kati.Screens.Subscriptions do
     """
   end
 
-  @doc false
+  @doc """
+  One service on the ledger, and the door to the page about it.
+
+  Boards 252 and 302 draw a per-service page and it had no way in: screen 92's
+  row is #119's price editor and owns that gesture, so the door is here, on the
+  page whose rows already ARE one service each. That page is where `paused` and
+  `renews_on` are set — two columns this screen READS (a paused row greys and
+  drops its rate) and nothing could write.
+
+  A drawn row carries no name to look up, so it draws no tap: the fixture's
+  services are not the reader's, and `Kati.Screens.Service.find/1` would answer
+  `nil` for every one of them.
+  """
+  @spec service_row(map(), boolean()) :: map()
   def service_row(row, rule?) do
     paused? = Map.get(row, :paused, false)
     name_color = if paused?, do: Palette.sub(), else: Palette.ink()
     line_color = if paused?, do: Palette.tertiary(), else: Palette.sub()
+    tap = Kati.Screens.Subscriptions.service_tap(row)
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14}>
+      <Row fill_width={true} align="center" padding_top={14} padding_bottom={14} on_tap={tap}>
         {Kati.Screens.Subscriptions.badge(row.badge)}
         <Spacer size={13} />
         <Column weight={1.0}>
@@ -307,13 +429,35 @@ defmodule Kati.Screens.Subscriptions do
             text_color={name_color}
             max_lines={1}
           />
-          <Spacer size={3} />
-          <Text text={row.line} text_size={11.5} text_color={line_color} max_lines={1} />
+          {Kati.Screens.Subscriptions.row_line(row.line, line_color)}
         </Column>
         <Spacer size={13} />
         {Kati.Screens.Subscriptions.money(row, paused?)}
       </Row>
       {Kati.Screens.Subscriptions.hairline(rule?)}
+    </Column>
+    """
+  end
+
+  @doc """
+  The line under a service's name, or nothing.
+
+  `nil` is an ordinary answer: a service with no renewal date and nothing
+  watched on it has nothing to put here. The `Text` was unconditional and a
+  `nil` reached the bridge, which renders it as the four letters `nil` — the
+  device found that in the first minute of looking at this page, and it is
+  the class of defect `Kati.Write.message/1` exists to stop one layer down.
+  """
+  @spec row_line(String.t() | nil, term()) :: map()
+  def row_line(nil, _colour), do: ~MOB"<Spacer size={0} />"
+
+  def row_line(line, colour) do
+    assigns = %{line: line, colour: colour}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={3} />
+      <Text text={@line} text_size={11.5} text_color={@colour} max_lines={1} />
     </Column>
     """
   end
@@ -349,6 +493,8 @@ defmodule Kati.Screens.Subscriptions do
   # because £5.00 buying nothing is not a price per hour. Two clauses rather
   # than a nil-rate branch, so the shapes stay honestly different.
   @doc false
+  def money(%{price: nil}, _paused?), do: ~MOB"<Spacer size={0} />"
+
   def money(row, true) do
     ~MOB"""
     <Text
@@ -379,7 +525,7 @@ defmodule Kati.Screens.Subscriptions do
       />
       <Spacer size={3} />
       <Text
-        text={row.rate}
+        text={row.rate || ""}
         font_family="mono"
         text_size={10}
         text_color={row.rate_tone}
@@ -400,16 +546,19 @@ defmodule Kati.Screens.Subscriptions do
   # have laid out the same; "almost certainly" is not what the frame comparison
   # is measured in.
   @doc false
-  def suggestion(false, _reminded?), do: ~MOB"<Spacer size={0} />"
+  # `nil` is the third state and the important one: a reader whose every
+  # service is being used has nothing worth a look, and a card that appeared
+  # every month regardless would be a card nobody reads. Board 23 always draws
+  # it because board 23's reader is paying £13.99 for six hours.
+  def suggestion(nil, _shown?, _reminded?), do: ~MOB"<Spacer size={0} />"
+  def suggestion(_advice, false, _reminded?), do: ~MOB"<Spacer size={0} />"
 
-  def suggestion(true, reminded?) do
-    [Kati.UI.Eyebrow.quiet("Worth a look"), Kati.Screens.Subscriptions.advice(reminded?)]
+  def suggestion(advice, true, reminded?) do
+    [Kati.UI.Eyebrow.quiet("Worth a look"), Kati.Screens.Subscriptions.advice(advice, reminded?)]
   end
 
   @doc false
-  def advice(reminded?) do
-    s = Sample.suggestion()
-
+  def advice(s, reminded?) do
     ~MOB"""
     <Column
       fill_width={true}
@@ -606,12 +755,48 @@ defmodule Kati.Screens.Subscriptions do
   # `:remind` toggles rather than latches, so the one control that arms it can
   # also cancel it. There is nowhere else on this screen to cancel from, and a
   # button that can only be pressed once is a button that lies the second time.
+  # Board 96's button, on the band this screen draws when nothing is set up
+  # (#120). All four of the sheet's routes lead to one place.
+  @doc """
+  The tap that opens one service's page, or `nil` on a row that is a picture.
+
+  Keyed on the name, which is what `Kati.Screens.Service.find/1` looks a
+  service up by and what `Kati.Screens.MyServices.service_tag/1` already keys
+  its own row on. `live?` is the ledger's own flag for *these are the reader's
+  services*; the drawing's are not, so they open nothing.
+
+      iex> Kati.Screens.Subscriptions.service_tap(%{name: "Lumen+", live?: false})
+      nil
+  """
+  @spec service_tap(map()) :: {pid(), atom()} | nil
+  def service_tap(%{live?: true, name: name}) when is_binary(name) and name != "",
+    do: {self(), String.to_atom("open_service_" <> String.replace(name, " ", "_"))}
+
+  def service_tap(_drawn), do: nil
+
   @impl true
-  def handle_tap(:remind, socket) do
+  def handle_tap(:my_services_ledger, socket),
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MyServices)}
+
+  def handle_tap(tag, socket) when is_atom(tag) do
+    case Atom.to_string(tag) do
+      "open_service_" <> name ->
+        {:noreply,
+         Mob.Socket.push_screen(socket, Kati.Screens.Service, %{
+           name: String.replace(name, "_", " ")
+         })}
+
+      _other ->
+        Kati.Screens.Subscriptions.other_tap(tag, socket)
+    end
+  end
+
+  @doc false
+  def other_tap(:remind, socket) do
     {:noreply, Mob.Socket.assign(socket, :reminded, not socket.assigns.reminded)}
   end
 
-  def handle_tap(:dismiss, socket) do
+  def other_tap(:dismiss, socket) do
     {:noreply, Mob.Socket.assign(socket, :suggestion, false)}
   end
 
@@ -622,5 +807,5 @@ defmodule Kati.Screens.Subscriptions do
   # invented. Left tappable rather than untapped: the drawing draws a control,
   # and stripping `on_tap` would take its press feedback away too. It is inert
   # and silent — the catch-all, not a raise — until a sheet is drawn.
-  def handle_tap(_tag, socket), do: {:noreply, socket}
+  def other_tap(_tag, socket), do: {:noreply, socket}
 end

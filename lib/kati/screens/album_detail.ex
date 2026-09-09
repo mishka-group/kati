@@ -51,11 +51,80 @@ defmodule Kati.Screens.AlbumDetail do
 
   @secondary [{"star", "Rate", :rate}, {"bookmarks", "Add to list", :add_to_list}]
 
-  def load(socket), do: Mob.Socket.assign(socket, :album, album())
+  # `Kati.Screens.Pushed` puts the push's params on `:params`, and this is the
+  # screen reading them. The id is kept in its own assign beside the album, for
+  # the reason `Kati.Screens.MealEdit.load/1` keeps `:meal_id`: the album a
+  # caller named and the album that was found are two different facts, and the
+  # tracklist, its eyebrow and the listen field all have to follow the NAMED
+  # one — a row deleted under you draws the drawing and must not fall through
+  # to somebody else's tracks.
+  def load(socket) do
+    id = Map.get(socket.assigns.params || %{}, :album_id)
+
+    socket
+    |> Mob.Socket.assign(:album_id, id)
+    |> Mob.Socket.assign(:album, album(id))
+  end
+
+  @doc """
+  The album a write opened from this screen must act on.
+
+  The id the push NAMED, when it named one, and otherwise the id of the album
+  that was resolved — which is the shelf's first, and the right target for a
+  screen nobody told which record to open. `Map.get/2` on both, because the
+  Persian twin builds its own socket and need not carry `:album_id`.
+
+  Copied from `Kati.Screens.BookDetail.target/1`, and it closes the same hole
+  one domain over. `album/1` collapses two facts into one value — *nobody named
+  an album* and *the named album is gone* both answer `Kati.Music.Sample.album/0`,
+  which has no id — so `Log a listen` built from `assigns.album` alone handed
+  the sheet `%{}` in BOTH cases, and `%{}` means *the shelf's first* to
+  `Kati.Screens.LogListen`. A page drawing the fixture because the record it
+  was opened on had been deleted would then credit a play, bump per-track
+  counts and move `last_played_on` on a real album the reader is not looking
+  at. Keeping the NAMED id separate is what lets that refuse:
+  `Kati.Screens.LogListen.save_listen/1` reads `shelved(assigns[:album_id])`,
+  and a named-and-missing id is `nil` from `Ash.get/2` and a refusal, where
+  named-nothing is still the shelf's first and still correct.
+  """
+  @spec target(map()) :: String.t() | nil
+  def target(assigns) do
+    Map.get(assigns, :album_id) || Map.get(assigns, :album, %{})[:id]
+  end
 
   @doc "The album this screen is about: the shelf's first, or the drawing's."
   @spec album() :: map()
-  def album, do: shelved_album() || Sample.album()
+  def album, do: album(nil)
+
+  @doc """
+  One album by id, shaped — the shelf's first when no id is named.
+
+  Screen 73's sheet reads through this rather than through a reader of its own,
+  and that only means anything if the two can be pointed at the same row. An id
+  is how they are: the sheet is handed one and asks for it here, so *the album
+  the page was showing* and *the album the sheet credits* are one read with one
+  argument rather than two calls that agree by luck. See #84.
+  """
+  @spec album(String.t() | nil) :: map()
+  def album(id), do: shelved_album(id) || Sample.album()
+
+  @doc """
+  The params that name an album — to this screen, and on to screen 73.
+
+  Here rather than at each caller so the key is spelled once, and here rather
+  than on the sheet because two screens now receive it: screen 77's rail names
+  an album to this page, and this page names the same album to
+  `Kati.Screens.LogListen`. `Kati.Screens.LogListen.params_for/1` delegates, so
+  the two cannot drift apart and leave a sheet writing to an album the page
+  never mentioned.
+
+  A shaped row carries `:id`; `Kati.Music.Sample.album/0` and the four rows of
+  `Kati.Music.Sample.artist_albums/0` do not, and a row with no id — or no row
+  at all, which is what a tag matching nothing means — yields `%{}`.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{album_id: id}
+  def params_for(_album), do: %{}
 
   @doc "The drawing's values, unconditionally."
   @spec drawn_album() :: map()
@@ -63,17 +132,37 @@ defmodule Kati.Screens.AlbumDetail do
 
   @doc "The tracklist: the shelved album's, or the drawing's five."
   @spec tracks() :: [map()]
-  def tracks do
-    case shelved() do
+  def tracks, do: tracks(nil)
+
+  @doc """
+  One album's tracklist, by id.
+
+  Takes the id for the reason `album/1` does, and the sheet needs it more: the
+  ticks screen 73 opens with are per-track, so a tracklist read off a different
+  album credits plays to rows that are not on the record in front of you.
+  """
+  @spec tracks(String.t() | nil) :: [map()]
+  def tracks(id) do
+    case shelved(id) do
       nil -> Sample.tracks()
       %Album{} = album -> Enum.map(tracks_of(album), &shape_track/1)
     end
   end
 
-  @doc "The tracklist eyebrow, which carries the real count."
+  @doc "The tracklist eyebrow, which carries the real count. The no-id answer."
   @spec tracklist_label() :: String.t()
-  def tracklist_label do
-    case shelved() do
+  def tracklist_label, do: tracklist_label(nil)
+
+  @doc """
+  One album's tracklist eyebrow, by id.
+
+  Takes the id for the reason `tracks/1` does. The count in the eyebrow and the
+  rows under it are the same tracklist, and an eyebrow read off a different
+  album says `Tracklist · 11 tracks` over three of them.
+  """
+  @spec tracklist_label(String.t() | nil) :: String.t()
+  def tracklist_label(id) do
+    case shelved(id) do
       nil ->
         Sample.tracklist_label()
 
@@ -85,16 +174,37 @@ defmodule Kati.Screens.AlbumDetail do
 
   @doc "The shaped album, or `nil` when nothing is shelved."
   @spec shelved_album() :: map() | nil
-  def shelved_album do
-    case shelved() do
+  def shelved_album, do: shelved_album(nil)
+
+  @doc """
+  One shaped album by id, or `nil` — the shelf's first when no id is named.
+
+  An id that names no row answers `nil` rather than the shelf's head: a record
+  deleted under you is not the same fact as an empty shelf, and substituting a
+  different album is precisely the swap the id was added to stop.
+  """
+  @spec shelved_album(String.t() | nil) :: map() | nil
+  def shelved_album(id) do
+    case shelved(id) do
       nil -> nil
       %Album{} = album -> shaped(album, artist_of(album), tracks_of(album), listens_of(album))
     end
   end
 
-  defp shelved do
+  @doc false
+  @spec shelved(String.t() | nil) :: Album.t() | nil
+  def shelved(nil) do
     case Ash.read(Album, action: :shelf) do
       {:ok, [album | _rest]} -> album
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  def shelved(id) when is_binary(id) do
+    case Ash.get(Album, id) do
+      {:ok, %Album{} = album} -> album
       _other -> nil
     end
   rescue
@@ -111,6 +221,24 @@ defmodule Kati.Screens.AlbumDetail do
   rescue
     _error -> nil
   end
+
+  @doc """
+  One album's play count: the sum of its tracklist's own counts.
+
+  The one place that arithmetic is done, because three screens draw it and they
+  are one tap apart. Screen 74 prints `41 plays · 4 this month` under the
+  record, screen 77's rail prints `2025 · 41 plays` beside it, and screen 21's
+  tile prints `41 PLAYS` over the cover that opens both. A second way of
+  counting — the number of `Kati.Music.Listen` rows, say, which is a count of
+  *sittings* and not of plays — would put two different numbers on one record
+  in one journey, which is `Kati.Screens.Books.rail/2`'s defect in this domain.
+
+  `Kati.Music.Album.plays/1` is the sum; this is the sum plus the read, so a
+  caller holding only the row does not have to know which table the counts are
+  in.
+  """
+  @spec play_count(Album.t()) :: non_neg_integer()
+  def play_count(%Album{} = album), do: Album.plays(tracks_of(album))
 
   @doc false
   def tracks_of(%Album{id: id}) do
@@ -143,6 +271,21 @@ defmodule Kati.Screens.AlbumDetail do
     today = Kati.Time.today()
 
     %{
+      # The row's own id, so the `Log a listen` button can name the record it is
+      # about instead of leaving screen 73 to re-read the shelf and guess.
+      # `Kati.Music.Sample.album/0` has no id and is not given a `nil` one, so
+      # `album[:id]` reads `nil` by absence and the sheet falls back.
+      id: album.id,
+      # The artist this record points at, carried for the reason `id` above is:
+      # the artist row — screen 74's own `Open artist`, and screen 76's هنرمند —
+      # has to name the musician the page is about rather than leaving screen 77
+      # to take the artist of the shelf's first album. The COLUMN, not
+      # `artist.id`: `artist` below is a NAME, which is a label and not an
+      # identity — two people can share one, and a screen routed on one would
+      # open the wrong page for the pair that did. `Kati.Music.Sample.album/0`
+      # has neither field and is not given `nil` ones, so both read `nil` by
+      # absence and screen 77 falls back.
+      artist_id: album.artist_id,
       title: album.title,
       initial: Album.initial(album),
       artist: artist && artist.name,
@@ -243,6 +386,12 @@ defmodule Kati.Screens.AlbumDetail do
   @doc false
   def content(assigns) do
     a = assigns.album
+    # The NAMED album, not `a.id`. An id whose row has been deleted answers with
+    # the drawing, which carries no id, and re-deriving the id from `a` there
+    # would send the tracklist and the field back to the shelf's head — the
+    # exact swap the id was added to stop. `Kati.Screens.MealEdit.load/1` keeps
+    # `:meal_id` separate for the same reason.
+    id = assigns.album_id
 
     ~MOB"""
     <Scroll>
@@ -257,11 +406,11 @@ defmodule Kati.Screens.AlbumDetail do
         {Kati.Screens.AlbumDetail.hero(a)}
         {Kati.Screens.AlbumDetail.artist_row(a)}
         {Kati.Screens.AlbumDetail.dates(a)}
-        {UI.eyebrow(Kati.Screens.AlbumDetail.tracklist_label())}
-        {Kati.Screens.AlbumDetail.tracklist()}
+        {UI.eyebrow(Kati.Screens.AlbumDetail.tracklist_label(id))}
+        {Kati.Screens.AlbumDetail.tracklist(id)}
         {Kati.Screens.AlbumDetail.dot_note()}
         {UI.eyebrow("Listen history · 13 weeks")}
-        {Kati.Screens.AlbumDetail.history(a)}
+        {Kati.Screens.AlbumDetail.history(a, id)}
         {Kati.Screens.AlbumDetail.note(a)}
         {Kati.Screens.AlbumDetail.actions()}
       </Column>
@@ -453,10 +602,17 @@ defmodule Kati.Screens.AlbumDetail do
     """
   end
 
-  @doc "The tracklist, in running order."
+  @doc "The tracklist, in running order. The no-id answer."
   @spec tracklist() :: map()
-  def tracklist do
-    rows = Enum.map(Kati.Screens.AlbumDetail.tracks(), &Kati.Screens.AlbumDetail.track_row/1)
+  def tracklist, do: tracklist(nil)
+
+  @doc "One album's tracklist, in running order, by id."
+  @spec tracklist(String.t() | nil) :: map()
+  def tracklist(id) do
+    rows =
+      id
+      |> Kati.Screens.AlbumDetail.tracks()
+      |> Enum.map(&Kati.Screens.AlbumDetail.track_row/1)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -557,7 +713,11 @@ defmodule Kati.Screens.AlbumDetail do
   different units of "recently" in one app.
   """
   @spec history(map()) :: map()
-  def history(a) do
+  def history(a), do: history(a, nil)
+
+  @doc "The same band for one album by id — `history/1` when no id is named."
+  @spec history(map(), String.t() | nil) :: map()
+  def history(a, id) do
     ~MOB"""
     <Column fill_width={true}>
       <Column
@@ -567,7 +727,7 @@ defmodule Kati.Screens.AlbumDetail do
         padding={15}
         shadow={Kati.Theme.shadow_card()}
       >
-        {Kati.Screens.AlbumDetail.field_rows()}
+        {Kati.Screens.AlbumDetail.field_rows(id)}
         <Spacer size={11} />
         <Row fill_width={true} align="center">
           <Text
@@ -601,8 +761,12 @@ defmodule Kati.Screens.AlbumDetail do
   what `Kati.Music.Sample` is for.
   """
   @spec field() :: [non_neg_integer()]
-  def field do
-    case shelved() do
+  def field, do: field(nil)
+
+  @doc "One album's field, by id — `field/0`'s answer when no id is named."
+  @spec field(String.t() | nil) :: [non_neg_integer()]
+  def field(id) do
+    case shelved(id) do
       nil ->
         Sample.listen_field()
 
@@ -699,8 +863,12 @@ defmodule Kati.Screens.AlbumDetail do
   drawing.
   """
   @spec field_rows() :: map()
-  def field_rows do
-    rows = Enum.chunk_every(Kati.Screens.AlbumDetail.field(), 27)
+  def field_rows, do: field_rows(nil)
+
+  @doc "One album's field, chunked — `field_rows/0`'s answer when no id is named."
+  @spec field_rows(String.t() | nil) :: map()
+  def field_rows(id) do
+    rows = Enum.chunk_every(Kati.Screens.AlbumDetail.field(id), 27)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -730,18 +898,76 @@ defmodule Kati.Screens.AlbumDetail do
     """
   end
 
+  # The sheet is handed the id of the album this page is drawing. Screen 73 used
+  # to re-read the shelf and take its first row, so a page opened on the third
+  # album credited the play — and bumped the track counts — on the first (#84).
+  #
+  # Through `target/1` and not off `socket.assigns.album`, which is the second
+  # half of that fix and the one the first build missed: the album this page
+  # RESOLVED is the drawing whenever the id it was NAMED has been deleted, the
+  # drawing has no `:id`, and `%{}` sends the sheet back to the shelf's first.
+  # `target/1`'s doc has the whole of it.
+  @doc """
+  This page's member tuple for a list, or `nil` for a drawn fixture.
+
+      iex> Kati.Screens.AlbumDetail.member(%{id: "abc"})
+      {:album, "abc"}
+
+      iex> Kati.Screens.AlbumDetail.member(%{title: "Drawn"})
+      nil
+  """
+  @spec member(map()) :: {atom(), String.t()} | nil
+  def member(%{id: id}) when is_binary(id), do: {:album, id}
+  def member(_drawn), do: nil
+
   @doc false
   def handle_tap(:log_listen, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogListen)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.LogListen,
+         Kati.Screens.LogListen.params_for(%{id: Kati.Screens.AlbumDetail.target(socket.assigns)})
+       )}
 
+  # The artist row names the person the page is drawing. Screen 77 used to
+  # re-derive its subject from `Ash.read(Album, action: :shelf)`'s head, so an
+  # album detail opened on the third record sent you to the FIRST record's
+  # artist — #84's defect one row up from the sheet it was found in.
   def handle_tap(:open_artist, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.ArtistDetail)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.ArtistDetail,
+         Kati.Screens.ArtistDetail.params_for(socket.assigns.album)
+       )}
 
+  # Screen 180, and the album this page is drawing — through `target/1` for the
+  # reason `:log_listen` above goes through it, and to screen 180 rather than
+  # screen 33 because 33 is a sheet about a `Kati.Media.Watch`.
+  #
+  # `Kati.ScreenParamsSweepTest` carried this door on `@bare_pushes` with the
+  # whole argument written out: *the only key `Kati.Screens.Rating` reads is
+  # `:tracked_title_id`, and an album id put in that key would name a row
+  # `Ash.get/2` can never find — making 33 rate an album is a screen build, not
+  # a params fix.* This is that build, so the line comes off that list.
   def handle_tap(:rate, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Rating)}
+    do:
+      {:noreply,
+       Mob.Socket.push_screen(
+         socket,
+         Kati.Screens.RateAlbum,
+         Kati.Screens.RateAlbum.params_for(%{id: Kati.Screens.AlbumDetail.target(socket.assigns)})
+       )}
 
-  def handle_tap(:add_to_list, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+  # Board 334: the sheet over this page, carrying this album.
+  def handle_tap(:add_to_list, socket) do
+    album = socket.assigns.album || %{}
+
+    {:noreply,
+     Kati.Lists.Door.open(socket, Kati.Screens.AlbumDetail.member(album), Map.get(album, :title))}
+  end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
 end

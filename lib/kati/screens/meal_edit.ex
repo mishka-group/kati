@@ -30,6 +30,46 @@ defmodule Kati.Screens.MealEdit do
   *changes take effect next Monday*, and *past days keep the old numbers —
   nothing is recalculated.* A meal edit that silently rewrote last Tuesday's
   logged calories would be changing a record of something that happened.
+
+  ## The editor edits the meal you tapped, and used not to
+
+  Screen 116 is a grid of six tiles and every one of them pushed here with no
+  params at all. This screen then read `recipes` and took the head, for the
+  title, for the figures, for the ingredients, for the method and for the one
+  thing it writes. Tap the third meal and you edited the first — and because
+  every band came off that same wrong row, the page was perfectly consistent
+  with itself and simply about the wrong dinner.
+
+  It takes `%{meal_id: id}` now, and the grid's tiles carry a tag apiece so a
+  tap can say which. Handed nothing — which is what `Add a meal` means, and
+  what the empty-database sweep does — it is the library's first and then
+  `Kati.Meals.SampleLibrary`'s drawing, exactly as before. See #84.
+
+  ## The ingredient sheet is handed the same meal
+
+  `Add an ingredient` and every ingredient row's chevron push
+  `Kati.Screens.AddIngredient` with this editor's own `meal_id`, through
+  `params_for/1` so the key is spelled once. That sheet's Save writes now, and
+  a sheet pushed with nothing would have had to find a recipe for itself —
+  which is the defect above, one screen down and with a new row rather than an
+  edited field at the end of it.
+
+  ## A Save that did not land leaves the screen where it is
+
+  `Save` used to pop the screen whatever the write returned, which on this
+  screen is the worst place for that bug to live: with no recipe stored the
+  editor draws `SampleLibrary`'s meal anyway, so a slot that saved and a slot
+  that did not produced the same pixels on the way out. The screen was
+  reporting success by returning to Meals, and returning to Meals was
+  unconditional.
+
+  So the failure now stops the pop and prints, in `Palette.red()`, directly
+  under the button that caused it. Next to the control rather than in a toast,
+  because the toast would have been racing the pop it no longer does, and next
+  to the control is where the person is looking. *Under* and not over, because
+  the band over the `Save` pill belongs to the floating back pill and anything
+  drawn into it is drawn behind it — `chrome/1` has the measurements.
+  `Kati.Write` carries the argument in full.
   """
 
   use Kati.Screens.Pushed, back: "Meals"
@@ -39,22 +79,64 @@ defmodule Kati.Screens.MealEdit do
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
+  alias Kati.Write
 
   @slots ~w(Breakfast Lunch Dinner Snack)
 
+  # `Kati.Screens.Pushed` puts the push's params on `:params`, and this is the
+  # screen reading them. The id is kept in its own assign rather than dug back
+  # out of `assigns.meal` on every call, because the meal a caller named and the
+  # meal that was found are two different facts: a row deleted under you draws
+  # the sample and must still not fall through to editing somebody else's.
   def load(socket) do
-    meal = meal()
+    id = Map.get(socket.assigns.params || %{}, :meal_id)
+    meal = meal(id)
 
     socket
+    |> Mob.Socket.assign(:meal_id, id)
     |> Mob.Socket.assign(:meal, meal)
     |> Mob.Socket.assign(:slot, meal.slot)
     |> Mob.Socket.assign(:portion, 1.0)
+    |> Mob.Socket.assign(:save_error, nil)
   end
 
-  @doc "The meal being edited: the library's first, or the drawing's."
+  @doc """
+  The params that name a meal — to this editor, and on to screen 119.
+
+  Here rather than at the grid so the key is spelled once. A shaped row carries
+  `:id`; the drawing's six do not, and a meal with no id — or no meal at all,
+  which is what `Add a meal` means — yields `%{}`.
+
+  Both doors use it: screen 116 names a meal to this editor from the tile that
+  was tapped, and this editor names the same meal to `Kati.Screens.AddIngredient`
+  from the id it is holding. One spelling of `:meal_id`, so the two cannot drift
+  apart and leave a sheet writing to a meal the page never mentioned.
+  """
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{id: id}) when is_binary(id), do: %{meal_id: id}
+  def params_for(_meal), do: %{}
+
+  @doc """
+  The meal being edited: the library's first, or the drawing's.
+
+  The no-id answer, and the one the empty-database sweep renders.
+  """
   @spec meal() :: map()
-  def meal do
-    case newest() do
+  def meal, do: meal(nil)
+
+  @doc """
+  The meal this editor was handed, or — given no id — the library's first.
+
+  The whole of #84 on this screen. Screen 116 draws a grid of six tiles and
+  pushed here with nothing, so the editor re-read `recipes` and took the head:
+  tap the third meal, edit the first. Nothing on screen said which one it had —
+  the title, the figures, the ingredients and the method all came off the same
+  wrong row, so the page was internally consistent and externally about
+  somebody else's dinner.
+  """
+  @spec meal(String.t() | nil) :: map()
+  def meal(id) do
+    case recipe(id) do
       nil -> SampleLibrary.meal()
       %Recipe{} = recipe -> shaped(recipe)
     end
@@ -64,9 +146,22 @@ defmodule Kati.Screens.MealEdit do
   @spec drawn_meal() :: map()
   def drawn_meal, do: SampleLibrary.meal()
 
-  defp newest do
+  # The one read every band on this screen goes through, so no two of them can
+  # end up describing different recipes. An id that names no row answers `nil`
+  # rather than the library's head — see `Kati.Screens.BookDetail.shelved_book/1`
+  # for the argument, which is the same one.
+  defp recipe(nil) do
     case Ash.read(Recipe, action: :read) do
       {:ok, [recipe | _rest]} -> recipe
+      _other -> nil
+    end
+  rescue
+    _error -> nil
+  end
+
+  defp recipe(id) when is_binary(id) do
+    case Ash.get(Recipe, id) do
+      {:ok, %Recipe{} = recipe} -> recipe
       _other -> nil
     end
   rescue
@@ -94,8 +189,12 @@ defmodule Kati.Screens.MealEdit do
 
   @doc "The macro rows: the recipe's, or the drawing's six."
   @spec macros() :: [{String.t(), String.t()}]
-  def macros do
-    case newest() do
+  def macros, do: macros(nil)
+
+  @doc "The macro rows for one named recipe. Same row, same six figures."
+  @spec macros(String.t() | nil) :: [{String.t(), String.t()}]
+  def macros(id) do
+    case recipe(id) do
       nil ->
         SampleLibrary.macros()
 
@@ -117,8 +216,12 @@ defmodule Kati.Screens.MealEdit do
 
   @doc "The ingredient rows: the recipe's, or the drawing's four."
   @spec ingredients() :: [map()]
-  def ingredients do
-    case newest() do
+  def ingredients, do: ingredients(nil)
+
+  @doc "The ingredient rows for one named recipe."
+  @spec ingredients(String.t() | nil) :: [map()]
+  def ingredients(id) do
+    case recipe(id) do
       nil ->
         SampleLibrary.ingredients()
 
@@ -176,14 +279,14 @@ defmodule Kati.Screens.MealEdit do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.MealEdit.chrome()}
+        {Kati.Screens.MealEdit.chrome(assigns.save_error)}
         {Kati.Screens.MealEdit.slots(assigns.slot)}
         {Kati.Screens.MealEdit.title_and_photo(assigns.meal)}
         {UI.eyebrow("Per portion")}
-        {Kati.Screens.MealEdit.figures(assigns.meal)}
+        {Kati.Screens.MealEdit.figures(assigns.meal, assigns.meal_id)}
         {Kati.Screens.MealEdit.approx_note(assigns.meal.approximate?)}
-        {UI.eyebrow(Kati.Screens.MealEdit.ingredients_label())}
-        {Kati.Screens.MealEdit.ingredient_list()}
+        {UI.eyebrow(Kati.Screens.MealEdit.ingredients_label(assigns.meal_id))}
+        {Kati.Screens.MealEdit.ingredient_list(assigns.meal_id)}
         {UI.eyebrow("Method")}
         {Kati.Screens.MealEdit.method(assigns.meal)}
         {UI.eyebrow("This meal is in an active plan")}
@@ -193,9 +296,37 @@ defmodule Kati.Screens.MealEdit do
     """
   end
 
-  @doc "The back-pill row with `Save` on the right."
-  @spec chrome() :: map()
-  def chrome do
+  @doc """
+  The back-pill row with `Save` on the right, under it the line that says a
+  save did not land.
+
+  Takes the message rather than reading it, so the one place that decides a
+  save failed is the handler that got the tuple — a second reader would be a
+  second chance to disagree with it.
+
+  ## The message goes UNDER the Save pill, and that is not a preference
+
+  `Kati.Screens.Pushed.chrome/3` is a `Box` — a z-stack (`MobBridge.kt`'s
+  `"box"` branch) — and it paints the floating back pill *over* the content, at
+  `padding_top={64}`, `padding_left={21}`, 44 tall. This screen's content
+  column opens at exactly the same `padding_top={64}`, `padding_left={21}`, so
+  the first thing drawn here shares its pixels with an opaque pill that has a
+  shadow and wins.
+
+  That is why the row below starts with `Spacer weight={1.0}`: the left half of
+  this band is not empty by accident, it is the back pill's, and the only thing
+  in the band is `Save`, hugging the right edge and level with the pill.
+
+  A `fill_width` line of red text placed above that row therefore did two
+  things at once — drew the message under the pill, where its first ~90pt read
+  `‹ Meals`, and pushed `Save` down out of level with the pill the instant a
+  save failed. Below the row the message clears the overlay, still touches the
+  control that caused it, and still sits above the slot chips it is about.
+  """
+  @spec chrome(String.t() | nil) :: map()
+  def chrome(save_error) do
+    assigns = %{save_error: save_error}
+
     ~MOB"""
     <Column fill_width={true}>
       <Row fill_width={true} height={44} align="center">
@@ -218,7 +349,41 @@ defmodule Kati.Screens.MealEdit do
           />
         </Row>
       </Row>
+      {Kati.Screens.MealEdit.save_error_line(@save_error)}
       <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The sentence that says the slot did not save, or nothing.
+
+  Red and not muted: `Palette.red()` is the token for *destructive, stale,
+  over*, and a write that did not happen is all three. The same
+  `[]`-for-nothing shape `approx_note/1` uses, so the row collapses to no
+  height at all rather than reserving a gap for a message that is usually
+  absent.
+
+  The 10 leads rather than trails: this hangs below the `Save` pill, so the
+  gap it owes is the one between the pill and the sentence. `chrome/1`'s
+  existing 16 still separates it from the slot chips.
+  """
+  @spec save_error_line(String.t() | nil) :: map() | []
+  def save_error_line(nil), do: []
+
+  def save_error_line(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={10} />
+      <Text
+        text={@message}
+        text_size={12.5}
+        font_weight="semibold"
+        line_height={1.55}
+        text_color={Palette.red()}
+      />
     </Column>
     """
   end
@@ -306,10 +471,11 @@ defmodule Kati.Screens.MealEdit do
   end
 
   @doc "The calorie figure, the portion multiplier, and the six macros."
-  @spec figures(map()) :: map()
-  def figures(meal) do
+  @spec figures(map(), String.t() | nil) :: map()
+  def figures(meal, id) do
     rows =
-      Kati.Screens.MealEdit.macros()
+      id
+      |> Kati.Screens.MealEdit.macros()
       |> Enum.map(fn {label, value} ->
         SettingsList.row(
           nil,
@@ -416,13 +582,23 @@ defmodule Kati.Screens.MealEdit do
 
   @doc "The ingredients eyebrow, carrying the real count."
   @spec ingredients_label() :: String.t()
-  def ingredients_label, do: "Ingredients · #{length(Kati.Screens.MealEdit.ingredients())}"
+  def ingredients_label, do: ingredients_label(nil)
+
+  @doc "The ingredients eyebrow for one named recipe."
+  @spec ingredients_label(String.t() | nil) :: String.t()
+  def ingredients_label(id),
+    do: "Ingredients · #{length(Kati.Screens.MealEdit.ingredients(id))}"
 
   @doc "The ingredient rows, plus the row that adds one."
   @spec ingredient_list() :: map()
-  def ingredient_list do
+  def ingredient_list, do: ingredient_list(nil)
+
+  @doc "The ingredient rows for one named recipe, plus the row that adds one."
+  @spec ingredient_list(String.t() | nil) :: map()
+  def ingredient_list(id) do
     rows =
-      Kati.Screens.MealEdit.ingredients()
+      id
+      |> Kati.Screens.MealEdit.ingredients()
       |> Enum.map(&Kati.Screens.MealEdit.ingredient_row/1)
 
     rows =
@@ -444,15 +620,57 @@ defmodule Kati.Screens.MealEdit do
     """
   end
 
-  @doc false
-  def ingredient_row(ingredient) do
+  @doc """
+  One ingredient line.
+
+  `tappable?` is false for screen 119's preview, which draws this same row to
+  show what Save will add. A preview is not a control: giving it a tap tag put
+  a live `accessibility_id` on a row that answers nothing, which is precisely
+  the dead-button shape `Kati.ScreenTapSweepTest` exists to catch — and did.
+  """
+  @spec ingredient_row(map(), boolean()) :: map()
+  def ingredient_row(ingredient, tappable? \\ true) do
+    opts =
+      if tappable? do
+        [on_tap: {self(), Kati.Screens.MealEdit.ingredient_tag(ingredient)}]
+      else
+        []
+      end
+
     SettingsList.row(
       Kati.Screens.MealEdit.state_glyph(ingredient.state),
       SettingsList.body(ingredient.name, ingredient.meta),
       SettingsList.trailing(Kati.Screens.MealEdit.trailing(ingredient.amount)),
-      on_tap: {self(), :edit_ingredient}
+      opts
     )
   end
+
+  @doc """
+  This ingredient line's own tap tag.
+
+  Every row carried `:edit_ingredient`, so a meal with four ingredients gave
+  four nodes one `accessibility_id` and `onNodeWithTag` threw on the second.
+  The rows were unaddressable on a device — which is why #95's ingredient
+  journey could not be written as a device test until they were named.
+
+  Naming them does not invent an edit screen. The comment on
+  `ingredient_sheet/1` still holds: the design draws none, and all these tags
+  open `Add an ingredient`. What changes is only that a test — and TalkBack's
+  ordering, and any future per-row action — can now tell the second line from
+  the first.
+
+      iex> Kati.Screens.MealEdit.ingredient_tag(%{name: "Olive oil"})
+      :ingredient_Olive_oil
+  """
+  @spec ingredient_tag(map()) :: atom()
+  def ingredient_tag(%{name: name}) when is_binary(name) do
+    case String.trim(name) do
+      "" -> :edit_ingredient
+      real -> String.to_atom("ingredient_" <> String.replace(real, " ", "_"))
+    end
+  end
+
+  def ingredient_tag(_ingredient), do: :edit_ingredient
 
   @doc """
   The leading glyph that marks an ingredient's state.
@@ -577,11 +795,9 @@ defmodule Kati.Screens.MealEdit do
   end
 
   @doc false
-  def handle_tap(:add_ingredient, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddIngredient)}
+  def handle_tap(:add_ingredient, socket), do: {:noreply, ingredient_sheet(socket)}
 
-  def handle_tap(:edit_ingredient, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AddIngredient)}
+  def handle_tap(:edit_ingredient, socket), do: {:noreply, ingredient_sheet(socket)}
 
   def handle_tap(:portion_up, socket),
     do: {:noreply, Mob.Socket.assign(socket, :portion, socket.assigns.portion + 0.5)}
@@ -590,15 +806,56 @@ defmodule Kati.Screens.MealEdit do
     do: {:noreply, Mob.Socket.assign(socket, :portion, max(socket.assigns.portion - 0.5, 0.5))}
 
   def handle_tap(:save, socket) do
-    save_slot(socket.assigns.slot)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    case save_slot(socket.assigns.slot, socket.assigns.meal_id) do
+      {:ok, _recipe} ->
+        {:noreply,
+         socket
+         |> Mob.Socket.assign(:save_error, nil)
+         |> Kati.Screens.Resume.pop()}
+
+      {:error, _reason} = error ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Write.message(error))}
+    end
   end
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "slot_" <> slot -> {:noreply, Mob.Socket.assign(socket, :slot, slot)}
-      _other -> {:noreply, socket}
+      "slot_" <> slot ->
+        {:noreply, Mob.Socket.assign(socket, :slot, slot)}
+
+      # Every ingredient line, by its own name — see `ingredient_tag/1`. They
+      # open the sheet `:edit_ingredient` opened, because that is still the only
+      # screen the design draws for an ingredient.
+      "ingredient_" <> _name ->
+        {:noreply, ingredient_sheet(socket)}
+
+      _other ->
+        {:noreply, socket}
     end
+  end
+
+  # Screen 119, carrying the meal it will add an ingredient to.
+  #
+  # The push used to take no params at all, which is the same defect #84 fixed
+  # one screen up: the sheet's Save now writes, and a sheet that had to find a
+  # recipe for itself would file the line against the head of a re-query rather
+  # than against the meal whose `Add an ingredient` row was tapped.
+  # `params_for/1` builds it, so the key is spelled in one place for both doors
+  # into this screen — the grid's push into the editor and the editor's push
+  # into the sheet.
+  #
+  # BOTH tags open the same sheet, and `:edit_ingredient` is the honest half of
+  # that: the design draws no edit-an-ingredient screen, and every ingredient
+  # row carries one shared `:edit_ingredient` tag, so nothing here could say
+  # WHICH line was tapped even if there were a screen to open with it. The
+  # chevron opens `Add an ingredient`, whose header says exactly that and whose
+  # preview shows the row it will add.
+  defp ingredient_sheet(socket) do
+    Mob.Socket.push_screen(
+      socket,
+      Kati.Screens.AddIngredient,
+      params_for(%{id: socket.assigns.meal_id})
+    )
   end
 
   @doc """
@@ -608,15 +865,36 @@ defmodule Kati.Screens.MealEdit do
   method and the ingredients are all fields Mob cannot yet take typed input for
   (#45), so writing them would mean writing values nobody could have changed.
   The slot chips are real controls and so the slot is a real write.
-  """
-  @spec save_slot(String.t() | nil) :: :ok
-  def save_slot(slot) do
-    with %Recipe{} = recipe <- newest() do
-      Ash.update(recipe, %{slot_name: slot})
-    end
 
-    :ok
-  rescue
-    _error -> :ok
+  Hands back `Ash.update/2`'s own tuple, where this used to end `:ok` and
+  `rescue` to `:ok`. Both halves of that were wrong and only one was the
+  rescue: `Ash.update/2` does not raise on a rejected changeset, so the rescue
+  caught nothing worth catching, and the trailing `:ok` had already thrown the
+  answer away a line above it.
+
+  No recipe stored is a failure too, not a quiet no-op. `Save` on an editor
+  showing `SampleLibrary`'s meal has nothing to write to, and the person needs
+  telling — a button that does nothing and says it worked is the same lie this
+  whole change is about.
+
+  ## Which recipe, and why the id is a default argument
+
+  The one the editor was handed. An editor that drew the third meal and wrote
+  the slot onto the first would move a chip on a page nobody has open, and the
+  page in front of the person would redraw showing a change it did not make.
+
+  `nil` — the library's first — stays the answer for `Add a meal`, which names
+  no row on purpose. One clause and not two, so the whole write, its
+  `Kati.Write.note/2` included, reads as one thing.
+  """
+  @spec save_slot(String.t() | nil, String.t() | nil) :: {:ok, Recipe.t()} | {:error, term()}
+  def save_slot(slot, id \\ nil) do
+    result =
+      case recipe(id) do
+        %Recipe{} = recipe -> Ash.update(recipe, %{slot_name: slot})
+        nil -> {:error, :nothing_to_save}
+      end
+
+    Write.note(result, "meal slot")
   end
 end

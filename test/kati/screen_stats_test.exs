@@ -27,11 +27,45 @@ defmodule Kati.ScreenStatsTest do
 
   ## What is deliberately still the drawing's
 
-  `Where the hours went` and `More numbers` are asserted to be *unchanged* from
-  `Kati.Stats.Sample`, because they are stand-ins and the screen says so. That
-  is a real assertion: it fails the day someone wires a genre breakdown to
-  `CachedTitle.genres`, which is the free-text column the moduledoc refuses to
-  parse, and it fails without anyone having to remember to come back here.
+  `More numbers` is asserted to be *unchanged* from `Kati.Stats.Sample`,
+  because three of its five domains have no resource at all and the card stays
+  whole rather than having one real line among three stand-ins.
+
+  `Where the hours went` was in that sentence until 6 September, and the
+  assertion did exactly what it was written to do: it failed the day the
+  breakdown was wired to `CachedTitle.genres`. The moduledoc's reason for
+  refusing that column — *no defined separator, written by nothing* — had gone
+  stale: `Kati.Media.Tmdb.genres/1` writes it `", "`-separated and screens 04
+  and 14 read it back that way. MOVIES-AND-TV.md #45.
+
+  ## Where the empty history went
+
+  This file used to open with `describe "an empty history"`, and its three tests
+  said that a database with nothing in it answers with `Kati.Stats.Sample` —
+  grid, recent and year, whole, plus 182 squares drawn from it. That was true,
+  and it was the defect: issue #91 is that a person who had tracked nothing was
+  shown somebody else's year with their name on it. `Kati.Screens.Stats` now
+  answers an empty history with board 101's *Not much to show yet*, no hero
+  figure and no grid at all, and `Kati.ScreenStatsEmptyTest`'s fourteen tests
+  are that branch stated in full — including the absences, which is the half a
+  presence check cannot make.
+
+  So the three moved here, onto the fixture, and each says the counted half of
+  what it used to say:
+
+    * *answers on every key frame 07 draws* — the drawing's own field list is
+      still the card's field list, and **not one of its values** is the
+      drawing's. The equality that test used to make is now the refutation.
+    * *renders every figure frame 07 draws* — same sweep over the same frame,
+      reading the figures out of `Kati.Screens.Stats.figures/0` rather than out
+      of `Kati.Stats.Sample`, so it is now a claim about what this device
+      computed rather than about what the sample module holds.
+    * *draws 182 squares* — moved rather than dropped, because the empty screen
+      draws none: `Kati.Screens.Stats`'s moduledoc reads board 110's refusal of
+      "a chart with a single point ... that means nothing" onto a contribution
+      field at level zero. An empty grid would be honest; this screen's design
+      decision is that it is not drawn, and 182 squares is a claim about a grid
+      that has a night in it.
 
   ## The shared database
 
@@ -57,22 +91,39 @@ defmodule Kati.ScreenStatsTest do
     :ok
   end
 
-  describe "an empty history" do
-    test "answers with the drawing's own figures" do
+  describe "a history with watches in it" do
+    setup :seed_history
+
+    test "answers on every key frame 07 draws, and on the one no Sample has" do
+      # Was `an empty history answers with the drawing's own figures`. See the
+      # moduledoc: an empty history is now board 101's card and is asserted in
+      # `Kati.ScreenStatsEmptyTest`. What survives here is the half that keeps
+      # the counted card faithful to frame 07 — the same lines, none of the same
+      # numbers — and it bites harder than the equality it replaces, because a
+      # fallback satisfies the shape and fails the values.
       figures = Stats.figures()
+      year = figures[:year]
 
-      assert figures[:grid] == Sample.contributions()
-      assert figures[:recent] == Stats.recent()
-      assert Map.delete(figures[:year], :rising?) == Sample.year()
+      assert Enum.sort(Keyword.keys(figures)) == [:grid, :range, :recent, :year]
 
-      # The pill's arrow is a state the sample module has no field for, and the
-      # drawing has it pointing up.
-      assert figures[:year].rising? == true
+      # The drawing's own field list, plus the pill's arrow — a state
+      # `Kati.Stats.Sample` has no field for and the screen has to derive. A line
+      # dropped from the hero, the pill or the count cards fails here before it
+      # fails any literal.
+      assert Enum.sort(Map.keys(year)) == Enum.sort([:rising? | Map.keys(Sample.year())])
+      assert year.rising? == true
+
+      # Same frame, this device's numbers. `refute` rather than `assert` is the
+      # whole of issue #91 in one line: the day the screen falls back again, the
+      # card is the sample's again and this fails.
+      refute Map.delete(year, :rising?) == Sample.year()
+      refute figures[:grid] == Sample.contributions()
     end
 
     test "renders every figure frame 07 draws" do
       words = text(tree(mount_screen(Stats)))
-      year = Sample.year()
+      figures = Stats.figures()
+      year = figures[:year]
 
       assert words =~ year.range
       assert words =~ year.time
@@ -90,7 +141,7 @@ defmodule Kati.ScreenStatsTest do
         assert words =~ value
       end
 
-      for row <- Stats.recent() do
+      for row <- figures[:recent] do
         assert words =~ row.title
         assert words =~ row.meta
       end
@@ -100,12 +151,11 @@ defmodule Kati.ScreenStatsTest do
       squares = find_all(tree(mount_screen(Stats)), :box, width: 8, height: 8)
 
       assert length(squares) == 182
+      # The render and the reader cannot disagree about the span ...
+      assert length(Stats.figures()[:grid]) == 182
+      # ... and 182 is read off the drawing rather than typed here.
       assert length(Sample.contributions()) == 182
     end
-  end
-
-  describe "a history with watches in it" do
-    setup :seed_history
 
     test "sums this year's runtimes into the headline figure" do
       # 47 + 47 + 112 + 50, and NOT last year's 112.
@@ -159,17 +209,65 @@ defmodule Kati.ScreenStatsTest do
       assert Stats.figures()[:recent] == Stats.recent()
     end
 
-    test "keeps the breakdown and More numbers as the drawing's own" do
-      # Both are stand-ins for domains that do not exist. When one of them
-      # starts reading a domain, this is where that shows up.
-      assert Stats.figures()[:year].breakdown == Sample.year().breakdown
+    test "counts the hours against the genres the provider gave" do
+      bars = Stats.figures()[:year].breakdown
 
+      # Two of the three titles carry genres and the third carries none, which
+      # is the ordinary mixture. A watch counts in full towards each genre it
+      # names — there is no honest way to divide ninety minutes between Drama
+      # and Mystery — so Drama holds both films' and Mystery only one's.
+      assert [{"Drama", _, _, _} | _] = bars
+
+      names = Enum.map(bars, &elem(&1, 0))
+      assert "Mystery" in names
+
+      refute bars == Sample.year().breakdown,
+             "the drawing's five frozen bars are still being shipped to a device"
+
+      refute "Documentary" in names, "a genre nobody watched is on the card"
+      refute "Comedy" in names
+    end
+
+    test "and a title with no genres takes part in no bar" do
+      names = Enum.map(Stats.figures()[:year].breakdown, &elem(&1, 0))
+
+      # `Marram` has none. An `Unknown` bar would be a genre nobody named.
+      refute "Unknown" in names
+      refute "" in names
+    end
+
+    test "counts the two More numbers rows it can, and the two it cannot say nothing" do
+      # MOVIES-AND-TV.md #45's remainder. All four carried the drawing's own
+      # figures beside one that counted. `Kati.Goals.Goal` and
+      # `Kati.Money.Expense` are real resources, so those two are counted;
+      # `Kati.Habits` is a Sample module and nothing else, and `Nutrition`'s
+      # `Cutting v3 · 86%` is a diet plan no column holds — so those two draw
+      # no second line rather than somebody else's numbers.
       words = text(tree(mount_screen(Stats)))
 
-      for row <- Sample.more_numbers(), row.title != "Recently watched" do
-        assert words =~ row.title
-        assert words =~ row.sub
+      for row <- Sample.more_numbers(),
+          row.title not in ["Recently watched", "Activity log"] do
+        assert words =~ row.title, "the row is the door to a page that exists"
       end
+
+      # The two that cannot be counted say nothing at all.
+      refute words =~ "4 active · 12-day best"
+      refute words =~ "Cutting v3 · 86%"
+
+      # And the two that can are this reader's.
+      refute words =~ "3 active · 38 of 52 books"
+      assert words =~ Kati.Screens.Stats.goals_line()
+      assert words =~ Kati.Screens.Stats.money_line()
+    end
+
+    test "and counts the Activity row, which is the one it can" do
+      words = text(tree(mount_screen(Stats)))
+
+      # Five watches are written in this block's setup.
+      assert words =~ "5 entries"
+
+      refute words =~ "1,204 entries",
+             "screen 07 is still telling this reader they have 1,204 entries"
     end
 
     test "renders the computed figures, and none of the drawn ones" do
@@ -251,9 +349,9 @@ defmodule Kati.ScreenStatsTest do
   defp seed_history(_context) do
     today = Kati.Time.today()
 
-    hollow = title!("The Long Hollow", :tv, "hollow71", 47, 9)
-    blue = title!("Blue Hour", :movie, "bluehour58", 112, 8)
-    marram = title!("Marram", :tv, "marram15", 50, 8)
+    hollow = title!("The Long Hollow", :tv, "hollow71", 47, 9, "Drama, Mystery")
+    blue = title!("Blue Hour", :movie, "bluehour58", 112, 8, "Drama")
+    marram = title!("Marram", :tv, "marram15", 50, 8, nil)
 
     watch!(hollow, %{
       season_number: 2,
@@ -295,7 +393,7 @@ defmodule Kati.ScreenStatsTest do
     :ok
   end
 
-  defp title!(title, kind, seed, runtime, rating) do
+  defp title!(title, kind, seed, runtime, rating, genres \\ nil) do
     source_id = "stats:#{System.unique_integer([:positive])}"
 
     CachedTitle
@@ -308,6 +406,7 @@ defmodule Kati.ScreenStatsTest do
       # the artwork through `Kati.Design.Images.poster/1`.
       poster_path: seed,
       runtime_minutes: runtime,
+      genres: genres,
       fetched_at: Kati.Time.now()
     })
     |> Ash.create!()

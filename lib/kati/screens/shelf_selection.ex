@@ -221,15 +221,78 @@ defmodule Kati.Screens.ShelfSelection do
 
   def mount(_params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
     {:ok, load(socket)}
   end
 
   @doc false
   def load(socket) do
-    titles = Sample.selection_shelf()
+    titles = Kati.Screens.ShelfSelection.shelf()
     selected = titles |> Enum.filter(& &1.selected?) |> Enum.map(& &1.id) |> MapSet.new()
 
-    Mob.Socket.assign(socket, titles: titles, selected: selected, undo: nil)
+    Mob.Socket.assign(socket, titles: titles, selected: selected, undo: nil, save_error: nil)
+  end
+
+  @doc """
+  The shelf this screen selects from: the user's, or the drawing's.
+
+  All-or-nothing, the same gate `Kati.Screens.Season.season/1` applies and for
+  the same reason: a grid of the reader's own posters with the drawing's two
+  tiles selected inside it is a page that looks entirely real and is half
+  invented. On a shelf with rows, nothing starts selected — selection mode
+  opens with an empty selection, which is what entering it means.
+
+  This was MOVIES-AND-TV.md #27's first half. `Kati.Library.Sample.selection_
+  shelf/0` was the ONLY thing this screen had ever read, so Remove removed
+  Nightbirds from a list of nine invented titles and the user's own shelf was
+  untouched behind it.
+  """
+  @spec shelf() :: [map()]
+  def shelf do
+    case Kati.Screens.ShelfSelection.tracked_shelf() do
+      [] -> Sample.selection_shelf()
+      rows -> rows
+    end
+  end
+
+  @doc """
+  The user's shelf in this screen's own shape, or `[]`.
+
+  `Kati.Screens.Library.shelf/0` does the reading — one shelf, one reader.
+  Screen 03 draws these exact rows behind this one, and two gatherings able
+  to disagree is how a selection removes a title the grid under it never had.
+
+  `source` and `source_id` come off the tracked row rather than off the shape,
+  because `Kati.Screens.Library.shaped/5` does not carry them and Undo needs
+  them: a destroyed row can only be put back by the pair it was keyed on.
+  """
+  @spec tracked_shelf() :: [map()]
+  def tracked_shelf do
+    by_id =
+      Kati.Media.TrackedTitle
+      |> Ash.read!()
+      |> Map.new(&{&1.id, &1})
+
+    Kati.Screens.Library.shelf()
+    |> Enum.map(fn row ->
+      tracked = Map.get(by_id, row.id)
+
+      %{
+        id: row.id,
+        title: row.title,
+        seed: row.seed,
+        meta: row.meta || "",
+        selected?: false,
+        done?: row.status == :finished,
+        source: tracked && tracked.source,
+        source_id: tracked && tracked.source_id,
+        kind: tracked && tracked.kind
+      }
+    end)
+  rescue
+    _ -> []
+  catch
+    :exit, _ -> []
   end
 
   def render(assigns) do
@@ -239,6 +302,8 @@ defmodule Kati.Screens.ShelfSelection do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Scroll>
         <Column
@@ -248,6 +313,7 @@ defmodule Kati.Screens.ShelfSelection do
           padding_top={64}
           padding_bottom={40}
         >
+          {Kati.Screens.ShelfSelection.refusal(Map.get(assigns, :save_error))}
           {Kati.Screens.ShelfSelection.resting_header_still()}
           {Kati.Screens.ShelfSelection.one_selected_still(MapSet.size(assigns.selected))}
           {Kati.Screens.ShelfSelection.selection_bar(MapSet.size(assigns.selected))}
@@ -455,16 +521,45 @@ defmodule Kati.Screens.ShelfSelection do
     """
   end
 
-  @doc false
-  def close_glyph(false), do: UI.symbol("close", size: 21)
+  @doc """
+  The `close` glyph, capped — the other half of board 147's split.
+
+  MOVIES-AND-TV.md #6, and 147's own words: *the close glyph caps at 26px
+  because it is chrome whose size carries structure.* It is a fixed shape
+  beside a count that must be free to grow, and a glyph that grew with the
+  text would push the count it sits next to off the bar it is on.
+
+  `max_font_scale` reaches any node — `MobBridge.kt`'s `RenderNode` checks it
+  before dispatching — so it wraps the symbol rather than needing one of its
+  own. `1.15` and not `1.0`: this bar is drawn at ordinary size, unlike 147
+  whose every `sp` is the 235% figure typed out, so the glyph may grow a
+  little before it stops.
+
+  **And it is sized**, at 25 — 21 with the cap's headroom. A `Box` with no
+  width fills its parent, and this one sits in a `Row` beside a `weight={1.0}`
+  title: unsized, the ✕ takes the bar and `N selected` clips away beside it.
+  `Kati.GreedyBoxTest` is the ratchet, and MOVIES-AND-TV.md #161 is the card
+  this was found on.
+  """
+  @spec close_glyph(boolean()) :: map()
+  def close_glyph(false), do: Kati.Screens.ShelfSelection.capped_close()
 
   def close_glyph(true) do
     close_tap = {self(), :close}
 
     ~MOB"""
     <Row on_tap={close_tap} align="center">
-      {Kati.UI.symbol("close", size: 21)}
+      {Kati.Screens.ShelfSelection.capped_close()}
     </Row>
+    """
+  end
+
+  @doc false
+  def capped_close do
+    ~MOB"""
+    <Box width={25} height={25} align="center" max_font_scale={1.15}>
+      {Kati.UI.symbol("close", size: 21)}
+    </Box>
     """
   end
 
@@ -476,6 +571,16 @@ defmodule Kati.Screens.ShelfSelection do
   `four` back into a word rather than leaving `4` where the drawing wrote a
   word out.
   """
+  # MOVIES-AND-TV.md #6. Board 147 — this bar at 235% — states the rule and
+  # this bar broke it: *`4 selected` carries no `max_lines` and no cap — the
+  # board's own caption names it as the one thing this bar exists to say, so it
+  # is the one thing here guaranteed never to clip.* Both lines carried
+  # `max_lines={1}`, so at the largest text size the count and the sentence
+  # under it were the first two things to lose their ends.
+  #
+  # Content grows; chrome whose size carries structure caps instead — the close
+  # glyph and the action pills, which are fixed shapes. That is fence `K-29`'s
+  # split and 147 draws it as cleanly as any board in the set.
   def count_body(count) when count > 1 do
     ~MOB"""
     <Column fill_width={true}>
@@ -485,14 +590,12 @@ defmodule Kati.Screens.ShelfSelection do
         font_weight="bold"
         letter_spacing={-0.02}
         text_color={:on_surface}
-        max_lines={1}
       />
       <Spacer size={3} />
       <Text
         text={"Actions apply to all #{Kati.Screens.ShelfSelection.count_word(count)}"}
         text_size={11}
         text_color={Palette.sub()}
-        max_lines={1}
       />
     </Column>
     """
@@ -506,7 +609,6 @@ defmodule Kati.Screens.ShelfSelection do
       font_weight="bold"
       letter_spacing={-0.02}
       text_color={:on_surface}
-      max_lines={1}
     />
     """
   end
@@ -600,7 +702,7 @@ defmodule Kati.Screens.ShelfSelection do
 
   @doc false
   def grid(titles, selected) do
-    rows = Enum.chunk_every(titles, 3)
+    rows = titles |> Enum.with_index() |> Enum.chunk_every(3)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -629,30 +731,62 @@ defmodule Kati.Screens.ShelfSelection do
   def grid_gap, do: ~MOB"<Spacer size={12} />"
 
   @doc """
-  A title's tap tag — `:ashfall` becomes `:toggle_ashfall`.
+  A tile's tap tag — the third poster on the shelf is `:toggle_2`.
 
   An atom rather than the `{:toggle, id}` tuple this started as. `Mob.Renderer`
   emits an `accessibility_id` only for an atom tag, so a tuple-tagged poster
   fires on the device and is nameless everywhere else: absent from
   `Kati.ScreenSweep`, absent from `Kati.AppReachabilityTest`'s push graph, and
   unnamed to a screen reader. `Kati.Screens.ImportSources.tag/1` hit this first.
-  """
-  @spec toggle_tag(atom()) :: atom()
-  def toggle_tag(id) when is_atom(id), do: :"toggle_#{id}"
 
-  @doc "The title a tap tag names, or `nil` when the tag is not one of the shelf's."
-  @spec toggled_id(atom(), [map()]) :: atom() | nil
+  The POSITION, not the id, and that is the whole of one crash. This built
+  the tag by interpolating the id, off a guard of `is_atom(id)`, which is true of every id
+  `Kati.Library.Sample` has and of none the store hands out — so the first
+  render over a real shelf raised `FunctionClauseError` before it drew a tile,
+  and the push fell back to Home. Interpolating the UUID instead would have
+  worked and would have minted one permanent atom per title anybody ever put
+  on a shelf; `Kati.Screens.Season` had this exact choice to make about its
+  episode rows and made it the same way.
+
+      iex> Kati.Screens.ShelfSelection.toggle_tag(2)
+      :toggle_2
+  """
+  @spec toggle_tag(non_neg_integer()) :: atom()
+  def toggle_tag(index) when is_integer(index) and index >= 0,
+    do: String.to_atom("toggle_" <> Integer.to_string(index))
+
+  @doc """
+  The title a tap tag names, or `nil` when the tag is not one of the shelf's.
+
+  Read out of the list the tag was drawn from, in the same order — the tags
+  are rebuilt on every render, so a Remove that shortens the shelf renumbers
+  the tiles in the same pass that redraws them.
+
+      iex> Kati.Screens.ShelfSelection.toggled_id(:toggle_1, [%{id: "a"}, %{id: "b"}])
+      "b"
+
+      iex> Kati.Screens.ShelfSelection.toggled_id(:toggle_9, [%{id: "a"}])
+      nil
+
+      iex> Kati.Screens.ShelfSelection.toggled_id(:undo, [%{id: "a"}])
+      nil
+  """
+  @spec toggled_id(atom(), [map()]) :: term() | nil
   def toggled_id(tag, titles) when is_atom(tag) do
-    Enum.find_value(titles, fn item ->
-      if Kati.Screens.ShelfSelection.toggle_tag(item.id) == tag, do: item.id
-    end)
+    with "toggle_" <> digits <- Atom.to_string(tag),
+         {index, ""} <- Integer.parse(digits),
+         %{id: id} <- Enum.at(titles, index) do
+      id
+    else
+      _not_a_tile -> nil
+    end
   end
 
   @doc false
   def tile(nil, _selected), do: ~MOB"<Box weight={1.0} />"
 
-  def tile(item, selected) do
-    tap = {self(), Kati.Screens.ShelfSelection.toggle_tag(item.id)}
+  def tile({item, index}, selected) do
+    tap = {self(), Kati.Screens.ShelfSelection.toggle_tag(index)}
     ring? = MapSet.member?(selected, item.id)
 
     ~MOB"""
@@ -876,15 +1010,34 @@ defmodule Kati.Screens.ShelfSelection do
 
   # ── Taps ────────────────────────────────────────────────────────────────
 
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
 
-  def handle_info({:tap, :add_to_list}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Lists)}
+  # MOVIES-AND-TV.md #106. This pushed screen 12 and left the selection behind,
+  # so *Add to list* opened a page of lists and added nothing to any of them.
+  # It carries the selection now, and 12 puts it in whichever list is pressed —
+  # which is the membership route board 146 draws and nothing could complete.
+  def handle_info({:tap, :add_to_list}, socket) do
+    members = Enum.map(MapSet.to_list(socket.assigns.selected), &{:tracked_title, &1})
+
+    {:noreply, Kati.Lists.Door.open_many(socket, members)}
+  end
 
   def handle_info({:tap, :change_status}, socket) do
     case MapSet.to_list(socket.assigns.selected) do
       [id] ->
-        {:noreply, Mob.Socket.assign(socket, :titles, toggle_done(socket.assigns.titles, id))}
+        item = Enum.find(socket.assigns.titles, &(&1.id == id))
+
+        case Kati.Screens.ShelfSelection.write_status(item) do
+          :ok ->
+            socket
+            |> Mob.Socket.assign(:titles, toggle_done(socket.assigns.titles, id))
+            |> Mob.Socket.assign(:save_error, nil)
+            |> then(&{:noreply, &1})
+
+          {:error, reason} ->
+            {:noreply,
+             Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+        end
 
       _not_exactly_one ->
         {:noreply, socket}
@@ -895,13 +1048,18 @@ defmodule Kati.Screens.ShelfSelection do
     %{titles: titles, selected: selected} = socket.assigns
     {removed, kept} = Enum.split_with(titles, &MapSet.member?(selected, &1.id))
 
-    socket =
-      socket
-      |> Mob.Socket.assign(:titles, kept)
-      |> Mob.Socket.assign(:selected, MapSet.new())
-      |> Mob.Socket.assign(:undo, %{count: length(removed), removed: removed})
+    case Kati.Screens.ShelfSelection.write_removals(removed) do
+      :ok ->
+        socket
+        |> Mob.Socket.assign(:titles, kept)
+        |> Mob.Socket.assign(:selected, MapSet.new())
+        |> Mob.Socket.assign(:undo, %{count: length(removed), removed: removed})
+        |> Mob.Socket.assign(:save_error, nil)
+        |> then(&{:noreply, &1})
 
-    {:noreply, socket}
+      {:error, reason} ->
+        {:noreply, Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+    end
   end
 
   def handle_info({:tap, :undo}, socket) do
@@ -910,15 +1068,29 @@ defmodule Kati.Screens.ShelfSelection do
         {:noreply, socket}
 
       %{removed: removed} ->
-        restored_ids = MapSet.new(removed, & &1.id)
+        case Kati.Screens.ShelfSelection.write_restorations(removed) do
+          :ok ->
+            # Re-read rather than push the old shapes back on. A destroyed row
+            # cannot be undeleted, so Undo CREATES — and a created row has a new
+            # id. Restoring the shapes this screen was holding would leave every
+            # tile tagged with an id the store no longer has: they would still
+            # draw, still highlight, and a second Remove would find nothing and
+            # quietly succeed. So the shelf is asked again, and the restored
+            # rows are found by the pair they were keyed on.
+            titles = Kati.Screens.ShelfSelection.shelf()
+            restored = Kati.Screens.ShelfSelection.restored_ids(titles, removed)
 
-        socket =
-          socket
-          |> Mob.Socket.assign(:titles, removed ++ socket.assigns.titles)
-          |> Mob.Socket.assign(:selected, restored_ids)
-          |> Mob.Socket.assign(:undo, nil)
+            socket
+            |> Mob.Socket.assign(:titles, titles)
+            |> Mob.Socket.assign(:selected, restored)
+            |> Mob.Socket.assign(:undo, nil)
+            |> Mob.Socket.assign(:save_error, nil)
+            |> then(&{:noreply, &1})
 
-        {:noreply, socket}
+          {:error, reason} ->
+            {:noreply,
+             Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))}
+        end
     end
   end
 
@@ -946,6 +1118,146 @@ defmodule Kati.Screens.ShelfSelection do
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  @doc """
+  The line that says the store refused, or nothing.
+
+  Every write on this screen goes through it, because before this one nothing
+  on this screen wrote at all and a silent refusal would have been the same
+  defect wearing a different hat.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.notice(@message)}
+      <Spacer size={14} />
+    </Column>
+    """
+  end
+
+  @doc """
+  Flip one title between finished and watching, in the store.
+
+  `nil` and a drawn row both answer `:ok` and write nothing: the board's nine
+  titles have atom ids and no tracked row behind them, so *Status* on the
+  drawing moves the caption and nothing else — which is what a picture's
+  button should do. Every real row goes through `Kati.Media.TrackedTitle`'s
+  own `:update`, so `Kati.Media.Changes.Touch` bumps `last_touched_at` and the
+  shelf re-sorts the way it does after every other status change in the app.
+  """
+  @spec write_status(map() | nil) :: :ok | {:error, term()}
+  def write_status(nil), do: :ok
+  def write_status(%{id: id}) when not is_binary(id), do: :ok
+
+  def write_status(%{id: id, done?: done?}) do
+    status = if done?, do: :watching, else: :finished
+
+    case Ash.get(Kati.Media.TrackedTitle, id) do
+      {:ok, row} ->
+        row
+        |> Ash.Changeset.for_update(:update, %{status: status})
+        |> Ash.update()
+        |> Kati.Write.note("change status from the shelf")
+        |> case do
+          {:ok, _row} -> :ok
+          error -> error
+        end
+
+      _gone ->
+        {:error, :nothing_to_save}
+    end
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc """
+  Take the selected titles off the shelf, for real.
+
+  `Ash.destroy/1` on the tracked row and nothing else — the same removal
+  screen 06's `untrack/1` performs, and deliberately not a cascade: the
+  cached title, its episodes and every logged watch stay, so an Undo a second
+  later puts the row back over history that was never lost.
+
+  `:ok` on a drawn row, for `write_status/1`'s reason.
+  """
+  @spec write_removals([map()]) :: :ok | {:error, term()}
+  def write_removals(removed) do
+    removed
+    |> Enum.filter(&is_binary(&1.id))
+    |> Enum.reduce_while(:ok, fn item, :ok ->
+      case Ash.get(Kati.Media.TrackedTitle, item.id) do
+        {:ok, row} ->
+          case Ash.destroy(row) do
+            :ok -> {:cont, :ok}
+            {:ok, _row} -> {:cont, :ok}
+            error -> {:halt, Kati.Write.note(error, "remove from the shelf")}
+          end
+
+        # Already gone is the outcome the tap asked for.
+        _gone ->
+          {:cont, :ok}
+      end
+    end)
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc """
+  Put the removed titles back.
+
+  A create rather than an undelete, because a destroyed row is gone: the
+  `{source, source_id, kind}` triple `tracked_shelf/0` carried off the tracked
+  row is exactly what is needed to key a new one to the same cached title, so
+  the poster, the episodes and the ticks are all still there to be found.
+
+  The new row is `:watching` unless it was finished, and its `last_touched_at`
+  is now — an undo is a thing you just did.
+  """
+  @spec write_restorations([map()]) :: :ok | {:error, term()}
+  def write_restorations(removed) do
+    removed
+    |> Enum.filter(&(is_binary(&1.id) and &1.source != nil and &1.source_id != nil))
+    |> Enum.reduce_while(:ok, fn item, :ok ->
+      %{
+        source: item.source,
+        source_id: item.source_id,
+        kind: item.kind,
+        status: if(item.done?, do: :finished, else: :watching)
+      }
+      |> then(&Ash.create(Kati.Media.TrackedTitle, &1))
+      |> case do
+        {:ok, _row} -> {:cont, :ok}
+        error -> {:halt, Kati.Write.note(error, "undo a shelf removal")}
+      end
+    end)
+  rescue
+    error -> {:error, error}
+  end
+
+  @doc """
+  The ids the re-read shelf gives the titles that were just put back.
+
+  By `{source, source_id}` — the pair a tracked row is keyed on everywhere in
+  this app — and never by id, which is the one thing a destroy-then-create
+  does not preserve. A drawn row has neither, so the drawing's Undo selects
+  by id and keeps working exactly as the board draws it.
+  """
+  @spec restored_ids([map()], [map()]) :: MapSet.t()
+  def restored_ids(titles, removed) do
+    keys = MapSet.new(removed, &{&1[:source], &1[:source_id]})
+
+    titles
+    |> Enum.filter(fn row ->
+      MapSet.member?(keys, {row[:source], row[:source_id]}) or
+        Enum.any?(removed, &(&1.id == row.id))
+    end)
+    |> MapSet.new(& &1.id)
+  end
 
   defp toggle_done(titles, id) do
     Enum.map(titles, fn

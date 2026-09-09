@@ -158,10 +158,11 @@ defmodule Kati.Screens.DropSheet do
 
   ## Referent
 
-  `gone_cold_title/0` reads the newest `status == :paused, archived == false`
-  row — `Kati.Screens.UpNext`'s own cold-section query, independently written
+  `gone_cold_title/1` reads the `status == :paused, archived == false` rows —
+  `Kati.Screens.UpNext`'s own cold-section query, independently written
   here because this sheet needs the integer position that row's own `cold`
-  formatter throws away. No such row falls back to `Kati.Screens.DropSheet.
+  formatter throws away — and takes the one the push NAMED, or the newest when
+  the push named none. No such row falls back to `Kati.Screens.DropSheet.
   Sample.sheet/0` whole, the same all-or-nothing fallback
   `Kati.Screens.UpNext.queue/0` and `Kati.Screens.RateEpisode.sheet/0` both
   take, for the reason both give: a real position under the drawing's own
@@ -207,37 +208,96 @@ defmodule Kati.Screens.DropSheet do
   @reason_tags Enum.map(@reasons, fn {key, _label} -> :"reason_#{key}" end)
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
     Kati.Theme.activate()
+    Kati.Locale.activate()
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:sheet, sheet())
+     |> Mob.Socket.assign(:sheet, sheet(Map.get(params || %{}, :title_id)))
      |> Mob.Socket.assign(:reason, nil)
+     |> Mob.Socket.assign(:save_error, nil)
      |> Mob.Socket.assign(:dropped?, false)}
   end
 
   @doc """
-  The title this sheet drops: the newest gone-cold row, or the board's own.
+  The params that name a thread to this sheet.
 
-  See the moduledoc's "Referent" section.
+  `:title_id` and not `:id`, for the reason `Kati.Screens.Season.params_for/1`
+  gives: naming the noun is what tells a reader whose id it is holding.
+  `%{tracked_id: id}` is the shape `Kati.Screens.Series`'s page already carries,
+  and a row with no tracked id — every drawn fixture — yields `%{}` rather than
+  `%{title_id: nil}`, so the bare branch stays the branch a nameless push takes.
+
+      iex> Kati.Screens.DropSheet.params_for(%{tracked_id: "abc"})
+      %{title_id: "abc"}
+
+      iex> Kati.Screens.DropSheet.params_for(%{title: "The Quiet Ones"})
+      %{}
   """
-  @spec sheet() :: map()
-  def sheet do
-    case gone_cold_title() do
+  @spec params_for(map() | nil) :: map()
+  def params_for(%{tracked_id: id}) when is_binary(id), do: %{title_id: id}
+  def params_for(_row), do: %{}
+
+  @doc """
+  The title this sheet drops: the one it was named, the newest gone-cold row,
+  or the board's own.
+
+  See the moduledoc's "Referent" section. Without the id every door into this
+  sheet opened the same row — the newest paused one — however many gone-cold
+  threads the store holds and whichever of them the door was on. That is the
+  defect Phase 1 is named for, and on a sheet that WRITES it is worse than a
+  dead control: it drops a title the user did not point at.
+
+  An id that names no gone-cold row answers `nil` and falls back to the drawing
+  rather than to the head of the list, which is the rule the whole phase keeps:
+  a row dropped, resumed or never paused under you is not the same fact as an
+  empty queue, and answering with a different real title is the swap this
+  argument exists to prevent.
+  """
+  @spec sheet(String.t() | nil) :: map()
+  def sheet(title_id \\ nil) do
+    case gone_cold_title(title_id) do
       nil -> Sample.sheet()
       tracked -> from_tracked(tracked)
     end
   end
 
-  defp gone_cold_title do
+  # One query either way — the filter is what this sheet is ABOUT (a thread
+  # that has gone quiet and is still on the shelf), so a named id narrows that
+  # set rather than replacing it. `archived == false` therefore still holds for
+  # a named row: an id must not open a title the user has hidden.
+  # Gone cold is derived — see `Kati.Media.Staleness`, and the moduledoc above
+  # for what this used to read instead.
+  defp gone_cold_title(title_id) do
     TrackedTitle
-    |> Ash.Query.filter(archived == false and status == :paused)
+    |> Ash.Query.filter(archived == false and status in [:watching, :paused])
     |> Ash.Query.sort(last_touched_at: :desc)
+    |> Ash.read!()
+    |> Enum.filter(&cold_or_paused?/1)
+    |> pick(title_id)
+  rescue
+    _ -> nil
+  end
+
+  # A title a NAMED push points at is taken whether or not Kati would have
+  # called it cold: screen 04's *Drop this show* is a decision the reader is
+  # making about the show in front of them, and refusing it because the show is
+  # three months old rather than four would be the sheet arguing.
+  defp cold_or_paused?(%TrackedTitle{status: :paused}), do: true
+  defp cold_or_paused?(tracked), do: Kati.Media.Staleness.gone_cold?(tracked)
+
+  defp pick(rows, nil), do: List.first(rows)
+
+  # A named id is looked up in the WHOLE shelf, not in the cold slice — see
+  # `cold_or_paused?/1`.
+  defp pick(_rows, title_id) do
+    TrackedTitle
+    |> Ash.Query.filter(archived == false and id == ^title_id)
     |> Ash.read!()
     |> List.first()
   rescue
-    _ -> nil
+    _error -> nil
   end
 
   defp from_tracked(tracked) do
@@ -248,8 +308,13 @@ defmodule Kati.Screens.DropSheet do
       title: title_of(cached),
       seed: seed_of(cached),
       cold_label: "GONE COLD · " <> duration_of(tracked.last_touched_at),
-      season: tracked.progress_season || 1,
-      episode: tracked.progress_episode || 1
+      # MOVIES-AND-TV.md #110. A film has no episode to have stopped after, so
+      # it carries no position at all rather than a manufactured `S1 E1` — and
+      # `position_card/1` draws nothing for it. Inventing a position would put
+      # *after S1E1* on a two-hour film's own history.
+      kind: tracked.kind,
+      season: if(tracked.kind == :movie, do: nil, else: tracked.progress_season || 1),
+      episode: if(tracked.kind == :movie, do: nil, else: tracked.progress_episode || 1)
     }
   end
 
@@ -291,43 +356,153 @@ defmodule Kati.Screens.DropSheet do
 
   def step_back(sheet), do: sheet
 
-  @doc "Gone cold → Dropped: writes the corrected position and the new status."
+  @doc """
+  Move it forward one episode.
+
+  MOVIES-AND-TV.md #127: the pill only ever decremented, so a reader who went
+  one too far had to close the sheet and open it again to get back — and
+  closing the sheet is the one thing somebody mid-decision should not have to
+  do to correct a typo.
+
+  There is no ceiling to floor against, unlike `step_back/1`'s `S1 E1`. The
+  cache would know how many episodes the season has, and reading it here would
+  make the pill say *no* to a number the reader can see is right whenever the
+  cache is behind the broadcast. The stopping point is the reader's claim
+  about their own watching, so it is theirs to state.
+
+      iex> Kati.Screens.DropSheet.step_forward(%{season: 1, episode: 3})
+      %{season: 1, episode: 4}
+  """
+  @spec step_forward(map()) :: map()
+  def step_forward(%{episode: e} = sheet) when is_integer(e), do: %{sheet | episode: e + 1}
+  def step_forward(sheet), do: sheet
+
+  @doc """
+  Gone cold → Dropped: writes the corrected position, the new status, and why.
+
+  MOVIES-AND-TV.md #111. The reason was assigned to this socket, drawn as a lit
+  chip, and thrown away when the sheet closed — the one question in the app
+  whose answer nothing could ever read back. `Kati.Media.Event` is where it
+  goes now, with the position beside it, so screen 15 can draw *Dropped after
+  S1E3 · too slow* out of a row rather than a fixture.
+
+  The event is written only when the status write succeeded. An event log that
+  records a change the store refused is worse than no log: it is a record of
+  something that did not happen.
+  """
   @spec commit_drop(Mob.Socket.t()) :: Mob.Socket.t()
   def commit_drop(socket) do
     sheet = socket.assigns.sheet
 
-    update_tracked(sheet.tracked, %{
+    socket
+    |> written(sheet.tracked, %{
       status: :dropped,
       progress_season: sheet.season,
       progress_episode: sheet.episode
     })
-
-    socket
+    |> Kati.Screens.DropSheet.log(sheet.tracked, :dropped, %{
+      season_number: sheet.season,
+      episode_number: sheet.episode,
+      reason: Kati.Screens.DropSheet.reason_label(Map.get(socket.assigns, :reason))
+    })
   end
 
   @doc "Gone cold → Active: \"nothing — 'still on it' just clears it.\""
   @spec commit_keep(Mob.Socket.t()) :: Mob.Socket.t()
-  def commit_keep(socket) do
-    update_tracked(socket.assigns.sheet.tracked, %{status: :watching})
+  def commit_keep(socket),
+    do: written(socket, socket.assigns.sheet.tracked, %{status: :watching})
+
+  @doc """
+  Dropped → Active: the position was never touched, so it is already resumed at.
+
+  Logged as `:resumed` rather than by deleting the drop. `Kati.Media.Event` is
+  append-only and the point of it is that a title dropped in July and picked
+  back up in September has two rows, not none — an undo that erased its own
+  cause would put the log back where it started.
+  """
+  @spec commit_undo(Mob.Socket.t()) :: Mob.Socket.t()
+  def commit_undo(socket) do
+    socket
+    |> written(socket.assigns.sheet.tracked, %{status: :watching})
+    |> Kati.Screens.DropSheet.log(socket.assigns.sheet.tracked, :resumed, %{})
+  end
+
+  @doc """
+  Append one event, if the write that caused it went through.
+
+  `nil` tracked is the drawn sheet's own case, exactly as `update_tracked/1`
+  reads it: board 149 has no row behind it by design, and logging an event
+  about a drawing would put a fixture in the reader's own history.
+  """
+  @spec log(Mob.Socket.t(), term(), atom(), map()) :: Mob.Socket.t()
+  def log(socket, tracked, kind, attrs) do
+    if is_nil(Map.get(socket.assigns, :save_error)) do
+      Kati.Media.Log.write(tracked, kind, attrs)
+    end
+
     socket
   end
 
-  @doc "Dropped → Active: the position was never touched, so it is already resumed at."
-  @spec commit_undo(Mob.Socket.t()) :: Mob.Socket.t()
-  def commit_undo(socket) do
-    update_tracked(socket.assigns.sheet.tracked, %{status: :watching})
-    socket
+  @doc """
+  A reason key as the words the reader read when they tapped it.
+
+  Stored as the label rather than the key, because `Kati.Media.Event.reason` is
+  free text — it has to hold *Something else* typed by hand — and a column
+  holding `:too_slow` for one row and a sentence for the next is two columns
+  wearing one name.
+
+      iex> Kati.Screens.DropSheet.reason_label(:too_slow)
+      "Too slow"
+
+      iex> Kati.Screens.DropSheet.reason_label(nil)
+      nil
+  """
+  @spec reason_label(atom() | nil) :: String.t() | nil
+  def reason_label(nil), do: nil
+
+  def reason_label(key) do
+    Enum.find_value(@reasons, fn {k, label} -> if k == key, do: label end)
+  end
+
+  @doc """
+  Whether the write happened, on the socket.
+
+  `update_tracked/2` used to answer `:ok` whatever became of the `Ash.update`
+  — the result was discarded and a raise was rescued to `:ok` — so a refused
+  drop and a successful one were the same thing to look at: the sheet flipped
+  to its *Dropped* face and announced a change that had not been made.
+  MOVIES-AND-TV.md #57.
+
+  The result is kept now, and `refusal/1` draws it. The `rescue` stays, and it
+  matters that it does: an `Ash.Changeset` error is a value and a raise is not,
+  and a sheet that died inside a tap handler would take the screen process with
+  it — see `Kati.Screens.Series.tick_result/2`, which is the same shape for the
+  same reason.
+  """
+  @spec written(Mob.Socket.t(), term(), map()) :: Mob.Socket.t()
+  def written(socket, tracked, attrs) do
+    case update_tracked(tracked, attrs) do
+      :ok ->
+        Mob.Socket.assign(socket, :save_error, nil)
+
+      {:error, reason} ->
+        Mob.Socket.assign(socket, :save_error, Kati.Write.message({:error, reason}))
+    end
   end
 
   # `nil` is the drawn fallback: nothing to write against, so the tap still
-  # changes the sheet's own assigns and simply persists nothing durable.
+  # changes the sheet's own assigns and simply persists nothing durable. NOT a
+  # refusal — the drawn sheet has no row by design, and saying *that did not
+  # save* over board 149 would be an error message about a drawing.
   defp update_tracked(nil, _attrs), do: :ok
 
   defp update_tracked(tracked, attrs) do
-    Ash.update(tracked, attrs)
-    :ok
+    case Ash.update(tracked, attrs) do
+      {:ok, _updated} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
   rescue
-    _ -> :ok
+    error -> {:error, error}
   end
 
   @impl true
@@ -340,6 +515,8 @@ defmodule Kati.Screens.DropSheet do
       fill_height={true}
       background={:background}
       layout_direction={Kati.Locale.direction_prop()}
+      font_family={Kati.Locale.face_prop()}
+      accessibility_id={Kati.Screens.Identity.of(__MODULE__)}
     >
       <Box fill_width={true} fill_height={true} background={Kati.UI.Sheet.scrim()} />
       <Box fill_width={true} fill_height={true} align="bottom">
@@ -353,18 +530,42 @@ defmodule Kati.Screens.DropSheet do
           padding_top={18}
           padding_bottom={34}
         >
-          {Sheet.header("Drop this show")}
+          {Sheet.header(Kati.Screens.DropSheet.heading(s))}
           {Kati.Screens.DropSheet.identity(s)}
           {Kati.Screens.DropSheet.position_card(s)}
           {Eyebrow.quiet("Why, if you like")}
           {Kati.Screens.DropSheet.reasons(assigns.reason)}
           {Kati.Screens.DropSheet.info_card()}
           {Kati.Screens.DropSheet.keep_card()}
+          {Kati.Screens.DropSheet.refusal(Map.get(assigns, :save_error))}
           {Kati.Screens.DropSheet.actions(s)}
           {Kati.Screens.DropSheet.trail(s, assigns.dropped?)}
         </Column>
       </Box>
     </Box>
+    """
+  end
+
+  @doc """
+  A drop the store refused, said out loud.
+
+  Above the buttons and below the card they change, which is where screen 112
+  puts its own. Every other write in this app that can fail now draws this
+  band; this sheet was the last one that could not, and it is the one where
+  the silence cost most — the reader was shown *Dropped* over a title that had
+  not been.
+  """
+  @spec refusal(String.t() | nil) :: map()
+  def refusal(nil), do: ~MOB"<Spacer size={0} />"
+
+  def refusal(message) do
+    assigns = %{message: message}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.SettingsList.note("error", @message)}
+      <Spacer size={14} />
+    </Column>
     """
   end
 
@@ -418,7 +619,58 @@ defmodule Kati.Screens.DropSheet do
     end
   end
 
-  @doc false
+  @doc """
+  ` at S1 E3`, or nothing at all when there is no position.
+
+  MOVIES-AND-TV.md #110, and the half of it a device found: the header and the
+  position card were the two obvious places a film differs, and the button and
+  the undo pill build the same sentence out of the same two numbers. With them
+  `nil` the button read **Drop at S E** and the pill **Dropped Dune at S E** —
+  a position with the numbers missing, which is worse than no position.
+
+      iex> Kati.Screens.DropSheet.at(%{season: 1, episode: 3})
+      " at S1 E3"
+
+      iex> Kati.Screens.DropSheet.at(%{season: nil, episode: nil})
+      ""
+  """
+  @spec at(map()) :: String.t()
+  def at(%{season: s, episode: e}) when is_integer(s) and is_integer(e), do: " at S#{s} E#{e}"
+  def at(_sheet), do: ""
+
+  @doc """
+  What this sheet is called, which is not the same word for a film.
+
+  MOVIES-AND-TV.md #110: the sheet is series-shaped down to its header, so a
+  film could not use it as drawn — the ledger's own note said *149 cannot be
+  reused as drawn*. It can, once the two things that are actually about
+  episodes come off it: this word, and the position card.
+
+      iex> Kati.Screens.DropSheet.heading(%{kind: :movie})
+      "Drop this film"
+
+      iex> Kati.Screens.DropSheet.heading(%{kind: :tv})
+      "Drop this show"
+
+      iex> Kati.Screens.DropSheet.heading(%{})
+      "Drop this show"
+  """
+  @spec heading(map()) :: String.t()
+  def heading(%{kind: :movie}), do: "Drop this film"
+  def heading(_sheet), do: "Drop this show"
+
+  @doc """
+  Where the reader had got to — or nothing, on a film.
+
+  A film has one position and it is *seen* or *not seen*, which the status
+  already says. A card headed **Stopping at** over a blank would be a question
+  with no answer, so it is dropped: a control with nothing behind it is not
+  drawn dead.
+  """
+  @spec position_card(map()) :: map()
+  def position_card(%{season: nil}), do: ~MOB"<Spacer size={0} />"
+  def position_card(%{episode: nil}), do: ~MOB"<Spacer size={0} />"
+
   def position_card(s) do
     ~MOB"""
     <Column fill_width={true}>
@@ -458,25 +710,43 @@ defmodule Kati.Screens.DropSheet do
     """
   end
 
-  @doc false
+  @doc """
+  Two discs, back and forward, where there was one pill that only went back.
+
+  MOVIES-AND-TV.md #127. `Change` named neither direction and did one, so
+  overshooting meant closing the sheet. Two discs say which way each goes
+  before it is pressed, which one word never could.
+
+  Each is `Kati.UI.symbol/2` at the same 30pt the pill was, so the row's height
+  and the card's geometry are unchanged.
+  """
+  @spec change_pill() :: map()
   def change_pill do
     ~MOB"""
+    <Row align="center">
+      {Kati.Screens.DropSheet.step_disc("remove", :step_back)}
+      <Spacer size={8} />
+      {Kati.Screens.DropSheet.step_disc("add", :step_forward)}
+    </Row>
+    """
+  end
+
+  @doc false
+  def step_disc(glyph, tag) do
+    assigns = %{glyph: glyph, tap: {self(), tag}}
+
+    ~MOB"""
     <Row
+      width={30}
       height={30}
       corner_radius={15}
       background={Palette.paper()}
       align="center"
-      padding_left={12}
-      padding_right={12}
-      on_tap={{self(), :step_back}}
+      on_tap={@tap}
     >
-      <Text
-        text="Change"
-        text_size={11.5}
-        font_weight="semibold"
-        text_color={:on_surface}
-        max_lines={1}
-      />
+      <Spacer weight={1.0} />
+      {Kati.UI.symbol(@glyph, size: 16, color: Palette.ink())}
+      <Spacer weight={1.0} />
     </Row>
     """
   end
@@ -598,7 +868,7 @@ defmodule Kati.Screens.DropSheet do
   @doc "`Drop at S# E#` beside `Still on it` — the board's own two-button row."
   @spec actions(map()) :: map()
   def actions(s) do
-    label = "Drop at S#{s.season} E#{s.episode}"
+    label = "Drop" <> Kati.Screens.DropSheet.at(s)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -676,7 +946,7 @@ defmodule Kati.Screens.DropSheet do
   """
   @spec undo_pill(map(), boolean()) :: map()
   def undo_pill(s, live?) do
-    text = "Dropped #{s.title} at S#{s.season} E#{s.episode}"
+    text = "Dropped #{s.title}" <> Kati.Screens.DropSheet.at(s)
 
     ~MOB"""
     <Row
@@ -733,7 +1003,11 @@ defmodule Kati.Screens.DropSheet do
   end
 
   @impl true
-  def handle_info({:tap, :close}, socket), do: {:noreply, Mob.Socket.pop_screen(socket)}
+  def handle_info({:tap, :close}, socket), do: {:noreply, Kati.Screens.Resume.pop(socket)}
+
+  def handle_info({:tap, :step_forward}, socket) do
+    {:noreply, Mob.Socket.update(socket, :sheet, &Kati.Screens.DropSheet.step_forward/1)}
+  end
 
   def handle_info({:tap, :step_back}, socket) do
     {:noreply, Mob.Socket.update(socket, :sheet, &Kati.Screens.DropSheet.step_back/1)}
@@ -745,19 +1019,30 @@ defmodule Kati.Screens.DropSheet do
     {:noreply, Mob.Socket.assign(socket, :reason, next)}
   end
 
+  # `dropped?` follows the WRITE, not the tap. Flipping the sheet to its
+  # *Dropped* face over a refusal is the announcement MOVIES-AND-TV.md #57 is
+  # about, and it was the only thing this handler did with the result.
   def handle_info({:tap, :drop}, socket) do
-    socket = Kati.Screens.DropSheet.commit_drop(socket)
-    {:noreply, Mob.Socket.assign(socket, :dropped?, true)}
+    written = Kati.Screens.DropSheet.commit_drop(socket)
+
+    {:noreply, Mob.Socket.assign(written, :dropped?, is_nil(written.assigns.save_error))}
   end
 
+  # A refused *still on it* stays on the sheet to say so. Popping would take
+  # the message with it and land the reader back on a page that had not
+  # changed, with nothing to explain why.
   def handle_info({:tap, :keep}, socket) do
-    socket = Kati.Screens.DropSheet.commit_keep(socket)
-    {:noreply, Mob.Socket.pop_screen(socket)}
+    written = Kati.Screens.DropSheet.commit_keep(socket)
+
+    if written.assigns.save_error,
+      do: {:noreply, written},
+      else: {:noreply, Kati.Screens.Resume.pop(written)}
   end
 
   def handle_info({:tap, :undo}, socket) do
-    socket = Kati.Screens.DropSheet.commit_undo(socket)
-    {:noreply, Mob.Socket.assign(socket, :dropped?, false)}
+    written = Kati.Screens.DropSheet.commit_undo(socket)
+
+    {:noreply, Mob.Socket.assign(written, :dropped?, not is_nil(written.assigns.save_error))}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}

@@ -24,6 +24,12 @@ defmodule Kati.MealLibraryTest do
   alias Kati.Screens.MealEdit
   alias Kati.Screens.MealLibrary
 
+  # The two counters `page/0` is built out of, run as documentation. Both are
+  # pure arithmetic over the list they are handed — no read of their own — and
+  # a doctest is what keeps that claim from drifting back into a `stored/0`
+  # call, which is exactly how the three-reads defect got in.
+  doctest Kati.Screens.MealLibrary, only: [subtitle: 1]
+
   setup do
     on_exit(fn ->
       Kati.Repo.query!("DELETE FROM recipe_ingredients", [])
@@ -98,6 +104,27 @@ defmodule Kati.MealLibraryTest do
       assert MealLibrary.subtitle(MealLibrary.meals()) == "2 MEALS · 1 WITHOUT A PHOTO"
     end
 
+    test "one real meal is one tile, and the drawing's six are gone" do
+      # The gate is the library being empty, not each block deciding for
+      # itself: one stored recipe replaces the whole page, tiles and counts
+      # together.
+      a_recipe!(%{title: "Only meal", slot_name: "Dinner", photo_seed: nil})
+
+      page = MealLibrary.page()
+
+      assert [%{title: "Only meal"}] = page.meals
+      assert page.subtitle == "1 MEAL · 1 WITHOUT A PHOTO"
+      assert Map.new(page.chips)["All"] == "1"
+
+      tree = tree(mount_screen(MealLibrary))
+      assert find(tree, :text, text: "Only meal") != nil
+
+      for drawn <- MealLibrary.drawn_meals() do
+        assert find(tree, :text, text: drawn.title) == nil,
+               "the drawing's #{drawn.title} is still on a real library's grid"
+      end
+    end
+
     test "the chip counts are the library's, not the filtered grid's" do
       # A filter count is the number of things the chip would show you, not the
       # number it is showing.
@@ -105,11 +132,52 @@ defmodule Kati.MealLibraryTest do
       a_recipe!(%{title: "B", slot_name: "Dinner"})
       a_recipe!(%{title: "C", slot_name: "Dinner"})
 
-      counts = Map.new(MealLibrary.chip_counts())
+      counts = Map.new(MealLibrary.page().chips)
 
       assert counts["All"] == "3"
       assert counts["Dinner"] == "2"
       assert counts["Lunch"] == "0"
+    end
+
+    test "the grid, the subtitle and the chips answer from ONE read" do
+      # The defect: `load/1` read the table, the header read it again through
+      # `subtitle/1`, and the chip row read it a third time through
+      # `chip_counts/0` and re-shaped every row a fourth. A recipe landing
+      # between the mount and a redraw made them disagree OUT LOUD — the
+      # fixture's six tiles under a chip saying `All 1`.
+      #
+      # Screen 20's grid-and-hero defect, in the shape this screen has for it,
+      # and the reason `page/0` exists. Driven through the screen's own filter
+      # tap, which is the redraw a user can actually cause.
+      view = mount_screen(MealLibrary)
+      assert length(assigns(view).page.meals) == 6, "expected the drawing's six"
+
+      a_recipe!(%{title: "Landed later", slot_name: "Dinner"})
+
+      redrawn = render_info(view, {:tap, :filter_All})
+      page = assigns(redrawn).page
+
+      # One branch, and it is the whole page. Either every value is the
+      # drawing's — where `24 MEALS` and `All 24` are LITERALS over six tiles
+      # and deliberately not arithmetic — or every value is counted off the
+      # rows the grid drew. There is no third state, and the third state is
+      # what the old three reads produced.
+      assert page == MealLibrary.drawn_page() or
+               (page.subtitle == MealLibrary.subtitle(page.meals) and
+                  page.chips == MealLibrary.chip_counts(page.meals)),
+             """
+             the header, the chips and the grid described three different libraries:
+               tiles:    #{inspect(Enum.map(page.meals, & &1.title))}
+               subtitle: #{inspect(page.subtitle)}
+               chips:    #{inspect(page.chips)}
+             """
+
+      # And the tree agrees with the map. On the old code this row read
+      # `6 MEALS · 2 WITHOUT A PHOTO` beside `All 1` over the fixture's six
+      # tiles — three numbers, none of which described what was on the screen.
+      tree = tree(redrawn)
+      assert find(tree, :text, text: page.subtitle) != nil
+      assert find(tree, :text, text: Map.new(page.chips)["All"]) != nil
     end
 
     test "the filter narrows the grid" do
@@ -137,6 +205,21 @@ defmodule Kati.MealLibraryTest do
 
     test "with nothing stored the drawing renders, whole" do
       assert MealLibrary.meals() == MealLibrary.drawn_meals()
+    end
+
+    test "with nothing stored EVERY block is the drawing, not just the grid" do
+      # FIDELITY's rule: missing data is not a reason for a blank screen, and
+      # `test/design/screens/116.html` was captured from exactly this map. The
+      # drawing's `24` is a literal and is NOT arithmetic over six tiles — 24
+      # meals behind six is the asymmetry `Kati.Meals.SampleLibrary` records —
+      # so a `subtitle/1` that counted the fixture would quietly turn 24 into 6.
+      assert MealLibrary.page() == MealLibrary.drawn_page()
+
+      assert MealLibrary.page().subtitle == "24 MEALS · 6 WITHOUT A PHOTO"
+      assert Map.new(MealLibrary.page().chips)["All"] == "24"
+
+      tree = tree(mount_screen(MealLibrary))
+      assert find(tree, :text, text: "24 MEALS · 6 WITHOUT A PHOTO") != nil
     end
   end
 

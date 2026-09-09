@@ -133,7 +133,13 @@ defmodule Kati.DesignLiterals do
     "&divide;" => "÷",
     # Screen 109's delta column sets a true minus sign rather than a hyphen: the
     # column is numeric and U+2212 aligns with the digits where U+002D does not.
-    "&minus;" => "−"
+    "&minus;" => "−",
+    # Board 188's note about the Times stepper: `a row of common times plus
+    # &plusmn;5 minutes`. The first entity the 5-September export brought that
+    # the earlier boards had not — and the failure mode if it is missing is not
+    # a crash: the literal keeps the raw `&plusmn;` and no screen can ever
+    # match it, so the sweep reports copy the screen draws correctly as absent.
+    "&plusmn;" => "±"
   }
 
   @doc "Absolute path of screen `number`'s drawing. `number` is zero-padded."
@@ -174,6 +180,64 @@ defmodule Kati.DesignLiterals do
     frame = number |> path() |> File.read!() |> frame()
 
     %{text: text_literals(frame), icons: icon_names(frame)}
+  end
+
+  @doc """
+  One labelled band of a drawing, in the same shape `read!/1` answers.
+
+  ## Why a drawing sometimes has to be read in parts
+
+  Most drawings are one screen. A few are **reference sheets**: 27 (*States*)
+  draws four specimens — empty, loading, offline, undo — and 101 (*Year cards*)
+  draws five, each under its own uppercase eyebrow. A screen whose empty state
+  the design draws on such a sheet is drawn by ONE of those bands, and comparing
+  it with the whole file would demand it also render the other three specimens
+  and the commentary beside them. That is not a fidelity check; it is a
+  guaranteed failure that would end in the comparison being dropped.
+
+  So a band is named by the two eyebrows that bound it, and everything between
+  them is compared in full. Nothing is hand-listed: the design file is still the
+  only source, and a re-export that adds a line to the band adds it here too.
+
+  `from` and `to` are the drawing's own labels, **exactly as it writes them**
+  (the em dash included). A missing anchor raises rather than answering with an
+  empty band — a band nobody can find would otherwise turn into a comparison
+  against nothing, which is the failure mode every count assertion in
+  `Kati.ScreenDesignLiteralTest` exists to catch. `to` may be `nil` for the last
+  band in a file.
+  """
+  @spec band(String.t(), String.t(), String.t() | nil) :: %{
+          text: [String.t()],
+          icons: [String.t()]
+        }
+  def band(number, from, to) do
+    frame = number |> path() |> File.read!() |> frame() |> unescape()
+
+    start = anchor!(frame, number, from) + byte_size(from)
+    stop = if to, do: anchor!(frame, number, to), else: byte_size(frame)
+
+    if stop <= start do
+      raise ArgumentError,
+            "screen #{number}'s drawing puts #{inspect(to)} before #{inspect(from)}, " <>
+              "so the band between them is empty or inverted"
+    end
+
+    slice = binary_part(frame, start, stop - start)
+
+    %{text: text_literals(slice), icons: icon_names(slice)}
+  end
+
+  defp anchor!(frame, number, label) do
+    case :binary.match(frame, label) do
+      {at, _length} ->
+        at
+
+      :nomatch ->
+        raise ArgumentError,
+              "screen #{number}'s drawing does not contain the band label #{inspect(label)}. " <>
+                "The frame is a fixed artefact, so this is a re-export or a typo rather than " <>
+                "a reason to compare against less"
+    end
   end
 
   defp frame(html) do
@@ -272,7 +336,21 @@ defmodule Kati.DesignLiterals do
       :text_align,
       :layout_direction,
       :gradient,
-      :axis
+      :axis,
+      # An identifier, never copy. `Mob.Renderer` emits it for every atom-tagged
+      # control and `K-35 test-tag` turns it into a Compose `testTag` so a device
+      # test can address the control by the name Elixir gave it. It is
+      # deliberately NOT a `contentDescription`: TalkBack speaks that one, and a
+      # screen reader announcing "choose en" over the visible label would be an
+      # accessibility regression traded for a testing convenience.
+      :accessibility_id,
+      # A `<TextField>`'s behaviour, not its words. `keyboard` picks which
+      # keyboard the OS raises — `decimal` for an amount, `number`, `email` —
+      # and `return_key` names the action key. Neither is ever read by a person:
+      # the copy in a field is its `placeholder`, which `content_props/0`
+      # already covers.
+      :keyboard,
+      :return_key
     ]
   end
 
@@ -337,5 +415,145 @@ defmodule Kati.DesignLiterals do
     flow = Enum.join(texts, " ")
 
     %{nodes: texts, flow: flow, squashed: String.replace(flow, " ", "")}
+  end
+
+  @doc """
+  Lines a screen deliberately does not draw, because what carried them is gone
+  and its absence is the decision.
+
+  Here rather than in either sweep, because both ask the same question of the
+  same screens — `Kati.ScreenDesignLiteralTest` against a populated render and
+  `Kati.ScreenEmptyDatabaseTest` against an empty one — and two lists would
+  drift the first time somebody retired a line and updated one of them.
+
+  Screen 80's pairing card printed a six-character code, the address
+  `listenbrainz.org/link`, and `Expires in 9:48`. All three were invented
+  (MOVIES-AND-TV.md #71). Kati talks to none of the three providers it offers,
+  so `Kati.Screens.DataSources.pairing_code/1` derived the code from the
+  provider id; the address was ListenBrainz's under every one of them, so a
+  Hardcover reader was sent to somebody else's site; and the clock never
+  started, because nothing had. A reader who took the card at face value went
+  to a URL that was not theirs and typed a code nobody had issued.
+
+  The card names the site the token actually comes from now — `:site` on
+  `Kati.Sources`, one per provider — says what connecting would bring, and
+  says Kati cannot complete it yet. The slot is still there:
+  `Kati.Screens.DataSources.ready?/1` answers `false` for all three today and
+  the code comes back from the provider the day one answers `true`.
+
+  82 is 80 in Persian and lost the same three lines for the same reason. en
+  and fa are one app.
+  """
+  @spec retired_lines() :: [{String.t(), String.t()}]
+  def retired_lines do
+    [
+      {"80", "enter this code"},
+      {"80", "k4q9b2"},
+      {"80", "listenbrainz.org/link"},
+      {"80", "expires in 9:48"},
+      {"82", "کد را وارد کنید"},
+      {"82", "listenbrainz.org/link"},
+      {"82", "تا ۹:۴۸ دیگر معتبر است"},
+      # Board 314 replaced both of board 25's two lies, and it says so on its
+      # own face: *"A TIME IT NEVER CHECKED, AND A CADENCE THAT NEVER RUNS."*
+      #
+      # `checked 18:02` was a wall-clock time from a column that did not exist
+      # — the same defect 260 fixed on this page's sibling. The line is
+      # relative now, from a real timestamp, and reads `never checked` on every
+      # fresh install.
+      #
+      # `Manual` was one of four cadence segments and it meant NEVER: nothing
+      # schedules a manual run, so picking it switched the watcher off in
+      # silence. 314 makes it what it always was — a **Check now** button, which
+      # runs the sweep once and stamps the line above it.
+      # Board 308 replaced the label. `Can't find it? Add it by hand` asks the
+      # reader to retype what they have just typed; the row NAMES the query now
+      # — `Add "vellichor" by hand` — and is absent before a keystroke, because
+      # it has nothing to name. 06 draws it mid-query and could not have drawn
+      # the absent state.
+      # Board 320 retires Hardcover, so 80's row no longer says what it supplies —
+      # it says why it is not here. *"A row that vanishes reads as a bug and
+      # gives the reader nothing to tap"*, so the row keeps its place and takes
+      # 114's treatment: dimmed tile, dimmed label, `NOT IN V1`, and a tap that
+      # opens the reason.
+      {"80", "community book ratings"},
+      {"06", "can’t find it? add it by hand"},
+      {"25", "checked 18:02"},
+      {"25", "manual"},
+      # Board 141's sentence names the file it was captured from — a nine-column
+      # Goodreads export written with ten-point ratings and slashed dates — and
+      # every number and format in it is the reader's file's now
+      # (MOVIES-AND-TV.md #101). `Kati.Screens.ImportRecognised.date_line/1`
+      # still draws `YYYY/MM/DD` for a file written that way; the fixture's is
+      # written `2026/03/14`, so what the board keeps is the SHAPE of the
+      # sentence rather than its values.
+      #
+      # Two of the three are the values. The third, *Two columns are skipped*,
+      # is a clause that is dropped entirely when nothing was skipped, which is
+      # the same decision one clause smaller: a sentence counting columns that
+      # do not exist is what this whole finding was.
+      # Board 140's *Five more sources* names `Simkl · TV Time · Libib · Last.fm
+      # · AniList`, and AniList is already one of the six tiles above it. The
+      # drawing's own closing note counts eleven sources — six tiles, four new
+      # names, the Kati backup row — so the board contradicts itself and the
+      # arithmetic is the half that is right. It draws four now, and the two
+      # lines it stopped drawing are the two the repeat was in.
+      # MOVIES-AND-TV.md #126.
+      # Board 12's *Kept automatically* card lists four rules and two of them
+      # are assertions nothing stores: `Wishlist` and `Owned on disc` are
+      # things a reader says about a title and no column holds. They were drawn
+      # frozen at the drawing's `12` and `22` on every device, beside two rows
+      # that CAN be counted — `Rewatches` and `Abandoned` are one query each —
+      # and a card where two rows are the reader's library and two are somebody
+      # else's reads as fully real. So they are not drawn rather than drawn
+      # frozen, which is the call #75 made one screen over.
+      # MOVIES-AND-TV.md #106.
+      # Board 07's *More numbers* card froze four figures. Two of them are the
+      # reader's own now — `Kati.Goals.Goal` and `Kati.Money.Expense` are real
+      # resources — and are asserted by pattern in `device_values/0` instead.
+      # The other two have no resource to count: `Kati.Habits` is a Sample
+      # module and nothing else, and `Nutrition`'s `Cutting v3 · 86%` is a diet
+      # plan no column holds, so those rows draw no second line rather than
+      # somebody else's numbers. MOVIES-AND-TV.md #45.
+      {"07", "4 active · 12-day best"},
+      {"07", "cutting v3 · 86%"},
+      {"12", "wishlist"},
+      {"12", "owned on disc"},
+      {"140", "five more sources"},
+      {"140", "simkl · tv time · libib · last.fm · anilist"},
+      {"141", "10pt → 5★"},
+      {"141", "yyyy/mm/dd"},
+      {"141", ". two columns are skipped."},
+      # Board 323 makes screen 93's rules group screen 92's group, live — *"a
+      # specimen switch is a dead control with a costume"*, and *"93 is 92 with
+      # nothing configured, not a second screen with its own memory."* The
+      # third row therefore carries 92's sentence, the one board 310 counted,
+      # and this one goes.
+      #
+      # What it said is still true and is still the reason `hide_unavailable`
+      # defaults to off — 323 calls that *"93's own reasoning, unchanged"* —
+      # but it is a fact about `Kati.Services.default_rules/0` now rather than
+      # a line of copy under a switch.
+      {"93", "off by default — with no services set it would hide everything."},
+      # Board 316 rewords screen 50's QR card. `Scan to import this plan`
+      # promised an import and the mono line under it has said `SETTINGS ONLY`
+      # since `Kati.Meals.SampleShare.qr_scope/0` was written — the two halves
+      # of one card disagreeing. 316's ruling: *"Two ways out: widen the
+      # encode, or reword the card. Reword. A QR holds about 2,900 bytes and 35
+      # meals with ingredients is tens of kilobytes — widening it is not a
+      # decision, it is a physical impossibility."* The card says `Scan to set
+      # up this plan` now, over a sentence naming what does and does not
+      # travel.
+      {"50", "scan to import this plan"},
+      # Board 98's badge under `Share…` named a fence that had already landed.
+      # `K-20 file-transport` is `ACTION_SEND` behind a FileProvider URI and
+      # `native/LEDGER.md` has carried the row since `Kati.Backup` needed a way
+      # off the phone; `K-45 capture-screen` supplied the bytes. Both halves
+      # existed and nothing joined them, so `Kati.Native.Files.share/2` had no
+      # caller in `lib/` at all and the badge went on naming a wait that had
+      # ended. `share_screen/1` is the join, and the badge is not reworded —
+      # a marker naming no fence is a marker the next reader believes.
+      {"98", "when file sharing lands"}
+    ]
   end
 end
