@@ -521,7 +521,7 @@ defmodule Kati.Screens.Goals do
     runs =
       [{goal.projection_lead, body}]
       |> maybe(goal.projection, [{" ", body}, {goal.projection, strong}])
-      |> maybe(goal.projection_tail, [{" " <> (goal.projection_tail || ""), body}])
+      |> maybe(goal.projection_tail, [{lead_space(goal.projection_tail), body}])
       |> maybe(goal.projection_date, [
         {" ", body},
         {goal.projection_date || "", strong},
@@ -536,6 +536,18 @@ defmodule Kati.Screens.Goals do
   # silently overridden and the sentence comes out with a Latin `9` in it. The
   # plural still selects on the integer — it is the third argument — and the
   # digits the reader sees are the ones passed by name.
+  # A space before the tail, unless the tail IS punctuation. Board 104's third
+  # card ends `106 of 120.` and the joiner wrote `106 of 120 .`; the Persian
+  # tail is a word (`می‌رسید.`) and needs the space, so the rule is about the
+  # string rather than about the locale.
+  defp lead_space(nil), do: ""
+
+  defp lead_space(tail) do
+    if String.first(tail) in [".", ",", "،", "؛", ";", ":", "!", "?", "؟"],
+      do: tail,
+      else: " " <> tail
+  end
+
   defp maybe(runs, nil, _extra), do: runs
   defp maybe(runs, _value, extra), do: runs ++ extra
 
