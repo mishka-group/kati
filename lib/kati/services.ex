@@ -57,7 +57,7 @@ defmodule Kati.Services do
     {"AU", "Australia"}
   ]
 
-  # The same seven in Persian. Lifted from `Kati.Screens.MyServicesFa`, which is
+  # The same seven in Persian. Lifted from board 97's mirror, which is
   # where they were written and is not where a country's name belongs.
   @fa_names %{
     "GB" => "بریتانیا",
@@ -135,7 +135,7 @@ defmodule Kati.Services do
 
   `region_name/1` answers in the reader's own language and this is the half it
   falls back to. Both are here rather than in a screen because the LIST is here:
-  `Kati.Screens.MyServicesFa` carried the Persian names and
+  Board 97's mirror carried the Persian names and
   `Kati.Screens.CountryPickerFa` read them across module boundaries, which made
   a country's name the property of a mirror. mishka-group/kati#103.
   """

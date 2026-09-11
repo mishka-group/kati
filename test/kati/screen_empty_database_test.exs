@@ -461,7 +461,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"93", Kati.Screens.MyServicesEmpty},
     {"95", Kati.Screens.MyServicesStates},
     {"96", Kati.Screens.NothingSetUpKnockOn},
-    {"97", Kati.Screens.MyServicesFa},
+    # 97 was `Kati.Screens.MyServicesFa` until mishka-group/kati#103 folded that
+    # mirror away. Board 97 is screen 92 rendered under `:fa` now — so it is on
+    # `@fa_numbers` below, and it keeps its own row here because the board is
+    # still a drawing this file renders against an empty store, and because a
+    # `for` over `@migrated` would otherwise stop asking the Persian page
+    # anything at all.
+    {"97", Kati.Screens.MyServices},
     # The Persian search and the two year-card twins. Each gates on the pair its
     # primary gates on, for the reason every mirror in this list does.
     {"90", Kati.Screens.SearchFa},
@@ -682,8 +688,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # 97 is 92 in Persian and empties the same way. There is no Persian board
     # for the empty state — 93 has no mirror — so the comparison is 97's own
     # chrome, which the `@quoted` floor and `Kati.MyServicesGateTest` hold,
-    # and the card's two Persian sentences are this screen's own translation
-    # of board 93's, in `@copy` beside the rest of the page's words.
+    # and the card's two Persian sentences are board 93's, translated in
+    # `priv/gettext/fa` beside the rest of the page's words rather than frozen
+    # in a mirror module.
     "97" => [],
     # 157 is 154 in the dark colourway and opens in the same resting state, so
     # it answers to the same band of board 155 — see the entry above, and
@@ -2449,7 +2456,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"96", Kati.Screens.NothingSetUpKnockOn,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"97", Kati.Screens.MyServicesFa,
+      # 97 is 92 under `:fa`, and the gate is 92's — the same read, asked in the
+      # other script. It is named separately because `@migrated` names it
+      # separately: the pairing test below reads across both lists.
+      {"97", Kati.Screens.MyServices,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"90", Kati.Screens.SearchFa,
@@ -2946,16 +2956,18 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   # in rather than in `:en`.
   #
   # Every other Persian board is a `*Fa` module holding its copy as literals, so
-  # the locale it renders under makes no difference to what it draws. 156 is the
+  # the locale it renders under makes no difference to what it draws. 156 was the
   # first that is not: mishka-group/kati#103's fold deleted
   # `Kati.Screens.AddByHandFa`, and board 156 is now screen 154 rendered under
   # `:fa` — which is also what makes its back chevron `arrow_forward_ios`, since
   # `Kati.Screens.Pushed.back_glyph/0` reads the direction. Rendered in `:en` it
-  # draws the English page and every one of the board's lines is "missing".
+  # draws the English page and every one of the board's lines is "missing". 97
+  # joined it when `Kati.Screens.MyServicesFa` folded into screen 92, and every
+  # fold after this one adds its board here.
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(60 103 137 156 164 165 166)
+  @fa_numbers ~w(60 97 103 137 156 164 165 166)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

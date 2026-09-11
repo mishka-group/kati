@@ -151,8 +151,16 @@ defmodule Kati.Services.Service do
   """
   @spec format(non_neg_integer(), String.t()) :: String.t()
   def format(pence, currency) do
-    symbol(currency) <>
+    figure =
       "#{div(pence, 100)}.#{String.pad_leading(Integer.to_string(rem(pence, 100)), 2, "0")}"
+
+    # The symbol leads in Latin and trails in Persian, and the digits and the
+    # decimal mark follow the script — board 97 writes `۱۰٫۰۰ £`. It was
+    # `symbol <> figure` in both, so a Persian reader got `£10.00` in Latin
+    # numerals beside sentences that were not.
+    if Kati.Locale.direction(Kati.Locale.current()) == :rtl,
+      do: Kati.Locale.number(figure) <> " " <> symbol(currency),
+      else: symbol(currency) <> figure
   end
 
   # Three symbols and a fallback that prints the code with a space. Not a

@@ -1,4 +1,6 @@
 defmodule Kati.Services.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Screens 92 and 94, as the drawings captured them.
 
@@ -13,9 +15,9 @@ defmodule Kati.Services.Sample do
   @spec subscribed() :: [map()]
   def subscribed do
     [
-      %{badge: "L", name: "Lumen+", price: "£8.99", pence: 899},
-      %{badge: "O", name: "Orbit", price: "£13.99", pence: 1399},
-      %{badge: "K", name: "Kino", price: "£11.49", pence: 1149}
+      %{badge: "L", name: "Lumen+", price: Kati.Services.Service.format(899, "GBP"), pence: 899},
+      %{badge: "O", name: "Orbit", price: Kati.Services.Service.format(1399, "GBP"), pence: 1399},
+      %{badge: "K", name: "Kino", price: Kati.Services.Service.format(1149, "GBP"), pence: 1149}
     ]
   end
 
@@ -48,13 +50,14 @@ defmodule Kati.Services.Sample do
   quietly following the other.
   """
   @spec monthly_total() :: String.t()
-  def monthly_total, do: "£46.47"
+  def monthly_total, do: Kati.Services.Service.format(4647, "GBP")
 
   @doc "What the three listed services actually add up to."
   @spec listed_total() :: String.t()
-  def listed_total, do: "£34.47"
+  def listed_total, do: Kati.Services.Service.format(3447, "GBP")
 
   @doc "The everything-else row's count, which is JustWatch's and not Kati's."
   @spec catalogue_count() :: String.t()
-  def catalogue_count, do: "Show all 47"
+  def catalogue_count,
+    do: gettext("Show all %{count}", count: Kati.Locale.number(47))
 end

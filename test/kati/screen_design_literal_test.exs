@@ -776,11 +776,13 @@ defmodule Kati.ScreenDesignLiteralTest do
     # a country added to `Kati.Services.countries/0` cannot leave this pattern
     # behind.
     persian_countries =
-      Kati.Services.countries()
-      |> Enum.map(fn {code, _name} ->
-        Regex.escape(Kati.Screens.MyServicesFa.region_name(code))
+      Kati.Locale.as(:fa, fn ->
+        Kati.Services.countries()
+        |> Enum.map(fn {code, _name} ->
+          Regex.escape(Kati.Services.region_name(code))
+        end)
+        |> Enum.join("|")
       end)
-      |> Enum.join("|")
 
     today = Kati.Time.today()
     month = today.month |> Kati.Time.month_name() |> String.downcase()
@@ -803,7 +805,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # slot must still be filled rather than with what: a country name from
       # `@countries` or the invitation, the row's sub-line or the sentence
       # that replaces it, and the flag or the `public` tile that stands in for
-      # one. `Kati.ScreenMyServicesFaTest` picks a country and asserts the
+      # one. `Kati.ScreenMyServicesTest` picks a country and asserts the
       # other branch.
       {"97", "🇮🇷",
        "this reader's flag, or board 324's `public` tile when they have picked no country",
@@ -1411,7 +1413,7 @@ defmodule Kati.ScreenDesignLiteralTest do
       # same arrival. `:on` rides with it: the switches are lit from the
       # subscribed names, and a page whose services came from the drawing must
       # take its switches from there too.
-      {"97", Kati.Screens.MyServicesFa,
+      {"97", Kati.Screens.MyServices,
        fn assigns ->
          drawn = Kati.Screens.MyServices.drawn_page()
 

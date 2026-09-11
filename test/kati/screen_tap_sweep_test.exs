@@ -824,7 +824,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.YearShareBooks, :aspect_square},
     # Screen 97's third rule, the Persian mirror of 92's — the same `Mob.State`
     # blind spot the English entries above record.
-    {Kati.Screens.MyServicesFa, :rule_hide_unavailable},
     # The opening chip on each of the four screens the third batch added. Same
     # already-selected case as every other family above: 87 and 90 open on All,
     # and 102 and 103 are 98's board with its own opening scope and ratio.

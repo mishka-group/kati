@@ -521,7 +521,7 @@ defmodule Kati.Screens.SettingsFa do
     # The two the second wave added, keyed on the glyph for the reason above:
     # screen 24 and this screen name the same destinations without a
     # translation table between them.
-    "my_services" => Kati.Screens.MyServicesFa,
+    "my_services" => Kati.Screens.MyServices,
     "data_sources" => Kati.Screens.DataSourcesFa,
     "attribution" => Kati.Screens.Attribution,
     # 62's own caption is *Settings rows mirror wholesale*, and these two were

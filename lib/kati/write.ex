@@ -1,4 +1,6 @@
 defmodule Kati.Write do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   What a screen says when a save does not land.
 
@@ -37,7 +39,7 @@ defmodule Kati.Write do
   an `Ash.Error.Invalid` rendered raw is worse than saying nothing useful, and
   it is the log's job to carry the detail.
 
-      iex> Kati.Write.message({:error, :nothing_to_save})
+      iex> Kati.Locale.as(:en, fn -> Kati.Write.message({:error, :nothing_to_save}) end)
       "Nothing to save yet."
 
       iex> Kati.Write.message({:error, %{errors: [%{message: "is required"}]}})
@@ -47,7 +49,7 @@ defmodule Kati.Write do
       "That did not save. Your text is still here — try again."
   """
   @spec message(term()) :: String.t()
-  def message({:error, :nothing_to_save}), do: "Nothing to save yet."
+  def message({:error, :nothing_to_save}), do: gettext("Nothing to save yet.")
 
   def message({:error, %{errors: [%{message: text} | _rest]}}) when is_binary(text) do
     # Ash carries its messages as TEMPLATES — `"must be one of %{atom_list},

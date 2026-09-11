@@ -134,7 +134,8 @@ defmodule Kati.Screens.Gallery do
     {"93", "My services — nothing set up", Kati.Screens.MyServicesEmpty, :push},
     {"95", "My services — states", Kati.Screens.MyServicesStates, :push},
     {"96", "Nothing set up — knock-on", Kati.Screens.NothingSetUpKnockOn, :push},
-    {"97", "سرویس‌های من", Kati.Screens.MyServicesFa, :push},
+    # mishka-group/kati#103. Board 97 is screen 92 under `:fa`.
+    {"97", "سرویس‌های من — My services, RTL", Kati.Screens.MyServices, :push},
     {"99", "Your year — Books", Kati.Screens.YearShareBooks, :push},
     {"101", "Year cards — states", Kati.Screens.YearCardsStates, :push},
     {"87", "Search — typing", Kati.Screens.SearchTyping, :push},

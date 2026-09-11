@@ -1,4 +1,4 @@
-defmodule Kati.ScreenMyServicesFaTest do
+defmodule Kati.ScreenMyServicesPersianTest do
   @moduledoc """
   Screen 97 with nothing set up, and the sheet its country row opens.
 
@@ -23,7 +23,7 @@ defmodule Kati.ScreenMyServicesFaTest do
   use Mob.ScreenCase, async: false
 
   alias Kati.Screens.CountryPicker
-  alias Kati.Screens.MyServicesFa
+  alias Kati.Screens.MyServices
   alias Kati.Services
 
   @prefix "fa-svc-test-"
@@ -46,21 +46,32 @@ defmodule Kati.ScreenMyServicesFaTest do
   end
 
   describe "the country row, with no country chosen" do
-    test "asks for one instead of naming one" do
-      words = tree(mount_screen(MyServicesFa))
+    test "names the working default in Persian rather than leaving a code on screen" do
+      # Board 97's mirror drew a PROMPT here — *کشورتان را انتخاب کنید* — and
+      # screen 92 draws the country `region/0` is working from, which is the
+      # decision the fold keeps. What matters in Persian is that the name is
+      # Persian and not `GB`.
+      words = tree(mount_screen(MyServices))
 
-      assert find(words, :text, text: "کشورتان را انتخاب کنید") != nil
-      assert find(words, :text, text: "تا این تنظیم نشود چیزی کار نمی‌کند") != nil
+      assert find(words, :text, text: "بریتانیا") != nil
+      assert find(words, :text, text: "GB") == nil
       assert find(words, :text, text: "ایران") == nil
     end
 
-    test "and `region/0` says so rather than substituting a country" do
-      assert MyServicesFa.region() == nil
+    test "and `region/0` still answers the working default it always has" do
+      # The mirror kept its own `region/0` that answered `nil` until somebody
+      # chose. `Kati.Services.region/0` answers `"GB"` on a phone nobody has
+      # told anything, and its own moduledoc argues why — every page asking
+      # *what is available here* needs an answer. mishka-group/kati#103 folded
+      # the mirror away, so screen 92's behaviour is the behaviour, in both
+      # scripts; `chosen_region/0` is the one that answers nil.
+      assert Kati.Services.region() == "GB"
+      assert Kati.Services.chosen_region() == nil
     end
 
     test "and the row opens board 301's sheet" do
       assert {:noreply, socket} =
-               MyServicesFa.handle_info({:tap, :pick_country}, mount_screen(MyServicesFa).socket)
+               MyServices.handle_info({:tap, :pick_country}, mount_screen(MyServices).socket)
 
       assert socket.__mob__.nav_action == {:push, CountryPicker, %{}}
     end
@@ -70,22 +81,22 @@ defmodule Kati.ScreenMyServicesFaTest do
     test "names it in Persian" do
       Services.put_region("DE")
 
-      assert MyServicesFa.region() == "DE"
-      assert find(tree(mount_screen(MyServicesFa)), :text, text: "آلمان") != nil
+      assert Kati.Services.region() == "DE"
+      assert find(tree(mount_screen(MyServices)), :text, text: "آلمان") != nil
     end
 
     test "and a deliberately chosen Britain is Britain — board 301's closing sentence" do
       Services.put_region("GB")
 
-      assert MyServicesFa.region() == "GB"
-      assert find(tree(mount_screen(MyServicesFa)), :text, text: "بریتانیا") != nil
-      assert find(tree(mount_screen(MyServicesFa)), :text, text: "ایران") == nil
+      assert Kati.Services.region() == "GB"
+      assert find(tree(mount_screen(MyServices)), :text, text: "بریتانیا") != nil
+      assert find(tree(mount_screen(MyServices)), :text, text: "ایران") == nil
     end
   end
 
   describe "the money row, with nothing subscribed" do
     test "says nothing has been totalled rather than totalling nothing" do
-      words = tree(mount_screen(MyServicesFa))
+      words = tree(mount_screen(MyServices))
 
       assert find(words, :text, text: "هنوز چیزی برای جمع‌زدن نیست") != nil
       assert find(words, :text, text: "اشتراک‌ها") != nil
@@ -108,7 +119,7 @@ defmodule Kati.ScreenMyServicesFaTest do
       })
 
       words =
-        inspect(tree(mount_screen(MyServicesFa)), limit: :infinity, printable_limit: :infinity)
+        inspect(tree(mount_screen(MyServices)), limit: :infinity, printable_limit: :infinity)
 
       assert words =~ "۸٫۹۹",
              "the money row does not print this reader's own total"
@@ -127,7 +138,7 @@ defmodule Kati.ScreenMyServicesFaTest do
         })
       end
 
-      words = tree(mount_screen(MyServicesFa))
+      words = tree(mount_screen(MyServices))
 
       assert find(words, :text, text: "۲ سرویس") != nil
       assert find(words, :text, text: "۱۰٫۰۰ £ در ماه") != nil
@@ -137,7 +148,7 @@ defmodule Kati.ScreenMyServicesFaTest do
       Ash.create!(Services.Service, %{name: @prefix <> "بی‌قیمت", tier: :subscribed})
 
       words =
-        inspect(tree(mount_screen(MyServicesFa)), limit: :infinity, printable_limit: :infinity)
+        inspect(tree(mount_screen(MyServices)), limit: :infinity, printable_limit: :infinity)
 
       # `—` is the same answer screen 92 gives, and `amount/1` passes it through
       # untouched: it has no digits to convert and no currency symbol to move.
@@ -193,7 +204,7 @@ defmodule Kati.ScreenMyServicesFaTest do
 
       assert {:noreply, _socket} = CountryPicker.handle_info({:tap, :pick_FR}, socket)
       assert Services.chosen_region() == "FR"
-      assert MyServicesFa.region() == "FR"
+      assert Kati.Services.region() == "FR"
     end
   end
 end

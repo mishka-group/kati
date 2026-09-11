@@ -517,6 +517,12 @@ defmodule Kati.DesignLiterals do
       {"115", "رد کن"},
       {"115", "u+066b"},
       {"115", "می\u200Cمانند تا ستون هم\u200Cتراز بماند."},
+      # Board 97's mirror drew a *Show all 47* row over a catalogue it could not
+      # read. Screen 92 draws a LIVE catalogue row instead — `catalogue_line/1`,
+      # counting what this device actually knows about — and board 93 is where
+      # the frozen `Show all 47` still belongs, over an empty one.
+      # mishka-group/kati#103.
+      {"97", "نمایش همه ۴۷"},
       {"80", "community book ratings"},
       {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},

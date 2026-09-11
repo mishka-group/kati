@@ -240,7 +240,7 @@ defmodule Kati.Screens.AddToList do
       # noun — ۱ فهرست and ۳ فهرست are both correct — so the `1` case is the
       # English grammar's, not the sentence's, and a second msgid would ask a
       # translator for a distinction their language does not make. The numeral
-      # takes the reader's own digits. `Kati.Screens.MyServicesFa` records the
+      # takes the reader's own digits. Board 97's mirror recorded the
       # same rule for its own count.
       0 -> gettext("IN NO LISTS")
       1 -> "IN 1 LIST"

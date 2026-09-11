@@ -65,6 +65,7 @@ defmodule Kati.Screens.MyServices do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Services
   alias Kati.Services.Sample
@@ -76,21 +77,29 @@ defmodule Kati.Screens.MyServices do
 
   # Each rule with the sentence that says what it does. The sentence is not
   # optional copy — see the moduledoc.
-  @rules [
-    {:rentals, "Count rentals as available",
-     "A film you would have to rent still shows up in What fits tonight."},
-    {:purchases, "Count purchases as available",
-     "Titles you would have to buy outright are included too."},
-    # Board 310: three, counted from the filter and not from memory. The
-    # sentence had been cut to two because screen 13 read a fixture and a
-    # switch that claimed to filter it would have been the promise this rule
-    # was reported for. `Kati.Screens.WhatFits.watchable/1` closed that, so the
-    # board's own sentence goes back — 310 counts the pages the filter reaches
-    # (11 Discover, 10 Up next, 13 What fits tonight) and finds three.
-    {:hide_unavailable, "Hide titles I can’t watch",
-     "Removes them from Discover, Up next and What fits tonight. " <>
-       "Your library and wishlist keep everything."}
-  ]
+  # A function, not a module attribute: `gettext/1` in an attribute is
+  # evaluated once at COMPILE time, so the locale of whoever ran `mix compile`
+  # would be the locale every reader got. See `Kati.Screens.Attribution`.
+  @doc false
+  @spec rules() :: [{atom(), String.t(), String.t()}]
+  def rules do
+    [
+      {:rentals, gettext("Count rentals as available"),
+       gettext("A film you would have to rent still shows up in What fits tonight.")},
+      {:purchases, gettext("Count purchases as available"),
+       gettext("Titles you would have to buy outright are included too.")},
+      # Board 310: three, counted from the filter and not from memory. The
+      # sentence had been cut to two because screen 13 read a fixture and a
+      # switch that claimed to filter it would have been the promise this rule
+      # was reported for. `Kati.Screens.WhatFits.watchable/1` closed that, so the
+      # board's own sentence goes back — 310 counts the pages the filter reaches
+      # (11 Discover, 10 Up next, 13 What fits tonight) and finds three.
+      {:hide_unavailable, gettext("Hide titles I can’t watch"),
+       gettext(
+         "Removes them from Discover, Up next and What fits tonight. Your library and wishlist keep everything."
+       )}
+    ]
+  end
 
   # `:query` and `:save_error` open empty and nil, so the resting page is the
   # drawing to the pixel: an unfilled field showing its placeholder, and no
@@ -261,13 +270,13 @@ defmodule Kati.Screens.MyServices do
   what is true is that nothing has been totalled.*
   """
   @spec money_line([map()], String.t()) :: {String.t(), String.t() | nil}
-  def money_line([], _total), do: {"Nothing to add up yet", nil}
+  def money_line([], _total), do: {gettext("Nothing to add up yet"), nil}
 
   def money_line(subscribed, total) do
     count = length(subscribed)
 
-    {"#{count} #{if count == 1, do: "service", else: "services"}",
-     String.upcase(total <> " a month")}
+    {ngettext("%{n} service", "%{n} services", count, n: Kati.Locale.number(count)),
+     Kati.UI.eyebrow_label(gettext("%{total} a month", total: total))}
   end
 
   defp stored(tier), do: Enum.filter(all_stored(), &(&1.tier == tier))
@@ -461,8 +470,8 @@ defmodule Kati.Screens.MyServices do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("My services", "So Kati only shows you what you can actually watch.", nil, :name)}
-        {UI.eyebrow("Region")}
+        {SettingsList.title(gettext("My services"), gettext("So Kati only shows you what you can actually watch."), nil, :name)}
+        {UI.eyebrow(gettext("Region"))}
         {Kati.Screens.MyServices.region_group(assigns.region)}
         {Kati.Screens.MyServices.search_field(query, services.set_up?, Map.get(assigns, :query_epoch, 0))}
         {UI.eyebrow(Kati.Screens.MyServices.subscribed_label(services, query))}
@@ -470,9 +479,9 @@ defmodule Kati.Screens.MyServices do
         {Kati.Screens.MyServices.free_band(services.free)}
         {Kati.Screens.MyServices.no_match(services, query)}
         {Kati.Screens.MyServices.catalogue_group(services, save_error)}
-        {UI.eyebrow("Rules")}
+        {UI.eyebrow(gettext("Rules"))}
         {Kati.Screens.MyServices.rules_group(assigns.rules)}
-        {UI.eyebrow("Money")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Money")))}
         {Kati.Screens.MyServices.money_group(services)}
         {Kati.Screens.MyServices.credit()}
       </Column>
@@ -490,13 +499,13 @@ defmodule Kati.Screens.MyServices do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.Screens.MyServices.flag_tile(@flag),
-          Kati.UI.SettingsList.body(@name, "Decides what “available” means"),
+          Kati.UI.SettingsList.body(@name, gettext("Decides what “available” means")),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :pick_country}
         )
       ])}
       <Spacer size={10} />
-      {Kati.UI.SettingsList.note("info", "Availability is per country. Telling you a film is on Lumen+ when it is only on Lumen+ in Canada is worse than telling you nothing at all.")}
+      {Kati.UI.SettingsList.note("info", gettext("Availability is per country. Telling you a film is on Lumen+ when it is only on Lumen+ in Canada is worse than telling you nothing at all."))}
       <Spacer size={24} />
     </Column>
     """
@@ -566,7 +575,7 @@ defmodule Kati.Screens.MyServices do
         {UI.symbol("search", size: 19, color: Palette.tertiary())}
         <Spacer size={11} />
         <Text
-          text="Search services"
+          text={gettext("Search services")}
           text_size={14}
           text_color={Palette.tertiary()}
           weight={1.0}
@@ -594,7 +603,11 @@ defmodule Kati.Screens.MyServices do
       # without: there is nothing to search, and the field is in fact the way
       # you name the first one. Same control, same tap, the sentence the page
       # is actually in.
-      placeholder: if(set_up?, do: "Search services", else: "Name a service, and what it costs")
+      placeholder:
+        if(set_up?,
+          do: gettext("Search services"),
+          else: gettext("Name a service, and what it costs")
+        )
     }
 
     ~MOB"""
@@ -638,10 +651,16 @@ defmodule Kati.Screens.MyServices do
   def subscribed_label(services, query \\ "")
 
   def subscribed_label(%{subscribed: []}, query) when is_binary(query) and query != "",
-    do: "Subscribed · 0"
+    do: gettext("Subscribed · %{count}", count: Kati.Locale.number(0))
 
-  def subscribed_label(%{subscribed: []}, _none), do: "Subscribed · none yet"
-  def subscribed_label(services, _query), do: "Subscribed · #{length(services.subscribed)}"
+  def subscribed_label(%{subscribed: []}, _none),
+    do: gettext("Subscribed · none yet")
+
+  def subscribed_label(services, _query),
+    do:
+      gettext("Subscribed · %{count}",
+        count: Kati.Locale.number(length(services.subscribed))
+      )
 
   @doc """
   The pill under the empty card: add the service named in the field above.
@@ -661,7 +680,7 @@ defmodule Kati.Screens.MyServices do
     assigns = %{
       pill:
         Kati.Components.MishkaPill.pill(
-          label: "Add it",
+          label: gettext("Add it"),
           background: Palette.ink_fill(),
           color: Palette.on_ink(),
           height: 38,
@@ -707,7 +726,7 @@ defmodule Kati.Screens.MyServices do
 
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Free with ads")}
+      {UI.eyebrow(gettext("Free with ads"))}
       {@group}
     </Column>
     """
@@ -852,7 +871,7 @@ defmodule Kati.Screens.MyServices do
   @spec mine_switch(map()) :: map()
   def mine_switch(service) do
     Kati.Components.MishkaToggle.toggle(
-      label: "Mine",
+      label: gettext("Mine"),
       pressed: true,
       on_change:
         if(Map.get(service, :id),
@@ -916,7 +935,7 @@ defmodule Kati.Screens.MyServices do
     ~MOB"""
     <Text
       text={@text}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face()}
       text_size={12.5}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}
@@ -931,7 +950,7 @@ defmodule Kati.Screens.MyServices do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={10} />
-      {Kati.UI.SettingsList.note("info", "This screen owns these prices. 23 reads them — edit here, and cost per watched hour follows.")}
+      {Kati.UI.SettingsList.note("info", gettext("This screen owns these prices. 23 reads them — edit here, and cost per watched hour follows."))}
     </Column>
     """
   end
@@ -950,13 +969,13 @@ defmodule Kati.Screens.MyServices do
   def catalogue_group(services, save_error \\ nil) do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.eyebrow_muted("Not mine")}
+      {Kati.UI.SettingsList.eyebrow_muted(gettext("Not mine"))}
       {Kati.UI.SettingsList.card(
         Kati.Screens.MyServices.count_row(services) ++
         [
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("add"),
-          Kati.UI.SettingsList.body("Something else", "Type its name, and its price after it — Netflix 10.99. Kati remembers both for your subscription total.", lines: 3),
+          Kati.UI.SettingsList.body(gettext("Something else"), "Type its name, and its price after it — Netflix 10.99. Kati remembers both for your subscription total.", lines: 3),
           Kati.UI.SettingsList.trailing(nil),
           on_tap: {self(), :add_service}
         )
@@ -1004,10 +1023,13 @@ defmodule Kati.Screens.MyServices do
   @spec catalogue_line(map()) :: {String.t(), String.t()}
   def catalogue_line(%{subscribed: subscribed, free: free}) do
     count = length(subscribed) + length(free)
-    noun = if count == 1, do: "service", else: "services"
 
-    {"Kati lists #{count} #{noun}",
-     "The ones you have told it about. A fuller list needs a source Kati has not got yet."}
+    {ngettext("Kati lists %{n} service", "Kati lists %{n} services", count,
+       n: Kati.Locale.number(count)
+     ),
+     gettext(
+       "The ones you have told it about. A fuller list needs a source Kati has not got yet."
+     )}
   end
 
   @doc """
@@ -1059,18 +1081,6 @@ defmodule Kati.Screens.MyServices do
   end
 
   @doc """
-  The three rules, as `{key, title, sentence}`.
-
-  Public because screen 93 draws the same three (board 323) and the private
-  attribute was what made that file copy them: its own comment said the
-  sentences *"are duplicated rather than shared because they live in a private
-  attribute there"*, and a drift would then be found by a literal check rather
-  than made impossible.
-  """
-  @spec rules() :: [{atom(), String.t(), String.t()}]
-  def rules, do: @rules
-
-  @doc """
   The three rules, each with its consequence written under it.
 
   Screen 93 draws this group too, and board 323 is why it is this one rather
@@ -1083,10 +1093,10 @@ defmodule Kati.Screens.MyServices do
   """
   @spec rules_group(map()) :: map()
   def rules_group(rules) do
-    last = length(@rules) - 1
+    last = length(Kati.Screens.MyServices.rules()) - 1
 
     rows =
-      @rules
+      Kati.Screens.MyServices.rules()
       |> Enum.with_index()
       |> Enum.map(fn {{key, title, why}, index} ->
         SettingsList.row(
@@ -1120,7 +1130,7 @@ defmodule Kati.Screens.MyServices do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("payments"),
-          Kati.UI.SettingsList.body("Subscriptions", @line),
+          Kati.UI.SettingsList.body(gettext("Subscriptions"), @line),
           Kati.UI.SettingsList.trailing(Kati.Screens.MyServices.total_trailing(@total)),
           on_tap: {self(), :open_subscriptions}
         )
@@ -1140,7 +1150,7 @@ defmodule Kati.Screens.MyServices do
     <Row align="center">
       <Text
         text={@total}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={11}
         letter_spacing={0.1}
         text_color={Kati.Theme.Palette.sub()}

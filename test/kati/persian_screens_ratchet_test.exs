@@ -86,7 +86,6 @@ defmodule Kati.PersianScreensRatchetTest do
     Kati.Screens.HomeFaOmittedSections,
     Kati.Screens.LibraryFa,
     Kati.Screens.LogProgressFa,
-    Kati.Screens.MyServicesFa,
     Kati.Screens.ScheduleFa,
     Kati.Screens.SearchFa,
     Kati.Screens.SeriesFa,

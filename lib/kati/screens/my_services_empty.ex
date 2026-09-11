@@ -97,6 +97,7 @@ defmodule Kati.Screens.MyServicesEmpty do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Screens.MyServices
@@ -179,7 +180,10 @@ defmodule Kati.Screens.MyServicesEmpty do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.Screens.MyServicesEmpty.region_tile(),
-          Kati.UI.SettingsList.body("Pick your country", "Nothing works until this is set"),
+          Kati.UI.SettingsList.body(
+            gettext("Pick your country"),
+            gettext("Nothing works until this is set")
+          ),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :pick_country},
           rule: false
@@ -347,7 +351,7 @@ defmodule Kati.Screens.MyServicesEmpty do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("more_horiz"),
-          Kati.UI.SettingsList.body(Kati.Services.Sample.catalogue_count(), "Pick a country first for an accurate list"),
+          Kati.UI.SettingsList.body(Kati.Services.Sample.catalogue_count(), gettext("Pick a country first for an accurate list")),
           Kati.UI.SettingsList.trailing(nil),
           rule: false
         )
