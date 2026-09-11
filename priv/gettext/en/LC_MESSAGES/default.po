@@ -523,3 +523,99 @@ msgstr ""
 #: lib/kati/screens/list_detail.ex
 msgid "Remove"
 msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "All"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "Meals"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "Square"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "Story"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Your year, shared"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Aspect"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Hide titles I marked private"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Save image"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Share…"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Stats"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Top titles"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Your year"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Where the hours went"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Time watched"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "JAN – AUG 2026"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "Drama"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "Thriller"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "Documentary"
+msgstr ""
+
+#: lib/kati/stats/share_sample.ex
+msgid "Comedy"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "%{count} WEEKS"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "All cards are made on this device. Nothing about your year is sent anywhere —"
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "it — Kati has no server that could receive it."
+msgstr ""
+
+#: lib/kati/screens/year_share.ex
+msgid "Every card is drawn on this device. Nothing about your year is uploaded to make it — Kati has no server that could receive it."
+msgstr ""
+
+#: lib/kati/stats/sample.ex
+msgid "Everything else"
+msgstr ""

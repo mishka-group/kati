@@ -1,4 +1,6 @@
 defmodule Kati.Stats.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Stand-in figures for the stats screens, until the domains that would produce
   them exist. Same rule as `Kati.Library.Sample`: named as a stand-in, shaped
@@ -16,11 +18,11 @@ defmodule Kati.Stats.Sample do
       streak: "longest streak — 11 nights",
       counts: [{"84", "Films"}, {"19", "Series"}, {"4.1", "Avg ★"}],
       breakdown: [
-        {"Drama", 0.82, "128h", 0xFF1A1917},
-        {"Documentary", 0.54, "71h", 0xFF4E9A73},
-        {"Comedy", 0.38, "49h", 0xFFE8823C},
-        {"Thriller", 0.29, "38h", 0xFFB08E55},
-        {"Everything else", 0.19, "26h", 0xFFC4BDB3}
+        {gettext("Drama"), 0.82, "128h", 0xFF1A1917},
+        {gettext("Documentary"), 0.54, "71h", 0xFF4E9A73},
+        {gettext("Comedy"), 0.38, "49h", 0xFFE8823C},
+        {gettext("Thriller"), 0.29, "38h", 0xFFB08E55},
+        {gettext("Everything else"), 0.19, "26h", 0xFFC4BDB3}
       ]
     }
   end

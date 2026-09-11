@@ -461,7 +461,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # The Persian search and the two year-card twins. Each gates on the pair its
     # primary gates on, for the reason every mirror in this list does.
     {"90", Kati.Screens.SearchFa},
-    {"103", Kati.Screens.YearShareFa},
+    {"103", Kati.Screens.YearShare},
     {"105", Kati.Screens.GoalsEmpty},
     {"110", Kati.Screens.WeightStates},
     {"113", Kati.Screens.HealthEmptyStates},
@@ -2257,7 +2257,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> "Nothing cached yet" end},
       {"126", Kati.Screens.MoneyDay, &Kati.Screens.MoneyDay.rows/0,
        &Kati.Screens.MoneyDay.drawn_rows/0},
-      {"103", Kati.Screens.YearShareFa, &Kati.Screens.AlbumDetail.field/0,
+      {"103", Kati.Screens.YearShare, &Kati.Screens.AlbumDetail.field/0,
        &Kati.Music.Sample.listen_field/0},
       {"105", Kati.Screens.GoalsEmpty, &Kati.Screens.Goals.goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
@@ -2977,7 +2977,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(137 156 164 165 166)
+  @fa_numbers ~w(103 137 156 164 165 166)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

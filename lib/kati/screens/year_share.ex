@@ -41,17 +41,18 @@ defmodule Kati.Screens.YearShare do
   """
 
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Stats.ShareSample
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  @aspects [{"Square", :aspect_square}, {"Story", :aspect_story}]
+  @aspects [{:square, :aspect_square}, {:story, :aspect_story}]
 
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:scope, "All")
+    |> Mob.Socket.assign(:scope, :all)
     |> Mob.Socket.assign(:aspect, :aspect_square)
     |> Mob.Socket.assign(:hide_private, false)
     |> Mob.Socket.assign(:save_error, nil)
@@ -84,7 +85,7 @@ defmodule Kati.Screens.YearShare do
   layer down.
   """
   @spec share() :: map()
-  def share(scope \\ "All", hide_private \\ false) do
+  def share(scope \\ :all, hide_private \\ false) do
     figures = Kati.Screens.Stats.figures()
 
     case figures[:year] do
@@ -161,7 +162,7 @@ defmodule Kati.Screens.YearShare do
     <Row align="center">
       <Spacer size={10} />
       {@arrow}
-      <Text text={@change} font_family="mono" text_size={13} text_color={@ink} />
+      <Text text={@change} font_family={Kati.Locale.mono_face()} text_size={13} text_color={@ink} />
     </Row>
     """
   end
@@ -202,7 +203,7 @@ defmodule Kati.Screens.YearShare do
   rather than drawn `Untitled` on a card that is about to be posted.
   """
   @spec top_titles() :: [map()]
-  def top_titles(scope \\ "All", hide_private \\ false) do
+  def top_titles(scope \\ :all, hide_private \\ false) do
     watches = Ash.read!(Kati.Media.Watch)
     tracked = Map.new(Ash.read!(Kati.Media.TrackedTitle), &{&1.id, &1})
     cached = Map.new(Ash.read!(Kati.Media.CachedTitle), &{{&1.source, &1.source_id}, &1})
@@ -235,16 +236,16 @@ defmodule Kati.Screens.YearShare do
       shelf, Up next and the year's numbers are unchanged, because a private
       title is still a title you watched.
 
-      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: false}, 3}, "All", false)
+      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: false}, 3}, :all, false)
       true
 
-      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: true}, 3}, "All", true)
+      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: true}, 3}, :all, true)
       false
 
-      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: false}, 3}, "Books", false)
+      iex> Kati.Screens.YearShare.shareable?({%{kind: :movie, private: false}, 3}, :books, false)
       false
 
-      iex> Kati.Screens.YearShare.shareable?({nil, 3}, "All", false)
+      iex> Kati.Screens.YearShare.shareable?({nil, 3}, :all, false)
       false
   """
   @spec shareable?({map() | nil, integer()}, String.t(), boolean()) :: boolean()
@@ -255,10 +256,10 @@ defmodule Kati.Screens.YearShare do
       in_scope?(Map.get(tracked, :kind), scope)
   end
 
-  defp in_scope?(_kind, "All"), do: true
-  defp in_scope?(kind, "Screen"), do: kind in [:movie, :tv, :anime]
-  defp in_scope?(:book, "Books"), do: true
-  defp in_scope?(:album, "Music"), do: true
+  defp in_scope?(_kind, :all), do: true
+  defp in_scope?(kind, :screen), do: kind in [:movie, :tv, :anime]
+  defp in_scope?(:book, :books), do: true
+  defp in_scope?(:album, :music), do: true
   defp in_scope?(_kind, _scope), do: false
 
   defp title_row(_rank, nil, _cached), do: []
@@ -285,10 +286,10 @@ defmodule Kati.Screens.YearShare do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Your year, shared", Map.get(assigns, :share, Kati.Screens.YearShare.drawn_share()).subtitle)}
+        {SettingsList.title(gettext("Your year, shared"), Map.get(assigns, :share, Kati.Screens.YearShare.drawn_share()).subtitle)}
         {Kati.Screens.YearShare.scopes(assigns.scope)}
         {Kati.Screens.YearShare.card(assigns.aspect, Map.get(assigns, :share, Kati.Screens.YearShare.drawn_share()))}
-        {UI.eyebrow("Aspect")}
+        {UI.eyebrow(gettext("Aspect"))}
         {Kati.UI.Segmented.plain(Kati.Screens.YearShare.aspects(), assigns.aspect)}
         <Spacer size={16} />
         {Kati.Screens.YearShare.privacy_row(assigns.hide_private)}
@@ -302,16 +303,47 @@ defmodule Kati.Screens.YearShare do
     """
   end
 
+  @doc "Take a scope chip's tap, if it names one of the six."
+  @spec pick_scope(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def pick_scope(socket, key) do
+    case Enum.find(Kati.Stats.ShareSample.scopes(), fn {k, _l} -> Atom.to_string(k) == key end) do
+      {scope, _label} ->
+        socket |> Mob.Socket.assign(:scope, scope) |> Kati.Screens.YearShare.restated()
+
+      nil ->
+        socket
+    end
+  end
+
+  @doc """
+  The two card shapes, as the segmented control takes them.
+
+      iex> Kati.Screens.YearShare.aspects() |> Enum.map(&elem(&1, 0))
+      ["Square", "Story"]
+
+  The tag is the KEY and the word is drawn; `Kati.UI.Segmented.plain/2` takes
+  `{label, tag}`, so the translation happens here rather than in the attribute.
+  """
+  @spec aspects() :: [{String.t(), atom()}]
+  def aspects do
+    Enum.map(@aspects, fn {key, tag} -> {Kati.Screens.YearShare.aspect_label(key), tag} end)
+  end
+
   @doc false
-  def aspects, do: @aspects
+  @spec aspect_label(atom()) :: String.t()
+  def aspect_label(:story), do: gettext("Story")
+  def aspect_label(_square), do: gettext("Square")
 
   @doc "The scope chips: which part of the year the card is about."
-  @spec scopes(String.t()) :: map()
+  @spec scopes(atom()) :: map()
   def scopes(active) do
     chips =
       ShareSample.scopes()
-      |> Enum.map(fn scope ->
-        UI.chip(scope, selected: scope == active, on_toggle: String.to_atom("scope_" <> scope))
+      |> Enum.map(fn {key, label} ->
+        UI.chip(label,
+          selected: key == active,
+          on_toggle: String.to_atom("scope_" <> Atom.to_string(key))
+        )
       end)
       |> Enum.intersperse(~MOB"<Spacer size={7} />")
 
@@ -377,7 +409,7 @@ defmodule Kati.Screens.YearShare do
       >
         <Text
           text={String.upcase(@hours.label)}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={@label_size}
           letter_spacing={0.14}
           text_color={Palette.muted()}
@@ -393,12 +425,17 @@ defmodule Kati.Screens.YearShare do
           />
           {Kati.Screens.YearShare.change_pill(@hours)}
           <Spacer weight={1.0} />
-          <Text text={@hours.year} font_family="mono" text_size={12} text_color={Palette.muted()} />
+          <Text
+            text={@hours.year}
+            font_family={Kati.Locale.mono_face()}
+            text_size={12}
+            text_color={Palette.muted()}
+          />
         </Row>
         <Spacer size={20} />
         <Text
-          text="Top titles"
-          font_family="mono"
+          text={gettext("Top titles")}
+          font_family={Kati.Locale.mono_face()}
           text_size={@titles_size}
           letter_spacing={0.14}
           text_color={Palette.muted()}
@@ -436,7 +473,7 @@ defmodule Kati.Screens.YearShare do
       # Board 100's own two words for this face, and board 102's before it —
       # `Your year` over `26 WEEKS`. The first version of this invented
       # `Every day`, which is copy neither board contains.
-      weeks: "#{Kati.Screens.Stats.weeks()} WEEKS",
+      weeks: gettext("%{count} WEEKS", count: Kati.Locale.number(Kati.Screens.Stats.weeks())),
       year: Kati.Screens.YearShare.year(),
       rows:
         grid
@@ -449,8 +486,8 @@ defmodule Kati.Screens.YearShare do
     <Column fill_width={true}>
       <Spacer size={20} />
       <Text
-        text="Your year"
-        font_family="mono"
+        text={gettext("Your year")}
+        font_family={Kati.Locale.mono_face()}
         text_size={@label_size}
         letter_spacing={0.14}
         text_color={Palette.muted()}
@@ -463,13 +500,18 @@ defmodule Kati.Screens.YearShare do
       <Row fill_width={true} align="center">
         <Text
           text={@weeks}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={@label_size}
           letter_spacing={0.14}
           text_color={Palette.muted()}
         />
         <Spacer weight={1.0} />
-        <Text text={@year} font_family="mono" text_size={@label_size} text_color={Palette.muted()} />
+        <Text
+          text={@year}
+          font_family={Kati.Locale.mono_face()}
+          text_size={@label_size}
+          text_color={Palette.muted()}
+        />
         <Spacer size={9} />
         {Kati.Screens.YearShare.wordmark()}
       </Row>
@@ -555,8 +597,8 @@ defmodule Kati.Screens.YearShare do
     <Column fill_width={true}>
       <Spacer size={20} />
       <Text
-        text="Where the hours went"
-        font_family="mono"
+        text={gettext("Where the hours went")}
+        font_family={Kati.Locale.mono_face()}
         text_size={@label_size}
         letter_spacing={0.14}
         text_color={Palette.muted()}
@@ -566,7 +608,12 @@ defmodule Kati.Screens.YearShare do
       <Spacer size={11} />
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
-        <Text text={@year} font_family="mono" text_size={@label_size} text_color={Palette.muted()} />
+        <Text
+          text={@year}
+          font_family={Kati.Locale.mono_face()}
+          text_size={@label_size}
+          text_color={Palette.muted()}
+        />
       </Row>
     </Column>
     """
@@ -640,7 +687,7 @@ defmodule Kati.Screens.YearShare do
     <Row fill_width={true} align="center">
       <Text
         text={@rank}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={11}
         text_color={Palette.tertiary()}
         width={16}
@@ -670,7 +717,7 @@ defmodule Kati.Screens.YearShare do
     SettingsList.card([
       SettingsList.row(
         SettingsList.icon_tile("visibility_off"),
-        SettingsList.body("Hide titles I marked private", nil),
+        SettingsList.body(gettext("Hide titles I marked private"), nil),
         SettingsList.trailing(SettingsList.switch(on?)),
         on_tap: {self(), :toggle_private}
       )
@@ -703,7 +750,7 @@ defmodule Kati.Screens.YearShare do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Save image"
+          text={gettext("Save image")}
           text_size={15}
           font_weight="bold"
           letter_spacing={-0.01}
@@ -714,7 +761,12 @@ defmodule Kati.Screens.YearShare do
       <Spacer size={11} />
       <Row fill_width={true} align="center" on_tap={{self(), :share_image}}>
         <Spacer weight={1.0} />
-        <Text text="Share…" text_size={13.5} font_weight="semibold" text_color={Palette.ink_soft()} />
+        <Text
+          text={gettext("Share…")}
+          text_size={13.5}
+          font_weight="semibold"
+          text_color={Palette.ink_soft()}
+        />
         <Spacer weight={1.0} />
       </Row>
     </Column>
@@ -726,8 +778,9 @@ defmodule Kati.Screens.YearShare do
   def no_server_note do
     SettingsList.note(
       "info",
-      "Every card is drawn on this device. Nothing about your year is uploaded to make " <>
-        "it — Kati has no server that could receive it."
+      gettext(
+        "Every card is drawn on this device. Nothing about your year is uploaded to make it — Kati has no server that could receive it."
+      )
     )
   end
 
@@ -774,9 +827,8 @@ defmodule Kati.Screens.YearShare do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "scope_" <> scope ->
-        socket = Mob.Socket.assign(socket, :scope, scope)
-        {:noreply, Kati.Screens.YearShare.restated(socket)}
+      "scope_" <> key ->
+        {:noreply, Kati.Screens.YearShare.pick_scope(socket, key)}
 
       _other ->
         {:noreply, socket}

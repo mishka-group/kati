@@ -102,9 +102,9 @@ defmodule Kati.YearShareSaveTest do
                )
 
       assert {:noreply, %Mob.Socket{}} =
-               Kati.Screens.YearShareFa.handle_info(
+               Kati.Screens.YearShare.handle_info(
                  {:tap, :share_image},
-                 Mob.Socket.new(Kati.Screens.YearShareFa)
+                 Mob.Socket.new(Kati.Screens.YearShare)
                )
     end
   end

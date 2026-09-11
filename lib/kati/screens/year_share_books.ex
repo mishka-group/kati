@@ -135,7 +135,7 @@ defmodule Kati.Screens.YearShareBooks do
   @impl true
   def load(socket) do
     socket
-    |> Mob.Socket.assign(:scope, "Books")
+    |> Mob.Socket.assign(:scope, :books)
     |> Mob.Socket.assign(:aspect, :aspect_square)
     |> Mob.Socket.assign(:hide_private, false)
   end
@@ -228,7 +228,7 @@ defmodule Kati.Screens.YearShareBooks do
       >
         <Text
           text={String.upcase(@face.label)}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10}
           letter_spacing={0.14}
           text_color={Palette.muted()}
@@ -246,19 +246,24 @@ defmodule Kati.Screens.YearShareBooks do
           {Kati.UI.symbol("arrow_drop_up", size: 20, color: Palette.green_text())}
           <Text
             text={@face.change}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={13}
             text_color={Palette.green_text()}
           />
           <Spacer weight={1.0} />
-          <Text text={@face.year} font_family="mono" text_size={12} text_color={Palette.muted()} />
+          <Text
+            text={@face.year}
+            font_family={Kati.Locale.mono_face()}
+            text_size={12}
+            text_color={Palette.muted()}
+          />
         </Row>
         <Spacer size={9} />
         <Text text={@face.denominator} text_size={12.5} text_color={Palette.sub()} />
         <Spacer size={20} />
         <Text
           text="Top books"
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10}
           letter_spacing={0.14}
           text_color={Palette.muted()}

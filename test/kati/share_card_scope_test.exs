@@ -45,15 +45,15 @@ defmodule Kati.ShareCardScopeTest do
     test "All and Screen both show a watched film" do
       watch!(shelve!("Dune", :movie))
 
-      assert [%{title: "Dune"}] = YearShare.top_titles("All")
-      assert [%{title: "Dune"}] = YearShare.top_titles("Screen")
+      assert [%{title: "Dune"}] = YearShare.top_titles(:all)
+      assert [%{title: "Dune"}] = YearShare.top_titles(:screen)
     end
 
     test "and a scope with nothing in it shows nothing, not the same three titles" do
       watch!(shelve!("Dune", :movie))
 
-      assert YearShare.top_titles("Books") == []
-      assert YearShare.top_titles("Music") == []
+      assert YearShare.top_titles(:books) == []
+      assert YearShare.top_titles(:music) == []
       assert YearShare.top_titles("Meals") == []
     end
   end
@@ -62,7 +62,7 @@ defmodule Kati.ShareCardScopeTest do
     test "leaves a title alone until it is marked" do
       watch!(shelve!("Dune", :movie))
 
-      assert [%{title: "Dune"}] = YearShare.top_titles("All", true)
+      assert [%{title: "Dune"}] = YearShare.top_titles(:all, true)
     end
 
     test "and takes a marked one off the card" do
@@ -70,8 +70,8 @@ defmodule Kati.ShareCardScopeTest do
       watch!(tracked)
       mark_private!(tracked)
 
-      assert YearShare.top_titles("All", true) == []
-      assert [%{title: "Dune"}] = YearShare.top_titles("All", false)
+      assert YearShare.top_titles(:all, true) == []
+      assert [%{title: "Dune"}] = YearShare.top_titles(:all, false)
     end
 
     test "which is the card and nowhere else" do
@@ -92,7 +92,7 @@ defmodule Kati.ShareCardScopeTest do
       watch!(shelve!("Dune", :movie))
 
       words =
-        %{scope: "All", hide_private: false, aspect: :aspect_square, share: YearShare.share()}
+        %{scope: :all, hide_private: false, aspect: :aspect_square, share: YearShare.share()}
         |> YearShare.content()
         |> inspect(limit: :infinity, printable_limit: :infinity)
 

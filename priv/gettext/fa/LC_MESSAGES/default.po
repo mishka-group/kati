@@ -532,3 +532,99 @@ msgstr "انصراف"
 #: lib/kati/screens/list_detail.ex
 msgid "Remove"
 msgstr "حذف"
+
+#: lib/kati/stats/share_sample.ex
+msgid "All"
+msgstr "همه"
+
+#: lib/kati/stats/share_sample.ex
+msgid "Meals"
+msgstr "وعده"
+
+#: lib/kati/stats/share_sample.ex
+msgid "Square"
+msgstr "مربع"
+
+#: lib/kati/stats/share_sample.ex
+msgid "Story"
+msgstr "استوری"
+
+#: lib/kati/screens/year_share.ex
+msgid "Your year, shared"
+msgstr "سال شما، هم‌رسان"
+
+#: lib/kati/screens/year_share.ex
+msgid "Aspect"
+msgstr "نسبت تصویر"
+
+#: lib/kati/screens/year_share.ex
+msgid "Hide titles I marked private"
+msgstr "عنوان‌های خصوصی پنهان شوند"
+
+#: lib/kati/screens/year_share.ex
+msgid "Save image"
+msgstr "ذخیره تصویر"
+
+#: lib/kati/screens/year_share.ex
+msgid "Share…"
+msgstr "هم‌رسانی…"
+
+#: lib/kati/screens/year_share.ex
+msgid "Stats"
+msgstr "آمار"
+
+#: lib/kati/screens/year_share.ex
+msgid "Top titles"
+msgstr "عنوان‌های برتر"
+
+#: lib/kati/screens/year_share.ex
+msgid "Your year"
+msgstr "سال شما"
+
+#: lib/kati/screens/year_share.ex
+msgid "Where the hours went"
+msgstr "ساعت‌ها کجا رفتند"
+
+#: lib/kati/screens/year_share.ex
+msgid "Time watched"
+msgstr "زمان تماشا"
+
+#: lib/kati/stats/share_sample.ex
+msgid "JAN – AUG 2026"
+msgstr "فروردین تا مرداد ۱۴۰۵"
+
+#: lib/kati/stats/share_sample.ex
+msgid "Drama"
+msgstr "درام"
+
+#: lib/kati/stats/share_sample.ex
+msgid "Thriller"
+msgstr "هیجان"
+
+#: lib/kati/stats/share_sample.ex
+msgid "Documentary"
+msgstr "مستند"
+
+#: lib/kati/stats/share_sample.ex
+msgid "Comedy"
+msgstr "کمدی"
+
+#: lib/kati/screens/year_share.ex
+msgid "%{count} WEEKS"
+msgstr "%{count} هفته"
+
+#: lib/kati/screens/year_share.ex
+msgid "All cards are made on this device. Nothing about your year is sent anywhere —"
+msgstr "همه کارت‌ها روی همین دستگاه ساخته می‌شوند. هیچ چیزی از سال شما جایی فرستاده نمی‌شود —"
+
+#: lib/kati/screens/year_share.ex
+msgid "it — Kati has no server that could receive it."
+msgstr "کاتی سروری ندارد که آن را دریافت کند"
+
+#: lib/kati/screens/year_share.ex
+msgid "Every card is drawn on this device. Nothing about your year is uploaded to make it — Kati has no server that could receive it."
+msgstr "همه کارت‌ها روی همین دستگاه ساخته می‌شوند. هیچ چیزی از سال شما جایی فرستاده نمی‌شود — کاتی سروری ندارد که آن را دریافت کند."
+
+#: lib/kati/stats/sample.ex
+msgid "Everything else"
+msgstr "بقیه"

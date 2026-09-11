@@ -262,7 +262,7 @@ defmodule Kati.UI.SettingsList do
       <Spacer size={gap} />
       <Text
         text={sub}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={size}
         text_color={Kati.UI.SettingsList.subtitle_ink()}
         max_lines={1}
@@ -287,7 +287,7 @@ defmodule Kati.UI.SettingsList do
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           letter_spacing={0.16}
           text_color={Palette.eyebrow()}

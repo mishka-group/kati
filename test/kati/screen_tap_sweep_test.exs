@@ -666,7 +666,7 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.MealEdit, :add_photo},
     # Screen 98's opening scope and ratio, the same already-selected case as
     # every other family above.
-    {Kati.Screens.YearShare, :scope_All},
+    {Kati.Screens.YearShare, :scope_all},
     {Kati.Screens.YearShare, :aspect_square},
     # The diagnostic's battery row opens the phone's own settings screen, which
     # Kati has no fence for — nothing in `native/LEDGER.md` launches an Android
@@ -814,12 +814,13 @@ defmodule Kati.ScreenTapSweepTest do
     # cannot follow them anywhere — relighting a chip over a card that did not
     # move is the one thing it exists to argue against. Its own moduledoc says
     # so, and 98 is where the choice is actually made.
-    {Kati.Screens.YearShareBooks, :scope_All},
-    {Kati.Screens.YearShareBooks, :scope_Books},
-    {Kati.Screens.YearShareBooks, :scope_Screen},
-    {Kati.Screens.YearShareBooks, :scope_Music},
-    {Kati.Screens.YearShareBooks, :scope_Meals},
-    {Kati.Screens.YearShareBooks, :scope_Habits},
+    {Kati.Screens.YearShareBooks, :scope_all},
+    {Kati.Screens.YearShareBooks, :scope_books},
+    {Kati.Screens.YearShareBooks, :scope_screen},
+    {Kati.Screens.YearShareBooks, :scope_books},
+    {Kati.Screens.YearShareBooks, :scope_music},
+    {Kati.Screens.YearShareBooks, :scope_meals},
+    {Kati.Screens.YearShareBooks, :scope_habits},
     {Kati.Screens.YearShareBooks, :aspect_square},
     # Screen 97's third rule, the Persian mirror of 92's — the same `Mob.State`
     # blind spot the English entries above record.
@@ -829,8 +830,6 @@ defmodule Kati.ScreenTapSweepTest do
     # and 102 and 103 are 98's board with its own opening scope and ratio.
     {Kati.Screens.SearchTyping, :scope_All},
     {Kati.Screens.SearchFa, :scope_all},
-    {Kati.Screens.YearShareFa, :scope_All},
-    {Kati.Screens.YearShareFa, :aspect_square},
     # Screen 113 draws screen 42's Meals tile as one of the states it is about.
     # A picture of a tile, not a tile.
     # Once per grid since #97 banded the tags — this board draws the same four

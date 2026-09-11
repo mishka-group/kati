@@ -594,7 +594,7 @@ defmodule Kati.Screens.StatsFa do
   # The share disc, and the Persian card page rather than the English one — the
   # same rule `Kati.Screens.HomeFa` follows for its search field.
   def handle_info({:tap, :share_year}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.YearShareFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.YearShare)}
 
   def handle_info({:tap, :open_goals}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.GoalsFa)}

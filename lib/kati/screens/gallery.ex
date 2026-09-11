@@ -137,7 +137,7 @@ defmodule Kati.Screens.Gallery do
     {"89", "Search — result states", Kati.Screens.SearchResultStates, :push},
     {"90", "جست‌وجو", Kati.Screens.SearchFa, :push},
     {"91", "Search at 235%", Kati.Screens.SearchLarge, :push},
-    {"103", "سال شما", Kati.Screens.YearShareFa, :push},
+    {"103", "سال شما", Kati.Screens.YearShare, :push},
     {"105", "Goals — empty", Kati.Screens.GoalsEmpty, :push},
     {"110", "Weight — states", Kati.Screens.WeightStates, :push},
     {"113", "Health hub — empty", Kati.Screens.HealthEmptyStates, :push},

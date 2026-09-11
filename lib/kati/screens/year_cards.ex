@@ -168,7 +168,7 @@ defmodule Kati.Screens.YearCards do
     <Column fill_width={true} background={Palette.card()} corner_radius={20} padding={17}>
       <Text
         text={@label}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={@label_size}
         letter_spacing={0.14}
         text_color={Palette.muted()}
@@ -184,9 +184,19 @@ defmodule Kati.Screens.YearCards do
         />
         <Spacer size={9} />
         {Kati.UI.symbol("arrow_drop_up", size: 18, color: Palette.bar_ink())}
-        <Text text={@change} font_family="mono" text_size={12} text_color={Palette.ink_soft()} />
+        <Text
+          text={@change}
+          font_family={Kati.Locale.mono_face()}
+          text_size={12}
+          text_color={Palette.ink_soft()}
+        />
         <Spacer weight={1.0} />
-        <Text text={@year} font_family="mono" text_size={11} text_color={Palette.muted()} />
+        <Text
+          text={@year}
+          font_family={Kati.Locale.mono_face()}
+          text_size={11}
+          text_color={Palette.muted()}
+        />
       </Row>
     </Column>
     """
@@ -203,7 +213,7 @@ defmodule Kati.Screens.YearCards do
     <Column fill_width={true} background={Palette.card()} corner_radius={20} padding={17}>
       <Text
         text="TOP TITLES"
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={@label_size}
         letter_spacing={0.14}
         text_color={Palette.muted()}
@@ -234,7 +244,7 @@ defmodule Kati.Screens.YearCards do
     <Column fill_width={true} background={Palette.card()} corner_radius={20} padding={17}>
       <Text
         text="WHERE THE HOURS WENT"
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={@label_size}
         letter_spacing={0.14}
         text_color={Palette.muted()}
@@ -261,7 +271,7 @@ defmodule Kati.Screens.YearCards do
     <Column fill_width={true} background={Palette.card()} corner_radius={20} padding={17}>
       <Text
         text={@year}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={11}
         letter_spacing={0.14}
         text_color={Palette.muted()}
@@ -280,7 +290,7 @@ defmodule Kati.Screens.YearCards do
       <Row fill_width={true} align="center">
         <Text
           text={@span}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.12}
           text_color={Palette.muted()}
@@ -337,7 +347,12 @@ defmodule Kati.Screens.YearCards do
           weight={1.0}
         />
         <Spacer size={10} />
-        <Text text={@hours} font_family="mono" text_size={@size} text_color={Palette.sub()} />
+        <Text
+          text={@hours}
+          font_family={Kati.Locale.mono_face()}
+          text_size={@size}
+          text_color={Palette.sub()}
+        />
       </Row>
       <Spacer size={6} />
       {@rail}

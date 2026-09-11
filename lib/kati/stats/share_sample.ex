@@ -1,4 +1,6 @@
 defmodule Kati.Stats.ShareSample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Screens 98 and 100, as the drawings captured them.
 
@@ -14,16 +16,36 @@ defmodule Kati.Stats.ShareSample do
 
   @doc "The header's mono subtitle on screen 98."
   @spec subtitle() :: String.t()
-  def subtitle, do: "JAN – AUG 2026"
+  def subtitle, do: gettext("JAN – AUG 2026")
 
   @doc "The scope chips: which part of the year a card is about."
   @spec scopes() :: [String.t()]
-  def scopes, do: ~w(All Screen Books Music Meals Habits)
+  # `{key, label}`. The KEY is the state — `Kati.Screens.YearShare.in_scope?/2`
+  # matches on it and the chip's tap is named after it — and the label is a
+  # translation. They were one string, so the Persian mirror's scope was
+  # «همه» and every clause of `in_scope?/2` fell through: its card was filtered
+  # to nothing whatever the reader tapped. MOVIES-AND-TV.md #158, a third time.
+  def scopes do
+    [
+      {:all, gettext("All")},
+      {:screen, gettext("Screen")},
+      {:books, gettext("Books")},
+      {:music, gettext("Music")},
+      {:meals, gettext("Meals")},
+      {:habits, gettext("Habits")}
+    ]
+  end
 
   @doc "The hours face: the figure, the change, and the year it is about."
   @spec hours() :: map()
   def hours do
-    %{label: "Time watched", figure: "312h 40m", direction: :up, change: "18%", year: "2026"}
+    %{
+      label: gettext("Time watched"),
+      figure: "312h 40m",
+      direction: :up,
+      change: "18%",
+      year: "2026"
+    }
   end
 
   @doc "The three titles, with the seeds the export used."
@@ -44,7 +66,12 @@ defmodule Kati.Stats.ShareSample do
   """
   @spec where_hours_went() :: [{String.t(), integer()}]
   def where_hours_went do
-    [{"Drama", 104}, {"Thriller", 71}, {"Documentary", 49}, {"Comedy", 31}]
+    [
+      {gettext("Drama"), 104},
+      {gettext("Thriller"), 71},
+      {gettext("Documentary"), 49},
+      {gettext("Comedy"), 31}
+    ]
   end
 
   @doc "The field face's three lines, and the one wordmark on any card."
