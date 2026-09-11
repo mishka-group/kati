@@ -243,6 +243,7 @@ defmodule Kati.Screens.Settings do
   use Kati.Screens.Pushed, back: "Home"
 
   alias Kati.Settings.Sample
+  alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
@@ -508,7 +509,7 @@ defmodule Kati.Screens.Settings do
     <Column fill_width={true}>
       <Row
         fill_width={true}
-        background={0xFFFBFAF8}
+        background={Palette.card()}
         corner_radius={22}
         shadow={Kati.Theme.shadow_card_soft()}
         padding={16}
@@ -530,7 +531,7 @@ defmodule Kati.Screens.Settings do
             text={meta}
             font_family="mono"
             text_size={10.5}
-            text_color={0xFFA9A29A}
+            text_color={Palette.muted()}
             max_lines={1}
           />
         </Column>
@@ -590,10 +591,16 @@ defmodule Kati.Screens.Settings do
         align: :center
       ],
       [
-        Kati.UI.symbol("cloud_done", size: 14, color: 0xFF3E8460),
+        Kati.UI.symbol("cloud_done", size: 14, color: Palette.green_text()),
         ~MOB"<Spacer size={5} />",
         ~MOB"""
-        <Text text={label} text_size={11} font_weight="semibold" text_color={0xFF3E8460} max_lines={1} />
+        <Text
+          text={label}
+          text_size={11}
+          font_weight="semibold"
+          text_color={Palette.green_text()}
+          max_lines={1}
+        />
         """
       ]
     )
@@ -621,7 +628,7 @@ defmodule Kati.Screens.Settings do
     Kati.Components.MishkaAvatar.avatar(
       src: Kati.Design.Images.poster(a.seed),
       size: 52,
-      background: 0xFFE4E0D9
+      background: Palette.placeholder()
     )
   end
 
@@ -786,7 +793,7 @@ defmodule Kati.Screens.Settings do
       |> Enum.intersperse(Kati.Screens.Settings.segment_gap())
 
     ~MOB"""
-    <Row background={0xFFEFECE7} corner_radius={12} padding={3} align="center">
+    <Row background={Palette.paper()} corner_radius={12} padding={3} align="center">
       {tiles}
     </Row>
     """
@@ -806,7 +813,7 @@ defmodule Kati.Screens.Settings do
     <Row
       height={26}
       corner_radius={9}
-      background={0xFFFBFAF8}
+      background={Palette.card()}
       shadow="0 1 2 0 #1F1A1917"
       padding_left={10}
       padding_right={10}
@@ -839,7 +846,7 @@ defmodule Kati.Screens.Settings do
         text={label}
         text_size={11}
         font_weight="semibold"
-        text_color={0xFFA0998F}
+        text_color={Palette.eyebrow()}
         max_lines={1}
       />
     </Row>

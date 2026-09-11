@@ -299,10 +299,10 @@ defmodule Kati.Theme.PaletteTest do
     # screens on that row are almost all a `check` glyph on an ink-filled
     # control, i.e. `on_ink` — but "almost all" is exactly why this is not a
     # sweep.
-    0xFFEFECE7 => {:collision, ~w(settings states)},
+    0xFFEFECE7 => {:collision, ~w(states)},
     0xFFFBFAF8 =>
       {:collision,
-       ~w(habits language_pick meals_day meals_today onboarding onboarding_fa pick_sections settings states today_fa)},
+       ~w(habits language_pick meals_day meals_today onboarding onboarding_fa pick_sections states today_fa)},
 
     # ── The value has a token; the token means something else ────────────
     # `0xA6FFFFFF` is `rgba(255,255,255,.65)`. On `lock.ex` it is `lock_ink_65`
@@ -321,15 +321,11 @@ defmodule Kati.Theme.PaletteTest do
     # This is the block the next round should empty first — it is the only one
     # where the work is mechanical.
     0x294E9A73 => {:unmigrated, ~w(settings)},
-    0xFF3E8460 => {:unmigrated, ~w(settings)},
     0xFF8A7B60 => {:unmigrated, ~w(states)},
     0xFF8A8479 => {:unmigrated, ~w(states)},
-    0xFFA0998F => {:unmigrated, ~w(settings)},
-    0xFFA9A29A => {:unmigrated, ~w(settings)},
     0xFFB08E55 => {:unmigrated, ~w(meals_day)},
     0xFFC4BDB3 => {:unmigrated, ~w(states)},
     0xFFC98A3E => {:unmigrated, ~w(states)},
-    0xFFE4E0D9 => {:unmigrated, ~w(settings)},
     # `accent` is one of the three tokens that is the same in both modes, so
     # `Palette.accent()` is safe even on 28 and 29.
     0xFFE8823C => {:unmigrated, ~w(home_dark lock meals_day states)},
@@ -340,7 +336,7 @@ defmodule Kati.Theme.PaletteTest do
   # lowered and never raised — and it is not typed twice: the test below
   # asserts it against `map_size(@survivors)`, so deleting a row is the only
   # way to change it.
-  @ceiling 45
+  @ceiling 41
 
   @reasons [:pinned_dark, :dark_only, :collision, :no_token, :unmigrated]
 
