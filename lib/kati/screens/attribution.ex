@@ -37,62 +37,88 @@ defmodule Kati.Screens.Attribution do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme.Palette
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  # Each source: what Kati takes from it, the sentence the licence requires, the
-  # licence tag where one must be shown, and the site.
+  # Each source: what Kati takes from it, the sentence the licence requires,
+  # Kati's own gloss on it where there is one, the licence tag where one must be
+  # shown, and the site.
   #
-  # The `notice` strings are legal text. Editing one for tone is a licence
-  # change, so they are here as literals and `Kati.AttributionTest` pins the two
-  # that are quoted verbatim.
-  @sources [
-    %{
-      id: :tmdb,
-      name: "TMDB",
-      takes: "Film posters, backdrops and the facts behind them.",
-      notice: "This product uses the TMDB API but is not endorsed or certified by TMDB.",
-      licence: nil,
-      site: "themoviedb.org"
-    },
-    %{
-      id: :justwatch,
-      name: "JustWatch",
-      takes: "Which services a title is on, and when it’s leaving.",
-      notice: "Streaming availability data provided by JustWatch.",
-      licence: nil,
-      site: "justwatch.com"
-    },
-    %{
-      id: :tvmaze,
-      name: "TVmaze",
-      takes: "TV schedules and episode lists.",
-      notice:
-        "Schedule data from TVmaze, used under CC BY-SA 4.0 — this link is the licence condition.",
-      licence: "CC BY-SA",
-      site: "tvmaze.com"
-    },
-    %{
-      id: :open_library,
-      name: "Open Library",
-      takes: "Book covers, editions and ISBNs.",
-      notice: "Book records from Open Library, an Internet Archive project.",
-      licence: nil,
-      site: "openlibrary.org"
-    },
-    %{
-      id: :musicbrainz,
-      name: "MusicBrainz",
-      takes: "Album and artist data, and cover art where it exists.",
-      notice:
-        "Music metadata from MusicBrainz and cover art from the Cover Art Archive, " <>
-          "both community-maintained.",
-      licence: "CC0 / CC BY-NC-SA",
-      site: "musicbrainz.org"
-    }
-  ]
+  # ## Why `notice` and `gloss` are two fields
+  #
+  # `notice` is legal text. Editing one for tone is a licence change, so they
+  # are literals here and `Kati.ServicesTest` pins the two quoted verbatim —
+  # and, for the same reason, `notice` is NOT translated: a quotation that has
+  # been through a translator is no longer the quotation the licence asks for.
+  #
+  # `gloss` is Kati's own sentence about the notice, and it IS translated. Two
+  # sources had one welded onto the end of their notice — *— this link is the
+  # licence condition* and *, both community-maintained* — and board 85 is what
+  # made that a defect rather than a tidiness question: it draws this page with
+  # Kati's sentences in Persian and the quotations left alone, which a single
+  # string cannot express. `Kati.Screens.AttributionFa` expressed it by
+  # SHORTENING the two notices, so the mirror and the page it mirrors disagreed
+  # about what the licence says. Splitting the field is what lets one page do
+  # both, which is mishka-group/kati#103's whole shape.
+  #
+  # ## Why this is a function and not a module attribute
+  #
+  # `gettext/1` in an attribute is `gettext/1` in an attribute is
+  # evaluated once at COMPILE time, so the locale of whoever ran `mix compile`
+  # would be the locale every reader got. `takes` and `gloss` are Kati's own
+  # sentences and are translated here; `name`, `site` and `notice` are not, for
+  # the reasons above.
+  @doc "Every third-party source, with the notice its licence requires."
+  @spec sources() :: [map()]
+  def sources do
+    [
+      %{
+        id: :tmdb,
+        name: "TMDB",
+        takes: gettext("Film posters, backdrops and the facts behind them."),
+        notice: "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+        licence: nil,
+        site: "themoviedb.org"
+      },
+      %{
+        id: :justwatch,
+        name: "JustWatch",
+        takes: gettext("Which services a title is on, and when it’s leaving."),
+        notice: "Streaming availability data provided by JustWatch.",
+        licence: nil,
+        site: "justwatch.com"
+      },
+      %{
+        id: :tvmaze,
+        name: "TVmaze",
+        takes: gettext("TV schedules and episode lists."),
+        notice: "Schedule data from TVmaze, used under CC BY-SA 4.0.",
+        gloss: gettext("This link is the licence condition."),
+        licence: "CC BY-SA",
+        site: "tvmaze.com"
+      },
+      %{
+        id: :open_library,
+        name: "Open Library",
+        takes: gettext("Book covers, editions and ISBNs."),
+        notice: "Book records from Open Library, an Internet Archive project.",
+        licence: nil,
+        site: "openlibrary.org"
+      },
+      %{
+        id: :musicbrainz,
+        name: "MusicBrainz",
+        takes: gettext("Album and artist data, and cover art where it exists."),
+        notice: "Music metadata from MusicBrainz and cover art from the Cover Art Archive.",
+        gloss: gettext("Both are community-maintained."),
+        licence: "CC0 / CC BY-NC-SA",
+        site: "musicbrainz.org"
+      }
+    ]
+  end
 
   # The open-source half. Three rows, each a licence and what it covers.
   @open_source [
@@ -100,10 +126,6 @@ defmodule Kati.Screens.Attribution do
     {"Apache-2.0", "Mishka Chelekom components"},
     {"OFL", "Plus Jakarta Sans, DM Mono, Vazirmatn"}
   ]
-
-  @doc "Every third-party source, with the notice its licence requires."
-  @spec sources() :: [map()]
-  def sources, do: @sources
 
   @doc "The licences Kati's own dependencies ship under."
   @spec open_source() :: [{String.t(), String.t()}]
@@ -136,7 +158,7 @@ defmodule Kati.Screens.Attribution do
   @spec source_cards() :: map()
   def source_cards do
     cards =
-      @sources
+      Kati.Screens.Attribution.sources()
       |> Enum.map(&Kati.Screens.Attribution.source_card/1)
       |> Enum.intersperse(~MOB"<Spacer size={11} />")
 
@@ -148,12 +170,41 @@ defmodule Kati.Screens.Attribution do
     """
   end
 
+  @doc """
+  Kati's own sentence about a notice, or nothing.
+
+  Its own `Text` rather than a clause welded onto `notice`, because the two are
+  different kinds of writing: the notice is a quotation a licence requires and
+  is not translated, and this is Kati talking and is. Set a shade lighter, so
+  the eye can tell which is which without being told.
+  """
+  @spec gloss(String.t() | nil) :: map()
+  def gloss(nil), do: ~MOB"<Spacer size={0} />"
+
+  def gloss(sentence) do
+    assigns = %{sentence: sentence}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={5} />
+      <Text
+        text={@sentence}
+        text_size={12}
+        line_height={1.5}
+        text_color={Palette.muted()}
+        font_family={Kati.Locale.face_prop()}
+      />
+    </Column>
+    """
+  end
+
   @doc false
   def source_card(source) do
     assigns = %{
       name: source.name,
       takes: source.takes,
       notice: source.notice,
+      gloss: Map.get(source, :gloss),
       licence: source.licence,
       site: source.site,
       tap: {self(), String.to_atom("open_#{source.id}")}
@@ -183,6 +234,7 @@ defmodule Kati.Screens.Attribution do
       </Row>
       <Spacer size={11} />
       <Text text={@notice} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+      {Kati.Screens.Attribution.gloss(@gloss)}
       <Spacer size={11} />
       <Row fill_width={true} align="center">
         {Kati.Screens.Attribution.licence_tag(@licence)}
@@ -367,7 +419,7 @@ defmodule Kati.Screens.Attribution do
   def site_for(:open_notices), do: "https://github.com/mishka-group/kati"
 
   def site_for(tag) do
-    Enum.find_value(@sources, fn source ->
+    Enum.find_value(Kati.Screens.Attribution.sources(), fn source ->
       if String.to_atom("open_#{source.id}") == tag, do: "https://" <> source.site
     end)
   end

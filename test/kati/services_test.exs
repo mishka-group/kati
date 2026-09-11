@@ -393,8 +393,27 @@ defmodule Kati.ServicesTest do
       tvmaze = Enum.find(Attribution.sources(), &(&1.id == :tvmaze))
 
       assert tvmaze.licence == "CC BY-SA"
-      assert tvmaze.notice =~ "this link is the licence condition"
+      assert tvmaze.notice == "Schedule data from TVmaze, used under CC BY-SA 4.0."
       assert tvmaze.site == "tvmaze.com"
+
+      # The clause saying so is Kati's own sentence and now lives in `gloss`,
+      # which IS translated — the notice above is a quotation and is not. They
+      # were one string until mishka-group/kati#103 reached this screen, and
+      # that is exactly why `Kati.Screens.AttributionFa` had to SHORTEN the
+      # notice to say the Persian half: a page cannot translate half a string.
+      assert tvmaze.gloss =~ "licence condition"
+    end
+
+    test "the two glosses are Kati's sentences, and the notices are the quotations" do
+      # The split is the point, so it is asserted rather than left to reading.
+      # A notice that grew a Kati clause again would pass every other test here.
+      for source <- Attribution.sources() do
+        refute source.notice =~ " — ",
+               "#{source.name}'s notice carries a dash clause; Kati's own words belong in `gloss`"
+      end
+
+      glossed = for s <- Attribution.sources(), Map.get(s, :gloss), do: s.id
+      assert Enum.sort(glossed) == [:musicbrainz, :tvmaze]
     end
 
     test "every source carries a notice, a site and something Kati takes from it" do

@@ -476,6 +476,21 @@ defmodule Kati.DesignLiterals do
       # gives the reader nothing to tap"*, so the row keeps its place and takes
       # 114's treatment: dimmed tile, dimmed label, `NOT IN V1`, and a tap that
       # opens the reason.
+      # Board 83 draws two of its five notices as ONE sentence each, with a
+      # clause of Kati's own welded onto the end — *… — this link is the licence
+      # condition* and *…, both community-maintained*. mishka-group/kati#103
+      # separates them, because they are different kinds of writing: the notice
+      # is a quotation a licence requires and must not be translated, and the
+      # clause is Kati talking and must be. A page cannot translate half a
+      # string, which is why `Kati.Screens.AttributionFa` expressed the Persian
+      # version by SHORTENING the notice — and so the mirror and the page it
+      # mirrored disagreed about what the licence says.
+      #
+      # Every word the board draws is still drawn, in the same order, in the
+      # same place: `notice` then `gloss`, two `Text` nodes instead of one. What
+      # is retired is the joining punctuation.
+      {"83", "schedule data from tvmaze, used under cc by-sa 4.0 — this link is the licence condition."},
+      {"83", "music metadata from musicbrainz and cover art from the cover art archive, both community-maintained."},
       {"80", "community book ratings"},
       {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},
