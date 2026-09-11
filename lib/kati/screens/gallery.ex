@@ -322,12 +322,10 @@ defmodule Kati.Screens.Gallery do
     # able to open them. MOVIES-AND-TV.md #106.
     {:open_undrawn_list_detail, "One list", Kati.Screens.ListDetail},
     {:open_undrawn_add_to_list, "Add to list", Kati.Screens.AddToList},
-    # And their Persian mirrors, boards 336 and 337. Same reason: both boards
-    # are state catalogues. Before 7 September a Persian reader could open
-    # فهرست‌ها, tap any of 289's seven rows, and land on an English LTR page,
-    # because `ListDetailFa` did not exist and 12 was the only destination.
-    {:open_undrawn_list_detail_fa, "یک فهرست", Kati.Screens.ListDetailFa},
-    {:open_undrawn_add_to_list_fa, "انتخابگر فهرست", Kati.Screens.AddToList},
+    # Boards 336 and 337 were two more rows here, opening two more modules.
+    # mishka-group/kati#103 folded both mirrors into the two screens above, so
+    # the rows would open the same module twice and are gone. The boards are
+    # 12 and 182 under `:fa`.
     # Board 328's screen, and 328 is a state catalogue too — the summary row in
     # both locales, the screen behind it, and the defect it replaces, in one
     # frame. It IS reachable, from 140's own summary row; it is here because the

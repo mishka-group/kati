@@ -168,19 +168,21 @@ defmodule Kati.Lists.Shelf do
       %{
         id: "kept:rewatches",
         icon: "replay",
-        title: "Rewatches",
-        count: Integer.to_string(rewatches()),
-        empty_title: "Nothing rewatched",
+        title: gettext("Rewatches"),
+        count: Kati.Locale.number(rewatches()),
+        empty_title: gettext("Nothing rewatched"),
         empty_body:
-          "Kati fills this one — log a watch of something you have seen and it lands here."
+          gettext(
+            "Kati fills this one — log a watch of something you have seen and it lands here."
+          )
       },
       %{
         id: "kept:abandoned",
         icon: "do_not_disturb_on",
-        title: "Abandoned",
-        count: Integer.to_string(abandoned()),
-        empty_title: "Nothing abandoned",
-        empty_body: "Kati fills this one — drop a show and it lands here."
+        title: gettext("Abandoned"),
+        count: Kati.Locale.number(abandoned()),
+        empty_title: gettext("Nothing abandoned"),
+        empty_body: gettext("Kati fills this one — drop a show and it lands here.")
       }
     ]
   end
@@ -570,10 +572,35 @@ defmodule Kati.Lists.Shelf do
       "FILM · NO DETAILS YET"
   """
   @spec sub_line(atom(), term()) :: String.t()
-  def sub_line(kind, nil), do: String.upcase(to_string(kind)) <> " · NO DETAILS YET"
+  def sub_line(kind, nil),
+    do: Kati.Lists.Shelf.kind_word(kind) <> " · " <> gettext("NO DETAILS YET")
 
   def sub_line(kind, fact),
-    do: String.upcase(to_string(kind)) <> " · " <> String.upcase(to_string(fact))
+    do: Kati.Lists.Shelf.kind_word(kind) <> " · " <> Kati.Lists.Shelf.fact_word(fact)
+
+  @doc """
+  A kind as the word this line prints.
+
+      iex> Kati.Lists.Shelf.kind_word(:series)
+      "SERIES"
+
+  Upper case is a LATIN effect — the Arabic script has no case — so the Persian
+  catalogue answers with the word as it is written and only the Latin side is
+  raised. `Kati.Screens.AddByHand.labelled/4` carries the long version of the
+  same argument for its eyebrow labels.
+  """
+  @spec kind_word(atom()) :: String.t()
+  def kind_word(:book), do: gettext("BOOK")
+  def kind_word(:album), do: gettext("ALBUM")
+  def kind_word(:series), do: gettext("SERIES")
+  def kind_word(_film), do: gettext("FILM")
+
+  @doc false
+  @spec fact_word(term()) :: String.t()
+  def fact_word(fact) do
+    text = to_string(fact)
+    Kati.Locale.pick(String.upcase(text), Kati.Locale.number(text))
+  end
 
   # Every member's artwork seed, keyed the way a membership names it.
   @doc false

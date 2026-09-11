@@ -188,7 +188,6 @@ defmodule Kati.ScreenDesignLiteralTest do
     Kati.Screens.Gallery,
     Kati.Screens.InboxNotifications,
     Kati.Screens.ListDetail,
-    Kati.Screens.ListDetailFa,
     # Board 328 draws it, and 328 is a state catalogue too: the summary row in
     # both locales, the screen behind it, and the defect it replaces, all in one
     # frame. Same treatment as 330 and 333.

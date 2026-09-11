@@ -407,3 +407,119 @@ msgstr ""
 #: lib/kati/screens/pick_sections.ex
 msgid "The week starts on %{day}, dates follow the calendar and the numerals follow the script — all of it from the language you chose in step one, not from a setting of its own."
 msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "Rewatches"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "Abandoned"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "Nothing rewatched"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "Kati fills this one — log a watch of something you have seen and it lands here."
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "Nothing abandoned"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "Kati fills this one — drop a show and it lands here."
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "NO DETAILS YET"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "FILM"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "BOOK"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "ALBUM"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "SERIES"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Lists"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "No list here"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "It was deleted, perhaps on another device."
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Your lists"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Gone — not empty"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Deleting it"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Delete %{title}?"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "the list and its %{count}."
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "the titles themselves — they stay on their shelves, with their ratings and history."
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Delete the list"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Keep it"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Rename"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Share"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Delete this list"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Nothing in it yet"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Open a film, book or album and tap Add to list."
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Cancel"
+msgstr ""
+
+#: lib/kati/screens/list_detail.ex
+msgid "Remove"
+msgstr ""

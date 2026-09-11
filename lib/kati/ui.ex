@@ -179,7 +179,7 @@ defmodule Kati.UI do
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           letter_spacing={0.16}
           text_color={label_color}
@@ -395,7 +395,12 @@ defmodule Kati.UI do
     <Row align="top" fill_width={true}>
       <Box min_width={54} min_height={44} align="top">
         <Column>
-          <Text text={time} text_size={11} text_color={:muted} font_family="mono" />
+          <Text
+            text={time}
+            text_size={11}
+            text_color={:muted}
+            font_family={Kati.Locale.mono_face()}
+          />
         </Column>
       </Box>
       <Box width={16} height={44} align="top">

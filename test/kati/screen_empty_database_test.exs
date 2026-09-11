@@ -1035,8 +1035,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # skip the literal comparison and keep the render, which is what this list
     # is for. MOVIES-AND-TV.md #106.
     Kati.Screens.AddToList,
-    Kati.Screens.ListDetail,
-    Kati.Screens.ListDetailFa
+    Kati.Screens.ListDetail
     # Board 301, the Persian country sheet — screen 97's country row is the
     # door, and 324 is the board that gave that row something to ask for. 301's
     # frame is drawn beside three notes about what 94 and 97 got wrong rather
@@ -1091,11 +1090,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # reader with no lists always meets first. Five IS the drawing.
     Kati.Screens.AddToList => 5,
     # 337's empty sheet is the Persian mirror of the same five.
-    Kati.Screens.ListDetail => 7,
+    Kati.Screens.ListDetail => 7
     # 336's gone card is one line shorter than 331's: the Persian pill reads
     # «فهرست‌های شما» and there is no eyebrow above the card, because 336 draws
     # the state as a page rather than as a band in a catalogue.
-    Kati.Screens.ListDetailFa => 5
   }
 
   # Every table an Ash resource in this app is backed by, child tables first so

@@ -79,7 +79,6 @@ defmodule Kati.PersianScreensRatchetTest do
     Kati.Screens.HomeFaEmptyDark,
     Kati.Screens.HomeFaOmittedSections,
     Kati.Screens.LibraryFa,
-    Kati.Screens.ListDetailFa,
     Kati.Screens.LogProgressFa,
     Kati.Screens.MealsMatrixFa,
     Kati.Screens.MoneyFa,

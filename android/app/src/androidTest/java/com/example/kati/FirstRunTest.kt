@@ -326,7 +326,7 @@ class FirstRunTest {
         // Back to step four and choose a loud one.
         kati.tap("step_back")
         kati.awaitScreen("onboarding_loudness")
-        kati.tap("choose_Weekly digest")
+        kati.tap("choose_digest")
         kati.device.waitForIdle()
 
         kati.tap("next")

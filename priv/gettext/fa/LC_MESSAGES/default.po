@@ -416,3 +416,119 @@ msgstr "دو مورد را برای شروع انتخاب کنید. بقیه ر�
 #: lib/kati/screens/pick_sections.ex
 msgid "The week starts on %{day}, dates follow the calendar and the numerals follow the script — all of it from the language you chose in step one, not from a setting of its own."
 msgstr "هفته از %{day} شروع می‌شود، تاریخ‌ها شمسی و ارقام فارسی‌اند — همه از انتخاب زبان در گام یک می‌آیند، نه از تنظیمی جدا."
+
+#: lib/kati/lists/shelf.ex
+msgid "Rewatches"
+msgstr "بازتماشا"
+
+#: lib/kati/lists/shelf.ex
+msgid "Abandoned"
+msgstr "رهاشده"
+
+#: lib/kati/lists/shelf.ex
+msgid "Nothing rewatched"
+msgstr "چیزی بازتماشا نشده"
+
+#: lib/kati/lists/shelf.ex
+msgid "Kati fills this one — log a watch of something you have seen and it lands here."
+msgstr "کاتی خودش پرش می‌کند — تماشای دوبارهٔ چیزی را ثبت کنید و همین‌جا می‌آید."
+
+#: lib/kati/lists/shelf.ex
+msgid "Nothing abandoned"
+msgstr "چیزی رها نشده"
+
+#: lib/kati/lists/shelf.ex
+msgid "Kati fills this one — drop a show and it lands here."
+msgstr "سریالی را رها کنید و همین‌جا می‌آید."
+
+#: lib/kati/lists/shelf.ex
+msgid "NO DETAILS YET"
+msgstr "هنوز جزئیاتی نیست"
+
+#: lib/kati/lists/shelf.ex
+msgid "FILM"
+msgstr "فیلم"
+
+#: lib/kati/lists/shelf.ex
+msgid "BOOK"
+msgstr "کتاب"
+
+#: lib/kati/lists/shelf.ex
+msgid "ALBUM"
+msgstr "آلبوم"
+
+#: lib/kati/lists/shelf.ex
+msgid "SERIES"
+msgstr "سریال"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Lists"
+msgstr "فهرست‌ها"
+
+#: lib/kati/screens/list_detail.ex
+msgid "No list here"
+msgstr "فهرستی اینجا نیست"
+
+#: lib/kati/screens/list_detail.ex
+msgid "It was deleted, perhaps on another device."
+msgstr "حذف شده — شاید روی دستگاه دیگری."
+
+#: lib/kati/screens/list_detail.ex
+msgid "Your lists"
+msgstr "فهرست‌های شما"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Gone — not empty"
+msgstr "حذف شده — خالی نیست"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Deleting it"
+msgstr "حذف فهرست"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Delete %{title}?"
+msgstr "«%{title}» حذف شود؟"
+
+#: lib/kati/screens/list_detail.ex
+msgid "the list and its %{count}."
+msgstr "فهرست و %{count} عضویتش."
+
+#: lib/kati/screens/list_detail.ex
+msgid "the titles themselves — they stay on their shelves, with their ratings and history."
+msgstr "خود عنوان‌ها — با امتیاز و تاریخچه‌شان در قفسه می‌مانند."
+
+#: lib/kati/screens/list_detail.ex
+msgid "Delete the list"
+msgstr "حذف فهرست"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Keep it"
+msgstr "بماند"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Rename"
+msgstr "تغییر نام"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Share"
+msgstr "هم‌رسانی"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Delete this list"
+msgstr "حذف این فهرست"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Nothing in it yet"
+msgstr "هنوز چیزی در آن نیست"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Open a film, book or album and tap Add to list."
+msgstr "یک فیلم، کتاب یا آلبوم را باز کنید و «افزودن به فهرست» را بزنید."
+
+#: lib/kati/screens/list_detail.ex
+msgid "Cancel"
+msgstr "انصراف"
+
+#: lib/kati/screens/list_detail.ex
+msgid "Remove"
+msgstr "حذف"

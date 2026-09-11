@@ -1,5 +1,6 @@
 package com.example.kati
 
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -28,15 +29,27 @@ import org.junit.runner.RunWith
  * Waiting on the COPY conflates "the screen has not arrived yet" with "the
  * screen says the wrong thing", and the first times out looking exactly like
  * the second. `KatiRule.awaitScreen` waits on the identity the screen stamps
- * on its own root, which is the only thing that distinguishes 161 from 164 —
- * both draw a step rail, a heading, a primary and a restore line, and a
- * screenshot of the wrong one is a screenshot of a plausible screen.
+ * on its own root.
+ *
+ * Since mishka-group/kati#103 folded the four step mirrors, 164 IS 161 under
+ * `:fa` — one module, one identity — so these steps are awaited by the English
+ * name and what makes the run Persian is asserted directly: the words on the
+ * page, and the two screens that are still mirrors at the end of it. That is
+ * the stronger test of the two. An identity only ever proved which MODULE was
+ * mounted; the assertions below prove the reader is being answered in their
+ * own language, which is the thing that was ever at stake.
  */
 @RunWith(AndroidJUnit4::class)
 class PersianFirstRunTest {
 
     @get:Rule
     val kati = KatiRule()
+
+    private fun textPresent(text: String): Boolean =
+        kati.compose
+            .onAllNodesWithText(text, substring = true, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .isNotEmpty()
 
     /** Choose فارسی on screen 53 and leave the run on step two. */
     private fun choosePersian() {
@@ -53,39 +66,50 @@ class PersianFirstRunTest {
         choosePersian()
 
         // 164 — the step that used to be the English 161, mirrored.
-        kati.awaitScreen("onboarding_welcome_fa")
+        kati.awaitScreen("onboarding_welcome")
 
         // 137, which is screen 26 in Persian. Its ادامه pill carried no
         // `on_tap` at all until 165 existed to push it to, so reaching this
         // screen used to be the end of the road rather than a step.
         kati.tap("next")
         kati.systemDialog("Allow", "While using the app", "Allow all the time")
-        kati.awaitScreen("onboarding_fa")
+        kati.awaitScreen("pick_sections")
 
         // 165 — the loudness question, and the tap that proves 137's pill is a
         // button now.
         kati.tap("continue")
-        kati.awaitScreen("onboarding_loudness_fa")
+        kati.awaitScreen("onboarding_loudness")
 
         // 166 — the last step.
         kati.tap("next")
-        kati.awaitScreen("onboarding_first_title_fa")
+        kati.awaitScreen("onboarding_first_title")
+
+        // And the point of the whole walk, now that the identity no longer
+        // proves it: the last step is answering in Persian. One module serves
+        // both runs since mishka-group/kati#103, so what has to be asserted is
+        // the WORDS — an English `Finish setup` here would satisfy every
+        // `awaitScreen` above and be exactly the defect the mirrors existed to
+        // prevent.
+        assertTrue(
+            "the Persian run reached step five and it was drawn in English",
+            textPresent("پایان راه‌اندازی")
+        )
     }
 
     @Test
     fun b_skipping_the_last_step_lands_on_the_persian_empty_home() {
         choosePersian()
-        kati.awaitScreen("onboarding_welcome_fa")
+        kati.awaitScreen("onboarding_welcome")
 
         kati.tap("next")
         kati.systemDialog("Allow", "While using the app", "Allow all the time")
-        kati.awaitScreen("onboarding_fa")
+        kati.awaitScreen("pick_sections")
 
         kati.tap("continue")
-        kati.awaitScreen("onboarding_loudness_fa")
+        kati.awaitScreen("onboarding_loudness")
 
         kati.tap("next")
-        kati.awaitScreen("onboarding_first_title_fa")
+        kati.awaitScreen("onboarding_first_title")
 
         // Screen 158, not 139. Skipping is a real answer and gets the state the
         // app draws for having nothing — and landing an entirely Persian run on
@@ -97,17 +121,17 @@ class PersianFirstRunTest {
     @Test
     fun c_the_persian_run_finishes_on_the_persian_home() {
         choosePersian()
-        kati.awaitScreen("onboarding_welcome_fa")
+        kati.awaitScreen("onboarding_welcome")
 
         kati.tap("next")
         kati.systemDialog("Allow", "While using the app", "Allow all the time")
-        kati.awaitScreen("onboarding_fa")
+        kati.awaitScreen("pick_sections")
 
         kati.tap("continue")
-        kati.awaitScreen("onboarding_loudness_fa")
+        kati.awaitScreen("onboarding_loudness")
 
         kati.tap("next")
-        kati.awaitScreen("onboarding_first_title_fa")
+        kati.awaitScreen("onboarding_first_title")
 
         kati.tap("finish")
         kati.awaitScreen("home_fa")
@@ -122,14 +146,14 @@ class PersianFirstRunTest {
     @Test
     fun d_the_loudness_choice_moves_when_a_quieter_one_is_tapped() {
         choosePersian()
-        kati.awaitScreen("onboarding_welcome_fa")
+        kati.awaitScreen("onboarding_welcome")
 
         kati.tap("next")
         kati.systemDialog("Allow", "While using the app", "Allow all the time")
-        kati.awaitScreen("onboarding_fa")
+        kati.awaitScreen("pick_sections")
 
         kati.tap("continue")
-        kati.awaitScreen("onboarding_loudness_fa")
+        kati.awaitScreen("onboarding_loudness")
 
         // The board opens on آرام, so the assertion has to be that a DIFFERENT
         // choice takes. Tapping the resting one and finding it still selected

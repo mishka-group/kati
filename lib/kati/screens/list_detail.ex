@@ -35,6 +35,7 @@ defmodule Kati.Screens.ListDetail do
   aligned in a fixed 22pt column so `10` sits under `1` without widening.
   """
   use Kati.Screens.Pushed, back: "Lists"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Theme.Palette
@@ -111,10 +112,12 @@ defmodule Kati.Screens.ListDetail do
           Kati.Screens.ListDetail.menu_disc(),
           menu?,
           [
-            Kati.UI.Menu.item("edit", "Rename", :rename),
-            Kati.UI.Menu.item("ios_share", "Share", :share_list),
+            Kati.UI.Menu.item("edit", gettext("Rename"), :rename),
+            Kati.UI.Menu.item("ios_share", gettext("Share"), :share_list),
             Kati.UI.Menu.rule(),
-            Kati.UI.Menu.item("delete", "Delete this list", :confirm_delete, destructive: true)
+            Kati.UI.Menu.item("delete", gettext("Delete this list"), :confirm_delete,
+              destructive: true
+            )
           ],
           dismiss: :close_menu
         )
@@ -162,7 +165,7 @@ defmodule Kati.Screens.ListDetail do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.eyebrow("Gone — not empty", dash: Kati.Theme.Palette.placeholder())}
+      {Kati.UI.eyebrow(gettext("Gone — not empty"), dash: Kati.Theme.Palette.placeholder())}
       <Column
         fill_width={true}
         background={Palette.card()}
@@ -177,7 +180,7 @@ defmodule Kati.Screens.ListDetail do
         </Row>
         <Spacer size={11} />
         <Text
-          text="No list here"
+          text={gettext("No list here")}
           text_size={14.5}
           font_weight="bold"
           text_color={:on_surface}
@@ -185,7 +188,7 @@ defmodule Kati.Screens.ListDetail do
         />
         <Spacer size={7} />
         <Text
-          text="It was deleted, perhaps on another device."
+          text={gettext("It was deleted, perhaps on another device.")}
           text_size={12.5}
           line_height={1.55}
           text_color={Palette.sub()}
@@ -194,7 +197,7 @@ defmodule Kati.Screens.ListDetail do
         <Spacer size={16} />
         <Row fill_width={true} align="center">
           <Spacer weight={1.0} />
-          {SettingsList.action_pill("Your lists", @tap)}
+          {SettingsList.action_pill(gettext("Your lists"), @tap)}
           <Spacer weight={1.0} />
         </Row>
       </Column>
@@ -206,14 +209,15 @@ defmodule Kati.Screens.ListDetail do
     assigns = %{
       confirm:
         Destructive.confirm(
-          eyebrow: "Deleting it",
-          title: "Delete " <> list.title <> "?",
-          changes: "the list and its " <> list.count <> ".",
+          eyebrow: gettext("Deleting it"),
+          title: gettext("Delete %{title}?", title: list.title),
+          changes: gettext("the list and its %{count}.", count: list.count),
           keeps:
-            "the titles themselves — they stay on their shelves, with their " <>
-              "ratings and history.",
-          confirm: {"Delete the list", :delete_list},
-          keep: {"Keep it", :keep_list}
+            gettext(
+              "the titles themselves — they stay on their shelves, with their ratings and history."
+            ),
+          confirm: {gettext("Delete the list"), :delete_list},
+          keep: {gettext("Keep it"), :keep_list}
         ),
       error: Kati.Screens.ListDetail.error_note(list)
     }
@@ -282,7 +286,7 @@ defmodule Kati.Screens.ListDetail do
       >
         <TextField
           value={@name}
-          placeholder="List name"
+          placeholder={gettext("List name")}
           return_key="done"
           weight={1.0}
           accessibility_id="list_name"
@@ -291,11 +295,11 @@ defmodule Kati.Screens.ListDetail do
           value_epoch={@epoch}
         />
         <Spacer size={10} />
-        {Kati.UI.SettingsList.action_pill("Rename", @save)}
+        {Kati.UI.SettingsList.action_pill(gettext("Rename"), @save)}
       </Row>
       <Spacer size={9} />
       <Text
-        text="Cancel"
+        text={gettext("Cancel")}
         text_size={12.5}
         font_weight="semibold"
         text_color={Palette.sub()}
@@ -366,7 +370,7 @@ defmodule Kati.Screens.ListDetail do
       padding={17}
     >
       <Text
-        text="Nothing in it yet"
+        text={gettext("Nothing in it yet")}
         text_size={14.5}
         font_weight="bold"
         text_color={:on_surface}
@@ -374,7 +378,7 @@ defmodule Kati.Screens.ListDetail do
       />
       <Spacer size={7} />
       <Text
-        text="Open a film, book or album and tap Add to list."
+        text={gettext("Open a film, book or album and tap Add to list.")}
         text_size={12.5}
         line_height={1.55}
         text_color={Palette.sub()}
@@ -466,7 +470,7 @@ defmodule Kati.Screens.ListDetail do
         <Spacer weight={1.0} />
         <Text
           text={@number}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={12}
           text_color={Palette.muted()}
           max_lines={1}
@@ -557,7 +561,7 @@ defmodule Kati.Screens.ListDetail do
   @spec remove_pill(map()) :: map()
   def remove_pill(row) do
     MishkaPill.pill(
-      label: "Remove",
+      label: gettext("Remove"),
       on_tap: {self(), String.to_atom("remove_" <> row.id)},
       background: Palette.red_wash(),
       text_color: Palette.red(),
