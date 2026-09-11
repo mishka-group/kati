@@ -843,7 +843,7 @@ defmodule Kati.Screens.AddByHand do
       end)
 
     if taken?,
-      do: "“" <> title <> "” is already in your library.",
+      do: gettext("%{title} is already in your library.", title: Kati.Locale.quoted(title)),
       else: Kati.Write.message(error)
   end
 

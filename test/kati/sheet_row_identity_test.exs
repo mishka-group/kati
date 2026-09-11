@@ -1289,9 +1289,9 @@ defmodule Kati.SheetRowIdentityTest do
       # D-59 ended the fixture-with-fields-over-it merge this comment used to
       # describe — and `drawn_book/0` plus the id is still the right stand-in,
       # because `target/1` reads exactly that key.
-      page = Map.put(Kati.Screens.BookDetailFa.drawn_book(), :id, second.id)
+      page = Map.put(Kati.Screens.BookDetail.drawn_book(), :id, second.id)
 
-      view = tap_on_page(Kati.Screens.BookDetailFa, :book, page, :log_progress)
+      view = tap_on_page(Kati.Screens.BookDetail, :book, page, :log_progress)
 
       assert {:push, Kati.Screens.LogProgress, %{book_id: id}} = pushed(view)
       assert id == second.id
@@ -1342,7 +1342,7 @@ defmodule Kati.SheetRowIdentityTest do
       assert Kati.Screens.LogProgress.book(dead.id) == Kati.Books.Sample.detail()
 
       # And the caller's half: a drawn page names no book, so the push is bare.
-      assert LogProgress.params_for(Kati.Screens.BookDetailFa.drawn_book()) == %{}
+      assert LogProgress.params_for(Kati.Screens.BookDetail.drawn_book()) == %{}
     end
   end
 end

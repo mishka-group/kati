@@ -114,7 +114,9 @@ defmodule Kati.Screens.Gallery do
     {"119", "Add an ingredient", Kati.Screens.AddIngredient, :push},
     {"98", "Your year, shared", Kati.Screens.YearShare, :push},
     {"100", "Year cards", Kati.Screens.YearCards, :push},
-    {"69", "کتاب", Kati.Screens.BookDetailFa, :push},
+    # mishka-group/kati#103's fold of screen 69. Board 69 is screen 66 under
+    # `:fa`, with "69" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"69", "کتاب — Book detail, RTL", Kati.Screens.BookDetail, :push},
     # mishka-group/kati#103's fold of screen 72. Board 72 is screen 70 under
     # `:fa`, with "72" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
     {"72", "ثبت پیشرفت — Log progress, RTL", Kati.Screens.LogProgress, :push},

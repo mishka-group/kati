@@ -12,7 +12,7 @@ defmodule Kati.Screens.BooksFa do
   ## The destination 57's second segment never had
 
   `Kati.Screens.LibraryFa`'s کتاب‌ها segment used to push
-  `Kati.Screens.BookDetailFa` — its own clause said why: *there is no Persian
+  board 69 — its own clause said why: *there is no Persian
   Books SHELF in the 127 drawings, so the segment opens the one Persian book
   page that exists.* A Persian reader tapping the Books tab was dropped into
   one fixture book with no grid, no hero and no list to come back to. 176 is
@@ -63,7 +63,7 @@ defmodule Kati.Screens.BooksFa do
 
     * **Artwork never mirrors.** A jacket is a photograph.
       `Kati.Screens.LibraryFa` states it for posters and
-      `Kati.Screens.BookDetailFa` again for stars.
+      board 69 again for stars.
     * **The vertical order never reverses.** Header, segments, hero, chips,
       grid — top to bottom, in both languages.
     * **The progress rail fills from the right**, because progress follows
@@ -272,7 +272,7 @@ defmodule Kati.Screens.BooksFa do
   disagreeing about one book, one screen apart, which is the acceptance
   sentence `D-59` is written around.
 
-  So it goes through `Kati.Screens.BookDetailFa.status_label/1`, which is the
+  So it goes through `Kati.Screens.BookDetail`'s own status label, which is the
   function 69's pill uses. One reader, one word: the card cannot say a book is
   being read unless the book says so. With a reading book on the shelf the
   eyebrow is still در حال خواندن, which is what board 176 draws.
@@ -938,7 +938,7 @@ defmodule Kati.Screens.BooksFa do
       {:noreply,
        Mob.Socket.push_screen(
          socket,
-         Kati.Screens.BookDetailFa,
+         Kati.Screens.BookDetail,
          Kati.Screens.BookDetail.params_for(socket.assigns.page.hero)
        )}
 
@@ -1016,7 +1016,7 @@ defmodule Kati.Screens.BooksFa do
 
     Mob.Socket.push_screen(
       socket,
-      Kati.Screens.BookDetailFa,
+      Kati.Screens.BookDetail,
       Kati.Screens.BookDetail.params_for(row)
     )
   end

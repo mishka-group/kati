@@ -92,6 +92,7 @@ defmodule Kati.Screens.AddByHandBook do
   screen 66's own builder, so the key is spelled once.
   """
   use Kati.Screens.Pushed, back: "Add title"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Books.Book
   alias Kati.Screens.AddByHand
@@ -604,7 +605,10 @@ defmodule Kati.Screens.AddByHandBook do
   """
   @spec taken(String.t()) :: String.t()
   def taken(title),
-    do: "“" <> title <> "” is already on your shelf. Nothing was written."
+    do:
+      gettext("%{title} is already on your shelf. Nothing was written.",
+        title: Kati.Locale.quoted(title)
+      )
 
   @doc """
   The row, from what was typed and nothing else.

@@ -523,6 +523,23 @@ defmodule Kati.DesignLiterals do
       # the frozen `Show all 47` still belongs, over an empty one.
       # mishka-group/kati#103.
       {"97", "نمایش همه ۴۷"},
+      # ── Board 69, folded into screen 66 by mishka-group/kati#103.
+      #
+      # **۱۴۰۳.** The board writes the publication year in Shamsi and the fold
+      # writes **۲۰۲۴**, because a publication year is printed on the book: it
+      # is on the copyright page, it is what a search for the edition matches,
+      # and rendering it as ۱۴۰۳ makes the app disagree with the object in the
+      # reader's hands. `Kati.Locale.year/1` is where that is ruled, and board
+      # 69's own test has always asserted ۲۰۲۴ for a real book — the mirror's
+      # FIXTURE said ۱۴۰۳ and its own test knew better.
+      {"69", "۱۴۰۳ · ۳۸۰ صفحه"},
+      # **تعداد صفحه** — *number of pages* — captioned the Length row, and the
+      # moment the format chip could say صوتی that row presented a duration as
+      # a page count. `Kati.Screens.BookDetailFa`'s answer was to draw no row
+      # at all for a recording; screen 66 calls the row **Length**, which is
+      # unit-neutral, and the fold gives board 69 **طول** rather than the
+      # absence. The row is better than the hole.
+      {"69", "تعداد صفحه"},
       # ── Boards 70 and 72's insight card, both halves of one sentence.
       #
       # It read *That's 46 pages **in 38 minutes** · your fastest this week*,

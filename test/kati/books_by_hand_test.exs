@@ -11,7 +11,7 @@ defmodule Kati.BooksByHandTest do
   fixture. Three rounds ended with that sentence in the report.
 
   In Persian it was worse in the other direction: 57's کتاب‌ها segment had no
-  shelf to open, so it pushed `Kati.Screens.BookDetailFa` and dropped the
+  shelf to open, so it pushed `Kati.Screens.BookDetail` and dropped the
   reader into one fixture book with no grid and no way back to a list.
 
   ## Why the shelf half is asserted with two books and not one
@@ -47,7 +47,7 @@ defmodule Kati.BooksByHandTest do
   alias Kati.Screens.AddByHand
   alias Kati.Screens.AddByHandBook
   alias Kati.Screens.BookDetail
-  alias Kati.Screens.BookDetailFa
+  alias Kati.Screens.BookDetail
   alias Kati.Screens.Books
   alias Kati.Screens.BooksFa
   alias Kati.Screens.LibraryFa
@@ -78,7 +78,7 @@ defmodule Kati.BooksByHandTest do
         |> mount_screen()
         |> render_info({:tap, :open_book})
 
-      assert {:push, Kati.Screens.BookDetailFa, _params} = pushed(view)
+      assert {:push, Kati.Screens.BookDetail, _params} = pushed(view)
     end
 
     test "176's + opens the book form, not the film search screen 06's + opens" do
@@ -388,7 +388,7 @@ defmodule Kati.BooksByHandTest do
       assert hero.label == SampleFa.labels().reading_now
       assert hero.label == "در حال خواندن"
 
-      refute hero.label == BookDetailFa.book().status_label,
+      refute hero.label == BookDetail.book().status_label,
              "the card's name moved with the head book's status"
 
       refute hero.pace,
@@ -427,7 +427,7 @@ defmodule Kati.BooksByHandTest do
 
       opened = render_info(view, {:tap, Books.book_tag(tile)})
 
-      assert {:push, Kati.Screens.BookDetailFa, %{book_id: id}} = pushed(opened)
+      assert {:push, Kati.Screens.BookDetail, %{book_id: id}} = pushed(opened)
       assert id == first.id
       refute id == second.id
 
@@ -435,7 +435,7 @@ defmodule Kati.BooksByHandTest do
       # `Kati.Screens.Books.handle_tap(:open_book, …)` in the other language.
       hero = render_info(mount_screen(BooksFa), {:tap, :open_book})
 
-      assert {:push, Kati.Screens.BookDetailFa, %{book_id: hero_id}} = pushed(hero)
+      assert {:push, Kati.Screens.BookDetail, %{book_id: hero_id}} = pushed(hero)
       assert hero_id == BooksFa.page().hero.id
     end
 
@@ -538,7 +538,7 @@ defmodule Kati.BooksByHandTest do
       view = mount_screen(BooksFa)
       opened = render_info(view, {:tap, :open_book_bookaa1})
 
-      assert {:push, Kati.Screens.BookDetailFa, params} = pushed(opened)
+      assert {:push, Kati.Screens.BookDetail, params} = pushed(opened)
       assert params == %{}
       assert BookDetail.params_for(hd(BooksFa.drawn_books())) == %{}
     end

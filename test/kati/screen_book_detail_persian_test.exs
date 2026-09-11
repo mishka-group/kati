@@ -1,4 +1,4 @@
-defmodule Kati.ScreenBookDetailFaTest do
+defmodule Kati.ScreenBookDetailPersianTest do
   @moduledoc """
   Screen 69 states no fact about a book that the book does not carry.
 
@@ -61,7 +61,6 @@ defmodule Kati.ScreenBookDetailFaTest do
   alias Kati.Calendar.Shamsi
   alias Kati.Components.MishkaSwitch
   alias Kati.Screens.BookDetail
-  alias Kati.Screens.BookDetailFa
   alias Kati.Screens.BooksFa
 
   @prefix "screen-69-fa-test-"
@@ -70,9 +69,15 @@ defmodule Kati.ScreenBookDetailFaTest do
   # `kati_mono.ttf` carries none of.
   @persian_digit ~r/[\x{06F0}-\x{06F9}]/u
 
+  # No locale restore in `on_exit`: `Mob.ScreenCase` tears `Mob.State` down with
+  # the test process, so a write there exits. The store is per-test anyway.
   setup do
     delete_rows!()
+    Kati.Locale.put(:fa)
+    Kati.Locale.activate()
+
     on_exit(&delete_rows!/0)
+
     :ok
   end
 
@@ -80,8 +85,8 @@ defmodule Kati.ScreenBookDetailFaTest do
     test "a title and nothing else opens a page with nothing else on it" do
       a_book!(%{title: @prefix <> "نگهبان"})
 
-      page = BookDetailFa.book()
-      drawn = BookDetailFa.drawn_book()
+      page = BookDetail.book()
+      drawn = BookDetail.drawn_book()
 
       # What the book itself says, key by key. Every one of these is a fact the
       # person gave, or the honest absence of one.
@@ -127,8 +132,8 @@ defmodule Kati.ScreenBookDetailFaTest do
     test "not one of the fixture's sentences is anywhere in the rendered tree" do
       a_book!(%{title: @prefix <> "نگهبان"})
 
-      drawn = BookDetailFa.drawn_book()
-      words = words_of(BookDetailFa)
+      drawn = BookDetail.drawn_book()
+      words = words_of(BookDetail)
 
       # `status_label` is deliberately not in this list: در حال خواندن is also one
       # of the four words the status chip row draws for every book, and the chip
@@ -166,18 +171,25 @@ defmodule Kati.ScreenBookDetailFaTest do
       a_book!(%{title: @prefix <> "نگهبان"})
 
       e = SampleFa.eyebrows()
-      words = words_of(BookDetailFa)
+      words = words_of(BookDetail)
 
       assert words =~ e.status
       assert words =~ e.edition
 
-      refute words =~ e.warnings
+      # هشدار محتوا caption a CONTROL too, and that is the fold's one change
+      # to this list. The mirror dropped the band for a book with no warnings;
+      # screen 66 keeps the row and draws **ثبت نشده** beside a `+`, which is
+      # board 309's rule for exactly this shape — *a row missing its second
+      # line reads as a rendering fault, and one that has the honest thing
+      # reads as an answer* — and the row is the only way to record a warning.
+      assert words =~ e.warnings
+      assert words =~ "ثبت نشده"
+
+      # The other three caption DATA, and a caption over nothing is a promise
+      # the app has not kept.
       refute words =~ e.notes
       refute words =~ e.series
       refute words =~ e.history
-
-      # And the cards under them are gone too, not merely their captions.
-      refute words =~ SampleFa.labels().warnings
     end
 
     test "no Text on the page is drawn with a nil, and no numeral leaves the fa face" do
@@ -190,7 +202,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       # through `row/5` would have printed under a Persian eyebrow.
       a_book!(%{title: @prefix <> "نگهبان", author: nil})
 
-      nodes = BookDetailFa |> mount_screen() |> Mob.ScreenCase.flatten()
+      nodes = BookDetail |> mount_screen() |> Mob.ScreenCase.flatten()
 
       nils =
         Enum.filter(nodes, fn node ->
@@ -224,26 +236,26 @@ defmodule Kati.ScreenBookDetailFaTest do
       # it fails the day somebody reaches for `from_gregorian/1` on a bare year.
       book = a_book!(%{title: @prefix <> "سالنامه", published_year: 2024, page_count: 380})
 
-      assert BookDetailFa.book().meta == "۲۰۲۴ · ۳۸۰ صفحه"
-      refute BookDetailFa.book().meta =~ "۱۴۰۳"
+      assert BookDetail.book().meta == "۲۰۲۴ · ۳۸۰ صفحه"
+      refute BookDetail.book().meta =~ "۱۴۰۳"
 
       # A part at a time, and never a nil handed to a Text. Rebound each time,
       # because a second update off a stale struct is a second question.
       book = Ash.update!(book, %{page_count: nil})
-      assert BookDetailFa.book().meta == "۲۰۲۴"
+      assert BookDetail.book().meta == "۲۰۲۴"
 
       Ash.update!(book, %{published_year: nil})
-      assert BookDetailFa.book().meta == ""
+      assert BookDetail.book().meta == ""
     end
 
     test "the status pill wears the book's own status, and 66 and 69 colour one status alike" do
       a_book!(%{title: @prefix <> "نگهبان"})
 
-      pill = BookDetailFa.status_pill(:not_started, "شروع نشده")
+      pill = BookDetail.status_pill(:not_started, "شروع نشده")
 
-      assert pill.props.background == elem(BookDetailFa.status_colours(:not_started), 2)
-      refute pill.props.background == elem(BookDetailFa.status_colours(:reading), 2)
-      assert words_of(BookDetailFa) =~ "شروع نشده"
+      assert pill.props.background == elem(BookDetail.status_colours(:not_started), 2)
+      refute pill.props.background == elem(BookDetail.status_colours(:reading), 2)
+      assert words_of(BookDetail) =~ "شروع نشده"
 
       # The non-tautological form of *the two pages must not disagree about what
       # a status looks like*. 69 mirrors 66's four clauses rather than calling
@@ -252,7 +264,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       # actually fails on the day they drift.
       for status <- [:reading, :finished, :paused, :did_not_finish, :not_started] do
         english = BookDetail.status_pill(status, "x")
-        persian = BookDetailFa.status_pill(status, "x")
+        persian = BookDetail.status_pill(status, "x")
 
         assert persian.props.background == english.props.background,
                "screens 66 and 69 draw #{inspect(status)} on two different washes"
@@ -266,13 +278,13 @@ defmodule Kati.ScreenBookDetailFaTest do
       book = a_book!(%{title: @prefix <> "نگهبان"})
 
       for {_value, label} <- SampleFa.statuses() do
-        refute lit?(BookDetailFa, label), "#{label} is lit for a book nobody has opened"
+        refute lit?(BookDetail, label), "#{label} is lit for a book nobody has opened"
       end
 
       Ash.update!(book, %{status: :paused})
 
-      assert lit?(BookDetailFa, "متوقف")
-      refute lit?(BookDetailFa, "در حال خواندن")
+      assert lit?(BookDetail, "متوقف")
+      refute lit?(BookDetail, "در حال خواندن")
     end
 
     test "the format chip and the ownership switch are the book's own" do
@@ -287,11 +299,11 @@ defmodule Kati.ScreenBookDetailFaTest do
         owned: false
       })
 
-      assert BookDetailFa.book().extent_label == "۱۱ ساعت ۲۰ دقیقه"
-      assert BookDetailFa.book().owned == false
+      assert BookDetail.book().extent_label == "۱۱ ساعت ۲۰ دقیقه"
+      assert BookDetail.book().owned == false
 
-      assert lit?(BookDetailFa, "صوتی")
-      refute lit?(BookDetailFa, "شمیز")
+      assert lit?(BookDetail, "صوتی")
+      refute lit?(BookDetail, "شمیز")
 
       # `Kati.UI.SettingsList.switch/1` draws the control rather than emitting a
       # native one, so its state is in the thumb's signed offset from the track's
@@ -300,7 +312,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       # borrows rather than restating as a number.
       off = MishkaSwitch.thumb_offset(false, 46, 22, 3)
 
-      assert thumb_offsets(BookDetailFa) == [off],
+      assert thumb_offsets(BookDetail) == [off],
              "the نسخه‌ای که دارم switch is drawn on for a book nobody said they own"
     end
 
@@ -321,14 +333,14 @@ defmodule Kati.ScreenBookDetailFaTest do
           current_page: 214
         })
 
-      assert BookDetailFa.book().progress_line == "ص. ۲۱۴ / ۳۸۰"
+      assert BookDetail.book().progress_line == "ص. ۲۱۴ / ۳۸۰"
       assert tile_line(book.title) == "ص. ۲۱۴ / ۳۸۰"
 
       # `pace/2` is minutes across the last seven calendar days ÷ 7, so 161
       # minutes today is 23 a day — the figure board 69 prints.
       a_session!(book, %{read_on: Kati.Time.today(), from_page: 168, to_page: 214, minutes: 161})
 
-      assert BookDetailFa.book().progress_line == "ص. ۲۱۴ / ۳۸۰ · ۲۳ دقیقه در روز"
+      assert BookDetail.book().progress_line == "ص. ۲۱۴ / ۳۸۰ · ۲۳ دقیقه در روز"
     end
 
     test "a book with no page count draws no bar, and a page count is what brings one back" do
@@ -337,35 +349,35 @@ defmodule Kati.ScreenBookDetailFaTest do
       # none of a book whose length nobody knows.
       book = a_book!(%{title: @prefix <> "کتاب صوتی", format: :audiobook, duration_minutes: 680})
 
-      assert BookDetailFa.book().progress == nil
-      assert BookDetailFa.bar(BookDetailFa.book().progress) == []
+      assert BookDetail.book().progress == nil
+      assert BookDetail.bar(BookDetail.book().progress) == []
 
       Ash.update!(book, %{format: :paperback, page_count: 380, current_page: 0})
 
-      assert BookDetailFa.book().progress == 0.0
-      refute BookDetailFa.bar(BookDetailFa.book().progress) == []
+      assert BookDetail.book().progress == 0.0
+      refute BookDetail.bar(BookDetail.book().progress) == []
     end
 
     test "the rating is the book's own, in Persian digits with the Persian separator" do
       book = a_book!(%{title: @prefix <> "سالنامه"})
 
-      assert BookDetailFa.book().rating == nil
-      assert BookDetailFa.book().rating_label == nil
+      assert BookDetail.book().rating == nil
+      assert BookDetail.book().rating_label == nil
 
       book = Ash.update!(book, %{rating: 9})
 
-      assert BookDetailFa.book().rating == 9
-      assert BookDetailFa.book().rating_label == "۴٫۵"
-      refute BookDetailFa.book().rating_label == "4.5"
+      assert BookDetail.book().rating == 9
+      assert BookDetail.book().rating_label == "۴٫۵"
+      refute BookDetail.book().rating_label == "4.5"
 
       Ash.update!(book, %{rating: 8})
-      assert BookDetailFa.book().rating_label == "۴"
+      assert BookDetail.book().rating_label == "۴"
     end
 
     test "the series band and the lending band are the book's own, or are absent" do
       book = a_book!(%{title: @prefix <> "سالنامه"})
 
-      assert BookDetailFa.series(BookDetailFa.book()) == []
+      assert BookDetail.series_section(BookDetail.book()) == []
 
       Ash.update!(book, %{
         series_name: "دفترهای ساحلی",
@@ -375,14 +387,14 @@ defmodule Kati.ScreenBookDetailFaTest do
         lent_due_on: ~D[2025-08-27]
       })
 
-      page = BookDetailFa.book()
+      page = BookDetail.book()
 
       assert page.series_line == "#۳ از ۷ — دفترهای ساحلی"
       assert page.lent_to == "قرض داده به جو"
       assert page.lent_due == "موعد " <> Shamsi.format(~D[2025-08-27], :short)
       refute page.lent_due =~ ~r/[0-9]/
 
-      words = words_of(BookDetailFa)
+      words = words_of(BookDetail)
       assert words =~ SampleFa.eyebrows().series
       assert words =~ "#۳ از ۷ — دفترهای ساحلی"
       assert words =~ "قرض داده به جو"
@@ -394,9 +406,9 @@ defmodule Kati.ScreenBookDetailFaTest do
       # fact as the نسخه‌ای که دارم switch — so the band stays closed.
       a_book!(%{title: @prefix <> "سالنامه", owned: true})
 
-      assert BookDetailFa.book().lent_to == nil
-      assert BookDetailFa.series(BookDetailFa.book()) == []
-      refute words_of(BookDetailFa) =~ SampleFa.eyebrows().series
+      assert BookDetail.book().lent_to == nil
+      assert BookDetail.series_section(BookDetail.book()) == []
+      refute words_of(BookDetail) =~ SampleFa.eyebrows().series
     end
   end
 
@@ -405,7 +417,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       book = a_book!(%{title: @prefix <> "سالنامه"})
       a_note!(book, %{kind: :quote, body: "a line the reader typed", page: 148})
 
-      words = words_of(BookDetailFa)
+      words = words_of(BookDetail)
 
       assert words =~ SampleFa.eyebrows().notes
       assert words =~ "a line the reader typed", "a note's body is never translated"
@@ -418,15 +430,15 @@ defmodule Kati.ScreenBookDetailFaTest do
       book = a_book!(%{title: @prefix <> "سالنامه"})
       a_note!(book, %{kind: :note, body: "a thought about the whole thing", page: nil})
 
-      assert [%{anchor: nil}] = BookDetailFa.book().notes
-      assert words_of(BookDetailFa) =~ "a thought about the whole thing"
+      assert [%{anchor: nil}] = BookDetail.book().notes
+      assert words_of(BookDetail) =~ "a thought about the whole thing"
     end
 
     test "a book's own sittings are drawn, worded in Persian" do
       book = a_book!(%{title: @prefix <> "سالنامه"})
       a_session!(book, %{read_on: ~D[2025-08-16], from_page: 168, to_page: 214, minutes: 38})
 
-      [session] = BookDetailFa.book().sessions
+      [session] = BookDetail.book().sessions
 
       assert session.span == "ص. ۱۶۸ → ۲۱۴"
       assert session.duration == "۳۸ دقیقه"
@@ -435,7 +447,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       assert session.date == Shamsi.format(~D[2025-08-16], :short)
       refute session.date =~ ~r/[0-9A-Za-z]/
 
-      words = words_of(BookDetailFa)
+      words = words_of(BookDetail)
 
       assert words =~ SampleFa.eyebrows().history
       assert words =~ "ص. ۱۶۸ → ۲۱۴"
@@ -450,17 +462,17 @@ defmodule Kati.ScreenBookDetailFaTest do
       book = a_book!(%{title: @prefix <> "سالنامه"})
       a_session!(book, %{read_on: ~D[2025-08-16], from_page: 168, to_page: 214, minutes: nil})
 
-      assert [%{duration: nil}] = BookDetailFa.book().sessions
-      assert BookDetailFa.duration(nil) == nil
+      assert [%{duration: nil}] = BookDetail.book().sessions
+      assert BookDetail.duration(nil) == nil
 
       texts =
-        BookDetailFa
+        BookDetail
         |> mount_screen()
         |> Mob.ScreenCase.flatten()
         |> Enum.filter(&(&1.type == :text))
 
       refute Enum.any?(texts, &(Map.get(&1.props || %{}, :text) == nil))
-      assert words_of(BookDetailFa) =~ "ص. ۱۶۸ → ۲۱۴"
+      assert words_of(BookDetail) =~ "ص. ۱۶۸ → ۲۱۴"
     end
   end
 
@@ -471,18 +483,28 @@ defmodule Kati.ScreenBookDetailFaTest do
       # `Kati.ScreenEmptyDatabaseTest` makes the same equality for screen 69 and
       # `Kati.ScreenDesignLiteralTest` compares the rendered tree against every
       # literal of `test/design/screens/69.html`.
-      assert BookDetailFa.book() == BookDetailFa.drawn_book()
-      assert BookDetailFa.book() == SampleFa.detail()
+      assert BookDetail.book() == BookDetail.drawn_book()
+      # `Kati.Books.Sample.detail/0` and not `Kati.Books.SampleFa.detail/0`:
+      # mishka-group/kati#103 folded the mirror away and the fixture with it, so
+      # there is one drawing and it is translated. The one value that MOVED in
+      # the fold is the year — the mirror wrote ۱۴۰۳ and this test's own
+      # sibling below has always asserted ۲۰۲۴, because a publication year is
+      # printed on the book rather than recorded by Kati. `Kati.Locale.year/1`
+      # carries the argument.
+      assert BookDetail.book() == Kati.Books.Sample.detail()
 
-      words = words_of(BookDetailFa)
+      words = words_of(BookDetail)
 
       for eyebrow <- Map.values(SampleFa.eyebrows()) do
         assert words =~ eyebrow, "board 69 draws #{eyebrow} and the fixture path must too"
       end
 
-      assert words =~ "۱۴۰۳ · ۳۸۰ صفحه"
+      # **۲۰۲۴** and not board 69's ۱۴۰۳ — see the equality above, and
+      # `Kati.Locale.year/1`, which is where a publication year is ruled a
+      # citation rather than a date.
+      assert words =~ "۲۰۲۴ · ۳۸۰ صفحه"
       assert words =~ "ص. ۲۱۴ / ۳۸۰ · ۲۳ دقیقه در روز"
-      assert words =~ "4.5"
+      assert words =~ "۴٫۵"
       assert words =~ "#۳ از ۷ — دفترهای ساحلی"
       assert words =~ "قرض داده به جو"
       assert words =~ "موعد ۵ شهریور"
@@ -490,20 +512,20 @@ defmodule Kati.ScreenBookDetailFaTest do
       assert words =~ "ص. ۱۴۸"
       assert words =~ "۳۸ دقیقه"
 
-      # `warning_count` moved from the string `"۳"` to the integer `3`, and
-      # `Kati.Calendar.Shamsi.fa/1` is what puts the board's own glyph back.
-      assert SampleFa.detail().warning_count == 3
+      # `warning_count` is the integer `3`, and `Kati.Locale.number/1` is what
+      # puts the board's own glyph back.
+      assert Kati.Books.Sample.detail().warning_count == 3
       assert words =~ "۳"
     end
 
     test "one shelved book moves the page, and the drawing does not move with it" do
       # So the two nothings can never agree vacuously.
-      drawn = BookDetailFa.drawn_book()
+      drawn = BookDetail.drawn_book()
 
       a_book!(%{title: @prefix <> "نگهبان"})
 
-      refute BookDetailFa.book() == drawn
-      assert BookDetailFa.drawn_book() == drawn
+      refute BookDetail.book() == drawn
+      assert BookDetail.drawn_book() == drawn
     end
   end
 
@@ -536,9 +558,9 @@ defmodule Kati.ScreenBookDetailFaTest do
       a_note!(salt, %{kind: :quote, body: "a line the reader typed", page: 148})
       head = a_book!(%{title: @prefix <> "علف مرام"})
 
-      assert BookDetailFa.shelved(nil).id == head.id, "the bare page would draw this one"
+      assert BookDetail.shelved_book(nil).id == head.id, "the bare page would draw this one"
 
-      page = BookDetailFa.book(salt.id)
+      page = BookDetail.book(salt.id)
 
       assert page.id == salt.id
       assert page.title == salt.title
@@ -548,7 +570,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       assert page.series_line == "#۳ از ۷ — دفترهای ساحلی"
       assert page.lent_to == "قرض داده به جو"
 
-      words = words_of(BookDetailFa, %{book_id: salt.id})
+      words = words_of(BookDetail, %{book_id: salt.id})
 
       assert words =~ salt.title
       refute words =~ head.title, "screen 69 drew the head of the shelf under a named book"
@@ -556,7 +578,7 @@ defmodule Kati.ScreenBookDetailFaTest do
 
       # And the other direction: opened on the bare book, the page is empty
       # where the app knows nothing rather than filled in with the rich one's.
-      bare = words_of(BookDetailFa, %{book_id: head.id})
+      bare = words_of(BookDetail, %{book_id: head.id})
 
       assert bare =~ head.title
       refute bare =~ salt.title
@@ -572,15 +594,15 @@ defmodule Kati.ScreenBookDetailFaTest do
       dead = a_book!(%{title: @prefix <> "آب کم"})
       Ash.destroy!(dead)
 
-      assert BookDetailFa.book(dead.id) == BookDetailFa.drawn_book()
-      refute words_of(BookDetailFa, %{book_id: dead.id}) =~ shelved.title
+      assert BookDetail.book(dead.id) == BookDetail.drawn_book()
+      refute words_of(BookDetail, %{book_id: dead.id}) =~ shelved.title
     end
 
     test "no id is still the shelf's head, which is what a page opened from nowhere is about" do
       book = a_book!(%{title: @prefix <> "نگهبان"})
 
-      assert BookDetailFa.book(nil) == BookDetailFa.book()
-      assert BookDetailFa.book().title == book.title
+      assert BookDetail.book(nil) == BookDetail.book()
+      assert BookDetail.book().title == book.title
     end
   end
 
@@ -594,7 +616,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       second = a_book!(%{title: @prefix <> "علف مرام", status: :reading})
 
       view =
-        BookDetailFa
+        BookDetail
         |> mount_screen(%{book_id: first.id})
         |> render_info({:tap, :status_paused})
 
@@ -611,7 +633,7 @@ defmodule Kati.ScreenBookDetailFaTest do
     test "a format chip is the same write, and it moves the row the page is on" do
       book = a_book!(%{title: @prefix <> "کتاب صوتی", duration_minutes: 680})
 
-      BookDetailFa
+      BookDetail
       |> mount_screen(%{book_id: book.id})
       |> render_info({:tap, :format_audiobook})
 
@@ -623,7 +645,7 @@ defmodule Kati.ScreenBookDetailFaTest do
       second = a_book!(%{title: @prefix <> "علف مرام", status: :reading})
 
       view =
-        BookDetailFa
+        BookDetail
         |> mount_screen(%{book_id: first.id})
         |> render_info({:tap, :finish})
 
@@ -645,9 +667,9 @@ defmodule Kati.ScreenBookDetailFaTest do
 
       head = a_book!(%{title: @prefix <> "سالنامه", status: :reading, format: :paperback})
 
-      view = mount_screen(BookDetailFa, %{book_id: dead.id})
+      view = mount_screen(BookDetail, %{book_id: dead.id})
 
-      assert assigns(view).book == BookDetailFa.drawn_book()
+      assert assigns(view).book == BookDetail.drawn_book()
 
       for tag <- [:finish, :status_finished, :status_paused, :format_audiobook] do
         render_info(view, {:tap, tag})
@@ -668,10 +690,9 @@ defmodule Kati.ScreenBookDetailFaTest do
       # hand-typed book drew شروع نشده twice on one card.
       book = a_book!(%{title: @prefix <> "نگهبان"})
 
-      assert BookDetailFa.book().progress_line == ""
-      assert BookDetailFa.pace_line(BookDetailFa.book().progress_line) == []
+      assert BookDetail.book().progress_line == ""
 
-      words = words_of(BookDetailFa)
+      words = words_of(BookDetail)
       occurrences = length(String.split(words, "شروع نشده")) - 1
 
       assert occurrences == 1,
@@ -683,9 +704,9 @@ defmodule Kati.ScreenBookDetailFaTest do
       # writes تمام‌شده with a ZWNJ — so the card called one state two things.
       Ash.update!(book, %{status: :finished, page_count: 380, current_page: 380})
 
-      assert BookDetailFa.book().progress_line == ""
+      assert BookDetail.book().progress_line == ""
 
-      refute words_of(BookDetailFa) =~ "تمام‌شده",
+      refute words_of(BookDetail) =~ "تمام‌شده",
              "the hero drew the shelf's spelling of finished under a pill that says another"
     end
 
@@ -700,44 +721,42 @@ defmodule Kati.ScreenBookDetailFaTest do
           current_page: 214
         })
 
-      assert BookDetailFa.book().progress_line == "ص. ۲۱۴ / ۳۸۰"
+      assert BookDetail.book().progress_line == "ص. ۲۱۴ / ۳۸۰"
 
       a_session!(book, %{read_on: Kati.Time.today(), from_page: 168, to_page: 214, minutes: 161})
 
-      assert BookDetailFa.book().progress_line == "ص. ۲۱۴ / ۳۸۰ · ۲۳ دقیقه در روز"
+      assert BookDetail.book().progress_line == "ص. ۲۱۴ / ۳۸۰ · ۲۳ دقیقه در روز"
 
       # And a pace outlives a dropped position: a book finished this morning was
       # read for twenty-three minutes a day, which is not the pill's fact.
       Ash.update!(book, %{status: :finished})
 
-      assert BookDetailFa.book().progress_line == "۲۳ دقیقه در روز"
+      assert BookDetail.book().progress_line == "۲۳ دقیقه در روز"
     end
 
-    test "an audiobook's duration is never drawn under a row labelled تعداد صفحه" do
-      # Finding 9. `extent_label/1` answers `۱۱ ساعت ۲۰ دقیقه`, board 69's row
-      # is labelled *number of pages*, and screen 177 offers صوتی — so the
-      # moment the format chip stopped asserting `:paperback` this row could
-      # present a duration as a page count. Screen 66 escapes it by calling the
-      # row `Length`; rule 6 forbids inventing the Persian for that here.
+    test "an audiobook's duration is drawn under a row no page count could caption" do
+      # Finding 9, and the fold is what settled it. `extent_label/1` answers
+      # ۱۱ ساعت ۲۰ دقیقه for a recording; board 69's row was labelled
+      # *تعداد صفحه* — *number of pages* — so the moment the format chip stopped
+      # asserting `:paperback` that row presented a duration as a page count,
+      # and the mirror's answer was to draw no row at all. Screen 66 never had
+      # the problem: its row is called **Length**, which is the unit-neutral
+      # word, and mishka-group/kati#103 gives board 69 that row rather than the
+      # absence — **طول** captions a duration and a page count alike.
       book =
         a_book!(%{title: @prefix <> "کتاب صوتی", format: :audiobook, duration_minutes: 680})
 
-      l = SampleFa.labels()
-      words = words_of(BookDetailFa)
+      words = words_of(BookDetail)
 
-      assert BookDetailFa.book().extent_label == "۱۱ ساعت ۲۰ دقیقه"
-      assert BookDetailFa.length_row(l.length, BookDetailFa.book()) == []
-      refute words =~ l.length, "تعداد صفحه captioned a duration"
+      assert BookDetail.book().extent_label == "۱۱ ساعت ۲۰ دقیقه"
+      assert words =~ "۱۱ ساعت ۲۰ دقیقه", "the row states the duration"
+      refute words =~ "تعداد صفحه", "a page-count caption over a duration"
 
-      # Nothing is lost: the meta line under the cover carries it, where no
-      # label contradicts it.
-      assert words =~ "۱۱ ساعت ۲۰ دقیقه"
-
-      # And a paperback keeps its row, value or no value.
+      # And a paperback keeps the same row with the other unit in it.
       Ash.update!(book, %{format: :paperback, page_count: 380, duration_minutes: nil})
 
-      assert words_of(BookDetailFa) =~ l.length
-      assert BookDetailFa.book().extent_label == "۳۸۰ صفحه"
+      assert BookDetail.book().extent_label == "۳۸۰ صفحه"
+      assert words_of(BookDetail) =~ "۳۸۰ صفحه"
     end
 
     test "the page count and the ISBN answer the same absence the same way" do
@@ -747,12 +766,12 @@ defmodule Kati.ScreenBookDetailFaTest do
       # described the other one.
       a_book!(%{title: @prefix <> "نگهبان"})
 
-      page = BookDetailFa.book()
+      page = BookDetail.book()
 
       assert page.extent_label == nil
       assert page.isbn == nil
 
-      dashes = length(String.split(words_of(BookDetailFa), "—")) - 1
+      dashes = length(String.split(words_of(BookDetail), "—")) - 1
 
       assert dashes == 2,
              "the em dashes on this page are the two rating cards' (`rating_card/3` draws " <>
@@ -772,14 +791,19 @@ defmodule Kati.ScreenBookDetailFaTest do
   # A chip is lit when its label is drawn bold — and the SIZE is what says it is
   # a chip. `chip/3` draws at 12 and `status_pill/2` at 11, and without that
   # second prop this helper matched the pill: the pill's text is the status word
-  # in bold, so `lit?(BookDetailFa, "متوقف")` passed for a paused book whether
+  # in bold, so `lit?(BookDetail, "متوقف")` passed for a paused book whether
   # or not `chips/3` ever passed `on? == true`. Breaking `chips/3` to light
   # nothing left this green, which is the assertion answering a question it was
   # not asked.
+  # A chip is lit when its label wears `on_ink` — the pair `Kati.UI.chip/2`
+  # draws for a selected chip, against `ink_soft` for one that is not. It used
+  # to look for a 12pt bold `Text`, which was the mirror's hand-rolled chip;
+  # screen 66's is `Kati.Components.MishkaChip` and the colour is what says
+  # which state it is in.
   defp lit?(module, label) do
     module
     |> mount_screen()
-    |> Mob.ScreenCase.find(:text, text: label, text_size: 12, font_weight: "bold")
+    |> Mob.ScreenCase.find(:text, text: label, text_color: Kati.Theme.Palette.on_ink())
     |> is_map()
   end
 

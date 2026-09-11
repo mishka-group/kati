@@ -14,7 +14,7 @@ defmodule Kati.FollowAuthorTest do
 
   ## Why the rows go before the test as well as after it
 
-  `Kati.ScreenBookDetailFaTest`'s discipline and its reason: the suite has no
+  `Kati.ScreenBookDetailPersianTest`'s discipline and its reason: the suite has no
   Ecto sandbox and several other files render these same screens against this
   same SQLite file. A followed author left behind turns screen 66's switch on
   in a file that never wrote one.
@@ -24,7 +24,7 @@ defmodule Kati.FollowAuthorTest do
   alias Kati.Books.Book
   alias Kati.Books.FollowedAuthor
   alias Kati.Screens.BookDetail
-  alias Kati.Screens.BookDetailFa
+  alias Kati.Screens.BookDetail
 
   @prefix "follow-author-test-"
 
@@ -109,13 +109,21 @@ defmodule Kati.FollowAuthorTest do
     test "the Persian row names the author and the switch writes" do
       a_book!(%{title: @prefix <> "سالنامه نمک", author: @prefix <> "اینس کارول"})
 
-      view = mount_screen(BookDetailFa)
+      # Board 69 is screen 66 under `:fa` since mishka-group/kati#103, so this
+      # half of the file reads as a Persian reader rather than mounting a
+      # second module. No restore in `on_exit`: `Mob.ScreenCase` tears
+      # `Mob.State` down with the test process, so a write there exits, and the
+      # store is per-test anyway.
+      Kati.Locale.put(:fa)
+      Kati.Locale.activate()
+
+      view = mount_screen(BookDetail)
       assert Mob.ScreenCase.text(view) =~ "دنبال‌کردن " <> @prefix <> "اینس کارول"
 
       socket = view.socket
       refute socket.assigns.following
 
-      {:noreply, socket} = BookDetailFa.handle_info({:tap, :toggle_follow_author}, socket)
+      {:noreply, socket} = BookDetail.handle_info({:tap, :toggle_follow_author}, socket)
 
       assert socket.assigns.following
       assert FollowedAuthor.following?(@prefix <> "اینس کارول")

@@ -714,10 +714,12 @@ defmodule Kati.ScreenTapSweepTest do
     # The status and edition chips are the mirror of 66's, which write against a
     # shelved book and no-op against an empty one.
     #
-    # Screen 66 carries the English half of this list above; a Persian mirror
-    # that behaved differently from the page it mirrors would be the defect
-    # worth catching, and it would show up as one of these going live alone.
-    {Kati.Screens.BookDetailFa, :finish},
+    # Screen 66 carries the English half of this list above, and since
+    # mishka-group/kati#103 it carries the whole of it: board 69 is that screen
+    # under `:fa`, so there is no second module whose entries could go live
+    # alone. What is left here is board 69's own `finish`, which the English
+    # list does not carry because 66's is on `@writes_anyway` — the two pages
+    # are one page and this line is the last thing the pair disagreed about.
     # `add_to_list` on the four detail pages, and why it reads inert HERE and
     # only here. Board 334 wired all four on 7 September: each now pushes
     # `Kati.Screens.AddToList` carrying the member the page is about, and on a
@@ -730,20 +732,10 @@ defmodule Kati.ScreenTapSweepTest do
     # This is `Kati.Screens.Series.follow_disc/1`'s rule, one page over: a
     # control over a picture stays a picture. The sweep mounts the drawing, so
     # the drawing is what it sees.
-    {Kati.Screens.BookDetailFa, :add_to_list},
     {Kati.Screens.BookDetail, :add_to_list},
     {Kati.Screens.BookDetailDark, :add_to_list},
     {Kati.Screens.AlbumDetail, :add_to_list},
     {Kati.Screens.AlbumDetailFa, :add_to_list},
-    {Kati.Screens.BookDetailFa, :open_series},
-    {Kati.Screens.BookDetailFa, :open_lending},
-    {Kati.Screens.BookDetailFa, :status_reading},
-    {Kati.Screens.BookDetailFa, :status_finished},
-    {Kati.Screens.BookDetailFa, :status_paused},
-    {Kati.Screens.BookDetailFa, :status_did_not_finish},
-    {Kati.Screens.BookDetailFa, :format_paperback},
-    {Kati.Screens.BookDetailFa, :format_ebook},
-    {Kati.Screens.BookDetailFa, :format_audiobook},
     # Screen 72's two were here until mishka-group/kati#103 folded
     # `Kati.Screens.LogProgressFa` into screen 70. Board 72 is that screen under
     # `:fa`, so its opening unit and its timer stop are screen 70's own entries

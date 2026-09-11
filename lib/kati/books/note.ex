@@ -1,4 +1,6 @@
 defmodule Kati.Books.Note do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   A quote you copied out, or a note you left yourself.
 
@@ -60,7 +62,9 @@ defmodule Kati.Books.Note do
 
   @doc "The anchor line, `p. 148`, or `nil` when the note is not about a page."
   @spec anchor(t()) :: String.t() | nil
-  def anchor(%__MODULE__{page: page}) when is_integer(page) and page > 0, do: "p. #{page}"
+  def anchor(%__MODULE__{page: page}) when is_integer(page) and page > 0,
+    do: gettext("p. %{n}", n: Kati.Locale.number(page))
+
   def anchor(%__MODULE__{}), do: nil
 
   @doc """
@@ -71,7 +75,7 @@ defmodule Kati.Books.Note do
   66 and its dark twin 68 — cannot disagree about it.
   """
   @spec display(t()) :: String.t()
-  def display(%__MODULE__{kind: :quote, body: body}), do: "“" <> body <> "”"
+  def display(%__MODULE__{kind: :quote, body: body}), do: Kati.Locale.quoted(body)
   def display(%__MODULE__{body: body}), do: body
 
   @type t :: %__MODULE__{}

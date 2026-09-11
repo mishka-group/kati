@@ -531,7 +531,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
   `Kati.Screens.MealLibrary.photo/1` is called verbatim, and that is the
   caption's own point — *the grid mirrors but the photo does not*. A photograph
   has a left and a right of its own and mirroring it would be mirroring the
-  world, which is the rule `Kati.Screens.BookDetailFa` records for a cover and
+  world, which is the rule board 69 records for a cover and
   `Kati.Screens.AlbumDetailFa` for album art. The no-photo case comes back with
   its `Meal photo` caption still in DM Mono and still in Latin, which is what
   both drawings print: it is a note about a missing file, addressed to whoever

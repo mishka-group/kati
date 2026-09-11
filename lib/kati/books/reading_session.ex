@@ -1,4 +1,6 @@
 defmodule Kati.Books.ReadingSession do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   One sitting: the pages it covered and the minutes it took.
 
@@ -127,11 +129,18 @@ defmodule Kati.Books.ReadingSession do
   71's re-read runs the other way and must read as one.
   """
   @spec span_line(t()) :: String.t()
-  def span_line(%__MODULE__{from_page: from, to_page: to}), do: "p. #{from} → #{to}"
+  def span_line(%__MODULE__{from_page: from, to_page: to}),
+    do:
+      gettext("p. %{from} → %{to}",
+        from: Kati.Locale.number(from),
+        to: Kati.Locale.number(to)
+      )
 
   @doc "Screen 66's trailing duration, `38m`, or `nil` when the sitting was untimed."
   @spec duration_line(t()) :: String.t() | nil
-  def duration_line(%__MODULE__{minutes: m}) when is_integer(m) and m > 0, do: "#{m}m"
+  def duration_line(%__MODULE__{minutes: m}) when is_integer(m) and m > 0,
+    do: gettext("%{n}m", n: Kati.Locale.number(m))
+
   def duration_line(%__MODULE__{}), do: nil
 
   @type t :: %__MODULE__{}

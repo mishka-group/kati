@@ -219,6 +219,42 @@ defmodule Kati.Locale do
   end
 
   @doc """
+  A quotation, in the marks the reader's own typography uses.
+
+      iex> Kati.Locale.quoted("The tide keeps its own ledger.")
+      "“The tide keeps its own ledger.”"
+
+  U+201C/U+201D in Latin and **U+00AB/U+00BB** — the guillemets — in Persian.
+  Not decoration: a Persian reader meets `“…”` as a foreign mark, and board 69
+  writes «جزر و مد دفتر خودش را نگه می‌دارد.» with the guillemets it expects.
+  `Kati.Books.Note.display/1` is the one caller, and it draws on two screens.
+  """
+  @spec quoted(String.t()) :: String.t()
+  def quoted(body) when is_binary(body) do
+    {open, close} = pick({"\u201C", "\u201D"}, {"\u00AB", "\u00BB"})
+    open <> body <> close
+  end
+
+  @doc """
+  A bare YEAR, in the reader's own digits and **never** in their calendar.
+
+      iex> Kati.Locale.year(2024)
+      "2024"
+
+  This is the one date in the app that is not converted, and board 69 is where
+  the rule is written: a publication year is a fact PRINTED ON THE BOOK. *2024*
+  is on the copyright page, it is what a search for the edition matches, and
+  rendering it as ۱۴۰۳ would make the app disagree with the object in the
+  reader's hands. `date/2` converts, because a date Kati recorded is a moment
+  in the reader's own life and belongs in the reader's own calendar; this is a
+  citation, and a citation is quoted.
+
+  So the digits change and nothing else does: **۲۰۲۴**.
+  """
+  @spec year(integer()) :: String.t()
+  def year(gregorian) when is_integer(gregorian), do: number(gregorian)
+
+  @doc """
   A time of day, in the reader's own digits.
 
       iex> Kati.Locale.time(~T[21:40:00])

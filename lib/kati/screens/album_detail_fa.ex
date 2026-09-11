@@ -43,7 +43,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   grid, which is the one thing these drawings exist to disprove. Its
   `back_pill/1` is unusable here for a second reason on top of that: it points
   `arrow_back_ios_new` and builds an unstyled `Text`, so the label would be a
-  row of empty boxes pointing the wrong way. `Kati.Screens.BookDetailFa.chrome/0`
+  row of empty boxes pointing the wrong way. `Kati.Screens.Fa.chrome/0`
   is the pill 76 draws — `arrow_forward_ios`, because back is the way the
   reader came from and in Persian that is the right edge — and its label is
   already کتابخانه, so it is reused rather than re-typed.
@@ -171,7 +171,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   The album this screen is about: the shelf's, in Persian chrome, or the
   drawing's.
 
-  `Kati.Screens.BookDetailFa`'s doctrine, applied to a record: one album, read
+  board 69's doctrine, applied to a record: one album, read
   once, presented twice. `Kati.Screens.AlbumDetail` does the reading — four Ash
   queries it already owns — and what this screen supplies is the Persian half:
   the eyebrows, the row labels, the Shamsi dates. What it does **not** supply
@@ -240,7 +240,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   @doc """
   The parts of a shelved album that are the user's rather than the chrome's.
 
-  Deliberately short. `Kati.Screens.BookDetailFa.own/3` is the same idea on the
+  Deliberately short. board 69's own reader, which #103 folded into `Kati.Screens.BookDetail.shelved_book/1`, is the same idea on the
   book page and is no longer a fair comparison for length — D-59 grew it from
   five keys to every key its page draws, because a page carrying a few of a
   row's fields over a fixture's is the defect that ticket is named after. This
@@ -357,9 +357,9 @@ defmodule Kati.Screens.AlbumDetailFa do
         padding_top={64}
         padding_bottom={40}
       >
-        {Kati.Screens.BookDetailFa.chrome()}
+        {Kati.Screens.Fa.chrome()}
         {Kati.Screens.AlbumDetailFa.art(a)}
-        {Kati.Screens.BookDetailFa.title(%{title: a.title, author: a.byline})}
+        {Kati.Screens.Fa.title(%{title: a.title, author: a.byline})}
         {Kati.Screens.AlbumDetailFa.artist_row(a)}
         {Kati.Screens.AlbumDetailFa.dates(a)}
         {Kati.Screens.AlbumDetailFa.eyebrow(l.rating, :accent)}
@@ -502,7 +502,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   `chevron_left` and not `chevron_right`: a row that opens something opens it
   in the reading direction, and in Persian that is leftward. The same reasoning
   as the back pill's chevron, in the other direction —
-  `Kati.Screens.BookDetailFa.series/1` records it for screen 69.
+  `Kati.Screens.BookDetail.series_section/1` records it for screen 69.
   """
   @spec artist_row(map()) :: map() | []
   def artist_row(%{artist: nil}), do: []
@@ -970,7 +970,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   # The four destinations are `Kati.Screens.AlbumDetail.handle_tap/2`'s, exactly
   # — a mirror that navigated somewhere else would be a second app rather than
   # the same one in another language. Three of them are English screens, which
-  # is the debt `Kati.Screens.BookDetailFa` already carries against
+  # is the debt board 69 already carries against
   # `Kati.Screens.Rating`, and `Kati.Screens.Fa`'s moduledoc names the cost: a
   # push that changes the app's language out from under the reader, and RTL with
   # it. Screen 77's Persian mirror pays down the artist row's share of it.

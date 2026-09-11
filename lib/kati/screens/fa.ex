@@ -130,6 +130,7 @@ defmodule Kati.Screens.Fa do
 
   import Mob.Sigil
 
+  alias Kati.Books.SampleFa
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaThemeIcon
   alias Kati.Theme.Palette
@@ -483,4 +484,83 @@ defmodule Kati.Screens.Fa do
   end
 
   def dock_tap(_tag, _active, socket), do: {:noreply, socket}
+
+  # ── Board 69's chrome, which is every Persian page's chrome ────────────────
+  #
+  # `chrome/0`, `title/1` and `byline/1` lived on `Kati.Screens.BookDetailFa`
+  # and three other mirrors called them across a module boundary, which made
+  # shared chrome the property of one screen — and made that screen unfoldable
+  # until they moved. mishka-group/kati#103 lifted them here unchanged. They go
+  # with the last mirror; `Kati.UI.SettingsList.chrome/2` and `title/4` are
+  # what a folded screen uses.
+
+  @doc "The back pill, with the chevron pointing the way the reader came from."
+  @spec chrome() :: map()
+  def chrome do
+    assigns = %{label: SampleFa.labels().back}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center">
+        <Row
+          height={44}
+          corner_radius={22}
+          background={Palette.card()}
+          shadow={Kati.Theme.shadow_button()}
+          padding_left={12}
+          padding_right={16}
+          align="center"
+          on_tap={{self(), :back}}
+        >
+          {Kati.UI.symbol("arrow_forward_ios", size: 17)}
+          <Spacer size={6} />
+          {Kati.UI.fa(@label, 13.5, :on_surface, weight: "semibold")}
+        </Row>
+        <Spacer weight={1.0} />
+      </Row>
+      <Spacer size={16} />
+    </Column>
+    """
+  end
+
+  @doc """
+  The 25pt title and the 12.5pt line under it, or the title alone.
+
+  A book with no author draws no author line and takes its 5pt gap with it,
+  which is `Kati.UI.SettingsList.subtitle/2`'s own rule one language over: a
+  page with nothing to say under its title says nothing. Screen 177 asks for a
+  title and nothing else, so *no author* is the ordinary state of a book typed
+  by hand rather than an edge — and the alternative is the word **nil** in
+  12.5pt muted under a Persian title, which is the defect
+  `Kati.ScreenNilTextTest` was written after a device found on screen 66.
+
+  `""` takes the same clause as `nil`. `Kati.Screens.AlbumDetailFa` and
+  `Kati.Screens.YearShareFa` borrow this helper and both pass a line they
+  always have, so their trees are unchanged.
+  """
+  @spec title(map()) :: map()
+  def title(b) do
+    assigns = %{title: b.title, byline: byline(b.author)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      {Kati.UI.fa(@title, 25, :on_surface, weight: "bold", lines: 2)}
+      {@byline}
+      <Spacer size={20} />
+    </Column>
+    """
+  end
+
+  defp byline(author) when is_binary(author) and author != "" do
+    assigns = %{author: author}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={5} />
+      {Kati.UI.fa(@author, 12.5, Palette.muted())}
+    </Column>
+    """
+  end
+
+  defp byline(_none), do: []
 end

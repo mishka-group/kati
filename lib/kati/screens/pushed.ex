@@ -231,7 +231,7 @@ defmodule Kati.Screens.Pushed do
   @doc """
   A screen's name on the device, derived from its module.
 
-  `Kati.Screens.BookDetailFa` becomes `book_detail_fa`. Derived rather than
+  `Kati.Screens.HomeFaEmpty` becomes `home_fa_empty`. Derived rather than
   written by hand because 152 hand-written names is 152 chances to give two
   screens the same one, and the whole point of the stamp is that it says which
   screen you are on.
@@ -327,7 +327,7 @@ defmodule Kati.Screens.Pushed do
   by name.
 
   The Persian mirrors have always known this: `Kati.Screens.Fa.pushed_frame/2`
-  draws `arrow_forward_ios`, and `Kati.Screens.BookDetailFa` records the same
+  draws `arrow_forward_ios`, and `Kati.Screens.Fa.chrome/0` records the same
   trap for screen 69. What was missing is that the SHARED frame did not, so an
   English screen opened while the app is in Persian — which is every pushed
   page the mirrors do not cover, and after

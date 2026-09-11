@@ -1,4 +1,6 @@
 defmodule Kati.Books.Book do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   One book, and where you are in it.
 
@@ -200,11 +202,16 @@ defmodule Kati.Books.Book do
   @spec series_line(t()) :: String.t() | nil
   def series_line(%__MODULE__{series_name: name, series_position: at, series_total: of})
       when is_binary(name) and is_integer(at) and is_integer(of),
-      do: "##{at} of #{of} in #{name}"
+      do:
+        gettext("#%{n} of %{total} in %{series}",
+          n: Kati.Locale.number(at),
+          total: Kati.Locale.number(of),
+          series: name
+        )
 
   def series_line(%__MODULE__{series_name: name, series_position: at})
       when is_binary(name) and is_integer(at),
-      do: "##{at} in #{name}"
+      do: gettext("#%{n} in %{series}", n: Kati.Locale.number(at), series: name)
 
   def series_line(%__MODULE__{}), do: nil
 

@@ -909,7 +909,7 @@ defmodule Kati.Screens.Medication do
   word `nil`, and no fixture row could produce it.
 
   Both nodes go together, which is the whole point:
-  `Kati.Screens.BookDetailFa.title/1` is the house precedent for a page with
+  `Kati.Screens.Fa.title/1` is the house precedent for a page with
   nothing to say under its title saying nothing, and a `<Spacer>` left behind
   would be the eyebrow over the empty band that
   `Kati.Screens.BookDetail.series_section/1` refuses.

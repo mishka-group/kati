@@ -74,6 +74,7 @@ defmodule Kati.Screens.BookDetail do
   """
 
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Books.Book
   alias Kati.Books.FollowedAuthor
@@ -85,14 +86,9 @@ defmodule Kati.Screens.BookDetail do
   alias Kati.UI.SettingsList
   alias Kati.Write
 
-  # The three secondary actions, in the drawing's order. `Log progress` is not
-  # here: it is the ink button and is drawn by `actions/1` itself, so the list
-  # cannot accidentally grow a second primary.
-  @secondary [
-    {"check", "Finish", :finish},
-    {"star", "Rate & review", :rate},
-    {"bookmarks", "Add to list", :add_to_list}
-  ]
+  # `@secondary` was a module attribute and cannot be: `gettext/1` inside one
+  # is evaluated at COMPILE time, so the three labels would freeze in whichever
+  # locale the compiler happened to be in. See `secondary/0`.
 
   # `:save_error` opens as `nil` so the notice has a value to be absent as, and
   # so a re-mount never inherits the last failure a previous visit reported.
@@ -316,17 +312,26 @@ defmodule Kati.Screens.BookDetail do
 
   defp shape_session(%ReadingSession{read_on: on} = session) do
     %{
-      date: String.upcase(Calendar.strftime(on, "%-d %b")),
+      # `Kati.UI.eyebrow_label/1` and `Kati.Locale.date/2` rather than
+      # `String.upcase(Calendar.strftime(…))`: Persian has no upper case, and
+      # board 69 writes this column in Shamsi.
+      date: Kati.UI.eyebrow_label(Kati.Locale.date(on, :short)),
       span: ReadingSession.span_line(session),
       duration: ReadingSession.duration_line(session)
     }
   end
 
   # The four the status control offers, plus the fifth nothing moves *to*.
-  defp status_label(:not_started), do: "Not started"
+  defp status_label(:not_started), do: pgettext("book status", "Not started")
 
   defp status_label(status) do
-    {_value, label} = Enum.find(Sample.statuses(), {status, "Reading"}, &(elem(&1, 0) == status))
+    {_value, label} =
+      Enum.find(
+        Sample.statuses(),
+        {status, pgettext("book status", "Reading")},
+        &(elem(&1, 0) == status)
+      )
+
     label
   end
 
@@ -334,8 +339,11 @@ defmodule Kati.Screens.BookDetail do
   # A book with a publisher and no year prints the publisher, which is the same
   # rule `Kati.Screens.Film.meta_line/1` follows for runtime and genre.
   defp meta_line(%Book{} = book) do
+    # A publisher is a trade name and `String.upcase/1` is right for it in both
+    # scripts; the YEAR is the reader's own numerals, and board 69 writes it in
+    # Shamsi — `Kati.Locale.year/1` is the one that knows which.
     [
-      book.published_year && Integer.to_string(book.published_year),
+      book.published_year && Kati.Locale.year(book.published_year),
       book.publisher && String.upcase(book.publisher),
       extent_meta(book)
     ]
@@ -345,18 +353,36 @@ defmodule Kati.Screens.BookDetail do
 
   defp extent_meta(%Book{} = book) do
     case Book.extent(book) do
-      {pages, :pages} -> "#{pages} PP"
-      {minutes, :minutes} -> "#{div(minutes, 60)}H #{rem(minutes, 60)}M"
-      nil -> nil
+      {pages, :pages} ->
+        Kati.UI.eyebrow_label(ngettext("%{n} pp", "%{n} pp", pages, n: Kati.Locale.number(pages)))
+
+      {minutes, :minutes} ->
+        Kati.UI.eyebrow_label(
+          gettext("%{h}h %{m}m",
+            h: Kati.Locale.number(div(minutes, 60)),
+            m: Kati.Locale.number(rem(minutes, 60))
+          )
+        )
+
+      nil ->
+        nil
     end
   end
 
   # `380 pages` or `11h 20m` — the unit restated, which is band 5's whole point.
   defp extent_label(%Book{} = book) do
     case Book.extent(book) do
-      {pages, :pages} -> "#{pages} pages"
-      {minutes, :minutes} -> "#{div(minutes, 60)}h #{rem(minutes, 60)}m"
-      nil -> nil
+      {pages, :pages} ->
+        ngettext("%{n} page", "%{n} pages", pages, n: Kati.Locale.number(pages))
+
+      {minutes, :minutes} ->
+        gettext("%{h}h %{m}m",
+          h: Kati.Locale.number(div(minutes, 60)),
+          m: Kati.Locale.number(rem(minutes, 60))
+        )
+
+      nil ->
+        nil
     end
   end
 
@@ -373,16 +399,64 @@ defmodule Kati.Screens.BookDetail do
     end
   end
 
-  defp progress_line(%Book{} = book, sessions) do
+  # `D-59`'s finding 1: the pill says the STATE and this line says the POSITION,
+  # and a card that says one fact twice is a card that has stopped being read.
+  # `Kati.Screens.BookDetailFa` answered both of these with `""` and the fold
+  # inherits the ruling — the mirror is gone and the rule is not.
+  #
+  # **A book nobody has opened** drew `p. 0 · NO PAGE COUNT` — a page number
+  # and an absence, nine points under a pill that has just said *Not started*.
+  #
+  # **A finished book** drew `p. 380 / 380`, which is the pill's word again in
+  # arithmetic. The pace outlives it, because *twenty-three minutes a day* is a
+  # fact about the reading and not about the state: a book finished this
+  # morning was still read at some rate, and the pill does not say what.
+  defp progress_line(%Book{status: :finished}, sessions), do: pace_line(sessions) || ""
+
+  defp progress_line(%Book{current_page: at} = book, sessions)
+       when at in [nil, 0] do
+    case Book.extent(book) do
+      {_total, :pages} -> position_and_pace(book, sessions)
+      _other -> ""
+    end
+  end
+
+  defp progress_line(%Book{} = book, sessions), do: position_and_pace(book, sessions)
+
+  defp position_and_pace(%Book{} = book, sessions) do
     position =
       case Book.extent(book) do
-        {total, :pages} -> "p. #{book.current_page} / #{total}"
-        _other -> "p. #{book.current_page} · NO PAGE COUNT"
+        {total, :pages} ->
+          gettext("p. %{at} / %{of}",
+            at: Kati.Locale.number(book.current_page),
+            of: Kati.Locale.number(total)
+          )
+
+        _other ->
+          gettext("p. %{at} · %{note}",
+            at: Kati.Locale.number(book.current_page),
+            note: Kati.UI.eyebrow_label(gettext("no page count"))
+          )
       end
 
+    case pace_line(sessions) do
+      nil ->
+        position
+
+      pace ->
+        position <> " · " <> pace
+    end
+  end
+
+  # `23 MIN/DAY PACE`, or nothing. Split out because a finished book keeps it
+  # and drops everything in front of it.
+  defp pace_line(sessions) do
     case ReadingSession.pace(sessions, Kati.Time.today()) do
-      nil -> position
-      pace -> position <> " · #{pace} MIN/DAY PACE"
+      nil ->
+        nil
+
+      pace ->
+        Kati.UI.eyebrow_label(gettext("%{n} min/day pace", n: Kati.Locale.number(pace)))
     end
   end
 
@@ -392,17 +466,27 @@ defmodule Kati.Screens.BookDetail do
 
   defp rating_label(rating) when is_integer(rating) do
     case rem(rating, 2) do
-      0 -> Integer.to_string(div(rating, 2))
-      _odd -> "#{div(rating, 2)}.5"
+      0 -> Kati.Locale.number(div(rating, 2))
+      _odd -> Kati.Locale.number("#{div(rating, 2)}.5")
     end
   end
 
-  defp lent_line(%Book{lent_to: name}) when is_binary(name) and name != "", do: "Lent to #{name}"
-  defp lent_line(%Book{owned: true}), do: "Owned"
+  defp lent_line(%Book{lent_to: name}) when is_binary(name) and name != "",
+    do: gettext("Lent to %{who}", who: name)
+
+  # Owning a book is drawn as the switch and never as a row saying so.
+  #
+  # `%{owned: true}` answered `"Owned"`, which put a standalone row in the
+  # *Series and ownership* band under a card that already carries **This is the
+  # edition I own** as a switch — one fact, twice, eight rows apart. Board 69
+  # never had it and `Kati.ScreenBookDetailPersianTest` is where the rule is
+  # written; mishka-group/kati#103 folded that mirror in, so the rule came with
+  # it. A book lent to somebody keeps its row, because that is a different fact
+  # and nothing else on the page says it.
   defp lent_line(%Book{}), do: nil
 
   defp due_line(%Book{lent_due_on: %Date{} = due}),
-    do: "Due " <> Calendar.strftime(due, "%-d %b")
+    do: gettext("Due %{date}", date: Kati.Locale.date(due, :short))
 
   defp due_line(%Book{}), do: nil
 
@@ -428,11 +512,11 @@ defmodule Kati.Screens.BookDetail do
         {Kati.Screens.BookDetail.hero(b)}
         {Kati.Screens.BookDetail.follow_row(b[:author], assigns[:following])}
         {Kati.Screens.BookDetail.ratings(b)}
-        {UI.eyebrow("Status")}
+        {UI.eyebrow(gettext("Status"))}
         {Kati.Screens.BookDetail.statuses(b)}
-        {UI.eyebrow("Edition")}
+        {UI.eyebrow(gettext("Edition"))}
         {Kati.Screens.BookDetail.edition(b)}
-        {UI.eyebrow("Content warnings")}
+        {UI.eyebrow(gettext("Content warnings"))}
         {Kati.Screens.BookDetail.warnings(b)}
         {Kati.Screens.BookDetail.notes_section(b)}
         {Kati.Screens.BookDetail.series_section(b)}
@@ -469,7 +553,7 @@ defmodule Kati.Screens.BookDetail do
             <Spacer size={11} />
             <Text
               text={b.meta}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(b.meta)}
               text_size={11}
               text_color={Palette.muted()}
               max_lines={1}
@@ -478,7 +562,7 @@ defmodule Kati.Screens.BookDetail do
             <Spacer size={9} />
             <Text
               text={b.progress_line}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(b.progress_line)}
               text_size={10.5}
               text_color={Palette.muted()}
               max_lines={1}
@@ -520,8 +604,8 @@ defmodule Kati.Screens.BookDetail do
           Kati.UI.SettingsList.row(
             Kati.UI.SettingsList.icon_tile("person"),
             Kati.UI.SettingsList.body(
-              "Follow " <> String.trim(author),
-              "Feeds 25’s New books alerts",
+              gettext("Follow %{author}", author: String.trim(author)),
+              gettext("Feeds 25’s New books alerts"),
               lines: 2
             ),
             Kati.UI.SettingsList.trailing(
@@ -593,15 +677,23 @@ defmodule Kati.Screens.BookDetail do
     """
   end
 
-  defp status_colours(:reading), do: {Palette.green(), Palette.green_text(), Palette.green_wash()}
+  @doc """
+  The three colours a status wears: its dot, its ink and its wash.
 
-  defp status_colours(:finished),
+  Public since mishka-group/kati#103 folded board 69 into this screen. Board 69
+  colours one status differently from board 66 — its own test asserts which —
+  and a colour a test cannot name is a colour two pages can drift apart on.
+  """
+  @spec status_colours(atom()) :: {term(), term(), term()}
+  def status_colours(:reading), do: {Palette.green(), Palette.green_text(), Palette.green_wash()}
+
+  def status_colours(:finished),
     do: {Palette.green(), Palette.green_text(), Palette.green_wash()}
 
-  defp status_colours(:paused),
+  def status_colours(:paused),
     do: {Palette.bronze(), Palette.gold_text(), Palette.cream()}
 
-  defp status_colours(_stopped),
+  def status_colours(_stopped),
     do: {Palette.tertiary(), Palette.sub(), Palette.track()}
 
   @doc """
@@ -649,11 +741,11 @@ defmodule Kati.Screens.BookDetail do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          {Kati.Screens.BookDetail.rating_card("Yours", b.rating, b.rating_label)}
+          {Kati.Screens.BookDetail.rating_card(gettext("Yours"), b.rating, b.rating_label)}
         </Column>
         <Spacer size={10} />
         <Column weight={1.0}>
-          {Kati.Screens.BookDetail.rating_card("Community", b.community, nil)}
+          {Kati.Screens.BookDetail.rating_card(gettext("Community"), b.community, nil)}
         </Column>
       </Row>
       <Spacer size={24} />
@@ -672,10 +764,10 @@ defmodule Kati.Screens.BookDetail do
       shadow={Kati.Theme.shadow_card()}
     >
       <Text
-        text={String.upcase(label)}
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(label)}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.muted()}
       />
       <Spacer size={9} />
@@ -684,7 +776,7 @@ defmodule Kati.Screens.BookDetail do
         <Spacer size={9} />
         <Text
           text={value || "—"}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(value || "—")}
           text_size={13}
           text_color={:on_surface}
           max_lines={1}
@@ -771,7 +863,7 @@ defmodule Kati.Screens.BookDetail do
       </Row>
       <Spacer size={12} />
       {SettingsList.card([
-        {SettingsList.body("Length", nil), SettingsList.trailing(Kati.Screens.BookDetail.value(b.extent_label))},
+        {SettingsList.body(gettext("Length"), nil), SettingsList.trailing(Kati.Screens.BookDetail.value(b.extent_label))},
         {SettingsList.body("ISBN", nil), SettingsList.trailing(Kati.Screens.BookDetail.mono(b.isbn))}
       ] |> Enum.map(fn {body, trailing} -> SettingsList.row(nil, body, trailing) end))}
       <Spacer size={12} />
@@ -782,12 +874,28 @@ defmodule Kati.Screens.BookDetail do
   end
 
   @doc false
+  @spec add_page_count_label() :: String.t()
+  def add_page_count_label, do: gettext("Add page count")
+
+  @doc false
+  @spec add_isbn_label() :: String.t()
+  def add_isbn_label, do: gettext("Add ISBN")
+
+  @doc false
+  @spec none_recorded_label() :: String.t()
+  def none_recorded_label, do: gettext("None recorded")
+
+  @doc false
   def value(nil) do
     ~MOB"""
     <Row align="center">
       {Kati.UI.symbol("add", size: 17, color: Kati.Theme.Palette.muted())}
       <Spacer size={6} />
-      <Text text="Add page count" text_size={13} text_color={Kati.Theme.Palette.muted()} />
+      <Text
+        text={Kati.Screens.BookDetail.add_page_count_label()}
+        text_size={13}
+        text_color={Kati.Theme.Palette.muted()}
+      />
     </Row>
     """
   end
@@ -809,16 +917,26 @@ defmodule Kati.Screens.BookDetail do
     <Row align="center">
       {Kati.UI.symbol("add", size: 17, color: Kati.Theme.Palette.muted())}
       <Spacer size={6} />
-      <Text text="Add ISBN" text_size={13} text_color={Kati.Theme.Palette.muted()} />
+      <Text
+        text={Kati.Screens.BookDetail.add_isbn_label()}
+        text_size={13}
+        text_color={Kati.Theme.Palette.muted()}
+      />
     </Row>
     """
   end
 
+  # `Kati.Locale.ltr/1`: an ISBN is `978–0–571–33915–2`, which under an `rtl`
+  # root is a run of weak-directional digits joined by en dashes — so Unicode's
+  # bidi algorithm reorders it and the device draws `2–33915–571–0–978`. A
+  # reversed ISBN is not a typographic nicety; it is the wrong number, and it is
+  # the one string on this page somebody copies out. The isolate pins it.
+  # Found on the emulator the day board 69 folded into this screen.
   def mono(text) do
     ~MOB"""
     <Text
-      text={text}
-      font_family="mono"
+      text={Kati.Locale.ltr(text)}
+      font_family={Kati.Locale.mono_face(text)}
       text_size={12}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}
@@ -831,7 +949,7 @@ defmodule Kati.Screens.BookDetail do
     SettingsList.card([
       SettingsList.row(
         SettingsList.icon_tile("inventory_2"),
-        SettingsList.body("This is the edition I own", nil),
+        SettingsList.body(gettext("This is the edition I own"), nil),
         SettingsList.trailing(SettingsList.switch(owned?)),
         # The whole row and not the track. `Kati.UI.SettingsList.switch/1`'s own
         # doc offers `on_toggle` for this and says wiring it adds a `clickable`
@@ -858,7 +976,7 @@ defmodule Kati.Screens.BookDetail do
       {SettingsList.card([
         SettingsList.row(
           nil,
-          SettingsList.body("Warnings", nil),
+          SettingsList.body(gettext("Warnings"), nil),
           SettingsList.trailing(Kati.Screens.BookDetail.warning_trailing(b.warning_count))
         )
       ])}
@@ -871,7 +989,11 @@ defmodule Kati.Screens.BookDetail do
   def warning_trailing(0) do
     ~MOB"""
     <Row align="center">
-      <Text text="None recorded" text_size={11.5} text_color={Kati.Theme.Palette.muted()} />
+      <Text
+        text={Kati.Screens.BookDetail.none_recorded_label()}
+        text_size={11.5}
+        text_color={Kati.Theme.Palette.muted()}
+      />
       <Spacer size={8} />
       {Kati.UI.symbol("add", size: 18, color: Kati.Theme.Palette.muted())}
     </Row>
@@ -882,8 +1004,8 @@ defmodule Kati.Screens.BookDetail do
     ~MOB"""
     <Row align="center">
       <Text
-        text={Integer.to_string(count)}
-        font_family="mono"
+        text={Kati.Locale.number(count)}
+        font_family={Kati.Locale.mono_face(Kati.Locale.number(count))}
         text_size={12.5}
         text_color={Kati.Theme.Palette.sub()}
       />
@@ -913,7 +1035,7 @@ defmodule Kati.Screens.BookDetail do
 
         ~MOB"""
         <Column fill_width={true}>
-          {Kati.UI.eyebrow("Your notes and quotes")}
+          {Kati.UI.eyebrow(gettext("Your notes and quotes"))}
           <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
             {rows}
           </Column>
@@ -925,20 +1047,20 @@ defmodule Kati.Screens.BookDetail do
 
   @doc false
   def note_row(note) do
-    body = if note.kind == :quote, do: "“" <> note.body <> "”", else: note.body
+    body = if note.kind == :quote, do: Kati.Locale.quoted(note.body), else: note.body
 
     ~MOB"""
     <Column fill_width={true}>
       <Text
         text={body}
         text_size={14}
-        line_height={1.45}
+        line_height={Kati.Locale.leading(1.45)}
         text_color={Kati.Theme.Palette.cream_body()}
       />
       <Spacer size={6} />
       <Text
         text={note.anchor || ""}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(note.anchor || "")}
         text_size={10.5}
         text_color={Kati.Theme.Palette.cream_meta()}
       />
@@ -969,7 +1091,7 @@ defmodule Kati.Screens.BookDetail do
       rows ->
         ~MOB"""
         <Column fill_width={true}>
-          {Kati.UI.eyebrow("Series and ownership")}
+          {Kati.UI.eyebrow(gettext("Series and ownership"))}
           {Kati.UI.SettingsList.card(rows)}
           <Spacer size={24} />
         </Column>
@@ -1011,7 +1133,7 @@ defmodule Kati.Screens.BookDetail do
       sessions ->
         ~MOB"""
         <Column fill_width={true}>
-          {Kati.UI.eyebrow("Reading history")}
+          {Kati.UI.eyebrow(gettext("Reading history"))}
           {Kati.UI.SettingsList.card(Enum.map(sessions, &Kati.Screens.BookDetail.session_row/1))}
           <Spacer size={24} />
         </Column>
@@ -1027,13 +1149,18 @@ defmodule Kati.Screens.BookDetail do
       <Row fill_width={true} align="center">
         <Text
           text={session.date}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(session.date)}
           text_size={10.5}
-          letter_spacing={0.12}
+          letter_spacing={Kati.Locale.tracking(0.12)}
           text_color={Kati.Theme.Palette.muted()}
           width={58}
         />
-        <Text text={session.span} font_family="mono" text_size={12.5} text_color={:on_surface} />
+        <Text
+          text={session.span}
+          font_family={Kati.Locale.mono_face(session.span)}
+          text_size={12.5}
+          text_color={:on_surface}
+        />
       </Row>
       """,
       SettingsList.trailing(Kati.Screens.BookDetail.duration(session.duration))
@@ -1045,9 +1172,28 @@ defmodule Kati.Screens.BookDetail do
 
   def duration(text) do
     ~MOB"""
-    <Text text={text} font_family="mono" text_size={12} text_color={Kati.Theme.Palette.muted()} />
+    <Text
+      text={text}
+      font_family={Kati.Locale.mono_face(text)}
+      text_size={12}
+      text_color={Kati.Theme.Palette.muted()}
+    />
     """
   end
+
+  @doc """
+  The three secondary actions, in the drawing's order.
+
+  `Log progress` is not here: it is the ink button and is drawn by `actions/1`
+  itself, so the list cannot accidentally grow a second primary.
+  """
+  @spec secondary() :: [{String.t(), String.t(), atom()}]
+  def secondary,
+    do: [
+      {"check", gettext("Finish"), :finish},
+      {"star", gettext("Rate & review"), :rate},
+      {"bookmarks", gettext("Add to list"), :add_to_list}
+    ]
 
   @doc """
   One ink button and three circular seconds — screen 08's action row exactly.
@@ -1058,10 +1204,13 @@ defmodule Kati.Screens.BookDetail do
   """
   @spec actions(map()) :: map()
   def actions(b) do
-    primary = if b.status == :not_started, do: "Start reading", else: "Log progress"
+    primary =
+      if b.status == :not_started,
+        do: gettext("Start reading"),
+        else: gettext("Log progress")
 
     seconds =
-      @secondary
+      Kati.Screens.BookDetail.secondary()
       |> Enum.map(fn {icon, label, tag} -> Kati.Screens.BookDetail.second(icon, label, tag) end)
       |> Enum.intersperse(~MOB"<Spacer size={10} />")
 
@@ -1080,7 +1229,7 @@ defmodule Kati.Screens.BookDetail do
           text={primary}
           text_size={15}
           font_weight="bold"
-          letter_spacing={-0.01}
+          letter_spacing={Kati.Locale.tracking(-0.01)}
           text_color={Palette.on_ink()}
         />
         <Spacer weight={1.0} />

@@ -100,27 +100,40 @@ defmodule Kati.Books.Sample do
       author: gettext("Ines Karvel"),
       seed: "bookaa1",
       status: :reading,
-      status_label: "Reading",
-      meta: "2024 · FABER · 380 PP",
+      status_label: pgettext("book status", "Reading"),
+      meta:
+        gettext("%{year} · FABER · %{pp}",
+          year: Kati.Locale.year(2024),
+          pp:
+            Kati.UI.eyebrow_label(ngettext("%{n} pp", "%{n} pp", 380, n: Kati.Locale.number(380)))
+        ),
       progress: 0.56,
-      progress_line: "p. 214 / 380 · 23 MIN/DAY PACE",
+      progress_line:
+        gettext("p. %{at} / %{of}", at: Kati.Locale.number(214), of: Kati.Locale.number(380)) <>
+          " · " <>
+          Kati.UI.eyebrow_label(gettext("%{n} min/day pace", n: Kati.Locale.number(23))),
       # The same two numbers `Kati.Screens.BookDetail.shaped/3` carries, and for
       # the reason its comment gives: screen 70 used to read them back out of
       # the sentence above with a regex, which matches nothing in Persian.
       current_page: 214,
       page_count: 380,
       rating: 9,
-      rating_label: "4.5",
+      rating_label: Kati.Locale.number("4.5"),
       community: nil,
       format: :paperback,
-      extent_label: "380 pages",
+      extent_label: ngettext("%{n} page", "%{n} pages", 380, n: Kati.Locale.number(380)),
       isbn: "978–0–571–33915–2",
       owned: true,
       warning_count: 3,
-      series_line: "#3 of 7 in The Coastal Ledgers",
-      series_next: "Next: Low Water",
-      lent_to: "Lent to Jo",
-      lent_due: "Due 27 Aug"
+      series_line:
+        gettext("#%{n} of %{total} in %{series}",
+          n: Kati.Locale.number(3),
+          total: Kati.Locale.number(7),
+          series: gettext("The Coastal Ledgers")
+        ),
+      series_next: gettext("Next: %{title}", title: gettext("Low Water")),
+      lent_to: gettext("Lent to %{who}", who: gettext("Jo")),
+      lent_due: gettext("Due %{date}", date: Kati.Locale.date(~D[2026-08-27], :short))
     }
   end
 
@@ -134,11 +147,15 @@ defmodule Kati.Books.Sample do
   @spec notes() :: [map()]
   def notes do
     [
-      %{kind: :quote, body: "The tide keeps its own ledger.", anchor: "p. 148"},
+      %{
+        kind: :quote,
+        body: gettext("The tide keeps its own ledger."),
+        anchor: gettext("p. %{n}", n: Kati.Locale.number(148))
+      },
       %{
         kind: :note,
-        body: "Re-read chapter seven before starting the second volume.",
-        anchor: "p. 206"
+        body: gettext("Re-read chapter seven before starting the second volume."),
+        anchor: gettext("p. %{n}", n: Kati.Locale.number(206))
       }
     ]
   end
@@ -153,26 +170,46 @@ defmodule Kati.Books.Sample do
   @spec sessions() :: [map()]
   def sessions do
     [
-      %{date: "16 AUG", span: "p. 168 → 214", duration: "38m"},
-      %{date: "14 AUG", span: "p. 130 → 168", duration: "31m"},
-      %{date: "11 AUG", span: "p. 94 → 130", duration: "29m"}
+      session(~D[2026-08-16], 168, 214, 38),
+      session(~D[2026-08-14], 130, 168, 31),
+      session(~D[2026-08-11], 94, 130, 29)
     ]
+  end
+
+  # One drawn sitting, composed rather than written out: the date is the
+  # reader's calendar, the page numbers and the minutes are the reader's
+  # numerals. It was three frozen strings apiece, which is why board 69's
+  # mirror kept a second copy of all three rows.
+  defp session(on, from, to, minutes) do
+    %{
+      date: Kati.UI.eyebrow_label(Kati.Locale.date(on, :short)),
+      span:
+        gettext("p. %{from} → %{to}",
+          from: Kati.Locale.number(from),
+          to: Kati.Locale.number(to)
+        ),
+      duration: gettext("%{n}m", n: Kati.Locale.number(minutes))
+    }
   end
 
   @doc "The four status choices screen 66 offers, and the one that is on."
   @spec statuses() :: [{atom(), String.t()}]
   def statuses do
     [
-      {:reading, "Reading"},
-      {:finished, "Finished"},
-      {:paused, "Paused"},
-      {:did_not_finish, "Did not finish"}
+      {:reading, pgettext("book status", "Reading")},
+      {:finished, pgettext("book status", "Finished")},
+      {:paused, pgettext("book status", "Paused")},
+      {:did_not_finish, pgettext("book status", "Did not finish")}
     ]
   end
 
   @doc "The three edition formats, in the drawing's order."
   @spec formats() :: [{atom(), String.t()}]
   def formats do
-    [{:paperback, "Paperback"}, {:ebook, "Ebook"}, {:audiobook, "Audiobook"}]
+    [
+      {:paperback, gettext("Paperback")},
+      {:ebook, gettext("Ebook")},
+      {:audiobook, gettext("Audiobook")}
+    ]
   end
 end

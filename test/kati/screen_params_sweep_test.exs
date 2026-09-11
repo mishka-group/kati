@@ -346,7 +346,6 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.AlbumDetailFa, :rate, Kati.Screens.Rating},
     {Kati.Screens.BookDetail, :rate, Kati.Screens.Rating},
     {Kati.Screens.BookDetailDark, :rate, Kati.Screens.Rating},
-    {Kati.Screens.BookDetailFa, :rate, Kati.Screens.Rating},
     # 157's `Finish`, which is 66's in another colourway. The English screen's
     # own `:finish` is absent from this list rather than fixed: on the empty
     # shelf it has no book to finish and returns without pushing at all, so the
@@ -608,21 +607,19 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.BookDetail, :log_progress, Kati.Screens.LogProgress},
     {Kati.Screens.BookDetailDark, :log_progress, Kati.Screens.LogProgress},
     {Kati.Screens.Books, :log_progress, Kati.Screens.LogProgress},
-    # Screen 176's ثبت پیشرفت pill and screen 69's — screen 20's and 66's, one
-    # script over. They arrive on this list rather than in `@bare_pushes` for
-    # the reason the paragraph above gives about screen 20: `books_fa.ex` and
-    # `book_detail_fa.ex` name their subject and hand it to
-    # `Kati.Screens.LogProgress`'s own builder, the same builder 20, 66, 68 and
-    # 69 use, so the English sheet and the Persian one cannot drift about what
+    # Screen 176's ثبت پیشرفت pill — screen 20's, one script over. It arrives
+    # on this list rather than in `@bare_pushes` for the reason the paragraph
+    # above gives about screen 20: `books_fa.ex` names its subject and hands it
+    # to `Kati.Screens.LogProgress`'s own builder, the same builder 20, 66 and
+    # 68 use, so the English sheet and the Persian one cannot drift about what
     # `:book_id` means. With nothing shelved the hero is
     # `Kati.Books.SampleFa.reading_now/0`, which is `detail/0` reshaped and
     # carries no `:id`, so `log_progress.ex` answers `%{}`.
     #
-    # They named `Kati.Screens.LogProgressFa` until mishka-group/kati#103 folded
-    # that mirror into screen 70. The destination changed and the fact did not:
-    # the door is written, and the row it names has no id.
+    # It named `Kati.Screens.LogProgressFa` until mishka-group/kati#103 folded
+    # that mirror into screen 70, and board 69's own entry went with the fold
+    # that made 69 screen 66 — one module, one line, three lines above.
     {Kati.Screens.BooksFa, :log_progress, Kati.Screens.LogProgress},
-    {Kati.Screens.BookDetailFa, :log_progress, Kati.Screens.LogProgress},
     #
     # `:start_timer` beside it is NOT here and is not missing: it merges
     # `timing?: true` onto the same builder's answer, so the argument is
@@ -673,13 +670,13 @@ defmodule Kati.ScreenParamsSweepTest do
     # refuses a sheet that names no title, which is what stops a watch being
     # logged against the drawing.
     {Kati.Screens.Film, :log_watch, Kati.Screens.Rating},
-    {Kati.Screens.BooksFa, :open_book, Kati.Screens.BookDetailFa},
-    {Kati.Screens.BooksFa, :open_book_bookaa1, Kati.Screens.BookDetailFa},
-    {Kati.Screens.BooksFa, :open_book_bookbb2, Kati.Screens.BookDetailFa},
-    {Kati.Screens.BooksFa, :open_book_bookcc3, Kati.Screens.BookDetailFa},
-    {Kati.Screens.BooksFa, :open_book_bookdd4, Kati.Screens.BookDetailFa},
-    {Kati.Screens.BooksFa, :open_book_bookee5, Kati.Screens.BookDetailFa},
-    {Kati.Screens.BooksFa, :open_book_bookff6, Kati.Screens.BookDetailFa},
+    {Kati.Screens.BooksFa, :open_book, Kati.Screens.BookDetail},
+    {Kati.Screens.BooksFa, :open_book_bookaa1, Kati.Screens.BookDetail},
+    {Kati.Screens.BooksFa, :open_book_bookbb2, Kati.Screens.BookDetail},
+    {Kati.Screens.BooksFa, :open_book_bookcc3, Kati.Screens.BookDetail},
+    {Kati.Screens.BooksFa, :open_book_bookdd4, Kati.Screens.BookDetail},
+    {Kati.Screens.BooksFa, :open_book_bookee5, Kati.Screens.BookDetail},
+    {Kati.Screens.BooksFa, :open_book_bookff6, Kati.Screens.BookDetail},
 
     # ── Screen 21's three tiles and its two release rows.
     #
@@ -811,7 +808,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # the tag and discarding it while screen 69's `mount/3` took no params at
     # all, so a shelf of two opened the second cover onto the first book —
     # `book_detail_fa.ex`'s `book/1` and `log_progress_fa.ex`'s `mount/3`.
-    {Kati.Screens.BookDetailFa, :book_id},
+    {Kati.Screens.BookDetail, :book_id},
     {Kati.Screens.RetiredTile, :section},
     # The five the comment below used to name as pinned NOWHERE. A count that
     # may only go up catches a reader leaving; it does not catch one leaving

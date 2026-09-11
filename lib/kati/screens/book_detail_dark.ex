@@ -197,7 +197,7 @@ defmodule Kati.Screens.BookDetailDark do
             <Spacer size={11} />
             <Text
               text={b.meta}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(b.meta)}
               text_size={11}
               text_color={Palette.muted()}
               max_lines={1}
@@ -206,7 +206,7 @@ defmodule Kati.Screens.BookDetailDark do
             <Spacer size={9} />
             <Text
               text={b.progress_line}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(b.progress_line)}
               text_size={10.5}
               text_color={Palette.muted()}
               max_lines={1}
@@ -258,10 +258,10 @@ defmodule Kati.Screens.BookDetailDark do
       padding={14}
     >
       <Text
-        text={String.upcase(label)}
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(label)}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.muted()}
       />
       <Spacer size={9} />
@@ -270,7 +270,7 @@ defmodule Kati.Screens.BookDetailDark do
         <Spacer size={9} />
         <Text
           text={value || "—"}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(value || "—")}
           text_size={13}
           text_color={:on_surface}
           max_lines={1}

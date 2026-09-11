@@ -78,7 +78,7 @@ defmodule Kati.Screens.SearchFa do
   the scroll, exactly as screen 19 does and for the reason 19 gives: the shared
   chrome floats a second, differently styled pill over the search field. So
   `chrome/0` here is 19's `back/0` with an `arrow_forward_ios` chevron and a
-  Vazirmatn label, and not `Kati.Screens.BookDetailFa.chrome/0` either, whose
+  Vazirmatn label, and not `Kati.Screens.Fa.chrome/0` either, whose
   label is pinned to کتابخانه.
 
   ## What survives from screen 86, and it is less than it looks
@@ -94,7 +94,7 @@ defmodule Kati.Screens.SearchFa do
     * `Kati.Screens.SearchIdle.chips/1` goes through `Kati.UI.chip/2`, and
       `MishkaChip` takes its label as a **prop** and paints it in the chip's own
       family while `expand/3` discards children — so a Persian label through
-      that door is a row of empty boxes. `Kati.Screens.BookDetailFa.chips/3`
+      that door is a row of empty boxes. screen 66's own chips
       records the same wall, and `Kati.Screens.Fa`'s moduledoc names a content
       slot on `MishkaChip` as the single upstream ask that would remove it.
     * `Kati.Screens.SearchIdle.recent/0` draws the shelf as `SettingsList`
@@ -290,7 +290,7 @@ defmodule Kati.Screens.SearchFa do
 
   `arrow_forward_ios`, because back is where you came from and in Persian that
   is the right edge — the commonest RTL bug there is, and
-  `Kati.Screens.BookDetailFa` records it for screen 69.
+  board 69 records it for screen 69.
 
   The drawing's asymmetric `0 12px 0 16px` survives as `padding_left={12}` and
   `padding_right={16}`: the bridge maps those two props onto Compose's `start`

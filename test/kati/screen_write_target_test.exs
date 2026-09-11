@@ -435,8 +435,7 @@ defmodule Kati.ScreenWriteTargetTest do
     # `Kati.Books.FollowedAuthor`'s own moduledoc argues the same point from
     # the other end — following someone is worth doing precisely for the book
     # you do not have.
-    {Kati.Screens.BookDetail, :toggle_follow_author, {:db, "followed_authors"}},
-    {Kati.Screens.BookDetailFa, :toggle_follow_author, {:db, "followed_authors"}}
+    {Kati.Screens.BookDetail, :toggle_follow_author, {:db, "followed_authors"}}
     # (Screen 33's `5★` / `10pt` was briefly here. It writes `Mob.State`'s
     # `:rating_scale` — `Kati.Rating.Scale`, a display preference kept beside
     # the locale and the theme, because how a number is READ is not a fact
@@ -574,7 +573,7 @@ defmodule Kati.ScreenWriteTargetTest do
   # `@screens_swept` is again untouched: the mirror is gone and the screen it
   # mirrored is swept twice.
   @screens_swept 160
-  @drawn_taps 2236
+  @drawn_taps 2205
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

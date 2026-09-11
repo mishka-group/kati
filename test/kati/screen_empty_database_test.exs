@@ -432,7 +432,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # nothing shelved, or an id that names no row, and both answer with
     # `Kati.Books.SampleFa.detail/0`. 72 resolves its own `:book_id` the same
     # way now, so both gate on the same pair for the reason 70 gates on 66's.
-    {"69", Kati.Screens.BookDetailFa},
+    # 69 was `Kati.Screens.BookDetailFa` until mishka-group/kati#103 folded
+    # that mirror away. It is screen 66 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"69", Kati.Screens.BookDetail},
     # 72 was `Kati.Screens.LogProgressFa` until mishka-group/kati#103 folded
     # that mirror away. It is screen 70 under `:fa` now — hence its number on
     # `@fa_numbers` below.
@@ -2254,8 +2257,8 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MealEdit.drawn_meal/0},
       {"100", Kati.Screens.YearCards, &Kati.Screens.AlbumDetail.field/0,
        &Kati.Music.Sample.listen_field/0},
-      {"69", Kati.Screens.BookDetailFa, &Kati.Screens.BookDetailFa.book/0,
-       &Kati.Screens.BookDetailFa.drawn_book/0},
+      {"69", Kati.Screens.BookDetail, &Kati.Screens.BookDetail.book/0,
+       &Kati.Screens.BookDetail.drawn_book/0},
       {"72", Kati.Screens.LogProgress, &Kati.Screens.LogProgress.book/0,
        &Kati.Screens.BookDetail.drawn_book/0},
       {"67", Kati.Screens.BookDetailStates, &Kati.Screens.BookDetail.book/0,
@@ -2995,7 +2998,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(60 62 72 82 97 103 137 156 164 165 166)
+  @fa_numbers ~w(60 62 69 72 82 97 103 137 156 164 165 166)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do
