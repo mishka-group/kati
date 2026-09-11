@@ -206,7 +206,7 @@ defmodule Kati.UI do
   only ever be Persian.**
 
   Fifteen Persian mirrors carried their own copy of this node — it was
-  `Kati.Screens.BookDetailFa.fa/4`, hard-coding `font_family="fa"` and
+  `fa/4` below, hard-coding `font_family="fa"` and
   `line_height={1.4}` — and every one of them called it because the ALTERNATIVE
   was worse: an unmarked `Text` fell back to Plus Jakarta Sans, which carries
   no Arabic glyph at all. `K-48 locale-face` removed that reason by making the
@@ -240,6 +240,77 @@ defmodule Kati.UI do
       text_color={@colour}
       max_lines={@lines}
       line_height={@leading}
+    />
+    """
+  end
+
+  @doc """
+  A `Text` pinned to the Persian face, for a Persian string on a Latin page.
+
+  `text/4` is the one to reach for: it asks `Kati.Locale.face_prop/0`, so it is
+  right in both scripts and is what a folded screen uses. This is the other
+  case — a screen that draws Persian while the READER is in English, which is
+  every remaining `*Fa` mirror (they render under `:fa` in their own sweeps and
+  under `:en` everywhere else) and `Kati.Screens.MealLibraryEmpty`, whose board
+  is Persian on an English route.
+
+  It was `Kati.Screens.BookDetailFa.fa/4` and eleven files called it across a
+  module boundary, which made a shared helper the property of one screen —
+  and made that screen unfoldable until they all moved.
+  mishka-group/kati#103 lifted it here unchanged; each mirror's own fold
+  replaces its calls with `text/4` and the day the last one does, this goes.
+
+  A Persian `Text`, in Vazirmatn.
+
+  Every string on this screen goes through here. Plus Jakarta Sans carries no
+  Arabic-script glyphs at all, so a Persian label without `font_family="fa"` is
+  a row of empty boxes rather than a fallback — `Kati.Screens.Fa`'s moduledoc
+  checked the font and says so.
+
+  ## `align` defaults to nothing, and defaulted to `"start"` for a long time
+
+  `text_align` is not a free prop. `MobText` reads a present one as *this text
+  is wider than its glyphs* and applies `fillMaxWidth()` — which is right for a
+  centred title and catastrophic for a `Text` sitting in a `Row` next to
+  anything else, because it takes the whole row and every weighted sibling
+  measures zero. With `"start"` as the default, **every** Persian string in the
+  app carried it, so every Persian row was one unlucky layout away from losing
+  a column.
+
+  Two did, and both only on a device: screen 127's service rows drew a badge, a
+  price and a per-hour rate with **no service name**, and its one-off expense
+  rows drew an amount and nothing else. In a `Column` the two behaviours are
+  indistinguishable — a filled `Text` with `text_align="start"` and a hugging
+  one both put their glyphs at the container's start edge — which is why this
+  survived every screen sweep and every literal check: the strings were in the
+  tree, at the right size, in the right colour, measured to nothing.
+
+  So the default is `nil` and the prop is written only when a caller asks for
+  it. Twelve callers do, and each of them wants what `text_align` means:
+  `"center"` for a code or a stat, `"absolute_left"`/`"absolute_right"` for the
+  handful of things the design says must not mirror.
+  """
+  @spec fa(String.t(), number(), term(), keyword()) :: map()
+  def fa(text, size, colour, opts \\ []) do
+    assigns = %{
+      text: text,
+      size: size,
+      colour: colour,
+      weight: Keyword.get(opts, :weight, "normal"),
+      lines: Keyword.get(opts, :lines, 1),
+      align: Keyword.get(opts, :align)
+    }
+
+    ~MOB"""
+    <Text
+      text={@text}
+      font_family="fa"
+      text_size={@size}
+      font_weight={@weight}
+      text_align={@align}
+      text_color={@colour}
+      max_lines={@lines}
+      line_height={1.4}
     />
     """
   end

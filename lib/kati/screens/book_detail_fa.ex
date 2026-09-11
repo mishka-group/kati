@@ -699,68 +699,12 @@ defmodule Kati.Screens.BookDetailFa do
         >
           {UI.symbol("arrow_forward_ios", size: 17)}
           <Spacer size={6} />
-          {Kati.Screens.BookDetailFa.fa(@label, 13.5, :on_surface, weight: "semibold")}
+          {Kati.UI.fa(@label, 13.5, :on_surface, weight: "semibold")}
         </Row>
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={16} />
     </Column>
-    """
-  end
-
-  @doc """
-  A Persian `Text`, in Vazirmatn.
-
-  Every string on this screen goes through here. Plus Jakarta Sans carries no
-  Arabic-script glyphs at all, so a Persian label without `font_family="fa"` is
-  a row of empty boxes rather than a fallback — `Kati.Screens.Fa`'s moduledoc
-  checked the font and says so.
-
-  ## `align` defaults to nothing, and defaulted to `"start"` for a long time
-
-  `text_align` is not a free prop. `MobText` reads a present one as *this text
-  is wider than its glyphs* and applies `fillMaxWidth()` — which is right for a
-  centred title and catastrophic for a `Text` sitting in a `Row` next to
-  anything else, because it takes the whole row and every weighted sibling
-  measures zero. With `"start"` as the default, **every** Persian string in the
-  app carried it, so every Persian row was one unlucky layout away from losing
-  a column.
-
-  Two did, and both only on a device: screen 127's service rows drew a badge, a
-  price and a per-hour rate with **no service name**, and its one-off expense
-  rows drew an amount and nothing else. In a `Column` the two behaviours are
-  indistinguishable — a filled `Text` with `text_align="start"` and a hugging
-  one both put their glyphs at the container's start edge — which is why this
-  survived every screen sweep and every literal check: the strings were in the
-  tree, at the right size, in the right colour, measured to nothing.
-
-  So the default is `nil` and the prop is written only when a caller asks for
-  it. Twelve callers do, and each of them wants what `text_align` means:
-  `"center"` for a code or a stat, `"absolute_left"`/`"absolute_right"` for the
-  handful of things the design says must not mirror.
-  """
-  @spec fa(String.t(), number(), term(), keyword()) :: map()
-  def fa(text, size, colour, opts \\ []) do
-    assigns = %{
-      text: text,
-      size: size,
-      colour: colour,
-      weight: Keyword.get(opts, :weight, "normal"),
-      lines: Keyword.get(opts, :lines, 1),
-      align: Keyword.get(opts, :align)
-    }
-
-    ~MOB"""
-    <Text
-      text={@text}
-      font_family="fa"
-      text_size={@size}
-      font_weight={@weight}
-      text_align={@align}
-      text_color={@colour}
-      max_lines={@lines}
-      line_height={1.4}
-    />
     """
   end
 
@@ -785,7 +729,7 @@ defmodule Kati.Screens.BookDetailFa do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.BookDetailFa.fa(@title, 25, :on_surface, weight: "bold", lines: 2)}
+      {Kati.UI.fa(@title, 25, :on_surface, weight: "bold", lines: 2)}
       {@byline}
       <Spacer size={20} />
     </Column>
@@ -798,7 +742,7 @@ defmodule Kati.Screens.BookDetailFa do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={5} />
-      {Kati.Screens.BookDetailFa.fa(@author, 12.5, Palette.muted())}
+      {Kati.UI.fa(@author, 12.5, Palette.muted())}
     </Column>
     """
   end
@@ -900,7 +844,7 @@ defmodule Kati.Screens.BookDetailFa do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={11} />
-      {Kati.Screens.BookDetailFa.fa(@text, 11, Palette.muted())}
+      {Kati.UI.fa(@text, 11, Palette.muted())}
     </Column>
     """
   end
@@ -928,7 +872,7 @@ defmodule Kati.Screens.BookDetailFa do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={9} />
-      {Kati.Screens.BookDetailFa.fa(@text, 10.5, Palette.muted())}
+      {Kati.UI.fa(@text, 10.5, Palette.muted())}
     </Column>
     """
   end
@@ -972,7 +916,7 @@ defmodule Kati.Screens.BookDetailFa do
     >
       <Box width={5} height={5} corner_radius={3} background={@dot} />
       <Spacer size={6} />
-      {Kati.Screens.BookDetailFa.fa(@label, 11, @text, weight: "bold")}
+      {Kati.UI.fa(@label, 11, @text, weight: "bold")}
     </Row>
     """
   end
@@ -1027,12 +971,12 @@ defmodule Kati.Screens.BookDetailFa do
       padding={14}
       shadow={Kati.Theme.shadow_card()}
     >
-      {Kati.Screens.BookDetailFa.fa(@label, 9.5, Palette.muted())}
+      {Kati.UI.fa(@label, 9.5, Palette.muted())}
       <Spacer size={9} />
       <Row fill_width={true} align="center">
         {Kati.Screens.BookDetail.stars(@rating)}
         <Spacer size={9} />
-        {Kati.Screens.BookDetailFa.fa(@value, 13, :on_surface)}
+        {Kati.UI.fa(@value, 13, :on_surface)}
       </Row>
     </Column>
     """
@@ -1086,7 +1030,7 @@ defmodule Kati.Screens.BookDetailFa do
       align="center"
       on_tap={@tap}
     >
-      {Kati.Screens.BookDetailFa.fa(@label, 12, @colour, weight: @weight)}
+      {Kati.UI.fa(@label, 12, @colour, weight: @weight)}
     </Row>
     """
   end
@@ -1187,23 +1131,23 @@ defmodule Kati.Screens.BookDetailFa do
     body =
       case sub do
         nil ->
-          Kati.Screens.BookDetailFa.fa(title, 13.5, :on_surface, weight: "semibold")
+          Kati.UI.fa(title, 13.5, :on_surface, weight: "semibold")
 
         sub ->
           assigns = %{title: title, sub: sub}
 
           ~MOB"""
           <Column fill_width={true}>
-            {Kati.Screens.BookDetailFa.fa(@title, 13.5, :on_surface, weight: "semibold")}
+            {Kati.UI.fa(@title, 13.5, :on_surface, weight: "semibold")}
             <Spacer size={3} />
-            {Kati.Screens.BookDetailFa.fa(@sub, 11.5, Palette.sub())}
+            {Kati.UI.fa(@sub, 11.5, Palette.sub())}
           </Column>
           """
       end
 
     trailing =
       Keyword.get_lazy(opts, :trailing, fn ->
-        if value, do: Kati.Screens.BookDetailFa.fa(value, 12.5, Palette.sub()), else: nil
+        if value, do: Kati.UI.fa(value, 12.5, Palette.sub()), else: nil
       end)
 
     SettingsList.row(
@@ -1267,9 +1211,9 @@ defmodule Kati.Screens.BookDetailFa do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.BookDetailFa.fa(@title, 13, :on_surface, weight: "semibold")}
+      {Kati.UI.fa(@title, 13, :on_surface, weight: "semibold")}
       <Spacer size={3} />
-      {Kati.Screens.BookDetailFa.fa(@sub, 11.5, Palette.sub(), lines: 2)}
+      {Kati.UI.fa(@sub, 11.5, Palette.sub(), lines: 2)}
     </Column>
     """
   end
@@ -1315,7 +1259,7 @@ defmodule Kati.Screens.BookDetailFa do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           nil,
-          Kati.Screens.BookDetailFa.fa(l.warnings, 13.5, :on_surface, weight: "semibold"),
+          Kati.UI.fa(l.warnings, 13.5, :on_surface, weight: "semibold"),
           Kati.UI.SettingsList.trailing(Kati.Screens.BookDetailFa.warning_trailing(@count))
         )
       ])}
@@ -1346,7 +1290,7 @@ defmodule Kati.Screens.BookDetailFa do
 
     ~MOB"""
     <Row align="center">
-      {Kati.Screens.BookDetailFa.fa(@count, 12.5, Kati.Theme.Palette.sub())}
+      {Kati.UI.fa(@count, 12.5, Kati.Theme.Palette.sub())}
       <Spacer size={8} />
       {Kati.UI.symbol("expand_more", size: 20, color: Kati.Theme.Palette.tertiary())}
     </Row>
@@ -1415,7 +1359,7 @@ defmodule Kati.Screens.BookDetailFa do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.BookDetailFa.fa(@body, 14, Kati.Theme.Palette.cream_body(), lines: 3)}
+      {Kati.UI.fa(@body, 14, Kati.Theme.Palette.cream_body(), lines: 3)}
       {@anchor}
     </Column>
     """
@@ -1427,7 +1371,7 @@ defmodule Kati.Screens.BookDetailFa do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={6} />
-      {Kati.Screens.BookDetailFa.fa(@anchor, 10.5, Kati.Theme.Palette.cream_meta())}
+      {Kati.UI.fa(@anchor, 10.5, Kati.Theme.Palette.cream_meta())}
     </Column>
     """
   end
@@ -1554,9 +1498,9 @@ defmodule Kati.Screens.BookDetailFa do
       ~MOB"""
       <Row fill_width={true} align="center">
         <Box width={72}>
-          {Kati.Screens.BookDetailFa.fa(@date, 10.5, Kati.Theme.Palette.muted())}
+          {Kati.UI.fa(@date, 10.5, Kati.Theme.Palette.muted())}
         </Box>
-        {Kati.Screens.BookDetailFa.fa(@span, 12.5, :on_surface)}
+        {Kati.UI.fa(@span, 12.5, :on_surface)}
       </Row>
       """,
       SettingsList.trailing(Kati.Screens.BookDetailFa.duration(session.duration))
@@ -1565,7 +1509,7 @@ defmodule Kati.Screens.BookDetailFa do
 
   @doc false
   def duration(nil), do: nil
-  def duration(text), do: Kati.Screens.BookDetailFa.fa(text, 12, Palette.muted())
+  def duration(text), do: Kati.UI.fa(text, 12, Palette.muted())
 
   @doc false
   def actions do
@@ -1589,7 +1533,7 @@ defmodule Kati.Screens.BookDetailFa do
         on_tap={{self(), :log_progress}}
       >
         <Spacer weight={1.0} />
-        {Kati.Screens.BookDetailFa.fa(@primary, 15, Palette.on_ink(), weight: "bold")}
+        {Kati.UI.fa(@primary, 15, Palette.on_ink(), weight: "bold")}
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={12} />
@@ -1617,7 +1561,7 @@ defmodule Kati.Screens.BookDetailFa do
         {Kati.UI.symbol(@icon, size: 20)}
       </Box>
       <Spacer size={7} />
-      {Kati.Screens.BookDetailFa.fa(@label, 11.5, Kati.Theme.Palette.sub(),
+      {Kati.UI.fa(@label, 11.5, Kati.Theme.Palette.sub(),
         weight: "semibold",
         align: "center"
       )}

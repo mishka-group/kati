@@ -752,7 +752,16 @@ defmodule Kati.ScreenDesignLiteralTest do
       # folded into screen 24. It is 24's own entry in Persian — the same row,
       # frozen worse: board 62 wrote **ایران** for a reader who had chosen no
       # country at all.
-      assert length(device_values()) <= 54,
+      #
+      # Raised to 56 for board 61's two More numbers figures, which are board
+      # 07's own entries in Persian: ۳ هدف فعال and ۴۶٫۴۷ پوند در ماه were
+      # frozen on every device until #103 gave them screen 07's readers. Its
+      # third row, سلامت, carries no figure in the drawing at all — the weight
+      # line is something the screen supplies and the board does not, so it
+      # needs no exemption. Two literals move from "checked against somebody
+      # else's number" to "checked against a contract the row still keeps",
+      # which is the trade this bound exists to make visible.
+      assert length(device_values()) <= 56,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -874,6 +883,18 @@ defmodule Kati.ScreenDesignLiteralTest do
          "and `Kati.Screens.Stats.money_line/0` now reads — through the same function " <>
          "screen 92's Money row reads, so the two pages cannot disagree",
        ~r/^(nothing added yet|.*a month.*|\p{N}+ expenses?)$/u},
+      # 61's two, which are 07's in Persian. Board 61 drew ۳ هدف فعال and
+      # ۴۶٫۴۷ پوند در ماه on every device — MOVIES-AND-TV.md #45's defect two
+      # rows at once — and `Kati.Screens.StatsFa.more_numbers/0` reads screen
+      # 07's own `goals_line/0` and `money_line/0` now, so the two Stats pages
+      # cannot disagree about a number. The third row, ۷۶٫۰ کیلوگرم, is 61's
+      # alone: English reaches weight through the Health hub and Persian has no
+      # such page, so `Kati.Screens.Stats.weight_line/0` was written for it.
+      {"61", "۳ هدف فعال", "the reader's own goals, which board 61 froze at the drawing's three",
+       ~r/^(هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد|\p{N}+ هدف|تعیین نشده)$/u},
+      {"61", "۴۶٫۴۷ پوند در ماه",
+       "the reader's own subscriptions and expenses, which board 61 froze at the drawing's",
+       ~r/^(هنوز چیزی برای جمع‌زدن نیست|.*در ماه.*|\p{N}+ هزینه)$/u},
       {"07", "1,204 entries",
        "the size of the reader's own history, which board 07 froze at 1,204 and " <>
          "`Kati.Screens.Stats.entries_count/0` now counts",

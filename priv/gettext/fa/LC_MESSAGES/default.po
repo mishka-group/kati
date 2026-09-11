@@ -2144,6 +2144,7 @@ msgid "Dismiss"
 msgstr "رد کن"
 
 #: lib/kati/screens/my_services.ex:279
+#: lib/kati/screens/stats.ex:834
 #, elixir-autogen, elixir-format
 msgid "%{total} a month"
 msgstr "%{total} در ماه"
@@ -2196,6 +2197,7 @@ msgid "Not mine"
 msgstr "مال من نیست"
 
 #: lib/kati/screens/my_services.ex:273
+#: lib/kati/screens/stats.ex:843
 #, elixir-autogen, elixir-format
 msgid "Nothing to add up yet"
 msgstr "هنوز چیزی برای جمع‌زدن نیست"
@@ -3076,109 +3078,109 @@ msgstr "فایل خودتان — ادغام می‌کند یا جایگزین"
 msgid "iCloud · this device + iPad"
 msgstr "آی‌کلاد · این دستگاه و آی‌پد"
 
-#: lib/kati/screens/log_progress.ex:428
+#: lib/kati/screens/log_progress.ex:436
 #, elixir-autogen, elixir-format
 msgid "%{elapsed} · running"
 msgstr "%{elapsed} · در حال اجرا"
 
-#: lib/kati/screens/log_progress.ex:628
+#: lib/kati/screens/log_progress.ex:636
 #, elixir-autogen, elixir-format
 msgid "%{n} page"
 msgid_plural "%{n} pages"
 msgstr[0] "%{n} صفحه"
 msgstr[1] "%{n} صفحه"
 
-#: lib/kati/screens/log_progress.ex:691
+#: lib/kati/screens/log_progress.ex:699
 #, elixir-autogen, elixir-format
 msgid "%{n} rate & review"
 msgstr "%{n} امتیاز و نقد"
 
-#: lib/kati/screens/log_progress.ex:326
+#: lib/kati/screens/log_progress.ex:334
 #, elixir-autogen, elixir-format
 msgid "At p. %{at}"
 msgstr "ص. %{at}"
 
-#: lib/kati/screens/log_progress.ex:322
+#: lib/kati/screens/log_progress.ex:330
 #, elixir-autogen, elixir-format
 msgid "At p. %{at} of %{of}"
 msgstr "ص. %{at} از %{of}"
 
-#: lib/kati/screens/log_progress.ex:681
+#: lib/kati/screens/log_progress.ex:689
 #, elixir-autogen, elixir-format
 msgid "Finished the book"
 msgstr "کتاب تمام شد"
 
-#: lib/kati/screens/log_progress.ex:391
+#: lib/kati/screens/log_progress.ex:399
 #, elixir-autogen, elixir-format
 msgid "I am now at percent"
 msgstr "اکنون در درصد"
 
-#: lib/kati/screens/log_progress.ex:393
+#: lib/kati/screens/log_progress.ex:401
 #, elixir-autogen, elixir-format
 msgid "I am now on page"
 msgstr "اکنون در صفحه"
 
-#: lib/kati/screens/log_progress.ex:204
+#: lib/kati/screens/log_progress.ex:212
 #, elixir-autogen, elixir-format
 msgid "Log progress"
 msgstr "ثبت پیشرفت"
 
-#: lib/kati/screens/log_progress.ex:250
+#: lib/kati/screens/log_progress.ex:258
 #, elixir-autogen, elixir-format
 msgid "Minutes"
 msgstr "دقیقه"
 
-#: lib/kati/screens/log_progress.ex:392
+#: lib/kati/screens/log_progress.ex:400
 #, elixir-autogen, elixir-format
 msgid "Minutes read"
 msgstr "دقیقه خوانده‌شده"
 
-#: lib/kati/screens/log_progress.ex:248
+#: lib/kati/screens/log_progress.ex:256
 #, elixir-autogen, elixir-format
 msgid "Page"
 msgstr "صفحه"
 
-#: lib/kati/screens/log_progress.ex:249
+#: lib/kati/screens/log_progress.ex:257
 #, elixir-autogen, elixir-format
 msgid "Percent"
 msgstr "درصد"
 
-#: lib/kati/screens/log_progress.ex:429
+#: lib/kati/screens/log_progress.ex:437
 #, elixir-autogen, elixir-format
 msgid "Runs while the sheet is closed"
 msgstr "با بسته‌بودن این برگه هم کار می‌کند"
 
-#: lib/kati/screens/log_progress.ex:215
+#: lib/kati/screens/log_progress.ex:223
 #, elixir-autogen, elixir-format
 msgid "Save session"
 msgstr "ذخیره نشست"
 
-#: lib/kati/screens/log_progress.ex:517
+#: lib/kati/screens/log_progress.ex:525
 #, elixir-autogen, elixir-format
 msgid "Start"
 msgstr "شروع"
 
-#: lib/kati/screens/log_progress.ex:431
+#: lib/kati/screens/log_progress.ex:439
 #, elixir-autogen, elixir-format
 msgid "Started at"
 msgstr "شروع در"
 
-#: lib/kati/screens/log_progress.ex:517
+#: lib/kati/screens/log_progress.ex:525
 #, elixir-autogen, elixir-format
 msgid "Stop"
 msgstr "توقف"
 
-#: lib/kati/screens/log_progress.ex:602
+#: lib/kati/screens/log_progress.ex:610
 #, elixir-autogen, elixir-format
 msgid "That’s "
 msgstr "یعنی "
 
-#: lib/kati/screens/log_progress.ex:429
+#: lib/kati/screens/log_progress.ex:437
 #, elixir-autogen, elixir-format
 msgid "Time it instead"
 msgstr "به‌جایش زمان بگیر"
 
-#: lib/kati/screens/log_progress.ex:427
+#: lib/kati/screens/log_progress.ex:435
 #, elixir-autogen, elixir-format
 msgid "Timing this session"
 msgstr "زمان‌گیری این نشست"
@@ -3198,3 +3200,38 @@ msgstr "سالنامه نمک"
 msgctxt "closes a projected count"
 msgid "."
 msgstr "می‌رسید."
+
+#: lib/kati/screens/stats.ex:812
+#, elixir-autogen, elixir-format
+msgid "%{figure} %{unit}"
+msgstr "%{figure} %{unit}"
+
+#: lib/kati/screens/stats.ex:837
+#, elixir-autogen, elixir-format
+msgid "%{n} expense"
+msgid_plural "%{n} expenses"
+msgstr[0] "%{n} هزینه"
+msgstr[1] "%{n} هزینه"
+
+#: lib/kati/screens/stats.ex:787
+#, elixir-autogen, elixir-format
+msgid "%{n} goal"
+msgid_plural "%{n} goals"
+msgstr[0] "%{n} هدف"
+msgstr[1] "%{n} هدف"
+
+#: lib/kati/screens/stats.ex:786
+#, elixir-autogen, elixir-format
+msgid "No goals set — Kati counts anyway"
+msgstr "هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد"
+
+#: lib/kati/screens/stats.ex:790
+#, elixir-autogen, elixir-format
+msgid "None set"
+msgstr "تعیین نشده"
+
+#: lib/kati/screens/stats.ex:810
+#: lib/kati/screens/stats.ex:818
+#, elixir-autogen, elixir-format
+msgid "Not set up"
+msgstr "راه‌اندازی نشده"

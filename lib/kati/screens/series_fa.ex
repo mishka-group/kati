@@ -902,11 +902,11 @@ defmodule Kati.Screens.SeriesFa do
         </Box>
         <Spacer size={13} />
         <Box weight={1.0}>
-          {Kati.Screens.BookDetailFa.fa("هنوز فهرست قسمت‌ها نیست.", 13.5, :on_surface, weight: "bold")}
+          {Kati.UI.fa("هنوز فهرست قسمت‌ها نیست.", 13.5, :on_surface, weight: "bold")}
         </Box>
       </Row>
       <Spacer size={11} />
-      {Kati.Screens.BookDetailFa.fa(
+      {Kati.UI.fa(
         "این را دستی اضافه کرده‌اید، پس کاتی فصل و قسمتی برایش ندارد. اگر منبعی بعداً پیدایش کند، همین‌جا می‌آیند و چیزی که نوشته‌اید عوض نمی‌شود.",
         12,
         Palette.sub(),
@@ -946,12 +946,12 @@ defmodule Kati.Screens.SeriesFa do
 
   @doc false
   def row_body(title, nil),
-    do: Kati.Screens.BookDetailFa.fa(title, 13.5, :on_surface, weight: "semibold")
+    do: Kati.UI.fa(title, 13.5, :on_surface, weight: "semibold")
 
   def row_body(title, sub) do
     assigns = %{
-      heading: Kati.Screens.BookDetailFa.fa(title, 13.5, :on_surface, weight: "semibold"),
-      line: Kati.Screens.BookDetailFa.fa(sub, 11.5, Palette.sub(), lines: 2)
+      heading: Kati.UI.fa(title, 13.5, :on_surface, weight: "semibold"),
+      line: Kati.UI.fa(sub, 11.5, Palette.sub(), lines: 2)
     }
 
     ~MOB"""

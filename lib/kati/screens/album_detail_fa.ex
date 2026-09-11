@@ -565,7 +565,7 @@ defmodule Kati.Screens.AlbumDetailFa do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={3} />
-      {Kati.Screens.BookDetailFa.fa(@line, 11.5, Kati.Theme.Palette.sub())}
+      {Kati.UI.fa(@line, 11.5, Kati.Theme.Palette.sub())}
     </Column>
     """
   end
@@ -577,7 +577,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   # `fa/4` answers a node already, so this hands it back rather than wrapping
   # it: `~MOB` needs one root element and a bare interpolation is not one.
   def plays_node(line),
-    do: Kati.Screens.BookDetailFa.fa(line, 10, Kati.Theme.Palette.tertiary())
+    do: Kati.UI.fa(line, 10, Kati.Theme.Palette.tertiary())
 
   @doc "The artist's name, over the totals the row carries when it has any."
   @spec artist_body(map()) :: map()
@@ -586,7 +586,7 @@ defmodule Kati.Screens.AlbumDetailFa do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.BookDetailFa.fa(@a.artist, 13, :on_surface, weight: "semibold")}
+      {Kati.UI.fa(@a.artist, 13, :on_surface, weight: "semibold")}
       {Kati.Screens.AlbumDetailFa.second_line(@a.artist_line)}
     </Column>
     """
@@ -642,9 +642,9 @@ defmodule Kati.Screens.AlbumDetailFa do
       padding={14}
       shadow={Kati.Theme.shadow_card_soft()}
     >
-      {Kati.Screens.BookDetailFa.fa(@label, 10.5, Palette.muted(), weight: "semibold")}
+      {Kati.UI.fa(@label, 10.5, Palette.muted(), weight: "semibold")}
       <Spacer size={7} />
-      {Kati.Screens.BookDetailFa.fa(@value, 14, :on_surface, weight: "medium")}
+      {Kati.UI.fa(@value, 14, :on_surface, weight: "medium")}
     </Column>
     """
   end
@@ -673,7 +673,7 @@ defmodule Kati.Screens.AlbumDetailFa do
         <Row fill_width={true} align="center">
           {Kati.Screens.BookDetail.stars(@a.rating)}
           <Spacer size={12} />
-          {Kati.Screens.BookDetailFa.fa(@a.rating_label || "—", 14, :on_surface)}
+          {Kati.UI.fa(@a.rating_label || "—", 14, :on_surface)}
         </Row>
       </Column>
       <Spacer size={24} />
@@ -726,7 +726,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   The running number, and the dot when the track played today.
 
   One of the two `Text` nodes on this screen that does not go through
-  `Kati.Screens.BookDetailFa.fa/4`, because it carries a fixed `width` that
+  `Kati.UI.fa/4`, because it carries a fixed `width` that
   helper does not take — and the width is the whole point. The caption asks for
   index, duration and play count to stay aligned as columns, and a number
   column only aligns if every cell is the same width whether it holds ۱ or ۱۱.
@@ -767,7 +767,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   The title, which takes the width, and the duration, which does not.
 
   The title is wrapped in a weighted `Column` rather than given the weight
-  itself, because `Kati.Screens.BookDetailFa.fa/4` sets the face, the size and
+  itself, because `Kati.UI.fa/4` sets the face, the size and
   the colour and takes no layout weight — and the face is the one thing a
   Persian title cannot be drawn without.
   """
@@ -778,10 +778,10 @@ defmodule Kati.Screens.AlbumDetailFa do
     ~MOB"""
     <Row fill_width={true} align="center">
       <Column weight={1.0}>
-        {Kati.Screens.BookDetailFa.fa(@title, 13, :on_surface, weight: "semibold")}
+        {Kati.UI.fa(@title, 13, :on_surface, weight: "semibold")}
       </Column>
       <Spacer size={12} />
-      {Kati.Screens.BookDetailFa.fa(@duration, 11, Palette.tertiary())}
+      {Kati.UI.fa(@duration, 11, Palette.tertiary())}
     </Row>
     """
   end
@@ -844,7 +844,7 @@ defmodule Kati.Screens.AlbumDetailFa do
         {Kati.Screens.AlbumDetail.field_rows()}
         <Spacer size={8} />
         <Row fill_width={true} align="center">
-          {Kati.Screens.BookDetailFa.fa(@a.month, 10, Palette.tertiary())}
+          {Kati.UI.fa(@a.month, 10, Palette.tertiary())}
           <Spacer weight={1.0} />
           {Kati.Screens.AlbumDetailFa.plays_node(@a.plays_line)}
         </Row>
@@ -863,7 +863,7 @@ defmodule Kati.Screens.AlbumDetailFa do
   than being orphaned above nothing.
 
   The body is the third `Text` here that does not go through
-  `Kati.Screens.BookDetailFa.fa/4`, and the reason is leading: that helper
+  `Kati.UI.fa/4`, and the reason is leading: that helper
   fixes `line_height` at 1.4 and the drawing sets this paragraph at **1.9**.
   Persian sets tall — Vazirmatn's descenders run under the line and the
   diacritics run over it — so a Persian paragraph at a Latin paragraph's
@@ -887,7 +887,7 @@ defmodule Kati.Screens.AlbumDetailFa do
           text_color={Palette.cream_body()}
         />
         <Spacer size={10} />
-        {Kati.Screens.BookDetailFa.fa(@a.note_on || "", 10.5, Palette.meta())}
+        {Kati.UI.fa(@a.note_on || "", 10.5, Palette.meta())}
       </Column>
       <Spacer size={24} />
     </Column>
@@ -927,7 +927,7 @@ defmodule Kati.Screens.AlbumDetailFa do
         on_tap={{self(), :log_listen}}
       >
         <Spacer weight={1.0} />
-        {Kati.Screens.BookDetailFa.fa(@primary, 14, Palette.on_ink(), weight: "bold")}
+        {Kati.UI.fa(@primary, 14, Palette.on_ink(), weight: "bold")}
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={11} />
@@ -956,7 +956,7 @@ defmodule Kati.Screens.AlbumDetailFa do
       <Spacer weight={1.0} />
       {Kati.UI.symbol(@icon, size: 19)}
       <Spacer size={3} />
-      {Kati.Screens.BookDetailFa.fa(@label, 10.5, Palette.ink_soft(),
+      {Kati.UI.fa(@label, 10.5, Palette.ink_soft(),
         weight: "semibold",
         align: "center"
       )}

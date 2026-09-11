@@ -2720,6 +2720,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # `Kati.ScreenDesignLiteralTest` carries the same pair with the full
       # reasoning; this list is that one's shorter twin.
       {"62", "ایران · ۳ سرویس", ~r/^.+ · (هنوز هیچ‌کدام|\p{N}+ اشتراک)$/u},
+      # 61's three More numbers rows, which are 07's two in Persian plus the
+      # weight row Persian has no Health hub to reach. `Kati.ScreenDesignLiteralTest`
+      # carries the same three with the full reasoning; this list is that one's
+      # shorter twin.
+      {"61", "۳ هدف فعال", ~r/^(هدفی تعیین نشده — کاتی به‌هرحال می‌شمارد|\p{N}+ هدف|تعیین نشده)$/u},
+      {"61", "۴۶٫۴۷ پوند در ماه", ~r/^(هنوز چیزی برای جمع‌زدن نیست|.*در ماه.*|\p{N}+ هزینه)$/u},
       # 80's three provider-supplied values and two cache figures, none of which
       # exists on a device with an empty database and no tokens.
       {"80", "connected as ines.k · 412 listens",

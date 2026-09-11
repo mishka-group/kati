@@ -97,12 +97,22 @@ defmodule Kati.Screens.StatsFa do
   """
   @spec more_numbers() :: map()
   def more_numbers do
+    # The three figures are READ, and until mishka-group/kati#103 none of them
+    # was: this card drew ۳ هدف فعال, ۴۶٫۴۷ پوند در ماه and ۷۶٫۰ کیلوگرم on
+    # every device, which is MOVIES-AND-TV.md #45's defect three rows at once.
+    # Each reader is screen 07's own — `goals_line/0`, `money_line/0`, and
+    # `weight_line/0`, which 07 does not draw because English reaches weight
+    # through the Health hub and Persian has no such page. So the two Stats
+    # pages cannot disagree about a number, and the copy is translated where it
+    # lives rather than written out again here.
     cards =
-      [
-        {"checklist", "اهداف", "۳ هدف فعال", :open_goals},
-        {"payments", "پول", "۴۶٫۴۷ پوند در ماه", :open_money},
-        {"monitor_weight", "سلامت", "۷۶٫۰ کیلوگرم", :open_health}
-      ]
+      Kati.Locale.as(:fa, fn ->
+        [
+          {"checklist", "اهداف", Kati.Screens.Stats.goals_line(), :open_goals},
+          {"payments", "پول", Kati.Screens.Stats.money_line(), :open_money},
+          {"monitor_weight", "سلامت", Kati.Screens.Stats.weight_line(), :open_health}
+        ]
+      end)
       |> Enum.map(fn {icon, title, sub, tag} ->
         Kati.Screens.StatsFa.more_row(icon, title, sub, tag)
       end)
@@ -126,9 +136,9 @@ defmodule Kati.Screens.StatsFa do
       Kati.UI.SettingsList.icon_tile(icon),
       ~MOB"""
       <Column fill_width={true}>
-        {Kati.Screens.BookDetailFa.fa(@title, 13.5, :on_surface, weight: "semibold")}
+        {Kati.UI.fa(@title, 13.5, :on_surface, weight: "semibold")}
         <Spacer size={3} />
-        {Kati.Screens.BookDetailFa.fa(@sub, 11.5, Kati.Theme.Palette.sub())}
+        {Kati.UI.fa(@sub, 11.5, Kati.Theme.Palette.sub())}
       </Column>
       """,
       Kati.UI.SettingsList.trailing(

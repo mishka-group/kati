@@ -2139,6 +2139,7 @@ msgid "Dismiss"
 msgstr ""
 
 #: lib/kati/screens/my_services.ex:279
+#: lib/kati/screens/stats.ex:834
 #, elixir-autogen, elixir-format
 msgid "%{total} a month"
 msgstr ""
@@ -2191,6 +2192,7 @@ msgid "Not mine"
 msgstr ""
 
 #: lib/kati/screens/my_services.ex:273
+#: lib/kati/screens/stats.ex:843
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Nothing to add up yet"
 msgstr ""
@@ -3071,109 +3073,109 @@ msgstr ""
 msgid "iCloud · this device + iPad"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:428
+#: lib/kati/screens/log_progress.ex:436
 #, elixir-autogen, elixir-format
 msgid "%{elapsed} · running"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:628
+#: lib/kati/screens/log_progress.ex:636
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} page"
 msgid_plural "%{n} pages"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/screens/log_progress.ex:691
+#: lib/kati/screens/log_progress.ex:699
 #, elixir-autogen, elixir-format
 msgid "%{n} rate & review"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:326
+#: lib/kati/screens/log_progress.ex:334
 #, elixir-autogen, elixir-format
 msgid "At p. %{at}"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:322
+#: lib/kati/screens/log_progress.ex:330
 #, elixir-autogen, elixir-format
 msgid "At p. %{at} of %{of}"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:681
+#: lib/kati/screens/log_progress.ex:689
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Finished the book"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:391
+#: lib/kati/screens/log_progress.ex:399
 #, elixir-autogen, elixir-format
 msgid "I am now at percent"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:393
+#: lib/kati/screens/log_progress.ex:401
 #, elixir-autogen, elixir-format
 msgid "I am now on page"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:204
+#: lib/kati/screens/log_progress.ex:212
 #, elixir-autogen, elixir-format
 msgid "Log progress"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:250
+#: lib/kati/screens/log_progress.ex:258
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Minutes"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:392
+#: lib/kati/screens/log_progress.ex:400
 #, elixir-autogen, elixir-format
 msgid "Minutes read"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:248
+#: lib/kati/screens/log_progress.ex:256
 #, elixir-autogen, elixir-format
 msgid "Page"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:249
+#: lib/kati/screens/log_progress.ex:257
 #, elixir-autogen, elixir-format
 msgid "Percent"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:429
+#: lib/kati/screens/log_progress.ex:437
 #, elixir-autogen, elixir-format
 msgid "Runs while the sheet is closed"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:215
+#: lib/kati/screens/log_progress.ex:223
 #, elixir-autogen, elixir-format
 msgid "Save session"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:517
+#: lib/kati/screens/log_progress.ex:525
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Start"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:431
+#: lib/kati/screens/log_progress.ex:439
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Started at"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:517
+#: lib/kati/screens/log_progress.ex:525
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Stop"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:602
+#: lib/kati/screens/log_progress.ex:610
 #, elixir-autogen, elixir-format
 msgid "That’s "
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:429
+#: lib/kati/screens/log_progress.ex:437
 #, elixir-autogen, elixir-format
 msgid "Time it instead"
 msgstr ""
 
-#: lib/kati/screens/log_progress.ex:427
+#: lib/kati/screens/log_progress.ex:435
 #, elixir-autogen, elixir-format
 msgid "Timing this session"
 msgstr ""
@@ -3192,4 +3194,39 @@ msgstr ""
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "closes a projected count"
 msgid "."
+msgstr ""
+
+#: lib/kati/screens/stats.ex:812
+#, elixir-autogen, elixir-format
+msgid "%{figure} %{unit}"
+msgstr ""
+
+#: lib/kati/screens/stats.ex:837
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n} expense"
+msgid_plural "%{n} expenses"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/stats.ex:787
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n} goal"
+msgid_plural "%{n} goals"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/stats.ex:786
+#, elixir-autogen, elixir-format
+msgid "No goals set — Kati counts anyway"
+msgstr ""
+
+#: lib/kati/screens/stats.ex:790
+#, elixir-autogen, elixir-format
+msgid "None set"
+msgstr ""
+
+#: lib/kati/screens/stats.ex:810
+#: lib/kati/screens/stats.ex:818
+#, elixir-autogen, elixir-format
+msgid "Not set up"
 msgstr ""

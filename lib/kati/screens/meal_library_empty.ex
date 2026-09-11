@@ -72,7 +72,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
 
   ## Persian type, and the one artboard literal this board does not reproduce
 
-  Every Persian `Text` goes through `Kati.Screens.BookDetailFa.fa/4`. Screen 69
+  Every Persian `Text` goes through `Kati.UI.fa/4`. Screen 69
   wrote that helper for the reason `Kati.Screens.Fa`'s moduledoc checked and
   states: Plus Jakarta Sans carries no Arabic-script glyphs, so a Persian label
   without `font_family="fa"` is a row of empty boxes rather than a fallback.
@@ -150,7 +150,6 @@ defmodule Kati.Screens.MealLibraryEmpty do
 
   alias Kati.I18n.Digits
   alias Kati.Meals.SampleLibrary
-  alias Kati.Screens.BookDetailFa
   alias Kati.Screens.MealLibrary
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -382,7 +381,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
   in the smallest example of it there is.
 
   The placeholder is wrapped in a weighted `Column` rather than given a weight of
-  its own, because `Kati.Screens.BookDetailFa.fa/4` takes no weight and does not
+  its own, because `Kati.UI.fa/4` takes no weight and does not
   need to: setting any `text_align` makes the bridge fill the `Text`'s width
   (`MobBridge.kt:3385`), so the text fills whatever the Column claims and
   right-aligns inside it.
@@ -404,7 +403,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
         align="center"
       >
         <Column weight={1.0}>
-          {BookDetailFa.fa(placeholder, 13.5, Palette.muted(), align: "absolute_right")}
+          {Kati.UI.fa(placeholder, 13.5, Palette.muted(), align: "absolute_right")}
         </Column>
         <Spacer size={10} />
         {UI.symbol("search", size: 19, color: Palette.muted())}
@@ -462,7 +461,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
   @doc """
   One chip: the count first, then the label, which is the mirror of both.
 
-  Both strings pass `align: nil` to `Kati.Screens.BookDetailFa.fa/4`. That
+  Both strings pass `align: nil` to `Kati.UI.fa/4`. That
   helper defaults to `text_align="start"`, and any alignment makes the bridge
   fill the `Text`'s width (`MobBridge.kt:3385`) — inside a Row that hugs its
   content, a filling child takes the whole incoming width and the pill stops
@@ -496,9 +495,9 @@ defmodule Kati.Screens.MealLibraryEmpty do
       padding_right={15}
       align="center"
     >
-      {BookDetailFa.fa(count, 10, count_colour, align: nil)}
+      {Kati.UI.fa(count, 10, count_colour, align: nil)}
       <Spacer size={6} />
-      {BookDetailFa.fa(label, 12, colour, weight: "semibold", align: nil)}
+      {Kati.UI.fa(label, 12, colour, weight: "semibold", align: nil)}
     </Row>
     """
   end
@@ -553,7 +552,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
     <Column weight={1.0}>
       {MealLibrary.photo(meal)}
       <Spacer size={9} />
-      {BookDetailFa.fa(meal.title, 12.5, :on_surface,
+      {Kati.UI.fa(meal.title, 12.5, :on_surface,
         weight: "bold",
         lines: 2,
         align: "absolute_right"
@@ -562,10 +561,10 @@ defmodule Kati.Screens.MealLibraryEmpty do
       <Row fill_width={true} align="center">
         <Spacer weight={1.0} />
         {Kati.Screens.MealLibraryEmpty.approx(meal.approximate?)}
-        {BookDetailFa.fa(meal.kcal, 10.5, Palette.muted(), align: nil)}
+        {Kati.UI.fa(meal.kcal, 10.5, Palette.muted(), align: nil)}
       </Row>
       <Spacer size={3} />
-      {BookDetailFa.fa(meal.slot, 10, Palette.rail_idle(), align: "absolute_right")}
+      {Kati.UI.fa(meal.slot, 10, Palette.rail_idle(), align: "absolute_right")}
     </Column>
     """
   end
@@ -593,7 +592,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
 
     ~MOB"""
     <Row align="center">
-      {BookDetailFa.fa(label, 10, Palette.gold_text(), align: nil)}
+      {Kati.UI.fa(label, 10, Palette.gold_text(), align: nil)}
       <Spacer size={3} />
       {UI.symbol("help", size: 13, color: Palette.gold_icon())}
       <Spacer size={6} />

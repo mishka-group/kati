@@ -175,7 +175,6 @@ defmodule Kati.Screens.SearchFa do
 
   alias Kati.Components.MishkaPill
   alias Kati.I18n.Digits
-  alias Kati.Screens.BookDetailFa
   alias Kati.Screens.Fa
   alias Kati.Search
   alias Kati.Theme.Palette
@@ -321,7 +320,7 @@ defmodule Kati.Screens.SearchFa do
         >
           {UI.symbol("arrow_forward_ios", size: 17)}
           <Spacer size={6} />
-          {BookDetailFa.fa(@back, 13.5, :on_surface, weight: "semibold")}
+          {Kati.UI.fa(@back, 13.5, :on_surface, weight: "semibold")}
         </Row>
         <Spacer weight={1.0} />
       </Row>
@@ -364,7 +363,7 @@ defmodule Kati.Screens.SearchFa do
       >
         {UI.symbol("search", size: 20)}
         <Spacer size={11} />
-        {BookDetailFa.fa(@query, 14.5, :on_surface, weight: "medium")}
+        {Kati.UI.fa(@query, 14.5, :on_surface, weight: "medium")}
         <Spacer size={3} />
         <Box width={2} height={19} background={Palette.accent()} />
         <Spacer weight={1.0} />
@@ -493,9 +492,9 @@ defmodule Kati.Screens.SearchFa do
       align="center"
       on_tap={@tap}
     >
-      {Kati.Screens.BookDetailFa.fa(@label, 12, @colour, weight: "semibold")}
+      {Kati.UI.fa(@label, 12, @colour, weight: "semibold")}
       <Spacer size={6} />
-      {Kati.Screens.BookDetailFa.fa(@count, 10, @count_colour)}
+      {Kati.UI.fa(@count, 10, @count_colour)}
     </Row>
     """
 
@@ -608,7 +607,7 @@ defmodule Kati.Screens.SearchFa do
         <Column weight={1.0}>
           {Kati.Screens.SearchFa.match_line(@hit, 13, :on_surface, :on_surface)}
           <Spacer size={4} />
-          {Kati.Screens.BookDetailFa.fa(@hit.sub, 11.5, Palette.muted())}
+          {Kati.UI.fa(@hit.sub, 11.5, Palette.muted())}
         </Column>
         <Spacer size={12} />
         {Kati.UI.symbol("chevron_left", size: 18, color: Palette.rail_idle())}
@@ -646,7 +645,7 @@ defmodule Kati.Screens.SearchFa do
     ~MOB"""
     <Row align="center">
       {Kati.Screens.SearchFa.run(@lead, @size, @base, "semibold")}
-      {Kati.Screens.BookDetailFa.fa(@query, @size, @match, weight: "bold")}
+      {Kati.UI.fa(@query, @size, @match, weight: "bold")}
       {Kati.Screens.SearchFa.run(@tail, @size, @base, "semibold")}
     </Row>
     """
@@ -663,7 +662,7 @@ defmodule Kati.Screens.SearchFa do
   def run(nil, _size, _colour, _weight), do: ~MOB"<Spacer size={0} />"
 
   def run(text, size, colour, weight),
-    do: BookDetailFa.fa(text, size, colour, weight: weight)
+    do: Kati.UI.fa(text, size, colour, weight: weight)
 
   @doc """
   The یادداشت‌ها group: a grey eyebrow and one cream card.
@@ -686,7 +685,7 @@ defmodule Kati.Screens.SearchFa do
     <Column fill_width={true}>
       {Kati.Screens.AlbumDetailFa.eyebrow(Kati.Screens.SearchFa.heading(:notes), :grey)}
       <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
-        {Kati.Screens.BookDetailFa.fa(@note.eyebrow, 10, Palette.cream_meta())}
+        {Kati.UI.fa(@note.eyebrow, 10, Palette.cream_meta())}
         <Spacer size={8} />
         {Kati.Screens.SearchFa.note_body(@note)}
       </Column>
@@ -698,7 +697,7 @@ defmodule Kati.Screens.SearchFa do
   @doc """
   The quoted sentence, with the match in `cream_ink` at 700.
 
-  Its own function rather than a call to `Kati.Screens.BookDetailFa.fa/4`,
+  Its own function rather than a call to `Kati.UI.fa/4`,
   because that helper pins `line_height` at 1.4 and this paragraph is set at
   **1.9**. Persian sets tall — Vazirmatn's descenders run under the line and its
   diacritics over it — so a Persian line at a Latin line's leading collides with
@@ -826,7 +825,7 @@ defmodule Kati.Screens.SearchFa do
     >
       {Kati.UI.symbol("history", size: 14, color: @glyph)}
       <Spacer size={6} />
-      {Kati.Screens.BookDetailFa.fa(@label, 12, @colour)}
+      {Kati.UI.fa(@label, 12, @colour)}
     </Row>
     """
   end

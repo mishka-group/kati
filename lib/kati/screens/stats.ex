@@ -114,6 +114,7 @@ defmodule Kati.Screens.Stats do
       every device. Three of the five domains have no resource at all.
   """
   use Kati.Screens.Root, root: :stats
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -782,12 +783,39 @@ defmodule Kati.Screens.Stats do
     case Kati.Goals.Goal |> Ash.read!() |> length() do
       # Board 309's wording, which says what 105 says: the count runs whether or
       # not a goal has been set, so *none set* is not *nothing counted*.
-      0 -> "No goals set — Kati counts anyway"
-      1 -> "1 goal"
-      n -> "#{n} goals"
+      0 -> gettext("No goals set — Kati counts anyway")
+      n -> ngettext("%{n} goal", "%{n} goals", n, n: Kati.Locale.number(n))
     end
   rescue
-    _error -> "None set"
+    _error -> gettext("None set")
+  end
+
+  @doc """
+  `76.0 kg` — the reader's latest weight, or the absence of one.
+
+  Board 61's third *More numbers* row, which the English card does not have:
+  screen 42 is the Health hub in English and Persian has no such page, so
+  screen 61's own moduledoc calls this row the route. It drew **۷۶٫۰ کیلوگرم**
+  frozen on every device, which is MOVIES-AND-TV.md #45's defect on the one
+  row of the three that has a resource behind it — `Kati.Health.Reading` —
+  and `Kati.Screens.Weight.latest/0` is the reader that answers it.
+  """
+  @spec weight_line() :: String.t()
+  def weight_line do
+    latest = Kati.Screens.Weight.latest()
+
+    if Kati.Screens.Weight.entries() == [] do
+      # 309's rule for a row whose page has nothing in it: the row stays,
+      # because it is the door to a page that exists, and the figure goes.
+      gettext("Not set up")
+    else
+      gettext("%{figure} %{unit}",
+        figure: Kati.Locale.number(latest.figure),
+        unit: latest.unit
+      )
+    end
+  rescue
+    _error -> gettext("Not set up")
   end
 
   @doc """
@@ -803,13 +831,16 @@ defmodule Kati.Screens.Stats do
     n = Kati.Money.Expense |> Ash.read!() |> length()
 
     [
-      if(total in [nil, "—"], do: nil, else: "#{total} a month"),
-      if(n == 0, do: nil, else: "#{n} #{if n == 1, do: "expense", else: "expenses"}")
+      if(total in [nil, "—"], do: nil, else: gettext("%{total} a month", total: total)),
+      if(n == 0,
+        do: nil,
+        else: ngettext("%{n} expense", "%{n} expenses", n, n: Kati.Locale.number(n))
+      )
     ]
     |> Enum.reject(&is_nil/1)
     |> case do
       # 309's wording for a money row at zero: what 123's page says of itself.
-      [] -> "Nothing to add up yet"
+      [] -> gettext("Nothing to add up yet")
       parts -> Enum.join(parts, " · ")
     end
   rescue
