@@ -112,19 +112,17 @@ defmodule Kati.SettingsDataRoutesTest do
     fa = MapSet.new(Map.values(SettingsFa.destinations()))
     en = MapSet.new(Map.values(Settings.destinations()))
 
-    persian_only =
-      fa
-      |> MapSet.difference(en)
-      |> MapSet.difference(
-        MapSet.new([
-          Kati.Screens.MyServicesFa,
-          Kati.Screens.DataSourcesFa
-        ])
-      )
+    # The exemption list is empty now. mishka-group/kati#103 folded both
+    # mirrors 62's Data group used to point at — `Kati.Screens.MyServicesFa`
+    # and `Kati.Screens.DataSourcesFa` — so both rows name the SAME module the
+    # English page names, and the difference is back to nothing. Board 301's
+    # `Kati.Screens.CountryPicker` is reached from screen 92 rather than from
+    # 62, so it is not a destination here.
+    persian_only = MapSet.difference(fa, en)
 
     assert MapSet.to_list(persian_only) == [],
-           "screen 62 reaches something screen 24 does not, and it is not one of the two " <>
-             "Persian mirrors: " <> inspect(MapSet.to_list(persian_only))
+           "screen 62 reaches something screen 24 does not: " <>
+             inspect(MapSet.to_list(persian_only))
   end
 
   test "the two rows are one row, named the same way on both screens" do

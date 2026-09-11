@@ -126,7 +126,11 @@ defmodule Kati.Screens.Gallery do
     # mishka-group/kati#103. Board 79 is screen 77 under `:fa`.
     {"79", "هنرمند — Artist detail, RTL", Kati.Screens.ArtistDetail, :push},
     {"81", "Data sources — states", Kati.Screens.DataSourcesStates, :push},
-    {"82", "منابع داده", Kati.Screens.DataSourcesFa, :push},
+    # mishka-group/kati#103's fold of screen 82. Board 82 is screen 80 under
+    # `:fa` now, exactly as 85, 97 and 156 are their own English screens, and
+    # "82" is on `Kati.ScreenDesignLiteralTest`'s `@fa_screens` so the sweep
+    # renders it in the locale it is drawn in.
+    {"82", "منابع داده — Data sources, RTL", Kati.Screens.DataSources, :push},
     {"84", "Attribution — states", Kati.Screens.AttributionStates, :push},
     # mishka-group/kati#103. Board 85 is screen 83 in the mirror, and 83 IS the
     # mirror now — the same module rendered under `:fa`, exactly as 154/156.
@@ -723,7 +727,7 @@ defmodule Kati.Screens.Gallery do
     "76",
     # Persian album page → the artist row (album_detail_fa.ex:1001).
     "79",
-    # Persian Settings → منابع داده under داده‌ها (settings_fa.ex:523,941).
+    # Persian Settings → منابع داده under داده‌ها (settings_fa.ex:525,941).
     "82",
     # Persian Settings → منابع (پروانه‌ها و اعتبارها)
     #   (settings_fa.ex:524,941).

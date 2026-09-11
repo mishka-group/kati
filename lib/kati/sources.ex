@@ -51,84 +51,111 @@ defmodule Kati.Sources do
   than being copy somebody has to remember to update.
   """
 
+  use Gettext, backend: Kati.Gettext
+
   alias Kati.SecureStore
 
-  @tier0 [
-    %{
-      id: :tvmaze,
-      icon: "movie",
-      name: "TV & film · TVmaze",
-      supplies: "Air dates, episode lists"
-    },
-    %{
-      id: :open_library,
-      icon: "menu_book",
-      name: "Books · Open Library",
-      supplies: "Covers, editions, ISBNs"
-    },
-    %{
-      id: :musicbrainz,
-      icon: "graphic_eq",
-      name: "Music · MusicBrainz",
-      supplies: "Albums, artists, cover art"
-    }
-  ]
+  @doc """
+  The providers that need no setup at all.
 
-  @tier2 [
-    %{
-      id: :listenbrainz,
-      icon: "graphic_eq",
-      name: "ListenBrainz",
-      supplies: "Scrobbles, listening history",
-      # Where a reader goes to get their own token. One per provider, and it
-      # was one for all three: screen 80's pairing card printed
-      # `listenbrainz.org/link` under every code, so a Hardcover reader was
-      # sent to somebody else's site (MOVIES-AND-TV.md #71).
-      site: "listenbrainz.org/profile",
-      why:
-        "ListenBrainz needs your own token because it writes to your account, not Kati’s. " <>
-          "Nothing is shared between users."
-    },
-    %{
-      id: :hardcover,
-      icon: "menu_book",
-      name: "Hardcover",
-      supplies: "Community book ratings",
-      site: "hardcover.app/account/api",
-      why:
-        "Hardcover’s ratings are read with your own token, so your reading is not " <>
-          "attributed to anyone else."
-    },
-    %{
-      id: :thetvdb,
-      icon: "tv",
-      name: "TheTVDB",
-      supplies: "Artwork, absolute ordering",
-      site: "thetvdb.com/dashboard/account/apikey",
-      why: "TheTVDB issues a per-user key you can revoke from your own account page."
-    }
-  ]
+  A function and not an attribute: `gettext/1` inside a module attribute is
+  evaluated at COMPILE time, so a table of translated names freezes whichever
+  locale the compiler happened to be in. mishka-group/kati#103 — the same
+  change `Kati.Retired` and `Kati.Screens.MyServices.rules/0` made.
 
-  # The providers that need a `client_secret` and are therefore not offered.
-  # Kept as data rather than as prose, because "why is Trakt not here" is a
-  # question somebody will ask of the code before they ask it of the screen.
-  @refused [
-    {:trakt, "needs a pasted client_secret"},
-    {:simkl, "needs a pasted client_secret"},
-    {:lastfm, "needs a pasted client_secret"}
-  ]
-
-  @doc "The providers that need no setup at all."
+  `name` carries a Kati word beside a trade name — *TV & film · TVmaze* is
+  **فیلم و سریال · TVmaze** — so it translates and the trade name inside it
+  does not. `supplies` is a plain description and translates whole.
+  """
   @spec tier0() :: [map()]
-  def tier0, do: @tier0
+  def tier0 do
+    [
+      %{
+        id: :tvmaze,
+        icon: "movie",
+        name: gettext("TV & film · TVmaze"),
+        supplies: gettext("Air dates, episode lists")
+      },
+      %{
+        id: :open_library,
+        icon: "menu_book",
+        name: gettext("Books · Open Library"),
+        supplies: gettext("Covers, editions, ISBNs")
+      },
+      %{
+        id: :musicbrainz,
+        icon: "graphic_eq",
+        name: gettext("Music · MusicBrainz"),
+        supplies: gettext("Albums, artists, cover art")
+      }
+    ]
+  end
 
-  @doc "The providers you can connect an account to."
+  @doc """
+  The providers you can connect an account to.
+
+  `name` and `site` are untranslated on all three: a trade name and a URL are
+  proper nouns, and screen 80 sets them in DM Mono in both scripts for exactly
+  that reason — see `Kati.Locale.mono_face/1`.
+  """
   @spec tier2() :: [map()]
-  def tier2, do: @tier2
+  def tier2 do
+    [
+      %{
+        id: :listenbrainz,
+        icon: "graphic_eq",
+        name: "ListenBrainz",
+        supplies: gettext("Scrobbles, listening history"),
+        # Where a reader goes to get their own token. One per provider, and it
+        # was one for all three: screen 80's pairing card printed
+        # `listenbrainz.org/link` under every code, so a Hardcover reader was
+        # sent to somebody else's site (MOVIES-AND-TV.md #71).
+        site: "listenbrainz.org/profile",
+        why:
+          gettext(
+            "ListenBrainz needs your own token because it writes to your account, not Kati’s. " <>
+              "Nothing is shared between users."
+          )
+      },
+      %{
+        id: :hardcover,
+        icon: "menu_book",
+        name: "Hardcover",
+        supplies: gettext("Community book ratings"),
+        site: "hardcover.app/account/api",
+        why:
+          gettext(
+            "Hardcover’s ratings are read with your own token, so your reading is not " <>
+              "attributed to anyone else."
+          )
+      },
+      %{
+        id: :thetvdb,
+        icon: "tv",
+        name: "TheTVDB",
+        supplies: gettext("Artwork, absolute ordering"),
+        site: "thetvdb.com/dashboard/account/apikey",
+        why: gettext("TheTVDB issues a per-user key you can revoke from your own account page.")
+      }
+    ]
+  end
 
-  @doc "The providers deliberately not offered, each with the reason."
+  @doc """
+  The providers deliberately not offered, each with the reason.
+
+  Kept as data rather than as prose, because "why is Trakt not here" is a
+  question somebody will ask of the code before they ask it of the screen.
+  Nothing draws these strings — `Kati.Retired` holds the sentence screen 114
+  shows — so they are not translated.
+  """
   @spec refused() :: [{atom(), String.t()}]
-  def refused, do: @refused
+  def refused do
+    [
+      {:trakt, "needs a pasted client_secret"},
+      {:simkl, "needs a pasted client_secret"},
+      {:lastfm, "needs a pasted client_secret"}
+    ]
+  end
 
   @doc """
   The TMDB key in force: `:kati` or `:own`.
@@ -179,13 +206,17 @@ defmodule Kati.Sources do
   @spec token_note() :: String.t()
   def token_note do
     if SecureStore.available?() do
-      "Tokens are held in this device’s secure store. Kati sends each one only to the " <>
-        "service it belongs to. Kati never asks for a password — only for tokens you can " <>
-        "revoke from the provider’s own site."
+      gettext(
+        "Tokens are held in this device’s secure store. Kati sends each one only to the " <>
+          "service it belongs to. Kati never asks for a password — only for tokens you can " <>
+          "revoke from the provider’s own site."
+      )
     else
-      "Tokens sit unencrypted on this device, because the platform gives Kati no secure " <>
-        "store yet. Kati sends each one only to the service it belongs to. Kati never asks " <>
-        "for a password — only for tokens you can revoke from the provider’s own site."
+      gettext(
+        "Tokens sit unencrypted on this device, because the platform gives Kati no secure " <>
+          "store yet. Kati sends each one only to the service it belongs to. Kati never asks " <>
+          "for a password — only for tokens you can revoke from the provider’s own site."
+      )
     end
   end
 
@@ -209,7 +240,7 @@ defmodule Kati.Sources do
   @doc "Forget every provider token on this device."
   @spec disconnect_all() :: :ok
   def disconnect_all do
-    Enum.each(@tier2, fn %{id: id} -> SecureStore.delete(key_for(id)) end)
+    Enum.each(tier2(), fn %{id: id} -> SecureStore.delete(key_for(id)) end)
     SecureStore.delete("tmdb")
     :ok
   rescue

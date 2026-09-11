@@ -783,16 +783,18 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AttributionStates, :open_tmdb},
     {Kati.Screens.AttributionStates, :open_listenbrainz},
 
-    # Screen 82's TMDB key choice, opening on Kati's own — the already-selected
-    # member of a family whose other half does move.
-    {Kati.Screens.DataSourcesFa, :key_kati},
+    # Screen 82's `key_kati` was here until mishka-group/kati#103 folded the
+    # mirror away. The chip in force carries no tag on screen 80 — `key_chip/3`
+    # draws it only for the chip that is NOT selected — so with one screen
+    # instead of two there is no `key_kati` drawn anywhere, in either locale,
+    # and the line that named it went with the mirror.
     # Screen 126's opening filter.
     {Kati.Screens.MoneyDay, :filter_All},
-    # Screen 82's other key choice, and screen 93's two fields. `key_own` writes
+    # Screen 80's other key choice, and screen 93's two fields. `key_own` writes
     # through `Kati.Sources.put_tmdb_key/1` to `Mob.State`, which this heuristic
     # cannot see — the LanguagePick blind spot again, and covered by
     # `Kati.ServicesTest`. The two on 93 open no keyboard (#45).
-    {Kati.Screens.DataSourcesFa, :key_own},
+    {Kati.Screens.DataSources, :key_own},
     {Kati.Screens.MyServicesEmpty, :search},
     # Two, not five: 93 draws only the free card — having no subscriptions is
     # the whole subject of the board. Same `service_tag/1`, same reason.

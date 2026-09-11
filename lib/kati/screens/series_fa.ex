@@ -1099,7 +1099,7 @@ defmodule Kati.Screens.SeriesFa do
 
   # Board 249's three rows. Two of them push the SAME English screens the
   # English rows open — screen 33 and the drop sheet — which is the arrangement
-  # `Kati.Screens.DataSourcesFa` already records for its own retired-reason
+  # `Kati.Screens.DataSources` already records for its own retired-reason
   # row: one screen, so the two locales cannot drift about what a watch or a
   # drop is. It is real debt and it is named as such; the fold in
   # [#103](https://github.com/mishka-group/kati/issues/103) is what closes it,

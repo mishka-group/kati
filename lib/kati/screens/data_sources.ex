@@ -36,6 +36,7 @@ defmodule Kati.Screens.DataSources do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -72,16 +73,16 @@ defmodule Kati.Screens.DataSources do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Data sources", "Where Kati’s posters, covers and facts come from.", nil, :name)}
-        {UI.eyebrow("Working out of the box")}
+        {SettingsList.title(gettext("Data sources"), gettext("Where Kati’s posters, covers and facts come from."), nil, :name)}
+        {UI.eyebrow(gettext("Working out of the box"))}
         {Kati.Screens.DataSources.tier0()}
-        {UI.eyebrow("Better artwork and metadata")}
+        {UI.eyebrow(gettext("Better artwork and metadata"))}
         {Kati.Screens.DataSources.tmdb(assigns.tmdb, Map.get(assigns, :token, ""), Map.get(assigns, :token_saved?, false), Map.get(assigns, :token_error), Map.get(assigns, :token_epoch, 0))}
-        {UI.eyebrow("Connect an account")}
+        {UI.eyebrow(gettext("Connect an account"))}
         {Kati.Screens.DataSources.tier2(assigns.expanded)}
-        {UI.eyebrow("Where your tokens live")}
+        {UI.eyebrow(gettext("Where your tokens live"))}
         {Kati.Screens.DataSources.tokens()}
-        {UI.eyebrow("Cached metadata")}
+        {UI.eyebrow(gettext("Cached metadata"))}
         {Kati.Screens.DataSources.cache(Map.get(assigns, :cache_notice), Map.get(assigns, :refreshing?, false))}
       </Column>
     </Scroll>
@@ -101,7 +102,7 @@ defmodule Kati.Screens.DataSources do
       Enum.map(Sources.tier0(), fn source ->
         SettingsList.row(
           SettingsList.icon_tile(source.icon),
-          SettingsList.body(source.name, source.supplies),
+          Kati.Screens.DataSources.body(source.name, source.supplies),
           SettingsList.trailing(Kati.Screens.DataSources.reached(source.id))
         )
       end)
@@ -113,6 +114,87 @@ defmodule Kati.Screens.DataSources do
     </Column>
     """
   end
+
+  @doc """
+  A provider's name over its sub-line, with the name in the face its script needs.
+
+  `Kati.UI.SettingsList.body/3`'s shape, and it cannot draw these two words: it
+  builds both `Text` nodes itself and leaves `font_family` off, which is right
+  for every other settings row and wrong for this one. `TMDB` and `ListenBrainz`
+  are a machine's names for itself and the drawings set them in DM Mono in both
+  scripts; **فیلم و سریال · TVmaze** carries Persian, and DM Mono has no
+  Arabic-script glyph, so it would draw the Persian half as empty boxes and the
+  Latin half perfectly. `Kati.Locale.mono_face/1` decides by the script that is
+  actually in the string — see its doc — so a provider added to `Kati.Sources`
+  tomorrow is typeset correctly without anybody deciding again.
+
+  Every number here is `body/3`'s: 13.5 over 11.5 with 3pt between them, ink
+  over `sub`.
+  """
+  @spec body(String.t(), String.t()) :: map()
+  def body(name, sub) do
+    assigns = %{name: name, sub: sub, face: Kati.Locale.mono_face(name)}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Text
+        text={@name}
+        font_family={@face}
+        text_size={13.5}
+        font_weight="semibold"
+        text_color={:on_surface}
+        max_lines={1}
+      />
+      <Spacer size={3} />
+      <Text
+        text={@sub}
+        text_size={11.5}
+        line_height={Kati.Locale.leading(1.4)}
+        text_color={Kati.Theme.Palette.sub()}
+        max_lines={2}
+      />
+    </Column>
+    """
+  end
+
+  # The words on the controls, as functions rather than literals in the markup:
+  # `~MOB` is an uppercase sigil and interpolates nothing, so a `gettext/1` call
+  # has to reach it through an assign or a function. These are the ones that
+  # take no argument and would otherwise need an assign apiece.
+  @doc false
+  @spec save_label() :: String.t()
+  def save_label, do: gettext("Save")
+
+  @doc false
+  @spec connect_label() :: String.t()
+  def connect_label, do: gettext("Connect")
+
+  @doc false
+  @spec disconnect_label() :: String.t()
+  def disconnect_label, do: gettext("Disconnect")
+
+  @doc false
+  @spec token_placeholder() :: String.t()
+  def token_placeholder, do: gettext("Paste your TMDB read token")
+
+  @doc false
+  @spec pairing_label() :: String.t()
+  # Not `Kati.UI.eyebrow_label/1`: both drawings write these two in sentence
+  # case, in mono, and that helper upcases under `:en`.
+  def pairing_label, do: gettext("Pairing — expanded")
+
+  @doc false
+  @spec not_connected_label() :: String.t()
+  def not_connected_label, do: gettext("Not connected yet")
+
+  @doc false
+  @spec token_lives_there() :: String.t()
+  def token_lives_there,
+    do:
+      gettext(
+        "Your token lives there. Kati cannot ask for it yet — when it can, this is where " <>
+          "it comes from."
+      )
 
   @doc """
   When a source last answered, as `18:02`, or an em dash.
@@ -128,7 +210,7 @@ defmodule Kati.Screens.DataSources do
     ~MOB"""
     <Text
       text={@label}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(@label)}
       text_size={11.5}
       text_color={Kati.Theme.Palette.muted()}
       max_lines={1}
@@ -147,7 +229,7 @@ defmodule Kati.Screens.DataSources do
     |> Ash.read()
     |> case do
       {:ok, [%CachedTitle{fetched_at: %DateTime{} = at}]} ->
-        at |> Kati.Time.in_zone(Kati.Time.device_zone()) |> Calendar.strftime("%H:%M")
+        at |> Kati.Time.in_zone(Kati.Time.device_zone()) |> Kati.Locale.time()
 
       _other ->
         nil
@@ -169,20 +251,20 @@ defmodule Kati.Screens.DataSources do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("movie"),
-          Kati.UI.SettingsList.body("TMDB", "Posters, backdrops, cast"),
+          Kati.Screens.DataSources.body("TMDB", gettext("Posters, backdrops, cast")),
           Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.reached(:tmdb))
         )
       ])}
       <Spacer size={12} />
       <Row fill_width={true}>
-        {Kati.Screens.DataSources.key_chip("Use Kati’s key", :key_kati, choice == :kati)}
+        {Kati.Screens.DataSources.key_chip(gettext("Use Kati’s key"), :key_kati, choice == :kati)}
         <Spacer size={7} />
-        {Kati.Screens.DataSources.key_chip("Use my own key", :key_own, choice == :own)}
+        {Kati.Screens.DataSources.key_chip(gettext("Use my own key"), :key_own, choice == :own)}
         <Spacer weight={1.0} />
       </Row>
       <Spacer size={12} />
       {Kati.Screens.DataSources.own_key(choice, token, saved?, error, epoch)}
-      {Kati.UI.SettingsList.note("info", "Kati’s key is public, because Kati is open source. That costs you nothing — TMDB counts requests per IP address, not per key. Paste your own only if you want your own limits.")}
+      {Kati.UI.SettingsList.note("info", gettext("Kati’s key is public, because Kati is open source. That costs you nothing — TMDB counts requests per IP address, not per key. Paste your own only if you want your own limits."))}
       <Spacer size={24} />
     </Column>
     """
@@ -253,7 +335,7 @@ defmodule Kati.Screens.DataSources do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("lock"),
-          Kati.UI.SettingsList.body("Your key is in use", @since),
+          Kati.UI.SettingsList.body(gettext("Your key is in use"), @since),
           Kati.UI.SettingsList.trailing(
             Kati.UI.symbol("check_circle", size: 19, color: Kati.Theme.Palette.green())
           ),
@@ -270,7 +352,7 @@ defmodule Kati.Screens.DataSources do
       ])}
       <Spacer size={10} />
       <Row fill_width={true} align="center">
-        {Kati.UI.SettingsList.action_pill("Replace", {self(), :replace_token})}
+        {Kati.UI.SettingsList.action_pill(gettext("Replace"), {self(), :replace_token})}
         <Spacer size={10} />
         {Kati.Screens.DataSources.remove_pill()}
         <Spacer weight={1.0} />
@@ -319,14 +401,15 @@ defmodule Kati.Screens.DataSources do
   @spec saved_line(DateTime.t() | nil) :: String.t()
   def saved_line(at \\ Kati.Screens.DataSources.saved_at())
 
-  def saved_line(nil), do: "SAVED"
+  def saved_line(nil), do: Kati.UI.eyebrow_label(gettext("Saved"))
 
   def saved_line(at) do
-    "SAVED " <>
-      String.upcase(
-        Kati.Settings.Watcher.checked_line(at, false)
-        |> String.replace("checked ", "")
-      )
+    # `String.upcase/1` was the capitalisation AND the join, and Persian has no
+    # upper case — `Kati.UI.eyebrow_label/1` is the one that knows that. The
+    # span comes from `Kati.Settings.Watcher.since/1`, which exists because this
+    # line used to build it by String-replacing `"checked "` off the front of
+    # `checked_line/2`'s answer — a sentence, and a sentence is translated.
+    Kati.UI.eyebrow_label(gettext("Saved %{ago}", ago: Kati.Settings.Watcher.since(at)))
   end
 
   @doc false
@@ -353,7 +436,7 @@ defmodule Kati.Screens.DataSources do
     ~MOB"""
     <Text
       text={@masked}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(@masked)}
       text_size={12.5}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}
@@ -364,7 +447,7 @@ defmodule Kati.Screens.DataSources do
   @doc false
   def remove_pill do
     Kati.Components.MishkaPill.pill(
-      label: "Remove",
+      label: gettext("Remove"),
       on_tap: {self(), :remove_token},
       background: Palette.red_wash(),
       text_color: Palette.red(),
@@ -426,9 +509,11 @@ defmodule Kati.Screens.DataSources do
   def no_keystore do
     Kati.UI.SettingsList.note(
       "lock",
-      "This device has no keystore Kati can reach, so the token sits unencrypted on " <>
-        "the filesystem like every other. Kati sends it only to TMDB, and you can " <>
-        "revoke it from your TMDB account at any time."
+      gettext(
+        "This device has no keystore Kati can reach, so the token sits unencrypted on " <>
+          "the filesystem like every other. Kati sends it only to TMDB, and you can " <>
+          "revoke it from your TMDB account at any time."
+      )
     )
   end
 
@@ -439,7 +524,7 @@ defmodule Kati.Screens.DataSources do
     ~MOB"""
     <TextField
       value={@token}
-      placeholder="Paste your TMDB read token"
+      placeholder={Kati.Screens.DataSources.token_placeholder()}
       return_key="done"
       fill_width={true}
       accessibility_id="tmdb_token"
@@ -464,7 +549,7 @@ defmodule Kati.Screens.DataSources do
       on_tap={@tap}
     >
       <Text
-        text="Save"
+        text={Kati.Screens.DataSources.save_label()}
         text_size={12.5}
         font_weight="bold"
         text_color={Kati.Theme.Palette.on_ink()}
@@ -482,14 +567,14 @@ defmodule Kati.Screens.DataSources do
     do:
       Kati.UI.SettingsList.note(
         "check_circle",
-        "A token of yours is stored. Kati searches with it."
+        gettext("A token of yours is stored. Kati searches with it.")
       )
 
   def token_state(_saved?, _error),
     do:
       Kati.UI.SettingsList.note(
         "info",
-        "themoviedb.org → your account → Settings → API. Copy the read access token."
+        gettext("themoviedb.org → your account → Settings → API. Copy the read access token.")
       )
 
   @doc """
@@ -512,21 +597,22 @@ defmodule Kati.Screens.DataSources do
 
   Both were decoration until this round: `Kati.UI.chip/2` reads `:on_toggle`
   out of its opts and emits no tap at all without one, so the page drew a
-  choice it could not be told. The destination is not invented — the Persian
-  mirror of this exact card has answered `:key_kati` and `:key_own` through
-  `Kati.Sources.put_tmdb_key/1` since screen 82 landed
-  (`Kati.Screens.DataSourcesFa`), and this is the half of a mirrored pair that
-  was never connected.
+  choice it could not be told. The destination was not invented — the Persian
+  mirror of this exact card had answered `:key_kati` and `:key_own` through
+  `Kati.Sources.put_tmdb_key/1` since screen 82 landed, and this was the half of
+  a mirrored pair that was never connected. mishka-group/kati#103 folded the
+  mirror away and board 82 is this card under `:fa`, so there is one card now
+  and it is wired.
 
   **The chip in force carries no tag**, which is the one place this diverges
-  from 82. It is the shape `Kati.Screens.Settings.segment/2` keeps for the
+  from board 82 as drawn. It is the shape `Kati.Screens.Settings.segment/2` keeps for the
   theme trough one screen up — *only the unselected tiles are choices* — and
   the reason is the same: this is an exclusive pair, not a filter family, so
   tapping the chip that is already lit can only set the value it already has.
   Drawing a tag for that is drawing a control that answers nothing, which is
   what `Kati.ScreenTapSweepTest`'s `no new dead-looking taps` reports and what
-  `@inert_taps` then has to carry a line about. 82 pays that line
-  (`{Kati.Screens.DataSourcesFa, :key_kati}`); this page does not have to.
+  `@inert_taps` then has to carry a line about — one line now, for this screen,
+  rather than one for each of a pair.
 
   Nothing visible moves either way: a chip's pill and label are the component's
   and do not depend on `:on_toggle`. What the unselected chip gains is an
@@ -576,7 +662,7 @@ defmodule Kati.Screens.DataSources do
   """
   @spec tier2_row(map(), atom() | nil) :: map()
   def tier2_row(source, expanded) do
-    if Kati.Retired.known?(source.name) do
+    if Kati.Retired.known?(source.id) do
       Kati.Screens.DataSources.retired_row(source)
     else
       Kati.Screens.DataSources.live_row(source, expanded)
@@ -589,7 +675,7 @@ defmodule Kati.Screens.DataSources do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.row(
         Kati.Screens.DataSources.dimmed_tile(source.icon),
-        Kati.UI.SettingsList.body(source.name, "Not set up — tap to see why"),
+        Kati.Screens.DataSources.body(source.name, gettext("Not set up — tap to see why")),
         Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.not_in_v1()),
         on_tap: {self(), String.to_atom("why_#{source.id}")},
         rule: false
@@ -623,10 +709,10 @@ defmodule Kati.Screens.DataSources do
       align="center"
     >
       <Text
-        text="NOT IN V1"
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(gettext("Not in v1"))}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Palette.rail_idle()}
         max_lines={1}
       />
@@ -643,7 +729,7 @@ defmodule Kati.Screens.DataSources do
     <Column fill_width={true}>
       {Kati.UI.SettingsList.row(
         Kati.Screens.DataSources.source_tile(source.icon, connected?),
-        Kati.UI.SettingsList.body(source.name, Kati.Screens.DataSources.sub_line(source, connected?, expanded?)),
+        Kati.Screens.DataSources.body(source.name, Kati.Screens.DataSources.sub_line(source, connected?, expanded?)),
         Kati.UI.SettingsList.trailing(Kati.Screens.DataSources.connect_control(connected?, expanded?)),
         on_tap: {self(), String.to_atom("connect_#{source.id}")},
         rule: false
@@ -682,10 +768,12 @@ defmodule Kati.Screens.DataSources do
   contract the row actually keeps.
   """
   @spec connected_line(atom()) :: String.t()
-  def connected_line(:listenbrainz), do: "Connected as ines.k · 412 listens"
-  def connected_line(:hardcover), do: "Connected as ines.k"
-  def connected_line(:thetvdb), do: "Connected as ines.k"
-  def connected_line(_other), do: "Connected"
+  def connected_line(:listenbrainz),
+    do: gettext("Connected as %{who} · %{n} listens", who: "ines.k", n: Kati.Locale.number(412))
+
+  def connected_line(:hardcover), do: gettext("Connected as %{who}", who: "ines.k")
+  def connected_line(:thetvdb), do: gettext("Connected as %{who}", who: "ines.k")
+  def connected_line(_other), do: gettext("Connected")
 
   @doc """
   The source's glyph, with board 319's status dot on it.
@@ -722,7 +810,7 @@ defmodule Kati.Screens.DataSources do
   def connect_control(true, _expanded?) do
     ~MOB"""
     <Text
-      text="Disconnect"
+      text={Kati.Screens.DataSources.disconnect_label()}
       text_size={12.5}
       font_weight="semibold"
       text_color={Kati.Theme.Palette.red()}
@@ -744,7 +832,7 @@ defmodule Kati.Screens.DataSources do
       align="center"
     >
       <Text
-        text="Connect"
+        text={Kati.Screens.DataSources.connect_label()}
         text_size={12}
         font_weight="bold"
         text_color={Kati.Theme.Palette.on_ink()}
@@ -793,21 +881,27 @@ defmodule Kati.Screens.DataSources do
     ~MOB"""
     <Column fill_width={true} padding_bottom={13}>
       <Text
-        text="Pairing — expanded"
-        font_family="mono"
+        text={Kati.Screens.DataSources.pairing_label()}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.muted()}
       />
       <Spacer size={8} />
-      <Text text={@why} text_size={12} line_height={1.5} text_color={Palette.ink_soft()} />
+      <Text
+        text={@why}
+        text_size={12}
+        line_height={Kati.Locale.leading(1.5)}
+        text_color={Palette.ink_soft()}
+        max_lines={6}
+      />
       <Spacer size={12} />
       <Column fill_width={true} background={Palette.cream()} corner_radius={16} padding={15}>
         <Text
-          text="Not connected yet"
-          font_family="mono"
+          text={Kati.Screens.DataSources.not_connected_label()}
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
-          letter_spacing={0.12}
+          letter_spacing={Kati.Locale.tracking(0.12)}
           text_color={Palette.cream_meta()}
         />
         <Spacer size={8} />
@@ -815,16 +909,31 @@ defmodule Kati.Screens.DataSources do
          # and nothing else — *"previously the URL was inheriting the code's
          # typography, which is why a domain was set like a passphrase."* No
          # code is ever issued here, so what is left is the URL at its own size.}
-        <Text text={@site} font_family="mono" text_size={13} text_color={Palette.cream_ink()} />
+        {# A URL is Latin in both scripts and has no digits to fold, so it keeps
+         # DM Mono wherever it is read. `Kati.Locale.ltr/1` isolates it, because
+         # a bare domain inside an `rtl` paragraph puts its `.org` at the wrong
+         # end — the bug board 85's licence notices had.}
+        <Text
+          text={Kati.Locale.ltr(@site)}
+          font_family="mono"
+          text_size={13}
+          text_color={Palette.cream_ink()}
+        />
         <Spacer size={8} />
         <Text
-          text={"Your token lives there. Kati cannot ask for it yet — when it can, this is where it comes from."}
+          text={Kati.Screens.DataSources.token_lives_there()}
           text_size={12.5}
-          line_height={1.5}
+          line_height={Kati.Locale.leading(1.5)}
           text_color={Palette.cream_sub()}
+          max_lines={6}
         />
         <Spacer size={4} />
-        <Text text={@supplies} font_family="mono" text_size={11} text_color={Palette.cream_meta()} />
+        <Text
+          text={@supplies}
+          font_family={Kati.Locale.mono_face(@supplies)}
+          text_size={11}
+          text_color={Palette.cream_meta()}
+        />
       </Column>
     </Column>
     """
@@ -866,7 +975,7 @@ defmodule Kati.Screens.DataSources do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("delete_forever"),
-          Kati.UI.SettingsList.body("Disconnect everything and wipe tokens", nil),
+          Kati.UI.SettingsList.body(gettext("Disconnect everything and wipe tokens"), nil),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.chevron()),
           on_tap: {self(), :wipe_tokens}
         )
@@ -888,7 +997,7 @@ defmodule Kati.Screens.DataSources do
       size: Kati.Screens.DataSources.cache_size(),
       oldest: Kati.Screens.DataSources.oldest_entry(),
       notice: Kati.Screens.DataSources.cache_notice(notice),
-      refresh: if(refreshing?, do: "Refreshing…", else: "Refresh")
+      refresh: if(refreshing?, do: gettext("Refreshing…"), else: gettext("Refresh"))
     }
 
     ~MOB"""
@@ -912,21 +1021,21 @@ defmodule Kati.Screens.DataSources do
             <Spacer size={5} />
             <Text
               text={@oldest}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(@oldest)}
               text_size={10}
-              letter_spacing={0.12}
+              letter_spacing={Kati.Locale.tracking(0.12)}
               text_color={Palette.muted()}
               max_lines={1}
             />
           </Column>
           {Kati.UI.SettingsList.action_pill(@refresh, {self(), :refresh_cache})}
           <Spacer size={9} />
-          {Kati.UI.SettingsList.action_pill("Clear", {self(), :clear_cache})}
+          {Kati.UI.SettingsList.action_pill(gettext("Clear"), {self(), :clear_cache})}
         </Row>
         {@notice}
       </Column>
       <Spacer size={12} />
-      {Kati.UI.SettingsList.note("info", "Kati refreshes anything older than six months on its own. That is a promise it keeps, not a limit it suffers.")}
+      {Kati.UI.SettingsList.note("info", gettext("Kati refreshes anything older than six months on its own. That is a promise it keeps, not a limit it suffers."))}
     </Column>
     """
   end
@@ -945,13 +1054,24 @@ defmodule Kati.Screens.DataSources do
   @spec cache_size() :: String.t()
   def cache_size do
     case Ash.count(CachedTitle) do
-      {:ok, 0} -> "Nothing cached yet"
-      {:ok, _count} -> "#{Kati.Screens.DataSources.database_megabytes()} MB cached"
-      _other -> "Nothing cached yet"
+      {:ok, 0} ->
+        Kati.Screens.DataSources.nothing_cached()
+
+      {:ok, _count} ->
+        gettext("%{n} MB cached",
+          n: Kati.Locale.number(Kati.Screens.DataSources.database_megabytes())
+        )
+
+      _other ->
+        Kati.Screens.DataSources.nothing_cached()
     end
   rescue
-    _error -> "Nothing cached yet"
+    _error -> Kati.Screens.DataSources.nothing_cached()
   end
+
+  @doc false
+  @spec nothing_cached() :: String.t()
+  def nothing_cached, do: gettext("Nothing cached yet")
 
   @doc "The database file's size in whole megabytes, never less than one."
   @spec database_megabytes() :: pos_integer()
@@ -974,23 +1094,40 @@ defmodule Kati.Screens.DataSources do
     |> case do
       {:ok, [%CachedTitle{fetched_at: %DateTime{} = at}]} ->
         days = Date.diff(Kati.Time.today(), DateTime.to_date(at))
-        "OLDEST ENTRY #{Kati.Screens.DataSources.age(days)}"
+
+        Kati.UI.eyebrow_label(
+          gettext("Oldest entry %{age}", age: Kati.Screens.DataSources.age(days))
+        )
 
       _other ->
-        "NOTHING TO REFRESH"
+        Kati.Screens.DataSources.nothing_to_refresh()
     end
   rescue
-    _error -> "NOTHING TO REFRESH"
+    _error -> Kati.Screens.DataSources.nothing_to_refresh()
   end
 
-  @doc "A span of days as the row writes it — today, days, months."
+  @doc false
+  @spec nothing_to_refresh() :: String.t()
+  def nothing_to_refresh, do: Kati.UI.eyebrow_label(gettext("Nothing to refresh"))
+
+  @doc """
+  A span of days as the row writes it — today, days, months.
+
+  `ngettext/5` rather than the `if days == 1` it was, and not for tidiness:
+  Persian counts nouns in the singular — ۲ ماه, never ۲ ماه‌ها — so the branch
+  the English sentence needs is one the Persian sentence must not have. That is
+  a plural rule, which is what a PO file's `Plural-Forms` is for, and it is why
+  the mirror could not reuse this function and had to keep its own.
+  """
   @spec age(integer()) :: String.t()
-  def age(days) when days <= 0, do: "TODAY"
-  def age(days) when days < 31, do: "#{days} #{if days == 1, do: "DAY", else: "DAYS"}"
+  def age(days) when days <= 0, do: gettext("today")
+
+  def age(days) when days < 31,
+    do: ngettext("%{n} day", "%{n} days", days, n: Kati.Locale.number(days))
 
   def age(days) do
     months = div(days, 30)
-    "#{months} #{if months == 1, do: "MONTH", else: "MONTHS"}"
+    ngettext("%{n} month", "%{n} months", months, n: Kati.Locale.number(months))
   end
 
   @doc """
@@ -1011,9 +1148,9 @@ defmodule Kati.Screens.DataSources do
       <Spacer size={11} />
       <Text
         text={@message}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@message)}
         text_size={10.5}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.muted()}
       />
     </Column>
@@ -1032,9 +1169,16 @@ defmodule Kati.Screens.DataSources do
   def handle_tap(:clear_cache, socket) do
     notice =
       case Kati.Media.Cache.clear() do
-        {:ok, 0} -> "Nothing was cached."
-        {:ok, n} -> "Cleared #{n} cached #{if n == 1, do: "row", else: "rows"}."
-        {:error, _reason} -> "The cache could not be cleared."
+        {:ok, 0} ->
+          gettext("Nothing was cached.")
+
+        {:ok, n} ->
+          ngettext("Cleared %{n} cached row.", "Cleared %{n} cached rows.", n,
+            n: Kati.Locale.number(n)
+          )
+
+        {:error, _reason} ->
+          gettext("The cache could not be cleared.")
       end
 
     {:noreply, Mob.Socket.assign(socket, :cache_notice, notice)}
@@ -1063,7 +1207,8 @@ defmodule Kati.Screens.DataSources do
   # Store first, then relight the chip — the same order screen 24's theme
   # trough keeps, and for the same reason: the chip and `Sources.tmdb_key/0`
   # are one fact drawn twice and must not be able to disagree. Byte for byte
-  # what `Kati.Screens.DataSourcesFa` has answered since screen 82 landed.
+  # what the Persian mirror of this screen answered from the day 82 landed,
+  # which is why folding it away changed nothing about what a tap does.
   #
   # Both clauses stay even though `key_chip/3` only ever draws the tag for the
   # chip that is NOT in force. A handler that exists for a tag the resting
@@ -1109,13 +1254,18 @@ defmodule Kati.Screens.DataSources do
      |> Mob.Socket.assign(:token_error, nil)}
   rescue
     _error ->
-      {:noreply, Mob.Socket.assign(socket, :token_error, "Couldn’t remove it. Nothing changed.")}
+      {:noreply,
+       Mob.Socket.assign(
+         socket,
+         :token_error,
+         gettext("Couldn’t remove it. Nothing changed.")
+       )}
   end
 
   def handle_tap(:save_token, socket) do
     case String.trim(socket.assigns[:token] || "") do
       "" ->
-        {:noreply, Mob.Socket.assign(socket, :token_error, "Paste a token first.")}
+        {:noreply, Mob.Socket.assign(socket, :token_error, gettext("Paste a token first."))}
 
       token ->
         {:noreply, Kati.Screens.DataSources.store_token(socket, token)}
@@ -1129,7 +1279,7 @@ defmodule Kati.Screens.DataSources do
         {:noreply,
          Mob.Socket.push_screen(socket, Kati.Screens.RetiredReason, %{
            id: String.to_existing_atom(id),
-           back: "Data sources"
+           back: gettext("Data sources")
          })}
 
       "connect_" <> id ->
@@ -1187,15 +1337,19 @@ defmodule Kati.Screens.DataSources do
       "Nothing on the shelf to refresh."
   """
   @spec refresh_line({:ok, map()} | {:error, term()}) :: String.t()
-  def refresh_line({:ok, %{refreshed: 0, failed: 0}}), do: "Nothing on the shelf to refresh."
+  def refresh_line({:ok, %{refreshed: 0, failed: 0}}),
+    do: gettext("Nothing on the shelf to refresh.")
 
   def refresh_line({:ok, %{refreshed: n, failed: 0}}),
-    do: "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}."
+    do: ngettext("Refreshed %{n} title.", "Refreshed %{n} titles.", n, n: Kati.Locale.number(n))
 
   def refresh_line({:ok, %{refreshed: n, failed: f}}),
     do:
-      "Refreshed #{n} #{if n == 1, do: "title", else: "titles"}. " <>
-        "#{f} could not be reached."
+      ngettext("Refreshed %{n} title.", "Refreshed %{n} titles.", n, n: Kati.Locale.number(n)) <>
+        " " <>
+        ngettext("%{n} could not be reached.", "%{n} could not be reached.", f,
+          n: Kati.Locale.number(f)
+        )
 
   # `Kati.Media.Tmdb.message/1` already owns every sentence about a request
   # that could not be made, including the one about a key nobody has entered —
@@ -1235,13 +1389,15 @@ defmodule Kati.Screens.DataSources do
           # Board 318's sentence. `inspect(reason)` named a struct at a reader
           # who has pasted a string; the two commonest causes are the two named
           # here, and TMDB issues both on one page.
-          "TMDB didn’t accept this. Check you copied the API Read Access Token " <>
-            "and not the API key, and that it has no trailing space."
+          gettext(
+            "TMDB didn’t accept this. Check you copied the API Read Access Token " <>
+              "and not the API key, and that it has no trailing space."
+          )
         )
     end
   rescue
-    _error -> Mob.Socket.assign(socket, :token_error, "That did not save.")
+    _error -> Mob.Socket.assign(socket, :token_error, gettext("That did not save."))
   catch
-    :exit, _reason -> Mob.Socket.assign(socket, :token_error, "That did not save.")
+    :exit, _reason -> Mob.Socket.assign(socket, :token_error, gettext("That did not save."))
   end
 end

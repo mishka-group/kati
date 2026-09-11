@@ -151,6 +151,7 @@ defmodule Kati.Screens.DataSourcesStates do
   """
 
   use Kati.Screens.Pushed, back: "Settings"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Components.MishkaPill
   alias Kati.Components.MishkaProgress
@@ -551,15 +552,18 @@ defmodule Kati.Screens.DataSourcesStates do
   at this moment would invite someone to do by hand the one thing the app has
   already undertaken to do for them.
 
-  `OLDEST ENTRY 5 MONTHS` is `Kati.Screens.DataSources.age/1` given the drawing's
-  own span, so the capitals and the plural are 80's rather than retyped. The
+  `OLDEST ENTRY 5 MONTHS` is `Kati.Screens.DataSources.age/1` inside screen 80's
+  own `Oldest entry %{age}`, so the capitals, the plural and the word order are
+  80's rather than retyped — which is what stops this sheet drawing an English
+  `OLDEST ENTRY` over a Persian span when `Kati.PersianFontTest` sweeps it. The
   figure it is given is stated for the reason the moduledoc gives: a real oldest
   entry read on this device would be honest about a cache that is not near any
   ceiling.
   """
   @spec cache_ceiling() :: map()
   def cache_ceiling do
-    oldest = "OLDEST ENTRY " <> DataSources.age(150)
+    oldest =
+      Kati.UI.eyebrow_label(gettext("Oldest entry %{age}", age: DataSources.age(150)))
 
     bar =
       MishkaProgress.progress(
@@ -586,7 +590,7 @@ defmodule Kati.Screens.DataSourcesStates do
         <Row fill_width={true} align="center">
           <Column weight={1.0}>
             <Text
-              text="61 MB cached"
+              text={gettext("%{n} MB cached", n: Kati.Locale.number(61))}
               text_size={13.5}
               font_weight="semibold"
               text_color={:on_surface}
@@ -595,7 +599,7 @@ defmodule Kati.Screens.DataSourcesStates do
             <Spacer size={4} />
             <Text
               text={@oldest}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face(@oldest)}
               text_size={11}
               text_color={Palette.muted()}
               max_lines={1}

@@ -364,12 +364,34 @@ defmodule Kati.ServicesTest do
     end
 
     test "an age is written in the units the row uses" do
-      assert DataSources.age(0) == "TODAY"
-      assert DataSources.age(1) == "1 DAY"
-      assert DataSources.age(9) == "9 DAYS"
-      assert DataSources.age(30) == "30 DAYS"
-      assert DataSources.age(60) == "2 MONTHS"
-      assert DataSources.age(31) == "1 MONTH"
+      # In the reader's own case, not the row's. `age/1` answered `TODAY` and
+      # `2 MONTHS` until mishka-group/kati#103, and the capitals were the
+      # function's — which made it a function no Persian caller could reuse,
+      # since Persian has no upper case. `Kati.UI.eyebrow_label/1` on the
+      # composed line is what capitalises now, and `oldest_entry/0` below is
+      # where that happens; here the span is just the span.
+      assert DataSources.age(0) == "today"
+      assert DataSources.age(1) == "1 day"
+      assert DataSources.age(9) == "9 days"
+      assert DataSources.age(30) == "30 days"
+      assert DataSources.age(60) == "2 months"
+      assert DataSources.age(31) == "1 month"
+
+      # And the row is still the row: the capitals come back on the way out.
+      assert DataSources.oldest_entry() =~ ~r/^(OLDEST ENTRY .*|NOTHING TO REFRESH)$/
+    end
+
+    test "and it is the same span in Persian, with no plural branch to get wrong" do
+      # Persian counts nouns in the singular — ۲ ماه, never ۲ ماه‌ها — which is
+      # the reason board 82's mirror could not reuse `age/1` and kept its own.
+      # The PO file's `Plural-Forms` is what carries that now, so one function
+      # answers both scripts.
+      Kati.Locale.as(:fa, fn ->
+        assert DataSources.age(0) == "امروز"
+        assert DataSources.age(1) == "۱ روز"
+        assert DataSources.age(9) == "۹ روز"
+        assert DataSources.age(60) == "۲ ماه"
+      end)
     end
 
     test "the database size never rounds down to nothing" do

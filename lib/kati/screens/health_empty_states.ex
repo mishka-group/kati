@@ -429,12 +429,15 @@ defmodule Kati.Screens.HealthEmptyStates do
       section: section,
       # Board 114 landed on 7 September as `Kati.Screens.RetiredReason`, and
       # this is the `on_tap` the moduledoc above said would go here when it did.
-      # `Kati.Retired` holds the reason; a tile whose name it does not know keeps
+      # `Kati.Retired` holds the reason; a tile whose id it does not know keeps
       # `nil` and stays untappable rather than opening a page about nothing.
+      #
+      # The ID and not the name. It was `section.name`, which is a drawn string
+      # — so the day this grid is read in Persian the tile silently stops being
+      # tappable, which is `Kati.Retired`'s own moduledoc on the subject.
       tap:
-        if(Kati.Retired.known?(section.name),
-          do:
-            {self(), String.to_atom("why_" <> Atom.to_string(Kati.Retired.id_for(section.name)))}
+        if(Kati.Retired.known?(section.id),
+          do: {self(), String.to_atom("why_" <> Atom.to_string(section.id))}
         )
     }
 

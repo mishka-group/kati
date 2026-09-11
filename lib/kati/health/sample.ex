@@ -59,30 +59,45 @@ defmodule Kati.Health.Sample do
   the point: switching one on is a state change, not a new screen.
   """
   @spec sections() :: [map()]
+  # `id:` is not decoration and not a key into anything else: it is what a
+  # caller asks `Kati.Retired.known?/1` with. `Kati.Screens.HealthEmptyStates`
+  # asked with `name`, which is drawn — so the two dashed tiles would have
+  # stopped being tappable the day this grid was read in Persian, silently.
+  # mishka-group/kati#103.
   def sections do
     [
       %{
+        id: :meals,
         icon: "restaurant",
         name: "Meals",
         line: "Cutting v3 · week 6",
         on?: true,
         dot: 0xFF1A1917
       },
-      %{icon: "bolt", name: "Habits", line: "4 active · 12-day best", on?: true, dot: 0xFF4E9A73},
-      %{icon: "bedtime", name: "Sleep", line: "Not set up", on?: false},
+      %{
+        id: :habits,
+        icon: "bolt",
+        name: "Habits",
+        line: "4 active · 12-day best",
+        on?: true,
+        dot: 0xFF4E9A73
+      },
+      %{id: :sleep, icon: "bedtime", name: "Sleep", line: "Not set up", on?: false},
       # Weight and Medication stopped being outlines when screens 109 and 112
       # landed. Both now carry a real line and a dot, which is what `on?` has
       # always meant on this grid: switching a section on is a state change, not
       # a new screen. Sleep and Workouts are still unbuilt and still dashed.
       %{
+        id: :weight,
         icon: "monitor_weight",
         name: "Weight",
         line: "76.0 kg · down 2.4",
         on?: true,
         dot: 0xFF4E9A73
       },
-      %{icon: "fitness_center", name: "Workouts", line: "Not set up", on?: false},
+      %{id: :workouts, icon: "fitness_center", name: "Workouts", line: "Not set up", on?: false},
       %{
+        id: :medication,
         icon: "medication",
         name: "Medication",
         line: "4 doses today",

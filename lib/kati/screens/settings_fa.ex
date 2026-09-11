@@ -522,7 +522,7 @@ defmodule Kati.Screens.SettingsFa do
     # screen 24 and this screen name the same destinations without a
     # translation table between them.
     "my_services" => Kati.Screens.MyServices,
-    "data_sources" => Kati.Screens.DataSourcesFa,
+    "data_sources" => Kati.Screens.DataSources,
     "attribution" => Kati.Screens.Attribution,
     # 62's own caption is *Settings rows mirror wholesale*, and these two were
     # the mirror stopping short: screen 24's Import row reaches

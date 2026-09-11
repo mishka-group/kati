@@ -1,4 +1,6 @@
 defmodule Kati.Settings.Watcher do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   The two controls on screen 25 that something actually reads.
 
@@ -200,30 +202,60 @@ defmodule Kati.Settings.Watcher do
       iex> Kati.Settings.Watcher.checked_line(nil, false)
       "never checked"
 
+      iex> Kati.Settings.Watcher.checked_line(DateTime.add(Kati.Time.now(), -7200), false)
+      "checked 2 hours ago"
+
       iex> Kati.Settings.Watcher.checked_line(nil, true)
       "checking now"
   """
   @spec checked_line(DateTime.t() | nil, boolean()) :: String.t()
-  def checked_line(_at, true), do: "checking now"
-  def checked_line(nil, _idle), do: "never checked"
+  def checked_line(_at, true), do: gettext("checking now")
+  def checked_line(nil, _idle), do: gettext("never checked")
 
   def checked_line(at, _idle) do
-    seconds = DateTime.diff(Kati.Time.now(), at)
-
-    cond do
-      seconds < 60 -> "checked just now"
-      seconds < 3600 -> "checked #{minutes(seconds)} ago"
-      seconds < 86_400 -> "checked #{hours(seconds)} ago"
-      true -> "checked #{days(seconds)} ago"
+    if DateTime.diff(Kati.Time.now(), at) < 60 do
+      gettext("checked just now")
+    else
+      gettext("checked %{ago}", ago: Kati.Settings.Watcher.since(at))
     end
   end
 
-  defp minutes(seconds), do: unit(div(seconds, 60), "minute")
-  defp hours(seconds), do: unit(div(seconds, 3600), "hour")
-  defp days(seconds), do: unit(div(seconds, 86_400), "day")
+  @doc """
+  How long ago a moment was, as the sentence around it reads it.
 
-  defp unit(1, word), do: "1 " <> word
-  defp unit(n, word), do: "#{n} #{word}s"
+      iex> Kati.Settings.Watcher.since(DateTime.add(Kati.Time.now(), -7200))
+      "2 hours ago"
+
+  Split out of `checked_line/2` by mishka-group/kati#103, because screen 80's
+  board 318 says `SAVED 2 MINUTES AGO` and was building that by String-replacing
+  `"checked "` off the front of this one's answer — which is a sentence, and a
+  sentence is translated. Two callers, one span.
+  """
+  @spec since(DateTime.t()) :: String.t()
+  def since(at) do
+    seconds = DateTime.diff(Kati.Time.now(), at)
+
+    cond do
+      seconds < 3600 -> minutes(seconds)
+      seconds < 86_400 -> hours(seconds)
+      true -> days(seconds)
+    end
+  end
+
+  defp minutes(seconds) do
+    n = div(seconds, 60)
+    ngettext("%{n} minute ago", "%{n} minutes ago", n, n: Kati.Locale.number(n))
+  end
+
+  defp hours(seconds) do
+    n = div(seconds, 3600)
+    ngettext("%{n} hour ago", "%{n} hours ago", n, n: Kati.Locale.number(n))
+  end
+
+  defp days(seconds) do
+    n = div(seconds, 86_400)
+    ngettext("%{n} day ago", "%{n} days ago", n, n: Kati.Locale.number(n))
+  end
 
   @doc """
   The interval a cadence asks for, in minutes — `nil` for a name that is not

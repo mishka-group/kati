@@ -250,6 +250,32 @@ defmodule Kati.Locale do
   def mono_face, do: pick("mono", "fa")
 
   @doc """
+  The face a mono line takes when the line's own script gets a say.
+
+      iex> Kati.Locale.mono_face("ListenBrainz")
+      "mono"
+
+  `mono_face/0` asks the READER's language and this asks the STRING's script,
+  which is the right question wherever a mono slot holds a proper noun. Screen
+  80's provider list is the case: `ListenBrainz` and `TMDB` are a machine's
+  names for itself, they are pure ASCII, and DM Mono has every glyph they need
+  — so they stay in DM Mono in both scripts, which is what both drawings draw.
+  `فیلم و سریال · TVmaze` is not, and DM Mono would set the Persian half as
+  empty boxes and the Latin half perfectly, which is the worst of the two
+  outcomes because it looks deliberate.
+
+  Deciding by script rather than by a hand-kept list means a provider added to
+  `Kati.Sources` tomorrow is typeset correctly without anybody deciding again.
+  `Kati.Screens.DataSourcesFa.name/1` is where this started; it went the same
+  way its screen did, and `Kati.Screens.DataSources.body/2` is what calls it
+  now.
+  """
+  @spec mono_face(String.t()) :: String.t()
+  def mono_face(text) when is_binary(text) do
+    if String.match?(text, ~r/\A[\x20-\x7E]*\z/), do: "mono", else: mono_face()
+  end
+
+  @doc """
   A number in the reader's own digits.
 
       iex> Kati.Locale.number(190)

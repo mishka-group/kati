@@ -218,7 +218,7 @@ defmodule Kati.UI.SettingsList do
       text_size={28}
       max_font_scale={1.6}
       font_weight="bold"
-      letter_spacing={-0.03}
+      letter_spacing={Kati.Locale.tracking(-0.03)}
       text_color={:on_surface}
     />
     """
@@ -448,7 +448,7 @@ defmodule Kati.UI.SettingsList do
       <Text
         text={sub}
         text_size={11.5}
-        line_height={1.4}
+        line_height={Kati.Locale.leading(1.4)}
         text_color={Palette.sub()}
         max_lines={lines}
       />
@@ -890,7 +890,7 @@ defmodule Kati.UI.SettingsList do
     <Text
       text={text}
       text_size={12.5}
-      line_height={1.55}
+      line_height={Kati.Locale.leading(1.55)}
       text_color={Palette.ink_soft()}
       weight={1.0}
     />

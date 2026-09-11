@@ -772,6 +772,7 @@ msgstr ""
 msgid "Reading"
 msgstr ""
 
+#: lib/kati/screens/data_sources.ex:448
 #: lib/kati/screens/list_detail.ex:564
 #, elixir-autogen, elixir-format
 msgid "Remove"
@@ -1154,6 +1155,8 @@ msgstr ""
 msgid "Back"
 msgstr ""
 
+#: lib/kati/screens/data_sources.ex:66
+#: lib/kati/screens/data_sources.ex:1280
 #: lib/kati/screens/pushed.ex:180
 #, elixir-autogen, elixir-format
 msgid "Data sources"
@@ -1686,6 +1689,7 @@ msgid "On pace to finish"
 msgstr ""
 
 #: lib/kati/goals/sample.ex:51
+#: lib/kati/screens/data_sources.ex:1124
 #: lib/kati/screens/goals.ex:234
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} day"
@@ -1905,6 +1909,7 @@ msgid "kg"
 msgstr ""
 
 #: lib/kati/health/weight_sample.ex:74
+#: lib/kati/screens/data_sources.ex:1121
 #, elixir-autogen, elixir-format, fuzzy
 msgid "today"
 msgstr ""
@@ -2275,4 +2280,472 @@ msgstr ""
 #: lib/kati/screens/my_services.ex:98
 #, elixir-autogen, elixir-format
 msgid "Removes them from Discover, Up next and What fits tonight. Your library and wishlist keep everything."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1059
+#, elixir-autogen, elixir-format
+msgid "%{n} MB cached"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1348
+#, elixir-autogen, elixir-format
+msgid "%{n} could not be reached."
+msgid_plural "%{n} could not be reached."
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/settings/watcher.ex:257
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n} day ago"
+msgid_plural "%{n} days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/settings/watcher.ex:252
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n} hour ago"
+msgid_plural "%{n} hours ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/settings/watcher.ex:247
+#, elixir-autogen, elixir-format
+msgid "%{n} minute ago"
+msgid_plural "%{n} minutes ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/data_sources.ex:1128
+#, elixir-autogen, elixir-format
+msgid "%{n} month"
+msgid_plural "%{n} months"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/retired.ex:160
+#, elixir-autogen, elixir-format
+msgid "A live sync of what you are watching, both ways."
+msgstr ""
+
+#: lib/kati/retired.ex:116
+#, elixir-autogen, elixir-format
+msgid "A nightly record — when you went down, when you woke, and how long that was."
+msgstr ""
+
+#: lib/kati/retired.ex:187
+#, elixir-autogen, elixir-format
+msgid "A pasted client secret again. ListenBrainz does the same job with a token you issue and can revoke yourself, which is why that one is offered and this one is not."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:568
+#, elixir-autogen, elixir-format
+msgid "A token of yours is stored. Kati searches with it."
+msgstr ""
+
+#: lib/kati/sources.ex:77
+#, elixir-autogen, elixir-format
+msgid "Air dates, episode lists"
+msgstr ""
+
+#: lib/kati/sources.ex:89
+#, elixir-autogen, elixir-format
+msgid "Albums, artists, cover art"
+msgstr ""
+
+#: lib/kati/sources.ex:136
+#, elixir-autogen, elixir-format
+msgid "Artwork, absolute ordering"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:66
+#, elixir-autogen, elixir-format
+msgid "Better artwork and metadata"
+msgstr ""
+
+#: lib/kati/sources.ex:82
+#, elixir-autogen, elixir-format
+msgid "Books · Open Library"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:66
+#, elixir-autogen, elixir-format
+msgid "Cached metadata"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1001
+#, elixir-autogen, elixir-format
+msgid "Clear"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1174
+#, elixir-autogen, elixir-format
+msgid "Cleared %{n} cached row."
+msgid_plural "Cleared %{n} cached rows."
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/sources.ex:124
+#, elixir-autogen, elixir-format
+msgid "Community book ratings"
+msgstr ""
+
+#: lib/kati/retired.ex:146
+#, elixir-autogen, elixir-format
+msgid "Community book ratings, read with a token of your own."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:170
+#, elixir-autogen, elixir-format
+msgid "Connect"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:66
+#, elixir-autogen, elixir-format
+msgid "Connect an account"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:774
+#, elixir-autogen, elixir-format
+msgid "Connected"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:772
+#: lib/kati/screens/data_sources.ex:773
+#, elixir-autogen, elixir-format
+msgid "Connected as %{who}"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:770
+#, elixir-autogen, elixir-format
+msgid "Connected as %{who} · %{n} listens"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1259
+#, elixir-autogen, elixir-format
+msgid "Couldn’t remove it. Nothing changed."
+msgstr ""
+
+#: lib/kati/sources.ex:83
+#, elixir-autogen, elixir-format
+msgid "Covers, editions, ISBNs"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:174
+#, elixir-autogen, elixir-format
+msgid "Disconnect"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:972
+#, elixir-autogen, elixir-format
+msgid "Disconnect everything and wipe tokens"
+msgstr ""
+
+#: lib/kati/sources.ex:127
+#, elixir-autogen, elixir-format
+msgid "Hardcover’s ratings are read with your own token, so your reading is not attributed to anyone else."
+msgstr ""
+
+#: lib/kati/retired.ex:162
+#, elixir-autogen, elixir-format
+msgid "It needs a client secret pasted into the app, which is a credential Kati would be holding on your behalf rather than one you can revoke at the source. The importer reads a Trakt export today, which needs none."
+msgstr ""
+
+#: lib/kati/retired.ex:148
+#, elixir-autogen, elixir-format
+msgid "Kati already has Open Library for covers and editions, and a second book source that needs an account is a setup step for a number you did not ask for."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1001
+#, elixir-autogen, elixir-format
+msgid "Kati refreshes anything older than six months on its own. That is a promise it keeps, not a limit it suffers."
+msgstr ""
+
+#: lib/kati/retired.ex:118
+#, elixir-autogen, elixir-format
+msgid "Kati would have to read it from the phone's own health store, and that is a permission this app has not asked for. Everything Kati holds today, you typed."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:247
+#, elixir-autogen, elixir-format
+msgid "Kati’s key is public, because Kati is open source. That costs you nothing — TMDB counts requests per IP address, not per key. Paste your own only if you want your own limits."
+msgstr ""
+
+#: lib/kati/sources.ex:115
+#, elixir-autogen, elixir-format
+msgid "ListenBrainz needs your own token because it writes to your account, not Kati’s. Nothing is shared between users."
+msgstr ""
+
+#: lib/kati/sources.ex:88
+#, elixir-autogen, elixir-format
+msgid "Music · MusicBrainz"
+msgstr ""
+
+#: lib/kati/screens/retired_reason.ex:89
+#, elixir-autogen, elixir-format
+msgid "No date, deliberately. Kati would rather say no than make a promise nobody has kept."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:186
+#, elixir-autogen, elixir-format
+msgid "Not connected yet"
+msgstr ""
+
+#: lib/kati/screens/retired_reason.ex:68
+#, elixir-autogen, elixir-format
+msgid "Not in this version"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:700
+#: lib/kati/screens/retired_reason.ex:87
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Not in v1"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:674
+#, elixir-autogen, elixir-format
+msgid "Not set up — tap to see why"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1072
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Nothing cached yet"
+msgstr ""
+
+#: lib/kati/screens/retired_reason.ex:68
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Nothing named"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1339
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Nothing on the shelf to refresh."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1109
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Nothing to refresh"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1171
+#, elixir-autogen, elixir-format
+msgid "Nothing was cached."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1097
+#, elixir-autogen, elixir-format
+msgid "Oldest entry %{age}"
+msgstr ""
+
+#: lib/kati/screens/retired_reason.ex:70
+#, elixir-autogen, elixir-format
+msgid "Open this from the thing you were asking about and Kati says why that one is not here."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:182
+#, elixir-autogen, elixir-format
+msgid "Pairing — expanded"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1266
+#, elixir-autogen, elixir-format
+msgid "Paste a token first."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:178
+#, elixir-autogen, elixir-format
+msgid "Paste your TMDB read token"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:250
+#, elixir-autogen, elixir-format
+msgid "Posters, backdrops, cast"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:998
+#, elixir-autogen, elixir-format
+msgid "Refresh"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1342
+#: lib/kati/screens/data_sources.ex:1346
+#, elixir-autogen, elixir-format
+msgid "Refreshed %{n} title."
+msgid_plural "Refreshed %{n} titles."
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/data_sources.ex:998
+#, elixir-autogen, elixir-format
+msgid "Refreshing…"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:331
+#, elixir-autogen, elixir-format
+msgid "Replace"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:166
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:402
+#, elixir-autogen, elixir-format
+msgid "Saved"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:410
+#, elixir-autogen, elixir-format
+msgid "Saved %{ago}"
+msgstr ""
+
+#: lib/kati/retired.ex:185
+#, elixir-autogen, elixir-format
+msgid "Scrobbles, as they happen."
+msgstr ""
+
+#: lib/kati/sources.ex:108
+#, elixir-autogen, elixir-format
+msgid "Scrobbles, listening history"
+msgstr ""
+
+#: lib/kati/retired.ex:130
+#, elixir-autogen, elixir-format
+msgid "Sessions with a kind, a length and an effort against them."
+msgstr ""
+
+#: lib/kati/retired.ex:114
+#, elixir-autogen, elixir-format
+msgid "Sleep"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1390
+#, elixir-autogen, elixir-format
+msgid "TMDB didn’t accept this. Check you copied the API Read Access Token and not the API key, and that it has no trailing space."
+msgstr ""
+
+#: lib/kati/sources.ex:76
+#, elixir-autogen, elixir-format
+msgid "TV & film · TVmaze"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1397
+#: lib/kati/screens/data_sources.ex:1399
+#, elixir-autogen, elixir-format
+msgid "That did not save."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:1179
+#, elixir-autogen, elixir-format
+msgid "The cache could not be cleared."
+msgstr ""
+
+#: lib/kati/retired.ex:175
+#, elixir-autogen, elixir-format
+msgid "The same live sync, from a different service."
+msgstr ""
+
+#: lib/kati/retired.ex:176
+#, elixir-autogen, elixir-format
+msgid "The same pasted client secret, and the same answer. The export imports."
+msgstr ""
+
+#: lib/kati/retired.ex:132
+#, elixir-autogen, elixir-format
+msgid "The same permission Sleep needs, and the same answer. A workout log you type by hand is a worse version of an app you already have."
+msgstr ""
+
+#: lib/kati/sources.ex:138
+#, elixir-autogen, elixir-format
+msgid "TheTVDB issues a per-user key you can revoke from your own account page."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:510
+#, elixir-autogen, elixir-format
+msgid "This device has no keystore Kati can reach, so the token sits unencrypted on the filesystem like every other. Kati sends it only to TMDB, and you can revoke it from your TMDB account at any time."
+msgstr ""
+
+#: lib/kati/sources.ex:209
+#, elixir-autogen, elixir-format
+msgid "Tokens are held in this device’s secure store. Kati sends each one only to the service it belongs to. Kati never asks for a password — only for tokens you can revoke from the provider’s own site."
+msgstr ""
+
+#: lib/kati/sources.ex:215
+#, elixir-autogen, elixir-format
+msgid "Tokens sit unencrypted on this device, because the platform gives Kati no secure store yet. Kati sends each one only to the service it belongs to. Kati never asks for a password — only for tokens you can revoke from the provider’s own site."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:247
+#, elixir-autogen, elixir-format
+msgid "Use Kati’s key"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:247
+#, elixir-autogen, elixir-format
+msgid "Use my own key"
+msgstr ""
+
+#: lib/kati/screens/retired_reason.ex:87
+#, elixir-autogen, elixir-format
+msgid "What it would be"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:66
+#, elixir-autogen, elixir-format
+msgid "Where Kati’s posters, covers and facts come from."
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:66
+#, elixir-autogen, elixir-format
+msgid "Where your tokens live"
+msgstr ""
+
+#: lib/kati/screens/retired_reason.ex:87
+#, elixir-autogen, elixir-format
+msgid "Why it is not here"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:66
+#, elixir-autogen, elixir-format
+msgid "Working out of the box"
+msgstr ""
+
+#: lib/kati/retired.ex:129
+#, elixir-autogen, elixir-format
+msgid "Workouts"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:334
+#, elixir-autogen, elixir-format
+msgid "Your key is in use"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:192
+#, elixir-autogen, elixir-format
+msgid "Your token lives there. Kati cannot ask for it yet — when it can, this is where it comes from."
+msgstr ""
+
+#: lib/kati/settings/watcher.ex:219
+#, elixir-autogen, elixir-format
+msgid "checked %{ago}"
+msgstr ""
+
+#: lib/kati/settings/watcher.ex:217
+#, elixir-autogen, elixir-format
+msgid "checked just now"
+msgstr ""
+
+#: lib/kati/settings/watcher.ex:212
+#, elixir-autogen, elixir-format
+msgid "checking now"
+msgstr ""
+
+#: lib/kati/settings/watcher.ex:213
+#, elixir-autogen, elixir-format
+msgid "never checked"
+msgstr ""
+
+#: lib/kati/screens/data_sources.ex:575
+#, elixir-autogen, elixir-format
+msgid "themoviedb.org → your account → Settings → API. Copy the read access token."
 msgstr ""

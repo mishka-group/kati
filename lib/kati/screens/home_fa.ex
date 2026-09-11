@@ -964,7 +964,7 @@ defmodule Kati.Screens.HomeFa do
     * **Write the sentence.** `Kati.Screens.SettingsFa.backup_line/1` is the
       precedent and its doc states the rule this follows: *only the sentence is
       this file's, because only the sentence is Persian*.
-      `Kati.Screens.DataSourcesFa`'s هنوز چیزی ذخیره نشده is the same shape one
+      `Kati.Screens.DataSources.nothing_cached/0`'s هنوز چیزی ذخیره نشده is the same shape one
       screen over. What is borrowed from 139 is its *structure* — say what is
       missing, then name the one control that fixes it — and the control it
       names is real: `Kati.Screens.Fa.dock/1` draws the same 64pt `+` this page

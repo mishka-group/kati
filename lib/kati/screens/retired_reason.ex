@@ -24,6 +24,7 @@ defmodule Kati.Screens.RetiredReason do
   this holds the frame; the callers pass an id.
   """
   use Kati.Screens.Pushed, back: "Back"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Theme.Palette
 
@@ -66,10 +67,10 @@ defmodule Kati.Screens.RetiredReason do
   def body(nil) do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.title("Not in this version", "Nothing named", nil, :name)}
+      {Kati.UI.SettingsList.title(gettext("Not in this version"), gettext("Nothing named"), nil, :name)}
       {Kati.UI.SettingsList.note(
         "info",
-        "Open this from the thing you were asking about and Kati says why that one is not here."
+        gettext("Open this from the thing you were asking about and Kati says why that one is not here.")
       )}
     </Column>
     """
@@ -96,29 +97,29 @@ defmodule Kati.Screens.RetiredReason do
             text_size={22}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={4} />
           <Text
-            text="NOT IN V1"
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(gettext("Not in v1"))}
+            font_family={Kati.Locale.mono_face()}
             text_size={10}
-            letter_spacing={0.14}
+            letter_spacing={Kati.Locale.tracking(0.14)}
             text_color={Palette.muted()}
             max_lines={1}
           />
         </Column>
       </Row>
       <Spacer size={22} />
-      {Kati.Screens.RetiredReason.clause("What it would be", @what)}
+      {Kati.Screens.RetiredReason.clause(gettext("What it would be"), @what)}
       <Spacer size={14} />
-      {Kati.Screens.RetiredReason.clause("Why it is not here", @why)}
+      {Kati.Screens.RetiredReason.clause(gettext("Why it is not here"), @why)}
       <Spacer size={16} />
       {Kati.UI.SettingsList.note(
         "schedule",
-        "No date, deliberately. Kati would rather say no than make a promise nobody has kept."
+        gettext("No date, deliberately. Kati would rather say no than make a promise nobody has kept.")
       )}
     </Column>
     """
@@ -137,15 +138,20 @@ defmodule Kati.Screens.RetiredReason do
       padding={17}
     >
       <Text
-        text={@label}
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(@label)}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
-        letter_spacing={0.14}
+        letter_spacing={Kati.Locale.tracking(0.14)}
         text_color={Palette.muted()}
         max_lines={1}
       />
       <Spacer size={9} />
-      <Text text={@body} text_size={13} line_height={1.6} text_color={Palette.ink_soft()} />
+      <Text
+        text={@body}
+        text_size={13}
+        line_height={Kati.Locale.leading(1.6)}
+        text_color={Palette.ink_soft()}
+      />
     </Column>
     """
   end
@@ -153,17 +159,15 @@ defmodule Kati.Screens.RetiredReason do
   @doc """
   The params a caller threads to this screen.
 
-      iex> Kati.Screens.RetiredReason.params_for("Hardcover")
+      iex> Kati.Screens.RetiredReason.params_for(:hardcover)
       %{id: :hardcover}
 
-      iex> Kati.Screens.RetiredReason.params_for("ListenBrainz")
+      iex> Kati.Screens.RetiredReason.params_for(:listenbrainz)
       %{}
+
+  The id and not the name, since mishka-group/kati#103: it took a NAME, and a
+  name is a drawn string. `Kati.Retired`'s moduledoc has the argument.
   """
-  @spec params_for(String.t()) :: map()
-  def params_for(name) do
-    case Kati.Retired.id_for(name) do
-      nil -> %{}
-      id -> %{id: id}
-    end
-  end
+  @spec params_for(atom() | nil) :: map()
+  defdelegate params_for(id), to: Kati.Retired
 end

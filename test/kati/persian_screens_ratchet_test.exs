@@ -79,7 +79,6 @@ defmodule Kati.PersianScreensRatchetTest do
     Kati.Screens.AlbumDetailFa,
     Kati.Screens.BookDetailFa,
     Kati.Screens.BooksFa,
-    Kati.Screens.DataSourcesFa,
     Kati.Screens.HomeFa,
     Kati.Screens.HomeFaEmpty,
     Kati.Screens.HomeFaEmptyDark,
