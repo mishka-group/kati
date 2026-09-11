@@ -454,7 +454,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # primary's own pair, for the reason every mirror in this list does — a
     # mirror that fell back differently from the page it mirrors would be the
     # defect worth catching.
-    {"76", Kati.Screens.AlbumDetailFa},
+    # 76 was `Kati.Screens.AlbumDetailFa` until mishka-group/kati#103 folded
+    # that mirror away. It is screen 74 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"76", Kati.Screens.AlbumDetail},
     {"81", Kati.Screens.DataSourcesStates},
     # 82 was `Kati.Screens.DataSourcesFa` until mishka-group/kati#103 folded
     # that mirror away. It is screen 80 under `:fa` now — hence its number on
@@ -2271,7 +2274,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.AlbumDetail.drawn_album/0},
       {"78", Kati.Screens.ArtistDetailStates, &Kati.Screens.ArtistDetail.artist/0,
        &Kati.Screens.ArtistDetail.drawn_artist/0},
-      {"76", Kati.Screens.AlbumDetailFa, &Kati.Screens.AlbumDetail.album/0,
+      {"76", Kati.Screens.AlbumDetail, &Kati.Screens.AlbumDetail.album/0,
        &Kati.Screens.AlbumDetail.drawn_album/0},
       {"81", Kati.Screens.DataSourcesStates, &Kati.Screens.DataSources.cache_size/0,
        &Kati.Screens.DataSources.nothing_cached/0},
@@ -2998,7 +3001,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(60 62 69 72 82 97 103 137 156 164 165 166)
+  @fa_numbers ~w(60 62 69 72 76 82 97 103 137 156 164 165 166)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

@@ -206,6 +206,13 @@ defmodule Kati.ScreenParamsSweepTest do
   # reason that applies to anything below — that case is `@empty_builders`, and
   # a door in that state fails the assertion over THAT list instead.
   @bare_pushes [
+    # Board 176's موسیقی segment. There is no Persian music SHELF in the
+    # drawings — `Kati.Screens.LibraryFa` records the same absence for the same
+    # segment — so the segment opens the one album page there is, and a segment
+    # has no album to name. It pushed `Kati.Screens.AlbumDetailFa` until
+    # mishka-group/kati#103 folded that mirror into screen 74; the destination
+    # reads `:album_id` now and the source still holds nothing to give it.
+    {Kati.Screens.BooksFa, :shelf_2, Kati.Screens.AlbumDetail},
     # ── Screen 12 takes NO params, as of board 333.
     #
     # It used to read `:adding` — board 146's selection — and turn a list row
@@ -341,9 +348,11 @@ defmodule Kati.ScreenParamsSweepTest do
     # `Kati.Screens.RateAlbum` naming the album the page drew. The door moved to
     # `@empty_builders`, because the clause names its subject and the builder
     # answers `%{}` only while the page is drawing `Kati.Music.Sample.album/0`.
-    # The Persian twin below is untouched: no board reserves a Persian rating
-    # sheet for music, and 297 is `D-57`'s.)
-    {Kati.Screens.AlbumDetailFa, :rate, Kati.Screens.Rating},
+    # The Persian twin was `{Kati.Screens.AlbumDetailFa, :rate, …}` and went
+    # with the mirror: mishka-group/kati#103 folded board 76 into screen 74, so
+    # there is one Rate row and it pushes `Kati.Screens.RateAlbum` in both
+    # scripts. No board reserves a Persian rating sheet for music and none
+    # needs to.)
     {Kati.Screens.BookDetail, :rate, Kati.Screens.Rating},
     {Kati.Screens.BookDetailDark, :rate, Kati.Screens.Rating},
     # 157's `Finish`, which is 66's in another colourway. The English screen's
@@ -580,8 +589,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # `Kati.Music.Sample.album/0` has no `:id`, so the builder answers `%{}`
     # exactly as the two doors above it do and clears with the same rows.
     {Kati.Screens.AlbumDetail, :rate, Kati.Screens.RateAlbum},
-    {Kati.Screens.AlbumDetailFa, :log_listen, Kati.Screens.LogListen},
-    {Kati.Screens.AlbumDetailFa, :open_artist, Kati.Screens.ArtistDetail},
 
     # ── Screens 66, 157 and 69's `Log progress`.
     #

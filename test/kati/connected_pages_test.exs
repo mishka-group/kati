@@ -25,7 +25,7 @@ defmodule Kati.ConnectedPagesTest do
 
   alias Kati.Music.Album
   alias Kati.Screens.AddTitle
-  alias Kati.Screens.AlbumDetailFa
+  alias Kati.Screens.AlbumDetail
   alias Kati.Screens.LibraryFa
 
   @prefix "connected-test-"
@@ -89,7 +89,7 @@ defmodule Kati.ConnectedPagesTest do
 
   describe "screen 57's music segment opens a shelf" do
     test "موسیقی reaches the music shelf and not one album" do
-      # It pushed `Kati.Screens.AlbumDetailFa` — a page about ONE record, with
+      # It pushed `Kati.Screens.AlbumDetail` — a page about ONE record, with
       # no list, no `+` and nothing to come back to. Screen 21 is in English
       # because no board draws a Persian music shelf, which is the trade
       # `Kati.Screens.HealthFa` already makes for screen 111 and states.
@@ -98,7 +98,7 @@ defmodule Kati.ConnectedPagesTest do
       assert navigated_to(view) == Kati.Screens.Music,
              "the Music segment does not open the music shelf"
 
-      refute navigated_to(view) == Kati.Screens.AlbumDetailFa
+      refute navigated_to(view) == Kati.Screens.AlbumDetail
     end
 
     test "and the books segment still opens the books shelf" do
@@ -110,50 +110,52 @@ defmodule Kati.ConnectedPagesTest do
     end
   end
 
-  describe "screen 76 states no fact about a record that the record does not carry" do
+  # Board 76 is screen 74 under `:fa` since mishka-group/kati#103 — the mirror
+  # that used to answer these questions is gone, and every one of them is now a
+  # question about the folded screen read in the other script.
+  describe "board 76 states no fact about a record that the record does not carry" do
     test "a shelved album wears none of the drawing's history" do
       {:ok, album} =
         Album
         |> Ash.Changeset.for_create(:create, %{title: @prefix <> "Tidal Works"})
         |> Ash.create()
 
-      drawn = AlbumDetailFa.drawn()
-      words = AlbumDetailFa.words(Kati.Screens.AlbumDetail.album(album.id))
+      Kati.Locale.as(:fa, fn ->
+        drawn = AlbumDetail.drawn_album()
+        shaped = AlbumDetail.album(album.id)
 
-      assert words.title == album.title
-      assert words.id == album.id
+        assert shaped.title == album.title
+        assert shaped.id == album.id
 
-      for {key, claim} <- [
-            first_heard: drawn.first_heard,
-            last_played: drawn.last_played,
-            artist_line: drawn.artist_line,
-            plays_line: drawn.plays_line
-          ] do
-        refute Map.fetch!(words, key) == claim,
-               "screen 76 kept the drawing's #{key} — `#{claim}` — over a real record"
+        for {key, claim} <- [
+              first_heard: drawn.first_heard,
+              last_played: drawn.last_played,
+              artist_line: drawn.artist_line,
+              plays_line: drawn.plays_line
+            ] do
+          refute Map.fetch!(shaped, key) == claim,
+                 "board 76 kept the drawing's #{key} — `#{claim}` — over a real record"
+        end
 
-        assert Map.fetch!(words, key) == nil,
-               "#{key} must be absent rather than invented: no board words it for a real row"
-      end
-    end
-
-    test "and an absent line takes its own node with it, rather than drawing nil" do
-      # `text={nil}` is the word **nil** on a device — see
-      # `Kati.ScreenNilTextTest`. Both lines answer with nothing at all.
-      assert AlbumDetailFa.second_line(nil) == []
-      assert AlbumDetailFa.second_line("") == []
-      refute AlbumDetailFa.second_line("۴ آلبوم") == []
+        # `plays_line` is the one of the four a bare record CAN answer, and it
+        # answers zero rather than the drawing's forty-one.
+        assert shaped.first_heard == nil
+        assert shaped.last_played == nil
+        assert shaped.artist_line == nil
+      end)
     end
 
     test "with nothing shelved the page is still its drawing, whole" do
       # The fixture path is what `Kati.ScreenDesignLiteralTest` compares board
       # 76 against, and it must be untouched by all of the above.
-      drawn = AlbumDetailFa.drawn()
+      Kati.Locale.as(:fa, fn ->
+        drawn = AlbumDetail.drawn_album()
 
-      assert drawn.first_heard == "۱۳ اسفند ۱۴۰۲"
-      assert drawn.last_played == "دیروز"
-      assert drawn.artist_line == "۴ آلبوم · ۶۱ ساعت"
-      assert drawn.plays_line == "۴۱ پخش"
+        assert drawn.first_heard == "یکشنبه ۱۳ اسفند ۱۴۰۲"
+        assert drawn.last_played == "دیروز"
+        assert drawn.artist_line == "۴ آلبوم · ۶۱ ساعت"
+        assert drawn.plays_line == "۴۱ پخش · ۴ این ماه"
+      end)
     end
   end
 

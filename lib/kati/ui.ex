@@ -325,7 +325,7 @@ defmodule Kati.UI do
   all, so upper-casing Persian does nothing to four fifths of it and quietly
   mangles the rest; the mirrors all wrote their own eyebrow rather than pass
   their label through this one, and `Kati.Screens.Fa.eyebrow/1`,
-  `StatsFa.quiet_eyebrow/1` and `AlbumDetailFa.eyebrow/2` are three copies of
+  `StatsFa.quiet_eyebrow/1` and `Kati.Screens.Fa.eyebrow2/2` are three copies of
   that decision.
 
   The other three differences travel with it and are all in the recipe above:

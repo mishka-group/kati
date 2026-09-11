@@ -71,7 +71,7 @@ defmodule Kati.Screens.SearchFa do
   app *setting*, and the bridge reads `layout_direction` from the root node
   only — so a Persian mirror rendered while the app is still set to English
   would draw Persian copy in a left-to-right grid, which is the one thing these
-  drawings exist to disprove. `Kati.Screens.AlbumDetailFa` records the same
+  drawings exist to disprove. board 76 records the same
   thing.
 
   On top of that, this board puts its back pill **in the flow**, at the top of
@@ -164,7 +164,7 @@ defmodule Kati.Screens.SearchFa do
   It names `.scratch/design/pending/53.html`, drawn as screen 54 — Settings,
   language and region, which is `Kati.Screens.Language`, and whose *Title
   language · Show original titles alongside* row is the switch the sentence
-  points at. It stays in Latin digits for `Kati.Screens.AlbumDetailFa`'s reason
+  points at. It stays in Latin digits for board 76's reason
   about the letter on an album square: it is a name, not a quantity, and names
   are not translated. Every other digit on this board is a count or a date and
   is Persian.
@@ -541,7 +541,7 @@ defmodule Kati.Screens.SearchFa do
   The eyebrow takes the accent dash because it is the first group on the page,
   which is the positional rule `Kati.Screens.Search` states — orange means
   *this is the hit*, not *this is Screen*.
-  `Kati.Screens.AlbumDetailFa.eyebrow/2` is the Persian eyebrow that already
+  `Kati.Screens.Fa.eyebrow2/2` is the Persian eyebrow that already
   takes both dashes, so neither colour is re-typed here.
   """
   @spec hits() :: map()
@@ -553,7 +553,7 @@ defmodule Kati.Screens.SearchFa do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.AlbumDetailFa.eyebrow(Kati.Screens.SearchFa.heading(:screen), :accent)}
+      {Kati.Screens.Fa.eyebrow2(Kati.Screens.SearchFa.heading(:screen), :accent)}
       {rows}
       <Spacer size={13} />
     </Column>
@@ -683,7 +683,7 @@ defmodule Kati.Screens.SearchFa do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.AlbumDetailFa.eyebrow(Kati.Screens.SearchFa.heading(:notes), :grey)}
+      {Kati.Screens.Fa.eyebrow2(Kati.Screens.SearchFa.heading(:notes), :grey)}
       <Column fill_width={true} background={Palette.cream()} corner_radius={20} padding={16}>
         {Kati.UI.fa(@note.eyebrow, 10, Palette.cream_meta())}
         <Spacer size={8} />
@@ -701,7 +701,7 @@ defmodule Kati.Screens.SearchFa do
   because that helper pins `line_height` at 1.4 and this paragraph is set at
   **1.9**. Persian sets tall — Vazirmatn's descenders run under the line and its
   diacritics over it — so a Persian line at a Latin line's leading collides with
-  itself, which is the same trade `Kati.Screens.AlbumDetailFa.note/1` records.
+  itself, which is the same trade board 76's note card records.
   """
   @spec note_body(map()) :: map()
   def note_body(note) do
@@ -756,7 +756,7 @@ defmodule Kati.Screens.SearchFa do
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.AlbumDetailFa.eyebrow("اخیر", :grey)}
+      {Kati.Screens.Fa.eyebrow2("اخیر", :grey)}
       {rows}
       <Spacer size={22} />
     </Column>

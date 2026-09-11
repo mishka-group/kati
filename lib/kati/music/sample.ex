@@ -91,21 +91,34 @@ defmodule Kati.Music.Sample do
   @spec album() :: map()
   def album do
     %{
-      title: "Tidal Works",
-      initial: "T",
-      artist: "Kell Ostrand",
-      byline: "Kell Ostrand · 2025",
+      title: gettext("Tidal Works"),
+      # The tile's letter is the TITLE's own first character, not a frozen `T`:
+      # board 76 draws **ک**, because the album is کارهای جزر و مد there.
+      initial: String.first(gettext("Tidal Works")),
+      artist: gettext("Kell Ostrand"),
+      byline:
+        gettext("%{artist} · %{year}",
+          artist: gettext("Kell Ostrand"),
+          year: Kati.Locale.year(2025)
+        ),
       art_seed: nil,
-      artist_line: "4 albums · 61h listened",
-      first_heard: "3 Mar 2024",
-      last_played: "yesterday",
+      artist_line:
+        ngettext("%{n} album", "%{n} albums", 4, n: Kati.Locale.number(4)) <>
+          " · " <>
+          gettext("%{hours} listened", hours: gettext("%{n}h", n: Kati.Locale.number(61))),
+      first_heard: Kati.Locale.date(~D[2024-03-03], :dated),
+      last_played: gettext("yesterday"),
       rating: 9,
-      rating_label: "4.5",
-      plays_line: "41 plays · 4 this month",
+      rating_label: Kati.Locale.number("4.5"),
+      plays_line:
+        ngettext("%{n} play", "%{n} plays", 41, n: Kati.Locale.number(41)) <>
+          " · " <> gettext("%{n} this month", n: Kati.Locale.number(4)),
       note:
-        "Found this on a wet Tuesday in the studio. Played track three " <>
-          "until it stopped meaning anything.",
-      note_on: "3 MAR 2024"
+        gettext(
+          "Found this on a wet Tuesday in the studio. Played track three " <>
+            "until it stopped meaning anything."
+        ),
+      note_on: Kati.UI.eyebrow_label(Kati.Locale.date(~D[2024-03-03], :dated))
     }
   end
 
@@ -135,84 +148,113 @@ defmodule Kati.Music.Sample do
     [
       %{
         position: 1,
-        title: "Low Water",
-        duration: "4:12",
+        title: gettext("Low Water"),
+        duration: Kati.Locale.number("4:12"),
+        seconds: 252,
         plays: 9,
         today?: true,
         counted?: true
       },
       %{
         position: 2,
-        title: "The Cull",
-        duration: "3:48",
+        title: gettext("The Cull"),
+        duration: Kati.Locale.number("3:48"),
+        seconds: 228,
         plays: 7,
         today?: false,
         counted?: true
       },
       %{
         position: 3,
-        title: "Blackthorn",
-        duration: "5:02",
+        title: gettext("Blackthorn"),
+        duration: Kati.Locale.number("5:02"),
+        seconds: 302,
         plays: 12,
         today?: false,
         counted?: true
       },
       %{
         position: 4,
-        title: "Hollow Season",
-        duration: "4:31",
+        title: gettext("Hollow Season"),
+        duration: Kati.Locale.number("4:31"),
+        seconds: 271,
         plays: 4,
         today?: false,
         counted?: true
       },
       %{
         position: 5,
-        title: "What the Tide Left",
-        duration: "6:08",
+        title: gettext("What the Tide Left"),
+        duration: Kati.Locale.number("6:08"),
+        seconds: 368,
         plays: 0,
         today?: false,
         counted?: false
       },
       %{
         position: 6,
-        title: "Saltmarsh",
-        duration: "3:41",
+        title: gettext("Saltmarsh"),
+        duration: Kati.Locale.number("3:41"),
+        seconds: 221,
         plays: 3,
         today?: false,
         counted?: true
       },
       %{
         position: 7,
-        title: "Kelp Line",
-        duration: "4:05",
+        title: gettext("Kelp Line"),
+        duration: Kati.Locale.number("4:05"),
+        seconds: 245,
         plays: 2,
         today?: false,
         counted?: true
       },
-      %{position: 8, title: "Bight", duration: "3:12", plays: 2, today?: false, counted?: true},
+      %{
+        position: 8,
+        title: gettext("Bight"),
+        duration: Kati.Locale.number("3:12"),
+        seconds: 192,
+        plays: 2,
+        today?: false,
+        counted?: true
+      },
       %{
         position: 9,
-        title: "The Long Reach",
-        duration: "5:19",
+        title: gettext("The Long Reach"),
+        duration: Kati.Locale.number("5:19"),
+        seconds: 319,
         plays: 1,
         today?: false,
         counted?: true
       },
       %{
         position: 10,
-        title: "Spring Tide",
-        duration: "2:58",
+        title: gettext("Spring Tide"),
+        duration: Kati.Locale.number("2:58"),
+        seconds: 178,
         plays: 1,
         today?: false,
         counted?: true
       },
-      %{position: 11, title: "Ledger", duration: "4:04", plays: 0, today?: false, counted?: false}
+      %{
+        position: 11,
+        title: gettext("Ledger"),
+        duration: Kati.Locale.number("4:04"),
+        seconds: 244,
+        plays: 0,
+        today?: false,
+        counted?: false
+      }
     ]
   end
 
   @doc "Screen 74's tracklist eyebrow. A literal — the shelf shows five of eleven."
   @spec tracklist_label() :: String.t()
-  def tracklist_label, do: "Tracklist · 11 tracks"
+  def tracklist_label,
+    do:
+      gettext("Tracklist · %{tracks}",
+        tracks: ngettext("%{n} track", "%{n} tracks", 11, n: Kati.Locale.number(11))
+      )
 
   @doc """
   Screen 77's artist, as drawn.

@@ -1285,12 +1285,13 @@ msgstr ""
 msgid "Dismiss"
 msgstr ""
 
-#: lib/kati/music/sample.ex:235
+#: lib/kati/music/sample.ex:266
 #: lib/kati/screens/artist_detail.ex:235
 #, elixir-autogen, elixir-format
 msgid "Feeds 21’s new-releases band and 25’s alerts"
 msgstr ""
 
+#: lib/kati/screens/album_detail.ex:573
 #: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format
 msgid "First heard"
@@ -1326,7 +1327,7 @@ msgstr ""
 msgid "Totals"
 msgstr ""
 
-#: lib/kati/music/sample.ex:256
+#: lib/kati/music/sample.ex:287
 #: lib/kati/screens/artist_detail.ex:288
 #, elixir-autogen, elixir-format
 msgid "Unheard"
@@ -1358,38 +1359,42 @@ msgctxt "totals tile"
 msgid "Albums"
 msgstr ""
 
-#: lib/kati/music/sample.ex:232
+#: lib/kati/music/sample.ex:263
 #, elixir-autogen, elixir-format
 msgid "Composer · Iceland"
 msgstr ""
 
-#: lib/kati/music/sample.ex:277
-#: lib/kati/music/sample.ex:291
+#: lib/kati/music/sample.ex:308
+#: lib/kati/music/sample.ex:322
 #, elixir-autogen, elixir-format
 msgid "Estuary Tapes"
 msgstr ""
 
-#: lib/kati/music/sample.ex:231
+#: lib/kati/music/sample.ex:98
+#: lib/kati/music/sample.ex:101
+#: lib/kati/music/sample.ex:262
 #, elixir-autogen, elixir-format
 msgid "Kell Ostrand"
 msgstr ""
 
-#: lib/kati/music/sample.ex:275
+#: lib/kati/music/sample.ex:306
 #, elixir-autogen, elixir-format
 msgid "Low Country"
 msgstr ""
 
-#: lib/kati/music/sample.ex:276
+#: lib/kati/music/sample.ex:307
 #, elixir-autogen, elixir-format
 msgid "Nine Rooms"
 msgstr ""
 
-#: lib/kati/music/sample.ex:292
+#: lib/kati/music/sample.ex:323
 #, elixir-autogen, elixir-format
 msgid "Out Friday · you have not heard it"
 msgstr ""
 
-#: lib/kati/music/sample.ex:274
+#: lib/kati/music/sample.ex:94
+#: lib/kati/music/sample.ex:97
+#: lib/kati/music/sample.ex:305
 #, elixir-autogen, elixir-format
 msgid "Tidal Works"
 msgstr ""
@@ -1708,8 +1713,10 @@ msgid_plural "%{n} days"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/music/sample.ex:259
-#: lib/kati/music/sample.ex:264
+#: lib/kati/music/sample.ex:114
+#: lib/kati/music/sample.ex:290
+#: lib/kati/music/sample.ex:295
+#: lib/kati/screens/album_detail.ex:392
 #: lib/kati/screens/artist_detail.ex:296
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{n} play"
@@ -1920,6 +1927,7 @@ msgid "kg"
 msgstr ""
 
 #: lib/kati/health/weight_sample.ex:74
+#: lib/kati/screens/album_detail.ex:370
 #: lib/kati/screens/data_sources.ex:1123
 #, elixir-autogen, elixir-format, fuzzy
 msgid "today"
@@ -3118,7 +3126,7 @@ msgstr ""
 msgid "I am now on page"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1204
+#: lib/kati/screens/book_detail.ex:1210
 #: lib/kati/screens/log_progress.ex:212
 #, elixir-autogen, elixir-format
 msgid "Log progress"
@@ -3282,7 +3290,8 @@ msgstr ""
 msgid "Add page count"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1189
+#: lib/kati/screens/album_detail.ex:876
+#: lib/kati/screens/book_detail.ex:1195
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Add to list"
 msgstr ""
@@ -3323,7 +3332,7 @@ msgstr ""
 msgid "Feeds 25’s New books alerts"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1187
+#: lib/kati/screens/book_detail.ex:1193
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Finish"
 msgstr ""
@@ -3350,6 +3359,7 @@ msgid "Lent to %{who}"
 msgstr ""
 
 #: lib/kati/books/sample.ex:134
+#: lib/kati/music/sample.ex:151
 #, elixir-autogen, elixir-format
 msgid "Low Water"
 msgstr ""
@@ -3369,7 +3379,7 @@ msgstr ""
 msgid "Paperback"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1188
+#: lib/kati/screens/book_detail.ex:1194
 #, elixir-autogen, elixir-format
 msgid "Rate & review"
 msgstr ""
@@ -3379,17 +3389,17 @@ msgstr ""
 msgid "Re-read chapter seven before starting the second volume."
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1128
+#: lib/kati/screens/book_detail.ex:1134
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Reading history"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1086
+#: lib/kati/screens/book_detail.ex:1092
 #, elixir-autogen, elixir-format
 msgid "Series and ownership"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1203
+#: lib/kati/screens/book_detail.ex:1209
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Start reading"
 msgstr ""
@@ -3404,17 +3414,17 @@ msgstr ""
 msgid "The tide keeps its own ledger."
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:946
+#: lib/kati/screens/book_detail.ex:952
 #, elixir-autogen, elixir-format
 msgid "This is the edition I own"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:971
+#: lib/kati/screens/book_detail.ex:977
 #, elixir-autogen, elixir-format
 msgid "Warnings"
 msgstr ""
 
-#: lib/kati/screens/book_detail.ex:1030
+#: lib/kati/screens/book_detail.ex:1036
 #, elixir-autogen, elixir-format
 msgid "Your notes and quotes"
 msgstr ""
@@ -3498,4 +3508,149 @@ msgstr ""
 #: lib/kati/screens/add_by_hand_book.ex:609
 #, elixir-autogen, elixir-format
 msgid "%{title} is already on your shelf. Nothing was written."
+msgstr ""
+
+#: lib/kati/music/sample.ex:100
+#, elixir-autogen, elixir-format
+msgid "%{artist} · %{year}"
+msgstr ""
+
+#: lib/kati/music/sample.ex:108
+#: lib/kati/screens/album_detail.ex:355
+#, elixir-autogen, elixir-format
+msgid "%{hours} listened"
+msgstr ""
+
+#: lib/kati/music/sample.ex:106
+#: lib/kati/screens/album_detail.ex:354
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n} album"
+msgid_plural "%{n} albums"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/music/sample.ex:115
+#: lib/kati/screens/album_detail.ex:393
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n} this month"
+msgstr ""
+
+#: lib/kati/music/sample.ex:245
+#: lib/kati/screens/album_detail.ex:176
+#, elixir-autogen, elixir-format
+msgid "%{n} track"
+msgid_plural "%{n} tracks"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/music/sample.ex:108
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n}h"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:433
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Art"
+msgstr ""
+
+#: lib/kati/music/sample.ex:207
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Bight"
+msgstr ""
+
+#: lib/kati/music/sample.ex:167
+#, elixir-autogen, elixir-format
+msgid "Blackthorn"
+msgstr ""
+
+#: lib/kati/music/sample.ex:117
+#, elixir-autogen, elixir-format
+msgid "Found this on a wet Tuesday in the studio. Played track three until it stopped meaning anything."
+msgstr ""
+
+#: lib/kati/music/sample.ex:175
+#, elixir-autogen, elixir-format
+msgid "Hollow Season"
+msgstr ""
+
+#: lib/kati/music/sample.ex:199
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Kelp Line"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:573
+#, elixir-autogen, elixir-format
+msgid "Last played"
+msgstr ""
+
+#: lib/kati/music/sample.ex:231
+#, elixir-autogen, elixir-format
+msgid "Ledger"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:442
+#, elixir-autogen, elixir-format
+msgid "Listen history · %{n} weeks"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:463
+#, elixir-autogen, elixir-format
+msgid "Log a listen"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:876
+#, elixir-autogen, elixir-format
+msgid "Rate"
+msgstr ""
+
+#: lib/kati/music/sample.ex:191
+#, elixir-autogen, elixir-format
+msgid "Saltmarsh"
+msgstr ""
+
+#: lib/kati/music/sample.ex:223
+#, elixir-autogen, elixir-format
+msgid "Spring Tide"
+msgstr ""
+
+#: lib/kati/music/sample.ex:159
+#, elixir-autogen, elixir-format
+msgid "The Cull"
+msgstr ""
+
+#: lib/kati/music/sample.ex:215
+#, elixir-autogen, elixir-format
+msgid "The Long Reach"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:751
+#, elixir-autogen, elixir-format
+msgid "The dot marks a track played today — the only recency signal here"
+msgstr ""
+
+#: lib/kati/music/sample.ex:244
+#: lib/kati/screens/album_detail.ex:175
+#, elixir-autogen, elixir-format
+msgid "Tracklist · %{tracks}"
+msgstr ""
+
+#: lib/kati/music/sample.ex:183
+#, elixir-autogen, elixir-format
+msgid "What the Tide Left"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:849
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Your note"
+msgstr ""
+
+#: lib/kati/screens/album_detail.ex:437
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Your rating"
+msgstr ""
+
+#: lib/kati/music/sample.ex:110
+#: lib/kati/screens/album_detail.ex:371
+#, elixir-autogen, elixir-format
+msgid "yesterday"
 msgstr ""

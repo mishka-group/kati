@@ -128,7 +128,9 @@ defmodule Kati.Screens.Gallery do
     {"86", "Search — idle", Kati.Screens.SearchIdle, :push},
     {"88", "Scope & ranking", Kati.Screens.SearchSpec, :push},
     {"126", "Money on the calendar", Kati.Screens.MoneyDay, :push},
-    {"76", "آلبوم", Kati.Screens.AlbumDetailFa, :push},
+    # mishka-group/kati#103's fold of screen 76. Board 76 is screen 74 under
+    # `:fa`, with "76" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"76", "آلبوم", Kati.Screens.AlbumDetail, :push},
     # mishka-group/kati#103. Board 79 is screen 77 under `:fa`.
     {"79", "هنرمند — Artist detail, RTL", Kati.Screens.ArtistDetail, :push},
     {"81", "Data sources — states", Kati.Screens.DataSourcesStates, :push},

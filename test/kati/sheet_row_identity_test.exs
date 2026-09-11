@@ -1008,36 +1008,33 @@ defmodule Kati.SheetRowIdentityTest do
       artist = an_artist!(@prefix <> "Kell Ostrand")
       album = an_album!(artist, %{title: @prefix <> "Tidal Works", released_year: 2025})
 
-      shelved = Kati.Screens.AlbumDetailFa.album()
+      shelved = Kati.Screens.AlbumDetail.album()
 
       assert shelved.id == album.id
       assert shelved.artist_id == artist.id
 
       socket =
-        Mob.Socket.assign(Mob.Socket.new(Kati.Screens.AlbumDetailFa), :album, shelved)
+        Mob.Socket.assign(Mob.Socket.new(Kati.Screens.AlbumDetail), :album, shelved)
 
       {:noreply, listen} =
-        Kati.Screens.AlbumDetailFa.handle_info({:tap, :log_listen}, socket)
+        Kati.Screens.AlbumDetail.handle_info({:tap, :log_listen}, socket)
 
       assert listen.__mob__.nav_action == {:push, LogListen, %{album_id: album.id}}
 
       {:noreply, open} =
-        Kati.Screens.AlbumDetailFa.handle_info({:tap, :open_artist}, socket)
+        Kati.Screens.AlbumDetail.handle_info({:tap, :open_artist}, socket)
 
       assert open.__mob__.nav_action ==
                {:push, Kati.Screens.ArtistDetail, %{artist_id: artist.id}}
     end
 
     test "the drawing carries neither, so both pushes are the ones 76 draws" do
-      # `album/0`'s `nil` branch is `drawn/0` under `own/1` and nothing else —
-      # no `:id`, no `:artist_id` — which is the state
-      # `test/design/screens/76.html` was captured in and the one every sweep
-      # mounts. Both builders answer `%{}` for it.
-      drawn =
-        Map.merge(
-          Kati.Screens.AlbumDetailFa.drawn(),
-          Kati.Screens.AlbumDetailFa.own(AlbumDetail.drawn_album())
-        )
+      # `album/0`'s `nil` branch is the fixture and nothing else — no `:id`,
+      # no `:artist_id` — which is the state `test/design/screens/76.html` was
+      # captured in and the one every sweep mounts. Both builders answer `%{}`
+      # for it. It was `Map.merge(drawn(), own(…))` on the mirror
+      # mishka-group/kati#103 folded away; the fixture is one map now.
+      drawn = Kati.Screens.AlbumDetail.drawn_album()
 
       refute Map.has_key?(drawn, :id)
       refute Map.has_key?(drawn, :artist_id)

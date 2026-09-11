@@ -966,7 +966,7 @@ defmodule Kati.Screens.BooksFa do
       # opens the one Persian album page that exists — `Kati.Screens.LibraryFa`
       # records the same absence for the same segment.
       "shelf_2" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetailFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.AlbumDetail)}
 
       "shelf_1" ->
         {:noreply, socket}

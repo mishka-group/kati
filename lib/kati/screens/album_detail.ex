@@ -39,6 +39,7 @@ defmodule Kati.Screens.AlbumDetail do
   """
 
   use Kati.Screens.Pushed, back: "Library"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Music.Album
   alias Kati.Music.Artist
@@ -49,7 +50,9 @@ defmodule Kati.Screens.AlbumDetail do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  @secondary [{"star", "Rate", :rate}, {"bookmarks", "Add to list", :add_to_list}]
+  # `@secondary` cannot be an attribute: `gettext/1` inside one is evaluated at
+  # COMPILE time, so the two labels would freeze in whichever locale the
+  # compiler happened to be in. See `secondary/0`.
 
   # `Kati.Screens.Pushed` puts the push's params on `:params`, and this is the
   # screen reading them. The id is kept in its own assign beside the album, for
@@ -168,7 +171,10 @@ defmodule Kati.Screens.AlbumDetail do
 
       %Album{} = album ->
         count = length(tracks_of(album))
-        "Tracklist · #{count} #{if count == 1, do: "track", else: "tracks"}"
+
+        gettext("Tracklist · %{tracks}",
+          tracks: ngettext("%{n} track", "%{n} tracks", count, n: Kati.Locale.number(count))
+        )
     end
   end
 
@@ -307,6 +313,13 @@ defmodule Kati.Screens.AlbumDetail do
       position: track.position,
       title: track.title,
       duration: Track.duration(track),
+      # The seconds BESIDE the drawn string, not instead of it.
+      # `Kati.Screens.LogListen.seconds/1` parsed `4:12` back with
+      # `String.to_integer/1` — its own comment called that *cheaper than
+      # threading a second representation* — and board 76 draws the same
+      # duration as **۴:۱۲**, which that parse raises on. A number is data and
+      # a drawn string is copy; mishka-group/kati#103.
+      seconds: track.seconds,
       plays: track.plays,
       today?: Track.played_today?(track, Kati.Time.today()),
       counted?: Kati.Screens.AlbumDetail.counted_this_month?(track, Kati.Time.today())
@@ -344,13 +357,15 @@ defmodule Kati.Screens.AlbumDetail do
       end
 
     hours = Listen.hours_label(Listen.total_minutes(listens))
-    "#{albums} #{if albums == 1, do: "album", else: "albums"} · #{hours} listened"
+
+    ngettext("%{n} album", "%{n} albums", albums, n: Kati.Locale.number(albums)) <>
+      " · " <> gettext("%{hours} listened", hours: hours)
   rescue
     _error -> nil
   end
 
   defp date_line(nil), do: nil
-  defp date_line(%Date{} = date), do: Calendar.strftime(date, "%-d %b %Y")
+  defp date_line(%Date{} = date), do: Kati.Locale.date(date, :dated)
 
   # `yesterday` is a word the drawing uses, and it is the only relative form
   # here: two days ago is a date. A relative phrase is only kinder than a date
@@ -359,8 +374,8 @@ defmodule Kati.Screens.AlbumDetail do
 
   defp last_played_line(%Date{} = on, today) do
     case Date.diff(today, on) do
-      0 -> "today"
-      1 -> "yesterday"
+      0 -> gettext("today")
+      1 -> gettext("yesterday")
       _older -> date_line(on)
     end
   end
@@ -369,8 +384,8 @@ defmodule Kati.Screens.AlbumDetail do
 
   defp rating_label(rating) when is_integer(rating) do
     case rem(rating, 2) do
-      0 -> Integer.to_string(div(rating, 2))
-      _odd -> "#{div(rating, 2)}.5"
+      0 -> Kati.Locale.number(div(rating, 2))
+      _odd -> Kati.Locale.number("#{div(rating, 2)}.5")
     end
   end
 
@@ -380,7 +395,9 @@ defmodule Kati.Screens.AlbumDetail do
   defp plays_line(tracks, listens, today) do
     total = Album.plays(tracks)
     month = Listen.this_month(listens, today)
-    "#{total} #{if total == 1, do: "play", else: "plays"} · #{month} this month"
+
+    ngettext("%{n} play", "%{n} plays", total, n: Kati.Locale.number(total)) <>
+      " · " <> gettext("%{n} this month", n: Kati.Locale.number(month))
   end
 
   @doc false
@@ -409,7 +426,7 @@ defmodule Kati.Screens.AlbumDetail do
         {UI.eyebrow(Kati.Screens.AlbumDetail.tracklist_label(id))}
         {Kati.Screens.AlbumDetail.tracklist(id)}
         {Kati.Screens.AlbumDetail.dot_note()}
-        {UI.eyebrow("Listen history · 13 weeks")}
+        {UI.eyebrow(Kati.Screens.AlbumDetail.history_label())}
         {Kati.Screens.AlbumDetail.history(a, id)}
         {Kati.Screens.AlbumDetail.note(a)}
         {Kati.Screens.AlbumDetail.actions()}
@@ -417,6 +434,40 @@ defmodule Kati.Screens.AlbumDetail do
     </Scroll>
     """
   end
+
+  @doc false
+  @spec art_label() :: String.t()
+  def art_label, do: Kati.UI.eyebrow_label(gettext("Art"))
+
+  @doc false
+  @spec rating_label_caption() :: String.t()
+  def rating_label_caption, do: Kati.UI.eyebrow_label(gettext("Your rating"))
+
+  @doc false
+  @spec history_label() :: String.t()
+  def history_label,
+    do: gettext("Listen history · %{n} weeks", n: Kati.Locale.number(13))
+
+  @doc """
+  The month the pixel field's last column falls in.
+
+  The drawing writes `MAY` and it was a literal; the field is ninety-one days
+  ending TODAY, so the month it ends in is the device's. `Kati.Locale.date/2`
+  is the calendar as well as the language.
+  """
+  @spec field_month() :: String.t()
+  def field_month do
+    Kati.UI.eyebrow_label(
+      Kati.Time.today()
+      |> Kati.Locale.date(:short)
+      |> String.split(" ")
+      |> List.last()
+    )
+  end
+
+  @doc false
+  @spec primary_label() :: String.t()
+  def primary_label, do: gettext("Log a listen")
 
   @doc "The art tile beside the title and byline."
   @spec hero(map()) :: map()
@@ -431,7 +482,7 @@ defmodule Kati.Screens.AlbumDetail do
             text={a.title}
             text_size={26}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
             max_lines={2}
           />
@@ -472,10 +523,10 @@ defmodule Kati.Screens.AlbumDetail do
       />
       <Spacer size={2} />
       <Text
-        text="Art"
-        font_family="mono"
+        text={Kati.Screens.AlbumDetail.art_label()}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_align="center"
         text_color={Palette.tertiary()}
       />
@@ -530,11 +581,11 @@ defmodule Kati.Screens.AlbumDetail do
     <Column fill_width={true}>
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
-          {Kati.Screens.AlbumDetail.stat_tile("First heard", a.first_heard || "—")}
+          {Kati.Screens.AlbumDetail.stat_tile(gettext("First heard"), a.first_heard || "—")}
         </Column>
         <Spacer size={10} />
         <Column weight={1.0}>
-          {Kati.Screens.AlbumDetail.stat_tile("Last played", a.last_played || "—")}
+          {Kati.Screens.AlbumDetail.stat_tile(gettext("Last played"), a.last_played || "—")}
         </Column>
       </Row>
       <Spacer size={10} />
@@ -587,10 +638,10 @@ defmodule Kati.Screens.AlbumDetail do
       shadow={Kati.Theme.shadow_card()}
     >
       <Text
-        text="YOUR RATING"
-        font_family="mono"
+        text={Kati.Screens.AlbumDetail.rating_label_caption()}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.muted()}
       />
       <Spacer size={9} />
@@ -599,7 +650,7 @@ defmodule Kati.Screens.AlbumDetail do
         <Spacer size={9} />
         <Text
           text={a.rating_label || "—"}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(a.rating_label || "—")}
           text_size={13}
           text_color={:on_surface}
           max_lines={1}
@@ -634,8 +685,8 @@ defmodule Kati.Screens.AlbumDetail do
     SettingsList.row(
       ~MOB"""
       <Text
-        text={Integer.to_string(t.position)}
-        font_family="mono"
+        text={Kati.Locale.number(t.position)}
+        font_family={Kati.Locale.mono_face(Kati.Locale.number(t.position))}
         text_size={11.5}
         text_color={Kati.Theme.Palette.tertiary()}
         width={22}
@@ -654,7 +705,7 @@ defmodule Kati.Screens.AlbumDetail do
         <Spacer size={10} />
         <Text
           text={t.duration || ""}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(t.duration || "")}
           text_size={11.5}
           text_color={Kati.Theme.Palette.muted()}
         />
@@ -666,14 +717,14 @@ defmodule Kati.Screens.AlbumDetail do
 
   @doc false
   def track_trailing(t) do
-    assigns = %{plays: Integer.to_string(t.plays), today?: t.today?}
+    assigns = %{plays: Kati.Locale.number(t.plays), today?: t.today?}
 
     ~MOB"""
     <Row align="center">
       {Kati.Screens.AlbumDetail.dot(@today?)}
       <Text
         text={@plays}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(@plays)}
         text_size={12}
         text_color={Kati.Theme.Palette.sub()}
         width={22}
@@ -706,7 +757,7 @@ defmodule Kati.Screens.AlbumDetail do
   def dot_note do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.note("info", "The dot marks a track played today — the only recency signal here")}
+      {Kati.UI.SettingsList.note("info", gettext("The dot marks a track played today — the only recency signal here"))}
       <Spacer size={24} />
     </Column>
     """
@@ -738,16 +789,16 @@ defmodule Kati.Screens.AlbumDetail do
         <Spacer size={11} />
         <Row fill_width={true} align="center">
           <Text
-            text="MAY"
-            font_family="mono"
+            text={Kati.Screens.AlbumDetail.field_month()}
+            font_family={Kati.Locale.mono_face()}
             text_size={9.5}
-            letter_spacing={0.12}
+            letter_spacing={Kati.Locale.tracking(0.12)}
             text_color={Palette.muted()}
           />
           <Spacer weight={1.0} />
           <Text
             text={a.plays_line}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(a.plays_line)}
             text_size={11}
             text_color={Palette.sub()}
             max_lines={1}
@@ -804,15 +855,20 @@ defmodule Kati.Screens.AlbumDetail do
   def note(a) do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.eyebrow("Your note")}
+      {Kati.UI.eyebrow(gettext("Your note"))}
       <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
-        <Text text={a.note} text_size={14} line_height={1.45} text_color={Palette.cream_body()} />
+        <Text
+          text={a.note}
+          text_size={14}
+          line_height={Kati.Locale.leading(1.45)}
+          text_color={Palette.cream_body()}
+        />
         <Spacer size={8} />
         <Text
           text={a.note_on || ""}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(a.note_on || "")}
           text_size={10.5}
-          letter_spacing={0.12}
+          letter_spacing={Kati.Locale.tracking(0.12)}
           text_color={Palette.cream_meta()}
         />
       </Column>
@@ -821,11 +877,16 @@ defmodule Kati.Screens.AlbumDetail do
     """
   end
 
+  @doc "The two secondary actions — screen 66's row with one fewer."
+  @spec secondary() :: [{String.t(), String.t(), atom()}]
+  def secondary,
+    do: [{"star", gettext("Rate"), :rate}, {"bookmarks", gettext("Add to list"), :add_to_list}]
+
   @doc "One ink button and two circular seconds — screen 66's row with one fewer."
   @spec actions() :: map()
   def actions do
     seconds =
-      @secondary
+      Kati.Screens.AlbumDetail.secondary()
       |> Enum.map(fn {icon, label, tag} -> Kati.Screens.BookDetail.second(icon, label, tag) end)
       |> Enum.intersperse(~MOB"<Spacer size={10} />")
 
@@ -841,10 +902,10 @@ defmodule Kati.Screens.AlbumDetail do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Log a listen"
+          text={Kati.Screens.AlbumDetail.primary_label()}
           text_size={15}
           font_weight="bold"
-          letter_spacing={-0.01}
+          letter_spacing={Kati.Locale.tracking(-0.01)}
           text_color={Palette.on_ink()}
         />
         <Spacer weight={1.0} />

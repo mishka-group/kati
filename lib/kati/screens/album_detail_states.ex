@@ -194,7 +194,7 @@ defmodule Kati.Screens.AlbumDetailStates do
           <Spacer size={11} />
           <Text
             text={first_heard}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -269,7 +269,7 @@ defmodule Kati.Screens.AlbumDetailStates do
         <Spacer size={2} />
         <Text
           text="Art"
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.12}
           text_align="center"
@@ -511,11 +511,16 @@ defmodule Kati.Screens.AlbumDetailStates do
         {Kati.Screens.AlbumDetailStates.empty_field()}
         <Spacer size={12} />
         <Row fill_width={true} align="center">
-          <Text text="MAY" font_family="mono" text_size={10} text_color={Palette.tertiary()} />
+          <Text
+            text="MAY"
+            font_family={Kati.Locale.mono_face()}
+            text_size={10}
+            text_color={Palette.tertiary()}
+          />
           <Spacer weight={1.0} />
           <Text
             text="Nothing logged yet"
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -642,7 +647,7 @@ defmodule Kati.Screens.AlbumDetailStates do
         >
           <Text
             text={a.initial}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={26}
             text_align="center"
             text_color={Palette.track_off(:dark)}

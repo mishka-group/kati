@@ -534,7 +534,7 @@ defmodule Kati.Screens.Fa do
   12.5pt muted under a Persian title, which is the defect
   `Kati.ScreenNilTextTest` was written after a device found on screen 66.
 
-  `""` takes the same clause as `nil`. `Kati.Screens.AlbumDetailFa` and
+  `""` takes the same clause as `nil`. board 76 and
   `Kati.Screens.YearShareFa` borrow this helper and both pass a line they
   always have, so their trees are unchanged.
   """
@@ -563,4 +563,45 @@ defmodule Kati.Screens.Fa do
   end
 
   defp byline(_none), do: []
+
+  # ── Board 76's two-toned eyebrow, lifted here by mishka-group/kati#103 ──────
+  #
+  # `Kati.Screens.SearchFa` calls it three times across a module boundary,
+  # which is what kept board 76 from folding. It goes with
+  # the last mirror; `Kati.UI.eyebrow/2` takes a `:dash` option and is what a
+  # folded screen uses.
+
+  @doc """
+  A Persian eyebrow whose dash is not always the accent.
+
+  76 draws four and colours two of them `#C4BDB3`: orange means new or now in
+  this design, and neither the thirteen-week history nor a note the reader
+  wrote themselves is either. `Kati.UI.eyebrow/2` has taken a `:dash` option
+  since three Latin screens needed exactly this, and
+  `Kati.Screens.Fa.eyebrow/1` has not — so the accent case delegates to it
+  unchanged and only the grey case is spelled out here. That is the whole
+  difference between the two clauses: same 13x2 dash, same Vazirmatn 11 at 600
+  with no tracking, because the Arabic script has no case to upper.
+  """
+  @spec eyebrow2(String.t(), :accent | :grey) :: map()
+  def eyebrow2(label, :accent), do: Kati.Screens.Fa.eyebrow(label)
+
+  def eyebrow2(label, :grey) do
+    ~MOB"""
+    <Column fill_width={true}>
+      <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
+        <Box width={13} height={2} corner_radius={1} background={Palette.rail_idle()} />
+        <Spacer size={9} />
+        <Text
+          text={label}
+          font_family="fa"
+          font_weight="semibold"
+          text_size={11}
+          text_color={Palette.eyebrow()}
+        />
+      </Row>
+      <Spacer size={11} />
+    </Column>
+    """
+  end
 end

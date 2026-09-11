@@ -202,7 +202,7 @@ defmodule Kati.Screens.LogListen do
           <Spacer size={5} />
           <Text
             text={String.upcase(a.byline || "")}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -314,7 +314,7 @@ defmodule Kati.Screens.LogListen do
     >
       <Text
         text={@position}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={11}
         text_color={Palette.tertiary()}
         width={16}
@@ -329,7 +329,12 @@ defmodule Kati.Screens.LogListen do
         weight={1.0}
       />
       <Spacer size={12} />
-      <Text text={@duration} font_family="mono" text_size={10.5} text_color={Palette.tertiary()} />
+      <Text
+        text={@duration}
+        font_family={Kati.Locale.mono_face()}
+        text_size={10.5}
+        text_color={Palette.tertiary()}
+      />
       <Spacer size={12} />
       {Kati.Screens.LogListen.tick(@on?)}
     </Row>
@@ -545,18 +550,18 @@ defmodule Kati.Screens.LogListen do
 
   def credited(%{tracks: tracks}), do: tracks
 
-  # The shaped track carries `4:12` rather than seconds, because that is what
-  # the tracklist prints. Parsing it back is cheaper than threading a second
-  # representation through the shape for one caller.
+  # The shaped track carries BOTH: `4:12` because that is what the tracklist
+  # prints, and the seconds because that is what this adds up.
+  #
+  # It used to carry only the string and parse it back, and the comment here
+  # said so — *parsing it back is cheaper than threading a second
+  # representation through the shape for one caller.* Board 76 draws the same
+  # duration as **۴:۱۲** and `String.to_integer/1` raises on it, so the sum
+  # this function exists for took the whole screen down under `:fa`. A number
+  # is data and a drawn string is copy. mishka-group/kati#103.
   @doc false
-  def seconds(%{duration: nil}), do: 0
-
-  def seconds(%{duration: duration}) do
-    case String.split(duration, ":") do
-      [m, s] -> String.to_integer(m) * 60 + String.to_integer(s)
-      _other -> 0
-    end
-  end
+  def seconds(%{seconds: seconds}) when is_integer(seconds), do: seconds
+  def seconds(_untimed), do: 0
 
   @doc "How many listens this album already has this calendar month."
   @spec times_this_month() :: non_neg_integer()

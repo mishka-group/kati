@@ -523,6 +523,22 @@ defmodule Kati.DesignLiterals do
       # the frozen `Show all 47` still belongs, over an empty one.
       # mishka-group/kati#103.
       {"97", "نمایش همه ۴۷"},
+      # ── Boards 74 and 76's listen field, and board 76's art tile.
+      #
+      # **MAY / اردیبهشت.** The field is ninety-one days ending TODAY and the
+      # month under it was a literal, so every device drew May whatever month
+      # it actually was — MOVIES-AND-TV.md #45's defect on a one-word label.
+      # `Kati.Screens.AlbumDetail.field_month/0` reads the device clock and the
+      # reader's calendar, so a Persian reader in Shahrivar sees شهریور.
+      {"74", "may"},
+      {"76", "اردیبهشت"},
+      # **T / Art.** The paper square's letter is the album title's own first
+      # character — board 76 draws **ک**, because the album is کارهای جزر و مد
+      # there — and the placeholder under it is a word, so it translates:
+      # **هنر**. The board's Latin pair belongs to the English drawing, which
+      # is board 74 and still draws both.
+      {"76", "t"},
+      {"76", "art"},
       # ── Board 69, folded into screen 66 by mishka-group/kati#103.
       #
       # **۱۴۰۳.** The board writes the publication year in Shamsi and the fold

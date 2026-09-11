@@ -320,7 +320,7 @@ defmodule Kati.Screens.RateAlbum do
           <Spacer size={5} />
           <Text
             text={Kati.Screens.RateAlbum.caps(a[:byline])}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -369,7 +369,7 @@ defmodule Kati.Screens.RateAlbum do
       <Spacer size={4} />
       <Text
         text="ART"
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={8.5}
         letter_spacing={0.1}
         text_align="center"
@@ -426,7 +426,7 @@ defmodule Kati.Screens.RateAlbum do
         <Row fill_width={true} align="center">
           <Text
             text={String.upcase("Rating")}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             letter_spacing={0.16}
             text_color={Palette.eyebrow()}
@@ -441,7 +441,7 @@ defmodule Kati.Screens.RateAlbum do
           <Spacer size={10} />
           <Text
             text={Rating.rating_label(rating)}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={14}
             text_color={:on_surface}
             max_lines={1}
@@ -450,7 +450,7 @@ defmodule Kati.Screens.RateAlbum do
         <Spacer size={10} />
         <Text
           text={Kati.Screens.RateAlbum.rating_note()}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -490,7 +490,7 @@ defmodule Kati.Screens.RateAlbum do
         <Row fill_width={true} align="center">
           <Text
             text={String.upcase("Note")}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             letter_spacing={0.16}
             text_color={Palette.eyebrow()}
@@ -499,7 +499,7 @@ defmodule Kati.Screens.RateAlbum do
           <Spacer weight={1.0} />
           <Text
             text={a[:note_on] || ""}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -521,7 +521,7 @@ defmodule Kati.Screens.RateAlbum do
         <Row fill_width={true} align="center">
           <Text
             text={assigns.characters}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}

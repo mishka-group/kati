@@ -27,7 +27,7 @@ defmodule Kati.Screens.WeekImage do
     * **The Kati mark sits in the footer beside the legend**, since a fridge
       page is the most likely thing anyone else sees. It is `Kati` in the mono
       face on both pages: a wordmark is not translated, which is the rule
-      `Kati.Screens.AlbumDetailFa` records for the Latin word on an album cover.
+      board 76 records for the Latin word on an album cover.
 
   ## The Persian page restarts the week — mirroring it would not be enough
 
@@ -104,7 +104,7 @@ defmodule Kati.Screens.WeekImage do
   dish its name on each page. **On a device there would be one name, not two.**
   A real cell points at a `Kati.Meals.Recipe` through
   `Kati.Meals.MealPlanSlot`, and a recipe title is the user's own text —
-  `Kati.Screens.AlbumDetailFa`'s rule, that nothing in Kati translates what a
+  board 76's rule, that nothing in Kati translates what a
   user typed. The fixture carries both languages only because the artboard
   prints both languages, and the day this reads a stored plan the Persian page
   will print the same recipe titles the English one does.
@@ -822,7 +822,7 @@ defmodule Kati.Screens.WeekImage do
   A fridge page is the most likely thing anyone else sees, so the one place the
   app names itself is the page it hands over. `Kati` is not translated on the
   Persian page and stays in the mono face there: a wordmark is a mark, which is
-  the rule `Kati.Screens.AlbumDetailFa` records for the Latin word printed on an
+  the rule board 76 records for the Latin word printed on an
   album cover.
   """
   @spec mark(map()) :: map()

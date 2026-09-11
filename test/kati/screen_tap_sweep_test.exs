@@ -735,7 +735,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.BookDetail, :add_to_list},
     {Kati.Screens.BookDetailDark, :add_to_list},
     {Kati.Screens.AlbumDetail, :add_to_list},
-    {Kati.Screens.AlbumDetailFa, :add_to_list},
     # Screen 72's two were here until mishka-group/kati#103 folded
     # `Kati.Screens.LogProgressFa` into screen 70. Board 72 is that screen under
     # `:fa`, so its opening unit and its timer stop are screen 70's own entries

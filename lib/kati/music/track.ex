@@ -85,7 +85,9 @@ defmodule Kati.Music.Track do
   def duration(%__MODULE__{seconds: nil}), do: nil
 
   def duration(%__MODULE__{seconds: seconds}) do
-    "#{div(seconds, 60)}:#{String.pad_leading(Integer.to_string(rem(seconds, 60)), 2, "0")}"
+    Kati.Locale.number(
+      "#{div(seconds, 60)}:#{String.pad_leading(Integer.to_string(rem(seconds, 60)), 2, "0")}"
+    )
   end
 
   @doc "Whether this track's dot is lit — see the moduledoc."

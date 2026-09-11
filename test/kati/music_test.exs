@@ -259,7 +259,13 @@ defmodule Kati.MusicTest do
     test "the art square carries the album's initial when there is no artwork" do
       # The drawn default, not an error path — see the screen's moduledoc.
       assert AlbumDetail.album().art_seed == nil
-      assert find(tree(mount_screen(AlbumDetail)), :text, text: "Art") != nil
+      assert find(tree(mount_screen(AlbumDetail)), :text, text: "ART") != nil
+
+      # The letter on the DRAWING is the title's own first character and not a
+      # frozen `T`, which is what lets board 76 draw **ک** over
+      # کارهای جزر و مد. A shelved album's is `Kati.Music.Album`'s own column.
+      assert AlbumDetail.drawn_album().initial ==
+               String.first(AlbumDetail.drawn_album().title)
     end
 
     test "last played says today, yesterday, then a date", %{album: album} do
