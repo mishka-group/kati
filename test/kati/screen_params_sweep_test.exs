@@ -497,11 +497,11 @@ defmodule Kati.ScreenParamsSweepTest do
     # one has no argument to carry. Both come off the same fixture, which is
     # why one domain's rows will clear all six lines at once — and neither is
     # fixable from the push.
-    {Kati.Screens.MealsToday, :"meal_Breakfast_07:30", Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :"meal_Dinner_19:30", Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :"meal_Lunch_13:00", Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :"meal_Snack_10:30", Kati.Screens.Meal},
-    {Kati.Screens.MealsToday, :"meal_Snack_16:00", Kati.Screens.Meal},
+    {Kati.Screens.MealsToday, :meal_0, Kati.Screens.Meal},
+    {Kati.Screens.MealsToday, :meal_4, Kati.Screens.Meal},
+    {Kati.Screens.MealsToday, :meal_2, Kati.Screens.Meal},
+    {Kati.Screens.MealsToday, :meal_1, Kati.Screens.Meal},
+    {Kati.Screens.MealsToday, :meal_3, Kati.Screens.Meal},
 
     # ── Screen 118's `Add an ingredient` row and its five ingredient chevrons,
     # and this is the one that is empty for a borrowed reason.

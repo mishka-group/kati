@@ -75,8 +75,8 @@ defmodule Kati.Screens.HealthFa do
   indenting from the right.* Taken, missed and due are eaten, skipped and next,
   and `Kati.Screens.Medication`'s own moduledoc already says the two vocabularies
   are deliberately parallel — so `ring/1` here maps the three dose states onto
-  the three meal states and calls `Kati.Screens.TodayFa.ring/1`, and the time
-  gutter calls `Kati.Screens.TodayFa.gutter_weight/1` and `gutter_color/1`.
+  the three meal states and calls `Kati.Screens.MealsToday.ring/1`, and the time
+  gutter calls `Kati.Screens.MealsToday.gutter_weight/1` and `gutter_color/1`.
 
   The indent is `padding_left={15}` on the action row, which is 59's number. The
   bridge maps `padding_left` to Compose's **start** (`MobBridge.kt:3944`), so
@@ -165,7 +165,6 @@ defmodule Kati.Screens.HealthFa do
   alias Kati.Screens.Fa
   alias Kati.Screens.LogProgressFa
   alias Kati.Screens.Medication
-  alias Kati.Screens.TodayFa
   alias Kati.Screens.Weight
   alias Kati.Screens.WeightStates
   alias Kati.Theme
@@ -915,7 +914,7 @@ defmodule Kati.Screens.HealthFa do
   59's arrangement, which puts the time outside the card where
   `Kati.Screens.Medication.dose_row/1` puts it inside — the caption asks for
   59's geometry and this is the first thing that means. The gutter's weight and
-  colour are `Kati.Screens.TodayFa`'s own functions, through `meal_state/1`; its
+  colour are `Kati.Screens.MealsToday`'s own functions, through `meal_state/1`; its
   top padding is not, because a card that pads 12 needs its time one point
   higher than 59's card that pads 11.
   """
@@ -931,8 +930,8 @@ defmodule Kati.Screens.HealthFa do
             text={dose.time}
             font_family="fa"
             text_size={12}
-            font_weight={Kati.Screens.TodayFa.gutter_weight(state)}
-            text_color={Kati.Screens.TodayFa.gutter_color(state)}
+            font_weight={Kati.Screens.MealsToday.gutter_weight(state)}
+            text_color={Kati.Screens.MealsToday.gutter_color(state)}
             max_lines={1}
           />
         </Column>
@@ -1088,7 +1087,7 @@ defmodule Kati.Screens.HealthFa do
   @doc """
   A dose's state ring — 59's, except for the one this frame paints red.
 
-  Three of the four are `Kati.Screens.TodayFa.ring/1` unchanged: the sizes,
+  Three of the four are `Kati.Screens.MealsToday.ring/1` unchanged: the sizes,
   radii, borders and glyph tints all match this board to the point, which is
   what the caption means by inheriting 59's geometry. Missed is the exception —
   `Kati.Screens.Medication.mark/1` tints it gold and draws no ring at all, and
@@ -1097,9 +1096,9 @@ defmodule Kati.Screens.HealthFa do
   the set rather than a shape of its own.
   """
   @spec ring(atom()) :: map()
-  def ring(:taken), do: TodayFa.ring(:eaten)
-  def ring(:due), do: TodayFa.ring(:next)
-  def ring(:skipped), do: TodayFa.ring(:skipped)
+  def ring(:taken), do: Kati.Screens.MealsToday.ring(:eaten)
+  def ring(:due), do: Kati.Screens.MealsToday.ring(:next)
+  def ring(:skipped), do: Kati.Screens.MealsToday.ring(:skipped)
 
   def ring(_missed) do
     MishkaThemeIcon.theme_icon(

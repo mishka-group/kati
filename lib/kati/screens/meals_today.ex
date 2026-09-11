@@ -54,9 +54,11 @@ defmodule Kati.Screens.MealsToday do
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Health"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
+  alias Kati.Components.MishkaThemeIcon
   alias Kati.Components.MishkaActionIcon
   alias Kati.Components.MishkaPill
   alias Kati.Meals.MealLog
@@ -92,7 +94,7 @@ defmodule Kati.Screens.MealsToday do
         {UI.eyebrow(day.intake_line)}
         {Kati.Screens.MealsToday.macro_card(day)}
         {Kati.Screens.MealsToday.timeline(day.meals)}
-        {UI.eyebrow("Tomorrow — needs prep tonight")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Tomorrow — needs prep tonight")))}
         {Kati.Screens.MealsToday.prep()}
       </Column>
     </Scroll>
@@ -263,8 +265,10 @@ defmodule Kati.Screens.MealsToday do
 
   # A skipped meal has no calories, so printing a number would be a lie — the
   # drawing's own reasoning, and the reason the figures are frozen anyway.
-  defp calories(%{state: :skipped}), do: "SKIPPED"
-  defp calories(log), do: "#{log.kcal} kcal"
+  defp calories(%{state: :skipped}), do: Kati.UI.eyebrow_label(gettext("Skipped"))
+
+  defp calories(log),
+    do: gettext("%{count} kcal", count: Kati.Locale.number(log.kcal))
 
   # The snapshot carries no photograph — `Kati.Meals.MealLog` freezes figures,
   # and a seed is not one. It comes through `recipe_id`, which is provenance
@@ -319,8 +323,15 @@ defmodule Kati.Screens.MealsToday do
   defp day_line(date, 1), do: Calendar.strftime(date, "%A %-d %B") <> " · 1 meal"
   defp day_line(date, count), do: Calendar.strftime(date, "%A %-d %B") <> " · #{count} meals"
 
-  defp intake_line(kcal, 0), do: "Today · #{group(kcal)} kcal"
-  defp intake_line(kcal, target), do: "Today · #{group(kcal)} of #{group(target)} kcal"
+  defp intake_line(kcal, 0),
+    do: gettext("Today · %{eaten} kcal", eaten: Kati.Locale.number(group(kcal)))
+
+  defp intake_line(kcal, target),
+    do:
+      gettext("Today · %{eaten} of %{target} kcal",
+        eaten: Kati.Locale.number(group(kcal)),
+        target: Kati.Locale.number(group(target))
+      )
 
   defp remaining(_kcal, 0), do: ""
   defp remaining(kcal, target), do: "#{group(max(target - kcal, 0))} kcal left"
@@ -475,7 +486,7 @@ defmodule Kati.Screens.MealsToday do
       <Row fill_width={true} align="bottom">
         <Column weight={1.0}>
           <Text
-            text="Today"
+            text={gettext("Today")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
@@ -485,7 +496,7 @@ defmodule Kati.Screens.MealsToday do
           <Spacer size={5} />
           <Text
             text={day.day_line}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -576,7 +587,7 @@ defmodule Kati.Screens.MealsToday do
             <Spacer weight={1.0} />
             <Text
               text={day.dow}
-              font_family="mono"
+              font_family={Kati.Locale.mono_face()}
               text_size={10}
               text_color={dow_color}
               max_lines={1}
@@ -740,7 +751,7 @@ defmodule Kati.Screens.MealsToday do
           <Spacer weight={1.0} />
           <Text
             text={day.remaining}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10}
             text_color={Palette.muted()}
             max_lines={1}
@@ -792,8 +803,8 @@ defmodule Kati.Screens.MealsToday do
       <Box width={7} height={7} corner_radius={2} background={tone} />
       <Spacer size={5} />
       <Text
-        text={String.upcase(name)}
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(name)}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
         letter_spacing={0.08}
         text_color={Palette.eyebrow()}
@@ -807,7 +818,11 @@ defmodule Kati.Screens.MealsToday do
   def timeline(meals) do
     ~MOB"""
     <Column fill_width={true}>
-      {Enum.map(meals, fn meal -> Kati.Screens.MealsToday.meal_row(meal) end)}
+      {meals
+       |> Enum.with_index()
+       |> Enum.map(fn {meal, i} ->
+         Kati.Screens.MealsToday.meal_row(Map.put_new(meal, :index, i))
+       end)}
     </Column>
     """
   end
@@ -820,50 +835,110 @@ defmodule Kati.Screens.MealsToday do
   second match — the timeline was unaddressable on a device, not merely
   untested.
 
-  ## Why the clock is in the tag and the slot alone is not
+  ## Why the tag is the row's id, or its position — and never the slot word
 
-  The slot name is what a person reads off the card, so `meal_Breakfast_08:00`
-  leads with it. It cannot stand alone: a day can hold two `Snack` rows, and
-  the first draft of this function named both of them `meal_Snack` — the same
-  defect one layer down, caught by the check above going red rather than by
-  anybody noticing. The clock is what separates two cards a person would also
-  tell apart by looking at.
+  It was `meal_Breakfast_08:00`: the slot name a person reads off the card,
+  plus the clock to tell two `Snack` rows apart. That is
+  mishka-group/kati#103's recurring defect — a drawn word inside an atom that
+  crosses into Kotlin and back — and under `:fa` every card on board 59 built a
+  different atom, so `open_meal/2`'s `Enum.find` answered `nil` and every meal
+  opened nothing.
 
-      iex> Kati.Screens.MealsToday.meal_tag(%{slot: "Breakfast", time: "08:00"})
-      :"meal_Breakfast_08:00"
+  A real row has a `slot_id`. A drawn one has neither an id nor a unique word
+  (a day can hold two `Snack` rows AT THE SAME TIME), so it takes its POSITION
+  in the day, which is unique by construction and is not copy.
 
-      iex> Kati.Screens.MealsToday.meal_tag(%{slot: "", time: "19:30"})
-      :"meal_19:30"
+      iex> Kati.Screens.MealsToday.meal_tag(%{index: 2})
+      :meal_2
+
+      iex> Kati.Screens.MealsToday.meal_tag(%{})
+      :open_meal
+
+  `tag/2` has always keyed **Mark eaten** and **Swap** on the id; this brings
+  the card's own tap in line with them.
   """
   @spec meal_tag(map()) :: atom()
-  # The slot's own id when the row has one, which every real row now does.
-  #
-  # The clause below builds the tag out of the slot word and the clock, and it
-  # was not enough: a day can hold two `Snack` rows AT THE SAME TIME, and it
-  # named both `meal_Snack_16:00` — so the second card opened the first, which
-  # is the defect this whole phase is about, one layer down from the push. An
-  # eaten card and the planned slot it came from collided the same way.
-  #
-  # `tag/2` has always keyed **Mark eaten** and **Swap** on the id; this brings
-  # the card's own tap in line with them, and the two-nodes-one-name problem
-  # goes with it. `log_row/1` blanking `slot_id` is what used to make this
-  # impossible — see the note there.
-  #
-  # The word-and-clock form stays for the fixture, whose rows have no id, and it
-  # is what `test/design/screens/43.html` is captured with.
   def meal_tag(%{slot_id: id}) when is_binary(id), do: String.to_atom("meal_" <> id)
 
-  def meal_tag(meal) do
-    slot = meal |> Map.get(:slot, "") |> to_string() |> String.trim() |> String.replace(" ", "_")
-    time = meal |> Map.get(:time, "") |> to_string() |> String.trim()
+  # The fixture's rows have no `slot_id`, so they fall back to their POSITION —
+  # not to the slot WORD and the clock, which is what this built until
+  # mishka-group/kati#103. `:"meal_Breakfast_07:30"` is a drawn English word
+  # inside an atom that crosses into Kotlin and back, and under `:fa` it is a
+  # different atom on every card, so every meal on board 59 opened nothing.
+  def meal_tag(%{index: index}) when is_integer(index),
+    do: String.to_atom("meal_" <> Integer.to_string(index))
 
-    case {slot, time} do
-      {"", ""} -> :open_meal
-      {"", clock} -> String.to_atom("meal_" <> clock)
-      {name, ""} -> String.to_atom("meal_" <> name)
-      {name, clock} -> String.to_atom("meal_" <> name <> "_" <> clock)
-    end
+  def meal_tag(_meal), do: :open_meal
+
+  @doc """
+  The 32/27pt state ring a meal card leads with.
+
+  Lifted here from `Kati.Screens.TodayFa` by mishka-group/kati#103: board 59's
+  mirror owned it and board 115's mirror called it across, which is two mirrors
+  depending on each other rather than on the page they mirror.
+
+  Each glyph goes in as a **child**: `Kati.UI.symbol/2` builds a `Text` in the
+  `symbols` face, and the component's `icon` shorthand would build a plain one
+  in Plus Jakarta Sans and retint it from the variant — which would take the
+  skipped ring's `#C4BDB3` and the next ring's 22%-alpha check with it.
+  """
+  @spec ring(:next | :skipped | :eaten) :: map()
+  def ring(:next) do
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :subtle,
+        size: 32,
+        radius: 16,
+        border_color: Palette.border(),
+        border_width: 1.5
+      },
+      [Kati.UI.symbol("check", size: 19, color: Palette.track_ink())]
+    )
   end
+
+  def ring(:skipped) do
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :subtle,
+        size: 27,
+        radius: 16,
+        border_color: Palette.border(),
+        border_width: 1.5
+      },
+      [Kati.UI.symbol("close", size: 16, color: Palette.rail_idle())]
+    )
+  end
+
+  def ring(:eaten) do
+    # `0xFFFBFAF8` LEFT AS A LITERAL, the call `Kati.Screens.Habits.today_button/2`
+    # makes and for its reason. `Kati.Theme.Palette` names four meanings for this
+    # value — the card, a label on an ink fill, the FAB's plus and a title over
+    # artwork — and a check on a green disc is none of them: green is `:hue`, so
+    # it does not move with the mode, and a tick that followed the mode would turn
+    # to ink on a disc that never darkened. The two tokens holding this value in
+    # dark are scoped to a photographic ground or to the FAB, so neither is
+    # honestly this one. Left, and reported: there is no "on a hue fill" row.
+    MishkaThemeIcon.theme_icon(
+      %{
+        variant: :filled,
+        color: Palette.green(),
+        size: 27,
+        radius: 16,
+        border_color: Palette.green(),
+        border_width: 1.5
+      },
+      [Kati.UI.symbol("check", size: 16, color: 0xFFFBFAF8)]
+    )
+  end
+
+  @doc "The time gutter's weight and colour, which say which row is next."
+  @spec gutter_weight(atom()) :: String.t() | nil
+  def gutter_weight(:next), do: "medium"
+  def gutter_weight(_), do: nil
+
+  @doc false
+  def gutter_color(:next), do: Palette.ink()
+  def gutter_color(_), do: Palette.muted()
 
   @doc false
   def meal_row(meal) do
@@ -880,7 +955,7 @@ defmodule Kati.Screens.MealsToday do
         <Column width={44} padding_top={gutter_top}>
           <Text
             text={meal.time}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={12}
             font_weight={gutter_weight}
             text_color={gutter_color}
@@ -927,8 +1002,8 @@ defmodule Kati.Screens.MealsToday do
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
-          text={String.upcase(meal.slot)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(meal.slot)}
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.14}
           text_color={Palette.eyebrow()}
@@ -946,7 +1021,7 @@ defmodule Kati.Screens.MealsToday do
         <Spacer size={4} />
         <Text
           text={meal.calories}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           text_color={Palette.muted()}
           max_lines={1}
@@ -992,8 +1067,8 @@ defmodule Kati.Screens.MealsToday do
     >
       <Column weight={1.0}>
         <Text
-          text={String.upcase(meal.slot)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(meal.slot)}
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.14}
           text_color={Palette.rail_idle()}
@@ -1011,7 +1086,7 @@ defmodule Kati.Screens.MealsToday do
         <Spacer size={4} />
         <Text
           text={meal.calories}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           text_color={Palette.rail_idle()}
           max_lines={1}
@@ -1055,8 +1130,8 @@ defmodule Kati.Screens.MealsToday do
         <Spacer size={12} />
         <Column weight={1.0}>
           <Text
-            text={String.upcase(meal.slot)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(meal.slot)}
+            font_family={Kati.Locale.mono_face()}
             text_size={9.5}
             letter_spacing={0.14}
             text_color={Palette.eyebrow()}
@@ -1074,7 +1149,7 @@ defmodule Kati.Screens.MealsToday do
           <Spacer size={4} />
           <Text
             text={meal.calories}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -1094,9 +1169,9 @@ defmodule Kati.Screens.MealsToday do
       </Row>
       <Spacer size={13} />
       <Row fill_width={true} padding_left={15} align="center">
-        {Kati.Screens.MealsToday.action("Mark eaten", :ink, Kati.Screens.MealsToday.tag("mark_eaten", meal))}
+        {Kati.Screens.MealsToday.action(gettext("Mark eaten"), :ink, Kati.Screens.MealsToday.tag("mark_eaten", meal))}
         <Spacer size={8} />
-        {Kati.Screens.MealsToday.action("Swap", :paper, Kati.Screens.MealsToday.tag("swap", meal))}
+        {Kati.Screens.MealsToday.action(gettext("Swap"), :paper, Kati.Screens.MealsToday.tag("swap", meal))}
         <Spacer size={8} />
         {Kati.Screens.MealsToday.overflow()}
       </Row>
@@ -1215,7 +1290,12 @@ defmodule Kati.Screens.MealsToday do
   """
   @spec open_meal(Mob.Socket.t(), atom()) :: Mob.Socket.t()
   def open_meal(socket, tag) do
-    meal = Enum.find(socket.assigns.day.meals, &(Kati.Screens.MealsToday.meal_tag(&1) == tag))
+    meal =
+      socket.assigns.day.meals
+      |> Enum.with_index()
+      |> Enum.find_value(fn {meal, i} ->
+        Kati.Screens.MealsToday.meal_tag(Map.put_new(meal, :index, i)) == tag && meal
+      end)
 
     Mob.Socket.push_screen(socket, Kati.Screens.Meal, Kati.Screens.Meal.params_for(meal))
   end

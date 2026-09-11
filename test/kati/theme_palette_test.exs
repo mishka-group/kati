@@ -301,8 +301,7 @@ defmodule Kati.Theme.PaletteTest do
     # sweep.
     0xFFEFECE7 => {:collision, ~w(states)},
     0xFFFBFAF8 =>
-      {:collision,
-       ~w(habits language_pick meals_day meals_today onboarding pick_sections states today_fa)},
+      {:collision, ~w(habits language_pick meals_day meals_today onboarding pick_sections states)},
 
     # ── The value has a token; the token means something else ────────────
     # `0xA6FFFFFF` is `rgba(255,255,255,.65)`. On `lock.ex` it is `lock_ink_65`

@@ -85,7 +85,8 @@ defmodule Kati.Screens.Gallery do
     {"56", "برنامه", Kati.Screens.ScheduleFa, :push},
     {"57", "کتابخانه", Kati.Screens.LibraryFa, :push},
     {"58", "سریال", Kati.Screens.SeriesFa, :push},
-    {"59", "امروز", Kati.Screens.TodayFa, :push},
+    # mishka-group/kati#103. Board 59 is screen 43 under `:fa`.
+    {"59", "امروز — Meals today, RTL", Kati.Screens.MealsToday, :push},
     {"60", "وعده‌ها", Kati.Screens.MealPlan, :push},
     {"61", "آمار", Kati.Screens.StatsFa, :push},
     {"62", "تنظیمات", Kati.Screens.SettingsFa, :push},

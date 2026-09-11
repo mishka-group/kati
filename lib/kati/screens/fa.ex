@@ -46,7 +46,7 @@ defmodule Kati.Screens.Fa do
 
       Stated here since these screens were written, and disobeyed by four of
       them until `Kati.PersianFontTest` counted: `Kati.Screens.StatsFa`'s
-      figures, `Kati.Screens.TodayFa`'s and `Kati.Screens.MealsMatrixFa`'s
+      figures, screen 43's and `Kati.Screens.MealsMatrixFa`'s
       meal times and `Kati.Screens.YearShareFa`'s wordmark were all still
       asking mono for glyphs it does not have. A rule a module states about
       itself is not a rule the module keeps.

@@ -1,4 +1,6 @@
 defmodule Kati.Meals.SampleToday do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Stand-in data for screen 43 — the meal plan's own Today.
 
@@ -26,11 +28,21 @@ defmodule Kati.Meals.SampleToday do
 
   @doc "The mono line under the title."
   @spec day_line() :: String.t()
-  def day_line, do: "Sunday 16 August · 5 meals"
+  def day_line,
+    do:
+      gettext("%{day} · %{count} meals",
+        # The fixture's own day, spelled rather than formatted: board 43 writes it
+        # long (`Sunday 16 August`) where `Kati.Locale.date/2`'s `:long` is the
+        # short form, and board 59 writes the Persian-calendar date the same day
+        # falls on.
+        # A frozen fixture date is copy.
+        day: gettext("Sunday 16 August"),
+        count: Kati.Locale.number(5)
+      )
 
   @doc "The plan the day belongs to, named in the pill beside the title."
   @spec plan() :: String.t()
-  def plan, do: "Cutting v3"
+  def plan, do: gettext("Cutting v3")
 
   @doc """
   The seven days of the strip, Monday first.
@@ -89,31 +101,36 @@ defmodule Kati.Meals.SampleToday do
       # Library joined the row with screen 116, and it goes FIRST: it is the
       # input to everything else on this page, and a library you reach after
       # the shopping list is a library you build after you needed it.
-      {"grid_view", "Library"},
-      {"calendar_view_week", "Week"},
-      {"shopping_cart", "Shop"},
-      {"monitoring", "Nutrition"},
-      {"tune", "Plan"}
+      {"grid_view", gettext("Library")},
+      {"calendar_view_week", gettext("Week")},
+      {"shopping_cart", gettext("Shop")},
+      {"monitoring", gettext("Nutrition")},
+      {"tune", gettext("Plan")}
     ]
   end
 
   @doc "The eyebrow over the macro card — the day's headline number."
   @spec intake_line() :: String.t()
-  def intake_line, do: "Today · 1,480 of 2,100 kcal"
+  def intake_line,
+    do:
+      gettext("Today · %{eaten} of %{target} kcal",
+        eaten: Kati.Locale.number("1,480"),
+        target: Kati.Locale.number("2,100")
+      )
 
   @doc "The 9pt bar's three segments, as the drawing splits them."
   @spec macros() :: [{String.t(), float(), non_neg_integer()}]
   def macros do
     [
-      {"Protein", 0.31, 0xFF1A1917},
-      {"Carbs", 0.44, 0xFFB08E55},
-      {"Fat", 0.25, 0xFFE4D2B0}
+      {gettext("Protein"), 0.31, 0xFF1A1917},
+      {gettext("Carbs"), 0.44, 0xFFB08E55},
+      {gettext("Fat"), 0.25, 0xFFE4D2B0}
     ]
   end
 
   @doc "What is left of the target, in the macro card's right-hand corner."
   @spec remaining() :: String.t()
-  def remaining, do: "620 kcal left"
+  def remaining, do: gettext("%{count} kcal left", count: Kati.Locale.number(620))
 
   @doc """
   The day, in clock order.
@@ -128,42 +145,42 @@ defmodule Kati.Meals.SampleToday do
     [
       %{
         state: :eaten,
-        time: "07:30",
-        slot: "Breakfast",
-        title: "Overnight oats, berries",
-        calories: "410 kcal",
+        time: Kati.Locale.number("07:30"),
+        slot: gettext("Breakfast"),
+        title: gettext("Overnight oats, berries"),
+        calories: gettext("%{count} kcal", count: Kati.Locale.number(410)),
         seed: "mealoats"
       },
       %{
         state: :eaten,
-        time: "10:30",
-        slot: "Snack",
-        title: "Greek yoghurt, walnuts",
-        calories: "180 kcal",
+        time: Kati.Locale.number("10:30"),
+        slot: gettext("Snack"),
+        title: gettext("Greek yoghurt, walnuts"),
+        calories: gettext("%{count} kcal", count: Kati.Locale.number(180)),
         seed: "mealyog"
       },
       %{
         state: :eaten,
-        time: "13:00",
-        slot: "Lunch",
-        title: "Chicken, quinoa, slaw",
-        calories: "540 kcal",
+        time: Kati.Locale.number("13:00"),
+        slot: gettext("Lunch"),
+        title: gettext("Chicken, quinoa, slaw"),
+        calories: gettext("%{count} kcal", count: Kati.Locale.number(540)),
         seed: "mealchick"
       },
       %{
         state: :skipped,
-        time: "16:00",
-        slot: "Snack",
-        title: "Apple, almond butter",
-        calories: "SKIPPED",
+        time: Kati.Locale.number("16:00"),
+        slot: gettext("Snack"),
+        title: gettext("Apple, almond butter"),
+        calories: Kati.UI.eyebrow_label(gettext("Skipped")),
         seed: nil
       },
       %{
         state: :next,
-        time: "19:30",
-        slot: "Dinner",
-        title: "Miso salmon, greens, rice",
-        calories: "620 kcal",
+        time: Kati.Locale.number("19:30"),
+        slot: gettext("Dinner"),
+        title: gettext("Miso salmon, greens, rice"),
+        calories: gettext("%{count} kcal", count: Kati.Locale.number(620)),
         seed: "mealsalmon"
       }
     ]
@@ -178,10 +195,15 @@ defmodule Kati.Meals.SampleToday do
   @spec prep() :: map()
   def prep do
     %{
-      title: "Soak the oats, thaw the chicken",
-      line: "Monday has 5 meals · 2 need prep",
-      primary: "See tomorrow",
-      secondary: "Done prepping"
+      title: gettext("Soak the oats, thaw the chicken"),
+      line:
+        gettext("%{day} has %{meals} meals · %{prep} need prep",
+          day: Kati.Locale.pick("Monday", "دوشنبه"),
+          meals: Kati.Locale.number(5),
+          prep: Kati.Locale.number(2)
+        ),
+      primary: gettext("See tomorrow"),
+      secondary: gettext("Done prepping")
     }
   end
 end
