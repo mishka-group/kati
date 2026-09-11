@@ -206,7 +206,7 @@ defmodule Kati.Screens.Lists do
           <Spacer size={5} />
           <Text
             text={l.subtitle}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -326,7 +326,7 @@ defmodule Kati.Screens.Lists do
           <Spacer size={4} />
           <Text
             text={row.count}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -461,7 +461,7 @@ defmodule Kati.Screens.Lists do
         <Spacer size={13} />
         <Text
           text={row.count}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={11.5}
           text_color={Palette.muted()}
           max_lines={1}

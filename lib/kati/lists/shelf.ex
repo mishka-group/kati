@@ -1,4 +1,6 @@
 defmodule Kati.Lists.Shelf do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   What screen 12 draws, out of the store rather than out of a fixture.
 
@@ -101,14 +103,20 @@ defmodule Kati.Lists.Shelf do
       "1 list"
   """
   @spec subtitle([map()]) :: String.t()
-  def subtitle([]), do: "No lists yet"
+  def subtitle([]), do: gettext("No lists yet")
 
   def subtitle(made) do
     n = length(made)
     ranked = Enum.count(made, &(&1.badge == "ranked"))
-    line = "#{n} #{if n == 1, do: "list", else: "lists"}"
+    # One msgid for every count: Persian does not inflect a noun after a
+    # number, so `1 list` is the English grammar's special case rather than the
+    # sentence's. English keeps its own singular here and the catalogue carries
+    # the plural form for both.
+    line = if n == 1, do: "1 list", else: gettext("%{count} lists", count: Kati.Locale.number(n))
 
-    if ranked > 0, do: line <> " · #{ranked} ranked", else: line
+    if ranked > 0,
+      do: line <> " · " <> Kati.Locale.number(ranked) <> " " <> gettext("ranked"),
+      else: line
   end
 
   @doc """
@@ -120,7 +128,7 @@ defmodule Kati.Lists.Shelf do
   """
   @spec count_label(non_neg_integer()) :: String.t()
   def count_label(1), do: "1 title"
-  def count_label(n), do: "#{n} titles"
+  def count_label(n), do: gettext("%{count} titles", count: Kati.Locale.number(n))
 
   @doc """
       iex> Kati.Lists.Shelf.badge(%{ranked: true, shared: false})

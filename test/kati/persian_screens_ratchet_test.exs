@@ -66,7 +66,6 @@ defmodule Kati.PersianScreensRatchetTest do
   # `Kati.Screens.Fa` is not here and is not a screen: it is the shared chrome
   # the mirrors call, and the day the last mirror goes it goes with them.
   @mirrors [
-    Kati.Screens.AddToListFa,
     Kati.Screens.AlbumDetailFa,
     Kati.Screens.ArtistDetailFa,
     Kati.Screens.AttributionFa,

@@ -165,7 +165,6 @@ defmodule Kati.ScreenDesignLiteralTest do
     # an 806pt sheet — so neither can be compared literal-for-literal against a
     # render until a specimen screen per board exists, the way 155 is 154's.
     Kati.Screens.AddToList,
-    Kati.Screens.AddToListFa,
     # Board 301, the Persian country sheet. Its frame is drawn beside three
     # notes about what screens 94 and 97 got wrong rather than as a numbered
     # artboard, so it stays in `test/design/incoming/` and the screen is not

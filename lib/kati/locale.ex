@@ -112,6 +112,24 @@ defmodule Kati.Locale do
   def forward_glyph, do: if(direction(current()) == :rtl, do: "arrow_back", else: "arrow_forward")
 
   @doc """
+  The face a mono line takes.
+
+      iex> Kati.Locale.mono_face()
+      "mono"
+
+  `kati_mono.ttf` carries **no** Persian glyph, so a Persian sentence set in
+  `mono` is handed to Android's own substitute face — it renders, in a typeface
+  that is not Kati's, beside sentences that are. `Kati.Screens.Fa` states the
+  rule and `Kati.PersianFontTest` keeps it: Persian mono copy is Vazirmatn at
+  the mono size.
+
+  A NUMBER in mono is a different question and keeps its face — see
+  `number/1`.
+  """
+  @spec mono_face() :: String.t()
+  def mono_face, do: pick("mono", "fa")
+
+  @doc """
   A number in the reader's own digits.
 
       iex> Kati.Locale.number(190)

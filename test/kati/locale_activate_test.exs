@@ -73,9 +73,21 @@ defmodule Kati.LocaleActivateTest do
 
       {paired, bare} = Enum.split_with(sites, fn {file, line} -> paired?(file, line) end)
 
-      assert length(paired) == 47,
-             "expected 51 paired activations, found #{length(paired)} — " <>
-               "a screen was added or removed and this number moves with it"
+      # A CEILING, not an equality, for as long as mishka-group/kati#103 is
+      # running: every fold deletes a screen and the number falls with it, and a
+      # test that has to be retyped on each of 28 commits is a test people stop
+      # reading. It may be lowered and never raised — a NEW pairing is a new
+      # screen, which is what the ruling of 8 September forbids.
+      #
+      # The floor is what keeps it a test rather than a tautology: `theme_sites/1`
+      # going quiet would pass any ceiling.
+      assert length(paired) <= 47,
+             "expected at most 47 paired activations, found #{length(paired)} — " <>
+               "a screen was added, and the fold only removes them"
+
+      assert length(paired) >= 20,
+             "only #{length(paired)} paired activations found — `theme_sites/1` has " <>
+               "stopped matching, and this file now asserts nothing"
 
       assert Enum.map(bare, &elem(&1, 0)) == ["lib/kati/screens/settings.ex"]
     end

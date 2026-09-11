@@ -255,3 +255,83 @@ msgstr ""
 #: lib/kati/screens/country_picker.ex
 msgid "Availability is per country. Changing this changes what Kati shows as watchable — it never touches your library, ratings or history."
 msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Add to a list"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Pick a list"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "You have no lists yet"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Name one, and it is ready for the next thing you add."
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Name one and %{subject} goes straight into it."
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "IN NO LISTS"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "IN %{count} LISTS"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Couldn’t add it. Nothing was written."
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Kept by Kati — not addable"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "New list"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Make it and add"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "List name"
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Name it first."
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "Couldn’t make it. Nothing was written."
+msgstr ""
+
+#: lib/kati/screens/add_to_list.ex
+msgid "%{count} titles selected"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "No lists yet"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "%{count} lists"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "%{count} titles"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "ranked"
+msgstr ""
+
+#: lib/kati/lists/shelf.ex
+msgid "shared"
+msgstr ""

@@ -43,7 +43,7 @@ defmodule Kati.Lists.Door do
   def open_fa(socket, {_kind, nil}, _title), do: socket
 
   def open_fa(socket, member, title),
-    do: Mob.Socket.push_screen(socket, Kati.Screens.AddToListFa, %{member: member, title: title})
+    do: Mob.Socket.push_screen(socket, Kati.Screens.AddToList, %{member: member, title: title})
 
   @doc """
   Push the sheet over a selection, the way board 146's *Add to list* pill does.

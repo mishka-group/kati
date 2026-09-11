@@ -33,6 +33,7 @@ defmodule Kati.Screens.AddToList do
   one notion of what it is acting on and the mixed dash falls out of counting.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
 
   import Mob.Sigil
 
@@ -104,9 +105,14 @@ defmodule Kati.Screens.AddToList do
   @spec subject(map() | nil, [{atom(), String.t()}]) :: String.t() | nil
   def subject(params, members) do
     case {params && params[:title], members} do
-      {name, [_one]} when is_binary(name) -> name
-      {_none, []} -> nil
-      {_none, many} -> "#{length(many)} titles selected"
+      {name, [_one]} when is_binary(name) ->
+        name
+
+      {_none, []} ->
+        nil
+
+      {_none, many} ->
+        gettext("%{count} titles selected", count: Kati.Locale.number(length(many)))
     end
   end
 
@@ -129,14 +135,14 @@ defmodule Kati.Screens.AddToList do
       "Pick a list"
   """
   @spec heading(map()) :: String.t()
-  def heading(%{lists: []}), do: "Add to a list"
-  def heading(_some), do: "Pick a list"
+  def heading(%{lists: []}), do: gettext("Add to a list")
+  def heading(_some), do: gettext("Pick a list")
 
   @doc false
   def content(%{lists: []} = assigns) do
     inner = %{
       sub: Kati.Screens.AddToList.empty_line(assigns),
-      naming: Kati.Screens.AddToList.naming(assigns, "Make it and add"),
+      naming: Kati.Screens.AddToList.naming(assigns, gettext("Make it and add")),
       error: Kati.Screens.AddToList.error_note(assigns)
     }
 
@@ -145,7 +151,7 @@ defmodule Kati.Screens.AddToList do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="You have no lists yet"
+        text={gettext("You have no lists yet")}
         text_size={14.5}
         font_weight="bold"
         text_color={:on_surface}
@@ -230,9 +236,15 @@ defmodule Kati.Screens.AddToList do
   @spec in_lists(map()) :: String.t()
   def in_lists(assigns) do
     case Kati.Screens.AddToList.holding(assigns) do
-      0 -> "IN NO LISTS"
+      # One msgid for every count. Persian has one plural form for a counted
+      # noun — ۱ فهرست and ۳ فهرست are both correct — so the `1` case is the
+      # English grammar's, not the sentence's, and a second msgid would ask a
+      # translator for a distinction their language does not make. The numeral
+      # takes the reader's own digits. `Kati.Screens.MyServicesFa` records the
+      # same rule for its own count.
+      0 -> gettext("IN NO LISTS")
       1 -> "IN 1 LIST"
-      n -> "IN #{n} LISTS"
+      n -> gettext("IN %{count} LISTS", count: Kati.Locale.number(n))
     end
   end
 
@@ -245,9 +257,11 @@ defmodule Kati.Screens.AddToList do
   end
 
   @doc false
-  def empty_line(%{subject: nil}), do: "Name one, and it is ready for the next thing you add."
+  def empty_line(%{subject: nil}),
+    do: gettext("Name one, and it is ready for the next thing you add.")
 
-  def empty_line(assigns), do: "Name one and " <> assigns.subject <> " goes straight into it."
+  def empty_line(assigns),
+    do: gettext("Name one and %{subject} goes straight into it.", subject: assigns.subject)
 
   @doc """
   How much of the selection a list already holds.
@@ -304,12 +318,12 @@ defmodule Kati.Screens.AddToList do
 
   @doc false
   def row_body(list, failed) when failed == :error do
-    Kati.UI.SettingsList.body(list.title, "Couldn’t add it. Nothing was written.")
+    Kati.UI.SettingsList.body(list.title, gettext("Couldn’t add it. Nothing was written."))
   end
 
   def row_body(list, failed) do
     if failed == list.id do
-      Kati.UI.SettingsList.body(list.title, "Couldn’t add it. Nothing was written.")
+      Kati.UI.SettingsList.body(list.title, gettext("Couldn’t add it. Nothing was written."))
     else
       Kati.UI.SettingsList.body(list.title, Kati.Screens.AddToList.count_line(list))
     end
@@ -325,8 +339,25 @@ defmodule Kati.Screens.AddToList do
       "3 titles"
   """
   @spec count_line(map()) :: String.t()
-  def count_line(%{badge: badge} = list) when is_binary(badge), do: list.count <> " · " <> badge
+  # The badge is a KEY — `Kati.Lists.Shelf.badge/1` answers `"ranked"` and
+  # `subtitle/1` counts by comparing against it — so it is translated where it
+  # is drawn rather than where it is decided. MOVIES-AND-TV.md #158's rule, one
+  # layer down.
+  def count_line(%{badge: badge} = list) when is_binary(badge),
+    do: list.count <> " · " <> Kati.Screens.AddToList.badge_word(badge)
+
   def count_line(list), do: list.count
+
+  @doc """
+  A badge as a word.
+
+      iex> Kati.Screens.AddToList.badge_word("ranked")
+      "ranked"
+  """
+  @spec badge_word(String.t()) :: String.t()
+  def badge_word("ranked"), do: gettext("ranked")
+  def badge_word("shared"), do: gettext("shared")
+  def badge_word(other), do: other
 
   @doc """
   The trailing mark: a tick, a dash, or nothing at all.
@@ -360,7 +391,9 @@ defmodule Kati.Screens.AddToList do
       |> Enum.map(fn {row, i} ->
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile(row.icon),
-          Kati.UI.SettingsList.body(row.title, "Kept by Kati — not addable", fallback: true),
+          Kati.UI.SettingsList.body(row.title, gettext("Kept by Kati — not addable"),
+            fallback: true
+          ),
           Kati.UI.symbol("lock", size: 17, color: Palette.tertiary()),
           rule: i < length(assigns.kept) - 1
         )
@@ -371,7 +404,7 @@ defmodule Kati.Screens.AddToList do
 
   @doc false
   def new_list(%{naming?: true} = assigns),
-    do: Kati.Screens.AddToList.naming(assigns, "Make it and add")
+    do: Kati.Screens.AddToList.naming(assigns, gettext("Make it and add"))
 
   def new_list(_resting) do
     assigns = %{tap: {self(), :new_list}}
@@ -390,7 +423,12 @@ defmodule Kati.Screens.AddToList do
     >
       {Kati.UI.symbol("add", size: 18, color: Kati.Theme.Palette.sub())}
       <Spacer size={11} />
-      <Text text="New list" text_size={13.5} font_weight="semibold" text_color={Palette.sub()} />
+      <Text
+        text={gettext("New list")}
+        text_size={13.5}
+        font_weight="semibold"
+        text_color={Palette.sub()}
+      />
     </Row>
     """
   end
@@ -427,7 +465,7 @@ defmodule Kati.Screens.AddToList do
     >
       <TextField
         value={@name}
-        placeholder="List name"
+        placeholder={gettext("List name")}
         return_key="done"
         weight={1.0}
         accessibility_id="list_name"
@@ -510,10 +548,10 @@ defmodule Kati.Screens.AddToList do
         |> Kati.Screens.AddToList.fill(list)
 
       {:error, :nothing_to_save} ->
-        Mob.Socket.assign(socket, :error, "Name it first.")
+        Mob.Socket.assign(socket, :error, gettext("Name it first."))
 
       {:error, _reason} ->
-        Mob.Socket.assign(socket, :error, "Couldn’t make it. Nothing was written.")
+        Mob.Socket.assign(socket, :error, gettext("Couldn’t make it. Nothing was written."))
     end
   end
 
