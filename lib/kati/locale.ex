@@ -291,6 +291,29 @@ defmodule Kati.Locale do
   def back_glyph, do: if(direction(current()) == :rtl, do: "arrow_forward", else: "arrow_back")
 
   @doc """
+  The chevron on a row that opens something, pointing the reading direction.
+
+  `chevron_right` in English, `chevron_left` in Persian — and it is a different
+  question from `back_glyph/0`, which points the way the reader CAME FROM. The
+  two therefore point opposite ways in one script and the same way in neither,
+  which is why they cannot share a helper.
+
+  Material Symbols are text in a font and auto-mirror nothing, so nothing
+  happens here unless it is asked for. `Icons.AutoMirrored` is Compose's answer
+  to the same problem and reaches only the icons the bridge draws from the
+  Material set — `K-12 auto-mirrored-chevrons` in `native/LEDGER.md` — not the
+  glyphs Kati draws out of its own subset font.
+
+      iex> Kati.Locale.as(:en, fn -> Kati.Locale.forward_chevron() end)
+      "chevron_right"
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.forward_chevron() end)
+      "chevron_left"
+  """
+  @spec forward_chevron() :: String.t()
+  def forward_chevron, do: pick("chevron_right", "chevron_left")
+
+  @doc """
   Latin tracking, or none.
 
       iex> Kati.Locale.tracking(-0.03)

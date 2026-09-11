@@ -78,7 +78,6 @@ defmodule Kati.PersianScreensRatchetTest do
   @mirrors [
     Kati.Screens.AlbumDetailFa,
     Kati.Screens.ArtistDetailFa,
-    Kati.Screens.AttributionFa,
     Kati.Screens.BookDetailFa,
     Kati.Screens.BooksFa,
     Kati.Screens.DataSourcesFa,

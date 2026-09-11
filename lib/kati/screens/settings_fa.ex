@@ -523,7 +523,7 @@ defmodule Kati.Screens.SettingsFa do
     # translation table between them.
     "my_services" => Kati.Screens.MyServicesFa,
     "data_sources" => Kati.Screens.DataSourcesFa,
-    "attribution" => Kati.Screens.AttributionFa,
+    "attribution" => Kati.Screens.Attribution,
     # 62's own caption is *Settings rows mirror wholesale*, and these two were
     # the mirror stopping short: screen 24's Import row reaches
     # `Kati.Screens.ImportSources` and its Text size row reaches

@@ -563,7 +563,12 @@ defmodule Kati.UI.SettingsList do
     # is `0xFFC4BDB3`; the design draws two chevron greys and only one of them is
     # `tertiary`. Taking the better name would have moved light mode by eleven
     # units, so the value wins and this comment carries the discrepancy.
-    Kati.UI.symbol("chevron_right", size: 18, color: Palette.rail_idle())
+    # `Kati.Locale.forward_chevron/0`, not the literal: a row that opens
+    # something points the READING direction, which is leftward in Persian.
+    # Board 85 draws `chevron_left` for exactly this reason and screen 85's
+    # mirror hard-coded it; folding the mirror away is what moves the decision
+    # here, where every settings row can have it.
+    Kati.UI.symbol(Kati.Locale.forward_chevron(), size: 18, color: Palette.rail_idle())
   end
 
   @doc """

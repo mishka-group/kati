@@ -118,8 +118,7 @@ defmodule Kati.SettingsDataRoutesTest do
       |> MapSet.difference(
         MapSet.new([
           Kati.Screens.MyServicesFa,
-          Kati.Screens.DataSourcesFa,
-          Kati.Screens.AttributionFa
+          Kati.Screens.DataSourcesFa
         ])
       )
 

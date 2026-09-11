@@ -120,16 +120,26 @@ defmodule Kati.Screens.Attribution do
     ]
   end
 
-  # The open-source half. Three rows, each a licence and what it covers.
-  @open_source [
-    {"MIT", "Kati, and Mob"},
-    {"Apache-2.0", "Mishka Chelekom components"},
-    {"OFL", "Plus Jakarta Sans, DM Mono, Vazirmatn"}
-  ]
+  @doc """
+  The licences Kati's own dependencies ship under.
 
-  @doc "The licences Kati's own dependencies ship under."
+  A function for `sources/0`'s reason — `gettext/1` in a module attribute is
+  compile-time — and the halves are split the same way: the licence TAG is an
+  identifier and is the same word everywhere, and the covered-by line is Kati
+  describing its own dependencies and is translated. The third is a list of
+  typeface names and translates to itself, which is why it goes through
+  `gettext/1` anyway: a msgid whose Persian entry is the same string is a
+  decision recorded in the catalogue, and a literal is a decision nobody can
+  see.
+  """
   @spec open_source() :: [{String.t(), String.t()}]
-  def open_source, do: @open_source
+  def open_source do
+    [
+      {"MIT", gettext("Kati, and Mob")},
+      {"Apache-2.0", gettext("Mishka Chelekom components")},
+      {"OFL", gettext("Plus Jakarta Sans, DM Mono, Vazirmatn")}
+    ]
+  end
 
   @doc false
   def content(assigns) do
@@ -143,10 +153,10 @@ defmodule Kati.Screens.Attribution do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 44)}
-        {SettingsList.title("Where this comes from", "Posters, covers, air dates and facts", nil, :name)}
+        {SettingsList.title(gettext("Where this comes from"), gettext("Posters, covers, air dates and facts"), nil, :name)}
         {Kati.UI.notice(assigns[:link_error])}
         {Kati.Screens.Attribution.source_cards()}
-        {UI.eyebrow("Open source")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Open source")))}
         {Kati.Screens.Attribution.open_source_card()}
         {Kati.Screens.Attribution.footnotes()}
       </Column>
@@ -311,7 +321,7 @@ defmodule Kati.Screens.Attribution do
   @spec open_source_card() :: map()
   def open_source_card do
     rows =
-      Enum.map(@open_source, fn {licence, covers} ->
+      Enum.map(Kati.Screens.Attribution.open_source(), fn {licence, covers} ->
         SettingsList.row(
           Kati.Screens.Attribution.licence_pill(licence),
           SettingsList.body(covers, nil),
@@ -324,7 +334,7 @@ defmodule Kati.Screens.Attribution do
         [
           SettingsList.row(
             nil,
-            SettingsList.body("Full notice list", nil),
+            SettingsList.body(gettext("Full notice list"), nil),
             SettingsList.trailing(SettingsList.chevron()),
             on_tap: {self(), :open_notices}
           )
@@ -333,16 +343,52 @@ defmodule Kati.Screens.Attribution do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Kati is MIT-licensed. It stands on work by people who gave it away."
+        text={gettext("Kati is MIT-licensed. It stands on work by people who gave it away.")}
         text_size={12.5}
         line_height={1.5}
         text_color={Palette.ink_soft()}
+        font_family={Kati.Locale.face_prop()}
       />
       <Spacer size={12} />
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={24} />
     </Column>
     """
+  end
+
+  @doc """
+  The sentence board 85 adds and board 83 does not have.
+
+  It is about the page itself — which of its words are translated and which are
+  not — so it is only true where something has been translated. Under `:en` it
+  would be a paragraph explaining that nothing was translated, which is why
+  `Kati.Locale.pick/2` draws it in Persian and draws nothing in English rather
+  than being folded into the two notes above it.
+
+  `Kati.Screens.AttributionFa.@copy.mirror` is where it comes from, and it is
+  the one string in that mirror with no English original at all.
+  """
+  @spec marks_note() :: map()
+  def marks_note do
+    assigns = %{
+      sentence:
+        Kati.Locale.pick(
+          nil,
+          "نشان‌های تجاری هرگز آینه نمی‌شوند و هرگز به رنگ‌های کاتی درنمی‌آیند. " <>
+            "جمله‌های خود کاتی ترجمه می‌شوند؛ متن حقوقی نقل‌شده در زبان اصلی می‌ماند."
+        )
+    }
+
+    if assigns.sentence do
+      ~MOB"""
+      <Column fill_width={true}>
+        <Spacer size={12} />
+        {Kati.UI.SettingsList.note("translate", @sentence)}
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
   end
 
   @doc false
@@ -374,9 +420,10 @@ defmodule Kati.Screens.Attribution do
   def footnotes do
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.UI.SettingsList.note("info", "That list is generated from THIRD_PARTY_NOTICES.md at build time, never typed by hand.")}
+      {Kati.UI.SettingsList.note("info", gettext("That list is generated from THIRD_PARTY_NOTICES.md at build time, never typed by hand."))}
       <Spacer size={12} />
-      {Kati.UI.SettingsList.note("info", "Kati is free, has no ads and sells nothing inside itself. That is what keeps it inside TMDB’s and Last.fm’s non-commercial terms — a constraint worth naming, not hiding.")}
+      {Kati.UI.SettingsList.note("info", gettext("Kati is free, has no ads and sells nothing inside itself. That is what keeps it inside TMDB’s and Last.fm’s non-commercial terms — a constraint worth naming, not hiding."))}
+      {Kati.Screens.Attribution.marks_note()}
     </Column>
     """
   end

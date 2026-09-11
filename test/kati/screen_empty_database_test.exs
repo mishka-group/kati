@@ -449,7 +449,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"79", Kati.Screens.ArtistDetailFa},
     {"81", Kati.Screens.DataSourcesStates},
     {"82", Kati.Screens.DataSourcesFa},
-    {"85", Kati.Screens.AttributionFa},
+    # 85 was here, paired with screen 80's own fallback, for as long as it was
+    # `Kati.Screens.AttributionFa`. mishka-group/kati#103 folded that mirror
+    # away and board 85 is screen 83 under `:fa` now — and screen 83 reads no
+    # store at all, so rendering it against an empty one asserts nothing. Its
+    # literals are held by `Kati.ScreenDesignLiteralTest`, whose `@fa_screens`
+    # already carries 85.
     {"126", Kati.Screens.MoneyDay},
     # Screen 92's three companions: its empty state, its states sheet, and the
     # board showing what four other screens look like when nothing is set up.
@@ -2252,8 +2257,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"81", Kati.Screens.DataSourcesStates, &Kati.Screens.DataSources.cache_size/0,
        fn -> "Nothing cached yet" end},
       {"82", Kati.Screens.DataSourcesFa, &Kati.Screens.DataSources.cache_size/0,
-       fn -> "Nothing cached yet" end},
-      {"85", Kati.Screens.AttributionFa, &Kati.Screens.DataSources.cache_size/0,
        fn -> "Nothing cached yet" end},
       {"126", Kati.Screens.MoneyDay, &Kati.Screens.MoneyDay.rows/0,
        &Kati.Screens.MoneyDay.drawn_rows/0},

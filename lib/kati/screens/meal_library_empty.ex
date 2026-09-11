@@ -42,7 +42,7 @@ defmodule Kati.Screens.MealLibraryEmpty do
   `MainActivity.kt:285` reads `layout_direction` off `root.props` and provides
   `LocalLayoutDirection` once for the whole tree. A nested `layout_direction`
   prop compiles, renders and does nothing —
-  `Kati.Screens.AttributionFa.quoted/1` records the same finding from the other
+  `Kati.Screens.Attribution.gloss/1` records the same finding from the other
   side. `Kati.Screens.Fa.pushed_frame/1` is no use either: it would turn the
   English half of this board round with the Persian half.
 

@@ -126,7 +126,9 @@ defmodule Kati.Screens.Gallery do
     {"81", "Data sources — states", Kati.Screens.DataSourcesStates, :push},
     {"82", "منابع داده", Kati.Screens.DataSourcesFa, :push},
     {"84", "Attribution — states", Kati.Screens.AttributionStates, :push},
-    {"85", "منابع", Kati.Screens.AttributionFa, :push},
+    # mishka-group/kati#103. Board 85 is screen 83 in the mirror, and 83 IS the
+    # mirror now — the same module rendered under `:fa`, exactly as 154/156.
+    {"85", "منابع — Where this comes from, RTL", Kati.Screens.Attribution, :push},
     {"93", "My services — nothing set up", Kati.Screens.MyServicesEmpty, :push},
     {"95", "My services — states", Kati.Screens.MyServicesStates, :push},
     {"96", "Nothing set up — knock-on", Kati.Screens.NothingSetUpKnockOn, :push},

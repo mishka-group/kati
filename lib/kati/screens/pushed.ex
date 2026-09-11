@@ -1,4 +1,6 @@
 defmodule Kati.Screens.Pushed do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   A screen pushed over a root, rather than one of the four roots.
 
@@ -146,6 +148,69 @@ defmodule Kati.Screens.Pushed do
   #
   # `dpgettext/5` answers the msgid itself when the context has no entry, which
   # is exactly the signal to fall through.
+  @doc """
+  Every label a back pill can carry, written out so `mix gettext.extract` can
+  see it.
+
+  Nothing calls this. `translated/1` receives the label as a RUNTIME value —
+  `use Kati.Screens.Pushed, back: "Settings"` puts it in an attribute, and a
+  push can pass one as a param — so the extractor, which reads literal
+  `gettext/1` call sites and nothing else, finds no msgid for any of them. It
+  does not merely fail to add one: `mix gettext.extract --merge` **removes**
+  the entries a previous run added by hand, translation and all. Five Persian
+  back pills were lost exactly that way on 11 September and were noticed only
+  because `Kati.ScreenDesignLiteralTest` compares boards 60 and 156 against the
+  rendered tree.
+
+  So the vocabulary is declared. A label added to a `back:` option and not
+  added here is a pill that reads English in Persian — which is why
+  `Kati.BackPillVocabularyTest` asserts the two lists are the same list.
+  """
+  @spec back_vocabulary() :: [String.t()]
+  def back_vocabulary do
+    [
+      gettext("Activity"),
+      gettext("Add title"),
+      gettext("Album"),
+      gettext("Artist"),
+      gettext("Auto-detect"),
+      gettext("Back"),
+      gettext("Books"),
+      gettext("Calendar"),
+      gettext("Data sources"),
+      gettext("Episode order"),
+      gettext("Episodes"),
+      gettext("Health"),
+      gettext("Home"),
+      gettext("Import"),
+      gettext("Inbox"),
+      gettext("Language"),
+      gettext("Library"),
+      gettext("List"),
+      gettext("Lists"),
+      gettext("Meals"),
+      gettext("Medication"),
+      gettext("Music"),
+      gettext("My services"),
+      gettext("Notifications"),
+      gettext("Plans"),
+      gettext("Recognised"),
+      gettext("Search"),
+      gettext("Series"),
+      gettext("Settings"),
+      gettext("Stats"),
+      gettext("Up next"),
+      gettext("What fits?"),
+      gettext("Year cards")
+    ] ++
+      [
+        # The one label that means two different things and needs a context:
+        # screen 44's pill says وعده‌ها (*meals*, the plan) where the section
+        # name is وعده (*meal*). See `translated/1`.
+        pgettext("back pill", "Meals")
+      ]
+  end
+
   defp translated(label) do
     case Gettext.dpgettext(Kati.Gettext, "default", "back pill", label) do
       ^label -> Gettext.dgettext(Kati.Gettext, "default", label)
