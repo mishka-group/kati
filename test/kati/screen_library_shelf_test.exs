@@ -264,7 +264,7 @@ defmodule Kati.ScreenLibraryShelfTest do
       pressed = render_info(view, {:tap, :shelf_Screen})
 
       assert navigated_to(pressed) == nil
-      assert assigns(pressed).filter == "All"
+      assert assigns(pressed).filter == :all
     end
 
     test "renders a tree the native layer can draw" do
@@ -278,7 +278,7 @@ defmodule Kati.ScreenLibraryShelfTest do
   # calling; the only difference here is that `load/1`'s `titles: titles()` is
   # replaced by the fixture. So this is the whole render path — header,
   # subtitle, chips, grid, tiles and artwork — over a nine-title shelf.
-  defp drawn_tree(filter \\ "All") do
+  defp drawn_tree(filter \\ :all) do
     tree(
       Library.render(%{
         filter: filter,
@@ -354,10 +354,10 @@ defmodule Kati.ScreenLibraryShelfTest do
       assert Library.chip_counts(titles) == Sample.chips()
 
       assert Library.chip_counts(titles) == [
-               {"All", 9},
-               {"Watching", 4},
-               {"Not started", 3},
-               {"Finished", 2}
+               {:all, "All", 9},
+               {:watching, "Watching", 4},
+               {:not_started, "Not started", 3},
+               {:finished, "Finished", 2}
              ]
 
       assert subtitle_of(drawn_tree()) == "9 titles · 4 in progress"
@@ -394,7 +394,12 @@ defmodule Kati.ScreenLibraryShelfTest do
     test "each chip filters the grid to its own count" do
       # The drawing's own four counts, written out. Reading them back off
       # `chip_counts/1` would let a shelf agree with itself.
-      for {label, count} <- [{"All", 9}, {"Watching", 4}, {"Not started", 3}, {"Finished", 2}] do
+      for {label, count} <- [
+            {:all, "All", 9},
+            {:watching, "Watching", 4},
+            {:not_started, "Not started", 3},
+            {:finished, "Finished", 2}
+          ] do
         assert length(tile_columns(drawn_tree(label))) == count,
                "the #{inspect(label)} chip should leave #{count} tiles and the grid drew " <>
                  "#{length(tile_columns(drawn_tree(label)))}"
@@ -407,8 +412,8 @@ defmodule Kati.ScreenLibraryShelfTest do
       # assign is set before anything is drawn from it.
       view = mount_screen(Library)
 
-      for label <- ["All", "Watching", "Not started", "Finished"] do
-        filtered = render_info(view, {:tap, String.to_atom("filter_" <> label)})
+      for label <- [:all, :watching, :not_started, :finished] do
+        filtered = render_info(view, {:tap, String.to_atom("filter_" <> Atom.to_string(label))})
         assert assigns(filtered).filter == label
       end
     end
@@ -416,7 +421,7 @@ defmodule Kati.ScreenLibraryShelfTest do
     test "renders a tree the native layer can draw" do
       assert_renderable(
         Library.render(%{
-          filter: "All",
+          filter: :all,
           shelf: "Screen",
           titles: Library.drawn_titles(),
           menu?: false
@@ -540,10 +545,10 @@ defmodule Kati.ScreenLibraryShelfTest do
       assert subtitle_of(tree(mount_screen(Library))) == "6 titles · 4 in progress"
 
       assert Library.chip_counts(titles) == [
-               {"All", 6},
-               {"Watching", 4},
-               {"Not started", 1},
-               {"Finished", 1}
+               {:all, "All", 6},
+               {:watching, "Watching", 4},
+               {:not_started, "Not started", 1},
+               {:finished, "Finished", 1}
              ]
     end
 
@@ -555,8 +560,13 @@ defmodule Kati.ScreenLibraryShelfTest do
       # perfectly, and this is the assertion that would still notice.
       # Six, not five: the evicted row is on the shelf now and is `:watching`
       # like the row it always was. See *an evicted one stays ON it*.
-      for {label, count} <- [{"All", 6}, {"Watching", 4}, {"Not started", 1}, {"Finished", 1}] do
-        filtered = render_info(view, {:tap, String.to_atom("filter_" <> label)})
+      for {label, count} <- [
+            {:all, "All", 6},
+            {:watching, "Watching", 4},
+            {:not_started, "Not started", 1},
+            {:finished, "Finished", 1}
+          ] do
+        filtered = render_info(view, {:tap, String.to_atom("filter_" <> Atom.to_string(label))})
 
         assert length(tile_columns(tree(filtered))) == count,
                "the #{inspect(label)} chip should leave #{count} tiles and the grid drew " <>

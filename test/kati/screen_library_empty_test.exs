@@ -274,7 +274,7 @@ defmodule Kati.ScreenLibraryEmptyTest do
              "the mono subtitle is withheld only while there is nothing to count"
 
       for chip <- ["All", "Watching", "Not started", "Finished"] do
-        assert chip in drawn, "the #{inspect(chip)} chip did not come back with the shelf"
+        assert chip in drawn, "the #{chip} chip did not come back with the shelf"
       end
     end
 
@@ -285,10 +285,10 @@ defmodule Kati.ScreenLibraryEmptyTest do
       # where the shelf was, with nothing to say what happened, and until
       # something in the app could set a status it was what every reader got
       # from *Not started* and *Finished* both.
-      view = render_info(mount_screen(Library), {:tap, :"filter_Not started"})
+      view = render_info(mount_screen(Library), {:tap, :filter_not_started})
       drawn = texts(tree(view))
 
-      assert assigns(view).filter == "Not started"
+      assert assigns(view).filter == :not_started
       assert find_all(tree(view), :column, weight: 1.0, on_tap: {self(), :open_series}) == []
 
       assert "Everything here is started" in drawn
@@ -309,14 +309,14 @@ defmodule Kati.ScreenLibraryEmptyTest do
       # MOVIES-AND-TV.md #122: it never could, because both other segments
       # push. The state is gone; these four are the ones a reader can reach.
       for {filter, line} <- [
-            {"Watching", "Nothing on the go"},
-            {"Not started", "Everything here is started"},
-            {"Finished", "Nothing finished yet"}
+            {:watching, "Nothing on the go"},
+            {:not_started, "Everything here is started"},
+            {:finished, "Nothing finished yet"}
           ] do
         assert inspect(Library.nothing_here(filter), limit: :infinity) =~ line
       end
 
-      refute inspect(Library.nothing_here("All"), limit: :infinity) =~ "comes later"
+      refute inspect(Library.nothing_here(:all), limit: :infinity) =~ "comes later"
     end
   end
 end

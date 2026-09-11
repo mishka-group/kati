@@ -619,3 +619,67 @@ msgstr ""
 #: lib/kati/stats/sample.ex
 msgid "Everything else"
 msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Anime"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Wishlist"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "No titles yet"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Add one thing you are watching and the calendar starts filling itself."
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Add a title"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "or import a backup"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Nothing on the go"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Log a watch or tick an episode and the title moves here."
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Everything here is started"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "A title you add and have not watched yet waits in this one."
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Nothing finished yet"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "A film you log a watch of, or a series whose last episode you tick, lands here."
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "No anime on the shelf"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "No title on your shelf matches."
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Nothing %{filter}"
+msgstr ""
+
+#: lib/kati/screens/library.ex
+msgid "Kati flags one from its genre and origin, or from a MAL or AniList import — and you can say so yourself from a title's ⋯ menu."
+msgstr ""

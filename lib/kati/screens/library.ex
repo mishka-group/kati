@@ -92,6 +92,7 @@ defmodule Kati.Screens.Library do
   `subtitle_line/1`, which records what withholding it actually rendered.
   """
   use Kati.Screens.Root, root: :library
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -129,7 +130,7 @@ defmodule Kati.Screens.Library do
     end
 
     Mob.Socket.assign(socket,
-      filter: "All",
+      filter: :all,
       titles: titles(),
       # The WHOLE shelf's watching count, not the narrowed one. The badge
       # labels a door onto screen 10, and screen 10 shows the queue whole — a
@@ -659,7 +660,7 @@ defmodule Kati.Screens.Library do
         </Row>
         <Spacer size={18} />
         <Text
-          text="No titles yet"
+          text={gettext("No titles yet")}
           text_size={17}
           font_weight="bold"
           letter_spacing={-0.02}
@@ -668,7 +669,7 @@ defmodule Kati.Screens.Library do
         />
         <Spacer size={8} />
         <Text
-          text="Add one thing you are watching and the calendar starts filling itself."
+          text={gettext("Add one thing you are watching and the calendar starts filling itself.")}
           text_size={13}
           line_height={1.55}
           text_align="center"
@@ -706,7 +707,7 @@ defmodule Kati.Screens.Library do
       {Kati.UI.symbol("add", size: 18, color: Palette.on_ink())}
       <Spacer size={7} />
       <Text
-        text="Add a title"
+        text={gettext("Add a title")}
         text_size={13}
         font_weight="bold"
         text_color={Palette.on_ink()}
@@ -723,7 +724,7 @@ defmodule Kati.Screens.Library do
     ~MOB"""
     <Column fill_width={true} on_tap={{self(), :import_backup}}>
       <Text
-        text="or import a backup"
+        text={gettext("or import a backup")}
         text_size={12.5}
         font_weight="semibold"
         text_align="center"
@@ -786,7 +787,7 @@ defmodule Kati.Screens.Library do
       <Row fill_width={true} align="center">
         <Column weight={1.0}>
           <Text
-            text="Library"
+            text={gettext("Library")}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
@@ -1098,11 +1099,17 @@ defmodule Kati.Screens.Library do
   def chip_counts(titles) do
     anime = Enum.count(titles, &(Map.get(&1, :media_kind) == :anime))
 
+    # `{key, label, count}`. The KEY is what the chip's tap is named after and
+    # what `matching/2` filters on; the label is a translation. They were one
+    # string, so the Persian shelf's filter was «همه» and every clause of
+    # `matching/2` fell through to `_all` — the chips drew, the counts were
+    # right, and tapping any of the four showed the whole shelf.
+    # MOVIES-AND-TV.md #158, a fourth time.
     [
-      {"All", length(titles)},
-      {"Watching", Enum.count(titles, &(&1.status == :watching))},
-      {"Not started", Enum.count(titles, &(&1.status == :not_started))},
-      {"Finished", Enum.count(titles, &(&1.status == :finished))}
+      {:all, gettext("All"), length(titles)},
+      {:watching, gettext("Watching"), Enum.count(titles, &(&1.status == :watching))},
+      {:not_started, gettext("Not started"), Enum.count(titles, &(&1.status == :not_started))},
+      {:finished, gettext("Finished"), Enum.count(titles, &(&1.status == :finished))}
     ] ++ Kati.Screens.Library.anime_chip(anime)
   end
 
@@ -1124,14 +1131,35 @@ defmodule Kati.Screens.Library do
   asked for.
 
       iex> Kati.Screens.Library.anime_chip(12)
-      [{"Anime", 12}]
+      [{:anime, "Anime", 12}]
 
       iex> Kati.Screens.Library.anime_chip(3)
       []
   """
-  @spec anime_chip(non_neg_integer()) :: [{String.t(), non_neg_integer()}]
+  @spec anime_chip(non_neg_integer()) :: [{atom(), String.t(), non_neg_integer()}]
   def anime_chip(count) do
-    if count >= Kati.Media.AnimeSample.promote_threshold(), do: [{"Anime", count}], else: []
+    if count >= Kati.Media.AnimeSample.promote_threshold(),
+      do: [{:anime, gettext("Anime"), count}],
+      else: []
+  end
+
+  @doc """
+  Take a chip's tap, if it names one of the filters the shelf is drawing.
+
+  A tag from a chip the shelf no longer draws — the Anime one, once the count
+  falls back under the threshold — leaves the filter alone rather than emptying
+  the grid to a state with no way out of it.
+  """
+  @spec pick_filter(Mob.Socket.t(), String.t()) :: Mob.Socket.t()
+  def pick_filter(socket, key) do
+    titles = Map.get(socket.assigns, :titles, [])
+
+    case Enum.find(Kati.Screens.Library.chip_counts(titles), fn {k, _l, _c} ->
+           Atom.to_string(k) == key
+         end) do
+      {filter, _label, _count} -> Mob.Socket.assign(socket, :filter, filter)
+      nil -> socket
+    end
   end
 
   @doc false
@@ -1141,8 +1169,8 @@ defmodule Kati.Screens.Library do
       <Scroll axis="horizontal">
         <Row>
           {Kati.Screens.Library.chip_counts(titles)
-           |> Enum.map(fn {label, count} ->
-             Kati.Screens.Library.chip(label, count, label == active)
+           |> Enum.map(fn {key, label, count} ->
+             Kati.Screens.Library.chip(key, label, count, key == active)
            end)
            |> Enum.intersperse(Kati.Screens.Library.chip_gap())}
         </Row>
@@ -1186,7 +1214,7 @@ defmodule Kati.Screens.Library do
   # unasked: `rowAlignProp` DEFAULTS to `CenterVertically`, and only "top" and
   # "bottom" move it.
   @doc false
-  def chip(label, count, on?) do
+  def chip(key, label, count, on?) do
     # The design puts the count at .65 opacity of the label colour rather than
     # a separate token, so it stays legible on both chip states.
     count_fg = if on?, do: Palette.on_ink_count_soft(), else: Palette.count_idle_soft()
@@ -1196,7 +1224,7 @@ defmodule Kati.Screens.Library do
       checked: on?,
       # The tag carries the label, so one handler serves every chip and adding
       # a filter needs no new clause.
-      on_toggle: String.to_atom("filter_" <> label),
+      on_toggle: String.to_atom("filter_" <> Atom.to_string(key)),
       trailing: Kati.Screens.Library.chip_count(count, count_fg),
       trailing_gap: 6,
       height: 32,
@@ -1273,38 +1301,54 @@ defmodule Kati.Screens.Library do
   # not started` reads as a double negative and `No title on your shelf is not
   # started right now` is worse; each of the three says its own thing, and the
   # second line says what would put a title there.
-  @spec nothing_here(String.t()) :: map()
-  def nothing_here("Watching"),
+  @spec nothing_here(atom()) :: map()
+  def nothing_here(:watching),
     do:
       nothing_card(
-        "Nothing on the go",
-        "Log a watch or tick an episode and the title moves here."
+        gettext("Nothing on the go"),
+        gettext("Log a watch or tick an episode and the title moves here.")
       )
 
-  def nothing_here("Not started"),
+  def nothing_here(:not_started),
     do:
       nothing_card(
-        "Everything here is started",
-        "A title you add and have not watched yet waits in this one."
+        gettext("Everything here is started"),
+        gettext("A title you add and have not watched yet waits in this one.")
       )
 
-  def nothing_here("Finished"),
+  def nothing_here(:finished),
     do:
       nothing_card(
-        "Nothing finished yet",
-        "A film you log a watch of, or a series whose last episode you tick, lands here."
+        gettext("Nothing finished yet"),
+        gettext("A film you log a watch of, or a series whose last episode you tick, lands here.")
       )
 
-  def nothing_here("Anime"),
+  def nothing_here(:anime),
     do:
       nothing_card(
-        "No anime on the shelf",
-        "Kati flags one from its genre and origin, or from a MAL or AniList import — " <>
-          "and you can say so yourself from a title's ⋯ menu."
+        gettext("No anime on the shelf"),
+        gettext(
+          "Kati flags one from its genre and origin, or from a MAL or AniList import — and you can say so yourself from a title's ⋯ menu."
+        )
       )
 
+  # The catch-all keeps the chip's own word, which is the only shape here that
+  # can: `String.downcase/1` is a Latin operation and Persian has no case, so
+  # `Kati.Locale.pick/2` leaves the word alone in the script that does not
+  # raise or lower letters at all.
   def nothing_here(filter),
-    do: nothing_card("Nothing #{String.downcase(filter)}", "No title on your shelf matches.")
+    do:
+      nothing_card(
+        gettext("Nothing %{filter}", filter: Kati.Screens.Library.filter_word(filter)),
+        gettext("No title on your shelf matches.")
+      )
+
+  @doc false
+  @spec filter_word(atom()) :: String.t()
+  def filter_word(filter) do
+    word = filter |> Atom.to_string() |> String.replace("_", " ")
+    Kati.Locale.pick(String.downcase(word), word)
+  end
 
   @doc false
   def nothing_card(title, body) do
@@ -1363,11 +1407,11 @@ defmodule Kati.Screens.Library do
   @spec visible([map()], String.t()) :: [map()]
   def visible(titles, filter) do
     case filter do
-      "Watching" -> Enum.filter(titles, &(&1.status == :watching))
-      "Not started" -> Enum.filter(titles, &(&1.status == :not_started))
-      "Finished" -> Enum.filter(titles, &(&1.status == :finished))
+      :watching -> Enum.filter(titles, &(&1.status == :watching))
+      :not_started -> Enum.filter(titles, &(&1.status == :not_started))
+      :finished -> Enum.filter(titles, &(&1.status == :finished))
       # Board 152's chip, over rows that can carry the flag at last (#8, #104).
-      "Anime" -> Enum.filter(titles, &(Map.get(&1, :media_kind) == :anime))
+      :anime -> Enum.filter(titles, &(Map.get(&1, :media_kind) == :anime))
       _all -> titles
     end
   end
@@ -1744,8 +1788,8 @@ defmodule Kati.Screens.Library do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "filter_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      "filter_" <> key ->
+        {:noreply, Kati.Screens.Library.pick_filter(socket, key)}
 
       # `shelf_Screen`, and only ever that: the other two segments have clauses
       # of their own that push. Pressing the segment you are on is how you

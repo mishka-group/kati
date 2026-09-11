@@ -1,4 +1,6 @@
 defmodule Kati.Library.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Stand-in library data, until the Screen domain exists.
 
@@ -134,10 +136,11 @@ defmodule Kati.Library.Sample do
   @spec chips() :: [{String.t(), non_neg_integer()}]
   def chips do
     [
-      {"All", length(@titles)},
-      {"Watching", Enum.count(@titles, &(&1.progress > 0.0 and &1.progress < 1.0))},
-      {"Not started", Enum.count(@titles, &(&1.progress == 0.0))},
-      {"Finished", Enum.count(@titles, &(&1.progress == 1.0))}
+      {:all, gettext("All"), length(@titles)},
+      {:watching, gettext("Watching"),
+       Enum.count(@titles, &(&1.progress > 0.0 and &1.progress < 1.0))},
+      {:not_started, gettext("Not started"), Enum.count(@titles, &(&1.progress == 0.0))},
+      {:finished, gettext("Finished"), Enum.count(@titles, &(&1.progress == 1.0))}
     ]
   end
 

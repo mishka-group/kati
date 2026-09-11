@@ -182,9 +182,9 @@ defmodule Kati.AnimeKindTest do
       few = for _ <- 1..(threshold - 1), do: %{status: :watching, media_kind: :anime}
       enough = for _ <- 1..threshold, do: %{status: :watching, media_kind: :anime}
 
-      refute "Anime" in labels(few)
-      assert "Anime" in labels(enough)
-      assert {"Anime", threshold} in Kati.Screens.Library.chip_counts(enough)
+      refute :anime in labels(few)
+      assert :anime in labels(enough)
+      assert {:anime, "Anime", threshold} in Kati.Screens.Library.chip_counts(enough)
     end
 
     test "and the chip narrows to anime alone" do
@@ -193,8 +193,8 @@ defmodule Kati.AnimeKindTest do
         %{status: :watching, media_kind: :tv, title: "Severance"}
       ]
 
-      assert Kati.Screens.Library.visible(rows, "Anime") |> Enum.map(& &1.title) == ["Frieren"]
-      assert Kati.Screens.Library.visible(rows, "All") |> length() == 2
+      assert Kati.Screens.Library.visible(rows, :anime) |> Enum.map(& &1.title) == ["Frieren"]
+      assert Kati.Screens.Library.visible(rows, :all) |> length() == 2
     end
 
     test "a film marked as anime still opens its own page" do
@@ -226,7 +226,7 @@ defmodule Kati.AnimeKindTest do
     end
 
     test "and an empty Anime chip says how a title gets the flag" do
-      drawn = inspect(Kati.Screens.Library.nothing_here("Anime"), limit: :infinity)
+      drawn = inspect(Kati.Screens.Library.nothing_here(:anime), limit: :infinity)
 
       assert drawn =~ "No anime on the shelf"
       assert drawn =~ "MAL or AniList"
