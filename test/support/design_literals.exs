@@ -489,8 +489,10 @@ defmodule Kati.DesignLiterals do
       # Every word the board draws is still drawn, in the same order, in the
       # same place: `notice` then `gloss`, two `Text` nodes instead of one. What
       # is retired is the joining punctuation.
-      {"83", "schedule data from tvmaze, used under cc by-sa 4.0 — this link is the licence condition."},
-      {"83", "music metadata from musicbrainz and cover art from the cover art archive, both community-maintained."},
+      {"83",
+       "schedule data from tvmaze, used under cc by-sa 4.0 — this link is the licence condition."},
+      {"83",
+       "music metadata from musicbrainz and cover art from the cover art archive, both community-maintained."},
       {"80", "community book ratings"},
       {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},

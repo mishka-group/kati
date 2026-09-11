@@ -278,10 +278,15 @@ defmodule Kati.AppReachabilityTest do
 
   defp push_target(module, socket, tag) do
     case module.handle_info({:tap, tag}, socket) do
-      {:noreply, %Mob.Socket{__mob__: %{nav_action: {:push, dest, _}}}} -> dest
-      {:noreply, %Mob.Socket{__mob__: %{nav_action: r}}} when is_tuple(r) and elem(r, 0) == :reset ->
+      {:noreply, %Mob.Socket{__mob__: %{nav_action: {:push, dest, _}}}} ->
+        dest
+
+      {:noreply, %Mob.Socket{__mob__: %{nav_action: r}}}
+      when is_tuple(r) and elem(r, 0) == :reset ->
         elem(r, 1)
-      _ -> nil
+
+      _ ->
+        nil
     end
   end
 

@@ -497,7 +497,7 @@ defmodule Kati.CalendarDayRouteTest do
     cond do
       Mob.Screen.get_current_module(pid) == module -> true
       tries == 0 -> flunk("#{inspect(module)} never became the current screen")
-      true -> (Process.sleep(10) && awaits(pid, module, tries - 1))
+      true -> Process.sleep(10) && awaits(pid, module, tries - 1)
     end
   end
 

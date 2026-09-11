@@ -1862,8 +1862,8 @@ defmodule Kati.Screens.Rating do
     live? = Kati.Screens.Rating.writable?(w)
 
     chips =
-      (Enum.map(w.tags, &Kati.Screens.Rating.tag(&1, live?)) ++
-         [Kati.Screens.Rating.add_tag(live?)])
+      Enum.map(w.tags, &Kati.Screens.Rating.tag(&1, live?)) ++
+        [Kati.Screens.Rating.add_tag(live?)]
 
     assigns = %{chips: chips, field: Kati.Screens.Rating.tag_field(w)}
 

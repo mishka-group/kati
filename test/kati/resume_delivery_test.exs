@@ -61,6 +61,7 @@ defmodule Kati.ResumeDeliveryTest do
     import Mob.Sigil
 
     def mount(_params, _session, socket), do: {:ok, socket}
+
     def render(assigns) do
       assigns = %{label: "top"}
       ~MOB"<Text text={@label} />"

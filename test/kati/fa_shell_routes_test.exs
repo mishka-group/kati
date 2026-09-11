@@ -93,5 +93,6 @@ defmodule Kati.FaShellRoutesTest do
   # `__mob__.nav_action`; the destination is the whole assertion here.
   defp target_of(%Mob.Socket{__mob__: %{nav_action: reset}}) when elem(reset, 0) == :reset,
     do: elem(reset, 1)
+
   defp target_of(%Mob.Socket{}), do: nil
 end
