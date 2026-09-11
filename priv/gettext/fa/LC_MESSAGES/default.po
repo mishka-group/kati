@@ -2559,7 +2559,7 @@ msgstr "اول یک توکن وارد کنید."
 #: lib/kati/screens/data_sources.ex:178
 #, elixir-autogen, elixir-format
 msgid "Paste your TMDB read token"
-msgstr "توکن خواندن TMDB را وارد کنید"
+msgstr "توکن خواندن TMDB"
 
 #: lib/kati/screens/data_sources.ex:250
 #, elixir-autogen, elixir-format
