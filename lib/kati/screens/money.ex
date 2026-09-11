@@ -32,6 +32,7 @@ defmodule Kati.Screens.Money do
   """
 
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Money
   alias Kati.Money.Expense
@@ -103,11 +104,11 @@ defmodule Kati.Screens.Money do
         padding_bottom={40}
       >
         {SettingsList.chrome("more_horiz", 44)}
-        {SettingsList.title("Money", Kati.Screens.Money.subtitle())}
+        {SettingsList.title(pgettext("screen title", "Money"), Kati.Screens.Money.subtitle())}
         {Kati.Screens.Money.hero()}
-        {UI.eyebrow("Recurring commitments")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Recurring commitments")))}
         {Kati.Screens.Money.recurring()}
-        {UI.eyebrow("One-off expenses")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("One-off expenses")))}
         {Kati.Screens.Money.expenses(assigns.months)}
         {Kati.Screens.Money.suggestion(assigns.dismissed?)}
       </Column>
@@ -133,9 +134,12 @@ defmodule Kati.Screens.Money do
 
         services = length(Kati.Screens.MyServices.subscribed())
 
-        String.upcase(
-          "#{services} #{if services == 1, do: "service", else: "services"} · " <>
-            "#{this_month} #{if this_month == 1, do: "expense", else: "expenses"} this month"
+        Kati.UI.eyebrow_label(
+          ngettext("%{n} service", "%{n} services", services, n: Kati.Locale.number(services)) <>
+            " · " <>
+            ngettext("%{n} expense this month", "%{n} expenses this month", this_month,
+              n: Kati.Locale.number(this_month)
+            )
         )
     end
   end
@@ -165,8 +169,8 @@ defmodule Kati.Screens.Money do
     <Column fill_width={true}>
       <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={19}>
         <Text
-          text={String.upcase(@m.label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(@m.label)}
+          font_family={Kati.Locale.mono_face()}
           text_size={10}
           letter_spacing={0.14}
           text_color={Palette.cream_meta()}
@@ -204,13 +208,16 @@ defmodule Kati.Screens.Money do
   def recurring do
     rows =
       Sample.recurring()
-      |> Enum.map(&Kati.Screens.Money.service_row/1)
+      |> Enum.with_index()
+      |> Enum.map(fn {service, i} ->
+        Kati.Screens.Money.service_row(Map.put_new(service, :index, i))
+      end)
 
     ~MOB"""
     <Column fill_width={true}>
       {Kati.UI.SettingsList.card(rows)}
       <Spacer size={10} />
-      {Kati.UI.SettingsList.note("info", "Cost per watched hour is the figure worth looking at. Paused services keep their row and leave the total. Prices are owned by 92.")}
+      {Kati.UI.SettingsList.note("info", gettext("Cost per watched hour is the figure worth looking at. Paused services keep their row and leave the total. Prices are owned by 92."))}
       <Spacer size={24} />
     </Column>
     """
@@ -227,20 +234,20 @@ defmodule Kati.Screens.Money do
       iex> Kati.Screens.Money.subscription_tag(%{name: "Orbit"})
       :open_subscriptions_Orbit
 
-      iex> Kati.Screens.Money.subscription_tag(%{name: ""})
+      iex> Kati.Screens.Money.subscription_tag(%{index: 1})
+      :open_subscriptions_1
+
+      iex> Kati.Screens.Money.subscription_tag(%{})
       :open_subscriptions
   """
   @spec subscription_tag(map()) :: atom()
-  def subscription_tag(service) do
-    case service
-         |> Map.get(:name, "")
-         |> to_string()
-         |> String.trim()
-         |> String.replace(" ", "_") do
-      "" -> :open_subscriptions
-      name -> String.to_atom("open_subscriptions_" <> name)
-    end
-  end
+  def subscription_tag(%{id: id}) when is_binary(id),
+    do: String.to_atom("open_subscriptions_" <> id)
+
+  def subscription_tag(%{index: index}) when is_integer(index),
+    do: String.to_atom("open_subscriptions_" <> Integer.to_string(index))
+
+  def subscription_tag(_service), do: :open_subscriptions
 
   @doc false
   def service_row(service) do
@@ -274,7 +281,7 @@ defmodule Kati.Screens.Money do
     <Column align="trailing">
       <Text
         text={@price}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={12.5}
         text_color={Palette.sub()}
         max_lines={1}
@@ -282,7 +289,7 @@ defmodule Kati.Screens.Money do
       <Spacer size={4} />
       <Text
         text={@rate}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={13}
         font_weight="medium"
         text_color={@colour}
@@ -317,8 +324,8 @@ defmodule Kati.Screens.Money do
     <Column fill_width={true}>
       <Row fill_width={true} align="center" padding_left={2} padding_right={2}>
         <Text
-          text={String.upcase(@month.label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(@month.label)}
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           letter_spacing={0.16}
           text_color={Palette.eyebrow()}
@@ -326,7 +333,7 @@ defmodule Kati.Screens.Money do
         <Spacer weight={1.0} />
         <Text
           text={@month.total}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={12.5}
           text_color={:on_surface}
           max_lines={1}
@@ -353,7 +360,13 @@ defmodule Kati.Screens.Money do
       <Spacer size={9} />
       {Kati.UI.symbol(@icon, size: 16, color: @colour)}
       <Spacer size={4} />
-      <Text text={@delta} font_family="mono" text_size={11.5} text_color={@colour} max_lines={1} />
+      <Text
+        text={@delta}
+        font_family={Kati.Locale.mono_face()}
+        text_size={11.5}
+        text_color={@colour}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -374,7 +387,7 @@ defmodule Kati.Screens.Money do
     ~MOB"""
     <Text
       text={@text}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face()}
       text_size={12.5}
       text_color={Kati.Theme.Palette.sub()}
       max_lines={1}
@@ -438,7 +451,7 @@ defmodule Kati.Screens.Money do
         </Row>
         <Spacer size={14} />
         <Text
-          text="Dismiss"
+          text={gettext("Dismiss")}
           text_size={12.5}
           font_weight="semibold"
           text_color={Palette.cream_sub()}

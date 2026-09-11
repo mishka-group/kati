@@ -161,7 +161,8 @@ defmodule Kati.Screens.Gallery do
     # `DesignLiterals.retired_lines/0` against board 112, which draws them.
     {"115", "سلامت — Weight, RTL", Kati.Screens.Weight, :push},
     {"121", "The week as an image", Kati.Screens.WeekImage, :push},
-    {"127", "پول", Kati.Screens.MoneyFa, :push},
+    # mishka-group/kati#103. Board 127 is screen 122 under `:fa`.
+    {"127", "پول — Money, RTL", Kati.Screens.Money, :push},
     {"63", "iOS home screen", Kati.Screens.MarkIos, :push},
     {"64", "Android home screen", Kati.Screens.MarkAndroid, :push},
     {"65", "Launch screen", Kati.Screens.LaunchScreen, :push},

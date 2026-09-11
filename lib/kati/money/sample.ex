@@ -1,4 +1,6 @@
 defmodule Kati.Money.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Screen 122, as the drawing captured it.
 
@@ -10,7 +12,15 @@ defmodule Kati.Money.Sample do
 
   @doc "The header's mono subtitle."
   @spec subtitle() :: String.t()
-  def subtitle, do: "3 SERVICES · 7 EXPENSES THIS MONTH"
+  def subtitle,
+    do:
+      Kati.UI.eyebrow_label(
+        ngettext("%{n} service", "%{n} services", 3, n: Kati.Locale.number(3)) <>
+          " · " <>
+          ngettext("%{n} expense this month", "%{n} expenses this month", 7,
+            n: Kati.Locale.number(7)
+          )
+      )
 
   @doc """
   The cream hero: what leaves the account every month, and the change.
@@ -21,12 +31,12 @@ defmodule Kati.Money.Sample do
   @spec monthly() :: map()
   def monthly do
     %{
-      label: "Every month",
-      total: "£46.47",
+      label: gettext("Every month"),
+      total: Kati.Money.display(4647),
       direction: :up,
-      change_lead: "Up",
-      change_amount: "£4.00",
-      change_rest: "since March — Orbit raised its price"
+      change_lead: gettext("Up"),
+      change_amount: Kati.Money.display(400),
+      change_rest: gettext("since March — Orbit raised its price")
     }
   end
 
@@ -42,37 +52,60 @@ defmodule Kati.Money.Sample do
     [
       %{
         badge: "L",
-        name: "Lumen+",
-        line: "renews 18 Aug · 41h watched",
-        price: "£8.99",
-        rate: "£0.21/h",
+        name: gettext("Lumen+"),
+        line:
+          gettext("renews %{date} · %{hours}h watched",
+            date: Kati.Locale.date(~D[2026-08-18], :short_padded),
+            hours: Kati.Locale.number(41)
+          ),
+        price: Kati.Money.display(899),
+        rate: Kati.Money.per_hour(21, 1),
         good?: true
       },
       %{
         badge: "O",
-        name: "Orbit",
-        line: "renews 24 Aug · 6h watched",
-        price: "£13.99",
-        rate: "£2.33/h",
+        name: gettext("Orbit"),
+        line:
+          gettext("renews %{date} · %{hours}h watched",
+            date: Kati.Locale.date(~D[2026-08-24], :short_padded),
+            hours: Kati.Locale.number(6)
+          ),
+        price: Kati.Money.display(1399),
+        rate: Kati.Money.per_hour(233, 1),
         good?: false
       },
       %{
         badge: "K",
-        name: "Kino",
-        line: "renews 01 Sep · 19h watched",
-        price: "£11.49",
-        rate: "£0.60/h",
+        name: gettext("Kino"),
+        line:
+          gettext("renews %{date} · %{hours}h watched",
+            date: Kati.Locale.date(~D[2026-09-01], :short_padded),
+            hours: Kati.Locale.number(19)
+          ),
+        price: Kati.Money.display(1149),
+        rate: Kati.Money.per_hour(60, 1),
         good?: true
       },
       %{
         badge: "A",
-        name: "Aria Audio",
-        line: "paused until October · not in the total",
-        price: "£5.00",
+        name: gettext("Aria Audio"),
+        line: gettext("paused until October · not in the total"),
+        price: Kati.Money.display(500),
         rate: "—",
         good?: nil
       }
     ]
+  end
+
+  # A drawn expense: a date and an amount formatted where they are read, and a
+  # category word from the catalogue. It was three frozen strings, which is why
+  # board 127's mirror kept a second copy of all six rows.
+  defp expense(name, on, category, pence) do
+    %{
+      name: name,
+      meta: Kati.UI.eyebrow_label(Kati.Locale.date(on, :short_padded) <> " · " <> category),
+      amount: Kati.Money.display(pence)
+    }
   end
 
   @doc "The one-off expenses, grouped by month with a total and a delta."
@@ -80,25 +113,25 @@ defmodule Kati.Money.Sample do
   def months do
     [
       %{
-        label: "August",
-        total: "£61.40",
+        label: gettext("August"),
+        total: Kati.Money.display(6140),
         direction: :down,
-        delta: "£12.10",
+        delta: Kati.Money.display(1210),
         rows: [
-          %{name: "Kino rental — Blue Hour", meta: "16 AUG · SCREEN", amount: "£3.49"},
-          %{name: "The Salt Almanac, paperback", meta: "12 AUG · BOOKS", amount: "£9.99"},
-          %{name: "Cinema — Vellum", meta: "09 AUG · SCREEN", amount: "£14.00"},
-          %{name: "Weekly shop", meta: "04 AUG · MEALS", amount: "£33.92"}
+          expense(gettext("Kino rental — Blue Hour"), ~D[2026-08-16], gettext("SCREEN"), 349),
+          expense(gettext("The Salt Almanac, paperback"), ~D[2026-08-12], gettext("BOOKS"), 999),
+          expense(gettext("Cinema — Vellum"), ~D[2026-08-09], gettext("SCREEN"), 1400),
+          expense(gettext("Weekly shop"), ~D[2026-08-04], gettext("MEALS"), 3392)
         ]
       },
       %{
-        label: "July",
-        total: "£73.50",
+        label: gettext("July"),
+        total: Kati.Money.display(7350),
         direction: nil,
         delta: nil,
         rows: [
-          %{name: "Vinyl — Tidal Works", meta: "28 JUL · MUSIC", amount: "£28.00"},
-          %{name: "Weekly shop", meta: "21 JUL · MEALS", amount: "£45.50"}
+          expense(gettext("Vinyl — Tidal Works"), ~D[2026-07-28], gettext("MUSIC"), 2800),
+          expense(gettext("Weekly shop"), ~D[2026-07-21], gettext("MEALS"), 4550)
         ]
       }
     ]
@@ -114,12 +147,16 @@ defmodule Kati.Money.Sample do
   @spec suggestion() :: map()
   def suggestion do
     %{
-      lead: "You watched",
-      hours: "6 hours",
-      middle: "on Orbit this month and have",
-      titles: "1 title",
-      tail: "left in its queue. Pausing after 24 Aug saves £13.99.",
-      action: "Remind me 23 Aug"
+      lead: gettext("You watched"),
+      hours: ngettext("%{n} hour", "%{n} hours", 6, n: Kati.Locale.number(6)),
+      middle: gettext("on %{service} this month and have", service: gettext("Orbit")),
+      titles: ngettext("%{n} title", "%{n} titles", 1, n: Kati.Locale.number(1)),
+      tail:
+        gettext("left in its queue. Pausing after %{date} saves %{amount}.",
+          date: Kati.Locale.date(~D[2026-08-24], :short),
+          amount: Kati.Money.display(1399)
+        ),
+      action: gettext("Remind me %{date}", date: Kati.Locale.date(~D[2026-08-23], :short))
     }
   end
 end

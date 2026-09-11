@@ -424,7 +424,7 @@ msgstr "شروع کنیم"
 msgid "Gone — not empty"
 msgstr "حذف شده — خالی نیست"
 
-#: lib/kati/screens/goals.ex:583
+#: lib/kati/screens/goals.ex:595
 #: lib/kati/screens/pick_sections/sample.ex:49
 #: lib/kati/stats/sample.ex:40
 #: lib/kati/stats/share_sample.ex:35
@@ -1263,10 +1263,10 @@ msgstr "وعده‌ها"
 msgid "Albums · %{count}"
 msgstr "آلبوم‌ها · %{count}"
 
-#: lib/kati/screens/artist_detail.ex:644
+#: lib/kati/screens/money.ex:418
 #, elixir-autogen, elixir-format
 msgid "Dismiss"
-msgstr "رد کن"
+msgstr "بی‌خیال"
 
 #: lib/kati/music/sample.ex:235
 #: lib/kati/screens/artist_detail.ex:235
@@ -1604,7 +1604,7 @@ msgstr "اخیراً دیده‌شده"
 msgid "Repeat"
 msgstr "تکرار"
 
-#: lib/kati/screens/goals.ex:571
+#: lib/kati/screens/goals.ex:583
 #, elixir-autogen, elixir-format
 msgid "Repeat each period — a yearly goal restarts on 1 January, indefinitely"
 msgstr "هر دوره تکرار می‌شود — یک هدف سالانه در آغاز سال دوباره شروع می‌شود"
@@ -1614,7 +1614,7 @@ msgstr "هر دوره تکرار می‌شود — یک هدف سالانه در
 msgid "Too early to say."
 msgstr "هنوز زود است."
 
-#: lib/kati/screens/goals.ex:584
+#: lib/kati/screens/goals.ex:596
 #, elixir-autogen, elixir-format
 msgid "“Read every day” is a habit. “Read 52 books” is a goal."
 msgstr "«هر روز بخوان» عادت است. «۵۲ کتاب بخوان» هدف است."
@@ -1821,7 +1821,7 @@ msgstr "ثبت‌ها"
 msgid "Every medication you have is paused."
 msgstr "همه داروهای شما متوقف‌اند."
 
-#: lib/kati/screens/weight.ex:490
+#: lib/kati/screens/weight.ex:539
 #, elixir-autogen, elixir-format
 msgid "Kati stores the readings you type and nothing else — no scale is connected, "
 msgstr "کاتی فقط چیزی را که می‌نویسید نگه می‌دارد — هیچ ترازویی وصل نیست، "
@@ -1831,22 +1831,22 @@ msgstr "کاتی فقط چیزی را که می‌نویسید نگه می‌د�
 msgid "Nothing due today"
 msgstr "چیزی برای امروز نیست"
 
-#: lib/kati/screens/medication.ex:1091
+#: lib/kati/screens/medication.ex:1097
 #, elixir-autogen, elixir-format
 msgid "Schedules"
 msgstr "برنامه‌ها"
 
-#: lib/kati/screens/medication.ex:961
+#: lib/kati/screens/medication.ex:967
 #, elixir-autogen, elixir-format
 msgid "Skip"
 msgstr "رد کن"
 
-#: lib/kati/screens/medication.ex:961
+#: lib/kati/screens/medication.ex:967
 #, elixir-autogen, elixir-format
 msgid "Taken"
 msgstr "خوردم"
 
-#: lib/kati/screens/medication.ex:1240
+#: lib/kati/screens/medication.ex:1246
 #, elixir-autogen, elixir-format
 msgid "The reminder"
 msgstr "یادآور"
@@ -1910,3 +1910,216 @@ msgstr "کیلوگرم"
 #, elixir-autogen, elixir-format
 msgid "today"
 msgstr "امروز"
+
+#: lib/kati/money/sample.ex:20
+#: lib/kati/screens/money.ex:140
+#, elixir-autogen, elixir-format
+msgid "%{n} expense this month"
+msgid_plural "%{n} expenses this month"
+msgstr[0] "%{n} هزینه این ماه"
+msgstr[1] "%{n} هزینه این ماه"
+
+#: lib/kati/money/sample.ex:18
+#: lib/kati/screens/money.ex:138
+#, elixir-autogen, elixir-format
+msgid "%{n} service"
+msgid_plural "%{n} services"
+msgstr[0] "%{n} سرویس"
+msgstr[1] "%{n} سرویس"
+
+#: lib/kati/screens/money.ex:216
+#, elixir-autogen, elixir-format
+msgid "Cost per watched hour is the figure worth looking at. Paused services keep their row and leave the total. Prices are owned by 92."
+msgstr "هزینه به ازای هر ساعت تماشا مهم‌ترین عدد این صفحه است."
+
+#: lib/kati/screens/money.ex:97
+#, elixir-autogen, elixir-format
+msgid "One-off expenses"
+msgstr "هزینه‌های موردی"
+
+#: lib/kati/screens/money.ex:97
+#, elixir-autogen, elixir-format
+msgid "Recurring commitments"
+msgstr "تعهدهای ماهانه"
+
+#: lib/kati/money/sample.ex:91
+#, elixir-autogen, elixir-format
+msgid "Aria Audio"
+msgstr "آریا آدیو"
+
+#: lib/kati/money/sample.ex:116
+#, elixir-autogen, elixir-format
+msgid "August"
+msgstr "مرداد"
+
+#: lib/kati/money/sample.ex:122
+#, elixir-autogen, elixir-format
+msgid "BOOKS"
+msgstr "کتاب"
+
+#: lib/kati/money/sample.ex:123
+#, elixir-autogen, elixir-format
+msgid "Cinema — Vellum"
+msgstr "سینما — ولوم"
+
+#: lib/kati/money/sample.ex:34
+#, elixir-autogen, elixir-format
+msgid "Every month"
+msgstr "هر ماه"
+
+#: lib/kati/money/sample.ex:128
+#, elixir-autogen, elixir-format
+msgid "July"
+msgstr "تیر"
+
+#: lib/kati/money/sample.ex:79
+#, elixir-autogen, elixir-format
+msgid "Kino"
+msgstr "Kino"
+
+#: lib/kati/money/sample.ex:121
+#, elixir-autogen, elixir-format
+msgid "Kino rental — Blue Hour"
+msgstr "کرایه کینو — ساعت آبی"
+
+#: lib/kati/money/sample.ex:55
+#, elixir-autogen, elixir-format
+msgid "Lumen+"
+msgstr "Lumen+"
+
+#: lib/kati/money/sample.ex:124
+#: lib/kati/money/sample.ex:134
+#, elixir-autogen, elixir-format
+msgid "MEALS"
+msgstr "وعده‌ها"
+
+#: lib/kati/money/sample.ex:133
+#, elixir-autogen, elixir-format
+msgid "MUSIC"
+msgstr "موسیقی"
+
+#: lib/kati/money/sample.ex:67
+#: lib/kati/money/sample.ex:152
+#, elixir-autogen, elixir-format
+msgid "Orbit"
+msgstr "Orbit"
+
+#: lib/kati/money/sample.ex:121
+#: lib/kati/money/sample.ex:123
+#, elixir-autogen, elixir-format
+msgid "SCREEN"
+msgstr "نمایش"
+
+#: lib/kati/money/sample.ex:122
+#, elixir-autogen, elixir-format
+msgid "The Salt Almanac, paperback"
+msgstr "سالنامه نمک، شمیز"
+
+#: lib/kati/money/sample.ex:37
+#, elixir-autogen, elixir-format
+msgid "Up"
+msgstr "بیشتر شده — اوربیت قیمتش را بالا برد"
+
+#: lib/kati/money/sample.ex:133
+#, elixir-autogen, elixir-format
+msgid "Vinyl — Tidal Works"
+msgstr "صفحه — کارهای جزر و مد"
+
+#: lib/kati/money/sample.ex:124
+#: lib/kati/money/sample.ex:134
+#, elixir-autogen, elixir-format
+msgid "Weekly shop"
+msgstr "خرید هفتگی"
+
+#: lib/kati/money/sample.ex:92
+#, elixir-autogen, elixir-format
+msgid "paused until October · not in the total"
+msgstr "متوقف تا مهر · خارج از جمع"
+
+#: lib/kati/money/sample.ex:57
+#: lib/kati/money/sample.ex:69
+#: lib/kati/money/sample.ex:81
+#, elixir-autogen, elixir-format
+msgid "renews %{date} · %{hours}h watched"
+msgstr "تمدید %{date} · %{hours} ساعت"
+
+#: lib/kati/money/sample.ex:39
+#, elixir-autogen, elixir-format
+msgid "since March — Orbit raised its price"
+msgstr "از اسفند"
+
+#: lib/kati/money.ex:158
+#, elixir-autogen, elixir-format
+msgid "dollars"
+msgstr "دلار"
+
+#: lib/kati/money.ex:159
+#, elixir-autogen, elixir-format
+msgid "euros"
+msgstr "یورو"
+
+#: lib/kati/money.ex:157
+#, elixir-autogen, elixir-format
+msgid "pounds"
+msgstr "پوند"
+
+#: lib/kati/screens/money_states.ex:202
+#, elixir-autogen, elixir-format
+msgid "paused until October"
+msgstr "متوقف تا مهر"
+
+#: lib/kati/screens/money_states.ex:183
+#, elixir-autogen, elixir-format
+msgid "renews %{date} · nothing watched yet"
+msgstr "تمدید %{date} · هنوز چیزی دیده نشده"
+
+#: lib/kati/money.ex:195
+#, elixir-autogen, elixir-format
+msgid "hour"
+msgstr "ساعت"
+
+#: lib/kati/screens/money.ex:97
+#, elixir-autogen, elixir-format
+msgctxt "screen title"
+msgid "Money"
+msgstr "پول"
+
+#: lib/kati/money/sample.ex:151
+#, elixir-autogen, elixir-format
+msgid "%{n} hour"
+msgid_plural "%{n} hours"
+msgstr[0] "%{n} ساعت"
+msgstr[1] "%{n} ساعت"
+
+#: lib/kati/money/sample.ex:153
+#, elixir-autogen, elixir-format
+msgid "%{n} title"
+msgid_plural "%{n} titles"
+msgstr[0] "%{n} عنوان"
+msgstr[1] "%{n} عنوان"
+
+#: lib/kati/money/sample.ex:159
+#, elixir-autogen, elixir-format
+msgid "Remind me %{date}"
+msgstr "%{date} یادم بیاور"
+
+#: lib/kati/money/sample.ex:150
+#, elixir-autogen, elixir-format
+msgid "You watched"
+msgstr "در"
+
+#: lib/kati/money/sample.ex:155
+#, elixir-autogen, elixir-format
+msgid "left in its queue. Pausing after %{date} saves %{amount}."
+msgstr "در صف مانده. توقف بعد از %{date} %{amount} صرفه‌جویی است."
+
+#: lib/kati/money/sample.ex:152
+#, elixir-autogen, elixir-format
+msgid "on %{service} this month and have"
+msgstr "در اوربیت تماشا کرده‌اید و"
+
+#: lib/kati/screens/artist_detail.ex:644
+#, elixir-autogen, elixir-format
+msgctxt "unheard card"
+msgid "Dismiss"
+msgstr "رد کن"

@@ -116,7 +116,7 @@ defmodule Kati.Screens.EpisodeRatings do
   real — the card leaves the layout, its 14pt of trailing space with it,
   exactly the way `Kati.Screens.Money`'s advice card and
   `Kati.Screens.ArtistDetail`'s unheard-release card dismiss. It is not,
-  per `Kati.Screens.MoneyFa`'s own note on the same shape, *"a stored
+  per board 127's own note on the same shape, *"a stored
   preference"*: there is nowhere in `Kati.Media` yet for "has this user seen
   the long-press hint" to live, so reopening this screen shows it again. That
   is the honest half of "shown once" this sheet can do without inventing a

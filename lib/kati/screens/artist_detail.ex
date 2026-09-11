@@ -676,7 +676,7 @@ defmodule Kati.Screens.ArtistDetail do
               </Row>
               <Spacer size={14} />
               <Text
-                text={gettext("Dismiss")}
+                text={pgettext("unheard card", "Dismiss")}
                 text_size={12.5}
                 font_weight="semibold"
                 text_color={Palette.cream_sub()}

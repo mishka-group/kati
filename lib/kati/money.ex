@@ -1,4 +1,6 @@
 defmodule Kati.Money do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   What Kati costs you: the subscriptions that renew, and the things you bought.
 
@@ -121,6 +123,42 @@ defmodule Kati.Money do
     _error -> plain(minor_units, code || "GBP")
   end
 
+  @doc """
+  A price as the reader's own script writes it.
+
+  `format/2` answers CLDR's form, which for `fa` is a symbol beside Persian
+  numerals. Board 127 writes the currency as a WORD — `۸٫۹۹ پوند` — which is
+  what a Persian page does with a foreign currency, and is Kati's own copy
+  rather than CLDR data. So the digits come from `Kati.Locale.number/1` and the
+  word from the catalogue.
+
+  English is `format/2` unchanged, so nothing on board 122 moves.
+  """
+  @spec display(integer(), String.t() | nil) :: String.t()
+  def display(minor_units, code \\ nil) do
+    code = code || currency()
+
+    if Kati.Locale.direction(Kati.Locale.current()) == :rtl do
+      amount =
+        minor_units
+        |> Decimal.new()
+        |> Decimal.div(100)
+        |> Decimal.round(2)
+        |> Decimal.to_string(:normal)
+
+      Kati.Locale.number(amount) <> " " <> Kati.Money.currency_word(code)
+    else
+      format(minor_units, code)
+    end
+  end
+
+  @doc "The currency's name in the reader's language, for `display/2`."
+  @spec currency_word(String.t()) :: String.t()
+  def currency_word("GBP"), do: gettext("pounds")
+  def currency_word("USD"), do: gettext("dollars")
+  def currency_word("EUR"), do: gettext("euros")
+  def currency_word(code), do: code
+
   defp plain(minor_units, code) do
     sign = if minor_units < 0, do: "-", else: ""
     abs = abs(minor_units)
@@ -142,6 +180,20 @@ defmodule Kati.Money do
 
   def per_hour(pence, hours) do
     per = round(pence / hours)
-    format(per) <> "/h"
+
+    # The figure and the unit, both in the reader's script. Board 127 writes
+    # `۰٫۲۱/ساعت` — the same rate with a Persian hour — where the mirror held a
+    # second copy of the string and parsed the English one apart to build it
+    # (`String.split(text, "/")`), which is mishka-group/kati#103's recurring
+    # defect. The figure carries no currency here for the drawing's own reason:
+    # the price above it already names one.
+    if Kati.Locale.direction(Kati.Locale.current()) == :rtl do
+      amount =
+        per |> Decimal.new() |> Decimal.div(100) |> Decimal.round(2) |> Decimal.to_string(:normal)
+
+      Kati.Locale.number(amount) <> "/" <> gettext("hour")
+    else
+      format(per) <> "/h"
+    end
   end
 end

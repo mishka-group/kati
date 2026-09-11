@@ -489,7 +489,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # four depend on is precisely that the borrowed pair still agrees on an
     # empty database, and their gates below ask exactly that.
     {"121", Kati.Screens.WeekImage},
-    {"127", Kati.Screens.MoneyFa},
     {"63", Kati.Screens.MarkIos},
     {"64", Kati.Screens.MarkAndroid},
     # #25 and #11's screens that reach a store. `Kati.Screens.Backup` left
@@ -2277,8 +2276,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # grid, 127 draws 122's months, and 63 and 64 both draw 28's lock widgets.
       {"121", Kati.Screens.WeekImage, fn -> Kati.Screens.MealPlan.plan(today) end,
        &Kati.Screens.MealPlan.drawn_plan/0},
-      {"127", Kati.Screens.MoneyFa, &Kati.Screens.Money.months/0,
-       &Kati.Screens.Money.drawn_months/0},
       {"63", Kati.Screens.MarkIos, &Kati.Screens.Lock.widgets/0,
        &Kati.Screens.Lock.drawn_widgets/0},
       {"64", Kati.Screens.MarkAndroid, &Kati.Screens.Lock.widgets/0,

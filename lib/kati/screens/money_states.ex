@@ -129,6 +129,7 @@ defmodule Kati.Screens.MoneyStates do
   # set the precedent by keeping `Health` from its own board. Reproducing the
   # board is the rule; inventing a word for a pill nobody navigates by is not.
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Money.Sample
   alias Kati.Screens.Money
@@ -177,8 +178,11 @@ defmodule Kati.Screens.MoneyStates do
   @spec no_hours_yet() :: map()
   def no_hours_yet do
     %{
-      drawn_service("Kino")
-      | line: "renews 01 Sep · nothing watched yet",
+      drawn_service("K")
+      | line:
+          gettext("renews %{date} · nothing watched yet",
+            date: Kati.Locale.date(~D[2026-09-01], :short_padded)
+          ),
         rate: Kati.Money.per_hour(1149, 0),
         good?: nil
     }
@@ -195,7 +199,7 @@ defmodule Kati.Screens.MoneyStates do
   """
   @spec paused_service() :: map()
   def paused_service do
-    %{drawn_service("Aria Audio") | line: "paused until October"}
+    %{drawn_service("A") | line: gettext("paused until October")}
   end
 
   @doc """
@@ -206,7 +210,7 @@ defmodule Kati.Screens.MoneyStates do
   sheet a different specimen under the same eyebrow.
   """
   @spec drawn_service(String.t()) :: map()
-  def drawn_service(name), do: Enum.find(Sample.recurring(), &(&1.name == name))
+  def drawn_service(badge), do: Enum.find(Sample.recurring(), &(&1.badge == badge))
 
   @doc """
   An account with no services in it, which is not an account costing nothing.
@@ -417,7 +421,7 @@ defmodule Kati.Screens.MoneyStates do
       <Row fill_width={true} align="bottom">
         <Text
           text={@label}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           letter_spacing={0.14}
           text_color={Palette.eyebrow()}
@@ -425,7 +429,7 @@ defmodule Kati.Screens.MoneyStates do
         <Spacer weight={1.0} />
         <Text
           text="£34.48"
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={18}
           text_color={:on_surface}
           max_lines={1}

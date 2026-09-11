@@ -506,7 +506,7 @@ defmodule Kati.Screens.MoneyDay do
     <Column width={44} align="center">
       <Text
         text="ALL"
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
         letter_spacing={0.1}
         text_align="center"
@@ -514,7 +514,7 @@ defmodule Kati.Screens.MoneyDay do
       />
       <Text
         text="DAY"
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
         letter_spacing={0.1}
         text_align="center"
@@ -530,7 +530,7 @@ defmodule Kati.Screens.MoneyDay do
     ~MOB"""
     <Text
       text={@time}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face()}
       text_size={11.5}
       text_align="center"
       text_color={Kati.Theme.Palette.muted()}
@@ -550,7 +550,7 @@ defmodule Kati.Screens.MoneyDay do
       <Spacer size={4} />
       <Text
         text={@text}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
         letter_spacing={0.1}
         text_color={Kati.Theme.Palette.sub()}
@@ -567,7 +567,13 @@ defmodule Kati.Screens.MoneyDay do
     assigns = %{text: text}
 
     ~MOB"""
-    <Text text={@text} font_family="mono" text_size={12.5} text_color={:on_surface} max_lines={1} />
+    <Text
+      text={@text}
+      font_family={Kati.Locale.mono_face()}
+      text_size={12.5}
+      text_color={:on_surface}
+      max_lines={1}
+    />
     """
   end
 
@@ -623,7 +629,7 @@ defmodule Kati.Screens.MoneyDay do
         />
         <Text
           text={@m.amount}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={12}
           text_color={Palette.sub()}
           max_lines={1}

@@ -600,7 +600,7 @@ defmodule Kati.Screens.StatsFa do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Goals)}
 
   def handle_info({:tap, :open_money}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MoneyFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Money)}
 
   def handle_info({:tap, :open_health}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Weight)}
