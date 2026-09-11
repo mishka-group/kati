@@ -403,7 +403,7 @@ defmodule Kati.Screens.LogListen do
         />
         <Text
           text={Kati.Screens.LogProgress.started_at()}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face(Kati.Screens.LogProgress.started_at())}
           text_size={12.5}
           text_color={Palette.ink_soft()}
           max_lines={1}

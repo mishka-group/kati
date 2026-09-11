@@ -216,6 +216,19 @@ defmodule Kati.Screens.Goals do
   def projection_lead_word(:on_pace_counted),
     do: pgettext("before a count", "On pace to finish")
 
+  @doc """
+  What closes a projection that names a count rather than a date.
+
+  A full stop in English and a **verb** in Persian: board 108 writes
+  *۱۰۶ از ۱۲۰ می‌رسید.* — *will reach 106 of 120* — so the slot is a word in one
+  script and punctuation in the other, and it can only be translated with a
+  context. `gettext(".")` is a msgid no translator can place, and
+  `mix gettext.merge` fuzzy-matched it against the first sentence in the
+  catalogue that happened to end in one.
+  """
+  @spec projection_tail_word() :: String.t()
+  def projection_tail_word, do: pgettext("closes a projected count", ".")
+
   defp projection_lead(%Goal{progress: progress, target: target}, _projected)
        when progress >= target,
        do: projection_lead_word(:past)
@@ -243,7 +256,7 @@ defmodule Kati.Screens.Goals do
 
   defp projection_tail(%Goal{}, nil), do: nil
   defp projection_tail(%Goal{period: :year}, _projected), do: "by"
-  defp projection_tail(%Goal{}, _projected), do: "."
+  defp projection_tail(%Goal{}, _projected), do: projection_tail_word()
 
   defp projection_date(%Goal{progress: progress, target: target}, _projected)
        when progress >= target,

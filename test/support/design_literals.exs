@@ -523,6 +523,34 @@ defmodule Kati.DesignLiterals do
       # the frozen `Show all 47` still belongs, over an empty one.
       # mishka-group/kati#103.
       {"97", "نمایش همه ۴۷"},
+      # ── Boards 70 and 72's insight card, both halves of one sentence.
+      #
+      # It read *That's 46 pages **in 38 minutes** · your fastest this week*,
+      # and the last two clauses were literals: nothing in the app had ever
+      # timed a session, so `38 minutes` was the drawing's figure printed over
+      # every book on every device and *your fastest this week* was a
+      # comparison against a week of sittings nobody had read. Board 20's rule
+      # — *either every value on the page is this reader's or every value is
+      # the drawing's* — broken inside one sentence.
+      #
+      # `Kati.Screens.LogProgressFa` had already refused to draw them, which is
+      # `D-59`'s ruling, and mishka-group/kati#103 folds that mirror into screen
+      # 70. A fold that handed a Persian reader back a lie their own page had
+      # stopped telling would be the worst possible outcome of tidying two
+      # files into one, so both boards lose the clause together and
+      # `Kati.Screens.LogProgress.duration_runs/2` is where it comes back.
+      {"70", "38 minutes"},
+      {"70", "· your fastest this week"},
+      {"72", "۳۸ دقیقه"},
+      {"72", "— سریع‌ترین این هفته"},
+      # Board 72 is drawn with its timer RUNNING — `۰۰:۳۸:۱۲` on the face,
+      # توقف on the button, and a commit that says *save and stop* because
+      # there is something to stop. Screen 70 opens untimed: it offers
+      # **شروع**, and its commit says ذخیره نشست. The running face is a state
+      # this sheet can be in and not the state it opens in, which is exactly
+      # board 156's arrangement one screen over.
+      {"72", "توقف"},
+      {"72", "ذخیره و توقف"},
       # ── Board 62, folded into screen 24 by mishka-group/kati#103.
       #
       # **The زبان و منطقه group.** Board 62 opens with four rows the English

@@ -243,7 +243,7 @@ defmodule Kati.Screens.BookDetailFa do
   It answers with the `%Book{}` rather than with a shaping of it, and that is
   the whole difference between this reader and screen 66's: 66's `shaped/3`
   answers in English sentences and a Persian page cannot print them.
-  `Kati.Screens.LogProgressFa` reads through here too, so the Persian page and
+  `Kati.Screens.LogProgress` reads through here too, so the Persian page and
   the Persian sheet cannot land on different books.
 
   An id that names no row answers `nil` rather than falling back to the head,
@@ -1651,7 +1651,7 @@ defmodule Kati.Screens.BookDetailFa do
       {:noreply,
        Mob.Socket.push_screen(
          socket,
-         Kati.Screens.LogProgressFa,
+         Kati.Screens.LogProgress,
          Kati.Screens.LogProgress.params_for(%{
            id: Kati.Screens.BookDetailFa.target(socket.assigns)
          })

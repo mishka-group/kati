@@ -178,9 +178,18 @@ defmodule Kati.UI.Sheet do
   One per sheet, and the label is the sentence the sheet completes — `Save
   session`, `Add goal`, `Log weight`. Never `Done`, which says the sheet is
   finished rather than what it did.
+
+  The face defaults to the READER's rather than to `"sans"`. Plus Jakarta Sans
+  carries no Arabic-script glyph, so a translated label on this button was
+  handed to Android's own substitute face — it rendered, in a typeface that is
+  not Kati's, on the largest control on the sheet. `Kati.PersianFontTest` is
+  what found it, on `Kati.Screens.LogProgress` the day board 72 folded into it.
+  The third argument stays so a caller that must pin a face still can;
+  `Kati.Screens.AddByHand` passes `Kati.Locale.face_prop/0` explicitly and is
+  unaffected.
   """
-  @spec commit(String.t(), atom()) :: map()
-  def commit(label, tag, face \\ "sans") do
+  @spec commit(String.t(), atom(), String.t()) :: map()
+  def commit(label, tag, face \\ Kati.Locale.face_prop()) do
     assigns = %{label: label, tag: tag, face: face}
 
     ~MOB"""

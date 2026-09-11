@@ -574,7 +574,7 @@ defmodule Kati.ScreenWriteTargetTest do
   # `@screens_swept` is again untouched: the mirror is gone and the screen it
   # mirrored is swept twice.
   @screens_swept 160
-  @drawn_taps 2240
+  @drawn_taps 2236
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

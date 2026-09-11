@@ -68,7 +68,12 @@ defmodule Kati.Goals.Sample do
             done: Kati.Locale.number(106),
             total: Kati.Locale.number(120)
           ),
-        projection_tail: gettext("."),
+        # `pgettext/2` and not `gettext(".")`: a bare full stop is a msgid no
+        # translator can place, and `mix gettext.merge` fuzzy-matched it against
+        # the first sentence in the catalogue that happened to end in one. The
+        # context is what makes it placeable — and it is not punctuation in
+        # Persian at all: board 108 ends this sentence with a verb, **می‌رسید.**
+        projection_tail: Kati.Screens.Goals.projection_tail_word(),
         projection_date: nil,
         counts: gettext("Dropped shows keep the hours they earned. Nothing is taken back.")
       }

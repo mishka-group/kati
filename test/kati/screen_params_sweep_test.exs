@@ -607,22 +607,26 @@ defmodule Kati.ScreenParamsSweepTest do
     # it are that same pill's four other doors.
     {Kati.Screens.BookDetail, :log_progress, Kati.Screens.LogProgress},
     {Kati.Screens.BookDetailDark, :log_progress, Kati.Screens.LogProgress},
-    {Kati.Screens.BookDetailFa, :log_progress, Kati.Screens.LogProgressFa},
     {Kati.Screens.Books, :log_progress, Kati.Screens.LogProgress},
-    # Screen 176's ثبت پیشرفت pill — screen 20's, one script over, and it
-    # arrives on this list rather than in `@bare_pushes` for the reason the
-    # paragraph above gives about screen 20: `books_fa.ex` names its subject
-    # and hands `socket.assigns.page.hero` to `Kati.Screens.LogProgress`'s own
-    # builder, the same builder 20, 66, 68 and 69 use, so the English sheet and
-    # the Persian one cannot drift about what `:book_id` means. With nothing
-    # shelved the hero is `Kati.Books.SampleFa.reading_now/0`, which is
-    # `detail/0` reshaped and carries no `:id`, so `log_progress.ex:105-106`
-    # answers `%{}`.
+    # Screen 176's ثبت پیشرفت pill and screen 69's — screen 20's and 66's, one
+    # script over. They arrive on this list rather than in `@bare_pushes` for
+    # the reason the paragraph above gives about screen 20: `books_fa.ex` and
+    # `book_detail_fa.ex` name their subject and hand it to
+    # `Kati.Screens.LogProgress`'s own builder, the same builder 20, 66, 68 and
+    # 69 use, so the English sheet and the Persian one cannot drift about what
+    # `:book_id` means. With nothing shelved the hero is
+    # `Kati.Books.SampleFa.reading_now/0`, which is `detail/0` reshaped and
+    # carries no `:id`, so `log_progress.ex` answers `%{}`.
+    #
+    # They named `Kati.Screens.LogProgressFa` until mishka-group/kati#103 folded
+    # that mirror into screen 70. The destination changed and the fact did not:
+    # the door is written, and the row it names has no id.
+    {Kati.Screens.BooksFa, :log_progress, Kati.Screens.LogProgress},
+    {Kati.Screens.BookDetailFa, :log_progress, Kati.Screens.LogProgress},
     #
     # `:start_timer` beside it is NOT here and is not missing: it merges
     # `timing?: true` onto the same builder's answer, so the argument is
     # non-empty even over a fixture. Screen 20's pair splits the same way.
-    {Kati.Screens.BooksFa, :log_progress, Kati.Screens.LogProgressFa},
 
     # ── Screen 20's grid and its hero cover, into screen 66.
     #
@@ -808,7 +812,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # all, so a shelf of two opened the second cover onto the first book —
     # `book_detail_fa.ex`'s `book/1` and `log_progress_fa.ex`'s `mount/3`.
     {Kati.Screens.BookDetailFa, :book_id},
-    {Kati.Screens.LogProgressFa, :book_id},
     {Kati.Screens.RetiredTile, :section},
     # The five the comment below used to name as pinned NOWHERE. A count that
     # may only go up catches a reader leaving; it does not catch one leaving

@@ -744,10 +744,10 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.BookDetailFa, :format_paperback},
     {Kati.Screens.BookDetailFa, :format_ebook},
     {Kati.Screens.BookDetailFa, :format_audiobook},
-    # Screen 72's opening unit and its timer stop, the same two shapes screen
-    # 70's list above carries.
-    {Kati.Screens.LogProgressFa, :unit_page},
-    {Kati.Screens.LogProgressFa, :stop_timer},
+    # Screen 72's two were here until mishka-group/kati#103 folded
+    # `Kati.Screens.LogProgressFa` into screen 70. Board 72 is that screen under
+    # `:fa`, so its opening unit and its timer stop are screen 70's own entries
+    # above — one line each, not two.
     # ── Screen 68, screen 66 in the dark colourway.
     #
     # Its controls ARE screen 66's controls — the dark page reuses that module's

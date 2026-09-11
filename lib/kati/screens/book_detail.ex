@@ -284,6 +284,16 @@ defmodule Kati.Screens.BookDetail do
       meta: meta_line(book),
       progress: Book.fraction(book),
       progress_line: progress_line(book, sessions),
+      # The two numbers INSIDE that line, as numbers. `progress_line` is a
+      # drawn sentence — `p. 214 / 380 · 23 MIN/DAY PACE` — and screen 70 read
+      # its position back out of it with `Regex.run(~r/^p\. (\d+) \/ (\d+)/, …)`.
+      # That is mishka-group/kati#103's recurring defect one step more literal
+      # than usual: board 72 writes the same sentence as **ص. ۲۱۴ از ۳۸۰**, the
+      # regex matches none of it, and the sheet would silently open on a page
+      # it could not read and compute a delta from the wrong end. Two integers
+      # cannot be translated.
+      current_page: book.current_page,
+      page_count: page_count(book),
       rating: book.rating,
       rating_label: rating_label(book.rating),
       community: nil,
@@ -353,6 +363,16 @@ defmodule Kati.Screens.BookDetail do
   # `p. 214 / 380 · 23 MIN/DAY PACE`, and each half may be absent. Screen 67's
   # partial-metadata state is the first half with no denominator; a book nobody
   # has timed is the first half with no second.
+  # The denominator, when the edition is one that has pages. An audiobook's
+  # extent is minutes and is not a page count, so it answers `nil` rather than
+  # a number `Kati.Screens.LogProgress` would print after `of`.
+  defp page_count(%Book{} = book) do
+    case Book.extent(book) do
+      {total, :pages} -> total
+      _other -> nil
+    end
+  end
+
   defp progress_line(%Book{} = book, sessions) do
     position =
       case Book.extent(book) do

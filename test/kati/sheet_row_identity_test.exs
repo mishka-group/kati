@@ -1274,7 +1274,7 @@ defmodule Kati.SheetRowIdentityTest do
     end
   end
 
-  # ── screens 69 and 72, the Persian pair ────────────────────────────────────
+  # ── board 72, which is screen 70 under `:fa` since #103 ────────────────────
 
   describe "screen 72 logs against the book that opened it" do
     test "the Persian page pushes its book's id, and the Persian sheet loads it" do
@@ -1293,14 +1293,18 @@ defmodule Kati.SheetRowIdentityTest do
 
       view = tap_on_page(Kati.Screens.BookDetailFa, :book, page, :log_progress)
 
-      assert {:push, Kati.Screens.LogProgressFa, %{book_id: id}} = pushed(view)
+      assert {:push, Kati.Screens.LogProgress, %{book_id: id}} = pushed(view)
       assert id == second.id
 
-      sheet = mount_screen(Kati.Screens.LogProgressFa, %{book_id: id})
+      # One sheet, in the other script. `Kati.Screens.LogProgressFa` was a
+      # second module with a `sheet/1` map of its own until
+      # mishka-group/kati#103 folded it into screen 70; the assign is that
+      # screen's `:book`, and what it has to be is the row the tap named.
+      sheet = mount_screen(Kati.Screens.LogProgress, %{book_id: id})
 
-      assert assigns(sheet).sheet.book == second.title
-      refute assigns(sheet).sheet.book == first.title
-      refute assigns(sheet).sheet.book == Kati.Screens.LogProgressFa.sheet(nil).book
+      assert assigns(sheet).book.title == second.title
+      refute assigns(sheet).book.title == first.title
+      refute assigns(sheet).book.title == Kati.Screens.LogProgress.book(nil).title
     end
 
     test "a bare mount draws the book it is about to write to" do
@@ -1318,24 +1322,24 @@ defmodule Kati.SheetRowIdentityTest do
       #
       # Found by `Kati.ScreenWriteTargetTest`, which sweeps every screen with no
       # domain knowledge — a suite of 2252 was silent on it.
-      mounted = mount_screen(Kati.Screens.LogProgressFa) |> assigns()
+      mounted = mount_screen(Kati.Screens.LogProgress) |> assigns()
 
       assert mounted.book_id == book.id, "the sheet cannot name what Save will write to"
-      assert mounted.sheet.book == book.title, "the sheet draws a different book than it writes"
+      assert mounted.book.title == book.title, "the sheet draws a different book than it writes"
 
       # With nothing shelved there is nothing to resolve, and the fixture is the
       # honest answer — the state every design sweep mounts.
       Ash.destroy!(book)
-      bare = mount_screen(Kati.Screens.LogProgressFa) |> assigns()
+      bare = mount_screen(Kati.Screens.LogProgress) |> assigns()
 
       refute bare.book_id
-      assert bare.sheet == Kati.Books.SampleFa.sheet()
-      assert Kati.Screens.LogProgressFa.sheet(nil) == Kati.Books.SampleFa.sheet()
+      assert bare.book == Kati.Books.Sample.detail()
+      assert Kati.Screens.LogProgress.book(nil) == Kati.Books.Sample.detail()
 
       dead = a_book!(%{title: @prefix <> "Low Water"})
       Ash.destroy!(dead)
 
-      assert Kati.Screens.LogProgressFa.sheet(dead.id) == Kati.Books.SampleFa.sheet()
+      assert Kati.Screens.LogProgress.book(dead.id) == Kati.Books.Sample.detail()
 
       # And the caller's half: a drawn page names no book, so the push is bare.
       assert LogProgress.params_for(Kati.Screens.BookDetailFa.drawn_book()) == %{}

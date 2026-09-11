@@ -914,7 +914,7 @@ defmodule Kati.Screens.BooksFa do
       {:noreply,
        Mob.Socket.push_screen(
          socket,
-         Kati.Screens.LogProgressFa,
+         Kati.Screens.LogProgress,
          Kati.Screens.LogProgress.params_for(socket.assigns.page.hero)
        )}
 
@@ -927,7 +927,7 @@ defmodule Kati.Screens.BooksFa do
       |> Kati.Screens.LogProgress.params_for()
       |> Map.put(:timing?, true)
 
-    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgressFa, timing)}
+    {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.LogProgress, timing)}
   end
 
   # The hero's cover. The same book as the eyebrow beside it, through screen

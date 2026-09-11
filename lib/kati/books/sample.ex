@@ -1,4 +1,6 @@
 defmodule Kati.Books.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Stand-in book data, until the Books domain exists.
 
@@ -90,14 +92,23 @@ defmodule Kati.Books.Sample do
   @spec detail() :: map()
   def detail do
     %{
-      title: "The Salt Almanac",
-      author: "Ines Karvel",
+      # Translated, because board 72 draws this title — **سالنامه نمک** — and
+      # mishka-group/kati#103 folded `Kati.Screens.LogProgressFa` into screen 70.
+      # An author's name is a person's name and is transliterated rather than
+      # translated, which board 69 does too: **اینس کارول**.
+      title: gettext("The Salt Almanac"),
+      author: gettext("Ines Karvel"),
       seed: "bookaa1",
       status: :reading,
       status_label: "Reading",
       meta: "2024 · FABER · 380 PP",
       progress: 0.56,
       progress_line: "p. 214 / 380 · 23 MIN/DAY PACE",
+      # The same two numbers `Kati.Screens.BookDetail.shaped/3` carries, and for
+      # the reason its comment gives: screen 70 used to read them back out of
+      # the sentence above with a regex, which matches nothing in Persian.
+      current_page: 214,
+      page_count: 380,
       rating: 9,
       rating_label: "4.5",
       community: nil,

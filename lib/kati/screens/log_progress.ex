@@ -63,6 +63,7 @@ defmodule Kati.Screens.LogProgress do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Books.Book
@@ -73,10 +74,9 @@ defmodule Kati.Screens.LogProgress do
   alias Kati.UI.Segmented
   alias Kati.UI.Sheet
 
-  # The three units a session can be given in. `:minutes` is a real third
-  # option and not a duplicate of the timer row — you can read for forty
-  # minutes of an audiobook and have no page to report.
-  @units [{"Page", :unit_page}, {"Percent", :unit_percent}, {"Minutes", :unit_minutes}]
+  # `@units` was a module attribute and cannot be: `gettext/1` inside one is
+  # evaluated at COMPILE time, so the three words would freeze in whichever
+  # locale the compiler happened to be in. See `units/0`.
 
   def mount(params, _session, socket) do
     Kati.Theme.activate()
@@ -86,7 +86,17 @@ defmodule Kati.Screens.LogProgress do
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:book_id, id)
+     # The id the sheet WRITES to, pinned at mount. A named id is carried
+     # through untouched — including one that names a row already gone, which
+     # `save_session/2` then refuses, and which is the whole of #84's contract.
+     # What is pinned is the OTHER case: a sheet opened with no id drew the
+     # shelf's head and `save_session/2` called `current_book(nil)`, which
+     # resolved the head all over again at the moment Save was pressed. Two
+     # reads of a list that can change between them is two answers, and the
+     # sheet would then have drawn one book and moved another one's numbers.
+     # `Kati.Screens.LogProgressFa` pinned it and this screen did not;
+     # mishka-group/kati#103 folded that mirror in, so the fix came with it.
+     |> Mob.Socket.assign(:book_id, Kati.Screens.LogProgress.pinned_id(id))
      |> Mob.Socket.assign(:book, book(id))
      |> Mob.Socket.assign(:unit, :unit_page)
      |> Mob.Socket.assign(:timing?, false)
@@ -164,6 +174,22 @@ defmodule Kati.Screens.LogProgress do
     end
   end
 
+  @doc """
+  The id this sheet will write to: the one it was handed, or the shelf head's.
+
+  `nil` only when the sheet was handed nothing AND there is nothing shelved —
+  which is the fixture, and the state `save_session/2` refuses. See `mount/3`.
+  """
+  @spec pinned_id(String.t() | nil) :: String.t() | nil
+  def pinned_id(id) when is_binary(id), do: id
+
+  def pinned_id(_none) do
+    case current_book(nil) do
+      %Book{id: resolved} -> resolved
+      nil -> nil
+    end
+  end
+
   defp current_book(nil) do
     case Ash.read(Book, action: :shelf) do
       {:ok, [book | _rest]} -> book
@@ -183,7 +209,7 @@ defmodule Kati.Screens.LogProgress do
   end
 
   def render(assigns) do
-    Sheet.sheet("Log progress", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    Sheet.sheet(gettext("Log progress"), body(assigns), Kati.Screens.Identity.of(__MODULE__))
   end
 
   @doc false
@@ -206,15 +232,31 @@ defmodule Kati.Screens.LogProgress do
       {Kati.Screens.LogProgress.insight(b, page)}
       <Spacer size={14} />
       {Kati.Screens.LogProgress.error_line(save_error)}
-      {Sheet.commit("Save session", :save)}
+      {Sheet.commit(gettext("Save session"), :save)}
       <Spacer size={15} />
       {Kati.Screens.LogProgress.finished_row()}
     </Column>
     """
   end
 
-  @doc false
-  def units, do: @units
+  @doc """
+  The three units a session can be given in.
+
+  `:minutes` is a real third option and not a duplicate of the timer row — you
+  can read for forty minutes of an audiobook and have no page to report.
+
+  The TAG is what the segment answers to and the word beside it is what the
+  reader sees, which is the arrangement every folded segmented control in
+  mishka-group/kati#103 ends up with: board 72's three are صفحه / درصد / دقیقه,
+  and a tag built from the label would be a different atom in each script.
+  """
+  @spec units() :: [{String.t(), atom()}]
+  def units,
+    do: [
+      {gettext("Page"), :unit_page},
+      {gettext("Percent"), :unit_percent},
+      {gettext("Minutes"), :unit_minutes}
+    ]
 
   @doc """
   The book being logged against, at 44x52 — small, because the sheet is about
@@ -236,14 +278,14 @@ defmodule Kati.Screens.LogProgress do
             text={b.title}
             text_size={14.5}
             font_weight="bold"
-            letter_spacing={-0.015}
+            letter_spacing={Kati.Locale.tracking(-0.015)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={5} />
           <Text
             text={Kati.Screens.LogProgress.position_line(b)}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -273,12 +315,29 @@ defmodule Kati.Screens.LogProgress do
   @doc """
   `AT p. 214 OF 380`, upcased as the drawing writes it, degrading to `AT p. 214`
   when the edition has no page count.
+
+  Board 72 writes the same fact as **ص. ۲۱۴ از ۳۸۰**, so the sentence is
+  translated and the numbers are `Kati.Locale.number/1`'s. The capitals come
+  from `Kati.UI.eyebrow_label/1` rather than `String.upcase/1`, which is a
+  no-op on Persian and was therefore the silent half of this line: it would
+  have looked right and done nothing.
   """
   @spec position_line(map()) :: String.t()
   def position_line(b) do
-    case Regex.run(~r/^p\. (\d+) \/ (\d+)/, b.progress_line || "") do
-      [_all, at, of] -> "AT p. #{at} OF #{of}"
-      nil -> String.upcase(b.progress_line || "")
+    case {b[:current_page], b[:page_count]} do
+      {at, of} when is_integer(at) and is_integer(of) ->
+        Kati.UI.eyebrow_label(
+          gettext("At p. %{at} of %{of}", at: Kati.Locale.number(at), of: Kati.Locale.number(of))
+        )
+
+      {at, _none} when is_integer(at) ->
+        Kati.UI.eyebrow_label(gettext("At p. %{at}", at: Kati.Locale.number(at)))
+
+      _neither ->
+        # A book with no position at all — screen 67's partial-metadata state.
+        # The sentence above it is the one the detail screen drew, so this row
+        # falls back to it rather than inventing a page.
+        Kati.UI.eyebrow_label(b[:progress_line] || "")
     end
   end
 
@@ -304,21 +363,26 @@ defmodule Kati.Screens.LogProgress do
         align="center"
       >
         <Spacer weight={1.0} />
+        {# `Kati.Locale.mono_face/1` and not `"mono"`: `kati_mono.ttf` carries
+         # none of U+06F0–U+06F9, so `۲۱۴` in DM Mono is handed to Android's own
+         # substitute face — it renders, in a typeface that is not Kati's, on
+         # the biggest number on the sheet. Latin digits keep DM Mono, which is
+         # what the drawing sets them in.}
         <Text
-          text={Integer.to_string(page)}
-          font_family="mono"
+          text={Kati.Locale.number(page)}
+          font_family={Kati.Locale.mono_face(Kati.Locale.number(page))}
           text_size={27}
           font_weight="medium"
-          letter_spacing={-0.02}
+          letter_spacing={Kati.Locale.tracking(-0.02)}
           text_align="center"
           text_color={:on_surface}
         />
         <Spacer size={4} />
         <Text
           text={Kati.Screens.LogProgress.unit_label(unit)}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
-          letter_spacing={0.1}
+          letter_spacing={Kati.Locale.tracking(0.1)}
           text_align="center"
           text_color={Palette.muted()}
         />
@@ -332,9 +396,9 @@ defmodule Kati.Screens.LogProgress do
 
   @doc "The mono label under the number, in the drawing's own capitals."
   @spec unit_label(atom()) :: String.t()
-  def unit_label(:unit_percent), do: "I AM NOW AT PERCENT"
-  def unit_label(:unit_minutes), do: "MINUTES READ"
-  def unit_label(_page), do: "I AM NOW ON PAGE"
+  def unit_label(:unit_percent), do: Kati.UI.eyebrow_label(gettext("I am now at percent"))
+  def unit_label(:unit_minutes), do: Kati.UI.eyebrow_label(gettext("Minutes read"))
+  def unit_label(_page), do: Kati.UI.eyebrow_label(gettext("I am now on page"))
 
   @doc false
   def step_disc(icon, tag) do
@@ -367,8 +431,10 @@ defmodule Kati.Screens.LogProgress do
   def timing(timing?) do
     {title, sub} =
       if timing?,
-        do: {"Timing this session", "00:00:00 · running"},
-        else: {"Time it instead", "Runs while the sheet is closed"}
+        do:
+          {gettext("Timing this session"),
+           gettext("%{elapsed} · running", elapsed: Kati.Locale.number("00:00:00"))},
+        else: {gettext("Time it instead"), gettext("Runs while the sheet is closed")}
 
     ~MOB"""
     <Column
@@ -379,7 +445,7 @@ defmodule Kati.Screens.LogProgress do
       padding_right={15}
       shadow={Kati.Theme.shadow_card()}
     >
-      {Kati.Screens.LogProgress.timing_row("schedule", "Started at", nil, Kati.Screens.LogProgress.started_at(), true)}
+      {Kati.Screens.LogProgress.timing_row("schedule", gettext("Started at"), nil, Kati.Screens.LogProgress.started_at(), true)}
       {Kati.Screens.LogProgress.timing_row("timer", title, sub, nil, false, timing?)}
     </Column>
     """
@@ -394,10 +460,7 @@ defmodule Kati.Screens.LogProgress do
   does.
   """
   @spec started_at() :: String.t()
-  def started_at do
-    Kati.Time.now()
-    |> Calendar.strftime("%H:%M")
-  end
+  def started_at, do: Kati.Locale.time(Kati.Time.now())
 
   @doc false
   def timing_row(icon, title, sub, value, hairline?, running? \\ false) do
@@ -442,7 +505,13 @@ defmodule Kati.Screens.LogProgress do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={3} />
-      <Text text={text} text_size={11.5} text_color={Kati.Theme.Palette.sub()} max_lines={1} />
+      <Text
+        text={text}
+        text_size={11.5}
+        line_height={Kati.Locale.leading(1.4)}
+        text_color={Kati.Theme.Palette.sub()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -453,7 +522,7 @@ defmodule Kati.Screens.LogProgress do
   def timing_trailing(value, tap, running? \\ false)
 
   def timing_trailing(nil, tap, running?) do
-    assigns = %{tap: tap, label: if(running?, do: "Stop", else: "Start")}
+    assigns = %{tap: tap, label: if(running?, do: gettext("Stop"), else: gettext("Start"))}
 
     ~MOB"""
     <Row
@@ -482,7 +551,7 @@ defmodule Kati.Screens.LogProgress do
     ~MOB"""
     <Text
       text={@value}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face(@value)}
       text_size={12.5}
       text_color={Kati.Theme.Palette.ink_soft()}
       max_lines={1}
@@ -502,19 +571,50 @@ defmodule Kati.Screens.LogProgress do
   @doc """
   The cream line that does the subtraction for you.
 
-  Three runs, because two of them are the numbers and the emphasis is what
-  makes the sentence readable at a glance. The comparison — *your fastest this
-  week* — is appended only when it is true, and is absent rather than negated:
-  a session that was not your fastest does not need to be told so.
+  Two runs: the lead and the delta. The delta is real — the stepper's value
+  minus where this reader was — and it is the only number on this card that is.
+
+  ## The two clauses that are gone, and why the fold is what removed them
+
+  It read *That's 46 pages **in 38 minutes** · your fastest this week*, and the
+  last two were literals. Nothing in the app had timed a session: `38 minutes`
+  was the drawing's figure printed over every book on every device, and *your
+  fastest this week* was a comparison against a week of sessions nobody had
+  read. Board 20's rule — *either every value on the page is this reader's or
+  every value is the drawing's* — and it was being broken in the middle of one
+  sentence.
+
+  `Kati.Screens.LogProgressFa` had already refused to draw them: its `insight/1`
+  answered `[]` for any book a reader actually owns, and `D-59`'s own ticket is
+  where that was settled. mishka-group/kati#103 folds that mirror into this
+  screen, so this screen inherits the ruling rather than reversing it — a fold
+  that gave a Persian reader back a lie their own page had stopped telling
+  would be the worst possible outcome of tidying two files into one.
+
+  The clause comes back the day a timer runs: `duration_runs/2` is still here
+  and still takes the two run styles, and what it needs is an elapsed time this
+  app can read rather than one it can state.
   """
   @spec insight(map(), integer()) :: map()
   def insight(b, page) do
-    body = [text_size: 13, line_height: 1.55, text_color: Palette.cream_body()]
+    body = [
+      text_size: 13,
+      line_height: Kati.Locale.leading(1.55),
+      text_color: Palette.cream_body()
+    ]
+
     strong = [font_weight: "semibold", text_color: Palette.cream_ink(), text_size: 13]
 
     runs =
-      [{"That’s ", body}, {Kati.Screens.LogProgress.delta_line(b, page), strong}] ++
-        Kati.Screens.LogProgress.duration_runs(body, strong)
+      [
+        {gettext("That’s "), body},
+        {Kati.Screens.LogProgress.delta_line(b, page), strong},
+        # A bare full stop, not a `gettext/1` call: `"."` is a msgid no
+        # translator can place and `mix gettext.merge` fuzzy-matched it against
+        # the first sentence in the catalogue that ended in one. Persian ends a
+        # sentence with the same mark.
+        {".", body}
+      ] ++ Kati.Screens.LogProgress.duration_runs(body, strong)
 
     Sheet.insight("lightbulb", runs)
   end
@@ -524,23 +624,31 @@ defmodule Kati.Screens.LogProgress do
 
   Never negative: a page below your position is a re-read, which screen 71
   handles as its own correction rather than as a minus sign here.
+
+  It read the reader's position back out of `progress_line` with a regex, which
+  is the drawn sentence — see `Kati.Screens.BookDetail.shaped/3` on why two
+  integers replaced it.
   """
   @spec delta_line(map(), integer()) :: String.t()
   def delta_line(b, page) do
-    from =
-      case Regex.run(~r/^p\. (\d+)/, b.progress_line || "") do
-        [_all, at] -> String.to_integer(at)
-        nil -> page
-      end
-
+    from = if is_integer(b[:current_page]), do: b[:current_page], else: page
     pages = max(page - from, 0)
-    "#{pages} #{if pages == 1, do: "page", else: "pages"}"
+    ngettext("%{n} page", "%{n} pages", pages, n: Kati.Locale.number(pages))
   end
 
-  @doc false
-  def duration_runs(body, strong) do
-    [{" in ", body}, {"38 minutes", strong}, {" · your fastest this week", body}]
-  end
+  @doc """
+  The `in 38 minutes · your fastest this week` clause, when there is one.
+
+      iex> Kati.Screens.LogProgress.duration_runs([], [])
+      []
+
+  There never is yet, and the empty list is the honest answer rather than a
+  missing feature — see `insight/2`. It keeps both run styles in its signature
+  because the day a timer reports an elapsed duration, this is the one function
+  that changes.
+  """
+  @spec duration_runs(keyword(), keyword()) :: [{String.t(), keyword()}]
+  def duration_runs(_body, _strong), do: []
 
   @doc """
   The one line that says the session did not land, directly above the button
@@ -568,7 +676,7 @@ defmodule Kati.Screens.LogProgress do
         text={@message}
         text_size={12.5}
         font_weight="semibold"
-        line_height={1.35}
+        line_height={Kati.Locale.leading(1.35)}
         text_color={Palette.red()}
       />
       <Spacer size={12} />
@@ -576,12 +684,27 @@ defmodule Kati.Screens.LogProgress do
     """
   end
 
+  @doc false
+  @spec finished_label() :: String.t()
+  def finished_label, do: gettext("Finished the book")
+
+  @doc """
+  The mono pointer to screen 33, with the board's own number in it.
+
+  A screen NUMBER is not copy and translates to itself; what does translate is
+  the two words after it, and the digits, which board 72 writes as **۳۳**.
+  """
+  @spec next_sheet_label() :: String.t()
+  def next_sheet_label,
+    do: Kati.UI.eyebrow_label(gettext("%{n} rate & review", n: Kati.Locale.number(33)))
+
   @doc """
   The second commit, under the first.
 
   Centred rather than full-width, and set in body weight rather than as a
   button, because it is the rarer of the two and the drawing ranks them that
-  way. It still ends in an arrow: it goes somewhere.
+  way. It still ends in an arrow: it goes somewhere — leftward in Persian,
+  which is `Kati.Locale.forward_glyph/0`'s whole subject.
   """
   @spec finished_row() :: map()
   def finished_row do
@@ -589,20 +712,23 @@ defmodule Kati.Screens.LogProgress do
     <Row fill_width={true} align="center" on_tap={{self(), :finish}}>
       <Spacer weight={1.0} />
       <Text
-        text="Finished the book"
+        text={Kati.Screens.LogProgress.finished_label()}
         text_size={13}
         font_weight="semibold"
         text_color={Palette.ink_soft()}
         max_lines={1}
       />
       <Spacer size={7} />
-      {UI.symbol("arrow_forward", size: 16, color: Palette.sub())}
+      {# The arrow is a picture and `layout_direction` cannot mirror one:
+       # forward is leftward in Persian, which is what `Kati.Locale.forward_glyph/0`
+       # answers.}
+      {UI.symbol(Kati.Locale.forward_glyph(), size: 16, color: Palette.sub())}
       <Spacer size={7} />
       <Text
-        text="33 RATE & REVIEW"
-        font_family="mono"
+        text={Kati.Screens.LogProgress.next_sheet_label()}
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
-        letter_spacing={0.1}
+        letter_spacing={Kati.Locale.tracking(0.1)}
         text_color={Palette.tertiary()}
         max_lines={1}
       />

@@ -423,7 +423,7 @@ msgstr ""
 msgid "Gone — not empty"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:595
+#: lib/kati/screens/goals.ex:608
 #: lib/kati/screens/pick_sections/sample.ex:49
 #: lib/kati/settings/sample.ex:230
 #: lib/kati/stats/sample.ex:40
@@ -1560,12 +1560,12 @@ msgstr ""
 msgid "%"
 msgstr ""
 
-#: lib/kati/goals/sample.ex:82
+#: lib/kati/goals/sample.ex:87
 #, elixir-autogen, elixir-format
 msgid "%{count} active · %{span}"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:353
+#: lib/kati/screens/goals.ex:366
 #, elixir-autogen, elixir-format
 msgid "%{count} active · to %{date}"
 msgstr ""
@@ -1590,13 +1590,13 @@ msgstr ""
 msgid "Behind"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:291
+#: lib/kati/screens/goals.ex:304
 #: lib/kati/stats/sample.ex:45
 #, elixir-autogen, elixir-format
 msgid "Goals"
 msgstr ""
 
-#: lib/kati/goals/sample.ex:85
+#: lib/kati/goals/sample.ex:90
 #, elixir-autogen, elixir-format
 msgid "Jan – Dec %{year}"
 msgstr ""
@@ -1617,12 +1617,12 @@ msgstr ""
 msgid "Recently watched"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:291
+#: lib/kati/screens/goals.ex:304
 #, elixir-autogen, elixir-format
 msgid "Repeat"
 msgstr ""
 
-#: lib/kati/screens/goals.ex:583
+#: lib/kati/screens/goals.ex:596
 #, elixir-autogen, elixir-format
 msgid "Repeat each period — a yearly goal restarts on 1 January, indefinitely"
 msgstr ""
@@ -1632,7 +1632,7 @@ msgstr ""
 msgid "Too early to say."
 msgstr ""
 
-#: lib/kati/screens/goals.ex:596
+#: lib/kati/screens/goals.ex:609
 #, elixir-autogen, elixir-format
 msgid "“Read every day” is a habit. “Read 52 books” is a goal."
 msgstr ""
@@ -1658,11 +1658,6 @@ msgstr ""
 msgid "%{done} of %{total}"
 msgstr ""
 
-#: lib/kati/goals/sample.ex:71
-#, elixir-autogen, elixir-format
-msgid "."
-msgstr ""
-
 #: lib/kati/goals/sample.ex:36
 #, elixir-autogen, elixir-format
 msgid "31 December"
@@ -1678,7 +1673,7 @@ msgstr ""
 msgid "Counts timed sittings only — a session logged by page has no minutes to give."
 msgstr ""
 
-#: lib/kati/goals/sample.ex:73
+#: lib/kati/goals/sample.ex:78
 #, elixir-autogen, elixir-format
 msgid "Dropped shows keep the hours they earned. Nothing is taken back."
 msgstr ""
@@ -1707,7 +1702,7 @@ msgstr ""
 
 #: lib/kati/goals/sample.ex:51
 #: lib/kati/screens/data_sources.ex:1126
-#: lib/kati/screens/goals.ex:234
+#: lib/kati/screens/goals.ex:247
 #, elixir-autogen, elixir-format
 msgid "%{n} day"
 msgid_plural "%{n} days"
@@ -3076,4 +3071,127 @@ msgstr ""
 #: lib/kati/settings/sample.ex:313
 #, elixir-autogen, elixir-format
 msgid "iCloud · this device + iPad"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:428
+#, elixir-autogen, elixir-format
+msgid "%{elapsed} · running"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:628
+#, elixir-autogen, elixir-format
+msgid "%{n} page"
+msgid_plural "%{n} pages"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/log_progress.ex:691
+#, elixir-autogen, elixir-format
+msgid "%{n} rate & review"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:326
+#, elixir-autogen, elixir-format
+msgid "At p. %{at}"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:322
+#, elixir-autogen, elixir-format
+msgid "At p. %{at} of %{of}"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:681
+#, elixir-autogen, elixir-format
+msgid "Finished the book"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:391
+#, elixir-autogen, elixir-format
+msgid "I am now at percent"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:393
+#, elixir-autogen, elixir-format
+msgid "I am now on page"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:204
+#, elixir-autogen, elixir-format
+msgid "Log progress"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:250
+#, elixir-autogen, elixir-format
+msgid "Minutes"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:392
+#, elixir-autogen, elixir-format
+msgid "Minutes read"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:248
+#, elixir-autogen, elixir-format
+msgid "Page"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:249
+#, elixir-autogen, elixir-format
+msgid "Percent"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:429
+#, elixir-autogen, elixir-format
+msgid "Runs while the sheet is closed"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:215
+#, elixir-autogen, elixir-format
+msgid "Save session"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:517
+#, elixir-autogen, elixir-format
+msgid "Start"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:431
+#, elixir-autogen, elixir-format
+msgid "Started at"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:517
+#, elixir-autogen, elixir-format
+msgid "Stop"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:602
+#, elixir-autogen, elixir-format
+msgid "That’s "
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:429
+#, elixir-autogen, elixir-format
+msgid "Time it instead"
+msgstr ""
+
+#: lib/kati/screens/log_progress.ex:427
+#, elixir-autogen, elixir-format
+msgid "Timing this session"
+msgstr ""
+
+#: lib/kati/books/sample.ex:100
+#, elixir-autogen, elixir-format
+msgid "Ines Karvel"
+msgstr ""
+
+#: lib/kati/books/sample.ex:99
+#, elixir-autogen, elixir-format
+msgid "The Salt Almanac"
+msgstr ""
+
+#: lib/kati/screens/goals.ex:230
+#, elixir-autogen, elixir-format
+msgctxt "closes a projected count"
+msgid "."
 msgstr ""
