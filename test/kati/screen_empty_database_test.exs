@@ -2977,7 +2977,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(103 137 156 164 165 166)
+  @fa_numbers ~w(60 103 137 156 164 165 166)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

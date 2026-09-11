@@ -264,27 +264,34 @@ defmodule Kati.Screens.WeekImage do
   """
   @spec page_en() :: map()
   def page_en do
-    %{
-      dir: :ltr,
-      face: "sans",
-      title: SamplePlan.title(),
-      title_size: 16,
-      title_tracking: -0.02,
-      dateline: "WEEK OF 17 AUG",
-      dateline_face: "mono",
-      dateline_tracking: 0.08,
-      days: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
-      days_face: "mono",
-      days_size: 8.5,
-      days_weight: nil,
-      days_tracking: 0.06,
-      rows: rows(labels(SamplePlan.matrix(), :name), @week, @dishes_en),
-      legend: [{:planned, "PLANNED"}, {:free, "FREE"}, {:approx, "APPROX"}],
-      legend_face: "mono",
-      legend_size: 8.5,
-      legend_tracking: 0.06,
-      mark: "Kati"
-    }
+    # `Kati.Locale.as(:en, …)` because this page IS the English card, whatever
+    # the reader's own language is. `Kati.Meals.SamplePlan` answers in the
+    # ambient locale since mishka-group/kati#103 folded board 60 — correct
+    # everywhere else, and exactly wrong on a screen whose whole subject is
+    # the two cards side by side.
+    Kati.Locale.as(:en, fn ->
+      %{
+        dir: :ltr,
+        face: "sans",
+        title: SamplePlan.title(),
+        title_size: 16,
+        title_tracking: -0.02,
+        dateline: "WEEK OF 17 AUG",
+        dateline_face: "mono",
+        dateline_tracking: 0.08,
+        days: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
+        days_face: "mono",
+        days_size: 8.5,
+        days_weight: nil,
+        days_tracking: 0.06,
+        rows: rows(labels(SamplePlan.matrix(), :name), @week, @dishes_en),
+        legend: [{:planned, "PLANNED"}, {:free, "FREE"}, {:approx, "APPROX"}],
+        legend_face: "mono",
+        legend_size: 8.5,
+        legend_tracking: 0.06,
+        mark: "Kati"
+      }
+    end)
   end
 
   @doc """
@@ -688,7 +695,7 @@ defmodule Kati.Screens.WeekImage do
       <Spacer size={1} />
       <Text
         text="~"
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={6.5}
         text_color={Palette.gold_icon()}
         text_align="center"
@@ -787,7 +794,13 @@ defmodule Kati.Screens.WeekImage do
 
   def legend_swatch(:approx) do
     ~MOB"""
-    <Text text="~" font_family="mono" text_size={10} text_color={Palette.gold_icon()} max_lines={1} />
+    <Text
+      text="~"
+      font_family={Kati.Locale.mono_face()}
+      text_size={10}
+      text_color={Palette.gold_icon()}
+      max_lines={1}
+    />
     """
   end
 
@@ -818,7 +831,13 @@ defmodule Kati.Screens.WeekImage do
 
     word =
       ~MOB"""
-      <Text text={p.mark} font_family="mono" text_size={9.5} text_color={Palette.sub()} max_lines={1} />
+      <Text
+        text={p.mark}
+        font_family={Kati.Locale.mono_face()}
+        text_size={9.5}
+        text_color={Palette.sub()}
+        max_lines={1}
+      />
       """
 
     parts =
@@ -945,7 +964,7 @@ defmodule Kati.Screens.WeekImage do
         <Spacer size={9} />
         <Text
           text={latin}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           letter_spacing={0.16}
           text_color={Palette.eyebrow()}

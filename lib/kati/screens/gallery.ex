@@ -86,7 +86,7 @@ defmodule Kati.Screens.Gallery do
     {"57", "کتابخانه", Kati.Screens.LibraryFa, :push},
     {"58", "سریال", Kati.Screens.SeriesFa, :push},
     {"59", "امروز", Kati.Screens.TodayFa, :push},
-    {"60", "وعده‌ها", Kati.Screens.MealsMatrixFa, :push},
+    {"60", "وعده‌ها", Kati.Screens.MealPlan, :push},
     {"61", "آمار", Kati.Screens.StatsFa, :push},
     {"62", "تنظیمات", Kati.Screens.SettingsFa, :push},
     {"66", "Book detail", Kati.Screens.BookDetail, :push},

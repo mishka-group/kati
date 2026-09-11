@@ -43,6 +43,7 @@ defmodule Kati.Screens.MealPlan do
   No dock on a pushed screen, so the frame ends at 40 rather than 132.
   """
   use Kati.Screens.Pushed, back: "Meals"
+  use Gettext, backend: Kati.Gettext
 
   require Ash.Query
 
@@ -79,7 +80,9 @@ defmodule Kati.Screens.MealPlan do
         {Kati.Screens.MealPlan.matrix(plan)}
         {UI.eyebrow(plan.day_line)}
         {Kati.Screens.MealPlan.day_list(plan.day)}
-        {Kati.Screens.MealPlan.muted_eyebrow("Repeat rule")}
+        {Kati.UI.SettingsList.note("swap_horiz", Kati.Screens.MealPlan.week_note())}
+        <Spacer size={18} />
+        {Kati.Screens.MealPlan.muted_eyebrow(gettext("Repeat rule"))}
         {Kati.Screens.MealPlan.repeat_rule(plan.repeat_rule)}
       </Column>
     </Scroll>
@@ -207,19 +210,26 @@ defmodule Kati.Screens.MealPlan do
   # answer for.
   defp repeat_rows(row) do
     [
-      %{icon: "repeat", title: "Repeats", sub: repeat_sub(row), trailing: :chevron},
-      %{icon: "event_available", title: "Started", sub: started_sub(row), trailing: :chevron},
+      %{icon: "repeat", title: gettext("Repeats"), sub: repeat_sub(row), trailing: :chevron},
+      %{
+        icon: "event_available",
+        title: gettext("Started"),
+        sub: started_sub(row),
+        trailing: :chevron
+      },
       %{
         icon: "edit_calendar",
-        title: "Edit this week only",
-        sub: "Changes will not carry forward",
+        title: gettext("Edit this week only"),
+        sub: gettext("Changes will not carry forward"),
         trailing: :switch_off
       }
     ]
   end
 
-  defp repeat_sub(%{repeat: :weekly, weeks_total: nil}), do: "Every week, indefinitely"
-  defp repeat_sub(%{repeat: :weekly, weeks_total: weeks}), do: "Every week, #{weeks} weeks"
+  defp repeat_sub(%{repeat: :weekly, weeks_total: nil}), do: gettext("Every week, indefinitely")
+
+  defp repeat_sub(%{repeat: :weekly, weeks_total: weeks}),
+    do: gettext("Every week, %{count} weeks", count: Kati.Locale.number(weeks))
 
   # "Week 6 · 6 Jul 2026" — the week is counted from the start date, not stored,
   # because a stored week number is wrong every Monday morning. A plan with no
@@ -229,7 +239,11 @@ defmodule Kati.Screens.MealPlan do
 
   defp started_sub(%{starts_on: starts_on}) do
     week = div(Date.diff(Kati.Time.today(), starts_on), 7) + 1
-    "Week #{week} · #{Calendar.strftime(starts_on, "%-d %b %Y")}"
+
+    gettext("Week %{week} · %{date}",
+      week: Kati.Locale.number(week),
+      date: Kati.Locale.date(starts_on, :dated)
+    )
   end
 
   defp meals(1), do: "1 meal"
@@ -376,20 +390,39 @@ defmodule Kati.Screens.MealPlan do
   #
   # `Event.handler/2` returns nil for a missing handler, so no segment gains a
   # tap it did not have.
+  @doc """
+  Which day the grid starts on, said once under it.
+
+  Board 60 draws this and board 44 does not, and the sentence is not a Persian
+  one: the two grids are **different weeks**, not one week mirrored. English
+  opens on Monday and Persian on شنبه, so `M T W T F S S` and `ش ی د س چ پ ج`
+  are seven columns each of a different seven days — which is exactly the
+  mistake a catalogue would have made by pairing them off.
+
+  A reader of either language who has seen the other needs telling once.
+  mishka-group/kati#103.
+  """
+  @spec week_note() :: String.t()
+  def week_note do
+    gettext(
+      "The columns start on Monday. In فارسی the same grid starts on Saturday, from the right."
+    )
+  end
+
   @doc false
   def segments do
-    [first | _rest] = labels = Sample.segments()
+    [{first, _label} | _rest] = options = Sample.segments()
 
     ~MOB"""
     <Column fill_width={true}>
-      {Kati.Screens.MealPlan.strip(labels, first)}
+      {Kati.Screens.MealPlan.strip(options, first)}
       <Spacer size={18} />
     </Column>
     """
   end
 
   @doc false
-  def strip(labels, active) do
+  def strip(options, active) do
     MishkaSegmentedControl.segmented_control(
       [
         value: active,
@@ -410,7 +443,12 @@ defmodule Kati.Screens.MealPlan do
         max_lines: 1,
         selected_shadow: "0 1 2 0 #0F1A1917 | 0 6 12 -8 #661A1917"
       ],
-      Enum.map(labels, fn label -> MishkaSegmentedControl.option(label, label) end)
+      # The option's ID is the key and its LABEL is the word. They were the same
+      # string, so `selected/2`'s membership test compared a stored value
+      # against a DRAWN English word — and its fallback is silent, lighting
+      # segment 0 rather than raising. Under `:fa` that is a control that looks
+      # right and answers wrong. mishka-group/kati#103.
+      Enum.map(options, fn {key, label} -> MishkaSegmentedControl.option(key, label) end)
     )
   end
 
@@ -467,7 +505,14 @@ defmodule Kati.Screens.MealPlan do
     <Row weight={1.0} align="center">
       <Spacer size={3} />
       <Spacer weight={1.0} />
-      <Text text={letter} font_family="mono" text_size={10} text_color={color} max_lines={1} />
+      <Text
+        text={letter}
+        font_family={Kati.Locale.mono_face()}
+        text_size={Kati.Locale.pick(10, 11)}
+        font_weight={Kati.Locale.pick("normal", "semibold")}
+        text_color={color}
+        max_lines={1}
+      />
       <Spacer weight={1.0} />
     </Row>
     """
@@ -489,7 +534,7 @@ defmodule Kati.Screens.MealPlan do
           <Spacer size={2} />
           <Text
             text={row.time}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={9.5}
             text_color={Palette.tertiary()}
             max_lines={1}
@@ -596,7 +641,7 @@ defmodule Kati.Screens.MealPlan do
       <Spacer size={5} />
       <Text
         text={String.upcase(label)}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
         letter_spacing={0.06}
         text_color={Palette.eyebrow()}
@@ -664,7 +709,7 @@ defmodule Kati.Screens.MealPlan do
         <Column weight={1.0}>
           <Text
             text={String.upcase(row.slot)}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={9.5}
             letter_spacing={0.14}
             text_color={Palette.eyebrow()}
@@ -682,7 +727,7 @@ defmodule Kati.Screens.MealPlan do
         <Spacer size={13} />
         <Text
           text={row.calories}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={11}
           text_color={Palette.muted()}
           max_lines={1}
@@ -726,7 +771,7 @@ defmodule Kati.Screens.MealPlan do
         <Spacer size={9} />
         <Text
           text={String.upcase(label)}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           letter_spacing={0.16}
           text_color={Palette.eyebrow()}

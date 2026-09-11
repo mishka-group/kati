@@ -19,9 +19,18 @@ defmodule Kati.Locale do
   @doc "The active locale."
   @spec current() :: :en | :fa
   def current do
-    case Mob.State.get(:locale, @default) do
-      l when l in @locales -> l
-      _ -> @default
+    # `as/2`'s override first: a screen that draws both languages at once has
+    # said which one this expression belongs to, and the stored preference is
+    # the wrong answer inside it.
+    case Process.get(:kati_locale_override) do
+      l when l in @locales ->
+        l
+
+      _none ->
+        case Mob.State.get(:locale, @default) do
+          l when l in @locales -> l
+          _ -> @default
+        end
     end
   end
 
@@ -125,6 +134,40 @@ defmodule Kati.Locale do
   def week_start, do: pick("Monday", "شنبه")
 
   @doc """
+  Run `fun` as if the reader had chosen `locale`, then put it back.
+
+      iex> Kati.Locale.as(:en, fn -> Kati.Locale.week_start() end)
+      "Monday"
+
+  For the handful of screens that draw BOTH languages at once and mean to:
+  `Kati.Screens.WeekImage` composes an English card and a Persian card on one
+  page, and screen 53 asks the language question in both scripts because
+  nobody who needs it can be assumed to read the other.
+
+  Everywhere else this is the wrong tool — a screen renders in the reader's
+  language and does not choose. It moves `Gettext`'s locale and the direction
+  together, because a card whose words are English and whose grid is
+  right-to-left is neither page.
+  """
+  @spec as(atom(), (-> term())) :: term()
+  def as(locale, fun) when is_function(fun, 0) do
+    previous = Process.get(:kati_locale_override)
+    Process.put(:kati_locale_override, locale)
+    before = Gettext.get_locale(Kati.Gettext)
+    Gettext.put_locale(Kati.Gettext, Atom.to_string(locale))
+
+    try do
+      fun.()
+    after
+      Gettext.put_locale(Kati.Gettext, before)
+
+      if previous,
+        do: Process.put(:kati_locale_override, previous),
+        else: Process.delete(:kati_locale_override)
+    end
+  end
+
+  @doc """
   A date in the reader's own calendar.
 
       iex> Kati.Locale.date(~D[2026-08-16])
@@ -134,6 +177,8 @@ defmodule Kati.Locale do
 
     * `:long` — the weekday, the day, the month and the year.
     * `:short` — the day and the month, which is what a row under a title wants.
+    * `:dated` — the day, the month and the year, for a row that has to name
+      a year the reader cannot infer.
     * `:numeric` — the three numbers, for a field.
 
   **`Kati.Calendar.Shamsi` under `:fa`, and it is a different CALENDAR rather
@@ -146,14 +191,18 @@ defmodule Kati.Locale do
   them was a `*Fa` mirror, which is exactly why a folded screen needs this: the
   English screen is now both, and it has one place to ask what day it is.
   """
-  @spec date(Date.t(), :long | :short | :numeric) :: String.t()
+  @spec date(Date.t(), :long | :short | :dated | :numeric) :: String.t()
   def date(%Date{} = date, style \\ :long) do
     if direction(current()) == :rtl do
-      Kati.Calendar.Shamsi.format(date, style)
+      # Shamsi has no `:dated` of its own: its `:long` already carries the year,
+      # which is the difference between a calendar whose year the reader knows
+      # by heart and one whose year they do not.
+      Kati.Calendar.Shamsi.format(date, if(style == :dated, do: :long, else: style))
     else
       case style do
         :long -> Calendar.strftime(date, "%a %-d %b")
         :short -> Calendar.strftime(date, "%-d %b")
+        :dated -> Calendar.strftime(date, "%-d %b %Y")
         :numeric -> Calendar.strftime(date, "%Y/%m/%d")
       end
     end

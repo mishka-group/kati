@@ -710,7 +710,7 @@ defmodule Kati.Screens.TodayFa do
   # 43's Week tile opens 44. 60's own back pill reads وعده‌ها, naming this
   # screen as its parent, and the disc was drawn here with no tag at all.
   def handle_info({:tap, :open_week}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealsMatrixFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MealPlan)}
 
   def handle_info(_message, socket), do: {:noreply, socket}
 end

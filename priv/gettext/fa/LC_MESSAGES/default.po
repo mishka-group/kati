@@ -696,3 +696,124 @@ msgstr "کاتی از ژانر و خاستگاهش، یا از ورودی MAL ی
 #: lib/kati/shell.ex
 msgid "Calendar"
 msgstr "تقویم"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Week"
+msgstr "هفته"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Day"
+msgstr "روز"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Shop"
+msgstr "خرید"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Breakfast"
+msgstr "صبحانه"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Snack"
+msgstr "میان‌وعده"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Lunch"
+msgstr "ناهار"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Dinner"
+msgstr "شام"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Planned"
+msgstr "برنامه‌ریزی‌شده"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Today"
+msgstr "امروز"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Free"
+msgstr "آزاد"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Cutting v3"
+msgstr "کاهش وزن ۳"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "repeats every week"
+msgstr "هر هفته تکرار می‌شود"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Eggs, sourdough, avocado"
+msgstr "تخم‌مرغ، نان خمیرمایه، آووکادو"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Apple, almond butter"
+msgstr "سیب و کره بادام"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Miso salmon, greens, rice"
+msgstr "سالمون میسو، سبزیجات، برنج"
+
+#: lib/kati/screens/meal_plan.ex
+msgctxt "back pill"
+msgid "Meals"
+msgstr "وعده‌ها"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "%{day} · %{count} meals"
+msgstr "%{day} · %{count} وعده"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Brunch"
+msgstr "صبحانه"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Repeat rule"
+msgstr "قاعده تکرار"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Repeats"
+msgstr "تکرار"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Every week, indefinitely"
+msgstr "هر هفته، بی‌پایان"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Started"
+msgstr "شروع"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Edit this week only"
+msgstr "فقط همین هفته ویرایش شود"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Changes will not carry forward"
+msgstr "تغییرها به هفته‌های بعد نمی‌روند"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Week %{week} · %{date}"
+msgstr "هفته %{week} · %{date}"
+
+#: lib/kati/screens/meal_plan.ex
+msgid "Every week, %{count} weeks"
+msgstr "هر هفته، %{count} هفته"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Eggs"
+msgstr "تخم‌مرغ"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Apple"
+msgstr "سیب"
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Miso salmon"
+msgstr "سالمون میسو"
+
+#: lib/kati/screens/meal_plan.ex
+msgid "The columns start on Monday. In فارسی the same grid starts on Saturday, from the right."
+msgstr "ستون‌ها از راست شروع می‌شوند: شنبه اولین روز هفته است. در انگلیسی همین جدول از دوشنبه و از چپ آغاز می‌شود."

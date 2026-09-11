@@ -454,7 +454,7 @@ defmodule Kati.Screens.MarkIos do
     >
       <Text
         text={count}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
         font_weight="medium"
         text_color={Palette.on_media()}
@@ -548,7 +548,7 @@ defmodule Kati.Screens.MarkIos do
         <Spacer size={9} />
         <Text
           text={eyebrow}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.14}
           text_color={Palette.eyebrow()}
@@ -580,7 +580,7 @@ defmodule Kati.Screens.MarkIos do
     <Column weight={1.0}>
       <Text
         text={row.time}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
         text_color={Palette.muted()}
         max_lines={1}
@@ -718,14 +718,16 @@ defmodule Kati.Screens.MarkIos do
   # rice` are one row of the meal plan, split at the separators the fixture
   # already writes rather than re-typed — the time off the slot, the first
   # course off the title.
+  # By KEY, not by the word the slot is printed with. `String.starts_with?(slot,
+  # "Dinner")` found nothing the moment the fixture answered in Persian —
+  # `Enum.find/2` returned nil and the widget crashed on the match.
+  # `String.split(", ")` was the same mistake one line down: Persian separates
+  # a list with the Arabic comma ، and would have handed back the whole
+  # sentence. Both facts travel as data now. mishka-group/kati#103.
   defp dinner do
-    %{slot: slot, title: title} =
-      Enum.find(SamplePlan.day(), &String.starts_with?(&1.slot, "Dinner"))
+    %{clock: clock, course: course} = Enum.find(SamplePlan.day(), &(&1.key == :dinner))
 
-    %{
-      time: slot |> String.split(" · ") |> List.last(),
-      title: title |> String.split(", ") |> hd()
-    }
+    %{time: clock, title: course}
   end
 
   # One SVG stroke. `corner_radius` is deliberately absent: the mark is drawn

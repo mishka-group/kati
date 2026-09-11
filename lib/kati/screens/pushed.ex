@@ -135,7 +135,23 @@ defmodule Kati.Screens.Pushed do
   # answers itself, so a screen whose word is not in the catalogue yet is
   # exactly as it was — which is what makes this safe to add before the other
   # nine mirrors fold.
-  defp translated(label), do: Gettext.dgettext(Kati.Gettext, "default", label)
+  # The `back pill` CONTEXT first, then the plain lookup.
+  #
+  # A back pill is its own register, and one word proves it: screen 44's pill
+  # says *Meals*, which board 60 draws as **وعده‌ها** — while the share sheet's
+  # scope chip, also *Meals*, is **وعده**. One msgid cannot be both, and gettext
+  # has the answer already: a context. So a screen whose pill needs its own word
+  # gets a `msgctxt "back pill"` entry, and every other pill falls through to
+  # the shared one rather than needing an entry per screen.
+  #
+  # `dpgettext/5` answers the msgid itself when the context has no entry, which
+  # is exactly the signal to fall through.
+  defp translated(label) do
+    case Gettext.dpgettext(Kati.Gettext, "default", "back pill", label) do
+      ^label -> Gettext.dgettext(Kati.Gettext, "default", label)
+      translated -> translated
+    end
+  end
 
   @doc """
   How far down a pushed screen's content must start.

@@ -687,3 +687,124 @@ msgstr ""
 #: lib/kati/shell.ex
 msgid "Calendar"
 msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Week"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Day"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Shop"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Breakfast"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Snack"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Lunch"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Dinner"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Planned"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Today"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Free"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Cutting v3"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "repeats every week"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Eggs, sourdough, avocado"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Apple, almond butter"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Miso salmon, greens, rice"
+msgstr ""
+
+#: lib/kati/screens/meal_plan.ex
+msgctxt "back pill"
+msgid "Meals"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "%{day} · %{count} meals"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Brunch"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Repeat rule"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Repeats"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Every week, indefinitely"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Started"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Edit this week only"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Changes will not carry forward"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Week %{week} · %{date}"
+msgstr ""
+
+#: lib/kati/screens/meal_plan.ex
+msgid "Every week, %{count} weeks"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Eggs"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Apple"
+msgstr ""
+
+#: lib/kati/meals/sample_plan.ex
+msgid "Miso salmon"
+msgstr ""
+
+#: lib/kati/screens/meal_plan.ex
+msgid "The columns start on Monday. In فارسی the same grid starts on Saturday, from the right."
+msgstr ""

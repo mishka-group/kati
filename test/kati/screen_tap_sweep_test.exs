@@ -865,7 +865,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.LibraryFa, :filter_0},
     {Kati.Screens.LibraryFa, :shelf_0},
     {Kati.Screens.MealsDay, :filter_All},
-    {Kati.Screens.MealsMatrixFa, :view_0},
     {Kati.Screens.Nutrition, :period_Week},
     {Kati.Screens.ReleaseWatcher, :"cadence_Every 6h"},
     {Kati.Screens.Search, :filter_All},
