@@ -1,3 +1,5 @@
+Code.require_file("../support/screen_sweep.exs", __DIR__)
+
 defmodule Kati.MedicationHonestPageTest do
   @moduledoc """
   Screen 112 states nothing about a reader that the reader's own rows do not
@@ -45,7 +47,7 @@ defmodule Kati.MedicationHonestPageTest do
 
   ## Why the card tests flatten a NODE rather than a page
 
-  `dose_row/1` and `Kati.Screens.HealthFa.dose_card/1` are handed one row and
+  `dose_row/1` is handed one row and
   asked what they drew, so an empty `<Text>` anywhere else on the page cannot
   make one of these pass or fail. `Mob.ScreenCase.flatten/1` takes a node as
   readily as a view, which is what makes that possible.
@@ -56,7 +58,7 @@ defmodule Kati.MedicationHonestPageTest do
   alias Kati.Health.Medication
   alias Kati.Health.WeightSample
   alias Kati.Notifications.Sources.Health
-  alias Kati.Screens.HealthFa
+  alias Kati.ScreenSweep
   alias Kati.Screens.Medication, as: MedicationScreen
 
   # The two composition rules the blank-line defects come out of.
@@ -150,17 +152,40 @@ defmodule Kati.MedicationHonestPageTest do
       assert "50 mcg · before food · MISSED" in texts(drawn)
     end
 
-    test "screen 115's card mirrors both halves of that" do
-      blank = HealthFa.dose_card(%{name: "آهن", line: "", state: :due})
-      missed = HealthFa.dose_card(%{name: "آهن", line: "", state: :missed})
+    test "and the same card under :fa draws the same two halves" do
+      # This was `Kati.Screens.HealthFa.dose_card/1` — board 115's mirror — and
+      # mishka-group/kati#103 folded that away, so the assertion is the ONE
+      # card rendered in the other locale. That is the whole point of the
+      # fold: there is no second card to keep in step.
+      ScreenSweep.with_locale(:fa, fn ->
+        Kati.Locale.activate()
 
-      refute "" in texts(blank)
-      refute "" in texts(missed)
+        blank =
+          MedicationScreen.dose_row(%{
+            name: "آهن",
+            line: "",
+            state: :due,
+            tap: :dose_x,
+            time: "۰۸:۰۰"
+          })
 
-      suffix = HealthFa.line(%{line: "", state: :missed})
+        missed =
+          MedicationScreen.dose_row(%{
+            name: "آهن",
+            line: "",
+            state: :missed,
+            tap: :dose_y,
+            time: "۱۴:۰۰"
+          })
 
-      assert suffix in texts(missed)
-      refute (" · " <> suffix) in texts(missed)
+        refute "" in texts(blank)
+        refute "" in texts(missed)
+
+        suffix = MedicationScreen.state_line(%{line: "", state: :missed})
+
+        assert suffix in texts(missed)
+        refute (" · " <> suffix) in texts(missed)
+      end)
     end
 
     test "the page a name-only medication opens has no blank line and no phantom middot" do

@@ -1,3 +1,5 @@
+Code.require_file("../support/screen_sweep.exs", __DIR__)
+
 defmodule Kati.MedicationQuietDayTest do
   @moduledoc """
   Screen 112 asks one question, and answers a quiet day in words — D-59.
@@ -43,7 +45,7 @@ defmodule Kati.MedicationQuietDayTest do
   alias Kati.Health.Dose
   alias Kati.Health.Medication
   alias Kati.Health.WeightSample
-  alias Kati.Screens.HealthFa
+  alias Kati.ScreenSweep
   alias Kati.Screens.Medication, as: MedicationScreen
   alias Kati.Screens.MedicationEmpty
 
@@ -157,7 +159,7 @@ defmodule Kati.MedicationQuietDayTest do
     test "and its quiet-day sentence stops pointing at a band that is not drawn" do
       # `nothing_due/1`'s tail names `UI.eyebrow("Schedules")`, and an
       # all-paused page draws no Schedules band at all — so the tail is dropped,
-      # which is what `Kati.Screens.HealthFa`'s own label already does with 139's
+      # which is what board 115's own label already did with 139's
       # tail for the same reason. The requirement is the one `empty_day/0` states:
       # *the control it names is real.*
       medication = a_medication!("Metformin", ["08:00"])
@@ -208,12 +210,12 @@ defmodule Kati.MedicationQuietDayTest do
 
       subtitle = MedicationScreen.subtitle(MedicationScreen.doses())
 
-      assert String.ends_with?(subtitle, " · NO DOSES"),
+      assert String.ends_with?(subtitle, " · " <> MedicationScreen.count_clause(0)),
              "a page with nothing to count printed a count"
 
       assert String.starts_with?(
                subtitle,
-               String.upcase(Calendar.strftime(Kati.Time.today(), "%A %-d %B"))
+               Kati.UI.eyebrow_label(Kati.Locale.date(Kati.Time.today(), :long))
              )
     end
 
@@ -295,24 +297,36 @@ defmodule Kati.MedicationQuietDayTest do
     end
   end
 
-  describe "the Persian mirror" do
+  describe "the same page under :fa" do
     test "words the quiet day rather than drawing its own three fixtures" do
+      # This was `Kati.Screens.HealthFa`, board 115's mirror, and
+      # mishka-group/kati#103 folded it away — so the assertion is screen 112
+      # rendered in the other locale. There is no second page to keep in step,
+      # which is the whole of what the fold buys.
       a_medication!("Metformin", [])
 
-      assert HealthFa.doses() == []
+      ScreenSweep.with_locale(:fa, fn ->
+        Kati.Locale.activate()
 
-      strings = texts(mount_screen(HealthFa))
+        assert MedicationScreen.doses() == []
 
-      assert HealthFa.labels().nothing_due in strings
+        strings = texts(mount_screen(MedicationScreen))
 
-      for drawn <- HealthFa.drawn_doses() do
-        refute drawn.name in strings,
-               "screen 115 drew its Persian fixtures beside a real medication"
-      end
+        # The card's own headline, which is what a reader sees on a quiet day.
+        assert Gettext.dgettext(Kati.Gettext, "default", "Nothing due today") in strings
+
+        for drawn <- MedicationScreen.drawn_doses() do
+          refute drawn.name in strings,
+                 "the page drew its fixtures beside a real medication"
+        end
+      end)
     end
 
     test "still draws its three with nothing stored" do
-      assert HealthFa.doses() == HealthFa.drawn_doses()
+      ScreenSweep.with_locale(:fa, fn ->
+        Kati.Locale.activate()
+        assert MedicationScreen.doses() == MedicationScreen.drawn_doses()
+      end)
     end
   end
 end

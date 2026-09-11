@@ -844,9 +844,6 @@ defmodule Kati.ScreenTapSweepTest do
     # whose rows carry no `:medication_id`, so the write is refused and no row
     # is created — the same answer, in the same words, as screen 112's English
     # entries above.
-    {Kati.Screens.HealthFa, :mark_taken},
-    {Kati.Screens.HealthFa, :mark_skipped},
-    {Kati.Screens.HealthFa, :range_month},
     # A dose row itself, which marks the same dose the `Taken` button does and
     # is the same no-op on an empty database.
     # Screen 109's current range. The chart draws every reading whatever the

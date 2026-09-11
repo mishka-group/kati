@@ -475,7 +475,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"123", Kati.Screens.MoneyStates},
     # 115 is the Persian weight-and-doses page, and 61 joined the moment its
     # More numbers rows started counting real goals and services.
-    {"115", Kati.Screens.HealthFa},
     {"61", Kati.Screens.StatsFa},
     # Screen 120 is deliberately NOT here. `Kati.Screens.PlanImport` draws the
     # import flow entirely from its own literals — no store, no Sample module —
@@ -2271,8 +2270,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.MealLibrary.drawn_meals/0},
       {"123", Kati.Screens.MoneyStates, &Kati.Screens.Money.months/0,
        &Kati.Screens.Money.drawn_months/0},
-      {"115", Kati.Screens.HealthFa, &Kati.Screens.Weight.entries/0,
-       &Kati.Screens.Weight.drawn_entries/0},
       {"61", Kati.Screens.StatsFa, &Kati.Screens.Goals.goals/0,
        &Kati.Screens.Goals.drawn_goals/0},
       # The four pictures, each gated on the pair it borrows rather than on a
@@ -2740,20 +2737,11 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        ~r/^what did you make of it\?$/},
       {"149", "dropped the quiet ones at s1 e3", ~r/^drop at s1 e3$/},
       {"149", "undo", ~r/^still on it$/},
-      # 115's direction note, which is the second board slip this list carries
-      # and the same shape as 94's flag: the board writes *…و ستون امروز در سمت
-      # راست است* — today's column is on the right — and its own bars put the
-      # ink one at the left, because they are laid out oldest-first inside an
-      # `rtl` row. `Kati.Screens.HealthFa`'s moduledoc has the full reasoning.
-      # Reproducing the slip would ship a direction note pointing at the wrong
-      # end of the chart, which every reader of the screen can check.
-      #
-      # The pattern insists on چپ rather than accepting either word, so a revert
-      # to the board's راست fails here instead of quietly passing.
-      {"115",
-       "نمودار از راست به چپ خوانده می‌شود و ستون امروز در سمت راست است. " <>
-         "اعداد وزن در dm mono با ارقام فارسی و جداکننده اعشار",
-       ~r/^نمودار از راست به چپ .+ ستون امروز در سمت چپ است\./u},
+      # 115's direction note was here. mishka-group/kati#103 folded board 115's
+      # mirror away; the board is registered against screen 109 now, which does
+      # not read the database — so it is not on this file's list at all and its
+      # exemption lives only in `Kati.ScreenDesignLiteralTest`, which is where
+      # a screen that reaches no store belongs.
       # 14's back pill. The board was captured as an arrival from the shelf, so
       # it draws `Library`; the app's only door into screen 14 is the series
       # page's *Show details*, so the pill defaults to `Series` and takes

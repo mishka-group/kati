@@ -152,7 +152,14 @@ defmodule Kati.Screens.Gallery do
     {"117", "Meal library — empty", Kati.Screens.MealLibraryEmpty, :push},
     {"120", "Import a plan", Kati.Screens.PlanImport, :push},
     {"123", "Money — states", Kati.Screens.MoneyStates, :push},
-    {"115", "سلامت", Kati.Screens.HealthFa, :push},
+    # mishka-group/kati#103. Board 115 is the one board in the app that draws
+    # TWO screens on one page: screen 109's weight half above screen 112's
+    # medication half. The app does not have such a page and is not gaining
+    # one — the ruling is that a Persian reader gets the same screens an
+    # English one does — so the board is registered against the half it leads
+    # with, and the medication half's lines are recorded in
+    # `DesignLiterals.retired_lines/0` against board 112, which draws them.
+    {"115", "سلامت — Weight, RTL", Kati.Screens.Weight, :push},
     {"121", "The week as an image", Kati.Screens.WeekImage, :push},
     {"127", "پول", Kati.Screens.MoneyFa, :push},
     {"63", "iOS home screen", Kati.Screens.MarkIos, :push},

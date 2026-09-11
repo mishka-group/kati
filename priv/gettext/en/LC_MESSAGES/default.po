@@ -121,6 +121,7 @@ msgstr ""
 
 #: lib/kati/library/sample.ex:139
 #: lib/kati/screens/library.ex:1109
+#: lib/kati/screens/weight.ex:47
 #: lib/kati/stats/share_sample.ex:30
 #, elixir-autogen, elixir-format
 msgid "All"
@@ -142,7 +143,7 @@ msgid "Apple"
 msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:157
-#: lib/kati/meals/sample_today.ex:173
+#: lib/kati/meals/sample_today.ex:174
 #, elixir-autogen, elixir-format
 msgid "Apple, almond butter"
 msgstr ""
@@ -205,7 +206,7 @@ msgid "Both are community-maintained."
 msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:81
-#: lib/kati/meals/sample_today.ex:148
+#: lib/kati/meals/sample_today.ex:149
 #, elixir-autogen, elixir-format
 msgid "Breakfast"
 msgstr ""
@@ -265,7 +266,7 @@ msgid "Couldn’t make it. Nothing was written."
 msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:18
-#: lib/kati/meals/sample_today.ex:44
+#: lib/kati/meals/sample_today.ex:45
 #, elixir-autogen, elixir-format
 msgid "Cutting v3"
 msgstr ""
@@ -297,7 +298,7 @@ msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:101
 #: lib/kati/meals/sample_plan.ex:164
-#: lib/kati/meals/sample_today.ex:180
+#: lib/kati/meals/sample_today.ex:181
 #, elixir-autogen, elixir-format
 msgid "Dinner"
 msgstr ""
@@ -527,7 +528,7 @@ msgstr ""
 msgid "Kind"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:103
+#: lib/kati/meals/sample_today.ex:104
 #: lib/kati/screens/library.ex:785
 #: lib/kati/screens/pushed.ex:188
 #: lib/kati/shell.ex:78
@@ -552,7 +553,7 @@ msgid "Log a watch or tick an episode and the title moves here."
 msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:91
-#: lib/kati/meals/sample_today.ex:164
+#: lib/kati/meals/sample_today.ex:165
 #, elixir-autogen, elixir-format
 msgid "Lunch"
 msgstr ""
@@ -585,7 +586,7 @@ msgid "Miso salmon"
 msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:166
-#: lib/kati/meals/sample_today.ex:181
+#: lib/kati/meals/sample_today.ex:182
 #, elixir-autogen, elixir-format
 msgid "Miso salmon, greens, rice"
 msgstr ""
@@ -845,7 +846,7 @@ msgid "Share…"
 msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:40
-#: lib/kati/meals/sample_today.ex:105
+#: lib/kati/meals/sample_today.ex:106
 #, elixir-autogen, elixir-format
 msgid "Shop"
 msgstr ""
@@ -863,8 +864,8 @@ msgstr ""
 #: lib/kati/meals/sample_plan.ex:86
 #: lib/kati/meals/sample_plan.ex:96
 #: lib/kati/meals/sample_plan.ex:155
-#: lib/kati/meals/sample_today.ex:156
-#: lib/kati/meals/sample_today.ex:172
+#: lib/kati/meals/sample_today.ex:157
+#: lib/kati/meals/sample_today.ex:173
 #, elixir-autogen, elixir-format
 msgid "Snack"
 msgstr ""
@@ -954,6 +955,7 @@ msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:113
 #: lib/kati/screens/meals_today.ex:484
+#: lib/kati/screens/medication.ex:495
 #, elixir-autogen, elixir-format
 msgid "Today"
 msgstr ""
@@ -976,7 +978,8 @@ msgid "Watching"
 msgstr ""
 
 #: lib/kati/meals/sample_plan.ex:40
-#: lib/kati/meals/sample_today.ex:104
+#: lib/kati/meals/sample_today.ex:105
+#: lib/kati/screens/weight.ex:45
 #, elixir-autogen, elixir-format
 msgid "Week"
 msgstr ""
@@ -1575,7 +1578,7 @@ msgstr ""
 msgid "Jan – Dec %{year}"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:106
+#: lib/kati/meals/sample_today.ex:107
 #: lib/kati/stats/sample.ex:41
 #, elixir-autogen, elixir-format
 msgid "Nutrition"
@@ -1696,46 +1699,46 @@ msgid_plural "%{n} plays"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/kati/meals/sample_today.ex:150
-#: lib/kati/meals/sample_today.ex:158
-#: lib/kati/meals/sample_today.ex:166
-#: lib/kati/meals/sample_today.ex:182
+#: lib/kati/meals/sample_today.ex:151
+#: lib/kati/meals/sample_today.ex:159
+#: lib/kati/meals/sample_today.ex:167
+#: lib/kati/meals/sample_today.ex:183
 #: lib/kati/screens/meals_today.ex:271
 #, elixir-autogen, elixir-format, fuzzy
 msgid "%{count} kcal"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:132
+#: lib/kati/meals/sample_today.ex:133
 #, elixir-autogen, elixir-format
 msgid "%{count} kcal left"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:199
+#: lib/kati/meals/sample_today.ex:200
 #, elixir-autogen, elixir-format
 msgid "%{day} has %{meals} meals · %{prep} need prep"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:125
+#: lib/kati/meals/sample_today.ex:126
 #, elixir-autogen, elixir-format
 msgid "Carbs"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:165
+#: lib/kati/meals/sample_today.ex:166
 #, elixir-autogen, elixir-format
 msgid "Chicken, quinoa, slaw"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:205
+#: lib/kati/meals/sample_today.ex:206
 #, elixir-autogen, elixir-format
 msgid "Done prepping"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:126
+#: lib/kati/meals/sample_today.ex:127
 #, elixir-autogen, elixir-format
 msgid "Fat"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:157
+#: lib/kati/meals/sample_today.ex:158
 #, elixir-autogen, elixir-format
 msgid "Greek yoghurt, walnuts"
 msgstr ""
@@ -1745,33 +1748,33 @@ msgstr ""
 msgid "Mark eaten"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:149
+#: lib/kati/meals/sample_today.ex:150
 #, elixir-autogen, elixir-format
 msgid "Overnight oats, berries"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:107
+#: lib/kati/meals/sample_today.ex:108
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Plan"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:124
+#: lib/kati/meals/sample_today.ex:125
 #, elixir-autogen, elixir-format
 msgid "Protein"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:204
+#: lib/kati/meals/sample_today.ex:205
 #, elixir-autogen, elixir-format
 msgid "See tomorrow"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:174
+#: lib/kati/meals/sample_today.ex:175
 #: lib/kati/screens/meals_today.ex:268
 #, elixir-autogen, elixir-format
 msgid "Skipped"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:197
+#: lib/kati/meals/sample_today.ex:198
 #, elixir-autogen, elixir-format
 msgid "Soak the oats, thaw the chicken"
 msgstr ""
@@ -1786,7 +1789,7 @@ msgstr ""
 msgid "Today · %{eaten} kcal"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:115
+#: lib/kati/meals/sample_today.ex:116
 #: lib/kati/screens/meals_today.ex:331
 #, elixir-autogen, elixir-format
 msgid "Today · %{eaten} of %{target} kcal"
@@ -1797,7 +1800,108 @@ msgstr ""
 msgid "Tomorrow — needs prep tonight"
 msgstr ""
 
-#: lib/kati/meals/sample_today.ex:38
+#: lib/kati/health/weight_sample.ex:125
+#: lib/kati/meals/sample_today.ex:39
 #, elixir-autogen, elixir-format
 msgid "Sunday 16 August"
+msgstr ""
+
+#: lib/kati/screens/weight.ex:208
+#, elixir-autogen, elixir-format
+msgid "Entries"
+msgstr ""
+
+#: lib/kati/screens/medication.ex:727
+#, elixir-autogen, elixir-format
+msgid "Every medication you have is paused."
+msgstr ""
+
+#: lib/kati/screens/weight.ex:490
+#, elixir-autogen, elixir-format
+msgid "Kati stores the readings you type and nothing else — no scale is connected, "
+msgstr ""
+
+#: lib/kati/screens/medication.ex:771
+#, elixir-autogen, elixir-format
+msgid "Nothing due today"
+msgstr ""
+
+#: lib/kati/screens/medication.ex:1091
+#, elixir-autogen, elixir-format
+msgid "Schedules"
+msgstr ""
+
+#: lib/kati/screens/medication.ex:961
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Skip"
+msgstr ""
+
+#: lib/kati/screens/medication.ex:961
+#, elixir-autogen, elixir-format
+msgid "Taken"
+msgstr ""
+
+#: lib/kati/screens/medication.ex:1240
+#, elixir-autogen, elixir-format
+msgid "The reminder"
+msgstr ""
+
+#: lib/kati/screens/weight.ex:208
+#, elixir-autogen, elixir-format
+msgid "Weight"
+msgstr ""
+
+#: lib/kati/health/weight_sample.ex:53
+#: lib/kati/screens/weight.ex:154
+#, elixir-autogen, elixir-format
+msgid "down from %{figure} on %{date}"
+msgstr ""
+
+#: lib/kati/screens/weight.ex:159
+#, elixir-autogen, elixir-format
+msgid "up from %{figure} on %{date}"
+msgstr ""
+
+#: lib/kati/screens/medication.ex:570
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{n} dose"
+msgid_plural "%{n} doses"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/health/dose.ex:192
+#, elixir-autogen, elixir-format
+msgid "missed"
+msgstr ""
+
+#: lib/kati/screens/medication.ex:566
+#, elixir-autogen, elixir-format
+msgid "no doses"
+msgstr ""
+
+#: lib/kati/health/dose.ex:193
+#, elixir-autogen, elixir-format, fuzzy
+msgid "skipped"
+msgstr ""
+
+#: lib/kati/health/weight_sample.ex:46
+#, elixir-autogen, elixir-format
+msgid "Latest · today"
+msgstr ""
+
+#: lib/kati/screens/weight.ex:46
+#, elixir-autogen, elixir-format
+msgid "Month"
+msgstr ""
+
+#: lib/kati/health/weight_sample.ex:19
+#: lib/kati/health/weight_sample.ex:48
+#: lib/kati/health/weight_sample.ex:50
+#, elixir-autogen, elixir-format
+msgid "kg"
+msgstr ""
+
+#: lib/kati/health/weight_sample.ex:74
+#, elixir-autogen, elixir-format, fuzzy
+msgid "today"
 msgstr ""

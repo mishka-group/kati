@@ -85,7 +85,7 @@ defmodule Kati.Screens.StatsFa do
   stand-in — so Activity, Habits, Nutrition and Recently watched are absent
   rather than linked, and they arrive the day their mirrors do.
 
-  سلامت is the first one to arrive that way. `Kati.Screens.HealthFa` is screen
+  سلامت is the first one to arrive that way. Board 115 was screen
   115, the Persian weight-and-doses page, and until it existed there was no
   Persian route to health at all: the Persian shell's roots are خانه, تقویم,
   کتابخانه and آمار — `Kati.Screens.Fa.roots/0` — and none of them is a health
@@ -603,7 +603,7 @@ defmodule Kati.Screens.StatsFa do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MoneyFa)}
 
   def handle_info({:tap, :open_health}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.HealthFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Weight)}
 
   def handle_info({:tap, tag}, socket), do: Kati.Screens.Fa.dock_tap(tag, :stats, socket)
 

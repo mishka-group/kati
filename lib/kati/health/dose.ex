@@ -1,4 +1,6 @@
 defmodule Kati.Health.Dose do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   One dose, on one day, and what happened to it.
 
@@ -187,8 +189,8 @@ defmodule Kati.Health.Dose do
 
   @doc "The suffix a today row prints after the dose: `· MISSED`, or nothing."
   @spec state_suffix(:taken | :skipped | :missed | :due) :: String.t() | nil
-  def state_suffix(:missed), do: "MISSED"
-  def state_suffix(:skipped), do: "SKIPPED"
+  def state_suffix(:missed), do: Kati.UI.eyebrow_label(gettext("missed"))
+  def state_suffix(:skipped), do: Kati.UI.eyebrow_label(gettext("skipped"))
   def state_suffix(_other), do: nil
 
   @doc """

@@ -1,4 +1,6 @@
 defmodule Kati.Health.WeightSample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Screens 109, 111 and 112, as the drawings captured them.
 
@@ -8,14 +10,26 @@ defmodule Kati.Health.WeightSample do
   what "your last reading" was.
   """
 
+  # A drawn entry, with its date and figure formatted where they are read.
+  # Board 115 writes `۱۴ اردیبهشت` and `۷۶٫۰` for the same day and the same
+  # number, and a frozen string could not answer both.
+  defp entry(on, figure, delta, grams) do
+    %{
+      date: Kati.UI.eyebrow_label(Kati.Locale.date(on, :short_padded)),
+      weight: Kati.Locale.number(figure) <> " " <> gettext("kg"),
+      delta: Kati.Locale.number(delta),
+      grams: grams
+    }
+  end
+
   @doc "The four entries screen 109 lists, newest first."
   @spec entries() :: [map()]
   def entries do
     [
-      %{date: "16 AUG", weight: "76.0 kg", delta: "−0.4", grams: 76_000},
-      %{date: "13 AUG", weight: "76.4 kg", delta: "+0.1", grams: 76_400},
-      %{date: "09 AUG", weight: "76.3 kg", delta: "−0.2", grams: 76_300},
-      %{date: "06 AUG", weight: "76.5 kg", delta: "−0.6", grams: 76_500}
+      entry(~D[2026-08-16], "76.0", "−0.4", 76_000),
+      entry(~D[2026-08-13], "76.4", "+0.1", 76_400),
+      entry(~D[2026-08-09], "76.3", "−0.2", 76_300),
+      entry(~D[2026-08-06], "76.5", "−0.6", 76_500)
     ]
   end
 
@@ -29,12 +43,18 @@ defmodule Kati.Health.WeightSample do
   @spec latest() :: map()
   def latest do
     %{
-      label: "Latest · today",
-      figure: "76.0",
-      unit: "kg",
+      label: gettext("Latest · today"),
+      figure: Kati.Locale.number("76.0"),
+      unit: gettext("kg"),
       direction: :down,
-      change: "2.4 kg",
-      since: "DOWN FROM 78.4 ON 4 MAY"
+      change: Kati.Locale.number("2.4") <> " " <> gettext("kg"),
+      since:
+        Kati.UI.eyebrow_label(
+          gettext("down from %{figure} on %{date}",
+            figure: Kati.Locale.number("78.4"),
+            date: Kati.Locale.date(~D[2026-05-04], :short)
+          )
+        )
     }
   end
 
@@ -48,7 +68,10 @@ defmodule Kati.Health.WeightSample do
 
   @doc "The two labels under the chart."
   @spec axis() :: {String.t(), String.t()}
-  def axis, do: {"4 MAY", "TODAY"}
+  def axis,
+    do:
+      {Kati.UI.eyebrow_label(Kati.Locale.date(~D[2026-05-04], :short)),
+       Kati.UI.eyebrow_label(gettext("today"))}
 
   @doc "Screen 111's confirmation, as drawn."
   @spec confirmation() :: map()
@@ -97,5 +120,8 @@ defmodule Kati.Health.WeightSample do
 
   @doc "Screen 112's header subtitle."
   @spec doses_subtitle() :: String.t()
-  def doses_subtitle, do: "SUNDAY 16 AUGUST · 4 DOSES"
+  def doses_subtitle,
+    do:
+      Kati.UI.eyebrow_label(gettext("Sunday 16 August")) <>
+        " · " <> Kati.Screens.Medication.count_clause(4)
 end

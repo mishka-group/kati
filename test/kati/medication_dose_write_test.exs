@@ -385,16 +385,16 @@ defmodule Kati.MedicationDoseWriteTest do
     end
   end
 
-  describe "screen 115 on a day with nothing stored yet" do
+  describe "screen 112 on a day with nothing stored yet" do
     test "it mounts at all, which it did not once a dose could be derived" do
-      # `Kati.Screens.HealthFa.doses/0` rebuilt each row's tags with
+      # `Kati.Screens.Medication.doses/0` rebuilt each row's tags with
       # `Medication.tags(dose.id)`, and `tags/1` guards on `is_binary(key)` —
       # so the first derived row on a Persian device was a FunctionClauseError
       # inside `mount/3`, and screen 115 did not open for anybody with a
       # medication.
       a_medication!("Levothyroxine", ["08:00"])
 
-      view = mount_screen(Kati.Screens.HealthFa)
+      view = mount_screen(Kati.Screens.Medication)
 
       assert [row] = assigns(view).doses
       assert row.name == "Levothyroxine"
@@ -406,7 +406,7 @@ defmodule Kati.MedicationDoseWriteTest do
     test "its chips mark the dose they were drawn for, in ASCII" do
       medication = a_medication!("Levothyroxine", ["08:00"])
 
-      view = mount_screen(Kati.Screens.HealthFa)
+      view = mount_screen(Kati.Screens.Medication)
       [row] = assigns(view).doses
 
       render_info(view, {:tap, row.taken})
@@ -415,11 +415,10 @@ defmodule Kati.MedicationDoseWriteTest do
       assert written.medication_id == medication.id
       assert written.state == :taken
 
-      # The clock time the page DREW is Persian — ۰۸:۰۰ — and the one the store
-      # holds is not: `Kati.Health.Dose.resolve/2` and `:for_day`'s sort cannot
-      # read Persian digits.
+      # The clock the store holds is ASCII whatever the page drew:
+      # `Kati.Health.Dose.resolve/2` and `:for_day`'s sort cannot read Persian
+      # digits, which is why the row carries the drawn time separately.
       assert written.due_at == "08:00"
-      refute row.time == written.due_at
     end
 
     test "the two bare Persian verbs still write on a derived day" do
@@ -428,14 +427,14 @@ defmodule Kati.MedicationDoseWriteTest do
       # reported `Nothing to save yet.` to every real user.
       medication = a_medication!("Levothyroxine", ["08:00"])
 
-      render_info(mount_screen(Kati.Screens.HealthFa), {:tap, :mark_skipped})
+      render_info(mount_screen(Kati.Screens.Medication), {:tap, :mark_skipped})
 
       assert [%Dose{medication_id: id, state: :skipped}] = Ash.read!(Dose)
       assert id == medication.id
     end
   end
 
-  describe "screen 115's identity-less verbs" do
+  describe "screen 112's identity-less verbs" do
     test "still write, against the day's first undecided dose" do
       {first, second} = two_doses!()
 
@@ -451,7 +450,7 @@ defmodule Kati.MedicationDoseWriteTest do
       # falls through rather than crashing on a map without a `:tap` key.
       {first, second} = two_doses!()
 
-      render_info(mount_screen(Kati.Screens.HealthFa), {:tap, :mark_skipped})
+      render_info(mount_screen(Kati.Screens.Medication), {:tap, :mark_skipped})
 
       assert Ash.get!(Dose, first.id).state == :skipped
       assert Ash.get!(Dose, second.id).state == :due

@@ -163,7 +163,7 @@ defmodule Kati.Screens.Medication do
   ## `:mark_taken` and `:mark_skipped` survive, and only screen 115 uses them
 
   Screen 115 is this page in Persian and draws its two verbs inside the due
-  card, with `Kati.Screens.HealthFa.doses/0` behind them — a list that keeps
+  card, with board 115's own `doses/0` behind them — a list that kept
   the name, the line and the state and drops the id. So its chips have no row
   in them to act on, and they come through `handle_tap/2` here to reach
   `next_undecided/1`, which is what they have always reached. They are the
@@ -180,6 +180,7 @@ defmodule Kati.Screens.Medication do
   """
 
   use Kati.Screens.Pushed, back: "Health"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Health.Dose
   alias Kati.Health.Medication
@@ -256,7 +257,7 @@ defmodule Kati.Screens.Medication do
 
   The zero-arity head is kept for the callers that ask this page one question
   and hold no tuple — `Kati.ScreenEmptyDatabaseTest`'s screen-112 pair and
-  `Kati.Screens.HealthFa.doses/0`.
+  board 115's own `doses/0`.
   """
   @spec doses() :: [map()]
   @spec doses(day()) :: [map()]
@@ -502,7 +503,7 @@ defmodule Kati.Screens.Medication do
       >
         {Kati.Screens.Goals.chrome()}
         {SettingsList.title("Medication", Kati.Screens.Medication.subtitle(assigns.doses))}
-        {UI.eyebrow("Today")}
+        {UI.eyebrow(gettext("Today"))}
         {Kati.Screens.Medication.today(assigns.doses, assigns[:save_error], assigns.schedules)}
         {Kati.Screens.Medication.schedule_band(assigns.schedules)}
         {Kati.Screens.Medication.reminder_band(assigns[:reminder])}
@@ -536,7 +537,7 @@ defmodule Kati.Screens.Medication do
     if doses == drawn_doses() do
       WeightSample.doses_subtitle()
     else
-      String.upcase(Calendar.strftime(Kati.Time.today(), "%A %-d %B")) <>
+      Kati.UI.eyebrow_label(Kati.Locale.date(Kati.Time.today(), :long)) <>
         " · " <> Kati.Screens.Medication.count_clause(length(doses))
     end
   end
@@ -555,19 +556,20 @@ defmodule Kati.Screens.Medication do
   Zero was unreachable until D-59, because `doses/0` could not answer `[]`, so
   this clause is new only because the state is.
 
-      iex> Kati.Screens.Medication.count_clause(0)
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.Medication.count_clause(0) end)
       "NO DOSES"
 
-      iex> Kati.Screens.Medication.count_clause(1)
-      "1 DOSE"
-
-      iex> Kati.Screens.Medication.count_clause(4)
+      iex> Kati.Locale.as(:en, fn -> Kati.Screens.Medication.count_clause(4) end)
       "4 DOSES"
   """
   @spec count_clause(non_neg_integer()) :: String.t()
-  def count_clause(0), do: "NO DOSES"
-  def count_clause(1), do: "1 DOSE"
-  def count_clause(count), do: "#{count} DOSES"
+  def count_clause(0), do: Kati.UI.eyebrow_label(gettext("no doses"))
+
+  def count_clause(count) do
+    Kati.UI.eyebrow_label(
+      ngettext("%{n} dose", "%{n} doses", count, n: Kati.Locale.number(count))
+    )
+  end
 
   @doc """
   Today's doses, each in screen 43's card treatment.
@@ -722,7 +724,7 @@ defmodule Kati.Screens.Medication do
   prescriptions.
   """
   @spec nothing_due([map()]) :: String.t()
-  def nothing_due([]), do: "Every medication you have is paused."
+  def nothing_due([]), do: gettext("Every medication you have is paused.")
 
   def nothing_due(schedules) do
     "Your #{Kati.Screens.Medication.schedule_count(length(schedules))} below, " <>
@@ -782,7 +784,7 @@ defmodule Kati.Screens.Medication do
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
-          text="Nothing due today"
+          text={gettext("Nothing due today")}
           text_size={14}
           font_weight="bold"
           text_color={:on_surface}
@@ -833,7 +835,9 @@ defmodule Kati.Screens.Medication do
       iex> Kati.Screens.Medication.state_line(%{line: "50 mcg", state: :missed})
       "50 mcg · MISSED"
 
-      iex> Kati.Screens.Medication.state_line(%{line: "", state: :missed})
+      iex> Kati.Locale.as(:en, fn ->
+      ...>   Kati.Screens.Medication.state_line(%{line: "", state: :missed})
+      ...> end)
       "MISSED"
 
       iex> Kati.Screens.Medication.state_line(%{line: "", state: :due})
@@ -871,7 +875,13 @@ defmodule Kati.Screens.Medication do
       align="center"
       on_tap={@tap}
     >
-      <Text text={@time} font_family="mono" text_size={12} text_color={Palette.muted()} width={44} />
+      <Text
+        text={@time}
+        font_family={Kati.Locale.mono_face()}
+        text_size={12}
+        text_color={Palette.muted()}
+        width={44}
+      />
       <Spacer size={12} />
       <Column weight={1.0}>
         <Text
@@ -966,7 +976,7 @@ defmodule Kati.Screens.Medication do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Taken"
+          text={gettext("Taken")}
           text_size={13}
           font_weight="bold"
           text_color={Palette.on_ink()}
@@ -986,7 +996,7 @@ defmodule Kati.Screens.Medication do
       >
         <Spacer weight={1.0} />
         <Text
-          text="Skip"
+          text={gettext("Skip")}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.ink_soft()}
@@ -1086,7 +1096,7 @@ defmodule Kati.Screens.Medication do
   def schedule_band(schedules) do
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("Schedules")}
+      {UI.eyebrow(gettext("Schedules"))}
       {Kati.Screens.Medication.schedule_group(schedules)}
     </Column>
     """
@@ -1235,7 +1245,7 @@ defmodule Kati.Screens.Medication do
 
     ~MOB"""
     <Column fill_width={true}>
-      {UI.eyebrow("The reminder")}
+      {UI.eyebrow(gettext("The reminder"))}
       {@card}
     </Column>
     """
@@ -1270,7 +1280,7 @@ defmodule Kati.Screens.Medication do
       <Column fill_width={true} background={Palette.card_settled()} corner_radius={20} padding={16}>
         <Text
           text={@app}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
           letter_spacing={0.14}
           text_color={Palette.muted()}

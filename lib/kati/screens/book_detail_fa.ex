@@ -118,7 +118,7 @@ defmodule Kati.Screens.BookDetailFa do
   alias Kati.UI.SettingsList
 
   # U+066B ARABIC DECIMAL SEPARATOR, not the ASCII dot: `۴٫۵` and never `۴.۵`.
-  # `Kati.Screens.AlbumDetailFa` and `Kati.Screens.HealthFa` each keep their own
+  # `Kati.Screens.AlbumDetailFa` and board 115's mirror each kept their own
   # for the same reason — it is one character of typography, and a shared
   # constant would be a module three screens depend on to print one glyph.
   @decimal "٫"

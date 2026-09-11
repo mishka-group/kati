@@ -191,17 +191,27 @@ defmodule Kati.Locale do
   them was a `*Fa` mirror, which is exactly why a folded screen needs this: the
   English screen is now both, and it has one place to ask what day it is.
   """
-  @spec date(Date.t(), :long | :short | :dated | :numeric) :: String.t()
+  @spec date(Date.t(), :long | :short | :short_padded | :dated | :numeric) :: String.t()
   def date(%Date{} = date, style \\ :long) do
     if direction(current()) == :rtl do
       # Shamsi has no `:dated` of its own: its `:long` already carries the year,
       # which is the difference between a calendar whose year the reader knows
-      # by heart and one whose year they do not.
-      Kati.Calendar.Shamsi.format(date, if(style == :dated, do: :long, else: style))
+      # by heart and one whose year they do not. `:short_padded` is a Latin
+      # typographic choice — a leading zero so a column of dates lines up — and
+      # Persian numerals are already even-width, so it takes `:short`.
+      Kati.Calendar.Shamsi.format(
+        date,
+        case style do
+          :dated -> :long
+          :short_padded -> :short
+          other -> other
+        end
+      )
     else
       case style do
         :long -> Calendar.strftime(date, "%a %-d %b")
         :short -> Calendar.strftime(date, "%-d %b")
+        :short_padded -> Calendar.strftime(date, "%d %b")
         :dated -> Calendar.strftime(date, "%-d %b %Y")
         :numeric -> Calendar.strftime(date, "%Y/%m/%d")
       end
@@ -258,7 +268,24 @@ defmodule Kati.Locale do
   @spec number(integer() | String.t()) :: String.t()
   def number(value) do
     text = to_string(value)
-    if direction(current()) == :rtl, do: Kati.I18n.Digits.to_persian(text), else: text
+
+    if direction(current()) == :rtl do
+      # The SEPARATOR as well as the digits. Persian writes a decimal with
+      # U+066B ARABIC DECIMAL SEPARATOR and groups with U+066C — `۷۶٫۰`, not
+      # `۷۶.۰` — and board 115 draws it that way. `Kati.I18n.Digits.to_persian/1`
+      # converts the digits alone, so a figure came out half-converted: Persian
+      # numerals around a Latin full stop.
+      # The DECIMAL separator only. CLDR's `fa` groups with U+066C as well, and
+      # the boards do not: `test/design/screens/59.html` writes `۱,۴۸۰` with a
+      # Latin comma and `test/design/screens/115.html` writes `۷۶٫۰` with the
+      # Arabic decimal mark. The drawing is the specification, so the point
+      # converts and the grouping does not.
+      text
+      |> Kati.I18n.Digits.to_persian()
+      |> String.replace(".", "٫")
+    else
+      text
+    end
   end
 
   @doc """

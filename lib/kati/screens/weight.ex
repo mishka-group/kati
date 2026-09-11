@@ -25,6 +25,7 @@ defmodule Kati.Screens.Weight do
   """
 
   use Kati.Screens.Pushed, back: "Health"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Health
   alias Kati.Health.Reading
@@ -33,7 +34,17 @@ defmodule Kati.Screens.Weight do
   alias Kati.UI
   alias Kati.UI.SettingsList
 
-  @ranges [{"Week", :range_week}, {"Month", :range_month}, {"All", :range_all}]
+  # `{tag, label-builder}` — the tag first and the word derived, not the other
+  # way round. It was `{"Week", :range_week}`, which reads as a pair and is a
+  # label beside its own state; under `:fa` the word is هفته and the tag must
+  # not move with it.
+  @ranges [:range_week, :range_month, :range_all]
+
+  @doc false
+  @spec range_label(atom()) :: String.t()
+  def range_label(:range_week), do: gettext("Week")
+  def range_label(:range_month), do: gettext("Month")
+  def range_label(:range_all), do: gettext("All")
 
   # How far back each segment reaches, in days. Read off the segment's own label
   # rather than invented — `Week` is seven days and `Month` is thirty — and
@@ -66,7 +77,7 @@ defmodule Kati.Screens.Weight do
 
   `:range_all` is the identity and `entries/0` is defined as that call, so the
   callers with no range on hand — `Kati.Screens.LogWeight` five times over,
-  `Kati.Screens.WeightStates` and `Kati.Screens.HealthFa` — keep the whole
+  `Kati.Screens.WeightStates` — keep the whole
   series they have always read.
 
   ## The window is measured, the drawing is not
@@ -100,7 +111,7 @@ defmodule Kati.Screens.Weight do
         |> Enum.filter(fn {reading, _previous} -> within?(reading, range) end)
         |> Enum.map(fn {reading, previous} ->
           %{
-            date: String.upcase(Calendar.strftime(reading.taken_on, "%d %b")),
+            date: Kati.UI.eyebrow_label(Kati.Locale.date(reading.taken_on, :short)),
             weight: Reading.display(reading.grams, unit),
             delta: Reading.delta_label(Reading.delta(reading, previous), unit),
             grams: reading.grams
@@ -137,10 +148,18 @@ defmodule Kati.Screens.Weight do
           # it, and repeating it inside a mono caption reads as a second
           # measurement rather than the same one.
           since:
-            String.upcase(
-              "#{if change <= 0, do: "down", else: "up"} from " <>
-                "#{Reading.figure(oldest.grams, unit)} on " <>
-                Calendar.strftime(oldest.taken_on, "%-d %b")
+            Kati.UI.eyebrow_label(
+              if change <= 0,
+                do:
+                  gettext("down from %{figure} on %{date}",
+                    figure: Kati.Locale.number(Reading.figure(oldest.grams, unit)),
+                    date: Kati.Locale.date(oldest.taken_on, :short)
+                  ),
+                else:
+                  gettext("up from %{figure} on %{date}",
+                    figure: Kati.Locale.number(Reading.figure(oldest.grams, unit)),
+                    date: Kati.Locale.date(oldest.taken_on, :short)
+                  )
             )
         }
     end
@@ -196,17 +215,63 @@ defmodule Kati.Screens.Weight do
         padding_bottom={40}
       >
         {Kati.Screens.Goals.chrome()}
-        {SettingsList.title("Weight", nil)}
+        {SettingsList.title(gettext("Weight"), nil)}
+        {Kati.Screens.Weight.direction_note()}
         {Kati.Screens.Weight.hero(assigns.latest)}
-        {Kati.UI.Segmented.plain(Kati.Screens.Weight.ranges(), assigns.range)}
+        {Kati.UI.Segmented.plain(
+          Enum.map(Kati.Screens.Weight.ranges(), &{Kati.Screens.Weight.range_label(&1), &1}),
+          assigns.range
+        )}
         <Spacer size={16} />
         {Kati.Screens.Weight.chart(assigns.range)}
-        {UI.eyebrow("Entries")}
+        {UI.eyebrow(gettext("Entries"))}
         {Kati.Screens.Weight.entry_list(assigns.entries)}
         {Kati.Screens.Weight.privacy_note()}
       </Column>
     </Scroll>
     """
+  end
+
+  @doc """
+  The sentence board 115 adds and board 109 does not have.
+
+  It is about how to READ the chart, which is only a question where the reading
+  direction is not the one the chart was drawn in — so `Kati.Locale.pick/2`
+  draws it under `:fa` and draws nothing in English, the same shape
+  `Kati.Screens.Attribution.marks_note/0` and `Kati.Screens.Goals.shamsi_note/0`
+  take.
+
+  **The board's own sentence is corrected here, and deliberately.** 115 says
+  *…و ستون امروز در سمت راست است* — today's column is on the right — and its own
+  bars put the ink one at the left: `bars/0` returns them oldest-first and an
+  `rtl` row lays the first child at the right edge. A note pointing at the
+  wrong end of the chart is wrong to everyone who reads the screen.
+  `Kati.ScreenDesignLiteralTest` carries the exemption and the argument.
+
+  The board's second sentence — a lecture about DM Mono, Persian numerals and
+  U+066B — does not survive: it is a claim about a font subset that no reader
+  can check, and it was the mirror talking about itself.
+  """
+  @spec direction_note() :: map()
+  def direction_note do
+    assigns = %{
+      sentence:
+        Kati.Locale.pick(
+          nil,
+          "نمودار از راست به چپ خوانده می‌شود و ستون امروز در سمت چپ است."
+        )
+    }
+
+    if assigns.sentence do
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.SettingsList.note("info", @sentence)}
+        <Spacer size={12} />
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
   end
 
   @doc false
@@ -235,8 +300,8 @@ defmodule Kati.Screens.Weight do
         shadow={Kati.Theme.shadow_card()}
       >
         <Text
-          text={String.upcase(@latest.label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(@latest.label)}
+          font_family={Kati.Locale.mono_face()}
           text_size={10}
           letter_spacing={0.14}
           text_color={Palette.muted()}
@@ -259,7 +324,7 @@ defmodule Kati.Screens.Weight do
           {Kati.UI.symbol(@icon, size: 20, color: @colour)}
           <Text
             text={@latest.change}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={13}
             text_color={@colour}
             max_lines={1}
@@ -267,7 +332,7 @@ defmodule Kati.Screens.Weight do
           <Spacer size={10} />
           <Text
             text={@latest.since}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10}
             letter_spacing={0.1}
             text_color={Palette.muted()}
@@ -330,7 +395,7 @@ defmodule Kati.Screens.Weight do
         <Row fill_width={true} align="center">
           <Text
             text={@left}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={9.5}
             letter_spacing={0.12}
             text_color={Palette.muted()}
@@ -338,7 +403,7 @@ defmodule Kati.Screens.Weight do
           <Spacer weight={1.0} />
           <Text
             text={@right}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={9.5}
             letter_spacing={0.12}
             text_color={Palette.muted()}
@@ -425,7 +490,7 @@ defmodule Kati.Screens.Weight do
       ~MOB"""
       <Text
         text={entry.date}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={10.5}
         letter_spacing={0.12}
         text_color={Kati.Theme.Palette.muted()}
@@ -435,7 +500,7 @@ defmodule Kati.Screens.Weight do
       ~MOB"""
       <Text
         text={entry.weight}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={13}
         text_color={:on_surface}
         max_lines={1}
@@ -456,7 +521,13 @@ defmodule Kati.Screens.Weight do
     assigns = %{label: label, colour: colour}
 
     ~MOB"""
-    <Text text={@label} font_family="mono" text_size={12} text_color={@colour} max_lines={1} />
+    <Text
+      text={@label}
+      font_family={Kati.Locale.mono_face()}
+      text_size={12}
+      text_color={@colour}
+      max_lines={1}
+    />
     """
   end
 
@@ -465,7 +536,7 @@ defmodule Kati.Screens.Weight do
   def privacy_note do
     SettingsList.note(
       "info",
-      "Kati stores the readings you type and nothing else — no scale is connected, " <>
+      gettext("Kati stores the readings you type and nothing else — no scale is connected, ") <>
         "and nothing here leaves the device."
     )
   end

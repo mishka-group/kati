@@ -258,7 +258,16 @@ defmodule Kati.ScreenDesignLiteralTest do
   # assertions a reader makes about a title and no column holds, and they were
   # drawn frozen beside two rows that CAN be counted. See
   # `Kati.DesignLiterals.retired_lines/0`, which holds the words.
-  @retired_symbols [{"49", "auto_mode"}, {"12", "bookmark"}, {"12", "inventory_2"}]
+  @retired_symbols [
+    {"49", "auto_mode"},
+    {"12", "bookmark"},
+    {"12", "inventory_2"},
+    # Board 115's medication half — see `DesignLiterals.retired_lines/0`. The
+    # two glyphs are the dose card's Taken and Skip discs, which screen 112
+    # draws and screen 109 does not.
+    {"115", "check"},
+    {"115", "close"}
+  ]
 
   # Lines a screen deliberately does not draw, because what carried them is
   # gone and its absence is the decision. `@retired_symbols`' twin, and the

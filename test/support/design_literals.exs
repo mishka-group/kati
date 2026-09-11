@@ -493,6 +493,30 @@ defmodule Kati.DesignLiterals do
        "schedule data from tvmaze, used under cc by-sa 4.0 — this link is the licence condition."},
       {"83",
        "music metadata from musicbrainz and cover art from the cover art archive, both community-maintained."},
+      # Board 115 is the one board in the app that draws TWO screens on one
+      # page: screen 109's weight half above screen 112's medication half. It
+      # was `Kati.Screens.HealthFa`, and mishka-group/kati#103's ruling is that
+      # a Persian reader gets the same screens an English one does — so the
+      # board is registered against the half it leads with, and these are the
+      # medication half's lines. Screen 112 draws every one of them, in Persian,
+      # under `:fa`; what is retired is the claim that ONE page draws both.
+      #
+      # The last two are the direction note's second sentence, which is the
+      # mirror talking about itself — `u+066b` and a clause about column
+      # alignment. The note survives as `Kati.Screens.Weight.direction_note/0`;
+      # the typography lecture inside it does not.
+      {"115", "یکشنبه ۲۵ مرداد"},
+      {"115", "داروهای امروز"},
+      {"115", "لووتیروکسین"},
+      {"115", "۵۰ میکروگرم"},
+      {"115", "آهن"},
+      {"115", "۶۵ میلی\u200Cگرم · جا افتاد"},
+      {"115", "منیزیم"},
+      {"115", "۲۰۰ میلی\u200Cگرم"},
+      {"115", "خوردم"},
+      {"115", "رد کن"},
+      {"115", "u+066b"},
+      {"115", "می\u200Cمانند تا ستون هم\u200Cتراز بماند."},
       {"80", "community book ratings"},
       {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},

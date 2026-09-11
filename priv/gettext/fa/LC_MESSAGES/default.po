@@ -126,6 +126,7 @@ msgstr "اطلاعات آلبوم و هنرمند، و تصویر جلد جای�
 
 #: lib/kati/library/sample.ex:139
 #: lib/kati/screens/library.ex:1109
+#: lib/kati/screens/weight.ex:47
 #: lib/kati/stats/share_sample.ex:30
 #, elixir-autogen, elixir-format
 msgid "All"
@@ -147,7 +148,7 @@ msgid "Apple"
 msgstr "سیب"
 
 #: lib/kati/meals/sample_plan.ex:157
-#: lib/kati/meals/sample_today.ex:173
+#: lib/kati/meals/sample_today.ex:174
 #, elixir-autogen, elixir-format
 msgid "Apple, almond butter"
 msgstr "سیب و کره بادام"
@@ -210,7 +211,7 @@ msgid "Both are community-maintained."
 msgstr "هر دو را جامعه کاربران نگه می‌دارد."
 
 #: lib/kati/meals/sample_plan.ex:81
-#: lib/kati/meals/sample_today.ex:148
+#: lib/kati/meals/sample_today.ex:149
 #, elixir-autogen, elixir-format
 msgid "Breakfast"
 msgstr "صبحانه"
@@ -270,7 +271,7 @@ msgid "Couldn’t make it. Nothing was written."
 msgstr "ساخته نشد. چیزی نوشته نشد."
 
 #: lib/kati/meals/sample_plan.ex:18
-#: lib/kati/meals/sample_today.ex:44
+#: lib/kati/meals/sample_today.ex:45
 #, elixir-autogen, elixir-format
 msgid "Cutting v3"
 msgstr "کاهش وزن ۳"
@@ -302,7 +303,7 @@ msgstr "حذف فهرست"
 
 #: lib/kati/meals/sample_plan.ex:101
 #: lib/kati/meals/sample_plan.ex:164
-#: lib/kati/meals/sample_today.ex:180
+#: lib/kati/meals/sample_today.ex:181
 #, elixir-autogen, elixir-format
 msgid "Dinner"
 msgstr "شام"
@@ -532,7 +533,7 @@ msgstr "کاتی پرش می‌کند — افزودنی نیست"
 msgid "Kind"
 msgstr "نوع"
 
-#: lib/kati/meals/sample_today.ex:103
+#: lib/kati/meals/sample_today.ex:104
 #: lib/kati/screens/library.ex:785
 #: lib/kati/screens/pushed.ex:188
 #: lib/kati/shell.ex:78
@@ -557,7 +558,7 @@ msgid "Log a watch or tick an episode and the title moves here."
 msgstr "یک تماشا ثبت کنید یا قسمتی را تیک بزنید تا عنوان به اینجا بیاید."
 
 #: lib/kati/meals/sample_plan.ex:91
-#: lib/kati/meals/sample_today.ex:164
+#: lib/kati/meals/sample_today.ex:165
 #, elixir-autogen, elixir-format
 msgid "Lunch"
 msgstr "ناهار"
@@ -590,7 +591,7 @@ msgid "Miso salmon"
 msgstr "سالمون میسو"
 
 #: lib/kati/meals/sample_plan.ex:166
-#: lib/kati/meals/sample_today.ex:181
+#: lib/kati/meals/sample_today.ex:182
 #, elixir-autogen, elixir-format
 msgid "Miso salmon, greens, rice"
 msgstr "سالمون میسو، سبزیجات، برنج"
@@ -850,7 +851,7 @@ msgid "Share…"
 msgstr "هم‌رسانی…"
 
 #: lib/kati/meals/sample_plan.ex:40
-#: lib/kati/meals/sample_today.ex:105
+#: lib/kati/meals/sample_today.ex:106
 #, elixir-autogen, elixir-format
 msgid "Shop"
 msgstr "خرید"
@@ -868,8 +869,8 @@ msgstr "رد کردن این گام به خانه خالی می‌رسد — ۱�
 #: lib/kati/meals/sample_plan.ex:86
 #: lib/kati/meals/sample_plan.ex:96
 #: lib/kati/meals/sample_plan.ex:155
-#: lib/kati/meals/sample_today.ex:156
-#: lib/kati/meals/sample_today.ex:172
+#: lib/kati/meals/sample_today.ex:157
+#: lib/kati/meals/sample_today.ex:173
 #, elixir-autogen, elixir-format
 msgid "Snack"
 msgstr "میان‌وعده"
@@ -959,9 +960,10 @@ msgstr "عنوان"
 
 #: lib/kati/meals/sample_plan.ex:113
 #: lib/kati/screens/meals_today.ex:484
+#: lib/kati/screens/medication.ex:495
 #, elixir-autogen, elixir-format
 msgid "Today"
-msgstr "امروز"
+msgstr "داروهای امروز"
 
 #: lib/kati/screens/year_share.ex:401
 #, elixir-autogen, elixir-format
@@ -981,7 +983,8 @@ msgid "Watching"
 msgstr "در حال تماشا"
 
 #: lib/kati/meals/sample_plan.ex:40
-#: lib/kati/meals/sample_today.ex:104
+#: lib/kati/meals/sample_today.ex:105
+#: lib/kati/screens/weight.ex:45
 #, elixir-autogen, elixir-format
 msgid "Week"
 msgstr "هفته"
@@ -1580,7 +1583,7 @@ msgstr "اهداف"
 msgid "Jan – Dec %{year}"
 msgstr "فروردین تا اسفند %{year}"
 
-#: lib/kati/meals/sample_today.ex:106
+#: lib/kati/meals/sample_today.ex:107
 #: lib/kati/stats/sample.ex:41
 #, elixir-autogen, elixir-format
 msgid "Nutrition"
@@ -1701,46 +1704,46 @@ msgid_plural "%{n} plays"
 msgstr[0] "%{n} پخش"
 msgstr[1] "%{n} پخش"
 
-#: lib/kati/meals/sample_today.ex:150
-#: lib/kati/meals/sample_today.ex:158
-#: lib/kati/meals/sample_today.ex:166
-#: lib/kati/meals/sample_today.ex:182
+#: lib/kati/meals/sample_today.ex:151
+#: lib/kati/meals/sample_today.ex:159
+#: lib/kati/meals/sample_today.ex:167
+#: lib/kati/meals/sample_today.ex:183
 #: lib/kati/screens/meals_today.ex:271
 #, elixir-autogen, elixir-format
 msgid "%{count} kcal"
 msgstr "%{count} کالری"
 
-#: lib/kati/meals/sample_today.ex:132
+#: lib/kati/meals/sample_today.ex:133
 #, elixir-autogen, elixir-format
 msgid "%{count} kcal left"
 msgstr "%{count} باقی"
 
-#: lib/kati/meals/sample_today.ex:199
+#: lib/kati/meals/sample_today.ex:200
 #, elixir-autogen, elixir-format
 msgid "%{day} has %{meals} meals · %{prep} need prep"
 msgstr "%{day} %{meals} وعده دارد · %{prep} مورد آماده‌سازی"
 
-#: lib/kati/meals/sample_today.ex:125
+#: lib/kati/meals/sample_today.ex:126
 #, elixir-autogen, elixir-format
 msgid "Carbs"
 msgstr "کربوهیدرات"
 
-#: lib/kati/meals/sample_today.ex:165
+#: lib/kati/meals/sample_today.ex:166
 #, elixir-autogen, elixir-format
 msgid "Chicken, quinoa, slaw"
 msgstr "مرغ، کینوا و کلم"
 
-#: lib/kati/meals/sample_today.ex:205
+#: lib/kati/meals/sample_today.ex:206
 #, elixir-autogen, elixir-format
 msgid "Done prepping"
 msgstr "آماده‌سازی انجام شد"
 
-#: lib/kati/meals/sample_today.ex:126
+#: lib/kati/meals/sample_today.ex:127
 #, elixir-autogen, elixir-format
 msgid "Fat"
 msgstr "چربی"
 
-#: lib/kati/meals/sample_today.ex:157
+#: lib/kati/meals/sample_today.ex:158
 #, elixir-autogen, elixir-format
 msgid "Greek yoghurt, walnuts"
 msgstr "ماست یونانی و گردو"
@@ -1750,33 +1753,33 @@ msgstr "ماست یونانی و گردو"
 msgid "Mark eaten"
 msgstr "خوردم"
 
-#: lib/kati/meals/sample_today.ex:149
+#: lib/kati/meals/sample_today.ex:150
 #, elixir-autogen, elixir-format
 msgid "Overnight oats, berries"
 msgstr "جو دوسر شبانه با توت"
 
-#: lib/kati/meals/sample_today.ex:107
+#: lib/kati/meals/sample_today.ex:108
 #, elixir-autogen, elixir-format
 msgid "Plan"
 msgstr "برنامه"
 
-#: lib/kati/meals/sample_today.ex:124
+#: lib/kati/meals/sample_today.ex:125
 #, elixir-autogen, elixir-format
 msgid "Protein"
 msgstr "پروتئین"
 
-#: lib/kati/meals/sample_today.ex:204
+#: lib/kati/meals/sample_today.ex:205
 #, elixir-autogen, elixir-format
 msgid "See tomorrow"
 msgstr "فردا را ببین"
 
-#: lib/kati/meals/sample_today.ex:174
+#: lib/kati/meals/sample_today.ex:175
 #: lib/kati/screens/meals_today.ex:268
 #, elixir-autogen, elixir-format
 msgid "Skipped"
 msgstr "رد شد"
 
-#: lib/kati/meals/sample_today.ex:197
+#: lib/kati/meals/sample_today.ex:198
 #, elixir-autogen, elixir-format
 msgid "Soak the oats, thaw the chicken"
 msgstr "جو دوسر را خیس کنید، مرغ را از فریزر درآورید"
@@ -1791,7 +1794,7 @@ msgstr "جایگزین"
 msgid "Today · %{eaten} kcal"
 msgstr "امروز · %{eaten} کالری"
 
-#: lib/kati/meals/sample_today.ex:115
+#: lib/kati/meals/sample_today.ex:116
 #: lib/kati/screens/meals_today.ex:331
 #, elixir-autogen, elixir-format
 msgid "Today · %{eaten} of %{target} kcal"
@@ -1802,7 +1805,108 @@ msgstr "امروز · %{eaten} از %{target} کالری"
 msgid "Tomorrow — needs prep tonight"
 msgstr "فردا — امشب آماده‌سازی لازم است"
 
-#: lib/kati/meals/sample_today.ex:38
+#: lib/kati/health/weight_sample.ex:125
+#: lib/kati/meals/sample_today.ex:39
 #, elixir-autogen, elixir-format
 msgid "Sunday 16 August"
 msgstr "یکشنبه ۲۵ مرداد"
+
+#: lib/kati/screens/weight.ex:208
+#, elixir-autogen, elixir-format
+msgid "Entries"
+msgstr "ثبت‌ها"
+
+#: lib/kati/screens/medication.ex:727
+#, elixir-autogen, elixir-format
+msgid "Every medication you have is paused."
+msgstr "همه داروهای شما متوقف‌اند."
+
+#: lib/kati/screens/weight.ex:490
+#, elixir-autogen, elixir-format
+msgid "Kati stores the readings you type and nothing else — no scale is connected, "
+msgstr "کاتی فقط چیزی را که می‌نویسید نگه می‌دارد — هیچ ترازویی وصل نیست، "
+
+#: lib/kati/screens/medication.ex:771
+#, elixir-autogen, elixir-format
+msgid "Nothing due today"
+msgstr "چیزی برای امروز نیست"
+
+#: lib/kati/screens/medication.ex:1091
+#, elixir-autogen, elixir-format
+msgid "Schedules"
+msgstr "برنامه‌ها"
+
+#: lib/kati/screens/medication.ex:961
+#, elixir-autogen, elixir-format
+msgid "Skip"
+msgstr "رد کن"
+
+#: lib/kati/screens/medication.ex:961
+#, elixir-autogen, elixir-format
+msgid "Taken"
+msgstr "خوردم"
+
+#: lib/kati/screens/medication.ex:1240
+#, elixir-autogen, elixir-format
+msgid "The reminder"
+msgstr "یادآور"
+
+#: lib/kati/screens/weight.ex:208
+#, elixir-autogen, elixir-format
+msgid "Weight"
+msgstr "وزن"
+
+#: lib/kati/health/weight_sample.ex:53
+#: lib/kati/screens/weight.ex:154
+#, elixir-autogen, elixir-format
+msgid "down from %{figure} on %{date}"
+msgstr "از %{figure} در %{date} پایین آمده"
+
+#: lib/kati/screens/weight.ex:159
+#, elixir-autogen, elixir-format
+msgid "up from %{figure} on %{date}"
+msgstr "از %{figure} در %{date} بالا رفته"
+
+#: lib/kati/screens/medication.ex:570
+#, elixir-autogen, elixir-format
+msgid "%{n} dose"
+msgid_plural "%{n} doses"
+msgstr[0] "%{n} دوز"
+msgstr[1] "%{n} دوز"
+
+#: lib/kati/health/dose.ex:192
+#, elixir-autogen, elixir-format
+msgid "missed"
+msgstr "جا افتاد"
+
+#: lib/kati/screens/medication.ex:566
+#, elixir-autogen, elixir-format
+msgid "no doses"
+msgstr "بدون دوز"
+
+#: lib/kati/health/dose.ex:193
+#, elixir-autogen, elixir-format
+msgid "skipped"
+msgstr "رد شد"
+
+#: lib/kati/health/weight_sample.ex:46
+#, elixir-autogen, elixir-format
+msgid "Latest · today"
+msgstr "آخرین · امروز"
+
+#: lib/kati/screens/weight.ex:46
+#, elixir-autogen, elixir-format
+msgid "Month"
+msgstr "ماه"
+
+#: lib/kati/health/weight_sample.ex:19
+#: lib/kati/health/weight_sample.ex:48
+#: lib/kati/health/weight_sample.ex:50
+#, elixir-autogen, elixir-format
+msgid "kg"
+msgstr "کیلوگرم"
+
+#: lib/kati/health/weight_sample.ex:74
+#, elixir-autogen, elixir-format
+msgid "today"
+msgstr "امروز"
