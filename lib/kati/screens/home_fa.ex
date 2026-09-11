@@ -1140,7 +1140,7 @@ defmodule Kati.Screens.HomeFa do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.TodayFa)}
 
   def handle_info({:tap, :open_settings}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SettingsFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
 
   def handle_info({:tap, tag}, socket), do: Fa.dock_tap(tag, :home, socket)
   def handle_info(_message, socket), do: {:noreply, socket}

@@ -562,8 +562,19 @@ defmodule Kati.ScreenWriteTargetTest do
   # `@screens_swept` floor beside this one is untouched and is what says so. A
   # floor that only ever rises would have made deleting scaffolding look like
   # losing coverage, which is the opposite of what it is for.
+  #
+  # It moved down a second time, to 2240, for the same reason one fold further
+  # on. mishka-group/kati#103 folded `Kati.Screens.SettingsFa` into screen 24,
+  # and board 62 drew five rows screen 24 does not: the four in its
+  # زبان و منطقه group, which screen 53 owns and screen 24 reaches with one
+  # Language row, and a وعده‌ها section `Kati.Sections.all/0` has never kept.
+  # Those rows' taps are the 29 this pass stopped dispatching —
+  # `Kati.DesignLiterals.retired_lines/0` holds the argument for each. Every
+  # control that survived is still pressed, in both locales, and
+  # `@screens_swept` is again untouched: the mirror is gone and the screen it
+  # mirrored is swept twice.
   @screens_swept 160
-  @drawn_taps 2280
+  @drawn_taps 2240
 
   # Rows per table in assertion 3's seed. Two, and the moduledoc says why:
   # with one, *the row the page drew* and *the row a fresh query returns* are

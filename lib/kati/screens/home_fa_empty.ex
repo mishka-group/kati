@@ -310,7 +310,7 @@ defmodule Kati.Screens.HomeFaEmpty do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}
 
   def handle_info({:tap, :open_settings}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SettingsFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Settings)}
 
   def handle_info({:tap, :open_search}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.SearchFa)}

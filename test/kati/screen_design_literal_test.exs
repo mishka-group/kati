@@ -266,7 +266,14 @@ defmodule Kati.ScreenDesignLiteralTest do
     # two glyphs are the dose card's Taken and Skip discs, which screen 112
     # draws and screen 109 does not.
     {"115", "check"},
-    {"115", "close"}
+    {"115", "close"},
+    # Board 62's four rows that screen 53 owns, and its Meals section. The tiles
+    # go with the rows — see `DesignLiterals.retired_lines/0`, which holds the
+    # words and the argument. `calendar_month` is not here: screen 24's Sources
+    # group draws it on its own **Calendars** row.
+    {"62", "event"},
+    {"62", "pin"},
+    {"62", "restaurant"}
   ]
 
   # Lines a screen deliberately does not draw, because what carried them is
@@ -741,7 +748,11 @@ defmodule Kati.ScreenDesignLiteralTest do
       # screen that kept `last checked 18:02 · every 6h` fails it twice over,
       # where the frozen literal it replaces could only be matched by keeping
       # the lie.
-      assert length(device_values()) <= 53,
+      # Raised to 54 for board 62's My services row, which mishka-group/kati#103
+      # folded into screen 24. It is 24's own entry in Persian — the same row,
+      # frozen worse: board 62 wrote **ایران** for a reader who had chosen no
+      # country at all.
+      assert length(device_values()) <= 54,
              "the allow-list has grown to #{length(device_values())}. Each entry is a literal " <>
                "this sweep cannot check; growing the list is a decision to check less, and " <>
                "should be made deliberately by raising this bound"
@@ -899,6 +910,14 @@ defmodule Kati.ScreenDesignLiteralTest do
       {"42", "united kingdom · 3 subscribed",
        "42 draws 24's row and reaches the same count through it",
        ~r/^.+ · (none yet|\d+ subscribed)$/u},
+      # 62 is 24 under `:fa` since mishka-group/kati#103, so it draws the same
+      # row through the same `services_line/0` — and board 62 froze it worse:
+      # **ایران**, a country invented for a reader who has chosen none, which is
+      # board 324's closing sentence one screen over. The pattern is 24's in
+      # Persian: a region, then a count or the absence of one.
+      {"62", "ایران · ۳ سرویس",
+       "the reader's own country and their own count, which board 62 froze at Iran and three",
+       ~r/^.+ · (هنوز هیچ‌کدام|\p{N}+ اشتراک)$/u},
       # 23's back pill, and the twin of this entry is in
       # `Kati.ScreenEmptyDatabaseTest`. Board 23 froze `Stats`; the only route
       # into the page is screen 92's Money row.

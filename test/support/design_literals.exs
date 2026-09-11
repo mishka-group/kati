@@ -523,6 +523,40 @@ defmodule Kati.DesignLiterals do
       # the frozen `Show all 47` still belongs, over an empty one.
       # mishka-group/kati#103.
       {"97", "نمایش همه ۴۷"},
+      # ── Board 62, folded into screen 24 by mishka-group/kati#103.
+      #
+      # **The زبان و منطقه group.** Board 62 opens with four rows the English
+      # settings page has never had: زبان over «فارسی · راست به چپ» with a
+      # تغییر button, then تقویم/شمسی, اعداد/فارسی ۱۲۳۴ and شروع هفته/شنبه.
+      # Every one of those four facts is on screen **53**, under its own
+      # `FOLLOWS THE LANGUAGE` group — writing direction, calendar, numerals,
+      # week start — and screen 24's Appearance group has one **Language** row
+      # that opens it. So the group is not a feature this fold removes; it is
+      # the same four settings, one tap further in, on the page that owns them.
+      # A settings screen that edited the calendar in two places would be the
+      # defect. `Kati.FaShellRoutesTest` holds the door.
+      {"62", "زبان و منطقه"},
+      {"62", "فارسی · راست به چپ"},
+      {"62", "تغییر"},
+      {"62", "شمسی"},
+      {"62", "اعداد"},
+      {"62", "فارسی ۱۲۳۴"},
+      {"62", "شروع هفته"},
+      {"62", "شنبه"},
+      # **وعده‌ها in the Sections group.** Board 62 draws Meals as the third
+      # section and board 24 draws Music. `Kati.Sections.all/0` is the
+      # arbiter — `screen books music habits money notes`, and no `meals` — so
+      # the Persian board is naming a section this app does not keep. A switch
+      # for one would write nothing: `Kati.Screens.Settings.flip_switch/2`
+      # falls through to a local flip for an id `Kati.Sections` has never heard
+      # of, which is a toggle that moves and decides nothing. The fold keeps
+      # the live list.
+      {"62", "وعده‌ها"},
+      # **ایران · ۳ سرویس.** Board 97's defect, on the row that opens it: a
+      # country nobody chose and a count nobody has. Screen 24's own row was
+      # frozen the same way — `United Kingdom · 3 subscribed`, retired by
+      # pattern in `device_values/0` — and this is that entry's Persian twin,
+      # which is why it is a pattern there rather than a retirement here.
       {"80", "community book ratings"},
       {"06", "can’t find it? add it by hand"},
       {"25", "checked 18:02"},

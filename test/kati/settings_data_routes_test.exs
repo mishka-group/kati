@@ -22,17 +22,19 @@ defmodule Kati.SettingsDataRoutesTest do
   answers"*, and a destination with no door passes it in silence.
   `Kati.MealsRoutesTest` was written after that shape cost three screens.
 
-  ## Why the two screens key their destinations differently
+  ## The two boards are one screen, and the tags are ids
 
-  Screen 24 keys `@destinations` on the row's English title, which is what it
-  already did for Import and Text size. Screen 62 keys on the row's **glyph**,
-  because its titles are Persian: a tag is an atom that crosses into Kotlin and
-  back, `برون‌ریزی همه‌چیز` carries a zero-width non-joiner, and the rest of that
-  screen's tags are ASCII and positional for the same reason.
+  Screen 24 keyed `@destinations` on the row's English TITLE and screen 62 on
+  the row's **glyph**, because its titles are Persian — a tag is an atom that
+  crosses into Kotlin and back, and `برون‌ریزی همه‌چیز` carries a zero-width
+  non-joiner. Both are gone: every row carries an `id`, which is the one field
+  on it that is neither drawn nor translated, and mishka-group/kati#103 then
+  folded `Kati.Screens.SettingsFa` into screen 24 outright. Board 62 is that
+  screen under `:fa`.
 
-  So the tags differ by design and the *destinations* may not. `both screens
-  name the same two destinations` is the assertion that keeps the mirror a
-  mirror.
+  So the pairs below are one module rendered twice. They are still pairs,
+  because the thing worth asserting did not change: a Persian reader reaches
+  both engines, through the same tag, at the same row.
 
   ## What is deliberately not asserted
 
@@ -47,15 +49,14 @@ defmodule Kati.SettingsDataRoutesTest do
 
   alias Kati.ScreenSweep
   alias Kati.Screens.Settings
-  alias Kati.Screens.SettingsFa
 
-  # `{screen, tag, destination, which row in the drawing}`. Both locales, in one
+  # `{locale, tag, destination, which row in the drawing}`. Both scripts, in one
   # table, because the point of the pair is that they arrive at the same place.
   @routes [
-    {Settings, :go_export, Kati.Screens.Backup, "24's Data group, upload row"},
-    {Settings, :go_sync, Kati.Screens.Sync, "24's Data group, sync row"},
-    {SettingsFa, :go_export, Kati.Screens.Backup, "62's داده‌ها group, upload row"},
-    {SettingsFa, :go_sync, Kati.Screens.Sync, "62's داده‌ها group, sync row"}
+    {:en, :go_export, Kati.Screens.Backup, "24's Data group, upload row"},
+    {:en, :go_sync, Kati.Screens.Sync, "24's Data group, sync row"},
+    {:fa, :go_export, Kati.Screens.Backup, "62's داده‌ها group, upload row"},
+    {:fa, :go_sync, Kati.Screens.Sync, "62's داده‌ها group, sync row"}
   ]
 
   test "the route table names four distinct controls" do
@@ -63,7 +64,7 @@ defmodule Kati.SettingsDataRoutesTest do
     # asserts nothing and passes.
     assert length(@routes) == 4
 
-    tags = for {from, tag, _to, _why} <- @routes, do: {from, tag}
+    tags = for {locale, tag, _to, _why} <- @routes, do: {locale, tag}
     assert Enum.uniq(tags) == tags, "two rows claim the same control"
   end
 
@@ -71,86 +72,60 @@ defmodule Kati.SettingsDataRoutesTest do
     # Read off the rendered tree, so this is the control a user can see rather
     # than an entry in a map. A handler for a tag nothing draws is a destination
     # with no door — the failure this file's moduledoc is about.
-    for {from, tag, _to, why} <- @routes do
-      tags = drawn(from)
+    for {locale, tag, _to, why} <- @routes do
+      tags = drawn(locale)
 
       assert tag in tags,
-             "#{inspect(from)} answers #{inspect(tag)} (#{why}) but draws no control that " <>
-               "sends it; it drew #{inspect(tags)}"
+             "screen 24 in #{locale} answers #{inspect(tag)} (#{why}) but draws no control " <>
+               "that sends it; it drew #{inspect(tags)}"
     end
   end
 
   test "every route pushes the screen it names" do
     # Dispatched through `handle_info/2`, which is the device path byte for
-    # byte: a tap sends `{:tap, tag}` to the screen process, for a macro screen
-    # and a hand-rolled Persian mirror alike.
-    for {from, tag, to, why} <- @routes do
-      assert push_target(from, tag) == to,
-             "#{inspect(from)} #{inspect(tag)} (#{why}) did not push #{inspect(to)}"
+    # byte: a tap sends `{:tap, tag}` to the screen process.
+    for {locale, tag, to, why} <- @routes do
+      assert push_target(locale, tag) == to,
+             "screen 24 in #{locale} #{inspect(tag)} (#{why}) did not push #{inspect(to)}"
     end
   end
 
-  test "both screens reach both engines, and 62's extra rows are 24's in Persian" do
+  test "both boards reach both engines, through the same two ids" do
     both = MapSet.new([Kati.Screens.Backup, Kati.Screens.Sync])
 
     assert MapSet.subset?(both, MapSet.new(Map.values(Settings.destinations()))),
            "screen 24 no longer reaches both engines"
 
-    assert MapSet.subset?(both, MapSet.new(Map.values(SettingsFa.destinations()))),
-           "screen 62 no longer reaches both engines"
-
-    # This used to be an equality, because 62's Data group named exactly the two
-    # engines and nothing else. It stopped being one when screens 82, 85 and 97
-    # landed: the Persian settings page gained the same two rows the English one
-    # gained for 80 and 83, and a mirror that did NOT gain them would be the
-    # defect — a Persian reader who could not reach Data sources at all.
-    #
-    # So the assertion moved from "these and no others" to the two things that
-    # are actually true: both engines are reachable from both screens, and every
-    # extra destination 62 names is one 24 names too. A route that existed only
-    # in Persian would fail here, which is what the equality was protecting.
-    fa = MapSet.new(Map.values(SettingsFa.destinations()))
-    en = MapSet.new(Map.values(Settings.destinations()))
-
-    # The exemption list is empty now. mishka-group/kati#103 folded both
-    # mirrors 62's Data group used to point at — `Kati.Screens.MyServicesFa`
-    # and `Kati.Screens.DataSourcesFa` — so both rows name the SAME module the
-    # English page names, and the difference is back to nothing. Board 301's
-    # `Kati.Screens.CountryPicker` is reached from screen 92 rather than from
-    # 62, so it is not a destination here.
-    persian_only = MapSet.difference(fa, en)
-
-    assert MapSet.to_list(persian_only) == [],
-           "screen 62 reaches something screen 24 does not: " <>
-             inspect(MapSet.to_list(persian_only))
+    # One table, so there is nothing left for a Persian reader to be missing.
+    # It was two: `Kati.Screens.SettingsFa.destinations/0` was a second map,
+    # keyed by glyph, and this test's older form compared the two sets and
+    # exempted the mirrors 62 pointed at. mishka-group/kati#103 folded that
+    # screen into this one; what remains worth asserting is that the two rows
+    # are DRAWN in Persian, which the route table above checks against the
+    # rendered tree, and that the engines are still named here.
+    assert Settings.destinations()["export"] == Kati.Screens.Backup
+    assert Settings.destinations()["sync"] == Kati.Screens.Sync
   end
 
-  test "the two rows are one row, named the same way on both screens" do
+  test "the two rows are one row, named by an id in both scripts" do
     # This used to read *the destination is keyed by title on 24 and by glyph
     # on 62, so the two tables can only agree while the titles and the glyphs
-    # sit on the same rows* — and that sentence was the defect. Both are keyed
-    # on the row's **id** now, so there is nothing left to keep in step: the
-    # two screens say `export` and `sync` and mean the same rows by
-    # construction.
-    en = Map.new(Kati.Settings.Sample.data(), &{&1.id, &1.icon})
+    # sit on the same rows* — and that sentence was the defect. There is one
+    # table now, keyed on the row's **id**.
+    rows = Map.new(Kati.Settings.Sample.data(), &{&1.id, &1.icon})
 
-    assert en["export"] == "upload"
-    assert en["sync"] == "sync"
+    assert rows["export"] == "upload"
+    assert rows["sync"] == "sync"
 
-    fa = for section <- Kati.Fa.SampleSettings.sections(), row <- section.rows, do: row[:id]
+    # And the same two ids are on the rows a Persian reader sees, which is the
+    # half the mirror used to answer for.
+    fa =
+      Kati.Locale.as(:fa, fn ->
+        for row <- Kati.Settings.Sample.data(), do: row.id
+      end)
 
     assert "export" in fa
     assert "sync" in fa
-
-    # And the glyphs still sit where the drawings put them, which is what the
-    # old assertion was really checking.
-    fa_glyphs =
-      for section <- Kati.Fa.SampleSettings.sections(),
-          row <- section.rows,
-          row[:id] in ["export", "sync"],
-          do: row[:icon]
-
-    assert Enum.sort(fa_glyphs) == ["sync", "upload"]
   end
 
   test "no row is both a switch and a destination" do
@@ -197,12 +172,11 @@ defmodule Kati.SettingsDataRoutesTest do
   end
 
   test "a tag naming a destination the screen does not have changes nothing" do
-    # Both screens parse the tag rather than matching it, so a malformed one has
-    # to return the screen instead of raising into `handle_info/2` — 62 in
-    # particular is a bare `Mob.Screen` with no rescue around its taps.
-    for {module, tag} <- [{Settings, :go_nowhere}, {SettingsFa, :go_nowhere}] do
-      {socket, _tags} = mounted(module)
-      {:noreply, updated} = module.handle_info({:tap, tag}, socket)
+    # The screen parses the tag rather than matching it, so a malformed one has
+    # to return the screen instead of raising into `handle_info/2`.
+    for locale <- [:en, :fa] do
+      {socket, _tags} = mounted(locale)
+      {:noreply, updated} = Settings.handle_info({:tap, :go_nowhere}, socket)
 
       assert Map.get(updated.__mob__, :nav_action) == nil
       assert updated.assigns == socket.assigns
@@ -211,23 +185,21 @@ defmodule Kati.SettingsDataRoutesTest do
 
   # ── Reading the routes out of the rendered screens ──────────────────────────
 
-  # 24 is drawn in English and 62 in Persian, which is how each is read.
-  defp locale(SettingsFa), do: :fa
-  defp locale(_module), do: :en
-
-  defp mounted(module) do
-    ScreenSweep.drawn_taps(locale(module)) |> Map.fetch!(module)
+  # Board 24 is drawn in English and board 62 in Persian, which is how each is
+  # read — one module, two locales, since #103 folded the mirror away.
+  defp mounted(locale) do
+    ScreenSweep.drawn_taps(locale) |> Map.fetch!(Settings)
   end
 
-  defp drawn(module) do
-    {_socket, tags} = mounted(module)
+  defp drawn(locale) do
+    {_socket, tags} = mounted(locale)
     tags
   end
 
-  defp push_target(module, tag) do
-    {socket, _tags} = mounted(module)
+  defp push_target(locale, tag) do
+    {socket, _tags} = mounted(locale)
 
-    case module.handle_info({:tap, tag}, socket) do
+    case Settings.handle_info({:tap, tag}, socket) do
       {:noreply, %Mob.Socket{} = updated} ->
         case Map.get(updated.__mob__, :nav_action) do
           {:push, dest, _params} -> dest

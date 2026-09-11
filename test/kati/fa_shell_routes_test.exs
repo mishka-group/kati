@@ -67,25 +67,33 @@ defmodule Kati.FaShellRoutesTest do
   end
 
   describe "the way out of Persian" do
-    test "screen 62's تغییر opens the language screen" do
-      # The only one. Screen 62 draws no other language control and the Persian
+    test "board 62's Language row opens the language screen" do
+      # The only one. Board 62 draws no other language control and the Persian
       # dock's four tabs are all Persian, so while this was inert a reader who
       # chose فارسی on screen 53 could not get back to English by any route.
+      #
+      # `Kati.Screens.SettingsFa` answered this until mishka-group/kati#103
+      # folded it into screen 24. Board 62 is that screen under `:fa`, so the
+      # tag is screen 24's `go_language` — which is also the point: the way out
+      # of Persian is the same row a reader in English uses, rather than a
+      # second control on a second module that could be forgotten.
+      #
       # A bare socket, not a mounted one: `mount/3` installs the theme, which
       # reads `Mob.State`'s DETS, and this file is async with no such table.
       # The push needs no assigns.
       {:noreply, moved} =
-        Kati.Screens.SettingsFa.handle_info({:tap, :go_language}, %Mob.Socket{})
+        Kati.Screens.Settings.handle_info({:tap, :go_language}, %Mob.Socket{})
 
       assert moved.__mob__.nav_action == {:push, Kati.Screens.Language, %{}}
     end
 
     test "the language row actually carries that tag" do
       # The other half: a handler nothing dispatches to is the same as no
-      # handler. The row has `badge:` and no `icon:`, so it misses the
-      # glyph-keyed clause and needs one of its own.
-      row = %{badge: "فا", title: "زبان", sub: "فارسی · راست به چپ", trailing: {:text, "تغییر"}}
-      assert {_pid, :go_language} = Kati.Screens.SettingsFa.tap_for(row, 0, 0)
+      # handler. The row is named by its `id`, which is the field a translation
+      # does not reach — the mirror's own clause keyed on `badge:` because its
+      # title was Persian, and that whole problem is what an id removes.
+      row = %{id: "language", icon: "translate", title: "Language", control: :chevron}
+      assert {_pid, :go_language} = Kati.Screens.Settings.tap_for(row)
     end
   end
 

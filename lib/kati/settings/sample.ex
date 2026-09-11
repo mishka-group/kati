@@ -35,20 +35,48 @@ defmodule Kati.Settings.Sample do
   Copy is the drawing's own, down to the typographic apostrophe in
   "another tracker's backup". Marked clearly as a stand-in, because sample
   data that looks like real data is how a demo quietly becomes a lie.
+
+  ## Every group is a function and none of them is an attribute
+
+  `gettext/1` in a module attribute is evaluated at COMPILE time, so a table of
+  translated rows freezes whichever locale the compiler happened to be in.
+  These were already functions; the reason is recorded here because
+  mishka-group/kati#103 folded `Kati.Fa.SampleSettings` into this module, and a
+  reader reaching for an attribute is reaching for the bug.
   """
 
-  @doc "The mono line under the title."
-  @spec synced() :: String.t()
-  def synced, do: "Synced 2 min ago"
+  use Gettext, backend: Kati.Gettext
 
-  @doc "The account card: the design's own photograph, its counts and its sync state."
+  @doc """
+  The mono line under the title.
+
+  A stand-in with a number in it, so the number is `Kati.Locale.number/1`'s
+  rather than a Latin `2` sitting in a Persian sentence — board 62 draws
+  **۲ دقیقه پیش همگام‌سازی شد** and the digit is the half a translation cannot
+  supply.
+  """
+  @spec synced() :: String.t()
+  def synced, do: gettext("Synced %{n} min ago", n: Kati.Locale.number(2))
+
+  @doc """
+  The account card: the design's own photograph, its counts and its sync state.
+
+  `entries` and not a `meta` STRING. It was `"1,204 ENTRIES · 4 SECTIONS"`, and
+  `Kati.Screens.Settings.meta/2` kept the tally honest by running
+  `Regex.replace(~r/\d+ SECTIONS/, …)` over it — a pattern that matches neither
+  half of **۱,۲۰۴ مورد · ۴ بخش**: not the Persian digits, which are not `\d`,
+  and not the word, which is translated. So the count would have silently
+  stopped following the switches under it, which is the one thing that line
+  exists to do. `Kati.Screens.Settings.meta/2` composes the line from the two
+  numbers now.
+  """
   @spec account() :: map()
   def account do
     %{
       seed: "face68",
-      name: "Your Kati",
-      meta: "1,204 ENTRIES · 4 SECTIONS",
-      status: "Synced"
+      name: gettext("Your Kati"),
+      entries: 1204,
+      status: gettext("Synced")
     }
   end
 
@@ -59,36 +87,36 @@ defmodule Kati.Settings.Sample do
       %{
         id: "theme",
         icon: "contrast",
-        title: "Theme",
+        title: gettext("Theme"),
         sub: nil,
-        control: {:segments, ["Auto", "Light", "Dark"], "Auto"}
+        control: {:segments, Kati.Settings.Sample.theme_options(), gettext("Auto")}
       },
       %{
         id: "text_size",
         icon: "format_size",
-        title: "Text size",
-        sub: "Follows system · up to 235%",
+        title: gettext("Text size"),
+        sub: gettext("Follows system · up to %{n}%", n: Kati.Locale.number(235)),
         control: :chevron
       },
       %{
         id: "reduce_motion",
         icon: "motion_blur",
-        title: "Reduce motion",
+        title: gettext("Reduce motion"),
         sub: nil,
         control: {:switch, false}
       },
       %{
         id: "language",
         icon: "translate",
-        title: "Language",
+        title: gettext("Language"),
         sub: "English · فارسی",
         control: :chevron
       },
       %{
         id: "widgets",
         icon: "grid_view",
-        title: "Widgets",
-        sub: "Home and lock screen",
+        title: gettext("Widgets"),
+        sub: gettext("Home and lock screen"),
         control: :chevron
       }
     ]
@@ -108,7 +136,7 @@ defmodule Kati.Settings.Sample do
       %{
         id: "my_services",
         icon: "subscriptions",
-        title: "My services",
+        title: gettext("My services"),
         sub: Kati.Settings.Sample.services_line(),
         control: :chevron
       }
@@ -141,9 +169,29 @@ defmodule Kati.Settings.Sample do
   end
 
   @doc false
-  def services_line(:gb, count), do: services_line("United Kingdom", count)
-  def services_line(region, 0), do: "#{region} · none yet"
-  def services_line(region, count), do: "#{region} · #{count} subscribed"
+  def services_line(:gb, count), do: services_line(gettext("United Kingdom"), count)
+
+  def services_line(region, 0),
+    do: gettext("%{region} · none yet", region: region)
+
+  def services_line(region, count),
+    do:
+      gettext("%{region} · %{subscribed}",
+        region: region,
+        subscribed:
+          ngettext("%{n} subscribed", "%{n} subscribed", count, n: Kati.Locale.number(count))
+      )
+
+  @doc """
+  The three words the theme trough offers, in the order both drawings draw them.
+
+  A function and not a literal in the row above it, because
+  `Kati.Screens.Settings.choice_at/1` and `label_for/2` read POSITIONS off this
+  list: the tiles are Auto / Light / Dark in English and خودکار / روشن / تیره in
+  Persian, and a tag built from the label would be a different atom in each.
+  """
+  @spec theme_options() :: [String.t()]
+  def theme_options, do: [gettext("Auto"), gettext("Light"), gettext("Dark")]
 
   @doc """
   Sections — the growth mechanic made literal.
@@ -158,43 +206,43 @@ defmodule Kati.Settings.Sample do
       %{
         id: "screen",
         icon: "movie",
-        title: "Screen",
-        sub: "Home card, calendar feed, shelf",
+        title: gettext("Screen"),
+        sub: gettext("Home card, calendar feed, shelf"),
         control: {:switch, true}
       },
       %{
         id: "books",
         icon: "menu_book",
-        title: "Books",
-        sub: "Home card, shelf",
+        title: gettext("Books"),
+        sub: gettext("Home card, shelf"),
         control: {:switch, true}
       },
       %{
         id: "music",
         icon: "graphic_eq",
-        title: "Music",
-        sub: "Shelf only",
+        title: gettext("Music"),
+        sub: gettext("Shelf only"),
         control: {:switch, true}
       },
       %{
         id: "habits",
         icon: "bolt",
-        title: "Habits",
-        sub: "Calendar feed",
+        title: gettext("Habits"),
+        sub: gettext("Calendar feed"),
         control: {:switch, true}
       },
       %{
         id: "money",
         icon: "payments",
-        title: "Money",
-        sub: "Calendar feed",
+        title: gettext("Money"),
+        sub: gettext("Calendar feed"),
         control: {:switch, false}
       },
       %{
         id: "reorder_sections",
         icon: "drag_indicator",
-        title: "Reorder sections",
-        sub: "Drag to change home order",
+        title: gettext("Reorder sections"),
+        sub: gettext("Drag to change home order"),
         control: :chevron
       }
     ]
@@ -229,43 +277,50 @@ defmodule Kati.Settings.Sample do
       %{
         id: "back_up",
         icon: "cloud_done",
-        title: "Back up everything",
-        sub: "Last backup 14 Aug · 214 MB",
+        title: gettext("Back up everything"),
+        sub:
+          gettext("Last backup %{date} · %{n} MB",
+            date: Kati.Locale.date(~D[2026-08-14], :short),
+            n: Kati.Locale.number(214)
+          ),
         control: :chevron
       },
       %{
         id: "restore",
         icon: "upload_file",
-        title: "Restore a Kati backup",
-        sub: "Your own file — merges or replaces",
+        title: gettext("Restore a Kati backup"),
+        sub: gettext("Your own file — merges or replaces"),
         control: :chevron
       },
       %{
         id: "import",
         icon: "download",
-        title: "Import",
-        sub: "CSV, JSON, or another tracker’s backup",
+        title: gettext("Import"),
+        sub: gettext("CSV, JSON, or another tracker’s backup"),
         control: :chevron
       },
       %{
         id: "export",
         icon: "upload",
-        title: "Export everything",
-        sub: "Last backup 14 Aug",
+        title: gettext("Export everything"),
+        sub: gettext("Last backup %{date}", date: Kati.Locale.date(~D[2026-08-14], :short)),
         control: :chevron
       },
       %{
         id: "sync",
         icon: "sync",
-        title: "Sync",
-        sub: "iCloud · this device + iPad",
+        title: gettext("Sync"),
+        sub: gettext("iCloud · this device + iPad"),
         control: :chevron
       },
       %{
         id: "data_sources",
         icon: "dns",
-        title: "Data sources",
-        sub: "TVmaze, Open Library, MusicBrainz · 3 reachable",
+        title: gettext("Data sources"),
+        sub:
+          gettext("TVmaze, Open Library, MusicBrainz · %{n} reachable",
+            n: Kati.Locale.number(3)
+          ),
         control: :chevron
       },
       # Board 267's own edit to this row: it was the only row in this group
@@ -274,8 +329,8 @@ defmodule Kati.Settings.Sample do
       %{
         id: "clear_history",
         icon: "delete",
-        title: "Clear watch history",
-        sub: "Ticks, ratings and reviews — the shelves stay",
+        title: gettext("Clear watch history"),
+        sub: gettext("Ticks, ratings and reviews — the shelves stay"),
         control: :chevron
       }
     ]
@@ -301,8 +356,8 @@ defmodule Kati.Settings.Sample do
       %{
         id: "calendars",
         icon: "calendar_month",
-        title: "Calendars",
-        sub: "Which calendars Kati may read",
+        title: gettext("Calendars"),
+        sub: gettext("Which calendars Kati may read"),
         control: :chevron
       },
       # MOVIES-AND-TV.md #1. Screen 05 had no English door at all: its only one
@@ -325,15 +380,15 @@ defmodule Kati.Settings.Sample do
       %{
         id: "release_watcher",
         icon: "notifications_active",
-        title: "Release watcher",
-        sub: "Premieres, new episodes, price drops",
+        title: gettext("Release watcher"),
+        sub: gettext("Premieres, new episodes, price drops"),
         control: :chevron
       },
       %{
         id: "auto_detect",
         icon: "sensors",
-        title: "Auto-detect",
-        sub: "Notice what you play",
+        title: gettext("Auto-detect"),
+        sub: gettext("Notice what you play"),
         control: :chevron
       }
     ]
@@ -346,29 +401,29 @@ defmodule Kati.Settings.Sample do
       %{
         id: "version",
         icon: "info",
-        title: "Version",
-        sub: "0.1 · mock build",
+        title: gettext("Version"),
+        sub: gettext("%{version} · mock build", version: Kati.Locale.number("0.1")),
         control: :chevron
       },
       %{
         id: "privacy",
         icon: "shield",
-        title: "Privacy",
-        sub: "Nothing leaves the device",
+        title: gettext("Privacy"),
+        sub: gettext("Nothing leaves the device"),
         control: :chevron
       },
       %{
         id: "this_device",
         icon: "phone_iphone",
-        title: "This device",
-        sub: "Permissions and storage",
+        title: gettext("This device"),
+        sub: gettext("Permissions and storage"),
         control: :chevron
       },
       %{
         id: "attribution",
         icon: "info",
-        title: "Where this comes from",
-        sub: "Sources and licences",
+        title: gettext("Where this comes from"),
+        sub: gettext("Sources and licences"),
         control: :chevron
       },
       # A reference sheet rather than a place in the app, filed under About for
@@ -380,8 +435,8 @@ defmodule Kati.Settings.Sample do
       %{
         id: "year_cards",
         icon: "grid_view",
-        title: "Year cards",
-        sub: "How a shared card is drawn",
+        title: gettext("Year cards"),
+        sub: gettext("How a shared card is drawn"),
         control: :chevron
       },
       # MOVIES-AND-TV.md #7. Screen 148's own moduledoc says it is "a reference
@@ -395,8 +450,8 @@ defmodule Kati.Settings.Sample do
       %{
         id: "dropping",
         icon: "do_not_disturb_on",
-        title: "Dropping",
-        sub: "Paused, dropped, and gone cold",
+        title: gettext("Dropping"),
+        sub: gettext("Paused, dropped, and gone cold"),
         control: :chevron
       },
       # MOVIES-AND-TV.md #8. 152's own back pill says `Settings` and nothing
@@ -407,8 +462,8 @@ defmodule Kati.Settings.Sample do
       %{
         id: "anime",
         icon: "auto_awesome",
-        title: "Anime",
-        sub: "What makes a title one",
+        title: gettext("Anime"),
+        sub: gettext("What makes a title one"),
         control: :chevron
       },
       # The gallery. It used to be behind Home's bell, which was scaffolding
@@ -421,8 +476,8 @@ defmodule Kati.Settings.Sample do
         # glyph for one settings row would mean a font rebuild for a row.
         id: "every_screen",
         icon: "grid_view",
-        title: "Every screen",
-        sub: "One list, for looking",
+        title: gettext("Every screen"),
+        sub: gettext("One list, for looking"),
         control: :chevron
       }
     ]

@@ -1,6 +1,6 @@
 defmodule Kati.SettingsBackupLineTest do
   @moduledoc """
-  The `Last backup` line on screens 24 and 62, and the ledger behind it.
+  The `Last backup` line on boards 24 and 62, and the ledger behind it.
 
   ## The defect this exists for
 
@@ -39,9 +39,8 @@ defmodule Kati.SettingsBackupLineTest do
 
   alias Kati.Screens.Backup
   alias Kati.Screens.Settings
-  alias Kati.Screens.SettingsFa
 
-  # `SettingsFa.mount/3` calls `Kati.Theme.activate/0`, which is
+  # `Settings`' mount calls `Kati.Theme.activate/0`, which is
   # `Application.put_env/3` — one global for the whole run and not one
   # `Mob.ScreenCase` resets. Put back what was installed on the way in, for the
   # reason `Kati.SettingsThemeTest` sets out at length.
@@ -150,18 +149,20 @@ defmodule Kati.SettingsBackupLineTest do
 
   # ── The two sentences ───────────────────────────────────────────────────────
 
-  test "with no backup, both screens state the absence" do
+  test "with no backup, both boards state the absence" do
     assert Settings.backup_line(nil) == @never_en
-    assert SettingsFa.backup_line(nil) == @never_fa
+    assert fa(fn -> Settings.backup_line(nil) end) == @never_fa
   end
 
-  test "with a backup, both screens draw the date in their drawing's own form" do
+  test "with a backup, both boards draw the date in their drawing's own form" do
     # `24.html` writes `Last backup 14 Aug` and `62.html` writes
     # `آخرین پشتیبان ۱۴ مرداد`. Only the value was ever wrong, so the form does
     # not move: day then short month in English, Shamsi day and month in
-    # Persian, no year in either.
+    # Persian, no year in either. One function answers both since
+    # mishka-group/kati#103 folded `Kati.Screens.SettingsFa` away — it asks
+    # `Kati.Locale.date/2`, which is the calendar as well as the script.
     assert Settings.backup_line(@drawn) == "Last backup 14 Aug"
-    assert SettingsFa.backup_line(@drawn) == "آخرین پشتیبان ۲۳ مرداد"
+    assert fa(fn -> Settings.backup_line(@drawn) end) == "آخرین پشتیبان ۲۳ مرداد"
   end
 
   test "the English month is always the three-letter short form" do
@@ -178,18 +179,18 @@ defmodule Kati.SettingsBackupLineTest do
 
   # ── What the screens draw ───────────────────────────────────────────────────
 
-  test "at rest both screens draw the absence, and neither draws the drawing's date" do
-    for {module, never, drawn} <- [
-          {Settings, @never_en, "Last backup 14 Aug"},
-          {SettingsFa, @never_fa, "آخرین پشتیبان ۱۴ مرداد"}
+  test "at rest both boards draw the absence, and neither draws the drawing's date" do
+    for {locale, never, drawn} <- [
+          {:en, @never_en, "Last backup 14 Aug"},
+          {:fa, @never_fa, "آخرین پشتیبان ۱۴ مرداد"}
         ] do
-      texts = texts(mount_screen(module))
+      texts = as(locale, fn -> texts(mount_screen(Settings)) end)
 
-      assert never in texts, "#{inspect(module)} does not say a backup has never been made"
+      assert never in texts, "screen 24 in #{locale} does not say a backup has never been made"
 
       refute drawn in texts,
-             "#{inspect(module)} still draws the frozen date from its drawing, which is the " <>
-               "defect this file exists for"
+             "screen 24 in #{locale} still draws the frozen date from its drawing, which is " <>
+               "the defect this file exists for"
     end
   end
 
@@ -198,19 +199,23 @@ defmodule Kati.SettingsBackupLineTest do
     :ok = Settings.record_backup(@drawn)
 
     assert "Last backup 14 Aug" in texts(mount_screen(Settings))
-    assert "آخرین پشتیبان ۲۳ مرداد" in texts(mount_screen(SettingsFa))
+    assert "آخرین پشتیبان ۲۳ مرداد" in fa(fn -> texts(mount_screen(Settings)) end)
   end
 
-  test "the row that reports the ledger is the row with the upload glyph, and it is unique" do
-    # Both screens match on the glyph rather than on the title, so that neither
-    # carries the other's words. That is only sound while `upload` names exactly
-    # one row in each sample — a second one would silently start reporting the
-    # ledger too.
-    en = Enum.map(Kati.Settings.Sample.data(), & &1.icon)
-    fa = for section <- Kati.Fa.SampleSettings.sections(), row <- section.rows, do: row[:icon]
+  test "the row that reports the ledger is named by its id, and there is one of it" do
+    # It matched on the GLYPH while there were two screens, so that neither
+    # carried the other's words; with one screen that is the wrong field —
+    # `Kati.Settings.Sample`'s moduledoc lists the collisions, `info` on two
+    # rows and `grid_view` on three. It matches on `id` now, and this is the
+    # assertion that keeps `export` singular: a second row with that id would
+    # silently start reporting the ledger too.
+    ids = Enum.map(Kati.Settings.Sample.data(), & &1.id)
 
-    assert Enum.count(en, &(&1 == "upload")) == 1
-    assert Enum.count(fa, &(&1 == "upload")) == 1
+    assert Enum.count(ids, &(&1 == "export")) == 1
+
+    # And the same row is there for a Persian reader — the half the mirror's
+    # own sample used to answer for.
+    assert fa(fn -> Enum.count(Kati.Settings.Sample.data(), &(&1.id == "export")) end) == 1
   end
 
   test "recording a backup moves exactly one Text on screen 24" do
@@ -229,16 +234,35 @@ defmodule Kati.SettingsBackupLineTest do
     assert changed == [{@never_en, "Last backup 14 Aug"}]
   end
 
-  test "recording a backup moves exactly one Text on screen 62" do
-    before = texts(mount_screen(SettingsFa))
+  test "recording a backup moves exactly one Text on board 62" do
+    before = fa(fn -> texts(mount_screen(Settings)) end)
     :ok = Settings.record_backup(@drawn)
-    after_ = texts(mount_screen(SettingsFa))
+    after_ = fa(fn -> texts(mount_screen(Settings)) end)
 
     assert length(before) == length(after_), "the ledger added or removed a node"
 
     changed = for {a, b} <- Enum.zip(before, after_), a != b, do: {a, b}
 
     assert changed == [{@never_fa, "آخرین پشتیبان ۲۳ مرداد"}]
+  end
+
+  # Read as a Persian reader. Board 62 is screen 24 under `:fa` since #103, so
+  # there is no second module to mount instead.
+  defp fa(fun), do: as(:fa, fun)
+
+  defp as(:en, fun) do
+    Kati.Locale.put(:en)
+    fun.()
+  end
+
+  defp as(:fa, fun) do
+    Kati.Locale.put(:fa)
+
+    try do
+      fun.()
+    after
+      Kati.Locale.put(:en)
+    end
   end
 
   # Every string the screen draws, in draw order. Raw rather than normalised —

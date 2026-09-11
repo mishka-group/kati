@@ -23,11 +23,26 @@ defmodule Kati.SettingsThemeTest do
   narrow version of that promise; the two `resting trough` tests are the wide
   one, pinning the drawing's own geometry and colours so that "the trough now
   reads a setting" cannot become "the trough now looks different".
+
+  ## One screen, two scripts
+
+  `Kati.Screens.SettingsFa` was half of every test here until
+  mishka-group/kati#103 folded it into screen 24. Board 62 is that screen under
+  `:fa` now, so the pairs below are one module rendered twice rather than two
+  modules compared — which is the point the file was already making the long
+  way round: *the same tile answered to `:theme_Dark` on one screen and
+  `:theme_2` on the other, which is a translation table wearing a tag\'s
+  clothes.* There is one trough, and it is tagged by position.
+
+  The Persian trough takes screen 24\'s own geometry with the fold: 11pt rather
+  than board 62\'s 10.5, and no `font_family` of its own, because `K-48
+  locale-face` has the root declare the face. Both are the fold choosing the
+  live screen over the mirror\'s copy of it, which is what every other fold in
+  #103 does.
   """
   use Mob.ScreenCase, async: false
 
   alias Kati.Screens.Settings
-  alias Kati.Screens.SettingsFa
   alias Kati.Theme
   alias Kati.Theme.Palette
 
@@ -116,11 +131,13 @@ defmodule Kati.SettingsThemeTest do
     assert raised(view) == ["Auto"]
   end
 
-  test "at rest screen 62 draws three tiles and raises the one 62.html raises" do
-    view = mount_screen(SettingsFa)
+  test "at rest board 62 draws three tiles and raises the one 62.html raises" do
+    fa(fn ->
+      view = mount_screen(Settings)
 
-    assert labels(view) == @fa
-    assert raised(view) == ["خودکار"]
+      assert labels(view) == @fa
+      assert raised(view) == ["خودکار"]
+    end)
   end
 
   test "the resting trough on 24 is the drawing's own geometry and colour" do
@@ -159,7 +176,7 @@ defmodule Kati.SettingsThemeTest do
   end
 
   test "the resting trough on 62 is the drawing's own geometry and colour" do
-    view = mount_screen(SettingsFa)
+    view = fa(fn -> mount_screen(Settings) end)
     trough = trough(view)
 
     assert trough.props[:background] == 0xFFEFECE7
@@ -171,31 +188,34 @@ defmodule Kati.SettingsThemeTest do
     assert auto.props[:height] == 26
     assert auto.props[:corner_radius] == 9
     assert auto.props[:background] == Theme.card(:light)
-    assert label_props(auto)[:font_family] == "fa"
-    assert label_props(auto)[:text_size] == 10.5
-    assert label_props(auto)[:text_color] == Theme.ink()
+    # No face of its own, and screen 24's 11 rather than board 62's 10.5. The
+    # fold's two deliberate changes — see the moduledoc.
+    refute Map.has_key?(label_props(auto), :font_family)
+    assert label_props(auto)[:text_size] == 11
+    assert label_props(auto)[:text_color] == :on_surface
 
     for idle <- [light, dark] do
       assert idle.props[:height] == 26
       assert idle.props[:corner_radius] == 9
-      # Persian's idle tile carries a transparent fill where English carries no
-      # fill at all. Both were drawn that way; neither may change.
-      assert idle.props[:background] == 0x00FFFFFF
-      assert label_props(idle)[:font_family] == "fa"
+      # Absent, not transparent. The mirror painted `0x00FFFFFF` here and
+      # screen 24 paints nothing at all; with one screen there is one answer,
+      # and it is the one that cannot draw over the trough by accident.
+      refute Map.has_key?(idle.props, :background)
+      refute Map.has_key?(label_props(idle), :font_family)
       assert label_props(idle)[:text_color] == 0xFFA0998F
     end
   end
 
-  test "an unset choice renders the same tree as a stored :auto, on both screens" do
+  test "an unset choice renders the same tree as a stored :auto, in both scripts" do
     # The whole tree, not the trough: this is the promise that reading a setting
     # at mount cannot move a pixel anywhere on either screen. Both copies are
     # rendered in this process, so the pids inside `on_tap` match.
-    for module <- [Settings, SettingsFa] do
-      unset = tree(mount_screen(module))
+    for locale <- [:en, :fa] do
+      unset = as(locale, fn -> tree(mount_screen(Settings)) end)
       :ok = Settings.put_choice(:auto)
-      stored = tree(mount_screen(module))
+      stored = as(locale, fn -> tree(mount_screen(Settings)) end)
 
-      assert unset == stored, "#{inspect(module)} renders differently for an unset choice"
+      assert unset == stored, "screen 24 in #{locale} renders differently for an unset choice"
     end
   end
 
@@ -226,39 +246,39 @@ defmodule Kati.SettingsThemeTest do
     for {label, {choice, index}} <- Enum.zip(@fa, Enum.with_index(Settings.choices())) do
       start_from_another_choice(choice)
 
-      view = mount_screen(SettingsFa)
+      view = fa(fn -> mount_screen(Settings) end)
       refute raised(view) == [label], "the test set up the choice it was about to assert"
 
-      view = render_info(view, {:tap, String.to_atom("theme_#{index}")})
+      view = fa(fn -> render_info(view, {:tap, String.to_atom("theme_#{index}")}) end)
 
       assert Settings.choice() == choice
       assert raised(view) == [label]
-      assert raised(mount_screen(SettingsFa)) == [label]
+      assert raised(fa(fn -> mount_screen(Settings) end)) == [label]
     end
   end
 
-  test "the two screens are one setting, in both directions" do
+  test "the two boards are one setting, in both directions" do
     mount_screen(Settings) |> render_info({:tap, :theme_2})
 
     assert Settings.choice() == :dark
-    assert raised(mount_screen(SettingsFa)) == ["تیره"]
+    assert raised(fa(fn -> mount_screen(Settings) end)) == ["تیره"]
 
-    mount_screen(SettingsFa) |> render_info({:tap, :theme_1})
+    fa(fn -> mount_screen(Settings) |> render_info({:tap, :theme_1}) end)
 
     assert Settings.choice() == :light
     assert raised(mount_screen(Settings)) == ["Light"]
   end
 
-  test "only the tiles that are still choices carry a tag, on both screens" do
-    for {module, drawn} <- [{Settings, @en}, {SettingsFa, @fa}] do
+  test "only the tiles that are still choices carry a tag, in both scripts" do
+    for {locale, drawn} <- [{:en, @en}, {:fa, @fa}] do
       for choice <- Settings.choices() do
         :ok = Settings.put_choice(choice)
-        view = mount_screen(module)
+        view = as(locale, fn -> mount_screen(Settings) end)
 
         tagged = for tile <- tiles(view), Map.has_key?(tile.props, :on_tap), do: label(tile)
 
         assert length(tagged) == 2,
-               "#{inspect(module)} at #{choice} offers #{length(tagged)} tappable tiles, not 2"
+               "screen 24 in #{locale} at #{choice} offers #{length(tagged)} tappable tiles, not 2"
 
         assert raised(view) == drawn -- tagged
       end
@@ -268,16 +288,39 @@ defmodule Kati.SettingsThemeTest do
   test "a tag naming a tile the trough does not draw leaves the setting alone" do
     :ok = Settings.put_choice(:dark)
 
-    for {module, tag, raised} <- [
-          {Settings, :theme_Sepia, "Dark"},
-          {SettingsFa, :theme_9, "تیره"},
-          {SettingsFa, :theme_x, "تیره"},
-          {SettingsFa, :"theme_-1", "تیره"}
+    for {locale, tag, raised} <- [
+          {:en, :theme_Sepia, "Dark"},
+          {:fa, :theme_9, "تیره"},
+          {:fa, :theme_x, "تیره"},
+          {:fa, :"theme_-1", "تیره"}
         ] do
-      view = render_info(mount_screen(module), {:tap, tag})
+      view = as(locale, fn -> render_info(mount_screen(Settings), {:tap, tag}) end)
 
       assert Settings.choice() == :dark, "#{inspect(tag)} rewrote the stored choice"
       assert raised(view) == [raised]
+    end
+  end
+
+  # Render as a Persian reader. `Kati.Locale.put/1` and `activate/0` are what a
+  # language tap does, and they are what board 62 IS since #103 folded its
+  # mirror away — there is no second module to mount instead.
+  defp fa(fun), do: as(:fa, fun)
+
+  defp as(:en, fun) do
+    Kati.Locale.put(:en)
+    Kati.Locale.activate()
+    fun.()
+  end
+
+  defp as(:fa, fun) do
+    Kati.Locale.put(:fa)
+    Kati.Locale.activate()
+
+    try do
+      fun.()
+    after
+      Kati.Locale.put(:en)
+      Kati.Locale.activate()
     end
   end
 

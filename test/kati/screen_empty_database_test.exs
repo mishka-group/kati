@@ -402,7 +402,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # settings page with a read in it, and its fallback is the drawing's own
     # three.
     {"24", Kati.Screens.Settings},
-    {"62", Kati.Screens.SettingsFa},
+    # 62 was `Kati.Screens.SettingsFa` until mishka-group/kati#103 folded that
+    # mirror away. It is screen 24 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"62", Kati.Screens.Settings},
     {"80", Kati.Screens.DataSources},
     {"92", Kati.Screens.MyServices},
     {"94", Kati.Screens.CountryPicker},
@@ -1314,7 +1317,14 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # pair with the whole argument: nothing is picked on a bare mount, and
     # `Kati.FirstRunTest` taps a tile and asserts what follows.
     {"163", "check"},
-    {"166", "check"}
+    {"166", "check"},
+    # Board 62's four rows that screen 53 owns, and its Meals section, folded
+    # away by mishka-group/kati#103. `DesignLiterals.retired_lines/0` holds the
+    # words and the argument; `Kati.ScreenDesignLiteralTest`'s
+    # `@retired_symbols` is this entry's twin.
+    {"62", "event"},
+    {"62", "pin"},
+    {"62", "restaurant"}
   ]
 
   # The floor this screen is actually held to. Three answers, in order: a screen
@@ -2444,7 +2454,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"160", Kati.Screens.HomeFaOmittedSections,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"62", Kati.Screens.SettingsFa,
+      {"62", Kati.Screens.Settings,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"94", Kati.Screens.CountryPicker,
@@ -2701,6 +2711,12 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       {"24", "last backup 14 aug", ~r/^(last backup \d{1,2} \p{L}{3}|never backed up)$/u},
       {"62", "آخرین پشتیبان ۱۴ مرداد",
        ~r/^(آخرین پشتیبان \p{N}+ #{word}|هنوز پشتیبانی گرفته نشده)$/u},
+      # 62's My services row, which board 62 froze at **ایران · ۳ سرویس** — a
+      # country invented for a reader who has chosen none, which is board 324's
+      # closing sentence one screen over, and a count nobody has.
+      # `Kati.ScreenDesignLiteralTest` carries the same pair with the full
+      # reasoning; this list is that one's shorter twin.
+      {"62", "ایران · ۳ سرویس", ~r/^.+ · (هنوز هیچ‌کدام|\p{N}+ اشتراک)$/u},
       # 80's three provider-supplied values and two cache figures, none of which
       # exists on a device with an empty database and no tokens.
       {"80", "connected as ines.k · 412 listens",
@@ -2970,7 +2986,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(60 82 97 103 137 156 164 165 166)
+  @fa_numbers ~w(60 62 82 97 103 137 156 164 165 166)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

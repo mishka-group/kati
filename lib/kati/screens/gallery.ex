@@ -89,7 +89,9 @@ defmodule Kati.Screens.Gallery do
     {"59", "امروز — Meals today, RTL", Kati.Screens.MealsToday, :push},
     {"60", "وعده‌ها", Kati.Screens.MealPlan, :push},
     {"61", "آمار", Kati.Screens.StatsFa, :push},
-    {"62", "تنظیمات", Kati.Screens.SettingsFa, :push},
+    # mishka-group/kati#103's fold of screen 62. Board 62 is screen 24 under
+    # `:fa`, with "62" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"62", "تنظیمات — Settings, RTL", Kati.Screens.Settings, :push},
     {"66", "Book detail", Kati.Screens.BookDetail, :push},
     {"70", "Log progress", Kati.Screens.LogProgress, :push},
     {"73", "Log a listen", Kati.Screens.LogListen, :push},

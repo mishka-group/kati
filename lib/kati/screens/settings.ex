@@ -241,6 +241,7 @@ defmodule Kati.Screens.Settings do
   not lose it by touching a switch here.
   """
   use Kati.Screens.Pushed, back: "Home"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Settings.Sample
   alias Kati.Theme.Palette
@@ -389,27 +390,32 @@ defmodule Kati.Screens.Settings do
   The date form is the drawing's own — `Last backup 14 Aug`, day then short
   month, no year. `test/design/screens/24.html` is the frame this screen is
   captured against, and only the *value* was ever wrong.
+
+  `Kati.Locale.date/2` rather than `Kati.Time.month_name/1` sliced to three
+  characters, which is a Latin abbreviation rule: board 62 writes the same fact
+  as **۱۴ مرداد**, in the Shamsi calendar, and a sliced Gregorian month name is
+  neither the right month nor the right script.
   """
   @spec backup_line(DateTime.t() | nil) :: String.t()
-  def backup_line(nil), do: "Never backed up"
+  def backup_line(nil), do: gettext("Never backed up")
 
   def backup_line(%DateTime{} = at) do
-    date = DateTime.to_date(at)
-    "Last backup #{date.day} #{String.slice(Kati.Time.month_name(date.month), 0, 3)}"
+    gettext("Last backup %{date}", date: Kati.Locale.date(DateTime.to_date(at), :short))
   end
 
   @doc """
   A row's second line: the sample's copy, except on the Export row, which
   reports the ledger.
 
-  Matched on the row's **glyph** rather than on its title. `upload` is the one
-  part of that row both drawings share and the one part of it that is not copy,
-  so `Kati.Screens.SettingsFa` asks the same question of its own Persian row
-  without either screen carrying the other's words — the same move the theme
-  trough makes when it tags by position.
+  Matched on the row's **id** rather than on its title or its glyph. It was the
+  glyph, which was the best field available while there were two screens and the
+  wrong one now there is one: `Kati.Settings.Sample`'s own moduledoc lists the
+  collisions — `info` is both *Version* and *Where this comes from*, `grid_view`
+  is *Widgets*, *Year cards* and *Every screen*. The id is the one field on a
+  row that is neither drawn nor shared.
   """
   @spec sub(map()) :: String.t() | nil
-  def sub(%{icon: "upload"}),
+  def sub(%{id: "export"}),
     do: Kati.Screens.Settings.backup_line(Kati.Screens.Settings.last_backup())
 
   def sub(%{sub: sub}), do: sub
@@ -480,19 +486,19 @@ defmodule Kati.Screens.Settings do
         padding_bottom={40}
       >
         {SettingsList.chrome(nil, 42)}
-        {SettingsList.title("Settings", s.synced, "help", :meta_tight)}
+        {SettingsList.title(gettext("Settings"), s.synced, "help", :meta_tight)}
         {Kati.Screens.Settings.account(s.account, s.sections)}
-        {UI.eyebrow("Appearance")}
+        {UI.eyebrow(gettext("Appearance"))}
         {Kati.Screens.Settings.group(s.appearance, 14, 22)}
-        {UI.eyebrow("Watching")}
+        {UI.eyebrow(gettext("Watching"))}
         {Kati.Screens.Settings.group(s.watching, 14, 22)}
-        {UI.eyebrow("Sections")}
+        {UI.eyebrow(gettext("Sections"))}
         {Kati.Screens.Settings.group(s.sections, 13, 22)}
-        {UI.eyebrow("Data")}
+        {UI.eyebrow(gettext("Data"))}
         {Kati.Screens.Settings.group(s.data, 14, 22)}
-        {UI.eyebrow("Sources")}
+        {UI.eyebrow(gettext("Sources"))}
         {Kati.Screens.Settings.group(s.sources, 14, 22)}
-        {SettingsList.eyebrow_muted("About")}
+        {SettingsList.eyebrow_muted(gettext("About"))}
         {Kati.Screens.Settings.group(s.about, 14, 0)}
       </Column>
     </Scroll>
@@ -501,7 +507,7 @@ defmodule Kati.Screens.Settings do
 
   @doc false
   def account(a, sections) do
-    meta = Kati.Screens.Settings.meta(a.meta, Kati.Screens.Settings.enabled(sections))
+    meta = Kati.Screens.Settings.meta(a.entries, Kati.Screens.Settings.enabled(sections))
 
     ~MOB"""
     <Column fill_width={true}>
@@ -520,14 +526,14 @@ defmodule Kati.Screens.Settings do
             text={a.name}
             text_size={16}
             font_weight="bold"
-            letter_spacing={-0.02}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
             text_color={:on_surface}
             max_lines={1}
           />
           <Spacer size={4} />
           <Text
             text={meta}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face()}
             text_size={10.5}
             text_color={Palette.muted()}
             max_lines={1}
@@ -634,14 +640,51 @@ defmodule Kati.Screens.Settings do
   def enabled(sections), do: Enum.count(sections, &match?(%{control: {:switch, true}}, &1))
 
   @doc """
-  The account line with its section count replaced by the live tally.
+  The account line: how much is in this Kati, and how many sections are on.
 
-  A substitution rather than a rebuilt string, so the copy still lives in
-  `Kati.Settings.Sample` and the resting frame cannot drift: with four sections
-  on, this rewrites `4 SECTIONS` as `4 SECTIONS`. If the pattern ever stops
-  matching, the sample's own line is returned untouched.
+      iex> Kati.Screens.Settings.meta(1204, 4)
+      "1,204 ENTRIES · 4 SECTIONS"
+
+      iex> Kati.Screens.Settings.meta(1, 1)
+      "1 ENTRY · 1 SECTION"
+
+  Composed, not substituted. It was `Regex.replace(~r/\d+ SECTIONS/, text, …)`
+  over the sample's own drawn line — a pattern that matches neither half of
+  board 62's **۱,۲۰۴ مورد · ۴ بخش**: `\d` is not `۴`, and `SECTIONS` is
+  translated. The tally would have gone on being computed and silently stopped
+  reaching the screen, which is the one thing this line exists to do.
+  mishka-group/kati#103.
+
+  `Kati.UI.eyebrow_label/1` for the capitals rather than `String.upcase/1`:
+  Persian has no upper case.
   """
-  def meta(text, count), do: Regex.replace(~r/\d+ SECTIONS/, text, "#{count} SECTIONS")
+  @spec meta(non_neg_integer(), non_neg_integer()) :: String.t()
+  def meta(entries, count) do
+    Kati.UI.eyebrow_label(
+      ngettext("%{n} entry", "%{n} entries", entries, n: Kati.Screens.Settings.grouped(entries)) <>
+        " · " <> ngettext("%{n} section", "%{n} sections", count, n: Kati.Locale.number(count))
+    )
+  end
+
+  @doc """
+  A count with the drawing's own thousands separator, in the reader's digits.
+
+      iex> Kati.Screens.Settings.grouped(1204)
+      "1,204"
+
+  A Latin comma in both scripts, which is board 62's own choice — it writes
+  **۱,۲۰۴** — and `Kati.Locale.number/1`'s doc records why the app follows the
+  drawings rather than CLDR's U+066C here.
+  """
+  @spec grouped(non_neg_integer()) :: String.t()
+  def grouped(n) do
+    n
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
+    |> String.reverse()
+    |> Kati.Locale.number()
+  end
 
   @doc false
   def group(rows, pad, gap) do
