@@ -38,7 +38,7 @@ defmodule Kati.Books.SampleFa do
   `D-59` asked the question and screen 69 had to answer it to draw a book
   somebody typed: a book published in 2024 prints **۲۰۲۴** — the Gregorian year
   with its digits folded — and is never converted.
-  `Kati.Screens.ArtistDetailFa` argues it in full for the same class of number
+  `Kati.Screens.ArtistDetail` argues it in full for the same class of number
   and the argument is not repeated here: a Gregorian year straddles two Shamsi
   years because the year turns at Nowruz, `Kati.Calendar.Shamsi` converts
   *dates* and has no year-to-year function at all, and choosing one of ۱۴۰۲/۱۴۰۳

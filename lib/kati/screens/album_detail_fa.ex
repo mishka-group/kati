@@ -1000,7 +1000,7 @@ defmodule Kati.Screens.AlbumDetailFa do
       {:noreply,
        Mob.Socket.push_screen(
          socket,
-         Kati.Screens.ArtistDetailFa,
+         Kati.Screens.ArtistDetail,
          Kati.Screens.ArtistDetail.params_for(socket.assigns.album)
        )}
 

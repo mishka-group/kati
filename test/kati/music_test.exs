@@ -322,7 +322,7 @@ defmodule Kati.MusicTest do
       Ash.update!(first, %{last_played_on: Kati.Time.today()})
 
       {:ok, socket} =
-        Kati.Screens.ArtistDetailFa.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.ArtistDetailFa))
+        Kati.Screens.ArtistDetail.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.ArtistDetail))
 
       assert socket.assigns.artist.name == x.name, "the fixture no longer sets this up"
       assert socket.assigns.artist.id == x.id, "the page must be able to name who it drew"
@@ -331,7 +331,7 @@ defmodule Kati.MusicTest do
       was_y = Ash.get!(Artist, y.id).following
 
       {:noreply, _moved} =
-        Kati.Screens.ArtistDetailFa.handle_info({:tap, :toggle_following}, socket)
+        Kati.Screens.ArtistDetail.handle_info({:tap, :toggle_following}, socket)
 
       # The flip, not a fixed value: what matters is WHICH row moved.
       assert Ash.get!(Artist, x.id).following == not was_x,
@@ -355,7 +355,7 @@ defmodule Kati.MusicTest do
       was = Ash.get!(Artist, shelved.id).following
 
       {:ok, mounted} =
-        Kati.Screens.ArtistDetailFa.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.ArtistDetailFa))
+        Kati.Screens.ArtistDetail.mount(%{}, %{}, Mob.Socket.new(Kati.Screens.ArtistDetail))
 
       drawn = Map.delete(mounted.assigns.artist, :id)
       socket = Mob.Socket.assign(mounted, :artist, drawn)
@@ -363,7 +363,7 @@ defmodule Kati.MusicTest do
       refute ArtistDetail.target(socket.assigns), "the fixture case needs no id to pin to"
 
       {:noreply, moved} =
-        Kati.Screens.ArtistDetailFa.handle_info({:tap, :toggle_following}, socket)
+        Kati.Screens.ArtistDetail.handle_info({:tap, :toggle_following}, socket)
 
       assert moved.assigns.artist.following == not drawn.following, "the switch did not move"
 

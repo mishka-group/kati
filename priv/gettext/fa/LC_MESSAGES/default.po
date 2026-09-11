@@ -1233,8 +1233,135 @@ msgstr "چه چیزی جا می‌شود؟"
 msgid "Year cards"
 msgstr "کارت‌های سال"
 
-#: lib/kati/screens/pushed.ex:209
+#: lib/kati/screens/pushed.ex:210
 #, elixir-autogen, elixir-format
 msgctxt "back pill"
 msgid "Meals"
 msgstr "وعده‌ها"
+
+#: lib/kati/music/sample.ex:259
+#: lib/kati/music/sample.ex:264
+#: lib/kati/screens/artist_detail.ex:296
+#, elixir-autogen, elixir-format
+msgid "%{count} play"
+msgid_plural "%{count} plays"
+msgstr[0] "%{count} پخش"
+msgstr[1] "%{count} پخش"
+
+#: lib/kati/screens/artist_detail.ex:413
+#, elixir-autogen, elixir-format
+msgid "Albums · %{count}"
+msgstr "آلبوم‌ها · %{count}"
+
+#: lib/kati/screens/artist_detail.ex:643
+#, elixir-autogen, elixir-format
+msgid "Dismiss"
+msgstr "رد کن"
+
+#: lib/kati/screens/artist_detail.ex:235
+#, elixir-autogen, elixir-format
+msgid "Feeds 21’s new-releases band and 25’s alerts"
+msgstr "به نوار تازه‌ها و هشدارها خبر می‌دهد"
+
+#: lib/kati/screens/artist_detail.ex:830
+#, elixir-autogen, elixir-format
+msgid "First heard"
+msgstr "اولین"
+
+#: lib/kati/screens/artist_detail.ex:385
+#, elixir-autogen, elixir-format
+msgid "Following"
+msgstr "پیگیری می‌کنم"
+
+#: lib/kati/screens/artist_detail.ex:830
+#, elixir-autogen, elixir-format
+msgid "Listened"
+msgstr "ساعت"
+
+#: lib/kati/screens/artist_detail.ex:643
+#, elixir-autogen, elixir-format
+msgid "New from this artist"
+msgstr "تازه از این هنرمند"
+
+#: lib/kati/screens/artist_detail.ex:308
+#, elixir-autogen, elixir-format
+msgid "Plays by album"
+msgstr "پخش بر اساس آلبوم"
+
+#: lib/kati/screens/artist_detail.ex:643
+#, elixir-autogen, elixir-format
+msgid "Remind me"
+msgstr "یادآوری کن"
+
+#: lib/kati/screens/artist_detail.ex:308
+#, elixir-autogen, elixir-format
+msgid "Totals"
+msgstr "مجموع"
+
+#: lib/kati/music/sample.ex:256
+#: lib/kati/screens/artist_detail.ex:288
+#, elixir-autogen, elixir-format
+msgid "Unheard"
+msgstr "نشنیده"
+
+#: lib/kati/screens/artist_detail.ex:790
+#, elixir-autogen, elixir-format
+msgid "You have not heard it"
+msgstr "هنوز نشنیده‌اید"
+
+#: lib/kati/screens/artist_detail.ex:605
+#, elixir-autogen, elixir-format
+msgid "and %{count} more"
+msgstr "و %{count} آلبوم دیگر"
+
+#: lib/kati/screens/artist_detail.ex:800
+#, elixir-autogen, elixir-format
+msgid "h"
+msgstr "س"
+
+#: lib/kati/screens/artist_detail.ex:776
+#, elixir-autogen, elixir-format
+msgid "you have not heard it"
+msgstr "هنوز نشنیده‌اید"
+
+#: lib/kati/screens/artist_detail.ex:830
+#, elixir-autogen, elixir-format
+msgctxt "totals tile"
+msgid "Albums"
+msgstr "آلبوم"
+
+#: lib/kati/music/sample.ex:232
+#, elixir-autogen, elixir-format
+msgid "Composer · Iceland"
+msgstr "آهنگساز · ایسلند"
+
+#: lib/kati/music/sample.ex:277
+#: lib/kati/music/sample.ex:291
+#, elixir-autogen, elixir-format
+msgid "Estuary Tapes"
+msgstr "نوارهای خور"
+
+#: lib/kati/music/sample.ex:231
+#, elixir-autogen, elixir-format
+msgid "Kell Ostrand"
+msgstr "کل اوستراند"
+
+#: lib/kati/music/sample.ex:275
+#, elixir-autogen, elixir-format
+msgid "Low Country"
+msgstr "سرزمین پست"
+
+#: lib/kati/music/sample.ex:276
+#, elixir-autogen, elixir-format
+msgid "Nine Rooms"
+msgstr "نه اتاق"
+
+#: lib/kati/music/sample.ex:292
+#, elixir-autogen, elixir-format
+msgid "Out Friday · you have not heard it"
+msgstr "جمعه منتشر می‌شود · هنوز نشنیده‌اید"
+
+#: lib/kati/music/sample.ex:274
+#, elixir-autogen, elixir-format
+msgid "Tidal Works"
+msgstr "کارهای جزر و مد"

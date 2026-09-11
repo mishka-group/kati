@@ -122,7 +122,8 @@ defmodule Kati.Screens.Gallery do
     {"88", "Scope & ranking", Kati.Screens.SearchSpec, :push},
     {"126", "Money on the calendar", Kati.Screens.MoneyDay, :push},
     {"76", "آلبوم", Kati.Screens.AlbumDetailFa, :push},
-    {"79", "هنرمند", Kati.Screens.ArtistDetailFa, :push},
+    # mishka-group/kati#103. Board 79 is screen 77 under `:fa`.
+    {"79", "هنرمند — Artist detail, RTL", Kati.Screens.ArtistDetail, :push},
     {"81", "Data sources — states", Kati.Screens.DataSourcesStates, :push},
     {"82", "منابع داده", Kati.Screens.DataSourcesFa, :push},
     {"84", "Attribution — states", Kati.Screens.AttributionStates, :push},

@@ -942,15 +942,17 @@ defmodule Kati.SheetRowIdentityTest do
       tracks!(a, [{1, "On the first album", 252, 3}])
       tracks!(b, [{1, "On the second album", 190, 0}, {2, "Also the second", 200, 0}])
 
-      # The row off the list the page itself drew, found by its title rather
-      # than by position: `:for_artist`'s order is the screen's, not this
-      # test's, and an index would pass or fail on it.
-      row =
+      # The row off the list the page itself drew, found by its TITLE and then
+      # asked for its position: `:for_artist`'s order is the screen's, not this
+      # test's, so the index is read out of the screen's own list rather than
+      # assumed. The tag is that index since mishka-group/kati#103 — a tag
+      # built from the drawn title is a tag that changes with the locale.
+      index =
         artist.id
         |> Kati.Screens.ArtistDetail.albums()
-        |> Enum.find(&(&1.title == b.title))
+        |> Enum.find_index(&(&1.title == b.title))
 
-      tag = Kati.Screens.ArtistDetail.album_tag(row)
+      tag = Kati.Screens.ArtistDetail.album_tag(index)
 
       view = tap_on_page(Kati.Screens.ArtistDetail, :artist_id, artist.id, tag)
 
@@ -987,7 +989,10 @@ defmodule Kati.SheetRowIdentityTest do
           Kati.Screens.ArtistDetail,
           :artist_id,
           artist.id,
-          :open_album_nothing_named_this
+          # A position no row has. `index_of/1` answers -1 for anything the
+          # prefix does not front, and `Enum.at/2` answers `nil` for both — so
+          # a tag naming nothing and a tag naming row 99 take the same path.
+          :open_album_99
         )
 
       assert pushed(view) == {:push, AlbumDetail, %{}}
@@ -1020,7 +1025,7 @@ defmodule Kati.SheetRowIdentityTest do
         Kati.Screens.AlbumDetailFa.handle_info({:tap, :open_artist}, socket)
 
       assert open.__mob__.nav_action ==
-               {:push, Kati.Screens.ArtistDetailFa, %{artist_id: artist.id}}
+               {:push, Kati.Screens.ArtistDetail, %{artist_id: artist.id}}
     end
 
     test "the drawing carries neither, so both pushes are the ones 76 draws" do

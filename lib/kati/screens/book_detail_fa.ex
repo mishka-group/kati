@@ -149,7 +149,7 @@ defmodule Kati.Screens.BookDetailFa do
      # `Ines Karvel`, so following from here and following from screen 66 are
      # two different people as far as the store is concerned. That is the
      # correct answer and not a defect to paper over: the two pages draw two
-     # different books. `Kati.Screens.ArtistDetailFa`'s own note makes the
+     # different books. `Kati.Screens.ArtistDetail`'s own note makes the
      # opposite call for the opposite reason — the Persian artist page resolves
      # the SAME artist row, so following from the mirror is the same act.
      |> Mob.Socket.assign(:following, FollowedAuthor.following?(shaped[:author]))}

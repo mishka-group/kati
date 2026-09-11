@@ -446,7 +446,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # mirror that fell back differently from the page it mirrors would be the
     # defect worth catching.
     {"76", Kati.Screens.AlbumDetailFa},
-    {"79", Kati.Screens.ArtistDetailFa},
     {"81", Kati.Screens.DataSourcesStates},
     {"82", Kati.Screens.DataSourcesFa},
     # 85 was here, paired with screen 80's own fallback, for as long as it was
@@ -2252,8 +2251,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        &Kati.Screens.ArtistDetail.drawn_artist/0},
       {"76", Kati.Screens.AlbumDetailFa, &Kati.Screens.AlbumDetail.album/0,
        &Kati.Screens.AlbumDetail.drawn_album/0},
-      {"79", Kati.Screens.ArtistDetailFa, &Kati.Screens.ArtistDetail.artist/0,
-       &Kati.Screens.ArtistDetail.drawn_artist/0},
       {"81", Kati.Screens.DataSourcesStates, &Kati.Screens.DataSources.cache_size/0,
        fn -> "Nothing cached yet" end},
       {"82", Kati.Screens.DataSourcesFa, &Kati.Screens.DataSources.cache_size/0,

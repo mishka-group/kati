@@ -1,4 +1,6 @@
 defmodule Kati.Music.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Stand-in music-shelf data, until the Screen domain grows a Music section.
 
@@ -222,25 +224,57 @@ defmodule Kati.Music.Sample do
   @spec artist() :: map()
   def artist do
     %{
-      name: "Kell Ostrand",
-      subtitle: "Composer · Iceland",
+      # The fixture's own copy is copy, so it translates. Board 79 draws this
+      # page in Persian and drew it with a mirror's second fixture until
+      # mishka-group/kati#103; one fixture with a catalogue behind it is the
+      # same page in two scripts, and a name that reads as a name in both.
+      name: gettext("Kell Ostrand"),
+      subtitle: gettext("Composer · Iceland"),
       photo_seed: "artist-kell",
       following: true,
-      following_note: "Feeds 21’s new-releases band and 25’s alerts",
-      hours: "61h",
-      first_heard: "2024",
-      album_count: "4"
+      following_note: gettext("Feeds 21’s new-releases band and 25’s alerts"),
+      # Numbers, matching what `Kati.Screens.ArtistDetail.shaped/2` carries for
+      # a stored artist. The board draws `61h` and `2024`; the `h` and the
+      # calendar are added where they are drawn, so the Persian page can add a
+      # different `h` and a different calendar to the same figures. It was
+      # `hours: "61h"` and screen 79's mirror read the number back by stripping
+      # the letter off — mishka-group/kati#103's recurring defect.
+      minutes: 3_660,
+      first_heard_on: ~D[2024-06-15],
+      album_count: 4
     }
+  end
+
+  # A drawn row's line, built the way a stored row's is — `year · N plays`, or
+  # the one word for a record with no plays. It was four hand-written strings,
+  # which is four places for the Persian to disagree with
+  # `Kati.Screens.ArtistDetail.album_line/2`.
+  defp album_row(title, year, plays) do
+    line =
+      cond do
+        plays == 0 ->
+          gettext("Unheard")
+
+        year == nil ->
+          ngettext("%{count} play", "%{count} plays", plays, count: Kati.Locale.number(plays))
+
+        true ->
+          Kati.Locale.number(year) <>
+            " · " <>
+            ngettext("%{count} play", "%{count} plays", plays, count: Kati.Locale.number(plays))
+      end
+
+    %{title: title, year: year, plays: plays, line: line, seed: nil}
   end
 
   @doc "Screen 77's album rail and its plays-by-album chart, in one list."
   @spec artist_albums() :: [map()]
   def artist_albums do
     [
-      %{title: "Tidal Works", year: 2025, plays: 41, line: "2025 · 41 plays", seed: nil},
-      %{title: "Low Country", year: 2023, plays: 28, line: "2023 · 28 plays", seed: nil},
-      %{title: "Nine Rooms", year: 2021, plays: 19, line: "2021 · 19 plays", seed: nil},
-      %{title: "Estuary Tapes", year: nil, plays: 0, line: "Unheard", seed: nil}
+      album_row(gettext("Tidal Works"), 2025, 41),
+      album_row(gettext("Low Country"), 2023, 28),
+      album_row(gettext("Nine Rooms"), 2021, 19),
+      album_row(gettext("Estuary Tapes"), nil, 0)
     ]
   end
 
@@ -253,7 +287,10 @@ defmodule Kati.Music.Sample do
   """
   @spec unheard() :: map()
   def unheard do
-    %{title: "Estuary Tapes", line: "Out Friday · you have not heard it"}
+    %{
+      title: gettext("Estuary Tapes"),
+      line: gettext("Out Friday · you have not heard it")
+    }
   end
 
   @doc """

@@ -77,7 +77,6 @@ defmodule Kati.PersianScreensRatchetTest do
   # the mirrors call, and the day the last mirror goes it goes with them.
   @mirrors [
     Kati.Screens.AlbumDetailFa,
-    Kati.Screens.ArtistDetailFa,
     Kati.Screens.BookDetailFa,
     Kati.Screens.BooksFa,
     Kati.Screens.DataSourcesFa,

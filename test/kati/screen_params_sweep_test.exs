@@ -552,10 +552,10 @@ defmodule Kati.ScreenParamsSweepTest do
     # `seed: nil`*. With no artist stored the rows are
     # `Kati.Music.Sample.artist_albums/0` (`music/sample.ex:238-245`) and none
     # holds an `:id`, so `album_detail.ex:100-101` answers `%{}`.
-    {Kati.Screens.ArtistDetail, :open_album_Estuary_Tapes, Kati.Screens.AlbumDetail},
-    {Kati.Screens.ArtistDetail, :open_album_Low_Country_2023, Kati.Screens.AlbumDetail},
-    {Kati.Screens.ArtistDetail, :open_album_Nine_Rooms_2021, Kati.Screens.AlbumDetail},
-    {Kati.Screens.ArtistDetail, :open_album_Tidal_Works_2025, Kati.Screens.AlbumDetail},
+    {Kati.Screens.ArtistDetail, :open_album_3, Kati.Screens.AlbumDetail},
+    {Kati.Screens.ArtistDetail, :open_album_1, Kati.Screens.AlbumDetail},
+    {Kati.Screens.ArtistDetail, :open_album_2, Kati.Screens.AlbumDetail},
+    {Kati.Screens.ArtistDetail, :open_album_0, Kati.Screens.AlbumDetail},
 
     # ── Screens 73 and 74's `Log a listen` and artist row, in both languages.
     #
@@ -582,7 +582,7 @@ defmodule Kati.ScreenParamsSweepTest do
     # exactly as the two doors above it do and clears with the same rows.
     {Kati.Screens.AlbumDetail, :rate, Kati.Screens.RateAlbum},
     {Kati.Screens.AlbumDetailFa, :log_listen, Kati.Screens.LogListen},
-    {Kati.Screens.AlbumDetailFa, :open_artist, Kati.Screens.ArtistDetailFa},
+    {Kati.Screens.AlbumDetailFa, :open_artist, Kati.Screens.ArtistDetail},
 
     # ── Screens 66, 157 and 69's `Log progress`.
     #

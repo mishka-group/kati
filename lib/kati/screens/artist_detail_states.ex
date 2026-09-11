@@ -303,11 +303,12 @@ defmodule Kati.Screens.ArtistDetailStates do
         font_weight="bold"
         text_color={:on_surface}
         max_lines={1}
+        font_family={Kati.Locale.face_prop()}
       />
       <Spacer size={3} />
       <Text
         text={album.line}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face()}
         text_size={10}
         text_color={Palette.muted()}
         max_lines={1}
@@ -620,7 +621,7 @@ defmodule Kati.Screens.ArtistDetailStates do
       >
         <Text
           text={initial}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={26}
           text_color={Palette.track_off(:dark)}
           max_lines={1}

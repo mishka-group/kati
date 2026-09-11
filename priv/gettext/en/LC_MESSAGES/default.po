@@ -1228,8 +1228,135 @@ msgstr ""
 msgid "Year cards"
 msgstr ""
 
-#: lib/kati/screens/pushed.ex:209
+#: lib/kati/screens/pushed.ex:210
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "back pill"
 msgid "Meals"
+msgstr ""
+
+#: lib/kati/music/sample.ex:259
+#: lib/kati/music/sample.ex:264
+#: lib/kati/screens/artist_detail.ex:296
+#, elixir-autogen, elixir-format, fuzzy
+msgid "%{count} play"
+msgid_plural "%{count} plays"
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/kati/screens/artist_detail.ex:413
+#, elixir-autogen, elixir-format
+msgid "Albums · %{count}"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:643
+#, elixir-autogen, elixir-format
+msgid "Dismiss"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:235
+#, elixir-autogen, elixir-format
+msgid "Feeds 21’s new-releases band and 25’s alerts"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:830
+#, elixir-autogen, elixir-format
+msgid "First heard"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:385
+#, elixir-autogen, elixir-format
+msgid "Following"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:830
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Listened"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:643
+#, elixir-autogen, elixir-format
+msgid "New from this artist"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:308
+#, elixir-autogen, elixir-format
+msgid "Plays by album"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:643
+#, elixir-autogen, elixir-format
+msgid "Remind me"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:308
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Totals"
+msgstr ""
+
+#: lib/kati/music/sample.ex:256
+#: lib/kati/screens/artist_detail.ex:288
+#, elixir-autogen, elixir-format
+msgid "Unheard"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:790
+#, elixir-autogen, elixir-format, fuzzy
+msgid "You have not heard it"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:605
+#, elixir-autogen, elixir-format
+msgid "and %{count} more"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:800
+#, elixir-autogen, elixir-format
+msgid "h"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:776
+#, elixir-autogen, elixir-format
+msgid "you have not heard it"
+msgstr ""
+
+#: lib/kati/screens/artist_detail.ex:830
+#, elixir-autogen, elixir-format, fuzzy
+msgctxt "totals tile"
+msgid "Albums"
+msgstr ""
+
+#: lib/kati/music/sample.ex:232
+#, elixir-autogen, elixir-format
+msgid "Composer · Iceland"
+msgstr ""
+
+#: lib/kati/music/sample.ex:277
+#: lib/kati/music/sample.ex:291
+#, elixir-autogen, elixir-format
+msgid "Estuary Tapes"
+msgstr ""
+
+#: lib/kati/music/sample.ex:231
+#, elixir-autogen, elixir-format
+msgid "Kell Ostrand"
+msgstr ""
+
+#: lib/kati/music/sample.ex:275
+#, elixir-autogen, elixir-format
+msgid "Low Country"
+msgstr ""
+
+#: lib/kati/music/sample.ex:276
+#, elixir-autogen, elixir-format
+msgid "Nine Rooms"
+msgstr ""
+
+#: lib/kati/music/sample.ex:292
+#, elixir-autogen, elixir-format
+msgid "Out Friday · you have not heard it"
+msgstr ""
+
+#: lib/kati/music/sample.ex:274
+#, elixir-autogen, elixir-format
+msgid "Tidal Works"
 msgstr ""

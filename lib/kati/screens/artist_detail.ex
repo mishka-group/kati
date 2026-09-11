@@ -33,10 +33,10 @@ defmodule Kati.Screens.ArtistDetail do
   """
 
   use Kati.Screens.Pushed, back: "Album"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Music.Album
   alias Kati.Music.Artist
-  alias Kati.Music.Listen
   alias Kati.Music.Sample
   alias Kati.Theme.Palette
   alias Kati.UI
@@ -232,10 +232,23 @@ defmodule Kati.Screens.ArtistDetail do
       subtitle: Artist.subtitle(artist),
       photo_seed: artist.photo_seed,
       following: artist.following,
-      following_note: "Feeds 21’s new-releases band and 25’s alerts",
-      hours: Listen.hours_label(minutes),
-      first_heard: artist.first_heard_on && Integer.to_string(artist.first_heard_on.year),
-      album_count: Integer.to_string(length(albums))
+      following_note: gettext("Feeds 21’s new-releases band and 25’s alerts"),
+      # The NUMBER, and the label built from it at draw time.
+      #
+      # `hours:` was `Listen.hours_label(minutes)` — `61h` — and screen 79's
+      # mirror read the figure back out by stripping the `h`
+      # (`label |> String.trim_trailing("h")`). That is mishka-group/kati#103's
+      # recurring defect in its clearest form: a formatted string used as a
+      # value. Translate the label and the Totals tile renders garbage; the
+      # mirror's own author could only avoid it by not translating it.
+      minutes: minutes,
+      # The DATE, not its year as a string. A Gregorian year straddles two
+      # Shamsi years across Nowruz, so a page that keeps only `2025` cannot
+      # answer *which Shamsi year* — screen 79's moduledoc says exactly this
+      # about its own mirror, and folding without the date would move the bug
+      # into here where it is harder to see.
+      first_heard_on: artist.first_heard_on,
+      album_count: length(albums)
     }
   end
 
@@ -272,12 +285,16 @@ defmodule Kati.Screens.ArtistDetail do
   # never played: `Unheard`. Not `0 plays` — the count is not the point, the
   # fact that you have not heard it is, and it is the fact the unheard card
   # further down acts on.
-  defp album_line(_year, 0), do: "Unheard"
+  defp album_line(_year, 0), do: gettext("Unheard")
 
-  defp album_line(nil, plays), do: "#{plays} #{if plays == 1, do: "play", else: "plays"}"
+  defp album_line(nil, plays), do: plays_line(plays)
 
   defp album_line(year, plays),
-    do: "#{year} · #{plays} #{if plays == 1, do: "play", else: "plays"}"
+    do: Kati.Locale.number(year) <> " · " <> plays_line(plays)
+
+  defp plays_line(plays) do
+    ngettext("%{count} play", "%{count} plays", plays, count: Kati.Locale.number(plays))
+  end
 
   @doc false
   def content(assigns) do
@@ -300,12 +317,12 @@ defmodule Kati.Screens.ArtistDetail do
         {SettingsList.chrome(nil, 44)}
         {Kati.Screens.ArtistDetail.hero(a)}
         {Kati.Screens.ArtistDetail.following_row(a)}
-        {UI.eyebrow(Kati.Screens.ArtistDetail.albums_label(id))}
+        {UI.eyebrow(Kati.UI.eyebrow_label(Kati.Screens.ArtistDetail.albums_label(id)))}
         {Kati.Screens.ArtistDetail.rail(id)}
-        {UI.eyebrow("Plays by album")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Plays by album")))}
         {Kati.Screens.ArtistDetail.chart(id)}
         {Kati.Screens.ArtistDetail.unheard(assigns.dismissed?, id)}
-        {UI.eyebrow("Totals")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Totals")))}
         {Kati.Screens.ArtistDetail.totals(a)}
       </Column>
     </Scroll>
@@ -367,7 +384,7 @@ defmodule Kati.Screens.ArtistDetail do
       {Kati.UI.SettingsList.card([
         Kati.UI.SettingsList.row(
           Kati.UI.SettingsList.icon_tile("notifications"),
-          Kati.UI.SettingsList.body("Following", a.following_note, lines: 2),
+          Kati.UI.SettingsList.body(gettext("Following"), a.following_note, lines: 2),
           Kati.UI.SettingsList.trailing(Kati.UI.SettingsList.switch(a.following)),
           on_tap: {self(), :toggle_following}
         )
@@ -390,7 +407,10 @@ defmodule Kati.Screens.ArtistDetail do
         %Artist{} = artist -> length(stored_albums(artist))
       end
 
-    "Albums · #{count}"
+    # The eyebrow, as a sentence with a number in it rather than a number
+    # concatenated onto a word — a Persian eyebrow reads its count on the other
+    # side, and only the translator can say where.
+    gettext("Albums · %{count}", count: Kati.Locale.number(count))
   end
 
   @doc "The album rail: art, title, and the line that says whether you have heard it."
@@ -403,7 +423,8 @@ defmodule Kati.Screens.ArtistDetail do
     rows =
       id
       |> Kati.Screens.ArtistDetail.albums()
-      |> Enum.map(&Kati.Screens.ArtistDetail.rail_row/1)
+      |> Enum.with_index()
+      |> Enum.map(fn {album, i} -> Kati.Screens.ArtistDetail.rail_row(album, i) end)
 
     ~MOB"""
     <Column fill_width={true}>
@@ -420,48 +441,41 @@ defmodule Kati.Screens.ArtistDetail do
   `accessibility_id` repeated and `onNodeWithTag` throws on the second match
   (#97).
 
-  **Not the seed**, which is the obvious choice and the wrong one: every row of
-  `Kati.Music.Sample.artist_albums/0` carries `seed: nil`, so a seed-derived
-  tag collapses all four back onto `:open_album` and the rail collides exactly
-  as before. `Kati.Screens.Music` can key on the seed because its rows have
-  one; this rail cannot. Caught by the sweep, not by reading.
+  **The rail's POSITION**, and neither the title nor the seed.
 
-  Title *and* year for #97's first trap — a name that is not unique is not an
-  identity — and both shapes carry the pair: `shape_album/1` maps it off
-  `Kati.Music.Album` and the sample rows spell it out. A record with no year
-  keeps its title alone, which is what the drawing's *Unheard* row is.
+  The seed was the obvious choice and the wrong one: every row of
+  `Kati.Music.Sample.artist_albums/0` carries `seed: nil`, so a seed-derived tag
+  collapses all four back onto `:open_album` and the rail collides exactly as
+  before. So it was title-and-year — `:"open_album_Low_Country_2023"` — and that
+  is mishka-group/kati#103's recurring defect: the tag was the DRAWN TITLE, and
+  the handler found its row by rebuilding the same string and comparing. Under
+  `:fa` the fixture titles translate, every tag becomes a different atom, and
+  the prefix clause's `Enum.find` returns `nil` — so the rail stops opening
+  albums and the `else` branch returns the socket unchanged. Silently: no
+  exception, and no test that does not name the Latin atoms would notice.
 
-      iex> Kati.Screens.ArtistDetail.album_tag(%{title: "Low Country", year: 2023})
-      :"open_album_Low_Country_2023"
+  An index is not copy. It is unique by construction, which is what #97 asked
+  for, and it is the same answer the theme trough and the segmented control
+  reach for. The handler takes `Enum.at/2` on the same list `rail/1` numbered,
+  so the two cannot disagree about which row row 2 is.
 
-      iex> Kati.Screens.ArtistDetail.album_tag(%{title: "Estuary Tapes", year: nil})
-      :"open_album_Estuary_Tapes"
+      iex> Kati.Screens.ArtistDetail.album_tag(0)
+      :open_album_0
 
-      iex> Kati.Screens.ArtistDetail.album_tag(%{})
-      :open_album
+      iex> Kati.Screens.ArtistDetail.album_tag(3)
+      :open_album_3
   """
-  @spec album_tag(map()) :: atom()
-  def album_tag(album) do
-    title =
-      album |> Map.get(:title, "") |> to_string() |> String.trim() |> String.replace(" ", "_")
-
-    year = album |> Map.get(:year) |> to_string() |> String.trim()
-
-    case {title, year} do
-      {"", ""} -> :open_album
-      {"", y} -> String.to_atom("open_album_" <> y)
-      {t, ""} -> String.to_atom("open_album_" <> t)
-      {t, y} -> String.to_atom("open_album_" <> t <> "_" <> y)
-    end
-  end
+  @spec album_tag(non_neg_integer()) :: atom()
+  def album_tag(index) when is_integer(index) and index >= 0,
+    do: String.to_atom("open_album_" <> Integer.to_string(index))
 
   @doc false
-  def rail_row(album) do
+  def rail_row(album, index) do
     SettingsList.row(
       Kati.Screens.ArtistDetail.rail_art(album),
       SettingsList.body(album.title, album.line),
       SettingsList.trailing(nil),
-      on_tap: {self(), Kati.Screens.ArtistDetail.album_tag(album)}
+      on_tap: {self(), Kati.Screens.ArtistDetail.album_tag(index)}
     )
   end
 
@@ -485,6 +499,7 @@ defmodule Kati.Screens.ArtistDetail do
             font_weight="bold"
             text_align="center"
             text_color={Kati.Theme.Palette.sub()}
+            font_family={Kati.Locale.face_prop()}
           />
         </Box>
         """
@@ -588,7 +603,7 @@ defmodule Kati.Screens.ArtistDetail do
         []
 
       more ->
-        assigns = %{label: "and #{more} more"}
+        assigns = %{label: gettext("and %{count} more", count: Kati.Locale.number(more))}
 
         ~MOB"""
         <Column fill_width={true}>
@@ -628,7 +643,7 @@ defmodule Kati.Screens.ArtistDetail do
 
         ~MOB"""
         <Column fill_width={true}>
-          {Kati.UI.eyebrow("New from this artist")}
+          {Kati.UI.eyebrow(Kati.UI.eyebrow_label(gettext("New from this artist")))}
           <Column fill_width={true} background={Palette.cream()} corner_radius={22} padding={17}>
             <Text
               text={@title}
@@ -652,7 +667,7 @@ defmodule Kati.Screens.ArtistDetail do
                 on_tap={{self(), :remind_me}}
               >
                 <Text
-                  text="Remind me"
+                  text={gettext("Remind me")}
                   text_size={12.5}
                   font_weight="bold"
                   text_color={Palette.on_ink()}
@@ -661,7 +676,7 @@ defmodule Kati.Screens.ArtistDetail do
               </Row>
               <Spacer size={14} />
               <Text
-                text="Dismiss"
+                text={gettext("Dismiss")}
                 text_size={12.5}
                 font_weight="semibold"
                 text_color={Palette.cream_sub()}
@@ -696,7 +711,12 @@ defmodule Kati.Screens.ArtistDetail do
       %Artist{} = artist ->
         case unheard_albums(artist) do
           [] -> nil
-          [album | _rest] -> %{title: album.title, line: String.capitalize(unheard_line())}
+          # `unheard_sentence/0`, not `String.capitalize(unheard_line())`.
+          # Capitalisation is a Latin operation and a no-op on Persian, so the
+          # card's sentence and screen 21's clause have to be two strings a
+          # translator can shape independently — which is what they are in
+          # every language including this one.
+          [album | _rest] -> %{title: album.title, line: unheard_sentence()}
         end
     end
   end
@@ -754,7 +774,56 @@ defmodule Kati.Screens.ArtistDetail do
       "you have not heard it"
   """
   @spec unheard_line() :: String.t()
-  def unheard_line, do: "you have not heard it"
+  def unheard_line, do: gettext("you have not heard it")
+
+  @doc """
+  The same fact as a sentence of its own, for the card that leads with it.
+
+  Two strings and not one with `String.capitalize/1` over it: capitalising is a
+  Latin operation, it is a no-op on Persian, and a clause that follows a title
+  and a sentence that opens a card are not the same sentence in every language
+  even when they are in this one.
+
+      iex> Kati.Screens.ArtistDetail.unheard_sentence()
+      "You have not heard it"
+  """
+  @spec unheard_sentence() :: String.t()
+  def unheard_sentence, do: gettext("You have not heard it")
+
+  @doc """
+  The listening figure, formatted where it is drawn.
+
+  `shaped/2` carries minutes as a number for the reason its own comment gives,
+  so the `h` is added here and the numerals follow the script.
+  """
+  @spec hours_label(map()) :: String.t()
+  def hours_label(%{minutes: minutes}) when is_integer(minutes),
+    do: Kati.Locale.number(div(minutes, 60)) <> gettext("h")
+
+  def hours_label(_a), do: "—"
+
+  @doc """
+  The year a reader first heard this artist, in the reader's own calendar.
+
+  A Gregorian year is not a Shamsi year: 2025 straddles ۱۴۰۳ and ۱۴۰۴ across
+  Nowruz. So the DATE is carried and converted, rather than the year being
+  carried as a string and its digits swapped — which is what screen 79's mirror
+  did, and what its own moduledoc filed as wrong.
+  """
+  @spec first_heard_label(map()) :: String.t()
+  def first_heard_label(%{first_heard_on: %Date{} = date}) do
+    year =
+      if Kati.Locale.direction(Kati.Locale.current()) == :rtl do
+        {shamsi_year, _month, _day} = Kati.Calendar.Shamsi.from_gregorian(date)
+        shamsi_year
+      else
+        date.year
+      end
+
+    Kati.Locale.number(year)
+  end
+
+  def first_heard_label(_a), do: "—"
 
   @doc "Three figures, in screen 07's stat typography."
   @spec totals(map()) :: map()
@@ -762,15 +831,15 @@ defmodule Kati.Screens.ArtistDetail do
     ~MOB"""
     <Row fill_width={true} align="top">
       <Column weight={1.0}>
-        {Kati.Screens.AlbumDetail.stat_tile("Listened", a.hours)}
+        {Kati.Screens.AlbumDetail.stat_tile(gettext("Listened"), Kati.Screens.ArtistDetail.hours_label(a))}
       </Column>
       <Spacer size={9} />
       <Column weight={1.0}>
-        {Kati.Screens.AlbumDetail.stat_tile("First heard", a.first_heard || "—")}
+        {Kati.Screens.AlbumDetail.stat_tile(gettext("First heard"), Kati.Screens.ArtistDetail.first_heard_label(a))}
       </Column>
       <Spacer size={9} />
       <Column weight={1.0}>
-        {Kati.Screens.AlbumDetail.stat_tile("Albums", a.album_count)}
+        {Kati.Screens.AlbumDetail.stat_tile(pgettext("totals tile", "Albums"), Kati.Locale.number(a.album_count))}
       </Column>
     </Row>
     """
@@ -845,7 +914,7 @@ defmodule Kati.Screens.ArtistDetail do
         socket.assigns
         |> Map.get(:artist_id)
         |> albums()
-        |> Enum.find(&(album_tag(&1) == tag))
+        |> Enum.at(index_of(tag))
 
       {:noreply,
        Mob.Socket.push_screen(
@@ -859,4 +928,13 @@ defmodule Kati.Screens.ArtistDetail do
   end
 
   def handle_tap(_tag, socket), do: {:noreply, socket}
+
+  # The position out of `open_album_<n>`, or -1 for anything else — which
+  # `Enum.at/2` answers with `nil`, and `params_for/1` draws the board for.
+  defp index_of(tag) do
+    case Integer.parse(String.replace_prefix(Atom.to_string(tag), "open_album_", "")) do
+      {n, ""} -> n
+      _ -> -1
+    end
+  end
 end

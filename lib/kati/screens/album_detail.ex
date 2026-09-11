@@ -557,14 +557,21 @@ defmodule Kati.Screens.AlbumDetail do
       shadow={Kati.Theme.shadow_card()}
     >
       <Text
-        text={String.upcase(@label)}
-        font_family="mono"
+        text={Kati.UI.eyebrow_label(@label)}
+        font_family={Kati.Locale.mono_face()}
         text_size={9.5}
-        letter_spacing={0.12}
+        letter_spacing={Kati.Locale.tracking(0.12)}
         text_color={Palette.muted()}
       />
       <Spacer size={9} />
-      <Text text={@value} text_size={15} font_weight="bold" text_color={:on_surface} max_lines={1} />
+      <Text
+        text={@value}
+        text_size={15}
+        font_weight="bold"
+        text_color={:on_surface}
+        max_lines={1}
+        font_family={Kati.Locale.face_prop()}
+      />
     </Column>
     """
   end
