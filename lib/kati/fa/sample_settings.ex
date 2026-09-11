@@ -53,9 +53,15 @@ defmodule Kati.Fa.SampleSettings do
         dash: :accent,
         rows: [
           %{badge: "فا", title: "زبان", sub: "فارسی · راست به چپ", trailing: {:text, "تغییر"}},
-          %{icon: "calendar_month", title: "تقویم", sub: "شمسی", trailing: :chevron},
-          %{icon: "pin", title: "اعداد", sub: "فارسی ۱۲۳۴", trailing: :chevron},
-          %{icon: "event", title: "شروع هفته", sub: "شنبه", trailing: :chevron}
+          %{
+            id: "calendars",
+            icon: "calendar_month",
+            title: "تقویم",
+            sub: "شمسی",
+            trailing: :chevron
+          },
+          %{id: "numerals", icon: "pin", title: "اعداد", sub: "فارسی ۱۲۳۴", trailing: :chevron},
+          %{id: "week_start", icon: "event", title: "شروع هفته", sub: "شنبه", trailing: :chevron}
         ]
       },
       %{
@@ -63,13 +69,26 @@ defmodule Kati.Fa.SampleSettings do
         dash: :accent,
         rows: [
           %{
+            id: "theme",
             icon: "contrast",
             title: "پوسته",
             sub: nil,
             trailing: {:segmented, ["خودکار", "روشن", "تیره"]}
           },
-          %{icon: "format_size", title: "اندازه متن", sub: "پیروی از سیستم", trailing: :chevron},
-          %{icon: "motion_blur", title: "کاهش حرکت", sub: nil, trailing: {:toggle, false}}
+          %{
+            id: "text_size",
+            icon: "format_size",
+            title: "اندازه متن",
+            sub: "پیروی از سیستم",
+            trailing: :chevron
+          },
+          %{
+            id: "reduce_motion",
+            icon: "motion_blur",
+            title: "کاهش حرکت",
+            sub: nil,
+            trailing: {:toggle, false}
+          }
         ]
       },
       %{
@@ -77,25 +96,34 @@ defmodule Kati.Fa.SampleSettings do
         dash: :accent,
         rows: [
           %{
+            id: "screen",
             icon: "movie",
             title: "نمایش",
             sub: "کارت خانه، تقویم، قفسه",
             trailing: {:toggle, true}
           },
           %{
+            id: "books",
             icon: "menu_book",
             title: "کتاب‌ها",
             sub: "کارت خانه، قفسه",
             trailing: {:toggle, true}
           },
           %{
+            id: "meals",
             icon: "restaurant",
             title: "وعده‌ها",
             sub: "کارت خانه، تقویم",
             trailing: {:toggle, true}
           },
-          %{icon: "bolt", title: "عادت‌ها", sub: "تقویم", trailing: {:toggle, true}},
-          %{icon: "payments", title: "مالی", sub: "تقویم", trailing: {:toggle, false}}
+          %{id: "habits", icon: "bolt", title: "عادت‌ها", sub: "تقویم", trailing: {:toggle, true}},
+          %{
+            id: "money",
+            icon: "payments",
+            title: "مالی",
+            sub: "تقویم",
+            trailing: {:toggle, false}
+          }
         ]
       },
       %{
@@ -103,18 +131,21 @@ defmodule Kati.Fa.SampleSettings do
         dash: :muted,
         rows: [
           %{
+            id: "import",
             icon: "download",
             title: "درون‌ریزی",
             sub: "CSV، JSON یا پشتیبان دیگر",
             trailing: :chevron
           },
           %{
+            id: "export",
             icon: "upload",
             title: "برون‌ریزی همه‌چیز",
             sub: "آخرین پشتیبان ۱۴ مرداد",
             trailing: :chevron
           },
           %{
+            id: "sync",
             icon: "sync",
             title: "همگام‌سازی",
             sub: "آی‌کلاد · این دستگاه و آی‌پد",
@@ -126,12 +157,14 @@ defmodule Kati.Fa.SampleSettings do
           # Screen 62's Watching row, the mirror of 24's. `subscriptions` is the
           # same glyph the English row uses.
           %{
+            id: "my_services",
             icon: "subscriptions",
             title: "سرویس‌های من",
             sub: "ایران · ۳ سرویس",
             trailing: :chevron
           },
           %{
+            id: "data_sources",
             icon: "dns",
             title: "منابع داده",
             sub: "TVmaze، Open Library، MusicBrainz",
@@ -139,6 +172,7 @@ defmodule Kati.Fa.SampleSettings do
           },
           # The Persian mirror of 24's About row for screen 83.
           %{
+            id: "attribution",
             icon: "info",
             title: "منابع",
             sub: "پروانه‌ها و اعتبارها",

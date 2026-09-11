@@ -6,8 +6,31 @@ defmodule Kati.Settings.Sample do
   that has an opinion about how fresh it is, a last backup with a date on it.
   A settings screen rendered against defaults would show five identical rows
   and none of the states the drawing specifies, so this supplies the shape the
-  domain will supply later: a list of rows, each naming its icon, its copy and
-  its control.
+  domain will supply later: a list of rows, each naming its **id**, its icon,
+  its copy and its control.
+
+  ## Why a row carries an id
+
+  It did not, and the screen inferred one: `Kati.Screens.Settings` keyed its
+  destination table on the DRAWN TITLE and built each tap tag as
+  `String.to_atom("go_" <> title)`, which is how `:"go_Export everything"` — an
+  atom with a space in it — came to cross into Kotlin and back. The section
+  switches were worse: `flip_switch/2` did `String.downcase(title)` and looked
+  the result up in `Kati.Sections.all/0`, and `String.downcase/1` on a Persian
+  title is a no-op, so the moment the copy became `gettext(...)` every section
+  would have refused to flip and every chevron would have vanished — silently,
+  because `tap_for/1` answers `nil` for a title it does not recognise and
+  `handle_tap/2` returns the socket unchanged on `:error`.
+
+  That is mishka-group/kati#103's recurring defect — a label doubling as
+  compared state — and an id is the answer to it: the one field on a row that
+  is not copy, so the English screen and the Persian one name the same rows
+  without a translation table between them. The five section rows take
+  `Kati.Sections`' own ids, so the switch and the store agree by construction
+  rather than by a downcase. The GLYPH is not that field, which
+  `Kati.Screens.SettingsFa` keyed on and which nearly was the answer here:
+  `info` is both *Version* and *Where this comes from*, and `grid_view` is
+  *Widgets*, *Year cards* and *Every screen*.
 
   Copy is the drawing's own, down to the typographic apostrophe in
   "another tracker's backup". Marked clearly as a stand-in, because sample
@@ -34,20 +57,40 @@ defmodule Kati.Settings.Sample do
   def appearance do
     [
       %{
+        id: "theme",
         icon: "contrast",
         title: "Theme",
         sub: nil,
         control: {:segments, ["Auto", "Light", "Dark"], "Auto"}
       },
       %{
+        id: "text_size",
         icon: "format_size",
         title: "Text size",
         sub: "Follows system · up to 235%",
         control: :chevron
       },
-      %{icon: "motion_blur", title: "Reduce motion", sub: nil, control: {:switch, false}},
-      %{icon: "translate", title: "Language", sub: "English · فارسی", control: :chevron},
-      %{icon: "grid_view", title: "Widgets", sub: "Home and lock screen", control: :chevron}
+      %{
+        id: "reduce_motion",
+        icon: "motion_blur",
+        title: "Reduce motion",
+        sub: nil,
+        control: {:switch, false}
+      },
+      %{
+        id: "language",
+        icon: "translate",
+        title: "Language",
+        sub: "English · فارسی",
+        control: :chevron
+      },
+      %{
+        id: "widgets",
+        icon: "grid_view",
+        title: "Widgets",
+        sub: "Home and lock screen",
+        control: :chevron
+      }
     ]
   end
 
@@ -63,6 +106,7 @@ defmodule Kati.Settings.Sample do
   def watching do
     [
       %{
+        id: "my_services",
         icon: "subscriptions",
         title: "My services",
         sub: Kati.Settings.Sample.services_line(),
@@ -112,16 +156,42 @@ defmodule Kati.Settings.Sample do
   def sections do
     [
       %{
+        id: "screen",
         icon: "movie",
         title: "Screen",
         sub: "Home card, calendar feed, shelf",
         control: {:switch, true}
       },
-      %{icon: "menu_book", title: "Books", sub: "Home card, shelf", control: {:switch, true}},
-      %{icon: "graphic_eq", title: "Music", sub: "Shelf only", control: {:switch, true}},
-      %{icon: "bolt", title: "Habits", sub: "Calendar feed", control: {:switch, true}},
-      %{icon: "payments", title: "Money", sub: "Calendar feed", control: {:switch, false}},
       %{
+        id: "books",
+        icon: "menu_book",
+        title: "Books",
+        sub: "Home card, shelf",
+        control: {:switch, true}
+      },
+      %{
+        id: "music",
+        icon: "graphic_eq",
+        title: "Music",
+        sub: "Shelf only",
+        control: {:switch, true}
+      },
+      %{
+        id: "habits",
+        icon: "bolt",
+        title: "Habits",
+        sub: "Calendar feed",
+        control: {:switch, true}
+      },
+      %{
+        id: "money",
+        icon: "payments",
+        title: "Money",
+        sub: "Calendar feed",
+        control: {:switch, false}
+      },
+      %{
+        id: "reorder_sections",
         icon: "drag_indicator",
         title: "Reorder sections",
         sub: "Drag to change home order",
@@ -157,26 +227,42 @@ defmodule Kati.Settings.Sample do
   def data do
     [
       %{
+        id: "back_up",
         icon: "cloud_done",
         title: "Back up everything",
         sub: "Last backup 14 Aug · 214 MB",
         control: :chevron
       },
       %{
+        id: "restore",
         icon: "upload_file",
         title: "Restore a Kati backup",
         sub: "Your own file — merges or replaces",
         control: :chevron
       },
       %{
+        id: "import",
         icon: "download",
         title: "Import",
         sub: "CSV, JSON, or another tracker’s backup",
         control: :chevron
       },
-      %{icon: "upload", title: "Export everything", sub: "Last backup 14 Aug", control: :chevron},
-      %{icon: "sync", title: "Sync", sub: "iCloud · this device + iPad", control: :chevron},
       %{
+        id: "export",
+        icon: "upload",
+        title: "Export everything",
+        sub: "Last backup 14 Aug",
+        control: :chevron
+      },
+      %{
+        id: "sync",
+        icon: "sync",
+        title: "Sync",
+        sub: "iCloud · this device + iPad",
+        control: :chevron
+      },
+      %{
+        id: "data_sources",
         icon: "dns",
         title: "Data sources",
         sub: "TVmaze, Open Library, MusicBrainz · 3 reachable",
@@ -186,6 +272,7 @@ defmodule Kati.Settings.Sample do
       # "whose meaning cannot be read before tapping it", and a destructive row
       # is the last one that should be. The line is the board's.
       %{
+        id: "clear_history",
         icon: "delete",
         title: "Clear watch history",
         sub: "Ticks, ratings and reviews — the shelves stay",
@@ -212,6 +299,7 @@ defmodule Kati.Settings.Sample do
   def sources do
     [
       %{
+        id: "calendars",
         icon: "calendar_month",
         title: "Calendars",
         sub: "Which calendars Kati may read",
@@ -235,12 +323,14 @@ defmodule Kati.Settings.Sample do
       # Release watcher stays, and it is the half that was always the setting:
       # 25 is what Kati watches for, and 05 is what it found.
       %{
+        id: "release_watcher",
         icon: "notifications_active",
         title: "Release watcher",
         sub: "Premieres, new episodes, price drops",
         control: :chevron
       },
       %{
+        id: "auto_detect",
         icon: "sensors",
         title: "Auto-detect",
         sub: "Notice what you play",
@@ -253,15 +343,29 @@ defmodule Kati.Settings.Sample do
   @spec about() :: [map()]
   def about do
     [
-      %{icon: "info", title: "Version", sub: "0.1 · mock build", control: :chevron},
-      %{icon: "shield", title: "Privacy", sub: "Nothing leaves the device", control: :chevron},
       %{
+        id: "version",
+        icon: "info",
+        title: "Version",
+        sub: "0.1 · mock build",
+        control: :chevron
+      },
+      %{
+        id: "privacy",
+        icon: "shield",
+        title: "Privacy",
+        sub: "Nothing leaves the device",
+        control: :chevron
+      },
+      %{
+        id: "this_device",
         icon: "phone_iphone",
         title: "This device",
         sub: "Permissions and storage",
         control: :chevron
       },
       %{
+        id: "attribution",
         icon: "info",
         title: "Where this comes from",
         sub: "Sources and licences",
@@ -274,6 +378,7 @@ defmodule Kati.Settings.Sample do
       # for the three Sources rows above. The screen is drawn and finished;
       # only the way in was missing.
       %{
+        id: "year_cards",
         icon: "grid_view",
         title: "Year cards",
         sub: "How a shared card is drawn",
@@ -288,6 +393,7 @@ defmodule Kati.Settings.Sample do
       # decided; Gone cold is something Kati noticed* — and the reader meets
       # all three without ever being told which is which.
       %{
+        id: "dropping",
         icon: "do_not_disturb_on",
         title: "Dropping",
         sub: "Paused, dropped, and gone cold",
@@ -299,6 +405,7 @@ defmodule Kati.Settings.Sample do
       # draws — so the board becomes what it always read as: the place the rule
       # is written down. Same group and same argument as Dropping above.
       %{
+        id: "anime",
         icon: "auto_awesome",
         title: "Anime",
         sub: "What makes a title one",
@@ -312,6 +419,7 @@ defmodule Kati.Settings.Sample do
         # `grid_view` rather than `apps`, which is not in Kati's icon subset —
         # the subset is generated from what the drawings use, and adding a
         # glyph for one settings row would mean a font rebuild for a row.
+        id: "every_screen",
         icon: "grid_view",
         title: "Every screen",
         sub: "One list, for looking",

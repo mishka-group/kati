@@ -241,7 +241,7 @@ defmodule Kati.NotificationsInboxTest do
     end
 
     test "and the gallery moved to Settings, where a page about the app belongs" do
-      assert Kati.Screens.Settings.destinations()["Every screen"] == Kati.Screens.Gallery
+      assert Kati.Screens.Settings.destinations()["every_screen"] == Kati.Screens.Gallery
     end
   end
 end

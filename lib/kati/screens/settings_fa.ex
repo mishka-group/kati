@@ -516,14 +516,14 @@ defmodule Kati.Screens.SettingsFa do
   #     and this screen name the same destinations without a translation table
   #     between them — the same reason the theme trough tags by position.
   @destinations %{
-    "upload" => Kati.Screens.Backup,
+    "export" => Kati.Screens.Backup,
     "sync" => Kati.Screens.Sync,
     # The two the second wave added, keyed on the glyph for the reason above:
     # screen 24 and this screen name the same destinations without a
     # translation table between them.
-    "subscriptions" => Kati.Screens.MyServicesFa,
-    "dns" => Kati.Screens.DataSourcesFa,
-    "info" => Kati.Screens.AttributionFa,
+    "my_services" => Kati.Screens.MyServicesFa,
+    "data_sources" => Kati.Screens.DataSourcesFa,
+    "attribution" => Kati.Screens.AttributionFa,
     # 62's own caption is *Settings rows mirror wholesale*, and these two were
     # the mirror stopping short: screen 24's Import row reaches
     # `Kati.Screens.ImportSources` and its Text size row reaches
@@ -535,8 +535,8 @@ defmodule Kati.Screens.SettingsFa do
     # Persian reader can reach beats a chevron that points at nothing. Both
     # carry `back: "Settings"`, so the pill over them reads English until the
     # mirrors exist.
-    "download" => Kati.Screens.ImportSources,
-    "format_size" => Kati.Screens.Accessibility
+    "import" => Kati.Screens.ImportSources,
+    "text_size" => Kati.Screens.Accessibility
   }
 
   @doc false
@@ -561,8 +561,8 @@ defmodule Kati.Screens.SettingsFa do
   def tap_for(%{trailing: {:toggle, _}}, si, ri),
     do: {self(), String.to_atom("toggle_#{si}_#{ri}")}
 
-  def tap_for(%{icon: icon}, _si, _ri) when is_map_key(@destinations, icon),
-    do: {self(), String.to_atom("go_" <> icon)}
+  def tap_for(%{id: id}, _si, _ri) when is_map_key(@destinations, id),
+    do: {self(), String.to_atom("go_" <> id)}
 
   def tap_for(%{badge: _badge}, _si, _ri), do: {self(), :go_language}
 
@@ -578,7 +578,7 @@ defmodule Kati.Screens.SettingsFa do
   Persian: `Kati.Calendar.Shamsi.format/2` at `:short` is `۱۴ مرداد`, which is
   the form 62.html draws.
   """
-  def sub_for(%{icon: "upload"}),
+  def sub_for(%{id: "export"}),
     do: Kati.Screens.SettingsFa.backup_line(Kati.Screens.Settings.last_backup())
 
   def sub_for(%{sub: sub}), do: sub
@@ -928,18 +928,20 @@ defmodule Kati.Screens.SettingsFa do
     end
   end
 
-  # The glyph is the key, so the tag stays ASCII and readable in a log. A tag
-  # naming a glyph no row here carries returns the screen rather than raising
-  # it into `handle_info/2`, for the reason the comment above `tapped/2` gives.
-  # Before the glyph clause, which matches "go_" <> anything: `language` is not
-  # a key in `@destinations` — it is a badge row, not a glyph row — so falling
+  # The row's id is the key, so the tag stays ASCII and readable in a log — and
+  # it is the SAME id screen 24 now uses, which is the whole point: the two
+  # screens name one destination with one word and no table between them. A tag
+  # naming an id no row here carries returns the screen rather than raising it
+  # into `handle_info/2`, for the reason the comment above `tapped/2` gives.
+  # Before the id clause, which matches "go_" <> anything: `language` is not a
+  # key in `@destinations` — it is a badge row, not a chevron row — so falling
   # through to that clause returns the screen unchanged and the only way out of
   # Persian stays shut.
   defp tapped("go_language", socket),
     do: Mob.Socket.push_screen(socket, Kati.Screens.Language)
 
-  defp tapped("go_" <> icon, socket) do
-    case Map.fetch(@destinations, icon) do
+  defp tapped("go_" <> id, socket) do
+    case Map.fetch(@destinations, id) do
       {:ok, module} -> Mob.Socket.push_screen(socket, module)
       :error -> socket
     end

@@ -52,9 +52,9 @@ defmodule Kati.SettingsDataRoutesTest do
   # `{screen, tag, destination, which row in the drawing}`. Both locales, in one
   # table, because the point of the pair is that they arrive at the same place.
   @routes [
-    {Settings, :"go_Export everything", Kati.Screens.Backup, "24's Data group, upload row"},
-    {Settings, :go_Sync, Kati.Screens.Sync, "24's Data group, sync row"},
-    {SettingsFa, :go_upload, Kati.Screens.Backup, "62's داده‌ها group, upload row"},
+    {Settings, :go_export, Kati.Screens.Backup, "24's Data group, upload row"},
+    {Settings, :go_sync, Kati.Screens.Sync, "24's Data group, sync row"},
+    {SettingsFa, :go_export, Kati.Screens.Backup, "62's داده‌ها group, upload row"},
     {SettingsFa, :go_sync, Kati.Screens.Sync, "62's داده‌ها group, sync row"}
   ]
 
@@ -128,39 +128,82 @@ defmodule Kati.SettingsDataRoutesTest do
              "Persian mirrors: " <> inspect(MapSet.to_list(persian_only))
   end
 
-  test "the two rows are the ones the drawings put the upload and sync glyphs on" do
-    # The destination is keyed by title on 24 and by glyph on 62, so the two
-    # tables can only agree while the titles and the glyphs sit on the same
-    # rows. Read from the samples, which is where the copy lives.
-    en = Map.new(Kati.Settings.Sample.data(), &{&1.title, &1.icon})
+  test "the two rows are one row, named the same way on both screens" do
+    # This used to read *the destination is keyed by title on 24 and by glyph
+    # on 62, so the two tables can only agree while the titles and the glyphs
+    # sit on the same rows* — and that sentence was the defect. Both are keyed
+    # on the row's **id** now, so there is nothing left to keep in step: the
+    # two screens say `export` and `sync` and mean the same rows by
+    # construction.
+    en = Map.new(Kati.Settings.Sample.data(), &{&1.id, &1.icon})
 
-    assert en["Export everything"] == "upload"
-    assert en["Sync"] == "sync"
+    assert en["export"] == "upload"
+    assert en["sync"] == "sync"
 
-    fa = for section <- Kati.Fa.SampleSettings.sections(), row <- section.rows, do: row[:icon]
+    fa = for section <- Kati.Fa.SampleSettings.sections(), row <- section.rows, do: row[:id]
 
-    assert "upload" in fa
+    assert "export" in fa
     assert "sync" in fa
+
+    # And the glyphs still sit where the drawings put them, which is what the
+    # old assertion was really checking.
+    fa_glyphs =
+      for section <- Kati.Fa.SampleSettings.sections(),
+          row <- section.rows,
+          row[:id] in ["export", "sync"],
+          do: row[:icon]
+
+    assert Enum.sort(fa_glyphs) == ["sync", "upload"]
   end
 
   test "no row is both a switch and a destination" do
-    # Screen 24 builds its tags as `switch_<title>` and `go_<title>` off the
-    # same string, and its moduledoc claims the two prefixes cannot collide. A
-    # title that was both would draw one tag and answer the other.
+    # Screen 24 builds its tags as `switch_<id>` and `go_<id>` off the same
+    # string, and its moduledoc claims the two prefixes cannot collide. An id
+    # that was both would draw one tag and answer the other.
     switches =
       for rows <- [Kati.Settings.Sample.appearance(), Kati.Settings.Sample.sections()],
-          %{control: {:switch, _}, title: title} <- rows,
-          do: title
+          %{control: {:switch, _}, id: id} <- rows,
+          do: id
 
     assert switches != []
     assert Enum.filter(switches, &Map.has_key?(Settings.destinations(), &1)) == []
+  end
+
+  test "every row carries an id, and no two rows in one screen share one" do
+    # The whole of why the tags above are ids. `Kati.Settings.Sample`'s
+    # moduledoc names the two candidates that are NOT identity: the title,
+    # which the fold translates, and the glyph, which `info` and `grid_view`
+    # each wear on more than one row.
+    rows =
+      for group <- [
+            Kati.Settings.Sample.appearance(),
+            Kati.Settings.Sample.watching(),
+            Kati.Settings.Sample.sections(),
+            Kati.Settings.Sample.data(),
+            Kati.Settings.Sample.about()
+          ],
+          row <- group,
+          do: row
+
+    assert rows != []
+
+    missing = for row <- rows, not is_binary(row[:id]), do: row[:title]
+    assert missing == [], "these rows have no id: #{inspect(missing)}"
+
+    ids = Enum.map(rows, & &1.id)
+    assert Enum.uniq(ids) == ids, "two rows share an id: #{inspect(ids -- Enum.uniq(ids))}"
+
+    # And the glyph would not have done. Left as a live assertion rather than a
+    # comment so the next person to reach for it is stopped by a red test.
+    glyphs = Enum.map(rows, & &1.icon)
+    assert Enum.uniq(glyphs) != glyphs, "glyphs are unique after all — re-read the id decision"
   end
 
   test "a tag naming a destination the screen does not have changes nothing" do
     # Both screens parse the tag rather than matching it, so a malformed one has
     # to return the screen instead of raising into `handle_info/2` — 62 in
     # particular is a bare `Mob.Screen` with no rescue around its taps.
-    for {module, tag} <- [{Settings, :go_Nowhere}, {SettingsFa, :go_thermostat}] do
+    for {module, tag} <- [{Settings, :go_nowhere}, {SettingsFa, :go_nowhere}] do
       {socket, _tags} = mounted(module)
       {:noreply, updated} = module.handle_info({:tap, tag}, socket)
 

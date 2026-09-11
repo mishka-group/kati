@@ -228,8 +228,11 @@ defmodule Kati.ScreenClearHistoryTest do
     end
 
     test "and it opens something" do
-      assert Kati.Screens.Settings.destinations()["Clear watch history"] ==
-               Kati.Screens.ClearHistory
+      # Keyed on the row's id, not its title — a title is copy and the fold
+      # translates it. See `Kati.Settings.Sample`'s moduledoc.
+      row = Enum.find(Kati.Settings.Sample.data(), &(&1.title == "Clear watch history"))
+
+      assert Kati.Screens.Settings.destinations()[row.id] == Kati.Screens.ClearHistory
     end
   end
 

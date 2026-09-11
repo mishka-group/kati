@@ -202,13 +202,18 @@ defmodule Kati.SettingsThemeTest do
   # ── Storing a choice ────────────────────────────────────────────────────────
 
   test "each tile on 24 stores its choice, and a screen mounted afterwards raises it" do
-    for {label, choice} <- Enum.zip(@en, Settings.choices()) do
+    # `theme_<index>`, which is what screen 62 has tagged with all along. Screen
+    # 24 used `theme_<drawn label>` until the row-id change, and that is the
+    # whole reason the two tests below could not be one: the same tile answered
+    # to `:theme_Dark` on one screen and `:theme_2` on the other, which is a
+    # translation table wearing a tag's clothes.
+    for {label, {choice, index}} <- Enum.zip(@en, Enum.with_index(Settings.choices())) do
       start_from_another_choice(choice)
 
       view = mount_screen(Settings)
       refute raised(view) == [label], "the test set up the choice it was about to assert"
 
-      view = render_info(view, {:tap, String.to_atom("theme_" <> label)})
+      view = render_info(view, {:tap, String.to_atom("theme_#{index}")})
 
       assert Settings.choice() == choice
       assert raised(view) == [label]
@@ -233,7 +238,7 @@ defmodule Kati.SettingsThemeTest do
   end
 
   test "the two screens are one setting, in both directions" do
-    mount_screen(Settings) |> render_info({:tap, :theme_Dark})
+    mount_screen(Settings) |> render_info({:tap, :theme_2})
 
     assert Settings.choice() == :dark
     assert raised(mount_screen(SettingsFa)) == ["تیره"]

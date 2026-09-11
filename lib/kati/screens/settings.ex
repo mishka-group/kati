@@ -453,9 +453,7 @@ defmodule Kati.Screens.Settings do
   def settle_sections(rows) do
     if Kati.Sections.answered?() do
       Enum.map(rows, fn
-        %{control: {:switch, _}, title: title} = row ->
-          id = String.downcase(title)
-
+        %{control: {:switch, _}, id: id} = row ->
           if id in Kati.Sections.all(),
             do: %{row | control: {:switch, Kati.Sections.on?(id)}},
             else: row
@@ -689,44 +687,44 @@ defmodule Kati.Screens.Settings do
   # kind of destination. `Release watcher` stays, and is the row that was
   # always the setting: how often Kati looks, and how loudly it says so.
   @destinations %{
-    "Release watcher" => Kati.Screens.ReleaseWatcher,
-    "Calendars" => Kati.Screens.Calendars,
-    "Auto-detect" => Kati.Screens.AutoDetect,
+    "release_watcher" => Kati.Screens.ReleaseWatcher,
+    "calendars" => Kati.Screens.Calendars,
+    "auto_detect" => Kati.Screens.AutoDetect,
     # #12 put a step 0 in front of screen 37: a grid of named source tiles that
     # pre-fills the mapping, so a switcher is not asked to map nine columns
     # before seeing a row of their own data arrive. `Kati.Screens.Import` is
     # still the manual mapper and is still where "Something else" lands.
-    "Import" => Kati.Screens.ImportSources,
-    "Export everything" => Kati.Screens.Backup,
+    "import" => Kati.Screens.ImportSources,
+    "export" => Kati.Screens.Backup,
     # The two rows #25's drawings added at the head of the Data group, above
     # Import and Export. Restore and Import are separate destinations because
     # they are separate acts — your own data coming home, and somebody else's
     # arriving — which is the distinction #25 asks to be visible rather than
     # folded into one row with two meanings.
-    "Back up everything" => Kati.Screens.Backup,
-    "Restore a Kati backup" => Kati.Screens.Restore,
-    "Sync" => Kati.Screens.Sync,
-    "Widgets" => Kati.Screens.Widgets,
-    "This device" => Kati.Screens.Account,
-    "Language" => Kati.Screens.Language,
-    "Text size" => Kati.Screens.Accessibility,
+    "back_up" => Kati.Screens.Backup,
+    "restore" => Kati.Screens.Restore,
+    "sync" => Kati.Screens.Sync,
+    "widgets" => Kati.Screens.Widgets,
+    "this_device" => Kati.Screens.Account,
+    "language" => Kati.Screens.Language,
+    "text_size" => Kati.Screens.Accessibility,
     # The three the second wave of drawings added, and each one is a screen that
     # existed nowhere until its row did.
-    "My services" => Kati.Screens.MyServices,
-    "Data sources" => Kati.Screens.DataSources,
+    "my_services" => Kati.Screens.MyServices,
+    "data_sources" => Kati.Screens.DataSources,
     # Board 267. The one row in the Data group that opened nothing — and the
     # board's own note is that it was also the only row there whose meaning
     # could not be read before tapping it, which is why it now carries a
     # second line as well as a destination.
-    "Clear watch history" => Kati.Screens.ClearHistory,
-    "Where this comes from" => Kati.Screens.Attribution,
-    "Year cards" => Kati.Screens.YearCards,
+    "clear_history" => Kati.Screens.ClearHistory,
+    "attribution" => Kati.Screens.Attribution,
+    "year_cards" => Kati.Screens.YearCards,
     # #7. A reference sheet whose own moduledoc said it was pushed under
     # Settings, and nothing pushed it.
-    "Dropping" => Kati.Screens.DropStates,
+    "dropping" => Kati.Screens.DropStates,
     # #8. The board whose subject `Kati.Media.Anime` now implements.
-    "Anime" => Kati.Screens.AnimeFilter,
-    "Every screen" => Kati.Screens.Gallery
+    "anime" => Kati.Screens.AnimeFilter,
+    "every_screen" => Kati.Screens.Gallery
   }
 
   @doc false
@@ -743,11 +741,11 @@ defmodule Kati.Screens.Settings do
   The Theme row is the exception with no row tap of its own: its three segments
   each carry their own, because tapping the row could not say *which* theme.
   """
-  def tap_for(%{control: {:switch, _}, title: title}),
-    do: {self(), String.to_atom("switch_" <> title)}
+  def tap_for(%{control: {:switch, _}, id: id}),
+    do: {self(), String.to_atom("switch_" <> id)}
 
-  def tap_for(%{title: title}) do
-    if Map.has_key?(@destinations, title), do: {self(), String.to_atom("go_" <> title)}
+  def tap_for(%{id: id}) do
+    if Map.has_key?(@destinations, id), do: {self(), String.to_atom("go_" <> id)}
   end
 
   @doc false
@@ -789,7 +787,8 @@ defmodule Kati.Screens.Settings do
   def segments(options, selected) do
     tiles =
       options
-      |> Enum.map(fn o -> Kati.Screens.Settings.segment(o, o == selected) end)
+      |> Enum.with_index()
+      |> Enum.map(fn {o, i} -> Kati.Screens.Settings.segment(o, o == selected, i) end)
       |> Enum.intersperse(Kati.Screens.Settings.segment_gap())
 
     ~MOB"""
@@ -808,7 +807,7 @@ defmodule Kati.Screens.Settings do
   # prop is omitted rather than passed as `nil`, which this bridge would send
   # down the wire as the string "nil".
   @doc false
-  def segment(label, true) do
+  def segment(label, true, _index) do
     ~MOB"""
     <Row
       height={26}
@@ -830,8 +829,13 @@ defmodule Kati.Screens.Settings do
     """
   end
 
-  def segment(label, false) do
-    tap = {self(), String.to_atom("theme_" <> label)}
+  def segment(label, false, index) do
+    # By POSITION, not by the drawn word. `Kati.Screens.SettingsFa`'s trough
+    # already tags this way and says why: the three options are Auto / Light /
+    # Dark in English and خودکار / روشن / تیره in Persian, and a tag built from
+    # the label is a different atom in each — so the handler would have to hold
+    # a translation table, which is the thing an id exists to remove.
+    tap = {self(), String.to_atom("theme_" <> Integer.to_string(index))}
 
     ~MOB"""
     <Row
@@ -856,17 +860,17 @@ defmodule Kati.Screens.Settings do
   @impl true
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "go_" <> title ->
-        case Map.fetch(@destinations, title) do
+      "go_" <> id ->
+        case Map.fetch(@destinations, id) do
           {:ok, module} -> {:noreply, Mob.Socket.push_screen(socket, module)}
           :error -> {:noreply, socket}
         end
 
-      "switch_" <> title ->
-        {:noreply, flip_switch(socket, title)}
+      "switch_" <> id ->
+        {:noreply, flip_switch(socket, id)}
 
-      "theme_" <> label ->
-        {:noreply, choose_theme(socket, label)}
+      "theme_" <> index ->
+        {:noreply, choose_theme(socket, String.to_integer(index))}
 
       _ ->
         {:noreply, socket}
@@ -883,9 +887,9 @@ defmodule Kati.Screens.Settings do
     Mob.Socket.assign(socket, :settings, settings)
   end
 
-  defp flip(rows, title) do
+  defp flip(rows, id) do
     Enum.map(rows, fn
-      %{title: ^title, control: {:switch, on?}} = row -> %{row | control: {:switch, not on?}}
+      %{id: ^id, control: {:switch, on?}} = row -> %{row | control: {:switch, not on?}}
       row -> row
     end)
   end
@@ -901,16 +905,14 @@ defmodule Kati.Screens.Settings do
   # with zero*, enforced in the store so no call site has to remember it — and a
   # thumb that moved anyway would leave a section drawn off that is still on
   # everywhere else, which is the one lie this group exists to avoid.
-  defp flip_switch(socket, title) do
-    id = String.downcase(title)
-
+  defp flip_switch(socket, id) do
     if id in Kati.Sections.all() do
       case Kati.Sections.put(kept_after(socket.assigns.settings.sections, id)) do
-        :ok -> put_rows(socket, &flip(&1, title))
+        :ok -> put_rows(socket, &flip(&1, id))
         {:error, :none_chosen} -> socket
       end
     else
-      put_rows(socket, &flip(&1, title))
+      put_rows(socket, &flip(&1, id))
     end
   end
 
@@ -929,8 +931,7 @@ defmodule Kati.Screens.Settings do
   # switch that opens on a state nobody chose.
   defp kept_after(rows, id) do
     drawn =
-      for %{control: {:switch, on?}, title: title} <- rows,
-          section = String.downcase(title),
+      for %{control: {:switch, on?}, id: section} <- rows,
           section in Kati.Sections.all(),
           do: {section, if(section == id, do: not on?, else: on?)}
 
@@ -955,16 +956,22 @@ defmodule Kati.Screens.Settings do
   # draws. The screen's own copy of the choice and the app-wide one are written
   # from the same guard, so the raised tile and `mode/0` cannot disagree — and
   # a tag naming a label this trough does not have changes neither.
-  defp choose_theme(socket, label) do
+  defp choose_theme(socket, index) do
     options = theme_options(socket.assigns.settings.appearance)
 
-    case Kati.Screens.Settings.choice_for(options, label) do
+    case Enum.at(options, index) do
       nil ->
         socket
 
-      choice ->
-        Kati.Screens.Settings.put_choice(choice)
-        put_rows(socket, &choose(&1, label))
+      label ->
+        case Kati.Screens.Settings.choice_for(options, label) do
+          nil ->
+            socket
+
+          choice ->
+            Kati.Screens.Settings.put_choice(choice)
+            put_rows(socket, &choose(&1, label))
+        end
     end
   end
 
