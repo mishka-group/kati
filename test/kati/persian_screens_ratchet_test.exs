@@ -14,6 +14,16 @@ defmodule Kati.PersianScreensRatchetTest do
   > pages we need just with cldr timing and gettext to translate and rtl and
   > ltr just it like web app we created
 
+  Restated on 11 September, while the fold was running, and it is the sharper
+  form — it names the END STATE rather than only forbidding new ones:
+
+  > every page we have in english with all feceleties just in persian has
+  > translate with gettext or cldr for number and date and dattime **no another
+  > _fa page if still exist so do not let it and fix it too**
+
+  So `@mirrors` is not a list to be kept. It is a list to be emptied, and this
+  file is what makes each deletion cheap and each addition impossible.
+
   That is a decision about how the app is built, not a preference about this
   round of work, and the way a decision like that survives is a test rather
   than a paragraph. `mishka-group/kati#103` is where the fold itself is
