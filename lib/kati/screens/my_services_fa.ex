@@ -209,16 +209,6 @@ defmodule Kati.Screens.MyServicesFa do
   # with no entry here falls back to the English name instead of vanishing —
   # the same fallback `Kati.Screens.DataSourcesFa.localise/1` makes for a
   # provider.
-  @countries %{
-    "GB" => "بریتانیا",
-    "IR" => "ایران",
-    "US" => "ایالات متحده",
-    "DE" => "آلمان",
-    "FR" => "فرانسه",
-    "NL" => "هلند",
-    "AU" => "استرالیا"
-  }
-
   # Each rule with the sentence that says what it does, keyed by
   # `Kati.Services.rules/0`'s own keys so the two cannot drift. The sentence is
   # not optional copy: the third rule silently empties three other screens,
@@ -392,7 +382,7 @@ defmodule Kati.Screens.MyServicesFa do
   `Kati.Screens.DataSourcesFa.localise/1` makes for a provider.
   """
   @spec region_name(String.t()) :: String.t()
-  def region_name(code), do: Map.get(@countries, code, Services.region_name(code))
+  def region_name(code), do: Services.region_name(code)
 
   @doc """
   The country row, and the sentence that says why it is first.
@@ -997,7 +987,7 @@ defmodule Kati.Screens.MyServicesFa do
   # carries no tap, which was survivable while the row only reported a country
   # and is not while it asks for one.
   def handle_info({:tap, :pick_country}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.CountryPickerFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.CountryPicker)}
 
   def handle_info({:tap, tag}, socket) when is_atom(tag) do
     case Atom.to_string(tag) do

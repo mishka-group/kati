@@ -22,13 +22,22 @@ defmodule Kati.ScreenMyServicesFaTest do
   """
   use Mob.ScreenCase, async: false
 
-  alias Kati.Screens.CountryPickerFa
+  alias Kati.Screens.CountryPicker
   alias Kati.Screens.MyServicesFa
   alias Kati.Services
 
   @prefix "fa-svc-test-"
 
+  # Every assertion below is about the PERSIAN page, and since
+  # mishka-group/kati#103 folded board 301 that is a locale rather than a
+  # module: `Kati.Screens.CountryPicker` is the sheet in both scripts and
+  # answers ایران, «آلمان» and `marked() == "IR"` only when asked in Persian.
+  # No restore in `on_exit`: `Mob.ScreenCase` tears `Mob.State` down with the
+  # test process, so a write there exits. The store is per-test anyway.
   setup do
+    Kati.Locale.put(:fa)
+    Kati.Locale.activate()
+
     on_exit(fn ->
       Kati.Repo.query!("DELETE FROM services WHERE name LIKE ?1", [@prefix <> "%"])
     end)
@@ -53,7 +62,7 @@ defmodule Kati.ScreenMyServicesFaTest do
       assert {:noreply, socket} =
                MyServicesFa.handle_info({:tap, :pick_country}, mount_screen(MyServicesFa).socket)
 
-      assert socket.__mob__.nav_action == {:push, CountryPickerFa, %{}}
+      assert socket.__mob__.nav_action == {:push, CountryPicker, %{}}
     end
   end
 
@@ -139,26 +148,26 @@ defmodule Kati.ScreenMyServicesFaTest do
 
   describe "board 301's sheet" do
     test "marks Iran before any choice, and marks it without storing it" do
-      assert CountryPickerFa.marked() == "IR"
+      assert CountryPicker.marked() == "IR"
       assert Services.chosen_region() == nil
     end
 
     test "and marks the reader's own country once there is one" do
       Services.put_region("NL")
 
-      assert CountryPickerFa.marked() == "NL"
+      assert CountryPicker.marked() == "NL"
     end
 
     test "matches by Persian name, by English name and by code" do
-      assert CountryPickerFa.matching("آلمان") == [{"DE", "آلمان"}]
-      assert CountryPickerFa.matching("ger") == [{"DE", "آلمان"}]
-      assert CountryPickerFa.matching("NL") == [{"NL", "هلند"}]
+      assert CountryPicker.matching("آلمان") == [{"DE", "آلمان"}]
+      assert CountryPicker.matching("ger") == [{"DE", "آلمان"}]
+      assert CountryPicker.matching("NL") == [{"NL", "هلند"}]
     end
 
     test "lists every country in Persian when nothing is typed" do
-      assert length(CountryPickerFa.matching("")) == length(Services.countries())
+      assert length(CountryPicker.matching("")) == length(Services.countries())
 
-      assert Enum.all?(CountryPickerFa.matching(""), fn {_code, name} ->
+      assert Enum.all?(CountryPicker.matching(""), fn {_code, name} ->
                String.match?(name, ~r/\p{Arabic}/u)
              end),
              "a country in the Persian sheet is still named in English"
@@ -167,12 +176,12 @@ defmodule Kati.ScreenMyServicesFaTest do
     test "counts what it filters, not JustWatch's 190" do
       seven = Kati.I18n.Digits.to_persian(length(Services.countries()))
 
-      assert CountryPickerFa.placeholder() == "جست‌وجو در " <> seven <> " کشور"
-      refute CountryPickerFa.placeholder() =~ "۱۹۰"
+      assert CountryPicker.placeholder() == "جست‌وجو در " <> seven <> " کشور"
+      refute CountryPicker.placeholder() =~ "۱۹۰"
     end
 
     test "says so when a query matches nothing" do
-      card = CountryPickerFa.nothing_card("زیمبابوه")
+      card = CountryPicker.nothing_card("زیمبابوه")
 
       assert find(card, :text, text: "کشوری پیدا نشد") != nil
 
@@ -180,9 +189,9 @@ defmodule Kati.ScreenMyServicesFaTest do
     end
 
     test "picking one stores it, which is what screen 97 then reads" do
-      socket = mount_screen(CountryPickerFa).socket
+      socket = mount_screen(CountryPicker).socket
 
-      assert {:noreply, _socket} = CountryPickerFa.handle_info({:tap, :pick_FR}, socket)
+      assert {:noreply, _socket} = CountryPicker.handle_info({:tap, :pick_FR}, socket)
       assert Services.chosen_region() == "FR"
       assert MyServicesFa.region() == "FR"
     end

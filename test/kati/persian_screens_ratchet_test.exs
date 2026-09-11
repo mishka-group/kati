@@ -72,7 +72,6 @@ defmodule Kati.PersianScreensRatchetTest do
     Kati.Screens.AttributionFa,
     Kati.Screens.BookDetailFa,
     Kati.Screens.BooksFa,
-    Kati.Screens.CountryPickerFa,
     Kati.Screens.DataSourcesFa,
     Kati.Screens.GoalsFa,
     Kati.Screens.HealthFa,

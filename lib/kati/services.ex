@@ -57,6 +57,18 @@ defmodule Kati.Services do
     {"AU", "Australia"}
   ]
 
+  # The same seven in Persian. Lifted from `Kati.Screens.MyServicesFa`, which is
+  # where they were written and is not where a country's name belongs.
+  @fa_names %{
+    "GB" => "بریتانیا",
+    "IR" => "ایران",
+    "US" => "ایالات متحده",
+    "DE" => "آلمان",
+    "FR" => "فرانسه",
+    "NL" => "هلند",
+    "AU" => "استرالیا"
+  }
+
   @default_rules %{rentals: true, purchases: false, hide_unavailable: false}
 
   @doc "Every country screen 94 offers, as `{code, name}`."
@@ -109,6 +121,26 @@ defmodule Kati.Services do
   @doc "The region's display name, or the code itself for one this list has not got."
   @spec region_name(String.t()) :: String.t()
   def region_name(code) do
+    case Kati.Locale.current() do
+      :fa -> Map.get(@fa_names, code, Kati.Services.latin_region_name(code))
+      _en -> Kati.Services.latin_region_name(code)
+    end
+  end
+
+  @doc """
+  The country's English name, whatever the reader's language.
+
+      iex> Kati.Services.latin_region_name("DE")
+      "Germany"
+
+  `region_name/1` answers in the reader's own language and this is the half it
+  falls back to. Both are here rather than in a screen because the LIST is here:
+  `Kati.Screens.MyServicesFa` carried the Persian names and
+  `Kati.Screens.CountryPickerFa` read them across module boundaries, which made
+  a country's name the property of a mirror. mishka-group/kati#103.
+  """
+  @spec latin_region_name(String.t()) :: String.t()
+  def latin_region_name(code) do
     case Enum.find(@countries, fn {c, _name} -> c == code end) do
       {_code, name} -> name
       nil -> code

@@ -244,3 +244,23 @@ msgstr "رد کردن این گام به خانه خالی می‌رسد — ۱�
 #: lib/kati/screens/onboarding_first_title.ex
 msgid "Back to loudness"
 msgstr "بازگشت به اعلان‌ها"
+
+#: lib/kati/screens/country_picker.ex
+msgid "Your country"
+msgstr "کشور شما"
+
+#: lib/kati/screens/country_picker.ex
+msgid "Search %{count} countries"
+msgstr "جست‌وجو در %{count} کشور"
+
+#: lib/kati/screens/country_picker.ex
+msgid "No country matches"
+msgstr "کشوری پیدا نشد"
+
+#: lib/kati/screens/country_picker.ex
+msgid "Kati lists %{count}, and none of them is “%{typed}”."
+msgstr "کاتی %{count} کشور دارد و هیچ‌کدام «%{typed}» نیست."
+
+#: lib/kati/screens/country_picker.ex
+msgid "Availability is per country. Changing this changes what Kati shows as watchable — it never touches your library, ratings or history."
+msgstr "دسترسی به محتوا کشور به کشور فرق می‌کند. تغییر این گزینه آنچه را که «در دسترس» شمرده می‌شود عوض می‌کند و به کتابخانه، امتیازها و تاریخچهٔ شما دست نمی‌زند."

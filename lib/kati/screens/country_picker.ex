@@ -26,6 +26,7 @@ defmodule Kati.Screens.CountryPicker do
   """
 
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Services
@@ -40,12 +41,12 @@ defmodule Kati.Screens.CountryPicker do
 
     {:ok,
      socket
-     |> Mob.Socket.assign(:region, Services.region())
+     |> Mob.Socket.assign(:region, Kati.Screens.CountryPicker.marked())
      |> Mob.Socket.assign(:query, "")}
   end
 
   def render(assigns),
-    do: Sheet.sheet("Your country", body(assigns), Kati.Screens.Identity.of(__MODULE__))
+    do: Sheet.sheet(gettext("Your country"), body(assigns), Kati.Screens.Identity.of(__MODULE__))
 
   @doc false
   def body(assigns) do
@@ -57,7 +58,7 @@ defmodule Kati.Screens.CountryPicker do
       <Spacer size={16} />
       {Kati.Screens.CountryPicker.list(region, Map.get(assigns, :query, ""))}
       <Spacer size={14} />
-      {Kati.UI.SettingsList.note("info", "Availability is per country. Changing this changes what Kati shows as watchable — it never touches your library, ratings or history.")}
+      {Kati.UI.SettingsList.note("info", gettext("Availability is per country. Changing this changes what Kati shows as watchable — it never touches your library, ratings or history."))}
     </Column>
     """
   end
@@ -82,7 +83,7 @@ defmodule Kati.Screens.CountryPicker do
       # the tap sweep had it on `@inert_taps`. MOVIES-AND-TV.md #78. Both
       # halves are fixed here: the field is a `<TextField>` that filters, and
       # the placeholder counts the list it is over.
-      placeholder: "Search #{length(Services.countries())} countries"
+      placeholder: Kati.Screens.CountryPicker.placeholder()
     }
 
     ~MOB"""
@@ -111,6 +112,42 @@ defmodule Kati.Screens.CountryPicker do
   end
 
   @doc """
+  What the search field says, counting the list it is actually over.
+
+      iex> Kati.Screens.CountryPicker.placeholder()
+      "Search 7 countries"
+
+  It said `Search 190 countries` over a list of seven — MOVIES-AND-TV.md #78 —
+  and 190 is JustWatch's number rather than Kati's. The numeral takes the
+  reader's own digits through `Kati.Locale.number/1`, which is why board 301
+  reads `جست‌وجو در ۷ کشور`.
+  """
+  @spec placeholder() :: String.t()
+  def placeholder do
+    gettext("Search %{count} countries", count: Kati.Locale.number(length(Services.countries())))
+  end
+
+  @doc """
+  The country this sheet marks: the one the reader chose, or the locale's own.
+
+      iex> Kati.Screens.CountryPicker.marked()
+      "GB"
+
+  Board 301's ruling, kept for both scripts. `Kati.Services.region/0`'s `"GB"`
+  is a default rather than a choice — it is the country the drawings were
+  captured in — and answering for Britain on a Persian phone that has said
+  nothing is answering for the wrong country. A MARK, never a write: screen 97's
+  row still says no country is set until one is tapped here.
+  """
+  @spec marked() :: String.t()
+  def marked do
+    case Services.chosen_region() do
+      code when is_binary(code) and code != "" -> code
+      _unchosen -> Kati.Locale.pick("GB", "IR")
+    end
+  end
+
+  @doc """
   The countries a query leaves, by name or by code.
 
   By code as well, because a reader who knows `NL` should not have to remember
@@ -127,15 +164,19 @@ defmodule Kati.Screens.CountryPicker do
   """
   @spec matching(String.t()) :: [{String.t(), String.t()}]
   def matching(query) do
+    named =
+      Enum.map(Services.countries(), fn {code, _en} -> {code, Services.region_name(code)} end)
+
     case String.trim(query) do
       "" ->
-        Services.countries()
+        named
 
       typed ->
         needle = String.downcase(typed)
 
-        Enum.filter(Services.countries(), fn {code, name} ->
-          String.contains?(String.downcase(name), needle) or
+        Enum.filter(named, fn {code, name} ->
+          String.contains?(name, typed) or
+            String.contains?(String.downcase(Services.latin_region_name(code)), needle) or
             String.contains?(String.downcase(code), needle)
         end)
     end
@@ -162,8 +203,11 @@ defmodule Kati.Screens.CountryPicker do
       SettingsList.row(
         SettingsList.icon_tile("search"),
         Kati.UI.SettingsList.body(
-          "No country matches",
-          "Kati lists #{length(Services.countries())}, and none of them is “#{typed}”."
+          gettext("No country matches"),
+          gettext("Kati lists %{count}, and none of them is “%{typed}”.",
+            count: Kati.Locale.number(length(Services.countries())),
+            typed: typed
+          )
         ),
         SettingsList.trailing(nil),
         rule: false

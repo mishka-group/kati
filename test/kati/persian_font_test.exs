@@ -104,7 +104,16 @@ defmodule Kati.PersianFontTest do
       {Kati.Screens.SearchSpec, "Typing ي finds ی."}
     ],
     fa: [
-      {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"}
+      {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"},
+      # Board 95 is an English specimen sheet — five states screen 92 must be
+      # able to BE — and the sweep renders every screen in both locales. Its
+      # sentence now carries one Persian word because
+      # `Kati.Services.region_name/1` answers in the reader's own language since
+      # mishka-group/kati#103 folded board 301: a country is named in the
+      # language being read, and this sheet is read in English. Mostly-Latin
+      # keeps the Latin face, which is exactly what this list is for.
+      {Kati.Screens.MyServicesStates,
+       "What counts as watchable changes everywhere. Your library, ratings, notes and history do not change at all — three of your services are not listed in ایران and switch to Something else."}
     ]
   }
 

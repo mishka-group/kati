@@ -235,3 +235,23 @@ msgstr ""
 #: lib/kati/screens/onboarding_first_title.ex
 msgid "Back to loudness"
 msgstr ""
+
+#: lib/kati/screens/country_picker.ex
+msgid "Your country"
+msgstr ""
+
+#: lib/kati/screens/country_picker.ex
+msgid "Search %{count} countries"
+msgstr ""
+
+#: lib/kati/screens/country_picker.ex
+msgid "No country matches"
+msgstr ""
+
+#: lib/kati/screens/country_picker.ex
+msgid "Kati lists %{count}, and none of them is “%{typed}”."
+msgstr ""
+
+#: lib/kati/screens/country_picker.ex
+msgid "Availability is per country. Changing this changes what Kati shows as watchable — it never touches your library, ratings or history."
+msgstr ""

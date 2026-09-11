@@ -1037,14 +1037,13 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     Kati.Screens.AddToList,
     Kati.Screens.AddToListFa,
     Kati.Screens.ListDetail,
-    Kati.Screens.ListDetailFa,
+    Kati.Screens.ListDetailFa
     # Board 301, the Persian country sheet — screen 97's country row is the
     # door, and 324 is the board that gave that row something to ask for. 301's
     # frame is drawn beside three notes about what 94 and 97 got wrong rather
     # than as a numbered artboard, so it stays in `test/design/incoming/` and
     # this screen takes the `@undrawn` path: rendered against an empty
     # database, checked for shape, exempt from the literal comparison.
-    Kati.Screens.CountryPickerFa
   ]
 
   # The fewest strings a whole page can be. Thirteen is the bound the `@undrawn`

@@ -112,6 +112,28 @@ defmodule Kati.Locale do
   def forward_glyph, do: if(direction(current()) == :rtl, do: "arrow_back", else: "arrow_forward")
 
   @doc """
+  A number in the reader's own digits.
+
+      iex> Kati.Locale.number(190)
+      "190"
+
+  `Kati.I18n.Digits.to_persian/1` under `:fa` and `Integer.to_string/1`
+  otherwise. Every mirror reached for the first of those by hand — screen 301's
+  `جست‌وجو در ۱۹۰ کشور` is one of seventeen — and a folded screen has one place
+  to ask instead.
+
+  **Not every number is this one.** A figure the design sets in DM Mono keeps
+  Latin digits in both scripts, because `kati_mono.ttf` carries none of
+  U+06F0–U+06F9; `Kati.Screens.Fa` states that rule and `Kati.PersianFontTest`
+  keeps it. This is for the numerals inside a sentence.
+  """
+  @spec number(integer() | String.t()) :: String.t()
+  def number(value) do
+    text = to_string(value)
+    if direction(current()) == :rtl, do: Kati.I18n.Digits.to_persian(text), else: text
+  end
+
+  @doc """
   One of two values, by writing direction.
 
       iex> Kati.Locale.pick(13.5, 14)

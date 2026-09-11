@@ -176,7 +176,6 @@ defmodule Kati.ScreenDesignLiteralTest do
     # sweep can hold it. `Kati.ScreenClearHistoryTest` carries the copy, both
     # states, the four counts and the promise about what stays.
     Kati.Screens.ClearHistory,
-    Kati.Screens.CountryPickerFa,
     # Board 169 draws eleven controls; six of them cannot be answered by any
     # field TMDB has — a leaving date, an "unscored" set, two service chips
     # needing JustWatch ids Kati throws away, and a follow list there is no
