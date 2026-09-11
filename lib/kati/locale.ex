@@ -125,6 +125,54 @@ defmodule Kati.Locale do
   def week_start, do: pick("Monday", "شنبه")
 
   @doc """
+  A date in the reader's own calendar.
+
+      iex> Kati.Locale.date(~D[2026-08-16])
+      "Sun 16 Aug"
+
+  Three styles, and each names a shape rather than a format string:
+
+    * `:long` — the weekday, the day, the month and the year.
+    * `:short` — the day and the month, which is what a row under a title wants.
+    * `:numeric` — the three numbers, for a field.
+
+  **`Kati.Calendar.Shamsi` under `:fa`, and it is a different CALENDAR rather
+  than the same date translated.** ۲۰ شهریور ۱۴۰۵ and 11 September 2026 are the
+  same day, and neither is a formatting of the other. That is the half of
+  mishka-group/kati#103 gettext cannot do: a catalogue translates words, and a
+  date is an arithmetic.
+
+  Seventeen files reached for `Kati.Calendar.Shamsi` by hand and every one of
+  them was a `*Fa` mirror, which is exactly why a folded screen needs this: the
+  English screen is now both, and it has one place to ask what day it is.
+  """
+  @spec date(Date.t(), :long | :short | :numeric) :: String.t()
+  def date(%Date{} = date, style \\ :long) do
+    if direction(current()) == :rtl do
+      Kati.Calendar.Shamsi.format(date, style)
+    else
+      case style do
+        :long -> Calendar.strftime(date, "%a %-d %b")
+        :short -> Calendar.strftime(date, "%-d %b")
+        :numeric -> Calendar.strftime(date, "%Y/%m/%d")
+      end
+    end
+  end
+
+  @doc """
+  A time of day, in the reader's own digits.
+
+      iex> Kati.Locale.time(~T[21:40:00])
+      "21:40"
+
+  24-hour in both scripts — the design's own choice, and `Kati.Screens.Settings`
+  draws it as a setting rather than a consequence of the language. What changes
+  is the numerals.
+  """
+  @spec time(Time.t() | DateTime.t() | NaiveDateTime.t()) :: String.t()
+  def time(at), do: at |> Calendar.strftime("%H:%M") |> then(&number/1)
+
+  @doc """
   The face a mono line takes.
 
       iex> Kati.Locale.mono_face()
