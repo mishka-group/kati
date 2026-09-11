@@ -36,7 +36,32 @@ defmodule Kati.Repo do
         # immediate mode at least takes the write lock up front rather than
         # failing midway on contention.
         default_transaction_mode: :immediate,
-        busy_timeout: 5_000
+        busy_timeout: 5_000,
+        # **`EXCLUSIVE`, because of `BUS_ADRERR`.** mishka-group/kati#108.
+        #
+        # The BEAM has died twice on a device with `SIGBUS`/`BUS_ADRERR` inside
+        # `sqlite3_step`, under `exqlite_multi_step`, days apart and identical
+        # on every frame that carries a symbol. `SIGSEGV` is an address that is
+        # not mapped; `BUS_ADRERR` is an address that IS mapped with no backing
+        # page behind it — a mapping whose file got shorter, or a mapped region
+        # the filesystem cannot serve.
+        #
+        # SQLite maps exactly one thing here. `SQLITE_DEFAULT_MMAP_SIZE` is 0,
+        # so the database file is read with `pread` and never mapped — but WAL
+        # maps `kati.db-shm`, the shared-memory index, unconditionally, and
+        # `ecto_sqlite3` sets `journal_mode: :wal` by default
+        # (`connection.ex:23`).
+        #
+        # In exclusive locking mode SQLite keeps that index **in heap memory
+        # and never creates or maps `-shm` at all**. It is the documented
+        # remedy for this class of filesystem, and it costs Kati nothing it
+        # has: one process, `pool_size: 1`, so the exclusivity given up is
+        # exclusivity nobody else was going to want.
+        #
+        # WAL stays. So do `busy_timeout` and the immediate transaction mode —
+        # this changes where the index lives, not what durability means.
+        journal_mode: :wal,
+        locking_mode: :exclusive
       )
 
     super(type, config)
