@@ -502,7 +502,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     {"139", Kati.Screens.HomeEmpty},
     {"144", Kati.Screens.RateEpisode},
     {"149", Kati.Screens.DropSheet},
-    {"132", Kati.Screens.RestoreFa},
     # 129 and 135 joined on 24 August, when #25's restore half moved off
     # `Kati.Screens.Backup` and onto the screen its drawing puts it on. They
     # reach the store through `Kati.Backup.restore_file/2` — a tap, not a
@@ -2394,9 +2393,6 @@ defmodule Kati.ScreenEmptyDatabaseTest do
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"131", Kati.Screens.BackupDark,
-       fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
-       fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
-      {"132", Kati.Screens.RestoreFa,
        fn -> {Kati.Screens.MyServices.subscribed(), Kati.Screens.MyServices.free()} end, {[], []},
        fn -> {Kati.Services.Sample.subscribed(), Kati.Services.Sample.free()} end},
       {"129", Kati.Screens.Restore,

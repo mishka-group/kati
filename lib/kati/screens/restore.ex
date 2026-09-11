@@ -1,4 +1,6 @@
 defmodule Kati.Screens.Restore do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Screen 129 — Restore from a backup, pushed under Settings.
 
@@ -343,20 +345,20 @@ defmodule Kati.Screens.Restore do
         {SettingsList.chrome(nil)}
         {Kati.Screens.Restore.title()}
         {Kati.Screens.Restore.notice_block(job.notice)}
-        {UI.eyebrow("Choose a file")}
+        {UI.eyebrow(gettext("Choose a file"))}
         {Kati.Screens.Restore.file_row(Kati.Screens.Restore.file_name(job))}
         {Kati.Screens.Restore.file_card(job.file)}
         {Kati.Screens.Restore.unlock_field(job)}
         {Kati.Screens.Restore.scan_card()}
-        {UI.eyebrow("What will happen")}
+        {UI.eyebrow(gettext("What will happen"))}
         {Kati.Screens.Restore.count_row(cards)}
         {Kati.Screens.Restore.merge_note()}
         {Kati.Screens.Restore.mode_note(job)}
-        {UI.eyebrow("Conflicts · keep which?")}
+        {UI.eyebrow(gettext("Conflicts · keep which?"))}
         {Kati.Screens.Restore.conflict_card(job.conflict)}
         {Kati.Screens.Restore.merge_button(Kati.Screens.Restore.new_count(cards))}
         {Kati.Screens.Restore.divider()}
-        {SettingsList.eyebrow_muted("Or start clean")}
+        {SettingsList.eyebrow_muted(gettext("Or start clean"))}
         {Kati.Screens.Restore.replace_card(job.replace)}
         <Spacer size={14} />
         {Kati.Screens.Restore.replace_button()}
@@ -381,7 +383,7 @@ defmodule Kati.Screens.Restore do
     ~MOB"""
     <Column fill_width={true}>
       <Text
-        text="Restore from a backup"
+        text={gettext("Restore from a backup")}
         text_size={28}
         max_font_scale={1.6}
         font_weight="bold"
@@ -390,8 +392,8 @@ defmodule Kati.Screens.Restore do
       />
       <Spacer size={6} />
       <Text
-        text="NOTHING IS WRITTEN UNTIL THE LAST STEP"
-        font_family="mono"
+        text={gettext("NOTHING IS WRITTEN UNTIL THE LAST STEP")}
+        font_family={Kati.Locale.mono_face()}
         text_size={11.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -427,7 +429,7 @@ defmodule Kati.Screens.Restore do
     row =
       SettingsList.row(
         SettingsList.icon_tile("upload_file"),
-        SettingsList.body("Pick a file", name),
+        SettingsList.body(gettext("Pick a file"), name),
         SettingsList.chevron(),
         rule: false,
         on_tap: {self(), :choose_file}
@@ -457,7 +459,7 @@ defmodule Kati.Screens.Restore do
         <Spacer size={14} />
         <Column weight={1.0}>
           <Text
-            text="Scan from another phone"
+            text={gettext("Scan from another phone")}
             text_size={13.5}
             font_weight="bold"
             text_color={Palette.cream_ink()}
@@ -485,9 +487,9 @@ defmodule Kati.Screens.Restore do
     ]
 
     UI.rich_text([
-      {"Carries ", body},
-      {"settings and plans only", emphasis},
-      {" — a QR payload is small, and a library is not.", body}
+      {gettext("Carries "), body},
+      {gettext("settings and plans only"), emphasis},
+      {gettext(" — a QR payload is small, and a library is not."), body}
     ])
   end
 
@@ -736,9 +738,9 @@ defmodule Kati.Screens.Restore do
 
     paragraph =
       UI.rich_text([
-        {"This device already has data, so the file is ", body},
-        {"merged", emphasis},
-        {" into it. Nothing is written until you finish the last conflict.", body}
+        {gettext("This device already has data, so the file is "), body},
+        {gettext("merged"), emphasis},
+        {gettext(" into it. Nothing is written until you finish the last conflict."), body}
       ])
 
     card =
@@ -866,7 +868,7 @@ defmodule Kati.Screens.Restore do
         <Spacer size={12} />
         <Text
           text={c.progress}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={10.5}
           text_color={Palette.cream_meta()}
           text_align="center"
@@ -887,7 +889,7 @@ defmodule Kati.Screens.Restore do
   """
   @spec merge_button(String.t()) :: term()
   def merge_button(new_count) do
-    label = "Merge " <> new_count <> " into this device"
+    label = gettext("Merge %{count} into this device", count: new_count)
     tap = {self(), :restore_now}
 
     ~MOB"""
@@ -933,7 +935,11 @@ defmodule Kati.Screens.Restore do
   @spec replace_card(map()) :: term()
   def replace_card(r) do
     body =
-      "Deletes all #{r.count} #{r.noun}, every note and every session, then writes the file in their place. There is no undo once it finishes."
+      gettext(
+        "Deletes all %{count} %{noun}, every note and every session, then writes the file in their place. There is no undo once it finishes.",
+        count: Kati.Locale.number(r.count),
+        noun: r.noun
+      )
 
     ~MOB"""
     <Column
@@ -948,7 +954,7 @@ defmodule Kati.Screens.Restore do
         <Spacer size={11} />
         <Column weight={1.0}>
           <Text
-            text="Replace everything on this device"
+            text={gettext("Replace everything on this device")}
             text_size={13.5}
             font_weight="bold"
             text_color={Palette.red()}
@@ -985,7 +991,7 @@ defmodule Kati.Screens.Restore do
       align="center"
     >
       <Text
-        text="Replace everything…"
+        text={gettext("Replace everything…")}
         text_size={12.5}
         font_weight="bold"
         text_color={Palette.red()}
@@ -1225,7 +1231,7 @@ defmodule Kati.Screens.Restore do
 
   Written here rather than taken from `Cldr.Number` for the reason
   `Kati.Screens.MealsToday` gives: this screen is the English one, its Persian
-  mirror `Kati.Screens.RestoreFa` holds its own numerals literally, and the
+  mirror `Kati.Screens.RestoreFa` held its own numerals literally until #103, and the
   sweep renders both in both locales.
   """
   @spec group(integer()) :: String.t()

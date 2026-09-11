@@ -267,7 +267,7 @@ defmodule Kati.Screens.AddTitle do
   # one run and stranded in the next, from the same code.
   #
   # 156 is therefore on that file's inventory, which is where every other
-  # Persian mirror already sits: `Kati.Screens.RestoreFa` and
+  # Persian mirror already sat: `Kati.Screens.RestoreFa` and
   # `Kati.Screens.OnboardingFa` are stranded in exactly the same way and for
   # exactly the same reason. Routing the mirrors properly is #93's third
   # criterion — "Persian screens are reachable after onboarding, not only

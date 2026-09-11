@@ -1,4 +1,6 @@
 defmodule Kati.Import.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Stand-in import data, until a real CSV reader exists.
 
@@ -180,7 +182,11 @@ defmodule Kati.Import.Sample do
       title: "Blue Hour",
       seed: "bluehour58",
       line: "Yours ★4 · file says ★5",
-      choices: [{"Keep mine", true}, {"Take file", false}, {"Keep both", false}],
+      choices: [
+        {:keep_mine, gettext("Keep mine"), true},
+        {:take_file, gettext("Take file"), false},
+        {:keep_both, gettext("Keep both"), false}
+      ],
       progress: "1 of 6 · apply to all"
     }
   end

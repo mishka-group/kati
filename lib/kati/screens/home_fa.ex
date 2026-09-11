@@ -1131,7 +1131,7 @@ defmodule Kati.Screens.HomeFa do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.PickSections)}
 
   def handle_info({:tap, :import_backup}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Restore)}
 
   def handle_info({:tap, :open_calendar}, socket),
     do: {:noreply, Mob.Socket.reset_to(socket, Kati.Screens.ScheduleFa)}

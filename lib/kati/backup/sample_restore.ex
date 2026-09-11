@@ -1,4 +1,6 @@
 defmodule Kati.Backup.SampleRestore do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Stand-in restore data, until `Kati.Screens.Restore` reads a real file.
 
@@ -43,9 +45,12 @@ defmodule Kati.Backup.SampleRestore do
   @spec counts() :: [map()]
   def counts do
     [
-      %{value: "384", label: "New", tone: :ink},
-      %{value: "28", label: "Merged", tone: :green},
-      %{value: "6", label: "Conflicts", tone: :red}
+      # `key` as well as `label`: screen 132's mirror matched `count_label/1` on
+      # the English word with no catch-all, so a real unlocked backup whose
+      # card said anything else raised FunctionClauseError mid-render.
+      %{key: :new, value: Kati.Locale.number(384), label: gettext("New"), tone: :ink},
+      %{key: :merged, value: Kati.Locale.number(28), label: gettext("Merged"), tone: :green},
+      %{key: :conflicts, value: Kati.Locale.number(6), label: gettext("Conflicts"), tone: :red}
     ]
   end
 
@@ -61,14 +66,26 @@ defmodule Kati.Backup.SampleRestore do
   def conflict do
     %{
       icon: "star",
-      title: "Blue Hour",
-      line: "Yours ★4 · file says ★5",
-      choices: [{"Keep mine", true}, {"Take file", false}, {"Keep both", false}],
-      progress: "1 of 6 · apply to all"
+      title: gettext("Blue Hour"),
+      line:
+        gettext("Yours ★%{mine} · file says ★%{theirs}",
+          mine: Kati.Locale.number(4),
+          theirs: Kati.Locale.number(5)
+        ),
+      choices: [
+        {:keep_mine, gettext("Keep mine"), true},
+        {:take_file, gettext("Take file"), false},
+        {:keep_both, gettext("Keep both"), false}
+      ],
+      progress:
+        gettext("%{index} of %{total} · apply to all",
+          index: Kati.Locale.number(1),
+          total: Kati.Locale.number(6)
+        )
     }
   end
 
   @doc "What `Replace everything` would delete, if it were chosen over Merge."
   @spec replace() :: map()
-  def replace, do: %{count: "418", noun: "titles"}
+  def replace, do: %{count: 418, noun: gettext("titles")}
 end

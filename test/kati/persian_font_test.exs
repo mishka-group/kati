@@ -111,16 +111,13 @@ defmodule Kati.PersianFontTest do
        "The columns start on Monday. In فارسی the same grid starts on Saturday, from the right."}
     ],
     fa: [
-      {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"},
-      # Board 95 is an English specimen sheet — five states screen 92 must be
-      # able to BE — and the sweep renders every screen in both locales. Its
-      # sentence now carries one Persian word because
-      # `Kati.Services.region_name/1` answers in the reader's own language since
-      # mishka-group/kati#103 folded board 301: a country is named in the
-      # language being read, and this sheet is read in English. Mostly-Latin
-      # keeps the Latin face, which is exactly what this list is for.
-      {Kati.Screens.MyServicesStates,
-       "What counts as watchable changes everywhere. Your library, ratings, notes and history do not change at all — three of your services are not listed in ایران and switch to Something else."}
+      {Kati.Screens.LanguagePick, "RIGHT TO LEFT · ۱۲۳۴ · SHAMSI"}
+      # Board 95's specimen sentence was here and has gone, which is the
+      # outcome this list wants. `Kati.UI.rich_text/1` defaulted its family to
+      # the literal `"sans"`; it asks `Kati.Locale.face_prop/0` since
+      # mishka-group/kati#103 reached screen 129, so under `:fa` a run of mixed
+      # text takes Vazirmatn — which has the Latin glyphs as well. Mostly-Latin
+      # keeps the Latin face only where the READER is Latin.
     ]
   }
 

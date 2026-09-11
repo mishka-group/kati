@@ -356,7 +356,7 @@ defmodule Kati.ScreenHomeFaEmptyStateTest do
       assert chosen.__mob__.nav_action == {:push, Kati.Screens.PickSections, %{}}
 
       assert {:noreply, restored} = HomeFa.handle_info({:tap, :import_backup}, socket)
-      assert restored.__mob__.nav_action == {:push, Kati.Screens.RestoreFa, %{}}
+      assert restored.__mob__.nav_action == {:push, Kati.Screens.Restore, %{}}
     end
   end
 

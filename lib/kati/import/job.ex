@@ -1,4 +1,6 @@
 defmodule Kati.Import.Job do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   A picked file, read: what is in it, what it would do, and what it cannot.
 
@@ -223,9 +225,24 @@ defmodule Kati.Import.Job do
   @spec outcome(map()) :: [map()]
   def outcome(plan) do
     [
-      %{value: "#{length(plan.new)}", label: "New", color: 0xFF1A1917},
-      %{value: "#{length(plan.merged)}", label: "Merged", color: 0xFF4E9A73},
-      %{value: "#{length(plan.conflicts)}", label: "Conflicts", color: 0xFFB4553C}
+      %{
+        key: :new,
+        value: Kati.Locale.number(length(plan.new)),
+        label: gettext("New"),
+        color: 0xFF1A1917
+      },
+      %{
+        key: :merged,
+        value: Kati.Locale.number(length(plan.merged)),
+        label: gettext("Merged"),
+        color: 0xFF4E9A73
+      },
+      %{
+        key: :conflicts,
+        value: Kati.Locale.number(length(plan.conflicts)),
+        label: gettext("Conflicts"),
+        color: 0xFFB4553C
+      }
     ]
   end
 
@@ -254,19 +271,35 @@ defmodule Kati.Import.Job do
           # and `conflict_poster/1` already draws the placeholder for `nil`.
           seed: nil,
           line:
-            Calendar.strftime(clash.day, "%-d %b %Y") <>
-              " · yours ★#{Kati.Import.Job.stars(clash.mine)}" <>
-              " · file ★#{Kati.Import.Job.stars(clash.theirs)}",
-          progress: "#{index + 1} of #{length(conflicts)} · apply to all",
+            Kati.Locale.date(clash.day, :dated) <>
+              " · " <>
+              gettext("yours ★%{mine} · file ★%{theirs}",
+                mine: Kati.Locale.number(Kati.Import.Job.stars(clash.mine)),
+                theirs: Kati.Locale.number(Kati.Import.Job.stars(clash.theirs))
+              ),
+          progress:
+            gettext("%{index} of %{total} · apply to all",
+              index: Kati.Locale.number(index + 1),
+              total: Kati.Locale.number(length(conflicts))
+            ),
           watch_id: clash.watch_id,
           index: index,
           # Nothing lit until the reader says something. The fixture lit *Keep
           # mine*, and a default answer to a question about destroying a rating
           # is the one thing this card exists to avoid.
+          # `{key, label, chosen?}`. The key was not there, and the tag a pill
+          # sent was manufactured out of the LABEL —
+          # `String.to_atom(prefix <> String.downcase(label))` — then matched
+          # back through `Kati.Screens.Import.choice_atom/1`'s three English
+          # words. Translate the pills and the round trip breaks: the tag is a
+          # different atom, `choice_atom/1` answers `nil`, and the conflict
+          # resolver stops resolving with no error at all. That is
+          # mishka-group/kati#103's recurring defect on the one screen in the
+          # app where the silent failure destroys a rating.
           choices: [
-            {"Keep mine", answer == :keep_mine},
-            {"Take file", answer == :take_file},
-            {"Keep both", answer == :keep_both}
+            {:keep_mine, gettext("Keep mine"), answer == :keep_mine},
+            {:take_file, gettext("Take file"), answer == :take_file},
+            {:keep_both, gettext("Keep both"), answer == :keep_both}
           ]
         }
     end

@@ -1253,17 +1253,18 @@ msgstr[1] "%{count} پخش"
 msgid "Albums · %{count}"
 msgstr "آلبوم‌ها · %{count}"
 
-#: lib/kati/screens/artist_detail.ex:643
+#: lib/kati/screens/artist_detail.ex:644
 #, elixir-autogen, elixir-format
 msgid "Dismiss"
 msgstr "رد کن"
 
+#: lib/kati/music/sample.ex:235
 #: lib/kati/screens/artist_detail.ex:235
 #, elixir-autogen, elixir-format
 msgid "Feeds 21’s new-releases band and 25’s alerts"
 msgstr "به نوار تازه‌ها و هشدارها خبر می‌دهد"
 
-#: lib/kati/screens/artist_detail.ex:830
+#: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format
 msgid "First heard"
 msgstr "اولین"
@@ -1273,12 +1274,12 @@ msgstr "اولین"
 msgid "Following"
 msgstr "پیگیری می‌کنم"
 
-#: lib/kati/screens/artist_detail.ex:830
+#: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format
 msgid "Listened"
 msgstr "ساعت"
 
-#: lib/kati/screens/artist_detail.ex:643
+#: lib/kati/screens/artist_detail.ex:644
 #, elixir-autogen, elixir-format
 msgid "New from this artist"
 msgstr "تازه از این هنرمند"
@@ -1288,7 +1289,7 @@ msgstr "تازه از این هنرمند"
 msgid "Plays by album"
 msgstr "پخش بر اساس آلبوم"
 
-#: lib/kati/screens/artist_detail.ex:643
+#: lib/kati/screens/artist_detail.ex:644
 #, elixir-autogen, elixir-format
 msgid "Remind me"
 msgstr "یادآوری کن"
@@ -1304,27 +1305,27 @@ msgstr "مجموع"
 msgid "Unheard"
 msgstr "نشنیده"
 
-#: lib/kati/screens/artist_detail.ex:790
+#: lib/kati/screens/artist_detail.ex:791
 #, elixir-autogen, elixir-format
 msgid "You have not heard it"
 msgstr "هنوز نشنیده‌اید"
 
-#: lib/kati/screens/artist_detail.ex:605
+#: lib/kati/screens/artist_detail.ex:606
 #, elixir-autogen, elixir-format
 msgid "and %{count} more"
 msgstr "و %{count} آلبوم دیگر"
 
-#: lib/kati/screens/artist_detail.ex:800
+#: lib/kati/screens/artist_detail.ex:801
 #, elixir-autogen, elixir-format
 msgid "h"
 msgstr "س"
 
-#: lib/kati/screens/artist_detail.ex:776
+#: lib/kati/screens/artist_detail.ex:777
 #, elixir-autogen, elixir-format
 msgid "you have not heard it"
 msgstr "هنوز نشنیده‌اید"
 
-#: lib/kati/screens/artist_detail.ex:830
+#: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format
 msgctxt "totals tile"
 msgid "Albums"
@@ -1365,3 +1366,161 @@ msgstr "جمعه منتشر می‌شود · هنوز نشنیده‌اید"
 #, elixir-autogen, elixir-format
 msgid "Tidal Works"
 msgstr "کارهای جزر و مد"
+
+#: lib/kati/screens/restore.ex:743
+#, elixir-autogen, elixir-format
+msgid " into it. Nothing is written until you finish the last conflict."
+msgstr " می‌شود. تا پایان آخرین تعارض چیزی نوشته نمی‌شود."
+
+#: lib/kati/screens/restore.ex:492
+#, elixir-autogen, elixir-format
+msgid " — a QR payload is small, and a library is not."
+msgstr " را می‌آورد — کد QR جا برای یک کتابخانه ندارد."
+
+#: lib/kati/backup/sample_restore.ex:81
+#: lib/kati/import/job.ex:281
+#, elixir-autogen, elixir-format
+msgid "%{index} of %{total} · apply to all"
+msgstr "%{index} از %{total} · برای همه"
+
+#: lib/kati/backup/sample_restore.ex:69
+#, elixir-autogen, elixir-format
+msgid "Blue Hour"
+msgstr "ساعت آبی"
+
+#: lib/kati/screens/restore.ex:490
+#, elixir-autogen, elixir-format
+msgid "Carries "
+msgstr "فقط "
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "Choose a file"
+msgstr "انتخاب فایل"
+
+#: lib/kati/backup/sample_restore.ex:53
+#: lib/kati/import/job.ex:243
+#, elixir-autogen, elixir-format
+msgid "Conflicts"
+msgstr "تعارض"
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "Conflicts · keep which?"
+msgstr "تعارض‌ها · کدام بماند؟"
+
+#: lib/kati/screens/restore.ex:938
+#, elixir-autogen, elixir-format
+msgid "Deletes all %{count} %{noun}, every note and every session, then writes the file in their place. There is no undo once it finishes."
+msgstr "هر %{count} %{noun}، همه یادداشت‌ها و جلسه‌ها حذف می‌شوند و فایل جای آن‌ها نوشته می‌شود. بعد از پایان، بازگشتی نیست."
+
+#: lib/kati/backup/sample_restore.ex:78
+#: lib/kati/import/job.ex:302
+#: lib/kati/import/sample.ex:188
+#: lib/kati/screens/plan_import.ex:307
+#, elixir-autogen, elixir-format
+msgid "Keep both"
+msgstr "هر دو"
+
+#: lib/kati/backup/sample_restore.ex:76
+#: lib/kati/import/job.ex:300
+#: lib/kati/import/sample.ex:186
+#: lib/kati/screens/plan_import.ex:305
+#, elixir-autogen, elixir-format
+msgid "Keep mine"
+msgstr "مال من"
+
+#: lib/kati/screens/restore.ex:892
+#, elixir-autogen, elixir-format
+msgid "Merge %{count} into this device"
+msgstr "ادغام %{count} مورد در این دستگاه"
+
+#: lib/kati/backup/sample_restore.ex:52
+#: lib/kati/import/job.ex:237
+#, elixir-autogen, elixir-format
+msgid "Merged"
+msgstr "ادغام"
+
+#: lib/kati/screens/restore.ex:383
+#, elixir-autogen, elixir-format
+msgid "NOTHING IS WRITTEN UNTIL THE LAST STEP"
+msgstr "تا آخرین گام چیزی نوشته نمی‌شود"
+
+#: lib/kati/backup/sample_restore.ex:51
+#: lib/kati/import/job.ex:231
+#, elixir-autogen, elixir-format
+msgid "New"
+msgstr "تازه"
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "Or start clean"
+msgstr "یا از نو"
+
+#: lib/kati/screens/restore.ex:432
+#, elixir-autogen, elixir-format
+msgid "Pick a file"
+msgstr "انتخاب فایل"
+
+#: lib/kati/screens/restore.ex:944
+#, elixir-autogen, elixir-format
+msgid "Replace everything on this device"
+msgstr "جایگزینی همه‌چیز روی این دستگاه"
+
+#: lib/kati/screens/restore.ex:983
+#, elixir-autogen, elixir-format
+msgid "Replace everything…"
+msgstr "جایگزین کن…"
+
+#: lib/kati/screens/restore.ex:383
+#, elixir-autogen, elixir-format
+msgid "Restore from a backup"
+msgstr "بازگردانی از پشتیبان"
+
+#: lib/kati/screens/restore.ex:449
+#, elixir-autogen, elixir-format
+msgid "Scan from another phone"
+msgstr "اسکن از گوشی دیگر"
+
+#: lib/kati/backup/sample_restore.ex:77
+#: lib/kati/import/job.ex:301
+#: lib/kati/import/sample.ex:187
+#: lib/kati/screens/plan_import.ex:306
+#, elixir-autogen, elixir-format
+msgid "Take file"
+msgstr "فایل"
+
+#: lib/kati/screens/restore.ex:741
+#, elixir-autogen, elixir-format
+msgid "This device already has data, so the file is "
+msgstr "این دستگاه داده دارد، پس فایل با آن "
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "What will happen"
+msgstr "چه اتفاقی می‌افتد"
+
+#: lib/kati/backup/sample_restore.ex:71
+#, elixir-autogen, elixir-format
+msgid "Yours ★%{mine} · file says ★%{theirs}"
+msgstr "شما ★%{mine} · فایل می‌گوید ★%{theirs}"
+
+#: lib/kati/screens/restore.ex:742
+#, elixir-autogen, elixir-format
+msgid "merged"
+msgstr "ادغام"
+
+#: lib/kati/screens/restore.ex:491
+#, elixir-autogen, elixir-format
+msgid "settings and plans only"
+msgstr "تنظیمات و برنامه‌ها"
+
+#: lib/kati/backup/sample_restore.ex:90
+#, elixir-autogen, elixir-format
+msgid "titles"
+msgstr "عنوان"
+
+#: lib/kati/import/job.ex:276
+#, elixir-autogen, elixir-format
+msgid "yours ★%{mine} · file ★%{theirs}"
+msgstr "شما ★%{mine} · فایل ★%{theirs}"

@@ -195,11 +195,12 @@ defmodule Kati.Screens.OnboardingWelcome do
       iex> Kati.Screens.OnboardingWelcome.restore_screen()
       Kati.Screens.Restore
 
-  `Kati.Screens.RestoreFa` is still a mirror, so this still forks. It stops
+  `Kati.Screens.RestoreFa` was a mirror and this forked. Since
+  mishka-group/kati#103 folded it away there is one screen, so it does not.
   forking the day that one folds.
   """
   @spec restore_screen() :: module()
-  def restore_screen, do: Kati.Locale.pick(Kati.Screens.Restore, Kati.Screens.RestoreFa)
+  def restore_screen, do: Kati.Screens.Restore
 
   # `screen_for_step/1` rather than the module by name, because this screen is
   # now BOTH runs. Board 164's own step forward is 137 — screen 26 in Persian —

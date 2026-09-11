@@ -1248,17 +1248,18 @@ msgstr[1] ""
 msgid "Albums · %{count}"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:643
+#: lib/kati/screens/artist_detail.ex:644
 #, elixir-autogen, elixir-format
 msgid "Dismiss"
 msgstr ""
 
+#: lib/kati/music/sample.ex:235
 #: lib/kati/screens/artist_detail.ex:235
 #, elixir-autogen, elixir-format
 msgid "Feeds 21’s new-releases band and 25’s alerts"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:830
+#: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format
 msgid "First heard"
 msgstr ""
@@ -1268,12 +1269,12 @@ msgstr ""
 msgid "Following"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:830
+#: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Listened"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:643
+#: lib/kati/screens/artist_detail.ex:644
 #, elixir-autogen, elixir-format
 msgid "New from this artist"
 msgstr ""
@@ -1283,7 +1284,7 @@ msgstr ""
 msgid "Plays by album"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:643
+#: lib/kati/screens/artist_detail.ex:644
 #, elixir-autogen, elixir-format
 msgid "Remind me"
 msgstr ""
@@ -1299,27 +1300,27 @@ msgstr ""
 msgid "Unheard"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:790
+#: lib/kati/screens/artist_detail.ex:791
 #, elixir-autogen, elixir-format, fuzzy
 msgid "You have not heard it"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:605
+#: lib/kati/screens/artist_detail.ex:606
 #, elixir-autogen, elixir-format
 msgid "and %{count} more"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:800
+#: lib/kati/screens/artist_detail.ex:801
 #, elixir-autogen, elixir-format
 msgid "h"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:776
+#: lib/kati/screens/artist_detail.ex:777
 #, elixir-autogen, elixir-format
 msgid "you have not heard it"
 msgstr ""
 
-#: lib/kati/screens/artist_detail.ex:830
+#: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format, fuzzy
 msgctxt "totals tile"
 msgid "Albums"
@@ -1359,4 +1360,162 @@ msgstr ""
 #: lib/kati/music/sample.ex:274
 #, elixir-autogen, elixir-format
 msgid "Tidal Works"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:743
+#, elixir-autogen, elixir-format
+msgid " into it. Nothing is written until you finish the last conflict."
+msgstr ""
+
+#: lib/kati/screens/restore.ex:492
+#, elixir-autogen, elixir-format
+msgid " — a QR payload is small, and a library is not."
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:81
+#: lib/kati/import/job.ex:281
+#, elixir-autogen, elixir-format
+msgid "%{index} of %{total} · apply to all"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:69
+#, elixir-autogen, elixir-format
+msgid "Blue Hour"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:490
+#, elixir-autogen, elixir-format
+msgid "Carries "
+msgstr ""
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "Choose a file"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:53
+#: lib/kati/import/job.ex:243
+#, elixir-autogen, elixir-format
+msgid "Conflicts"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "Conflicts · keep which?"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:938
+#, elixir-autogen, elixir-format
+msgid "Deletes all %{count} %{noun}, every note and every session, then writes the file in their place. There is no undo once it finishes."
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:78
+#: lib/kati/import/job.ex:302
+#: lib/kati/import/sample.ex:188
+#: lib/kati/screens/plan_import.ex:307
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Keep both"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:76
+#: lib/kati/import/job.ex:300
+#: lib/kati/import/sample.ex:186
+#: lib/kati/screens/plan_import.ex:305
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Keep mine"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:892
+#, elixir-autogen, elixir-format
+msgid "Merge %{count} into this device"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:52
+#: lib/kati/import/job.ex:237
+#, elixir-autogen, elixir-format
+msgid "Merged"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:383
+#, elixir-autogen, elixir-format
+msgid "NOTHING IS WRITTEN UNTIL THE LAST STEP"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:51
+#: lib/kati/import/job.ex:231
+#, elixir-autogen, elixir-format
+msgid "New"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "Or start clean"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:432
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Pick a file"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:944
+#, elixir-autogen, elixir-format
+msgid "Replace everything on this device"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:983
+#, elixir-autogen, elixir-format
+msgid "Replace everything…"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:383
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Restore from a backup"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:449
+#, elixir-autogen, elixir-format
+msgid "Scan from another phone"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:77
+#: lib/kati/import/job.ex:301
+#: lib/kati/import/sample.ex:187
+#: lib/kati/screens/plan_import.ex:306
+#, elixir-autogen, elixir-format
+msgid "Take file"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:741
+#, elixir-autogen, elixir-format
+msgid "This device already has data, so the file is "
+msgstr ""
+
+#: lib/kati/screens/restore.ex:336
+#, elixir-autogen, elixir-format
+msgid "What will happen"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:71
+#, elixir-autogen, elixir-format
+msgid "Yours ★%{mine} · file says ★%{theirs}"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:742
+#, elixir-autogen, elixir-format
+msgid "merged"
+msgstr ""
+
+#: lib/kati/screens/restore.ex:491
+#, elixir-autogen, elixir-format
+msgid "settings and plans only"
+msgstr ""
+
+#: lib/kati/backup/sample_restore.ex:90
+#, elixir-autogen, elixir-format, fuzzy
+msgid "titles"
+msgstr ""
+
+#: lib/kati/import/job.ex:276
+#, elixir-autogen, elixir-format
+msgid "yours ★%{mine} · file ★%{theirs}"
 msgstr ""

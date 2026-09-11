@@ -93,10 +93,10 @@ defmodule Kati.UI.ImportChrome do
   screen 120's three pills pictures: it draws the same control over a plan
   import that has no conflict queue to answer.
   """
-  @spec choice({String.t(), boolean()}, {pid(), atom()} | nil) :: map()
+  @spec choice({atom(), String.t(), boolean()}, {pid(), atom()} | nil) :: map()
   def choice(chip, on_tap \\ nil)
 
-  def choice({label, primary?}, on_tap) do
+  def choice({_key, label, primary?}, on_tap) do
     assigns = %{
       button:
         MishkaToggle.toggle(

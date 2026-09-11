@@ -192,7 +192,7 @@ defmodule Kati.ImportTest do
     test "nothing is lit until the reader answers" do
       {:ok, job} = read(letterboxd())
 
-      assert Enum.all?(job.conflict.choices, fn {_label, on?} -> not on? end)
+      assert Enum.all?(job.conflict.choices, fn {_key, _label, on?} -> not on? end)
     end
 
     test "the same rating on the same day is not a conflict", %{tracked: tracked} do

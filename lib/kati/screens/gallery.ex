@@ -161,7 +161,8 @@ defmodule Kati.Screens.Gallery do
     {"129", "Restore from a backup", Kati.Screens.Restore, :push},
     {"130", "Backup & restore — states", Kati.Screens.BackupStates, :push},
     {"131", "Back up everything — dark", Kati.Screens.BackupDark, :push},
-    {"132", "بازگردانی", Kati.Screens.RestoreFa, :push},
+    # mishka-group/kati#103. Board 132 is screen 129 under `:fa`.
+    {"132", "بازگردانی — Restore from a backup, RTL", Kati.Screens.Restore, :push},
     {"133", "Back up & restore at 235%", Kati.Screens.BackupLarge, :push},
     # #11 — the first run. 134 is the flow map and is deliberately absent from
     # this list: it is a diagram at 1720px rather than a 402x874 screen, it has

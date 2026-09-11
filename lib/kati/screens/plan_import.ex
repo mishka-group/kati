@@ -1,4 +1,6 @@
 defmodule Kati.Screens.PlanImport do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Screen 120 — Import a plan, pushed under Plans.
 
@@ -299,7 +301,11 @@ defmodule Kati.Screens.PlanImport do
       icon: "restaurant",
       title: "Overnight oats",
       line: "Yours 410 kcal · file says 385 kcal",
-      choices: [{"Keep mine", true}, {"Take file", false}, {"Keep both", false}],
+      choices: [
+        {:keep_mine, gettext("Keep mine"), true},
+        {:take_file, gettext("Take file"), false},
+        {:keep_both, gettext("Keep both"), false}
+      ],
       progress: "1 of 2 · apply to all"
     }
   end
@@ -520,7 +526,7 @@ defmodule Kati.Screens.PlanImport do
       >
         <Text
           text={card.value}
-          font_family="mono"
+          font_family={Kati.Locale.mono_face()}
           text_size={22}
           font_weight="medium"
           letter_spacing={-0.03}
@@ -530,10 +536,10 @@ defmodule Kati.Screens.PlanImport do
         />
         <Spacer size={5} />
         <Text
-          text={String.upcase(card.label)}
-          font_family="mono"
+          text={Kati.UI.eyebrow_label(card.label)}
+          font_family={Kati.Locale.mono_face()}
           text_size={9.5}
-          letter_spacing={0.1}
+          letter_spacing={Kati.Locale.tracking(0.1)}
           text_color={Palette.muted()}
           text_align="center"
           max_lines={1}

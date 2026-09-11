@@ -652,7 +652,7 @@ defmodule Kati.Screens.Import do
 
   One answer to the conflict: a 32pt pill, ink when it is the chosen one.
 
-  The sample is a selection, not a recommendation — `[{"Keep mine", true},
+  The sample is a selection, not a recommendation — `[{:keep_mine, "Keep mine", true},
   {"Take file", false}, {"Keep both", false}]`, one true — so this is the same
   control screen 36 draws for its ambiguous match, and it is built the same way:
   `Kati.Components.MishkaToggle`, whose moduledoc's own showcase builds a
@@ -720,11 +720,11 @@ defmodule Kati.Screens.Import do
   (`Palette.cream_raise/0`, 60% white on cream, and `Palette.cream_sub/0`,
   `#8A7B60`), and `pressed` picks between them exactly as the `if` did.
   """
-  @spec choice({String.t(), boolean()}, boolean()) :: map()
-  def choice({label, _primary?} = chip, live? \\ false) do
+  @spec choice({atom(), String.t(), boolean()}, boolean()) :: map()
+  def choice({key, _label, _chosen?} = chip, live? \\ false) do
     Kati.UI.ImportChrome.choice(
       chip,
-      if(live?, do: {self(), Kati.Screens.Import.answer_tag("answer_", label)})
+      if(live?, do: {self(), Kati.Screens.Import.answer_tag("answer_", key)})
     )
   end
 
@@ -740,7 +740,7 @@ defmodule Kati.Screens.Import do
   """
   @spec apply_to_all(map(), boolean()) :: map()
   def apply_to_all(card, live?) do
-    chosen = Enum.find(card.choices, fn {_label, on?} -> on? end)
+    chosen = Enum.find(card.choices, fn {_key, _label, on?} -> on? end)
 
     assigns = %{
       progress: card.progress,
@@ -753,7 +753,7 @@ defmodule Kati.Screens.Import do
     ~MOB"""
     <Text
       text={@progress}
-      font_family="mono"
+      font_family={Kati.Locale.mono_face()}
       text_size={10.5}
       text_color={Palette.cream_meta()}
       text_align="center"
@@ -766,13 +766,12 @@ defmodule Kati.Screens.Import do
   @doc """
   The tag a choice sends, built from its own label.
 
-      iex> Kati.Screens.Import.answer_tag("answer_", "Take file")
+      iex> Kati.Screens.Import.answer_tag("answer_", :take_file)
       :answer_take_file
   """
-  @spec answer_tag(String.t(), String.t()) :: atom()
-  def answer_tag(prefix, label) do
-    String.to_atom(prefix <> (label |> String.downcase() |> String.replace(" ", "_")))
-  end
+  @spec answer_tag(String.t(), atom()) :: atom()
+  def answer_tag(prefix, key) when is_atom(key),
+    do: String.to_atom(prefix <> Atom.to_string(key))
 
   @doc false
   def conflict_poster(c) do

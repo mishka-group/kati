@@ -395,7 +395,7 @@ defmodule Kati.UI do
     # Every other optional prop below coerces a stray "nil" back to unset, but
     # font_family is matched as a string, so a nil would be taken for the name
     # of a font and resolve to a system typeface instead of Plus Jakarta.
-    family = Keyword.get(base, :font_family, "sans")
+    family = Keyword.get(base, :font_family) || Kati.Locale.face_prop()
 
     ~MOB"""
     <Text
