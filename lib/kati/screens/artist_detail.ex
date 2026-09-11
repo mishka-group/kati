@@ -293,7 +293,7 @@ defmodule Kati.Screens.ArtistDetail do
     do: Kati.Locale.number(year) <> " · " <> plays_line(plays)
 
   defp plays_line(plays) do
-    ngettext("%{count} play", "%{count} plays", plays, count: Kati.Locale.number(plays))
+    ngettext("%{n} play", "%{n} plays", plays, n: Kati.Locale.number(plays))
   end
 
   @doc false

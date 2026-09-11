@@ -256,12 +256,12 @@ defmodule Kati.Music.Sample do
           gettext("Unheard")
 
         year == nil ->
-          ngettext("%{count} play", "%{count} plays", plays, count: Kati.Locale.number(plays))
+          ngettext("%{n} play", "%{n} plays", plays, n: Kati.Locale.number(plays))
 
         true ->
           Kati.Locale.number(year) <>
             " · " <>
-            ngettext("%{count} play", "%{count} plays", plays, count: Kati.Locale.number(plays))
+            ngettext("%{n} play", "%{n} plays", plays, n: Kati.Locale.number(plays))
       end
 
     %{title: title, year: year, plays: plays, line: line, seed: nil}

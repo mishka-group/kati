@@ -71,6 +71,7 @@ defmodule Kati.Screens.Goals do
   """
 
   use Kati.Screens.Pushed, back: "Stats"
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Goals.Goal
   alias Kati.Goals.Sample
@@ -80,7 +81,6 @@ defmodule Kati.Screens.Goals do
 
   # The drawn sub-line, kept verbatim so the frame comparison keeps working, and
   # said on every row because it is the rule rather than a fact about one goal.
-  @repeat_line "Repeat each period — a yearly goal restarts on 1 January, indefinitely"
 
   def load(socket), do: Mob.Socket.assign(socket, :goals, goals())
 
@@ -180,28 +180,58 @@ defmodule Kati.Screens.Goals do
     }
   end
 
-  defp pace_label(:ahead), do: "Ahead"
-  defp pace_label(:behind), do: "Behind"
-  defp pace_label(:on_pace), do: "On pace"
+  # The WORD, built from the pace atom at draw time. `card/1` keeps `pace`
+  # beside it, so nothing compares the word — screen 107's fixture did, and
+  # carried `pace_label: "Behind"` as data rather than deriving it.
+  @doc false
+  @spec pace_label(:ahead | :behind | :on_pace) :: String.t()
+  def pace_label(:ahead), do: gettext("Ahead")
+  def pace_label(:behind), do: gettext("Behind")
+  def pace_label(:on_pace), do: gettext("On pace")
 
   # No percentage beside `On pace`, because a number attached to it invites
   # reading the band as a failure — which is exactly the reading this page is
   # written to avoid.
   defp drift_label(:on_pace, _drift), do: nil
   defp drift_label(_pace, nil), do: nil
-  defp drift_label(_pace, drift), do: "#{drift}%"
+  defp drift_label(_pace, drift), do: Kati.Locale.number(drift) <> gettext("%")
+
+  @doc """
+  The sentence's opening clause.
+
+  `:on_pace_dated` and `:on_pace_counted` are ONE English phrase and two
+  Persian ones, which is why they are two msgids rather than one. The clause
+  ends in a preposition and Persian picks it by what follows: *با این روند تا*
+  before a date, *با این روند به* before a count. Gettext keys on the source
+  string, so a single msgid cannot answer both — board 108 draws both, and the
+  mirror could write them out because it was not translating anything.
+  """
+  @spec projection_lead_word(:past | :none | :on_pace_dated | :on_pace_counted) :: String.t()
+  def projection_lead_word(:past), do: gettext("Already past it, with")
+  def projection_lead_word(:none), do: gettext("Too early to say.")
+
+  def projection_lead_word(:on_pace_dated),
+    do: pgettext("before a date", "On pace to finish")
+
+  def projection_lead_word(:on_pace_counted),
+    do: pgettext("before a count", "On pace to finish")
 
   defp projection_lead(%Goal{progress: progress, target: target}, _projected)
        when progress >= target,
-       do: "Already past it, with"
+       do: projection_lead_word(:past)
 
-  defp projection_lead(%Goal{}, nil), do: "Too early to say."
-  defp projection_lead(%Goal{}, _projected), do: "On pace to finish"
+  defp projection_lead(%Goal{}, nil), do: projection_lead_word(:none)
+
+  defp projection_lead(%Goal{} = goal, projected) do
+    if projection_date(goal, projected),
+      do: projection_lead_word(:on_pace_dated),
+      else: projection_lead_word(:on_pace_counted)
+  end
 
   defp projection(%Goal{progress: progress, target: target} = goal, _projected, today)
        when progress >= target do
     days = Goal.days_left(goal, today)
-    "#{days} #{if days == 1, do: "day", else: "days"}"
+    ngettext("%{n} day", "%{n} days", days, n: Kati.Locale.number(days))
   end
 
   defp projection(%Goal{}, nil, _today), do: nil
@@ -224,6 +254,38 @@ defmodule Kati.Screens.Goals do
 
   defp projection_date(%Goal{}, _projected), do: nil
 
+  @doc """
+  The sentence board 108 adds and board 104 does not have.
+
+  A goal's period is the READER's year. Under `:fa` a *yearly* goal ends at the
+  end of اسفند and not on 31 December, which is a fact about this page that is
+  only true where the calendar is Shamsi — so `Kati.Locale.pick/2` draws it
+  there and draws nothing here, the same shape
+  `Kati.Screens.Attribution.marks_note/0` takes.
+  """
+  @spec shamsi_note() :: map()
+  def shamsi_note do
+    assigns = %{
+      sentence:
+        Kati.Locale.pick(
+          nil,
+          "یک هدف «سالانه» در پایان اسفند تمام می‌شود، نه ۳۱ دسامبر. " <>
+            "دوره‌ها از تقویم شمسی پیروی می‌کنند."
+        )
+    }
+
+    if assigns.sentence do
+      ~MOB"""
+      <Column fill_width={true}>
+        {Kati.UI.SettingsList.note("info", @sentence)}
+        <Spacer size={12} />
+      </Column>
+      """
+    else
+      ~MOB"<Spacer size={0} />"
+    end
+  end
+
   @doc false
   def content(assigns) do
     ~MOB"""
@@ -236,9 +298,10 @@ defmodule Kati.Screens.Goals do
         padding_bottom={40}
       >
         {Kati.Screens.Goals.chrome()}
-        {SettingsList.title("Goals", Kati.Screens.Goals.subtitle())}
+        {SettingsList.title(gettext("Goals"), Kati.Screens.Goals.subtitle())}
+        {Kati.Screens.Goals.shamsi_note()}
         {Kati.Screens.Goals.cards(assigns.goals)}
-        {UI.eyebrow("Repeat")}
+        {UI.eyebrow(Kati.UI.eyebrow_label(gettext("Repeat")))}
         {Kati.Screens.Goals.repeat_group(assigns.goals)}
       </Column>
     </Scroll>
@@ -285,7 +348,13 @@ defmodule Kati.Screens.Goals do
 
       goals ->
         span = goals |> Enum.map(& &1.ends_on) |> Enum.max(Date)
-        "#{length(goals)} ACTIVE · TO #{String.upcase(Calendar.strftime(span, "%-d %b %Y"))}"
+
+        Kati.UI.eyebrow_label(
+          gettext("%{count} active · to %{date}",
+            count: Kati.Locale.number(length(goals)),
+            date: Kati.Locale.date(span, :dated)
+          )
+        )
     end
   end
 
@@ -338,8 +407,8 @@ defmodule Kati.Screens.Goals do
       <Spacer size={11} />
       <Row fill_width={true} align="bottom">
         <Text
-          text={Integer.to_string(@goal.progress)}
-          font_family="mono"
+          text={Kati.Locale.number(@goal.progress)}
+          font_family={Kati.Locale.mono_face()}
           text_size={26}
           font_weight="medium"
           letter_spacing={-0.02}
@@ -347,8 +416,8 @@ defmodule Kati.Screens.Goals do
         />
         <Spacer size={4} />
         <Text
-          text={"/ " <> Integer.to_string(@goal.target)}
-          font_family="mono"
+          text={"/ " <> Kati.Locale.number(@goal.target)}
+          font_family={Kati.Locale.mono_face()}
           text_size={13}
           text_color={Palette.muted()}
         />
@@ -359,7 +428,13 @@ defmodule Kati.Screens.Goals do
       <Spacer size={12} />
       {Kati.Screens.Goals.projection(@goal)}
       <Spacer size={11} />
-      <Text text={@goal.counts} text_size={11.5} line_height={1.45} text_color={Palette.muted()} />
+      <Text
+        text={@goal.counts}
+        text_size={11.5}
+        line_height={1.45}
+        text_color={Palette.muted()}
+        font_family={Kati.Locale.face_prop()}
+      />
     </Column>
     """
   end
@@ -407,7 +482,13 @@ defmodule Kati.Screens.Goals do
     ~MOB"""
     <Row align="center">
       {Kati.UI.symbol(@icon, size: 20, color: @colour)}
-      <Text text={@label} font_family="mono" text_size={12} text_color={@colour} max_lines={1} />
+      <Text
+        text={@label}
+        font_family={Kati.Locale.mono_face()}
+        text_size={12}
+        text_color={@colour}
+        max_lines={1}
+      />
     </Row>
     """
   end
@@ -450,6 +531,11 @@ defmodule Kati.Screens.Goals do
     UI.rich_text(runs)
   end
 
+  # `%{n}` and not `%{count}`: Gettext's `ngettext/5` binds `count` to the
+  # integer itself, so an explicit `count:` binding carrying Persian digits is
+  # silently overridden and the sentence comes out with a Latin `9` in it. The
+  # plural still selects on the integer — it is the third argument — and the
+  # digits the reader sees are the ones passed by name.
   defp maybe(runs, nil, _extra), do: runs
   defp maybe(runs, _value, extra), do: runs ++ extra
 
@@ -480,7 +566,11 @@ defmodule Kati.Screens.Goals do
   def repeat_row(goal) do
     SettingsList.row(
       SettingsList.icon_tile("repeat"),
-      SettingsList.body(goal.title, @repeat_line, lines: 2),
+      SettingsList.body(
+        goal.title,
+        gettext("Repeat each period — a yearly goal restarts on 1 January, indefinitely"),
+        lines: 2
+      ),
       SettingsList.trailing(SettingsList.switch(goal.repeat)),
       on_tap: {self(), goal.repeat_tag}
     )
@@ -489,7 +579,9 @@ defmodule Kati.Screens.Goals do
   defp habits_row do
     SettingsList.row(
       SettingsList.icon_tile("bolt"),
-      SettingsList.body("Habits", "“Read every day” is a habit. “Read 52 books” is a goal.",
+      SettingsList.body(
+        gettext("Habits"),
+        gettext("“Read every day” is a habit. “Read 52 books” is a goal."),
         lines: 2
       ),
       SettingsList.trailing(SettingsList.chevron()),

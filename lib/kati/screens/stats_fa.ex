@@ -597,7 +597,7 @@ defmodule Kati.Screens.StatsFa do
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.YearShare)}
 
   def handle_info({:tap, :open_goals}, socket),
-    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.GoalsFa)}
+    do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Goals)}
 
   def handle_info({:tap, :open_money}, socket),
     do: {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.MoneyFa)}

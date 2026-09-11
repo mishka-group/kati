@@ -216,7 +216,7 @@ defmodule Kati.Screens.GoalStates do
       | progress: 48,
         fraction: 48 / g.target,
         pace: :behind,
-        pace_label: "Behind",
+        pace_label: Kati.Screens.Goals.pace_label(:behind),
         drift: "—"
     }
   end
@@ -234,7 +234,14 @@ defmodule Kati.Screens.GoalStates do
   def completed_early do
     g = goal()
 
-    %{g | progress: 54, fraction: 1.0, pace: :ahead, pace_label: "Ahead", drift: nil}
+    %{
+      g
+      | progress: 54,
+        fraction: 1.0,
+        pace: :ahead,
+        pace_label: Kati.Screens.Goals.pace_label(:ahead),
+        drift: nil
+    }
   end
 
   @doc false

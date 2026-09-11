@@ -145,7 +145,8 @@ defmodule Kati.Screens.Gallery do
     {"110", "Weight — states", Kati.Screens.WeightStates, :push},
     {"113", "Health hub — empty", Kati.Screens.HealthEmptyStates, :push},
     {"107", "Goal states", Kati.Screens.GoalStates, :push},
-    {"108", "اهداف", Kati.Screens.GoalsFa, :push},
+    # mishka-group/kati#103. Board 108 is screen 104 under `:fa`.
+    {"108", "اهداف — Goals, RTL", Kati.Screens.Goals, :push},
     {"114", "Retired tile", Kati.Screens.RetiredTile, :push},
     {"117", "Meal library — empty", Kati.Screens.MealLibraryEmpty, :push},
     {"120", "Import a plan", Kati.Screens.PlanImport, :push},

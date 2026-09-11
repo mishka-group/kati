@@ -188,17 +188,21 @@ defmodule Kati.ScreenStatsEmptyTest do
       # nothing is a worse lie than the figure it lost.
       socket = mount_screen(Stats).socket
 
-      for {title, module} <- [
-            {"Activity log", Kati.Screens.Activity},
-            {"Habits", Kati.Screens.Habits},
-            {"Nutrition", Kati.Screens.Health},
-            {"Goals", Kati.Screens.Goals},
-            {"Money", Kati.Screens.Money}
+      # By the row's ID since mishka-group/kati#103: the tag was
+      # `String.to_atom("go_" <> title)` off the drawn word, so `:"go_Activity
+      # log"` was an atom with a space in it and the Persian page could not
+      # build it at all.
+      for {id, module} <- [
+            {:activity, Kati.Screens.Activity},
+            {:habits, Kati.Screens.Habits},
+            {:nutrition, Kati.Screens.Health},
+            {:goals, Kati.Screens.Goals},
+            {:money, Kati.Screens.Money}
           ] do
-        {:noreply, moved} = Stats.handle_tap(String.to_atom("go_" <> title), socket)
+        {:noreply, moved} = Stats.handle_tap(String.to_atom("go_#{id}"), socket)
 
         assert moved.__mob__.nav_action == {:push, module, %{}},
-               "the #{title} row does not open #{inspect(module)} on an empty database"
+               "the #{id} row does not open #{inspect(module)} on an empty database"
       end
     end
 

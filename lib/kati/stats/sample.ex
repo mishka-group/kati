@@ -31,15 +31,30 @@ defmodule Kati.Stats.Sample do
   @spec more_numbers() :: [map()]
   def more_numbers do
     [
-      %{icon: "history", title: "Activity log", sub: "1,204 entries"},
-      %{icon: "bolt", title: "Habits", sub: "4 active · 12-day best"},
-      %{icon: "nutrition", title: "Nutrition", sub: "Cutting v3 · 86%"},
+      # `id` as well as `title`, for `Kati.Settings.Sample`'s reason: screen 07
+      # keyed its destination table on the drawn title, built each tap tag as
+      # `String.to_atom("go_" <> title)` — `:"go_Activity log"` — and decided
+      # which rows get a counted second line by matching the same word.
+      # mishka-group/kati#103's recurring defect, three times on one card.
+      %{id: :activity, icon: "history", title: gettext("Activity log"), sub: "1,204 entries"},
+      %{id: :habits, icon: "bolt", title: gettext("Habits"), sub: "4 active · 12-day best"},
+      %{id: :nutrition, icon: "nutrition", title: gettext("Nutrition"), sub: "Cutting v3 · 86%"},
       # Goals joined this list with screen 104, and Subscriptions became Money:
       # screen 122 is the wider page — the same four services plus the one-off
       # expenses quick-add writes — and screen 23 is still one tap further in.
-      %{icon: "checklist", title: "Goals", sub: "3 active · 38 of 52 books"},
-      %{icon: "payments", title: "Money", sub: "£46.47 a month · 7 expenses"},
-      %{icon: "movie", title: "Recently watched", sub: "The Long Hollow · 2h ago"}
+      %{id: :goals, icon: "checklist", title: gettext("Goals"), sub: "3 active · 38 of 52 books"},
+      %{
+        id: :money,
+        icon: "payments",
+        title: gettext("Money"),
+        sub: "£46.47 a month · 7 expenses"
+      },
+      %{
+        id: :recently_watched,
+        icon: "movie",
+        title: gettext("Recently watched"),
+        sub: "The Long Hollow · 2h ago"
+      }
     ]
   end
 

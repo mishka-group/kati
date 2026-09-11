@@ -1,4 +1,6 @@
 defmodule Kati.Goals.Sample do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   Screens 104 and 106, as the drawings captured them.
 
@@ -18,52 +20,72 @@ defmodule Kati.Goals.Sample do
     [
       %{
         pace: :on_pace,
-        pace_label: "On pace",
-        title: "52 books this year",
+        pace_label: Kati.Screens.Goals.pace_label(:on_pace),
+        title: gettext("%{count} books this year", count: Kati.Locale.number(52)),
         progress: 38,
         target: 52,
         fraction: 38 / 52,
         drift: nil,
-        projection_lead: "On pace to finish",
-        projection: "48 of 52",
-        projection_tail: "by",
-        projection_date: "31 December",
+        projection_lead: Kati.Screens.Goals.projection_lead_word(:on_pace_dated),
+        projection:
+          gettext("%{done} of %{total}",
+            done: Kati.Locale.number(48),
+            total: Kati.Locale.number(52)
+          ),
+        projection_tail: gettext("by"),
+        projection_date: gettext("31 December"),
         counts:
-          "Counts finished books only. A book you did not finish counts its pages toward " <>
-            "the pages goal, not this one."
+          gettext(
+            "Counts finished books only. A book you did not finish counts its pages toward the pages goal, not this one."
+          )
       },
       %{
         pace: :ahead,
-        pace_label: "Ahead",
-        title: "600 minutes read a month",
+        pace_label: Kati.Screens.Goals.pace_label(:ahead),
+        title: gettext("%{count} minutes read a month", count: Kati.Locale.number(600)),
         progress: 740,
         target: 600,
         fraction: 1.0,
-        drift: "23%",
-        projection_lead: "Already past it, with",
-        projection: "9 days",
-        projection_tail: "left in August.",
+        drift: Kati.Locale.number(23) <> gettext("%"),
+        projection_lead: Kati.Screens.Goals.projection_lead_word(:past),
+        projection: ngettext("%{n} day", "%{n} days", 9, n: Kati.Locale.number(9)),
+        projection_tail: gettext("left in August."),
         projection_date: nil,
-        counts: "Counts timed sittings only — a session logged by page has no minutes to give."
+        counts:
+          gettext("Counts timed sittings only — a session logged by page has no minutes to give.")
       },
       %{
         pace: :behind,
-        pace_label: "Behind",
-        title: "120 films this year",
+        pace_label: Kati.Screens.Goals.pace_label(:behind),
+        title: gettext("%{count} films this year", count: Kati.Locale.number(120)),
         progress: 84,
         target: 120,
         fraction: 84 / 120,
-        drift: "11%",
-        projection_lead: "On pace to finish",
-        projection: "106 of 120",
-        projection_tail: ".",
+        drift: Kati.Locale.number(11) <> gettext("%"),
+        projection_lead: Kati.Screens.Goals.projection_lead_word(:on_pace_counted),
+        projection:
+          gettext("%{done} of %{total}",
+            done: Kati.Locale.number(106),
+            total: Kati.Locale.number(120)
+          ),
+        projection_tail: gettext("."),
         projection_date: nil,
-        counts: "Dropped shows keep the hours they earned. Nothing is taken back."
+        counts: gettext("Dropped shows keep the hours they earned. Nothing is taken back.")
       }
     ]
   end
 
   @doc "The header's mono subtitle."
   @spec subtitle() :: String.t()
-  def subtitle, do: "3 ACTIVE · JAN – DEC 2026"
+  def subtitle do
+    Kati.UI.eyebrow_label(
+      gettext("%{count} active · %{span}",
+        count: Kati.Locale.number(3),
+        span:
+          gettext("Jan – Dec %{year}",
+            year: Kati.Locale.number(Kati.Locale.pick(2026, 1405))
+          )
+      )
+    )
+  end
 end

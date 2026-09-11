@@ -709,7 +709,7 @@ defmodule Kati.Screens.Stats do
   def more_numbers(counted?) do
     rows =
       Kati.Stats.Sample.more_numbers()
-      |> Enum.reject(&(&1.title == "Recently watched"))
+      |> Enum.reject(&(&1.id == :recently_watched))
       |> Enum.map(&entries_line/1)
 
     last = length(rows) - 1
@@ -748,12 +748,12 @@ defmodule Kati.Screens.Stats do
   # that counts. Two of the four can be counted now and are; the other two
   # cannot and say nothing rather than saying somebody else's numbers, which
   # is the call #75 made on screen 92 and #58 on screen 15.
-  defp entries_line(%{title: "Activity log"} = row) do
+  defp entries_line(%{id: :activity} = row) do
     %{row | sub: Kati.Screens.Stats.entries_count()}
   end
 
-  defp entries_line(%{title: "Goals"} = row), do: %{row | sub: Kati.Screens.Stats.goals_line()}
-  defp entries_line(%{title: "Money"} = row), do: %{row | sub: Kati.Screens.Stats.money_line()}
+  defp entries_line(%{id: :goals} = row), do: %{row | sub: Kati.Screens.Stats.goals_line()}
+  defp entries_line(%{id: :money} = row), do: %{row | sub: Kati.Screens.Stats.money_line()}
 
   # `Kati.Habits` is a `Sample` module and nothing else — no resource, no
   # table — and `Nutrition`'s `Cutting v3 · 86%` is a diet plan, which
@@ -832,7 +832,7 @@ defmodule Kati.Screens.Stats do
 
   @doc false
   def number_row(row, rule?, counted?) do
-    tap = {self(), String.to_atom("go_" <> row.title)}
+    tap = {self(), String.to_atom("go_" <> Atom.to_string(row.id))}
 
     ~MOB"""
     <Column fill_width={true} on_tap={tap}>
@@ -1442,11 +1442,11 @@ defmodule Kati.Screens.Stats do
   # The More numbers rows are the only route to these screens outside the
   # gallery, which is scaffolding.
   @destinations %{
-    "Activity log" => Kati.Screens.Activity,
-    "Habits" => Kati.Screens.Habits,
-    "Nutrition" => Kati.Screens.Health,
-    "Goals" => Kati.Screens.Goals,
-    "Money" => Kati.Screens.Money
+    "activity" => Kati.Screens.Activity,
+    "habits" => Kati.Screens.Habits,
+    "nutrition" => Kati.Screens.Health,
+    "goals" => Kati.Screens.Goals,
+    "money" => Kati.Screens.Money
     # `Recently watched` was here, and `more_numbers/1` rejects that row by
     # name — so no `go_Recently watched` tag was ever emitted and the entry was
     # dead code. MOVIES-AND-TV.md #125. Deleted rather than drawn: the row is
@@ -1461,8 +1461,8 @@ defmodule Kati.Screens.Stats do
 
   def handle_tap(tag, socket) do
     case Atom.to_string(tag) do
-      "go_" <> title ->
-        case Map.fetch(@destinations, title) do
+      "go_" <> id ->
+        case Map.fetch(@destinations, id) do
           {:ok, module} -> {:noreply, Mob.Socket.push_screen(socket, module)}
           :error -> {:noreply, socket}
         end

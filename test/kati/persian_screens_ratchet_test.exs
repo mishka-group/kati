@@ -80,7 +80,6 @@ defmodule Kati.PersianScreensRatchetTest do
     Kati.Screens.BookDetailFa,
     Kati.Screens.BooksFa,
     Kati.Screens.DataSourcesFa,
-    Kati.Screens.GoalsFa,
     Kati.Screens.HealthFa,
     Kati.Screens.HomeFa,
     Kati.Screens.HomeFaEmpty,
