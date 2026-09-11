@@ -84,7 +84,6 @@ defmodule Kati.PersianScreensRatchetTest do
     Kati.Screens.MealsMatrixFa,
     Kati.Screens.MoneyFa,
     Kati.Screens.MyServicesFa,
-    Kati.Screens.OnboardingFa,
     Kati.Screens.RestoreFa,
     Kati.Screens.ScheduleFa,
     Kati.Screens.SearchFa,

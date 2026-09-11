@@ -335,3 +335,75 @@ msgstr ""
 #: lib/kati/lists/shelf.ex
 msgid "shared"
 msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Screen"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Films & TV"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Books"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Reading"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Music"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Listening"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Habits"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Streaks"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Money"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Subscriptions"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Notes"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Journal"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Continue with %{count}"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Restore from a backup instead"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Back to welcome"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "What should\nKati keep?"
+msgstr ""
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Pick two to start. You can add the rest whenever — every section drops into the same calendar and the same home page."
+msgstr ""
+
+#: lib/kati/screens/pick_sections.ex
+msgid "The week starts on %{day}, dates follow the calendar and the numerals follow the script — all of it from the language you chose in step one, not from a setting of its own."
+msgstr ""

@@ -112,6 +112,19 @@ defmodule Kati.Locale do
   def forward_glyph, do: if(direction(current()) == :rtl, do: "arrow_back", else: "arrow_forward")
 
   @doc """
+  The day the reader's own week starts on, as a word.
+
+      iex> Kati.Locale.week_start()
+      "Monday"
+
+  One of the four things board 137 says follow from the language choice rather
+  than from a setting of their own — the others are the writing direction, the
+  calendar and the numerals.
+  """
+  @spec week_start() :: String.t()
+  def week_start, do: pick("Monday", "شنبه")
+
+  @doc """
   The face a mono line takes.
 
       iex> Kati.Locale.mono_face()

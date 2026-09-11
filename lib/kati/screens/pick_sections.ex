@@ -64,6 +64,7 @@ defmodule Kati.Screens.PickSections do
   and `Kati.Locale` are the pattern for one.
   """
   use Mob.Screen
+  use Gettext, backend: Kati.Gettext
   import Mob.Sigil
 
   alias Kati.Screens.PickSections.Sample
@@ -114,6 +115,8 @@ defmodule Kati.Screens.PickSections do
           {Kati.Screens.PickSections.intro()}
           {Kati.Screens.PickSections.grid(chosen)}
           {Kati.Screens.PickSections.commit(chosen)}
+          {Kati.UI.SettingsList.note("info", Kati.Screens.PickSections.follows_note())}
+          {Kati.Screens.OnboardingWelcome.back_row(gettext("Back to welcome"))}
         </Column>
       </Scroll>
     </Box>
@@ -156,6 +159,11 @@ defmodule Kati.Screens.PickSections do
 
       "import_backup" ->
         {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.RestoreFirstRun)}
+
+      # The back row board 137 draws and 26 did not. Every other step in the
+      # run has one; this was the step you could not walk back out of.
+      "step_back" ->
+        {:noreply, Kati.Screens.Resume.pop(socket)}
 
       _ ->
         {:noreply, socket}
@@ -251,7 +259,7 @@ defmodule Kati.Screens.PickSections do
       text={line}
       text_size={32}
       font_weight="extrabold"
-      letter_spacing={-0.035}
+      letter_spacing={Kati.Locale.tracking(-0.035)}
       line_height={1.12}
       text_color={:on_surface}
     />
@@ -423,9 +431,27 @@ defmodule Kati.Screens.PickSections do
   # The pill is `ink_fill` and its two marks are `on_ink`: a call-to-action
   # filled with ink in light is filled with paper in dark, and what sits on it
   # crosses to the other side of the ramp with it.
+  @doc """
+  What follows from the language choice, said once where it is made.
+
+  Board 137 draws it and board 26 does not, which is the two drawings
+  disagreeing rather than the sentence being Persian: the writing direction,
+  the calendar, the numerals and the week's first day all come from step one in
+  **either** language, and a reader who does not know that goes looking for four
+  settings that are not there. mishka-group/kati#103 folded the two boards into
+  one screen, and the better half wins.
+  """
+  @spec follows_note() :: String.t()
+  def follows_note do
+    gettext(
+      "The week starts on %{day}, dates follow the calendar and the numerals follow the script — all of it from the language you chose in step one, not from a setting of its own.",
+      day: Kati.Locale.week_start()
+    )
+  end
+
   @doc false
   def commit(chosen) do
-    label = "Continue with #{MapSet.size(chosen)}"
+    label = gettext("Continue with %{count}", count: Kati.Locale.number(MapSet.size(chosen)))
     go = {self(), :continue}
     restore = {self(), :import_backup}
 
@@ -449,14 +475,14 @@ defmodule Kati.Screens.PickSections do
             max_lines={1}
           />
           <Spacer size={9} />
-          {Kati.UI.symbol("arrow_forward", size: 19, color: Palette.on_ink())}
+          {Kati.UI.symbol(Kati.Locale.forward_glyph(), size: 19, color: Palette.on_ink())}
         </Row>
       </Box>
       <Spacer size={14} />
       <Row fill_width={true} align="center" on_tap={restore}>
         <Spacer weight={1.0} />
         <Text
-          text="Restore from a backup instead"
+          text={gettext("Restore from a backup instead")}
           text_size={13}
           font_weight="semibold"
           text_color={Palette.sub()}

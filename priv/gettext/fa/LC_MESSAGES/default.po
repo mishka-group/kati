@@ -344,3 +344,75 @@ msgstr "رتبه‌بندی‌شده"
 #: lib/kati/lists/shelf.ex
 msgid "shared"
 msgstr "هم‌رسان"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Screen"
+msgstr "نمایش"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Films & TV"
+msgstr "فیلم و سریال"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Books"
+msgstr "کتاب‌ها"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Reading"
+msgstr "مطالعه"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Music"
+msgstr "موسیقی"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Listening"
+msgstr "شنیدن"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Habits"
+msgstr "عادت‌ها"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Streaks"
+msgstr "رشته‌ها"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Money"
+msgstr "مالی"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Subscriptions"
+msgstr "اشتراک‌ها"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Notes"
+msgstr "یادداشت"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Journal"
+msgstr "دفترچه"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Continue with %{count}"
+msgstr "ادامه با %{count} بخش"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Restore from a backup instead"
+msgstr "بازگردانی از پشتیبان"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Back to welcome"
+msgstr "بازگشت به خوش‌آمد"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "What should\nKati keep?"
+msgstr "کاتی چه چیزی را\nبرای شما نگه دارد؟"
+
+#: lib/kati/screens/pick_sections/sample.ex
+msgid "Pick two to start. You can add the rest whenever — every section drops into the same calendar and the same home page."
+msgstr "دو مورد را برای شروع انتخاب کنید. بقیه را هر وقت خواستید از تنظیمات اضافه کنید."
+
+#: lib/kati/screens/pick_sections.ex
+msgid "The week starts on %{day}, dates follow the calendar and the numerals follow the script — all of it from the language you chose in step one, not from a setting of its own."
+msgstr "هفته از %{day} شروع می‌شود، تاریخ‌ها شمسی و ارقام فارسی‌اند — همه از انتخاب زبان در گام یک می‌آیند، نه از تنظیمی جدا."

@@ -82,7 +82,7 @@ defmodule Kati.FirstRunTest do
       # naming `Kati.Screens.PickSections` in the handler is exactly the defect
       # the fold could have introduced.
       Kati.Locale.put(:fa)
-      assert push_of(Screens.OnboardingWelcome, :next) == Screens.OnboardingFa
+      assert push_of(Screens.OnboardingWelcome, :next) == Screens.PickSections
     end
 
     test "26 Continue opens 162, the loudness step" do
@@ -93,7 +93,7 @@ defmodule Kati.FirstRunTest do
       # It drew no `on_tap` for as long as the screen existed: there was no
       # Persian step four to push it to, and a dead button reads as a bug
       # where an untranslated screen reads as unfinished. 165 is that step.
-      assert push_of(Screens.OnboardingFa, :continue) == Screens.OnboardingLoudness
+      assert push_of(Screens.PickSections, :continue) == Screens.OnboardingLoudness
     end
 
     test "162 Continue opens 163, and 165 opens 166" do

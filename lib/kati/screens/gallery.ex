@@ -168,7 +168,7 @@ defmodule Kati.Screens.Gallery do
     # carried by the screens below rather than by a screen of its own.
     {"135", "Restore — first run", Kati.Screens.RestoreFirstRun, :push},
     {"136", "Loudness → the OS prompt", Kati.Screens.LoudnessPrompt, :push},
-    {"137", "راه‌اندازی", Kati.Screens.OnboardingFa, :push},
+    {"137", "راه‌اندازی", Kati.Screens.PickSections, :push},
     {"138", "Onboarding at 235%", Kati.Screens.OnboardingLarge, :push},
     {"139", "Home — nothing set up", Kati.Screens.HomeEmpty, :push},
     # #12 — the importer's step 0, so a switcher is not asked to map nine
