@@ -405,16 +405,16 @@ defmodule Kati.CalendarDayRouteTest do
       # the screen we left, not a freshly mounted Schedule that happens to look
       # the same because it also opens on today.
       send(pid, {:tap, tag})
-      assert Mob.Screen.get_current_module(pid) == Calendar
+      assert awaits(pid, Calendar)
       assert socket(pid).assigns.date == date
 
       send(pid, {:tap, tag})
-      assert Mob.Screen.get_current_module(pid) == Day
+      assert awaits(pid, Day)
       assert length(Mob.Screen.get_nav_history(pid)) == 1
 
       send(pid, {:tap, :back})
 
-      assert Mob.Screen.get_current_module(pid) == Calendar
+      assert awaits(pid, Calendar)
       assert Mob.Screen.get_nav_history(pid) == [], "the pop left something on the stack"
 
       back = socket(pid)
@@ -482,6 +482,23 @@ defmodule Kati.CalendarDayRouteTest do
       id: {Mob.Screen, module},
       start: {Mob.Screen, :start_link, [module, %{}]}
     })
+  end
+
+  # A push is ASYNCHRONOUS since Mob 0.8.0.
+  #
+  # Parked screens stay alive there rather than being destroyed, so every screen
+  # is its own process and a push has to start one before the router's `current`
+  # moves. `Mob.Router.entries/1` shows the new screen already live while
+  # `get_current_module/1` still answers the old one — a race this file used to
+  # win by accident, because the push was synchronous.
+  #
+  # Waiting for the module is the same assertion, minus the assumption.
+  defp awaits(pid, module, tries \\ 50) do
+    cond do
+      Mob.Screen.get_current_module(pid) == module -> true
+      tries == 0 -> flunk("#{inspect(module)} never became the current screen")
+      true -> (Process.sleep(10) && awaits(pid, module, tries - 1))
+    end
   end
 
   defp socket(pid), do: Mob.Screen.get_socket(pid)

@@ -40,7 +40,14 @@ defmodule Kati.ShelfRoutesTest do
 
       {:noreply, moved} = unquote(from).handle_info({:tap, unquote(tag)}, view.socket)
 
-      assert {unquote(action), unquote(to), _params} = moved.__mob__.nav_action,
+      # Position, not shape: Mob 0.8.0 gave `:reset` a fourth element (the
+      # transition) and a three-element pattern stopped matching it. What this
+      # file asserts is the ACTION and the DESTINATION; the animation is not its
+      # subject and should not have been able to fail it.
+      action = moved.__mob__.nav_action
+
+      assert is_tuple(action) and elem(action, 0) == unquote(action) and
+               elem(action, 1) == unquote(to),
              "expected a #{unquote(action)} to #{inspect(unquote(to))}, got " <>
                inspect(moved.__mob__.nav_action)
     end

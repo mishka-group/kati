@@ -281,7 +281,7 @@ defmodule Kati.MealsRoutesTest do
       {:noreply, %Mob.Socket{} = updated} ->
         case Map.get(updated.__mob__, :nav_action) do
           {:push, dest, _params} -> dest
-          {:reset, dest, _params} -> dest
+          reset when is_tuple(reset) and elem(reset, 0) == :reset -> elem(reset, 1)
           _ -> nil
         end
 

@@ -72,10 +72,164 @@ Java_com_example_kati_MainActivity_nativeStartBeam(JNIEnv* env, jobject thiz) {
     mob_start_beam(APP_MODULE);
 }
 
+// Called from MainActivity.onConfigurationChanged on a rotation. Forwards the
+// new orientation string to the BEAM. mob_send_orientation_changed is exported
+// by mob_nif.zig; declared here in case it's not in mob_beam.h.
+extern void mob_send_orientation_changed(const char* orient);
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MainActivity_nativeNotifyOrientation(JNIEnv* env, jobject thiz, jstring orient) {
+    const char* utf8 = (*env)->GetStringUTFChars(env, orient, NULL);
+    mob_send_orientation_changed(utf8);
+    (*env)->ReleaseStringUTFChars(env, orient, utf8);
+}
+
+// Called from MainActivity's ConnectivityManager.NetworkCallback when the active
+// network path changes. Forwards online/transport/expensive to the BEAM
+// (Mob.Device.network_state/0 + :network subscribers).
+// mob_send_connectivity_changed is exported by mob_nif.zig.
+extern void mob_send_connectivity_changed(int online, const char* transport, int expensive,
+    int validated);
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MainActivity_nativeNotifyConnectivity(JNIEnv* env, jobject thiz,
+    jboolean online, jstring transport, jboolean expensive, jboolean validated) {
+    // utf8 is NULL if transport is null OR GetStringUTFChars failed (OOM); pass
+    // "none" in that case and only release what we actually acquired.
+    const char* utf8 = transport ? (*env)->GetStringUTFChars(env, transport, NULL) : NULL;
+    mob_send_connectivity_changed(online ? 1 : 0, utf8 ? utf8 : "none", expensive ? 1 : 0,
+        validated ? 1 : 0);
+    if (utf8) (*env)->ReleaseStringUTFChars(env, transport, utf8);
+}
+
 // Called from MobBridge.nativeSendTap(handle) in Kotlin when a button is tapped.
 JNIEXPORT void JNICALL
 Java_com_example_kati_MobBridge_nativeSendTap(JNIEnv* env, jclass cls, jint handle) {
     mob_send_tap((int)handle);
+}
+
+// Called from MobBridge.nativeSendLongPress(handle) / nativeSendDoubleTap.
+// The senders have existed on this platform all along; what was missing was any
+// Kotlin path to them, so `on_long_press` and `on_double_tap` were registered by
+// the renderer, carried in the JSON, and then silently never fired (MOB-138).
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendLongPress(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_long_press((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendDoubleTap(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_double_tap((int)handle);
+}
+
+// Swipe. nativeSendSwipe carries the direction string through to
+// mob_send_swipe_with_direction, which emits {:swipe, tag, direction_atom};
+// the four fixed senders emit {:swipe_left, tag} and friends. A node can
+// declare both and iOS delivers both, so Kotlin calls both.
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendSwipe(JNIEnv* env, jclass cls, jint handle,
+                                                  jstring direction) {
+    const char* dir = (*env)->GetStringUTFChars(env, direction, NULL);
+    if (dir == NULL) return;
+    mob_send_swipe_with_direction((int)handle, dir);
+    (*env)->ReleaseStringUTFChars(env, direction, dir);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendSwipeLeft(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_swipe_left((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendSwipeRight(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_swipe_right((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendSwipeUp(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_swipe_up((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendSwipeDown(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_swipe_down((int)handle);
+}
+
+// Scroll family. mob_send_scroll applies the per-handle throttle and delta
+// threshold before it reaches the BEAM, so forwarding every observed sample
+// here is intentional — the gating lives native-side, not in Kotlin. The
+// per-handler scroll_config/drag_config props ARE honoured: the composition
+// calls mob_set_throttle_config (see nativeSetThrottleConfig below), and the
+// compiled-in defaults apply only where a handler asked for nothing (MOB-134).
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendScroll(JNIEnv* env, jclass cls, jint handle,
+                                                   jdouble x, jdouble y, jdouble dx, jdouble dy,
+                                                   jdouble vx, jdouble vy, jstring phase) {
+    const char* ph = (*env)->GetStringUTFChars(env, phase, NULL);
+    if (ph == NULL) return;
+    mob_send_scroll((int)handle, (double)x, (double)y, (double)dx, (double)dy,
+                    (double)vx, (double)vy, ph);
+    (*env)->ReleaseStringUTFChars(env, phase, ph);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendScrollBegan(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_scroll_began((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendScrollEnded(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_scroll_ended((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendScrollSettled(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_scroll_settled((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendTopReached(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_top_reached((int)handle);
+}
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendScrolledPast(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_scrolled_past((int)handle);
+}
+
+// Per-handle throttle config (MOB-134). Re-sent on every render because
+// clear_taps zeroes the throttle state each frame and the handler is
+// re-registered under a new handle. Resolving against the active table is
+// correct on this platform: nif_set_root swaps before Kotlin composes.
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSetThrottleConfig(JNIEnv* env, jclass cls, jint handle,
+                                                          jint throttle_ms, jint debounce_ms,
+                                                          jdouble delta_threshold, jint leading,
+                                                          jint trailing) {
+    mob_set_throttle_config((int)handle, (int)throttle_ms, (int)debounce_ms,
+                            (double)delta_threshold, (int)leading, (int)trailing);
+}
+
+// Canvas drag. Coordinates arrive already converted to dp by the Kotlin side,
+// matching the canvas's own coordinate space and iOS's points.
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendDrag(JNIEnv* env, jclass cls, jint handle,
+                                                 jdouble x, jdouble y, jdouble dx, jdouble dy,
+                                                 jstring phase) {
+    const char* ph = (*env)->GetStringUTFChars(env, phase, NULL);
+    if (ph == NULL) return;
+    mob_send_drag((int)handle, (double)x, (double)y, (double)dx, (double)dy, ph);
+    (*env)->ReleaseStringUTFChars(env, phase, ph);
+}
+
+// Called from MobBridge.nativeSendDismiss(handle) when a sheet is dismissed.
+// Distinct from nativeSendTap because Mob.UI.sheet/2's :on_dismiss is
+// documented as {:dismiss, tag} and iOS delivers exactly that — routing it
+// through the tap sender delivered {:tap, tag} instead, which no screen
+// written to the contract matches (MOB-104).
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeSendDismiss(JNIEnv* env, jclass cls, jint handle) {
+    mob_send_dismiss((int)handle);
 }
 
 // Called from MobBridge.nativeSendChangeStr/Bool/Float when an input widget changes.
@@ -155,26 +309,27 @@ Java_com_example_kati_MobBridge_nativeDeliverAtom3(JNIEnv* env, jclass cls,
     (*env)->ReleaseStringUTFChars(env, a3, ca3);
 }
 
-// KATI-BEGIN(K-01 drop-location-stub) mob_new=0.4.20
-// mob 0.7.x extracted Location into the standalone `mob_location` plugin and
-// removed `mob_deliver_location` from core, but the mob_new template still
-// emits this stub. Under NDK 27 / clang 18 an implicit function declaration
-// is an error, not a warning, so a stock generated project fails to build:
-//
-//   beam_jni.c:117:5: error: call to undeclared function 'mob_deliver_location'
-//
-// Declaring it would only move the failure to link time — the symbol does not
-// exist in core at all. Kati does not use location (the permission is not even
-// requested), so the stub is removed rather than reinstated. If location is
-// ever needed, add {:mob_location, "~> 0.1"} and let the plugin supply both
-// halves.
-// KATI-END(K-01 drop-location-stub)
-
 JNIEXPORT void JNICALL
 Java_com_example_kati_MobBridge_nativeDeliverMotion(JNIEnv* env, jclass cls,
     jlong pid, jdouble ax, jdouble ay, jdouble az,
     jdouble gx, jdouble gy, jdouble gz, jlong ts) {
     mob_deliver_motion(pid, ax, ay, az, gx, gy, gz, (long long)ts);
+}
+
+// mob_deliver_motion_mag is exported by mob_nif.zig; declared here in case the
+// installed mob_beam.h predates the magnetometer/heading delivery function.
+extern void mob_deliver_motion_mag(jlong pid, double ax, double ay, double az,
+                                   double gx, double gy, double gz, double mx,
+                                   double my, double mz, double heading,
+                                   long long ts);
+
+JNIEXPORT void JNICALL
+Java_com_example_kati_MobBridge_nativeDeliverMotionMag(JNIEnv* env, jclass cls,
+    jlong pid, jdouble ax, jdouble ay, jdouble az,
+    jdouble gx, jdouble gy, jdouble gz,
+    jdouble mx, jdouble my, jdouble mz, jdouble heading, jlong ts) {
+    mob_deliver_motion_mag(pid, ax, ay, az, gx, gy, gz, mx, my, mz, heading,
+                           (long long)ts);
 }
 
 JNIEXPORT void JNICALL
@@ -188,7 +343,6 @@ Java_com_example_kati_MobBridge_nativeDeliverFileResult(JNIEnv* env, jclass cls,
     (*env)->ReleaseStringUTFChars(env, sub,   cs);
     if (cj) (*env)->ReleaseStringUTFChars(env, json_items, cj);
 }
-
 
 JNIEXPORT void JNICALL
 Java_com_example_kati_MobBridge_nativeDeliverPushToken(JNIEnv* env, jclass cls,
@@ -306,60 +460,3 @@ Java_com_example_kati_MobBridge_nativeDeliverVendorUsbEvent(JNIEnv* env, jclass 
     (*env)->ReleaseStringUTFChars(env, tag, ct);
     if (cr) (*env)->ReleaseStringUTFChars(env, reason, cr);
 }
-
-// ── Bluetooth Classic (Mob.Bt suite) — JNI thunks ───────────────────────
-// Each thunk unmarshals Java args into C primitives, calls the matching
-// mob_deliver_bt_* helper, then releases.
-
-// ── Adapter-level events (no session) ──────────────────────────────────
-
-
-
-
-
-
-
-
-
-// ── Paired-list streaming builder ──────────────────────────────────────
-
-
-
-
-// ── HFP profile ────────────────────────────────────────────────────────
-
-
-
-
-
-
-
-
-
-
-
-// ── SPP profile ────────────────────────────────────────────────────────
-
-
-
-
-
-
-
-// ── HID profile ────────────────────────────────────────────────────────
-
-// KATI-BEGIN(K-01 drop-plugin-stubs) mob_new=0.4.20
-// mob 0.7.x moved Bluetooth Classic and Camera out of core into standalone
-// plugins, but the mob_new template still emits JNI stubs calling the
-// removed core symbols. They compile (mob_beam.h still declares them) and
-// then fail at load:
-//
-//   java.lang.UnsatisfiedLinkError: dlopen failed: cannot locate symbol
-//   "mob_deliver_camera_frame" referenced by "libkati.so"
-//
-// dlopen resolves eagerly, so a single missing symbol aborts the whole
-// library load and the app dies in MainActivity.<clinit> before any Elixir
-// runs. 33 stubs were removed here (32 Bluetooth + camera frames). Kati uses
-// none of them; if any is ever needed, add the corresponding plugin, which
-// supplies both the native half and the symbol.
-// KATI-END(K-01 drop-plugin-stubs)

@@ -192,7 +192,7 @@ defmodule Kati.FirstRunTest do
 
           assert Kati.Onboarding.complete?()
 
-          assert moved.__mob__.nav_action == {:reset, unquote(landing), %{}},
+          assert reset_target(moved) == unquote(landing),
                  "must reset, not push: pushing leaves the whole first run under Home " <>
                    "and the back gesture walks straight back into it"
         end)
@@ -342,7 +342,7 @@ defmodule Kati.FirstRunTest do
         {:noreply, again} = Screens.OnboardingFirstTitle.handle_info({:tap, :finish}, socket)
 
         assert Kati.Onboarding.complete?()
-        assert again.__mob__.nav_action == {:reset, Screens.Home, %{}}
+        assert reset_target(again) == Screens.Home
       end)
     end
 
@@ -368,7 +368,7 @@ defmodule Kati.FirstRunTest do
         # It still FINISHES. Setup is over either way; the difference is only
         # whether anything was kept.
         assert Kati.Onboarding.complete?()
-        assert {:reset, _home, %{}} = moved.__mob__.nav_action
+        assert reset_target(moved)
       end)
     end
 
@@ -414,7 +414,7 @@ defmodule Kati.FirstRunTest do
             socket_for(Screens.OnboardingFirstTitle)
           )
 
-        assert moved.__mob__.nav_action == {:reset, Screens.HomeFa, %{}}
+        assert reset_target(moved) == Screens.HomeFa
       end)
     end
 
@@ -431,7 +431,7 @@ defmodule Kati.FirstRunTest do
           socket_for(Screens.OnboardingFirstTitle)
         )
 
-      assert moved.__mob__.nav_action == {:reset, Screens.HomeFaEmpty, %{}}
+      assert reset_target(moved) == Screens.HomeFaEmpty
     end
   end
 
@@ -503,6 +503,20 @@ defmodule Kati.FirstRunTest do
   # the alternative, prefixed rows deleted in `on_exit`, cannot be used here:
   # the titles are the board's own four and this file does not get to choose
   # them.
+  # The destination of a `:reset`, whatever shape the action is in.
+  #
+  # Mob 0.8.0 added a fourth element — the transition — to `:reset`, and every
+  # assertion here compared a whole three-element tuple. Reading position 1 by
+  # name is what a test about WHERE the run lands should have been doing: the
+  # animation is not this file's subject and a bump should not have been able
+  # to fail it.
+  defp reset_target(socket) do
+    case socket.__mob__.nav_action do
+      r when is_tuple(r) and elem(r, 0) == :reset -> elem(r, 1)
+      _other -> nil
+    end
+  end
+
   defp rolled_back(fun) when is_function(fun, 0) do
     {:error, {:rolled_back, result}} =
       Kati.Repo.transaction(fn -> Kati.Repo.rollback({:rolled_back, fun.()}) end)
@@ -554,7 +568,7 @@ defmodule Kati.FirstRunTest do
 
     case moved.__mob__.nav_action do
       {:push, dest, _} -> dest
-      {:reset, dest, _} -> dest
+      r when is_tuple(r) and elem(r, 0) == :reset -> elem(r, 1)
       other -> flunk("#{inspect(module)} answered #{inspect(tag)} with #{inspect(other)}")
     end
   end

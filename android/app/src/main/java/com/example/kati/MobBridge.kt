@@ -16,8 +16,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.location.LocationListener
-import android.location.LocationManager as AndroidLocationManager
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
@@ -26,19 +26,19 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.opengl.GLES30
 import android.opengl.GLSurfaceView
+import android.os.Looper
 import android.os.SystemClock
+import android.view.InputDevice
+import android.view.KeyCharacterMap
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.View
+import android.speech.tts.TextToSpeech
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import android.bluetooth.BluetoothAdapter
 import android.util.Log
-import android.util.Size
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothHeadset
-import android.bluetooth.BluetoothManager
-import android.bluetooth.BluetoothProfile
-import android.bluetooth.BluetoothSocket
 import android.media.AudioManager
 import java.util.UUID
 import java.io.ByteArrayOutputStream
@@ -46,15 +46,19 @@ import java.io.File
 import java.lang.ref.WeakReference
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.Executor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
-// KATI-BEGIN(K-47 long-press-import) mob_new=0.4.20
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-// KATI-END(K-47 long-press-import)
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.abs
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size as ComposeSize
 import androidx.compose.ui.graphics.Path
@@ -68,10 +72,13 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.graphics.Paint
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -79,6 +86,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -87,11 +95,31 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import android.view.PixelCopy
+import android.view.WindowInsets
+import android.view.WindowManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 // KATI-BEGIN(K-08 box-shadow-import) mob_new=0.4.20
@@ -175,15 +203,19 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -191,14 +223,20 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 // KATI-BEGIN(K-48 locale-face-import) mob_new=0.7.24
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -218,10 +256,8 @@ import android.hardware.usb.UsbManager
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import org.json.JSONArray
@@ -249,8 +285,12 @@ import androidx.compose.ui.unit.em
 // (WindowInsets/safeDrawing, LocalDensity, LocalLayoutDirection), the screen
 // size to cap the panel against (LocalConfiguration, plus widthIn/heightIn),
 // and the Popup* pixel types the position provider is defined in.
-import androidx.compose.foundation.layout.WindowInsets
+// KATI-BEGIN(K-18 anchored-insets-qualified) mob_new=0.4.33
+// `WindowInsets` is NOT imported: 0.4.33 imports android.view.WindowInsets for
+// its window-metrics read, and two imports of that name is a hard Kotlin
+// error. The one Compose use below is written out in full instead.
 import androidx.compose.foundation.layout.safeDrawing
+// KATI-END(K-18 anchored-insets-qualified)
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.platform.LocalConfiguration
@@ -281,16 +321,84 @@ import androidx.lifecycle.LifecycleOwner
  * no main-thread dispatch needed for state writes.
  *
  * Tap events: Compose onClick calls nativeSendTap(handle), which routes
- * to mob_send_tap() in mob_nif.c and sends {:tap, tag} to the registered PID.
+ * to mob_send_tap() in mob_nif.zig and sends {:tap, tag} to the registered PID.
+ *
+ * Sheet dismissal takes a parallel but distinct route: nativeSendDismiss ->
+ * mob_send_dismiss() -> {:dismiss, tag}. That is the shape Mob.UI.sheet/2
+ * documents for :on_dismiss and the one iOS sends, so it deliberately does
+ * NOT reuse the tap sender (MOB-104).
  *
  * Holds the rendered tree and the nav transition to animate.
  *
  * navKey only increments on actual navigation transitions (push/pop/reset).
- * AnimatedContent in MainActivity uses navKey as the contentKey so that
- * same-screen BEAM re-renders (transition == "none") recompose the existing
- * composable in place — no content swap, no focus loss, no keyboard dismissal.
+ * MainActivity keys the slide animation on it, and provides it as the frame
+ * tracker epoch, so a same-screen BEAM re-render (transition == "none")
+ * neither restarts an animation nor re-keys the trackers.
  */
 data class RootState(val navKey: Int, val transition: String, val node: MobNode?)
+
+internal data class MobNodeIdentityKey(val canonical: String)
+
+internal object MobNodeIdentity {
+    fun keyFor(node: MobNode): MobNodeIdentityKey? {
+        if (!node.props.containsKey("id")) return null
+        return MobNodeIdentityKey(canonicalJsonValue(node.props["id"]))
+    }
+
+    private fun canonicalJsonValue(value: Any?): String = when (value) {
+        null, JSONObject.NULL -> "z"
+        is String -> framed("s", listOf(value))
+        is Boolean -> if (value) "b1" else "b0"
+        is Number -> framed("n", listOf(value.toString()))
+        is JSONArray -> framed(
+            "a",
+            (0 until value.length()).map { index -> canonicalJsonValue(value.get(index)) }
+        )
+        is JSONObject -> {
+            val keys = value.keys().asSequence().toList().sorted()
+            framed(
+                "o",
+                keys.map { key ->
+                    framed(
+                        "e",
+                        listOf(canonicalJsonValue(key), canonicalJsonValue(value.get(key)))
+                    )
+                }
+            )
+        }
+        is Map<*, *> -> {
+            val entries = value.entries
+                .map { entry ->
+                    framed(
+                        "e",
+                        listOf(canonicalJsonValue(entry.key), canonicalJsonValue(entry.value))
+                    )
+                }
+                .sorted()
+            framed("o", entries)
+        }
+        is Iterable<*> -> framed("a", value.map(::canonicalJsonValue))
+        is Array<*> -> framed("a", value.map(::canonicalJsonValue))
+        else -> error("Unsupported node id value: ${value::class.java.name}")
+    }
+
+    private fun framed(type: String, values: List<String>): String = buildString {
+        append(type)
+        values.forEach { value ->
+            append(value.length)
+            append(':')
+            append(value)
+        }
+    }
+}
+
+internal data class MobEventSlotIdentityKey(val slot: Int)
+
+internal object MobLazyListStateIdentity {
+    fun keyFor(node: MobNode, handle: Int?): Any? =
+        MobNodeIdentity.keyFor(node) ?:
+            if (handle != null && handle >= 0) MobEventSlotIdentityKey(handle and 0xff) else null
+}
 
 object MobBridge {
 
@@ -309,11 +417,23 @@ object MobBridge {
     private val _themeColors = mutableStateOf<Map<String, Long>?>(null)
     val themeColors: State<Map<String, Long>?> get() = _themeColors
 
+    // Ordered fallback font names from the last Mob.Theme.set/1 (already
+    // resolved to this platform's names — see Mob.Theme.notify_native/1 in
+    // mob core). Read by the top-level fontFamilyProp() when a node's own
+    // font can't be loaded — not private, since that function lives outside
+    // this object. Plain var, not Compose state: fonts don't need to trigger
+    // recomposition the way theme colors do — they're consulted the next
+    // time a font actually resolves, not reactively.
+    @Volatile
+    var fontFallback: List<String> = emptyList()
+        private set
+
     /** Called from mob_nif.zig (nif_set_theme) whenever `Mob.Theme.set/1`
      *  runs on the BEAM side. The JSON is the resolved-token map: atom
-     *  names → ARGB ints (e.g. `{"primary":4286331629,"surface":...}`).
-     *  The Compose-state write hops to the main thread so recomposition
-     *  fires safely. */
+     *  names → ARGB ints (e.g. `{"primary":4286331629,"surface":...}`),
+     *  plus `_font_fallback` (an ordered array of font names — see
+     *  MOB_FONTS.md). The Compose-state write hops to the main thread so
+     *  recomposition fires safely. */
     @JvmStatic
     fun setTheme(json: String) {
         try {
@@ -325,6 +445,11 @@ object MobBridge {
                 val value = obj.opt(key)
                 if (value is Number) map[key] = value.toLong()
             }
+
+            obj.optJSONArray("_font_fallback")?.let { arr ->
+                fontFallback = (0 until arr.length()).mapNotNull { arr.opt(it) as? String }
+            }
+
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 _themeColors.value = map
             }
@@ -333,14 +458,776 @@ object MobBridge {
         }
     }
 
-    // Persists LazyListState across re-renders so scroll position survives data
-    // updates. Keyed by the on_end_reached handle integer, which is stable within
-    // a screen (same render-order index after each clear_taps). Cleared on
-    // navigation transitions (push/pop/reset) where the list is genuinely new.
-    private val lazyListStates = mutableMapOf<Int, LazyListState>()
+    // Event handles include a changing render generation. Stable node identity
+    // wins when present; otherwise MobLazyListStateIdentity retains only the
+    // stable low-byte event slot. Navigation still clears all retained state.
+    private val lazyListStates = mutableMapOf<Any, LazyListState>()
 
-    fun getOrCreateLazyListState(handle: Int): LazyListState =
-        lazyListStates.getOrPut(handle) { LazyListState() }
+    fun getOrCreateLazyListState(identity: Any): LazyListState =
+        lazyListStates.getOrPut(identity) { LazyListState() }
+
+    // ── Test harness: id-addressable scroll registry + in-process capture ──────
+    //
+    // Gives a remotely-connected agent (Mob.Test.screenshot/scroll_info/scroll_to)
+    // pixels and deterministic scroll over Erlang dist, with no adb/xcrun. A
+    // ScrollHandle carries whichever Compose scroll state backs the node plus its
+    // measured viewport; the :scroll / lazy-list composables register themselves
+    // here by their :id prop.
+    class ScrollHandle {
+        var scrollState: ScrollState? = null // pixel-precise vertical/horizontal scroll
+        var lazyState: LazyListState? = null // item-indexed list
+        var viewportPx: Int = 0 // measured viewport extent (for ScrollState kind)
+        var horizontal: Boolean = false
+    }
+
+    // Concurrent: written from the Compose main thread (registration), read from
+    // the NIF/binder thread (scrollInfo/scrollTo). computeIfAbsent keeps creation
+    // atomic so a registration race can't drop a handle.
+    private val scrollHandlesById = ConcurrentHashMap<String, ScrollHandle>()
+    private val mainScope = CoroutineScope(Dispatchers.Main)
+
+    fun scrollHandle(id: String): ScrollHandle =
+        scrollHandlesById.computeIfAbsent(id) { ScrollHandle() }
+
+    // ── Element frame registry (positions without a screenshot) ────────────────
+    //
+    // Any rendered node with an :id gets a frameTrackingModifier that records its
+    // window bounds (px) here and tags it with a Compose testTag. elementFrames()
+    // returns them in dp so an agent can locate/drive elements by id over dist
+    // with no image bytes. Populated by RenderNodeInner.
+    //
+    // Concurrent: written from the Compose main thread (onGloballyPositioned),
+    // iterated from the NIF/binder thread (elementFrames). ConcurrentHashMap's
+    // weakly-consistent iteration can't throw ConcurrentModificationException.
+    private val elementFramesById = ConcurrentHashMap<String, FloatArray>()
+
+    // Nav generation, and the gate that makes the clear in setRootJson stick.
+    //
+    // Clearing the registry on navigation is only half a fix, and what the
+    // other half has to do changed with MOB-146.
+    //
+    // It was written for AnimatedContent, which kept the OUTGOING composition
+    // mounted for the whole exit animation: that screen went on being
+    // re-laid-out on every display frame as it slid away, firing
+    // onGloballyPositioned long after setRootJson emptied the map, so it
+    // refilled the registry with mid-animation coordinates belonging to a
+    // screen the user was no longer looking at.
+    //
+    // There is no outgoing composition any more — one mount point, and the
+    // tree is replaced in place — so that particular refill cannot happen.
+    // What the gate now guards is the mirror image of it: the mount point
+    // SURVIVES navigation, so every node Compose reuses across one keeps the
+    // generation it captured for the previous screen. Without a re-key those
+    // writes are refused for ever, and element_frames silently loses the ids
+    // it used to report. The epoch in frameTrackingModifier below is what
+    // re-keys them; see MainActivity's MobNavHost.
+    //
+    // So: a tracker captures the generation current when it first composes and
+    // stamps every write with it, and a write stamped older than the current
+    // generation is refused.
+    //
+    // This is one of the three parts iOS carries, not all of them. iOS also has
+    // a purge keyed on the live id set, run on EVERY set_root including "none",
+    // and an .onDisappear compare-and-delete keyed on a write sequence number.
+    // Android has neither. Two consequences worth knowing: a same-screen
+    // re-render that drops an :id leaves that element's last frame in the map
+    // for ever, and a row scrolled out of a lazy list or a tab left behind
+    // keeps reporting its last position. See mob's
+    // decisions/2026-08-27-frame-registry-liveness.md for the reasoning this
+    // half is taken from.
+    //
+    // A private counter rather than reusing navKey directly HERE, while
+    // MainActivity provides navKey as the tracker epoch. The two jobs are
+    // different and it is worth being precise about which is which.
+    //
+    // This counter is what a write is STAMPED with, and the gate compares
+    // against it. It stays private because a tracker reading `_rootState` for
+    // it would subscribe every tagged node to every root update, and would
+    // read whatever is current when it writes rather than the value belonging
+    // to the tree it was composed into — precisely the write this gate refuses.
+    //
+    // The epoch is a different question: "was a new tree installed here", which
+    // is what decides when a tracker must re-capture. navKey answers exactly
+    // that, and MOB-146 made re-capturing necessary, since the mount point now
+    // survives navigation and reused nodes would otherwise keep a superseded
+    // generation for ever.
+    //
+    // The two cannot drift apart: `setRootJson` bumps this counter and navKey
+    // under the same `if (transition != "none")`, so a navigation that stalls
+    // the epoch stalls the generation with it and reused trackers still match.
+    // That lockstep is load-bearing — splitting those two bumps would break
+    // the re-key silently.
+    //
+    // One monitor covers the counter AND the registry, rather than an atomic
+    // counter beside an unguarded map. An atomic makes each individual access
+    // safe and still leaves recordElementFrame as a check-then-act across two
+    // objects, which is the race this gate exists to lose. Taking one lock for
+    // both is also what iOS does, and it is cheap: uncontended, once per
+    // tracked element per layout pass, against a monitor nothing else wants.
+    //
+    // Starts at 1 so the very first trackers, which capture 1, are accepted
+    // (1 < 1 is false). Unlike iOS there is no 0 sentinel to reserve, because
+    // remember always runs before the modifier is built.
+    /**
+     * The navigation this subtree belongs to — `navKey`, provided by
+     * MainActivity's MobNavHost.
+     *
+     * `frameTrackingModifier` keys its generation capture on this, which is
+     * what keeps the gate above working now that navigation preserves the
+     * composition instead of replacing it. navKey moves on every non-"none"
+     * transition and nothing else, which is exactly when the trackers must
+     * re-capture — and it moves under the same guard in setRootJson that bumps
+     * `frameGeneration`, so the two cannot drift apart.
+     *
+     * Provided through a CompositionLocal rather than read from the root state
+     * directly: a tracker reading `_rootState` would resubscribe every tagged
+     * node to every root update, and the value it wants is a property of the
+     * tree it was composed into, not of whatever is current when it writes.
+     *
+     * `compositionLocalOf`, deliberately NOT `staticCompositionLocalOf`. A
+     * static local invalidates its whole provided subtree unconditionally,
+     * ignoring skipping. That is free today only because nothing in this tree
+     * can skip — `MobNode` holds a `Map` and a `List`, so Compose infers it
+     * unstable, and this toolchain has no strong skipping. The moment
+     * `MobNode` is annotated `@Immutable`, a static local here would force a
+     * full recomposition of every node on every navigation and silently eat
+     * the skipping that annotation just bought. A dynamic local invalidates
+     * exactly the composables that read it, which is precisely the tracked
+     * nodes that must re-run their capture.
+     */
+    val LocalSlotEpoch = androidx.compose.runtime.compositionLocalOf { 0 }
+
+    private val frameLock = Any()
+    private var frameGeneration = 1L
+
+    /**
+     * The generation current right now. Read once per tracker, during
+     * composition, so the value captured is the one belonging to the tree that
+     * tracker is part of.
+     */
+    fun currentFrameGeneration(): Long = synchronized(frameLock) { frameGeneration }
+
+    fun recordElementFrame(id: String, generation: Long, x: Float, y: Float, w: Float, h: Float) {
+        // Refuse a tracker belonging to a superseded tree.
+        //
+        // The check and the write are one critical section, and the bump and
+        // the clear in setRootJson are the same one. Ordering alone is not
+        // enough, which is worth being precise about because it is tempting to
+        // think it is: the two run on different threads, so with an unguarded
+        // check-then-act a tracker can read a generation that is still current,
+        // lose the thread, and have setRootJson bump and clear before its write
+        // lands. Bumping before the clear narrows that window to the gap
+        // between this read and this write; it does not close it, and
+        // ConcurrentHashMap.clear() is not atomic against a concurrent put
+        // either. Holding the lock across both closes it.
+        //
+        // This is what iOS does. mob_register_frame performs the generation
+        // check and the dictionary write inside @synchronized(reg), and the
+        // bump takes the same monitor.
+        synchronized(frameLock) {
+            if (generation < frameGeneration) return
+            elementFramesById[id] = floatArrayOf(x, y, w, h)
+        }
+    }
+
+    @Composable
+    fun frameTrackingModifier(id: String): Modifier {
+        // remember(id), deliberately: neither keyless nor keyed on anything
+        // that moves per recomposition.
+        //
+        // Keying on the live generation, remember(currentFrameGeneration()), or
+        // dropping remember and reading the counter inside
+        // onGloballyPositioned, would re-read it on every recomposition or
+        // every layout pass. A write could then never be stale and the gate
+        // would be dead code that still looked like a fix.
+        //
+        // Keying on id re-runs the capture exactly when this modifier starts
+        // tracking a DIFFERENT element, which is the one way a composition that
+        // is still alive can end up holding a generation that was never its
+        // own. Only column, row and the lazy list key their children on the
+        // author's :id via mobChildKeys; everywhere else children sit in
+        // positional composition slots, so a slot can be handed a different
+        // node, and a different :id, while keeping its remembered state. Under
+        // a keyless remember that slot would stamp writes for its new id with
+        // the previous occupant's generation.
+        //
+        // Navigation is covered by the slot epoch, and has to be.
+        //
+        // This used to rest on an AnimatedContent internal: it wraps each
+        // content in key(contentKey), so a changing navKey made the incoming
+        // tree a fresh composition that captured the bumped generation for
+        // free. MOB-146 removed AnimatedContent — building that fresh
+        // composition is what cost 818ms a push — so the free part is gone.
+        //
+        // Without the epoch the failure is silent and delayed. The first
+        // navigation still works, because the incoming slot has never held a
+        // tree. The SECOND one puts a tree into a slot that still holds the
+        // one from two navigations ago, Compose reuses the nodes whose id
+        // matches, their remembered generation is now stale, and every frame
+        // write from them is refused for ever. element_frames quietly loses
+        // those ids and tap_id stops finding them, with nothing raised.
+        val epoch = LocalSlotEpoch.current
+        val generation = remember(id, epoch) { currentFrameGeneration() }
+        return Modifier
+            .testTag(id)
+            .onGloballyPositioned { c ->
+                val b = c.boundsInWindow()
+                recordElementFrame(id, generation, b.left, b.top, b.width, b.height)
+            }
+    }
+
+    /** JSON {id:[x,y,w,h], ...} in dp (matches screenInfo / tap_xy units). */
+    @JvmStatic
+    fun elementFrames(): String {
+        val density = activityRef?.get()?.resources?.displayMetrics?.density ?: 1f
+        val o = JSONObject()
+        for ((id, f) in elementFramesById) {
+            val arr = org.json.JSONArray()
+            arr.put((f[0] / density).toDouble())
+            arr.put((f[1] / density).toDouble())
+            arr.put((f[2] / density).toDouble())
+            arr.put((f[3] / density).toDouble())
+            o.put(id, arr)
+        }
+        return o.toString()
+    }
+
+    /**
+     * A structural, JSON-shaped snapshot of the Mob tree currently rendered on
+     * this activity. Delegated to by `nif_ui_view_tree/0` in the Android NIF
+     * layer, then decoded on the BEAM side by `Mob.Test.view_tree/1` /
+     * `normalize_view_tree/1` into the same map shape the iOS side returns.
+     *
+     * Root shape:
+     *   {"type":"root","class":null,"label":null,"value":null,
+     *    "frame":[0,0,W,H],"bg_color":null,"text_color":null,"children":[...]}
+     *
+     * Each descendant follows the same eight keys — the sink and the diff tool
+     * read one contract on both platforms, so a differential detector (MOB-157)
+     * can compare within tolerance without a per-platform decoder.
+     *
+     * ## Where the data comes from, and what is deliberately missing here
+     *
+     * `type` and `children` are the Mob tree the renderer received — the same
+     * source of truth `Mob.Test.tree/1` reads. `label` and `value` are
+     * lifted from the usual text-carrying prop names so a node's user-visible
+     * content is comparable across platforms.
+     *
+     * `frame` is populated only for nodes carrying `props["id"]`, because those
+     * are the ones `Modifier.onGloballyPositioned` tracks into
+     * `elementFramesById` — everything else here holds `null`. iOS reads a
+     * frame off every rendered `UIView`; the equivalent on Compose has no
+     * per-composable View to hang a `getGlobalVisibleRect` off, so requiring
+     * frames on every node would force id assignments onto every fixture,
+     * which mixes coverage with reachability. The differential detector picks
+     * that up: nodes with ids compare geometry, nodes without do not, and the
+     * fixture author chooses.
+     *
+     * `class`, `bg_color` and `text_color` are `null` for now. The paint side
+     * is where Compose semantics part ways with UIView layers (colours resolve
+     * through the theme after the tree is built), so honest nulls here beat a
+     * partial-answer that would misattribute divergence.
+     */
+    @JvmStatic
+    fun uiViewTree(): String {
+        val density = activityRef?.get()?.resources?.displayMetrics?.density ?: 1f
+        val decor = activityRef?.get()?.window?.decorView
+        val rootW = decor?.width?.toFloat()?.div(density)?.toDouble() ?: 0.0
+        val rootH = decor?.height?.toFloat()?.div(density)?.toDouble() ?: 0.0
+
+        val root = JSONObject()
+        root.put("type", "root")
+        root.put("class", JSONObject.NULL)
+        root.put("label", JSONObject.NULL)
+        root.put("value", JSONObject.NULL)
+        root.put(
+            "frame",
+            org.json.JSONArray()
+                .put(0.0)
+                .put(0.0)
+                .put(rootW)
+                .put(rootH),
+        )
+        root.put("bg_color", JSONObject.NULL)
+        root.put("text_color", JSONObject.NULL)
+
+        val children = org.json.JSONArray()
+        val current = _rootState.value.node
+        if (current != null) {
+            children.put(buildViewTreeNode(current, density))
+        }
+        root.put("children", children)
+
+        return root.toString()
+    }
+
+    private fun buildViewTreeNode(node: MobNode, density: Float): JSONObject {
+        val out = JSONObject()
+        out.put("type", node.type)
+        out.put("class", JSONObject.NULL)
+        out.put("label", extractLabel(node) ?: JSONObject.NULL)
+        out.put("value", extractValue(node) ?: JSONObject.NULL)
+        out.put("frame", extractFrame(node, density) ?: JSONObject.NULL)
+        out.put("bg_color", JSONObject.NULL)
+        out.put("text_color", JSONObject.NULL)
+
+        val kids = org.json.JSONArray()
+        for (child in node.children) {
+            kids.put(buildViewTreeNode(child, density))
+        }
+        out.put("children", kids)
+        return out
+    }
+
+    private fun extractLabel(node: MobNode): String? {
+        val text = node.props["text"]
+        if (text is String) return text
+        // Common on Button/Row-with-Text: the text lives on the first Text child.
+        for (child in node.children) {
+            val t = child.props["text"]
+            if (t is String) return t
+        }
+        return null
+    }
+
+    private fun extractValue(node: MobNode): String? {
+        val v = node.props["value"] ?: node.props["placeholder"]
+        return v as? String
+    }
+
+    private fun extractFrame(node: MobNode, density: Float): org.json.JSONArray? {
+        val id = node.props["id"] as? String ?: return null
+        val f = elementFramesById[id] ?: return null
+        return org.json.JSONArray()
+            .put((f[0] / density).toDouble())
+            .put((f[1] / density).toDouble())
+            .put((f[2] / density).toDouble())
+            .put((f[3] / density).toDouble())
+    }
+
+
+    /**
+     * Capture the activity window in-process and return PNG/JPEG bytes.
+     * Called from nif_screenshot/3 via JNI. `scale` is a multiplier of native
+     * resolution (1.0 = full, 0.5 = half). Returns null when there is no live
+     * window (e.g. backgrounded) so the NIF can report {:error, :no_window}.
+     */
+    @JvmStatic
+    fun screenshot(format: String, quality: Int, scale: Double): ByteArray? {
+        val activity = activityRef?.get() ?: return null
+        val window = activity.window ?: return null
+        val decor = window.decorView
+        val w = decor.width
+        val h = decor.height
+        if (w <= 0 || h <= 0) return null
+
+        val src = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val latch = java.util.concurrent.CountDownLatch(1)
+        var ok = false
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            PixelCopy.request(window, src, { result ->
+                ok = result == PixelCopy.SUCCESS
+                latch.countDown()
+            }, handler)
+        } else {
+            // Pre-O fallback: draw the decor view (misses SurfaceView/GL layers).
+            handler.post {
+                ok =
+                    try {
+                        decor.draw(android.graphics.Canvas(src)); true
+                    } catch (e: Throwable) {
+                        false
+                    }
+                latch.countDown()
+            }
+        }
+
+        if (!latch.await(2, java.util.concurrent.TimeUnit.SECONDS) || !ok) return null
+
+        val bmp =
+            if (scale > 0.0 && scale != 1.0) {
+                Bitmap.createScaledBitmap(
+                    src,
+                    (w * scale).toInt().coerceAtLeast(1),
+                    (h * scale).toInt().coerceAtLeast(1),
+                    true
+                )
+            } else {
+                src
+            }
+
+        val out = java.io.ByteArrayOutputStream()
+        if (format == "jpeg") {
+            bmp.compress(Bitmap.CompressFormat.JPEG, quality.coerceIn(0, 100), out)
+        } else {
+            bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+        }
+        return out.toByteArray()
+    }
+
+    /**
+     * Read a scroll view's offset/extent as a flat JSON object (the shape
+     * Mob.Test.scroll_info/2 decodes). Returns null when no scroll view is
+     * registered under `id`. `kind` is "pixel" for ScrollState (px units) or
+     * "index" for LazyListState (item-index units; viewport = visible items).
+     */
+    @JvmStatic
+    fun scrollInfo(id: String): String? {
+        val h = scrollHandlesById[id] ?: return null
+
+        h.scrollState?.let { s ->
+            val vp = h.viewportPx.toDouble()
+            val maxV = s.maxValue.toDouble()
+            val content = maxV + vp
+            val off = s.value.toDouble()
+            val o = JSONObject()
+            if (h.horizontal) {
+                o.put("offset_x", off); o.put("offset_y", 0.0)
+                o.put("content_w", content); o.put("content_h", vp)
+                o.put("viewport_w", vp); o.put("viewport_h", vp)
+                o.put("max_x", maxV); o.put("max_y", 0.0)
+            } else {
+                o.put("offset_x", 0.0); o.put("offset_y", off)
+                o.put("content_w", vp); o.put("content_h", content)
+                o.put("viewport_w", vp); o.put("viewport_h", vp)
+                o.put("max_x", 0.0); o.put("max_y", maxV)
+            }
+            o.put("kind", "pixel")
+            return o.toString()
+        }
+
+        h.lazyState?.let { ls ->
+            val li = ls.layoutInfo
+            val total = li.totalItemsCount.toDouble()
+            val visible = li.visibleItemsInfo.size.toDouble()
+            val first = ls.firstVisibleItemIndex.toDouble()
+            val maxIdx = (total - visible).coerceAtLeast(0.0)
+            val o = JSONObject()
+            o.put("offset_x", 0.0); o.put("offset_y", first)
+            o.put("content_w", 0.0); o.put("content_h", total)
+            o.put("viewport_w", 0.0); o.put("viewport_h", visible)
+            o.put("max_x", 0.0); o.put("max_y", maxIdx)
+            o.put("kind", "index")
+            return o.toString()
+        }
+
+        return null
+    }
+
+    /**
+     * Scroll the view registered under `id` to absolute (x, y). Pixel views use
+     * the relevant axis; index lists use y as an item index. Runs the suspend
+     * scroll on the main thread and blocks the NIF thread until it completes.
+     */
+    @JvmStatic
+    fun scrollTo(id: String, x: Double, y: Double): Boolean {
+        val h = scrollHandlesById[id] ?: return false
+        val latch = java.util.concurrent.CountDownLatch(1)
+        var ok = false
+        mainScope.launch {
+            try {
+                val s = h.scrollState
+                val ls = h.lazyState
+                when {
+                    s != null -> {
+                        val target = (if (h.horizontal) x else y).toInt()
+                        s.scrollTo(target.coerceIn(0, s.maxValue))
+                        ok = true
+                    }
+                    ls != null -> {
+                        ls.scrollToItem(y.toInt().coerceAtLeast(0))
+                        ok = true
+                    }
+                }
+            } catch (e: Throwable) {
+                ok = false
+            } finally {
+                latch.countDown()
+            }
+        }
+        latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
+        return ok
+    }
+
+    // ── Test-harness synthetic input ──────────────────────────────────────────
+    //
+    // `Mob.Test.tap_xy/3`, `type_text/2` and friends. Without these the harness
+    // can drive an app by tag over distribution but cannot touch anything
+    // reachable only by coordinates — a native control, a webview, a canvas.
+    // Every generated app shipped without them until MOB-160.
+    //
+    // Injected in-process by dispatching to the decor view. The obvious route,
+    // `Instrumentation.sendPointerSync`, needs INJECT_EVENTS — a signature-level
+    // permission no ordinary app can hold — so it is not available to us.
+    //
+    // Coordinates arrive in dp, matching `elementFrames()` which divides by
+    // density on the way out. They are converted to px here.
+
+    // One synthetic gesture at a time. These arrive as `:rpc` calls, so two
+    // Erlang processes can issue them concurrently; without this a tap's DOWN
+    // lands in the middle of a swipe's MOVE stream, with a different downTime,
+    // and both gestures are garbage while both report success.
+    private val gestureMutex = kotlinx.coroutines.sync.Mutex()
+
+    // Loaded once. `load` walks the key layout files, and these run per input.
+    private val virtualKeyboard: KeyCharacterMap by lazy {
+        KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD)
+    }
+
+    // Runs `body` on the main thread and waits for it, because the caller is a
+    // BEAM scheduler thread inside a NIF and needs an answer.
+    //
+    // Gestures must be dispatched over REAL elapsed time, not synthesised
+    // timestamps inside one main-thread block, which is why `body` suspends.
+    // Android's long-press detector and Compose's drag/slop handling both wait
+    // on posted callbacks and frame boundaries, so a gesture that runs to
+    // completion without ever yielding the main looper is seen as a single
+    // instantaneous touch: a long press reads as a tap, and a drag never
+    // clears touch slop.
+    private fun onMain(timeoutMs: Long = 2000, body: suspend (Activity) -> Boolean): Boolean {
+        val activity = activityRef?.get() ?: return false
+
+        // `Dispatchers.Main` always posts, so blocking the main thread here
+        // would wait on a coroutine that can only run on the thread we just
+        // blocked — a guaranteed timeout and a multi-second UI freeze. A NIF
+        // runs on a scheduler thread today; refuse loudly if that ever changes
+        // rather than hanging the app.
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            Log.w("MobBridge", "synthetic input called on the main thread; refusing")
+            return false
+        }
+
+        val latch = java.util.concurrent.CountDownLatch(1)
+        val ok = java.util.concurrent.atomic.AtomicBoolean(false)
+
+        val job = mainScope.launch {
+            try {
+                gestureMutex.withLock { ok.set(body(activity)) }
+            } catch (e: Throwable) {
+                Log.w("MobBridge", "synthetic input failed", e)
+                ok.set(false)
+            } finally {
+                latch.countDown()
+            }
+        }
+
+        val finished =
+            try {
+                latch.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+            } catch (e: InterruptedException) {
+                // Letting this propagate would unwind into JNI with a pending
+                // exception, and the callers in mob_nif.zig do not
+                // ExceptionCheck — the next JNI call on this thread aborts
+                // the VM.
+                Thread.currentThread().interrupt()
+                false
+            }
+
+        if (!finished) {
+            // Don't leave a gesture running against a view the caller has
+            // moved on from; a retry would interleave with it. Cancellation
+            // unwinds through `withPointer`, which sends the CANCEL.
+            job.cancel()
+            return false
+        }
+
+        return ok.get()
+    }
+
+    // Guarantees the pointer stream is closed. If an exception or a
+    // cancellation lands between DOWN and UP, the view tree is left believing
+    // a finger is still down, and every later touch in the session is read as
+    // a second pointer — silently, since nothing reports it.
+    private suspend fun withPointer(
+        root: View,
+        x: Float,
+        y: Float,
+        down: Long,
+        body: suspend () -> Boolean
+    ): Boolean {
+        var completed = false
+        try {
+            val result = body()
+            completed = true
+            return result
+        } finally {
+            if (!completed) {
+                motion(root, MotionEvent.ACTION_CANCEL, x, y, down, SystemClock.uptimeMillis())
+            }
+        }
+    }
+
+    private fun motion(root: View, action: Int, x: Float, y: Float, down: Long, at: Long): Boolean {
+        val event = MotionEvent.obtain(down, at, action, x, y, 0)
+        // Without this the event carries SOURCE_UNKNOWN, and the paths that
+        // branch on isFromSource(SOURCE_TOUCHSCREEN) — hover, mouse-vs-touch
+        // slop — take the wrong one.
+        event.source = InputDevice.SOURCE_TOUCHSCREEN
+
+        return try {
+            root.dispatchTouchEvent(event)
+        } finally {
+            event.recycle()
+        }
+    }
+
+    private fun px(activity: Activity, dp: Float): Float =
+        dp * activity.resources.displayMetrics.density
+
+    // Every one of these returns whether the events were actually CONSUMED,
+    // not whether they were sent. `dispatchTouchEvent` and `dispatchKeyEvent`
+    // already tell us; discarding that and returning a bare `true` would make
+    // mob_nif.zig's :dispatch_failed and :no_first_responder unreachable, and
+    // a tap into empty space indistinguishable from one that hit a button.
+
+    @JvmStatic
+    fun tapXy(x: Float, y: Float): Boolean =
+        onMain { activity ->
+            val root = activity.window?.decorView
+            if (root == null) {
+                false
+            } else {
+                val cx = px(activity, x)
+                val cy = px(activity, y)
+                val down = SystemClock.uptimeMillis()
+
+                withPointer(root, cx, cy, down) {
+                    val pressed = motion(root, MotionEvent.ACTION_DOWN, cx, cy, down, down)
+                    val released =
+                        motion(root, MotionEvent.ACTION_UP, cx, cy, down, SystemClock.uptimeMillis())
+                    pressed || released
+                }
+            }
+        }
+
+    @JvmStatic
+    fun longPressXy(x: Float, y: Float, durationMs: Long): Boolean =
+        onMain(durationMs + 3000) { activity ->
+            val root = activity.window?.decorView
+            if (root == null) {
+                false
+            } else {
+                val cx = px(activity, x)
+                val cy = px(activity, y)
+                val down = SystemClock.uptimeMillis()
+
+                withPointer(root, cx, cy, down) {
+                    var handled = motion(root, MotionEvent.ACTION_DOWN, cx, cy, down, down)
+                    // Hold for real time, reporting the stationary finger, so
+                    // the long-press timeout actually elapses on the looper.
+                    var now = down
+                    while (now - down < durationMs) {
+                        delay(50)
+                        now = SystemClock.uptimeMillis()
+                        handled = motion(root, MotionEvent.ACTION_MOVE, cx, cy, down, now) || handled
+                    }
+                    motion(root, MotionEvent.ACTION_UP, cx, cy, down, SystemClock.uptimeMillis()) ||
+                        handled
+                }
+            }
+        }
+
+    @JvmStatic
+    fun swipeXy(x1: Float, y1: Float, x2: Float, y2: Float): Boolean =
+        onMain(5000) { activity ->
+            val root = activity.window?.decorView
+            if (root == null) {
+                false
+            } else {
+                val sx = px(activity, x1)
+                val sy = px(activity, y1)
+                val ex = px(activity, x2)
+                val ey = px(activity, y2)
+                val down = SystemClock.uptimeMillis()
+                val steps = 16
+
+                withPointer(root, sx, sy, down) {
+                    var handled = motion(root, MotionEvent.ACTION_DOWN, sx, sy, down, down)
+                    // Enough intermediate points, spread over real frames, to
+                    // clear touch slop and give a fling a velocity to work
+                    // with. A DOWN/UP pair with nothing between reads as a tap.
+                    for (step in 1..steps) {
+                        delay(16)
+                        val f = step.toFloat() / steps
+                        handled =
+                            motion(
+                                root,
+                                MotionEvent.ACTION_MOVE,
+                                sx + (ex - sx) * f,
+                                sy + (ey - sy) * f,
+                                down,
+                                SystemClock.uptimeMillis()
+                            ) || handled
+                    }
+                    motion(root, MotionEvent.ACTION_UP, ex, ey, down, SystemClock.uptimeMillis()) ||
+                        handled
+                }
+            }
+        }
+
+    @JvmStatic
+    fun typeText(text: String): Boolean =
+        onMain { activity ->
+            // Key events rather than an InputConnection: Compose's text fields
+            // own their own connection, and this is the path a real keyboard
+            // takes, so it exercises what the user would.
+            if (activity.currentFocus == null) {
+                // Nothing focused. Dispatching anyway and returning true is
+                // what makes :no_first_responder unreachable.
+                false
+            } else {
+                val events = virtualKeyboard.getEvents(text.toCharArray())
+                if (events == null) {
+                    // getEvents returns null if ANY character has no key
+                    // sequence on the virtual keyboard — non-ASCII, emoji,
+                    // accented Latin. The whole string is rejected, so the
+                    // call failed; saying otherwise would report a silent
+                    // no-op as a success.
+                    Log.w("MobBridge", "typeText: no key sequence available (ASCII only)")
+                    false
+                } else {
+                    var handled = false
+                    for (event in events) {
+                        handled = activity.dispatchKeyEvent(event) || handled
+                    }
+                    handled
+                }
+            }
+        }
+
+    @JvmStatic
+    fun deleteBackward(): Boolean =
+        onMain { activity ->
+            if (activity.currentFocus == null) false
+            else sendKey(activity, KeyEvent.KEYCODE_DEL)
+        }
+
+    // `clearText` is deliberately NOT implemented.
+    //
+    // Two approaches were tried on a physical device and both report success
+    // while failing to clear. Backspacing in a loop is dispatched far faster
+    // than the text field recomposes, so the events coalesce within a frame —
+    // roughly four of two hundred registered. Ctrl+A then delete does not
+    // select in a Compose text field either, and removes a single character.
+    //
+    // A method that returns true having cleared nothing is worse than an
+    // absent one: the JNI lookup is a `cacheOptional`, so an absent method
+    // leaves the handle null, `Mob.Test.capabilities/1` reports
+    // `clear_text: false`, and a call returns `{:error, :not_loaded}`. That is
+    // the truth, and an agent can plan around it. It cannot plan around a lie.
+
+    private fun sendKey(activity: Activity, code: Int, meta: Int = 0): Boolean {
+        val t = SystemClock.uptimeMillis()
+        val pressed =
+            activity.dispatchKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0, meta))
+        val released =
+            activity.dispatchKeyEvent(
+                KeyEvent(t, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, code, 0, meta)
+            )
+        return pressed || released
+    }
 
     private var activityRef: WeakReference<Activity>? = null
 
@@ -348,9 +1235,47 @@ object MobBridge {
     @JvmStatic
     fun init(activity: Activity) {
         activityRef = WeakReference(activity)
+        // Thread-local and throws off a Looper thread, so it has to be taken
+        // here rather than lazily from whichever thread samples first.
+        mainHandler.post { mainChoreographer = android.view.Choreographer.getInstance() }
         extractOtpIfNeeded(activity)
         copyMobLogos(activity)
         ensureUsbReceiver(activity.applicationContext)
+    }
+
+    /**
+     * Lock the activity to an ActivityInfo.SCREEN_ORIENTATION_* constant
+     * (SCREEN_ORIENTATION_UNSPECIFIED = -1 to unlock). Called from
+     * mob_nif.zig's nif_device_lock_orientation via the cached orientationLock
+     * JMethodID. setRequestedOrientation must run on the UI thread.
+     */
+    @JvmStatic
+    fun orientationLock(orientation: Int) {
+        val activity = activityRef?.get() ?: return
+        activity.runOnUiThread {
+            try {
+                activity.requestedOrientation = orientation
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    /**
+     * Keep the screen on (FLAG_KEEP_SCREEN_ON) while `on != 0`, clear it
+     * otherwise. Called from mob_nif.zig's nif_device_keep_awake via the cached
+     * keepAwake JMethodID. Window flags must be set on the UI thread. No
+     * permission required.
+     */
+    @JvmStatic
+    fun keepAwake(on: Int) {
+        val activity = activityRef?.get() ?: return
+        activity.runOnUiThread {
+            if (on != 0) {
+                activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
     }
 
     /**
@@ -1228,23 +2153,314 @@ object MobBridge {
     /** JNI bridge — implemented in beam_jni.c. */
     @JvmStatic external fun nativeNotifyColorScheme(scheme: String)
 
+    // ── Native frame timing (Mob.RenderStats.native_*) ───────────────────────
+    //
+    // `Mob.RenderStats` can already time the BEAM half of a render. It cannot
+    // see the native half: `set_root_us` closes when `setRootJson` returns, and
+    // this function returns as soon as it has written `_rootState` — every bit
+    // of Compose's work happens after that. On a dense screen that unseen half
+    // is most of the cost, which is exactly the half MOB-129 and MOB-146 argue
+    // about.
+    //
+    // Same JSON shape as the iOS implementation, so `Mob.RenderStats` needs no
+    // per-platform parsing.
+
+    private const val RENDER_STAT_SAMPLES = 240
+
+    private class FrameSample(val applyUs: Double, val seq: Long, val transition: String)
+
+    private val renderStatSlots = arrayOfNulls<FrameSample>(RENDER_STAT_SAMPLES)
+
+    // Counts every sample ever recorded, not just the retained ones, so a
+    // reader can tell "240 samples, that is all there were" from "240 samples,
+    // and 5000 more scrolled past" — the difference decides whether a
+    // percentile over this window means anything.
+    private var renderStatSeq = 0L
+
+    // Cached rather than fetched per sample. `Choreographer.getInstance()` is
+    // thread-local and throws off a Looper thread, so it is captured on the
+    // main thread at init; `postFrameCallback` itself is internally locked and
+    // safe to call from the NIF thread.
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    @Volatile private var mainChoreographer: android.view.Choreographer? = null
+    private val renderStatLock = Any()
+
+    // Read on every setRootJson, written from a NIF thread. @Volatile rather
+    // than lock-guarded so the disabled path — the overwhelmingly common one —
+    // costs a field read and nothing else.
+    @Volatile private var renderStatsOn = false
+
+    @JvmStatic
+    fun renderStatsEnable(on: Boolean): Boolean {
+        // Clear when ENABLING only. Clearing on disable as well would destroy
+        // the window the caller is about to read: `native_disable/0` documents
+        // that recorded samples stay readable, and the natural shape is
+        // enable, drive, disable, read.
+        if (on) {
+            synchronized(renderStatLock) {
+                java.util.Arrays.fill(renderStatSlots, null)
+                renderStatSeq = 0L
+            }
+        }
+        renderStatsOn = on
+        return true
+    }
+
+    @JvmStatic
+    fun renderStats(): String {
+        val (samples, recorded) =
+            synchronized(renderStatLock) {
+                Pair(renderStatSlots.filterNotNull().sortedByDescending { it.seq }, renderStatSeq)
+            }
+
+        val dropped = if (recorded > RENDER_STAT_SAMPLES) recorded - RENDER_STAT_SAMPLES else 0L
+        val out = StringBuilder(64 + samples.size * 64)
+        out.append("{\"enabled\":").append(renderStatsOn)
+            .append(",\"recorded\":").append(recorded)
+            .append(",\"dropped\":").append(dropped)
+            .append(",\"samples\":[")
+        samples.forEachIndexed { i, sample ->
+            if (i > 0) out.append(',')
+            out.append("{\"apply_us\":").append(sample.applyUs)
+                .append(",\"transition\":\"").append(jsonEscape(sample.transition))
+                .append("\",\"seq\":").append(sample.seq).append('}')
+        }
+        return out.append("]}").toString()
+    }
+
+    // `transition` is not a closed vocabulary at the boundary: nif_set_transition
+    // takes any atom up to 15 chars verbatim, and Mob.Sender types it as
+    // `atom()`. One containing a quote would emit invalid JSON and cost the
+    // reader the whole window rather than the one sample. iOS gets this for
+    // free by building its payload through NSJSONSerialization.
+    private fun jsonEscape(value: String): String {
+        val out = StringBuilder(value.length + 8)
+        for (c in value) {
+            when {
+                c == '"' -> out.append("\\\"")
+                c == '\\' -> out.append("\\\\")
+                c < ' ' -> out.append(String.format("\\u%04x", c.code))
+                else -> out.append(c)
+            }
+        }
+        return out.toString()
+    }
+
+    private fun recordFrameSample(applyUs: Double, transition: String) {
+        synchronized(renderStatLock) {
+            renderStatSlots[(renderStatSeq % RENDER_STAT_SAMPLES).toInt()] =
+                FrameSample(applyUs, renderStatSeq, transition)
+            renderStatSeq++
+        }
+    }
+
+    // Brackets from the state write to the end of the frame that renders it.
+    //
+    // The closing bracket is the hard part, and getting it wrong fails silently
+    // with a plausible number. Two rejected options, recorded so nobody
+    // re-derives them:
+    //
+    //   * A `MessageQueue.IdleHandler` is the literal analogue of the
+    //     `CFRunLoopObserver(.beforeWaiting)` iOS uses. It is wrong here.
+    //     Compose requests its frame through `Choreographer`, and a vsync
+    //     callback arrives asynchronously rather than sitting in the queue, so
+    //     between the request and the vsync the queue is genuinely empty. The
+    //     handler fires there, before any of the work being measured, and
+    //     reports the cost of a field write.
+    //   * Posting a plain `Runnable` and registering from inside it. Same flaw
+    //     for a different reason: `ViewRootImpl.scheduleTraversals` installs a
+    //     sync barrier that blocks non-async messages until `doTraversal`
+    //     runs. With a traversal already pending — the steady state on a busy
+    //     screen, which is exactly when these measurements are taken — that
+    //     post is held while Compose recomposes at frame V, so it registers
+    //     for V+1 and the sample absorbs a whole extra frame. Choreographer's
+    //     own vsync messages are async and sail past the barrier, which is why
+    //     registering directly from this thread does not have the problem.
+    //
+    // So: register the frame callback straight from the calling thread.
+    // `postFrameCallback` fires at the START of the next frame, before Compose
+    // recomposes and before the traversal that measures, lays out and draws. A
+    // message posted from inside that callback cannot run until the traversal
+    // has finished, because the traversal is synchronous on that thread. That
+    // post is the closing bracket.
+    //
+    // Biases worth knowing before trusting a tail figure, all upward:
+    //
+    //   * If Compose lands the recomposition in a later frame than the one we
+    //     attach to, this under-reports; an animated navigation spans several
+    //     frames while this measures only the first, which is the one carrying
+    //     the composition cost.
+    //   * A burst of `setRootJson` calls arms several brackets that all close
+    //     on the SAME frame, so each attributes the cost of rendering the last
+    //     tree to a tree that was superseded and never composed. Over-counting
+    //     rather than losing samples, which is the safer direction for a
+    //     measurement whose purpose is to justify work. iOS behaves the same.
+    private fun measureApply(startNanos: Long, transition: String) {
+        val choreographer = mainChoreographer ?: return
+        choreographer.postFrameCallback {
+            mainHandler.post {
+                recordFrameSample((System.nanoTime() - startNanos) / 1000.0, transition)
+            }
+        }
+    }
+
     /** Called from mob_nif.c's nif_set_root — updates Compose state. */
     @JvmStatic
     fun setRootJson(json: String, transition: String) {
         // Navigation transitions mean a genuinely different screen — old list state
         // is no longer relevant and would scroll the wrong list to a stale position.
         val newKey = if (transition != "none") {
+            // Bump the frame generation BEFORE the clears, not after. Both run
+            // on the NIF thread while the Compose main thread may be midway
+            // through a layout pass, so an outgoing onGloballyPositioned that
+            // landed between the clear and the bump would still be accepted and
+            // would survive as a stale entry.
+            //
+            // Ordering alone does NOT close that race, and it is important not
+            // to believe it does: the gate in recordElementFrame is a
+            // check-then-act across two objects, so a tracker can read a
+            // generation that is still current, lose the thread, and have this
+            // block run before its write lands. What closes it is that both
+            // sides take frameLock, which is why the bump and the clear are
+            // inside it here. Removing the lock and keeping this ordering
+            // reintroduces the bug.
+            //
+            // It also has to precede the _rootState write below, and does:
+            // composition of the incoming tree is what that write schedules, so
+            // the incoming trackers capture the counter only after it moved.
+            synchronized(frameLock) {
+                frameGeneration++
+                elementFramesById.clear()
+            }
             lazyListStates.clear()
+            scrollHandlesById.clear()
             _rootState.value.navKey + 1
         } else {
             _rootState.value.navKey
         }
-        _rootState.value = RootState(newKey, transition, JSONObject(json).toMobNode())
+        // Taken AFTER the parse, deliberately. `set_root_us` on the BEAM side
+        // already spans this call, parse included, because setRootJson runs
+        // synchronously from the NIF — so measuring the parse here too would
+        // double-count it against anyone adding the two windows together. iOS
+        // has the same boundary for a different reason: its node arrives
+        // already parsed.
+        val measuring = renderStatsOn
+        val parsed = MobJson.parseNode(json)
+
+        // System.nanoTime rather than elapsedRealtimeNanos: the latter counts
+        // deep sleep, so a run spanning a screen-off yields a sample of
+        // minutes. iOS's CACurrentMediaTime does not count sleep either.
+        val startNanos = if (measuring) System.nanoTime() else 0L
+
+        _rootState.value = RootState(newKey, transition, parsed)
+
+        if (measuring) measureApply(startNanos, transition)
     }
 
     /** Called from Compose onClick — routes tap back to BEAM via C. */
     @JvmStatic
     external fun nativeSendTap(handle: Int)
+
+    /**
+     * Routes a sheet dismissal back to BEAM as `{:dismiss, tag}`.
+     *
+     * Deliberately separate from [nativeSendTap]: `Mob.UI.sheet/2` documents
+     * `:on_dismiss` as `{:dismiss, tag}` and iOS delivers that, so sending a
+     * tap here produced a message no screen written to the contract matches
+     * (MOB-104). Must stay declared on MobBridge — the JNI symbol is
+     * `Java_<pkg>_MobBridge_nativeSendDismiss` and resolution is by declaring
+     * class, not by call site.
+     */
+    @JvmStatic
+    external fun nativeSendDismiss(handle: Int)
+
+    /**
+     * `on_long_press` / `on_double_tap`. The native senders existed all along;
+     * what was missing was any Kotlin path to them, so these two were
+     * registered by the renderer, carried in the JSON, and silently never fired
+     * (MOB-138).
+     */
+    @JvmStatic
+    external fun nativeSendLongPress(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendDoubleTap(handle: Int)
+
+    /**
+     * Swipe. `nativeSendSwipe` carries the direction so a single handler can
+     * branch on it; the four fixed-direction senders exist because iOS fires
+     * both — a node may declare `on_swipe` and `on_swipe_left` at once and
+     * expects each to arrive.
+     */
+    @JvmStatic
+    external fun nativeSendSwipe(handle: Int, direction: String)
+
+    @JvmStatic
+    external fun nativeSendSwipeLeft(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendSwipeRight(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendSwipeUp(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendSwipeDown(handle: Int)
+
+    /**
+     * Scroll. Throttling and delta-thresholding happen native-side in
+     * mob_send_scroll, so Kotlin forwards every sample it observes.
+     *
+     * Per-handler options are honoured. `Mob.Renderer` serialises them into
+     * sibling `scroll_config` / `drag_config` props, the composition reads them
+     * and calls `mob_set_throttle_config`, and native applies them to the table
+     * being built (MOB-134). An app asking for `throttle: 100, delta: 8` gets
+     * exactly that; the built-in defaults (33ms/1.0 scroll, 16ms/1.0 drag)
+     * apply only where a handler asked for nothing.
+     *
+     * `debounce` / `leading` / `trailing` are accepted and stored but not yet
+     * acted on by either platform.
+     */
+    @JvmStatic
+    external fun nativeSendScroll(handle: Int, x: Double, y: Double, dx: Double, dy: Double,
+                                  vx: Double, vy: Double, phase: String)
+
+    @JvmStatic
+    external fun nativeSendScrollBegan(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendScrollEnded(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendScrollSettled(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendTopReached(handle: Int)
+
+    @JvmStatic
+    external fun nativeSendScrolledPast(handle: Int)
+
+    /**
+     * Per-handle throttle/debounce config for a high-frequency event.
+     *
+     * Must be re-sent on every render. `clear_taps` runs at the top of each
+     * frame and zeroes the per-handle throttle state — throttle_ms,
+     * delta_threshold, last_emit_ns, seq — because table slots are reused
+     * across renders. A config sent once would survive exactly one frame.
+     */
+    @JvmStatic
+    external fun nativeSetThrottleConfig(handle: Int, throttleMs: Int, debounceMs: Int,
+                                         deltaThreshold: Double, leading: Int, trailing: Int)
+
+    /**
+     * Drag, for `:canvas`. Coordinates are dp, matching the canvas's own
+     * coordinate space (width/height props are dp) and iOS's points — Compose
+     * hands the gesture raw pixels, so the caller converts before this point.
+     */
+    @JvmStatic
+    external fun nativeSendDrag(handle: Int, x: Double, y: Double, dx: Double, dy: Double,
+                                phase: String)
 
     /** Called from Compose onChange — routes change value back to BEAM via C. */
     @JvmStatic
@@ -1264,55 +2480,23 @@ object MobBridge {
     // ── Native delivery stubs — implemented in beam_jni.c ────────────────────
     @JvmStatic external fun nativeDeliverAtom2(pid: Long, a1: String, a2: String)
     @JvmStatic external fun nativeDeliverAtom3(pid: Long, a1: String, a2: String, a3: String)
-    @JvmStatic external fun nativeDeliverLocation(pid: Long, lat: Double, lon: Double, acc: Double, alt: Double)
     @JvmStatic external fun nativeDeliverMotion(pid: Long, ax: Double, ay: Double, az: Double,
                                                   gx: Double, gy: Double, gz: Double, ts: Long)
+    @JvmStatic external fun nativeDeliverMotionMag(pid: Long, ax: Double, ay: Double, az: Double,
+                                                  gx: Double, gy: Double, gz: Double,
+                                                  mx: Double, my: Double, mz: Double,
+                                                  heading: Double, ts: Long)
     @JvmStatic external fun nativeDeliverFileResult(pid: Long, event: String, sub: String, json: String?)
+    @JvmStatic external fun nativeDeliverPushToken(pid: Long, token: String)
     @JvmStatic external fun nativeDeliverNotification(pid: Long, json: String)
     @JvmStatic external fun nativeSetLaunchNotification(json: String?)
     @JvmStatic external fun nativeDeliverWebViewMessage(pid: Long, json: String)
     @JvmStatic external fun nativeDeliverWebViewBlocked(pid: Long, url: String)
     @JvmStatic external fun nativeDeliverAlertAction(action: String)
 
-  // ── Mob.Bt — typed delivery externs (Phase 2 B-pure) ─────────────────────
-  @JvmStatic external fun nativeDeliverBtDiscoveryStarted(pid: Long)
-  @JvmStatic external fun nativeDeliverBtDiscoveryFinished(pid: Long)
-  @JvmStatic external fun nativeDeliverBtDiscoveryCancelled(pid: Long)
-  @JvmStatic external fun nativeDeliverBtDiscovered(pid: Long, address: String, name: String, bonded: Boolean)
-  @JvmStatic external fun nativeDeliverBtPaired(pid: Long, address: String, name: String, bonded: Boolean)
-  @JvmStatic external fun nativeDeliverBtPairFailed(pid: Long, address: String, reason: String)
-  @JvmStatic external fun nativeDeliverBtUnpaired(pid: Long, address: String)
-  @JvmStatic external fun nativeDeliverBtError(pid: Long, reason: String)
-  @JvmStatic external fun nativeDeliverBtPairedListBegin(pid: Long)
-  @JvmStatic external fun nativeDeliverBtPairedListEntry(pid: Long, address: String, name: String, bonded: Boolean)
-  @JvmStatic external fun nativeDeliverBtPairedListFinish(pid: Long)
-  @JvmStatic external fun nativeDeliverBtHfpConnecting(pid: Long, session: Int, address: String)
-  @JvmStatic external fun nativeDeliverBtHfpConnected(pid: Long, session: Int, address: String, name: String)
-  @JvmStatic external fun nativeDeliverBtHfpConnectFailed(pid: Long, address: String, reason: String)
-  @JvmStatic external fun nativeDeliverBtHfpDisconnected(pid: Long, session: Int, reason: String)
-  @JvmStatic external fun nativeDeliverBtHfpVendorSubscribed(pid: Long, session: Int)
-  @JvmStatic external fun nativeDeliverBtHfpVendorAt(pid: Long, session: Int, cmd: String, cmdType: Int, args: String, address: String)
-  @JvmStatic external fun nativeDeliverBtHfpScoStarted(pid: Long, session: Int, address: String)
-  @JvmStatic external fun nativeDeliverBtHfpScoStopped(pid: Long, session: Int)
-  @JvmStatic external fun nativeDeliverBtHfpScoAudio(pid: Long, session: Int, pcm: ByteArray)
-  @JvmStatic external fun nativeDeliverBtHfpError(pid: Long, session: Int, reason: String)
-  @JvmStatic external fun nativeDeliverBtSppConnected(pid: Long, session: Int, address: String, name: String)
-  @JvmStatic external fun nativeDeliverBtSppConnectFailed(pid: Long, address: String, reason: String)
-  @JvmStatic external fun nativeDeliverBtSppDisconnected(pid: Long, session: Int, reason: String)
-  @JvmStatic external fun nativeDeliverBtSppData(pid: Long, session: Int, data: ByteArray)
-  @JvmStatic external fun nativeDeliverBtSppWritten(pid: Long, session: Int, size: Int)
-  @JvmStatic external fun nativeDeliverBtSppError(pid: Long, session: Int, reason: String)
-  @JvmStatic external fun nativeDeliverBtHidConnected(pid: Long, session: Int, address: String)
-  @JvmStatic external fun nativeDeliverBtHidConnectFailed(pid: Long, address: String, reason: String)
-  @JvmStatic external fun nativeDeliverBtHidDisconnected(pid: Long, session: Int, reason: String)
-  @JvmStatic external fun nativeDeliverBtHidInput(pid: Long, session: Int, type: Int, code: Int, value: Int)
-  @JvmStatic external fun nativeDeliverBtHidRawReport(pid: Long, session: Int, report: ByteArray)
-
     // ── Pending callback PIDs ──────────────────────────────────────────────
     var pendingPermissionPid:  Long = 0
     var pendingPermissionCap:  String = ""
-    @Volatile var notifyPid:   Long = 0
-    var pendingPhotosPid:      Long = 0
     var pendingFilesPid:       Long = 0
 
     // ── Permissions ────────────────────────────────────────────────────────
@@ -1335,10 +2519,20 @@ object MobBridge {
             // through to the else arm and reported "denied" without ever asking.
             "calendar"      -> arrayOf(android.Manifest.permission.READ_CALENDAR)
             // KATI-END(K-26 calendar-permission)
+            // KATI-BEGIN(K-26 calendar-permission) mob_new=0.4.33
+            // Not in the stock map, so Mob.Permissions.request(:calendar) fell
+            // through to the else arm and reported "denied" without ever asking.
+            // Still Kati's: upstream's else arm now delegates to a plugin, and
+            // Kati activates none.
+            "calendar"      -> arrayOf(android.Manifest.permission.READ_CALENDAR)
+            // KATI-END(K-26 calendar-permission)
             "notifications" -> if (android.os.Build.VERSION.SDK_INT >= 33)
                 arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)
             else { nativeDeliverAtom3(pid, "permission", "notifications", "granted"); return }
-            else -> { nativeDeliverAtom3(pid, "permission", cap, "denied"); return }
+            // Fall through to a plugin-supplied capability (e.g. mob_location
+            // once :location leaves core). Unknown -> denied.
+            else -> io.mob.plugin.MobPluginBootstrap.permissionsFor(cap)
+                ?: run { nativeDeliverAtom3(pid, "permission", cap, "denied"); return }
         }
         if (perms.all { ContextCompat.checkSelfPermission(activity, it) == PackageManager.PERMISSION_GRANTED }) {
             nativeDeliverAtom3(pid, "permission", cap, "granted")
@@ -1350,76 +2544,6 @@ object MobBridge {
     @JvmStatic
     fun onPermissionResult(granted: Boolean) {
         nativeDeliverAtom3(pendingPermissionPid, "permission", pendingPermissionCap, if (granted) "granted" else "denied")
-    }
-
-    // KATI-BEGIN(K-31 drop-camera-scanner-biometric) mob_new=0.4.20
-    // Gone with androidx.camera, com.google.mlkit:barcode-scanning,
-    // androidx.appcompat and androidx.biometric (#75):
-    //
-    //   Biometric      biometric_authenticate + the BiometricPrompt/FragmentActivity imports
-    //   Camera         camera_capture_photo/_video and their result handlers
-    //   Camera preview camera_start_preview/_stop_preview, the camera_preview node
-    //                  and MobCameraPreview
-    //   Frame stream   camera_start/_stop_frame_stream, deliverFrame and the YUV
-    //                  helpers, plus the nativeDeliverCameraFrame extern
-    //   QR scanner     scanner_scan + handleScanResult, and MobScannerActivity.kt
-    //
-    // Every one was checked against nif_load before removal, because a bridge
-    // method Mob resolves by name and cannot find kills the BEAM thread with
-    // NoSuchMethodError before any Elixir runs — that is what K-01 torch-method
-    // exists to prevent. All eight have no cacheRequired/cacheOptional entry in
-    // mob_nif.zig and no reference anywhere in deps/mob outside the CHANGELOG.
-    //
-    // None of it was reachable from Kati either: no screen draws a camera
-    // preview, QR scanning is not in v1 and the CAMERA permission is already
-    // gone from the manifest, and screen 29's lock screen is a drawing that
-    // never calls BiometricPrompt. Re-adding any of them is adding the Gradle
-    // line back and writing the method — the node types and NIF names are
-    // Mob's, not ours, so nothing here is load-bearing for that.
-    // KATI-END(K-31 drop-camera-scanner-biometric)
-
-    // KATI-BEGIN(K-30 drop-location) mob_new=0.4.20
-    // The Location section is gone: `location_get_once` / `location_start` /
-    // `location_stop`, their FusedLocationProviderClient fields and the six
-    // com.google.android.gms.location imports.
-    //
-    // They were unreachable, not merely unused. Mob 0.7.20 extracted location
-    // to the standalone `mob_location` plugin and its CHANGELOG is explicit
-    // that "core no longer provides any location surface and there is
-    // intentionally no compatibility shim" — `nif_load` caches no location
-    // method, nothing in deps/mob names one, and `:mob_nif.location_get_once/0`
-    // raises UndefinedFunctionError. What remained here was template residue
-    // that only kept play-services-location in the APK. (#75)
-    // KATI-END(K-30 drop-location)
-
-    // ── Photos picker ─────────────────────────────────────────────────────
-    @JvmStatic
-    fun photos_pick(pid: Long, maxStr: String) {
-        pendingPhotosPid = pid
-        activityRef?.get()?.let { (it as? MainActivity)?.launchPhotosPicker(maxStr.toIntOrNull() ?: 1) }
-            ?: nativeDeliverAtom2(pid, "photos", "cancelled")
-    }
-
-    @JvmStatic
-    fun handlePhotosResult(uris: List<Uri>) {
-        val pid = pendingPhotosPid
-        if (uris.isEmpty()) { nativeDeliverAtom2(pid, "photos", "cancelled"); return }
-        val activity = activityRef?.get() ?: return
-        Thread {
-            try {
-                val items = uris.mapIndexed { i, uri ->
-                    val ext = if (uri.toString().contains("video")) "mp4" else "jpg"
-                    val tmp = File(activity.cacheDir, "mob_pick_${System.currentTimeMillis()}_$i.$ext")
-                    activity.contentResolver.openInputStream(uri)?.use { it.copyTo(tmp.outputStream()) }
-                    val type = if (ext == "mp4") "video" else "image"
-                    """{"path":"${tmp.absolutePath}","type":"$type","width":0,"height":0}"""
-                }
-                val json = "[${items.joinToString(",")}]"
-                nativeDeliverFileResult(pid, "photos", "picked", json)
-            } catch (e: Exception) {
-                nativeDeliverAtom2(pid, "photos", "cancelled")
-            }
-        }.start()
     }
 
     // ── File picker ───────────────────────────────────────────────────────
@@ -1539,6 +2663,55 @@ object MobBridge {
         } catch (e: Exception) {
             nativeDeliverAtom3(pid, "audio", "error", "stop_failed")
         }
+    }
+
+    // ── Audio input metering (mic level probe, no recording kept) ──────────
+    // Pairs with Mob.Audio.start_input_metering/input_level/stop_input_metering
+    // and the zig NIF (mob). MediaRecorder to a throwaway file with getMaxAmplitude
+    // as the level; the NIF converts amplitude (0..32767, -1 = not metering) to dBFS.
+    private var meterRecorder: MediaRecorder? = null
+    private var meterPath: String? = null
+
+    @JvmStatic
+    fun audio_start_input_metering() {
+        val activity = activityRef?.get() ?: return
+        activity.runOnUiThread {
+            try {
+                val tmp = File(activity.cacheDir, "mob_meter_${System.currentTimeMillis()}.m4a")
+                meterPath = tmp.absolutePath
+                val rec = if (android.os.Build.VERSION.SDK_INT >= 31)
+                    MediaRecorder(activity)
+                else @Suppress("DEPRECATION") MediaRecorder()
+                rec.setAudioSource(MediaRecorder.AudioSource.MIC)
+                rec.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                rec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                rec.setOutputFile(meterPath)
+                rec.prepare()
+                rec.start()
+                meterRecorder = rec
+            } catch (e: Exception) {
+                meterRecorder = null
+            }
+        }
+    }
+
+    @JvmStatic
+    fun audio_input_level(): Int {
+        val rec = meterRecorder ?: return -1
+        return try { rec.maxAmplitude } catch (e: Exception) { -1 }
+    }
+
+    @JvmStatic
+    fun audio_stop_input_metering() {
+        val rec = meterRecorder ?: return
+        meterRecorder = null
+        try {
+            rec.stop()
+            rec.release()
+        } catch (e: Exception) {
+        }
+        meterPath?.let { runCatching { File(it).delete() } }
+        meterPath = null
     }
 
     // ── Audio playback ─────────────────────────────────────────────────────
@@ -1871,29 +3044,6 @@ object MobBridge {
         }
     }
 
-    // ── Background keep-alive ─────────────────────────────────────────────
-    @JvmStatic
-    fun background_keep_alive() {
-        val activity = activityRef?.get() ?: return
-        val intent = Intent(activity, BeamForegroundService::class.java).apply {
-            action = BeamForegroundService.ACTION_START
-        }
-        if (Build.VERSION.SDK_INT >= 26) {
-            activity.startForegroundService(intent)
-        } else {
-            activity.startService(intent)
-        }
-    }
-
-    @JvmStatic
-    fun background_stop() {
-        val activity = activityRef?.get() ?: return
-        val intent = Intent(activity, BeamForegroundService::class.java).apply {
-            action = BeamForegroundService.ACTION_STOP
-        }
-        activity.startService(intent)
-    }
-
     // ── Storage ───────────────────────────────────────────────────────────
     @JvmStatic
     fun storage_dir(type: String): String? {
@@ -2084,28 +3234,64 @@ object MobBridge {
     private var motionPid: Long = 0
     private var accelData = floatArrayOf(0f, 0f, 0f)
     private var gyroData  = floatArrayOf(0f, 0f, 0f)
+    private var magData   = floatArrayOf(0f, 0f, 0f)
+    private var headingDeg = -1.0   // <0 => unavailable; delivered as nil
+    private var hasMag = false
 
+    // `spec` is "<interval>" or "<interval>,magnetometer" — the sensor request is
+    // encoded in the string by nif_motion_start (the JNI signature stays
+    // (JLjava/lang/String;)V). We only register the magnetometer + rotation-vector
+    // when the app asked for it, so a plain accel/gyro consumer never pays the
+    // extra sensor cost nor gets a 5-key map it didn't request.
     @JvmStatic
-    fun motion_start(pid: Long, intervalMsStr: String) {
+    fun motion_start(pid: Long, spec: String) {
         motionPid = pid
-        val intervalMs = intervalMsStr.toLongOrNull() ?: 100L
+        val parts = spec.split(",")
+        val intervalMs = parts.getOrNull(0)?.toLongOrNull() ?: 100L
+        val wantMag = parts.contains("magnetometer")
         val activity = activityRef?.get() ?: return
         val sm = activity.getSystemService(android.content.Context.SENSOR_SERVICE) as SensorManager
         sensorManager = sm
+        // hasMag drives the map shape only when the caller wanted the compass:
+        // requested + hardware => real mag/heading; requested + no hardware =>
+        // NaN mag / heading -1 sentinels (the native layer maps them to nil) so
+        // the mag/heading keys are always present when :magnetometer was asked for.
+        hasMag = wantMag && sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null
+        val rot = FloatArray(9)
+        val orientation = FloatArray(3)
         val listener = object : SensorEventListener {
             var lastSendMs = 0L
             override fun onSensorChanged(event: SensorEvent) {
                 when (event.sensor.type) {
-                    Sensor.TYPE_ACCELEROMETER -> accelData = event.values.copyOf()
-                    Sensor.TYPE_GYROSCOPE     -> gyroData  = event.values.copyOf()
+                    Sensor.TYPE_ACCELEROMETER  -> accelData = event.values.copyOf()
+                    Sensor.TYPE_GYROSCOPE      -> gyroData  = event.values.copyOf()
+                    Sensor.TYPE_MAGNETIC_FIELD -> magData   = event.values.copyOf()
+                    Sensor.TYPE_ROTATION_VECTOR -> {
+                        SensorManager.getRotationMatrixFromVector(rot, event.values)
+                        SensorManager.getOrientation(rot, orientation)
+                        var az = Math.toDegrees(orientation[0].toDouble())
+                        if (az < 0.0) az += 360.0
+                        headingDeg = az
+                    }
                 }
                 val now = System.currentTimeMillis()
                 if (now - lastSendMs >= intervalMs) {
                     lastSendMs = now
-                    nativeDeliverMotion(pid,
-                        accelData[0].toDouble(), accelData[1].toDouble(), accelData[2].toDouble(),
-                        gyroData[0].toDouble(),  gyroData[1].toDouble(),  gyroData[2].toDouble(),
-                        now)
+                    if (wantMag) {
+                        val nan = Double.NaN
+                        nativeDeliverMotionMag(pid,
+                            accelData[0].toDouble(), accelData[1].toDouble(), accelData[2].toDouble(),
+                            gyroData[0].toDouble(),  gyroData[1].toDouble(),  gyroData[2].toDouble(),
+                            if (hasMag) magData[0].toDouble() else nan,
+                            if (hasMag) magData[1].toDouble() else nan,
+                            if (hasMag) magData[2].toDouble() else nan,
+                            if (hasMag) headingDeg else -1.0, now)
+                    } else {
+                        nativeDeliverMotion(pid,
+                            accelData[0].toDouble(), accelData[1].toDouble(), accelData[2].toDouble(),
+                            gyroData[0].toDouble(),  gyroData[1].toDouble(),  gyroData[2].toDouble(),
+                            now)
+                    }
                 }
             }
             override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {}
@@ -2116,6 +3302,14 @@ object MobBridge {
         }
         sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE)?.let {
             sm.registerListener(listener, it, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        if (hasMag) {
+            sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.let {
+                sm.registerListener(listener, it, SensorManager.SENSOR_DELAY_NORMAL)
+            }
+            sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)?.let {
+                sm.registerListener(listener, it, SensorManager.SENSOR_DELAY_NORMAL)
+            }
         }
     }
 
@@ -2128,36 +3322,6 @@ object MobBridge {
     // ── Local notifications ────────────────────────────────────────────────
     const val NOTIF_CHANNEL_ID = "mob_notifications"
     private const val PERM_REQUEST_CODE = 9001
-
-    // KATI-BEGIN(K-01 torch-method) mob_new=0.4.20
-    // mob's nif_load caches every JNI method ID at BEAM startup, and torch is
-    // registered with cacheRequired (mob_nif.zig:3764) — so when the method is
-    // absent, nif_load returns -1, the NIF never loads, and the BEAM thread
-    // dies with:
-    //
-    //   java.lang.NoSuchMethodError: no static method
-    //   "Lcom/example/kati/MobBridge;.torch(Ljava/lang/String;)V"
-    //
-    // The mob_new template does not generate it. Implemented for real rather
-    // than stubbed: CameraManager.setTorchMode needs no CAMERA permission, so
-    // this costs nothing and does not reintroduce the camera surface Kati
-    // deliberately dropped. Kati itself never calls it.
-    @JvmStatic
-    fun torch(state: String) {
-        val ctx = activityRef?.get() ?: return
-        try {
-            val cm = ctx.getSystemService(android.content.Context.CAMERA_SERVICE)
-                as android.hardware.camera2.CameraManager
-            val id = cm.cameraIdList.firstOrNull { cid ->
-                cm.getCameraCharacteristics(cid)
-                    .get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
-            } ?: return
-            cm.setTorchMode(id, state == "on")
-        } catch (e: Exception) {
-            android.util.Log.w("MobBridge", "torch($state) unavailable: ${e.message}")
-        }
-    }
-    // KATI-END(K-01 torch-method)
 
     // KATI-BEGIN(K-01 notify-persist) mob_new=0.4.20
     // Delegates arming to KatiNotificationStore so the alarm is recorded and can
@@ -2232,7 +3396,94 @@ object MobBridge {
             }
             latch.countDown()
         }
-        try { latch.await() } catch (e: InterruptedException) { Thread.currentThread().interrupt() }
+        // Bounded. These run on a BEAM scheduler thread, and Android is
+        // configured with exactly one (`-S 1:1`), so an unbounded wait on a
+        // main thread that never answers is not a stall — it is a VM that
+        // never runs another process again.
+        //
+        // The timeout is returned explicitly rather than falling through to
+        // `result`. countDown/await is what publishes the UI thread's writes;
+        // skip that edge and reading `result` is unsynchronized, so a caller
+        // could see it half-filled. Returning a fresh zeroed array gives the
+        // same value this function already returns when there is no activity,
+        // which is what the caller already handles. Matches the idiom
+        // `screenshot` uses above.
+        val answered =
+            try {
+                latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                false
+            }
+
+        if (!answered) return FloatArray(4)
+        return result
+    }
+
+    /**
+     * Called from nif_screen_info via JNI. Returns
+     * [width, height, density, top, bottom, left, right] in dp.
+     */
+    @JvmStatic
+    fun screenInfo(): FloatArray {
+        val activity = activityRef?.get() ?: return FloatArray(7)
+        val displayMetrics = activity.resources.displayMetrics
+        val density = displayMetrics.density
+        val result = FloatArray(7)
+        val latch = java.util.concurrent.CountDownLatch(1)
+        activity.runOnUiThread {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val metrics = activity.windowManager.currentWindowMetrics
+                val insets = metrics.windowInsets.getInsetsIgnoringVisibility(
+                    WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout()
+                )
+                result[0] = metrics.bounds.width() / density
+                result[1] = metrics.bounds.height() / density
+                result[2] = density
+                result[3] = insets.top / density
+                result[4] = insets.bottom / density
+                result[5] = insets.left / density
+                result[6] = insets.right / density
+            } else {
+                val decor = activity.window.decorView
+                val widthPx = decor.width.takeIf { it > 0 } ?: displayMetrics.widthPixels
+                val heightPx = decor.height.takeIf { it > 0 } ?: displayMetrics.heightPixels
+                result[0] = widthPx / density
+                result[1] = heightPx / density
+                result[2] = density
+
+                val insets = decor.rootWindowInsets
+                if (insets != null) {
+                    val cutout = insets.displayCutout
+                    result[3] = maxOf(insets.systemWindowInsetTop, cutout?.safeInsetTop ?: 0) / density
+                    result[4] = maxOf(insets.systemWindowInsetBottom, cutout?.safeInsetBottom ?: 0) / density
+                    result[5] = maxOf(insets.systemWindowInsetLeft, cutout?.safeInsetLeft ?: 0) / density
+                    result[6] = maxOf(insets.systemWindowInsetRight, cutout?.safeInsetRight ?: 0) / density
+                }
+            }
+            latch.countDown()
+        }
+        // Bounded. These run on a BEAM scheduler thread, and Android is
+        // configured with exactly one (`-S 1:1`), so an unbounded wait on a
+        // main thread that never answers is not a stall — it is a VM that
+        // never runs another process again.
+        //
+        // The timeout is returned explicitly rather than falling through to
+        // `result`. countDown/await is what publishes the UI thread's writes;
+        // skip that edge and reading `result` is unsynchronized, so a caller
+        // could see it half-filled. Returning a fresh zeroed array gives the
+        // same value this function already returns when there is no activity,
+        // which is what the caller already handles. Matches the idiom
+        // `screenshot` uses above.
+        val answered =
+            try {
+                latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                false
+            }
+
+        if (!answered) return FloatArray(7)
         return result
     }
 
@@ -2257,6 +3508,71 @@ object MobBridge {
                 view.performHapticFeedback(constant, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING)
             }
         }
+    }
+
+    /**
+     * Called from nif_torch via JNI — toggles the rear-camera torch on ("on") or
+     * off (any other value). Uses CameraManager.setTorchMode, so no capture
+     * session and no CAMERA permission are needed. No-op on a device with no
+     * flash unit, and swallows the transient failures (torch in use / camera
+     * unavailable) rather than crashing the caller.
+     */
+    @JvmStatic
+    fun torch(state: String) {
+        val activity = activityRef?.get() ?: return
+        val cm = activity.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return
+        try {
+            val camId = cm.cameraIdList.firstOrNull { id ->
+                cm.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+            } ?: return
+            cm.setTorchMode(camId, state == "on")
+        } catch (e: Exception) {
+            Log.w("MobBridge", "torch($state) failed: ${e.message}")
+        }
+    }
+
+    // ── Text-to-speech ──────────────────────────────────────────────────────
+    // TextToSpeech initializes asynchronously; we keep one engine alive and
+    // queue the first utterance until onInit fires.
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
+    private var ttsPending: Pair<String, String>? = null
+
+    /** Called from nif_tts_speak via JNI — speaks text via TextToSpeech.
+     *  optsJson may carry {"rate":Float,"pitch":Float,"voice":"en-US"} (all optional). */
+    @JvmStatic
+    fun ttsSpeak(text: String, optsJson: String) {
+        val activity = activityRef?.get() ?: return
+        activity.runOnUiThread {
+            if (tts == null) {
+                tts = TextToSpeech(activity.applicationContext) { status ->
+                    ttsReady = status == TextToSpeech.SUCCESS
+                    val pending = ttsPending
+                    ttsPending = null
+                    if (ttsReady && pending != null) speakNow(pending.first, pending.second)
+                }
+            }
+            if (ttsReady) speakNow(text, optsJson) else ttsPending = text to optsJson
+        }
+    }
+
+    private fun speakNow(text: String, optsJson: String) {
+        val engine = tts ?: return
+        try {
+            val opts = org.json.JSONObject(optsJson)
+            if (opts.has("rate")) engine.setSpeechRate(opts.getDouble("rate").toFloat())
+            if (opts.has("pitch")) engine.setPitch(opts.getDouble("pitch").toFloat())
+            if (opts.has("voice"))
+                engine.setLanguage(java.util.Locale.forLanguageTag(opts.getString("voice")))
+        } catch (_: Exception) {
+        }
+        engine.speak(text, TextToSpeech.QUEUE_ADD, null, "mob_tts_${System.currentTimeMillis()}")
+    }
+
+    /** Called from nif_tts_stop via JNI — stops any in-progress speech immediately. */
+    @JvmStatic
+    fun ttsStop() {
+        tts?.stop()
     }
 
     /** Called from nif_clipboard_put via JNI — writes text to the system clipboard. */
@@ -2287,7 +3603,27 @@ object MobBridge {
                 latch.countDown()
             }
         }
-        try { latch.await() } catch (e: InterruptedException) { Thread.currentThread().interrupt() }
+        // Bounded. These run on a BEAM scheduler thread, and Android is
+        // configured with exactly one (`-S 1:1`), so an unbounded wait on a
+        // main thread that never answers is not a stall — it is a VM that
+        // never runs another process again.
+        //
+        // The timeout is returned explicitly rather than falling through to
+        // `result`. countDown/await is what publishes the UI thread's writes;
+        // skip that edge and reading `result` is unsynchronized, so a caller
+        // could see it half-filled. Returning a fresh zeroed array gives the
+        // same value this function already returns when there is no activity,
+        // which is what the caller already handles. Matches the idiom
+        // `screenshot` uses above.
+        val answered =
+            try {
+                latch.await(2, java.util.concurrent.TimeUnit.SECONDS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                false
+            }
+
+        if (!answered) return null
         return result[0]
     }
 
@@ -2320,6 +3656,131 @@ object MobBridge {
                     android.util.Log.w("MobBridge", "openUrl failed for $url: ${e.message}")
                 }
             }
+        }
+    }
+
+    /** Called from nif_open_settings via JNI — opens an OS settings screen.
+     *  target is "app" | "notifications" | "exact_alarm". Fire-and-forget;
+     *  failures are silently ignored. */
+    @JvmStatic
+    fun openSettings(target: String) {
+        activityRef?.get()?.let { activity ->
+            activity.runOnUiThread {
+                try {
+                    val pkgUri = Uri.parse("package:" + activity.packageName)
+                    val intent = when (target) {
+                        "notifications" ->
+                            Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(
+                                    android.provider.Settings.EXTRA_APP_PACKAGE,
+                                    activity.packageName,
+                                )
+                        "exact_alarm" ->
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                Intent(
+                                    android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                    pkgUri,
+                                )
+                            } else {
+                                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+                            }
+                        else ->
+                            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, pkgUri)
+                    }
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    activity.startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.w("MobBridge", "openSettings failed for $target: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /** Called from nif_audio_output_status via JNI — reads system audio config
+     *  so Mob.Audio.output_status/0 can answer "is sound configured to play".
+     *  Returns float[4] = [volume0..1, muted(0/1), routeCode, otherAudio(0/1)].
+     *  routeCode: 1=speaker 2=headphones 3=bluetooth 4=receiver 0=none. */
+    @JvmStatic
+    fun audioOutputStatus(): FloatArray {
+        val activity = activityRef?.get() ?: return FloatArray(4)
+        val am = activity.getSystemService(Activity.AUDIO_SERVICE) as? AudioManager
+            ?: return FloatArray(4)
+        val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC).toFloat()
+        val cur = am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()
+        val volume = if (max > 0f) cur / max else 0f
+        val muted =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                am.isStreamMute(AudioManager.STREAM_MUSIC)
+            ) {
+                1f
+            } else {
+                0f
+            }
+        val other = if (am.isMusicActive) 1f else 0f
+        // Best-effort active route: Android routes media to BT/wired when one
+        // is connected, so pick the highest-priority connected output.
+        var route = 1f // builtin speaker
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            var hasBt = false
+            var hasWired = false
+            for (d in am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)) {
+                when (d.type) {
+                    android.media.AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+                    android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+                    -> hasBt = true
+                    android.media.AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+                    android.media.AudioDeviceInfo.TYPE_WIRED_HEADSET,
+                    android.media.AudioDeviceInfo.TYPE_USB_HEADSET,
+                    -> hasWired = true
+                }
+            }
+            route = if (hasBt) 3f else if (hasWired) 2f else 1f
+        }
+        return floatArrayOf(volume, muted, route, other)
+    }
+
+    /** Called from nif_audio_output_level via JNI — reads the actual output
+     *  signal level so Mob.Audio.output_level/1 can tell live audio from
+     *  silence. Meters Mob.Audio's OWN player session (`source` == "mob") with a
+     *  short-lived Visualizer; RECORD_AUDIO is sufficient for an own-session tap.
+     *
+     *  Returns: float[2] = [rms_db, peak_db] on success, else a length-1 error
+     *  code the NIF maps to an atom — 1 unsupported_on_platform, 2
+     *  needs_record_audio, 3 not_playing.
+     *
+     *  "mix" (the global output mix) is unsupported: attaching a Visualizer to
+     *  session 0 is privileged on modern Android (ERROR_NO_INIT for a normal
+     *  app), so global device-audio capture lives in a separate
+     *  MediaProjection-based plugin, not here. */
+    @JvmStatic
+    fun audioOutputLevel(source: String): FloatArray {
+        if (source != "mob") return floatArrayOf(1f) // unsupported_on_platform
+        val sessionId = audioPlayer?.audioSessionId ?: return floatArrayOf(3f) // not_playing
+        return try {
+            val v = android.media.audiofx.Visualizer(sessionId)
+            try {
+                v.measurementMode = android.media.audiofx.Visualizer.MEASUREMENT_MODE_PEAK_RMS
+                v.captureSize = android.media.audiofx.Visualizer.getCaptureSizeRange()[1]
+                v.enabled = true
+                // Let the measurement window collect a few audio frames before
+                // reading; an immediate read returns the silence sentinel.
+                Thread.sleep(60)
+                val m = android.media.audiofx.Visualizer.MeasurementPeakRms()
+                val rc = v.getMeasurementPeakRms(m)
+                v.enabled = false
+                if (rc != android.media.audiofx.Visualizer.SUCCESS) {
+                    floatArrayOf(2f) // needs_record_audio (most common measure failure)
+                } else {
+                    // mPeak / mRms are in millibels (1/100 dB).
+                    floatArrayOf(m.mRms / 100f, m.mPeak / 100f)
+                }
+            } finally {
+                v.release()
+            }
+        } catch (e: Throwable) {
+            // Usually a SecurityException: RECORD_AUDIO not granted at runtime.
+            android.util.Log.w("MobBridge", "audioOutputLevel($source) failed: ${e.message}")
+            floatArrayOf(2f) // needs_record_audio
         }
     }
     // ── Mob.Peripheral.VendorUsb ─────────────────────────────────────────────
@@ -2655,499 +4116,12 @@ object MobBridge {
     @JvmStatic external fun nativeDeliverVendorUsbEvent(
         pid: Long, sessionId: Int, tag: String, reason: String)
 
-  // ── Bluetooth Classic (Mob.Bt suite) — Phase 2 implementation ────────────
-  //
-  // Each operation maps Android BluetoothAdapter / BluetoothHeadset events
-  // into typed envelope deliveries via the dedicated nativeDeliverBt* externs.
-  // No JSON crosses JNI — every payload field is unmarshalled to a primitive
-  // Kotlin type before delivery.
-  //
-  // Limitations stubbed out:
-  //   - bt_hfp_send_vendor_at:  Android exposes no public API for this.
-  //   - bt_hfp_send_audio:      Phase 3 work (SCO audio inject).
-  //   - bt_hid_connect / subscribe_raw: HID host needs InputManager / IME path.
-
-  private val btSessionMap = ConcurrentHashMap<Int, BluetoothDevice>()
-  private val btSessionCounter = AtomicInteger(1)
-  private var btDiscoveryReceiver: BroadcastReceiver? = null
-  private var btDiscoveryPid: Long = 0
-  private var btBondReceiver: BroadcastReceiver? = null
-  private val btBondPids = ConcurrentHashMap<String, Long>()
-  private var btHfpProxy: BluetoothHeadset? = null
-  private val btHfpVendorPids = ConcurrentHashMap<Int, Long>()
-  private var btHfpVendorReceiver: BroadcastReceiver? = null
-  private val btSppSockets = ConcurrentHashMap<Int, BluetoothSocket>()
-  private val btSppReadThreads = ConcurrentHashMap<Int, Thread>()
-
-  private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-
-  private fun btAdapter(): BluetoothAdapter? {
-      val ctx = activityRef?.get() ?: return null
-      val mgr = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-      return mgr?.adapter
-  }
-
-  private fun btSessionFor(device: BluetoothDevice): Int {
-      for ((id, dev) in btSessionMap) {
-          if (dev.address == device.address) return id
-      }
-      val id = btSessionCounter.getAndIncrement()
-      btSessionMap[id] = device
-      return id
-  }
-
-  private fun btSafeName(device: BluetoothDevice): String =
-      try { device.name ?: device.address } catch (_: SecurityException) { device.address }
-
-  // ── Discovery / pair / list paired ──────────────────────────────────────
-
-  @JvmStatic
-  fun bt_list_paired(pid: Long) {
-      val adapter = btAdapter() ?: run { Log.d("MobBT", "no_adapter"); nativeDeliverBtError(pid, "no_adapter"); Log.d("MobBT", "after no_adapter delivery"); return }
-      if (!adapter.isEnabled) { Log.d("MobBT", "adapter_disabled"); nativeDeliverBtError(pid, "adapter_disabled"); Log.d("MobBT", "after adapter_disabled delivery"); return }
-      try {
-          nativeDeliverBtPairedListBegin(pid)
-          for (dev in adapter.bondedDevices ?: emptySet()) {
-              nativeDeliverBtPairedListEntry(pid,
-                  dev.address,
-                  btSafeName(dev),
-                  dev.bondState == BluetoothDevice.BOND_BONDED)
-          }
-          nativeDeliverBtPairedListFinish(pid)
-      } catch (e: SecurityException) {
-          nativeDeliverBtError(pid, "permission_denied")
-      }
-  }
-
-  @JvmStatic
-  fun bt_start_discovery(pid: Long) {
-      Log.d("MobBT", "bt_start_discovery entered, pid=$pid")
-      val adapter = btAdapter() ?: run { nativeDeliverBtError(pid, "no_adapter"); return }
-      val activity = activityRef?.get() ?: run { Log.d("MobBT", "no_activity"); nativeDeliverBtError(pid, "no_activity"); Log.d("MobBT", "after no_activity delivery"); return }
-      if (!adapter.isEnabled) { nativeDeliverBtError(pid, "adapter_disabled"); return }
-
-      Log.d("MobBT", "step1: about to unregister old receiver if exists")
-      if (btDiscoveryReceiver != null) {
-          try { activity.unregisterReceiver(btDiscoveryReceiver) } catch (_: Exception) {}
-          btDiscoveryReceiver = null
-      }
-      Log.d("MobBT", "step2: setting btDiscoveryPid")
-
-      btDiscoveryPid = pid
-      Log.d("MobBT", "step3: about to create receiver")
-      val receiver = object : BroadcastReceiver() {
-          override fun onReceive(ctx: Context, intent: Intent) {
-              val deliveryPid = btDiscoveryPid
-              if (deliveryPid == 0L) return
-              when (intent.action) {
-                  BluetoothDevice.ACTION_FOUND -> {
-                      val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33)
-                          intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                      else
-                          @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                      if (device != null) {
-                          nativeDeliverBtDiscovered(deliveryPid,
-                              device.address,
-                              btSafeName(device),
-                              device.bondState == BluetoothDevice.BOND_BONDED)
-                      }
-                  }
-                  BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                      nativeDeliverBtDiscoveryFinished(deliveryPid)
-                  }
-              }
-          }
-      }
-      Log.d("MobBT", "step4: assigning receiver")
-      btDiscoveryReceiver = receiver
-      Log.d("MobBT", "step5: building filter")
-      val filter = IntentFilter().apply {
-          addAction(BluetoothDevice.ACTION_FOUND)
-          addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
-      }
-      Log.d("MobBT", "step6: registering receiver, SDK=${Build.VERSION.SDK_INT}")
-      try {
-          if (Build.VERSION.SDK_INT >= 33) {
-              activity.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
-          } else {
-              @Suppress("UnspecifiedRegisterReceiverFlag")
-              activity.registerReceiver(receiver, filter)
-          }
-          Log.d("MobBT", "step7: receiver registered OK")
-      } catch (e: Exception) {
-          Log.e("MobBT", "registerReceiver threw: ${e.javaClass.simpleName}: ${e.message}", e)
-          nativeDeliverBtError(pid, "register_failed")
-          return
-      }
-
-      try {
-          Log.d("MobBT", "step8: checking isDiscovering")
-          if (adapter.isDiscovering) {
-              Log.d("MobBT", "step9: already discovering, cancelling")
-              adapter.cancelDiscovery()
-          }
-          Log.d("MobBT", "step10: calling adapter.startDiscovery()")
-          val result = adapter.startDiscovery()
-          Log.d("MobBT", "step11: startDiscovery returned $result")
-          if (!result) {
-              Log.d("MobBT", "step12: start_failed")
-              nativeDeliverBtError(pid, "start_failed")
-              return
-          }
-          Log.d("MobBT", "step13: calling nativeDeliverBtDiscoveryStarted, pid=$pid")
-          nativeDeliverBtDiscoveryStarted(pid)
-          Log.d("MobBT", "step14: nativeDeliverBtDiscoveryStarted returned")
-      } catch (e: SecurityException) {
-          Log.e("MobBT", "SecurityException: ${e.message}", e)
-          nativeDeliverBtError(pid, "permission_denied")
-      } catch (e: Exception) {
-          Log.e("MobBT", "Unexpected exception: ${e.javaClass.simpleName}: ${e.message}", e)
-          nativeDeliverBtError(pid, "exception")
-      }
-  }
-
-  @JvmStatic
-  fun bt_cancel_discovery(pid: Long) {
-      val adapter = btAdapter() ?: run { nativeDeliverBtError(pid, "no_adapter"); return }
-      val activity = activityRef?.get()
-      try { adapter.cancelDiscovery() } catch (_: SecurityException) {}
-      btDiscoveryReceiver?.let {
-          try { activity?.unregisterReceiver(it) } catch (_: Exception) {}
-          btDiscoveryReceiver = null
-      }
-      nativeDeliverBtDiscoveryCancelled(pid)
-  }
-
-  @JvmStatic
-  fun bt_pair(pid: Long, json: String) {
-      val adapter = btAdapter() ?: run { nativeDeliverBtError(pid, "no_adapter"); return }
-      val activity = activityRef?.get() ?: run { nativeDeliverBtError(pid, "no_activity"); return }
-      val mac = try { JSONObject(json).optString("address").takeIf { it.isNotEmpty() } }
-                catch (_: Exception) { null }
-          ?: run { nativeDeliverBtError(pid, "no_address"); return }
-      val device = try { adapter.getRemoteDevice(mac) }
-                   catch (_: Exception) { nativeDeliverBtError(pid, "invalid_address"); return }
-
-      if (device.bondState == BluetoothDevice.BOND_BONDED) {
-          nativeDeliverBtPaired(pid, device.address, btSafeName(device), true)
-          return
-      }
-
-      if (btBondReceiver == null) {
-          btBondReceiver = object : BroadcastReceiver() {
-              override fun onReceive(ctx: Context, intent: Intent) {
-                  if (intent.action != BluetoothDevice.ACTION_BOND_STATE_CHANGED) return
-                  val dev: BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33)
-                      intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                  else
-                      @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                  if (dev == null) return
-                  val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR)
-                  val waitingPid = btBondPids[dev.address] ?: return
-                  when (state) {
-                      BluetoothDevice.BOND_BONDED -> {
-                          nativeDeliverBtPaired(waitingPid, dev.address, btSafeName(dev), true)
-                          btBondPids.remove(dev.address)
-                      }
-                      BluetoothDevice.BOND_NONE -> {
-                          nativeDeliverBtPairFailed(waitingPid, dev.address, "bond_none")
-                          btBondPids.remove(dev.address)
-                      }
-                  }
-              }
-          }
-          val filter = IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-          if (Build.VERSION.SDK_INT >= 33) {
-              activity.registerReceiver(btBondReceiver, filter, Context.RECEIVER_EXPORTED)
-          } else {
-              @Suppress("UnspecifiedRegisterReceiverFlag")
-              activity.registerReceiver(btBondReceiver, filter)
-          }
-      }
-
-      btBondPids[device.address] = pid
-      try {
-          if (!device.createBond()) {
-              btBondPids.remove(device.address)
-              nativeDeliverBtPairFailed(pid, device.address, "create_bond_failed")
-          }
-      } catch (e: SecurityException) {
-          btBondPids.remove(device.address)
-          nativeDeliverBtPairFailed(pid, device.address, "permission_denied")
-      }
-  }
-
-  @JvmStatic
-  fun bt_unpair(pid: Long, json: String) {
-      val adapter = btAdapter() ?: run { nativeDeliverBtError(pid, "no_adapter"); return }
-      val mac = try { JSONObject(json).optString("address").takeIf { it.isNotEmpty() } }
-                catch (_: Exception) { null }
-          ?: run { nativeDeliverBtError(pid, "no_address"); return }
-      val device = try { adapter.getRemoteDevice(mac) }
-                   catch (_: Exception) { nativeDeliverBtError(pid, "invalid_address"); return }
-      try {
-          val method = device.javaClass.getMethod("removeBond")
-          val ok = method.invoke(device) as? Boolean ?: false
-          if (ok) nativeDeliverBtUnpaired(pid, device.address)
-          else    nativeDeliverBtError(pid, "remove_bond_failed")
-      } catch (e: Exception) {
-          nativeDeliverBtError(pid, "remove_bond_unavailable")
-      }
-  }
-
-  // ── Generic disconnect by session ───────────────────────────────────────
-
-  @JvmStatic
-  fun bt_disconnect(pid: Long, session: Int) {
-      val device = btSessionMap[session]
-      if (device == null) {
-          nativeDeliverBtError(pid, "no_session")
-          return
-      }
-      btSppSockets.remove(session)?.let {
-          try { it.close() } catch (_: Exception) {}
-      }
-      btSppReadThreads.remove(session)?.interrupt()
-      btHfpVendorPids.remove(session)
-      btSessionMap.remove(session)
-      nativeDeliverBtSppDisconnected(pid, session, "local")
-  }
-
-  // ── HFP profile ────────────────────────────────────────────────────────
-
-  private fun acquireHfpProxy(activity: Activity, onReady: (BluetoothHeadset?) -> Unit) {
-      if (btHfpProxy != null) { onReady(btHfpProxy); return }
-      val adapter = btAdapter() ?: run { onReady(null); return }
-      val listener = object : BluetoothProfile.ServiceListener {
-          override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
-              if (profile == BluetoothProfile.HEADSET) {
-                  btHfpProxy = proxy as? BluetoothHeadset
-                  onReady(btHfpProxy)
-              }
-          }
-          override fun onServiceDisconnected(profile: Int) {
-              if (profile == BluetoothProfile.HEADSET) btHfpProxy = null
-          }
-      }
-      adapter.getProfileProxy(activity, listener, BluetoothProfile.HEADSET)
-  }
-
-  @JvmStatic
-  fun bt_hfp_connect(pid: Long, json: String) {
-      val activity = activityRef?.get() ?: run { nativeDeliverBtError(pid, "no_activity"); return }
-      val adapter = btAdapter() ?: run { nativeDeliverBtError(pid, "no_adapter"); return }
-      val mac = try { JSONObject(json).optString("address").takeIf { it.isNotEmpty() } }
-                catch (_: Exception) { null }
-          ?: run { nativeDeliverBtError(pid, "no_address"); return }
-      val device = try { adapter.getRemoteDevice(mac) }
-                   catch (_: Exception) { nativeDeliverBtError(pid, "invalid_address"); return }
-
-      acquireHfpProxy(activity) { proxy ->
-          if (proxy == null) {
-              nativeDeliverBtHfpConnectFailed(pid, mac, "hfp_proxy_unavailable")
-              return@acquireHfpProxy
-          }
-          val session = btSessionFor(device)
-          val connected = proxy.connectedDevices.any { it.address == device.address }
-          if (connected) {
-              nativeDeliverBtHfpConnected(pid, session, device.address, btSafeName(device))
-          } else {
-              try {
-                  val method = proxy.javaClass.getMethod("connect", BluetoothDevice::class.java)
-                  val ok = method.invoke(proxy, device) as? Boolean ?: false
-                  if (ok) {
-                      nativeDeliverBtHfpConnecting(pid, session, device.address)
-                  } else {
-                      nativeDeliverBtHfpConnectFailed(pid, device.address, "hfp_connect_failed")
-                  }
-              } catch (e: Exception) {
-                  nativeDeliverBtHfpConnectFailed(pid, device.address, "hfp_connect_unavailable")
-              }
-          }
-      }
-  }
-
-  @JvmStatic
-  fun bt_hfp_subscribe_vendor_at(pid: Long, session: Int, companyIdsJson: String) {
-      val activity = activityRef?.get() ?: run { nativeDeliverBtHfpError(pid, session, "no_activity"); return }
-      val device = btSessionMap[session] ?: run { nativeDeliverBtHfpError(pid, session, "no_session"); return }
-      btHfpVendorPids[session] = pid
-
-      // Parse company_ids from JSON envelope {"company_ids":[int, int, ...]}.
-      // Empty list is valid: the receiver registers, but no events route through.
-      val companyIds: List<Int> = try {
-          val obj = org.json.JSONObject(companyIdsJson)
-          val arr = obj.getJSONArray("company_ids")
-          (0 until arr.length()).map { arr.getInt(it) }
-      } catch (e: Exception) {
-          emptyList()
-      }
-
-      if (btHfpVendorReceiver == null) {
-          btHfpVendorReceiver = object : BroadcastReceiver() {
-              override fun onReceive(ctx: Context, intent: Intent) {
-                  if (intent.action != BluetoothHeadset.ACTION_VENDOR_SPECIFIC_HEADSET_EVENT) return
-                  val dev: BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33)
-                      intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-                  else
-                      @Suppress("DEPRECATION") intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                  val cmd = intent.getStringExtra(
-                      BluetoothHeadset.EXTRA_VENDOR_SPECIFIC_HEADSET_EVENT_CMD)
-                  val cmdType = intent.getIntExtra(
-                      BluetoothHeadset.EXTRA_VENDOR_SPECIFIC_HEADSET_EVENT_CMD_TYPE, -1)
-                  val args = intent.getSerializableExtra(
-                      "android.bluetooth.headset.extra.VENDOR_SPECIFIC_HEADSET_EVENT_ARGS")
-                  if (dev == null || cmd == null) return
-                  val devSession = btSessionMap.entries.firstOrNull { it.value.address == dev.address }?.key
-                      ?: btSessionFor(dev)
-                  val deliveryPid = btHfpVendorPids[devSession] ?: return
-                  nativeDeliverBtHfpVendorAt(deliveryPid, devSession,
-                      cmd, cmdType,
-                      args?.toString() ?: "",
-                      dev.address)
-              }
-          }
-          val filter = IntentFilter(BluetoothHeadset.ACTION_VENDOR_SPECIFIC_HEADSET_EVENT).apply {
-              // Register only the company IDs the caller asked for.
-              // Android's ACTION_VENDOR_SPECIFIC_HEADSET_EVENT is only delivered
-              // for explicitly-registered IDs — events from other vendors get dropped.
-              for (companyId in companyIds) {
-                  addCategory("android.bluetooth.headset.intent.category.companyid.$companyId")
-              }
-          }
-          if (Build.VERSION.SDK_INT >= 33) {
-              activity.registerReceiver(btHfpVendorReceiver, filter, Context.RECEIVER_EXPORTED)
-          } else {
-              @Suppress("UnspecifiedRegisterReceiverFlag")
-              activity.registerReceiver(btHfpVendorReceiver, filter)
-          }
-      }
-      nativeDeliverBtHfpVendorSubscribed(pid, session)
-  }
-
-  @JvmStatic
-  fun bt_hfp_send_vendor_at(pid: Long, session: Int, cmd: String, args: String) {
-      nativeDeliverBtHfpError(pid, session, "not_supported_by_android_api")
-  }
-
-  @JvmStatic
-  fun bt_hfp_start_sco(pid: Long, session: Int) {
-      val activity = activityRef?.get() ?: run { nativeDeliverBtHfpError(pid, session, "no_activity"); return }
-      val device = btSessionMap[session] ?: run { nativeDeliverBtHfpError(pid, session, "no_session"); return }
-      val proxy = btHfpProxy ?: run { nativeDeliverBtHfpError(pid, session, "hfp_not_connected"); return }
-      try {
-          val method = proxy.javaClass.getMethod("startScoUsingVirtualVoiceCall", BluetoothDevice::class.java)
-          val ok = method.invoke(proxy, device) as? Boolean ?: false
-          if (ok) {
-              val am = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-              am.mode = AudioManager.MODE_IN_COMMUNICATION
-              nativeDeliverBtHfpScoStarted(pid, session, device.address)
-          } else {
-              nativeDeliverBtHfpError(pid, session, "sco_start_failed")
-          }
-      } catch (e: Exception) {
-          nativeDeliverBtHfpError(pid, session, "sco_unavailable")
-      }
-  }
-
-  @JvmStatic
-  fun bt_hfp_stop_sco(pid: Long, session: Int) {
-      val activity = activityRef?.get() ?: run { nativeDeliverBtHfpError(pid, session, "no_activity"); return }
-      val device = btSessionMap[session] ?: run { nativeDeliverBtHfpError(pid, session, "no_session"); return }
-      val proxy = btHfpProxy ?: run { nativeDeliverBtHfpError(pid, session, "hfp_not_connected"); return }
-      try {
-          val method = proxy.javaClass.getMethod("stopScoUsingVirtualVoiceCall", BluetoothDevice::class.java)
-          method.invoke(proxy, device)
-          val am = activity.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-          am.mode = AudioManager.MODE_NORMAL
-          nativeDeliverBtHfpScoStopped(pid, session)
-      } catch (e: Exception) {
-          nativeDeliverBtHfpError(pid, session, "sco_stop_failed")
-      }
-  }
-
-  @JvmStatic
-  fun bt_hfp_send_audio(pid: Long, session: Int, bytes: ByteArray) {
-      nativeDeliverBtHfpError(pid, session, "unsupported")
-  }
-
-  // ── SPP profile ────────────────────────────────────────────────────────
-
-  @JvmStatic
-  fun bt_spp_connect(pid: Long, json: String) {
-      val adapter = btAdapter() ?: run { nativeDeliverBtError(pid, "no_adapter"); return }
-      val opts = try { JSONObject(json) } catch (_: Exception) { JSONObject() }
-      val mac = opts.optString("address").takeIf { it.isNotEmpty() }
-          ?: run { nativeDeliverBtError(pid, "no_address"); return }
-      val device = try { adapter.getRemoteDevice(mac) }
-                   catch (_: Exception) { nativeDeliverBtError(pid, "invalid_address"); return }
-      val uuidStr = opts.optString("uuid").takeIf { it.isNotEmpty() }
-      val uuid = try { if (uuidStr != null) UUID.fromString(uuidStr) else SPP_UUID }
-                 catch (_: Exception) { SPP_UUID }
-      val secure = opts.optBoolean("secure", true)
-
-      val session = btSessionFor(device)
-      Thread {
-          try {
-              try { adapter.cancelDiscovery() } catch (_: SecurityException) {}
-              val socket = if (secure) device.createRfcommSocketToServiceRecord(uuid)
-                           else device.createInsecureRfcommSocketToServiceRecord(uuid)
-              socket.connect()
-              btSppSockets[session] = socket
-              nativeDeliverBtSppConnected(pid, session, device.address, btSafeName(device))
-
-              val readThread = Thread {
-                  val buf = ByteArray(1024)
-                  try {
-                      val input = socket.inputStream
-                      while (!Thread.currentThread().isInterrupted) {
-                          val n = input.read(buf)
-                          if (n <= 0) break
-                          val slice = buf.copyOfRange(0, n)
-                          nativeDeliverBtSppData(pid, session, slice)
-                      }
-                  } catch (_: Exception) {}
-                  nativeDeliverBtSppDisconnected(pid, session, "remote")
-                  btSppSockets.remove(session)
-                  btSppReadThreads.remove(session)
-              }
-              btSppReadThreads[session] = readThread
-              readThread.start()
-          } catch (e: SecurityException) {
-              nativeDeliverBtSppConnectFailed(pid, mac, "permission_denied")
-          } catch (e: Exception) {
-              nativeDeliverBtSppConnectFailed(pid, mac, "spp_connect_failed")
-          }
-      }.start()
-  }
-
-  @JvmStatic
-  fun bt_spp_write(pid: Long, session: Int, bytes: ByteArray) {
-      val socket = btSppSockets[session] ?: run { nativeDeliverBtSppError(pid, session, "no_session"); return }
-      Thread {
-          try {
-              socket.outputStream.write(bytes)
-              socket.outputStream.flush()
-              nativeDeliverBtSppWritten(pid, session, bytes.size)
-          } catch (e: Exception) {
-              nativeDeliverBtSppError(pid, session, "spp_write_failed")
-          }
-      }.start()
-  }
-
-  // ── HID profile (stubs) ────────────────────────────────────────────────
-
-  @JvmStatic
-  fun bt_hid_connect(pid: Long, json: String) {
-      val mac = try { JSONObject(json).optString("address") } catch (_: Exception) { "" }
-      nativeDeliverBtHidConnectFailed(pid, mac, "requires_input_method")
-  }
-
-  @JvmStatic
-  fun bt_hid_subscribe_raw(pid: Long, session: Int) {
-      nativeDeliverBtHidDisconnected(pid, session, "requires_input_method")
-  }
-
+    // Native callback for MobNativeViewRegistry's tier-2 components — see
+    // beam_jni.c's Java_..._MobBridge_nativeDeliverComponentEvent. JNI
+    // resolves a native method by its DECLARING class, so this must stay on
+    // MobBridge (where every other nativeDeliver* callback lives) even
+    // though only MobNativeViewRegistry calls it.
+    @JvmStatic external fun nativeDeliverComponentEvent(handle: Int, event: String, payloadJson: String)
 
 }
 
@@ -3179,16 +4153,19 @@ object MobNativeViewRegistry {
         val name = node.props["module"] as? String ?: return
         val factory = factories[name] ?: return
         val handle = (node.props["component_handle"] as? Number)?.toInt() ?: return
+        // -1 means the BEAM couldn't get a native component slot (pool
+        // exhausted — MOB-100). Render nothing rather than a view whose
+        // events would go nowhere; matches iOS's MobNativeViewRegistry
+        // early-return for the same case.
+        if (handle < 0) return
         val send: MobNativeSend = { event, payload ->
             try {
                 val json = org.json.JSONObject(payload).toString()
-                nativeDeliverComponentEvent(handle, event, json)
+                MobBridge.nativeDeliverComponentEvent(handle, event, json)
             } catch (_: Exception) {}
         }
         factory(node.props, send)
     }
-
-    external fun nativeDeliverComponentEvent(handle: Int, event: String, payloadJson: String)
 }
 
 /** Renders a MobNode tree produced by Mob.Renderer. */
@@ -3239,122 +4216,585 @@ private fun RenderNodeOffset(node: MobNode, modifier: Modifier) {
     }
 }
 
-// KATI-BEGIN(K-47 long-press-optin) mob_new=0.4.20
-@OptIn(ExperimentalFoundationApi::class)
-// KATI-END(K-47 long-press-optin)
+/**
+ * Forwards a sibling `*_config` prop to the native per-handle throttle (MOB-134).
+ *
+ * `Mob.Renderer` emits `scroll_config` / `drag_config` next to the handler it
+ * configures, built by `Mob.Event.Throttle`. Nothing on Android read them, so
+ * an app asking for `throttle: 100, delta: 8` silently ran at the compiled-in
+ * default — the same "declared and silently ignored" shape as MOB-138.
+ *
+ * Applied from a SideEffect, i.e. after every successful composition, which is
+ * the cadence this needs: `clear_taps` zeroes the per-handle throttle state on
+ * every render, and each render re-registers the handler under a new handle, so
+ * the config has to be re-sent for the new handle each frame.
+ *
+ * Resolving against the ACTIVE table is correct here, unlike iOS. Android's
+ * table swap happens inside `nif_set_root` before this composition runs, so by
+ * the time Kotlin calls, the handles in this tree are already the active ones.
+ * iOS applies config from inside the deserialiser, before its own swap, which
+ * is why it needs a build-table lookup instead.
+ */
+@Composable
+private fun ApplyThrottleConfig(props: Map<String, Any?>, handle: Int?, configKey: String) {
+    if (handle == null) return
+    // Nested props stay org.json objects — see MobJson's compatibility contract.
+    val cfg = props[configKey] as? JSONObject ?: return
+
+    SideEffect {
+        // Read straight off the JSONObject. jsonObjectToMap would allocate a
+        // LinkedHashMap plus five boxed values on the UI thread on every
+        // composition — i.e. every frame of an active scroll — and routing
+        // delta_threshold through Float on the way would turn 0.1 into
+        // 0.10000000149011612 for no reason.
+        MobBridge.nativeSetThrottleConfig(
+            handle,
+            cfg.optInt("throttle_ms", 0),
+            cfg.optInt("debounce_ms", 0),
+            cfg.optDouble("delta_threshold", 0.0),
+            // Absent means enabled: Mob.Event.Throttle defaults both to true.
+            // Neither field has a native reader yet — mob_set_throttle_config
+            // stores them and nothing consults them — so this mapping is for
+            // whoever implements leading/trailing, not something in force today.
+            if (cfg.optBoolean("leading", true)) 1 else 0,
+            if (cfg.optBoolean("trailing", true)) 1 else 0,
+        )
+    }
+}
+
+/** Long-press / double-tap handles for one node, re-read each composition. */
+private data class MobPressHandles(val long: Int?, val double: Int?)
+
+/** Swipe handles for one node, re-read each composition. See MobScrollHandlers. */
+private data class MobSwipeHandlers(
+    val any: Int?,
+    val left: Int?,
+    val right: Int?,
+    val up: Int?,
+    val down: Int?,
+)
+
+/**
+ * The scroll handlers for one node, re-read on every composition.
+ *
+ * Exists so MobScrollEvents can hold the *latest* handles without keying its
+ * LaunchedEffect on them: handles are re-registered every render and would
+ * otherwise restart the effect and wipe its accumulated scroll state.
+ */
+private data class MobScrollHandlers(
+    val scroll: Int?,
+    val began: Int?,
+    val ended: Int?,
+    val settled: Int?,
+    val top: Int?,
+    val past: Int?,
+    val threshold: Float,
+)
+
+/**
+ * Emits the scroll event family for a `:scroll` node (MOB-138).
+ *
+ * Mirrors iOS's MobScrollObserver: first sample opens the scroll with
+ * `began`, subsequent samples report deltas and velocity, and a debounced
+ * "no motion for 150ms" timer closes it with ended + settled. Throttling and
+ * delta-thresholding are applied native-side in mob_send_scroll, so every
+ * observed sample is forwarded and the zig layer decides what crosses to the
+ * BEAM.
+ *
+ * Returns immediately when the node declares no scroll handler, so the common
+ * scroll node pays nothing beyond six null prop reads.
+ */
+@Composable
+private fun MobScrollEvents(node: MobNode, scrollState: ScrollState, horizontal: Boolean) {
+    val scrollH   = intProp(node.props, "on_scroll")
+    val beganH    = intProp(node.props, "on_scroll_began")
+    val endedH    = intProp(node.props, "on_scroll_ended")
+    val settledH  = intProp(node.props, "on_scroll_settled")
+    val topH      = intProp(node.props, "on_top_reached")
+    val pastH     = intProp(node.props, "on_scrolled_past")
+    val threshold = floatProp(node.props, "scrolled_past_threshold") ?: 0f
+
+    if (scrollH == null && beganH == null && endedH == null &&
+        settledH == null && topH == null && pastH == null) {
+        return
+    }
+
+    // scroll_config rides alongside on_scroll; only the throttled sender reads it.
+    ApplyThrottleConfig(node.props, scrollH, "scroll_config")
+
+    // The handles must NOT key the effect. Every render clears and re-registers
+    // the tap table, so each of these ints is different on every frame — and a
+    // scroll handler re-renders the screen, which re-registers, which changes
+    // the keys. Keying on them restarts the effect mid-scroll and resets
+    // `hasBegun`/`last`/`wasPast`, so began fires on every sample, scrolled_past
+    // stops latching, and every delta is computed against a just-reset baseline
+    // and comes out 0. Key on the ScrollState, which is remembered and stable,
+    // and read the handles through a snapshot that updates without restarting.
+    val h by rememberUpdatedState(
+        MobScrollHandlers(scrollH, beganH, endedH, settledH, topH, pastH, threshold)
+    )
+
+    // ScrollState.value is physical pixels; iOS reports contentOffset in points
+    // and every threshold an app writes (scrolled_past_threshold, delta) is
+    // authored against that. Forwarding pixels would make the same number mean
+    // a third of the distance on a 3x device.
+    val density = LocalDensity.current
+
+    LaunchedEffect(scrollState, horizontal, density) {
+        var last = with(density) { scrollState.value.toDp().value }
+        var lastTs = 0L
+        var hasBegun = false
+        var wasPast = false
+        var endJob: Job? = null
+
+        // drop(1): snapshotFlow emits its CURRENT value the moment it is
+        // collected, before anything has moved. Without this, mounting any
+        // screen with a scroll handler fires began + a 150ms-later ended and
+        // settled for a scroll the user never made — chrome that hides itself
+        // on arrival, analytics for phantom scrolls. iOS's
+        // onScrollGeometryChange has no such initial callback.
+        snapshotFlow { scrollState.value }.drop(1).collect { raw ->
+            val pos = with(density) { raw.toDp().value }
+            val now = System.nanoTime()
+            val dt = if (lastTs > 0L) (now - lastTs) / 1_000_000_000.0 else 0.0
+            val delta = pos - last
+            val velocity = if (dt > 0.0) delta / dt else 0.0
+
+            // A ScrollState is one-dimensional; which axis it means depends on
+            // whether the node rendered a horizontalScroll or a verticalScroll.
+            // Reporting into the wrong axis would leave the other permanently 0.
+            val x  = if (horizontal) pos.toDouble() else 0.0
+            val y  = if (horizontal) 0.0 else pos.toDouble()
+            val dx = if (horizontal) delta.toDouble() else 0.0
+            val dy = if (horizontal) 0.0 else delta.toDouble()
+            val vx = if (horizontal) velocity else 0.0
+            val vy = if (horizontal) 0.0 else velocity
+
+            if (!hasBegun) {
+                hasBegun = true
+                h.began?.let { MobBridge.nativeSendScrollBegan(it) }
+                h.scroll?.let { MobBridge.nativeSendScroll(it, x, y, 0.0, 0.0, 0.0, 0.0, "began") }
+            } else {
+                h.scroll?.let { MobBridge.nativeSendScroll(it, x, y, dx, dy, vx, vy, "dragging") }
+            }
+
+            // Fires on ENTERING the top, not while sitting there — otherwise a
+            // screen already at 0 would emit on every unrelated recomposition.
+            if (pos <= 0.001f && last > 0.001f) {
+                h.top?.let { MobBridge.nativeSendTopReached(it) }
+            }
+
+            // Latched: only the crossing fires, so dithering around the
+            // boundary does not spam the BEAM.
+            if (h.threshold > 0f) {
+                val nowPast = pos > h.threshold
+                if (nowPast && !wasPast) h.past?.let { MobBridge.nativeSendScrolledPast(it) }
+                wasPast = nowPast
+            }
+
+            last = pos
+            lastTs = now
+
+            // Debounced close. Each sample cancels the pending timer, so ended
+            // fires once, 150ms after motion actually stops.
+            endJob?.cancel()
+            endJob = launch {
+                delay(150)
+                if (hasBegun) {
+                    hasBegun = false
+                    h.ended?.let { MobBridge.nativeSendScrollEnded(it) }
+                    h.settled?.let { MobBridge.nativeSendScrollSettled(it) }
+                    h.scroll?.let {
+                        MobBridge.nativeSendScroll(it, x, y, 0.0, 0.0, 0.0, 0.0, "ended")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Stable identities for a child list (MOB-127).
+ *
+ * Positional identity — a bare `forEach`, or `items()` without a `key` — means
+ * an insert or delete makes every later child a different node as far as
+ * Compose is concerned, so it is recomposed and its `remember`ed state
+ * discarded rather than moved. On a LazyColumn it also loses scroll position
+ * anchoring across an insert.
+ *
+ * Author `:id` when the node has one, position otherwise. The two are prefixed
+ * differently so an author id of "3" cannot collide with position 3, and a
+ * repeated id gets its position folded in — Compose requires keys to be unique
+ * within a list and throws on a duplicate, which would be a worse bug than the
+ * one being fixed.
+ *
+ * Returns plain Strings because LazyColumn keys must survive saved-instance
+ * state; MobNodeIdentityKey is a data class and is not Saveable.
+ */
+internal fun mobChildKeys(children: List<MobNode>): List<String> {
+    val seen = HashSet<String>(children.size * 2)
+
+    return children.mapIndexed { index, child ->
+        // A non-empty String, matching iOS exactly. Mob.Renderer coerces atom
+        // and number ids to strings before they leave Elixir, so the platforms
+        // agree by construction; keying on anything else here would resurrect
+        // the divergence — MobNodeIdentity.keyFor canonicalises any JSON value,
+        // while iOS reads :id as an NSString and ignores the rest.
+        //
+        // Deliberately not MobNodeIdentity.keyFor: that is the sheet-slot
+        // identity and has different (broader) semantics. It also raises on an
+        // unknown value type, which is fine for the one sheet per screen it was
+        // written for and not fine on a path that now runs for every child of
+        // every column, row and lazy list.
+        val authored = (child.props["id"] as? String)?.takeIf { it.isNotEmpty() }
+        var k = if (authored != null) "i\u0001" + authored else "p\u0001" + index
+        if (!seen.add(k)) k = "d\u0001" + index + "\u0001" + k
+        k
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
     // Apply on_tap as a clickable modifier for any node type except button —
     // button installs its own onClick via the Button composable. Mirrors iOS,
     // where most node types pick up onTapGesture via .ifLet(node.onTap).
     val tapHandle = intProp(node.props, "on_tap")
-    // KATI-BEGIN(K-18 anchored-node) mob_new=0.4.20
-    // `anchored` must be excluded here as well as `button`.
+    val longPressHandle = intProp(node.props, "on_long_press")
+    val doubleTapHandle = intProp(node.props, "on_double_tap")
+    val isDisabled = boolProp(node.props, "disabled") ?: false
+    val accessibilityRole = node.props["accessibility_role"] as? String
+    val isButton = node.type == "box" && accessibilityRole == "button"
+    // The node types iOS actually attaches gestures to. MobRootView applies
+    // .mobGestures(node) on column, row, wrap, label, icon and box.
+    // Everything else, button included, never gets a long press there.
     //
-    // WHY: on an anchored node `on_tap` is not "tap me" — it is the DISMISS
-    // handler, the report of a tap that landed OUTSIDE the panel's window.
-    // Kati.Components.Anchored deliberately ships `on_dismiss` down the wire as
-    // `on_tap` because that is the only tap-shaped prop Mob.Renderer registers,
-    // and MobAnchored reads it itself. Left in the generic branch, a clickable
-    // would wrap the whole node and swallow taps meant for the trigger inside
-    // it — the popover would open and then be impossible to operate.
-    // was: if (tapHandle != null && node.type != "button")
-    // KATI-BEGIN(K-47 long-press) mob_new=0.4.20
-    // `on_long_press` was serialised and read by nobody.
+    // Gating on `!= "button"` instead would hand combinedClickable to
+    // text_field, toggle, slider, image and the rest, which iOS never does. On
+    // a text_field that is actively harmful: long press is the platform's own
+    // text-selection gesture, and installing a competing detector over it
+    // trades a working selection for a handler iOS would not have fired.
+    val gesturableType = node.type in setOf("column", "row", "wrap", "text", "icon", "box")
+
+    // Read through a snapshot for the same reason the swipe and scroll paths do:
+    // handles are re-registered every render, so a detector keyed on one is
+    // cancelled by any mid-gesture re-render.
+    val pressHandles by rememberUpdatedState(MobPressHandles(longPressHandle, doubleTapHandle))
+
+    val tapModifier = when {
+        // Only when a long-press or double-tap is actually declared.
+        // combinedClickable installs a detector that delays the click to wait
+        // for a possible second tap, so making it the default would add latency
+        // to every ordinary tap in the app. Role and `enabled` are carried over
+        // from the plain arms below so accessibility behaviour does not change
+        // just because a node gained a long-press.
+        // With a real on_tap: combinedClickable is right — ripple, focusability
+        // and an "activate" action that actually does something.
+        tapHandle != null && (longPressHandle != null || doubleTapHandle != null) &&
+            gesturableType ->
+            modifier.combinedClickable(
+                enabled = !isDisabled,
+                role = if (isButton) Role.Button else null,
+                onLongClick = longPressHandle?.let { h -> { MobBridge.nativeSendLongPress(h) } },
+                onDoubleClick = doubleTapHandle?.let { h -> { MobBridge.nativeSendDoubleTap(h) } }
+            ) { MobBridge.nativeSendTap(tapHandle) }
+
+        // Long press or double tap with NO on_tap: a raw detector, not
+        // combinedClickable. combinedClickable would need an onClick, and
+        // passing an empty one publishes a clickable, focusable node with an
+        // "activate" accessibility action that does nothing — the same
+        // misreporting the plain arms below were written to avoid. iOS's
+        // .onLongPressGesture adds no tap affordance either.
+        (longPressHandle != null || doubleTapHandle != null) && gesturableType ->
+            // Keyed on WHICH handlers are declared, for the same reason as the
+            // swipe detector: with a constant key the block never restarts, so a
+            // box that starts with on_long_press and later gains on_double_tap
+            // would keep a null onDoubleTap forever. The handle values are still
+            // read live through pressHandles.
+            modifier.pointerInput(longPressHandle != null, doubleTapHandle != null) {
+                detectTapGestures(
+                    onLongPress =
+                        if (longPressHandle == null) null
+                        else { _: Offset ->
+                            pressHandles.long?.let { MobBridge.nativeSendLongPress(it) }
+                        },
+                    onDoubleTap =
+                        if (doubleTapHandle == null) null
+                        else { _: Offset ->
+                            pressHandles.double?.let { MobBridge.nativeSendDoubleTap(it) }
+                        }
+                )
+            }
+
+        // Require a handler here. Compose's ClickableSemanticsNode publishes
+        // disabled() whenever `enabled` is false, so encoding "no tap handler"
+        // as enabled = false made a perfectly live box whose tap is handled by
+        // an ancestor announce as "…, button, disabled". With no handler we
+        // fall through to the semantics-only path below, which still sets the
+        // button role.
+        isButton && tapHandle != null ->
+            modifier.clickable(enabled = !isDisabled, role = Role.Button) {
+                MobBridge.nativeSendTap(tapHandle)
+            }
+
+        // `enabled = !isDisabled` here too, not just on the button arm above.
+        // Without it a box with `disabled: true` and no explicit
+        // accessibility_role still dispatched taps, while the semantics block
+        // below simultaneously marked it disabled() — announced as disabled to
+        // TalkBack and still firing. iOS applies .disabled() to every box
+        // regardless of role, so this also keeps the platforms in step.
+        // KATI-BEGIN(K-18 anchored-node) mob_new=0.4.33
+        // `anchored` must be excluded here as well as `button`.
+        //
+        // WHY: on an anchored node `on_tap` is not "tap me" — it is the DISMISS
+        // handler, the report of a tap that landed OUTSIDE the panel's window.
+        // Kati.Components.Anchored deliberately ships `on_dismiss` down the wire
+        // as `on_tap` because that is the only tap-shaped prop Mob.Renderer
+        // registers, and MobAnchored reads it itself. Left in the generic arm, a
+        // clickable would wrap the whole node and swallow taps meant for the
+        // trigger inside it — the popover would open and then be impossible to
+        // operate.
+        //
+        // The two combinedClickable arms above need no such guard: upstream
+        // gates them on `gesturableType`, and `anchored` is not in that set.
+        // was: tapHandle != null && node.type != "button" ->
+        tapHandle != null && node.type != "button" && node.type != "anchored" ->
+            modifier.clickable(enabled = !isDisabled) { MobBridge.nativeSendTap(tapHandle) }
+        // KATI-END(K-18 anchored-node)
+
+        else -> modifier
+    }
+    // ── Swipe (MOB-138) ─────────────────────────────────────────────────────
+    // Attached only when a swipe handler is actually declared. detectDragGestures
+    // consumes the drag, so an unconditional pointerInput here would swallow
+    // scrolling for every node in the app. iOS gates its DragGesture on the same
+    // condition and for the same reason.
+    val swipeAny   = intProp(node.props, "on_swipe")
+    val swipeLeft  = intProp(node.props, "on_swipe_left")
+    val swipeRight = intProp(node.props, "on_swipe_right")
+    val swipeUp    = intProp(node.props, "on_swipe_up")
+    val swipeDown  = intProp(node.props, "on_swipe_down")
+    // Same five-type restriction as above: iOS's swipe DragGesture lives inside
+    // mobGestures, so it reaches exactly the same nodes and no others.
+    val hasSwipe = gesturableType &&
+        (swipeAny != null || swipeLeft != null || swipeRight != null ||
+            swipeUp != null || swipeDown != null)
+
+    // Same reasoning as the canvas drag below: handles change on every render,
+    // so keying on them lets any mid-gesture re-render cancel the detector. A
+    // swipe only emits at onDragEnd, so it survives today by accident — nothing
+    // re-renders during it. That stops being true the moment the screen updates
+    // for any other reason mid-swipe.
+    val liveSwipe by rememberUpdatedState(
+        MobSwipeHandlers(swipeAny, swipeLeft, swipeRight, swipeUp, swipeDown)
+    )
+
+    // Which axes the declared handlers actually cover. A swipe detector that
+    // consumes both axes wins pointer arbitration against an ancestor
+    // verticalScroll/LazyColumn, so a swipe-to-delete row inside a list would
+    // freeze that list: any drag starting on a row is swallowed and only drags
+    // in the gaps between rows scroll. iOS does not have this problem, because a
+    // plain DragGesture loses arbitration to UIScrollView's pan recogniser.
     //
-    // WHY: Mob.Renderer has registered a handle for `on_long_press` since it
-    // was written (`deps/mob/lib/mob/renderer.ex:356-357`) and this file read
-    // only `on_tap`, so every long press in the app was ink. Three boards want
-    // the gesture and all three were stranded: 330's Remove on a list row,
-    // 144's rating on an episode row, and 146's selection on a poster tile.
-    // Board 251 is what settles which meaning belongs where — *"A tile selects.
-    // A row rates."* — so the bridge owes both, not one.
+    // When the declared set is axis-pure, use the axis-specific detector. What
+    // saves the parent is slop-direction arbitration, not per-axis consumption
+    // — change.consume() still consumes the whole change; the difference is that
+    // detectHorizontalDragGestures only claims the gesture once the drag crosses
+    // slop HORIZONTALLY, so a vertical drag is never claimed and reaches the
+    // parent scroll.
     //
-    // `combinedClickable` rather than a second modifier: Compose gives one
-    // node one gesture detector, and `clickable` followed by a long-press
-    // modifier is two, of which the first consumes the pointer. It is still
-    // marked experimental in the Foundation API, which is why the opt-in sits
-    // on the composable rather than module-wide.
+    // This therefore fixes the horizontal-swipe-inside-vertical-scroll case, the
+    // common one (swipe-to-delete). A vertical swipe inside a vertical scroll is
+    // NOT fixed and cannot be by this mechanism: both want the same axis, and
+    // the child wins. A generic on_swipe likewise has to take the whole gesture.
     //
-    // A node with only `on_long_press` and no `on_tap` still gets it: a row
-    // that can be held and not tapped is a legal shape, and the old condition
-    // gated everything on `tapHandle`.
-    val holdHandle = intProp(node.props, "on_long_press")
-    val tappable = node.type != "button" && node.type != "anchored"
-    val tapModifier = if (tappable && (tapHandle != null || holdHandle != null)) {
-        modifier.combinedClickable(
-            onClick = { if (tapHandle != null) MobBridge.nativeSendTap(tapHandle) },
-            onLongClick =
-                if (holdHandle != null) {
-                    { MobBridge.nativeSendTap(holdHandle) }
-                } else null
-        )
-    } else modifier
-    // KATI-END(K-47 long-press)
-    // KATI-END(K-18 anchored-node)
-    val m = tapModifier.then(nodeModifier(node.props))
+    // Note the axis detectors also change classification: horizontal-only never
+    // accumulates dy, so an L-shaped drag (40dp right then 200dp down) fires
+    // swipe_right, where the both-axis path and iOS would call it "down" and
+    // fire nothing.
+    val swipeHorizontalOnly =
+        swipeAny == null && swipeUp == null && swipeDown == null &&
+            (swipeLeft != null || swipeRight != null)
+    val swipeVerticalOnly =
+        swipeAny == null && swipeLeft == null && swipeRight == null &&
+            (swipeUp != null || swipeDown != null)
+
+    val gestureModifier = if (!hasSwipe) tapModifier else {
+        // Keyed on which axes are declared, NOT on Unit and NOT on the handles.
+        //
+        // Not Unit: SuspendPointerInputElement compares keys only, so with a
+        // constant key the block never restarts and the detector chosen at first
+        // composition runs forever. A row that starts with on_swipe_left and
+        // later gains on_swipe_up would keep the horizontal-only detector and
+        // never fire the vertical one; a node that narrows from generic
+        // on_swipe to on_swipe_left would keep detectDragGestures and keep
+        // freezing its parent list — the very thing the split exists to avoid.
+        //
+        // Not the handles: those change every render, which would cancel the
+        // detector mid-gesture. These two booleans only flip when the declared
+        // prop set changes, which is exactly when a restart is correct.
+        //
+        // A restart does drop an in-flight gesture — the coroutine is cancelled
+        // and the new block starts at awaitFirstDown(), which will not see a
+        // down that is already held, so nothing fires until the finger lifts and
+        // presses again. Acceptable: it happens only when the app changes which
+        // swipe directions a node declares, mid-drag.
+        tapModifier.pointerInput(swipeHorizontalOnly, swipeVerticalOnly) {
+            // 30dp mirrors iOS's DragGesture(minimumDistance: 30). There the
+            // gesture never starts below the threshold; Compose starts at touch
+            // slop, so the distance check moves to the end instead. Note the
+            // residual divergence: Compose reports positions from AFTER slop is
+            // crossed, so the accumulated distance excludes it and the effective
+            // floor here is 30dp + slop. iOS also thresholds on overall drag
+            // distance while this is per-dominant-axis, so a 25x25dp diagonal
+            // swipes on iOS and does not here.
+            val minDistance = 30.dp.toPx()
+            var dx = 0f
+            var dy = 0f
+
+            fun fire() {
+                // Dominant axis wins, ties go vertical — same rule as iOS,
+                // where `abs(dx) > abs(dy)` picks horizontal and everything
+                // else falls through to vertical.
+                val direction = when {
+                    abs(dx) > abs(dy) && abs(dx) >= minDistance -> if (dx > 0) "right" else "left"
+                    abs(dy) >= abs(dx) && abs(dy) >= minDistance -> if (dy > 0) "down" else "up"
+                    else -> null
+                } ?: return
+
+                // Generic first, then the direction-specific one. iOS fires them
+                // in this order and a node may have both.
+                val sw = liveSwipe
+                sw.any?.let { MobBridge.nativeSendSwipe(it, direction) }
+                when (direction) {
+                    "left"  -> sw.left?.let  { MobBridge.nativeSendSwipeLeft(it) }
+                    "right" -> sw.right?.let { MobBridge.nativeSendSwipeRight(it) }
+                    "up"    -> sw.up?.let    { MobBridge.nativeSendSwipeUp(it) }
+                    "down"  -> sw.down?.let  { MobBridge.nativeSendSwipeDown(it) }
+                }
+            }
+
+            when {
+                swipeHorizontalOnly ->
+                    detectHorizontalDragGestures(
+                        onDragStart = { dx = 0f; dy = 0f },
+                        onDragEnd = { fire() }
+                    ) { change, amount ->
+                        dx += amount
+                        change.consume()
+                    }
+
+                swipeVerticalOnly ->
+                    detectVerticalDragGestures(
+                        onDragStart = { dx = 0f; dy = 0f },
+                        onDragEnd = { fire() }
+                    ) { change, amount ->
+                        dy += amount
+                        change.consume()
+                    }
+
+                else ->
+                    detectDragGestures(
+                        onDragStart = { dx = 0f; dy = 0f },
+                        onDragEnd = { fire() }
+                    ) { change, drag ->
+                        dx += drag.x
+                        dy += drag.y
+                        change.consume()
+                    }
+            }
+        }
+    }
+
+    val base = gestureModifier.then(nodeModifier(node.props))
+    // Track on-screen frame + set a testTag for any node carrying an :id, so the
+    // agent can read positions (Mob.Test.element_frames) without a screenshot.
+    val trackId = node.props["id"] as? String
+    val m = if (trackId != null) base.then(MobBridge.frameTrackingModifier(trackId)) else base
     when (node.type) {
-        // KATI-BEGIN(K-34 column-align) mob_new=0.4.20
+        // KATI-BEGIN(K-34 column-align) mob_new=0.4.33
         // `align` on a column was read by nobody. `Column(modifier = m)` took
         // no `horizontalAlignment`, so a column always hugged its widest child
         // and every narrower child sat at the start edge — silently, because a
         // dropped alignment is not an error, it is just a layout nobody drew.
         //
         // Eight nodes in this app write it and all eight were wrong: the three
-        // book-detail action buttons (`Kati.Screens.BookDetail.action/3` and
-        // its dark and Persian twins) each draw a glyph over a label in a
+        // book-detail action buttons each draw a glyph over a label in a
         // `weight={1.0}` column and asked for `center`; screen 09's and screen
         // 05's fixed-width time gutters asked for the same; and screens 122 and
         // 127's per-hour rate columns asked for `trailing`, which is the one
         // that had a visible cost — `Kati.Screens.Money.rate/1` reached for
         // `text_align` to flush its two lines instead, and a `Text` carrying
         // `text_align` takes `fillMaxWidth()` (see `MobText`), so the rate
-        // filled the row and the weighted body beside it measured zero. The
-        // Persian money screen drew three service rows with no service names
-        // in them.
+        // filled the row and the weighted body beside it measured zero.
         //
         // Vertical values are ignored rather than mapped: `align="bottom"` on a
         // column is four nodes asking a column for a row's alignment, and
         // guessing at what they meant would move ink nobody asked to move.
         "column" -> Column(modifier = m, horizontalAlignment = columnAlignProp(node.props)) {
         // KATI-END(K-34 column-align)
-            node.children.forEach { child ->
+            val keys = mobChildKeys(node.children)
+            node.children.forEachIndexed { i, child ->
+                // Modifier.weight is resolved out here, in ColumnScope — forEachIndexed
+                // is inline so the scope survives, but key()'s block is a plain
+                // composable lambda and has no scope of its own.
                 val w = floatProp(child.props, "weight")
-                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.20
-                RenderNode(child, when {
-                    w == null  -> Modifier
-                    w > 0f     -> Modifier.weight(w)
-                    else       -> Modifier.height(0.dp)
-                })
+                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.33
+                // `Modifier.weight(0f)` THROWS — "invalid weight 0.0; must be
+                // greater than zero" — and it is an uncaught IllegalArgument on
+                // the main thread, so it kills the activity outright. Zero share
+                // of the remaining space means zero size along the axis, which
+                // is exactly what the caller meant. See the row arm below for
+                // the screen that found it.
+                val childModifier = when {
+                    w == null -> Modifier
+                    w > 0f    -> Modifier.weight(w)
+                    else      -> Modifier.height(0.dp)
+                }
                 // KATI-END(K-15 zero-weight)
+                key(keys[i]) { RenderNode(child, childModifier) }
             }
         }
         "row" -> Row(modifier = m, verticalAlignment = rowAlignProp(node.props)) {
-            node.children.forEach { child ->
+            val keys = mobChildKeys(node.children)
+            node.children.forEachIndexed { i, child ->
                 val w = floatProp(child.props, "weight")
-                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.20
+                // KATI-BEGIN(K-15 zero-weight) mob_new=0.4.33
                 // `Modifier.weight(0f)` THROWS — "invalid weight 0.0; must be
-                // greater than zero" — and it is an uncaught IllegalArgument
-                // on the main thread, so it kills the activity outright.
+                // greater than zero" — an uncaught IllegalArgument on the main
+                // thread, so it kills the activity outright.
                 //
-                // Every progress bar in this app is drawn as two weighted
-                // cells, `weight={fraction}` beside `weight={1.0 - fraction}`,
-                // and 0% and 100% are ORDINARY DATA: a season with every
-                // episode watched, a book not yet started. Ten screens compute
-                // a weight this way, so this was a crash waiting behind normal
-                // use — screen 04 hit it the moment the season pills became
-                // real and S1 came back fully watched.
+                // Every progress bar in this app is drawn as two weighted cells,
+                // `weight={fraction}` beside `weight={1.0 - fraction}`, and 0%
+                // and 100% are ORDINARY DATA: a season with every episode
+                // watched, a book not yet started. Ten screens compute a weight
+                // this way, so this was a crash waiting behind normal use —
+                // screen 04 hit it the moment the season pills became real and
+                // S1 came back fully watched.
                 //
-                // Zero share of the remaining space means zero size along the
-                // axis, which is exactly what the caller meant. Clamping to a
-                // small positive weight instead would leave a visible sliver
-                // of ink at 0%.
-                RenderNode(child, when {
-                    w == null  -> Modifier
-                    w > 0f     -> Modifier.weight(w)
-                    else       -> Modifier.width(0.dp)
-                })
+                // Clamping to a small positive weight instead would leave a
+                // visible sliver of ink at 0%.
+                val childModifier = when {
+                    w == null -> Modifier
+                    w > 0f    -> Modifier.weight(w)
+                    else      -> Modifier.width(0.dp)
+                }
                 // KATI-END(K-15 zero-weight)
+                key(keys[i]) { RenderNode(child, childModifier) }
+            }
+        }
+        "wrap" -> FlowRow(
+            modifier = m,
+            horizontalArrangement = Arrangement.spacedBy(
+                (floatProp(node.props, "spacing") ?: 0f).coerceAtLeast(0f).dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(
+                (floatProp(node.props, "run_spacing") ?: 0f).coerceAtLeast(0f).dp
+            ),
+        ) {
+            val keys = mobChildKeys(node.children)
+            node.children.forEachIndexed { i, child ->
+                key(keys[i]) { RenderNode(child) }
             }
         }
         // Box defaults to fillMaxWidth (matching iOS .frame(maxWidth: .infinity))
@@ -3364,39 +4804,148 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         // "top_leading" / etc.) — defaults to TopStart for back-compat.
         "box" -> {
             val hasWidth = floatProp(node.props, "width") != null
-            // KATI-BEGIN(K-17 box-hugs-when-told) mob_new=0.4.20
-            // `fill_width={false}` did NOTHING to a box. The branch consulted
-            // only `width`, so a box with no numeric width was force-filled
-            // whatever it asked for — `fill_width` was read in nodeModifier and
-            // only ever tested for `== true`.
-            //
-            // That is upstream Mob's behaviour, not a Kati edit (the same lines
-            // are in native/baseline/0.4.20), and it makes 18 of the vendored
-            // Mishka Chelekom components unusable: chip, pill, mark and so
-            // highlight, segmented-control segments, toggle, spoiler and
-            // overflow-list's +N pill all define their entire silhouette by
-            // hugging their content, and every one of them would draw as a
-            // full-width bar. MishkaChip's own comment says `fill_width={false}`
-            // fixes this on Android; against this bridge version it does not.
-            //
-            // A declared `width` still wins, so nothing that already sizes
-            // itself changes. Only a box that explicitly asks to hug now hugs.
-            val hugs = boolProp(node.props, "fill_width") == false
-            val boxModifier = if (hasWidth || hugs) m else m.fillMaxWidth()
-            // KATI-END(K-17 box-hugs-when-told)
+            val explicitlyIntrinsic = boolProp(node.props, "fill_width") == false
+            val accessibilityLabel = node.props["accessibility_label"] as? String
+            // Merge for a label OR an explicit button role. Setting
+            // role/disabled without merging leaves them on the container while
+            // each child stays its own node, so TalkBack walks into a
+            // "button" and reads its children as separate elements. Matches
+            // the iOS side, which collapses on the same condition.
+            val accessibilityModifier = Modifier.semantics(
+                mergeDescendants = accessibilityLabel != null || isButton,
+            ) {
+                if (accessibilityLabel != null) contentDescription = accessibilityLabel
+                if (isButton) role = Role.Button
+                if (isDisabled) disabled()
+            }
+            val boxModifier = (if (hasWidth || explicitlyIntrinsic) m else m.fillMaxWidth())
+                .then(accessibilityModifier)
             Box(modifier = boxModifier, contentAlignment = boxAlignProp(node.props)) {
-                node.children.forEach { RenderNode(it) }
+                mobChildKeys(node.children).let { keys ->
+                    node.children.forEachIndexed { i, child -> key(keys[i]) { RenderNode(child) } }
+                }
             }
         }
         "scroll" -> {
-            val scrollState = rememberScrollState()
-            if (node.props["axis"] == "horizontal") {
-                Row(modifier = m.horizontalScroll(scrollState)) {
-                    node.children.forEach { RenderNode(it) }
+            // Re-created per navigation, for the same reason MobLazyList's state
+            // is: `rememberScrollState()` is keyless, so with the composition
+            // preserved across navigation (MOB-146) a scroll view landing in the
+            // same slot would open the new screen at the old screen's offset.
+            val scrollState = key(MobBridge.LocalSlotEpoch.current) { rememberScrollState() }
+            val horizontal = node.props["axis"] == "horizontal"
+
+            // Decided up front because it determines whether this node scrolls a
+            // pixel ScrollState at all, and therefore whether the scroll event
+            // family can be emitted. Installing the observer on the lazy path
+            // would attach it to a ScrollState nothing ever moves.
+            val soleChild = node.children.singleOrNull()
+            val isLazyPath = !horizontal &&
+                boolProp(node.props, "lazy") == true &&
+                soleChild != null &&
+                soleChild.type == "column" &&
+                soleChild.props.keys.all { it == "fill_width" || it == "fill_height" } &&
+                soleChild.children.none { it.props.containsKey("weight") }
+
+            if (!isLazyPath) MobScrollEvents(node, scrollState, horizontal)
+            // Register by :id so Mob.Test.scroll_info/scroll_to can address it,
+            // and record the measured viewport (ScrollState doesn't expose it).
+            val id = node.props["id"] as? String
+            val regMod: Modifier =
+                if (id != null) {
+                    val handle = MobBridge.scrollHandle(id)
+                    handle.scrollState = scrollState
+                    handle.horizontal = horizontal
+                    Modifier.onGloballyPositioned {
+                        handle.viewportPx = if (horizontal) it.size.width else it.size.height
+                    }
+                } else {
+                    Modifier
+                }
+            if (horizontal) {
+                Row(modifier = m.then(regMod).horizontalScroll(scrollState)) {
+                    mobChildKeys(node.children).let { keys ->
+                    node.children.forEachIndexed { i, child -> key(keys[i]) { RenderNode(child) } }
+                }
                 }
             } else {
-                Column(modifier = m.verticalScroll(scrollState).imePadding()) {
-                    node.children.forEach { RenderNode(it) }
+                // Compose only the rows that are on screen.
+                //
+                // Mob screens are written scroll > column > rows, so a scroll
+                // node usually has exactly ONE child; lazifying its direct
+                // children would buy nothing because the column underneath still
+                // composes every row. Flatten one level when that column can be
+                // removed without changing what the user sees, and use its
+                // children as the items.
+                //
+                // The guard is deliberately narrow. Only fill_width/fill_height
+                // are droppable: a LazyColumn already spans its container's
+                // width, and fill_height is a no-op under the unbounded main
+                // axis a scroll gives its content. ANY other prop — padding,
+                // background, align, an id the harness addresses, a tap handler
+                // — is something the column contributes visually or behaviourally
+                // and would be silently lost, so those keep the eager path.
+                //
+                // A child carrying `weight` also forces the eager path: weight
+                // comes from ColumnScope, and LazyColumn items have no such
+                // scope, so it would be dropped without a trace.
+                // OPT-IN. `lazy: true` on the scroll node, nothing else.
+                //
+                // Laziness is not free of observable consequences: rows below
+                // the fold are never composed, so they never register a frame
+                // and Mob.Test.element_frames / tap_id cannot address them, and
+                // scroll position becomes index-based rather than pixel-based.
+                // `lazy_list` already makes that trade explicitly. Making it the
+                // silent default for every `:scroll` would change harness
+                // behaviour under apps that never asked for it, so the author
+                // asks for it.
+                val sole = soleChild
+                val flattenable = isLazyPath
+
+                if (flattenable) {
+                    // MobLazyList registers `lazyState` under this node's id.
+                    // The pixel ScrollState above must NOT stay registered: it is
+                    // never attached to a verticalScroll on this path, so its
+                    // maxValue keeps its Int.MAX_VALUE default and scrollInfo —
+                    // which checks scrollState FIRST — would report kind "pixel"
+                    // with max_y ~2.1e9. scroll_to would then return :ok without
+                    // moving, and screenshot_tour would page a million times.
+                    if (id != null) {
+                        val handle = MobBridge.scrollHandle(id)
+                        handle.scrollState = null
+                        handle.horizontal = false
+                    }
+                    // The scroll event family is driven by the pixel ScrollState,
+                    // which this path deliberately detaches — a LazyColumn scrolls
+                    // a LazyListState instead, in item index + offset rather than
+                    // pixels. Rather than let the handlers go quiet the way
+                    // MOB-138 describes, say so once, loudly.
+                    val declaresScrollHandlers =
+                        intProp(node.props, "on_scroll") != null ||
+                            intProp(node.props, "on_scroll_began") != null ||
+                            intProp(node.props, "on_scroll_ended") != null ||
+                            intProp(node.props, "on_scroll_settled") != null ||
+                            intProp(node.props, "on_top_reached") != null ||
+                            intProp(node.props, "on_scrolled_past") != null
+
+                    // In a LaunchedEffect, not the composable body: a bare Log.w
+                    // here would re-fire on every recomposition, which for a
+                    // scrolling list is every frame.
+                    if (declaresScrollHandlers) {
+                        LaunchedEffect(id) {
+                            Log.w("MobBridge",
+                                "scroll node id=" + (id ?: "?") + " declares scroll handlers " +
+                                "with lazy: true; the scroll event family is pixel-based and " +
+                                "is not emitted on the lazy path. iOS does emit it here, so " +
+                                "this is a platform divergence. Drop lazy or drop the handlers.")
+                        }
+                    }
+                    MobLazyList(node.copy(children = sole!!.children), m)
+                } else {
+                    Column(modifier = m.then(regMod).verticalScroll(scrollState).imePadding()) {
+                        mobChildKeys(node.children).let { keys ->
+                    node.children.forEachIndexed { i, child -> key(keys[i]) { RenderNode(child) } }
+                }
+                    }
                 }
             }
         }
@@ -3417,6 +4966,7 @@ private fun RenderNodeInner(node: MobNode, modifier: Modifier) {
         "native_view"    -> MobNativeViewRegistry.render(node)
         "canvas"         -> MobCanvas(node, m)
         "gpu_view"       -> MobGpuView(node, m)
+        "sheet"          -> MobSheetSlot(node) { state -> MobSheet(node, state) }
         // KATI-BEGIN(K-18 anchored-node) mob_new=0.4.20
         // WHY: `when` here has no else arm, so an unhandled node type renders
         // as NOTHING — silently, with no log and no crash. Three vendored
@@ -3484,7 +5034,7 @@ private fun MobAnchored(node: MobNode, modifier: Modifier) {
     // The window spans the display under edge-to-edge, so a bare 8dp pad would
     // let a panel land under the status bar. safeDrawing is added per edge; it
     // is zero on the axes that have no bar.
-    val insets = WindowInsets.safeDrawing
+    val insets = androidx.compose.foundation.layout.WindowInsets.safeDrawing
     val ld = LocalLayoutDirection.current
     val edgeDp = floatProp(node.props, "edge_padding") ?: 8f
     val edgePx = with(density) { edgeDp.dp.roundToPx() }
@@ -3762,18 +5312,38 @@ private fun MobText(node: MobNode, modifier: Modifier) {
     val textAlign     = textAlignProp(node.props)
     val letterSpacing = floatProp(node.props, "letter_spacing")
     val lineHeightMul = floatProp(node.props, "line_height")
-    // KATI-BEGIN(K-48 locale-face-text) mob_new=0.7.24
+    // KATI-BEGIN(K-48 locale-face-text) mob_new=0.4.33
     // The app's face stands in when this node names none. See `K-48
     // locale-face` for why the null branch could not stay *Latin*.
+    //
+    // Upstream's 0.4.33 signature takes a Context and walks a res/font name
+    // chain; Kati's takes the inherited face and resolves against K-14's
+    // weight-mapped families, which a name-only lookup cannot express.
     val fontFamily    = fontFamilyProp(node.props, LocalKatiFace.current)
     // KATI-END(K-48 locale-face-text)
-    val tapHandle     = intProp(node.props, "on_tap")
-
+    // Mob.Renderer only ever sends a positive integer; the guard is for a
+    // hand-built payload, since Compose rejects maxLines <= 0.
+    val maxLines      = intProp(node.props, "max_lines")?.takeIf { it > 0 }
     val resolvedLineHeight = if (lineHeightMul != null && fontSize != TextUnit.Unspecified)
         (lineHeightMul * fontSize.value).sp else TextUnit.Unspecified
 
-    val tappableModifier = if (tapHandle != null)
-        modifier.clickable { MobBridge.nativeSendTap(tapHandle) } else modifier
+    // No clickable here. RenderNodeInner already installed one for on_tap (the
+    // `tapHandle != null && node.type != "button"` arm), and `modifier` carries
+    // it in. A second clickable appended here would be INNERMOST, so it won the
+    // Main pass, consumed the down, and shadowed the outer one entirely — which
+    // silently cost text nodes two things the outer arm provides:
+    //
+    //   * `enabled = !isDisabled`, so `<Text on_tap disabled: true>` still
+    //     dispatched taps while the semantics block announced it disabled
+    //   * the padded hit area and ripple, since nodeModifier's padding is
+    //     applied AFTER the gesture modifier in `base` — iOS pads before
+    //     .contentShape(Rectangle()).onTapGesture, so the inner clickable was
+    //     also the thing making Android disagree with it
+    //
+    // It additionally swallowed the down before the outer combinedClickable's
+    // long-press detector could see it, so on_long_press never fired on a text
+    // node. That was the symptom; this redundancy was the cause.
+    val tappableModifier = modifier
 
     // text_align is a no-op when the Text wraps to its content width — the
     // alignment only matters if the Text is wider than its content. Apply
@@ -3782,14 +5352,6 @@ private fun MobText(node: MobNode, modifier: Modifier) {
         floatProp(node.props, "width") == null) {
         tappableModifier.fillMaxWidth()
     } else tappableModifier
-
-    // KATI-BEGIN(K-08 text-max-lines) mob_new=0.4.20
-    // The design truncates with an ellipsis in 40+ places — every card title
-    // carries `white-space:nowrap;overflow:hidden;text-overflow:ellipsis`.
-    // Without this the prop was accepted and ignored, and long titles reflowed
-    // the grid they were supposed to fit inside.
-    val maxLines = (intProp(node.props, "max_lines") ?: Int.MAX_VALUE).coerceAtLeast(1)
-    // KATI-END(K-08 text-max-lines)
 
     Text(
         text          = text,
@@ -3803,8 +5365,6 @@ private fun MobText(node: MobNode, modifier: Modifier) {
             platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false)
         ),
         // KATI-END(K-10 no-font-padding)
-        maxLines      = maxLines,
-        overflow      = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
         color         = color,
         fontSize      = fontSize,
         fontWeight    = fontWeight,
@@ -3819,6 +5379,11 @@ private fun MobText(node: MobNode, modifier: Modifier) {
         letterSpacing = letterSpacing?.em ?: TextUnit.Unspecified,
         // KATI-END(K-10 letter-spacing-em)
         fontFamily    = fontFamily,
+        // Ellipsis only when a cap is set: Clip and Int.MAX_VALUE are the
+        // Text defaults, so an unset node renders exactly as before. Ellipsis
+        // rather than Clip to match iOS's .truncationMode(.tail).
+        maxLines      = maxLines ?: Int.MAX_VALUE,
+        overflow      = if (maxLines != null) TextOverflow.Ellipsis else TextOverflow.Clip,
     )
 }
 
@@ -3903,7 +5468,23 @@ private fun MobTextField(node: MobNode, modifier: Modifier) {
     // `outstanding` cannot grow without bound: every echo drains it to the
     // matching entry, and a host-set value clears it.
     val incoming = node.props["value"] as? String ?: ""
-    var localValue by remember { mutableStateOf(incoming) }
+    // KATI-BEGIN(K-49 text-field-slot-epoch) mob_new=0.4.33
+    // Keyed on the slot epoch, and on nothing else.
+    //
+    // mob_new 0.4.33 stopped disposing the screen's composition on navigation
+    // (MOB-146): one mount point is reused and the tree is diffed into it. A
+    // `remember` with no key therefore now survives a push, so the text the
+    // reader typed into screen 06's field would follow them into the next
+    // screen's field — which upstream fixes by keying its own seed on
+    // `remember(node.props["value"], LocalSlotEpoch.current)`.
+    //
+    // Kati cannot take the `value` half of that key: K-42 below exists
+    // precisely because a host value arriving mid-typing must NOT re-seed the
+    // field, and putting it in the key is that re-seed by another route. The
+    // epoch alone is the part K-42 has no answer for, and it moves only on a
+    // real navigation, so it costs the echo reconciliation nothing.
+    var localValue by remember(MobBridge.LocalSlotEpoch.current) { mutableStateOf(incoming) }
+    // KATI-END(K-49 text-field-slot-epoch)
     // A plain list and not `mutableStateListOf`: nothing reads it to draw
     // with, and a snapshot list mutated during composition would schedule a
     // recomposition for a bookkeeping change nobody is looking at.
@@ -4101,7 +5682,9 @@ private fun MobSlider(node: MobNode, modifier: Modifier) {
     val minVal   = floatProp(node.props, "min") ?: 0f
     val maxVal   = floatProp(node.props, "max") ?: 1f
     val color    = colorProp(node.props, "color")
-    var localVal by remember(node.props["value"]) {
+    // Same reasoning as the text field: identical values across a navigation
+    // would otherwise carry the old screen's thumb position into the new one.
+    var localVal by remember(node.props["value"], MobBridge.LocalSlotEpoch.current) {
         mutableStateOf(floatProp(node.props, "value") ?: minVal)
     }
     Slider(
@@ -4200,8 +5783,11 @@ private fun MobIcon(node: MobNode, modifier: Modifier) {
         fontSizeSp.value.dp else 24.dp
     val description = node.props["text"] as? String
 
-    val onTap   = (node.props["on_tap"] as? Number)?.toInt()
-    val baseMod = if (onTap != null) modifier.clickable { MobBridge.nativeSendTap(onTap) } else modifier
+    // See MobText: RenderNodeInner already installed the on_tap clickable, and a
+    // second one here would be innermost, shadowing it along with its `enabled`
+    // handling and padded hit area, and swallowing the down that on_long_press
+    // needs.
+    val baseMod = modifier
 
     Icon(
         imageVector       = materialIconFor(name),
@@ -4292,6 +5878,24 @@ private fun MobWebView(node: MobNode, modifier: Modifier) {
     val allowList = allowStr.split(",").filter { it.isNotEmpty() }
     val title     = node.props["title"] as? String
 
+    // File-chooser plumbing for HTML <input type="file"> inside the WebView
+    // (e.g. Livebook's Upload import, attachments). Without a WebChromeClient
+    // that handles onShowFileChooser, tapping a file input does nothing.
+    val filePathCallback =
+        remember { mutableStateOf<android.webkit.ValueCallback<Array<android.net.Uri>>?>(null) }
+    val fileChooserLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            val uris =
+                android.webkit.WebChromeClient.FileChooserParams.parseResult(
+                    result.resultCode,
+                    result.data,
+                )
+            filePathCallback.value?.onReceiveValue(uris)
+            filePathCallback.value = null
+        }
+
     Column(modifier = modifier) {
         if (title != null) {
             Text(text = title, fontSize = 12.sp,
@@ -4301,8 +5905,21 @@ private fun MobWebView(node: MobNode, modifier: Modifier) {
             modifier = Modifier.weight(1f),
             factory  = { ctx ->
                 android.webkit.WebView(ctx).apply {
+                    // Fill the AndroidView's allocated bounds. Without explicit
+                    // MATCH_PARENT layout params the WebView defaults to
+                    // wrap_content, so a full-viewport web app (CSS 100vh/100%,
+                    // e.g. an xterm.js terminal) measures its container as 0px
+                    // and collapses to nothing. useWideViewPort +
+                    // loadWithOverviewMode make the WebView honour the page's
+                    // viewport meta so vh units resolve correctly.
+                    layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    )
                     settings.javaScriptEnabled = true
                     settings.domStorageEnabled = true
+                    settings.useWideViewPort = true
+                    settings.loadWithOverviewMode = true
                     addJavascriptInterface(object : Any() {
                         @android.webkit.JavascriptInterface
                         fun postMessage(json: String) {
@@ -4322,6 +5939,31 @@ private fun MobWebView(node: MobNode, modifier: Modifier) {
                             if (allowList.any { reqUrl.startsWith(it) }) return false
                             MobBridge.nativeDeliverWebViewBlocked(0L, reqUrl)
                             return true
+                        }
+                    }
+                    webChromeClient = object : android.webkit.WebChromeClient() {
+                        override fun onShowFileChooser(
+                            webView: android.webkit.WebView?,
+                            callback: android.webkit.ValueCallback<Array<android.net.Uri>>?,
+                            params: android.webkit.WebChromeClient.FileChooserParams?,
+                        ): Boolean {
+                            // Cancel any in-flight chooser, then launch the picker the
+                            // page asked for (params carries its accept/multiple flags).
+                            filePathCallback.value?.onReceiveValue(null)
+                            filePathCallback.value = callback
+                            val intent = params?.createIntent()
+                            return if (intent != null) {
+                                try {
+                                    fileChooserLauncher.launch(intent)
+                                    true
+                                } catch (e: Exception) {
+                                    filePathCallback.value = null
+                                    false
+                                }
+                            } else {
+                                filePathCallback.value = null
+                                false
+                            }
                         }
                     }
                     MobBridge.webView = this
@@ -4354,7 +5996,68 @@ private fun MobCanvas(node: MobNode, modifier: Modifier) {
         modifier
     }
 
-    Canvas(modifier = sized) {
+    // on_drag is canvas-only, matching iOS, where the DragGesture lives on the
+    // canvas view and nowhere else.
+    //
+    // One sanctioned divergence: iOS uses DragGesture(minimumDistance: 0) so a
+    // stationary tap registers as a zero-length began/ended pair (a dot on a
+    // drawing canvas). detectDragGestures only starts after touch slop, so a
+    // bare tap emits nothing here. The iOS source already documents this as the
+    // expected Android behaviour rather than a defect.
+    val dragHandle = intProp(node.props, "on_drag")
+    ApplyThrottleConfig(node.props, dragHandle, "drag_config")
+    // Deliberately NOT keyed on the handle. on_drag emits continuously, each
+    // message re-renders the screen, and every render re-registers the tap
+    // table with fresh handle ints. Keying on the handle therefore cancels the
+    // gesture coroutine one sample into the drag: `began` and a single
+    // `dragging` arrive, then onDragEnd never runs and the drag never closes.
+    // Key on nothing and read the current handle through a snapshot instead.
+    val liveDragHandle by rememberUpdatedState(dragHandle)
+    val dragged = if (dragHandle == null) sized else {
+        sized.pointerInput(Unit) {
+            var startX = 0f
+            var startY = 0f
+            // Last reported position, so the closing event carries where the
+            // finger actually ended and the total translation — iOS's onEnded
+            // reads value.location/value.translation, not the drag origin.
+            var curX = 0f
+            var curY = 0f
+            // Compose reports pixels; the canvas draws in dp and iOS reports
+            // points. Emitting raw pixels would scale every coordinate by the
+            // device's density and put the drag in a different space than the
+            // drawing it is meant to steer.
+            fun emit(px: Float, py: Float, phase: String) {
+                val h = liveDragHandle ?: return
+                MobBridge.nativeSendDrag(
+                    h,
+                    px.toDp().value.toDouble(), py.toDp().value.toDouble(),
+                    (px - startX).toDp().value.toDouble(),
+                    (py - startY).toDp().value.toDouble(),
+                    phase
+                )
+            }
+            detectDragGestures(
+                onDragStart = { off ->
+                    startX = off.x
+                    startY = off.y
+                    curX = off.x
+                    curY = off.y
+                    emit(off.x, off.y, "began")
+                },
+                onDragEnd = { emit(curX, curY, "ended") },
+                // A cancelled drag still has to close, or a listener that opened
+                // state on "began" never gets told to release it.
+                onDragCancel = { emit(curX, curY, "ended") }
+            ) { change, _ ->
+                curX = change.position.x
+                curY = change.position.y
+                emit(curX, curY, "dragging")
+                change.consume()
+            }
+        }
+    }
+
+    Canvas(modifier = dragged) {
         ops.forEach { op -> drawCanvasOp(op) }
     }
 }
@@ -4635,6 +6338,215 @@ private fun MobGpuView(node: MobNode, modifier: Modifier) {
     }
 }
 
+// MobSheet — native modal bottom sheet backed by Material 3 ModalBottomSheet.
+// Presentation is owned by `visible`, a Compose-`remember`ed boolean. The
+// dispatch site keys this whole composable by the sheet's stable node id so a
+// different sheet rendered into the same tree slot gets fresh presentation
+// state. Without that boundary, a late dismiss callback from the old sheet can
+// hide its replacement and its `dismissSent` flag can suppress the new
+// sheet's callback. Sheets without an id keep the former slot-based behavior
+// through the constant Unit fallback.
+//
+// Deliberately does NOT take the `m` (nodeModifier(node.props)-derived)
+// modifier every other composable receives from RenderNodeInner — that
+// modifier already has `background`/`corner_radius` baked in as
+// `.background()`/`.clip()`, which would double up against
+// ModalBottomSheet's own `containerColor`/`shape` params (it owns its
+// container paint the same way M3's Button does, and can't take those
+// via a modifier chain). Content-area props are read directly off
+// `node.props` with those two keys stripped instead.
+// Node types that install their own scrollable container. A sheet must not
+// wrap these in another vertical scroll: Compose throws on a scrollable
+// measured with infinite max height.
+private fun isScrollableNode(node: MobNode): Boolean =
+    node.type == "scroll" || node.type == "lazy_list" || node.children.any(::isScrollableNode)
+
+internal class MobSheetPresentationState {
+    var visible by mutableStateOf(true)
+        private set
+
+    private var active = true
+    private var dismissSent = false
+
+    fun deactivate() {
+        active = false
+    }
+
+    fun dismiss(sendDismiss: () -> Unit) {
+        if (!active) return
+
+        visible = false
+        if (!dismissSent) {
+            dismissSent = true
+            sendDismiss()
+        }
+    }
+}
+
+@Composable
+internal fun MobSheetSlot(
+    node: MobNode,
+    content: @Composable (MobSheetPresentationState) -> Unit
+) {
+    val identityKey = MobNodeIdentity.keyFor(node)
+    // The epoch joins the identity key for the same reason: an id-less sheet
+    // dismissed on the outgoing screen would otherwise carry visible=false and
+    // dismissSent=true into the incoming screen's sheet, which would then never
+    // show and never fire :on_dismiss.
+    key(identityKey ?: Unit, MobBridge.LocalSlotEpoch.current) {
+        val presentation = remember { MobSheetPresentationState() }
+        DisposableEffect(presentation) {
+            onDispose { presentation.deactivate() }
+        }
+        content(presentation)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MobSheet(node: MobNode, presentation: MobSheetPresentationState) {
+    val rawDetents = sheetDetentsProp(node.props)
+    val contentDetent = rawDetents.filterIsInstance<JSONObject>()
+        .firstOrNull { detent -> detent.optString("type") == "content" }
+    val detents = rawDetents.filterIsInstance<String>()
+        .filter { detent -> detent == "medium" || detent == "large" }
+        .ifEmpty { if (contentDetent == null) listOf("medium", "large") else emptyList() }
+    val contentOnly = contentDetent != null
+    val allowsMedium = "medium" in detents
+    val allowsLarge = "large" in detents || contentOnly
+    val mediumOnly = allowsMedium && !allowsLarge
+
+    val dismissHandle = intProp(node.props, "on_dismiss")
+
+    if (!presentation.visible) return
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = !allowsMedium,
+        confirmValueChange = { value ->
+            allowsLarge || value != SheetValue.Expanded
+        }
+    )
+
+    LaunchedEffect(sheetState) { sheetState.show() }
+
+    val containerColor = colorProp(node.props, "background")
+        .takeIf { it != Color.Unspecified } ?: BottomSheetDefaults.ContainerColor
+    val cornerRadius = floatProp(node.props, "corner_radius") ?: 0f
+    val shape = if (cornerRadius > 0f) {
+        RoundedCornerShape(topStart = cornerRadius.dp, topEnd = cornerRadius.dp)
+    } else {
+        BottomSheetDefaults.ExpandedShape
+    }
+    val scrimColor = colorProp(node.props, "scrim")
+        .takeIf { it != Color.Unspecified } ?: BottomSheetDefaults.ScrimColor
+
+    // Custom drag indicator requires all four geometry props together —
+    // Mob.UI.sheet/2 already enforces this; check defensively here too
+    // since a hand-built node map (bypassing that validation) is possible.
+    val indicatorColor = colorProp(node.props, "drag_indicator_color")
+    val indicatorWidth = floatProp(node.props, "drag_indicator_width")
+    val indicatorHeight = floatProp(node.props, "drag_indicator_height")
+    val indicatorRailHeight = floatProp(node.props, "drag_indicator_rail_height")
+    val hasCustomIndicator = indicatorColor != Color.Unspecified &&
+        indicatorWidth != null && indicatorHeight != null && indicatorRailHeight != null
+
+    // background/corner_radius belong to ModalBottomSheet's own
+    // containerColor/shape above — not the child content's modifier.
+    val contentProps = node.props - listOf("background", "corner_radius")
+    val contentModifier = nodeModifier(contentProps)
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            presentation.dismiss {
+                // {:dismiss, tag}, not {:tap, tag} — matches what Mob.UI.sheet/2
+                // documents and what iOS sends. See MOB-104.
+                dismissHandle?.let { MobBridge.nativeSendDismiss(it) }
+            }
+        },
+        sheetState = sheetState,
+        containerColor = containerColor,
+        scrimColor = scrimColor,
+        shape = shape,
+        dragHandle = if (hasCustomIndicator) {
+            {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(indicatorRailHeight!!.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(indicatorWidth!!.dp)
+                            .height(indicatorHeight!!.dp)
+                            .background(indicatorColor, RoundedCornerShape(50))
+                    )
+                }
+            }
+        } else {
+            { BottomSheetDefaults.DragHandle() }
+        }
+    ) {
+        // MOB-follow-up (mob_new-e30-5): Material 3 can omit the
+        // PartiallyExpanded anchor when content is shorter than half the
+        // viewport. A medium-only sheet rejects Expanded (confirmValueChange
+        // above), so a too-short sheet would otherwise never get a valid
+        // anchor to land on and stay hidden. Force content to slightly over
+        // half the measured viewport height in that case only — full
+        // medium+large sheets size to their natural content height as usual.
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val configuredMaximumHeight = contentDetent
+                ?.takeIf { detent -> detent.has("max_height") }
+                ?.optDouble("max_height")
+                ?.toFloat()
+                ?.dp
+            val contentMaximumHeight = configuredMaximumHeight
+                ?.let(maxHeight::coerceAtMost)
+                ?: maxHeight
+            val mediumDetentModifier = if (mediumOnly) {
+                Modifier.heightIn(min = maxHeight * 0.5f + 1.dp)
+            } else {
+                Modifier
+            }
+
+            // Only add our own scroll when the content doesn't already
+            // contain one. Compose's checkScrollableContainerConstraints
+            // THROWS when a scrollable is measured with an infinite max
+            // height, which is exactly what wrapping verticalScroll around a
+            // `scroll` or `lazy_list` child does — so an intrinsic sheet
+            // containing a list (the most natural use of one) crashed at first
+            // measure. iOS survives the equivalent nesting because SwiftUI
+            // tolerates it; Compose does not. Cap the height either way; let
+            // the child own the scrolling when it has its own.
+            val hasScrollableChild = node.children.any(::isScrollableNode)
+            val contentDetentModifier = when {
+                contentOnly && hasScrollableChild ->
+                    Modifier.heightIn(max = contentMaximumHeight)
+
+                contentOnly ->
+                    Modifier
+                        .heightIn(max = contentMaximumHeight)
+                        .verticalScroll(rememberScrollState())
+
+                else -> Modifier
+            }
+
+            Column(
+                // Cap BEFORE the node's own padding, so padding counts against
+                // max_height instead of being added outside it — otherwise a
+                // sheet with padding overshoots the documented cap, and
+                // disagrees with iOS, which caps the already-padded body.
+                modifier = mediumDetentModifier
+                    .then(contentDetentModifier)
+                    .then(contentModifier)
+                    .fillMaxWidth()
+            ) {
+                mobChildKeys(node.children).let { keys ->
+                    node.children.forEachIndexed { i, child -> key(keys[i]) { RenderNode(child) } }
+                }
+            }
+        }
+    }
+}
+
 private fun packGpuUniforms(raw: Any?): ByteArray {
     val list: List<Any?> = when (raw) {
         is JSONArray -> (0 until raw.length()).map { raw.get(it) }
@@ -4896,13 +6808,27 @@ private fun MobVideoPlayer(node: MobNode, modifier: Modifier) {
 @Composable
 private fun MobLazyList(node: MobNode, modifier: Modifier) {
     val handle    = intProp(node.props, "on_end_reached")
-    // Use a persistent LazyListState keyed by handle so scroll position survives
-    // BEAM re-renders. rememberLazyListState() would reset to 0 on every data
-    // update because AnimatedContent creates a fresh composition for each new
-    // RootState, even when only list items changed (no navigation).
-    val listState = remember(handle) {
-        if (handle != null) MobBridge.getOrCreateLazyListState(handle)
+    val stateIdentity = MobLazyListStateIdentity.keyFor(node, handle)
+    // Persist by stable node/slot identity so render-generation changes do not
+    // reset scroll position or leak one LazyListState per frame.
+    // Keyed on the slot epoch as well as the identity.
+    //
+    // `setRootJson` clears `lazyListStates` on navigation, and says why: old
+    // list state would scroll the wrong list to a stale position. That clear
+    // used to stick because the composition was disposed with it. It is not
+    // any more (MOB-146), so a list landing in the same composition slot keeps
+    // the remembered LazyListState OBJECT and never looks at the map again —
+    // the clear becomes a no-op and a push to a structurally similar screen
+    // opens it mid-scroll. An id-less list with no `on_end_reached` has a null
+    // identity, so without the epoch it would retain across every navigation.
+    val listState = remember(stateIdentity, MobBridge.LocalSlotEpoch.current) {
+        if (stateIdentity != null) MobBridge.getOrCreateLazyListState(stateIdentity)
         else LazyListState()
+    }
+
+    // Register by :id so Mob.Test.scroll_info/scroll_to can address this list.
+    (node.props["id"] as? String)?.let { id ->
+        MobBridge.scrollHandle(id).lazyState = listState
     }
 
     val reachedEnd by remember {
@@ -4917,8 +6843,14 @@ private fun MobLazyList(node: MobNode, modifier: Modifier) {
         if (reachedEnd) handle?.let { MobBridge.nativeSendTap(it) }
     }
 
+    // Hoisted out of the LazyColumn: its trailing lambda is a LazyListScope
+    // builder, not a composable, so remember/1 cannot be called inside it.
+    val keys = mobChildKeys(node.children)
+
     LazyColumn(state = listState, modifier = modifier.fillMaxWidth()) {
-        items(node.children) { child -> RenderNode(child) }
+        itemsIndexed(node.children, key = { index, _ -> keys[index] }) { _, child ->
+            RenderNode(child)
+        }
     }
 }
 
@@ -5429,6 +7361,19 @@ private fun tabDefsProp(props: Map<String, Any?>): List<Map<String, String>> {
     }
 }
 
+// MobNode's parser hands array-valued props through as org.json.JSONArray,
+// not Kotlin List — `as? List<*>` silently fails and falls through to the
+// default on every real BEAM-sent tree (see tabDefsProp above for the same
+// pattern). The `is List<*>` branch stays as a fallback purely so a
+// directly-constructed MobNode (e.g. an instrumentation test building props
+// by hand instead of through JSON parsing) still works.
+private fun sheetDetentsProp(props: Map<String, Any?>): List<Any?> =
+    when (val raw = props["detents"]) {
+        is JSONArray -> (0 until raw.length()).map { raw.get(it) }
+        is List<*> -> raw
+        else -> listOf("medium", "large")
+    }
+
 // ── Prop extraction ───────────────────────────────────────────────────────────
 
 // Vertical alignment for Row from the `align:` prop — :top / :center / :bottom
@@ -5530,11 +7475,27 @@ class NotificationReceiver : BroadcastReceiver() {
         val id      = intent.getStringExtra("id")    ?: "mob"
         val dataStr = intent.getStringExtra("data")  ?: "{}"
 
+        // Payload MainActivity.onCreate / onNewIntent expect under this key; they
+        // forward it to the BEAM (delivered now if running, else on next boot).
+        val json = """{"id":"$id","title":"$title","body":"$body","source":"local","data":$dataStr}"""
+
+        // Tap action: bring MainActivity (singleTop) to the foreground carrying
+        // the payload. Without a content intent the tap is a no-op.
+        val tapIntent = android.content.Intent(context, MainActivity::class.java).apply {
+            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("mob_notification_json", json)
+        }
+        val contentPi = PendingIntent.getActivity(
+            context, id.hashCode(), tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
         val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notif = NotificationCompat.Builder(context, MobBridge.NOTIF_CHANNEL_ID)
+        val notif = NotificationCompat.Builder(context, io.mob.plugin.MobNotifyHub.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
+            .setContentIntent(contentPi)
             .setAutoCancel(true)
             .build()
         nm.notify(id.hashCode(), notif)
@@ -5544,12 +7505,6 @@ class NotificationReceiver : BroadcastReceiver() {
         KatiNotificationStore.forget(context, id)
         // KATI-END(K-01 notify-forget)
 
-        // Deliver to BEAM if a screen is running
-        val json = """{"id":"$id","title":"$title","body":"$body","source":"local","data":$dataStr}"""
-        // We can't deliver directly here since we don't have a pid.
-        // The notification delegate in iOS style is set up differently on Android.
-        // Delivery happens via MobBridge when the notification is tapped (MainActivity intent).
-        // For foreground delivery, the screen registers via Mob.Permissions before scheduling.
     }
 
 }

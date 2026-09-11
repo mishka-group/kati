@@ -6,9 +6,12 @@
 package com.example.kati
 
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.net.Uri
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -16,15 +19,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 // KATI-BEGIN(K-09 bottom-inset-only-imports) mob_new=0.4.20
@@ -35,7 +33,13 @@ import androidx.compose.foundation.layout.safeDrawing
 // KATI-END(K-09 bottom-inset-only-imports)
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 // KATI-BEGIN(K-35 semantics-imports) mob_new=0.7.24
 import androidx.compose.ui.semantics.semantics
@@ -46,8 +50,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 // KATI-END(K-12 rtl-imports)
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.core.content.FileProvider
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -80,32 +86,74 @@ class MainActivity : ComponentActivity() {
 
     external fun nativeSetActivity(activity: Activity)
     external fun nativeStartBeam()
+    external fun nativeNotifyOrientation(orient: String)
+    external fun nativeNotifyConnectivity(
+        online: Boolean,
+        transport: String,
+        expensive: Boolean,
+        validated: Boolean,
+    )
 
+    // ── Network connectivity ──────────────────────────────────────────────
+    // A ConnectivityManager.NetworkCallback drives Mob.Device.network_state/0
+    // and the :network subscription. registerDefaultNetworkCallback fires an
+    // initial onCapabilitiesChanged, so the BEAM-side cache is seeded at start.
+    private var connectivityManager: ConnectivityManager? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
-    // KATI-BEGIN(K-31 drop-camera-launchers) mob_new=0.4.20
-    // The photo and video capture launchers went with androidx.camera (#75).
-    // They were reachable only from MobBridge.camera_capture_photo/_video,
-    // which nothing could call: no cacheRequired/cacheOptional entry in
-    // mob_nif.zig and no reference in deps/mob.
-    //
-    // FileProvider stays. It reads as camera scaffolding, and its manifest
-    // comment said so, but K-20 file-transport shares the .katibackup through
-    // the same provider — removing it would break Save As and Share, which are
-    // the only way a user can get their data off the phone.
-    // KATI-END(K-31 drop-camera-launchers)
+    private fun registerNetworkCallback() {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+        connectivityManager = cm
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                pushConnectivity(caps)
+            }
 
-    // ── Photo picker launcher ─────────────────────────────────────────────
-    private val photosPickerLauncher =
-        registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
-            MobBridge.handlePhotosResult(uris)
+            override fun onLost(network: Network) {
+                // Don't blindly report offline: on a wifi->cellular handoff the
+                // lost default's onLost can arrive after the new default has
+                // settled, which would leave us stuck offline. Re-check the
+                // current active network before concluding there's no path.
+                val active = connectivityManager?.activeNetwork
+                val caps = active?.let { connectivityManager?.getNetworkCapabilities(it) }
+                pushConnectivity(caps)
+            }
         }
+        networkCallback = callback
+        try {
+            cm.registerDefaultNetworkCallback(callback)
+        } catch (_: Throwable) {
+        }
+    }
 
-    fun launchPhotosPicker(max: Int) {
-        photosPickerLauncher.launch(
-            androidx.activity.result.PickVisualMediaRequest(
-                androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageAndVideo
-            )
-        )
+    private fun pushConnectivity(caps: NetworkCapabilities?) {
+        if (caps == null) {
+            notifyConnectivitySafe(false, "none", false, false)
+            return
+        }
+        val transport = when {
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cellular"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "wired"
+            else -> "other"
+        }
+        val expensive = !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+        // Android actively probes for real internet reachability — false on a
+        // captive portal / before validation. iOS has no equivalent (:unavailable).
+        val validated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        notifyConnectivitySafe(true, transport, expensive, validated)
+    }
+
+    private fun notifyConnectivitySafe(
+        online: Boolean,
+        transport: String,
+        expensive: Boolean,
+        validated: Boolean,
+    ) {
+        try {
+            nativeNotifyConnectivity(online, transport, expensive, validated)
+        } catch (_: Throwable) {
+        }
     }
 
     // ── File picker launcher ──────────────────────────────────────────────
@@ -163,12 +211,6 @@ class MainActivity : ComponentActivity() {
         katiShareLauncher.launch(chooser)
     }
     // KATI-END(K-20 file-transport-launcher)
-
-    // KATI-BEGIN(K-31 drop-scanner-launcher) mob_new=0.4.20
-    // The QR scanner launcher went with MobScannerActivity, CameraX, ML Kit
-    // and AppCompat (#75). QR scanning is not in v1 and the CAMERA permission
-    // is already gone from the manifest.
-    // KATI-END(K-31 drop-scanner-launcher)
 
     // ── Permission result ─────────────────────────────────────────────────
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
@@ -233,6 +275,15 @@ class MainActivity : ComponentActivity() {
 
         MobBridge.init(this)
 
+        registerNetworkCallback()
+
+        // Register activated plugins' Kotlin bridge classes (generated by
+        // mob_dev at build time). Each register() caches its own jclass +
+        // method IDs natively so the plugin's NIF can call into it; the
+        // Activity is then handed to any bridge implementing
+        // io.mob.plugin.MobActivityAware. Must run before the BEAM starts.
+        io.mob.plugin.MobPluginBootstrap.registerAll(this)
+
         // Forward launcher-supplied env vars into the BEAM process. Set BEFORE
         // nativeStartBeam below so the BEAM (and Mob.Dist in particular) sees
         // them when it reads getenv()/System.get_env/1.
@@ -295,105 +346,7 @@ class MainActivity : ComponentActivity() {
             } ?: darkColorScheme()
 
             MaterialTheme(colorScheme = colorScheme) {
-                AnimatedContent(
-                    targetState   = state,
-                    contentKey    = { it.navKey },
-                    transitionSpec = {
-                        when (targetState.transition) {
-                            "push" ->
-                                slideInHorizontally(animationSpec = tween(300)) { it } togetherWith
-                                slideOutHorizontally(animationSpec = tween(300)) { -it / 3 }
-                            "pop" ->
-                                slideInHorizontally(animationSpec = tween(300)) { -it / 3 } togetherWith
-                                slideOutHorizontally(animationSpec = tween(300)) { it }
-                            "reset" ->
-                                fadeIn(animationSpec = tween(250)) togetherWith
-                                fadeOut(animationSpec = tween(250))
-                            else ->
-                                EnterTransition.None togetherWith ExitTransition.None
-                        }
-                    },
-                    label = "nav"
-                ) { s ->
-                    // KATI-BEGIN(K-12 rtl-root) mob_new=0.4.20
-                    // Mob has no RTL support: nothing in deps/mob/lib or the
-                    // bridge sets LocalLayoutDirection, so Persian text renders
-                    // correctly shaped but always left-aligned.
-                    //
-                    // The direction comes from a `layout_direction` prop on the
-                    // ROOT node rather than from Locale.getDefault(), because
-                    // Kati's language is an in-app setting: a Persian user on an
-                    // English phone must still get RTL, and the two must never
-                    // disagree.
-                    s.node?.let { root ->
-                        val rtl = (root.props["layout_direction"] as? String) == "rtl"
-                        val direction = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
-
-                        // KATI-BEGIN(K-48 locale-face-root) mob_new=0.7.24
-                        // The app's default face, read off the same root node
-                        // and for the same reason as the direction above: the
-                        // language is an in-app setting, so a Persian reader on
-                        // an English phone must get Vazirmatn.
-                        //
-                        // This is the half no screen can reach. A Text a screen
-                        // writes can carry `font_family`; a Text a COMPONENT
-                        // builds cannot, and `MobBridge`'s `fontFamilyProp`
-                        // resolved that missing prop to Latin — so Kati's
-                        // Persian was being set in Android's substitute face,
-                        // one component at a time, legibly enough that nobody
-                        // read it as a bug. `Kati.PersianFontTest`'s moduledoc
-                        // is where that was first written down.
-                        //
-                        // A root that names no face leaves `LocalKatiFace` null
-                        // and every Text behaves exactly as it did before.
-                        val face = root.props["font_family"] as? String
-                        // KATI-END(K-48 locale-face-root)
-
-                        CompositionLocalProvider(
-                            LocalLayoutDirection provides direction,
-                            // KATI-BEGIN(K-48 locale-face-provide) mob_new=0.7.24
-                            LocalKatiFace provides face,
-                            // KATI-END(K-48 locale-face-provide)
-                        ) {
-                            // KATI-BEGIN(K-09 bottom-inset-only) mob_new=0.4.20
-                            // Bottom inset only, not safeDrawingPadding().
-                            //
-                            // The design's frames are 402x874 with `padding:64px 21px 132px`
-                            // and they draw their OWN status bar inside that 64px. So the
-                            // drawing measures from the physical top of the screen, and
-                            // insetting the whole root pushed every screen down by the
-                            // status bar's height — measured at ~42dp, which put Home's
-                            // eyebrow at 106dp where the drawing has it at 64.
-                            //
-                            // The bottom is different and keeps its inset: the drawing is an
-                            // iOS frame with a home indicator, while this device has a
-                            // gesture bar the dock would otherwise sit under. Losing 30dp of
-                            // paper at the bottom is invisible; a tab bar you cannot press
-                            // is not.
-                            RenderNode(
-                                root,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    // KATI-BEGIN(K-35 test-tags-as-resource-id) mob_new=0.7.24
-                                    // Publishes every `testTag` under the tree as an Android
-                                    // `resource-id`. Compose keeps test tags to itself by
-                                    // default: `onNodeWithTag` sees them, a `uiautomator dump`
-                                    // does not. Set once at the root, it applies to the whole
-                                    // tree, and it is what lets a UI Automator test address a
-                                    // Kati control by the same name the Elixir side gave it.
-                                    .semantics { testTagsAsResourceId = true }
-                                    // KATI-END(K-35 test-tags-as-resource-id)
-                                    .padding(
-                                        bottom = WindowInsets.safeDrawing
-                                            .asPaddingValues()
-                                            .calculateBottomPadding()
-                                    )
-                            )
-                            // KATI-END(K-09 bottom-inset-only)
-                        }
-                    }
-                    // KATI-END(K-12 rtl-root)
-                }
+                MobNavHost(state)
             }
         }
 
@@ -509,7 +462,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         intent.extras?.getString("mob_notification_json")?.let { json ->
-            val pid = MobBridge.notifyPid
+            val pid = io.mob.plugin.MobNotifyHub.notifyPid
             if (pid != 0L) {
                 MobBridge.nativeDeliverNotification(pid, json)
             } else {
@@ -527,6 +480,31 @@ class MainActivity : ComponentActivity() {
         val nightMode = newConfig.uiMode and Configuration.UI_MODE_NIGHT_MASK
         val scheme = if (nightMode == Configuration.UI_MODE_NIGHT_YES) "dark" else "light"
         MobBridge.notifyColorSchemeChanged(scheme)
+
+        // Forward the new orientation to the BEAM so Mob.Device.orientation/0 and
+        // the :display subscription reflect a rotation (mob_send_orientation_changed).
+        val orient = when (display?.rotation) {
+            android.view.Surface.ROTATION_90 -> "landscape_left"
+            android.view.Surface.ROTATION_270 -> "landscape_right"
+            android.view.Surface.ROTATION_180 -> "portrait_upside_down"
+            else -> "portrait"
+        }
+        try {
+            nativeNotifyOrientation(orient)
+        } catch (_: Throwable) {
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        val cm = connectivityManager
+        val cb = networkCallback
+        if (cm != null && cb != null) {
+            try {
+                cm.unregisterNetworkCallback(cb)
+            } catch (_: Throwable) {
+            }
+        }
     }
 
     // Pulls an ARGB long out of the BEAM-pushed theme map, falling back to
@@ -534,4 +512,217 @@ class MainActivity : ComponentActivity() {
     // custom theme that doesn't define every Material 3 slot).
     private fun colorFromMap(map: Map<String, Long>, key: String, fallback: Long): Color =
         Color(map[key] ?: fallback)
+}
+
+// ── Identity-preserving screen presentation (MOB-146) ──────────────────────
+//
+// Navigation used to render through `AnimatedContent(contentKey = { navKey })`.
+// AnimatedContent wraps each content in `key(contentKey)`, so a changing key
+// disposes the outgoing composition and builds the incoming one from nothing —
+// structurally the same thing `.id(currentNavVersion)` did on iOS before
+// MOB-129. Measured on a 1600-node screen, physical moto g power: a push cost
+// 818ms against a 221ms steady-state re-render.
+//
+// So navigation no longer changes identity. One mount point sits at a fixed
+// structural position — that position IS its identity, and no key is used — and
+// a navigation simply replaces the tree inside it. Compose then diffs the new
+// tree against the one already mounted, which is what a re-render of the same
+// screen has always done; the difference between a "navigation" and a
+// "re-render" stops being a difference in kind and becomes a difference in how
+// many nodes changed.
+//
+// The slide is driven by an animated offset on that mount point rather than by
+// an enter/exit transition, because those only fire on insert/remove and
+// insert/remove is precisely what costs the time.
+//
+// **Why one mount point and not two.** iOS uses two slots and keeps the
+// outgoing tree parked, which buys depth-1 retention: popping back diffs
+// against the screen still sitting in the other slot. That does not transfer.
+// Measured here, a parked Compose subtree recomposes on every render of the
+// active screen — 6 recompositions of the parked node across 6 re-renders —
+// which took a steady-state re-render from 151ms to 273ms. Re-renders are far
+// more frequent than navigations, so retention cost more than it saved. One
+// slot keeps the whole win of identity preservation and none of that.
+//
+// The visible trade is that the outgoing screen does not slide out
+// simultaneously; the incoming one slides in over the background. See mob's
+// decisions/2026-09-04-two-slot-screen-presentation.md for the iOS original.
+@Composable
+private fun MobNavHost(state: RootState) {
+    var containerWidth by remember { mutableIntStateOf(0) }
+    val offset = remember { Animatable(0f) }
+
+    // Keyed on navKey, NOT on `state`.
+    //
+    // `LaunchedEffect` cancels its coroutine when the key changes, and `state`
+    // is a new RootState on every render. Keying on it meant any re-render
+    // arriving during the 300ms slide — a timer, an async mount, a
+    // subscription — cancelled `animateTo` and left the offset frozen wherever
+    // it had reached. The screen stayed parked off-canvas and the app rendered
+    // BLANK, while the BEAM went on reporting the correct screen and assigns:
+    // an agent driving over dist would see nothing wrong. Reproduced on device
+    // by sending one re-render 100ms after a navigation.
+    //
+    // navKey changes only on a real navigation, so an ordinary re-render
+    // cannot cancel the slide, and a second navigation correctly interrupts
+    // and restarts it.
+    LaunchedEffect(state.navKey) {
+        // Recovery first, before any early exit: an interrupted slide must not
+        // be able to leave the screen displaced just because the width is not
+        // known yet.
+        if (containerWidth <= 0) {
+            offset.snapTo(0f)
+            return@LaunchedEffect
+        }
+
+        val width = containerWidth.toFloat()
+        val from = when (state.transition) {
+            "push" -> width
+            "pop" -> -width
+            else -> 0f
+        }
+
+        if (from == 0f) {
+            // No slide for a reset or a first mount, but the offset still has
+            // to be returned to rest in case a previous slide was interrupted.
+            offset.snapTo(0f)
+        } else {
+            offset.snapTo(from)
+            offset.animateTo(0f, tween(durationMillis = 300))
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            // Painted, not inherited. Only one screen is mounted now, so the
+            // strip the incoming screen has not covered yet shows whatever is
+            // behind the composition — and that is the window background,
+            // hardcoded black in styles.xml. Without this a light-themed app
+            // gets a black wedge sweeping across it for the whole slide.
+            .background(MaterialTheme.colorScheme.background)
+            // Clips drawing AND hit-testing to the container, so a screen
+            // parked off-screen mid-slide cannot be tapped.
+            .clipToBounds()
+            .onSizeChanged { containerWidth = it.width }
+    ) {
+        // `graphicsLayer`, not `offset`. Both read the animating value in a
+        // lambda, so neither recomposes the tree per frame — but
+        // `Modifier.offset {}` is a layout modifier, so every frame of the
+        // slide re-runs the placement pass down through 1600 mounted nodes.
+        // A layer translation moves the same pixels in the draw phase with no
+        // layout invalidation at all, which on a performance ticket is the
+        // difference worth having.
+        Box(Modifier.fillMaxSize().graphicsLayer { translationX = offset.value }) {
+            // Rendered straight from `state`, exactly as the AnimatedContent
+            // version was. Routing it through a state variable set by a
+            // LaunchedEffect would leave the first frame after every set_root
+            // showing nothing, because effects run after composition.
+            state.node?.let { node ->
+                // navKey IS the epoch, and needs to be nothing more.
+                //
+                // The frame-registry gate has each tracked node remember the
+                // generation current when it first composed, and refuses
+                // writes stamped older than the current one. That used to work
+                // for free: AnimatedContent made the incoming tree a fresh
+                // composition, so it always captured the bumped value. With
+                // the mount point preserved it is not free — nodes Compose
+                // reuses across a navigation keep the generation they captured
+                // for the PREVIOUS screen, which setRootJson has just
+                // superseded, and their frame writes would be refused for
+                // ever. element_frames would quietly lose those ids and tap_id
+                // would stop finding them, with nothing raised.
+                //
+                // navKey moves on exactly the right events — every non-"none"
+                // transition and nothing else — so re-keying the trackers on
+                // it re-captures the generation on navigation and leaves a
+                // same-screen re-render alone. Providing it through a
+                // CompositionLocal is what keeps trackers from reading the
+                // root state directly, which would resubscribe every tagged
+                // node to every root update.
+                // KATI-BEGIN(K-12 rtl-root) mob_new=0.4.33
+                // Mob has no RTL support: nothing in deps/mob/lib or the
+                // bridge sets LocalLayoutDirection, so Persian text renders
+                // correctly shaped but always left-aligned.
+                //
+                // The direction comes from a `layout_direction` prop on the
+                // ROOT node rather than from Locale.getDefault(), because
+                // Kati's language is an in-app setting: a Persian user on an
+                // English phone must still get RTL, and the two must never
+                // disagree.
+                //
+                // mob_new 0.4.33 moved this block out of `AnimatedContent`
+                // and into `MobNavHost`'s single mount point (MOB-146). The
+                // wrapping is unchanged; only the place it wraps moved, and
+                // it now sits INSIDE the slot-epoch provider so the frame
+                // registry keeps the generation upstream gives it.
+                val rtl = (node.props["layout_direction"] as? String) == "rtl"
+                val direction = if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+
+                // KATI-BEGIN(K-48 locale-face-root) mob_new=0.4.33
+                // The app's default face, read off the same root node and for
+                // the same reason as the direction above: the language is an
+                // in-app setting, so a Persian reader on an English phone must
+                // get Vazirmatn.
+                //
+                // This is the half no screen can reach. A Text a screen writes
+                // can carry `font_family`; a Text a COMPONENT builds cannot,
+                // and `MobBridge`'s `fontFamilyProp` resolved that missing
+                // prop to Latin — so Kati's Persian was being set in Android's
+                // substitute face, one component at a time, legibly enough
+                // that nobody read it as a bug. `Kati.PersianFontTest`'s
+                // moduledoc is where that was first written down.
+                //
+                // A root that names no face leaves `LocalKatiFace` null and
+                // every Text behaves exactly as it did before.
+                val face = node.props["font_family"] as? String
+                // KATI-END(K-48 locale-face-root)
+
+                CompositionLocalProvider(
+                    MobBridge.LocalSlotEpoch provides state.navKey,
+                    LocalLayoutDirection provides direction,
+                    // KATI-BEGIN(K-48 locale-face-provide) mob_new=0.4.33
+                    LocalKatiFace provides face,
+                    // KATI-END(K-48 locale-face-provide)
+                ) {
+                    // KATI-BEGIN(K-09 bottom-inset-only) mob_new=0.4.33
+                    // Bottom inset only, not safeDrawingPadding().
+                    //
+                    // The design's frames are 402x874 with `padding:64px 21px 132px`
+                    // and they draw their OWN status bar inside that 64px. So the
+                    // drawing measures from the physical top of the screen, and
+                    // insetting the whole root pushed every screen down by the
+                    // status bar's height — measured at ~42dp, which put Home's
+                    // eyebrow at 106dp where the drawing has it at 64.
+                    //
+                    // The bottom is different and keeps its inset: the drawing is an
+                    // iOS frame with a home indicator, while this device has a
+                    // gesture bar the dock would otherwise sit under. Losing 30dp of
+                    // paper at the bottom is invisible; a tab bar you cannot press
+                    // is not.
+                    RenderNode(
+                        node,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            // KATI-BEGIN(K-35 test-tags-as-resource-id) mob_new=0.4.33
+                            // Publishes every `testTag` under the tree as an Android
+                            // `resource-id`. Compose keeps test tags to itself by
+                            // default: `onNodeWithTag` sees them, a `uiautomator dump`
+                            // does not. Set once at the root, it applies to the whole
+                            // tree, and it is what lets a UI Automator test address a
+                            // Kati control by the same name the Elixir side gave it.
+                            .semantics { testTagsAsResourceId = true }
+                            // KATI-END(K-35 test-tags-as-resource-id)
+                            .padding(
+                                bottom = WindowInsets.safeDrawing
+                                    .asPaddingValues()
+                                    .calculateBottomPadding()
+                            )
+                    )
+                    // KATI-END(K-09 bottom-inset-only)
+                }
+                // KATI-END(K-12 rtl-root)
+            }
+        }
+    }
 }

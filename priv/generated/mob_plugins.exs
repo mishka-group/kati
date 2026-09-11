@@ -10,5 +10,6 @@
   lifecycle: [],
   styles: [],
   default_style: nil,
-  composites: []
+  composites: [],
+  default_font: nil
 }

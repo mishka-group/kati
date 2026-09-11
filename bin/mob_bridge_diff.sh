@@ -33,6 +33,12 @@ trap 'rm -rf "$WORK"' EXIT
 tracked() { grep -vE '^\s*(#|$)' native/TRACKED; }
 
 echo "── Generating a pristine app with the installed mob_new ──"
+# asdf resolves the toolchain from the nearest .tool-versions, and $WORK has
+# none — so `mix` there is the GLOBAL Elixir, whose archive directory is a
+# different one and does not hold mob_new. The task then reports itself
+# missing while being installed perfectly well for this project. Carry the
+# pin across so the generator runs on the same Elixir the app builds on.
+[ -f .tool-versions ] && cp .tool-versions "$WORK/.tool-versions"
 ( cd "$WORK" && mix mob.new kati --dest "$WORK" --no-install >/dev/null 2>&1 ) \
   || { echo "mix mob.new failed — is the mob_new archive installed?"; exit 1; }
 THEIRS="$WORK/kati"

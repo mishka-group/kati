@@ -4,38 +4,58 @@
 # The NDK pin is not cosmetic: bumping it requires rebuilding the OTP tarballs,
 # because libbeam.a embeds libc++ symbols under a clang-version-specific inline
 # namespace (NDK 27 / clang 18 -> ne180000, NDK 25 / clang 14 -> ne140000).
+#
+# The zig pin is EXACT and not a floor: MobDev.Toolchain compares the string
+# `zig version` prints, so 0.16.0 is refused with the same message a missing
+# zig gets. ziglang.org prunes nightlies, so this build is not on the asdf
+# plugin's index — it came from the mach mirror (pkg.machengine.org, which
+# redirects to pkg.hexops.org) and was unpacked into ~/.asdf/installs/zig by
+# hand. See .tool-versions.
 
-mob_new=0.4.20
-mob=0.7.20
-mob_dev=0.6.23
+mob_new=0.4.33
+mob=0.8.0
+mob_dev=0.7.0
 ndk=27.2.12479018
-zig=0.15.2
+zig=0.17.0-dev.269+ebff43698
 erts=17.0
-generated=2026-08-18
+generated=2026-09-11
 
-# sha256 of each PRISTINE baseline file under native/baseline/0.4.20/.
+# sha256 of each PRISTINE baseline file under native/baseline/0.4.33/.
 # These describe upstream, not Kati's edited copies. A mismatch means the
 # baseline was tampered with, which silently corrupts the three-way merge.
-0c49da40c630c87de0cd4a365d02e065b2d0f1bc3e2103769a53cf9aed21f025  android/app/src/main/java/com/example/kati/MobBridge.kt
-d09795aedcbde2c2a8f7d6fcc707df628bba9ad8f023a32c857585a1e018bf27  android/app/src/main/java/com/example/kati/MainActivity.kt
+#
+# An EMPTY file (e3b0c442… is sha256 of nothing) means upstream generates no
+# such file, so the whole of Kati's copy is Kati's. Seven of those are Kati's
+# own Kotlin, tracked so an edit to them is a deliberate act. The eighth is
+# new at 0.4.33: BeamForegroundService.kt WAS generated at 0.4.20 and is not
+# any more — Mob.Background left core, and the service is now referenced only
+# by Kati's own manifest and by two comments in MobBridge.kt. It is carried
+# rather than deleted because deleting a declared <service> is a separate
+# decision from a template merge.
+#
+# MobScannerActivity.kt and MobFirebaseService.kt had rows here at 0.4.20 and
+# have none now: #75 deleted both files, and 0.4.33 no longer generates either
+# (they moved to the mob_scanner and mob_notify plugins).
+
+36fca9b25498bcfe842e919cebd352967c5493d97a3d3ac9d8b0bb18ab697026  android/app/src/main/java/com/example/kati/MobBridge.kt
+59758469b461ec4d5f5827635d02f2b329215ff6f2cdbd5ed817a19f71e25599  android/app/src/main/java/com/example/kati/MainActivity.kt
 0f116c4bb3fa9e31a15e6c46a72f4850cfa616b7e361939083da0dddd76115b3  android/app/src/main/java/com/example/kati/MobNode.kt
-fdf50275f92b79c3d9d5defa1813ac2b559d36e91d9b9c4f9d62dca495268313  android/app/src/main/java/com/example/kati/MobScannerActivity.kt
-91342fdaf60f6ab61dd3c613b07761095f31c1feb9081483e81b7130a48dc993  android/app/src/main/java/com/example/kati/MobFirebaseService.kt
-d31a41616efb2255b135e7033a925b4b77923f1b643417e56bdbda877673db03  android/app/src/main/java/com/example/kati/BeamForegroundService.kt
-bc4ce0bddfda83b6b62f59df4198ded61932790cf28fadb71aaa8aa548550a18  android/app/src/main/AndroidManifest.xml
-79c27043d7b2ebe0ce74248d8f7c4ba500cc4ed85d8f586d115feca700c85586  android/app/build.gradle
-2b02485ff58bb077bcf94c433669da1d78fec814d097cdaadf6adca261baa458  android/build.gradle
+cf4b7a4ddce15b4487b6a8fa473442ea8facbe04e51980209bd2dc76c9c80041  android/app/src/main/java/com/example/kati/MobJson.kt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/BeamForegroundService.kt
+8cfcd33e1f320438fc6d5178be5890cead6e1dd9a62ff59da2138eaa5a265be3  android/app/src/main/AndroidManifest.xml
+a09ccb6b20abb2bb1b17b20e17063df5ef8ff5390b7a02972d91b40082b0ef9c  android/app/build.gradle
+814b24514334bcdbd8392fac6d12214c5ef01a40f079f79b12232412a4cdcd8d  android/build.gradle
 4b919cfffaed71637d1ee9c89f21f4247273e14eb8433afdcd0672eba906b41f  android/settings.gradle
 09b6c2b77952a6c23f720425f00a908e73326d103f9455110c97d00533415688  android/gradle.properties
 750a8095df99592cfd30060ef970947fda2da9e23710a51ca1f028636c2569b3  android/gradle/wrapper/gradle-wrapper.properties
-3389f08acce75ad90e8434f9bd6fb4156c6cc495192181a1d93b02da888ce380  android/app/src/main/jni/build.zig
-3537410d0db7eb4fd9820edb40e59ccd0296fba30f51980eb032e50f44a7f80b  android/app/src/main/jni/CMakeLists.txt
-0e1ae385edb508fd264b940d7787535c13e0c3780309ad040b80ce8887a8876e  android/app/src/main/jni/beam_jni.c
+1160bd18bfc93054cf5cd054e23f136a4d8eabdadeb3b7fcfb79a5eb7161aef8  android/app/src/main/jni/build.zig
+24fd5f541dec65750dc1a6162bcd8654941983f7b0f9d352b757f546428bc1b7  android/app/src/main/jni/CMakeLists.txt
+c60a945173d39362eba992b1e2994dc4400cca6bb66c7aff082b4b0748beeec5  android/app/src/main/jni/beam_jni.c
 f761e37fb947cbb83f36c0f969785b4ad820d1d6b0b3a8d230593c0015f812fc  ios/beam_main.m
-4e1b90ec3ae49d22fd61d663b8e42a6121e840d4d4c0f229d17c2c122ed2856d  ios/AppDelegate.m
-b5957532034396a7d614d2132706d38b5792b4ce8af06d2e01d1d95921bb63c1  ios/Info.plist
-b9e8e903876c9c0725b2b6fb47df5235b1b57f7ad8e3bebeda04b887fe3573c8  ios/build.zig
-de21b4fc5f6165913965eb9fd085625e77d7061966c16a978db267628650a9f1  ios/build_device.zig
+344dafe3f8722fd11d27803ee9df6e5289eb24ae554c2bf8f0dc6627b0c66e94  ios/AppDelegate.m
+fe73e21c95f31946f20a13239972f80dd61baca73f7bc0b33129d3d94e7416b1  ios/Info.plist
+e88bb8119fa84b8fc74f0d779b33830db1cafc0328ca0f34a0a61be3d2bcc254  ios/build.zig
+de321faa4675af2d9a06859377bbc90727dd7a36ce236ed849cd9e7046c8920c  ios/build_device.zig
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiDeviceZone.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiBootReceiver.kt
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  android/app/src/main/java/com/example/kati/KatiNotificationStore.kt

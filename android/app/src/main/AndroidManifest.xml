@@ -32,6 +32,17 @@
 
     <!-- Third-party metadata APIs (TMDB, TVmaze, AniList) -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- DELETED by K-01 permission-trim: ACCESS_NETWORK_STATE, which mob_new
+         0.4.33 added for `Mob.Device.network_state/0` and the `:network`
+         events. Nothing in Kati reads either — `Kati.Media.Tmdb` reports a
+         failed fetch from the failure itself ("Could not reach TMDB. Hand-typed
+         titles still work.") rather than by asking the OS first. A permission
+         with no caller is one the Play data-safety form cannot answer for,
+         which is what `Kati.HostHardeningTest` asserts.
+
+         MainActivity's generated `registerDefaultNetworkCallback` is wrapped in
+         a bare `catch (_: Throwable)`, so without the permission it takes the
+         SecurityException and publishes nothing — which is the same as now. -->
 
     <!-- Release and air-date reminders -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -53,6 +64,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- KATI-END(K-01 permission-trim) -->
 
+    <!-- Package visibility (API 30+): apps we want to launch via Mob.Device.open_url. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />

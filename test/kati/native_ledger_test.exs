@@ -97,9 +97,14 @@ defmodule Kati.NativeLedgerTest do
   end
 
   test "every ledger row corresponds to a real fence" do
+    # Only the ACTIVE table. A retired row is a row whose fence is gone on
+    # purpose — that is what retiring one means — so scanning the whole file
+    # made the first retirement fail this test with its own remedy ("move its
+    # row to Retired") already carried out. The Retired table is asserted
+    # separately below, on the opposite condition.
     documented =
       ~r/^\| `([^`]+)` \|/m
-      |> Regex.scan(File.read!(@ledger))
+      |> Regex.scan(active_section())
       |> Enum.map(&List.last/1)
 
     live = all_fences()
@@ -109,6 +114,35 @@ defmodule Kati.NativeLedgerTest do
              "LEDGER.md documents #{inspect(label)} but no such fence exists — if the patch was " <>
                "removed, move its row to Retired"
     end
+  end
+
+  test "no retired row still has a fence in the tree" do
+    # The mirror of the test above. A row moved to Retired while its fence is
+    # still in the file is the more dangerous half of the same mistake: the
+    # ledger then says an edit is gone from vendored code that is in fact
+    # still there, and the next merge takes upstream's version over it without
+    # anyone being asked.
+    retired =
+      ~r/^\| `([^`]+)` \|/m
+      |> Regex.scan(retired_section())
+      |> Enum.map(&List.last/1)
+
+    live = all_fences()
+
+    for label <- retired do
+      refute label in live,
+             "LEDGER.md retires #{inspect(label)}, but the fence is still in the tree"
+    end
+  end
+
+  defp active_section do
+    [_, body] = String.split(File.read!(@ledger), "## Active patches", parts: 2)
+    body |> String.split("## Retired patches", parts: 2) |> hd()
+  end
+
+  defp retired_section do
+    [_, body] = String.split(File.read!(@ledger), "## Retired patches", parts: 2)
+    body |> String.split("## Files with no Kati edits", parts: 2) |> hd()
   end
 
   test "fence labels name the ticket and the mob_new version they were written against" do

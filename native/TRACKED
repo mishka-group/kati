@@ -8,6 +8,9 @@
 android/app/src/main/java/com/example/kati/MobBridge.kt
 android/app/src/main/java/com/example/kati/MainActivity.kt
 android/app/src/main/java/com/example/kati/MobNode.kt
+# MobJson.kt is new in mob_new 0.4.33: the bridge's own JSON reader, split
+# out of MobBridge.kt. Carried untouched.
+android/app/src/main/java/com/example/kati/MobJson.kt
 # MobScannerActivity.kt was DELETED by #75 with CameraX, ML Kit and AppCompat.
 # QR scanning is not in v1, the CAMERA permission is already gone, and nothing
 # could reach scanner_scan (see K-31). Its 0.4.20 baseline stays under

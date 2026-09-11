@@ -2,6 +2,14 @@
 # erts-17.0 (OTP 29). mob_dev's elixir_skew check compares MINOR versions.
 # zig is the Android/iOS cross-compiler mob_dev shells out to.
 #
+# zig moved to the 0.17.0-dev.269+ebff43698 nightly on 11 September, because
+# mob_dev pins it EXACTLY (MobDev.Toolchain.@required_zig_version, string
+# equality — not a floor), and every mob_dev from 0.6.24 onward wants that
+# one build. ziglang.org prunes nightlies, so it is not on the asdf plugin's
+# index; it came from the mach mirror (pkg.machengine.org -> pkg.hexops.org)
+# and was unpacked into ~/.asdf/installs/zig/ by hand. `asdf list all zig`
+# will not show it.
+#
 # zig was 0.15.2 until 4 September. On macOS 26 (CommandLineTools SDK 27.0)
 # 0.15.2 cannot link its own build runner: `zig build` on an EMPTY build.zig
 # fails with ~24 undefined libSystem symbols (_malloc, _fork, _dispatch_*,
@@ -10,4 +18,4 @@
 # the 26.5 and 27.0 SDKs carry identical libSystem.B.tbd target lists anyway.
 erlang 29.0.2
 elixir 1.20.2-otp-29
-zig 0.16.0
+zig 0.17.0-dev.269+ebff43698
