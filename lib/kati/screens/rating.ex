@@ -1675,14 +1675,13 @@ defmodule Kati.Screens.Rating do
         |> Enum.map(fn {label, date} ->
           Kati.Screens.Rating.choice(label, "day_" <> Date.to_iso8601(date), date == w.watched_on)
         end)
-        |> Enum.intersperse(Kati.Screens.Rating.tag_gap())
     }
 
     ~MOB"""
     <Column fill_width={true} padding_bottom={13}>
-      <Row fill_width={true} align="center">
+      <Wrap fill_width={true} spacing={7} run_spacing={7}>
         {@chips}
-      </Row>
+      </Wrap>
     </Column>
     """
   end
@@ -1691,16 +1690,15 @@ defmodule Kati.Screens.Rating do
     assigns = %{
       chips:
         (Kati.Screens.Rating.where_options(w) ++ [Kati.Screens.Rating.no_service()])
-        |> Enum.map(&Kati.Screens.Rating.choice(&1, "where_" <> &1, &1 == w.service))
-        |> Enum.intersperse(Kati.Screens.Rating.tag_gap()),
+        |> Enum.map(&Kati.Screens.Rating.choice(&1, "where_" <> &1, &1 == w.service)),
       empty?: Kati.Screens.Rating.where_options(w) == []
     }
 
     ~MOB"""
     <Column fill_width={true} padding_bottom={13}>
-      <Row fill_width={true} align="center">
+      <Wrap fill_width={true} spacing={7} run_spacing={7}>
         {@chips}
-      </Row>
+      </Wrap>
       {Kati.Screens.Rating.where_note(@empty?)}
       {Kati.Screens.Rating.place_editor(w)}
     </Column>
@@ -1866,15 +1864,14 @@ defmodule Kati.Screens.Rating do
     chips =
       (Enum.map(w.tags, &Kati.Screens.Rating.tag(&1, live?)) ++
          [Kati.Screens.Rating.add_tag(live?)])
-      |> Enum.intersperse(Kati.Screens.Rating.tag_gap())
 
     assigns = %{chips: chips, field: Kati.Screens.Rating.tag_field(w)}
 
     ~MOB"""
     <Column fill_width={true}>
-      <Row fill_width={true} align="center">
+      <Wrap fill_width={true} spacing={7} run_spacing={7}>
         {@chips}
-      </Row>
+      </Wrap>
       {@field}
     </Column>
     """
@@ -1941,15 +1938,14 @@ defmodule Kati.Screens.Rating do
           chips:
             words
             |> Enum.map(&Kati.Screens.Rating.suggestion(&1))
-            |> Enum.intersperse(Kati.Screens.Rating.tag_gap())
         }
 
         ~MOB"""
         <Column fill_width={true}>
           <Spacer size={9} />
-          <Row fill_width={true} align="center">
+          <Wrap fill_width={true} spacing={7} run_spacing={7}>
             {@chips}
-          </Row>
+          </Wrap>
         </Column>
         """
     end
@@ -2003,8 +1999,19 @@ defmodule Kati.Screens.Rating do
   @doc false
   def commit_tag, do: Kati.Screens.Rating.commit_pill("Add", :commit_tag)
 
-  @doc false
-  def tag_gap, do: ~MOB"<Spacer size={7} />"
+  @doc """
+  The gap between chips, in pt.
+
+  It used to be a 7pt `Spacer` interspersed between them and is now the number
+  the `<Wrap>` rows pass as `spacing` and `run_spacing` — one value for both
+  axes, because `test/design/screens/33.html` draws these rows
+  `display:flex;flex-wrap:wrap;gap:7px` and CSS `gap` is one number for both.
+
+      iex> Kati.Screens.Rating.tag_gap_pt()
+      7
+  """
+  @spec tag_gap_pt() :: pos_integer()
+  def tag_gap_pt, do: 7
 
   @doc """
   One tag: `Kati.Components.MishkaPill`, not `Kati.Components.MishkaChip`.
@@ -2264,8 +2271,7 @@ defmodule Kati.Screens.Rating do
       commit: Kati.Screens.Rating.commit_pill("Done", :commit_place),
       chips:
         used
-        |> Enum.map(&Kati.Screens.Rating.choice(&1, "place_" <> &1, &1 == Map.get(w, :place)))
-        |> Enum.intersperse(Kati.Screens.Rating.tag_gap()),
+        |> Enum.map(&Kati.Screens.Rating.choice(&1, "place_" <> &1, &1 == Map.get(w, :place))),
       any?: used != []
     }
 
@@ -2310,9 +2316,9 @@ defmodule Kati.Screens.Rating do
     ~MOB"""
     <Column fill_width={true}>
       <Spacer size={9} />
-      <Row fill_width={true} align="center">
+      <Wrap fill_width={true} spacing={7} run_spacing={7}>
         {@chips}
-      </Row>
+      </Wrap>
     </Column>
     """
   end

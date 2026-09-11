@@ -35,8 +35,10 @@ defmodule Kati.Screens.SeriesMeta do
       still reads as the empty slot it is, because the fill is absent rather
       than white.
 
-  Tags `flex-wrap` in the drawing and nothing wraps here, so they are chunked
-  three-then-two — which is where the browser breaks them at this width.
+  Tags `flex-wrap` in the drawing, and now they wrap here too: `<Wrap>` arrived
+  with mob 0.8.0 and its Android renderer with the mob_new 0.4.33 template, so
+  `tags/1` measures instead of chunking three-then-two at one browser width.
+  That is mishka-group/kati#98, and `Kati.WrapLayoutTest` holds it.
 
   ## Why this screen still reads `Kati.Screens.SeriesMeta.Sample`
 
@@ -1095,39 +1097,43 @@ defmodule Kati.Screens.SeriesMeta do
   def hairline(true),
     do: MishkaSeparator.separator(color: Palette.hairline(), thickness: 1, render: :box)
 
-  # Three then two, which is where the browser breaks these five labels at a
-  # 360pt content width. The add-tag slot carries its own flag rather than
-  # being recognised by its label, so a user tag reading "+ tag" would still be
-  # drawn as a tag.
+  # Wrapped by MEASUREMENT, not by count — mishka-group/kati#98.
+  #
+  # This was `Enum.chunk_every(3)` and a comment saying *three then two, which
+  # is where the browser breaks these five labels at a 360pt content width*.
+  # That sentence is the defect: it is one browser, one width and one text
+  # size, hard-coded into the data. At 235% text the fourth label does not fit
+  # beside two others and the row clipped it; on a wider phone the third row
+  # stood empty. #98 is the ticket for exactly this, and its own words are
+  # *"a node that lays its children out and breaks when they do not fit removes
+  # the count rule entirely"*.
+  #
+  # `<Wrap>` is that node. It arrived in mob 0.8.0 (MOB-175) with its Android
+  # renderer — `FlowRow` — in the mob_new 0.4.33 template, which is why the
+  # bridge had to be merged forward before this line could be written. The
+  # chips measure themselves, so the break moves with the text size, the
+  # device width and the tag labels, none of which this module now needs to
+  # know.
+  #
+  # `spacing` is the gap along a run and `run_spacing` the gap between runs,
+  # so the 7pt `Spacer` and the 7pt `Box` the two old helpers drew are now the
+  # two props. The add-tag slot still carries its own flag rather than being
+  # recognised by its label, so a user tag reading "+ tag" is still drawn as a
+  # tag.
   @doc false
   def tags(s) do
-    rows =
-      (Enum.map(s.tags, &{&1, false}) ++ [{s.add_tag, true}])
-      |> Enum.chunk_every(3)
+    assigns = %{
+      tags:
+        (Enum.map(s.tags, &{&1, false}) ++ [{s.add_tag, true}])
+        |> Enum.map(fn {label, add?} -> Kati.Screens.SeriesMeta.tag(label, add?) end)
+    }
 
     ~MOB"""
-    <Column fill_width={true}>
-      {rows |> Enum.map(fn row -> Kati.Screens.SeriesMeta.tag_row(row) end) |> Enum.intersperse(Kati.Screens.SeriesMeta.tag_row_gap())}
-    </Column>
+    <Wrap fill_width={true} spacing={7} run_spacing={7}>
+      {@tags}
+    </Wrap>
     """
   end
-
-  @doc false
-  def tag_row_gap, do: ~MOB"<Box fill_width={true} height={7} />"
-
-  @doc false
-  def tag_row(row) do
-    ~MOB"""
-    <Row fill_width={true} align="center">
-      {row
-       |> Enum.map(fn {label, add?} -> Kati.Screens.SeriesMeta.tag(label, add?) end)
-       |> Enum.intersperse(Kati.Screens.SeriesMeta.tag_gap())}
-    </Row>
-    """
-  end
-
-  @doc false
-  def tag_gap, do: ~MOB"<Spacer size={7} />"
 
   @doc """
   One tag — Mishka's Pill, in both of its two shapes.

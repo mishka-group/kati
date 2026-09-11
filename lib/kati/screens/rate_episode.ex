@@ -1131,6 +1131,11 @@ defmodule Kati.Screens.RateEpisode do
   @spec editor(atom(), map(), boolean()) :: map()
   def editor(_key, _sheet, false), do: ~MOB"<Spacer size={0} />"
 
+  # `<Wrap>`, like screen 33's — board 144 draws these rows without a wrap,
+  # because at the width it was drawn they fit on one line. The module's own
+  # rule above is that the two sheets share one set of chip builders so they
+  # cannot drift, and a row that fits renders as a single run, so wrapping here
+  # costs nothing and keeps them identical at 235%.
   def editor(:watched_on, sheet, true) do
     chosen = Map.get(sheet, :watched_on)
 
@@ -1140,14 +1145,13 @@ defmodule Kati.Screens.RateEpisode do
         |> Enum.map(fn {label, date} ->
           Kati.Screens.Rating.choice(label, "day_" <> Date.to_iso8601(date), date == chosen)
         end)
-        |> Enum.intersperse(Kati.Screens.Rating.tag_gap())
     }
 
     ~MOB"""
     <Column fill_width={true} padding_left={13} padding_right={13} padding_bottom={13}>
-      <Row fill_width={true} align="center">
+      <Wrap fill_width={true} spacing={7} run_spacing={7}>
         {@chips}
-      </Row>
+      </Wrap>
     </Column>
     """
   end
@@ -1160,16 +1164,15 @@ defmodule Kati.Screens.RateEpisode do
         (options ++ [Kati.Screens.Rating.no_service()])
         |> Enum.map(
           &Kati.Screens.Rating.choice(&1, "where_" <> &1, &1 == Map.get(sheet, :service))
-        )
-        |> Enum.intersperse(Kati.Screens.Rating.tag_gap()),
+        ),
       empty?: options == []
     }
 
     ~MOB"""
     <Column fill_width={true} padding_left={13} padding_right={13} padding_bottom={13}>
-      <Row fill_width={true} align="center">
+      <Wrap fill_width={true} spacing={7} run_spacing={7}>
         {@chips}
-      </Row>
+      </Wrap>
       {Kati.Screens.Rating.where_note(@empty?)}
     </Column>
     """
