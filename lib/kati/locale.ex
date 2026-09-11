@@ -314,6 +314,41 @@ defmodule Kati.Locale do
   def forward_chevron, do: pick("chevron_right", "chevron_left")
 
   @doc """
+  Wrap a Latin run so it keeps its own direction inside a Persian paragraph.
+
+  A full stop is a **neutral** character in the Unicode bidirectional
+  algorithm: it takes the direction of the paragraph it sits in, not of the
+  words around it. So an English sentence drawn inside an RTL page has its
+  terminating period resolved as right-to-left and laid out at the LEFT edge —
+
+      .This product uses the TMDB API but is not endorsed or certified by TMDB
+
+  which is what screen 83 drew for all five licence notices the moment it
+  started rendering under `:fa`. The words are correct and the sentence reads
+  as broken, which is the failure this whole fold keeps meeting: legible enough
+  that nobody files it.
+
+  The fix is Unicode's own and needs nothing from the bridge:
+  `U+2066 LEFT-TO-RIGHT ISOLATE` opens a run with its own direction and
+  `U+2069 POP DIRECTIONAL ISOLATE` closes it, so the neutrals inside resolve
+  against the run rather than against the page. Isolate rather than
+  `U+202D LRO`: an override would also reorder any Persian inside the run,
+  and some notices name a product in both scripts.
+
+  A no-op in LTR, so a call site does not have to ask which script it is in.
+
+      iex> Kati.Locale.as(:en, fn -> Kati.Locale.ltr("hello.") end)
+      "hello."
+
+      iex> Kati.Locale.as(:fa, fn -> Kati.Locale.ltr("hello.") end)
+      "\u2066hello.\u2069"
+  """
+  @spec ltr(String.t()) :: String.t()
+  def ltr(text) when is_binary(text) do
+    if direction(current()) == :rtl, do: "\u2066" <> text <> "\u2069", else: text
+  end
+
+  @doc """
   Latin tracking, or none.
 
       iex> Kati.Locale.tracking(-0.03)

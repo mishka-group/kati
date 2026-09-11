@@ -213,7 +213,7 @@ defmodule Kati.Screens.Attribution do
     assigns = %{
       name: source.name,
       takes: source.takes,
-      notice: source.notice,
+      notice: Kati.Locale.ltr(source.notice),
       gloss: Map.get(source, :gloss),
       licence: source.licence,
       site: source.site,
