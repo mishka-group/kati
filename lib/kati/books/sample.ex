@@ -21,24 +21,52 @@ defmodule Kati.Books.Sample do
   how a demo becomes a lie.
   """
 
-  # The design's own titles, and the picsum seed the export uses for each
-  # cover, so the app shows the exact photograph the drawing shows.
-  @books [
-    %{title: "The Salt Almanac", seed: "bookaa1", progress: 0.56, line: "p.214/380"},
-    %{title: "Estuary", seed: "bookbb2", progress: 0.36, line: "p.88/240"},
-    %{title: "Field Notes", seed: "bookcc3", progress: 1.0, line: "finished"},
-    %{title: "Marram Grass", seed: "bookdd4", progress: 0.0, line: "to read"},
-    %{title: "Low Water", seed: "bookee5", progress: 1.0, line: "finished"},
-    %{title: "The Warden", seed: "bookff6", progress: 0.0, line: "to read"}
-  ]
+  @doc """
+  Every book on the shelf, in the order the grid draws them.
 
-  @doc "Every book on the shelf, in the order the grid draws them."
+  The design's own titles, and the picsum seed the export uses for each cover,
+  so the app shows the exact photograph the drawing shows.
+
+  A function and not an attribute: `gettext/1` inside one is evaluated at
+  COMPILE time, so six translated titles would freeze in whichever locale the
+  compiler happened to be in.
+  """
   @spec books() :: [map()]
-  def books, do: @books
+  def books do
+    [
+      shelf_row(gettext("The Salt Almanac"), "bookaa1", 0.56, 214, 380),
+      shelf_row(gettext("Estuary"), "bookbb2", 0.36, 88, 240),
+      shelf_row(gettext("Field Notes"), "bookcc3", 1.0, :finished),
+      shelf_row(gettext("Marram Grass"), "bookdd4", 0.0, :to_read),
+      shelf_row(gettext("Low Water"), "bookee5", 1.0, :finished),
+      shelf_row(gettext("The Warden"), "bookff6", 0.0, :to_read)
+    ]
+  end
+
+  # `line` is the jacket's caption: a position for a book in progress, the
+  # status word otherwise. It was three frozen strings, which is why board 176's
+  # mirror kept a second copy of all six rows.
+  defp shelf_row(title, seed, progress, at, of) do
+    %{
+      title: title,
+      seed: seed,
+      progress: progress,
+      line: gettext("p.%{at}/%{of}", at: Kati.Locale.number(at), of: Kati.Locale.number(of))
+    }
+  end
+
+  defp shelf_row(title, seed, progress, :finished),
+    do: %{title: title, seed: seed, progress: progress, line: gettext("finished")}
+
+  defp shelf_row(title, seed, progress, :to_read),
+    do: %{title: title, seed: seed, progress: progress, line: gettext("to read")}
 
   @doc "The header's mono subtitle. A literal — see the moduledoc."
   @spec subtitle() :: String.t()
-  def subtitle, do: "64 books · 2 reading"
+  def subtitle,
+    do:
+      ngettext("%{n} book", "%{n} books", 64, n: Kati.Locale.number(64)) <>
+        " · " <> gettext("%{n} reading", n: Kati.Locale.number(2))
 
   @doc """
   The one book being read right now, as the hero card draws it.
@@ -50,12 +78,20 @@ defmodule Kati.Books.Sample do
   @spec reading_now() :: map()
   def reading_now do
     %{
-      label: "Reading now",
-      title: "The Salt Almanac",
-      author: "Ines Karvel",
+      # The card's SECTION word, not the head book's status. Board 176's own
+      # name for it is «کارت «در حال خواندن»» and the two coincide on the
+      # fixture, which is what let board 176's hero briefly build
+      # this caption out of `status_label/1` — a shelf with one unstarted book
+      # then captioned its hero *not started*.
+      label: gettext("Reading now"),
+      title: gettext("The Salt Almanac"),
+      author: gettext("Ines Karvel"),
       seed: "bookaa1",
       progress: 0.56,
-      pace: "p. 214 / 380 · 23 MIN/DAY PACE"
+      pace:
+        gettext("p. %{at} / %{of}", at: Kati.Locale.number(214), of: Kati.Locale.number(380)) <>
+          " · " <>
+          Kati.UI.eyebrow_label(gettext("%{n} min/day pace", n: Kati.Locale.number(23)))
     }
   end
 
@@ -65,13 +101,13 @@ defmodule Kati.Books.Sample do
   Two carry counts and two do not, which is the drawing's own asymmetry:
   a count earns its place when it is small enough to be a fact you act on.
   """
-  @spec chips() :: [{String.t(), String.t() | nil}]
+  @spec chips() :: [{atom(), String.t(), String.t() | nil}]
   def chips do
     [
-      {"All", "64"},
-      {"Reading", "2"},
-      {"Finished", nil},
-      {"To read", nil}
+      {:all, pgettext("shelf filter", "All"), Kati.Locale.number(64)},
+      {:reading, pgettext("shelf filter", "Reading"), Kati.Locale.number(2)},
+      {:finished, pgettext("shelf filter", "Finished"), nil},
+      {:to_read, pgettext("shelf filter", "To read"), nil}
     ]
   end
 

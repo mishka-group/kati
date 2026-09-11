@@ -61,7 +61,7 @@ defmodule Kati.ScreenBookDetailPersianTest do
   alias Kati.Calendar.Shamsi
   alias Kati.Components.MishkaSwitch
   alias Kati.Screens.BookDetail
-  alias Kati.Screens.BooksFa
+  alias Kati.Screens.Books
 
   @prefix "screen-69-fa-test-"
 
@@ -318,7 +318,7 @@ defmodule Kati.ScreenBookDetailPersianTest do
 
     test "the hero's line is the shelf's line, and the pace is the sittings' own" do
       # One book, one sentence, on board 176 and board 69 — through
-      # `Kati.Screens.BooksFa.line/1` rather than a second implementation of it,
+      # `Kati.Screens.Books.line/1` rather than a second implementation of it,
       # which is the drift `Kati.Screens.Books.rail/2` exists to have ended.
       #
       # For the two statuses `line/1` answers with a WORD rather than a
@@ -684,7 +684,7 @@ defmodule Kati.ScreenBookDetailPersianTest do
 
   describe "one fact is said once" do
     test "the pill says the status, and the line under it does not say it again" do
-      # Finding 1 of `D-59`'s review. `Kati.Screens.BooksFa.line/1` answers with
+      # Finding 1 of `D-59`'s review. `Kati.Screens.Books.line/1` answers with
       # the STATUS WORD for the two statuses that have one, because a jacket in
       # a grid has no pill. This card has a pill nine points above, and a
       # hand-typed book drew شروع نشده twice on one card.
@@ -700,7 +700,7 @@ defmodule Kati.ScreenBookDetailPersianTest do
                "under it are saying one fact twice"
 
       # The sharper half: for a finished book the two disagree in SPELLING —
-      # `Kati.Books.SampleFa.statuses/0` writes تمام شد and `BooksFa.line/1`
+      # `Kati.Books.SampleFa.statuses/0` writes تمام شد and `Books.line/1`
       # writes تمام‌شده with a ZWNJ — so the card called one state two things.
       Ash.update!(book, %{status: :finished, page_count: 380, current_page: 380})
 
@@ -820,7 +820,7 @@ defmodule Kati.ScreenBookDetailPersianTest do
   # This book's caption on board 176's grid, which must be the same sentence
   # board 69's hero draws.
   defp tile_line(title) do
-    BooksFa.page().books
+    Books.page().books
     |> Enum.find(%{}, &(Map.get(&1, :title) == title))
     |> Map.get(:line)
   end

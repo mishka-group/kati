@@ -188,13 +188,16 @@ defmodule Kati.Books.Book do
   `to read`, or `p.214` when nothing says how long the book is.
   """
   @spec shelf_line(t()) :: String.t()
-  def shelf_line(%__MODULE__{status: :finished}), do: "finished"
-  def shelf_line(%__MODULE__{status: :not_started}), do: "to read"
+  def shelf_line(%__MODULE__{status: :finished}), do: gettext("finished")
+  def shelf_line(%__MODULE__{status: :not_started}), do: gettext("to read")
 
   def shelf_line(%__MODULE__{current_page: page} = book) do
     case extent(book) do
-      {total, :pages} -> "p.#{page}/#{total}"
-      _other -> "p.#{page}"
+      {total, :pages} ->
+        gettext("p.%{at}/%{of}", at: Kati.Locale.number(page), of: Kati.Locale.number(total))
+
+      _other ->
+        gettext("p.%{at}", at: Kati.Locale.number(page))
     end
   end
 

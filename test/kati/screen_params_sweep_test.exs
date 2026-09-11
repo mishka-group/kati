@@ -212,7 +212,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # has no album to name. It pushed `Kati.Screens.AlbumDetailFa` until
     # mishka-group/kati#103 folded that mirror into screen 74; the destination
     # reads `:album_id` now and the source still holds nothing to give it.
-    {Kati.Screens.BooksFa, :shelf_2, Kati.Screens.AlbumDetail},
     # ── Screen 12 takes NO params, as of board 333.
     #
     # It used to read `:adding` — board 146's selection — and turn a list row
@@ -626,7 +625,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # It named `Kati.Screens.LogProgressFa` until mishka-group/kati#103 folded
     # that mirror into screen 70, and board 69's own entry went with the fold
     # that made 69 screen 66 — one module, one line, three lines above.
-    {Kati.Screens.BooksFa, :log_progress, Kati.Screens.LogProgress},
     #
     # `:start_timer` beside it is NOT here and is not missing: it merges
     # `timing?: true` onto the same builder's answer, so the argument is
@@ -654,17 +652,12 @@ defmodule Kati.ScreenParamsSweepTest do
     {Kati.Screens.Books, :open_book_bookee5, Kati.Screens.BookDetail},
     {Kati.Screens.Books, :open_book_bookff6, Kati.Screens.BookDetail},
     #
-    # Screen 176's six, the Persian mirror of the block above, joined on
-    # 5 September when `D-59` gave that shelf's tiles the id they had been
-    # throwing away: `books_fa.ex`'s `open_book_` clause matched the tag and
-    # discarded it, and screen 69's `mount/3` took no params at all, so tapping
-    # the second cover opened a page about the first book. Both halves are
-    # wired now and land here for the reason the six above do — with nothing
-    # shelved the grid is `Kati.Books.SampleFa.books/0`
-    # (`books/sample_fa.ex:72-81`) and the hero is `reading_now/0`, and no row
-    # in either carries an `:id`. The bare `:open_book` is the hero's, whose
-    # tag `Kati.Screens.Books.book_tag/1` falls back to when a row has neither
-    # id nor seed.
+    # Board 176's six were a second block here — the Persian mirror of the one
+    # above, with its own module and its own six entries. mishka-group/kati#103
+    # folded `Kati.Screens.BooksFa` into screen 20, so there is one shelf and
+    # one block: the seeds are the same six, the tags are the same seven, and
+    # a fold that left the pair behind would have been asserting the same fact
+    # twice about one module.
     # Screen 08's *Log a watch* pill, which drew no tap at all until 6
     # September — `action/4` built a `<Box>` with no `on_tap`, so the row was
     # three pictures of buttons and no sweep could see them, because this file
@@ -677,13 +670,6 @@ defmodule Kati.ScreenParamsSweepTest do
     # refuses a sheet that names no title, which is what stops a watch being
     # logged against the drawing.
     {Kati.Screens.Film, :log_watch, Kati.Screens.Rating},
-    {Kati.Screens.BooksFa, :open_book, Kati.Screens.BookDetail},
-    {Kati.Screens.BooksFa, :open_book_bookaa1, Kati.Screens.BookDetail},
-    {Kati.Screens.BooksFa, :open_book_bookbb2, Kati.Screens.BookDetail},
-    {Kati.Screens.BooksFa, :open_book_bookcc3, Kati.Screens.BookDetail},
-    {Kati.Screens.BooksFa, :open_book_bookdd4, Kati.Screens.BookDetail},
-    {Kati.Screens.BooksFa, :open_book_bookee5, Kati.Screens.BookDetail},
-    {Kati.Screens.BooksFa, :open_book_bookff6, Kati.Screens.BookDetail},
 
     # ── Screen 21's three tiles and its two release rows.
     #

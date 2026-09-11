@@ -241,7 +241,9 @@ defmodule Kati.Screens.Gallery do
     # #D-38 — the shelf, and how a book reaches it, in both languages. 176 is
     # the destination screen 57's کتاب‌ها segment has never had; 177 is the only
     # control in the app that creates a `Kati.Books.Book`.
-    {"176", "کتاب‌ها — the Persian Books shelf", Kati.Screens.BooksFa, :push},
+    # mishka-group/kati#103's fold of screen 176. Board 176 is screen 20 under
+    # `:fa`, with "176" on `Kati.ScreenDesignLiteralTest`'s `@fa_screens`.
+    {"176", "کتاب‌ها — the Persian Books shelf", Kati.Screens.Books, :push},
     {"177", "Add by hand — Book", Kati.Screens.AddByHandBook, :push},
     # D-43 — the three boards that let a medication be owned rather than only
     # read. 188 is the sheet behind screen 112's `add` disc, 189 the page

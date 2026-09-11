@@ -14,7 +14,7 @@ defmodule Kati.Books.SampleFa do
   The shelf's own numbers are the drawing's and stay literals, exactly as
   `Kati.Books.Sample` keeps `64 books`: **۶۴ کتاب · ۲ در حال خواندن** over six
   covers, because a shelf is a window onto a library rather than the whole of
-  it. `Kati.Screens.BooksFa` counts a real shelf instead and says so.
+  it. board 176 counts a real shelf instead and says so.
 
   ## The transliteration rule, stated once
 
@@ -272,7 +272,7 @@ defmodule Kati.Books.SampleFa do
       # «کارت «در حال خواندن»», the *Reading now* card — and it is the card's
       # SECTION word rather than the head book's status. The two coincide on
       # the fixture, whose head book is reading, and that coincidence is what
-      # let `Kati.Screens.BooksFa.hero/1` briefly build this caption out of
+      # let board 176's hero briefly build this caption out of
       # `status_label/1`: a shelf with one unstarted book then captioned its
       # hero **شروع نشده** and printed the same two words again under the rail.
       # Screen 20 hard-codes *Reading now* for this reason; so does this.

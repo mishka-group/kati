@@ -323,8 +323,14 @@ defmodule Kati.BooksTest do
       # The header and the chips count the shelf they are over. `64` is the
       # drawing's window onto a library of 64 and stops being a defence the
       # moment there is a real shelf to count.
-      assert page.subtitle == "1 books · 1 reading"
-      assert page.chips == [{"All", "1"}, {"Reading", "1"}, {"Finished", nil}, {"To read", nil}]
+      assert page.subtitle == "1 book · 1 reading"
+
+      assert page.chips == [
+               {:all, "All", "1"},
+               {:reading, "Reading", "1"},
+               {:finished, "Finished", nil},
+               {:to_read, "To read", nil}
+             ]
     end
 
     test "one book is drawn at one fraction, in the grid and in the hero alike" do
@@ -456,7 +462,7 @@ defmodule Kati.BooksTest do
 
       assert find(tree, :text, text: @prefix <> "Estuary Nights") != nil
       assert find(tree, :text, text: "p.88/240") != nil
-      assert find(tree, :text, text: "1 books · 1 reading") != nil
+      assert find(tree, :text, text: "1 book · 1 reading") != nil
 
       for drawn <- Books.drawn_books() do
         assert find(tree, :text, text: drawn.title) == nil,
@@ -495,9 +501,9 @@ defmodule Kati.BooksTest do
       # The fixture has a fraction where a real row has a status.
       # `Kati.Screens.Books.drawn_books/0` derives one, so `visible/2` asks a
       # single question — and the drawing's own chip says the answer is 2.
-      assert length(Books.visible(Books.page().books, "Reading")) == 2
-      assert length(Books.visible(Books.page().books, "Finished")) == 2
-      assert length(Books.visible(Books.page().books, "To read")) == 2
+      assert length(Books.visible(Books.page().books, :reading)) == 2
+      assert length(Books.visible(Books.page().books, :finished)) == 2
+      assert length(Books.visible(Books.page().books, :to_read)) == 2
     end
   end
 

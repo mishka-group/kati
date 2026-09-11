@@ -24,7 +24,7 @@ defmodule Kati.BooksByHandTest do
 
   ## Why every row is prefixed and deleted, on both sides
 
-  `Kati.Screens.Books`, `Kati.Screens.BooksFa`, `Kati.Screens.BookDetail` and
+  `Kati.Screens.Books`, `Kati.Screens.Books`, `Kati.Screens.BookDetail` and
   `Kati.Screens.LogProgress` all fall back to their drawings only while `books`
   is empty, and `Kati.ScreenDesignLiteralTest`, `Kati.ScreenEmptyDatabaseTest`
   and `Kati.ScreenSampleOnlyTest` render them against this same shared SQLite
@@ -39,24 +39,32 @@ defmodule Kati.BooksByHandTest do
   # The pure ones, as their own examples. `only:` because the rest of both
   # modules is markup and store calls, and a doctest is worth having where the
   # answer fits on the line above it.
-  doctest Kati.Screens.AddByHandBook, only: [length_label: 1, extent: 2, number: 1, taken: 1]
-  doctest Kati.Screens.BooksFa, only: [visible: 2]
+  # `taken/1` is not doctested here any more: this file reads as a Persian
+  # reader since mishka-group/kati#103 folded board 176 into screen 20, and a
+  # doctest asserts the English sentence. `Kati.AddByHandTest` holds it.
+  doctest Kati.Screens.AddByHandBook, only: [length_label: 1, extent: 2, number: 1]
+  doctest Kati.Screens.Books, only: [visible: 2]
 
   alias Kati.Books.Book
-  alias Kati.Books.SampleFa
   alias Kati.Screens.AddByHand
   alias Kati.Screens.AddByHandBook
   alias Kati.Screens.BookDetail
-  alias Kati.Screens.BookDetail
   alias Kati.Screens.Books
-  alias Kati.Screens.BooksFa
   alias Kati.Screens.LibraryFa
 
   @prefix "books-by-hand-test-"
 
+  # Board 176 is screen 20 under `:fa` since mishka-group/kati#103 folded
+  # `Kati.Screens.BooksFa` away, so this file reads as a Persian reader. No
+  # restore in `on_exit`: `Mob.ScreenCase` tears `Mob.State` down with the test
+  # process, so a write there exits, and the store is per-test anyway.
   setup do
     delete_rows!()
+    Kati.Locale.put(:fa)
+    Kati.Locale.activate()
+
     on_exit(&delete_rows!/0)
+
     :ok
   end
 
@@ -69,12 +77,12 @@ defmodule Kati.BooksByHandTest do
         |> mount_screen()
         |> render_info({:tap, :shelf_1})
 
-      assert pushed(view) == {:push, BooksFa, %{}}
+      assert pushed(view) == {:push, Books, %{}}
     end
 
     test "69 is still reachable — from the shelf's covers, where a detail is reached from" do
       view =
-        BooksFa
+        Books
         |> mount_screen()
         |> render_info({:tap, :open_book})
 
@@ -87,7 +95,7 @@ defmodule Kati.BooksByHandTest do
       # board settles it in its own empty card: اولین کتاب را با دکمه + اضافه
       # کنید.
       view =
-        BooksFa
+        Books
         |> mount_screen()
         |> render_info({:tap, :fab})
 
@@ -229,8 +237,8 @@ defmodule Kati.BooksByHandTest do
         |> render_info({:change, :title, @prefix <> "The Salt Almanac"})
         |> render_info({:tap, :add})
 
-      assert assigns(view).save_error =~ "is already on your shelf"
-      assert assigns(view).save_error =~ "Nothing was written."
+      assert assigns(view).save_error =~ "همین حالا در قفسهٔ شماست"
+      assert assigns(view).save_error =~ "چیزی نوشته نشد."
       assert length(shelf()) == 1, "the second row was not written"
       refute match?({:push, _dest, _params}, pushed(view))
     end
@@ -244,7 +252,7 @@ defmodule Kati.BooksByHandTest do
         |> render_info({:change, :title, "  " <> @prefix <> "THE SALT ALMANAC  "})
         |> render_info({:tap, :add})
 
-      assert assigns(view).save_error =~ "is already on your shelf"
+      assert assigns(view).save_error =~ "همین حالا در قفسهٔ شماست"
       assert length(shelf()) == 1
     end
 
@@ -288,7 +296,7 @@ defmodule Kati.BooksByHandTest do
       |> render_info({:change, :author, "Ines Karvel"})
       |> render_info({:tap, :add})
 
-      view = mount_screen(BooksFa)
+      view = mount_screen(Books)
 
       assert find(tree(view), :text, text: @prefix <> "The Salt Almanac") != nil
       english = mount_screen(Books)
@@ -309,18 +317,23 @@ defmodule Kati.BooksByHandTest do
 
       a_book!(%{title: @prefix <> "B finished", status: :finished})
 
-      page = BooksFa.page()
+      page = Books.page()
 
-      assert page.header == %{
-               title: "کتابخانه",
-               subtitle: "۲ کتاب · ۱ در حال خواندن"
-             }
+      # `page/0` carries the subtitle rather than a `header` map since
+      # mishka-group/kati#103 folded board 176 into screen 20: the title is the
+      # screen's own — `Kati.Screens.Books.page_title/0` — and only the count
+      # line is a fact about the shelf.
+      assert page.subtitle == "۲ کتاب · ۱ در حال خواندن"
+      assert Books.page_title() == "کتابخانه"
 
+      # `{key, label, count}`, and the KEY is the half a translation does not
+      # touch. They were one string, so the Persian shelf's filter was «همه»
+      # and every clause of `visible/2` fell through to `_all`.
       assert page.chips == [
-               {"همه", "۲"},
-               {"در حال خواندن", "۱"},
-               {"تمام‌شده", "۱"},
-               {"شروع نشده", "۰"}
+               {:all, "همه", "۲"},
+               {:reading, "در حال خواندن", "۱"},
+               {:finished, "تمام‌شده", nil},
+               {:to_read, "شروع نشده", nil}
              ]
 
       # The hero is the book being READ, not the head of the shelf's own order —
@@ -341,7 +354,7 @@ defmodule Kati.BooksByHandTest do
         duration_minutes: 680
       })
 
-      page = BooksFa.page()
+      page = Books.page()
       tile = Enum.find(page.books, &(&1.id == page.hero.id))
 
       assert page.hero.progress == tile.progress
@@ -353,12 +366,12 @@ defmodule Kati.BooksByHandTest do
       a_book!(%{title: @prefix <> "B finished", status: :finished})
       a_book!(%{title: @prefix <> "C to read", status: :not_started})
 
-      books = BooksFa.page().books
+      books = Books.page().books
 
-      assert BooksFa.visible(books, 0) |> length() == 3
-      assert [%{status: :reading}] = BooksFa.visible(books, 1)
-      assert [%{status: :finished}] = BooksFa.visible(books, 2)
-      assert [%{status: :not_started}] = BooksFa.visible(books, 3)
+      assert Books.visible(books, :all) |> length() == 3
+      assert [%{status: :reading}] = Books.visible(books, :reading)
+      assert [%{status: :finished}] = Books.visible(books, :finished)
+      assert [%{status: :not_started}] = Books.visible(books, :to_read)
     end
 
     test "the Reading-now eyebrow is the card's name and never the head book's status" do
@@ -382,10 +395,13 @@ defmodule Kati.BooksByHandTest do
       # rather than positions, not even there.
       to_read = a_book!(%{title: @prefix <> "A to read"})
 
-      hero = BooksFa.page().hero
+      hero = Books.page().hero
 
       assert hero.title == to_read.title
-      assert hero.label == SampleFa.labels().reading_now
+      # The card's SECTION word, which `Kati.Books.Sample.reading_now/0` states
+      # in whichever language the page is read in. Read here rather than
+      # written out, so the two cannot drift.
+      assert hero.label == Kati.Books.Sample.reading_now().label
       assert hero.label == "در حال خواندن"
 
       refute hero.label == BookDetail.book().status_label,
@@ -405,10 +421,10 @@ defmodule Kati.BooksByHandTest do
           current_page: 214
         })
 
-      hero = BooksFa.page().hero
+      hero = Books.page().hero
 
       assert hero.title == reading.title
-      assert hero.label == SampleFa.labels().reading_now
+      assert hero.label == Kati.Books.Sample.reading_now().label
       assert hero.pace == "ص. ۲۱۴ / ۳۸۰"
     end
 
@@ -422,8 +438,8 @@ defmodule Kati.BooksByHandTest do
       first = a_book!(%{title: @prefix <> "A first"})
       second = a_book!(%{title: @prefix <> "B second"})
 
-      view = mount_screen(BooksFa)
-      tile = Enum.find(BooksFa.page().books, &(&1.title == first.title))
+      view = mount_screen(Books)
+      tile = Enum.find(Books.page().books, &(&1.title == first.title))
 
       opened = render_info(view, {:tap, Books.book_tag(tile)})
 
@@ -433,10 +449,10 @@ defmodule Kati.BooksByHandTest do
 
       # The hero's cover is the same builder over the row the card drew —
       # `Kati.Screens.Books.handle_tap(:open_book, …)` in the other language.
-      hero = render_info(mount_screen(BooksFa), {:tap, :open_book})
+      hero = render_info(mount_screen(Books), {:tap, :open_book})
 
       assert {:push, Kati.Screens.BookDetail, %{book_id: hero_id}} = pushed(hero)
-      assert hero_id == BooksFa.page().hero.id
+      assert hero_id == Books.page().hero.id
     end
 
     test "a cover's tap tag carries the row's id, so the grid is addressable" do
@@ -445,7 +461,7 @@ defmodule Kati.BooksByHandTest do
       first = a_book!(%{title: @prefix <> "A first"})
       second = a_book!(%{title: @prefix <> "B second"})
 
-      tags = Enum.map(BooksFa.page().books, &Books.book_tag/1)
+      tags = Enum.map(Books.page().books, &Books.book_tag/1)
 
       assert String.to_atom("open_book_" <> first.id) in tags
       assert String.to_atom("open_book_" <> second.id) in tags
@@ -453,10 +469,12 @@ defmodule Kati.BooksByHandTest do
     end
 
     test "the Persian line under a jacket is the resource's own, in Persian" do
-      assert BooksFa.line(a_book!(%{title: @prefix <> "A finished", status: :finished})) ==
+      assert Kati.Books.Book.shelf_line(
+               a_book!(%{title: @prefix <> "A finished", status: :finished})
+             ) ==
                "تمام‌شده"
 
-      assert BooksFa.line(a_book!(%{title: @prefix <> "B to read"})) == "شروع نشده"
+      assert Kati.Books.Book.shelf_line(a_book!(%{title: @prefix <> "B to read"})) == "شروع نشده"
 
       reading =
         a_book!(%{
@@ -466,39 +484,39 @@ defmodule Kati.BooksByHandTest do
           current_page: 214
         })
 
-      assert BooksFa.line(reading) == "ص. ۲۱۴ / ۳۸۰"
+      assert Kati.Books.Book.shelf_line(reading) == "ص. ۲۱۴ / ۳۸۰"
 
       # No denominator is not a fraction of an unknown total — it is the page
       # you reached, which is what `Kati.Books.Book.shelf_line/1` prints too.
       no_total = a_book!(%{title: @prefix <> "D reading", status: :reading, current_page: 88})
 
-      assert BooksFa.line(no_total) == "ص. ۸۸"
+      assert Kati.Books.Book.shelf_line(no_total) == "ص. ۸۸"
     end
   end
 
   describe "the empty state is the empty state" do
     test "with nothing shelved every value on the page is the drawing's" do
       assert shelf() == []
-      assert BooksFa.page() == BooksFa.drawn_page()
+      assert Books.page() == Books.drawn_page()
     end
 
     test "the drawn page is the board's own six covers and its own counts" do
-      page = BooksFa.drawn_page()
+      page = Books.drawn_page()
 
       assert length(page.books) == 6
-      assert page.header == SampleFa.header()
-      assert page.chips == SampleFa.chips()
+      assert page.subtitle == Kati.Books.Sample.subtitle()
+      assert page.chips == Kati.Books.Sample.chips()
 
       # The drawing's ۶۴ is not arithmetic over six — a shelf is a window onto
       # a library, which `Kati.Books.Sample` argues for the English board.
-      assert {"همه", "۶۴"} = hd(page.chips)
+      assert {:all, "همه", "۶۴"} = hd(page.chips)
     end
 
     test "176's hero copy is 69's book, character for character" do
       # `D-38`'s acceptance: 176 and 69 tell one story, so nothing here is a
       # second literal of a line screen 69 already holds.
-      hero = SampleFa.reading_now()
-      book = SampleFa.detail()
+      hero = Kati.Books.Sample.reading_now()
+      book = Kati.Books.Sample.detail()
 
       assert hero.title == book.title
       assert hero.author == book.author
@@ -510,23 +528,23 @@ defmodule Kati.BooksByHandTest do
     test "the empty shelf is drawn, and its way out is the + this ticket built" do
       # The one state no board in the 166 draws and every device has on the day
       # it is installed.
-      view = mount_screen(BooksFa)
-      empty = SampleFa.empty()
+      view = mount_screen(Books)
 
-      assert find(tree(view), :text, text: empty.title) != nil
-      assert find(tree(view), :text, text: empty.body) != nil
-      assert empty.body =~ "دکمه +", "the sentence names the control that answers it"
+      assert find(tree(view), :text, text: Books.empty_title()) != nil
+      assert find(tree(view), :text, text: Books.empty_body()) != nil
+
+      assert Books.empty_body() =~ "+", "the sentence names the control that answers it"
 
       # And it is not the Goodreads import: `Kati.Screens.ImportRecognised`
       # writes nothing, so pointing a new empty state at it would promise a
       # write that does not happen.
-      refute empty.body =~ "گودریدز"
+      refute Books.empty_body() =~ "گودریدز"
     end
 
     test "the drawn rows carry no id, so a drawn tile cannot be mistaken for a shelved one" do
       # Rule 3: fixture rows carry no `:id`, by absence and never as `nil` —
       # which is what lets `Kati.Screens.Books.book_tag/1` tell the two apart.
-      for row <- BooksFa.drawn_books() do
+      for row <- Books.drawn_books() do
         refute Map.has_key?(row, :id)
         assert Books.book_tag(row) == String.to_atom("open_book_" <> row.seed)
       end
@@ -535,12 +553,12 @@ defmodule Kati.BooksByHandTest do
       # `%{book_id: nil}` — through the destination's own builder, so the empty
       # answer is spelled in one place. That is the branch every sweep in this
       # directory renders, and it is why screen 69 keeps a no-id path at all.
-      view = mount_screen(BooksFa)
+      view = mount_screen(Books)
       opened = render_info(view, {:tap, :open_book_bookaa1})
 
       assert {:push, Kati.Screens.BookDetail, params} = pushed(opened)
       assert params == %{}
-      assert BookDetail.params_for(hd(BooksFa.drawn_books())) == %{}
+      assert BookDetail.params_for(hd(Books.drawn_books())) == %{}
     end
   end
 
@@ -575,7 +593,8 @@ defmodule Kati.BooksByHandTest do
 
       # Board 155's resting band is unchanged: Film is still the default of the
       # form 154 draws, and 177 is a different screen rather than a new default.
-      assert Enum.map(AddByHand.kind_list(), &elem(&1, 0)) == ["Film", "Series"]
+      assert Enum.map(AddByHand.kind_list(), &elem(&1, 0)) ==
+               Kati.Locale.as(:fa, fn -> ["فیلم", "سریال"] end)
     end
   end
 

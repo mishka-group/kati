@@ -68,6 +68,7 @@ defmodule Kati.Screens.Books do
   is. A book you have and touched last is at least yours.
   """
   use Kati.Screens.Root, root: :library
+  use Gettext, backend: Kati.Gettext
 
   alias Kati.Books.Book
   alias Kati.Books.Sample
@@ -86,7 +87,7 @@ defmodule Kati.Screens.Books do
   # it back to resolve a tapped tile to its row — see `open_book/2` — and a
   # second query at tap time could answer with a shelf that had moved under the
   # tile the person actually pressed.
-  def load(socket), do: Mob.Socket.assign(socket, filter: "All", page: page())
+  def load(socket), do: Mob.Socket.assign(socket, filter: :all, page: page())
 
   @doc """
   What the `+` opens from the Books shelf.
@@ -283,7 +284,10 @@ defmodule Kati.Screens.Books do
   defp from_detail(book) do
     %{
       id: book.id,
-      label: "Reading now",
+      # Read from the fixture rather than written out again: the card's own
+      # SECTION word is one string, and a second copy of it here is how the
+      # drawn card and the real one come to say different things.
+      label: Sample.reading_now().label,
       title: book.title,
       author: book.author || "",
       seed: book.seed,
@@ -291,7 +295,12 @@ defmodule Kati.Screens.Books do
       # `shaped/1`, and a zero here where the grid has a one is the same book
       # at two different fractions in one render. See `rail/2`.
       progress: Kati.Screens.Books.rail(book.progress, book.status),
-      pace: book.progress_line
+      # `nil` and not `""`. Screen 66's `progress_line` answers the empty string
+      # for a book with no position — the pill above it has just said *not
+      # started*, and `D-59` finding 1 is why it says nothing twice — and this
+      # card has no pill, so what it must not draw is an empty 10.5pt line
+      # under the rail. Absent rather than blank.
+      pace: if(book.progress_line in [nil, ""], do: nil, else: book.progress_line)
     }
   end
 
@@ -307,7 +316,10 @@ defmodule Kati.Screens.Books do
   """
   @spec subtitle([map()]) :: String.t()
   def subtitle(books) do
-    "#{length(books)} books · #{Enum.count(books, &(&1.status == :reading))} reading"
+    reading = Enum.count(books, &(&1.status == :reading))
+
+    ngettext("%{n} book", "%{n} books", length(books), n: Kati.Locale.number(length(books))) <>
+      " · " <> gettext("%{n} reading", n: Kati.Locale.number(reading))
   end
 
   @doc """
@@ -319,17 +331,118 @@ defmodule Kati.Screens.Books do
   and what `chip_count/2` draws.
 
       iex> Kati.Screens.Books.chip_counts([%{status: :reading}, %{status: :finished}])
-      [{"All", "2"}, {"Reading", "1"}, {"Finished", nil}, {"To read", nil}]
+      [{:all, "All", "2"}, {:reading, "Reading", "1"}, {:finished, "Finished", nil},
+       {:to_read, "To read", nil}]
+
+  `{key, label, count}`, and the KEY is what the chip's tap is named after and
+  what `visible/2` filters on; the label is a translation. They were one string
+  — so the Persian shelf's filter was «همه» and every clause of `visible/2` fell
+  through to `_all`: the chips drew, the counts were right, and tapping any of
+  the four showed the whole shelf. `Kati.Screens.Library.chip_counts/1` records
+  the same defect and the same fix, one screen over.
   """
-  @spec chip_counts([map()]) :: [{String.t(), String.t() | nil}]
+  @spec chip_counts([map()]) :: [{atom(), String.t(), String.t() | nil}]
   def chip_counts(books) do
+    # `pgettext/2` and not `gettext/1`: these four are the SHELF's words and
+    # the book-status pill's are screen 66's. Board 176 writes تمام‌شده on a
+    # chip and board 69 writes تمام شد on the pill — two surfaces, two
+    # spellings, and `Kati.ScreenBookDetailPersianTest` asserts that one card
+    # never uses both.
     [
-      {"All", Integer.to_string(length(books))},
-      {"Reading", books |> Enum.count(&(&1.status == :reading)) |> Integer.to_string()},
-      {"Finished", nil},
-      {"To read", nil}
+      {:all, pgettext("shelf filter", "All"), Kati.Locale.number(length(books))},
+      {:reading, pgettext("shelf filter", "Reading"),
+       books |> Enum.count(&(&1.status == :reading)) |> Kati.Locale.number()},
+      {:finished, pgettext("shelf filter", "Finished"), nil},
+      {:to_read, pgettext("shelf filter", "To read"), nil}
     ]
   end
+
+  @doc """
+  *An empty shelf*, under its own quiet eyebrow — board 176's band.
+
+  Drawn only over the DRAWING, which is the one state it is about: the six
+  covers above it are a stand-in, and this says so and says what to press. A
+  reader with a shelf of their own gets no band, because there is nothing left
+  to explain.
+
+  `D-38` asked for it because **no board in the 166 draws an empty shelf** —
+  board 176 is the only one that says what one looks like, and
+  `Kati.Screens.BooksFa` was the only screen that drew it. mishka-group/kati#103
+  folded that mirror into screen 20, so the band came with it and screen 20
+  gained a state it never had.
+  """
+  @spec empty_band(map()) :: map() | []
+  def empty_band(page) do
+    if page == Kati.Screens.Books.drawn_page() do
+      ~MOB"""
+      <Column fill_width={true}>
+        <Spacer size={8} />
+        {Kati.UI.eyebrow(Kati.Screens.Books.empty_eyebrow(), dash: Kati.Theme.Palette.rail_idle())}
+        <Column
+          fill_width={true}
+          background={Kati.Theme.Palette.card()}
+          corner_radius={22}
+          shadow={Kati.Theme.shadow_card_soft()}
+          padding={17}
+        >
+          <Spacer size={10} />
+          <Row fill_width={true} align="center">
+            <Spacer weight={1.0} />
+            <Box
+              width={56}
+              height={56}
+              corner_radius={18}
+              background={Kati.Theme.Palette.paper()}
+              align="center"
+            >
+              {Kati.UI.symbol("menu_book", size: 25, color: Kati.Theme.Palette.rail_idle())}
+            </Box>
+            <Spacer weight={1.0} />
+          </Row>
+          <Spacer size={14} />
+          {Kati.UI.text(Kati.Screens.Books.empty_title(), 15, :on_surface,
+            weight: "bold",
+            align: "center"
+          )}
+          <Spacer size={8} />
+          {Kati.UI.text(Kati.Screens.Books.empty_body(), 12.5, Kati.Theme.Palette.sub(),
+            align: "center",
+            leading: 1.55,
+            lines: 4
+          )}
+          <Spacer size={10} />
+        </Column>
+      </Column>
+      """
+    else
+      []
+    end
+  end
+
+  @doc false
+  @spec empty_eyebrow() :: String.t()
+  def empty_eyebrow, do: gettext("An empty shelf")
+
+  @doc false
+  @spec empty_title() :: String.t()
+  def empty_title, do: gettext("No books yet")
+
+  @doc false
+  @spec empty_body() :: String.t()
+  def empty_body,
+    do:
+      gettext(
+        "Add the first one with +. Kati invents no cover and no page count — " <>
+          "it keeps what you typed."
+      )
+
+  @doc false
+  @spec page_title() :: String.t()
+  def page_title, do: gettext("Library")
+
+  @doc false
+  @spec log_progress_label() :: String.t()
+  def log_progress_label, do: gettext("Log progress")
 
   @doc false
   def content(assigns) do
@@ -350,6 +463,7 @@ defmodule Kati.Screens.Books do
         {Kati.Screens.Books.reading_now(page.hero)}
         {Kati.Screens.Books.chips(filter, page.chips)}
         {Kati.Screens.Books.grid(filter, page.books)}
+        {Kati.Screens.Books.empty_band(page)}
       </Column>
     </Scroll>
     """
@@ -366,17 +480,17 @@ defmodule Kati.Screens.Books do
       <Row fill_width={true} align="top">
         <Column weight={1.0}>
           <Text
-            text="Library"
+            text={Kati.Screens.Books.page_title()}
             text_size={28}
             max_font_scale={1.6}
             font_weight="bold"
-            letter_spacing={-0.03}
+            letter_spacing={Kati.Locale.tracking(-0.03)}
             text_color={:on_surface}
           />
           <Spacer size={5} />
           <Text
             text={subtitle}
-            font_family="mono"
+            font_family={Kati.Locale.mono_face(subtitle)}
             text_size={11}
             text_color={Palette.muted()}
             max_lines={1}
@@ -431,11 +545,11 @@ defmodule Kati.Screens.Books do
         padding={4}
         align="center"
       >
-        {Kati.Screens.Books.segment("movie", "Screen", false, :open_screen)}
+        {Kati.Screens.Books.segment("movie", gettext("Screen"), false, :open_screen)}
         <Spacer size={4} />
-        {Kati.Screens.Books.segment("menu_book", "Books", true, :open_books)}
+        {Kati.Screens.Books.segment("menu_book", gettext("Books"), true, :open_books)}
         <Spacer size={4} />
-        {Kati.Screens.Books.segment("graphic_eq", "Music", false, :open_music)}
+        {Kati.Screens.Books.segment("graphic_eq", gettext("Music"), false, :open_music)}
       </Row>
       <Spacer size={18} />
     </Column>
@@ -510,10 +624,10 @@ defmodule Kati.Screens.Books do
         <Spacer size={14} />
         <Column weight={1.0}>
           <Text
-            text={String.upcase(r.label)}
-            font_family="mono"
+            text={Kati.UI.eyebrow_label(r.label)}
+            font_family={Kati.Locale.mono_face()}
             text_size={10}
-            letter_spacing={0.14}
+            letter_spacing={Kati.Locale.tracking(0.14)}
             text_color={Palette.eyebrow()}
             max_lines={1}
           />
@@ -522,8 +636,8 @@ defmodule Kati.Screens.Books do
             text={r.title}
             text_size={16}
             font_weight="bold"
-            letter_spacing={-0.02}
-            line_height={1.25}
+            letter_spacing={Kati.Locale.tracking(-0.02)}
+            line_height={Kati.Locale.leading(1.25)}
             text_color={:on_surface}
             max_lines={1}
           />
@@ -531,18 +645,32 @@ defmodule Kati.Screens.Books do
           <Text text={r.author} text_size={12} text_color={Palette.sub()} max_lines={1} />
           <Spacer size={12} />
           {Kati.Screens.Books.reading_bar(r.progress)}
-          <Spacer size={8} />
-          <Text
-            text={r.pace}
-            font_family="mono"
-            text_size={10.5}
-            text_color={Palette.muted()}
-            max_lines={1}
-          />
+          {Kati.Screens.Books.pace_line(r.pace)}
           {Kati.Screens.Books.hero_actions()}
         </Column>
       </Row>
       <Spacer size={22} />
+    </Column>
+    """
+  end
+
+  @doc false
+  @spec pace_line(String.t() | nil) :: map() | []
+  def pace_line(nil), do: []
+
+  def pace_line(pace) do
+    assigns = %{pace: pace}
+
+    ~MOB"""
+    <Column fill_width={true}>
+      <Spacer size={8} />
+      <Text
+        text={@pace}
+        font_family={Kati.Locale.mono_face(@pace)}
+        text_size={10.5}
+        text_color={Kati.Theme.Palette.muted()}
+        max_lines={1}
+      />
     </Column>
     """
   end
@@ -574,7 +702,7 @@ defmodule Kati.Screens.Books do
           {Kati.UI.symbol("add", size: 16, color: Palette.on_ink())}
           <Spacer size={6} />
           <Text
-            text="Log progress"
+            text={Kati.Screens.Books.log_progress_label()}
             text_size={12}
             font_weight="semibold"
             text_color={Palette.on_ink()}
@@ -656,8 +784,8 @@ defmodule Kati.Screens.Books do
       <Scroll axis="horizontal">
         <Row>
           {chips
-           |> Enum.map(fn {label, count} ->
-             Kati.Screens.Books.chip(label, count, label == active)
+           |> Enum.map(fn {key, label, count} ->
+             Kati.Screens.Books.chip(key, label, count, key == active)
            end)
            |> Enum.intersperse(Kati.Screens.Books.chip_gap())}
         </Row>
@@ -697,7 +825,7 @@ defmodule Kati.Screens.Books do
   number would go; now `trailing` is `nil` and the port emits no slot at all.
   `Spacer(Modifier.size(0.dp))` measures 0x0, so the two are the same width.
   """
-  def chip(label, count, on?) do
+  def chip(key, label, count, on?) do
     # The drawing puts the count at .6 opacity of the label's own colour rather
     # than at a separate token, so it stays legible on both chip states.
     count_fg = if on?, do: Palette.on_ink_count(), else: Palette.count_idle()
@@ -705,10 +833,12 @@ defmodule Kati.Screens.Books do
     MishkaChip.chip(
       label: label,
       checked: on?,
-      # The label and not the index: `chip_counts/1` is the order the drawing
-      # draws, and a tag built from a position rots the moment that order
-      # changes. `Kati.Screens.Library.chip/3` spells it the same way.
-      on_toggle: String.to_atom("filter_" <> label),
+      # The KEY and not the label: a tag built from a drawn word is a different
+      # atom in every language, and `visible/2` then matches none of them. Not
+      # the index either — `chip_counts/1` is the order the drawing draws, and
+      # a tag built from a position rots the moment that order changes.
+      # `Kati.Screens.Library.chip/3` spells it the same way.
+      on_toggle: String.to_atom("filter_" <> Atom.to_string(key)),
       color: Palette.ink_fill(),
       text_color: Palette.on_ink(),
       unchecked_color: Palette.card(),
@@ -730,7 +860,13 @@ defmodule Kati.Screens.Books do
 
   def chip_count(count, color) do
     ~MOB"""
-    <Text text={count} font_family="mono" text_size={10.5} text_color={color} max_lines={1} />
+    <Text
+      text={count}
+      font_family={Kati.Locale.mono_face(count)}
+      text_size={10.5}
+      text_color={color}
+      max_lines={1}
+    />
     """
   end
 
@@ -774,15 +910,15 @@ defmodule Kati.Screens.Books do
   an empty state: `Kati.Screens.Library.shelf_body/3` branches on the SHELF
   being empty and never on the filter, for the reason written out there.
 
-      iex> Kati.Screens.Books.visible(Kati.Screens.Books.drawn_books(), "Reading") |> length()
+      iex> Kati.Screens.Books.visible(Kati.Screens.Books.drawn_books(), :reading) |> length()
       2
   """
-  @spec visible([map()], String.t()) :: [map()]
-  def visible(books, "Reading"), do: Enum.filter(books, &(&1.status == :reading))
+  @spec visible([map()], atom()) :: [map()]
+  def visible(books, :reading), do: Enum.filter(books, &(&1.status == :reading))
 
-  def visible(books, "Finished"), do: Enum.filter(books, &(&1.status == :finished))
+  def visible(books, :finished), do: Enum.filter(books, &(&1.status == :finished))
 
-  def visible(books, "To read"), do: Enum.filter(books, &(&1.status == :not_started))
+  def visible(books, :to_read), do: Enum.filter(books, &(&1.status == :not_started))
 
   def visible(books, _all), do: books
 
@@ -880,7 +1016,7 @@ defmodule Kati.Screens.Books do
       <Spacer size={3} />
       <Text
         text={book.line}
-        font_family="mono"
+        font_family={Kati.Locale.mono_face(book.line)}
         text_size={10.5}
         text_color={Palette.muted()}
         max_lines={1}
@@ -1071,8 +1207,8 @@ defmodule Kati.Screens.Books do
       # The four shelf chips, by their own labels — see `chip/3`. One clause for
       # the family, so a fifth chip is a data change rather than a code change,
       # which is the rule `Kati.Screens.Library.handle_tap/2` already follows.
-      "filter_" <> label ->
-        {:noreply, Mob.Socket.assign(socket, :filter, label)}
+      "filter_" <> key ->
+        {:noreply, Mob.Socket.assign(socket, :filter, String.to_existing_atom(key))}
 
       "open_book_" <> _key ->
         {:noreply, Kati.Screens.Books.open_book(socket, tag)}

@@ -106,7 +106,7 @@ defmodule Kati.ConnectedPagesTest do
       # twice, fixed a fortnight apart.
       view = render_info(mount_screen(LibraryFa), {:tap, :shelf_1})
 
-      assert navigated_to(view) == Kati.Screens.BooksFa
+      assert navigated_to(view) == Kati.Screens.Books
     end
   end
 

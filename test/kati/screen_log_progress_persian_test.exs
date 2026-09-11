@@ -143,7 +143,7 @@ defmodule Kati.ScreenLogProgressPersianTest do
       assert LogProgress.position_line(shaped(book)) == "ص. ۲۱۴ از ۳۸۰"
       assert words_of(%{book_id: book.id}) =~ "ص. ۲۱۴ از ۳۸۰"
 
-      # از and not `/`: this board's sentence, where `Kati.Screens.BooksFa.line/1`
+      # از and not `/`: this board's sentence, where `Kati.Screens.Books.line/1`
       # writes the shelf's. Each is right where it is drawn. It was read back
       # out of `progress_line` with `Regex.run(~r/^p\. (\d+) \/ (\d+)/, …)`
       # until #103, and that regex matches nothing here — see

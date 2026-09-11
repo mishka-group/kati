@@ -199,6 +199,7 @@ msgstr "بازگشت به خوش‌آمد"
 msgid "Book covers, editions and ISBNs."
 msgstr "جلد کتاب‌ها، نسخه‌ها و شماره شابک."
 
+#: lib/kati/screens/books.ex:534
 #: lib/kati/screens/pick_sections/sample.ex:47
 #: lib/kati/screens/pushed.ex:178
 #: lib/kati/settings/sample.ex:216
@@ -537,6 +538,7 @@ msgid "Kind"
 msgstr "نوع"
 
 #: lib/kati/meals/sample_today.ex:104
+#: lib/kati/screens/books.ex:436
 #: lib/kati/screens/library.ex:785
 #: lib/kati/screens/pushed.ex:188
 #: lib/kati/shell.ex:78
@@ -607,6 +609,7 @@ msgstr "سالمون میسو، سبزیجات، برنج"
 msgid "Money"
 msgstr "مالی"
 
+#: lib/kati/screens/books.ex:534
 #: lib/kati/screens/pick_sections/sample.ex:48
 #: lib/kati/screens/pushed.ex:193
 #: lib/kati/settings/sample.ex:223
@@ -830,6 +833,7 @@ msgstr "سریال"
 msgid "Save image"
 msgstr "ذخیره تصویر"
 
+#: lib/kati/screens/books.ex:534
 #: lib/kati/screens/pick_sections/sample.ex:46
 #: lib/kati/settings/sample.ex:209
 #: lib/kati/stats/share_sample.ex:31
@@ -1290,13 +1294,13 @@ msgstr "آلبوم‌ها · %{count}"
 msgid "Dismiss"
 msgstr "بی‌خیال"
 
-#: lib/kati/music/sample.ex:266
+#: lib/kati/music/sample.ex:277
 #: lib/kati/screens/artist_detail.ex:235
 #, elixir-autogen, elixir-format
 msgid "Feeds 21’s new-releases band and 25’s alerts"
 msgstr "به نوار تازه‌ها و هشدارها خبر می‌دهد"
 
-#: lib/kati/screens/album_detail.ex:573
+#: lib/kati/screens/album_detail.ex:580
 #: lib/kati/screens/artist_detail.ex:831
 #, elixir-autogen, elixir-format
 msgid "First heard"
@@ -1332,7 +1336,7 @@ msgstr "یادآوری کن"
 msgid "Totals"
 msgstr "مجموع"
 
-#: lib/kati/music/sample.ex:287
+#: lib/kati/music/sample.ex:298
 #: lib/kati/screens/artist_detail.ex:288
 #, elixir-autogen, elixir-format
 msgid "Unheard"
@@ -1364,42 +1368,42 @@ msgctxt "totals tile"
 msgid "Albums"
 msgstr "آلبوم"
 
-#: lib/kati/music/sample.ex:263
+#: lib/kati/music/sample.ex:274
 #, elixir-autogen, elixir-format
 msgid "Composer · Iceland"
 msgstr "آهنگساز · ایسلند"
 
-#: lib/kati/music/sample.ex:308
-#: lib/kati/music/sample.ex:322
+#: lib/kati/music/sample.ex:319
+#: lib/kati/music/sample.ex:333
 #, elixir-autogen, elixir-format
 msgid "Estuary Tapes"
 msgstr "نوارهای خور"
 
 #: lib/kati/music/sample.ex:98
 #: lib/kati/music/sample.ex:101
-#: lib/kati/music/sample.ex:262
+#: lib/kati/music/sample.ex:273
 #, elixir-autogen, elixir-format
 msgid "Kell Ostrand"
 msgstr "کل اوستراند"
 
-#: lib/kati/music/sample.ex:306
+#: lib/kati/music/sample.ex:317
 #, elixir-autogen, elixir-format
 msgid "Low Country"
 msgstr "سرزمین پست"
 
-#: lib/kati/music/sample.ex:307
+#: lib/kati/music/sample.ex:318
 #, elixir-autogen, elixir-format
 msgid "Nine Rooms"
 msgstr "نه اتاق"
 
-#: lib/kati/music/sample.ex:323
+#: lib/kati/music/sample.ex:334
 #, elixir-autogen, elixir-format
 msgid "Out Friday · you have not heard it"
 msgstr "جمعه منتشر می‌شود · هنوز نشنیده‌اید"
 
 #: lib/kati/music/sample.ex:94
 #: lib/kati/music/sample.ex:97
-#: lib/kati/music/sample.ex:305
+#: lib/kati/music/sample.ex:316
 #, elixir-autogen, elixir-format
 msgid "Tidal Works"
 msgstr "کارهای جزر و مد"
@@ -1719,9 +1723,9 @@ msgstr[0] "%{n} روز"
 msgstr[1] "%{n} روز"
 
 #: lib/kati/music/sample.ex:114
-#: lib/kati/music/sample.ex:290
-#: lib/kati/music/sample.ex:295
-#: lib/kati/screens/album_detail.ex:392
+#: lib/kati/music/sample.ex:301
+#: lib/kati/music/sample.ex:306
+#: lib/kati/screens/album_detail.ex:399
 #: lib/kati/screens/artist_detail.ex:296
 #, elixir-autogen, elixir-format
 msgid "%{n} play"
@@ -1932,7 +1936,7 @@ msgid "kg"
 msgstr "کیلوگرم"
 
 #: lib/kati/health/weight_sample.ex:74
-#: lib/kati/screens/album_detail.ex:370
+#: lib/kati/screens/album_detail.ex:377
 #: lib/kati/screens/data_sources.ex:1123
 #, elixir-autogen, elixir-format
 msgid "today"
@@ -3092,7 +3096,7 @@ msgstr "آی‌کلاد · این دستگاه و آی‌پد"
 msgid "%{elapsed} · running"
 msgstr "%{elapsed} · در حال اجرا"
 
-#: lib/kati/books/sample.ex:124
+#: lib/kati/books/sample.ex:160
 #: lib/kati/screens/book_detail.ex:376
 #: lib/kati/screens/log_progress.ex:636
 #, elixir-autogen, elixir-format
@@ -3132,6 +3136,7 @@ msgid "I am now on page"
 msgstr "اکنون در صفحه"
 
 #: lib/kati/screens/book_detail.ex:1210
+#: lib/kati/screens/books.ex:440
 #: lib/kati/screens/log_progress.ex:212
 #, elixir-autogen, elixir-format
 msgid "Log progress"
@@ -3197,12 +3202,15 @@ msgstr "به‌جایش زمان بگیر"
 msgid "Timing this session"
 msgstr "زمان‌گیری این نشست"
 
-#: lib/kati/books/sample.ex:100
+#: lib/kati/books/sample.ex:88
+#: lib/kati/books/sample.ex:136
 #, elixir-autogen, elixir-format
 msgid "Ines Karvel"
 msgstr "اینس کارول"
 
-#: lib/kati/books/sample.ex:99
+#: lib/kati/books/sample.ex:37
+#: lib/kati/books/sample.ex:87
+#: lib/kati/books/sample.ex:135
 #, elixir-autogen, elixir-format
 msgid "The Salt Almanac"
 msgstr "سالنامه نمک"
@@ -3248,8 +3256,8 @@ msgstr "تعیین نشده"
 msgid "Not set up"
 msgstr "راه‌اندازی نشده"
 
-#: lib/kati/books/book.ex:206
-#: lib/kati/books/sample.ex:129
+#: lib/kati/books/book.ex:209
+#: lib/kati/books/sample.ex:165
 #, elixir-autogen, elixir-format
 msgid "#%{n} of %{total} in %{series}"
 msgstr "#%{n} از %{total} — %{series}"
@@ -3260,13 +3268,14 @@ msgstr "#%{n} از %{total} — %{series}"
 msgid "%{h}h %{m}m"
 msgstr "%{h} ساعت %{m} دقیقه"
 
-#: lib/kati/books/sample.ex:114
+#: lib/kati/books/sample.ex:94
+#: lib/kati/books/sample.ex:150
 #: lib/kati/screens/book_detail.ex:459
 #, elixir-autogen, elixir-format
 msgid "%{n} min/day pace"
 msgstr "%{n} دقیقه در روز"
 
-#: lib/kati/books/sample.ex:108
+#: lib/kati/books/sample.ex:144
 #: lib/kati/screens/book_detail.ex:357
 #, elixir-autogen, elixir-format
 msgid "%{n} pp"
@@ -3275,12 +3284,12 @@ msgstr[0] "%{n} صفحه"
 msgstr[1] "%{n} صفحه"
 
 #: lib/kati/books/reading_session.ex:142
-#: lib/kati/books/sample.ex:191
+#: lib/kati/books/sample.ex:227
 #, elixir-autogen, elixir-format
 msgid "%{n}m"
 msgstr "%{n} دقیقه"
 
-#: lib/kati/books/sample.ex:105
+#: lib/kati/books/sample.ex:141
 #, elixir-autogen, elixir-format
 msgid "%{year} · FABER · %{pp}"
 msgstr "%{year} · %{pp}"
@@ -3295,13 +3304,13 @@ msgstr "افزودن شابک"
 msgid "Add page count"
 msgstr "افزودن تعداد صفحه"
 
-#: lib/kati/screens/album_detail.ex:876
+#: lib/kati/screens/album_detail.ex:883
 #: lib/kati/screens/book_detail.ex:1195
 #, elixir-autogen, elixir-format
 msgid "Add to list"
 msgstr "افزودن به فهرست"
 
-#: lib/kati/books/sample.ex:212
+#: lib/kati/books/sample.ex:248
 #, elixir-autogen, elixir-format
 msgid "Audiobook"
 msgstr "صوتی"
@@ -3316,13 +3325,13 @@ msgstr "دیگران"
 msgid "Content warnings"
 msgstr "هشدار محتوا"
 
-#: lib/kati/books/sample.ex:136
+#: lib/kati/books/sample.ex:172
 #: lib/kati/screens/book_detail.ex:489
 #, elixir-autogen, elixir-format
 msgid "Due %{date}"
 msgstr "موعد %{date}"
 
-#: lib/kati/books/sample.ex:211
+#: lib/kati/books/sample.ex:247
 #, elixir-autogen, elixir-format
 msgid "Ebook"
 msgstr "الکترونیک"
@@ -3347,7 +3356,7 @@ msgstr "تمام شد"
 msgid "Follow %{author}"
 msgstr "دنبال‌کردن %{author}"
 
-#: lib/kati/books/sample.ex:135
+#: lib/kati/books/sample.ex:171
 #, elixir-autogen, elixir-format
 msgid "Jo"
 msgstr "جو"
@@ -3357,19 +3366,20 @@ msgstr "جو"
 msgid "Length"
 msgstr "طول"
 
-#: lib/kati/books/sample.ex:135
+#: lib/kati/books/sample.ex:171
 #: lib/kati/screens/book_detail.ex:475
 #, elixir-autogen, elixir-format
 msgid "Lent to %{who}"
 msgstr "قرض داده به %{who}"
 
-#: lib/kati/books/sample.ex:134
+#: lib/kati/books/sample.ex:41
+#: lib/kati/books/sample.ex:170
 #: lib/kati/music/sample.ex:151
 #, elixir-autogen, elixir-format
 msgid "Low Water"
 msgstr "آب کم"
 
-#: lib/kati/books/sample.ex:134
+#: lib/kati/books/sample.ex:170
 #, elixir-autogen, elixir-format
 msgid "Next: %{title}"
 msgstr "بعدی: %{title}"
@@ -3379,7 +3389,7 @@ msgstr "بعدی: %{title}"
 msgid "None recorded"
 msgstr "ثبت نشده"
 
-#: lib/kati/books/sample.ex:210
+#: lib/kati/books/sample.ex:246
 #, elixir-autogen, elixir-format
 msgid "Paperback"
 msgstr "شمیز"
@@ -3389,7 +3399,7 @@ msgstr "شمیز"
 msgid "Rate & review"
 msgstr "امتیاز"
 
-#: lib/kati/books/sample.ex:157
+#: lib/kati/books/sample.ex:193
 #, elixir-autogen, elixir-format
 msgid "Re-read chapter seven before starting the second volume."
 msgstr "فصل هفتم را قبل از جلد دوم دوباره بخوان."
@@ -3409,12 +3419,12 @@ msgstr "مجموعه و مالکیت"
 msgid "Start reading"
 msgstr "شروع خواندن"
 
-#: lib/kati/books/sample.ex:132
+#: lib/kati/books/sample.ex:168
 #, elixir-autogen, elixir-format
 msgid "The Coastal Ledgers"
 msgstr "دفترهای ساحلی"
 
-#: lib/kati/books/sample.ex:152
+#: lib/kati/books/sample.ex:188
 #, elixir-autogen, elixir-format
 msgid "The tide keeps its own ledger."
 msgstr "جزر و مد دفتر خودش را نگه می‌دارد."
@@ -3444,7 +3454,8 @@ msgstr "شما"
 msgid "no page count"
 msgstr "بدون تعداد صفحه"
 
-#: lib/kati/books/sample.ex:112
+#: lib/kati/books/sample.ex:92
+#: lib/kati/books/sample.ex:148
 #: lib/kati/screens/book_detail.ex:430
 #, elixir-autogen, elixir-format
 msgid "p. %{at} / %{of}"
@@ -3456,19 +3467,19 @@ msgid "p. %{at} · %{note}"
 msgstr "ص. %{at} · %{note}"
 
 #: lib/kati/books/reading_session.ex:134
-#: lib/kati/books/sample.ex:187
+#: lib/kati/books/sample.ex:223
 #, elixir-autogen, elixir-format
 msgid "p. %{from} → %{to}"
 msgstr "ص. %{from} → %{to}"
 
 #: lib/kati/books/note.ex:66
-#: lib/kati/books/sample.ex:153
-#: lib/kati/books/sample.ex:158
+#: lib/kati/books/sample.ex:189
+#: lib/kati/books/sample.ex:194
 #, elixir-autogen, elixir-format
 msgid "p. %{n}"
 msgstr "ص. %{n}"
 
-#: lib/kati/books/book.ex:214
+#: lib/kati/books/book.ex:217
 #, elixir-autogen, elixir-format
 msgid "#%{n} in %{series}"
 msgstr "#%{n} — %{series}"
@@ -3479,27 +3490,27 @@ msgctxt "book status"
 msgid "Not started"
 msgstr "شروع نشده"
 
-#: lib/kati/books/sample.ex:103
-#: lib/kati/books/sample.ex:199
+#: lib/kati/books/sample.ex:139
+#: lib/kati/books/sample.ex:235
 #: lib/kati/screens/book_detail.ex:331
 #, elixir-autogen, elixir-format
 msgctxt "book status"
 msgid "Reading"
 msgstr "در حال خواندن"
 
-#: lib/kati/books/sample.ex:202
+#: lib/kati/books/sample.ex:238
 #, elixir-autogen, elixir-format
 msgctxt "book status"
 msgid "Did not finish"
 msgstr "رهاشده"
 
-#: lib/kati/books/sample.ex:200
+#: lib/kati/books/sample.ex:236
 #, elixir-autogen, elixir-format
 msgctxt "book status"
 msgid "Finished"
 msgstr "تمام شد"
 
-#: lib/kati/books/sample.ex:201
+#: lib/kati/books/sample.ex:237
 #, elixir-autogen, elixir-format
 msgctxt "book status"
 msgid "Paused"
@@ -3521,13 +3532,13 @@ msgid "%{artist} · %{year}"
 msgstr "%{artist} · %{year}"
 
 #: lib/kati/music/sample.ex:108
-#: lib/kati/screens/album_detail.ex:355
+#: lib/kati/screens/album_detail.ex:362
 #, elixir-autogen, elixir-format
 msgid "%{hours} listened"
 msgstr "%{hours}"
 
 #: lib/kati/music/sample.ex:106
-#: lib/kati/screens/album_detail.ex:354
+#: lib/kati/screens/album_detail.ex:361
 #, elixir-autogen, elixir-format
 msgid "%{n} album"
 msgid_plural "%{n} albums"
@@ -3535,12 +3546,12 @@ msgstr[0] "%{n} آلبوم"
 msgstr[1] "%{n} آلبوم"
 
 #: lib/kati/music/sample.ex:115
-#: lib/kati/screens/album_detail.ex:393
+#: lib/kati/screens/album_detail.ex:400
 #, elixir-autogen, elixir-format
 msgid "%{n} this month"
 msgstr "%{n} این ماه"
 
-#: lib/kati/music/sample.ex:245
+#: lib/kati/music/sample.ex:256
 #: lib/kati/screens/album_detail.ex:176
 #, elixir-autogen, elixir-format
 msgid "%{n} track"
@@ -3553,17 +3564,17 @@ msgstr[1] "%{n} آهنگ"
 msgid "%{n}h"
 msgstr "%{n} ساعت"
 
-#: lib/kati/screens/album_detail.ex:433
+#: lib/kati/screens/album_detail.ex:440
 #, elixir-autogen, elixir-format
 msgid "Art"
 msgstr "هنر"
 
-#: lib/kati/music/sample.ex:207
+#: lib/kati/music/sample.ex:214
 #, elixir-autogen, elixir-format
 msgid "Bight"
 msgstr "خلیجک"
 
-#: lib/kati/music/sample.ex:167
+#: lib/kati/music/sample.ex:169
 #, elixir-autogen, elixir-format
 msgid "Blackthorn"
 msgstr "سیاه‌خار"
@@ -3573,89 +3584,194 @@ msgstr "سیاه‌خار"
 msgid "Found this on a wet Tuesday in the studio. Played track three until it stopped meaning anything."
 msgstr "سه‌شنبه بارانی در استودیو پیدایش کردم. آهنگ سوم را بی‌وقفه تکرار کردم."
 
-#: lib/kati/music/sample.ex:175
+#: lib/kati/music/sample.ex:178
 #, elixir-autogen, elixir-format
 msgid "Hollow Season"
 msgstr "فصل گودال"
 
-#: lib/kati/music/sample.ex:199
+#: lib/kati/music/sample.ex:205
 #, elixir-autogen, elixir-format
 msgid "Kelp Line"
 msgstr "خط جلبک"
 
-#: lib/kati/screens/album_detail.ex:573
+#: lib/kati/screens/album_detail.ex:580
 #, elixir-autogen, elixir-format
 msgid "Last played"
 msgstr "آخرین پخش"
 
-#: lib/kati/music/sample.ex:231
+#: lib/kati/music/sample.ex:241
 #, elixir-autogen, elixir-format
 msgid "Ledger"
 msgstr "دفتر کل"
 
-#: lib/kati/screens/album_detail.ex:442
+#: lib/kati/screens/album_detail.ex:449
 #, elixir-autogen, elixir-format
 msgid "Listen history · %{n} weeks"
 msgstr "تاریخچه شنیدن · %{n} هفته"
 
-#: lib/kati/screens/album_detail.ex:463
+#: lib/kati/screens/album_detail.ex:470
 #, elixir-autogen, elixir-format
 msgid "Log a listen"
 msgstr "ثبت شنیدن"
 
-#: lib/kati/screens/album_detail.ex:876
+#: lib/kati/screens/album_detail.ex:883
 #, elixir-autogen, elixir-format
 msgid "Rate"
 msgstr "امتیاز"
 
-#: lib/kati/music/sample.ex:191
+#: lib/kati/music/sample.ex:196
 #, elixir-autogen, elixir-format
 msgid "Saltmarsh"
 msgstr "شوره‌زار"
 
-#: lib/kati/music/sample.ex:223
+#: lib/kati/music/sample.ex:232
 #, elixir-autogen, elixir-format
 msgid "Spring Tide"
 msgstr "کشند بزرگ"
 
-#: lib/kati/music/sample.ex:159
+#: lib/kati/music/sample.ex:160
 #, elixir-autogen, elixir-format
 msgid "The Cull"
 msgstr "برداشت"
 
-#: lib/kati/music/sample.ex:215
+#: lib/kati/music/sample.ex:223
 #, elixir-autogen, elixir-format
 msgid "The Long Reach"
 msgstr "بازه بلند"
 
-#: lib/kati/screens/album_detail.ex:751
+#: lib/kati/screens/album_detail.ex:758
 #, elixir-autogen, elixir-format
 msgid "The dot marks a track played today — the only recency signal here"
 msgstr "نقطه یعنی این آهنگ امروز پخش شده — تنها نشانهٔ تازگی در این صفحه"
 
-#: lib/kati/music/sample.ex:244
+#: lib/kati/music/sample.ex:255
 #: lib/kati/screens/album_detail.ex:175
 #, elixir-autogen, elixir-format
 msgid "Tracklist · %{tracks}"
 msgstr "فهرست آهنگ‌ها · %{tracks}"
 
-#: lib/kati/music/sample.ex:183
+#: lib/kati/music/sample.ex:187
 #, elixir-autogen, elixir-format
 msgid "What the Tide Left"
 msgstr "آنچه جزر باقی گذاشت"
 
-#: lib/kati/screens/album_detail.ex:849
+#: lib/kati/screens/album_detail.ex:856
 #, elixir-autogen, elixir-format
 msgid "Your note"
 msgstr "یادداشت شما"
 
-#: lib/kati/screens/album_detail.ex:437
+#: lib/kati/screens/album_detail.ex:444
 #, elixir-autogen, elixir-format
 msgid "Your rating"
 msgstr "امتیاز شما"
 
 #: lib/kati/music/sample.ex:110
-#: lib/kati/screens/album_detail.ex:371
+#: lib/kati/screens/album_detail.ex:378
 #, elixir-autogen, elixir-format
 msgid "yesterday"
 msgstr "دیروز"
+
+#: lib/kati/books/sample.ex:68
+#: lib/kati/screens/books.ex:316
+#, elixir-autogen, elixir-format
+msgid "%{n} book"
+msgid_plural "%{n} books"
+msgstr[0] "%{n} کتاب"
+msgstr[1] "%{n} کتاب"
+
+#: lib/kati/books/sample.ex:69
+#: lib/kati/screens/books.ex:317
+#, elixir-autogen, elixir-format
+msgid "%{n} reading"
+msgstr "%{n} در حال خواندن"
+
+#: lib/kati/books/sample.ex:38
+#, elixir-autogen, elixir-format
+msgid "Estuary"
+msgstr "خور"
+
+#: lib/kati/books/sample.ex:39
+#, elixir-autogen, elixir-format
+msgid "Field Notes"
+msgstr "یادداشت‌های میدانی"
+
+#: lib/kati/books/sample.ex:40
+#, elixir-autogen, elixir-format
+msgid "Marram Grass"
+msgstr "علف مرام"
+
+#: lib/kati/books/sample.ex:86
+#, elixir-autogen, elixir-format
+msgid "Reading now"
+msgstr "در حال خواندن"
+
+#: lib/kati/books/sample.ex:42
+#, elixir-autogen, elixir-format
+msgid "The Warden"
+msgstr "نگهبان"
+
+#: lib/kati/books/book.ex:191
+#: lib/kati/books/sample.ex:59
+#, elixir-autogen, elixir-format
+msgid "finished"
+msgstr "تمام‌شده"
+
+#: lib/kati/books/book.ex:200
+#, elixir-autogen, elixir-format
+msgid "p.%{at}"
+msgstr "ص. %{at}"
+
+#: lib/kati/books/book.ex:197
+#: lib/kati/books/sample.ex:54
+#, elixir-autogen, elixir-format
+msgid "p.%{at}/%{of}"
+msgstr "ص. %{at} / %{of}"
+
+#: lib/kati/books/book.ex:192
+#: lib/kati/books/sample.ex:62
+#, elixir-autogen, elixir-format
+msgid "to read"
+msgstr "شروع نشده"
+
+#: lib/kati/screens/books.ex:429
+#, elixir-autogen, elixir-format
+msgid "Add the first one with +. Kati invents no cover and no page count — it keeps what you typed."
+msgstr "اولین کتاب را با دکمه + اضافه کنید. کاتی جلد یا تعداد صفحه‌ای نمی‌سازد — همان چیزی می‌ماند که نوشته‌اید."
+
+#: lib/kati/screens/books.ex:419
+#, elixir-autogen, elixir-format
+msgid "An empty shelf"
+msgstr "قفسه خالی"
+
+#: lib/kati/screens/books.ex:423
+#, elixir-autogen, elixir-format
+msgid "No books yet"
+msgstr "هنوز کتابی نیست"
+
+#: lib/kati/books/sample.ex:107
+#: lib/kati/screens/books.ex:347
+#, elixir-autogen, elixir-format
+msgctxt "shelf filter"
+msgid "All"
+msgstr "همه"
+
+#: lib/kati/books/sample.ex:109
+#: lib/kati/screens/books.ex:350
+#, elixir-autogen, elixir-format
+msgctxt "shelf filter"
+msgid "Finished"
+msgstr "تمام‌شده"
+
+#: lib/kati/books/sample.ex:108
+#: lib/kati/screens/books.ex:348
+#, elixir-autogen, elixir-format
+msgctxt "shelf filter"
+msgid "Reading"
+msgstr "در حال خواندن"
+
+#: lib/kati/books/sample.ex:110
+#: lib/kati/screens/books.ex:351
+#, elixir-autogen, elixir-format
+msgctxt "shelf filter"
+msgid "To read"
+msgstr "شروع نشده"

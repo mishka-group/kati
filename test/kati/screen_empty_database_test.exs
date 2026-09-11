@@ -588,7 +588,10 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # four chips and the Reading-now hero are four views of that one answer.
     # Gated as screen 20 is and for its reason — either every value on the page
     # is this reader's or every value is the drawing's.
-    {"176", Kati.Screens.BooksFa},
+    # 176 was `Kati.Screens.Books` until mishka-group/kati#103 folded that
+    # mirror away. It is screen 20 under `:fa` now — hence its number on
+    # `@fa_numbers` below.
+    {"176", Kati.Screens.Books},
     # 177 WRITES rather than reads: what it draws is its own form, and the
     # store is only touched when Add to library is pressed. It is here for
     # 154's reason — this list is derived from the compiled import table, which
@@ -1331,6 +1334,9 @@ defmodule Kati.ScreenEmptyDatabaseTest do
     # away by mishka-group/kati#103. `DesignLiterals.retired_lines/0` holds the
     # words and the argument; `Kati.ScreenDesignLiteralTest`'s
     # `@retired_symbols` is this entry's twin.
+    # Board 176's annotation aside, retired with its seven runs —
+    # `DesignLiterals.retired_lines/0` carries the argument.
+    {"176", "info"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"}
@@ -2098,8 +2104,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
       # grid, the hero, the header line and the four chip counts all come out of
       # that one answer, so one pair covers all four and a gate that looked only
       # at the grid would pass while the hero named a book nobody owns.
-      {"176", Kati.Screens.BooksFa, &Kati.Screens.BooksFa.page/0,
-       &Kati.Screens.BooksFa.drawn_page/0},
+      {"176", Kati.Screens.Books, &Kati.Screens.Books.page/0, &Kati.Screens.Books.drawn_page/0},
       # 66 gates the whole page, as 04 does: either every value on it is this
       # reader's book or every value is the drawing's, so one pair covers the
       # hero, the ratings, the edition facts, the notes and the history band.
@@ -3001,7 +3006,7 @@ defmodule Kati.ScreenEmptyDatabaseTest do
   #
   # `Kati.ScreenDesignLiteralTest`'s `@fa_screens` is the same list for the same
   # reason, and the two grow together as the fold proceeds.
-  @fa_numbers ~w(60 62 69 72 76 82 97 103 137 156 164 165 166)
+  @fa_numbers ~w(60 62 69 72 76 82 97 103 137 156 164 165 166 176)
 
   defp do_render_migrated do
     for {number, module} <- @migrated do

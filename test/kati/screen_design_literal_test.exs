@@ -271,6 +271,10 @@ defmodule Kati.ScreenDesignLiteralTest do
     # go with the rows — see `DesignLiterals.retired_lines/0`, which holds the
     # words and the argument. `calendar_month` is not here: screen 24's Sources
     # group draws it on its own **Calendars** row.
+    # Board 176's annotation aside — see `DesignLiterals.retired_lines/0`,
+    # which holds its seven runs and the argument. The glyph is the aside's own
+    # `info`.
+    {"176", "info"},
     {"62", "event"},
     {"62", "pin"},
     {"62", "restaurant"}

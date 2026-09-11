@@ -523,6 +523,26 @@ defmodule Kati.DesignLiterals do
       # the frozen `Show all 47` still belongs, over an empty one.
       # mishka-group/kati#103.
       {"97", "نمایش همه ۴۷"},
+      # ── Board 176's annotation, seven runs of it.
+      #
+      # `Kati.Screens.BooksFa` drew the board's own caption ON THE SCREEN — a
+      # dashed aside reading *the same page 57 with three substitutions from
+      # page 20: the Reading-now card instead of three tiles…*, with *radius 6*
+      # and *fills from the right* in bold. That is the drawing describing how
+      # it was built, addressed to somebody reading the drawing, and it is not
+      # copy a person opening their shelf has any use for. Board 115's
+      # direction note set the rule: what is a fact for the reader survives the
+      # fold and the typography lecture does not.
+      #
+      # mishka-group/kati#103 folded that mirror into screen 20, whose own
+      # board draws no such aside, and the aside went with it.
+      {"176",
+       "همان صفحه ۵۷ با سه جایگزینی صفحه ۲۰: کارت «در حال خواندن» به جای سه کاشی، چیپ‌های کتاب، و شبکه سه‌تایی با جلدهای"},
+      {"176", "شعاع ۶"},
+      {"176", ". نوار پیشرفت"},
+      {"176", "از راست پر می‌شود"},
+      {"176", "، جلدها هرگز آینه نمی‌شوند، و ترتیب عمودی برعکس نمی‌شود."},
+      {"176", "همان واژه‌ای است که ۱۵۶ به کار می‌برد — یک ثبت، در هر دو جا."},
       # ── Boards 74 and 76's listen field, and board 76's art tile.
       #
       # **MAY / اردیبهشت.** The field is ninety-one days ending TODAY and the

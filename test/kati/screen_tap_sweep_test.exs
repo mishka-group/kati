@@ -431,8 +431,6 @@ defmodule Kati.ScreenTapSweepTest do
     # Screen 176's lit segment and lit chip, for the same reason: کتاب‌ها is the
     # shelf you are on and همه is the filter already showing. نمایش and موسیقی
     # both navigate and the other three chips all move the filter.
-    {Kati.Screens.BooksFa, :shelf_1},
-    {Kati.Screens.BooksFa, :filter_0},
     {Kati.Screens.LanguagePick, :choose_en},
     {Kati.Screens.LanguagePick, :choose_fa},
     # ── Drawn, reachable, and pushing nothing because the design draws no
@@ -464,7 +462,6 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.EventDetail, :section_Work},
     # Screen 20's, which joined the day its chip rail was wired: `All` is the
     # chip `load/1` opens on, so tapping it re-selects what is selected.
-    {Kati.Screens.Books, :filter_All},
     # Screen 70's unit segments. `Page` is the one the sheet opens on, so
     # tapping it sets the unit it already has; `unit_percent` and
     # `unit_minutes` both move, which is what proves the family is wired.
@@ -774,6 +771,14 @@ defmodule Kati.ScreenTapSweepTest do
     {Kati.Screens.AttributionStates, :open_tmdb},
     {Kati.Screens.AttributionStates, :open_listenbrainz},
 
+    # Screen 20's already-selected shelf chip. `chip_counts/1` draws all four
+    # and the lit one's tap re-selects what is already selected, which changes
+    # nothing — the same shape screen 03's `filter_all` has, and the same
+    # reason: only the unselected chips are choices, and the selected one keeps
+    # its tag so a fifth chip is a change to `chip_counts/1` and not to the
+    # handler. It was `{Kati.Screens.BooksFa, :filter_0}` until #103 folded
+    # that mirror into this screen and the tags became ids.
+    {Kati.Screens.Books, :filter_all},
     # Screen 82's `key_kati` was here until mishka-group/kati#103 folded the
     # mirror away. The chip in force carries no tag on screen 80 — `key_chip/3`
     # draws it only for the chip that is NOT selected — so with one screen

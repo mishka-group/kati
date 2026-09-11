@@ -936,7 +936,7 @@ defmodule Kati.Screens.LibraryFa do
       # 176's covers, which is where a book detail is reached from on every
       # other shelf in the app.
       "shelf_1" ->
-        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.BooksFa)}
+        {:noreply, Mob.Socket.push_screen(socket, Kati.Screens.Books)}
 
       # Index 2 is موسیقی, and it opens the music SHELF — screen 21, in English,
       # because no board in the set draws a Persian one.
