@@ -159,6 +159,10 @@ defmodule Kati.Screens.HomeDark do
   # hairline standing in for the shadow the light theme uses.
   def mount(_params, _session, socket) do
     Mob.Theme.set(Kati.Theme.dark())
+    # Resolves the stored locale into THIS process. `Gettext.put_locale/2`
+    # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
+    # and a screen is its own process — see `Kati.Locale.activate/0`.
+    Kati.Locale.activate()
 
     # The spine first, the gate after — `Kati.Screens.Home.mount/3`'s order and
     # its moduledoc's warning about doing the second half alone.

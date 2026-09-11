@@ -93,6 +93,88 @@ defmodule Kati.LocaleActivateTest do
     end
   end
 
+  describe "every screen's own mount" do
+    test "resolves the locale, whatever shape its theme line takes" do
+      # The pairing above is keyed on `Kati.Theme.activate/0`, and 21 screens
+      # do not use it: they write `Mob.Theme.set(Kati.Theme.current())` (or
+      # `.dark()`) inline, which is the same snapshot under a different name.
+      # Every one of them was therefore outside the rule, and this is the test
+      # that puts them inside it.
+      #
+      # ## Why this is a crash on a device and a wrong language on the host
+      #
+      # `Gettext.dpgettext/5` reads the process's locale, and with none set it
+      # falls back to `Application.fetch_env!(:gettext, :default_locale)`. In
+      # the test VM `:gettext` is loaded, that key is `"en"`, and the page
+      # renders in English — the silent failure this file's moduledoc
+      # describes. On the device the application is not loaded, so the same
+      # call raises:
+      #
+      #   ** (ArgumentError) could not fetch application environment
+      #      :default_locale for application :gettext because the application
+      #      was not loaded nor configured
+      #
+      # `Mob.Screen.Server` restarts the screen, it raises again, and after six
+      # restarts in ten seconds mob gives up on it. Found on a Pixel 9a on
+      # 11 September by tapping *Get started*: screen 162 pushed
+      # `Kati.Screens.PickSections`, whose mount set the theme and not the
+      # locale, and the onboarding run simply stopped — no error on screen, no
+      # crash dialog, the previous screen still drawn and the button dead.
+      #
+      # So a missing activation is not cosmetic and it is not caught by any
+      # host test: the suite renders the same screen green.
+      missing =
+        screen_sources()
+        |> Enum.filter(fn {_file, src} -> own_mount(src) != nil end)
+        |> Enum.reject(fn {_file, src} -> own_mount(src) =~ "Kati.Locale.activate()" end)
+        |> Enum.map(&elem(&1, 0))
+
+      assert missing == [],
+             """
+             these screens define their own `mount/3` and never resolve the
+             locale into it. On a device every Gettext call they reach raises
+             ArgumentError and mob gives the screen up after six restarts:
+
+             #{Enum.map_join(missing, "\n", &"  #{&1}")}
+
+             Add `Kati.Locale.activate()` to the mount. Screens that take their
+             mount from `Kati.Screens.Root`, `Pushed` or `Resume` already have
+             it and are not listed here.
+             """
+    end
+
+    test "the three screen macros still carry it, so the screens that take their mount from one are covered" do
+      # The other half. The test above only looks at screens with a mount of
+      # their own; 41 screens have none and inherit one. If a macro lost the
+      # call, this file would go on passing while most of the app lost its
+      # locale.
+      for macro <- ~w(root.ex pushed.ex resume.ex) do
+        src = File.read!(Path.join([@lib, "kati/screens", macro]))
+
+        assert src =~ "Kati.Locale.activate()",
+               "lib/kati/screens/#{macro} no longer activates the locale in the mount it " <>
+                 "generates, and every screen using it has just lost its translations"
+      end
+    end
+  end
+
+  defp screen_sources do
+    @lib
+    |> Path.join("kati/screens/**/*.ex")
+    |> Path.wildcard()
+    |> Enum.map(fn path -> {Path.relative_to(path, Path.dirname(@lib)), File.read!(path)} end)
+  end
+
+  # A screen's own `mount/3` body, or nil. Matched at column 2 so the many
+  # mentions of `def mount(...)` inside moduledocs and comments — screen 03 has
+  # one — are not mistaken for a definition.
+  defp own_mount(src) do
+    case Regex.run(~r/^  def mount\(.*?\) do\n(.*?)\n  end$/ms, src, capture: :all_but_first) do
+      [body] -> body
+      nil -> nil
+    end
+  end
+
   defp unpaired_in(path) do
     path
     |> theme_sites()

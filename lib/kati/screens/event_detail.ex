@@ -135,6 +135,10 @@ defmodule Kati.Screens.EventDetail do
     # the stored Auto/Light/Dark choice resolved against the device, and every
     # `Palette` token below reads the theme this installs.
     Mob.Theme.set(Kati.Theme.current())
+    # Resolves the stored locale into THIS process. `Gettext.put_locale/2`
+    # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
+    # and a screen is its own process — see `Kati.Locale.activate/0`.
+    Kati.Locale.activate()
     {:ok, Mob.Socket.assign(socket, :event, Kati.Screens.EventDetail.event(params))}
   end
 

@@ -43,6 +43,10 @@ defmodule Kati.Screens.MealSwap do
 
   def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+    # Resolves the stored locale into THIS process. `Gettext.put_locale/2`
+    # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
+    # and a screen is its own process — see `Kati.Locale.activate/0`.
+    Kati.Locale.activate()
     swap = Kati.Screens.MealSwap.swap(params)
 
     {:ok,

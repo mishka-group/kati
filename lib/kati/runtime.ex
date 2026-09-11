@@ -56,7 +56,34 @@ defmodule Kati.Runtime do
       # zone lookup fails — silently for display, catastrophically for
       # recurrence. `tz` compiles IANA data in at build time, so there is no
       # writable directory and no network involved.
-      {:elixir, :time_zone_database, Tz.TimeZoneDatabase}
+      {:elixir, :time_zone_database, Tz.TimeZoneDatabase},
+      # The floor under the locale, and nothing more.
+      #
+      # `Gettext.dpgettext/5` reads the CALLING process's locale and, finding
+      # none, falls back to `Application.fetch_env!(:gettext, :default_locale)`
+      # — `fetch_env!`, which RAISES. The key is in `gettext.app`'s own env and
+      # is `"en"` on the host; on the phone the `.app` env is empty for the
+      # reason this module's moduledoc gives, so the same call dies with
+      #
+      #   ** (ArgumentError) could not fetch application environment
+      #      :default_locale for application :gettext because the application
+      #      was not loaded nor configured
+      #
+      # and `Mob.Screen.Server` gives the screen up after six restarts. Found
+      # on a Pixel 9a on 11 September: *Get started* pushed
+      # `Kati.Screens.PickSections`, whose mount set the theme and not the
+      # locale, and onboarding simply stopped — the previous screen still
+      # drawn, the button dead, nothing on screen to say why.
+      #
+      # This is NOT how Kati chooses a language. `Kati.Locale.activate/0` is,
+      # and `Kati.LocaleActivateTest` asserts every screen calls it — the
+      # process-scoped write is what lets one screen render `:fa` without
+      # changing the locale for the rest of the run. This key only decides what
+      # a process that never activated gets, and the answer has to be the same
+      # one the host gives: the msgid, which is the English copy. A wrong
+      # language is a defect; a screen mob has given up on is an app that
+      # stopped.
+      {:gettext, :default_locale, "en"}
     ]
   end
 

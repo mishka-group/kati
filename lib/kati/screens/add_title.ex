@@ -94,6 +94,10 @@ defmodule Kati.Screens.AddTitle do
   # user goes back to `Everything`.
   def mount(params, _session, socket) do
     Mob.Theme.set(Kati.Theme.current())
+    # Resolves the stored locale into THIS process. `Gettext.put_locale/2`
+    # snapshots into the calling process exactly as `Mob.Theme.set/1` does,
+    # and a screen is its own process — see `Kati.Locale.activate/0`.
+    Kati.Locale.activate()
     # What the caller wanted looked up, if it named one. MOVIES-AND-TV.md #93:
     # screen 18's *Title* chip is a door onto this sheet, and a sheet that
     # opened blank after the reader had already typed the film's name is an
