@@ -692,3 +692,7 @@ msgstr "%{filter} نیست"
 #: lib/kati/screens/library.ex
 msgid "Kati flags one from its genre and origin, or from a MAL or AniList import — and you can say so yourself from a title's ⋯ menu."
 msgstr "کاتی از ژانر و خاستگاهش، یا از ورودی MAL یا AniList، آن را علامت می‌زند — و خودتان هم می‌توانید از منوی ⋯ یک عنوان بگویید."
+
+#: lib/kati/shell.ex
+msgid "Calendar"
+msgstr "تقویم"

@@ -683,3 +683,7 @@ msgstr ""
 #: lib/kati/screens/library.ex
 msgid "Kati flags one from its genre and origin, or from a MAL or AniList import — and you can say so yourself from a title's ⋯ menu."
 msgstr ""
+
+#: lib/kati/shell.ex
+msgid "Calendar"
+msgstr ""

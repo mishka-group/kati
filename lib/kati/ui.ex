@@ -178,10 +178,11 @@ defmodule Kati.UI do
         <Box width={13} height={2} corner_radius={1} background={dash} />
         <Spacer size={9} />
         <Text
-          text={String.upcase(label)}
+          text={Kati.UI.eyebrow_label(label)}
           font_family={Kati.Locale.mono_face()}
-          text_size={10.5}
-          letter_spacing={0.16}
+          text_size={Kati.Locale.pick(10.5, 11)}
+          font_weight={Kati.Locale.pick("normal", "semibold")}
+          letter_spacing={Kati.Locale.tracking(0.16)}
           text_color={label_color}
         />
         <Spacer weight={1.0} />
@@ -191,6 +192,81 @@ defmodule Kati.UI do
     </Column>
     """
   end
+
+  @doc """
+  A `Text` set in the reader's own face, at the reader's own leading.
+
+      Kati.UI.text("Coming up", 13.5, Palette.sub())
+      Kati.UI.text(title, 15, :on_surface, weight: "bold", lines: 2)
+
+  `:weight` (default `"normal"`), `:lines` (default 1), `:align` and
+  `:leading` (default 1.4 in Latin) are the options. The face comes from
+  `Kati.Locale.face_prop/0` and the line height from `Kati.Locale.leading/1`,
+  which is the whole point: **a `Text` that names `fa` is a `Text` that can
+  only ever be Persian.**
+
+  Fifteen Persian mirrors carried their own copy of this node — it was
+  `Kati.Screens.BookDetailFa.fa/4`, hard-coding `font_family="fa"` and
+  `line_height={1.4}` — and every one of them called it because the ALTERNATIVE
+  was worse: an unmarked `Text` fell back to Plus Jakarta Sans, which carries
+  no Arabic glyph at all. `K-48 locale-face` removed that reason by making the
+  root declare the face, and this removes the helper.
+
+  Vazirmatn's metrics are not Plus Jakarta's, so the same `line_height` does
+  not produce the same line box — `Kati.Theme.fa_line_height/0` is where that
+  is argued and `Kati.Locale.leading/1` is it applied.
+
+  mishka-group/kati#103.
+  """
+  @spec text(String.t(), number(), term(), keyword()) :: map()
+  def text(body, size, colour, opts \\ []) do
+    assigns = %{
+      body: body,
+      size: size,
+      colour: colour,
+      weight: Keyword.get(opts, :weight, "normal"),
+      lines: Keyword.get(opts, :lines, 1),
+      align: Keyword.get(opts, :align),
+      leading: Kati.Locale.leading(Keyword.get(opts, :leading, 1.4))
+    }
+
+    ~MOB"""
+    <Text
+      text={@body}
+      font_family={Kati.Locale.face_prop()}
+      text_size={@size}
+      font_weight={@weight}
+      text_align={@align}
+      text_color={@colour}
+      max_lines={@lines}
+      line_height={@leading}
+    />
+    """
+  end
+
+  @doc """
+  An eyebrow's own label, raised in the script that has a raised form.
+
+      iex> Kati.UI.eyebrow_label("Coming up")
+      "COMING UP"
+
+  `String.upcase/1` is a **Latin** operation. The Arabic script has no case at
+  all, so upper-casing Persian does nothing to four fifths of it and quietly
+  mangles the rest; the mirrors all wrote their own eyebrow rather than pass
+  their label through this one, and `Kati.Screens.Fa.eyebrow/1`,
+  `StatsFa.quiet_eyebrow/1` and `AlbumDetailFa.eyebrow/2` are three copies of
+  that decision.
+
+  The other three differences travel with it and are all in the recipe above:
+  Vazirmatn wants 11 over DM Mono's 10.5, semibold over normal, and **no
+  tracking** — `.16em` is a Latin small-caps effect and the Arabic script has
+  no tradition of letter-spacing. `Kati.Screens.AddByHand.labelled/4` carries
+  the long version of that argument.
+
+  mishka-group/kati#103.
+  """
+  @spec eyebrow_label(String.t()) :: String.t()
+  def eyebrow_label(label), do: Kati.Locale.pick(String.upcase(label), label)
 
   # Arity 2 with a default rather than a second function, so the arity-1 call
   # shape stays a real function — `Kati.Screens.LaunchScreen`'s moduledoc cites

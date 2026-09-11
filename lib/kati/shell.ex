@@ -1,4 +1,6 @@
 defmodule Kati.Shell do
+  use Gettext, backend: Kati.Gettext
+
   @moduledoc """
   The four-root shell: content, scrim, floating pill tab bar, detached FAB.
 
@@ -47,14 +49,35 @@ defmodule Kati.Shell do
   # The design's icon names, not Compose's. Screen 01's bar is
   # home / calendar_month / grid_view / bar_chart_4_bars — and the Material
   # Icons set the template ships with has neither of the last two.
+  # `{id, glyph, screen}`. The LABEL is asked for at draw time, because a label
+  # is a translation and a module attribute is frozen at compile time — and the
+  # dock is the one place in the app where getting that wrong is visible on
+  # every screen at once. mishka-group/kati#103.
   @roots [
-    %{id: :home, label: "Home", icon: "home", screen: Kati.Screens.Home},
-    %{id: :calendar, label: "Calendar", icon: "calendar_month", screen: Kati.Screens.Calendar},
-    %{id: :library, label: "Library", icon: "grid_view", screen: Kati.Screens.Library},
-    %{id: :stats, label: "Stats", icon: "bar_chart_4_bars", screen: Kati.Screens.Stats}
+    %{id: :home, icon: "home", screen: Kati.Screens.Home},
+    %{id: :calendar, icon: "calendar_month", screen: Kati.Screens.Calendar},
+    %{id: :library, icon: "grid_view", screen: Kati.Screens.Library},
+    %{id: :stats, icon: "bar_chart_4_bars", screen: Kati.Screens.Stats}
   ]
 
-  def roots, do: @roots
+  @doc """
+  The four roots, with their labels in the reader's own language.
+
+      iex> Kati.Shell.roots() |> Enum.map(& &1.label)
+      ["Home", "Calendar", "Library", "Stats"]
+
+  `Kati.Screens.Fa.roots/0` is the Persian half and is the LAST thing #103's
+  fold deletes: it names four mirrors, so it survives until all four have
+  folded and then goes with them. These four labels are what it will not need.
+  """
+  def roots, do: Enum.map(@roots, &Map.put(&1, :label, Kati.Shell.label(&1.id)))
+
+  @doc false
+  @spec label(atom()) :: String.t()
+  def label(:calendar), do: gettext("Calendar")
+  def label(:library), do: gettext("Library")
+  def label(:stats), do: gettext("Stats")
+  def label(_home), do: gettext("Home")
 
   def screen_for(id), do: Enum.find(@roots, &(&1.id == id)).screen
 
